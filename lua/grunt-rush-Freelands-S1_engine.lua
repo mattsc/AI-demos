@@ -1,0 +1,1862 @@
+return {
+    init = function(ai)
+
+        local grunt_rush_FLS1 = {}
+        -- Specialized grunt rush for Freelands map, Side 1 only
+
+        local H = wesnoth.require "lua/helper.lua"
+        local W = H.set_wml_action_metatable {}
+        local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
+        local LS = wesnoth.require "lua/location_set.lua"
+        local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
+
+        -- This is customized for Northerners on Freelands, playing Side 1
+
+        function grunt_rush_FLS1:hp_ratio(my_units, enemies)
+            -- Hitpoint ratio of own units / enemy units
+            -- If arguments are not given, use all units on the side
+            if (not my_units) then 
+                my_units = wesnoth.get_units { side = wesnoth.current.side }
+            end
+            if (not enemies) then
+                enemies = wesnoth.get_units {
+                    { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+                }
+            end
+
+            local my_hp, enemy_hp = 0, 0
+            for i,u in ipairs(my_units) do my_hp = my_hp + u.hitpoints end
+            for i,u in ipairs(enemies) do enemy_hp = enemy_hp + u.hitpoints end
+
+            --print('HP ratio:', my_hp / (enemy_hp + 1e-6)) -- to avoid div by 0
+            return my_hp / (enemy_hp + 1e-6)
+        end
+
+        function grunt_rush_FLS1:full_offensive()
+            -- Returns true if the conditions to go on all-out offensive are met
+            -- 1. If Turn >= 16 and HP ratio > 1.5
+            -- 2. IF HP ratio > 2 under all circumstance (well, starting from Turn 3, to avoid problems at beginning)
+
+            if (self:hp_ratio() > 1.5) and (wesnoth.current.turn >= 16) then return true end
+            if (self:hp_ratio() > 2.0) and (wesnoth.current.turn >= 3) then return true end
+            return false
+        end
+
+        function grunt_rush_FLS1:hold_position(units, goal, tod_y_factor)
+            -- Set up a defensive position at (goal.x, goal.y) using 'units'
+            -- goal should be a village or an otherwise strong position, or this doesn't make sense
+            -- tod_y_factor: whether position holding should be inverted at night
+
+            -- If this is a village, we try to hold the position itself,
+            -- otherwise just set up position around it
+            local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(goal.x, goal.y)).village
+
+            -- If a unit is there already, simply hold the position
+            -- Later we can add something for switching it for a better unit, if desired
+            if is_village then
+                local unit_at_goal = wesnoth.get_unit(goal.x, goal.y)
+                if unit_at_goal and (unit_at_goal.side == wesnoth.current.side) and (unit_at_goal.moves > 0) then
+                    ai.stopunit_moves(unit_at_goal)
+                    return
+                end
+
+                -- If we got here, we'll check if one of our units can get to the goal
+                -- If so, we take the strongest and farthest away
+                local max_rating, best_unit = -9e99, {}
+                if (not unit_at_goal) then
+                    for i,u in ipairs(units) do
+                        local path, cost = wesnoth.find_path(u, goal.x, goal.y)
+                        if (cost <= u.moves) then
+                            local rating = u.hitpoints + H.distance_between(u.x, u.y, goal.x, goal.y) / 100.
+                            if (rating > max_rating) then
+                                max_rating, best_unit = rating, u
+                            end
+                        end
+                    end
+                end
+                if max_rating > -9e99 then
+                    AH.movefull_stopunit(ai, best_unit, goal)
+                    return
+                end
+           end
+
+            -- At this point, if it were possible to get a unit to the goal, it would have happened
+            -- (or the goal is not a village)
+            -- Split up units into those that can get within one move of goal, and those that cannot
+            local far_units, close_units = {}, {}
+            for i,u in ipairs(units) do
+                local path, cost = wesnoth.find_path(u, goal.x, goal.y, { ignore_units = true } )
+                if (cost < u.moves * 2) then
+                    table.insert(close_units, u)
+                else                    
+                    table.insert(far_units, u)
+                end
+            end
+            --print('#far_units, #close_units', #far_units, #close_units)
+
+            -- At this point, if there's an enemy at the goal hex, need to find a different goal
+            if unit_at_goal and (unit_at_goal.side ~= wesnoth.current.side) then
+                goal.x, goal.y = wesnoth.find_vacant_tile(goal.x, goal.y)
+            end
+
+            -- The close units are moved first
+            if close_units[1] then
+                local max_rating, best_hex, best_unit = -9e99, {}, {}
+                for i,u in ipairs(close_units) do
+                    local reach_map = AH.get_reachable_unocc(u)
+                    reach_map:iter( function(x, y, v)
+                        local rating = 0
+                        local dist = H.distance_between(x, y, goal.x, goal.y)
+                        if (dist <= 1) or (y > goal.y + 1) then rating = rating - 1000 end
+                        rating = rating - dist
+
+                        local x1, y1 = u.x, u.y
+                        wesnoth.extract_unit(u)
+                        u.x, u.y = x, y
+                        local path, cost = wesnoth.find_path(u, goal.x, goal.y, { ignore_units = true } )
+                        wesnoth.put_unit(x1, y1, u)
+                        if cost > u.moves then rating = rating - 1000 end
+
+                        -- Small bonus if this is on a village
+                        local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
+                        if is_village then rating = rating + 2.1 end
+
+                        -- Take northern and eastern units first
+                        rating = rating - u.y - u.x / 2.
+
+                        local defense = 100 - wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))
+                        rating = rating + defense / 3.
+
+                        local y_factor = 1.
+                        if tod_y_factor then
+                            local tod = wesnoth.get_time_of_day()
+                            if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
+                                y_factor = -2
+                            end
+                        end
+
+                        rating = rating + y * y_factor
+
+                        if (rating > max_rating) then
+                            max_rating, best_hex, best_unit = rating, { x, y }, u
+                        end
+                    end)
+                end
+
+                --W.message { speaker = best_unit.id, message = 'Moving close unit' }
+                AH.movefull_stopunit(ai, best_unit, best_hex)
+                return
+            end
+
+            -- Then the far units
+
+            local enemies = wesnoth.get_units {
+                { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
+            }
+            local enemy_attack_map = AH.attack_map(enemies, { moves = 'max' })
+
+            if far_units[1] then
+                local max_rating, best_hex, best_unit = -9e99, {}, {}
+                for i,u in ipairs(far_units) do
+
+                    local next_hop = AH.next_hop(u, goal.x, goal.y)
+                    if (not next_hop) then next_hop = { goal.x, goal.y } end
+
+                    -- Is there a threat on the next_hop position?
+                    -- If so, take terrain into account (for all hexes for that unit)
+                    local enemy_threat = enemy_attack_map:get(next_hop[1], next_hop[2])
+                    if (not enemy_threat) then enemy_threat = 0 end
+
+                    local reach_map = AH.get_reachable_unocc(u)
+                    reach_map:iter( function(x, y, v)
+                        local rating = - H.distance_between(x, y, next_hop[1], next_hop[2])
+
+                        if enemy_threat > 1 then
+                            -- Small bonus if this is on a village
+                            local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
+                            if is_village then rating = rating + 1.1 end
+
+                            local defense = 100 - wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))
+                            rating = rating + defense / 9.
+                        end
+
+                        -- However, if 3 or more enemies can get there, strongly disfavor this
+                        if enemy_threat > 2 then
+                            rating = rating - 1000 * enemy_threat
+                        end
+
+                        -- Take northern and eastern units last
+                        rating = rating + u.y + u.x / 2.
+
+                        if (rating > max_rating) then
+                            max_rating, best_hex, best_unit = rating, { x, y }, u
+                        end
+                    end)
+                end
+
+                if (max_rating > -9e99) then
+                    --W.message { speaker = best_unit.id, message = 'Moving far unit ' .. goal.x .. ',' .. goal.y }
+                    AH.movefull_stopunit(ai, best_unit, best_hex)
+                    return
+                end
+            end
+        end
+
+        function grunt_rush_FLS1:get_attack_with_retaliation(unit)
+            -- Return best attack for 'unit', if retaliation on next enemy turn will definitely not kill it
+            -- Returns the best attack, or otherwise nil
+
+            local attacks = AH.get_attacks({unit})
+
+            if (not attacks[1]) then return end
+            --print('#attacks',#attacks,ids)
+            --DBG.dbms(attacks)
+
+            -- All enemy units
+            local enemies = wesnoth.get_units {
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+            }
+
+            -- For retaliation calculation:
+            -- Find all hexes enemies can attack on their next turn
+
+            -- Need to take units with MP off the map for this
+            local units_MP = wesnoth.get_units { side = unit.side, canrecruit = 'no', 
+                formula = '$this_unit.moves > 0'
+            }
+            for iu,uMP in ipairs(units_MP) do wesnoth.extract_unit(uMP) end
+
+            local enemy_attacks = {}
+            for i,e in ipairs(enemies) do
+                local attack_map = AH.get_reachable_attack_map(e, {moves = "max"})
+                table.insert(enemy_attacks, { enemy = e, attack_map = attack_map })
+            end
+
+            for iu,uMP in ipairs(units_MP) do wesnoth.put_unit(uMP.x, uMP.y, uMP) end
+
+            -- Set up a retaliation table, as many pairs of attacks will be the same (for speed reasons)
+            local retal_table = {}
+
+            -- Now evaluate every attack
+            local max_rating, best_attack = -9e99, {}
+            for i,a in pairs(attacks) do
+                --print('  chance to die:',a.att_stats.hp_chance[0])
+
+                -- Only consider if there is no chance to die or to be poisoned or slowed
+                if ((a.att_stats.hp_chance[0] == 0) and (a.att_stats.poisoned == 0) and (a.att_stats.slowed == 0)) then
+
+                    -- Get maximum possible retaliation possible by enemies on next turn
+                    local max_retal = 0
+
+                    for j,ea in ipairs(enemy_attacks) do
+                        local can_attack = ea.attack_map:get(a.x, a.y)
+                        if can_attack then
+
+                            -- Check first if this attack combination has already been calculated
+                            local str = (a.att_loc.x + a.att_loc.y * 1000) .. '-' .. (a.def_loc.x + a.def_loc.y * 1000)
+                            --print(str)
+                            if retal_table[str] then  -- If so, use saved value
+                                --print('    retal already calculated: ',str,retal_table[str])
+                                max_retal = max_retal + retal_table[str]
+                            else  -- if not, calculate it and save value
+                                -- Go thru all weapons, as "best weapon" might be different later on
+                                local n_weapon = 0
+                                local min_hp = unit.hitpoints
+                                for weapon in H.child_range(ea.enemy.__cfg, "attack") do
+                                    n_weapon = n_weapon + 1
+
+                                    -- Terrain does not matter for this, we're only interested in the maximum damage
+                                    local att_stats, def_stats = wesnoth.simulate_combat(ea.enemy, n_weapon, unit)
+
+                                    -- Find minimum HP of our unit
+                                    -- find the minimum hp outcome
+                                    -- Note: cannot use ipairs() because count starts at 0
+                                    local min_hp_weapon = unit.hitpoints
+                                    for hp,chance in pairs(def_stats.hp_chance) do
+                                        if ((chance > 0) and (hp < min_hp_weapon)) then
+                                            min_hp_weapon = hp
+                                        end
+                                    end
+                                    if (min_hp_weapon < min_hp) then min_hp = min_hp_weapon end
+                                end
+                                --print('    min_hp:',min_hp, ' max damage:',unit.hitpoints-min_hp)
+                                max_retal = max_retal + unit.hitpoints - min_hp
+                                retal_table[str] = unit.hitpoints - min_hp
+                            end
+                        end
+                    end
+                    --print('  max retaliation:',max_retal)
+
+                    -- and add this to damage possible on this attack
+                    -- Note: cannot use ipairs() because count starts at 0
+                    local min_hp = 1000
+                    for hp,chance in pairs(a.att_stats.hp_chance) do
+                        --print(hp,chance)
+                        if ((chance > 0) and (hp < min_hp)) then
+                            min_hp = hp
+                        end
+                    end
+                    local min_outcome = min_hp - max_retal
+                    --print('  min hp this attack:',min_hp)
+                    --print('  ave hp defender:   ',a.def_stats.average_hp)
+                    --print('  min_outcome',min_outcome)
+
+                    -- If this is >0, consider the attack
+                    if (min_outcome > 0) then
+                        local rating = min_outcome + a.att_stats.average_hp - a.def_stats.average_hp
+
+                        local attack_defense = 100 - wesnoth.unit_defense(unit, wesnoth.get_terrain(a.x, a.y))
+                        rating = rating + attack_defense / 10.
+
+                        if unit.canrecruit then
+                            if wesnoth.get_terrain_info(wesnoth.get_terrain(a.x, a.y)).keep then
+                                rating = rating + 5
+                            end
+                        end
+
+
+                        --print('  rating:',rating,'  min_outcome',min_outcome)
+                        if (rating > max_rating) then
+                            max_rating, best_attack = rating, a
+                        end
+                    end
+
+                end
+            end
+            --print('Max_rating:', max_rating)
+
+            if (max_rating > -9e99) then return best_attack end
+        end
+
+        ------ Stats at beginning of turn -----------
+
+        -- This will be blacklisted after first execution each turn
+        function grunt_rush_FLS1:stats_eval()
+            local score = 999999
+            return score
+        end
+
+        function grunt_rush_FLS1:stats_exec()
+            local tod = wesnoth.get_time_of_day()
+            print(' Beginning of Turn ' .. wesnoth.current.turn .. ' (' .. tod.name ..') stats:')
+
+            for i,s in ipairs(wesnoth.sides) do
+                local total_hp = 0
+                local units = wesnoth.get_units { side = s.side }
+                for i,u in ipairs(units) do total_hp = total_hp + u.hitpoints end
+                print('   Player ' .. s.side .. ': ' .. #units .. ' Units with total HP: ' .. total_hp)
+            end
+            if self:full_offensive() then print(' Full offensive mode (mostly done by RCA AI)') end
+        end
+
+        ------ Reset variables at beginning of turn -----------
+
+        -- This will be blacklisted after first execution each turn
+        function grunt_rush_FLS1:reset_vars_eval()
+            -- Probably not necessary, just a safety measure
+            local score = 999998
+            return score
+        end
+
+        function grunt_rush_FLS1: reset_vars_exec()
+            --print(' Resetting variables at beginning of Turn ' .. wesnoth.current.turn)
+            
+            self.data.leader_attack = nil
+        end
+
+        ------ Hard coded -----------
+
+        function grunt_rush_FLS1:hardcoded_eval()
+            local score = 500000
+
+            -- To make sure we have a wolf rider and a grunt in the right positions on Turn 1
+
+            if (wesnoth.current.turn == 1) then
+                local unit = wesnoth.get_unit(17,5)
+                if (not unit) then return score end
+            end
+
+            -- Move 2 units to the left
+            if (wesnoth.current.turn == 2) then
+                local unit = wesnoth.get_unit(17,5)
+                if unit and (unit.moves >=5) then return score end
+            end
+
+            -- Move 3 move the wolf rider
+            if (wesnoth.current.turn == 3) then
+                local unit = wesnoth.get_unit(12,2)
+                if unit and (unit.moves >=5) then return score end
+            end
+            return 0
+        end
+
+        function grunt_rush_FLS1:hardcoded_exec()
+            if (wesnoth.current.turn == 1) then
+                ai.recruit('Orcish Grunt', 17, 5)
+                ai.recruit('Wolf Rider', 18, 4)
+                ai.recruit('Orcish Assassin', 20, 4)
+            end
+            if (wesnoth.current.turn == 2) then
+                ai.move_full(17, 5, 12, 5)
+                ai.move_full(18, 4, 12, 2)
+                ai.move_full(20, 4, 24, 7)
+            end
+            if (wesnoth.current.turn == 3) then
+                ai.move_full(12, 2, 11, 9)
+            end
+        end
+
+        ------ Move leader to keep -----------
+
+        function grunt_rush_FLS1:move_leader_to_keep_eval()
+            local score = 480000
+
+            -- Move of leader to keep is done by hand here
+            -- as we want him to go preferentially to (18,4) not (19.4)
+
+            local leader = wesnoth.get_units{ side = wesnoth.current.side, canrecruit = 'yes',
+                formula = '$this_unit.attacks_left > 0'
+            }[1]
+
+            if (not leader) then return 0 end
+
+            local keeps = { { 18, 4 }, { 19, 4 } }  -- keep hexes in order of preference
+
+            -- We move the leader to the keep if
+            -- 1. It's available
+            -- 2. The leader can get there in one move
+            for i,k in ipairs(keeps) do
+                if (leader.x ~= k[1]) or (leader.y ~= k[2]) then
+                    local unit_in_way = wesnoth.get_unit(k[1], k[2])
+                    if (not unit_in_way) then
+                        local next_hop = AH.next_hop(leader, k[1], k[2])
+                        if next_hop and (next_hop[1] == k[1]) and (next_hop[2] == k[2]) then
+                            self.data.leader = leader
+                            self.data.leader_move = { k[1], k[2] }
+                            return score
+                        end
+                    end
+                else -- If the leader already is on the keep, don't consider lesser priority ones
+                    return 0
+                end
+            end
+
+            return 0
+        end
+
+        function grunt_rush_FLS1:move_leader_to_keep_exec()
+            -- This has to be a partial move !!
+            ai.move(self.data.leader, self.data.leader_move[1], self.data.leader_move[2])
+            self.data.leader, self.data.leader_move = nil, nil
+        end
+
+        ------ Retreat injured units -----------
+
+        function grunt_rush_FLS1:retreat_injured_units_eval()
+            local score = 470000
+
+            -- Find very injured units and move them to a village, if possible
+	    local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no',
+	        formula = '$this_unit.moves > 0'
+	    }
+
+            -- Pick units that have less that 16 HP
+            -- with poisoning counting as -8 HP and slowed as -4
+            local min_hp = 12  -- minimum HP before sending unit to village
+            local healees = {}
+            for i,u in ipairs(units) do
+                local hp_eff = u.hitpoints
+                if (hp_eff < min_hp + 8) then
+                    if H.get_child(u.__cfg, "status").poisoned then hp_eff = hp_eff - 8 end
+                end
+                if (hp_eff < min_hp + 4) then
+                    if H.get_child(u.__cfg, "status").slowed then hp_eff = hp_eff - 4 end
+                end
+                if (hp_eff < min_hp) then
+                    table.insert(healees, u)
+                end
+            end
+            --print('#healees', #healees)
+            if (not healees[1]) then return 0 end
+
+	    local villages = wesnoth.get_locations { terrain = "*^V*" }
+            --print('#villages', #villages)
+
+            -- Only retreat to safe villages
+            local enemies = wesnoth.get_units {
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+            }
+            local enemy_attack_map = AH.attack_map(enemies, { moves = 'max' })
+
+            local max_rating, best_village, best_unit = -9e99, {}, {}
+
+            for i,v in ipairs(villages) do
+                local unit_in_way = wesnoth.get_unit(v[1], v[2])
+                if (not unit_in_way) then
+                    --print('Village available:', v[1], v[2])
+                    for i,u in ipairs(healees) do
+                        local next_hop = AH.next_hop(u, v[1], v[2])
+                        if next_hop and (next_hop[1] == v[1]) and (next_hop[2] == v[2]) then
+                            --print('  can be reached by', u.id, u.x, u.y)
+                            local rating = - u.hitpoints + u.max_hitpoints / 2.
+
+                            if H.get_child(u.__cfg, "status").poisoned then rating = rating + 8 end
+                            if H.get_child(u.__cfg, "status").slowed then rating = rating + 4 end
+
+                            -- villages in the north are preferable (since they are supposedly away from the enemy)
+                            rating = rating - v[2]
+
+                            if (rating > max_rating) and ((enemy_attack_map:get(v[1], v[2]) or 0) <= 1 ) then
+                                max_rating, best_village, best_unit = rating, v, u
+                            end
+                        end
+                    end
+                end
+            end
+
+            if (max_rating > -9e99) then
+                self.data.retreat_unit, self.data.retreat_village = best_unit, best_village
+                return score
+            end
+
+            return 0
+        end
+
+        function grunt_rush_FLS1:retreat_injured_units_exec()
+            --W.message { speaker = self.data.retreat_unit.id, message = 'Retreating to village' }
+            AH.movefull_stopunit(ai, self.data.retreat_unit, self.data.retreat_village)
+            self.data.retreat_unit, self.data.retreat_village = nil, nil
+        end
+
+        ------ Attack by leader flag -----------
+
+        function grunt_rush_FLS1:set_attack_by_leader_flag_eval()
+            -- Sets a variable when attack by leader is imminent.
+            -- In that case, recruiting needs to be done first
+            local score = 460010
+
+            -- We also add here (and, in fact, evaluate first) possible attacks by the leader
+            -- Rate them very conservatively
+            -- If leader can die this turn on or next enemy turn, it is not done, even if _really_ unlikely
+
+            local leader = wesnoth.get_units{ side = wesnoth.current.side, canrecruit = 'yes',
+                formula = '$this_unit.attacks_left > 0'
+            }[1]
+
+            -- Only consider attack by leader if he is on the keep, so that he doesn't wander off
+            if leader and wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep then
+                local best_attack = self:get_attack_with_retaliation(leader)
+                if best_attack and
+                    (not wesnoth.get_terrain_info(wesnoth.get_terrain(best_attack.x, best_attack.y)).keep)
+                then
+                    return score
+                end
+            end
+        end
+
+        function grunt_rush_FLS1:set_attack_by_leader_flag_exec()
+            self.data.leader_attack = true
+            print('Setting leader attack in attack_by_leader_flag_exec()')
+        end
+
+        ------ Attack leader threats -----------
+
+        function grunt_rush_FLS1:attack_leader_threat_eval()
+            local score = 460000
+
+            -- Attack enemies that have made it too far north
+            -- They don't have to be within reach of leader yet, but those get specific priority
+
+            -- We also add here (and, in fact, evaluate first) possible attacks by the leader
+            -- Rate them very conservatively
+            -- If leader can die this turn on or next enemy turn, it is not done, even if _really_ unlikely
+
+            local leader = wesnoth.get_units{ side = wesnoth.current.side, canrecruit = 'yes',
+                formula = '$this_unit.attacks_left > 0'
+            }[1]
+
+            -- Only consider attack by leader if he is on the keep, so that he doesn't wander off
+            if leader and wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep then
+                local best_attack = self:get_attack_with_retaliation(leader)
+                if best_attack then
+                    self.data.best_attack = best_attack
+                    return score
+                end
+            end
+
+            -- If we got here, that means no suitable attack was found for the leader
+            -- So we look into attacks by the other units
+            local enemies = wesnoth.get_units { x = '1-16,17-37', y = '1-7,1-10',
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+            }
+            if (not enemies[1]) then return 0 end
+
+            local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no', 
+                formula = '$this_unit.attacks_left > 0'
+            }
+            if (not units[1]) then return 0 end
+
+            local units_MP = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no', 
+                formula = '$this_unit.moves > 0'
+            }
+
+            -- Now check if attacks on any of these units is possible
+            local attacks = AH.get_attacks_occupied(units)
+            if (not attacks[1]) then return 0 end
+
+            local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+
+            local max_rating, best_attack = -9e99, {}
+            for i,a in ipairs(attacks) do
+                for j,e in ipairs(enemies) do
+                    if (a.def_loc.x == e.x) and (a.def_loc.y == e.y) then
+                        local attacker = wesnoth.get_unit(a.att_loc.x, a.att_loc.y)
+
+                        local damage = attacker.hitpoints - a.att_stats.average_hp
+                        local enemy_damage = e.hitpoints - a.def_stats.average_hp
+
+                        local rating = enemy_damage * 4 - damage * 2 
+                        rating = rating + a.att_stats.average_hp - 2 * a.def_stats.average_hp
+                        rating = rating + a.def_stats.hp_chance[0] * 50
+                        rating = rating - a.att_stats.hp_chance[0] * 50
+                        --print(attacker.id, e.id, rating, damage, enemy_damage)
+
+                        -- The farther north and west the unit is, the better
+                        local pos_north = - (a.att_loc.x + a.att_loc.y) * 3
+                        rating = rating + pos_north
+
+                        -- Minor penalty if unit needs to be moves out of the way
+                        -- This is essentially just to differentiate between otherwise equal attacks
+                        if a.attack_hex_occupied then rating = rating - 0.1 end
+
+                        -- Also position ourselves in between enemy and leader
+                        rating = rating - H.distance_between(a.x, a.y, leader.x, leader.y)
+
+                        local attack_defense = 100 - wesnoth.unit_defense(attacker, wesnoth.get_terrain(a.x, a.y))
+                        rating = rating + attack_defense / 9.
+
+                        -- Large bonus if this is on a village
+                        local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(a.x, a.y)).village
+                        if is_village then rating = rating + 100 end
+
+                        -- Also somewhat of a bonus if the enemy is on a village
+                        local enemy_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(a.def_loc.x, a.def_loc.y)).village
+                        if enemy_on_village then rating = rating + 10 end
+
+                        -- Closeness of enemy to leader is most important
+                        -- Need to set enemy moves to max_moves for this
+                        -- and only consider own units without moves as blockers
+                        local moves = e.moves
+                        e.moves = e.max_moves
+
+                        wesnoth.extract_unit(leader)
+                        for iu,uMP in ipairs(units_MP) do wesnoth.extract_unit(uMP) end
+                        local path, cost = wesnoth.find_path(e, leader.x, leader.y)
+                        for iu,uMP in ipairs(units_MP) do wesnoth.put_unit(uMP.x, uMP.y, uMP) end
+                        wesnoth.put_unit(leader)
+
+                        e.moves = moves
+                        local steps = math.ceil(cost / e.max_moves)
+
+                        -- We only attack each enemy with 2 units max
+                        -- (High CTK targets are taken care of by separate CA right befoew this one)
+                        local already_attacked_twice = false
+                        local xy_turn = e.x * 1000. + e.y + wesnoth.current.turn / 1000.
+                        if self.data[xy_turn] and (self.data[xy_turn] >= 2) then
+                            already_attacked_twice = true
+                        end
+                        --print('  already_attacked_twice', already_attacked_twice, e.x, e.y, xy_turn, self.data[xy_turn])
+
+                        -- Not a very clean way of doing this, clean up later !!!!
+                        if already_attacked_twice then rating = -9.9e99 end  -- the 9.9 here is intentional !!!!
+
+                        -- Distance from AI leader rating
+                        if (steps == 1) then
+                            -- If the enemy is within reach of leader, attack with high preference and unconditionally
+                            rating = rating + 1000
+                        else
+                            -- Otherwise only attack if you can do more damage than the enemy
+                            -- and only if our unit has more than 20 HP
+                            -- and only if the unit is not too far east
+                            -- except at night
+
+                            local tod = wesnoth.get_time_of_day()
+                            if (tod.id ~= 'first_watch') and (tod.id ~= 'second_watch') then
+                                if ((attacker.hitpoints - a.att_stats.average_hp) >= (e.hitpoints - a.def_stats.average_hp))
+                                    or (attacker.hitpoints < 20) or ((attacker.x >= 24) and (attacker.y >= 10))
+                                then
+                                    rating = -9e99
+                                end
+                            end
+                        end
+
+                        --print('    rating:', rating, attacker.id, e.id)
+                        if (rating > max_rating) then
+                            max_rating, best_attack = rating, a
+                        end
+                    end
+                end
+            end
+
+            if (max_rating > -9e99) then
+                self.data.best_attack = best_attack
+                return score
+            end
+            return 0
+        end
+
+        function grunt_rush_FLS1:attack_leader_threat_exec()
+
+            local attacker = wesnoth.get_unit(self.data.best_attack.att_loc.x, self.data.best_attack.att_loc.y)
+            local defender = wesnoth.get_unit(self.data.best_attack.def_loc.x, self.data.best_attack.def_loc.y)
+
+            -- If there's a unit in the way, need to move it off again
+            -- get_attacks() checked that that is possible
+            if self.data.best_attack.attack_hex_occupied then
+                local unit_in_way = wesnoth.get_unit(self.data.best_attack.x, self.data.best_attack.y)
+                --W.message { speaker = unit_in_way.id, message = 'Moving out of way' }
+                AH.move_unit_out_of_way(ai, unit_in_way, { dx = 0.5, dy = -0.1 })
+            end
+
+            -- Counter for how often this unit was attacked this turn
+            local xy_turn = defender.x * 1000. + defender.y + wesnoth.current.turn / 1000.
+            if (not self.data[xy_turn]) then
+                self.data[xy_turn] = 1
+            else
+                self.data[xy_turn] = self.data[xy_turn] + 1
+            end
+            --print('Attack number on this unit this turn:', self.data[xy_turn])
+
+            --W.message {speaker=attacker.id, message="Attacking leader threat" }
+
+            AH.movefull_stopunit(ai, attacker, self.data.best_attack)
+            ai.attack(attacker, defender)
+            self.data.best_attack = nil
+
+            -- Can be done whether it was the leader who attacked or not:
+            self.data.leader_attack = nil
+        end
+
+        ------ Attack with high CTK -----------
+
+        function grunt_rush_FLS1:attack_weak_enemy_eval()
+            local score = 462000
+
+            -- Attack any enemy where the chance to kill is > 60%
+            -- or if it's the enemy leader under all circumstances
+
+            -- Check if there are units with attacks left
+            local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no', 
+                formula = '$this_unit.attacks_left > 0'
+            }
+            if (not units[1]) then return 0 end
+
+            local enemy_leader = wesnoth.get_units { canrecruit = 'yes',
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+            }[1]
+
+            -- First check if attacks with >= 60% CTK are possible for any unit
+            -- and that AI unit cannot die
+            local attacks = AH.get_attacks_occupied(units)
+
+            for i,a in ipairs(attacks) do
+                if ( (a.def_loc.x == enemy_leader.x) and (a.def_loc.y == enemy_leader.y) and (a.def_stats.hp_chance[0] < 0) )
+                    or ( (a.def_stats.hp_chance[0] >= 0.60) and (a.att_stats.hp_chance[0] == 0) )
+                then return score end
+            end
+            return 0
+        end
+
+        function grunt_rush_FLS1:attack_weak_enemy_exec()
+            --print('Executing high CTK attack')
+            local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no', 
+                formula = '$this_unit.attacks_left > 0'
+            }
+            local enemy_leader = wesnoth.get_units { canrecruit = 'yes',
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+            }[1]
+
+            local attacks = AH.get_attacks_occupied(units)
+            local max_rating, best_attack = -9e99, {}
+            for i,a in ipairs(attacks) do
+                if ( (a.def_loc.x == enemy_leader.x) and (a.def_loc.y == enemy_leader.y) and (a.def_stats.hp_chance[0] > 0) )
+                    or ( (a.def_stats.hp_chance[0] >= 0.60) and (a.att_stats.hp_chance[0] == 0) )
+                then
+                    local attacker = wesnoth.get_unit(a.att_loc.x, a.att_loc.y)
+
+                    local rating = a.att_stats.average_hp - 2 * a.def_stats.average_hp
+                    rating = rating + a.def_stats.hp_chance[0] * 50
+
+                    rating = rating - (attacker.max_experience - attacker.experience) / 3.  -- the close to leveling the unit is, the better
+
+                    local attack_defense = 100 - wesnoth.unit_defense(attacker, wesnoth.get_terrain(a.x, a.y))
+                    rating = rating + attack_defense / 100.
+                    --print('    rating:', rating, a.x, a.y)
+
+                    if (a.def_loc.x == enemy_leader.x) and (a.def_loc.y == enemy_leader.y) and (a.def_stats.hp_chance[0] > 0)
+                    then rating = rating + 1000 end
+
+                    -- Minor penalty if unit needs to be moves out of the way
+                    -- This is essentially just to differentiate between otherwise equal attacks
+                    if a.attack_hex_occupied then rating = rating - 0.1 end
+
+                    if (rating > max_rating) then
+                        max_rating, best_attack = rating, a
+                    end
+                end
+            end
+
+            -- If there's a unit in the way, need to move it off again
+            -- get_attacks() checked that that is possible
+            if best_attack.attack_hex_occupied then
+                local unit_in_way = wesnoth.get_unit(best_attack.x, best_attack.y)
+                --W.message { speaker = unit_in_way.id, message = 'Moving out of way' }
+                AH.move_unit_out_of_way(ai, unit_in_way, { dx = 0.5, dy = -0.1 })
+            end
+
+            local attacker = wesnoth.get_unit(best_attack.att_loc.x, best_attack.att_loc.y)
+            local defender = wesnoth.get_unit(best_attack.def_loc.x, best_attack.def_loc.y)
+            --W.message { speaker = attacker.id, message = "Attacking with high CTK" }
+            AH.movefull_stopunit(ai, attacker, best_attack)
+            ai.attack(attacker, defender)
+        end
+
+        -------- At night, attack village at 27, 16 -------------
+
+        function grunt_rush_FLS1:attack_village_eval()
+            local score = -420000
+     if 1 then return 0 end -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+            -- Only at night, we try to take the village at the goal coordinates
+
+            -- Skip this if AI is much stronger than enemy
+            if self:full_offensive() then return 0 end
+
+            local tod = wesnoth.get_time_of_day()
+            if (tod.id ~= 'first_watch') and (tod.id ~= 'second_watch') then return 0 end
+
+            local goal = { x = 27, y = 16 }
+
+            -- If there's no enemy there, nothing to do
+            local unit_at_goal = wesnoth.get_unit(goal.x, goal.y)
+            if not unit_at_goal then
+                return 0
+            else
+                if (unit_at_goal.side == wesnoth.current.side) then return 0 end
+            end
+
+            -- Finally, we need to figure out if any unit can attack here
+            local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no', 
+                formula = '$this_unit.attacks_left > 0'
+            }
+            if (not units[1]) then return 0 end
+
+            local attacks = AH.get_attacks(units)
+            --print('#attacks', #attacks)
+
+            for i,a in ipairs(attacks) do
+                if (a.def_loc.x == unit_at_goal.x) and (a.def_loc.y == unit_at_goal.y) then return score end
+            end
+
+            return 0
+        end
+
+        function grunt_rush_FLS1:attack_village_exec()
+
+            local goal = { x = 27, y = 16 }
+            local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no', 
+                formula = '$this_unit.attacks_left > 0'
+            }
+            local unit_at_goal = wesnoth.get_unit(goal.x, goal.y)
+            local attacks = AH.get_attacks(units)
+            --print('#attacks', #attacks)
+
+            local max_rating, best_attack = -9e99, {}
+            for i,a in ipairs(attacks) do
+                if (a.def_loc.x == unit_at_goal.x) and (a.def_loc.y == unit_at_goal.y) then
+
+                    local rating = a.att_stats.average_hp - 2 * a.def_stats.average_hp
+                    rating = rating + a.def_stats.hp_chance[0] * 50
+                    --print('    rating:', rating, a.x, a.y)
+
+                    if (rating > max_rating) then
+                        max_rating, best_attack = rating, a
+                    end
+                end
+            end
+
+            local attacker = wesnoth.get_unit(best_attack.att_loc.x, best_attack.att_loc.y)
+            --W.message { speaker = attacker.id, message = "Attacking village" }
+            AH.movefull_stopunit(ai, attacker, best_attack)
+            ai.attack(attacker, unit_at_goal)
+        end
+
+        ----------Grab villages -----------
+
+        function grunt_rush_FLS1:grab_villages_eval()
+            local score_high, score_low = 450000, 360000
+
+            -- Check if there are units with moves left
+            local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no', 
+                formula = '$this_unit.moves > 0'
+            }
+            if (not units[1]) then return 0 end
+
+            local enemies = wesnoth.get_units {
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+            }
+
+            local villages = wesnoth.get_locations { terrain = '*^V*' }
+            -- Just in case:
+            if (not villages[1]) then return 0 end
+
+            --print('#units, #enemies', #units, #enemies)
+
+            -- Now we check if a unit can get to a village
+            local max_rating, best_village, best_unit = 0, {}, {}  -- yes, want '0' here
+            for i,u in ipairs(units) do
+                for j,v in ipairs(villages) do
+                    local path, cost = wesnoth.find_path(u, v[1], v[2])
+
+                    local unit_in_way = wesnoth.get_unit(v[1], v[2])
+                    if unit_in_way then
+                        if (unit_in_way.id == u.id) then unit_in_way = nil end
+                    end
+
+                    -- Rate all villages that can be reached and are unoccupied by other units
+                    if (cost <= u.moves) and (not unit_in_way) then
+                        --print('Can reach:', u.id, v[1], v[2], cost)
+                        local rating = 0
+
+                        -- !!!!! Only positive ratings are allowed for this one !!!!!
+                        -- If an enemy can get onto the village, we want to hold it
+                        -- Need to take the unit itself off the map, as it might be sitting on the village itself (which then is not reachable by enemies)
+                        wesnoth.extract_unit(u)
+                        for k,e in ipairs(enemies) do
+                            local path_e, cost_e = wesnoth.find_path(e, v[1], v[2])
+                            if (cost_e <= e.max_moves) then 
+                                --print('  within enemy reach', e.id)
+                                rating = rating + 10
+                            end
+                        end
+                        wesnoth.put_unit(u.x, u.y, u)
+
+                        -- Unowned and enemy-owned villages get a large bonus
+                        -- but we do not seek them out specifically, as the standard CA does that
+                        -- That means, we only do the rest for villages that can be reached by an enemy
+                        local owner = wesnoth.get_village_owner(v[1], v[2])
+                        if (not owner) then
+                            rating = rating + 1000
+                        else
+                            if wesnoth.is_enemy(owner, wesnoth.current.side) then rating = rating + 2000 end
+                        end
+
+                        -- Grunts are needed elsewhere, so use other units first
+                        if (u.type ~= 'Orcish Grunt') then rating = rating + 1 end
+
+                        -- Finally, since these can be reached by the enemy, want the strongest unit to go first
+                        rating = rating + u.hitpoints / 100.
+
+                        -- A rating of 0 here means that a village can be reached, but is not interesting
+                        -- Thus, max_rating tart value is 0, which means don't go there
+                        -- Rating needs to be at least 10 to be interesting
+                        if (rating >=10) and (rating > max_rating)then
+                            max_rating, best_village, best_unit = rating, v, u
+                        end
+
+                        --print('  rating:', rating)
+                    end
+                end
+            end
+
+            --print('max_rating', max_rating)
+
+            if (max_rating >= 10) then
+                self.data.unit, self.data.village = best_unit, best_village
+                if (max_rating >= 1000) then
+                    return score_high
+                else
+                    return score_low
+                end
+            end
+            return 0
+        end
+
+        function grunt_rush_FLS1:grab_villages_exec()
+            AH.movefull_stopunit(ai, self.data.unit, self.data.village)
+            self.data.unit, self.data.village = nil, nil
+        end
+
+        --------- Protect Center ------------
+
+        function grunt_rush_FLS1:protect_center_eval()
+            local score = 352000
+
+            -- Move units to protect the center villages
+            local units_MP = wesnoth.get_units { side = wesnoth.current.side, x = '1-24', canrecruit = 'no',
+                formula = '$this_unit.moves > 0'
+            }
+            if (not units_MP[1]) then return 0 end
+
+            -- Skip this if AI is much stronger than enemy
+            if self:full_offensive() then return 0 end
+
+            local protect_loc = { x = 18, y = 9 }
+
+            --print('Considering center village')
+
+            -- Figure out how many enemies can get their, and count their total HP
+            local enemies = wesnoth.get_units {
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+            }
+
+            -- If there's one of AI's units on the village, take it off (for enemy path finding)
+            -- whether it has MP left or not
+            local unit_on_village = wesnoth.get_unit(protect_loc.x, protect_loc.y)
+            if unit_on_village and (unit_on_village.moves == 0) and (unit_on_village.side == wesnoth.current.side) then
+                wesnoth.extract_unit(unit_on_village)
+            end
+
+            -- Take all our own units with MP left off the map
+            for i,u in ipairs(units_MP) do wesnoth.extract_unit(u) end
+
+            local enemy_hp = 0
+            for i,e in ipairs(enemies) do
+                -- Add up hitpoints of enemy units that can get there
+                if AH.can_reach(e, protect_loc.x, protect_loc.y, { moves = 'max' }) then
+                    --print('Enemy can get there:', e.id, e.x, e.y)
+                    enemy_hp = enemy_hp + e.hitpoints
+                end
+            end
+            --print('Total enemy hitpoints:', enemy_hp)
+
+            -- Put our units back out there
+            for i,u in ipairs(units_MP) do wesnoth.put_unit(u.x, u.y, u) end
+            if unit_on_village and (unit_on_village.moves == 0) and (unit_on_village.side == wesnoth.current.side) then
+                wesnoth.put_unit(unit_on_village.x, unit_on_village.y, unit_on_village)
+            end
+
+            -- If no enemies can reach the village, return 0
+            if (enemy_hp == 0) then return 0 end
+            --print('Enemies that can reach center village found.  Total HP:', enemy_hp)
+
+            -- Now check whether we have enough defenders there already
+            local defenders = wesnoth.get_units { side = wesnoth.current.side, x = '17-22', y = '7-11',
+                formula = '$this_unit.moves = 0'
+            }
+            --print('#defenders', #defenders)
+            local defender_hp = 0
+            for i,d in ipairs(defenders) do defender_hp = defender_hp + d.hitpoints end
+            --print('Total defender hitpoints:', defender_hp)
+
+            -- Want at least half enemy_hp in the area
+            if (defender_hp <= 0.67 * enemy_hp) then 
+                --print('Moving units to protect center village')
+                return score
+            end
+            return 0
+        end
+
+        function grunt_rush_FLS1:protect_center_exec()
+            local units_MP = wesnoth.get_units { side = wesnoth.current.side, x = '1-24', canrecruit = 'no',
+                formula = '$this_unit.moves > 0'
+            }
+            local protect_loc = { x = 18, y = 9 }
+            self:hold_position(units_MP, protect_loc, false)
+        end
+
+        --------- Hold left ------------
+
+        function grunt_rush_FLS1:hold_left_eval()
+            local score = 351000
+
+            -- Move units to hold position on the left, depending on number of enemies there
+            -- Also move a goblin to the far-west village
+
+            -- Skip this if AI is much stronger than enemy
+            if self:full_offensive() then return 0 end
+
+            -- Get units on left and on keep, with and without movement left
+            local units_left = wesnoth.get_units { side = wesnoth.current.side, x = '1-15,16-20', y = '1-15,1-6',
+                canrecruit = 'no'
+            }
+            local units_MP, units_noMP, pillagers = {}, {}, {}
+            for i,u in ipairs(units_left) do
+                if (u.moves > 0) then
+                    table.insert(units_MP, u)
+                    if (u.x <= 15) then table.insert(pillagers, u) end
+                else
+                    -- Only those not on/around the keep count here
+                    -- And need to exclude the goblin (so that orc on village remains)
+                    if (u.x <= 15) and (u.__cfg.race ~= 'goblin') then 
+                        table.insert(units_noMP, u)
+                    end
+                end
+            end
+            -- If no unit in this part of the map can move, we're done
+            if (not units_MP[1]) then return 0 end
+
+            -- Check whether units on left can go pillaging
+            local enemies = wesnoth.get_units {
+                { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
+            }
+            local enemy_attack_map = AH.attack_map(enemies, { moves = 'max' })
+
+            -- If no more than 1 enemy can attack the village at 11,9, go pillaging
+            local enemy_threat = enemy_attack_map:get(11, 9)
+            if enemy_threat and (enemy_threat == 1) then enemy_threat = nil end
+            if (not enemy_threat) and pillagers[1] then
+                --print('Eval says: go pillaging in west')
+                return score
+            end
+
+            -- If there's a goblin, we send him out left first
+            local gobo = wesnoth.get_units { side = wesnoth.current.side, x = '1-20', y = '1-8',
+                race = 'goblin', formula = '$this_unit.moves > 0'
+            }
+            if gobo[1] then return score end
+
+            -- Otherwise check whether reinforcements are needed
+            local enemy_units_left = wesnoth.get_units { x = '1-15', y = '1-15',
+                { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
+            }
+            --print('#units_left, #units_MP, #units_noMP, #enemy_units_left', #units_left, #units_MP, #units_noMP, #enemy_units_left)
+
+            -- If units without moves on left are outnumbered (by HP), send some more over there
+            local hp_ratio_left = self:hp_ratio(units_noMP, enemy_units_left)
+            --print('Left HP ratio:', hp_ratio_left)
+
+            if (hp_ratio_left < 0.67) then return score end
+            return 0
+        end
+
+        function grunt_rush_FLS1:hold_left_exec()
+            -- Move goblin first, if there is one
+            -- There shouldn't be more than 1, so we just take the first we find
+
+            -- Check whether units on left can go pillaging
+            -- Get units on left and on keep, with and without movement left
+            local units_left = wesnoth.get_units { side = wesnoth.current.side, x = '1-15,16-20', y = '1-15,1-6',
+                canrecruit = 'no'
+            }
+            local pillagers = {}
+            for i,u in ipairs(units_left) do
+                if (u.moves > 0) then
+                    if (u.x <= 15) then table.insert(pillagers, u) end
+                end
+            end
+
+            local enemies = wesnoth.get_units {
+                { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
+            }
+            local enemy_attack_map = AH.attack_map(enemies, { moves = 'max' })
+
+            -- If no enemy can attack the village at 11,9, go pillaging
+            local enemy_threat = enemy_attack_map:get(11, 9)
+            if enemy_threat and (enemy_threat == 1) then enemy_threat = nil end
+            if (not enemy_threat) and pillagers[1] then
+                --print('  --> Exec: go pillaging in west')
+
+                local max_rating, best_hex, best_unit = -9e99, {}, {}
+                for i,u in ipairs(pillagers) do
+                    local reach_map = AH.get_reachable_unocc(u)
+                    reach_map:iter( function(x, y, v)
+                        local rating = y -- the farther south the better
+
+                        -- Take southern-most units first
+                        rating = rating + u.y
+
+                        -- If no enemy can get there -> no terrain rating
+                        -- This also favors terrain in direction of enemy
+                        local enemy_threat = enemy_attack_map:get(x, y)
+                        if (not enemy_threat) then enemy_threat = 0 end
+
+                        if enemy_threat > 0 then
+                            -- Small bonus if this is on a village
+                            local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
+                            if is_village then rating = rating + 1.1 end
+
+                            local defense = 100 - wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))
+                            rating = rating + defense / 9.
+                        end
+
+                        -- However, if 2 or more enemies can get there, strongly disfavor this
+                        if enemy_threat > 2 then
+                            rating = rating - 1000 * enemy_threat
+                        end
+
+                        if (rating > max_rating) then
+                            max_rating, best_hex, best_unit = rating, { x, y }, u
+                        end
+                    end)
+                end
+                --W.message { speaker = best_unit.id, message = 'Going pillaging in west' }
+                AH.movefull_stopunit(ai, best_unit, best_hex)
+                return  -- There might not be other units, need to go through eval again first
+            end
+
+            local gobo = wesnoth.get_units { side = wesnoth.current.side, x = '1-20', y = '1-8',
+                race = 'goblin', formula = '$this_unit.moves > 0'
+            }[1]
+
+            local goal = { x = 8, y = 5 }  -- far west village
+            if gobo then
+                -- First, if there's one of our units on the village, move it out of the way
+                local unit_in_way = wesnoth.get_unit(goal.x, goal.y)
+                if unit_in_way and (unit_in_way.moves > 0) and (unit_in_way.side == wesnoth.current.side) and (unit_in_way.__cfg.race ~= 'goblin') then
+                    local best_hex = AH.find_best_move(unit_in_way, function(x, y)
+                        local rating = -H.distance_between(x, y, goal.x, goal.y) + x/10.
+                        if (x == goal.x) and (y == goal.y) then rating = rating - 1000 end
+                        return rating
+                    end)
+                    --W.message { speaker = unit_in_way.id, message = 'Moving off the village' }
+                    ai.move(unit_in_way, best_hex[1], best_hex[2])
+                end
+
+                local best_hex = AH.find_best_move(gobo, function(x, y)
+                    return -H.distance_between(x, y, goal.x, goal.y) - y/10.
+                end)
+                --W.message { speaker = gobo.id, message = 'Moving gobo toward village; or keeping him there' }
+                AH.movefull_stopunit(ai, gobo, best_hex)
+                return  -- There might not be other units, need to go through eval again first
+            end
+
+            -- If we got here, we need to hold the position
+            --print('Sending unit left')
+            -- Get units on left and on keep, with and without movement left
+            local units_left = wesnoth.get_units { side = wesnoth.current.side, x = '1-15,16-20', y = '1-15,1-6',
+                canrecruit = 'no', formula = '$this_unit.moves > 0'
+            }
+            local goal = { x = 11, y = 9 }  -- southern-most of western villages
+            self:hold_position(units_left, goal, false)
+        end
+
+        --------- Grunt rush right ------------
+
+        function grunt_rush_FLS1:rush_right_eval()
+            local score = 350000
+
+            -- All remaining units (after 'hold_left' and previous events), head toward the village at 27,16
+
+            -- Skip this if AI is much stronger than enemy
+            if self:full_offensive() then return 0 end
+
+            local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no',
+                { "not", { x = '1-21', y = '12-25' } },
+                formula = '$this_unit.moves > 0'
+            }
+
+            if units[1] then return score end
+            return 0
+        end
+
+        function grunt_rush_FLS1:rush_right_exec()
+
+            local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no',
+                { "not", { x = '1-21', y = '12-25' } },
+                formula = '$this_unit.attacks_left > 0'
+            }
+            local enemies = wesnoth.get_units {
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+            }
+            --print('#units, #enemies', #units, #enemies)
+            local attack_map = AH.attack_map(units, { return_value = 'hitpoints' })
+            local enemy_attack_map = AH.attack_map(enemies, { moves = "max", return_value = 'hitpoints' })
+            --AH.put_labels(enemy_attack_map)
+
+            local hp_y, enemy_hp_y, hp_ratio = {}, {}, {}
+            local width, height = wesnoth.get_map_size()
+            for y = 10,height do
+                hp_y[y], enemy_hp_y[y] = 0, 0
+                for x = 25,width do
+                    local hp = attack_map:get(x,y) or 0
+                    if (hp > hp_y[y]) then hp_y[y] = hp end
+                    local enemy_hp = enemy_attack_map:get(x,y) or 0
+                    if (enemy_hp > enemy_hp_y[y]) then enemy_hp_y[y] = enemy_hp end
+                end
+                hp_ratio[y] = hp_y[y] / (enemy_hp_y[y] + 1e-6)
+            end
+            --wesnoth.clear_messages()
+            --DBG.dbms(hp_y)
+            --DBG.dbms(enemy_hp_y)
+            --print('\n')
+            --for y = 10,24 do print('y, hp_ratio', y, hp_ratio[y] or 0) end
+            --W.message { speaker = 'narrator', message = 'HP ratio' }
+
+            -- We'll do this step by step for easier experimenting
+            -- To be streamlined later
+            local tod = wesnoth.get_time_of_day()
+
+            local attack_y = 10
+            for y = attack_y,height do
+                --print(y, hp_ratio[y])
+
+                if (tod.id == 'morning') or (tod.id == 'afternoon') then
+                    if (hp_ratio[y] > 1.2) then attack_y = y end
+                end
+                if (tod.id == 'dusk') or (tod.id == 'dawn') then
+                    if (hp_ratio[y] > 0.9) then attack_y = y end
+                end
+                if (tod.id == 'first_watch') or (tod.id == 'second_watch') then
+                    if (hp_ratio[y] > 0.7) then attack_y = y end
+                end
+            end
+            --print('attack_y before', attack_y)
+
+            if (type(self.data.attack_y) ~= 'table') then self.data.attack_y = {} end
+            if self.data.attack_y[wesnoth.current.turn] and (self.data.attack_y[wesnoth.current.turn] > attack_y) then
+                attack_y = self.data.attack_y[wesnoth.current.turn]
+            else
+                self.data.attack_y[wesnoth.current.turn] = attack_y
+            end
+            --print('attack_y after', attack_y)
+
+            -- If a suitable attack_y was found, figure out what targets there might be
+            if (attack_y > 0) then
+                attack_y = attack_y + 1
+                --print('Looking for targets on right down to y = ' .. attack_y)
+
+                local enemies = wesnoth.get_units { x = '24-37,23-37,20-37', y='10-13,14-18,19-24',
+                    { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+                }
+                --print('#enemies all', #enemies)
+
+                -- Take out those too far south
+                for i=#enemies,1,-1 do
+                    if (enemies[i].y > attack_y) then table.remove(enemies, i) end
+                end
+                --print('#enemies filtered', #enemies)
+
+                -- Also want an 'attackers' array, indexed by position
+                local attackers = {}
+                for i,u in ipairs(units) do attackers[u.x * 1000 + u.y] = u end
+
+                local max_rating, best_combo, best_attacks_dst_src, best_enemy = -9e99, {}, {}, {}
+                for i,e in ipairs(enemies) do
+                    --print('\n', i, e.id)
+                    local attack_combos, attacks_dst_src = AH.get_attack_combos_no_order(units, e)
+                    --DBG.dbms(attack_combos)
+                    --DBG.dbms(attacks_dst_src)
+                    --print('#attack_combos', #attack_combos)
+
+                    local enemy_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(e.x, e.y)).village
+                    local enemy_cost = e.__cfg.cost
+
+                    for j,combo in ipairs(attack_combos) do
+                        local rating = 0
+                        local damage, damage_enemy = 0, 0
+
+                        -- Don't attack under certain circumstances
+                        local dont_attack = false
+
+                        for dst,src in pairs(combo) do
+                            local att = attacks_dst_src[dst][src]
+                            --print(j, dst, src, att.def_stats.average_hp, att.att_stats.hp_chance[0])
+
+                            damage_this_attack = attackers[src].hitpoints - att.att_stats.average_hp
+                            enemy_damage_this_attack = e.hitpoints - att.def_stats.average_hp
+
+                            damage = damage + damage_this_attack
+                            damage_enemy = damage_enemy + enemy_damage_this_attack
+
+                            if (att.att_stats.hp_chance[0] >= 0.5) then dont_attack = true end
+                            --if (att.def_stats.hp_chance[0] == 0) and (damage_this_attack > enemy_damage_this_attack * 2) then
+                            --    dont_attack = true
+                            --end
+                        end
+                        --print(' - damage', damage)
+                        --print(' - damage_enemy', damage_enemy)
+
+                        rating = rating + damage_enemy - damage / 2.
+
+                        -- If there's an average chance to kill, this is an additional bonus
+                        if (damage_enemy > e.hitpoints) then
+                            rating = rating + (damage_enemy - e.hitpoints) * 5.
+                        end
+
+                        -- Cost of enemy is another factor
+                        rating = rating + enemy_cost
+
+                        if enemy_on_village then rating = rating + 100 end
+
+                        --print(' -----------------------> rating', rating)
+                        if (not dont_attack) and (rating > max_rating) then
+                            max_rating, best_combo, best_attacks_dst_src, best_enemy = rating, combo, attacks_dst_src, e
+                        end
+                    end
+                end
+                --print('max_rating ', max_rating)
+                --DBG.dbms(best_combo)
+
+                -- Now we know which attack to do.  We need to find order in which units attack
+                -- But only if an attack was actually found, so that otherwise we go on to holding position part
+                if (max_rating > -9e99) then
+                    while best_combo and (table.maxn(best_combo) > 0) do
+                        local max_rating, best_attack = -9e99, {}
+                        for dst, src in pairs(best_combo) do
+                            local rating = 0
+
+                            local att = best_attacks_dst_src[dst][src]
+                            rating = rating + best_enemy.hitpoints - att.def_stats.average_hp
+                            rating = rating - (attackers[src].hitpoints - att.att_stats.average_hp) / 2.
+
+                            if (rating > max_rating) then
+                                max_rating, best_attack = rating, { dst = dst, src = src }
+                            end
+                        end
+                        --print('Best attack:', best_attack.dst, best_attack.src)
+                        --W.message { speaker = attackers[best_attack.src].id, message = 'Combo attack' }
+                        AH.movefull_stopunit(ai, attackers[best_attack.src], math.floor(best_attack.dst / 1000), best_attack.dst % 1000)
+                        ai.attack(attackers[best_attack.src], best_enemy)
+
+                        -- Delete this attack from the combo
+                        best_combo[best_attack.dst] = nil
+
+                        -- If enemy got killed, we need to stop here
+                        if (not best_enemy.valid) then best_combo = nil end
+                    end 
+
+                    return -- to force re-evaluation
+                end
+            end
+
+            -- If we got here, we should hold position on the right instead
+            --print('Holding position on right down to y = ' .. attack_y)
+            --W.message { speaker = 'narrator', message = 'Holding position on right down to y = ' .. attack_y }
+
+            -- Get all units with moves left (before was for those with attacks left)
+            local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no',
+                { "not", { x = '1-21', y = '12-25' } },
+                formula = '$this_unit.moves > 0'
+            }
+
+            -- If there's a village in the two rows around attack_y, make that the goal
+            -- Otherwise it's just { 27, attack_y }
+
+            if (attack_y > 22) then attack_y = 22 end
+            local goal = { x = 27, y = attack_y }
+            for y = attack_y - 1, attack_y + 1 do
+                for x = 23,34 do
+                    --print(x,y)
+                    local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
+                    if is_village then
+                        goal = { x = x, y = y }
+                        break
+                    end
+                end
+            end
+            --print('goal:', goal.x, goal.y)
+            self:hold_position(units, goal, false)
+        end
+
+        -----------Spread poison ----------------
+
+        function grunt_rush_FLS1:spread_poison_eval()
+            local score = 380000
+
+            -- If a unit with a poisoned weapon can make an attack, we'll do that preferentially
+            -- (with some exceptions)
+
+            -- Keep this for reference how it's done, but don't use now
+            -- local poisoners = wesnoth.get_units { side = wesnoth.current.side, 
+            --    formula = '$this_unit.attacks_left > 0', canrecruit = 'no',
+            --    { "filter_wml", {
+            --        { "attack", {
+            --            { "specials", {
+            --                { "poison", { } }
+            --            } }
+            --        } }
+            --    } }
+            --}
+
+            local attackers = wesnoth.get_units { side = wesnoth.current.side, 
+                formula = '$this_unit.attacks_left > 0', canrecruit = 'no' }
+
+            local poisoners, others = {}, {}
+            for i,a in ipairs(attackers) do
+                local is_poisoner = false
+                for att in H.child_range(a.__cfg, 'attack') do
+                    for sp in H.child_range(att, 'specials') do
+                        if H.get_child(sp, 'poison') then is_poisoner = true end
+                    end
+                end
+
+                if is_poisoner then
+                    table.insert(poisoners, a)
+                else
+                    table.insert(others, a)
+                end
+            end
+
+            --print('#poisoners, #others', #poisoners, #others)
+            if (not poisoners[1]) then return 0 end
+
+            local attacks = AH.get_attacks(poisoners)
+            --print('#attacks', #attacks)
+            if (not attacks[1]) then return 0 end
+
+            local other_attacks = AH.get_attacks(others)
+            --print('#other_attacks', #other_attacks)
+
+            -- For retaliation calculation:
+            local enemies = wesnoth.get_units {
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+            }
+            local enemy_attack_map = AH.attack_map(enemies, {moves = "max"})
+            --AH.put_labels(enemy_attack_map)
+
+            -- Go through all possible attacks with poisoners
+            local max_rating, best_attack = -9e99, {}
+            for i,a in ipairs(attacks) do
+                local attacker = wesnoth.get_unit(a.att_loc.x, a.att_loc.y)
+                local defender = wesnoth.get_unit(a.def_loc.x, a.def_loc.y)
+
+                -- Don't try to poison an already poisoned unit
+                local poisoned = H.get_child(defender.__cfg, "status").poisoned
+
+                -- Also, poisoning units that would level up through the attack is very bad
+                local about_to_level = defender.max_experience - defender.experience <= attacker.__cfg.level
+
+                if (not poisoned) and (not about_to_level) then
+                    -- Strongest enemy gets poisoned first
+                    local rating = defender.hitpoints
+
+                    -- Always attack enemy leader, if possible 
+                    if defender.canrecruit then rating = rating + 1000 end
+
+                    -- Enemies on villages are not good targets
+                    local enemy_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(defender.x, defender.y)).village
+                    if enemy_on_village then rating = rating - 500 end
+
+                    -- Enemies that can regenerate are not good targets
+                    if wesnoth.unit_ability(defender, 'regenerate') then rating = rating - 1000 end
+
+                    -- More priority to enemies on strong terrain
+                    local defender_defense = 100 - wesnoth.unit_defense(defender, wesnoth.get_terrain(defender.x, defender.y))
+                    rating = rating + defender_defense / 4.
+
+                    -- Also want to attack from the strongest possible terrain
+                    local attack_defense = 100 - wesnoth.unit_defense(attacker, wesnoth.get_terrain(a.x, a.y))
+                    rating = rating + attack_defense / 2.
+                    --print('rating', rating, attacker.id, a.x, a.y)
+
+                    -- And from village everything else being equal
+                    local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(a.x, a.y)).village
+                    if is_village then rating = rating + 0.5 end
+
+                    -- Only go through with the attack, if we can back it up with another unit
+                    -- Or if only one enemy is in reach
+                    local enemies_in_reach = enemy_attack_map:get(a.x, a.y)
+                    --print('  enemies_in_reach', enemies_in_reach)
+
+                    local max_support_rating, support_attack, support_also_attack = -9e99, {}, false
+                    if (enemies_in_reach > 1) then
+                        -- Check whether one of the other units can attack that same enemy, but from a different hex
+                        -- adjacent to poisoner
+                        for j,oa in ipairs(other_attacks) do
+                            if (oa.def_loc.x == a.def_loc.x) and (oa.def_loc.y == a.def_loc.y)
+                                and (H.distance_between(oa.x, oa.y, a.x, a.y) == 1)
+                            then
+                                -- Now rate those hexes
+                                local supporter = wesnoth.get_unit(oa.att_loc.x, oa.att_loc.y)
+                                local support_rating = 100 - wesnoth.unit_defense(supporter, wesnoth.get_terrain(oa.att_loc.x, oa.att_loc.y))
+                                support_rating = support_rating + oa.att_stats.average_hp - oa.def_stats.average_hp
+                                --print('  Supporting attack', oa.x, oa.y, support_rating)
+
+                                if (support_rating > max_support_rating) then
+                                    max_support_rating, support_attack = support_rating, oa
+
+                                    -- If we can do more damage than enemy, also attack, otherwise just move
+                                    if (supporter.hitpoints - oa.att_stats.average_hp) < (defender.hitpoints - oa.def_stats.average_hp) then
+                                        support_also_attack = true
+                                    end
+                                end
+                            end
+                        end
+
+                        -- If no acceptable support was found, mark this attack as invalid
+                        if (max_support_rating == -9e99) then rating = -9e99 end
+                    end
+
+                    -- On a village, only attack if the support will also attack
+                    -- or the defender is hurt already
+                    if enemy_on_village and (not support_also_attack) and (defender.max_hitpoints - defender.hitpoints < 8) then rating = -9e99 end
+
+                    --print('  -> final rating', rating, attacker.id, a.x, a.y)
+
+                    if rating > max_rating then
+                        max_rating, best_attack = rating, a
+                        if (max_support_rating > -9e99) then
+                            best_support_attack, best_support_also_attack = support_attack, support_also_attack
+                        else
+                            best_support_attack, best_support_also_attack = nil, false
+                        end
+                    end
+                end
+            end
+            if (max_rating > -9e99) then
+                self.data.attack, self.data.support_attack, self.data.also_attack = best_attack, best_support_attack, best_support_also_attack
+                return score
+            end
+            return 0
+        end
+
+        function grunt_rush_FLS1:spread_poison_exec()
+            local attacker = wesnoth.get_unit(self.data.attack.att_loc.x, self.data.attack.att_loc.y)
+            local defender = wesnoth.get_unit(self.data.attack.def_loc.x, self.data.attack.def_loc.y)
+
+            --W.message { speaker = attacker.id, message = "Poison attack" }
+            AH.movefull_stopunit(ai, attacker, self.data.attack)
+            local def_hp = defender.hitpoints
+
+            local dw = -1
+            if AH.got_1_11() then dw = 0 end
+            ai.attack(attacker, defender, 2 + dw)
+            self.data.attack = nil
+
+            -- In case either attacker or defender died, don't do anything
+            if (not attacker.valid) then return 0 end
+            if (not defender.valid) then return 0 end
+
+            -- A little joke:
+            if (not self.data.complained_about_luck) and (defender.hitpoints == def_hp) then
+                self.data.complained_about_luck = true
+                W.delay { time = 1000 }
+                W.message { speaker = attacker.id, message = "Oh, come on !" }
+            end
+
+            if self.data.support_attack then
+                local supporter = wesnoth.get_unit(self.data.support_attack.att_loc.x, self.data.support_attack.att_loc.y)
+
+                AH.movefull_stopunit(ai, supporter, self.data.support_attack)
+                if self.data.also_attack then ai.attack(supporter, defender) end
+            end
+            self.data.support_attack, self.data.also_attack = nil, nil
+        end
+
+        -------- Fall back when enemy too strong -------------
+
+        function grunt_rush_FLS1:fall_back_eval()
+            local score = 0
+
+            if (self:hp_ratio() > 0.75) then return 0 end
+
+            local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no',
+                formula = '$this_unit.moves > 0'
+            }
+
+            if units[1] then return 0 end
+            return 0
+        end
+
+        function grunt_rush_FLS1:fall_back_exec()
+            -- Currently we simply fall back to keep, better algorithm to be used later
+            --print('Falling back')
+            local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no',
+                formula = '$this_unit.moves > 0'
+            }
+
+            -- Any unit that's on a village will simply stay there
+            local stopped_unit = false
+            for i,u in ipairs(units) do
+                local on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).village
+                if on_village then
+                    ai.stopunit_moves(u)
+                    stopped_unit = true
+                end
+            end
+            -- If this happened, exit to reevaluate
+            if stopped_unit then return end
+
+            -- Otherwise, if we got here, move toward keep
+            local goal = { x = 19, y = 5 }
+            self:hold_position(units, goal, false)
+        end
+
+        ----------Recruitment -----------------
+
+        function grunt_rush_FLS1:recruit_orcs_eval()
+            local score = 181000
+
+            if self.data.leader_attack then
+                --W.message { speaker = 'narrator', message = 'Leader attack imminent.  Recruiting first.' }
+                score = 461000
+            end
+
+            -- Check if there is enough gold to recruit at least a grunt
+            if (wesnoth.sides[wesnoth.current.side].gold < 12) then return 0 end
+
+            -- Check if leader is on keep
+            local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+            if (not wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep) then return 0 end
+
+            -- If there's at least one free castle hex, go to recruiting
+            local castle = wesnoth.get_locations {
+                x = leader.x, y = leader.y, radius = 5,
+                { "filter_radius", { terrain = 'C*,K*' } }
+            }
+            for i,c in ipairs(castle) do
+                local unit = wesnoth.get_unit(c[1], c[2])
+                if (not unit) then return score end
+            end
+
+            -- Otherwise: no recruiting
+            return 0
+        end
+
+        function grunt_rush_FLS1:recruit_orcs_exec()
+            -- Recruiting logic (in that order):
+            -- ... under revision ...
+            -- All of this is contingent on having enough gold (eval checked for gold > 12)
+            -- -> if not enough gold for something else, recruit a grunt at the end
+
+            local goal = { x = 27, y = 16 }
+
+            -- First, find open castle hex closest to goal
+            -- If there's at least one free castle hex, go to recruiting
+            local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+            local castle = wesnoth.get_locations {
+                x = leader.x, y = leader.y, radius = 5,
+                { "filter_radius", { terrain = 'C*,K*' } }
+            }
+
+            -- Recruit on the castle hex that is closest to the above-defined 'goal'
+            local max_rating, max_rating_left, best_hex, best_hex_left = -9e99, -9e99, {}, {}
+            for i,c in ipairs(castle) do
+                local unit = wesnoth.get_unit(c[1], c[2])
+                if (not unit) then 
+                    local rating = -H.distance_between(c[1], c[2], goal.x, goal.y)
+                    if (rating > max_rating) then 
+                        max_rating, best_hex = rating, { c[1], c[2] }
+                    end
+                    local rating_left = -c[1]  -- As far left as possible
+                    if (rating_left > max_rating_left) then 
+                        max_rating_left, best_hex_left = rating, { c[1], c[2] }
+                    end
+                end
+            end
+
+            -- Recruit an assassin, if there is none
+            local assassin = wesnoth.get_units { side = wesnoth.current.side, type = 'Orcish Assassin' }[1]
+            if (not assassin) and (wesnoth.sides[wesnoth.current.side].gold >= 17) then
+                --print('recruiting assassin')
+                ai.recruit('Orcish Assassin', best_hex[1], best_hex[2])
+                return
+            end
+
+            -- Recruit a goblin, if there is none, starting Turn 5
+            -- But only if way over to western-most village is clear
+            if (wesnoth.current.turn >= 5) then
+                local gobo = wesnoth.get_units { side = wesnoth.current.side, type = 'Goblin Spearman' }[1]
+                if (not gobo) and (wesnoth.sides[wesnoth.current.side].gold >= 9) then
+                    -- Make sure that there aren't enemies in the way
+                    local enemy_units_left = wesnoth.get_units { x = '1-17', y = '1-8',
+                        { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
+                    }
+                    if (not enemy_units_left[1]) then
+                        -- Goblin should be recruited on the left though
+                        --print('recruiting goblin based on numbers')
+                        ai.recruit('Goblin Spearman', best_hex_left[1], best_hex_left[2])
+                        return
+                    end
+                end
+            end
+
+            -- Recruit an orc if we have fewer than 60% grunts (not counting the leader)
+            local grunts = wesnoth.get_units { side = wesnoth.current.side, type = 'Orcish Grunt' }
+            local all_units_nl = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no' }
+            if (#grunts / (#all_units_nl + 0.0001) < 0.6) then  -- +0.0001 to avoid div-by-zero
+                --print('recruiting grunt based on numbers')
+                ai.recruit('Orcish Grunt', best_hex[1], best_hex[2])
+                return
+            end
+
+            -- Recruit an orc if their average HP is <25
+            local av_hp_grunts = 0
+            for i,g in ipairs(grunts) do av_hp_grunts = av_hp_grunts + g.hitpoints / #grunts end
+            if (av_hp_grunts < 25) then
+                --print('recruiting grunt based on average hitpoints:', av_hp_grunts)
+                ai.recruit('Orcish Grunt', best_hex[1], best_hex[2])
+                return
+            end
+
+            -- Recruit a troll whelp, if there is none, starting Turn 5
+            if (wesnoth.current.turn >= 5) then
+                local whelp = wesnoth.get_units { side = wesnoth.current.side, type = 'Troll Whelp' }[1]
+                if (not whelp) and (wesnoth.sides[wesnoth.current.side].gold >= 13) then
+                    --print('recruiting assassin based on numbers')
+                    ai.recruit('Troll Whelp', best_hex[1], best_hex[2])
+                    return
+                end
+            end
+
+            -- Recruit an assassin, if there are fewer than 3 (in addition to previous assassin recruit)
+            local assassins = wesnoth.get_units { side = wesnoth.current.side, type = 'Orcish Assassin' }
+            if (#assassins < 3) and (wesnoth.sides[wesnoth.current.side].gold >= 17) then
+                --print('recruiting assassin based on numbers')
+                ai.recruit('Orcish Assassin', best_hex[1], best_hex[2])
+                return
+            end
+
+            -- Recruit an archer, if there is none
+            local archer = wesnoth.get_units { side = wesnoth.current.side, type = 'Orcish Archer' }[1]
+            if (not archer) and (wesnoth.sides[wesnoth.current.side].gold >= 14) then
+                --print('recruiting archer')
+                ai.recruit('Orcish Archer', best_hex[1], best_hex[2])
+                return
+            end
+
+            -- Recruit a wolf rider, if there is none
+            local wolfrider = wesnoth.get_units { side = wesnoth.current.side, type = 'Wolf Rider' }[1]
+            if (not wolfrider) and (wesnoth.sides[wesnoth.current.side].gold >= 17) then
+                --print('recruiting wolfrider')
+                ai.recruit('Wolf Rider', best_hex[1], best_hex[2])
+                return
+            end
+
+            -- Recruit an assassin, if there are fewer than 3 (in addition to previous assassin recruit)
+            local assassins = wesnoth.get_units { side = wesnoth.current.side, type = 'Orcish Assassin' }
+            if (#assassins < 3) and (wesnoth.sides[wesnoth.current.side].gold >= 17) then
+                --print('recruiting assassin based on numbers')
+                ai.recruit('Orcish Assassin', best_hex[1], best_hex[2])
+                return
+            end
+
+            -- Recruit an archer, if there are fewer than 2 (in addition to previous assassin recruit)
+            local archers = wesnoth.get_units { side = wesnoth.current.side, type = 'Orcish Archer' }
+            if (#archers < 2) and (wesnoth.sides[wesnoth.current.side].gold >= 14) then
+                --print('recruiting archer based on numbers')
+                ai.recruit('Orcish Archer', best_hex[1], best_hex[2])
+                return
+            end
+
+            -- Recruit a troll whelp, if there are fewer than 2 (in addition to previous whelp recruit), starting Turn 6
+            if (wesnoth.current.turn >= 6) then
+                local whelps = wesnoth.get_units { side = wesnoth.current.side, type = 'Troll Whelp' }
+                if (#whelps < 2) and (wesnoth.sides[wesnoth.current.side].gold >= 13) then
+                    --print('recruiting whelp based on numbers')
+                    ai.recruit('Troll Whelp', best_hex[1], best_hex[2])
+                    return
+                end
+            end
+
+            -- If we got here, none of the previous conditions kicked in -> random recruit
+            -- (if gold >= 17, for simplicity)
+            if (wesnoth.sides[wesnoth.current.side].gold >= 17) then
+                W.set_variable { name = "LUA_random", rand = 'Orcish Archer,Orcish Assassin,Wolf Rider' }
+                local type = wesnoth.get_variable "LUA_random"
+                wesnoth.set_variable "LUA_random"
+                --print('random recruit: ', type)
+
+                ai.recruit(type, best_hex[1], best_hex[2])
+                return
+            end
+
+            -- If we got here, there wasn't enough money to recruit something other than a grunt
+            --print('recruiting grunt based on gold')
+            ai.recruit('Orcish Grunt', best_hex[1], best_hex[2])
+        end
+
+        return grunt_rush_FLS1        
+    end
+}
