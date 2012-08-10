@@ -891,10 +891,128 @@ return {
             ai.attack(attacker, unit_at_goal)
         end
 
+        --------- ZOC enemy ------------
+        -- Currently, this is for the left side only
+        -- To be extended later, or to be combined with other CAs
+
+        function grunt_rush_FLS1:zoc_enemy_eval()
+            local score = 380000
+
+            -- Decide whether to attack units on the left, and trap them if possible
+
+            -- Skip this if AI is much stronger than enemy
+            if self:full_offensive() then return 0 end
+
+            -- Get units on left and on keep, with and without movement left
+            local units = wesnoth.get_units { side = wesnoth.current.side, x = '1-15,16-20', y = '1-15,1-6',
+                canrecruit = 'no'
+            }
+            print('#units', #units)
+            local units_MP = {}
+            for i,u in ipairs(units) do
+                if (u.moves > 0) then
+                    table.insert(units_MP, u)
+                end
+            end
+            -- If no unit in this part of the map can move, we're done
+            print('#units_MP', #units_MP)
+            if (not units_MP[1]) then return 0 end
+
+            -- Check how many enemies are in the same area
+            local enemies = wesnoth.get_units { x = '1-15,16-20', y = '1-15,1-6',
+                { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
+            }
+            print('#enemies', #enemies)
+
+            -- If no enemies in this part of the map can move, we're also done
+            if (not enemies[1]) then return 0 end
+
+            -- If units without moves on left are outnumbered (by HP, depending on time of day), don't do anything 
+            local hp_ratio = self:hp_ratio(units, enemies)
+            print('ZOC enemy: HP ratio:', hp_ratio)
+
+            local tod = wesnoth.get_time_of_day()
+            if (tod.id == 'morning') or (tod.id == 'afternoon') then
+                if (hp_ratio < 1.5) then return 0 end
+            end
+            if (tod.id == 'dusk') or (tod.id == 'dawn') then
+                if (hp_ratio < 1.25) then return 0 end
+            end
+            if (tod.id == 'first_watch') or (tod.id == 'second_watch') then
+                if (hp_ratio < 1) then return 0 end
+            end
+
+            local max_rating, best_combo, best_attacks_dst_src, best_enemy = -9e99, {}, {}, {}
+            for i,e in ipairs(enemies) do
+                --print('\n', i, e.id)
+                local attack_combos, attacks_dst_src = AH.get_attack_combos_no_order(units, e)
+                --DBG.dbms(attack_combos)
+                --DBG.dbms(attacks_dst_src)
+                --print('#attack_combos', #attack_combos)
+
+                local enemy_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(e.x, e.y)).village
+                local enemy_cost = e.__cfg.cost
+
+                for j,combo in ipairs(attack_combos) do
+                    local rating = 0
+                    local damage, damage_enemy = 0, 0
+
+                    -- Don't attack under certain circumstances
+                    local dont_attack = false
+
+                    for dst,src in pairs(combo) do
+                        local att = attacks_dst_src[dst][src]
+                        --print(j, dst, src, att.def_stats.average_hp, att.att_stats.hp_chance[0])
+
+                        damage_this_attack = attackers[src].hitpoints - att.att_stats.average_hp
+                        enemy_damage_this_attack = e.hitpoints - att.def_stats.average_hp
+
+                        damage = damage + damage_this_attack
+                        damage_enemy = damage_enemy + enemy_damage_this_attack
+
+                        if (att.att_stats.hp_chance[0] >= 0.5) then dont_attack = true end
+                        --if (att.def_stats.hp_chance[0] == 0) and (damage_this_attack > enemy_damage_this_attack * 2) then
+                        --    dont_attack = true
+                        --end
+                    end
+                    --print(' - damage', damage)
+                    --print(' - damage_enemy', damage_enemy)
+
+                    rating = rating + damage_enemy - damage / 2.
+
+                    -- If there's an average chance to kill, this is an additional bonus
+                    if (damage_enemy > e.hitpoints) then
+                        rating = rating + (damage_enemy - e.hitpoints) * 5.
+                    end
+
+                    -- Cost of enemy is another factor
+                    rating = rating + enemy_cost
+
+                    if enemy_on_village then rating = rating + 100 end
+
+                    --print(' -----------------------> rating', rating)
+                    if (not dont_attack) and (rating > max_rating) then
+                        max_rating, best_combo, best_attacks_dst_src, best_enemy = rating, combo, attacks_dst_src, e
+                    end
+                end
+            end
+            --print('max_rating ', max_rating)
+            --DBG.dbms(best_combo)
+
+            -- Otherwise don't do anything
+            return 0
+        end
+
         ----------Grab villages -----------
 
         function grunt_rush_FLS1:grab_villages_eval()
             local score_high, score_low = 450000, 360000
+
+            local leave_own_villages = wesnoth.get_variable "leave_own_villages"
+            if leave_own_villages then
+                --print('Lowering village holding priority')
+                score_low = 250000
+            end
 
             -- Check if there are units with moves left
             local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no', 
