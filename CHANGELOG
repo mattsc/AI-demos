@@ -1,3 +1,11 @@
+0.10.1
+- General:
+  AI Demos is not on github: https://github.com/mattsc/Wesnoth-AI-Demos
+- Freelands Side 1 Grunt Rush:
+  - Added another era that let's player set some AI parameters at start of game
+  - New enemy trapping candidate action for western part of map
+- Added a scenario that explains how to start the MP grunt rushes
+
 0.10.0, 30 July 2012
 - New scenario: Dragon
 
