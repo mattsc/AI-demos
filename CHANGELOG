@@ -1,8 +1,8 @@
 0.10.1
 - General:
-  AI Demos is not on github: https://github.com/mattsc/Wesnoth-AI-Demos
+  AI Demos is now on github: https://github.com/mattsc/Wesnoth-AI-Demos
 - Freelands Side 1 Grunt Rush:
-  - Added another era that let's player set some AI parameters at start of game
+  - Added another era that lets the player set some AI parameters at start of game
   - New enemy trapping candidate action for western part of map
 - Added a scenario that explains how to start the MP grunt rushes
 
@@ -305,7 +305,7 @@
 
 0.4.10, 23 Mar 2012
 - Maintenance update
-  - Changed all occurrences of my own map index code to the built-in location sets.  This mostly §affects 'Pass Defense' and ai_helper.cfg
+  - Changed all occurrences of my own map index code to the built-in location sets.  This mostly ï¿½affects 'Pass Defense' and ai_helper.cfg
   - Functions with _LS in file name have now been made the default (and the _LS has been deleted)
   - A couple minor fixes to the text in 'Switchboard' and 'Protect the Wizard'
 
