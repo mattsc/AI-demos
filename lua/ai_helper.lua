@@ -268,6 +268,36 @@ function ai_helper.array_merge(a1, a2)
     return merger
 end
 
+function ai_helper.find_opposite_hex(hex, center_hex)
+    -- Find the hex that is opposite of 'hex' w.r.t. 'center_hex'
+    -- Both input hexes are of format { x, y }
+    -- Output: {opp_x, opp_y} -- or nil if 'hex' and 'center_hex' are not adjacent (or no opposite hex is found, e.g. for hexes on border)
+
+    -- If the two input hexes are not adjacent, return nil
+    if (H.distance_between(hex[1], hex[2], center_hex[1], center_hex[2]) ~= 1) then return nil end
+
+    -- Finding the opposite x position is easy
+    local opp_x = center_hex[1] + (center_hex[1] - hex[1])
+
+    -- y is slightly more tricky, because of the hexagonal shape, but there's a neat trick
+    -- that saves us from having to build in a lot of if statements
+    -- Among the adjacent hexes, it is the one with the correct x, and y _different_ from hex[2]
+    for x, y in H.adjacent_tiles(center_hex[1], center_hex[2]) do
+        if (x == opp_x) and (y ~= hex[2]) then return { x, y } end
+    end
+
+    return nil
+end
+
+function ai_helper.is_opposite(hex1, hex2, center_hex)
+    -- Returns true if 'hex1' and 'hex2' are opposite from each other w.r.t center_hex
+
+    local opp_hex = ai_helper.find_opposite_hex(hex1, center_hex)
+
+    if (opp_hex[1] == hex2[1]) and (opp_hex[2] == hex2[2]) then return true end
+    return false
+end
+
 --------- Location set related helper functions ----------
 
 function ai_helper.get_LS_xy(index)
