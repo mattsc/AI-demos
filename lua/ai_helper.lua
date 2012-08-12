@@ -268,7 +268,7 @@ function ai_helper.array_merge(a1, a2)
     return merger
 end
 
-function ai_helper.find_opposite_hex(hex, center_hex)
+function ai_helper.find_opposite_hex_adjacent(hex, center_hex)
     -- Find the hex that is opposite of 'hex' w.r.t. 'center_hex'
     -- Both input hexes are of format { x, y }
     -- Output: {opp_x, opp_y} -- or nil if 'hex' and 'center_hex' are not adjacent (or no opposite hex is found, e.g. for hexes on border)
@@ -289,12 +289,33 @@ function ai_helper.find_opposite_hex(hex, center_hex)
     return nil
 end
 
-function ai_helper.is_opposite(hex1, hex2, center_hex)
+function ai_helper.find_opposite_hex(hex, center_hex)
+    -- Find the hex that is opposite of 'hex' w.r.t. 'center_hex'
+    -- Using "square coordinate" method by JaMiT
+    -- Note: this also works for non-adjacent hexes, but might return hexes that are not on the map!
+    -- Both input hexes are of format { x, y }
+    -- Output: {opp_x, opp_y}
+
+    -- Finding the opposite x position is easy
+    local opp_x = center_hex[1] + (center_hex[1] - hex[1])
+
+    -- Going to "square geometry" for y coordinate
+    local y_sq = hex[2] * 2 - (hex[1] % 2)
+    local yc_sq = center_hex[2] * 2 - (center_hex[1] % 2)
+
+    -- Now the same equation as for x can be used for y
+    local opp_y = yc_sq + (yc_sq - y_sq)
+    opp_y = math.floor((opp_y + 1) / 2)
+
+    return {opp_x, opp_y}
+end
+
+function ai_helper.is_opposite_adjacent(hex1, hex2, center_hex)
     -- Returns true if 'hex1' and 'hex2' are opposite from each other w.r.t center_hex
 
-    local opp_hex = ai_helper.find_opposite_hex(hex1, center_hex)
+    local opp_hex = ai_helper.find_opposite_hex_adjacent(hex1, center_hex)
 
-    if (opp_hex[1] == hex2[1]) and (opp_hex[2] == hex2[2]) then return true end
+    if opp_hex and (opp_hex[1] == hex2[1]) and (opp_hex[2] == hex2[2]) then return true end
     return false
 end
 
