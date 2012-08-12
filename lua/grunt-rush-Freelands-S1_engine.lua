@@ -942,18 +942,42 @@ return {
                 if (hp_ratio < 1) then return 0 end
             end
 
+            -- Also want an 'attackers' array, indexed by position
+            local attackers = {}
+            for i,u in ipairs(units) do attackers[u.x * 1000 + u.y] = u end
+
             local max_rating, best_combo, best_attacks_dst_src, best_enemy = -9e99, {}, {}, {}
             for i,e in ipairs(enemies) do
                 --print('\n', i, e.id)
                 local attack_combos, attacks_dst_src = AH.get_attack_combos_no_order(units, e)
-                --DBG.dbms(attack_combos)
+                DBG.dbms(attack_combos)
                 --DBG.dbms(attacks_dst_src)
-                --print('#attack_combos', #attack_combos)
+                print('#attack_combos', #attack_combos)
 
                 local enemy_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(e.x, e.y)).village
                 local enemy_cost = e.__cfg.cost
 
                 for j,combo in ipairs(attack_combos) do
+                    -- Only keep combos that include exactly 2 attackers
+                    -- Need to count them, as they are not in order
+                    --DBG.dbms(combo)
+                    local number, dst, src = 0, {}, {}
+                    for kk,vv in pairs(combo) do 
+                        number = number + 1
+                        dst[number], src[number] = kk, vv
+                    end
+
+                    -- Now check whether this attack can trap the enemy
+                    local trapping = false
+                    if (number == 2) then
+                        print('2-unit attack:', dst[1], dst[2])
+                        local hex1 = { math.floor(dst[1] / 1000), dst[1] % 1000 }
+                        local hex2 = { math.floor(dst[2] / 1000), dst[2] % 1000 }
+                        if AH.is_opposite_adjacent(hex1, hex2, { e.x, e.y }) then
+                            print('  ^ trapping attack')
+                        end
+                    end
+
                     local rating = 0
                     local damage, damage_enemy = 0, 0
 
