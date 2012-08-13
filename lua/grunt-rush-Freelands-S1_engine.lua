@@ -908,21 +908,28 @@ return {
                 canrecruit = 'no'
             }
             --print('#units', #units)
-            local units_MP = {}
+            local units_MP, units_MP_no_lvl0 = {}, {}
             for i,u in ipairs(units) do
                 if (u.moves > 0) then
                     table.insert(units_MP, u)
+                    if (u.__cfg.level > 0) then table.insert(units_MP_no_lvl0, u) end
                 end
             end
-            -- If no unit in this part of the map can move, we're done
-            --print('#units_MP', #units_MP)
-            if (not units_MP[1]) then return 0 end
+            -- If no unit in this part of the map can move, we're done (> Level 0 only)
+            --print('#units_MP, #units_MP_no_lvl0', #units_MP, #units_MP_no_lvl0)
+            if (not units_MP_no_lvl0[1]) then return 0 end
 
             -- Check how many enemies are in the same area
             local enemies = wesnoth.get_units { x = '1-15,16-20', y = '1-15,1-6',
                 { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
             }
             --print('#enemies', #enemies)
+
+            -- Eliminate skirmishers
+            for i=#enemies,1,-1 do
+                if wesnoth.unit_ability(enemies[i], 'skirmisher') then table.remove(enemies, i) end
+            end
+            --print('#enemies no skirmishers', #enemies)
 
             -- If no enemies in this part of the map can move, we're also done
             if (not enemies[1]) then return 0 end
@@ -944,12 +951,12 @@ return {
 
             -- Also want an 'attackers' array, indexed by position
             local attackers = {}
-            for i,u in ipairs(units_MP) do attackers[u.x * 1000 + u.y] = u end
+            for i,u in ipairs(units_MP_no_lvl0) do attackers[u.x * 1000 + u.y] = u end
 
             local max_rating, best_attackers, best_dsts, best_enemy, best_order = -9e99, {}, {}, {}, {}
             for i,e in ipairs(enemies) do
                 --print('\n', i, e.id)
-                local attack_combos, attacks_dst_src = AH.get_attack_combos_no_order(units_MP, e)
+                local attack_combos, attacks_dst_src = AH.get_attack_combos_no_order(units_MP_no_lvl0, e)
                 --DBG.dbms(attack_combos)
                 --DBG.dbms(attacks_dst_src)
                 --print('#attack_combos', #attack_combos)
