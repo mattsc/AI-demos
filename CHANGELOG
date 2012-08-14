@@ -4,6 +4,8 @@
 - Freelands Side 1 Grunt Rush:
   - Added another era that lets the player set some AI parameters at start of game
   - New enemy trapping candidate action for western part of map
+- Dragon:
+  - If the dragon ends up next to an enemy, it will now always attack
 - Added a scenario that explains how to start the MP grunt rushes
 
 0.10.0, 30 July 2012

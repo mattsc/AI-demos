@@ -8,6 +8,41 @@ return {
         local LS = wesnoth.require "lua/location_set.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
+        function hunt_and_rest:attack_weakest_adj_enemy(unit)
+            -- Attack the enemy with the fewest hitpoints adjacent to 'unit', if there is one
+            -- Returns status of the attack:
+            --   'attacked': if a unit was attacked
+            --   'killed': if a unit was killed
+            --   'no_attack': if no unit was attacked
+
+            -- First check that the unit exists and has attacks left
+            if (not unit.valid) then return 'no_attack' end
+            if (unit.attacks_left == 0) then return 'no_attack' end
+
+            local min_hp = 9e99
+            local target = {}
+            for x, y in H.adjacent_tiles(unit.x, unit.y) do
+                local enemy = wesnoth.get_unit(x, y)
+                if enemy and wesnoth.is_enemy(enemy.side, wesnoth.current.side) then
+                    if (enemy.hitpoints < min_hp) then
+                        min_hp = enemy.hitpoints
+                        target = enemy
+                    end
+                end
+            end
+            if target.id then
+                --W.message { speaker = unit.id, message = 'Attacking weakest adjacent enemy' }
+                ai.attack(unit, target)
+                if target.valid then
+                    return 'attacked'
+                else
+                    return 'killed'
+                end
+            end
+
+            return 'no_attack'
+        end
+
         function hunt_and_rest:hunt_and_rest_eval(id)
             local unit = wesnoth.get_units { side = wesnoth.current.side, id = id,
                 formula = '$this_unit.moves > 0'
@@ -25,6 +60,7 @@ return {
             local unit = wesnoth.get_units { side = wesnoth.current.side, id = id,
                 formula = '$this_unit.moves > 0'
             }[1]
+            --print('Hunter: ', unit.id)
 
             -- If hunting_status is not set for the unit -> default behavior -> hunting
             if (not unit.variables.hunting_status) then
@@ -83,27 +119,14 @@ return {
                 end
 
                 -- Finally, if the unit ended up next to enemies, attack the weakest of those
-                local min_hp = 9e99
-                local target = {}
-                for x, y in H.adjacent_tiles(unit.x, unit.y) do
-                    local enemy = wesnoth.get_unit(x, y)
-                    if enemy and (enemy.side ~= wesnoth.current.side) then
-                        if (enemy.hitpoints < min_hp) then 
-                            min_hp = enemy.hitpoints
-                            target = enemy
-                        end
-                    end
-                end
-                if target.id then
-                    ai.attack(unit, target)
+                local attack_status = self:attack_weakest_adj_enemy(unit)
 
-                    -- If the enemy was killed, hunter returns home
-                    if (not target.valid) then
-                        unit.variables.x = nil
-                        unit.variables.y = nil
-                        unit.variables.hunting_status = 'return'
-                        W.message { speaker = unit.id, message = 'Now that I have eaten, I will go back home.' }
-                    end
+                -- If the enemy was killed, hunter returns home
+                if unit.valid and (attack_status == 'killed') then
+                    unit.variables.x = nil
+                    unit.variables.y = nil
+                    unit.variables.hunting_status = 'return'
+                    W.message { speaker = unit.id, message = 'Now that I have eaten, I will go back home.' }
                 end
 
                 -- At this point, issue a 'return', so that no other action takes place this turn
@@ -130,8 +153,11 @@ return {
                     end
                 end
 
+                -- We also attack the weakest adjacent enemy, if still possible
+                self:attack_weakest_adj_enemy(unit)
+
                 -- If the unit got home, start the resting counter
-                if (unit.x == home_x) and (unit.y == home_y) then
+                if unit.valid and (unit.x == home_x) and (unit.y == home_y) then
                     unit.variables.hunting_status = 'resting'
                     unit.variables.resting_until = wesnoth.current.turn + rest_turns
                     W.message { speaker = unit.id, message = 'I made it home - resting now until the end of Turn ' .. unit.variables.resting_until .. ' or until fully healed.' }
@@ -146,8 +172,11 @@ return {
                 -- So all we need to do is take moves away from the unit
                 ai.stopunit_moves(unit)
 
+                -- However, we do also attack the weakest adjacent enemy, if still possible
+                self:attack_weakest_adj_enemy(unit)
+
                 -- If this is the last turn of resting, we also remove the status and turn variable
-                if (unit.hitpoints >= unit.max_hitpoints) and (unit.variables.resting_until <= wesnoth.current.turn) then
+                if unit.valid and (unit.hitpoints >= unit.max_hitpoints) and (unit.variables.resting_until <= wesnoth.current.turn) then
                     unit.variables.hunting_status = nil
                     unit.variables.resting_until = nil
                     W.message { speaker = unit.id, message = 'I am done resting.  It is time to go hunting again next turn.' }
