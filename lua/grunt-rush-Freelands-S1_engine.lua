@@ -10,7 +10,9 @@ return {
         local LS = wesnoth.require "lua/location_set.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
+        --------------------------------------------------------------------
         -- This is customized for Northerners on Freelands, playing Side 1
+        --------------------------------------------------------------------
 
         function grunt_rush_FLS1:hp_ratio(my_units, enemies)
             -- Hitpoint ratio of own units / enemy units
