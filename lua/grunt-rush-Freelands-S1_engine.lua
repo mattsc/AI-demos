@@ -977,7 +977,8 @@ return {
 
         function grunt_rush_FLS1:attack_village_eval()
             local score = -420000
-     if 1 then return 0 end -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            if 1 then return 0 end -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            -- This is not needed any more
 
             -- Only at night, we try to take the village at the goal coordinates
 
