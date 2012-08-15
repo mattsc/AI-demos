@@ -73,6 +73,19 @@ return {
                     -- Now check whether this attack can trap the enemy
                     local trapping_attack = false
 
+                    -- First, if there's already a unit with no MP left on the other side
+                    if (number == 1) then
+                        --print('1-unit attack:', dst[1], dst[2])
+                        local hex = { math.floor(dst[1] / 1000), dst[1] % 1000 }
+                        local opp_hex = AH.find_opposite_hex(hex, { e.x, e.y })
+                        local opp_unit = wesnoth.get_unit(opp_hex[1], opp_hex[2])
+                        if opp_unit and (opp_unit.moves == 0) and (opp_unit.side == wesnoth.current.side) and (opp_unit.__cfg.level > 0) then
+                            trapping_attack = true
+                        end
+                        --print('  trapping_attack: ', trapping_attack)
+                    end
+
+                    -- Second, by putting two units on opposite sides
                     if (number == 2) then
                         --print('2-unit attack:', dst[1], dst[2])
                         local hex1 = { math.floor(dst[1] / 1000), dst[1] % 1000 }
@@ -120,6 +133,8 @@ return {
                             -- Damage to own units is bad
                             rating = rating - (attackers[i_a].hitpoints - a_stats.average_hp) - a_stats.hp_chance[0] * 50.
                             -- Also, the fewer a unit costs, the better
+                            -- This will also favor attacks by single unit, if possible, unless 
+                            -- 2-unit attack has much larger chance of success/damage
                             rating = rating - attackers[i_a].__cfg.cost
                             -- Own unit on village gets bonus too
                             local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(dsts[i_a][1], dsts[i_a][2])).village
@@ -133,7 +148,7 @@ return {
                     end
                 end
             end
-            print('max_rating ', max_rating)
+            --print('max_rating ', max_rating)
 
             if (max_rating > -9e99) then
                 return best_attackers, best_dsts, best_enemy
