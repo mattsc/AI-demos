@@ -42,6 +42,105 @@ return {
             return false
         end
 
+        function grunt_rush_FLS1:best_trapping_attack_opposite(units, enemies)
+            -- Find best trapping attack on enemy by putting two units on opposite sides
+            -- Inputs:
+            -- - units: the units to be considered for doing the trapping
+            --   - These units don't actually have to be able to attack the enemies, that is determined here
+            -- - enemies: the enemies for which trapping is to be attempted
+            -- Output: the attackers and dsts arrays and the enemy; or nil, if no suitable attack was found
+            local max_rating, best_attackers, best_dsts, best_enemy = -9e99, {}, {}, {}
+            for i,e in ipairs(enemies) do
+                --print('\n', i, e.id)
+                local attack_combos, attacks_dst_src = AH.get_attack_combos_no_order(units, e)
+                --DBG.dbms(attack_combos)
+                --DBG.dbms(attacks_dst_src)
+                --print('#attack_combos', #attack_combos)
+
+                local enemy_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(e.x, e.y)).village
+                local enemy_cost = e.__cfg.cost
+
+                for j,combo in ipairs(attack_combos) do
+                    -- Only keep combos that include exactly 2 attackers
+                    -- Need to count them, as they are not in order
+                    --DBG.dbms(combo)
+                    local number, dst, src = 0, {}, {}
+                    for kk,vv in pairs(combo) do 
+                        number = number + 1
+                        dst[number], src[number] = kk, vv
+                    end
+
+                    -- Now check whether this attack can trap the enemy
+                    local trapping_attack = false
+
+                    if (number == 2) then
+                        --print('2-unit attack:', dst[1], dst[2])
+                        local hex1 = { math.floor(dst[1] / 1000), dst[1] % 1000 }
+                        local hex2 = { math.floor(dst[2] / 1000), dst[2] % 1000 }
+                        if AH.is_opposite_adjacent(hex1, hex2, { e.x, e.y }) then
+                            trapping_attack = true
+                        end
+                        --print('  trapping_attack: ', trapping_attack)
+                    end
+
+                    -- Now we need to calculate the attack combo stats
+                    local combo_def_stats, combo_att_stats = {}, {}
+                    local attackers, dsts = {}, {}
+                    if trapping_attack then
+                        for dst,src in pairs(combo) do
+                            local att = wesnoth.get_unit(math.floor(src / 1000), src % 1000)
+                            table.insert(attackers, att)
+                            table.insert(dsts, { math.floor(dst / 1000), dst % 1000 })
+                        end
+                        attackers, dsts, combo_def_stats, combo_att_stats = AH.attack_combo_stats(attackers, dsts, e)
+                    end
+
+                    -- Don't attack under certain circumstances:
+                    -- 1. If one of the attackers has a >50% chance to die
+                    --    This is under the assumption of median outcome of previous attack, not reevaluated for each individual attack
+                    -- This is done simply by resetting 'trapping_attack'
+                    for i_a, a_stats in ipairs(combo_att_stats) do
+                        --print(i_a, a_stats.hp_chance[0])
+                        if (a_stats.hp_chance[0] >= 0.5) then trapping_attack = false end
+                    end
+                    --print('  trapping_attack after elim: ', trapping_attack)
+
+                    -- If at this point 'trapping_attack' is still true, we'll actually evaluate it
+                    if trapping_attack then
+                        
+                        -- Damage to enemy is good
+                        local rating = e.hitpoints - combo_def_stats.average_hp + combo_def_stats.hp_chance[0] * 50.
+                        -- Attack enemies on villages preferentially
+                        if enemy_on_village then rating = rating + 20 end
+                        -- Cost of enemy is another factor
+                        rating = rating + enemy_cost
+
+                        -- Now go through all the attacker stats
+                        for i_a, a_stats in ipairs(combo_att_stats) do
+                            -- Damage to own units is bad
+                            rating = rating - (attackers[i_a].hitpoints - a_stats.average_hp) - a_stats.hp_chance[0] * 50.
+                            -- Also, the fewer a unit costs, the better
+                            rating = rating - attackers[i_a].__cfg.cost
+                            -- Own unit on village gets bonus too
+                            local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(dsts[i_a][1], dsts[i_a][2])).village
+                            if is_village then rating = rating + 20 end
+                        end
+
+                        --print(' -----------------------> zoc attack rating', rating)
+                        if (rating > max_rating) then
+                            max_rating, best_attackers, best_dsts, best_enemy = rating, attackers, dsts, e
+                        end
+                    end
+                end
+            end
+            print('max_rating ', max_rating)
+
+            if (max_rating > -9e99) then
+                return best_attackers, best_dsts, best_enemy
+            end
+            return nil
+        end
+
         function grunt_rush_FLS1:hold_position(units, goal, tod_y_factor)
             -- Set up a defensive position at (goal.x, goal.y) using 'units'
             -- goal should be a village or an otherwise strong position, or this doesn't make sense
@@ -950,97 +1049,12 @@ return {
                 if (hp_ratio < 1) then return 0 end
             end
 
-            local max_rating, best_attackers, best_dsts, best_enemy = -9e99, {}, {}, {}
-            for i,e in ipairs(enemies) do
-                --print('\n', i, e.id)
-                local attack_combos, attacks_dst_src = AH.get_attack_combos_no_order(units_MP_no_lvl0, e)
-                --DBG.dbms(attack_combos)
-                --DBG.dbms(attacks_dst_src)
-                --print('#attack_combos', #attack_combos)
-
-                local enemy_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(e.x, e.y)).village
-                local enemy_cost = e.__cfg.cost
-
-                for j,combo in ipairs(attack_combos) do
-                    -- Only keep combos that include exactly 2 attackers
-                    -- Need to count them, as they are not in order
-                    --DBG.dbms(combo)
-                    local number, dst, src = 0, {}, {}
-                    for kk,vv in pairs(combo) do 
-                        number = number + 1
-                        dst[number], src[number] = kk, vv
-                    end
-
-                    -- Now check whether this attack can trap the enemy
-                    local trapping_attack = false
-
-                    if (number == 2) then
-                        --print('2-unit attack:', dst[1], dst[2])
-                        local hex1 = { math.floor(dst[1] / 1000), dst[1] % 1000 }
-                        local hex2 = { math.floor(dst[2] / 1000), dst[2] % 1000 }
-                        if AH.is_opposite_adjacent(hex1, hex2, { e.x, e.y }) then
-                            trapping_attack = true
-                        end
-                        --print('  trapping_attack: ', trapping_attack)
-                    end
-
-                    -- Now we need to calculate the attack combo stats
-                    local combo_def_stats, combo_att_stats = {}, {}
-                    local attackers, dsts = {}, {}
-                    if trapping_attack then
-                        for dst,src in pairs(combo) do
-                            local att = wesnoth.get_unit(math.floor(src / 1000), src % 1000)
-                            table.insert(attackers, att)
-                            table.insert(dsts, { math.floor(dst / 1000), dst % 1000 })
-                        end
-                        attackers, dsts, combo_def_stats, combo_att_stats = AH.attack_combo_stats(attackers, dsts, e)
-                    end
-
-                    -- Don't attack under certain circumstances:
-                    -- 1. If one of the attackers has a >50% chance to die
-                    --    This is under the assumption of median outcome of previous attack, not reevaluated for each individual attack
-                    -- This is done simply by resetting 'trapping_attack'
-                    for i_a, a_stats in ipairs(combo_att_stats) do
-                        --print(i_a, a_stats.hp_chance[0])
-                        if (a_stats.hp_chance[0] >= 0.5) then trapping_attack = false end
-                    end
-                    --print('  trapping_attack after elim: ', trapping_attack)
-
-                    -- If at this point 'trapping_attack' is still true, we'll actually evaluate it
-                    if trapping_attack then
-                        
-                        -- Damage to enemy is good
-                        local rating = e.hitpoints - combo_def_stats.average_hp + combo_def_stats.hp_chance[0] * 50.
-                        -- Attack enemies on villages preferentially
-                        if enemy_on_village then rating = rating + 20 end
-                        -- Cost of enemy is another factor
-                        rating = rating + enemy_cost
-
-                        -- Now go through all the attacker stats
-                        for i_a, a_stats in ipairs(combo_att_stats) do
-                            -- Damage to own units is bad
-                            rating = rating - (attackers[i_a].hitpoints - a_stats.average_hp) - a_stats.hp_chance[0] * 50.
-                            -- Also, the fewer a unit costs, the better
-                            rating = rating - attackers[i_a].__cfg.cost
-                            -- Own unit on village gets bonus too
-                            local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(dsts[i_a][1], dsts[i_a][2])).village
-                            if is_village then rating = rating + 20 end
-                        end
-
-                        --print(' -----------------------> zoc attack rating', rating)
-                        if (rating > max_rating) then
-                            max_rating, best_attackers, best_dsts, best_enemy = rating, attackers, dsts, e
-                        end
-                    end
-                end
-            end
-            --print('max_rating ', max_rating)
-
-            -- If we found an acceptable rating, set things up for the execution routine
-            if (max_rating > -9e99) then
-                self.data.zoc_attackers = best_attackers
-                self.data.zoc_dsts = best_dsts
-                self.data.zoc_enemy = best_enemy
+            -- Check whether we can find a trapping attack using two units on opposite sides of an enemy
+            local attackers, dsts, enemy = self:best_trapping_attack_opposite(units_MP_no_lvl0, enemies)
+            if attackers then
+                self.data.zoc_attackers = attackers
+                self.data.zoc_dsts = dsts
+                self.data.zoc_enemy = enemy
                 return score
             end
 
