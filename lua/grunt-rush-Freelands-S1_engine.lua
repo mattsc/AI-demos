@@ -912,6 +912,7 @@ return {
             for i,u in ipairs(units) do
                 if (u.moves > 0) then
                     table.insert(units_MP, u)
+                    -- Separate array for units of level >0
                     if (u.__cfg.level > 0) then table.insert(units_MP_no_lvl0, u) end
                 end
             end
@@ -949,11 +950,7 @@ return {
                 if (hp_ratio < 1) then return 0 end
             end
 
-            -- Also want an 'attackers' array, indexed by position
-            local attackers = {}
-            for i,u in ipairs(units_MP_no_lvl0) do attackers[u.x * 1000 + u.y] = u end
-
-            local max_rating, best_attackers, best_dsts, best_enemy, best_order = -9e99, {}, {}, {}, {}
+            local max_rating, best_attackers, best_dsts, best_enemy = -9e99, {}, {}, {}
             for i,e in ipairs(enemies) do
                 --print('\n', i, e.id)
                 local attack_combos, attacks_dst_src = AH.get_attack_combos_no_order(units_MP_no_lvl0, e)
@@ -988,7 +985,7 @@ return {
                     end
 
                     -- Now we need to calculate the attack combo stats
-                    local combo_def_stats, combo_att_stats, combo_order = {}, {}, {}
+                    local combo_def_stats, combo_att_stats = {}, {}
                     local attackers, dsts = {}, {}
                     if trapping_attack then
                         for dst,src in pairs(combo) do
@@ -996,8 +993,7 @@ return {
                             table.insert(attackers, att)
                             table.insert(dsts, { math.floor(dst / 1000), dst % 1000 })
                         end
-                        combo_def_stats, combo_att_stats, combo_order = AH.attack_combo_stats(attackers, dsts, e)
-                        --DBG.dbms(combo_order)
+                        attackers, dsts, combo_def_stats, combo_att_stats = AH.attack_combo_stats(attackers, dsts, e)
                     end
 
                     -- Don't attack under certain circumstances:
@@ -1033,21 +1029,18 @@ return {
 
                         --print(' -----------------------> zoc attack rating', rating)
                         if (rating > max_rating) then
-                            max_rating, best_attackers, best_dsts, best_enemy, best_order = rating, attackers, dsts, e, combo_order
+                            max_rating, best_attackers, best_dsts, best_enemy = rating, attackers, dsts, e
                         end
                     end
                 end
             end
             --print('max_rating ', max_rating)
-            --DBG.dbms(best_combo)
-            --DBG.dbms(best_order)
 
             -- If we found an acceptable rating, set things up for the execution routine
             if (max_rating > -9e99) then
                 self.data.zoc_attackers = best_attackers
                 self.data.zoc_dsts = best_dsts
                 self.data.zoc_enemy = best_enemy
-                self.data.zoc_order = best_order
                 return score
             end
 
@@ -1056,16 +1049,16 @@ return {
         end
 
         function grunt_rush_FLS1:zoc_enemy_exec()
-            --DBG.dbms(self.data.zoc_order)
             --DBG.dbms(self.data.zoc_dsts)
             W.message { speaker = 'narrator', message = 'Starting trapping attack' }
-            for i,o in ipairs(self.data.zoc_order) do
+            for i,attacker in ipairs(self.data.zoc_attackers) do
+                -- Need to check that enemy was not killed by previous attack
                 if self.data.zoc_enemy and self.data.zoc_enemy.valid then
-                    AH.movefull_stopunit(ai, self.data.zoc_attackers[o[1]], self.data.zoc_dsts[o[1]])
-                    ai.attack(self.data.zoc_attackers[o[1]], self.data.zoc_enemy)
+                    AH.movefull_stopunit(ai, attacker, self.data.zoc_dsts[i])
+                    ai.attack(attacker, self.data.zoc_enemy)
                 end
             end
-            self.data.zoc_attackers, self.data.zoc_dsts, self.data.zoc_enemy, self.data.zoc_order = nil, nil, nil, nil
+            self.data.zoc_attackers, self.data.zoc_dsts, self.data.zoc_enemy = nil, nil, nil
         end
 
 

@@ -1164,6 +1164,7 @@ function ai_helper.attack_combo_stats(attackers, dsts, enemy)
     -- For large number of attackers, we cannot go through all combinations (would take too long)
     --> Rate individual attacks first, and execute in that order
     local ratings = {}
+
     for i,a in ipairs(attackers) do
         local att_stats, def_stats = ai_helper.simulate_combat_loc(a, dsts[i], enemy)
         --DBG.dbms(att_stats)
@@ -1187,16 +1188,22 @@ function ai_helper.attack_combo_stats(attackers, dsts, enemy)
     table.sort(ratings, function(a, b) return a[2] > b[2] end)
     --DBG.dbms(ratings)
 
+    -- Reorder attackers, dsts in this order
+    local sorted_attackers, sorted_dsts = {}, {}
+    for i,r in ipairs(ratings) do
+        sorted_attackers[i], sorted_dsts[i] = attackers[r[1]], dsts[r[1]]
+    end
+    attackers, dsts, ratings = nil, nil, nil
+
     -- Now we calculate the attack combo stats
     -- This currently only takes damage into account, not poisoning etc.
     -- (will wait for 1.11 to do that)
     local enemy_hitpoints = enemy.hitpoints
 
     local combo_att_stats, combo_def_stats = {}, {}
-    for i,r in ipairs(ratings) do
-        local attacker = attackers[r[1]]
-        local dst = dsts[r[1]]
-        --print(i, r[1], dst[1], dst[2])
+    for i,attacker in ipairs(sorted_attackers) do
+        local dst = sorted_dsts[i]
+        --print(i, attacker.id, dst[1], dst[2])
 
         local att_stats, def_stats = ai_helper.simulate_combat_loc(attacker, dst, enemy)
 
@@ -1208,16 +1215,16 @@ function ai_helper.attack_combo_stats(attackers, dsts, enemy)
         combo_def_stats = def_stats
 
         -- For the attackers, we build up an array (in the same order as the attackers array)
-        combo_att_stats[r[1]] = att_stats
+        combo_att_stats[i] = att_stats
     end
     -- Reset the enemy's hitpoints
     enemy.hitpoints = enemy_hitpoints
 
     -- Finally, we return:
+    -- - the sorted attackers and dsts arrays
     -- - defender stats: one set of stats
     -- - attacker_stats: an array of stats for each attacker, in the same order as 'attackers'
-    -- - ratings: the ratings array, of which the first element shows in which order the attacks are executed
-    return combo_def_stats, combo_att_stats, ratings
+    return sorted_attackers, sorted_dsts, combo_def_stats, combo_att_stats
 end
 
 return ai_helper
