@@ -693,7 +693,7 @@ return {
             if leader and wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep then
                 local best_attack = self:get_attack_with_retaliation(leader)
                 if best_attack then
-                    self.data.best_attack = best_attack
+                    self.data.ALT_best_attack = best_attack
                     return score
                 end
             end
@@ -713,6 +713,15 @@ return {
             local units_MP = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no', 
                 formula = '$this_unit.moves > 0'
             }
+
+            -- Check first if a trapping attack is possible
+            local attackers, dsts, enemy = self:best_trapping_attack_opposite(units, enemies)
+            if attackers then
+                self.data.ALT_trapping_attackers = attackers
+                self.data.ALT_trapping_dsts = dsts
+                self.data.ALT_trapping_enemy = enemy
+                return score
+            end
 
             -- Now check if attacks on any of these units is possible
             local attacks = AH.get_attacks_occupied(units)
@@ -813,40 +822,69 @@ return {
             end
 
             if (max_rating > -9e99) then
-                self.data.best_attack = best_attack
+                self.data.ALT_best_attack = best_attack
                 return score
             end
             return 0
         end
 
         function grunt_rush_FLS1:attack_leader_threat_exec()
+            -- If a trapping attack was found, we do that first
+            -- All of this should be made more consistent later
+            if self.data.ALT_trapping_attackers then
+                W.message { speaker = 'narrator', message = 'Trapping attack possible (in attack_leader_threats)' }
+                for i,attacker in ipairs(self.data.ALT_trapping_attackers) do
+                    -- Need to check that enemy was not killed by previous attack
+                    if self.data.ALT_trapping_enemy and self.data.ALT_trapping_enemy.valid then
+                        AH.movefull_stopunit(ai, attacker, self.data.ALT_trapping_dsts[i])
+                        ai.attack(attacker, self.data.ALT_trapping_enemy)
 
-            local attacker = wesnoth.get_unit(self.data.best_attack.att_loc.x, self.data.best_attack.att_loc.y)
-            local defender = wesnoth.get_unit(self.data.best_attack.def_loc.x, self.data.best_attack.def_loc.y)
+                        -- Counter for how often this unit was attacked this turn
+                        if self.data.ALT_trapping_enemy.valid then
+                            local xy_turn = self.data.ALT_trapping_enemy.x * 1000. + self.data.ALT_trapping_enemy.y + wesnoth.current.turn / 1000.
+                            if (not self.data[xy_turn]) then
+                                self.data[xy_turn] = 1
+                            else
+                                self.data[xy_turn] = self.data[xy_turn] + 1
+                            end
+                            --print('Attack number on this unit this turn:', xy_turn, self.data[xy_turn])
+                        end
+                    end
+                end
+                self.data.ALT_trapping_attackers, self.data.ALT_trapping_dsts, self.data.ALT_trapping_enemy = nil, nil, nil
+
+                -- Need to return here, as other attacks are not valid in this case
+                return
+            end
+
+            local attacker = wesnoth.get_unit(self.data.ALT_best_attack.att_loc.x, self.data.ALT_best_attack.att_loc.y)
+            local defender = wesnoth.get_unit(self.data.ALT_best_attack.def_loc.x, self.data.ALT_best_attack.def_loc.y)
 
             -- If there's a unit in the way, need to move it off again
             -- get_attacks() checked that that is possible
-            if self.data.best_attack.attack_hex_occupied then
-                local unit_in_way = wesnoth.get_unit(self.data.best_attack.x, self.data.best_attack.y)
+            if self.data.ALT_best_attack.attack_hex_occupied then
+                local unit_in_way = wesnoth.get_unit(self.data.ALT_best_attack.x, self.data.ALT_best_attack.y)
                 --W.message { speaker = unit_in_way.id, message = 'Moving out of way' }
                 AH.move_unit_out_of_way(ai, unit_in_way, { dx = 0.5, dy = -0.1 })
             end
 
             -- Counter for how often this unit was attacked this turn
-            local xy_turn = defender.x * 1000. + defender.y + wesnoth.current.turn / 1000.
-            if (not self.data[xy_turn]) then
-                self.data[xy_turn] = 1
-            else
-                self.data[xy_turn] = self.data[xy_turn] + 1
+            if defender.valid then
+                local xy_turn = defender.x * 1000. + defender.y + wesnoth.current.turn / 1000.
+                if (not self.data[xy_turn]) then
+                    self.data[xy_turn] = 1
+                else
+                    self.data[xy_turn] = self.data[xy_turn] + 1
+                end
+                --print('Attack number on this unit this turn:', xy_turn, self.data[xy_turn])
             end
-            --print('Attack number on this unit this turn:', self.data[xy_turn])
 
             --W.message {speaker=attacker.id, message="Attacking leader threat" }
-
-            AH.movefull_stopunit(ai, attacker, self.data.best_attack)
+            AH.movefull_stopunit(ai, attacker, self.data.ALT_best_attack)
             ai.attack(attacker, defender)
-            self.data.best_attack = nil
+            self.data.ALT_best_attack = nil
 
+            -- Reset variable indicating that his was an attack by the leader
             -- Can be done whether it was the leader who attacked or not:
             self.data.leader_attack = nil
         end
@@ -1009,7 +1047,7 @@ return {
         -- Currently, this is for the left side only
         -- To be extended later, or to be combined with other CAs
 
-        function grunt_rush_FLS1:zoc_enemy_eval()
+        function grunt_rush_FLS1:ZOC_enemy_eval()
             local score = 390000
 
             -- Decide whether to attack units on the left, and trap them if possible
@@ -1067,9 +1105,9 @@ return {
             -- Check whether we can find a trapping attack using two units on opposite sides of an enemy
             local attackers, dsts, enemy = self:best_trapping_attack_opposite(units_MP_no_lvl0, enemies)
             if attackers then
-                self.data.zoc_attackers = attackers
-                self.data.zoc_dsts = dsts
-                self.data.zoc_enemy = enemy
+                self.data.ZOC_attackers = attackers
+                self.data.ZOC_dsts = dsts
+                self.data.ZOC_enemy = enemy
                 return score
             end
 
@@ -1077,17 +1115,16 @@ return {
             return 0
         end
 
-        function grunt_rush_FLS1:zoc_enemy_exec()
-            --DBG.dbms(self.data.zoc_dsts)
-            W.message { speaker = 'narrator', message = 'Starting trapping attack' }
-            for i,attacker in ipairs(self.data.zoc_attackers) do
+        function grunt_rush_FLS1:ZOC_enemy_exec()
+            W.message { speaker = 'narrator', message = 'Starting trapping attack (in ZOC_enemy)' }
+            for i,attacker in ipairs(self.data.ZOC_attackers) do
                 -- Need to check that enemy was not killed by previous attack
-                if self.data.zoc_enemy and self.data.zoc_enemy.valid then
-                    AH.movefull_stopunit(ai, attacker, self.data.zoc_dsts[i])
-                    ai.attack(attacker, self.data.zoc_enemy)
+                if self.data.ZOC_enemy and self.data.ZOC_enemy.valid then
+                    AH.movefull_stopunit(ai, attacker, self.data.ZOC_dsts[i])
+                    ai.attack(attacker, self.data.ZOC_enemy)
                 end
             end
-            self.data.zoc_attackers, self.data.zoc_dsts, self.data.zoc_enemy = nil, nil, nil
+            self.data.ZOC_attackers, self.data.ZOC_dsts, self.data.ZOC_enemy = nil, nil, nil
         end
 
 
