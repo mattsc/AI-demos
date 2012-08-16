@@ -51,6 +51,46 @@ return {
             --   - These units don't actually have to be able to attack the enemies, that is determined here
             -- - enemies: the enemies for which trapping is to be attempted
             -- Output: the attackers and dsts arrays and the enemy; or nil, if no suitable attack was found
+
+            -- 
+            if (not units) then return end
+            if (not enemies) then return end
+
+            -- Need to eliminate units that are Level 0 (trappers) or skirmishers (enemies)
+            for i = #units,1,-1 do
+                if (units[i].__cfg.level == 0) then
+                    --print('Eliminating ' .. units[i].id .. ' from trappers: Level 0 unit')
+                    table.remove(units, i)
+                end
+            end
+            if (not units[1]) then return nil end
+
+            -- Eliminate skirmishers
+            for i=#enemies,1,-1 do
+                if wesnoth.unit_ability(enemies[i], 'skirmisher') then 
+                    --print('Eliminating ' .. enemies[i].id .. ' from enemies: skirmisher')
+                    table.remove(enemies, i)
+                end
+            end
+            if (not enemies[1]) then return nil end
+
+            -- Also eliminate enemies that are already trapped
+            for i=#enemies,1,-1 do
+                for x,y in H.adjacent_tiles(enemies[i].x, enemies[i].y) do
+                    local trapper = wesnoth.get_unit(x, y)
+                    if trapper and (trapper.moves == 0) then
+                        local opp_hex = AH.find_opposite_hex({ x, y }, { enemies[i].x, enemies[i].y })
+                        local opp_trapper = wesnoth.get_unit(opp_hex[1], opp_hex[2])
+                        if opp_trapper and (opp_trapper.moves == 0) then
+                            --print('Eliminating ' .. enemies[i].id .. ' from enemies: already trapped')
+                            table.remove(enemies, i)
+                            break  -- need to exit 'for' loop here
+                        end
+                    end
+                end
+            end
+            if (not enemies[1]) then return nil end
+
             local max_rating, best_attackers, best_dsts, best_enemy = -9e99, {}, {}, {}
             for i,e in ipairs(enemies) do
                 --print('\n', i, e.id)

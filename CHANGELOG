@@ -1,3 +1,8 @@
+0.10.1-a, 16 Aug 2012
+- Freelands Side 1 Grunt Rush:
+  - Fixed bug that let own Level-0 units and enemy skirmishers be part of trapping attack
+  - Also eliminated already trapped units from list of potential trapping targets
+
 0.10.1, 16 Aug 2012
 - General:
   AI Demos is now on github: https://github.com/mattsc/Wesnoth-AI-Demos
