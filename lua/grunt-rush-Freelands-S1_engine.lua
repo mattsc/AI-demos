@@ -52,7 +52,6 @@ return {
             -- - enemies: the enemies for which trapping is to be attempted
             -- Output: the attackers and dsts arrays and the enemy; or nil, if no suitable attack was found
 
-            -- 
             if (not units) then return end
             if (not enemies) then return end
 
@@ -1103,31 +1102,20 @@ return {
                 canrecruit = 'no'
             }
             --print('#units', #units)
-            local units_MP, units_MP_no_lvl0 = {}, {}
+            local units_MP = {}
             for i,u in ipairs(units) do
-                if (u.moves > 0) then
-                    table.insert(units_MP, u)
-                    -- Separate array for units of level >0
-                    if (u.__cfg.level > 0) then table.insert(units_MP_no_lvl0, u) end
-                end
+                if (u.moves > 0) then table.insert(units_MP, u) end
             end
             -- If no unit in this part of the map can move, we're done (> Level 0 only)
-            --print('#units_MP, #units_MP_no_lvl0', #units_MP, #units_MP_no_lvl0)
-            if (not units_MP_no_lvl0[1]) then return 0 end
+            --print('#units_MP', #units_MP)
+            if (not units_MP[1]) then return 0 end
 
             -- Check how many enemies are in the same area
             local enemies = wesnoth.get_units { x = '1-15,16-20', y = '1-15,1-6',
                 { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
             }
             --print('#enemies', #enemies)
-
-            -- Eliminate skirmishers
-            for i=#enemies,1,-1 do
-                if wesnoth.unit_ability(enemies[i], 'skirmisher') then table.remove(enemies, i) end
-            end
-            --print('#enemies no skirmishers', #enemies)
-
-            -- If no enemies in this part of the map can move, we're also done
+            -- If there are no enemies in this part of the map, we're also done
             if (not enemies[1]) then return 0 end
 
             -- If units without moves on left are outnumbered (by HP, depending on time of day), don't do anything 
@@ -1146,7 +1134,7 @@ return {
             end
 
             -- Check whether we can find a trapping attack using two units on opposite sides of an enemy
-            local attackers, dsts, enemy = self:best_trapping_attack_opposite(units_MP_no_lvl0, enemies)
+            local attackers, dsts, enemy = self:best_trapping_attack_opposite(units_MP, enemies)
             if attackers then
                 self.data.ZOC_attackers = attackers
                 self.data.ZOC_dsts = dsts
