@@ -935,7 +935,7 @@ return {
         function grunt_rush_FLS1:attack_weak_enemy_eval()
             local score = 462000
 
-            -- Attack any enemy where the chance to kill is > 60%
+            -- Attack any enemy where the chance to kill is >= 40%
             -- or if it's the enemy leader under all circumstances
 
             -- Check if there are units with attacks left
@@ -948,13 +948,13 @@ return {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }[1]
 
-            -- First check if attacks with >= 60% CTK are possible for any unit
+            -- First check if attacks with >= 40% CTK are possible for any unit
             -- and that AI unit cannot die
             local attacks = AH.get_attacks_occupied(units)
 
             for i,a in ipairs(attacks) do
                 if ( (a.def_loc.x == enemy_leader.x) and (a.def_loc.y == enemy_leader.y) and (a.def_stats.hp_chance[0] < 0) )
-                    or ( (a.def_stats.hp_chance[0] >= 0.60) and (a.att_stats.hp_chance[0] == 0) )
+                    or ( (a.def_stats.hp_chance[0] >= 0.40) and (a.att_stats.hp_chance[0] == 0) )
                 then return score end
             end
             return 0
@@ -973,7 +973,7 @@ return {
             local max_rating, best_attack = -9e99, {}
             for i,a in ipairs(attacks) do
                 if ( (a.def_loc.x == enemy_leader.x) and (a.def_loc.y == enemy_leader.y) and (a.def_stats.hp_chance[0] > 0) )
-                    or ( (a.def_stats.hp_chance[0] >= 0.60) and (a.att_stats.hp_chance[0] == 0) )
+                    or ( (a.def_stats.hp_chance[0] >= 0.40) and (a.att_stats.hp_chance[0] == 0) )
                 then
                     local attacker = wesnoth.get_unit(a.att_loc.x, a.att_loc.y)
 
