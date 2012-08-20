@@ -1,3 +1,10 @@
+0.10.1-b, 20 Aug 2012
+- Freelands Side 1 Grunt Rush:
+  - Fixed a bug introduced by adding trapping attack to attack_weak_enemy() that eliminated some attacks from consideration
+  - Lowered threshold of CTK for weak enemy attack
+  - Eliminated some unnecessary code now that best_trapping_attack_opposite() takes care of checking for Level-0 units and skirmishers
+  - Made poison attack work even if poison weapon is not the second weapon
+
 0.10.1-a, 16 Aug 2012
 - Freelands Side 1 Grunt Rush:
   - Fixed bug that let own Level-0 units and enemy skirmishers be part of trapping attack

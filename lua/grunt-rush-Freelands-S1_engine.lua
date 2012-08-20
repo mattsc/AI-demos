@@ -44,7 +44,7 @@ return {
             return false
         end
 
-        function grunt_rush_FLS1:best_trapping_attack_opposite(units, enemies)
+        function grunt_rush_FLS1:best_trapping_attack_opposite(units_org, enemies_org)
             -- Find best trapping attack on enemy by putting two units on opposite sides
             -- Inputs:
             -- - units: the units to be considered for doing the trapping
@@ -52,8 +52,12 @@ return {
             -- - enemies: the enemies for which trapping is to be attempted
             -- Output: the attackers and dsts arrays and the enemy; or nil, if no suitable attack was found
 
-            if (not units) then return end
-            if (not enemies) then return end
+            if (not units_org) then return end
+            if (not enemies_org) then return end
+
+            -- Need to make copies of the array, as they will be changed
+            local units = AH.table_copy(units_org)
+            local enemies = AH.table_copy(enemies_org)
 
             -- Need to eliminate units that are Level 0 (trappers) or skirmishers (enemies)
             for i = #units,1,-1 do
@@ -572,7 +576,6 @@ return {
             local leader = wesnoth.get_units{ side = wesnoth.current.side, canrecruit = 'yes',
                 formula = '$this_unit.attacks_left > 0'
             }[1]
-
             if (not leader) then return 0 end
 
             local keeps = { { 18, 4 }, { 19, 4 } }  -- keep hexes in order of preference
@@ -615,7 +618,7 @@ return {
 	        formula = '$this_unit.moves > 0'
 	    }
 
-            -- Pick units that have less that 16 HP
+            -- Pick units that have less that 12 HP
             -- with poisoning counting as -8 HP and slowed as -4
             local min_hp = 12  -- minimum HP before sending unit to village
             local healees = {}
@@ -681,6 +684,116 @@ return {
             --W.message { speaker = self.data.retreat_unit.id, message = 'Retreating to village' }
             AH.movefull_stopunit(ai, self.data.retreat_unit, self.data.retreat_village)
             self.data.retreat_unit, self.data.retreat_village = nil, nil
+        end
+
+        ------ Attack with high CTK -----------
+
+        function grunt_rush_FLS1:attack_weak_enemy_eval()
+            local score = 462000
+
+            -- Attack any enemy where the chance to kill is > 40%
+            -- or if it's the enemy leader under all circumstances
+
+            -- Check if there are units with attacks left
+            local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no', 
+                formula = '$this_unit.attacks_left > 0'
+            }
+            if (not units[1]) then return 0 end
+
+            local enemy_leader = wesnoth.get_units { canrecruit = 'yes',
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+            }[1]
+
+            -- First check if attacks with >= 40% CTK are possible for any unit
+            -- and that AI unit cannot die
+            local attacks = AH.get_attacks_occupied(units)
+
+            for i,a in ipairs(attacks) do
+                -- Check whether attack can result in kill with single hit
+                local one_strike_kill, hp_levels = true, 0
+                for i,c in pairs(a.def_stats.hp_chance) do
+                    if (c > 0) and (i > 0) then 
+                        hp_levels = hp_levels + 1
+                        if (hp_levels > 1) then
+                            one_strike_kill = false
+                            break
+                        end
+                    end
+                end
+
+                if ( one_strike_kill
+                    or (a.def_loc.x == enemy_leader.x) and (a.def_loc.y == enemy_leader.y) and (a.def_stats.hp_chance[0] > 0) )
+                    or ( (a.def_stats.hp_chance[0] >= 0.40) and (a.att_stats.hp_chance[0] == 0) )
+                then return score end
+            end
+            return 0
+        end
+
+        function grunt_rush_FLS1:attack_weak_enemy_exec()
+            --print('Executing high CTK attack')
+            local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no', 
+                formula = '$this_unit.attacks_left > 0'
+            }
+            local enemy_leader = wesnoth.get_units { canrecruit = 'yes',
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+            }[1]
+
+            local attacks = AH.get_attacks_occupied(units)
+            local max_rating, best_attack = -9e99, {}
+            for i,a in ipairs(attacks) do
+                -- Check whether attack can result in kill with single hit
+                local one_strike_kill, hp_levels = true, 0
+                for i,c in pairs(a.def_stats.hp_chance) do
+                    if (c > 0) and (i > 0) then 
+                        hp_levels = hp_levels + 1
+                        if (hp_levels > 1) then
+                            one_strike_kill = false
+                            break
+                        end
+                    end
+                end
+
+                if ( one_strike_kill
+                    or (a.def_loc.x == enemy_leader.x) and (a.def_loc.y == enemy_leader.y) and (a.def_stats.hp_chance[0] > 0) )
+                    or ( (a.def_stats.hp_chance[0] >= 0.40) and (a.att_stats.hp_chance[0] == 0) )
+                then
+                    local attacker = wesnoth.get_unit(a.att_loc.x, a.att_loc.y)
+
+                    local rating = a.att_stats.average_hp - 2 * a.def_stats.average_hp
+                    rating = rating + a.def_stats.hp_chance[0] * 50
+
+                    rating = rating - (attacker.max_experience - attacker.experience) / 3.  -- the close to leveling the unit is, the better
+
+                    local attack_defense = 100 - wesnoth.unit_defense(attacker, wesnoth.get_terrain(a.x, a.y))
+                    rating = rating + attack_defense / 100.
+                    --print('    rating:', rating, a.x, a.y)
+
+                    if (a.def_loc.x == enemy_leader.x) and (a.def_loc.y == enemy_leader.y) and (a.def_stats.hp_chance[0] > 0)
+                    then rating = rating + 1000 end
+
+                    -- Minor penalty if unit needs to be moves out of the way
+                    -- This is essentially just to differentiate between otherwise equal attacks
+                    if a.attack_hex_occupied then rating = rating - 0.1 end
+
+                    if (rating > max_rating) then
+                        max_rating, best_attack = rating, a
+                    end
+                end
+            end
+
+            -- If there's a unit in the way, need to move it off again
+            -- get_attacks() checked that that is possible
+            if best_attack.attack_hex_occupied then
+                local unit_in_way = wesnoth.get_unit(best_attack.x, best_attack.y)
+                --W.message { speaker = unit_in_way.id, message = 'Moving out of way' }
+                AH.move_unit_out_of_way(ai, unit_in_way, { dx = 0.5, dy = -0.1 })
+            end
+
+            local attacker = wesnoth.get_unit(best_attack.att_loc.x, best_attack.att_loc.y)
+            local defender = wesnoth.get_unit(best_attack.def_loc.x, best_attack.def_loc.y)
+            --W.message { speaker = attacker.id, message = "Attacking with high CTK" }
+            AH.movefull_stopunit(ai, attacker, best_attack)
+            ai.attack(attacker, defender)
         end
 
         ------ Attack by leader flag -----------
@@ -754,6 +867,7 @@ return {
             local units_MP = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no', 
                 formula = '$this_unit.moves > 0'
             }
+            --print('#enemies, #units, #units_MP', #enemies, #units, #units_MP)
 
             -- Check first if a trapping attack is possible
             local attackers, dsts, enemy = self:best_trapping_attack_opposite(units, enemies)
@@ -767,6 +881,7 @@ return {
             -- Now check if attacks on any of these units is possible
             local attacks = AH.get_attacks_occupied(units)
             if (not attacks[1]) then return 0 end
+            --print('#attacks', #attacks)
 
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
 
@@ -928,116 +1043,6 @@ return {
             -- Reset variable indicating that his was an attack by the leader
             -- Can be done whether it was the leader who attacked or not:
             self.data.leader_attack = nil
-        end
-
-        ------ Attack with high CTK -----------
-
-        function grunt_rush_FLS1:attack_weak_enemy_eval()
-            local score = 462000
-
-            -- Attack any enemy where the chance to kill is > 40%
-            -- or if it's the enemy leader under all circumstances
-
-            -- Check if there are units with attacks left
-            local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no', 
-                formula = '$this_unit.attacks_left > 0'
-            }
-            if (not units[1]) then return 0 end
-
-            local enemy_leader = wesnoth.get_units { canrecruit = 'yes',
-                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
-            }[1]
-
-            -- First check if attacks with >= 40% CTK are possible for any unit
-            -- and that AI unit cannot die
-            local attacks = AH.get_attacks_occupied(units)
-
-            for i,a in ipairs(attacks) do
-                -- Check whether attack can result in kill with single hit
-                local one_strike_kill, hp_levels = true, 0
-                for i,c in pairs(a.def_stats.hp_chance) do
-                    if (c > 0) and (i > 0) then 
-                        hp_levels = hp_levels + 1
-                        if (hp_levels > 1) then
-                            one_strike_kill = false
-                            break
-                        end
-                    end
-                end
-
-                if ( one_strike_kill
-                    or (a.def_loc.x == enemy_leader.x) and (a.def_loc.y == enemy_leader.y) and (a.def_stats.hp_chance[0] > 0) )
-                    or ( (a.def_stats.hp_chance[0] >= 0.40) and (a.att_stats.hp_chance[0] == 0) )
-                then return score end
-            end
-            return 0
-        end
-
-        function grunt_rush_FLS1:attack_weak_enemy_exec()
-            --print('Executing high CTK attack')
-            local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no', 
-                formula = '$this_unit.attacks_left > 0'
-            }
-            local enemy_leader = wesnoth.get_units { canrecruit = 'yes',
-                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
-            }[1]
-
-            local attacks = AH.get_attacks_occupied(units)
-            local max_rating, best_attack = -9e99, {}
-            for i,a in ipairs(attacks) do
-                -- Check whether attack can result in kill with single hit
-                local one_strike_kill, hp_levels = true, 0
-                for i,c in pairs(a.def_stats.hp_chance) do
-                    if (c > 0) and (i > 0) then 
-                        hp_levels = hp_levels + 1
-                        if (hp_levels > 1) then
-                            one_strike_kill = false
-                            break
-                        end
-                    end
-                end
-
-                if ( one_strike_kill
-                    or (a.def_loc.x == enemy_leader.x) and (a.def_loc.y == enemy_leader.y) and (a.def_stats.hp_chance[0] > 0) )
-                    or ( (a.def_stats.hp_chance[0] >= 0.40) and (a.att_stats.hp_chance[0] == 0) )
-                then
-                    local attacker = wesnoth.get_unit(a.att_loc.x, a.att_loc.y)
-
-                    local rating = a.att_stats.average_hp - 2 * a.def_stats.average_hp
-                    rating = rating + a.def_stats.hp_chance[0] * 50
-
-                    rating = rating - (attacker.max_experience - attacker.experience) / 3.  -- the close to leveling the unit is, the better
-
-                    local attack_defense = 100 - wesnoth.unit_defense(attacker, wesnoth.get_terrain(a.x, a.y))
-                    rating = rating + attack_defense / 100.
-                    --print('    rating:', rating, a.x, a.y)
-
-                    if (a.def_loc.x == enemy_leader.x) and (a.def_loc.y == enemy_leader.y) and (a.def_stats.hp_chance[0] > 0)
-                    then rating = rating + 1000 end
-
-                    -- Minor penalty if unit needs to be moves out of the way
-                    -- This is essentially just to differentiate between otherwise equal attacks
-                    if a.attack_hex_occupied then rating = rating - 0.1 end
-
-                    if (rating > max_rating) then
-                        max_rating, best_attack = rating, a
-                    end
-                end
-            end
-
-            -- If there's a unit in the way, need to move it off again
-            -- get_attacks() checked that that is possible
-            if best_attack.attack_hex_occupied then
-                local unit_in_way = wesnoth.get_unit(best_attack.x, best_attack.y)
-                --W.message { speaker = unit_in_way.id, message = 'Moving out of way' }
-                AH.move_unit_out_of_way(ai, unit_in_way, { dx = 0.5, dy = -0.1 })
-            end
-
-            local attacker = wesnoth.get_unit(best_attack.att_loc.x, best_attack.att_loc.y)
-            local defender = wesnoth.get_unit(best_attack.def_loc.x, best_attack.def_loc.y)
-            --W.message { speaker = attacker.id, message = "Attacking with high CTK" }
-            AH.movefull_stopunit(ai, attacker, best_attack)
-            ai.attack(attacker, defender)
         end
 
         -------- At night, attack village at 27, 16 -------------
@@ -1260,7 +1265,7 @@ return {
                         -- A rating of 0 here means that a village can be reached, but is not interesting
                         -- Thus, max_rating tart value is 0, which means don't go there
                         -- Rating needs to be at least 10 to be interesting
-                        if (rating >=10) and (rating > max_rating)then
+                        if (rating >=10) and (rating > max_rating) then
                             max_rating, best_village, best_unit = rating, v, u
                         end
 
