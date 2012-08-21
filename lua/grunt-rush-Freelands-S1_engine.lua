@@ -1402,7 +1402,22 @@ return {
         end
 
         function grunt_rush_FLS1:grab_villages_exec()
-            --if self.data.unit.canrecruit then W.message { speaker = self.data.unit.id, message = 'Taking village with leader' } end
+            if self.data.unit.canrecruit then 
+                W.message { speaker = self.data.unit.id, message = 'The leader, me, is about to grab a village.  Need to recruit first.' }
+                -- Recruiting first; we're doing that differently here than in attack_leader_threat,
+                -- by running a mini CA eval/exec loop
+                local recruit_loop = true
+                while recruit_loop do
+                    local eval = self:recruit_orcs_eval()
+                    if (eval > 0) then
+                        W.message { speaker = self.data.unit.id, message = 'Recruiting.' }
+                        self:recruit_orcs_exec()
+                    else
+                        W.message { speaker = self.data.unit.id, message = 'Done recruiting.' }
+                        recruit_loop = false
+                    end
+                end
+            end
             AH.movefull_stopunit(ai, self.data.unit, self.data.village)
             self.data.unit, self.data.village = nil, nil
         end
