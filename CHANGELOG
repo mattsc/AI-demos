@@ -1,3 +1,8 @@
+0.10.2
+- Freelands Side 1 Grunt Rush:
+  - Added new counter attack evaluation function
+    -> Leader does now take villages when safe
+
 0.10.1-b, 20 Aug 2012
 - Freelands Side 1 Grunt Rush:
   - Fixed a bug introduced by adding trapping attack to attack_weak_enemy() that eliminated some attacks from consideration

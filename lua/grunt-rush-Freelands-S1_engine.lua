@@ -361,10 +361,10 @@ return {
             end
         end
 
-        function grunt_rush_FLS1:calc_retaliation(unit, hex)
-            -- Get some retaliation results a 'unit' might experience next turn if it moved to 'hex'
+        function grunt_rush_FLS1:calc_counter_attack(unit, hex)
+            -- Get counter attack results a 'unit' might experience next turn if it moved to 'hex'
             -- Return table contains fields:
-            --   max_retal: the maximum retaliation damage that could potentially be done
+            --   max_counter_damage: the maximum counter attack damage that could potentially be done
             --   enemy_attackers: a table containing the coordinates of all enemy units that could attack
             --   average_def_stats: the defender stats (in some average sense) after all those attacks
 
@@ -393,11 +393,11 @@ return {
             for iu,uMP in ipairs(units_MP) do wesnoth.put_unit(uMP.x, uMP.y, uMP) end
 
             -- Set up the return array
-            local retal_table = {}
-            retal_table.enemy_attackers = {}
-            for i,e in ipairs(enemy_attackers) do table.insert(retal_table.enemy_attackers, { e.x, e.y }) end
+            local counter_table = {}
+            counter_table.enemy_attackers = {}
+            for i,e in ipairs(enemy_attackers) do table.insert(counter_table.enemy_attackers, { e.x, e.y }) end
 
-            -- Now we calculate the maximum retaliation for each of those attackers
+            -- Now we calculate the maximum counter attack damage for each of those attackers
             -- We first need to put our unit into the position of interest
             -- (and remove any unit that might be there)
             local org_hex = { unit.x, unit.y }
@@ -410,9 +410,9 @@ return {
             end
 
             -- Now simulate all the attacks on 'unit' on 'hex'
-            local max_retal = 0
+            local max_counter_damage = 0
             for i,e in ipairs(enemy_attackers) do
-                --print('Evaluating retaliation attack by: ', e.id)
+                --print('Evaluating counter attack attack by: ', e.id)
 
                 local n_weapon = 0
                 local min_hp = unit.hitpoints
@@ -435,31 +435,31 @@ return {
                     if (min_hp_weapon < min_hp) then min_hp = min_hp_weapon end
                 end
                 --print('    min_hp:',min_hp, ' max damage:',unit.hitpoints-min_hp)
-                max_retal = max_retal + unit.hitpoints - min_hp
+                max_counter_damage = max_counter_damage + unit.hitpoints - min_hp
             end
-            --print('  max retaliation:', max_retal)
+            --print('  max counter attack damage:', max_counter_damage)
 
             -- Put units back to where they were
             if (org_hex[1] ~= hex[1]) or (org_hex[2] ~= hex[2]) then
                 wesnoth.put_unit(org_hex[1], org_hex[2], unit)
                 if unit_in_way then wesnoth.put_unit(hex[1], hex[2], unit_in_way) end
             end
-            retal_table.max_retal = max_retal
+            counter_table.max_counter_damage = max_counter_damage
 
-            -- Also calculate median retaliation results
+            -- Also calculate median counter attack results
             -- using the ai_helper function (might not be most efficient, but good for now)
             local dsts = {}
             for i,e in ipairs(enemy_attackers) do table.insert(dsts, { e.x, e.y }) end
             -- only need the defender stats
             local tmp1, tmp2, def_stats = AH.attack_combo_stats(enemy_attackers, dsts, unit)
 
-            retal_table.average_def_stats = def_stats
+            counter_table.average_def_stats = def_stats
 
-            return retal_table
+            return counter_table
         end
 
-        function grunt_rush_FLS1:get_attack_with_retaliation(unit)
-            -- Return best attack for 'unit', if retaliation on next enemy turn will definitely not kill it
+        function grunt_rush_FLS1:get_attack_with_counter_attack(unit)
+            -- Return best attack for 'unit', if counter attack on next enemy turn will definitely not kill it
             -- Returns the best attack, or otherwise nil
             -- For now, this is separate from the previous function for speed and efficiency reasons
 
@@ -474,7 +474,7 @@ return {
                 { "filter_side", {{"enemy_of", { side = unit.side } }} }
             }
 
-            -- For retaliation calculation:
+            -- For counter attack damage calculation:
             -- Find all hexes enemies can attack on their next turn
 
             -- Need to take units with MP off the map for this
@@ -491,8 +491,8 @@ return {
 
             for iu,uMP in ipairs(units_MP) do wesnoth.put_unit(uMP.x, uMP.y, uMP) end
 
-            -- Set up a retaliation table, as many pairs of attacks will be the same (for speed reasons)
-            local retal_table = {}
+            -- Set up a counter attack table, as many pairs of attacks will be the same (for speed reasons)
+            local counter_table = {}
 
             -- Now evaluate every attack
             local max_rating, best_attack = -9e99, {}
@@ -502,8 +502,8 @@ return {
                 -- Only consider if there is no chance to die or to be poisoned or slowed
                 if ((a.att_stats.hp_chance[0] == 0) and (a.att_stats.poisoned == 0) and (a.att_stats.slowed == 0)) then
 
-                    -- Get maximum possible retaliation possible by enemies on next turn
-                    local max_retal = 0
+                    -- Get maximum possible counter attack damage possible by enemies on next turn
+                    local max_counter_damage = 0
 
                     for j,ea in ipairs(enemy_attacks) do
                         local can_attack = ea.attack_map:get(a.x, a.y)
@@ -512,9 +512,9 @@ return {
                             -- Check first if this attack combination has already been calculated
                             local str = (a.att_loc.x + a.att_loc.y * 1000) .. '-' .. (a.def_loc.x + a.def_loc.y * 1000)
                             --print(str)
-                            if retal_table[str] then  -- If so, use saved value
-                                --print('    retal already calculated: ',str,retal_table[str])
-                                max_retal = max_retal + retal_table[str]
+                            if counter_table[str] then  -- If so, use saved value
+                                --print('    counter attack already calculated: ',str,counter_table[str])
+                                max_counter_damage = max_counter_damage + counter_table[str]
                             else  -- if not, calculate it and save value
                                 -- Go thru all weapons, as "best weapon" might be different later on
                                 local n_weapon = 0
@@ -537,12 +537,12 @@ return {
                                     if (min_hp_weapon < min_hp) then min_hp = min_hp_weapon end
                                 end
                                 --print('    min_hp:',min_hp, ' max damage:',unit.hitpoints-min_hp)
-                                max_retal = max_retal + unit.hitpoints - min_hp
-                                retal_table[str] = unit.hitpoints - min_hp
+                                max_counter_damage = max_counter_damage + unit.hitpoints - min_hp
+                                counter_table[str] = unit.hitpoints - min_hp
                             end
                         end
                     end
-                    --print('  max retaliation:',max_retal)
+                    --print('  max counter attack damage:', max_counter_damage)
 
                     -- and add this to damage possible on this attack
                     -- Note: cannot use ipairs() because count starts at 0
@@ -553,7 +553,7 @@ return {
                             min_hp = hp
                         end
                     end
-                    local min_outcome = min_hp - max_retal
+                    local min_outcome = min_hp - max_counter_damage
                     --print('  min hp this attack:',min_hp)
                     --print('  ave hp defender:   ',a.def_stats.average_hp)
                     --print('  min_outcome',min_outcome)
@@ -911,7 +911,7 @@ return {
 
             -- Only consider attack by leader if he is on the keep, so that he doesn't wander off
             if leader and wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep then
-                local best_attack = self:get_attack_with_retaliation(leader)
+                local best_attack = self:get_attack_with_counter_attack(leader)
                 if best_attack and
                     (not wesnoth.get_terrain_info(wesnoth.get_terrain(best_attack.x, best_attack.y)).keep)
                 then
@@ -943,7 +943,7 @@ return {
 
             -- Only consider attack by leader if he is on the keep, so that he doesn't wander off
             if leader and wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep then
-                local best_attack = self:get_attack_with_retaliation(leader)
+                local best_attack = self:get_attack_with_counter_attack(leader)
                 if best_attack then
                     self.data.ALT_best_attack = best_attack
                     return score
@@ -1361,13 +1361,13 @@ return {
                         -- Finally, since these can be reached by the enemy, want the strongest unit to go first
                         rating = rating + u.hitpoints / 100.
 
-                        -- If this is the leader, calculate retaliation
+                        -- If this is the leader, calculate counter attack damage
                         -- Make him the preferred village taker unless he's likely to die
                         if u.canrecruit then
-                            local retal_table = self:calc_retaliation(u, { v[1], v[2] })
-                            local max_retal = retal_table.max_retal
-                            --print('    max_retal:', u.id, max_retal)
-                            if (max_retal < u.hitpoints) then
+                            local counter_table = self:calc_counter_attack(u, { v[1], v[2] })
+                            local max_counter_damage = counter_table.max_counter_damage
+                            --print('    max_counter_damage:', u.id, max_counter_damage)
+                            if (max_counter_damage < u.hitpoints) then
                                 --print('      -> take village with leader')
                                 rating = rating + 2
                             else
@@ -1922,7 +1922,7 @@ return {
             local other_attacks = AH.get_attacks(others)
             --print('#other_attacks', #other_attacks)
 
-            -- For retaliation calculation:
+            -- For counter attack damage calculation:
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
