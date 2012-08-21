@@ -361,9 +361,107 @@ return {
             end
         end
 
+        function grunt_rush_FLS1:calc_retaliation(unit, hex)
+            -- Get some retaliation results a 'unit' might experience next turn if it moved to 'hex'
+            -- Return table contains fields:
+            --   max_retal: the maximum retaliation damage that could potentially be done
+            --   enemy_attackers: a table containing the coordinates of all enemy units that could attack
+            --   average_def_stats: the defender stats (in some average sense) after all those attacks
+
+            -- All enemy units
+            local enemies = wesnoth.get_units {
+                { "filter_side", {{"enemy_of", { side = unit.side } }} }
+            }
+            --print('#enemies', #enemies)
+
+            -- Need to take units with MP off the map for this
+            local units_MP = wesnoth.get_units { side = unit.side, formula = '$this_unit.moves > 0' }
+            for iu,uMP in ipairs(units_MP) do wesnoth.extract_unit(uMP) end
+
+            -- Now find the enemies that can attack 'hex'
+            local enemy_attackers = {}
+            for i,e in ipairs(enemies) do
+                local attack_map = AH.get_reachable_attack_map(e, {moves = "max"})
+                if attack_map:get(hex[1], hex[2]) then
+                    --print('Can attack this hex:', e.id)
+                    table.insert(enemy_attackers, e)
+                end
+            end
+            --print('#enemy_attackers', #enemy_attackers)
+
+            -- Put the units back out there
+            for iu,uMP in ipairs(units_MP) do wesnoth.put_unit(uMP.x, uMP.y, uMP) end
+
+            -- Set up the return array
+            local retal_table = {}
+            retal_table.enemy_attackers = {}
+            for i,e in ipairs(enemy_attackers) do table.insert(retal_table.enemy_attackers, { e.x, e.y }) end
+
+            -- Now we calculate the maximum retaliation for each of those attackers
+            -- We first need to put our unit into the position of interest
+            -- (and remove any unit that might be there)
+            local org_hex = { unit.x, unit.y }
+            local unit_in_way = {}
+            if (org_hex[1] ~= hex[1]) or (org_hex[2] ~= hex[2]) then
+                unit_in_way = wesnoth.get_unit(hex[1], hex[2])
+                if unit_in_way then wesnoth.extract_unit(unit_in_way) end
+
+                wesnoth.put_unit(hex[1], hex[2], unit)
+            end
+
+            -- Now simulate all the attacks on 'unit' on 'hex'
+            local max_retal = 0
+            for i,e in ipairs(enemy_attackers) do
+                --print('Evaluating retaliation attack by: ', e.id)
+
+                local n_weapon = 0
+                local min_hp = unit.hitpoints
+                for weapon in H.child_range(e.__cfg, "attack") do
+                    --print('  weapon #', n_weapon)
+                    n_weapon = n_weapon + 1
+
+                    -- Terrain enemy is on does not matter for this, we're only interested in the damage done to 'unit'
+                    local att_stats, def_stats = wesnoth.simulate_combat(e, n_weapon, unit)
+
+                    -- Find minimum HP of our unit
+                    -- find the minimum hp outcome
+                    -- Note: cannot use ipairs() because count starts at 0
+                    local min_hp_weapon = unit.hitpoints
+                    for hp,chance in pairs(def_stats.hp_chance) do
+                        if ((chance > 0) and (hp < min_hp_weapon)) then
+                            min_hp_weapon = hp
+                        end
+                    end
+                    if (min_hp_weapon < min_hp) then min_hp = min_hp_weapon end
+                end
+                --print('    min_hp:',min_hp, ' max damage:',unit.hitpoints-min_hp)
+                max_retal = max_retal + unit.hitpoints - min_hp
+            end
+            --print('  max retaliation:', max_retal)
+
+            -- Put units back to where they were
+            if (org_hex[1] ~= hex[1]) or (org_hex[2] ~= hex[2]) then
+                wesnoth.put_unit(org_hex[1], org_hex[2], unit)
+                if unit_in_way then wesnoth.put_unit(hex[1], hex[2], unit_in_way) end
+            end
+            retal_table.max_retal = max_retal
+
+            -- Also calculate median retaliation results
+            -- using the ai_helper function (might not be most efficient, but good for now)
+            local dsts = {}
+            for i,e in ipairs(enemy_attackers) do table.insert(dsts, { e.x, e.y }) end
+            -- only need the defender stats
+            local tmp1, tmp2, def_stats = AH.attack_combo_stats(enemy_attackers, dsts, unit)
+
+            retal_table.average_def_stats = def_stats
+
+            return retal_table
+        end
+
         function grunt_rush_FLS1:get_attack_with_retaliation(unit)
             -- Return best attack for 'unit', if retaliation on next enemy turn will definitely not kill it
             -- Returns the best attack, or otherwise nil
+            -- For now, this is separate from the previous function for speed and efficiency reasons
 
             local attacks = AH.get_attacks({unit})
 
@@ -373,7 +471,7 @@ return {
 
             -- All enemy units
             local enemies = wesnoth.get_units {
-                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+                { "filter_side", {{"enemy_of", { side = unit.side } }} }
             }
 
             -- For retaliation calculation:
