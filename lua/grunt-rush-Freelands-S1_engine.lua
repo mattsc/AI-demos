@@ -1403,17 +1403,17 @@ return {
 
         function grunt_rush_FLS1:grab_villages_exec()
             if self.data.unit.canrecruit then 
-                W.message { speaker = self.data.unit.id, message = 'The leader, me, is about to grab a village.  Need to recruit first.' }
+                --W.message { speaker = self.data.unit.id, message = 'The leader, me, is about to grab a village.  Need to recruit first.' }
                 -- Recruiting first; we're doing that differently here than in attack_leader_threat,
                 -- by running a mini CA eval/exec loop
                 local recruit_loop = true
                 while recruit_loop do
                     local eval = self:recruit_orcs_eval()
                     if (eval > 0) then
-                        W.message { speaker = self.data.unit.id, message = 'Recruiting.' }
+                        --W.message { speaker = self.data.unit.id, message = 'Recruiting.' }
                         self:recruit_orcs_exec()
                     else
-                        W.message { speaker = self.data.unit.id, message = 'Done recruiting.' }
+                        --W.message { speaker = self.data.unit.id, message = 'Done recruiting.' }
                         recruit_loop = false
                     end
                 end
@@ -2149,8 +2149,18 @@ return {
                 { "filter_radius", { terrain = 'C*,K*' } }
             }
             for i,c in ipairs(castle) do
-                local unit = wesnoth.get_unit(c[1], c[2])
-                if (not unit) then return score end
+                local unit_in_way = wesnoth.get_unit(c[1], c[2])
+                if (not unit_in_way) then -- If no unit in way, we're good
+                    return score
+                else
+                    -- Otherwise check whether the unit can move away (non-leaders only)
+                    -- Under most circumstances, this is unnecessary, but it can be required
+                    -- when the leader is about to move off the keep for attacking or village grabbing
+                    if (not unit_in_way.canrecruit) then
+                        local move_away = AH.get_reachable_unocc(unit_in_way)
+                        if (move_away:size() > 1) then return score end
+                    end
+                end
             end
 
             -- Otherwise: no recruiting
@@ -2174,19 +2184,33 @@ return {
             }
 
             -- Recruit on the castle hex that is closest to the above-defined 'goal'
-            local max_rating, max_rating_left, best_hex, best_hex_left = -9e99, -9e99, {}, {}
+            local max_rating, best_hex, best_hex_left = -9e99, {}, {}
             for i,c in ipairs(castle) do
-                local unit = wesnoth.get_unit(c[1], c[2])
-                if (not unit) then 
-                    local rating = -H.distance_between(c[1], c[2], goal.x, goal.y)
-                    if (rating > max_rating) then 
-                        max_rating, best_hex = rating, { c[1], c[2] }
-                    end
-                    local rating_left = -c[1]  -- As far left as possible
-                    if (rating_left > max_rating_left) then 
-                        max_rating_left, best_hex_left = rating, { c[1], c[2] }
-                    end
+                local unit_in_way = wesnoth.get_unit(c[1], c[2])
+                local rating = -9e99
+                if (not unit_in_way) then 
+                    rating = - H.distance_between(c[1], c[2], goal.x, goal.y)
+                else  -- hexes with units that can move away are possible, but unfavorable
+                    if (not unit_in_way.canrecruit) then
+                    local move_away = AH.get_reachable_unocc(unit_in_way)
+                        if (move_away:size() > 1) then 
+                            rating = - H.distance_between(c[1], c[2], goal.x, goal.y)
+                            -- The more hexes the unit can move to, the better
+                            -- but it's still worse than if there's no unit in the way
+                            rating = rating - 10000 + move_away:size()
+                        end
+                    end                    
                 end
+                if (rating > max_rating) then 
+                    max_rating, best_hex = rating, { c[1], c[2] }
+                end
+            end
+
+            -- Now first move the unit out of the way, if needed
+            local unit_in_way = wesnoth.get_unit(best_hex[1], best_hex[2])
+            if unit_in_way then
+                --W.message { speaker = unit_in_way.id, message = 'Moving out of way for recruiting' }
+                AH.move_unit_out_of_way(ai, unit_in_way, { dx = 0.1, dy = 0.5 })
             end
 
             -- Recruit an assassin, if there is none
