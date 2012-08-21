@@ -1363,11 +1363,12 @@ return {
 
                         -- If this is the leader, calculate counter attack damage
                         -- Make him the preferred village taker unless he's likely to die
+                        -- but only if he's on the keep
                         if u.canrecruit then
                             local counter_table = self:calc_counter_attack(u, { v[1], v[2] })
                             local max_counter_damage = counter_table.max_counter_damage
                             --print('    max_counter_damage:', u.id, max_counter_damage)
-                            if (max_counter_damage < u.hitpoints) then
+                            if (max_counter_damage < u.hitpoints) and wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
                                 --print('      -> take village with leader')
                                 rating = rating + 2
                             else
