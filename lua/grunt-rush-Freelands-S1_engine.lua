@@ -1300,7 +1300,8 @@ return {
             end
 
             -- Check if there are units with moves left
-            local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no', 
+            -- New: include the leader in this
+            local units = wesnoth.get_units { side = wesnoth.current.side, 
                 formula = '$this_unit.moves > 0'
             }
             if (not units[1]) then return 0 end
@@ -1360,6 +1361,20 @@ return {
                         -- Finally, since these can be reached by the enemy, want the strongest unit to go first
                         rating = rating + u.hitpoints / 100.
 
+                        -- If this is the leader, calculate retaliation
+                        -- Make him the preferred village taker unless he's likely to die
+                        if u.canrecruit then
+                            local retal_table = self:calc_retaliation(u, { v[1], v[2] })
+                            local max_retal = retal_table.max_retal
+                            --print('    max_retal:', u.id, max_retal)
+                            if (max_retal < u.hitpoints) then
+                                --print('      -> take village with leader')
+                                rating = rating + 2
+                            else
+                                rating = -1000
+                            end
+                        end
+
                         -- A rating of 0 here means that a village can be reached, but is not interesting
                         -- Thus, max_rating tart value is 0, which means don't go there
                         -- Rating needs to be at least 10 to be interesting
@@ -1367,7 +1382,7 @@ return {
                             max_rating, best_village, best_unit = rating, v, u
                         end
 
-                        --print('  rating:', rating)
+                        --print('  rating:', rating, u.id, u.canrecruit)
                     end
                 end
             end
@@ -1386,6 +1401,7 @@ return {
         end
 
         function grunt_rush_FLS1:grab_villages_exec()
+            --if self.data.unit.canrecruit then W.message { speaker = self.data.unit.id, message = 'Taking village with leader' } end
             AH.movefull_stopunit(ai, self.data.unit, self.data.village)
             self.data.unit, self.data.village = nil, nil
         end
