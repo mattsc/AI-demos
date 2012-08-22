@@ -880,7 +880,7 @@ return {
             end
 
             -- If there's a unit in the way, need to move it off again
-            -- get_attacks() checked that that is possible
+            -- get_attacks_occupied() checked that that is possible
             if best_attack.attack_hex_occupied then
                 local unit_in_way = wesnoth.get_unit(best_attack.x, best_attack.y)
                 --W.message { speaker = unit_in_way.id, message = 'Moving out of way' }
@@ -1115,7 +1115,7 @@ return {
             local defender = wesnoth.get_unit(self.data.ALT_best_attack.def_loc.x, self.data.ALT_best_attack.def_loc.y)
 
             -- If there's a unit in the way, need to move it off again
-            -- get_attacks() checked that that is possible
+            -- get_attacks_occupied() checked that that is possible
             if self.data.ALT_best_attack.attack_hex_occupied then
                 local unit_in_way = wesnoth.get_unit(self.data.ALT_best_attack.x, self.data.ALT_best_attack.y)
                 --W.message { speaker = unit_in_way.id, message = 'Moving out of way' }
@@ -1931,11 +1931,11 @@ return {
             --print('#poisoners, #others', #poisoners, #others)
             if (not poisoners[1]) then return 0 end
 
-            local attacks = AH.get_attacks(poisoners)
+            local attacks = AH.get_attacks_occupied(poisoners)
             --print('#attacks', #attacks)
             if (not attacks[1]) then return 0 end
 
-            local other_attacks = AH.get_attacks(others)
+            local other_attacks = AH.get_attacks_occupied(others)
             --print('#other_attacks', #other_attacks)
 
             -- For counter attack damage calculation:
@@ -1984,6 +1984,9 @@ return {
                     local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(a.x, a.y)).village
                     if is_village then rating = rating + 0.5 end
 
+                    -- Minor penalty if unit needs to be moved out of the way
+                    if a.attack_hex_occupied then rating = rating - 0.1 end
+
                     -- Only go through with the attack, if we can back it up with another unit
                     -- Or if only one enemy is in reach
                     local enemies_in_reach = enemy_attack_map:get(a.x, a.y)
@@ -2002,6 +2005,9 @@ return {
                                 local support_rating = 100 - wesnoth.unit_defense(supporter, wesnoth.get_terrain(oa.att_loc.x, oa.att_loc.y))
                                 support_rating = support_rating + oa.att_stats.average_hp - oa.def_stats.average_hp
                                 --print('  Supporting attack', oa.x, oa.y, support_rating)
+
+                                -- Minor penalty if unit needs to be moved out of the way
+                                if oa.attack_hex_occupied then support_rating = support_rating - 0.1 end
 
                                 if (support_rating > max_support_rating) then
                                     max_support_rating, support_attack = support_rating, oa
@@ -2045,7 +2051,21 @@ return {
             local attacker = wesnoth.get_unit(self.data.attack.att_loc.x, self.data.attack.att_loc.y)
             local defender = wesnoth.get_unit(self.data.attack.def_loc.x, self.data.attack.def_loc.y)
 
+            -- Also need to get the supporter at this time, since it might be the unit that's move out of the way
+            local suporter = {}
+            if self.data.support_attack then
+                supporter = wesnoth.get_unit(self.data.support_attack.att_loc.x, self.data.support_attack.att_loc.y)
+            end
+
             --W.message { speaker = attacker.id, message = "Poison attack" }
+
+            -- First move unit out of the way, if there is one
+            local unit_in_way = wesnoth.get_unit(self.data.attack.x, self.data.attack.y)
+            if unit_in_way and ((unit_in_way.x ~= attacker.x) or (unit_in_way.y ~= attacker.y)) then
+                --W.message { speaker = unit_in_way.id, message = 'Moving out of way for poisoner' }
+                AH.move_unit_out_of_way(ai, unit_in_way, { dx = 0., dy = 0. })
+            end
+
             AH.movefull_stopunit(ai, attacker, self.data.attack)
             local def_hp = defender.hitpoints
 
@@ -2079,7 +2099,12 @@ return {
             end
 
             if self.data.support_attack then
-                local supporter = wesnoth.get_unit(self.data.support_attack.att_loc.x, self.data.support_attack.att_loc.y)
+                -- Also move unit out of the way of the support unit, if there is one
+                local unit_in_way = wesnoth.get_unit(self.data.support_attack.x, self.data.support_attack.y)
+                if unit_in_way and ((unit_in_way.x ~= supporter.x) or (unit_in_way.y ~= supporter.y)) then
+                    --W.message { speaker = unit_in_way.id, message = 'Moving out of way for poisoner support attacker' }
+                    AH.move_unit_out_of_way(ai, unit_in_way, { dx = 0., dy = 0. })
+                end
 
                 AH.movefull_stopunit(ai, supporter, self.data.support_attack)
                 if self.data.also_attack then ai.attack(supporter, defender) end
@@ -2206,7 +2231,7 @@ return {
                 end
             end
 
-            -- Now first move the unit out of the way, if needed
+            -- First move unit out of the way, if there is one
             local unit_in_way = wesnoth.get_unit(best_hex[1], best_hex[2])
             if unit_in_way then
                 --W.message { speaker = unit_in_way.id, message = 'Moving out of way for recruiting' }

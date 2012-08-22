@@ -1,7 +1,11 @@
 0.10.2
 - Freelands Side 1 Grunt Rush:
   - Added new counter attack evaluation function
-    -> Leader does now take villages when safe
+    -> Leader does now preferentially take villages when safe
+  - Recruitment:
+    - If leader goes village grabbing, recruit first (same as for attack_weak_enemy, but using different method)
+    - If recruitment is done before end of turn, move units off castle if needed
+  - Poisoner attacks: set up so that units move out of the way for poisoner and supporter
 
 0.10.1-b, 20 Aug 2012
 - Freelands Side 1 Grunt Rush:

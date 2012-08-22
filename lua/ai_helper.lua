@@ -773,7 +773,7 @@ function ai_helper.get_attacks(units, moves)
 end
 
 function ai_helper.get_attacks_unit_occupied(unit)
-    -- Same as get_attacks-unit(), but also consider hexes that are occupied by a unit that can move away
+    -- Same as get_attacks_unit(), but also consider hexes that are occupied by a unit that can move away
     -- This only makes sense to be used with own units, not enemies,
     -- so it's a separate function from get_attacks-unit() and moves = 'max' does not make sense here
     -- Get all attacks a unit can do
@@ -782,6 +782,7 @@ function ai_helper.get_attacks_unit_occupied(unit)
     --   att_loc: { x = x, y = y } of attacking unit (don't use id, could be ambiguous)
     --   def_loc: { x = x, y = y } of defending unit
     --   att_stats, def_stats: as returned by wesnoth.simulate_combat
+    --   attack_hex_occupied: boolean storing whether an own unit that can move away is on the attack hex
     -- This is somewhat slow, but will hopefully replaced soon by built-in AI function
 
     -- Need to find reachable hexes that are
@@ -877,7 +878,7 @@ function ai_helper.get_attacks_unit_occupied(unit)
 end
 
 function ai_helper.get_attacks_occupied(units)
-    -- Wrapper function for ai_helper.get_attacks_unit
+    -- Wrapper function for ai_helper.get_attacks_unit_occupied
     -- Returns the same sort of table, but for the attacks of several units
     -- This is somewhat slow, but will hopefully replaced soon by built-in AI function
 
