@@ -163,6 +163,18 @@ return {
                     end
                     --print('  trapping_attack after elim: ', trapping_attack)
 
+                    -- 2. If the 'exposure' at the attack location is too high, don't do it either
+                    for i_a,a in ipairs(attackers) do
+                        local counter_table = self:calc_counter_attack(a, dsts[i_a])
+                        --DBG.dbms(counter_table)
+                        --print(a.id, dsts[i_a][1], dsts[i_a][2], counter_table.average_def_stats.hp_chance[0],  counter_table.average_def_stats.average_hp)
+                        -- Use a condition when damage is too much to be worthwhile
+                        if (counter_table.average_def_stats.hp_chance[0] > 0.30) or (counter_table.average_def_stats.average_hp < 10) then
+                            --print('Trapping attack too dangerous')
+                            trapping_attack = false
+                        end
+                    end
+
                     -- If at this point 'trapping_attack' is still true, we'll actually evaluate it
                     if trapping_attack then
                         
