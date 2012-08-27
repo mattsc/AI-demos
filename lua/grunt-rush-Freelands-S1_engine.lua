@@ -637,8 +637,11 @@ return {
 
         function grunt_rush_FLS1: reset_vars_exec()
             --print(' Resetting variables at beginning of Turn ' .. wesnoth.current.turn)
-            
-            self.data.leader_attack = nil
+
+            -- Reset self.data at beginning of turn, but need to keep 'complained_about_luck' variable
+            local complained_about_luck = self.data.SP_complained_about_luck
+            self.data = {}
+            self.data.SP_complained_about_luck = complained_about_luck
         end
 
         ------ Hard coded -----------
@@ -708,8 +711,8 @@ return {
                     if (not unit_in_way) then
                         local next_hop = AH.next_hop(leader, k[1], k[2])
                         if next_hop and (next_hop[1] == k[1]) and (next_hop[2] == k[2]) then
-                            self.data.leader = leader
-                            self.data.leader_move = { k[1], k[2] }
+                            self.data.MLK_leader = leader
+                            self.data.MLK_leader_move = { k[1], k[2] }
                             return score
                         end
                     end
@@ -722,10 +725,10 @@ return {
         end
 
         function grunt_rush_FLS1:move_leader_to_keep_exec()
-            if AH.show_messages() then W.message { speaker = self.data.leader.id, message = 'Moving back to keep' } end
+            if AH.show_messages() then W.message { speaker = self.data.MLK_leader.id, message = 'Moving back to keep' } end
             -- This has to be a partial move !!
-            ai.move(self.data.leader, self.data.leader_move[1], self.data.leader_move[2])
-            self.data.leader, self.data.leader_move = nil, nil
+            ai.move(self.data.MLK_leader, self.data.MLK_leader_move[1], self.data.MLK_leader_move[2])
+            self.data.MLK_leader, self.data.MLK_leader_move = nil, nil
         end
 
         ------ Retreat injured units -----------
@@ -793,7 +796,7 @@ return {
             end
 
             if (max_rating > -9e99) then
-                self.data.retreat_unit, self.data.retreat_village = best_unit, best_village
+                self.data.RIU_retreat_unit, self.data.RIU_retreat_village = best_unit, best_village
                 return score
             end
 
@@ -801,9 +804,9 @@ return {
         end
 
         function grunt_rush_FLS1:retreat_injured_units_exec()
-            if AH.show_messages() then W.message { speaker = self.data.retreat_unit.id, message = 'Retreating to village' } end
-            AH.movefull_outofway_stopunit(ai, self.data.retreat_unit, self.data.retreat_village)
-            self.data.retreat_unit, self.data.retreat_village = nil, nil
+            if AH.show_messages() then W.message { speaker = self.data.RIU_retreat_unit.id, message = 'Retreating to village' } end
+            AH.movefull_outofway_stopunit(ai, self.data.RIU_retreat_unit, self.data.RIU_retreat_village)
+            self.data.RIU_retreat_unit, self.data.RIU_retreat_village = nil, nil
         end
 
         ------ Attack with high CTK -----------
@@ -935,7 +938,7 @@ return {
         end
 
         function grunt_rush_FLS1:set_attack_by_leader_flag_exec()
-            self.data.leader_attack = true
+            self.data.attack_by_leader_flag = true
             print('Setting leader attack in attack_by_leader_flag_exec()')
         end
 
@@ -1159,7 +1162,7 @@ return {
 
             -- Reset variable indicating that his was an attack by the leader
             -- Can be done whether it was the leader who attacked or not:
-            self.data.leader_attack = nil
+            self.data.attack_by_leader_flag = nil
         end
 
         -------- At night, attack village at 27, 16 -------------
@@ -1423,7 +1426,7 @@ return {
             --print('max_rating', max_rating)
 
             if (max_rating >= 10) then
-                self.data.unit, self.data.village = best_unit, best_village
+                self.data.GV_unit, self.data.GV_village = best_unit, best_village
                 if (max_rating >= 1000) then
                     return score_high
                 else
@@ -1434,26 +1437,26 @@ return {
         end
 
         function grunt_rush_FLS1:grab_villages_exec()
-            if self.data.unit.canrecruit then 
-                if AH.show_messages() then W.message { speaker = self.data.unit.id, message = 'The leader, me, is about to grab a village.  Need to recruit first.' } end
+            if self.data.GV_unit.canrecruit then 
+                if AH.show_messages() then W.message { speaker = self.data.GV_unit.id, message = 'The leader, me, is about to grab a village.  Need to recruit first.' } end
                 -- Recruiting first; we're doing that differently here than in attack_leader_threat,
                 -- by running a mini CA eval/exec loop
                 local recruit_loop = true
                 while recruit_loop do
                     local eval = self:recruit_orcs_eval()
                     if (eval > 0) then
-                        if AH.show_messages() then W.message { speaker = self.data.unit.id, message = '  Recruiting.' } end
+                        if AH.show_messages() then W.message { speaker = self.data.GV_unit.id, message = '  Recruiting.' } end
                         self:recruit_orcs_exec()
                     else
-                        if AH.show_messages() then W.message { speaker = self.data.unit.id, message = '  Done recruiting.' } end
+                        if AH.show_messages() then W.message { speaker = self.data.GV_unit.id, message = '  Done recruiting.' } end
                         recruit_loop = false
                     end
                 end
             end
 
-            if AH.show_messages() then W.message { speaker = self.data.unit.id, message = 'Grabbing/holding village' } end
-            AH.movefull_outofway_stopunit(ai, self.data.unit, self.data.village)
-            self.data.unit, self.data.village = nil, nil
+            if AH.show_messages() then W.message { speaker = self.data.GV_unit.id, message = 'Grabbing/holding village' } end
+            AH.movefull_outofway_stopunit(ai, self.data.GV_unit, self.data.GV_village)
+            self.data.GV_unit, self.data.GV_village = nil, nil
         end
 
         --------- Protect Center ------------
@@ -1700,7 +1703,7 @@ return {
             }
             local goal = { x = 11, y = 9 }  -- southern-most of western villages
 
-            if AH.show_messages() then W.message { speaker = self.data.unit.id, message = 'Holding left (west)' } end
+            if AH.show_messages() then W.message { speaker = 'narrator', message = 'Holding left (west)' } end
             self:hold_position(units_left, goal, false)
         end
 
@@ -1775,11 +1778,11 @@ return {
             end
             --print('attack_y before', attack_y)
 
-            if (type(self.data.attack_y) ~= 'table') then self.data.attack_y = {} end
-            if self.data.attack_y[wesnoth.current.turn] and (self.data.attack_y[wesnoth.current.turn] > attack_y) then
-                attack_y = self.data.attack_y[wesnoth.current.turn]
+            if (type(self.data.RR_attack_y) ~= 'table') then self.data.RR_attack_y = {} end
+            if self.data.RR_attack_y[wesnoth.current.turn] and (self.data.RR_attack_y[wesnoth.current.turn] > attack_y) then
+                attack_y = self.data.RR_attack_y[wesnoth.current.turn]
             else
-                self.data.attack_y[wesnoth.current.turn] = attack_y
+                self.data.RR_attack_y[wesnoth.current.turn] = attack_y
             end
             --print('attack_y after', attack_y)
 
@@ -2078,24 +2081,24 @@ return {
                 end
             end
             if (max_rating > -9e99) then
-                self.data.attack, self.data.support_attack, self.data.also_attack = best_attack, best_support_attack, best_support_also_attack
+                self.data.SP_attack, self.data.SP_support_attack, self.data.SP_also_attack = best_attack, best_support_attack, best_support_also_attack
                 return score
             end
             return 0
         end
 
         function grunt_rush_FLS1:spread_poison_exec()
-            local attacker = wesnoth.get_unit(self.data.attack.att_loc.x, self.data.attack.att_loc.y)
-            local defender = wesnoth.get_unit(self.data.attack.def_loc.x, self.data.attack.def_loc.y)
+            local attacker = wesnoth.get_unit(self.data.SP_attack.att_loc.x, self.data.SP_attack.att_loc.y)
+            local defender = wesnoth.get_unit(self.data.SP_attack.def_loc.x, self.data.SP_attack.def_loc.y)
 
             -- Also need to get the supporter at this time, since it might be the unit that's move out of the way
             local suporter = {}
-            if self.data.support_attack then
-                supporter = wesnoth.get_unit(self.data.support_attack.att_loc.x, self.data.support_attack.att_loc.y)
+            if self.data.SP_support_attack then
+                supporter = wesnoth.get_unit(self.data.SP_support_attack.att_loc.x, self.data.SP_support_attack.att_loc.y)
             end
 
             if AH.show_messages() then W.message { speaker = attacker.id, message = "Poison attack" } end
-            AH.movefull_outofway_stopunit(ai, attacker, self.data.attack, { dx = 0., dy = 0. })
+            AH.movefull_outofway_stopunit(ai, attacker, self.data.SP_attack, { dx = 0., dy = 0. })
             local def_hp = defender.hitpoints
 
             -- Find the poison weapon
@@ -2114,25 +2117,25 @@ return {
             local dw = -1
             if AH.got_1_11() then dw = 0 end
             ai.attack(attacker, defender, poison_weapon + dw)
-            self.data.attack = nil
+            self.data.SP_attack = nil
 
             -- In case either attacker or defender died, don't do anything
             if (not attacker.valid) then return 0 end
             if (not defender.valid) then return 0 end
 
             -- A little joke:
-            if (not self.data.complained_about_luck) and (defender.hitpoints == def_hp) then
-                self.data.complained_about_luck = true
+            if (not self.data.SP_complained_about_luck) and (defender.hitpoints == def_hp) then
+                self.data.SP_complained_about_luck = true
                 W.delay { time = 1000 }
                 W.message { speaker = attacker.id, message = "Oh, come on !" }
             end
 
-            if self.data.support_attack then
+            if self.data.SP_support_attack then
                 if AH.show_messages() then W.message { speaker = supporter.id, message = 'Supporting poisoner attack' } end
-                AH.movefull_outofway_stopunit(ai, supporter, self.data.support_attack)
-                if self.data.also_attack then ai.attack(supporter, defender) end
+                AH.movefull_outofway_stopunit(ai, supporter, self.data.SP_support_attack)
+                if self.data.SP_also_attack then ai.attack(supporter, defender) end
             end
-            self.data.support_attack, self.data.also_attack = nil, nil
+            self.data.SP_support_attack, self.data.SP_also_attack = nil, nil
         end
 
         -------- Fall back when enemy too strong -------------
@@ -2179,7 +2182,7 @@ return {
         function grunt_rush_FLS1:recruit_orcs_eval()
             local score = 181000
 
-            if self.data.leader_attack then
+            if self.data.attack_by_leader_flag then
                 if AH.show_messages() then W.message { speaker = 'narrator', message = 'Leader attack imminent.  Recruiting first.' } end
                 score = 461000
             end
