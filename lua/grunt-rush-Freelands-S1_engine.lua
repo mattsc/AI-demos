@@ -196,6 +196,12 @@ return {
                             -- Own unit on village gets bonus too
                             local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(dsts[i_a][1], dsts[i_a][2])).village
                             if is_village then rating = rating + 20 end
+
+                            -- Minor penalty if a unit needs to be moved (that is not the attacker itself)
+                            local unit_in_way = wesnoth.get_unit(dsts[i_a][1], dsts[i_a][2])
+                            if unit_in_way and ((unit_in_way.x ~= attackers[i_a].x) or (unit_in_way.y ~= attackers[i_a].y)) then
+                                rating = rating - 0.01
+                            end
                         end
 
                         --print(' -----------------------> zoc attack rating', rating)
@@ -1099,10 +1105,23 @@ return {
             -- All of this should be made more consistent later
             if self.data.ALT_trapping_attackers then
                 --W.message { speaker = 'narrator', message = 'Trapping attack possible (in attack_leader_threats)' }
+
+                -- Reorder the trapping attacks so that those that do not need to move a unit out of the way happen first
+                -- This is in case the unit_in_way is one of the trappers (which might be moved in the wrong direction)
+                for i = #self.data.ALT_trapping_attackers,1,-1 do
+                    local unit_in_way = wesnoth.get_unit(self.data.ALT_trapping_dsts[i][1], self.data.ALT_trapping_dsts[i][2])
+                    if unit_in_way and ((unit_in_way.x ~= self.data.ALT_trapping_attackers[i].x) or (unit_in_way.y ~= self.data.ALT_trapping_attackers[i].y)) then
+                        table.insert(self.data.ALT_trapping_attackers, self.data.ALT_trapping_attackers[i])
+                        table.insert(self.data.ALT_trapping_dsts, self.data.ALT_trapping_dsts[i])
+                        table.remove(self.data.ALT_trapping_attackers, i)
+                        table.remove(self.data.ALT_trapping_dsts, i)
+                    end
+                end
+
                 for i,attacker in ipairs(self.data.ALT_trapping_attackers) do
                     -- Need to check that enemy was not killed by previous attack
                     if self.data.ALT_trapping_enemy and self.data.ALT_trapping_enemy.valid then
-                        AH.movefull_stopunit(ai, attacker, self.data.ALT_trapping_dsts[i])
+                        AH.movefull_outofway_stopunit(ai, attacker, self.data.ALT_trapping_dsts[i])
                         ai.attack(attacker, self.data.ALT_trapping_enemy)
 
                         -- Counter for how often this unit was attacked this turn
@@ -1289,10 +1308,23 @@ return {
 
         function grunt_rush_FLS1:ZOC_enemy_exec()
             --W.message { speaker = 'narrator', message = 'Starting trapping attack (in ZOC_enemy)' }
+
+            -- Reorder the trapping attacks so that those that do not need to move a unit out of the way happen first
+            -- This is in case the unit_in_way is one of the trappers (which might be moved in the wrong direction)
+            for i = #self.data.ZOC_attackers,1,-1 do
+                local unit_in_way = wesnoth.get_unit(self.data.ZOC_dsts[i][1], self.data.ZOC_dsts[i][2])
+                if unit_in_way and ((unit_in_way.x ~= self.data.ZOC_attackers[i].x) or (unit_in_way.y ~= self.data.ZOC_attackers[i].y)) then
+                    table.insert(self.data.ZOC_attackers, self.data.ZOC_attackers[i])
+                    table.insert(self.data.ZOC_dsts, self.data.ZOC_dsts[i])
+                    table.remove(self.data.ZOC_attackers, i)
+                    table.remove(self.data.ZOC_dsts, i)
+                end
+            end
+
             for i,attacker in ipairs(self.data.ZOC_attackers) do
                 -- Need to check that enemy was not killed by previous attack
                 if self.data.ZOC_enemy and self.data.ZOC_enemy.valid then
-                    AH.movefull_stopunit(ai, attacker, self.data.ZOC_dsts[i])
+                    AH.movefull_outofway_stopunit(ai, attacker, self.data.ZOC_dsts[i])
                     ai.attack(attacker, self.data.ZOC_enemy)
                 end
             end

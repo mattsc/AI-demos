@@ -608,24 +608,6 @@ function ai_helper.find_best_move(units, rating_function, cfg)
     return best_hex, best_unit
 end
 
-function ai_helper.movefull_stopunit(ai, unit, x, y)
-    -- Does ai.move_full for a unit if not at (x,y), otherwise ai.stopunit_moves
-    -- Coordinates can be given as x and y components, or as a 2-element table { x, y }
-    if (type(x) ~= 'number') then 
-        if x[1] then
-            x, y = x[1], x[2]
-        else
-            x, y = x.x, x.y
-        end
-    end
-
-    if (x ~= unit.x) or (y ~= unit.y) then
-        ai.move_full(unit, x, y)
-    else
-        ai.stopunit_moves(unit)
-    end
-end
-
 function ai_helper.move_unit_out_of_way(ai, unit, cfg)
     -- Find best close location to move unit to
     -- Main rating is the moves the unit still has left after that
@@ -657,6 +639,47 @@ function ai_helper.move_unit_out_of_way(ai, unit, cfg)
     if (max_rating > -9e99) then
         --W.message { speaker = unit.id, message = 'Moving out of way' }
         ai.move(unit, best_hex[1], best_hex[2])
+    end
+end
+
+function ai_helper.movefull_stopunit(ai, unit, x, y)
+    -- Does ai.move_full for a unit if not at (x,y), otherwise ai.stopunit_moves
+    -- Coordinates can be given as x and y components, or as a 2-element table { x, y }
+    if (type(x) ~= 'number') then 
+        if x[1] then
+            x, y = x[1], x[2]
+        else
+            x, y = x.x, x.y
+        end
+    end
+
+    if (x ~= unit.x) or (y ~= unit.y) then
+        ai.move_full(unit, x, y)
+    else
+        ai.stopunit_moves(unit)
+    end
+end
+
+function ai_helper.movefull_outofway_stopunit(ai, unit, x, y, cfg)
+    -- Same as ai_help.movefull_stopunit(), but also moves unit out of way if there is one
+    -- Additional input: cfg for ai_helper.move_unit_out_of_way()
+    if (type(x) ~= 'number') then 
+        if x[1] then
+            x, y = x[1], x[2]
+        else
+            x, y = x.x, x.y
+        end
+    end
+
+    local unit_in_way = wesnoth.get_unit(x, y)
+    if unit_in_way and ((unit_in_way.x ~= unit.x) or (unit_in_way.y ~= unit.y)) then
+        ai_helper.move_unit_out_of_way(ai, unit_in_way, cfg)
+    end
+
+    if (x ~= unit.x) or (y ~= unit.y) then
+        ai.move_full(unit, x, y)
+    else
+        ai.stopunit_moves(unit)
     end
 end
 
@@ -1050,7 +1073,7 @@ function ai_helper.get_attack_combos_no_order(units, enemy)
     --   1. Attack combinations in form { dst = src }
     --   2. All the attacks indexed by [dst][src]
 
-    local attacks = ai_helper.get_attacks(units)
+    local attacks = ai_helper.get_attacks_occupied(units)
     --print('# all attacks', #attacks)
     --Eliminate those that are not on 'enemy'
     for i = #attacks,1,-1 do
