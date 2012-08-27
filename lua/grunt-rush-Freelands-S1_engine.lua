@@ -657,9 +657,9 @@ return {
                 if unit and (unit.moves >=5) then return score end
             end
 
-            -- Move 3 move the wolf rider
+            -- Move 3 move the orc
             if (wesnoth.current.turn == 3) then
-                local unit = wesnoth.get_unit(12,2)
+                local unit = wesnoth.get_unit(12,5)
                 if unit and (unit.moves >=5) then return score end
             end
             return 0
