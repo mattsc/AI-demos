@@ -481,7 +481,7 @@ return {
             -- Returns the best attack, or otherwise nil
             -- For now, this is separate from the previous function for speed and efficiency reasons
 
-            local attacks = AH.get_attacks({unit})
+            local attacks = AH.get_attacks_occupied({unit})
 
             if (not attacks[1]) then return end
             --print('#attacks',#attacks,ids)
@@ -589,6 +589,8 @@ return {
                             end
                         end
 
+                        -- Minor penalty if the attack hex is occupied
+                        if a. attack_hex_occupied then rating = rating - 0.01 end
 
                         --print('  rating:',rating,'  min_outcome',min_outcome)
                         if (rating > max_rating) then
