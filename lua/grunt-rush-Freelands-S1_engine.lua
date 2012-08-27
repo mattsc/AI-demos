@@ -671,7 +671,7 @@ return {
                 ai.move_full(20, 4, 24, 7)
             end
             if (wesnoth.current.turn == 3) then
-                ai.move_full(12, 2, 11, 9)
+                ai.move_full(12, 5, 11, 9)
             end
         end
 
@@ -1098,7 +1098,7 @@ return {
             -- If a trapping attack was found, we do that first
             -- All of this should be made more consistent later
             if self.data.ALT_trapping_attackers then
-                W.message { speaker = 'narrator', message = 'Trapping attack possible (in attack_leader_threats)' }
+                --W.message { speaker = 'narrator', message = 'Trapping attack possible (in attack_leader_threats)' }
                 for i,attacker in ipairs(self.data.ALT_trapping_attackers) do
                     -- Need to check that enemy was not killed by previous attack
                     if self.data.ALT_trapping_enemy and self.data.ALT_trapping_enemy.valid then
@@ -1288,7 +1288,7 @@ return {
         end
 
         function grunt_rush_FLS1:ZOC_enemy_exec()
-            W.message { speaker = 'narrator', message = 'Starting trapping attack (in ZOC_enemy)' }
+            --W.message { speaker = 'narrator', message = 'Starting trapping attack (in ZOC_enemy)' }
             for i,attacker in ipairs(self.data.ZOC_attackers) do
                 -- Need to check that enemy was not killed by previous attack
                 if self.data.ZOC_enemy and self.data.ZOC_enemy.valid then
