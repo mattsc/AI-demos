@@ -7,6 +7,22 @@ local ai_helper = {}
 
 ----- General helper functions ------
 
+function ai_helper.show_messages()
+    -- Show messages if in debug mode and this is set to true
+    -- Just edit the following line (easier than trying to set WML variable)
+    local show_messages_flag = false
+    if wesnoth.game_config.debug then return show_messages_flag end
+    return false
+end
+
+function ai_helper.print_exec()
+    -- Show which CA is being executed if in debug mode and this is set to true
+    -- Just edit the following line (easier than trying to set WML variable)
+    local print_exec_flag = true
+    if wesnoth.game_config.debug then return print_exec_flag end
+    return false
+end
+
 function ai_helper.got_1_11()
    if not wesnoth.compare_versions then return false end
    return wesnoth.compare_versions(wesnoth.game_config.version, ">=", "1.11.0-svn")
@@ -76,15 +92,6 @@ function ai_helper.put_labels(map, factor)
           if (out ~= 'nan') then out = out * factor end 
           W.label { x = x, y = y, text = out }
     end)
-end
-
-function ai_helper.show_messages()
-    -- Show messages if in debug mode and 'show_messages' WML variable is set
-    if wesnoth.game_config.debug then
-        local mess = wesnoth.get_variable "show_messages"
-        if mess then return true end
-    end
-    return false
 end
 
 function ai_helper.random(min, max)

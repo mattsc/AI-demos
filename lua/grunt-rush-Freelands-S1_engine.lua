@@ -671,6 +671,7 @@ return {
         end
 
         function grunt_rush_FLS1:hardcoded_exec()
+            if AH.print_exec() then print('     - Executing hardcoded CA') end
             if AH.show_messages() then W.message { speaker = 'narrator', message = 'Executing hardcoded move(s)' } end
             if (wesnoth.current.turn == 1) then
                 ai.recruit('Orcish Grunt', 17, 5)
@@ -725,6 +726,7 @@ return {
         end
 
         function grunt_rush_FLS1:move_leader_to_keep_exec()
+            if AH.print_exec() then print('     - Executing move_leader_to_keep CA') end
             if AH.show_messages() then W.message { speaker = self.data.MLK_leader.id, message = 'Moving back to keep' } end
             -- This has to be a partial move !!
             ai.move(self.data.MLK_leader, self.data.MLK_leader_move[1], self.data.MLK_leader_move[2])
@@ -804,6 +806,7 @@ return {
         end
 
         function grunt_rush_FLS1:retreat_injured_units_exec()
+            if AH.print_exec() then print('     - Executing retreat_injured_units CA') end
             if AH.show_messages() then W.message { speaker = self.data.RIU_retreat_unit.id, message = 'Retreating to village' } end
             AH.movefull_outofway_stopunit(ai, self.data.RIU_retreat_unit, self.data.RIU_retreat_village)
             self.data.RIU_retreat_unit, self.data.RIU_retreat_village = nil, nil
@@ -853,7 +856,7 @@ return {
         end
 
         function grunt_rush_FLS1:attack_weak_enemy_exec()
-            --print('Executing high CTK attack')
+            if AH.print_exec() then print('     - Executing attack_weak_enemy CA') end
             local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no', 
                 formula = '$this_unit.attacks_left > 0'
             }
@@ -938,8 +941,8 @@ return {
         end
 
         function grunt_rush_FLS1:set_attack_by_leader_flag_exec()
+            if AH.print_exec() then print('     - Setting leader attack in attack_by_leader_flag_exec()') end
             self.data.attack_by_leader_flag = true
-            print('Setting leader attack in attack_by_leader_flag_exec()')
         end
 
         ------ Attack leader threats -----------
@@ -1100,6 +1103,7 @@ return {
         end
 
         function grunt_rush_FLS1:attack_leader_threat_exec()
+            if AH.print_exec() then print('     - Executing attack_leader_threat CA') end
             -- If a trapping attack was found, we do that first
             -- All of this should be made more consistent later
             if self.data.ALT_trapping_attackers then
@@ -1207,6 +1211,7 @@ return {
         end
 
         function grunt_rush_FLS1:attack_village_exec()
+            if AH.print_exec() then print('     - Executing attack_village CA') end
 
             local goal = { x = 27, y = 16 }
             local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no', 
@@ -1298,6 +1303,7 @@ return {
         end
 
         function grunt_rush_FLS1:ZOC_enemy_exec()
+            if AH.print_exec() then print('     - Executing ZOC_enemy CA') end
             if AH.show_messages() then W.message { speaker = 'narrator', message = 'Starting trapping attack (in ZOC_enemy)' } end
 
             -- Reorder the trapping attacks so that those that do not need to move a unit out of the way happen first
@@ -1437,6 +1443,7 @@ return {
         end
 
         function grunt_rush_FLS1:grab_villages_exec()
+            if AH.print_exec() then print('     - Executing grab_villages CA') end
             if self.data.GV_unit.canrecruit then 
                 if AH.show_messages() then W.message { speaker = self.data.GV_unit.id, message = 'The leader, me, is about to grab a village.  Need to recruit first.' } end
                 -- Recruiting first; we're doing that differently here than in attack_leader_threat,
@@ -1445,10 +1452,8 @@ return {
                 while recruit_loop do
                     local eval = self:recruit_orcs_eval()
                     if (eval > 0) then
-                        if AH.show_messages() then W.message { speaker = self.data.GV_unit.id, message = '  Recruiting.' } end
                         self:recruit_orcs_exec()
                     else
-                        if AH.show_messages() then W.message { speaker = self.data.GV_unit.id, message = '  Done recruiting.' } end
                         recruit_loop = false
                     end
                 end
@@ -1530,6 +1535,7 @@ return {
         end
 
         function grunt_rush_FLS1:protect_center_exec()
+            if AH.print_exec() then print('     - Executing protect_center CA') end
             local units_MP = wesnoth.get_units { side = wesnoth.current.side, x = '1-24', canrecruit = 'no',
                 formula = '$this_unit.moves > 0'
             }
@@ -1605,6 +1611,7 @@ return {
         end
 
         function grunt_rush_FLS1:hold_left_exec()
+            if AH.print_exec() then print('     - Executing hold_left CA') end
             -- Move goblin first, if there is one
             -- There shouldn't be more than 1, so we just take the first we find
 
@@ -1727,6 +1734,7 @@ return {
         end
 
         function grunt_rush_FLS1:rush_right_exec()
+            if AH.print_exec() then print('     - Executing rush_right CA') end
 
             local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no',
                 { "not", { x = '1-21', y = '12-25' } },
@@ -2088,6 +2096,7 @@ return {
         end
 
         function grunt_rush_FLS1:spread_poison_exec()
+            if AH.print_exec() then print('     - Executing spread_poison CA') end
             local attacker = wesnoth.get_unit(self.data.SP_attack.att_loc.x, self.data.SP_attack.att_loc.y)
             local defender = wesnoth.get_unit(self.data.SP_attack.def_loc.x, self.data.SP_attack.def_loc.y)
 
@@ -2154,6 +2163,7 @@ return {
         end
 
         function grunt_rush_FLS1:fall_back_exec()
+            if AH.print_exec() then print('     - Executing fall_back CA') end
             -- Currently we simply fall back to keep, better algorithm to be used later
             --print('Falling back')
             local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no',
@@ -2219,6 +2229,7 @@ return {
         end
 
         function grunt_rush_FLS1:recruit_orcs_exec()
+            if AH.print_exec() then print('     - Executing recruit_orcs CA') end
             -- Recruiting logic (in that order):
             -- ... under revision ...
             -- All of this is contingent on having enough gold (eval checked for gold > 12)
