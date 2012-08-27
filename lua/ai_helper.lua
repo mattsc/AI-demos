@@ -78,6 +78,15 @@ function ai_helper.put_labels(map, factor)
     end)
 end
 
+function ai_helper.show_messages()
+    -- Show messages if in debug mode and 'show_messages' WML variable is set
+    if wesnoth.game_config.debug then
+        local mess = wesnoth.get_variable "show_messages"
+        if mess then return true end
+    end
+    return false
+end
+
 function ai_helper.random(min, max)
     -- Use this function as Lua's 'math.random' is not replay or MP safe
 

@@ -320,7 +320,7 @@ return {
                     end)
                 end
 
-                --W.message { speaker = best_unit.id, message = 'Moving close unit' }
+                if AH.show_messages() then W.message { speaker = best_unit.id, message = 'Hold position: Moving close unit' } end
                 AH.movefull_outofway_stopunit(ai, best_unit, best_hex)
                 return
             end
@@ -372,7 +372,7 @@ return {
                 end
 
                 if (max_rating > -9e99) then
-                    --W.message { speaker = best_unit.id, message = 'Moving far unit ' .. goal.x .. ',' .. goal.y }
+                    if AH.show_messages() then W.message { speaker = best_unit.id, message = 'Hold position: Moving far unit ' .. goal.x .. ',' .. goal.y } end
                     AH.movefull_outofway_stopunit(ai, best_unit, best_hex)
                     return
                 end
@@ -666,6 +666,7 @@ return {
         end
 
         function grunt_rush_FLS1:hardcoded_exec()
+            if AH.show_messages() then W.message { speaker = 'narrator', message = 'Executing hardcoded move(s)' } end
             if (wesnoth.current.turn == 1) then
                 ai.recruit('Orcish Grunt', 17, 5)
                 ai.recruit('Wolf Rider', 18, 4)
@@ -719,6 +720,7 @@ return {
         end
 
         function grunt_rush_FLS1:move_leader_to_keep_exec()
+            if AH.show_messages() then W.message { speaker = self.data.leader.id, message = 'Moving back to keep' } end
             -- This has to be a partial move !!
             ai.move(self.data.leader, self.data.leader_move[1], self.data.leader_move[2])
             self.data.leader, self.data.leader_move = nil, nil
@@ -797,7 +799,7 @@ return {
         end
 
         function grunt_rush_FLS1:retreat_injured_units_exec()
-            --W.message { speaker = self.data.retreat_unit.id, message = 'Retreating to village' }
+            if AH.show_messages() then W.message { speaker = self.data.retreat_unit.id, message = 'Retreating to village' } end
             AH.movefull_outofway_stopunit(ai, self.data.retreat_unit, self.data.retreat_village)
             self.data.retreat_unit, self.data.retreat_village = nil, nil
         end
@@ -899,7 +901,7 @@ return {
 
             local attacker = wesnoth.get_unit(best_attack.att_loc.x, best_attack.att_loc.y)
             local defender = wesnoth.get_unit(best_attack.def_loc.x, best_attack.def_loc.y)
-            --W.message { speaker = attacker.id, message = "Attacking with high CTK" }
+            if AH.show_messages() then W.message { speaker = attacker.id, message = "Attacking weak enemy" } end
             AH.movefull_outofway_stopunit(ai, attacker, best_attack, { dx = 0.5, dy = -0.1 })
             ai.attack(attacker, defender)
         end
@@ -1096,7 +1098,7 @@ return {
             -- If a trapping attack was found, we do that first
             -- All of this should be made more consistent later
             if self.data.ALT_trapping_attackers then
-                --W.message { speaker = 'narrator', message = 'Trapping attack possible (in attack_leader_threats)' }
+                if AH.show_messages() then W.message { speaker = 'narrator', message = 'Trapping attack possible (in attack_leader_threats)' } end
 
                 -- Reorder the trapping attacks so that those that do not need to move a unit out of the way happen first
                 -- This is in case the unit_in_way is one of the trappers (which might be moved in the wrong direction)
@@ -1148,7 +1150,7 @@ return {
                 --print('Attack number on this unit this turn:', xy_turn, self.data[xy_turn])
             end
 
-            --W.message {speaker=attacker.id, message="Attacking leader threat" }
+            if AH.show_messages() then W.message { speaker = attacker.id, message = 'Attacking leader threat' } end
             AH.movefull_outofway_stopunit(ai, attacker, self.data.ALT_best_attack, { dx = 0.5, dy = -0.1 })
             ai.attack(attacker, defender)
             self.data.ALT_best_attack = nil
@@ -1224,7 +1226,7 @@ return {
             end
 
             local attacker = wesnoth.get_unit(best_attack.att_loc.x, best_attack.att_loc.y)
-            --W.message { speaker = attacker.id, message = "Attacking village" }
+            if AH.show_messages() then W.message { speaker = attacker.id, message = "Attacking village" } end
             AH.movefull_outofway_stopunit(ai, attacker, best_attack)
             ai.attack(attacker, unit_at_goal)
         end
@@ -1291,7 +1293,7 @@ return {
         end
 
         function grunt_rush_FLS1:ZOC_enemy_exec()
-            --W.message { speaker = 'narrator', message = 'Starting trapping attack (in ZOC_enemy)' }
+            if AH.show_messages() then W.message { speaker = 'narrator', message = 'Starting trapping attack (in ZOC_enemy)' } end
 
             -- Reorder the trapping attacks so that those that do not need to move a unit out of the way happen first
             -- This is in case the unit_in_way is one of the trappers (which might be moved in the wrong direction)
@@ -1431,21 +1433,23 @@ return {
 
         function grunt_rush_FLS1:grab_villages_exec()
             if self.data.unit.canrecruit then 
-                --W.message { speaker = self.data.unit.id, message = 'The leader, me, is about to grab a village.  Need to recruit first.' }
+                if AH.show_messages() then W.message { speaker = self.data.unit.id, message = 'The leader, me, is about to grab a village.  Need to recruit first.' } end
                 -- Recruiting first; we're doing that differently here than in attack_leader_threat,
                 -- by running a mini CA eval/exec loop
                 local recruit_loop = true
                 while recruit_loop do
                     local eval = self:recruit_orcs_eval()
                     if (eval > 0) then
-                        --W.message { speaker = self.data.unit.id, message = 'Recruiting.' }
+                        if AH.show_messages() then W.message { speaker = self.data.unit.id, message = '  Recruiting.' } end
                         self:recruit_orcs_exec()
                     else
-                        --W.message { speaker = self.data.unit.id, message = 'Done recruiting.' }
+                        if AH.show_messages() then W.message { speaker = self.data.unit.id, message = '  Done recruiting.' } end
                         recruit_loop = false
                     end
                 end
             end
+
+            if AH.show_messages() then W.message { speaker = self.data.unit.id, message = 'Grabbing/holding village' } end
             AH.movefull_outofway_stopunit(ai, self.data.unit, self.data.village)
             self.data.unit, self.data.village = nil, nil
         end
@@ -1525,6 +1529,8 @@ return {
                 formula = '$this_unit.moves > 0'
             }
             local protect_loc = { x = 18, y = 9 }
+
+            if AH.show_messages() then W.message { speaker = 'narrator', message = 'Protecting map center' } end
             self:hold_position(units_MP, protect_loc, false)
         end
 
@@ -1653,7 +1659,7 @@ return {
                         end
                     end)
                 end
-                --W.message { speaker = best_unit.id, message = 'Going pillaging in west' }
+                if AH.show_messages() then W.message { speaker = best_unit.id, message = 'Going pillaging in west' } end
                 AH.movefull_outofway_stopunit(ai, best_unit, best_hex)
                 return  -- There might not be other units, need to go through eval again first
             end
@@ -1672,14 +1678,14 @@ return {
                         if (x == goal.x) and (y == goal.y) then rating = rating - 1000 end
                         return rating
                     end)
-                    --W.message { speaker = unit_in_way.id, message = 'Moving off the village' }
+                    if AH.show_messages() then W.message { speaker = unit_in_way.id, message = 'Moving off the village' } end
                     ai.move(unit_in_way, best_hex[1], best_hex[2])
                 end
 
                 local best_hex = AH.find_best_move(gobo, function(x, y)
                     return -H.distance_between(x, y, goal.x, goal.y) - y/10.
                 end)
-                --W.message { speaker = gobo.id, message = 'Moving gobo toward village; or keeping him there' }
+                if AH.show_messages() then W.message { speaker = gobo.id, message = 'Moving gobo toward village; or keeping him there' } end
                 AH.movefull_stopunit(ai, gobo, best_hex)
                 return  -- There might not be other units, need to go through eval again first
             end
@@ -1691,6 +1697,8 @@ return {
                 canrecruit = 'no', formula = '$this_unit.moves > 0'
             }
             local goal = { x = 11, y = 9 }  -- southern-most of western villages
+
+            if AH.show_messages() then W.message { speaker = self.data.unit.id, message = 'Holding left (west)' } end
             self:hold_position(units_left, goal, false)
         end
 
@@ -1744,7 +1752,6 @@ return {
             --DBG.dbms(enemy_hp_y)
             --print('\n')
             --for y = 10,24 do print('y, hp_ratio', y, hp_ratio[y] or 0) end
-            --W.message { speaker = 'narrator', message = 'HP ratio' }
 
             -- We'll do this step by step for easier experimenting
             -- To be streamlined later
@@ -1868,7 +1875,7 @@ return {
                             end
                         end
                         --print('Best attack:', best_attack.dst, best_attack.src)
-                        --W.message { speaker = attackers[best_attack.src].id, message = 'Combo attack' }
+                        if AH.show_messages() then W.message { speaker = attackers[best_attack.src].id, message = 'Rush right: Combo attack' } end
                         AH.movefull_outofway_stopunit(ai, attackers[best_attack.src], math.floor(best_attack.dst / 1000), best_attack.dst % 1000)
                         ai.attack(attackers[best_attack.src], best_enemy)
 
@@ -1885,7 +1892,7 @@ return {
 
             -- If we got here, we should hold position on the right instead
             --print('Holding position on right down to y = ' .. attack_y)
-            --W.message { speaker = 'narrator', message = 'Holding position on right down to y = ' .. attack_y }
+            --if AH.show_messages() then W.message { speaker = 'narrator', message = 'Holding position on right down to y = ' .. attack_y } end
 
             -- Get all units with moves left (before was for those with attacks left)
             local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no',
@@ -2085,7 +2092,7 @@ return {
                 supporter = wesnoth.get_unit(self.data.support_attack.att_loc.x, self.data.support_attack.att_loc.y)
             end
 
-            --W.message { speaker = attacker.id, message = "Poison attack" }
+            if AH.show_messages() then W.message { speaker = attacker.id, message = "Poison attack" } end
             AH.movefull_outofway_stopunit(ai, attacker, self.data.attack, { dx = 0., dy = 0. })
             local def_hp = defender.hitpoints
 
@@ -2119,7 +2126,7 @@ return {
             end
 
             if self.data.support_attack then
-                --W.message { speaker = supporter.id, message = 'Supporting poisoner attack' }
+                if AH.show_messages() then W.message { speaker = supporter.id, message = 'Supporting poisoner attack' } end
                 AH.movefull_outofway_stopunit(ai, supporter, self.data.support_attack)
                 if self.data.also_attack then ai.attack(supporter, defender) end
             end
@@ -2171,7 +2178,7 @@ return {
             local score = 181000
 
             if self.data.leader_attack then
-                --W.message { speaker = 'narrator', message = 'Leader attack imminent.  Recruiting first.' }
+                if AH.show_messages() then W.message { speaker = 'narrator', message = 'Leader attack imminent.  Recruiting first.' } end
                 score = 461000
             end
 
@@ -2248,9 +2255,11 @@ return {
             -- First move unit out of the way, if there is one
             local unit_in_way = wesnoth.get_unit(best_hex[1], best_hex[2])
             if unit_in_way then
-                --W.message { speaker = unit_in_way.id, message = 'Moving out of way for recruiting' }
+                if AH.show_messages() then W.message { speaker = unit_in_way.id, message = 'Moving out of way for recruiting' } end
                 AH.move_unit_out_of_way(ai, unit_in_way, { dx = 0.1, dy = 0.5 })
             end
+
+            if AH.show_messages() then W.message { speaker = leader.id, message = 'Recruiting' } end
 
             -- Recruit an assassin, if there is none
             local assassin = wesnoth.get_units { side = wesnoth.current.side, type = 'Orcish Assassin' }[1]

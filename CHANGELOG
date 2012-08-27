@@ -2,8 +2,10 @@
 - Freelands Side 1 Grunt Rush:
   - Trapping attacks will now move units out of way
   - Minor change to opening move sequence (switched villages for wolf and orc in west)
+  - Added ai_helper.show_messages option in debug mode
 - ai_helper:
-  - New function ai_helper.movefull_outofway_stopunit()
+  - New function ai_helper.movefull_outofway_stopunit() (used in Freelands Grunt Rush AI where applicable)
+  - New function ai_helper.show_messages() (so that condition when it kicks in can be changed easily)
   - ai_helper.get_attack_combos_no_order() now also considers attack hexes occupied by units with MP>0
 
 0.10.2, 25 Aug 2012
