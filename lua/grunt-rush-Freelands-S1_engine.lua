@@ -252,7 +252,7 @@ return {
                     end
                 end
                 if max_rating > -9e99 then
-                    AH.movefull_stopunit(ai, best_unit, goal)
+                    AH.movefull_outofway_stopunit(ai, best_unit, goal)
                     return
                 end
            end
@@ -321,7 +321,7 @@ return {
                 end
 
                 --W.message { speaker = best_unit.id, message = 'Moving close unit' }
-                AH.movefull_stopunit(ai, best_unit, best_hex)
+                AH.movefull_outofway_stopunit(ai, best_unit, best_hex)
                 return
             end
 
@@ -373,7 +373,7 @@ return {
 
                 if (max_rating > -9e99) then
                     --W.message { speaker = best_unit.id, message = 'Moving far unit ' .. goal.x .. ',' .. goal.y }
-                    AH.movefull_stopunit(ai, best_unit, best_hex)
+                    AH.movefull_outofway_stopunit(ai, best_unit, best_hex)
                     return
                 end
             end
@@ -798,7 +798,7 @@ return {
 
         function grunt_rush_FLS1:retreat_injured_units_exec()
             --W.message { speaker = self.data.retreat_unit.id, message = 'Retreating to village' }
-            AH.movefull_stopunit(ai, self.data.retreat_unit, self.data.retreat_village)
+            AH.movefull_outofway_stopunit(ai, self.data.retreat_unit, self.data.retreat_village)
             self.data.retreat_unit, self.data.retreat_village = nil, nil
         end
 
@@ -897,18 +897,10 @@ return {
                 end
             end
 
-            -- If there's a unit in the way, need to move it off again
-            -- get_attacks_occupied() checked that that is possible
-            if best_attack.attack_hex_occupied then
-                local unit_in_way = wesnoth.get_unit(best_attack.x, best_attack.y)
-                --W.message { speaker = unit_in_way.id, message = 'Moving out of way' }
-                AH.move_unit_out_of_way(ai, unit_in_way, { dx = 0.5, dy = -0.1 })
-            end
-
             local attacker = wesnoth.get_unit(best_attack.att_loc.x, best_attack.att_loc.y)
             local defender = wesnoth.get_unit(best_attack.def_loc.x, best_attack.def_loc.y)
             --W.message { speaker = attacker.id, message = "Attacking with high CTK" }
-            AH.movefull_stopunit(ai, attacker, best_attack)
+            AH.movefull_outofway_stopunit(ai, attacker, best_attack, { dx = 0.5, dy = -0.1 })
             ai.attack(attacker, defender)
         end
 
@@ -1145,14 +1137,6 @@ return {
             local attacker = wesnoth.get_unit(self.data.ALT_best_attack.att_loc.x, self.data.ALT_best_attack.att_loc.y)
             local defender = wesnoth.get_unit(self.data.ALT_best_attack.def_loc.x, self.data.ALT_best_attack.def_loc.y)
 
-            -- If there's a unit in the way, need to move it off again
-            -- get_attacks_occupied() checked that that is possible
-            if self.data.ALT_best_attack.attack_hex_occupied then
-                local unit_in_way = wesnoth.get_unit(self.data.ALT_best_attack.x, self.data.ALT_best_attack.y)
-                --W.message { speaker = unit_in_way.id, message = 'Moving out of way' }
-                AH.move_unit_out_of_way(ai, unit_in_way, { dx = 0.5, dy = -0.1 })
-            end
-
             -- Counter for how often this unit was attacked this turn
             if defender.valid then
                 local xy_turn = defender.x * 1000. + defender.y + wesnoth.current.turn / 1000.
@@ -1165,7 +1149,7 @@ return {
             end
 
             --W.message {speaker=attacker.id, message="Attacking leader threat" }
-            AH.movefull_stopunit(ai, attacker, self.data.ALT_best_attack)
+            AH.movefull_outofway_stopunit(ai, attacker, self.data.ALT_best_attack, { dx = 0.5, dy = -0.1 })
             ai.attack(attacker, defender)
             self.data.ALT_best_attack = nil
 
@@ -1241,7 +1225,7 @@ return {
 
             local attacker = wesnoth.get_unit(best_attack.att_loc.x, best_attack.att_loc.y)
             --W.message { speaker = attacker.id, message = "Attacking village" }
-            AH.movefull_stopunit(ai, attacker, best_attack)
+            AH.movefull_outofway_stopunit(ai, attacker, best_attack)
             ai.attack(attacker, unit_at_goal)
         end
 
@@ -1462,7 +1446,7 @@ return {
                     end
                 end
             end
-            AH.movefull_stopunit(ai, self.data.unit, self.data.village)
+            AH.movefull_outofway_stopunit(ai, self.data.unit, self.data.village)
             self.data.unit, self.data.village = nil, nil
         end
 
@@ -1670,7 +1654,7 @@ return {
                     end)
                 end
                 --W.message { speaker = best_unit.id, message = 'Going pillaging in west' }
-                AH.movefull_stopunit(ai, best_unit, best_hex)
+                AH.movefull_outofway_stopunit(ai, best_unit, best_hex)
                 return  -- There might not be other units, need to go through eval again first
             end
 
@@ -1885,7 +1869,7 @@ return {
                         end
                         --print('Best attack:', best_attack.dst, best_attack.src)
                         --W.message { speaker = attackers[best_attack.src].id, message = 'Combo attack' }
-                        AH.movefull_stopunit(ai, attackers[best_attack.src], math.floor(best_attack.dst / 1000), best_attack.dst % 1000)
+                        AH.movefull_outofway_stopunit(ai, attackers[best_attack.src], math.floor(best_attack.dst / 1000), best_attack.dst % 1000)
                         ai.attack(attackers[best_attack.src], best_enemy)
 
                         -- Delete this attack from the combo
@@ -2102,15 +2086,7 @@ return {
             end
 
             --W.message { speaker = attacker.id, message = "Poison attack" }
-
-            -- First move unit out of the way, if there is one
-            local unit_in_way = wesnoth.get_unit(self.data.attack.x, self.data.attack.y)
-            if unit_in_way and ((unit_in_way.x ~= attacker.x) or (unit_in_way.y ~= attacker.y)) then
-                --W.message { speaker = unit_in_way.id, message = 'Moving out of way for poisoner' }
-                AH.move_unit_out_of_way(ai, unit_in_way, { dx = 0., dy = 0. })
-            end
-
-            AH.movefull_stopunit(ai, attacker, self.data.attack)
+            AH.movefull_outofway_stopunit(ai, attacker, self.data.attack, { dx = 0., dy = 0. })
             local def_hp = defender.hitpoints
 
             -- Find the poison weapon
@@ -2143,14 +2119,8 @@ return {
             end
 
             if self.data.support_attack then
-                -- Also move unit out of the way of the support unit, if there is one
-                local unit_in_way = wesnoth.get_unit(self.data.support_attack.x, self.data.support_attack.y)
-                if unit_in_way and ((unit_in_way.x ~= supporter.x) or (unit_in_way.y ~= supporter.y)) then
-                    --W.message { speaker = unit_in_way.id, message = 'Moving out of way for poisoner support attacker' }
-                    AH.move_unit_out_of_way(ai, unit_in_way, { dx = 0., dy = 0. })
-                end
-
-                AH.movefull_stopunit(ai, supporter, self.data.support_attack)
+                --W.message { speaker = supporter.id, message = 'Supporting poisoner attack' }
+                AH.movefull_outofway_stopunit(ai, supporter, self.data.support_attack)
                 if self.data.also_attack then ai.attack(supporter, defender) end
             end
             self.data.support_attack, self.data.also_attack = nil, nil
