@@ -1188,7 +1188,7 @@ return {
             ai.attack(attacker, defender)
             self.data.ALT_best_attack = nil
 
-            -- Reset variable indicating that his was an attack by the leader
+            -- Reset variable indicating that this was an attack by the leader
             -- Can be done whether it was the leader who attacked or not:
             self.data.attack_by_leader_flag = nil
         end
