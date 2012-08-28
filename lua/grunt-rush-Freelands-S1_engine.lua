@@ -1506,7 +1506,7 @@ return {
 
             --print('Considering center village')
 
-            -- Figure out how many enemies can get their, and count their total HP
+            -- Figure out how many enemies can get there, and count their total HP
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
