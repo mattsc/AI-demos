@@ -308,7 +308,7 @@ return {
                     reach_map:iter( function(x, y, v)
                         local rating = 0
                         local dist = H.distance_between(x, y, goal.x, goal.y)
-                        if (dist <= 1) or (y > goal.y + 1) then rating = rating - 1000 end
+                        if (dist <= -1) or (y > goal.y + 1) then rating = rating - 1000 end
                         rating = rating - dist
 
                         local x1, y1 = u.x, u.y
@@ -1777,14 +1777,17 @@ return {
             -- To be streamlined later
             local tod = wesnoth.get_time_of_day()
 
-            local attack_y = 10
+            local attack_y, attack_flag = 10, false
             for y = attack_y,height do
                 --print(y, hp_ratio_y[y])
 
                 if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
-                    if (hp_ratio_y[y] > 1.5) then attack_y = y end
+                    attack_flag = false
+                    --if (hp_ratio_y[y] > 1.5) then attack_y = y end
+                    attack_y = 11
                 end
                 if (tod.id == 'dusk') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
+                    attack_flag = true
                     if (hp_ratio_y[y] > 0.1) then attack_y = y end
                 end
             end
@@ -1799,7 +1802,7 @@ return {
             --print('attack_y after', attack_y)
 
             -- If a suitable attack_y was found, figure out what targets there might be
-            if (attack_y > 0) then
+            if attack_flag and (attack_y > 0) then
                 attack_y = attack_y + 1  -- Targets can be one hex farther south
                 --print('Looking for targets on right down to y = ' .. attack_y)
 
