@@ -1784,7 +1784,7 @@ return {
                 if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
                     if (hp_ratio_y[y] > 1.5) then attack_y = y end
                 end
-                if (tod.id == 'dawn') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
+                if (tod.id == 'dusk') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
                     if (hp_ratio_y[y] > 0.1) then attack_y = y end
                 end
             end

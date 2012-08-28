@@ -1,9 +1,10 @@
-0.10.3
+0.10.3, 28 Aug 2012
 - Freelands Side 1 Grunt Rush:
-  - Trapping attacks will now move units out of way
-  - Units will now move out of the way of the AI leader for his attack
+  - Reworked the rush in the east (right)
+  - Trapping attacks now move units out of way
+  - Units now move out of the way of the AI leader for his attack
   - Minor change to opening move sequence (switched villages for wolf and orc in west)
-  - Added ai_helper.show_messages option in debug mode
+  - A whole bunch of internal cleaning up, refactoring and new debug output options
 - ai_helper:
   - New function ai_helper.movefull_outofway_stopunit() (used in Freelands Grunt Rush AI where applicable)
   - New functions ai_helper.print_exec() and ai_helper.show_messages() to help with debugging
