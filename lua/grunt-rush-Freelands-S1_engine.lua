@@ -2121,7 +2121,7 @@ return {
             if (not attacker.valid) then return 0 end
             if (not defender.valid) then return 0 end
 
-            -- A little joke:
+            -- A little joke: if the assassin misses all 3 poison attacks, complain
             if (not self.data.SP_complained_about_luck) and (defender.hitpoints == def_hp) then
                 self.data.SP_complained_about_luck = true
                 W.delay { time = 1000 }
