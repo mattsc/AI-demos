@@ -213,7 +213,7 @@ return {
                         for i_a, a_stats in ipairs(combo_att_stats) do
                             -- Damage to own units is bad
                             rating = rating - (attackers[i_a].hitpoints - a_stats.average_hp) - a_stats.hp_chance[0] * 50.
-                            -- Also, the fewer a unit costs, the better
+                            -- Also, the less a unit costs, the better
                             -- This will also favor attacks by single unit, if possible, unless 
                             -- 2-unit attack has much larger chance of success/damage
                             rating = rating - attackers[i_a].__cfg.cost
