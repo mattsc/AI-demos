@@ -1442,7 +1442,7 @@ return {
                         end
 
                         -- A rating of 0 here means that a village can be reached, but is not interesting
-                        -- Thus, max_rating tart value is 0, which means don't go there
+                        -- Thus, max_rating start value is 0, which means don't go there
                         -- Rating needs to be at least 10 to be interesting
                         if (rating >=10) and (rating > max_rating) then
                             max_rating, best_village, best_unit = rating, v, u
