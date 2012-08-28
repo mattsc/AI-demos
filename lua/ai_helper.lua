@@ -10,7 +10,7 @@ local ai_helper = {}
 function ai_helper.show_messages()
     -- Show messages if in debug mode and this is set to true
     -- Just edit the following line (easier than trying to set WML variable)
-    local show_messages_flag = true
+    local show_messages_flag = false
     if wesnoth.game_config.debug then return show_messages_flag end
     return false
 end
