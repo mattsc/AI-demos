@@ -767,7 +767,7 @@ return {
 	        formula = '$this_unit.moves > 0'
 	    }
 
-            -- Pick units that have less that 12 HP
+            -- Pick units that have less than 12 HP
             -- with poisoning counting as -8 HP and slowed as -4
             local min_hp = 12  -- minimum HP before sending unit to village
             local healees = {}
