@@ -921,7 +921,7 @@ return {
                     if (a.def_loc.x == enemy_leader.x) and (a.def_loc.y == enemy_leader.y) and (a.def_stats.hp_chance[0] > 0)
                     then rating = rating + 1000 end
 
-                    -- Minor penalty if unit needs to be moves out of the way
+                    -- Minor penalty if unit needs to be moved out of the way
                     -- This is essentially just to differentiate between otherwise equal attacks
                     if a.attack_hex_occupied then rating = rating - 0.1 end
 
@@ -1046,7 +1046,7 @@ return {
                         local pos_north = - (a.att_loc.x + a.att_loc.y) * 3
                         rating = rating + pos_north
 
-                        -- Minor penalty if unit needs to be moves out of the way
+                        -- Minor penalty if unit needs to be moved out of the way
                         -- This is essentially just to differentiate between otherwise equal attacks
                         if a.attack_hex_occupied then rating = rating - 0.1 end
 
@@ -1080,7 +1080,7 @@ return {
                         local steps = math.ceil(cost / e.max_moves)
 
                         -- We only attack each enemy with 2 units max
-                        -- (High CTK targets are taken care of by separate CA right befoew this one)
+                        -- (High CTK targets are taken care of by separate CA right before this one)
                         local already_attacked_twice = false
                         local xy_turn = e.x * 1000. + e.y + wesnoth.current.turn / 1000.
                         if self.data[xy_turn] and (self.data[xy_turn] >= 2) then
