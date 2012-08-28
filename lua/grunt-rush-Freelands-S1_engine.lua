@@ -34,6 +34,30 @@ return {
             return my_hp / (enemy_hp + 1e-6)
         end
 
+        function grunt_rush_FLS1:hp_ratio_y(my_units, enemies, x_min, x_max, y_min, y_max)
+            -- HP ratio as function of y coordinate
+            -- This is the maximum of total HP of all units that can get to any hex with the given y
+
+            --print('#my_units, #enemies', #my_units, #enemies)
+            local attack_map = AH.attack_map(my_units, { return_value = 'hitpoints' })
+            local enemy_attack_map = AH.attack_map(enemies, { moves = "max", return_value = 'hitpoints' })
+            --AH.put_labels(enemy_attack_map)
+
+            local hp_y, enemy_hp_y, hp_ratio = {}, {}, {}
+            for y = y_min,y_max do
+                hp_y[y], enemy_hp_y[y] = 0, 0
+                for x = x_min,x_max do
+                    local hp = attack_map:get(x,y) or 0
+                    if (hp > hp_y[y]) then hp_y[y] = hp end
+                    local enemy_hp = enemy_attack_map:get(x,y) or 0
+                    if (enemy_hp > enemy_hp_y[y]) then enemy_hp_y[y] = enemy_hp end
+                end
+                hp_ratio[y] = hp_y[y] / (enemy_hp_y[y] + 1e-6)
+            end
+
+            return hp_ratio
+        end
+
         function grunt_rush_FLS1:full_offensive()
             -- Returns true if the conditions to go on all-out offensive are met
             -- 1. If Turn >= 16 and HP ratio > 1.5
@@ -1743,28 +1767,11 @@ return {
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
-            --print('#units, #enemies', #units, #enemies)
-            local attack_map = AH.attack_map(units, { return_value = 'hitpoints' })
-            local enemy_attack_map = AH.attack_map(enemies, { moves = "max", return_value = 'hitpoints' })
-            --AH.put_labels(enemy_attack_map)
 
-            local hp_y, enemy_hp_y, hp_ratio = {}, {}, {}
+            -- Get HP ratio of units that can reach right part of map as function of y coordinate
             local width, height = wesnoth.get_map_size()
-            for y = 10,height do
-                hp_y[y], enemy_hp_y[y] = 0, 0
-                for x = 25,width do
-                    local hp = attack_map:get(x,y) or 0
-                    if (hp > hp_y[y]) then hp_y[y] = hp end
-                    local enemy_hp = enemy_attack_map:get(x,y) or 0
-                    if (enemy_hp > enemy_hp_y[y]) then enemy_hp_y[y] = enemy_hp end
-                end
-                hp_ratio[y] = hp_y[y] / (enemy_hp_y[y] + 1e-6)
-            end
-            --wesnoth.clear_messages()
-            --DBG.dbms(hp_y)
-            --DBG.dbms(enemy_hp_y)
-            --print('\n')
-            --for y = 10,24 do print('y, hp_ratio', y, hp_ratio[y] or 0) end
+            local hp_ratio_y = self:hp_ratio_y(units, enemies, 25, width, 10, height)
+
 
             -- We'll do this step by step for easier experimenting
             -- To be streamlined later
@@ -1772,16 +1779,13 @@ return {
 
             local attack_y = 10
             for y = attack_y,height do
-                --print(y, hp_ratio[y])
+                --print(y, hp_ratio_y[y])
 
-                if (tod.id == 'morning') or (tod.id == 'afternoon') then
-                    if (hp_ratio[y] > 1.2) then attack_y = y end
+                if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
+                    if (hp_ratio_y[y] > 1.5) then attack_y = y end
                 end
-                if (tod.id == 'dusk') or (tod.id == 'dawn') then
-                    if (hp_ratio[y] > 0.9) then attack_y = y end
-                end
-                if (tod.id == 'first_watch') or (tod.id == 'second_watch') then
-                    if (hp_ratio[y] > 0.7) then attack_y = y end
+                if (tod.id == 'dawn') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
+                    if (hp_ratio_y[y] > 0.1) then attack_y = y end
                 end
             end
             --print('attack_y before', attack_y)
@@ -1796,7 +1800,7 @@ return {
 
             -- If a suitable attack_y was found, figure out what targets there might be
             if (attack_y > 0) then
-                attack_y = attack_y + 1
+                attack_y = attack_y + 1  -- Targets can be one hex farther south
                 --print('Looking for targets on right down to y = ' .. attack_y)
 
                 local enemies = wesnoth.get_units { x = '24-37,23-37,20-37', y='10-13,14-18,19-24',
@@ -1814,7 +1818,7 @@ return {
                 local attackers = {}
                 for i,u in ipairs(units) do attackers[u.x * 1000 + u.y] = u end
 
-                local max_rating, best_combo, best_attacks_dst_src, best_enemy = -9e99, {}, {}, {}
+                local max_rating, best_attackers, best_dsts, best_enemy = -9e99, {}, {}, {}
                 for i,e in ipairs(enemies) do
                     --print('\n', i, e.id)
                     local attack_combos, attacks_dst_src = AH.get_attack_combos_no_order(units, e)
@@ -1826,77 +1830,62 @@ return {
                     local enemy_cost = e.__cfg.cost
 
                     for j,combo in ipairs(attack_combos) do
-                        local rating = 0
-                        local damage, damage_enemy = 0, 0
+                        -- attackers and dsts arrays for stats calculation
+                        local atts, dsts = {}, {}
+                        for dst,src in pairs(combo) do
+                            table.insert(atts, attackers[src])
+                            table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
+                        end
+                        local sorted_atts, sorted_dsts, combo_def_stats, combo_att_stats = AH.attack_combo_stats(atts, dsts, e)
+                        --DBG.dbms(combo_def_stats)
 
                         -- Don't attack under certain circumstances
                         local dont_attack = false
 
-                        for dst,src in pairs(combo) do
-                            local att = attacks_dst_src[dst][src]
-                            --print(j, dst, src, att.def_stats.average_hp, att.att_stats.hp_chance[0])
-
-                            damage_this_attack = attackers[src].hitpoints - att.att_stats.average_hp
-                            enemy_damage_this_attack = e.hitpoints - att.def_stats.average_hp
-
-                            damage = damage + damage_this_attack
-                            damage_enemy = damage_enemy + enemy_damage_this_attack
-
-                            if (att.att_stats.hp_chance[0] >= 0.5) then dont_attack = true end
-                            --if (att.def_stats.hp_chance[0] == 0) and (damage_this_attack > enemy_damage_this_attack * 2) then
-                            --    dont_attack = true
-                            --end
+                        local rating = 0
+                        local damage = 0
+                        for k,att_stats in ipairs(combo_att_stats) do
+                            if (att_stats.hp_chance[0] >= 0.5) then dont_attack = true end
+                            damage = damage + sorted_atts[k].hitpoints - att_stats.average_hp
                         end
-                        --print(' - damage', damage)
-                        --print(' - damage_enemy', damage_enemy)
+                        local damage_enemy = e.hitpoints - combo_def_stats.average_hp
+                        --print(' - #attacks, damage, damage_enemy', #sorted_atts, damage, damage_enemy, dont_attack)
 
                         rating = rating + damage_enemy - damage / 2.
 
-                        -- If there's an average chance to kill, this is an additional bonus
-                        if (damage_enemy > e.hitpoints) then
-                            rating = rating + (damage_enemy - e.hitpoints) * 5.
+                        -- Chance to kill is very important (for both sides)
+                        rating = rating + combo_def_stats.hp_chance[0] * 50.
+                        for k,a in ipairs(sorted_atts) do
+                            rating = rating - combo_att_stats[k].hp_chance[0] * 25.
                         end
 
                         -- Cost of enemy is another factor
                         rating = rating + enemy_cost
 
-                        if enemy_on_village then rating = rating + 100 end
+                        if enemy_on_village then rating = rating + 50 end
 
                         --print(' -----------------------> rating', rating)
                         if (not dont_attack) and (rating > max_rating) then
-                            max_rating, best_combo, best_attacks_dst_src, best_enemy = rating, combo, attacks_dst_src, e
+                            max_rating, best_attackers, best_dsts, best_enemy = rating, sorted_atts, sorted_dsts, e
                         end
                     end
                 end
                 --print('max_rating ', max_rating)
                 --DBG.dbms(best_combo)
 
-                -- Now we know which attack to do.  We need to find order in which units attack
-                -- But only if an attack was actually found, so that otherwise we go on to holding position part
+                -- Now we know which attacks to do
                 if (max_rating > -9e99) then
-                    while best_combo and (table.maxn(best_combo) > 0) do
-                        local max_rating, best_attack = -9e99, {}
-                        for dst, src in pairs(best_combo) do
-                            local rating = 0
-
-                            local att = best_attacks_dst_src[dst][src]
-                            rating = rating + best_enemy.hitpoints - att.def_stats.average_hp
-                            rating = rating - (attackers[src].hitpoints - att.att_stats.average_hp) / 2.
-
-                            if (rating > max_rating) then
-                                max_rating, best_attack = rating, { dst = dst, src = src }
-                            end
-                        end
-                        --print('Best attack:', best_attack.dst, best_attack.src)
-                        if AH.show_messages() then W.message { speaker = attackers[best_attack.src].id, message = 'Rush right: Combo attack' } end
-                        AH.movefull_outofway_stopunit(ai, attackers[best_attack.src], math.floor(best_attack.dst / 1000), best_attack.dst % 1000)
-                        ai.attack(attackers[best_attack.src], best_enemy)
+                    while best_attackers and (table.maxn(best_attackers) > 0) do
+                        if AH.show_messages() then W.message { speaker = best_attackers[1].id, message = 'Rush right: Combo attack' } end
+                        AH.movefull_outofway_stopunit(ai, best_attackers[1], best_dsts[1])
+                        ai.attack(best_attackers[1], best_enemy)
 
                         -- Delete this attack from the combo
-                        best_combo[best_attack.dst] = nil
+                        table.remove(best_attackers, 1)
+                        table.remove(best_dsts, 1)
 
                         -- If enemy got killed, we need to stop here
-                        if (not best_enemy.valid) then best_combo = nil end
+                        if (not best_enemy.valid) then best_attackers, best_dsts = nil, nil end
                     end 
 
                     return -- to force re-evaluation
