@@ -700,6 +700,7 @@ return {
             if (wesnoth.current.turn == 1) then
                 ai.recruit('Orcish Grunt', 17, 5)
                 ai.recruit('Wolf Rider', 18, 4)
+                ai.recruit('Orcish Archer', 20, 3)
                 ai.recruit('Orcish Assassin', 20, 4)
             end
             if (wesnoth.current.turn == 2) then
@@ -2277,6 +2278,14 @@ return {
                 return
             end
 
+            -- Recruit an archer, if there is none
+            local archer = wesnoth.get_units { side = wesnoth.current.side, type = 'Orcish Archer' }[1]
+            if (not archer) and (wesnoth.sides[wesnoth.current.side].gold >= 14) then
+                --print('recruiting archer')
+                ai.recruit('Orcish Archer', best_hex[1], best_hex[2])
+                return
+            end
+
             -- Recruit a goblin, if there is none, starting Turn 5
             -- But only if way over to western-most village is clear
             if (wesnoth.current.turn >= 5) then
@@ -2328,14 +2337,6 @@ return {
             if (#assassins < 3) and (wesnoth.sides[wesnoth.current.side].gold >= 17) then
                 --print('recruiting assassin based on numbers')
                 ai.recruit('Orcish Assassin', best_hex[1], best_hex[2])
-                return
-            end
-
-            -- Recruit an archer, if there is none
-            local archer = wesnoth.get_units { side = wesnoth.current.side, type = 'Orcish Archer' }[1]
-            if (not archer) and (wesnoth.sides[wesnoth.current.side].gold >= 14) then
-                --print('recruiting archer')
-                ai.recruit('Orcish Archer', best_hex[1], best_hex[2])
                 return
             end
 
