@@ -8,7 +8,8 @@ local ai_helper = {}
 ----- General helper functions ------
 
 function ai_helper.show_messages()
-    -- Show messages if in debug mode and this is set to true
+    -- Returns true of false (hard-coded).  To be used to
+    -- show messages if in debug mode
     -- Just edit the following line (easier than trying to set WML variable)
     local show_messages_flag = false
     if wesnoth.game_config.debug then return show_messages_flag end
@@ -16,10 +17,20 @@ function ai_helper.show_messages()
 end
 
 function ai_helper.print_exec()
-    -- Show which CA is being executed if in debug mode and this is set to true
+    -- Returns true of false (hard-coded).  To be used to
+    -- show which CA is being executed if in debug mode
     -- Just edit the following line (easier than trying to set WML variable)
     local print_exec_flag = true
     if wesnoth.game_config.debug then return print_exec_flag end
+    return false
+end
+
+function ai_helper.print_eval()
+    -- Returns true of false (hard-coded).  To be used to
+    -- show which CA is being evaluated if in debug mode
+    -- Just edit the following line (easier than trying to set WML variable)
+    local print_eval_flag = false
+    if wesnoth.game_config.debug then return print_eval_flag end
     return false
 end
 

@@ -672,25 +672,36 @@ return {
 
         function grunt_rush_FLS1:hardcoded_eval()
             local score = 500000
+            if AH.print_eval() then print('     - Evaluating hardcoded CA:', os.clock()) end
 
             -- To make sure we have a wolf rider and a grunt in the right positions on Turn 1
 
             if (wesnoth.current.turn == 1) then
                 local unit = wesnoth.get_unit(17,5)
-                if (not unit) then return score end
+                if (not unit) then
+                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                    return score
+                end
             end
 
             -- Move 2 units to the left
             if (wesnoth.current.turn == 2) then
                 local unit = wesnoth.get_unit(17,5)
-                if unit and (unit.moves >=5) then return score end
+                if unit and (unit.moves >=5) then
+                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                    return score
+                end
             end
 
             -- Move 3 move the orc
             if (wesnoth.current.turn == 3) then
                 local unit = wesnoth.get_unit(12,5)
-                if unit and (unit.moves >=5) then return score end
+                if unit and (unit.moves >=5) then
+                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                    return score
+                end
             end
+            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
             return 0
         end
 
@@ -717,6 +728,7 @@ return {
 
         function grunt_rush_FLS1:move_leader_to_keep_eval()
             local score = 480000
+            if AH.print_eval() then print('     - Evaluating move_leader_to_keep CA:', os.clock()) end
 
             -- Move of leader to keep is done by hand here
             -- as we want him to go preferentially to (18,4) not (19.4)
@@ -724,7 +736,10 @@ return {
             local leader = wesnoth.get_units{ side = wesnoth.current.side, canrecruit = 'yes',
                 formula = '$this_unit.attacks_left > 0'
             }[1]
-            if (not leader) then return 0 end
+            if (not leader) then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
 
             local keeps = { { 18, 4 }, { 19, 4 } }  -- keep hexes in order of preference
 
@@ -739,14 +754,17 @@ return {
                         if next_hop and (next_hop[1] == k[1]) and (next_hop[2] == k[2]) then
                             self.data.MLK_leader = leader
                             self.data.MLK_leader_move = { k[1], k[2] }
+                            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                             return score
                         end
                     end
                 else -- If the leader already is on the keep, don't consider lesser priority ones
+                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                     return 0
                 end
             end
 
+            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
             return 0
         end
 
@@ -762,6 +780,7 @@ return {
 
         function grunt_rush_FLS1:retreat_injured_units_eval()
             local score = 470000
+            if AH.print_eval() then print('     - Evaluating retreat_injured_units CA:', os.clock()) end
 
             -- Find very injured units and move them to a village, if possible
 	    local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no',
@@ -785,7 +804,10 @@ return {
                 end
             end
             --print('#healees', #healees)
-            if (not healees[1]) then return 0 end
+            if (not healees[1]) then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
 
 	    local villages = wesnoth.get_locations { terrain = "*^V*" }
             --print('#villages', #villages)
@@ -824,9 +846,11 @@ return {
 
             if (max_rating > -9e99) then
                 self.data.RIU_retreat_unit, self.data.RIU_retreat_village = best_unit, best_village
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return score
             end
 
+            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
             return 0
         end
 
@@ -841,6 +865,7 @@ return {
 
         function grunt_rush_FLS1:attack_weak_enemy_eval()
             local score = 462000
+            if AH.print_eval() then print('     - Evaluating attack_weak_enemy CA:', os.clock()) end
 
             -- Attack any enemy where the chance to kill is > 40%
             -- or if it's the enemy leader under all circumstances
@@ -849,7 +874,10 @@ return {
             local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no', 
                 formula = '$this_unit.attacks_left > 0'
             }
-            if (not units[1]) then return 0 end
+            if (not units[1]) then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
 
             local enemy_leader = wesnoth.get_units { canrecruit = 'yes',
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
@@ -875,8 +903,13 @@ return {
                 if ( one_strike_kill
                     or (a.def_loc.x == enemy_leader.x) and (a.def_loc.y == enemy_leader.y) and (a.def_stats.hp_chance[0] > 0) )
                     or ( (a.def_stats.hp_chance[0] >= 0.40) and (a.att_stats.hp_chance[0] == 0) )
-                then return score end
+                then
+                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                    return score
+                end
             end
+
+            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
             return 0
         end
 
@@ -945,6 +978,7 @@ return {
             -- Sets a variable when attack by leader is imminent.
             -- In that case, recruiting needs to be done first
             local score = 460010
+            if AH.print_eval() then print('     - Evaluating set_attack_by_leader_flag CA:', os.clock()) end
 
             -- We also add here (and, in fact, evaluate first) possible attacks by the leader
             -- Rate them very conservatively
@@ -960,9 +994,13 @@ return {
                 if best_attack and
                     (not wesnoth.get_terrain_info(wesnoth.get_terrain(best_attack.x, best_attack.y)).keep)
                 then
+                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                     return score
                 end
             end
+
+            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+            return 0
         end
 
         function grunt_rush_FLS1:set_attack_by_leader_flag_exec()
@@ -974,6 +1012,7 @@ return {
 
         function grunt_rush_FLS1:attack_leader_threat_eval()
             local score = 460000
+            if AH.print_eval() then print('     - Evaluating attack_leader_threat CA:', os.clock()) end
 
             -- Attack enemies that have made it too far north
             -- They don't have to be within reach of leader yet, but those get specific priority
@@ -991,6 +1030,7 @@ return {
                 local best_attack = self:get_attack_with_counter_attack(leader)
                 if best_attack then
                     self.data.ALT_best_attack = best_attack
+                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                     return score
                 end
             end
@@ -1000,12 +1040,18 @@ return {
             local enemies = wesnoth.get_units { x = '1-16,17-37', y = '1-7,1-10',
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
-            if (not enemies[1]) then return 0 end
+            if (not enemies[1]) then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
 
             local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no', 
                 formula = '$this_unit.attacks_left > 0'
             }
-            if (not units[1]) then return 0 end
+            if (not units[1]) then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
 
             local units_MP = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no', 
                 formula = '$this_unit.moves > 0'
@@ -1018,12 +1064,16 @@ return {
                 self.data.ALT_trapping_attackers = attackers
                 self.data.ALT_trapping_dsts = dsts
                 self.data.ALT_trapping_enemy = enemy
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return score
             end
 
             -- Now check if attacks on any of these units is possible
             local attacks = AH.get_attacks_occupied(units)
-            if (not attacks[1]) then return 0 end
+            if (not attacks[1]) then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
             --print('#attacks', #attacks)
 
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
@@ -1122,8 +1172,11 @@ return {
 
             if (max_rating > -9e99) then
                 self.data.ALT_best_attack = best_attack
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return score
             end
+
+            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
             return 0
         end
 
@@ -1272,11 +1325,15 @@ return {
 
         function grunt_rush_FLS1:ZOC_enemy_eval()
             local score = 390000
+            if AH.print_eval() then print('     - Evaluating ZOC_enemy CA:', os.clock()) end
 
             -- Decide whether to attack units on the left, and trap them if possible
 
             -- Skip this if AI is much stronger than enemy
-            if self:full_offensive() then return 0 end
+            if self:full_offensive() then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
 
             -- Get units on left and on keep, with and without movement left
             local units = wesnoth.get_units { side = wesnoth.current.side, x = '1-15,16-20', y = '1-15,1-6',
@@ -1289,7 +1346,10 @@ return {
             end
             -- If no unit in this part of the map can move, we're done (> Level 0 only)
             --print('#units_MP', #units_MP)
-            if (not units_MP[1]) then return 0 end
+            if (not units_MP[1]) then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
 
             -- Check how many enemies are in the same area
             local enemies = wesnoth.get_units { x = '1-15,16-20', y = '1-15,1-6',
@@ -1297,7 +1357,10 @@ return {
             }
             --print('#enemies', #enemies)
             -- If there are no enemies in this part of the map, we're also done
-            if (not enemies[1]) then return 0 end
+            if (not enemies[1]) then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
 
             -- If units without moves on left are outnumbered (by HP, depending on time of day), don't do anything 
             local hp_ratio = self:hp_ratio(units, enemies)
@@ -1305,13 +1368,22 @@ return {
 
             local tod = wesnoth.get_time_of_day()
             if (tod.id == 'morning') or (tod.id == 'afternoon') then
-                if (hp_ratio < 1.5) then return 0 end
+                if (hp_ratio < 1.5) then
+                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                    return 0
+                end
             end
             if (tod.id == 'dusk') or (tod.id == 'dawn') then
-                if (hp_ratio < 1.25) then return 0 end
+                if (hp_ratio < 1.25) then
+                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                    return 0
+                end
             end
             if (tod.id == 'first_watch') or (tod.id == 'second_watch') then
-                if (hp_ratio < 1) then return 0 end
+                if (hp_ratio < 1) then
+                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                    return 0
+                end
             end
 
             -- Check whether we can find a trapping attack using two units on opposite sides of an enemy
@@ -1320,10 +1392,12 @@ return {
                 self.data.ZOC_attackers = attackers
                 self.data.ZOC_dsts = dsts
                 self.data.ZOC_enemy = enemy
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return score
             end
 
             -- Otherwise don't do anything
+            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
             return 0
         end
 
@@ -1358,6 +1432,7 @@ return {
 
         function grunt_rush_FLS1:grab_villages_eval()
             local score_high, score_low = 450000, 360000
+            if AH.print_eval() then print('     - Evaluating grab_villages CA:', os.clock()) end
 
             local leave_own_villages = wesnoth.get_variable "leave_own_villages"
             if leave_own_villages then
@@ -1370,7 +1445,10 @@ return {
             local units = wesnoth.get_units { side = wesnoth.current.side, 
                 formula = '$this_unit.moves > 0'
             }
-            if (not units[1]) then return 0 end
+            if (not units[1]) then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
 
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
@@ -1378,7 +1456,10 @@ return {
 
             local villages = wesnoth.get_locations { terrain = '*^V*' }
             -- Just in case:
-            if (not villages[1]) then return 0 end
+            if (not villages[1]) then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
 
             --print('#units, #enemies', #units, #enemies)
 
@@ -1459,11 +1540,14 @@ return {
             if (max_rating >= 10) then
                 self.data.GV_unit, self.data.GV_village = best_unit, best_village
                 if (max_rating >= 1000) then
+                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                     return score_high
                 else
+                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                     return score_low
                 end
             end
+            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
             return 0
         end
 
@@ -1493,15 +1577,22 @@ return {
 
         function grunt_rush_FLS1:protect_center_eval()
             local score = 352000
+            if AH.print_eval() then print('     - Evaluating protect_center CA:', os.clock()) end
 
             -- Move units to protect the center villages
             local units_MP = wesnoth.get_units { side = wesnoth.current.side, x = '1-24', canrecruit = 'no',
                 formula = '$this_unit.moves > 0'
             }
-            if (not units_MP[1]) then return 0 end
+            if (not units_MP[1]) then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
 
             -- Skip this if AI is much stronger than enemy
-            if self:full_offensive() then return 0 end
+            if self:full_offensive() then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
 
             local protect_loc = { x = 18, y = 9 }
 
@@ -1539,7 +1630,10 @@ return {
             end
 
             -- If no enemies can reach the village, return 0
-            if (enemy_hp == 0) then return 0 end
+            if (enemy_hp == 0) then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
             --print('Enemies that can reach center village found.  Total HP:', enemy_hp)
 
             -- Now check whether we have enough defenders there already
@@ -1554,8 +1648,11 @@ return {
             -- Want at least half enemy_hp in the area
             if (defender_hp <= 0.67 * enemy_hp) then 
                 --print('Moving units to protect center village')
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return score
             end
+
+            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
             return 0
         end
 
@@ -1574,12 +1671,16 @@ return {
 
         function grunt_rush_FLS1:hold_left_eval()
             local score = 351000
+            if AH.print_eval() then print('     - Evaluating hold_left CA:', os.clock()) end
 
             -- Move units to hold position on the left, depending on number of enemies there
             -- Also move a goblin to the far-west village
 
             -- Skip this if AI is much stronger than enemy
-            if self:full_offensive() then return 0 end
+            if self:full_offensive() then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
 
             -- Get units on left and on keep, with and without movement left
             local units_left = wesnoth.get_units { side = wesnoth.current.side, x = '1-15,16-20', y = '1-15,1-6',
@@ -1599,7 +1700,10 @@ return {
                 end
             end
             -- If no unit in this part of the map can move, we're done
-            if (not units_MP[1]) then return 0 end
+            if (not units_MP[1]) then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
 
             -- Check whether units on left can go pillaging
             local enemies = wesnoth.get_units {
@@ -1612,6 +1716,7 @@ return {
             if enemy_threat and (enemy_threat == 1) then enemy_threat = nil end
             if (not enemy_threat) and pillagers[1] then
                 --print('Eval says: go pillaging in west')
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return score
             end
 
@@ -1619,7 +1724,10 @@ return {
             local gobo = wesnoth.get_units { side = wesnoth.current.side, x = '1-20', y = '1-8',
                 race = 'goblin', formula = '$this_unit.moves > 0'
             }
-            if gobo[1] then return score end
+            if gobo[1] then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return score
+            end
 
             -- Otherwise check whether reinforcements are needed
             local enemy_units_left = wesnoth.get_units { x = '1-15', y = '1-15',
@@ -1631,7 +1739,12 @@ return {
             local hp_ratio_left = self:hp_ratio(units_noMP, enemy_units_left)
             --print('Left HP ratio:', hp_ratio_left)
 
-            if (hp_ratio_left < 0.67) then return score end
+            if (hp_ratio_left < 0.67) then
+                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                 return score
+            end
+
+            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
             return 0
         end
 
@@ -1743,18 +1856,27 @@ return {
 
         function grunt_rush_FLS1:rush_right_eval()
             local score = 350000
+            if AH.print_eval() then print('     - Evaluating rush_right CA:', os.clock()) end
 
             -- All remaining units (after 'hold_left' and previous events), head toward the village at 27,16
 
             -- Skip this if AI is much stronger than enemy
-            if self:full_offensive() then return 0 end
+            if self:full_offensive() then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
 
             local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no',
                 { "not", { x = '1-21', y = '12-25' } },
                 formula = '$this_unit.moves > 0'
             }
 
-            if units[1] then return score end
+            if units[1] then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return score
+            end
+
+            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
             return 0
         end
 
@@ -1928,6 +2050,7 @@ return {
 
         function grunt_rush_FLS1:spread_poison_eval()
             local score = 380000
+            if AH.print_eval() then print('     - Evaluating spread_posion CA:', os.clock()) end
 
             -- If a unit with a poisoned weapon can make an attack, we'll do that preferentially
             -- (with some exceptions)
@@ -1969,11 +2092,17 @@ return {
             end
 
             --print('#poisoners, #others', #poisoners, #others)
-            if (not poisoners[1]) then return 0 end
+            if (not poisoners[1]) then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
 
             local attacks = AH.get_attacks_occupied(poisoners)
             --print('#attacks', #attacks)
-            if (not attacks[1]) then return 0 end
+            if (not attacks[1]) then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
 
             local units_no_attacks = wesnoth.get_units { side = wesnoth.current.side, 
                 formula = '$this_unit.attacks_left <= 0'
@@ -2109,8 +2238,11 @@ return {
             end
             if (max_rating > -9e99) then
                 self.data.SP_attack, self.data.SP_support_attack, self.data.SP_also_attack = best_attack, best_support_attack, best_support_also_attack
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return score
             end
+
+            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
             return 0
         end
 
@@ -2148,8 +2280,8 @@ return {
             self.data.SP_attack = nil
 
             -- In case either attacker or defender died, don't do anything
-            if (not attacker.valid) then return 0 end
-            if (not defender.valid) then return 0 end
+            if (not attacker.valid) then return end
+            if (not defender.valid) then return end
 
             -- A little joke: if the assassin misses all 3 poison attacks, complain
             if (not self.data.SP_complained_about_luck) and (defender.hitpoints == def_hp) then
@@ -2210,6 +2342,7 @@ return {
 
         function grunt_rush_FLS1:recruit_orcs_eval()
             local score = 181000
+            if AH.print_eval() then print('     - Evaluating recruit_orcs CA:', os.clock()) end
 
             if self.data.attack_by_leader_flag then
                 if AH.show_messages() then W.message { speaker = 'narrator', message = 'Leader attack imminent.  Recruiting first.' } end
@@ -2217,11 +2350,17 @@ return {
             end
 
             -- Check if there is enough gold to recruit at least a grunt
-            if (wesnoth.sides[wesnoth.current.side].gold < 12) then return 0 end
+            if (wesnoth.sides[wesnoth.current.side].gold < 12) then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
 
             -- Check if leader is on keep
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
-            if (not wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep) then return 0 end
+            if (not wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep) then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
 
             -- If there's at least one free castle hex, go to recruiting
             local castle = wesnoth.get_locations {
@@ -2231,6 +2370,7 @@ return {
             for i,c in ipairs(castle) do
                 local unit_in_way = wesnoth.get_unit(c[1], c[2])
                 if (not unit_in_way) then -- If no unit in way, we're good
+                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                     return score
                 else
                     -- Otherwise check whether the unit can move away (non-leaders only)
@@ -2238,12 +2378,16 @@ return {
                     -- when the leader is about to move off the keep for attacking or village grabbing
                     if (not unit_in_way.canrecruit) then
                         local move_away = AH.get_reachable_unocc(unit_in_way)
-                        if (move_away:size() > 1) then return score end
+                        if (move_away:size() > 1) then
+                            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                            return score
+                        end
                     end
                 end
             end
 
             -- Otherwise: no recruiting
+            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
             return 0
         end
 
