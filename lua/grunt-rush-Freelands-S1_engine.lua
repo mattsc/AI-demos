@@ -1784,8 +1784,7 @@ return {
 
                 if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
                     attack_flag = false
-                    --if (hp_ratio_y[y] > 1.5) then attack_y = y end
-                    attack_y = 11
+                    if (hp_ratio_y[y] >= 2.0) then attack_y = y end
                 end
                 if (tod.id == 'dusk') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
                     attack_flag = true
