@@ -1893,14 +1893,14 @@ return {
 
             -- Get HP ratio of units that can reach right part of map as function of y coordinate
             local width, height = wesnoth.get_map_size()
-            local hp_ratio_y = self:hp_ratio_y(units, enemies, 25, width, 10, height)
+            local hp_ratio_y = self:hp_ratio_y(units, enemies, 25, width, 11, height)
 
 
             -- We'll do this step by step for easier experimenting
             -- To be streamlined later
             local tod = wesnoth.get_time_of_day()
 
-            local attack_y, attack_flag = 10, false
+            local attack_y, attack_flag = 11, false
             for y = attack_y,height do
                 --print(y, hp_ratio_y[y])
 
