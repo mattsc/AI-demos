@@ -1,3 +1,12 @@
+0.10.4
+- Freelands Side 1 Grunt Rush:
+  - Changed day-time behavior (retreat) of rush on right:
+    - Now set never to attack from dawn to afternoon
+  - Small change to recruiting: archers have somewhat higher priority now
+  - Poisoner can now move next to AI unit that has attacked already (without need for additional support unit)
+- ai_helper:
+  - New function ai_helper.print_eval() to help with debugging
+
 0.10.3, 28 Aug 2012
 - Freelands Side 1 Grunt Rush:
   - Reworked the rush in the east (right)
