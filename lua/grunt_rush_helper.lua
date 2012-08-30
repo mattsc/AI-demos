@@ -6,7 +6,6 @@ local grunt_rush_helper = {}
 function grunt_rush_helper.is_GRFLS1()
     -- Check whether Side 1 is played by 'Grunt Rush for Freelands Side 1' AI
     -- We do this by testing whether the 'rush_right' CA exists
-
     local stage = H.get_child( H.get_child( wesnoth.sides[1].__cfg, 'ai'), 'stage')
     for CA in H.child_range(stage, 'candidate_action') do
         --print(CA.name)
@@ -19,9 +18,13 @@ end
 function grunt_rush_helper.GRFLS1_hello()
     -- Hello message for 'Grunt Rush for Freelands Side 1' AI
     if grunt_rush_helper.is_GRFLS1() then
+
+        local version = wesnoth.get_variable('AI_Demos_version')
+        version = version or '?.?.?'
+
         W.message { 
             speaker = 'narrator',
-            caption = "Hello from the Freelands AI",
+            caption = "Hello from the Freelands AI  (Fred v" .. version .. ")",
             image = 'wesnoth-icon.png', message = "Good luck, have fun !"
         }
     end
