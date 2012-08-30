@@ -326,8 +326,8 @@ return {
                         local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
                         if is_village then rating = rating + 2.1 end
 
-                        -- Take northern and eastern units first
-                        rating = rating - u.y - u.x / 2.
+                        -- Take southern and eastern units first
+                        rating = rating + u.y + u.x / 2.
 
                         local terrain_weighting = 0.333
                         if cfg.ignore_terrain_at_night then
@@ -399,7 +399,7 @@ return {
                             rating = rating - 1000 * enemy_threat
                         end
 
-                        -- Take northern and eastern units last
+                        -- Take southern and eastern units first
                         rating = rating + u.y + u.x / 2.
 
                         if (rating > max_rating) then
