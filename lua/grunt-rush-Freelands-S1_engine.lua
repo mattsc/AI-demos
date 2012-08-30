@@ -1929,7 +1929,11 @@ return {
                         -- Cost of enemy is another factor
                         rating = rating + enemy_cost
 
-                        if enemy_on_village then rating = rating + 20 end
+                        -- If this is on the village, then the expected enemy HP matter:
+                        -- The fewer, the better (choose 25 as about neutral for now)
+                        if enemy_on_village then
+                            rating = rating + (25 - combo_def_stats.average_hp)
+                        end
 
                         --print(' -----------------------> rating', rating)
                         if (not dont_attack) and (rating > max_rating) then
