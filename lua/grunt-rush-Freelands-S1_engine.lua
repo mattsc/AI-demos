@@ -2173,14 +2173,23 @@ return {
                     -- Minor penalty if unit needs to be moved out of the way
                     if a.attack_hex_occupied then rating = rating - 0.1 end
 
-                    -- Only go through with the attack, if we can back it up with another unit
-                    -- Or if only one enemy is in reach
-                    -- Or if the attack hex is already next to an AI unit with noMP left
+                    -- From dawn to afternoon, only attack if not more than 2 enemy units are close
                     local enemies_in_reach = enemy_attack_map:get(a.x, a.y)
                     --print('  enemies_in_reach', enemies_in_reach)
 
+                    if (enemies_in_reach > 2) then
+                        local tod = wesnoth.get_time_of_day()
+                        if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
+                            rating = -9e99
+                        end
+                    end
+
+                    -- Otherwise, only go through with the attack, if we can back it up with another unit
+                    -- Or if only one enemy is in reach
+                    -- Or if the attack hex is already next to an AI unit with noMP left
+
                     local max_support_rating, support_attack, support_also_attack = -9e99, {}, false
-                    if (enemies_in_reach > 1) then
+                    if (enemies_in_reach > 1) and (rating > -9e99) then
                         -- First check whether there's already one of our own units with no 
                         -- attacks left next to the attack hex (then we don't need the support unit)
                         local support_no_attacks = false
