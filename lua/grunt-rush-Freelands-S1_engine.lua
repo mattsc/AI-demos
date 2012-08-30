@@ -243,10 +243,14 @@ return {
             return nil
         end
 
-        function grunt_rush_FLS1:hold_position(units, goal, tod_y_factor)
+        function grunt_rush_FLS1:hold_position(units, goal, cfg)
             -- Set up a defensive position at (goal.x, goal.y) using 'units'
             -- goal should be a village or an otherwise strong position, or this doesn't make sense
-            -- tod_y_factor: whether position holding should be inverted at night
+            -- cfg: table with additional parameters:
+            --   ignore_terrain_at_night: if true, terrain has (almost) no influence on choosing positions for 
+            --     close units
+
+            cfg = cfg or {}
 
             -- If this is a village, we try to hold the position itself,
             -- otherwise just set up position around it
@@ -325,18 +329,19 @@ return {
                         -- Take northern and eastern units first
                         rating = rating - u.y - u.x / 2.
 
-                        local defense = 100 - wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))
-                        rating = rating + defense / 3.
-
-                        local y_factor = 1.
-                        if tod_y_factor then
+                        local terrain_weighting = 0.333
+                        if cfg.ignore_terrain_at_night then
                             local tod = wesnoth.get_time_of_day()
-                            if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
-                                y_factor = -2
+                            if (tod.id == 'dusk') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
+                                terrain_weighting = 0.01
                             end
                         end
 
-                        rating = rating + y * y_factor
+                        local defense = 100 - wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))
+                        rating = rating + defense * terrain_weighting
+
+                        -- Finally, in general, the farther south the better (map specific, of course)
+                        rating = rating + y
 
                         if (rating > max_rating) then
                             max_rating, best_hex, best_unit = rating, { x, y }, u
@@ -377,8 +382,16 @@ return {
                             local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
                             if is_village then rating = rating + 1.1 end
 
+                            local terrain_weighting = 0.111
+                            if cfg.ignore_terrain_at_night then
+                                local tod = wesnoth.get_time_of_day()
+                                if (tod.id == 'dusk') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
+                                    terrain_weighting = 0.01
+                                end
+                            end
+
                             local defense = 100 - wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))
-                            rating = rating + defense / 9.
+                            rating = rating + defense * terrain_weighting
                         end
 
                         -- However, if 3 or more enemies can get there, strongly disfavor this
@@ -1664,7 +1677,7 @@ return {
             local protect_loc = { x = 18, y = 9 }
 
             if AH.show_messages() then W.message { speaker = 'narrator', message = 'Protecting map center' } end
-            self:hold_position(units_MP, protect_loc, false)
+            self:hold_position(units_MP, protect_loc)
         end
 
         --------- Hold left ------------
@@ -1849,7 +1862,7 @@ return {
             local goal = { x = 11, y = 9 }  -- southern-most of western villages
 
             if AH.show_messages() then W.message { speaker = 'narrator', message = 'Holding left (west)' } end
-            self:hold_position(units_left, goal, false)
+            self:hold_position(units_left, goal)
         end
 
         --------- Grunt rush right ------------
@@ -2043,7 +2056,7 @@ return {
                 end
             end
             --print('goal:', goal.x, goal.y)
-            self:hold_position(units, goal, false)
+            self:hold_position(units, goal, { ignore_terrain_at_night = true } )
         end
 
         -----------Spread poison ----------------
@@ -2335,7 +2348,7 @@ return {
 
             -- Otherwise, if we got here, move toward keep
             local goal = { x = 19, y = 5 }
-            self:hold_position(units, goal, false)
+            self:hold_position(units, goal)
         end
 
         ----------Recruitment -----------------
