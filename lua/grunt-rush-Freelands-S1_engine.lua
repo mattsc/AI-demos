@@ -899,6 +899,17 @@ return {
             -- First check if attacks with >= 40% CTK are possible for any unit
             -- and that AI unit cannot die
             local attacks = AH.get_attacks_occupied(units)
+            if (not attacks[1]) then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
+
+            -- For counter attack damage calculation:
+            local enemies = wesnoth.get_units {
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+            }
+            local enemy_attack_map = AH.attack_map(enemies, {moves = "max"})
+            --AH.put_labels(enemy_attack_map)
 
             local max_rating, best_attack = -9e99, {}
             for i,a in ipairs(attacks) do
@@ -923,7 +934,7 @@ return {
                     local rating = a.att_stats.average_hp - 2 * a.def_stats.average_hp
                     rating = rating + a.def_stats.hp_chance[0] * 50
 
-                    rating = rating - (attacker.max_experience - attacker.experience) / 3.  -- the close to leveling the unit is, the better
+                    rating = rating - (attacker.max_experience - attacker.experience) / 3.  -- the closer to leveling the unit is, the better
 
                     local attack_defense = 100 - wesnoth.unit_defense(attacker, wesnoth.get_terrain(a.x, a.y))
                     rating = rating + attack_defense / 100.
@@ -935,6 +946,19 @@ return {
                     -- Minor penalty if unit needs to be moved out of the way
                     -- This is essentially just to differentiate between otherwise equal attacks
                     if a.attack_hex_occupied then rating = rating - 0.1 end
+
+                    -- From dawn to afternoon, only attack if not more than 2 other enemy units are close
+                    -- (but only if this is not the enemy leader; we attack him unconditionally)
+                    local enemies_in_reach = enemy_attack_map:get(a.x, a.y)
+                    --print('  enemies_in_reach', enemies_in_reach)
+
+                    -- Need '>3' here, because the weak enemy himself is counted also
+                    if (enemies_in_reach > 3) and ((a.def_loc.x ~= enemy_leader.x) or (a.def_loc.y ~= enemy_leader.y)) then 
+                        local tod = wesnoth.get_time_of_day()
+                        if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
+                            rating = -9e99
+                        end
+                    end
 
                     if (rating > max_rating) then
                         max_rating, best_attack = rating, a
