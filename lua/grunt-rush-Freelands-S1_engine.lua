@@ -1992,6 +1992,15 @@ return {
 
         function grunt_rush_FLS1:spread_poison_eval()
             local score = 380000
+
+            -- As an experiment: reduce importance of spreading poison during night
+            -- This is supposed to help with the rush on the right, freeing up units for that
+            -- Don't know how well this is going to work...
+            local tod = wesnoth.get_time_of_day()
+            if (tod.id == 'dusk') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
+                score = 300000
+            end
+
             if AH.print_eval() then print('     - Evaluating spread_posion CA:', os.clock()) end
 
             -- If a unit with a poisoned weapon can make an attack, we'll do that preferentially
