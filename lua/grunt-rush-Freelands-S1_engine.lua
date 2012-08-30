@@ -1929,7 +1929,7 @@ return {
                         -- Cost of enemy is another factor
                         rating = rating + enemy_cost
 
-                        if enemy_on_village then rating = rating + 50 end
+                        if enemy_on_village then rating = rating + 20 end
 
                         --print(' -----------------------> rating', rating)
                         if (not dont_attack) and (rating > max_rating) then
