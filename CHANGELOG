@@ -1,9 +1,17 @@
-0.10.4
+0.10.4, 30 Aug 2012
 - Freelands Side 1 Grunt Rush:
   - Changed day-time behavior (retreat) of rush on right:
     - Now set never to attack from dawn to afternoon
-  - Small change to recruiting: archers have somewhat higher priority now
+  - Poison attacks and attacks on weak enemies also have TOD-dependent threshold, but are not quite as exclusive
+  - In addition, poison attacks have been de-prioritized at night, to free up units for rush on right
   - Poisoner can now move next to AI unit that has attacked already (without need for additional support unit)
+  - Combination attack evaluation on right was tuned (hopefully for the better)
+  - Units that are out of reach for attacking on right advance more aggressively at night
+  - Small change to recruiting: archers have somewhat higher priority now
+  - Removed two unused CA dinosaurs
+- All grunt rushes:
+  - Added the AI's names (Fred, Ron, Ed) to the pop-up menu descriptions :D
+  - Added a WML variable containing the AI-Demos version number for debugging
 - ai_helper:
   - New function ai_helper.print_eval() to help with debugging
 
