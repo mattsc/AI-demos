@@ -900,42 +900,6 @@ return {
             -- and that AI unit cannot die
             local attacks = AH.get_attacks_occupied(units)
 
-            for i,a in ipairs(attacks) do
-                -- Check whether attack can result in kill with single hit
-                local one_strike_kill, hp_levels = true, 0
-                for i,c in pairs(a.def_stats.hp_chance) do
-                    if (c > 0) and (i > 0) then 
-                        hp_levels = hp_levels + 1
-                        if (hp_levels > 1) then
-                            one_strike_kill = false
-                            break
-                        end
-                    end
-                end
-
-                if ( one_strike_kill
-                    or (a.def_loc.x == enemy_leader.x) and (a.def_loc.y == enemy_leader.y) and (a.def_stats.hp_chance[0] > 0) )
-                    or ( (a.def_stats.hp_chance[0] >= 0.40) and (a.att_stats.hp_chance[0] == 0) )
-                then
-                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                    return score
-                end
-            end
-
-            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-            return 0
-        end
-
-        function grunt_rush_FLS1:attack_weak_enemy_exec()
-            if AH.print_exec() then print('     - Executing attack_weak_enemy CA') end
-            local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no', 
-                formula = '$this_unit.attacks_left > 0'
-            }
-            local enemy_leader = wesnoth.get_units { canrecruit = 'yes',
-                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
-            }[1]
-
-            local attacks = AH.get_attacks_occupied(units)
             local max_rating, best_attack = -9e99, {}
             for i,a in ipairs(attacks) do
                 -- Check whether attack can result in kill with single hit
@@ -978,10 +942,23 @@ return {
                 end
             end
 
-            local attacker = wesnoth.get_unit(best_attack.att_loc.x, best_attack.att_loc.y)
-            local defender = wesnoth.get_unit(best_attack.def_loc.x, best_attack.def_loc.y)
+            if (max_rating > -9e99) then
+                self.data.AWE_attack = best_attack
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return score
+            end
+
+            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+            return 0
+        end
+
+        function grunt_rush_FLS1:attack_weak_enemy_exec()
+            if AH.print_exec() then print('     - Executing attack_weak_enemy CA') end
+
+            local attacker = wesnoth.get_unit(self.data.AWE_attack.att_loc.x, self.data.AWE_attack.att_loc.y)
+            local defender = wesnoth.get_unit(self.data.AWE_attack.def_loc.x, self.data.AWE_attack.def_loc.y)
             if AH.show_messages() then W.message { speaker = attacker.id, message = "Attacking weak enemy" } end
-            AH.movefull_outofway_stopunit(ai, attacker, best_attack, { dx = 0.5, dy = -0.1 })
+            AH.movefull_outofway_stopunit(ai, attacker, self.data.AWE_attack, { dx = 0.5, dy = -0.1 })
             ai.attack(attacker, defender)
         end
 
