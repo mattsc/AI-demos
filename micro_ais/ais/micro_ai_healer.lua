@@ -57,107 +57,85 @@ return {
             -- special_rating: the rating that is particular to this kind of unit
             --   (the rest of the rating is done here)
 
-            local leaders = wesnoth.get_units{ side = wesnoth.current.side, canrecruit = true }
-            local dist_leaders = AH.distance_map(leaders)
-
-            local all_units = wesnoth.get_units{ side = wesnoth.current.side }
-            local units_noMP, units_MP = {}, {}
-            for i,u in ipairs(all_units) do
-                if (u.moves == 0) then
-                    table.insert(units_noMP, u)
-                else
-                    table.insert(units_MP,u)
-                end
-            end
-
-            -- Take all units with moves left off the map, for enemy path finding
-            for i,u in ipairs(units_MP) do wesnoth.extract_unit(u) end
-            -- Get an enemy_reach_map taking only AI units that cannot move into account
-            local enemy_dstsrc = AH.get_enemy_dst_src()
-            -- Put units back out there
-            for i,u in ipairs(units_MP) do wesnoth.put_unit(u.x, u.y, u) end
-
-            local rating_map = LS.create()
-            local max_rating = -9e99
-            local best_hex = {}
-
-            local reach = wesnoth.find_reach(unit)
-            for j,r in ipairs(reach) do
-
-                -- Check if there's unit at the hex that cannot move away
-                local unocc = true
-                local unit_in_way = wesnoth.get_unit(r[1], r[2])
-                if unit_in_way and (unit_in_way.id ~= unit.id) then
-                    local move_away = self:find_move_out_of_way(unit_in_way, unit.id, dist_leaders)
-                    if (not move_away) then unocc = false end
-                end
-
-                -- Only consider unoccupied hexes and those that are not farther from leaders
-                if unocc then
-                    local rating = 0
-
-                    -- Hexes that enemies can reach are not good
-                    for x, y in H.adjacent_tiles(r[1], r[2]) do
-                        if enemy_dstsrc:get(x, y) then rating = rating - 1000 end
-                    end
-
-                    -- Add in the special unit rating
-                    rating = rating + (special_rating:get(r[1], r[2]) or 0)
-
-                    -- Add a very small penalty if unit needs to be moved out of the way
-                    if unit_in_way then rating = rating - 0.1 end
-
-                    -- If nothing else, want to get close to units with no MP left
-                    -- Excluding those on keeps or castle (to exclude newly recruited units)
-                    for i,u in ipairs(units_noMP) do
-                        local terrain_info = wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y))
-                        if (not terrain_info.keep) and (not terrain_info.castle) then
-                            rating = rating + 1. / H.distance_between(u.x, u.y, r[1], r[2])
-                        end
-                    end
-
-                    -- As a tie breaker, stay close to the leaders
-                    rating = rating + dist_leaders:get(r[1], r[2]) * 0.001
-
-                    rating_map:insert(r[1], r[2], rating)
-                    --print('rating',r[1], r[2], rating)
-
-                    if (rating > max_rating) then
-                        max_rating = rating
-                        best_hex = {r[1], r[2]}
-                    end
-                end
-            end
-            --print('best unit move', best_hex[1], best_hex[2], max_rating)
-            --AH.put_labels(rating_map)
 
             return best_hex, max_rating
         end
 
 ----------------------------
 
+        ------ Initialize healers at beginning of turn -----------
+
+        -- Set variables and aspects correctly at the beginning of the turn
+        -- This will be blacklisted after first execution each turn
+        function healers:initialize_healers_eval()
+            local score = 999990
+            return score
+        end
+
+        function healers:initialize_healers_exec()
+            --print(' Initializing healers at beginning of Turn ' .. wesnoth.current.turn)
+
+            -- First, modify the attacks aspect to exclude healers
+	    -- Always delete the attacks aspect first, so that we do not end up with 100 copies of the facet
+	    W.modify_ai {
+	        side = wesnoth.current.side,
+	        action = "try_delete",
+	        path = "aspect[attacks].facet[no_healers_attack]"
+	    }
+
+	    W.modify_ai {
+	        side = wesnoth.current.side,
+	        action = "add",
+	        path = "aspect[attacks].facet",
+	        { "facet", {
+	           name = "testing_ai_default::aspect_attacks",
+	           id = "no_healers_attack",
+	           invalidate_on_gamestate_change = "yes",
+	           { "filter_own", { { "not", { ability = "healing" } } } }
+	        } }
+	    }
+
+            -- We also need to set the return score of healer moves to happen _after_ combat
+            self.data.healers_return_score = 95000
+        end
+
+        ------ Let healers participate in attacks -----------
+
+        -- After attacks by all other units are done, reset things so that healers can attack, if desired
+        -- This will be blacklisted after first execution each turn
+        function healers:healers_can_attack_eval()
+            local score = 99990
+            return score
+        end
+
+        function healers:healers_can_attack_exec()
+            --print(' Letting healers participate in attacks from now on')
+
+	    -- Delete the attacks aspect
+	    --print("Deleting attacks aspect")
+	    W.modify_ai {
+	        side = wesnoth.current.side,
+	        action = "try_delete",
+	        path = "aspect[attacks].facet[no_healers_attack]"
+	    }
+
+            -- We also reset the variable containing the return score of the healers CA
+            -- This will make it go back to its default value
+            self.data.healers_return_score = nil
+        end
+
+
         function healers:healer_eval()
 
-            local all_healers = wesnoth.get_units { side = wesnoth.current.side, ability = "healing" }
+            local score = 105000
+            if self.data.healers_return_score then score = self.data.healers_return_score end
+            --print('Healers score:', score)
 
-            local healers = {}  -- Those without MP, but with variables.stopped set
-            for i,h in ipairs(all_healers) do
-                if (h.moves > 0) then
-                    if (not self.data.healers_MP) then self.data.healers_MP = {} end
-                    table.insert(self.data.healers_MP, h)
-                end
-                if h.variables.stopped then table.insert(healers, h) end
-            end
-
-            -- If healers with moves were found, take those moves away from them
-            if self.data.healers_MP then return 94000 end
-
-            -- If that ^ did not happen _and_ there are no stopped healer, we're done
+            local healers = wesnoth.get_units { side = wesnoth.current.side, ability = "healing",
+                formula = '$this_unit.moves > 0'
+            }
             if (not healers[1]) then return 0 end
 
-            -- Otherwise evaluate the move (need full evaluation here, rather than in exec())
-
-            -- healer specific rating:
             local all_units = wesnoth.get_units{ side = wesnoth.current.side }
             local units_noMP, units_MP = {}, {}
             for i,u in ipairs(all_units) do
@@ -171,79 +149,85 @@ return {
 
             -- Take all units with moves left off the map, for enemy path finding
             for i,u in ipairs(units_MP) do wesnoth.extract_unit(u) end
-            -- Get an enemy_reach_map taking only AI units that cannot move into account
-            local enemy_dstsrc = AH.get_enemy_dst_src()
+
+            -- Enemy attack map
+            local enemies = wesnoth.get_units {
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+            }
+            local enemy_attack_map = AH.attack_map(enemies, { moves = 'max' })
+            --AH.put_labels(enemy_attack_map)
+
             -- Put units back out there
             for i,u in ipairs(units_MP) do wesnoth.put_unit(u.x, u.y, u) end
 
-            local special = LS.create()
-            for i,u in ipairs(units_noMP) do
-                local rating = 0.0
-                rating = rating + u.max_hitpoints - u.hitpoints + u.experience / 5.
-                -- Negative rating if we're next to another healer (that has moved already)
-                if (u.__cfg.usage == "healer") then rating = rating - 30. end
-                for x, y in H.adjacent_tiles(u.x, u.y) do
-                    -- Larger bonus for every enemy that can reach unit
-                    if enemy_dstsrc:get(x, y) then
-                        rating = rating + 20
+            -- Now find the best healer move
+            local max_rating, best_hex = -9e99, {}
+            for i,h in ipairs(healers) do
+                --local rating_map = LS.create()
+
+                local reach = wesnoth.find_reach(h)
+                for j,r in ipairs(reach) do
+
+                    local rating, adjacent_healer = 0
+
+                    -- Only consider hexes that are next to at least one noMP unit that
+                    --  - either can be attacked by an enemy (15 points per enemy)
+                    --  - or has non-perfect HP (1 point per missing HP)
+
+                    -- And it must be unoccupied by another unit, of course
+                    local unit_in_way = wesnoth.get_unit(r[1], r[2])
+                    if (not unit_in_way) or ((unit_in_way.x == h.x) and (unit_in_way.y == h.y)) then
+                        for k,u in ipairs(units_noMP) do
+                            if (H.distance_between(u.x, u.y, r[1], r[2]) == 1) then
+                                -- !!!!!!! These ratings have to be positive or the method doesn't work !!!!!!!!!
+                                rating = rating + u.max_hitpoints - u.hitpoints
+                                rating = rating + 15 * (enemy_attack_map:get(u.x, u.y) or 0)
+                            end
+                        end
+                    end
+
+                    -- If this hex fulfills those requirements, 'rating' is now greater than 0
+                    -- and we do the rest of the rating, otherwise set rating to below max_rating
+                    if (rating == 0) then
+                        rating = max_rating - 1
+                    else
+                        -- Strongly discourage hexes that can be reached by enemies
+                        rating = rating - (enemy_attack_map:get(r[1], r[2]) or 0) * 1000
+
+                        -- Prefer villages and strong terrain, but since enemy cannot attack here, this is not so important
+                        local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(r[1], r[2])).village
+                        if is_village then rating = rating + 0.2 end
+
+                        local defense = 100 - wesnoth.unit_defense(h, wesnoth.get_terrain(r[1], r[2]))
+                        rating = rating + defense / 100.
+
+                        --rating_map:insert(r[1], r[2], rating)
+                    end
+
+                    if (rating > max_rating) then
+                        max_rating, best_healer, best_hex = rating, h, {r[1], r[2]}
                     end
                 end
-                for x, y in H.adjacent_tiles(u.x, u.y) do
-                    special:insert(x, y, (special:get(x, y) or 0) + rating)
-                end
+                --AH.put_labels(rating_map)
+                --W.message { speaker = h.id, message = 'Healer rating map for me' }
             end
-            --AH.put_labels(special)
+            --print('best unit move', best_hex[1], best_hex[2], max_rating)
 
-            -------- All the rest is common to special-unit moves --------
-            local max_rating = -9e99
-            for i,h in ipairs(healers) do
-                h.moves = h.max_moves
-                hex, rating = self:move_special_unit(h, special)
-                if (rating > max_rating) then
-                    self.data.hex, self.data.healer, max_rating = hex, h, rating
-                end
-                h.moves = 0
-            end
-            --print('best unit move', self.data.healer.id, self.data.hex[1], self.data.hex[2], max_rating)
-
-            -- if no good rating was found, defer to later (unless no other unit can move)
-            if (max_rating < 10) then
-                local units_MP = wesnoth.get_units { side = wesnoth.current.side, formula = '$this_unit.moves > 0',
-                    { "not", { ability = 'healing' } }
-                }
-                if units_MP[1] then
-                    return 1000
-                end
+            -- Only move healer if a good move as found
+            -- Be aware that this means that other CAs will move the healers instead
+            if (max_rating > -9e99) then
+                self.data.healer_unit, self.data.healer_hex = best_healer, best_hex
+                return score
             end
 
-            return 94000
+            return 0
         end
 
         function healers:healer_exec()
+            W.message { speaker = self.data.healer_unit.id, message = 'Moving in for healing.  (This includes moving next to units that are unhurt but threatened by enemies.)' }
 
-            -- If healers with MP were found, take MP away and set 'stopped' variable for each unit, then return
-            if self.data.healers_MP then
-                for i,h in ipairs(self.data.healers_MP) do
-                    ai.stopunit_moves(h)
-                    h.variables.stopped = true
-                end
-                self.data.healers_MP = nil
-                return
-            end
-
-            -- If there's a unit in the way, move it away
-            -- we checked before that that is possible
-            local unit_in_way = wesnoth.get_unit(self.data.hex[1], self.data.hex[2])
-            if unit_in_way and (unit_in_way.id ~= self.data.healer.id) then
-                local dist_leaders = AH.distance_map(leaders)
-                local move_away = self:find_move_out_of_way(unit_in_way, self.data.healer.id, dist_leaders)
-                ai.move(unit_in_way, move_away[1], move_away[2])  -- this is not a full move!
-            end
-
-            self.data.healer.moves = self.data.healer.max_moves
-            AH.movefull_stopunit(ai, self.data.healer, self.data.hex)
-            self.data.healer.variables.stopped = nil
-            self.data.hex, self.data.healer = nil, nil
+            AH.movefull_outofway_stopunit(ai, self.data.healer_unit, self.data.healer_hex)
+            self.data.healer_unit, self.data.healer_hex =  nil, nil
         end
 
         return healers
