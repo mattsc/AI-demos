@@ -377,7 +377,7 @@ function ai_helper.to_triples(set)
 end
 
 function ai_helper.LS_random_hex(set)
-    -- Select a random hex out of the 
+    -- Select a random hex from the hexes in location set 'set'
     -- This seems "inelegant", but I can't come up with another way without creating an extra array
     -- Return -1, -1 is set is empty
 
@@ -609,7 +609,7 @@ function ai_helper.find_best_move(units, rating_function, cfg)
     -- If 'cfg' is not set, we need it as an empty array
     cfg = cfg or {}
 
-    -- If this is an individual unit, turn it into and array
+    -- If this is an individual unit, turn it into an array
     if units.hitpoints then units = { units } end
 
     local max_rating, best_hex, best_unit = -9e99, {}, {}
