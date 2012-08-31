@@ -10,9 +10,9 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
     cfg = cfg or {}
 
-    if cfg.micro_ai then
-        W.message { speaker = 'narrator', message = "Configuring Micro AI '" .. micro_ai .. "'" }
+    if cfg.ai_type then
+        W.message { speaker = 'narrator', message = "Configuring Micro AI '" .. cfg.ai_type .. "'" }
     else
-        W.message { speaker = 'narrator', message = "[micro_ai] requires an 'micro_ai=' key" }
+        W.message { speaker = 'narrator', message = "[micro_ai] requires an 'ai_type=' line" }
     end
 end
