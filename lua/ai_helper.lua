@@ -8,7 +8,7 @@ local ai_helper = {}
 ----- General helper functions ------
 
 function ai_helper.show_messages()
-    -- Returns true of false (hard-coded).  To be used to
+    -- Returns true or false (hard-coded).  To be used to
     -- show messages if in debug mode
     -- Just edit the following line (easier than trying to set WML variable)
     local show_messages_flag = false
@@ -17,7 +17,7 @@ function ai_helper.show_messages()
 end
 
 function ai_helper.print_exec()
-    -- Returns true of false (hard-coded).  To be used to
+    -- Returns true or false (hard-coded).  To be used to
     -- show which CA is being executed if in debug mode
     -- Just edit the following line (easier than trying to set WML variable)
     local print_exec_flag = true
@@ -26,7 +26,7 @@ function ai_helper.print_exec()
 end
 
 function ai_helper.print_eval()
-    -- Returns true of false (hard-coded).  To be used to
+    -- Returns true or false (hard-coded).  To be used to
     -- show which CA is being evaluated if in debug mode
     -- Just edit the following line (easier than trying to set WML variable)
     local print_eval_flag = false
@@ -495,7 +495,7 @@ function ai_helper.next_hop(unit, x, y, cfg)
     -- If unit cannot get there:
     if cost >= 42424242 then return nil, cost end
 
-    -- If none of the hexes is unoccupied, use current position as default
+    -- If none of the hexes are unoccupied, use current position as default
     local next_hop, nh_cost = {unit.x, unit.y}, 0
 
     -- Go through loop to find reachable, unoccupied hex along the path
@@ -533,7 +533,7 @@ function ai_helper.can_reach(unit, x, y, cfg)
     -- If there is, and 'exclude_occupied' is set, always return false
     if (cfg.exclude_occupied) and unit_in_way then return false end
 
-    -- Otherwise, if 'ignore_units' is not set, return false if there's unit of other side,
+    -- Otherwise, if 'ignore_units' is not set, return false if there's a unit of other side,
     -- or a unit of own side that cannot move away (this might be slow, don't know)
     if (not cfg.ignore_units) then
         -- If there's a unit at the goal that's not on own side (even ally), return false
@@ -617,7 +617,7 @@ function ai_helper.find_best_move(units, rating_function, cfg)
         -- Hexes each unit can reach
         local reach_map = ai_helper.get_reachable_unocc(u)
         reach_map:iter( function(x, y, v)
-            -- Rate based un rating_function argument
+            -- Rate based on rating_function argument
             local rating = rating_function(x, y)
 
             -- If cfg.random is set, add some randomness (on 0.0001 - 0.0099 level)
