@@ -29,6 +29,7 @@ return {
 	        path = "aspect[attacks].facet[no_healers_attack]"
 	    }
 
+            -- Then set the aspect to exclude healers
 	    W.modify_ai {
 	        side = wesnoth.current.side,
 	        action = "add",
@@ -41,7 +42,7 @@ return {
 	        } }
 	    }
 
-            -- We also need to set the return score of healer moves to happen _after_ combat
+            -- We also need to set the return score of healer moves to happen _after_ combat at beginning of turn
             self.data.HS_return_score = 95000
         end
 
@@ -66,13 +67,18 @@ return {
 	    }
 
             -- We also reset the variable containing the return score of the healers CA
-            -- This will make it go back to its default value
+            -- This will make it use its default value
             self.data.HS_return_score = nil
         end
 
+        ------ Place healers -----------
 
         function healer_support:healer_support_eval()
 
+            -- Should happen with higher priority than attacks, except at beginning of turn,
+            -- when we want attacks done first
+            -- This is done so that it is possible for healers to attack, if they do not
+            -- find an appropriate hex to back up other units
             local score = 105000
             if self.data.HS_return_score then score = self.data.HS_return_score end
             --print('healer_support score:', score)
@@ -120,7 +126,7 @@ return {
                     --  - either can be attacked by an enemy (15 points per enemy)
                     --  - or has non-perfect HP (1 point per missing HP)
 
-                    -- And it must be unoccupied by another unit, of course
+                    -- Also, hex must be unoccupied by another unit, of course
                     local unit_in_way = wesnoth.get_unit(r[1], r[2])
                     if (not unit_in_way) or ((unit_in_way.x == h.x) and (unit_in_way.y == h.y)) then
                         for k,u in ipairs(units_noMP) do
@@ -160,7 +166,7 @@ return {
             --print('best unit move', best_hex[1], best_hex[2], max_rating)
 
             -- Only move healer if a good move as found
-            -- Be aware that this means that other CAs will move the healers instead
+            -- Be aware that this means that other CAs will move the healers if not
             if (max_rating > -9e99) then
                 self.data.HS_unit, self.data.HS_hex = best_healer, best_hex
                 return score

@@ -5,7 +5,7 @@ local LS = wesnoth.require "lua/location_set.lua"
 local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
 function wesnoth.wml_actions.micro_ai(cfg)
-    -- Set up tag [micro_ai]
+    -- Set up the [micro_ai] tag
     -- Configuration tag for the micro AIs
 
     cfg = cfg or {}
@@ -14,5 +14,6 @@ function wesnoth.wml_actions.micro_ai(cfg)
         W.message { speaker = 'narrator', message = "Configuring Micro AI '" .. cfg.ai_type .. "'" }
     else
         W.message { speaker = 'narrator', message = "[micro_ai] requires an 'ai_type=' line" }
+        return
     end
 end
