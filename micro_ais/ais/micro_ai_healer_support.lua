@@ -1,7 +1,7 @@
 return {
     init = function(ai)
 
-        local healers = {}
+        local healer_support = {}
 
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
@@ -9,71 +9,17 @@ return {
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
-        function healers:find_move_out_of_way(unit, not_id, dist_map, avoid)
-            -- Find if there's a move out of the way for 'unit'
-            -- not_id: exclude unit with this id (that's the one for which we consider the move)
-            -- dist_map: distance map: unit will only move in direction of equal or decreasing distance
-            -- Returns {x, y} of best move, or nil
-
-           if (unit.id == not_id) then return end
-
-           local reach = wesnoth.find_reach(unit)
-           -- find the closest hex the unit can move to, but only in direction of cart
-           local max_score = -9999
-           local best_move = {}
-
-           for i,r in ipairs(reach) do
-               -- Make sure hex is unoccupied
-               local unocc = (not wesnoth.get_unit(r[1], r[2]))
-               -- Also exclude hexes given by 'avoid'
-               local avoid_hex = false
-               if avoid then
-                   for j,a in ipairs(avoid) do
-                       if (r[1] == a[1]) and (r[2] == a[2]) then avoid_hex = true end
-                   end
-               end
-
-               if unocc and (not avoid_hex)
-                   and (r[3] ~= unit.moves)  -- only counts if unit actually moves
-                   and (dist_map:get(r[1], r[2]) <= dist_map:get(unit.x, unit.y))  -- and if not away from leaders
-               then
-                   -- Maximize moves left (most important), minimize distance to leaders
-                   local score = max_score
-                   score = 100 * r[3] - dist_map:get(r[1], r[2])
-                   if (score > max_score) then
-                       max_score = score
-                       best_move = {r[1], r[2]}
-                   end
-               end
-           end
-
-           if (max_score > -9999) then
-               return best_move
-           end
-        end
-
-        function healers:move_special_unit(unit, special_rating)
-            -- Find the best move for 'unit'
-            -- special_rating: the rating that is particular to this kind of unit
-            --   (the rest of the rating is done here)
-
-
-            return best_hex, max_rating
-        end
-
-----------------------------
-
-        ------ Initialize healers at beginning of turn -----------
+        ------ Initialize healer support at beginning of turn -----------
 
         -- Set variables and aspects correctly at the beginning of the turn
         -- This will be blacklisted after first execution each turn
-        function healers:initialize_healers_eval()
+        function healer_support:initialize_healer_support_eval()
             local score = 999990
             return score
         end
 
-        function healers:initialize_healers_exec()
-            --print(' Initializing healers at beginning of Turn ' .. wesnoth.current.turn)
+        function healer_support:initialize_healer_support_exec()
+            --print(' Initializing healer_support at beginning of Turn ' .. wesnoth.current.turn)
 
             -- First, modify the attacks aspect to exclude healers
 	    -- Always delete the attacks aspect first, so that we do not end up with 100 copies of the facet
@@ -96,19 +42,19 @@ return {
 	    }
 
             -- We also need to set the return score of healer moves to happen _after_ combat
-            self.data.healers_return_score = 95000
+            self.data.HS_return_score = 95000
         end
 
         ------ Let healers participate in attacks -----------
 
         -- After attacks by all other units are done, reset things so that healers can attack, if desired
         -- This will be blacklisted after first execution each turn
-        function healers:healers_can_attack_eval()
+        function healer_support:healers_can_attack_eval()
             local score = 99990
             return score
         end
 
-        function healers:healers_can_attack_exec()
+        function healer_support:healers_can_attack_exec()
             --print(' Letting healers participate in attacks from now on')
 
 	    -- Delete the attacks aspect
@@ -121,15 +67,15 @@ return {
 
             -- We also reset the variable containing the return score of the healers CA
             -- This will make it go back to its default value
-            self.data.healers_return_score = nil
+            self.data.HS_return_score = nil
         end
 
 
-        function healers:healer_eval()
+        function healer_support:healer_support_eval()
 
             local score = 105000
-            if self.data.healers_return_score then score = self.data.healers_return_score end
-            --print('Healers score:', score)
+            if self.data.HS_return_score then score = self.data.HS_return_score end
+            --print('healer_support score:', score)
 
             local healers = wesnoth.get_units { side = wesnoth.current.side, ability = "healing",
                 formula = '$this_unit.moves > 0'
@@ -216,20 +162,20 @@ return {
             -- Only move healer if a good move as found
             -- Be aware that this means that other CAs will move the healers instead
             if (max_rating > -9e99) then
-                self.data.healer_unit, self.data.healer_hex = best_healer, best_hex
+                self.data.HS_unit, self.data.HS_hex = best_healer, best_hex
                 return score
             end
 
             return 0
         end
 
-        function healers:healer_exec()
-            W.message { speaker = self.data.healer_unit.id, message = 'Moving in for healing.  (This includes moving next to units that are unhurt but threatened by enemies.)' }
+        function healer_support:healer_support_exec()
+            W.message { speaker = self.data.HS_unit.id, message = 'Moving in for healing.  (This includes moving next to units that are unhurt but threatened by enemies.)' }
 
-            AH.movefull_outofway_stopunit(ai, self.data.healer_unit, self.data.healer_hex)
-            self.data.healer_unit, self.data.healer_hex =  nil, nil
+            AH.movefull_outofway_stopunit(ai, self.data.HS_unit, self.data.HS_hex)
+            self.data.HS_unit, self.data.HS_hex =  nil, nil
         end
 
-        return healers
+        return healer_support
     end
 }
