@@ -346,6 +346,27 @@ function ai_helper.is_opposite_adjacent(hex1, hex2, center_hex)
     return false
 end
 
+function ai_helper.get_live_units(filter)
+    -- Same as wesnoth.get_units(), except that it only returns non-petrified units
+
+    filter = filter or {}
+
+    -- So that 'filter' in calling function is not modified (if it's a variable):
+    local live_filter = ai_helper.table_copy(filter)
+
+    local filter_not_petrified = { "not", { 
+        { "filter_wml", { 
+            { "status", { petrified = "yes" } }
+        } }
+    } }
+
+    -- Combine the two filters.  Doing it this way around is much easier (always works, no ifs required),
+    -- but it means we need to make a copy of the filter above, so that the original does not get changed
+    table.insert(live_filter, filter_not_petrified)
+
+    return wesnoth.get_units(live_filter)
+end
+
 --------- Location set related helper functions ----------
 
 function ai_helper.get_LS_xy(index)
