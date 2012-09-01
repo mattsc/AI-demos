@@ -661,19 +661,6 @@ return {
                 print('   Player ' .. s.side .. ': ' .. #units .. ' Units with total HP: ' .. total_hp)
             end
             if self:full_offensive() then print(' Full offensive mode (mostly done by RCA AI)') end
-        end
-
-        ------ Reset variables at beginning of turn -----------
-
-        -- This will be blacklisted after first execution each turn
-        function grunt_rush_FLS1:reset_vars_eval()
-            -- Probably not necessary, just a safety measure
-            local score = 999998
-            return score
-        end
-
-        function grunt_rush_FLS1: reset_vars_exec()
-            --print(' Resetting variables at beginning of Turn ' .. wesnoth.current.turn)
 
             -- We also add a check here whether the AI is for Side 1, Northerners and the Freelands map
             -- None of these can be checked directly, but at least for mainline the method unique anyway
@@ -701,6 +688,19 @@ return {
                 }
                 W.endlevel { result = 'defeat' }
             end
+        end
+
+        ------ Reset variables at beginning of turn -----------
+
+        -- This will be blacklisted after first execution each turn
+        function grunt_rush_FLS1:reset_vars_eval()
+            -- Probably not necessary, just a safety measure
+            local score = 999998
+            return score
+        end
+
+        function grunt_rush_FLS1: reset_vars_exec()
+            --print(' Resetting variables at beginning of Turn ' .. wesnoth.current.turn)
 
             -- Reset self.data at beginning of turn, but need to keep 'complained_about_luck' variable
             local complained_about_luck = self.data.SP_complained_about_luck
