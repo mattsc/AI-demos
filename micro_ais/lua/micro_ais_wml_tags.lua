@@ -10,10 +10,17 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
     cfg = cfg or {}
 
-    if cfg.ai_type then
-        W.message { speaker = 'narrator', message = "Configuring Micro AI '" .. cfg.ai_type .. "'" }
-    else
-        W.message { speaker = 'narrator', message = "[micro_ai] requires an 'ai_type=' line" }
+    -- Check that the require attributes are set
+    if (not cfg.ai_type) then H.wml_error("[micro_ai] missing required ai_type= attribute") end
+    --print("Configuring Micro AI '" .. cfg.ai_type .. "'")
+    if (not cfg.side) then H.wml_error("[micro_ai] missing required side= attribute") end
+
+    -- Now deal with each specific micro AI
+    if (cfg.ai_type == 'healer_support') then
+
         return
     end
+
+    -- If we got here, none of the valid ai_types was specified
+    H.wml_error("invalid ai_type= in [micro_ai]")
 end
