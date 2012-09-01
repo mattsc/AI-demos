@@ -379,7 +379,7 @@ end
 function ai_helper.LS_random_hex(set)
     -- Select a random hex from the hexes in location set 'set'
     -- This seems "inelegant", but I can't come up with another way without creating an extra array
-    -- Return -1, -1 is set is empty
+    -- Return -1, -1 if set is empty
 
     local r = ai_helper.random(set:size())
     local i, xr, yr = 1, -1, -1
@@ -1005,7 +1005,7 @@ function ai_helper.add_next_attack_level(combos, attacks)
     -- Set up the array, if this is the first recursion level
     if (not combos) then combos = {} end
 
-    -- Array to hold combinations for this recursion level onlu
+    -- Array to hold combinations for this recursion level only
     local combos_this_level = {}
 
     for i,a in ipairs(attacks) do
