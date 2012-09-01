@@ -58,12 +58,20 @@ return {
         ----
 
         function grunt_rush:recruit_orcs_eval()
+            if AH.print_eval() then print('     - Evaluating recruit_orcs CA:', os.clock()) end
+
             -- Check if there is enough gold to recruit at least a grunt
-            if (wesnoth.sides[wesnoth.current.side].gold < 12) then return 0 end
+            if (wesnoth.sides[wesnoth.current.side].gold < 12) then 
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
 
             -- Check if leader is on keep
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
-            if (not wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep) then return 0 end
+            if (not wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep) then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
 
             -- If there's at least one free castle hex, go to recruiting
             local castle = wesnoth.get_locations {
@@ -72,10 +80,14 @@ return {
             }
             for i,c in ipairs(castle) do
                 local unit = wesnoth.get_unit(c[1], c[2])
-                if (not unit) then return 180000 end
+                if (not unit) then
+                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                    return 180000
+                end
             end
 
             -- Otherwise: no recruiting
+            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
             return 0
         end
 
@@ -89,6 +101,8 @@ return {
             -- - Otherwise, recruit randomly from Archer, Assassin, Wolf Rider
             -- All of this is contingent on having enough gold (eval checked for gold >= 12)
             -- -> if not enough gold for something else, recruit a grunt at the end
+
+            if AH.print_exec() then print('     - Executing recruit_orcs CA') end
 
             -- Recruit on the castle hex that is closest to the combination of the enemy leaders
             local enemy_leaders = wesnoth.get_units { canrecruit = 'yes',
@@ -185,15 +199,23 @@ return {
 ---------------------
 
         function grunt_rush:recruit_general_eval(rusher_type)
+            if AH.print_eval() then print('     - Evaluating recruit_general CA:', os.clock()) end
+
             -- The type of unit for the rush defaults to grunt, but can be set as something else
             if (not rusher_type) then rusher_type = 'Orcish Grunt' end
 
             -- Start the rush recruiting after first 3 other units have been recruited
             local units = wesnoth.get_units { side = wesnoth.current.side }
-            if (#units < 4) then return 0 end
+            if (#units < 4) then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
 
             -- Check if there is enough gold to recruit the rusher_type unit
-            if (wesnoth.sides[wesnoth.current.side].gold < wesnoth.unit_types[rusher_type].cost) then return 0 end
+            if (wesnoth.sides[wesnoth.current.side].gold < wesnoth.unit_types[rusher_type].cost) then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
 
             -- Check if leader is on keep
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
@@ -207,8 +229,14 @@ return {
 	    }
             --print('#all_units, #rushers, #enemies', #all_units, #rushers, #enemies)
 
-            if (#rushers / (#all_units+1) > 0.6) then return 0 end
-            if (not wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep) then return 0 end
+            if (#rushers / (#all_units+1) > 0.6) then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
+            if (not wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep) then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
 
             local castle = wesnoth.get_locations {
                 x = leader.x, y = leader.y, radius = 10,
@@ -217,13 +245,19 @@ return {
             for i,c in ipairs(castle) do
                 --print(i, c[1], c[2])
                 local unit = wesnoth.get_unit(c[1], c[2])
-                if (not unit) then return 300000 end
+                if (not unit) then
+                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                    return 300000
+                end
             end
 
+            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
             return 0
         end
 
         function grunt_rush:recruit_general_exec(rusher_type)
+            if AH.print_exec() then print('     - Executing recruit_general CA') end
+
             -- The type of unit for the rush defaults to grunt, but can be set as something else
             if (not rusher_type) then rusher_type = 'Orcish Grunt' end
 
@@ -258,6 +292,8 @@ return {
 ---------------------
 
         function grunt_rush:grab_villages_eval(rusher_type)
+            if AH.print_eval() then print('     - Evaluating grab_villages CA:', os.clock()) end
+
             -- In principle this is for grunts, but a different unit type can be passed as an argument
             if (not rusher_type) then rusher_type = 'Orcish Grunt' end
 
@@ -265,7 +301,10 @@ return {
             local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no', 
                 formula = '$this_unit.moves > 0'
             }
-            if (not units[1]) then return 0 end
+            if (not units[1]) then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
 
 	    local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
@@ -273,7 +312,10 @@ return {
 
             local villages = wesnoth.get_locations { terrain = '*^V*' }
             -- Just in case:
-            if (not villages[1]) then return 0 end
+            if (not villages[1]) then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
             --print('#units, #enemies', #units, #enemies)
 
             -- First check if attacks are possible for any unit
@@ -337,12 +379,18 @@ return {
 
             if (max_rating > -9e99) then
                 self.data.unit, self.data.village = best_unit, best_village
-                if (max_rating >= 1000) then return return_value else return 0 end
+                if (max_rating >= 1000) then
+                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                    return return_value else return 0
+                end
             end
+            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
             return 0
         end
 
         function grunt_rush:grab_villages_exec()
+            if AH.print_exec() then print('     - Executing grab_villages CA') end
+
             AH.movefull_stopunit(ai, self.data.unit, self.data.village)
             self.data.unit, self.data.village = nil, nil
         end
@@ -350,6 +398,8 @@ return {
 ---------------------------
 
         function grunt_rush:spread_poison_eval()
+            if AH.print_eval() then print('     - Evaluating spread_poison CA:', os.clock()) end
+
             -- If a unit with a poisoned weapon can make an attack, we'll do that preferentially
             -- (with some exceptions)
             local poisoners = wesnoth.get_units { side = wesnoth.current.side, 
@@ -363,11 +413,17 @@ return {
                 } }
             }
             --print('#poisoners', #poisoners)
-            if (not poisoners[1]) then return 0 end
+            if (not poisoners[1]) then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
 
             local attacks = AH.get_attacks(poisoners)
             --print('#attacks', #attacks)
-            if (not attacks[1]) then return 0 end
+            if (not attacks[1]) then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
 
             -- Go through all possible attacks with poisoners
             local max_rating, best_attack = -9e99, {}
@@ -411,12 +467,16 @@ return {
 
             if (max_rating > -9e99) then
                 self.data.attack = best_attack
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return 190000
             end
+            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
             return 0
         end
 
         function grunt_rush:spread_poison_exec()
+            if AH.print_exec() then print('     - Executing spread_poison CA') end
+
             local attacker = wesnoth.get_unit(self.data.attack.att_loc.x, self.data.attack.att_loc.y)
             local defender = wesnoth.get_unit(self.data.attack.def_loc.x, self.data.attack.def_loc.y)
 
