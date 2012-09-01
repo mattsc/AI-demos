@@ -760,19 +760,24 @@ function ai_helper.get_attacks_unit(unit, moves)
     -- This is somewhat slow, but will hopefully replaced soon by built-in AI function
 
     -- Need to find reachable hexes that are
-    -- 1. next to an enemy unit
+    -- 1. next to a (non-petrified) enemy unit
     -- 2. not occupied by an allied unit (except for unit itself)
     W.store_reachable_locations { 
         { "filter", { x = unit.x, y = unit.y } },
         { "filter_location", {
             { "filter_adjacent_location", { 
-                { "filter", 
-                    { { "filter_side",
+                { "filter", { 
+                    { "filter_side",
                         { { "enemy_of", { side = unit.side } } }
+                    },
+                    { "not", {
+                        { "filter_wml", { 
+                            { "status", { petrified = "yes" } }  -- This is important!
+                        } }
                     } }
-                } 
+                } }
             } },
-            { "not", { 
+            { "not", {
                 { "filter", { { "not", { x = unit.x, y = unit.y } } } }
             } }
         } },
@@ -800,6 +805,11 @@ function ai_helper.get_attacks_unit(unit, moves)
             { "filter_side",
                 { { "enemy_of", { side = unit.side } } }
             },
+            { "not", {
+                { "filter_wml", { 
+                    { "status", { petrified = "yes" } }  -- This is important!
+                } }
+            } },
             { "filter_location", 
                 { { "filter_adjacent_location", { x = p.x, y = p.y } } }
             }
@@ -858,17 +868,22 @@ function ai_helper.get_attacks_unit_occupied(unit)
     -- This is somewhat slow, but will hopefully replaced soon by built-in AI function
 
     -- Need to find reachable hexes that are
-    -- 1. next to an enemy unit
+    -- 1. next to a (non-petrified) enemy unit
     -- 2. not occupied by a unit of a different side (incl. allies)
     W.store_reachable_locations { 
         { "filter", { x = unit.x, y = unit.y } },
         { "filter_location", {
             { "filter_adjacent_location", { 
-                { "filter", 
-                    { { "filter_side",
+                { "filter", { 
+                    { "filter_side",
                         { { "enemy_of", { side = unit.side } } }
+                    },
+                    { "not", {
+                        { "filter_wml", { 
+                            { "status", { petrified = "yes" } }  -- This is important!
+                        } }
                     } }
-                } 
+                } }
             } },
             { "not", { 
                 { "filter", { { "not", { side = unit.side } } } }
@@ -918,6 +933,11 @@ function ai_helper.get_attacks_unit_occupied(unit)
                 { "filter_side",
                     { { "enemy_of", { side = unit.side } } }
                 },
+                { "not", {
+                    { "filter_wml", { 
+                        { "status", { petrified = "yes" } }  -- This is important!
+                    } }
+                } },
                 { "filter_location", 
                     { { "filter_adjacent_location", { x = p.x, y = p.y } } }
                 }
