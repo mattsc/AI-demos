@@ -58,6 +58,9 @@ return {
         function healer_support:healers_can_attack_exec()
             --print(' Letting healers participate in attacks from now on')
 
+            --local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+            --W.message { speaker = leader.id, message = "I'm done with the RCA AI combat CA for all other units, letting healers participate now (if they cannot find a support position)." }
+
 	    -- Delete the attacks aspect
 	    --print("Deleting attacks aspect")
 	    W.modify_ai {

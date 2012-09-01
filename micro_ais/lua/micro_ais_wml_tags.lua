@@ -12,12 +12,22 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
     -- Check that the require attributes are set
     if (not cfg.ai_type) then H.wml_error("[micro_ai] missing required ai_type= attribute") end
-    --print("Configuring Micro AI '" .. cfg.ai_type .. "'")
+    --print("[micro_ai]: Configuring Micro AI '" .. cfg.ai_type .. "'")
     if (not cfg.side) then H.wml_error("[micro_ai] missing required side= attribute") end
 
     -- Now deal with each specific micro AI
     if (cfg.ai_type == 'healer_support') then
+        -- If never_attack = true: Never let the healers participate in attacks
+        -- This is done by not deleting the attacks aspect
+        if cfg.never_attack then
+            --print("[micro_ai] healer_support: Deleting the healers_can_attack CA of Side " .. cfg.side)
 
+	    W.modify_ai {
+	        side = cfg.side,
+	        action = "delete",
+	        path = "stage[main_loop].candidate_action[healers_can_attack]"
+	    }
+        end
         return
     end
 
