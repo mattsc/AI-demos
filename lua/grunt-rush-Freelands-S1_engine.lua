@@ -650,7 +650,10 @@ return {
             return score
         end
 
-        function grunt_rush_FLS1:stats_exec()
+        function grunt_rush_FLS1:stats_exec(type)
+            -- type: check whether this unit type is on the recruit list, otherwise end the game
+            type = type or 'None'  -- in case we forget to set the type
+
             local tod = wesnoth.get_time_of_day()
             print(' Beginning of Turn ' .. wesnoth.current.turn .. ' (' .. tod.name ..') stats:')
 
@@ -669,7 +672,7 @@ return {
             -- Faction is checked by seeing if the side can recruit orcs
             local can_recruit_grunts = false
             for i,r in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
-                if (r == 'Orcish Grunt') then
+                if (r == type) then
                     can_recruit_grunts = true
                     break
                 end

@@ -10,6 +10,53 @@ return {
         local LS = wesnoth.require "lua/location_set.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
+        ------ Stats at beginning of turn -----------
+
+        -- This will be blacklisted after first execution each turn
+        function grunt_rush:stats_eval()
+            local score = 999999
+            return score
+        end
+
+        function grunt_rush:stats_exec(type)
+            -- type: check whether this unit type is on the recruit list, otherwise end the game
+            type = type or 'None'  -- in case we forget to set the type
+
+            local tod = wesnoth.get_time_of_day()
+            print(' Beginning of Turn ' .. wesnoth.current.turn .. ' (' .. tod.name ..') stats:')
+
+            for i,s in ipairs(wesnoth.sides) do
+                local total_hp = 0
+                local units = wesnoth.get_units { side = s.side }
+                for i,u in ipairs(units) do total_hp = total_hp + u.hitpoints end
+                print('   Player ' .. s.side .. ': ' .. #units .. ' Units with total HP: ' .. total_hp)
+            end
+
+            -- We also add a check here whether the AI uses the right faction
+            -- This cannot be checked directly, but at least for mainline the method is unique anyway
+            -- Yes, this is done every turn, but it takes so little time and is only done once, it doesn't matter
+
+            -- Faction is checked by seeing if the side can recruit orcs
+            local can_recruit_grunts = false
+            for i,r in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
+                if (r == type) then
+                    can_recruit_grunts = true
+                    break
+                end
+            end
+
+            if (not can_recruit_grunts) then
+                W.message { 
+                    speaker = 'narrator',
+                    caption = "Message from the Grunt Rush AI",
+                    image = 'wesnoth-icon.png', message = "I only know how to play if I can recruit the following unit type: " .. type .. ".  Sorry!"
+                }
+                W.endlevel { result = 'defeat' }
+            end
+        end
+
+        ----
+
         function grunt_rush:recruit_orcs_eval()
             -- Check if there is enough gold to recruit at least a grunt
             if (wesnoth.sides[wesnoth.current.side].gold < 12) then return 0 end
