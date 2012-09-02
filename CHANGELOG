@@ -1,3 +1,18 @@
+0.10.5, 1 Sep 2012
+- Generic Rush
+  - Replaced the generic grunt and elvish fighter rushes by a single version that can deal with all factions
+    - Notes: 
+      - The functionality/behavior has not been updated, it's only been generalized
+      - We will continue to call the new version Ron.  Ed has been retired (for now)
+  - Fixed a bug that hung Wesnoth on maps with petrified units (see below)
+- Freelands Side 1 Grunt Rush:
+  - Added check for faction, side and map to Fred (stops game if one of them is wrong)
+  - Added counter recruiting of archers
+- ai_helper:
+  - New function ai_helper.get_live_units() that excludes petrified units from selection
+  - Changed ai_helper.get_attacks...() functions to exclude petrified unit
+    - This means that the generic rush now works on maps that have petrified units on them
+
 0.10.4, 30 Aug 2012
 - Freelands Side 1 Grunt Rush:
   - Changed day-time behavior (retreat) of rush on right:
