@@ -2390,24 +2390,6 @@ return {
                 ai.recruit('Orcish Archer', best_hex[1], best_hex[2])
                 return
             end
-
-            -- Recruit a goblin, if there is none, starting Turn 5
-            -- But only if way over to western-most village is clear
-            if (wesnoth.current.turn >= 5) then
-                local gobo = wesnoth.get_units { side = wesnoth.current.side, type = 'Goblin Spearman' }[1]
-                if (not gobo) and (wesnoth.sides[wesnoth.current.side].gold >= 9) then
-                    -- Make sure that there aren't enemies in the way
-                    local enemy_units_left = wesnoth.get_units { x = '1-17', y = '1-8',
-                        { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
-                    }
-                    if (not enemy_units_left[1]) then
-                        -- Goblin should be recruited on the left though
-                        --print('recruiting goblin based on numbers')
-                        ai.recruit('Goblin Spearman', best_hex_left[1], best_hex_left[2])
-                        return
-                    end
-                end
-            end
             
             local archer_targets = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }}},
@@ -2442,6 +2424,24 @@ return {
             if (self.data.recruit_bank_gold) then
                 --print('Banking gold to recruit unit next turn')
                 return
+            end
+            
+            -- Recruit a goblin, if there is none, starting Turn 5
+            -- But only if way over to western-most village is clear
+            if (wesnoth.current.turn >= 5) then
+                local gobo = wesnoth.get_units { side = wesnoth.current.side, type = 'Goblin Spearman' }[1]
+                if (not gobo) and (wesnoth.sides[wesnoth.current.side].gold >= 9) then
+                    -- Make sure that there aren't enemies in the way
+                    local enemy_units_left = wesnoth.get_units { x = '1-17', y = '1-8',
+                        { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
+                    }
+                    if (not enemy_units_left[1]) then
+                        -- Goblin should be recruited on the left though
+                        --print('recruiting goblin based on numbers')
+                        ai.recruit('Goblin Spearman', best_hex_left[1], best_hex_left[2])
+                        return
+                    end
+                end
             end
 
             -- Recruit an orc if we have fewer than 60% grunts (not counting the leader)
