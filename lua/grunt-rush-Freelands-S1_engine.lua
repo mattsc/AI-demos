@@ -1384,6 +1384,15 @@ return {
                 score_low = 250000
             end
 
+            -- As an experiment: reduce importance of grabbing_villages during night
+            -- This is supposed to help with the rush on the right, freeing up units for that
+            -- Don't know how well this is going to work...
+            local tod = wesnoth.get_time_of_day()
+            if (tod.id == 'dusk') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
+                score_high, score_low = 300000, 300000
+            end
+
+
             -- Check if there are units with moves left
             -- New: include the leader in this
             local units = wesnoth.get_units { side = wesnoth.current.side, 
@@ -2004,7 +2013,7 @@ return {
             -- Don't know how well this is going to work...
             local tod = wesnoth.get_time_of_day()
             if (tod.id == 'dusk') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
-                score = 300000
+                score = 310000
             end
 
             if AH.print_eval() then print('     - Evaluating spread_posion CA:', os.clock()) end
