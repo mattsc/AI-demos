@@ -2445,7 +2445,18 @@ return {
                 ai.recruit('Orcish Grunt', best_hex[1], best_hex[2])
                 return
             end
-
+            
+            local archer_targets = wesnoth.get_units {
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }}},
+                lua_function = "archer_target"
+            }
+            local archers = wesnoth.get_units { side = wesnoth.current.side, type = 'Orcish Archer' }
+            if (#archer_targets > #archers*2) and (wesnoth.sides[wesnoth.current.side].gold >= 14) then
+                --print('recruiting archer based on counter-recruit')
+                ai.recruit('Orcish Archer', best_hex[1], best_hex[2])
+                return
+            end
+            
             -- Recruit a troll whelp, if there is none, starting Turn 5
             if (wesnoth.current.turn >= 5) then
                 local whelp = wesnoth.get_units { side = wesnoth.current.side, type = 'Troll Whelp' }[1]
@@ -2472,16 +2483,7 @@ return {
                 return
             end
 
-            -- Recruit an assassin, if there are fewer than 3 (in addition to previous assassin recruit)
-            local assassins = wesnoth.get_units { side = wesnoth.current.side, type = 'Orcish Assassin' }
-            if (#assassins < 3) and (wesnoth.sides[wesnoth.current.side].gold >= 17) then
-                --print('recruiting assassin based on numbers')
-                ai.recruit('Orcish Assassin', best_hex[1], best_hex[2])
-                return
-            end
-
             -- Recruit an archer, if there are fewer than 2 (in addition to previous assassin recruit)
-            local archers = wesnoth.get_units { side = wesnoth.current.side, type = 'Orcish Archer' }
             if (#archers < 2) and (wesnoth.sides[wesnoth.current.side].gold >= 14) then
                 --print('recruiting archer based on numbers')
                 ai.recruit('Orcish Archer', best_hex[1], best_hex[2])
