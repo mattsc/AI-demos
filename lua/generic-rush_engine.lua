@@ -24,7 +24,7 @@ return {
 
             for i,s in ipairs(wesnoth.sides) do
                 local total_hp = 0
-                local units = wesnoth.get_units { side = s.side }
+                local units = AH.get_live_units { side = s.side }
                 for i,u in ipairs(units) do total_hp = total_hp + u.hitpoints end
                 print('   Player ' .. s.side .. ': ' .. #units .. ' Units with total HP: ' .. total_hp)
             end
@@ -80,7 +80,7 @@ return {
             if AH.print_exec() then print('     - Executing recruit_orcs CA') end
 
             -- Recruit on the castle hex that is closest to the combination of the enemy leaders
-            local enemy_leaders = wesnoth.get_units { canrecruit = 'yes',
+            local enemy_leaders = AH.get_live_units { canrecruit = 'yes',
 	        { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
             }
 
@@ -105,7 +105,7 @@ return {
             end
 
             -- Recruit an assassin, if there is none
-            local assassin = wesnoth.get_units { side = wesnoth.current.side, type = 'Orcish Assassin' }[1]
+            local assassin = AH.get_live_units { side = wesnoth.current.side, type = 'Orcish Assassin' }[1]
             if (not assassin) and (wesnoth.sides[wesnoth.current.side].gold >= 17) then
                 --print('recruiting assassin')
                 ai.recruit('Orcish Assassin', best_hex[1], best_hex[2])
@@ -113,8 +113,8 @@ return {
             end
 
             -- Recruit an orc if we have fewer than 60% grunts (not counting the leader)
-            local grunts = wesnoth.get_units { side = wesnoth.current.side, type = 'Orcish Grunt' }
-            local all_units_nl = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no' }
+            local grunts = AH.get_live_units { side = wesnoth.current.side, type = 'Orcish Grunt' }
+            local all_units_nl = AH.get_live_units { side = wesnoth.current.side, canrecruit = 'no' }
             if (#grunts / (#all_units_nl + 0.0001) < 0.6) then  -- +0.0001 to avoid div-by-zero
                 --print('recruiting grunt based on numbers')
                 ai.recruit('Orcish Grunt', best_hex[1], best_hex[2])
@@ -131,7 +131,7 @@ return {
             end
 
             -- Recruit an archer, if there is none
-            local archer = wesnoth.get_units { side = wesnoth.current.side, type = 'Orcish Archer' }[1]
+            local archer = AH.get_live_units { side = wesnoth.current.side, type = 'Orcish Archer' }[1]
             if (not archer) and (wesnoth.sides[wesnoth.current.side].gold >= 14) then
                 --print('recruiting archer')
                 ai.recruit('Orcish Archer', best_hex[1], best_hex[2])
@@ -139,7 +139,7 @@ return {
             end
 
             -- Recruit a wolf rider, if there is none
-            local wolfrider = wesnoth.get_units { side = wesnoth.current.side, type = 'Wolf Rider' }[1]
+            local wolfrider = AH.get_live_units { side = wesnoth.current.side, type = 'Wolf Rider' }[1]
             if (not wolfrider) and (wesnoth.sides[wesnoth.current.side].gold >= 17) then
                 --print('recruiting wolfrider')
                 ai.recruit('Wolf Rider', best_hex[1], best_hex[2])
@@ -147,7 +147,7 @@ return {
             end
 
             -- Recruit an assassin, if there are fewer than 3 (additional action to previous single assassin recruit)
-            local assassins = wesnoth.get_units { side = wesnoth.current.side, type = 'Orcish Assassin' }
+            local assassins = AH.get_live_units { side = wesnoth.current.side, type = 'Orcish Assassin' }
             if (#assassins < 3) and (wesnoth.sides[wesnoth.current.side].gold >= 17) then
                 --print('recruiting assassin based on numbers')
                 ai.recruit('Orcish Assassin', best_hex[1], best_hex[2])
@@ -193,10 +193,10 @@ return {
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
 
             -- Check if we have fewer than 60% rusher_type units
-            local rushers = wesnoth.get_units { side = wesnoth.current.side, type = rusher_type }
-            local all_units = wesnoth.get_units { side = wesnoth.current.side }
+            local rushers = AH.get_live_units { side = wesnoth.current.side, type = rusher_type }
+            local all_units = AH.get_live_units { side = wesnoth.current.side }
             -- This one is just for stats display in the terminal window
-	    local enemies = wesnoth.get_units {
+	    local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
 	    }
             --print('#all_units, #rushers, #enemies', #all_units, #rushers, #enemies)
@@ -234,7 +234,7 @@ return {
             if (not rusher_type) then rusher_type = 'Orcish Grunt' end
 
             -- Recruit on the castle hex that is closest to the combination of the enemy leaders
-            local enemy_leaders = wesnoth.get_units { canrecruit = 'yes',
+            local enemy_leaders = AH.get_live_units { canrecruit = 'yes',
 	        { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
             }
 
@@ -324,7 +324,7 @@ return {
                 return 0
             end
 
-	    local enemies = wesnoth.get_units {
+	    local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
 	    }
 
@@ -420,7 +420,7 @@ return {
 
             -- If a unit with a poisoned weapon can make an attack, we'll do that preferentially
             -- (with some exceptions)
-            local poisoners = wesnoth.get_units { side = wesnoth.current.side, 
+            local poisoners = AH.get_live_units { side = wesnoth.current.side, 
                 formula = '$this_unit.attacks_left > 0',
                 { "filter_wml", {
                     { "attack", {
