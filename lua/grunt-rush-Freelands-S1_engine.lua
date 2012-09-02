@@ -2315,6 +2315,11 @@ return {
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return 0
             end
+            
+            -- Check if we're banking gold for next turn
+            if (self.data.recruit_bank_gold) then
+                return 0
+            end
 
             -- If there's at least one free castle hex, go to recruiting
             local castle = wesnoth.get_locations {
@@ -2427,6 +2432,26 @@ return {
                     end
                 end
             end
+            
+            local archer_targets = wesnoth.get_units {
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }}},
+                lua_function = "archer_target"
+            }
+            local archers = wesnoth.get_units { side = wesnoth.current.side, type = 'Orcish Archer,Orcish Crossbowman' }
+            if (#archer_targets > #archers*2) then
+                if (wesnoth.sides[wesnoth.current.side].gold >= 14) then
+                    --print('recruiting archer based on counter-recruit')
+                    ai.recruit('Orcish Archer', best_hex[1], best_hex[2])
+                    return
+                else
+                    self.data.recruit_bank_gold = grunt_rush_FLS1:should_have_gold_next_turn(14)
+                end
+            end
+            
+            if (self.data.recruit_bank_gold) then
+                --print('Banking gold to recruit unit next turn')
+                return
+            end
 
             -- Recruit an orc if we have fewer than 60% grunts (not counting the leader)
             local grunts = wesnoth.get_units { side = wesnoth.current.side, type = 'Orcish Grunt' }
@@ -2443,17 +2468,6 @@ return {
             if (av_hp_grunts < 25) then
                 --print('recruiting grunt based on average hitpoints:', av_hp_grunts)
                 ai.recruit('Orcish Grunt', best_hex[1], best_hex[2])
-                return
-            end
-            
-            local archer_targets = wesnoth.get_units {
-                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }}},
-                lua_function = "archer_target"
-            }
-            local archers = wesnoth.get_units { side = wesnoth.current.side, type = 'Orcish Archer' }
-            if (#archer_targets > #archers*2) and (wesnoth.sides[wesnoth.current.side].gold >= 14) then
-                --print('recruiting archer based on counter-recruit')
-                ai.recruit('Orcish Archer', best_hex[1], best_hex[2])
                 return
             end
             
@@ -2500,6 +2514,7 @@ return {
                 end
             end
 
+            
             -- If we got here, none of the previous conditions kicked in -> random recruit
             -- (if gold >= 17, for simplicity)
             if (wesnoth.sides[wesnoth.current.side].gold >= 17) then
@@ -2517,6 +2532,13 @@ return {
             ai.recruit('Orcish Grunt', best_hex[1], best_hex[2])
         end
 
+        function grunt_rush_FLS1:should_have_gold_next_turn(amount)
+            -- This should really calculate income and current gold and see if it exceeds
+            -- the amount to ensure that the AI still recruits something if income is negative
+             
+            return true
+        end
+        
         return grunt_rush_FLS1        
     end
 }
