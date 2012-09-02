@@ -449,8 +449,9 @@ return {
                 local attacker = wesnoth.get_unit(a.att_loc.x, a.att_loc.y)
                 local defender = wesnoth.get_unit(a.def_loc.x, a.def_loc.y)
 
-                -- Don't try to poison an already poisoned unit
-                local poisoned = H.get_child(defender.__cfg, "status").poisoned
+                -- Don't try to poison a unit that cannot be poisoned
+                local status = H.get_child(defender.__cfg, "status")
+                local cant_poison = status.poisoned or status.not_living
 
                 -- For now, we also simply don't poison units on villages (unless standard combat CA does it)
                 local on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(defender.x, defender.y)).village
@@ -458,7 +459,7 @@ return {
                 -- Also, poisoning units that would level up through the attack is very bad
                 local about_to_level = defender.max_experience - defender.experience <= attacker.__cfg.level
 
-                if (not poisoned) and (not on_village) and (not about_to_level) then
+                if (not cant_poison) and (not on_village) and (not about_to_level) then
                     -- Strongest enemy gets poisoned first
                     local rating = defender.hitpoints
 
