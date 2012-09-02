@@ -2373,6 +2373,10 @@ return {
 
             -- Recruit an assassin, if there is none
             local assassins = AH.get_live_units { side = wesnoth.current.side, type = 'Orcish Assassin,Orcish Slayer', canrecruit = 'no' }
+            local not_living_enemies = AH.get_live_units {
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }}},
+                lua_function = "not_living"
+            }
             local assassin = assassins[1]
             if (not assassin) and (wesnoth.sides[wesnoth.current.side].gold >= 17) and (#not_living_enemies < 5) then
                 --print('recruiting assassin')
