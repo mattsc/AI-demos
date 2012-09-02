@@ -2424,6 +2424,21 @@ return {
                 end
             end
             
+            local troll_targets = wesnoth.get_units {
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }}},
+                lua_function = "troll_target"
+            }
+            local trolls = wesnoth.get_units { side = wesnoth.current.side, type = 'Troll Whelp,Troll,Troll Rocklobber', canrecruit = 'no' }
+            if (#troll_targets-1 > #trolls*2) then
+                if (wesnoth.sides[wesnoth.current.side].gold >= 13) then
+                    --print('recruiting whelp based on counter-recruit')
+                    ai.recruit('Troll Whelp', best_hex[1], best_hex[2])
+                    return
+                else
+                    self.data.recruit_bank_gold = grunt_rush_FLS1:should_have_gold_next_turn(13)
+                end
+            end
+            
             if (self.data.recruit_bank_gold) then
                 --print('Banking gold to recruit unit next turn')
                 return
@@ -2449,7 +2464,7 @@ return {
             
             -- Recruit a troll whelp, if there is none, starting Turn 5
             if (wesnoth.current.turn >= 5) then
-                local whelp = wesnoth.get_units { side = wesnoth.current.side, type = 'Troll Whelp' }[1]
+                local whelp = trolls[1]
                 if (not whelp) and (wesnoth.sides[wesnoth.current.side].gold >= 13) then
                     --print('recruiting assassin based on numbers')
                     ai.recruit('Troll Whelp', best_hex[1], best_hex[2])
@@ -2481,8 +2496,7 @@ return {
 
             -- Recruit a troll whelp, if there are fewer than 2 (in addition to previous whelp recruit), starting Turn 6
             if (wesnoth.current.turn >= 6) then
-                local whelps = wesnoth.get_units { side = wesnoth.current.side, type = 'Troll Whelp' }
-                if (#whelps < 2) and (wesnoth.sides[wesnoth.current.side].gold >= 13) then
+                if (#trolls < 2) and (wesnoth.sides[wesnoth.current.side].gold >= 13) then
                     --print('recruiting whelp based on numbers')
                     ai.recruit('Troll Whelp', best_hex[1], best_hex[2])
                     return
