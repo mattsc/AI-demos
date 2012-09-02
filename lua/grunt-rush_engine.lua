@@ -18,10 +18,7 @@ return {
             return score
         end
 
-        function grunt_rush:stats_exec(type)
-            -- type: check whether this unit type is on the recruit list, otherwise end the game
-            type = type or 'None'  -- in case we forget to set the type
-
+        function grunt_rush:stats_exec()
             local tod = wesnoth.get_time_of_day()
             print(' Beginning of Turn ' .. wesnoth.current.turn .. ' (' .. tod.name ..') stats:')
 
@@ -31,31 +28,9 @@ return {
                 for i,u in ipairs(units) do total_hp = total_hp + u.hitpoints end
                 print('   Player ' .. s.side .. ': ' .. #units .. ' Units with total HP: ' .. total_hp)
             end
-
-            -- We also add a check here whether the AI uses the right faction
-            -- This cannot be checked directly, but at least for mainline the method is unique anyway
-            -- Yes, this is done every turn, but it takes so little time and is only done once, it doesn't matter
-
-            -- Faction is checked by seeing if the side can recruit orcs
-            local can_recruit_grunts = false
-            for i,r in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
-                if (r == type) then
-                    can_recruit_grunts = true
-                    break
-                end
-            end
-
-            if (not can_recruit_grunts) then
-                W.message { 
-                    speaker = 'narrator',
-                    caption = "Message from the Grunt Rush AI",
-                    image = 'wesnoth-icon.png', message = "I only know how to play if I can recruit the following unit type: " .. type .. ".  Sorry!"
-                }
-                W.endlevel { result = 'defeat' }
-            end
         end
 
-        ----
+        ------- Recruit Orcs CA --------------
 
         function grunt_rush:recruit_orcs_eval()
             if AH.print_eval() then print('     - Evaluating recruit_orcs CA:', os.clock()) end
@@ -196,13 +171,10 @@ return {
             ai.recruit('Orcish Grunt', best_hex[1], best_hex[2])
         end
 
----------------------
+        ------- Recruit Other Factions CA --------------
 
-        function grunt_rush:recruit_general_eval(rusher_type)
-            if AH.print_eval() then print('     - Evaluating recruit_general CA:', os.clock()) end
-
-            -- The type of unit for the rush defaults to grunt, but can be set as something else
-            if (not rusher_type) then rusher_type = 'Orcish Grunt' end
+        function grunt_rush:recruit_other_factions_eval(rusher_type)
+            if AH.print_eval() then print('     - Evaluating recruit_general CA with ' .. rusher_type, os.clock()) end
 
             -- Start the rush recruiting after first 3 other units have been recruited
             local units = wesnoth.get_units { side = wesnoth.current.side }
@@ -255,8 +227,8 @@ return {
             return 0
         end
 
-        function grunt_rush:recruit_general_exec(rusher_type)
-            if AH.print_exec() then print('     - Executing recruit_general CA') end
+        function grunt_rush:recruit_other_factions_exec(rusher_type)
+            if AH.print_exec() then print('     - Executing recruit_general CA with ' .. rusher_type) end
 
             -- The type of unit for the rush defaults to grunt, but can be set as something else
             if (not rusher_type) then rusher_type = 'Orcish Grunt' end
@@ -286,16 +258,62 @@ return {
                 end
             end
 
+            --W.message { speaker = leader.id, message = 'Recruiting now: ' .. rusher_type }
             ai.recruit(rusher_type, best_hex[1], best_hex[2])
         end
 
----------------------
+        ------- Recruit Rushers CA -----------
 
-        function grunt_rush:grab_villages_eval(rusher_type)
+        function grunt_rush:recruit_rushers_eval()
+            -- This function determines the type of fighter to recruit and calls the corresponding CA
+
+            self.data.recruit_rusher_type = 'Orcish Grunt'  -- The default
+
+            -- Faction is checked by seeing if the side can recruit the rusher unit type
+            for i,r in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
+                if (r == 'Orcish Grunt') then
+                    --print('Found in recruit list: ' .. r)
+                    return self:recruit_orcs_eval()
+                end
+
+                if (r == 'Elvish Fighter') or (r == 'Spearman') or (r == 'Skeleton')
+                    or (r == 'Dwarvish Fighter') or (r == 'Drake Fighter') then
+                    --print('recruit:rushers: Found in recruit list: ' .. r)
+                    self.data.recruit_rusher_type = r
+                    return self:recruit_other_factions_eval(r)
+                end
+            end
+
+            --print('No rusher unit type found for recruiting')
+            return 0
+        end
+
+        function grunt_rush:recruit_rushers_exec()
+            if AH.print_exec() then print('     - Executing recruit_rushers CA') end
+
+            if (self.data.recruit_rusher_type == 'Orcish Grunt') then
+                self:recruit_orcs_exec()
+            else
+                self:recruit_other_factions_exec(self.data.recruit_rusher_type)
+            end
+        end
+
+        ------- Grab Villages CA --------------
+
+        function grunt_rush:grab_villages_eval()
             if AH.print_eval() then print('     - Evaluating grab_villages CA:', os.clock()) end
 
-            -- In principle this is for grunts, but a different unit type can be passed as an argument
-            if (not rusher_type) then rusher_type = 'Orcish Grunt' end
+            -- Determine the unit type for the rusher first (use other units first for grabbing villages)
+            local rusher_type = 'Orcish Grunt'  -- The default
+
+            -- Faction is checked by seeing if the side can recruit the rusher unit type
+            for i,r in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
+                if (r == 'Elvish Fighter') or (r == 'Spearman') or (r == 'Skeleton')
+                    or (r == 'Dwarvish Fighter') or (r == 'Drake Fighter') then
+                    --print('grab_villages: Found in recruit list: ' .. r)
+                    rusher_type = r
+                end
+            end
 
             -- Check if there are units with moves left
             local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no', 
@@ -395,7 +413,7 @@ return {
             self.data.unit, self.data.village = nil, nil
         end
 
----------------------------
+        ------- Spread Poison CA --------------
 
         function grunt_rush:spread_poison_eval()
             if AH.print_eval() then print('     - Evaluating spread_poison CA:', os.clock()) end
