@@ -2401,8 +2401,13 @@ return {
             if AH.show_messages() then W.message { speaker = leader.id, message = 'Recruiting' } end
 
             -- Recruit an assassin, if there is none
-            local assassin = wesnoth.get_units { side = wesnoth.current.side, type = 'Orcish Assassin' }[1]
-            if (not assassin) and (wesnoth.sides[wesnoth.current.side].gold >= 17) then
+            local assassins = wesnoth.get_units { side = wesnoth.current.side, type = 'Orcish Assassin,Orcish Slayer' }
+            local not_living_enemies = wesnoth.get_units {
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }}},
+                lua_function = "not_living"
+            }
+            local assassin = assassins[1]
+            if (not assassin) and (wesnoth.sides[wesnoth.current.side].gold >= 17) and (#not_living_enemies < 5) then
                 --print('recruiting assassin')
                 ai.recruit('Orcish Assassin', best_hex[1], best_hex[2])
                 return
@@ -2483,8 +2488,7 @@ return {
             end
 
             -- Recruit an assassin, if there are fewer than 3 (in addition to previous assassin recruit)
-            local assassins = wesnoth.get_units { side = wesnoth.current.side, type = 'Orcish Assassin' }
-            if (#assassins < 3) and (wesnoth.sides[wesnoth.current.side].gold >= 17) then
+            if (#assassins < 3) and (wesnoth.sides[wesnoth.current.side].gold >= 17) and (#not_living_enemies < 5) then
                 --print('recruiting assassin based on numbers')
                 ai.recruit('Orcish Assassin', best_hex[1], best_hex[2])
                 return

@@ -11,3 +11,7 @@ function archer_target(unit)
     end
     return true
 end
+
+function not_living(unit)
+    return not (not helper.get_child(unit.__cfg, "status").not_living)
+end
