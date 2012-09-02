@@ -2101,6 +2101,25 @@ return {
 
                     -- Enemies that can regenerate are not good targets
                     if wesnoth.unit_ability(defender, 'regenerate') then rating = rating - 1000 end
+                    
+                    -- Enemies with magical attacks in matching range categories are not good targets
+                    local attack_range = 'none'
+                    for att in H.child_range(attacker.__cfg, 'attack') do
+                        for sp in H.child_range(att, 'specials') do
+                            if H.get_child(sp, 'poison') then
+                                attack_range = att.range
+                            end
+                        end
+                    end
+                    for att in H.child_range(defender.__cfg, 'attack') do
+                        if att.range == attack_range then
+                            for sp in H.child_range(att, 'specials') do
+                                if H.get_child(sp, 'magical') then
+                                   rating = rating - 500
+                                end
+                            end
+                        end
+                    end
 
                     -- More priority to enemies on strong terrain
                     local defender_defense = 100 - wesnoth.unit_defense(defender, wesnoth.get_terrain(defender.x, defender.y))
