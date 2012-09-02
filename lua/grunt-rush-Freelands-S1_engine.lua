@@ -650,10 +650,7 @@ return {
             return score
         end
 
-        function grunt_rush_FLS1:stats_exec(type)
-            -- type: check whether this unit type is on the recruit list, otherwise end the game
-            type = type or 'None'  -- in case we forget to set the type
-
+        function grunt_rush_FLS1:stats_exec()
             local tod = wesnoth.get_time_of_day()
             print(' Beginning of Turn ' .. wesnoth.current.turn .. ' (' .. tod.name ..') stats:')
 
@@ -664,33 +661,6 @@ return {
                 print('   Player ' .. s.side .. ': ' .. #units .. ' Units with total HP: ' .. total_hp)
             end
             if self:full_offensive() then print(' Full offensive mode (mostly done by RCA AI)') end
-
-            -- We also add a check here whether the AI is for Side 1, Northerners and the Freelands map
-            -- None of these can be checked directly, but at least for mainline the method unique anyway
-            -- Yes, this is done every turn, but it takes so little time and is only done once, it doesn't matter
-
-            -- Faction is checked by seeing if the side can recruit orcs
-            local can_recruit_grunts = false
-            for i,r in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
-                if (r == type) then
-                    can_recruit_grunts = true
-                    break
-                end
-            end
-
-            -- Map is checked through the map size and the starting location of the AI side
-            -- This also takes care of the side check, so that does not have to be done separately
-            local width, height = wesnoth.get_map_size()
-            local start_loc = wesnoth.get_starting_location(wesnoth.current.side)
-
-            if (not can_recruit_grunts) or (width ~= 37) or (height ~= 24) or (start_loc[1] ~= 19) or (start_loc[2] ~= 4) then
-                W.message { 
-                    speaker = 'narrator',
-                    caption = "Message from the Freelands AI  (Fred)",
-                    image = 'wesnoth-icon.png', message = "I only know how to play Northerners for Side 1 on the Freelands map.  Sorry!"
-                }
-                W.endlevel { result = 'defeat' }
-            end
         end
 
         ------ Reset variables at beginning of turn -----------
