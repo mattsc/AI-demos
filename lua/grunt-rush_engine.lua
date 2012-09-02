@@ -1,7 +1,7 @@
 return {
     init = function(ai)
 
-        local grunt_rush = {}
+        local generic_rush = {}
         -- More generic grunt rush (and can, in fact, be used with other unit types as well)
 
         local H = wesnoth.require "lua/helper.lua"
@@ -13,12 +13,12 @@ return {
         ------ Stats at beginning of turn -----------
 
         -- This will be blacklisted after first execution each turn
-        function grunt_rush:stats_eval()
+        function generic_rush:stats_eval()
             local score = 999999
             return score
         end
 
-        function grunt_rush:stats_exec()
+        function generic_rush:stats_exec()
             local tod = wesnoth.get_time_of_day()
             print(' Beginning of Turn ' .. wesnoth.current.turn .. ' (' .. tod.name ..') stats:')
 
@@ -32,7 +32,7 @@ return {
 
         ------- Recruit Orcs CA --------------
 
-        function grunt_rush:recruit_orcs_eval()
+        function generic_rush:recruit_orcs_eval()
             if AH.print_eval() then print('     - Evaluating recruit_orcs CA:', os.clock()) end
 
             -- Check if there is enough gold to recruit at least a grunt
@@ -66,7 +66,7 @@ return {
             return 0
         end
 
-        function grunt_rush:recruit_orcs_exec()
+        function generic_rush:recruit_orcs_exec()
             -- Recruiting logic (in that order):
             -- - If there isn't an assassin, recruit one
             -- - If we have <60% grunts (not counting leader), recruit a grunt
@@ -173,7 +173,7 @@ return {
 
         ------- Recruit Other Factions CA --------------
 
-        function grunt_rush:recruit_other_factions_eval(rusher_type)
+        function generic_rush:recruit_other_factions_eval(rusher_type)
             if AH.print_eval() then print('     - Evaluating recruit_general CA with ' .. rusher_type, os.clock()) end
 
             -- Start the rush recruiting after first 3 other units have been recruited
@@ -227,7 +227,7 @@ return {
             return 0
         end
 
-        function grunt_rush:recruit_other_factions_exec(rusher_type)
+        function generic_rush:recruit_other_factions_exec(rusher_type)
             if AH.print_exec() then print('     - Executing recruit_general CA with ' .. rusher_type) end
 
             -- The type of unit for the rush defaults to grunt, but can be set as something else
@@ -264,7 +264,7 @@ return {
 
         ------- Recruit Rushers CA -----------
 
-        function grunt_rush:recruit_rushers_eval()
+        function generic_rush:recruit_rushers_eval()
             -- This function determines the type of fighter to recruit and calls the corresponding CA
 
             self.data.recruit_rusher_type = 'Orcish Grunt'  -- The default
@@ -288,7 +288,7 @@ return {
             return 0
         end
 
-        function grunt_rush:recruit_rushers_exec()
+        function generic_rush:recruit_rushers_exec()
             if AH.print_exec() then print('     - Executing recruit_rushers CA') end
 
             if (self.data.recruit_rusher_type == 'Orcish Grunt') then
@@ -300,7 +300,7 @@ return {
 
         ------- Grab Villages CA --------------
 
-        function grunt_rush:grab_villages_eval()
+        function generic_rush:grab_villages_eval()
             if AH.print_eval() then print('     - Evaluating grab_villages CA:', os.clock()) end
 
             -- Determine the unit type for the rusher first (use other units first for grabbing villages)
@@ -406,7 +406,7 @@ return {
             return 0
         end
 
-        function grunt_rush:grab_villages_exec()
+        function generic_rush:grab_villages_exec()
             if AH.print_exec() then print('     - Executing grab_villages CA') end
 
             AH.movefull_stopunit(ai, self.data.unit, self.data.village)
@@ -415,7 +415,7 @@ return {
 
         ------- Spread Poison CA --------------
 
-        function grunt_rush:spread_poison_eval()
+        function generic_rush:spread_poison_eval()
             if AH.print_eval() then print('     - Evaluating spread_poison CA:', os.clock()) end
 
             -- If a unit with a poisoned weapon can make an attack, we'll do that preferentially
@@ -492,7 +492,7 @@ return {
             return 0
         end
 
-        function grunt_rush:spread_poison_exec()
+        function generic_rush:spread_poison_exec()
             if AH.print_exec() then print('     - Executing spread_poison CA') end
 
             local attacker = wesnoth.get_unit(self.data.attack.att_loc.x, self.data.attack.att_loc.y)
@@ -506,6 +506,6 @@ return {
             self.data.attack = nil
         end
 
-        return grunt_rush	
+        return generic_rush	
     end
 }
