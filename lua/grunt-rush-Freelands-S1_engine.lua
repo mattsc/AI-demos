@@ -2401,7 +2401,7 @@ return {
             if AH.show_messages() then W.message { speaker = leader.id, message = 'Recruiting' } end
 
             -- Recruit an assassin, if there is none
-            local assassins = wesnoth.get_units { side = wesnoth.current.side, type = 'Orcish Assassin,Orcish Slayer' }
+            local assassins = wesnoth.get_units { side = wesnoth.current.side, type = 'Orcish Assassin,Orcish Slayer', canrecruit = 'no' }
             local not_living_enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }}},
                 lua_function = "not_living"
@@ -2443,7 +2443,7 @@ return {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }}},
                 lua_function = "archer_target"
             }
-            local archers = wesnoth.get_units { side = wesnoth.current.side, type = 'Orcish Archer,Orcish Crossbowman' }
+            local archers = wesnoth.get_units { side = wesnoth.current.side, type = 'Orcish Archer,Orcish Crossbowman', canrecruit = 'no' }
             if (#archer_targets > #archers*2) then
                 if (wesnoth.sides[wesnoth.current.side].gold >= 14) then
                     --print('recruiting archer based on counter-recruit')
