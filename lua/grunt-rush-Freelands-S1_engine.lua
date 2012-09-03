@@ -2431,7 +2431,7 @@ return {
                 lua_function = "archer_target"
             }
             local archers = AH.get_live_units { side = wesnoth.current.side, type = 'Orcish Archer,Orcish Crossbowman', canrecruit = 'no' }
-            if (#archer_targets > #archers*2) and (hp_ratio > 0.6) then
+            if (#archer_targets-1 > #archers*2) and (hp_ratio > 0.6) then
                 if (wesnoth.sides[wesnoth.current.side].gold >= archer_cost) then
                     --print('recruiting archer based on counter-recruit')
                     ai.recruit('Orcish Archer', best_hex[1], best_hex[2])
