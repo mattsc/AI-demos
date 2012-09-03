@@ -1,3 +1,12 @@
+0.10.6
+- Generic Rush
+  - Do not try to spread poison to undead units
+- Freelands Side 1 Grunt Rush:
+  - Added counter recruiting of troll whelps
+  - Reduced number of assassins recruited against undead
+  - Do not spread poison to undead units
+  - Prefer to avoid poisoning units with magical ranged attacks
+
 0.10.5, 1 Sep 2012
 - Generic Rush
   - Replaced the generic grunt and elvish fighter rushes by a single version that can deal with all factions
