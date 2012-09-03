@@ -2363,6 +2363,7 @@ return {
             local archer_cost = wesnoth.unit_types["Orcish Archer"].cost
             local assassin_cost = wesnoth.unit_types["Orcish Assassin"].cost
             local wolf_cost = wesnoth.unit_types["Wolf Rider"].cost
+            local hp_ratio = self:hp_ratio()
 
             if AH.print_exec() then print('     - Executing recruit_orcs CA') end
             -- Recruiting logic (in that order):
@@ -2419,17 +2420,9 @@ return {
                 lua_function = "not_living"
             }
             local assassin = assassins[1]
-            if (not assassin) and (wesnoth.sides[wesnoth.current.side].gold >= assassin_cost) and (#not_living_enemies < 5) then
+            if (not assassin) and (wesnoth.sides[wesnoth.current.side].gold >= assassin_cost) and (#not_living_enemies < 5)  and (hp_ratio > 0.4) then
                 --print('recruiting assassin')
                 ai.recruit('Orcish Assassin', best_hex[1], best_hex[2])
-                return
-            end
-
-            -- Recruit an archer, if there is none
-            local archer = AH.get_live_units { side = wesnoth.current.side, type = 'Orcish Archer' }[1]
-            if (not archer) and (wesnoth.sides[wesnoth.current.side].gold >= archer_cost) then
-                --print('recruiting archer')
-                ai.recruit('Orcish Archer', best_hex[1], best_hex[2])
                 return
             end
             
@@ -2438,7 +2431,7 @@ return {
                 lua_function = "archer_target"
             }
             local archers = AH.get_live_units { side = wesnoth.current.side, type = 'Orcish Archer,Orcish Crossbowman', canrecruit = 'no' }
-            if (#archer_targets > #archers*2) then
+            if (#archer_targets > #archers*2) and (hp_ratio > 0.6) then
                 if (wesnoth.sides[wesnoth.current.side].gold >= archer_cost) then
                     --print('recruiting archer based on counter-recruit')
                     ai.recruit('Orcish Archer', best_hex[1], best_hex[2])
@@ -2508,7 +2501,7 @@ return {
             if (wesnoth.current.turn >= 5) then
                 local whelp = trolls[1]
                 if (not whelp) and (wesnoth.sides[wesnoth.current.side].gold >= whelp_cost) then
-                    --print('recruiting assassin based on numbers')
+                    --print('recruiting whelp based on numbers')
                     ai.recruit('Troll Whelp', best_hex[1], best_hex[2])
                     return
                 end
@@ -2521,18 +2514,18 @@ return {
                 return
             end
 
+            -- Recruit an archer, if there are fewer than 2 (in addition to previous archer recruit)
+            if (#archers < 2) and (wesnoth.sides[wesnoth.current.side].gold >= archer_cost) then
+                --print('recruiting archer based on numbers')
+                ai.recruit('Orcish Archer', best_hex[1], best_hex[2])
+                return
+            end
+
             -- Recruit a wolf rider, if there is none
             local wolfrider = AH.get_live_units { side = wesnoth.current.side, type = 'Wolf Rider' }[1]
             if (not wolfrider) and (wesnoth.sides[wesnoth.current.side].gold >= wolf_cost) then
                 --print('recruiting wolfrider')
                 ai.recruit('Wolf Rider', best_hex[1], best_hex[2])
-                return
-            end
-
-            -- Recruit an archer, if there are fewer than 2 (in addition to previous assassin recruit)
-            if (#archers < 2) and (wesnoth.sides[wesnoth.current.side].gold >= 14) then
-                --print('recruiting archer based on numbers')
-                ai.recruit('Orcish Archer', best_hex[1], best_hex[2])
                 return
             end
 
