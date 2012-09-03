@@ -2359,10 +2359,10 @@ return {
         end
 
         function grunt_rush_FLS1:recruit_orcs_exec()
-            local whelp_cost = 13
-            local archer_cost = 14
-            local assassin_cost = 17
-            local wolf_cost = 17
+            local whelp_cost = wesnoth.unit_types["Troll Whelp"].cost
+            local archer_cost = wesnoth.unit_types["Orcish Archer"].cost
+            local assassin_cost = wesnoth.unit_types["Orcish Assassin"].cost
+            local wolf_cost = wesnoth.unit_types["Wolf Rider"].cost
 
             if AH.print_exec() then print('     - Executing recruit_orcs CA') end
             -- Recruiting logic (in that order):
