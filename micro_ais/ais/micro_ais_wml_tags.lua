@@ -24,13 +24,18 @@ function wesnoth.wml_actions.micro_ai(cfg)
         -- If aggression = 0: Never let the healers participate in attacks
         -- This is done by not deleting the attacks aspect
 
+        -- Add the CAs
+        if (cfg.action == 'add') then
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/add_healer_support_CAs.lua".activate(cfg.side)
+        end
+
         -- Aggression
         local aggression = cfg.aggression or 1.0
         if (aggression == 0) then
             --print("[micro_ai] healer_support: Deleting the healers_can_attack CA of Side " .. cfg.side)
 	    W.modify_ai {
 	        side = cfg.side,
-	        action = "delete",
+	        action = "try_delete",
 	        path = "stage[main_loop].candidate_action[healers_can_attack]"
 	    }
         end

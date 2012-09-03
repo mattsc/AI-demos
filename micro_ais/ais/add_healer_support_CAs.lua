@@ -1,0 +1,52 @@
+return { 
+    activate = function(side)
+
+        local H = wesnoth.require "lua/helper.lua"
+        local W = H.set_wml_action_metatable {}
+
+        --print("Activating healer_support for Side " .. side)
+
+        W.modify_ai {
+            side = side,
+            action = "add",
+            path = "stage[main_loop].candidate_action",
+            { "candidate_action", {
+                engine = "lua",
+                id = "initialize_healer_support",
+                name = "initialize_healer_support",
+                max_score = 999990,
+                evaluation = "return (...):initialize_healer_support_eval()",
+                execution = "(...):initialize_healer_support_exec()"
+            } }
+        }
+
+        W.modify_ai {
+            side = side,
+            action = "add",
+            path = "stage[main_loop].candidate_action",
+            { "candidate_action", {
+                engine = "lua",
+                id = "healer_support",
+                name = "healer_support",
+                max_score = 105000,
+                evaluation = "return (...): healer_support_eval()",
+                execution = "(...):healer_support_exec()"
+            } }
+        }
+
+        W.modify_ai {
+            side = side,
+            action = "add",
+            path = "stage[main_loop].candidate_action",
+            { "candidate_action", {
+                engine = "lua",
+                id = "healers_can_attack",
+                name = "healers_can_attack",
+                max_score = 99990,
+                evaluation = "return (...): healers_can_attack_eval()",
+                execution = "(...): healers_can_attack_eval()"
+            } }
+        }
+
+    end
+}
