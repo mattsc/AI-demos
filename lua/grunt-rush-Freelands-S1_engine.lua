@@ -1069,6 +1069,7 @@ return {
                 return 0
             end
 
+            -- There might be a difference between units with MP and attacks left
             local units_MP = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no', 
                 formula = '$this_unit.moves > 0'
             }
@@ -1127,10 +1128,6 @@ return {
                         local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(a.x, a.y)).village
                         if is_village then rating = rating + 100 end
 
-                        -- Also somewhat of a bonus if the enemy is on a village
-                        local enemy_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(a.def_loc.x, a.def_loc.y)).village
-                        if enemy_on_village then rating = rating + 10 end
-
                         -- Closeness of enemy to leader is most important
                         -- Need to set enemy moves to max_moves for this
                         -- and only consider own units without moves as blockers
@@ -1158,10 +1155,20 @@ return {
                         -- Not a very clean way of doing this, clean up later !!!!
                         if already_attacked_twice then rating = -9.9e99 end  -- the 9.9 here is intentional !!!!
 
-                        -- Distance from AI leader rating
-                        if (steps == 1) then
-                            -- If the enemy is within reach of leader, attack with high preference and unconditionally
-                            rating = rating + 1000
+                        -- Also somewhat of a bonus if the enemy is on a village
+                        local enemy_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(a.def_loc.x, a.def_loc.y)).village
+                        -- Not done for now.  It is taken care of below now
+                        --if enemy_on_village then rating = rating + 10 end
+
+                        -- If the enemy is within reach of leader, attack with high preference and (almost) unconditionally
+                        -- And the same if the enemy is on a village
+                        if (steps == 1) or enemy_on_village then
+                            -- Only don't do this if the chance to die is very high
+                            if (a.att_stats.hp_chance[0] <= 0.6) then
+                                rating = rating + 1000
+                            else
+                                rating = -9e99
+                            end
                         else
                             -- Otherwise only attack if you can do more damage than the enemy
                             -- and only if our unit has more than 20 HP
