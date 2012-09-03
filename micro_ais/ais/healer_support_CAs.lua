@@ -48,5 +48,32 @@ return {
             } }
         }
 
+    end,
+
+    remove = function(side)
+
+        local H = wesnoth.require "lua/helper.lua"
+        local W = H.set_wml_action_metatable {}
+
+        --print("Removing healer_support for Side " .. side)
+
+        W.modify_ai {
+            side = side,
+            action = "try_delete",
+            path = "stage[main_loop].candidate_action[initialize_healer_support]"
+        }
+
+        W.modify_ai {
+            side = side,
+            action = "try_delete",
+            path = "stage[main_loop].candidate_action[healer_support]"
+        }
+
+        W.modify_ai {
+            side = side,
+            action = "try_delete",
+            path = "stage[main_loop].candidate_action[healers_can_attack]"
+        }
+
     end
 }
