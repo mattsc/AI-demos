@@ -726,7 +726,7 @@ return {
             if (wesnoth.current.turn == 1) then
                 ai.recruit('Orcish Grunt', 17, 5)
                 ai.recruit('Wolf Rider', 18, 4)
-                ai.recruit('Orcish Archer', 20, 3)
+                ai.recruit('Orcish Archer', 18, 3)
                 ai.recruit('Orcish Assassin', 20, 4)
             end
             if (wesnoth.current.turn == 2) then
