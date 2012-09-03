@@ -29,9 +29,19 @@ function wesnoth.wml_actions.micro_ai(cfg)
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/healer_support_CAs.lua".activate(cfg.side)
         end
 
+        -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
+        if (cfg.action == 'change') then
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/healer_support_CAs.lua".remove(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/healer_support_CAs.lua".activate(cfg.side)
+        end
+
+        -- Remove the CAs
+        if (cfg.action == 'delete') then
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/healer_support_CAs.lua".remove(cfg.side)
+        end
+
         -- Configure the CAs
         if (cfg.action == 'add') or (cfg.action == 'change') then
-
             -- Aggression (keep or remove the healers_can_attack CA)
             local aggression = cfg.aggression or 1.0
             if (aggression == 0) then
@@ -42,11 +52,6 @@ function wesnoth.wml_actions.micro_ai(cfg)
                     path = "stage[main_loop].candidate_action[healers_can_attack]"
                 }
             end
-        end
-
-        -- Remove the CAs
-        if (cfg.action == 'delete') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/healer_support_CAs.lua".remove(cfg.side)
         end
 
         return
