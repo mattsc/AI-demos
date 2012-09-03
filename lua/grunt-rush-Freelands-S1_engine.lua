@@ -2460,7 +2460,7 @@ return {
             -- But only if way over to western-most village is clear
             if (wesnoth.current.turn >= 5) then
                 local gobo = AH.get_live_units { side = wesnoth.current.side, type = 'Goblin Spearman' }[1]
-                if (not gobo) and (wesnoth.sides[wesnoth.current.side].gold >= 9) then
+                if (not gobo) then
                     -- Make sure that there aren't enemies in the way
                     local enemy_units_left = AH.get_live_units { x = '1-17', y = '1-8',
                         { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
