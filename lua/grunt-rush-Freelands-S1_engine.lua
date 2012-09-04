@@ -1957,7 +1957,7 @@ return {
                 --DBG.dbms(best_combo)
 
                 -- Now we know which attacks to do
-                if (max_rating > -9e99) then
+                if (max_rating > -9e99) and (table.maxn(best_attackers) > 1) then
                     while best_attackers and (table.maxn(best_attackers) > 0) do
                         if AH.show_messages() then W.message { speaker = best_attackers[1].id, message = 'Rush right: Combo attack' } end
                         AH.movefull_outofway_stopunit(ai, best_attackers[1], best_dsts[1])
