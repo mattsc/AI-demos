@@ -1387,22 +1387,14 @@ return {
         ----------Grab villages -----------
 
         function grunt_rush_FLS1:grab_villages_eval()
-            local score_high, score_low = 450000, 360000
+            local score_high, score_low = 465000, 300000
             if AH.print_eval() then print('     - Evaluating grab_villages CA:', os.clock()) end
 
-            local leave_own_villages = wesnoth.get_variable "leave_own_villages"
-            if leave_own_villages then
-                --print('Lowering village holding priority')
-                score_low = 250000
-            end
-
-            -- As an experiment: reduce importance of grabbing_villages during night
-            -- This is supposed to help with the rush on the right, freeing up units for that
-            -- Don't know how well this is going to work...
-            local tod = wesnoth.get_time_of_day()
-            if (tod.id == 'dusk') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
-                score_high, score_low = 300000, 300000
-            end
+            --local leave_own_villages = wesnoth.get_variable "leave_own_villages"
+            --if leave_own_villages then
+            --    --print('Lowering village holding priority')
+            --    score_low = 250000
+            --end
 
             -- Check if there are units with moves left
             -- New: include the leader in this
@@ -1428,7 +1420,7 @@ return {
             --print('#units, #enemies', #units, #enemies)
 
             -- Now we check if a unit can get to a village
-            local max_rating, best_village, best_unit = 0, {}, {}  -- yes, want '0' here
+            local max_rating, best_village, best_unit = -9e99, {}, {}  -- yes, want '0' here
             for j,v in ipairs(villages) do
                 local close_village = true -- a "close" village is one that is closer to theAI keep than to the closest enemy keep
 
@@ -1462,15 +1454,21 @@ return {
                         --print('Can reach:', u.id, v[1], v[2], cost)
                         local rating = 0
 
-                        -- !!!!! Only positive ratings are allowed for this one !!!!!
                         -- If an enemy can get onto the village, we want to hold it
                         -- Need to take the unit itself off the map, as it might be sitting on the village itself (which then is not reachable by enemies)
+                        -- This will also prefer close villages over far ones, everything else being equal
                         wesnoth.extract_unit(u)
                         for k,e in ipairs(enemies) do
                             local path_e, cost_e = wesnoth.find_path(e, v[1], v[2])
                             if (cost_e <= e.max_moves) then
                                 --print('  within enemy reach', e.id)
-                                rating = rating + 10
+                                -- Prefer close villages that are in reach of many enemies,
+                                -- The opposite for far villages
+                                if close_village then
+                                    rating = rating + 10
+                                else
+                                    rating = rating - 10
+                                end
                             end
                         end
                         wesnoth.put_unit(u.x, u.y, u)
@@ -1485,49 +1483,57 @@ return {
                             if wesnoth.is_enemy(owner, wesnoth.current.side) then rating = rating + 2000 end
                         end
 
-                        -- Grunts are good tanks for villages: give them a bonus rating
-                        if (u.type ~= 'Orcish Grunt') then rating = rating + 1 end
+                        -- It is impossible for these numbers to add up to zero, so we do the
+                        -- detail rating only for those
+                        if (rating ~= 0) then
+                            -- Grunts are good tanks for villages: give them a bonus rating
+                            if (u.type ~= 'Orcish Grunt') then rating = rating + 1 end
 
-                        -- Finally, since these can be reached by the enemy, want the strongest unit to go first
-                        rating = rating + u.hitpoints / 100.
+                            -- Finally, since these can be reached by the enemy, want the strongest unit to go first
+                            rating = rating + u.hitpoints / 100.
 
-                        -- If this is the leader, calculate counter attack damage
-                        -- Make him the preferred village taker unless he's likely to die
-                        -- but only if he's on the keep
-                        if u.canrecruit then
-                            local counter_table = self:calc_counter_attack(u, { v[1], v[2] })
-                            local max_counter_damage = counter_table.max_counter_damage
-                            --print('    max_counter_damage:', u.id, max_counter_damage)
-                            if (max_counter_damage < u.hitpoints) and wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
-                                --print('      -> take village with leader')
-                                rating = rating + 2
-                            else
-                                rating = -1000
+                            -- If this is the leader, calculate counter attack damage
+                            -- Make him the preferred village taker unless he's likely to die
+                            -- but only if he's on the keep
+                            if u.canrecruit then
+                                local counter_table = self:calc_counter_attack(u, { v[1], v[2] })
+                                local max_counter_damage = counter_table.max_counter_damage
+                                --print('    max_counter_damage:', u.id, max_counter_damage)
+                                if (max_counter_damage < u.hitpoints) and wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
+                                    --print('      -> take village with leader')
+                                    rating = rating + 2
+                                else
+                                    rating = -9e99
+                                end
+                            end
+
+                            if (rating > max_rating) then
+                                max_rating, best_village, best_unit = rating, v, u
                             end
                         end
-
-                        -- A rating of 0 here means that a village can be reached, but is not interesting
-                        -- Thus, max_rating start value is 0, which means don't go there
-                        -- Rating needs to be at least 10 to be interesting
-                        if (rating >=10) and (rating > max_rating) then
-                            max_rating, best_village, best_unit = rating, v, u
-                        end
-
-                        --print('  rating:', rating, u.id, u.canrecruit)
                     end
                 end
             end
-
             --print('max_rating', max_rating)
 
-            if (max_rating >= 10) then
+            if (max_rating > -9e99) then
                 self.data.GV_unit, self.data.GV_village = best_unit, best_village
-                if (max_rating >= 1000) then
-                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                    return score_high
-                else
+
+                -- Villages owned by AI, but threatened by enemies
+                -- have scores < 500 (< 1000 - a few times 10)
+                if (max_rating < 500) then
+                    -- Those are low priority and we only going there is there's nothing else to do
                     if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                     return score_low
+                else
+                    -- Unowned and enemy-owned villages are taken with high priority during day, low priority at night
+                    local tod = wesnoth.get_time_of_day()
+                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                    if (tod.id == 'dusk') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
+                        return score_low
+                    else
+                        return score_high
+                    end
                 end
             end
             if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
