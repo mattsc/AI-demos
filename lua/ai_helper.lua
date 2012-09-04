@@ -195,6 +195,28 @@ function ai_helper.generalized_distance(x1, y1, x2, y2)
     return H.distance_between(x1, y1, x2, y2)
 end
 
+function ai_helper.get_closest_location(hex, location_filter)
+    -- Get the location closest to 'hex' (in format { x, y })
+    -- that matches 'location_filter' (in WML table format)
+    -- Returns nil if no terrain matching the filter was found
+
+    local locs = wesnoth.get_locations(location_filter)
+
+    local max_rating, closest_hex = -9e99, {}
+    for i,l in ipairs(locs) do
+        local rating = -H.distance_between(hex[1], hex[2], l[1], l[2])
+        if (rating > max_rating) then
+            max_rating, best_hex = rating, l
+        end
+    end
+
+    if (max_rating > -9e99) then
+        return best_hex
+    else
+        return nil
+    end
+end
+
 function ai_helper.xyoff(x, y, ori, hex)
     -- Finds hexes at a certain offset from x,y
     -- ori: direction/orientation: north (0), ne (1), se (2), s (3), sw (4), nw (5)

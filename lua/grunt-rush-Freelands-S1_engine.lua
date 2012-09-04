@@ -1456,7 +1456,7 @@ return {
                             if wesnoth.is_enemy(owner, wesnoth.current.side) then rating = rating + 2000 end
                         end
 
-                        -- Grunts are needed elsewhere, so use other units first
+                        -- Grunts are good tanks for villages: give them a bonus rating
                         if (u.type ~= 'Orcish Grunt') then rating = rating + 1 end
 
                         -- Finally, since these can be reached by the enemy, want the strongest unit to go first
