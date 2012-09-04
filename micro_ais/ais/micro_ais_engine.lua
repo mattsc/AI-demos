@@ -95,16 +95,29 @@ return {
             }
             if (not healers[1]) then return 0 end
 
+            local healers_noMP = wesnoth.get_units { side = wesnoth.current.side, ability = "healing",
+                formula = '$this_unit.moves = 0'
+            }
+
             local all_units = wesnoth.get_units{ side = wesnoth.current.side }
-            local units_noMP, units_MP = {}, {}
+            local healees, units_MP = {}, {}
             for i,u in ipairs(all_units) do
+                -- Potential healees are units with MP that don't already have a healer (also without MP) next to them
                 if (u.moves == 0) then
-                    table.insert(units_noMP, u)
+                    local healee = true
+                    for j,h in ipairs(healers_noMP) do
+                        if (H.distance_between(u.x, u.y, h.x, h.y) == 1) then
+                            --print('Already next to healer:', u.x, u.y, h.x, h.y)
+                            healee = false
+                            break
+                        end
+                    end
+                    if healee then table.insert(healees, u) end
                 else
                     table.insert(units_MP,u)
                 end
             end
-            --print('#units_noMP, #units_MP', #units_noMP, #units_MP)
+            --print('#healees, #units_MP', #healees, #units_MP)
 
             -- Take all units with moves left off the map, for enemy path finding
             for i,u in ipairs(units_MP) do wesnoth.extract_unit(u) end
@@ -136,7 +149,7 @@ return {
                     -- Also, hex must be unoccupied by another unit, of course
                     local unit_in_way = wesnoth.get_unit(r[1], r[2])
                     if (not unit_in_way) or ((unit_in_way.x == h.x) and (unit_in_way.y == h.y)) then
-                        for k,u in ipairs(units_noMP) do
+                        for k,u in ipairs(healees) do
                             if (H.distance_between(u.x, u.y, r[1], r[2]) == 1) then
                                 -- !!!!!!! These ratings have to be positive or the method doesn't work !!!!!!!!!
                                 rating = rating + u.max_hitpoints - u.hitpoints
