@@ -844,7 +844,8 @@ return {
                         rating = rating - (v[2] * 1.5)
 
                         if (rating > max_rating) and ((enemy_attack_map:get(v[1], v[2]) or 0) <= 1 ) then
-                            max_rating, best_village, best_unit = rating, v, u
+                            local next_hop = AH.next_hop(u, v[1], v[2])
+                            max_rating, best_village, best_unit = rating, next_hop, u
                         end
                     end
                 end
