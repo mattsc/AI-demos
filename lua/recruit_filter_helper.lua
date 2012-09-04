@@ -19,6 +19,14 @@ function archer_target(unit)
 end
 
 function troll_target(unit)
+    -- trolls are good counters for units that do poison damage
+    for att in helper.child_range(unit.__cfg, 'attack') do
+        for sp in helper.child_range(att, 'specials') do
+            if helper.get_child(sp, 'poison') then
+                return true
+            end
+        end
+    end
     if wesnoth.unit_resistance(unit, "impact") <= 100 then
         return false
     end
