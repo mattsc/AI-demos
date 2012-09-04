@@ -566,7 +566,7 @@ return {
                         if can_attack then
 
                             -- Check first if this attack combination has already been calculated
-                            local str = (ea.att_loc.x + ea.att_loc.y * 1000) .. '-' .. (ea.def_loc.x + ea.def_loc.y * 1000)
+                            local str = (a.att_loc.x + a.att_loc.y * 1000) .. '-' .. (a.def_loc.x + a.def_loc.y * 1000)
                             --print(str)
                             if counter_table[str] then  -- If so, use saved value
                                 --print('    counter attack already calculated: ',str,counter_table[str])
