@@ -1404,7 +1404,6 @@ return {
                 score_high, score_low = 300000, 300000
             end
 
-
             -- Check if there are units with moves left
             -- New: include the leader in this
             local units = wesnoth.get_units { side = wesnoth.current.side,
@@ -1430,8 +1429,27 @@ return {
 
             -- Now we check if a unit can get to a village
             local max_rating, best_village, best_unit = 0, {}, {}  -- yes, want '0' here
-            for i,u in ipairs(units) do
-                for j,v in ipairs(villages) do
+            for j,v in ipairs(villages) do
+                local close_village = true -- a "close" village is one that is closer to theAI keep than to the closest enemy keep
+
+                local my_leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+                local my_keep = AH.get_closest_location({my_leader.x, my_leader.y}, { terrain = 'K*' })
+                local dist_my_keep = H.distance_between(v[1], v[2], my_keep[1], my_keep[2])
+
+                local enemy_leaders = AH.get_live_units { canrecruit = 'yes',
+                    { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+                }
+                for i,e in ipairs(enemy_leaders) do
+                    local enemy_keep = AH.get_closest_location({e.x, e.y}, { terrain = 'K*' })
+                    local dist_enemy_keep = H.distance_between(v[1], v[2], enemy_keep[1], enemy_keep[2])
+                    if (dist_enemy_keep < dist_my_keep) then
+                        close_village = false
+                        break
+                    end
+                end
+                --print('village is close village:', v[1], v[2], close_village)
+
+                for i,u in ipairs(units) do
                     local path, cost = wesnoth.find_path(u, v[1], v[2])
 
                     local unit_in_way = wesnoth.get_unit(v[1], v[2])
