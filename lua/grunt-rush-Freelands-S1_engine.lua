@@ -865,6 +865,38 @@ return {
                 return score
             end
 
+            -- No safe villages within 1 turn - try to move to closest reachable empty village
+
+            for i,v in ipairs(villages) do
+                local unit_in_way = wesnoth.get_unit(v[1], v[2])
+                if (not unit_in_way) then
+                    --print('Village available:', v[1], v[2])
+                    for i,u in ipairs(healees) do
+                        local path, cost = wesnoth.find_path(u, v[1], v[2])
+
+                        local rating = - u.hitpoints + u.max_hitpoints / 2.
+
+                        rating = rating - cost
+
+                        if H.get_child(u.__cfg, "status").poisoned then rating = rating + 8 end
+                        if H.get_child(u.__cfg, "status").slowed then rating = rating + 4 end
+
+                        -- villages in the north are preferable (since they are supposedly away from the enemy)
+                        rating = rating - (v[2] * 1.5)
+
+                        if (rating > max_rating) and ((enemy_attack_map:get(v[1], v[2]) or 0) <= 1 ) then
+                            max_rating, best_village, best_unit = rating, v, u
+                        end
+                    end
+                end
+            end
+
+            if (max_rating > -9e99) then
+                self.data.RIU_retreat_unit, self.data.RIU_retreat_village = best_unit, best_village
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return score
+            end
+
             if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
             return 0
         end
