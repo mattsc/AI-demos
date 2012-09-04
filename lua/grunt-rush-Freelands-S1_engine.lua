@@ -753,17 +753,28 @@ return {
         ------ Retreat injured units -----------
 
         function grunt_rush_FLS1:retreat_injured_units_eval()
+            local score = grunt_rush_FLS1:retreat_injured_units_eval_filtered(
+                { side = wesnoth.current.side, canrecruit = 'no',
+                    formula = '$this_unit.moves > 0',
+                    { 'not', { race = "troll" } }
+                }, "*^V*", 12)
+            if (score > 0) then return score end
+            return grunt_rush_FLS1:retreat_injured_units_eval_filtered(
+                { side = wesnoth.current.side, canrecruit = 'no',
+                    formula = '$this_unit.moves > 0',
+                    race = "troll"
+                }, "M*^*", 16)
+        end
+
+        function grunt_rush_FLS1:retreat_injured_units_eval_filtered(unit_filter, terrain_filter, min_hp)
             local score = 470000
             if AH.print_eval() then print('     - Evaluating retreat_injured_units CA:', os.clock()) end
 
             -- Find very injured units and move them to a village, if possible
-            local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no',
-                formula = '$this_unit.moves > 0'
-            }
+            local units = wesnoth.get_units(unit_filter)
 
-            -- Pick units that have less than 12 HP
+            -- Pick units that have less than min_hp HP
             -- with poisoning counting as -8 HP and slowed as -4
-            local min_hp = 12  -- minimum HP before sending unit to village
             local healees = {}
             for i,u in ipairs(units) do
                 local hp_eff = u.hitpoints
@@ -783,7 +794,7 @@ return {
                 return 0
             end
 
-	        local villages = wesnoth.get_locations { terrain = "*^V*" }
+	        local villages = wesnoth.get_locations { terrain = terrain_filter }
             --print('#villages', #villages)
 
             -- Only retreat to safe villages
