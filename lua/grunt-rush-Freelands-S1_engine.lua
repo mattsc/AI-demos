@@ -763,7 +763,7 @@ return {
                 { side = wesnoth.current.side, canrecruit = 'no',
                     formula = '$this_unit.moves > 0',
                     race = "troll"
-                }, "M*^*", 16)
+                }, "!,*^X*,!,M*^*", 16)
         end
 
         function grunt_rush_FLS1:retreat_injured_units_eval_filtered(unit_filter, terrain_filter, min_hp)
