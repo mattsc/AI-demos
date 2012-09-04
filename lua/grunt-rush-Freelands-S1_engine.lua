@@ -547,57 +547,16 @@ return {
 
             for iu,uMP in ipairs(units_MP) do wesnoth.put_unit(uMP.x, uMP.y, uMP) end
 
-            -- Set up a counter attack table, as many pairs of attacks will be the same (for speed reasons)
-            local counter_table = {}
-
             -- Now evaluate every attack
             local max_rating, best_attack = -9e99, {}
             for i,a in pairs(attacks) do
-                --print('  chance to die:',a.att_stats.hp_chance[0])
+                --print('  chance to die:',a.att_stats.hp_chance[0], ' when attacking from', a.x, a.y)
 
                 -- Only consider if there is no chance to die or to be poisoned or slowed
                 if ((a.att_stats.hp_chance[0] == 0) and (a.att_stats.poisoned == 0) and (a.att_stats.slowed == 0)) then
 
                     -- Get maximum possible counter attack damage possible by enemies on next turn
-                    local max_counter_damage = 0
-
-                    for j,ea in ipairs(enemy_attacks) do
-                        local can_attack = ea.attack_map:get(a.x, a.y)
-                        if can_attack then
-
-                            -- Check first if this attack combination has already been calculated
-                            local str = (a.att_loc.x + a.att_loc.y * 1000) .. '-' .. (a.def_loc.x + a.def_loc.y * 1000)
-                            --print(str)
-                            if counter_table[str] then  -- If so, use saved value
-                                --print('    counter attack already calculated: ',str,counter_table[str])
-                                max_counter_damage = max_counter_damage + counter_table[str]
-                            else  -- if not, calculate it and save value
-                                -- Go thru all weapons, as "best weapon" might be different later on
-                                local n_weapon = 0
-                                local min_hp = unit.hitpoints
-                                for weapon in H.child_range(ea.enemy.__cfg, "attack") do
-                                    n_weapon = n_weapon + 1
-
-                                    -- Terrain does not matter for this, we're only interested in the maximum damage
-                                    local att_stats, def_stats = wesnoth.simulate_combat(ea.enemy, n_weapon, unit)
-
-                                    -- Find minimum HP of our unit
-                                    -- find the minimum hp outcome
-                                    -- Note: cannot use ipairs() because count starts at 0
-                                    local min_hp_weapon = unit.hitpoints
-                                    for hp,chance in pairs(def_stats.hp_chance) do
-                                        if ((chance > 0) and (hp < min_hp_weapon)) then
-                                            min_hp_weapon = hp
-                                        end
-                                    end
-                                    if (min_hp_weapon < min_hp) then min_hp = min_hp_weapon end
-                                end
-                                --print('    min_hp:',min_hp, ' max damage:',unit.hitpoints-min_hp)
-                                max_counter_damage = max_counter_damage + unit.hitpoints - min_hp
-                                counter_table[str] = unit.hitpoints - min_hp
-                            end
-                        end
-                    end
+                    local max_counter_damage = self:calc_counter_attack(unit, { a.x, a.y }).max_counter_damage
                     --print('  max counter attack damage:', max_counter_damage)
 
                     -- and add this to damage possible on this attack
