@@ -638,8 +638,18 @@ return {
 
             -- Reset self.data at beginning of turn, but need to keep 'complained_about_luck' variable
             local complained_about_luck = self.data.SP_complained_about_luck
+            local enemy_is_undead = self.data.enemy_is_undead
             self.data = {}
             self.data.SP_complained_about_luck = complained_about_luck
+
+            if (enemy_is_undead == nil) then
+                local enemy_leader = wesnoth.get_units{
+                        { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
+                        canrecruit = 'yes'
+                    }[1]
+                enemy_is_undead = (enemy_leader.race == "undead") or (enemy_leader.type == "Dark Sorcerer")
+            end
+            self.data.enemy_is_undead = enemy_is_undead
         end
 
         ------ Hard coded -----------
@@ -686,12 +696,20 @@ return {
                 ai.recruit('Orcish Grunt', 17, 5)
                 ai.recruit('Wolf Rider', 18, 3)
                 ai.recruit('Orcish Archer', 18, 4)
-                ai.recruit('Orcish Assassin', 20, 4)
+                if (self.data.enemy_is_undead) then
+                    ai.recruit('Wolf Rider', 20, 3)
+                else
+                    ai.recruit('Orcish Assassin', 20, 4)
+                end
             end
             if (wesnoth.current.turn == 2) then
                 ai.move_full(17, 5, 12, 5)
                 ai.move_full(18, 3, 12, 2)
-                ai.move_full(20, 4, 24, 7)
+                if (self.data.enemy_is_undead) then
+                    ai.move_full(20, 3, 28, 5)
+                else
+                    ai.move_full(20, 4, 24, 7)
+                end
             end
             if (wesnoth.current.turn == 3) then
                 ai.move_full(12, 5, 11, 9)
@@ -2451,12 +2469,9 @@ return {
 
             -- Recruit an assassin, if there is none
             local assassins = AH.get_live_units { side = wesnoth.current.side, type = 'Orcish Assassin,Orcish Slayer', canrecruit = 'no' }
-            local not_living_enemies = AH.get_live_units {
-                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }}},
-                lua_function = "not_living"
-            }
+
             local assassin = assassins[1]
-            if (not assassin) and (wesnoth.sides[wesnoth.current.side].gold >= assassin_cost) and (#not_living_enemies < 5)  and (hp_ratio > 0.4) then
+            if (not assassin) and (wesnoth.sides[wesnoth.current.side].gold >= assassin_cost) and (not self.data.enemy_is_undead)  and (hp_ratio > 0.4) then
                 --print('recruiting assassin')
                 ai.recruit('Orcish Assassin', best_hex[1], best_hex[2])
                 return
@@ -2544,7 +2559,7 @@ return {
             end
 
             -- Recruit an assassin, if there are fewer than 3 (in addition to previous assassin recruit)
-            if (#assassins < 3) and (wesnoth.sides[wesnoth.current.side].gold >= assassin_cost) and (#not_living_enemies < 5) then
+            if (#assassins < 3) and (wesnoth.sides[wesnoth.current.side].gold >= assassin_cost) and (not self.data.enemy_is_undead) then
                 --print('recruiting assassin based on numbers')
                 ai.recruit('Orcish Assassin', best_hex[1], best_hex[2])
                 return
