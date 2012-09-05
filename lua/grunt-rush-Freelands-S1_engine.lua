@@ -1413,7 +1413,7 @@ return {
         ----------Grab villages -----------
 
         function grunt_rush_FLS1:grab_villages_eval()
-            local score_high, score_low = 462000, 280000
+            local score_high, score_low_enemy, score_low_own = 462000, 305000, 280000
             if AH.print_eval() then print('     - Evaluating grab_villages CA:', os.clock()) end
 
             --local leave_own_villages = wesnoth.get_variable "leave_own_villages"
@@ -1550,13 +1550,14 @@ return {
                 if (max_rating < 500) then
                     -- Those are low priority and we only going there is there's nothing else to do
                     if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                    return score_low
+                    return score_low_own
                 else
                     -- Unowned and enemy-owned villages are taken with high priority during day, low priority at night
+                    -- but even at night with higher priority than own villages
                     local tod = wesnoth.get_time_of_day()
                     if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                     if (tod.id == 'dusk') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
-                        return score_low
+                        return score_low_enemy
                     else
                         return score_high
                     end
