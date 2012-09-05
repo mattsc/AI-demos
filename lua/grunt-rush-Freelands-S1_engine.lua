@@ -1842,16 +1842,20 @@ return {
 
             local goal = { x = 8, y = 5 }  -- far west village
             if gobo then
-                -- First, if there's one of our units on the village, move it out of the way
+                -- First, if there's one of our units on the village, move it out of the way,
+                -- but only if the gobo can get there this turn
                 local unit_in_way = wesnoth.get_unit(goal.x, goal.y)
                 if unit_in_way and (unit_in_way.moves > 0) and (unit_in_way.side == wesnoth.current.side) and (unit_in_way.__cfg.race ~= 'goblin') then
-                    local best_hex = AH.find_best_move(unit_in_way, function(x, y)
-                        local rating = -H.distance_between(x, y, goal.x, goal.y) + x/10.
-                        if (x == goal.x) and (y == goal.y) then rating = rating - 1000 end
-                        return rating
-                    end)
-                    if AH.show_messages() then W.message { speaker = unit_in_way.id, message = 'Moving off the village' } end
-                    ai.move(unit_in_way, best_hex[1], best_hex[2])
+                    local path, cost = wesnoth.find_path(gobo, goal.x, goal.y)
+                    if (cost <= gobo.moves) then
+                        local best_hex = AH.find_best_move(unit_in_way, function(x, y)
+                            local rating = -H.distance_between(x, y, goal.x, goal.y) + x/10.
+                            if (x == goal.x) and (y == goal.y) then rating = rating - 1000 end
+                            return rating
+                        end)
+                        if AH.show_messages() then W.message { speaker = unit_in_way.id, message = 'Moving off the village' } end
+                        ai.move(unit_in_way, best_hex[1], best_hex[2])
+                    end
                 end
 
                 local best_hex = AH.find_best_move(gobo, function(x, y)
