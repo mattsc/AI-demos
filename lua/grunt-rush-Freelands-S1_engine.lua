@@ -2481,6 +2481,7 @@ return {
                 return
             end
 
+            -- Recruit an archer if the number of units for which an archer is a counter is much more than the number of archer
             local archer_targets = AH.get_live_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }}},
                 lua_function = "archer_target"
@@ -2496,11 +2497,12 @@ return {
                 end
             end
 
+            -- Recruit a troll if the number of units for which a troll is a counter is much more than the number of trolls
             local troll_targets = AH.get_live_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }}},
                 lua_function = "troll_target"
             }
-            local trolls = AH.get_live_units { side = wesnoth.current.side, type = 'Troll Whelp,Troll,Troll Rocklobber', canrecruit = 'no' }
+            local trolls = AH.get_live_units { side = wesnoth.current.side, race = 'troll', canrecruit = 'no' }
             if (#troll_targets-1 > #trolls*2) then
                 if (wesnoth.sides[wesnoth.current.side].gold >= whelp_cost) then
                     --print('recruiting whelp based on counter-recruit')
