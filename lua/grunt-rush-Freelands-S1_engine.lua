@@ -1869,7 +1869,7 @@ return {
         --------- Grunt rush right ------------
 
         function grunt_rush_FLS1:rush_right_eval()
-            local score = 350000
+            local score_RR_high, score_RR_low = 350000, 280000
             if AH.print_eval() then print('     - Evaluating rush_right CA:', os.clock()) end
 
             -- All remaining units (after 'hold_left' and previous events), head toward the village at 27,16
@@ -1880,27 +1880,11 @@ return {
                 return 0
             end
 
-            local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no',
-                { "not", { x = '1-21', y = '12-25' } },
-                formula = '$this_unit.moves > 0'
-            }
-
-            if units[1] then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                return score
-            end
-
-            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-            return 0
-        end
-
-        function grunt_rush_FLS1:rush_right_exec()
-            if AH.print_exec() then print('     - Executing rush_right CA') end
-
             local units = AH.get_live_units { side = wesnoth.current.side, canrecruit = 'no',
                 { "not", { x = '1-21', y = '12-25' } },
                 formula = '$this_unit.attacks_left > 0'
             }
+
             local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
@@ -1908,7 +1892,6 @@ return {
             -- Get HP ratio of units that can reach right part of map as function of y coordinate
             local width, height = wesnoth.get_map_size()
             local hp_ratio_y = self:hp_ratio_y(units, enemies, 25, width, 11, height)
-
 
             -- We'll do this step by step for easier experimenting
             -- To be streamlined later
@@ -2018,20 +2001,9 @@ return {
 
                 -- Now we know which attacks to do
                 if (max_rating > -9e99) then
-                    while best_attackers and (table.maxn(best_attackers) > 0) do
-                        if AH.show_messages() then W.message { speaker = best_attackers[1].id, message = 'Rush right: Combo attack' } end
-                        AH.movefull_outofway_stopunit(ai, best_attackers[1], best_dsts[1])
-                        ai.attack(best_attackers[1], best_enemy)
-
-                        -- Delete this attack from the combo
-                        table.remove(best_attackers, 1)
-                        table.remove(best_dsts, 1)
-
-                        -- If enemy got killed, we need to stop here
-                        if (not best_enemy.valid) then best_attackers, best_dsts = nil, nil end
-                    end
-
-                    return -- to force re-evaluation
+                    self.data.RR_action = 'rush'
+                    self.data.RR_attackers, self.data.RR_dsts, self.data.RR_enemy = best_attackers, best_dsts, best_enemy
+                    return score_RR_high
                 end
             end
 
@@ -2061,7 +2033,39 @@ return {
                 end
             end
             --print('goal:', goal.x, goal.y)
-            self:hold_position(units, goal, { ignore_terrain_at_night = true } )
+
+            self.data.RR_action = 'hold'
+            self.data.RR_units, self.data.RR_goal = units, goal
+
+            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+            return score_RR_low  -- This one always returns a positive score
+        end
+
+        function grunt_rush_FLS1:rush_right_exec()
+            if AH.print_exec() then print('     - Executing rush_right CA') end
+
+            -- If a rush attack was found, execute it:
+            if (self.data.RR_action == 'rush') then
+                while self.data.RR_attackers and (table.maxn(self.data.RR_attackers) > 0) do
+                    if AH.show_messages() then W.message { speaker = self.data.RR_attackers[1].id, message = 'Rush right: Combo attack' } end
+                    AH.movefull_outofway_stopunit(ai, self.data.RR_attackers[1], self.data.RR_dsts[1])
+                    ai.attack(self.data.RR_attackers[1], self.data.RR_enemy)
+
+                    -- Delete this attack from the combo
+                    table.remove(self.data.RR_attackers, 1)
+                    table.remove(self.data.RR_dsts, 1)
+
+                    -- If enemy got killed, we need to stop here
+                    if (not self.data.RR_enemy.valid) then self.data.RR_attackers, self.data.RR_dsts = nil, nil end
+                end
+                self.data.RR_attackers, self.data.RR_dsts, self.data.RR_enemy = nil, nil, nil
+
+                return  -- So that we don't go on to the next part
+            end
+
+            -- Otherwise, hold position
+            self:hold_position(self.data.RR_units, self.data.RR_goal, { ignore_terrain_at_night = true } )
+            self.data.RR_units, self.data.RR_goal = nil, nil
         end
 
         -----------Spread poison ----------------
