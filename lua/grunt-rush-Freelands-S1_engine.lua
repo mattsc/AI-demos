@@ -684,13 +684,13 @@ return {
             if AH.show_messages() then W.message { speaker = 'narrator', message = 'Executing hardcoded move(s)' } end
             if (wesnoth.current.turn == 1) then
                 ai.recruit('Orcish Grunt', 17, 5)
-                ai.recruit('Wolf Rider', 18, 4)
-                ai.recruit('Orcish Archer', 18, 3)
+                ai.recruit('Wolf Rider', 18, 3)
+                ai.recruit('Orcish Archer', 18, 4)
                 ai.recruit('Orcish Assassin', 20, 4)
             end
             if (wesnoth.current.turn == 2) then
                 ai.move_full(17, 5, 12, 5)
-                ai.move_full(18, 4, 12, 2)
+                ai.move_full(18, 3, 12, 2)
                 ai.move_full(20, 4, 24, 7)
             end
             if (wesnoth.current.turn == 3) then
