@@ -1897,7 +1897,7 @@ return {
             local units = AH.get_live_units(filter_units)
             if (not units[1]) then return 'none' end
 
-            -- Then get all the enemies
+            -- Then get all the enemies (this is all of them, to get the HP ratio)
             local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
@@ -1945,23 +1945,19 @@ return {
                 attack_y = attack_y + 1  -- Targets can be one hex farther south
                 --print('Looking for targets on right down to y = ' .. attack_y)
 
-                local enemies = AH.get_live_units { x = '24-37,23-37,20-37', y='10-13,14-18,19-24',
-                    { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
-                }
-                --print('#enemies all', #enemies)
-
-                -- Take out those too far south
-                for i=#enemies,1,-1 do
-                    if (enemies[i].y > attack_y) then table.remove(enemies, i) end
+                local targets = AH.table_copy(enemies)  -- Want this so that 'enemies' array is not modified
+                -- Take out targets that are too far south
+                for i=#targets,1,-1 do
+                    if (targets[i].y > attack_y) then table.remove(targets, i) end
                 end
-                --print('#enemies filtered', #enemies)
+                --print('#targets filtered', #targets)
 
                 -- Also want an 'attackers' array, indexed by position
                 local attackers = {}
                 for i,u in ipairs(units) do attackers[u.x * 1000 + u.y] = u end
 
                 local max_rating, best_attackers, best_dsts, best_enemy = -9e99, {}, {}, {}
-                for i,e in ipairs(enemies) do
+                for i,e in ipairs(targets) do
                     --print('\n', i, e.id)
                     local attack_combos, attacks_dst_src = AH.get_attack_combos_no_order(units, e)
                     --DBG.dbms(attack_combos)
@@ -2032,18 +2028,31 @@ return {
             --if AH.show_messages() then W.message { speaker = 'narrator', message = 'Holding position on right down to y = ' .. attack_y } end
 
             -- Get all units with moves left (before was for those with attacks left)
-            local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no',
-                { "not", { x = '1-21', y = '12-25' } },
+            local filter_units = { side = wesnoth.current.side, canrecruit = 'no',
                 formula = '$this_unit.moves > 0'
             }
+            if cfg.filter_units then
+                if cfg.filter_units.x then filter_units.x = cfg.filter_units.x end
+                if cfg.filter_units.y then filter_units.y = cfg.filter_units.y end
+            end
+            --DBG.dbms(filter_units)
+            local units = AH.get_live_units(filter_units)
+            if (not units[1]) then return 'none' end
 
             -- If there's a village in the two rows around attack_y, make that the goal
-            -- Otherwise it's just { 27, attack_y }
+            -- Otherwise it's just { hold_x, attack_y }
 
-            if (attack_y > 22) then attack_y = 22 end
-            local goal = { x = 27, y = attack_y }
+            local hold_x = math.floor((x_min + x_max) / 2.)
+            local hold_max_y = y_max
+            if cfg.hold then
+               if cfg.hold.x then hold_x = cfg.hold.x end
+               if cfg.hold.max_y then hold_max_y = cfg.hold.max_y end
+            end
+
+            if (attack_y > hold_max_y) then attack_y = hold_max_y end
+            local goal = { x = hold_x, y = attack_y }
             for y = attack_y - 1, attack_y + 1 do
-                for x = 23,34 do
+                for x = x_min,x_max do
                     --print(x,y)
                     local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
                     if is_village then
@@ -2081,6 +2090,9 @@ return {
             local width, height = wesnoth.get_map_size()
             cfg.rush_area = { x_min = 25, x_max = width, y_min = 11, y_max = height}
 
+            -- The area to consider when holding a position
+            cfg.hold = { x = 27, max_y = 22 }
+
             local action, rush_cfg = self:area_rush_eval(cfg)
             --print('Rush action : ', action)
             --DBG.dbms(rush_cfg)
@@ -2101,7 +2113,7 @@ return {
         end
 
         function grunt_rush_FLS1:rush_right_exec()
-            if AH.print_exec() then print('     - Executing rush_right CA') end
+            if AH.print_exec() then print('     - Executing rush_right CA (' .. self.data.rush_action .. ')') end
 
             -- If a rush attack was found, execute it:
             if (self.data.rush_action == 'rush') then
