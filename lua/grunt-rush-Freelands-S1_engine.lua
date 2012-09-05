@@ -909,7 +909,7 @@ return {
         ------ Attack with high CTK -----------
 
         function grunt_rush_FLS1:attack_weak_enemy_eval()
-            local score = 462000
+            local score = 465000
             if AH.print_eval() then print('     - Evaluating attack_weak_enemy CA:', os.clock()) end
 
             -- Attack any enemy where the chance to kill is > 40%
@@ -1412,7 +1412,7 @@ return {
         ----------Grab villages -----------
 
         function grunt_rush_FLS1:grab_villages_eval()
-            local score_high, score_low = 465000, 300000
+            local score_high, score_low = 462000, 300000
             if AH.print_eval() then print('     - Evaluating grab_villages CA:', os.clock()) end
 
             --local leave_own_villages = wesnoth.get_variable "leave_own_villages"
@@ -2071,7 +2071,7 @@ return {
         -----------Spread poison ----------------
 
         function grunt_rush_FLS1:spread_poison_eval()
-            local score = 380000
+            local score = 463000
 
             -- As an experiment: reduce importance of spreading poison during night
             -- This is supposed to help with the rush on the right, freeing up units for that
