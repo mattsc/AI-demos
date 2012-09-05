@@ -647,7 +647,7 @@ return {
                         { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
                         canrecruit = 'yes'
                     }[1]
-                enemy_is_undead = (enemy_leader.race == "undead") or (enemy_leader.type == "Dark Sorcerer")
+                enemy_is_undead = (enemy_leader.__cfg.race == "undead") or (enemy_leader.type == "Dark Sorcerer")
             end
             self.data.enemy_is_undead = enemy_is_undead
         end
