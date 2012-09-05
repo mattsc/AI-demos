@@ -3,6 +3,23 @@ Wesnoth-AI-Demos
 
 Wesnoth AI Modification Demonstration Scenarios
 
+Home of the formidable Freelands Side 1 Grunt Rush AI, "Fred", and his little brother, the generic rushing AI "Ron"!
+
+Many other wondrous AIs can also be found within this add-on!
+* Guardians
+* Patrols
+* Prune Cart
+* Messenger Escort
+* Pass Defense
+* Swamp Lurkers
+* Wolves
+* Animals
+* Swarm
+* Dragon
+* Protect the Wizard
+* HttT: The Elves Beseiged
+* Micro-AIs, including Healers
+
 For more information, check out the thread on the official Wesnoth forums:
 http://forum.wesnoth.org/viewtopic.php?f=10&t=34976
 
