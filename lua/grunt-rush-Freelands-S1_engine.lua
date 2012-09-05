@@ -1880,26 +1880,28 @@ return {
 
         --------- Grunt rush right ------------
 
-        function grunt_rush_FLS1:rush_right_eval()
-            local score_RR_high, score_RR_low = 350000, 300000
-            if AH.print_eval() then print('     - Evaluating rush_right CA:', os.clock()) end
+        function grunt_rush_FLS1:area_rush_eval(cfg)
 
-            -- All remaining units (after 'hold_left' and previous events), head toward the village at 27,16
+            cfg = cfg or {}
 
-            -- Skip this if AI is much stronger than enemy
-            if self:full_offensive() then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                return 0
-            end
-
-            local units = AH.get_live_units { side = wesnoth.current.side, canrecruit = 'no',
-                { "not", { x = '1-21', y = '12-25' } },
+            -- Get all units to consider
+            -- First, set up the filter for the units to consider
+            local filter_units = { side = wesnoth.current.side, canrecruit = 'no',
                 formula = '$this_unit.attacks_left > 0'
             }
+            if cfg.filter_units then
+                if cfg.filter_units.x then filter_units.x = cfg.filter_units.x end
+                if cfg.filter_units.y then filter_units.y = cfg.filter_units.y end
+            end
+            --DBG.dbms(filter_units)
+            local units = AH.get_live_units(filter_units)
+            if (not units[1]) then return 'none' end
 
+            -- Then get all the enemies
             local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
+            --print('#units, #enemies', #units, #enemies)
 
             -- Get HP ratio of units that can reach right part of map as function of y coordinate
             local width, height = wesnoth.get_map_size()
@@ -2013,9 +2015,9 @@ return {
 
                 -- Now we know which attacks to do
                 if (max_rating > -9e99) then
-                    self.data.RR_action = 'rush'
-                    self.data.RR_attackers, self.data.RR_dsts, self.data.RR_enemy = best_attackers, best_dsts, best_enemy
-                    return score_RR_high
+                    local rush_cfg = {}
+                    rush_cfg.attackers, rush_cfg.dsts, rush_cfg.enemy = best_attackers, best_dsts, best_enemy
+                    return 'rush', rush_cfg
                 end
             end
 
@@ -2046,38 +2048,72 @@ return {
             end
             --print('goal:', goal.x, goal.y)
 
-            self.data.RR_action = 'hold'
-            self.data.RR_units, self.data.RR_goal = units, goal
+            local rush_cfg = {}
+            rush_cfg.units, rush_cfg.goal = units, goal
 
             if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-            return score_RR_low  -- This one always returns a positive score
+            return 'hold', rush_cfg
+        end
+
+        function grunt_rush_FLS1:rush_right_eval()
+            local score_rush_high, score_rush_low = 350000, 300000
+            if AH.print_eval() then print('     - Evaluating rush_right CA:', os.clock()) end
+
+            -- Skip this if AI is much stronger than enemy
+            if self:full_offensive() then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
+
+            local cfg = {}
+
+            cfg.filter_units = {}
+            cfg.filter_units.x, cfg.filter_units.y = '1-99,22-99', '1-11,12-25'
+
+            local action, rush_cfg = self:area_rush_eval(cfg)
+            --print('Rush action : ', action)
+            --DBG.dbms(rush_cfg)
+
+            if (action == 'rush') then
+                self.data.rush_action, self.data.rush_cfg = action, rush_cfg
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return score_rush_high
+            end
+            if (action == 'hold') then
+                self.data.rush_action, self.data.rush_cfg = action, rush_cfg
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return score_rush_low
+            end
+
+            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+            return 0
         end
 
         function grunt_rush_FLS1:rush_right_exec()
             if AH.print_exec() then print('     - Executing rush_right CA') end
 
             -- If a rush attack was found, execute it:
-            if (self.data.RR_action == 'rush') then
-                while self.data.RR_attackers and (table.maxn(self.data.RR_attackers) > 0) do
-                    if AH.show_messages() then W.message { speaker = self.data.RR_attackers[1].id, message = 'Rush right: Combo attack' } end
-                    AH.movefull_outofway_stopunit(ai, self.data.RR_attackers[1], self.data.RR_dsts[1])
-                    ai.attack(self.data.RR_attackers[1], self.data.RR_enemy)
+            if (self.data.rush_action == 'rush') then
+                while self.data.rush_cfg.attackers and (table.maxn(self.data.rush_cfg.attackers) > 0) do
+                    if AH.show_messages() then W.message { speaker = self.data.rush_cfg.attackers[1].id, message = 'Rush right: Combo attack' } end
+                    AH.movefull_outofway_stopunit(ai, self.data.rush_cfg.attackers[1], self.data.rush_cfg.dsts[1])
+                    ai.attack(self.data.rush_cfg.attackers[1], self.data.rush_cfg.enemy)
 
                     -- Delete this attack from the combo
-                    table.remove(self.data.RR_attackers, 1)
-                    table.remove(self.data.RR_dsts, 1)
+                    table.remove(self.data.rush_cfg.attackers, 1)
+                    table.remove(self.data.rush_cfg.dsts, 1)
 
                     -- If enemy got killed, we need to stop here
-                    if (not self.data.RR_enemy.valid) then self.data.RR_attackers, self.data.RR_dsts = nil, nil end
+                    if (not self.data.rush_cfg.enemy.valid) then self.data.rush_cfg.attackers, self.data.rush_cfg.dsts = nil, nil end
                 end
-                self.data.RR_attackers, self.data.RR_dsts, self.data.RR_enemy = nil, nil, nil
+                self.data.rush_action, self.data.rush_cfg = nil, nil
 
                 return  -- So that we don't go on to the next part
             end
 
             -- Otherwise, hold position
-            self:hold_position(self.data.RR_units, self.data.RR_goal, { ignore_terrain_at_night = true, called_from = 'rush_right' } )
-            self.data.RR_units, self.data.RR_goal = nil, nil
+            self:hold_position(self.data.rush_cfg.units, self.data.rush_cfg.goal, { ignore_terrain_at_night = true, called_from = 'rush_right' } )
+            self.data.rush_action, self.data.rush_cfg = nil, nil
         end
 
         -----------Spread poison ----------------
