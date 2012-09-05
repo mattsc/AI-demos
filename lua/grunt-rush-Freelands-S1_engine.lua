@@ -1721,14 +1721,20 @@ return {
             end
 
             -- Check whether units on left can go pillaging
-            local enemies = AH.get_live_units {
-                { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
-            }
-            local enemy_attack_map = AH.attack_map(enemies, { moves = 'max' })
+            -- If there's already a unit on the village, pillaging is ok, don't need to check for enemy threat
+            local enemy_threat = false
+            local unit_on_village = wesnoth.get_unit(11,9)
+            if unit_on_village and (unit_on_village.moves == 0) then
+                local enemies = AH.get_live_units {
+                    { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
+                }
+                local enemy_attack_map = AH.attack_map(enemies, { moves = 'max' })
 
-            -- If no more than 1 enemy can attack the village at 11,9, go pillaging
-            local enemy_threat = enemy_attack_map:get(11, 9)
-            --if enemy_threat and (enemy_threat == 1) then enemy_threat = nil end
+                -- If no more than 1 enemy can attack the village at 11,9, go pillaging
+                enemy_threat = enemy_attack_map:get(11, 9)
+                --if enemy_threat and (enemy_threat == 1) then enemy_threat = nil end
+            end
+
             if (not enemy_threat) and pillagers[1] then
                 --print('Eval says: go pillaging in west')
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
