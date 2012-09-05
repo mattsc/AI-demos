@@ -753,17 +753,24 @@ return {
         ------ Retreat injured units -----------
 
         function grunt_rush_FLS1:retreat_injured_units_eval()
+   	        -- First we retreat non-troll units w/ <12 HP to villages.
             local score = grunt_rush_FLS1:retreat_injured_units_eval_filtered(
                 { side = wesnoth.current.side, canrecruit = 'no',
                     formula = '$this_unit.moves > 0',
                     { 'not', { race = "troll" } }
                 }, "*^V*", 12)
             if (score > 0) then return score end
+            -- Then we retreat troll units with <16 HP to mountains
+            -- We use a slightly higher min_hp b/c trolls generally have low defense.
+            -- Also since trolls regen at start of turn, they only have <12 HP if poisoned
+            -- or reduced to <4 HP on enemy's turn.
             return grunt_rush_FLS1:retreat_injured_units_eval_filtered(
                 { side = wesnoth.current.side, canrecruit = 'no',
                     formula = '$this_unit.moves > 0',
                     race = "troll"
                 }, "!,*^X*,!,M*^*", 16)
+            -- We exclude impassable terrain to speed up evaluation.
+            -- We do NOT exclude mountain villages! Maybe we should?
         end
 
         function grunt_rush_FLS1:retreat_injured_units_eval_filtered(unit_filter, terrain_filter, min_hp)
