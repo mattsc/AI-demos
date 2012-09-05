@@ -1904,15 +1904,21 @@ return {
             --print('#units, #enemies', #units, #enemies)
 
             -- Get HP ratio of units that can reach right part of map as function of y coordinate
-            local width, height = wesnoth.get_map_size()
-            local hp_ratio_y = self:hp_ratio_y(units, enemies, 25, width, 11, height)
+            local x_min, y_min, x_max, y_max = 1, 1, wesnoth.get_map_size()
+            if cfg.rush_area then
+                if cfg.rush_area.x_min then x_min = cfg.rush_area.x_min end
+                if cfg.rush_area.x_max then x_max = cfg.rush_area.x_max end
+                if cfg.rush_area.y_min then y_min = cfg.rush_area.y_min end
+                if cfg.rush_area.y_max then y_max = cfg.rush_area.y_max end
+            end
+            local hp_ratio_y = self:hp_ratio_y(units, enemies, x_min, x_max, y_min, y_max)
 
             -- We'll do this step by step for easier experimenting
             -- To be streamlined later
             local tod = wesnoth.get_time_of_day()
 
-            local attack_y, attack_flag = 11, false
-            for y = attack_y,height do
+            local attack_y, attack_flag = y_min, falso
+            for y = attack_y,y_max do
                 --print(y, hp_ratio_y[y])
 
                 if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
@@ -2067,8 +2073,13 @@ return {
 
             local cfg = {}
 
+            -- The filter for the units to participate in the rush
             cfg.filter_units = {}
             cfg.filter_units.x, cfg.filter_units.y = '1-99,22-99', '1-11,12-25'
+
+            -- The area to consider into which to rush
+            local width, height = wesnoth.get_map_size()
+            cfg.rush_area = { x_min = 25, x_max = width, y_min = 11, y_max = height}
 
             local action, rush_cfg = self:area_rush_eval(cfg)
             --print('Rush action : ', action)
