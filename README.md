@@ -29,3 +29,5 @@ You can find the add-on on the Wesnoth add-on server under "AI Modification Demo
 
 If you want to chat with us on IRC, come to #wesnoth-umc-dev on irc.freenode.net!
 If you're not familiar with IRC, you can use the web interface here: http://webchat.freenode.net/?channels=wesnoth-umc-dev&nick=Wesnother..
+
+All of our code is licensed under the GPLv2, just like the rest of Wesnoth.
