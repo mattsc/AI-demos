@@ -252,6 +252,7 @@ return {
             --     close units
 
             cfg = cfg or {}
+            cfg.called_from = cfg.called_from or ''
 
             -- If this is a village, we try to hold the position itself,
             -- otherwise just set up position around it
@@ -350,7 +351,7 @@ return {
                     end)
                 end
 
-                if AH.show_messages() then W.message { speaker = best_unit.id, message = 'Hold position: Moving close unit' } end
+                if AH.show_messages() then W.message { speaker = best_unit.id, message = 'Hold position (' .. cfg.called_from .. '): Moving close unit' } end
                 AH.movefull_outofway_stopunit(ai, best_unit, best_hex)
                 return
             end
@@ -410,7 +411,7 @@ return {
                 end
 
                 if (max_rating > -9e99) then
-                    if AH.show_messages() then W.message { speaker = best_unit.id, message = 'Hold position: Moving far unit ' .. goal.x .. ',' .. goal.y } end
+                    if AH.show_messages() then W.message { speaker = best_unit.id, message = 'Hold position (' .. cfg.called_from .. '): Moving far unit ' .. goal.x .. ',' .. goal.y } end
                     AH.movefull_outofway_stopunit(ai, best_unit, best_hex)
                     return
                 end
@@ -1412,7 +1413,7 @@ return {
         ----------Grab villages -----------
 
         function grunt_rush_FLS1:grab_villages_eval()
-            local score_high, score_low = 462000, 300000
+            local score_high, score_low = 462000, 280000
             if AH.print_eval() then print('     - Evaluating grab_villages CA:', os.clock()) end
 
             --local leave_own_villages = wesnoth.get_variable "leave_own_villages"
@@ -1678,7 +1679,7 @@ return {
             local protect_loc = { x = 18, y = 9 }
 
             if AH.show_messages() then W.message { speaker = 'narrator', message = 'Protecting map center' } end
-            self:hold_position(units_MP, protect_loc)
+            self:hold_position(units_MP, protect_loc, { called_from = 'protect_center' })
         end
 
         --------- Hold left ------------
@@ -1727,7 +1728,7 @@ return {
 
             -- If no more than 1 enemy can attack the village at 11,9, go pillaging
             local enemy_threat = enemy_attack_map:get(11, 9)
-            if enemy_threat and (enemy_threat == 1) then enemy_threat = nil end
+            --if enemy_threat and (enemy_threat == 1) then enemy_threat = nil end
             if (not enemy_threat) and pillagers[1] then
                 --print('Eval says: go pillaging in west')
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
@@ -1786,7 +1787,7 @@ return {
 
             -- If no enemy can attack the village at 11,9, go pillaging
             local enemy_threat = enemy_attack_map:get(11, 9)
-            if enemy_threat and (enemy_threat == 1) then enemy_threat = nil end
+            --if enemy_threat and (enemy_threat == 1) then enemy_threat = nil end
             if (not enemy_threat) and pillagers[1] then
                 --print('  --> Exec: go pillaging in west')
 
@@ -1863,13 +1864,13 @@ return {
             local goal = { x = 11, y = 9 }  -- southern-most of western villages
 
             if AH.show_messages() then W.message { speaker = 'narrator', message = 'Holding left (west)' } end
-            self:hold_position(units_left, goal)
+            self:hold_position(units_left, goal, { called_from = 'hold_left' })
         end
 
         --------- Grunt rush right ------------
 
         function grunt_rush_FLS1:rush_right_eval()
-            local score_RR_high, score_RR_low = 350000, 280000
+            local score_RR_high, score_RR_low = 350000, 300000
             if AH.print_eval() then print('     - Evaluating rush_right CA:', os.clock()) end
 
             -- All remaining units (after 'hold_left' and previous events), head toward the village at 27,16
@@ -2064,7 +2065,7 @@ return {
             end
 
             -- Otherwise, hold position
-            self:hold_position(self.data.RR_units, self.data.RR_goal, { ignore_terrain_at_night = true } )
+            self:hold_position(self.data.RR_units, self.data.RR_goal, { ignore_terrain_at_night = true, called_from = 'rush_right' } )
             self.data.RR_units, self.data.RR_goal = nil, nil
         end
 
