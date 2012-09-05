@@ -2242,7 +2242,9 @@ return {
                         end
                         --print('    support_no_attacks:', support_no_attacks)
 
-                        if support_no_attacks then
+                        -- Don't need a support unit if there is already one (with no attacks left)
+                        -- or if the attack hex is a village
+                        if support_no_attacks or is_village then
                             rating = rating + 0.01 -- very slightly prefer this version, everything else being equal
                         else
                             -- Check whether one of the other units can attack that same enemy, but from a different hex
@@ -2284,7 +2286,7 @@ return {
                     -- or the defender is hurt already
                     if enemy_on_village and (not support_also_attack) and (defender.max_hitpoints - defender.hitpoints < 8) then rating = -9e99 end
 
-                    --print('  -> final rating', rating, attacker.id, a.x, a.y)
+                    --print('  -> final poisoner rating', rating, attacker.id, a.x, a.y)
 
                     if rating > max_rating then
                         max_rating, best_attack = rating, a
