@@ -2159,8 +2159,8 @@ return {
                 local status = H.get_child(defender.__cfg, "status")
                 local cant_poison = status.poisoned or status.not_living
 
-                -- Also, poisoning units that would level up through the attack is very bad
-                local about_to_level = defender.max_experience - defender.experience <= attacker.__cfg.level
+                -- Also, poisoning units that would level up through the attack or could level up immediately after is very bad
+                local about_to_level = (defender.max_experience - defender.experience) <= (attacker.__cfg.level * 2)
 
                 if (not cant_poison) and (not about_to_level) then
                     -- Strongest enemy gets poisoned first
