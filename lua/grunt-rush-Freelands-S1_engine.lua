@@ -1685,7 +1685,7 @@ return {
 
         --------- Hold left ------------
 
-        function grunt_rush_FLS1:hold_left_eval()
+        function grunt_rush_FLS1:hold_left_eval_old()
             local score = 351000
             if AH.print_eval() then print('     - Evaluating hold_left CA:', os.clock()) end
 
@@ -1770,7 +1770,7 @@ return {
             return 0
         end
 
-        function grunt_rush_FLS1:hold_left_exec()
+        function grunt_rush_FLS1:hold_left_exec_old()
             if AH.print_exec() then print('     - Executing hold_left CA') end
             -- Move goblin first, if there is one
             -- There shouldn't be more than 1, so we just take the first we find
@@ -1877,6 +1877,88 @@ return {
             if AH.show_messages() then W.message { speaker = 'narrator', message = 'Holding left (west)' } end
             self:hold_position(units_left, goal, { called_from = 'hold_left' })
         end
+
+        --- New hold left:
+
+        function grunt_rush_FLS1:hold_left_eval()
+            local score_rush_high, score_rush_low = 351000, 301000
+            if AH.print_eval() then print('     - Evaluating hold_left CA:', os.clock()) end
+
+            -- Skip this if AI is much stronger than enemy
+            if self:full_offensive() then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
+
+            local cfg = {}
+
+            -- The filter for the units to participate in the rush
+            cfg.filter_units = { x = '1-15,16-20', y = '1-15,1-6' }
+
+            -- The area to consider into which to rush
+            local width, height = wesnoth.get_map_size()
+            cfg.rush_area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15}
+
+            -- The area to consider when holding a position
+            cfg.hold = { x = 11, max_y = 15 }
+
+            local action, rush_cfg = self:area_rush_eval(cfg)
+            --print('Rush action : ', action)
+            --DBG.dbms(rush_cfg)
+
+            if (action == 'rush') then
+                self.data.HL_rush_action, self.data.HL_rush_cfg = action, rush_cfg
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return score_rush_high
+            end
+            if (action == 'hold') then
+                -- Only do this on the left if we don't have enough units out there already
+                local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no',
+                    x = '1-15', y = '1-15'
+                }
+                local enemies = AH.get_live_units { x = '1-15', y = '1-15',
+                    { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+                }
+                local hp_ratio = self:hp_ratio(units, enemies)
+                print('Hold left (hold) hp_ratio:', hp_ratio)
+                if (hp_ratio < 1) then
+                    self.data.HL_rush_action, self.data.HL_rush_cfg = action, rush_cfg
+                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                    return score_rush_low
+                end
+            end
+
+            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+            return 0
+        end
+
+        function grunt_rush_FLS1:hold_left_exec()
+            if AH.print_exec() then print('     - Executing hold_left CA (' .. self.data.HL_rush_action .. ')') end
+
+            -- If a rush attack was found, execute it:
+            if (self.data.HL_rush_action == 'rush') then
+                while self.data.HL_rush_cfg.attackers and (table.maxn(self.data.HL_rush_cfg.attackers) > 0) do
+                    if AH.show_messages() then W.message { speaker = self.data.HL_rush_cfg.attackers[1].id, message = 'Hold left: Combo attack' } end
+                    AH.movefull_outofway_stopunit(ai, self.data.HL_rush_cfg.attackers[1], self.data.HL_rush_cfg.dsts[1])
+                    ai.attack(self.data.HL_rush_cfg.attackers[1], self.data.HL_rush_cfg.enemy)
+
+                    -- Delete this attack from the combo
+                    table.remove(self.data.HL_rush_cfg.attackers, 1)
+                    table.remove(self.data.HL_rush_cfg.dsts, 1)
+
+                    -- If enemy got killed, we need to stop here
+                    if (not self.data.HL_rush_cfg.enemy.valid) then self.data.HL_rush_cfg.attackers, self.data.HL_rush_cfg.dsts = nil, nil end
+                end
+                self.data.HL_rush_action, self.data.HL_rush_cfg = nil, nil
+
+                return  -- So that we don't go on to the next part
+            end
+
+            -- Otherwise, hold position
+            self:hold_position(self.data.HL_rush_cfg.units, self.data.HL_rush_cfg.goal, { ignore_terrain_at_night = true, called_from = 'hold_left' } )
+            self.data.HL_rush_action, self.data.HL_rush_cfg = nil, nil
+        end
+
 
         --------- Grunt rush right ------------
 
@@ -2083,8 +2165,7 @@ return {
             local cfg = {}
 
             -- The filter for the units to participate in the rush
-            cfg.filter_units = {}
-            cfg.filter_units.x, cfg.filter_units.y = '1-99,22-99', '1-11,12-25'
+            cfg.filter_units = { x = '1-99,22-99', y = '1-11,12-25' }
 
             -- The area to consider into which to rush
             local width, height = wesnoth.get_map_size()
