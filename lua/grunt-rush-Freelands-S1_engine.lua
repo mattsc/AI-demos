@@ -2099,6 +2099,12 @@ return {
         ----------- Hold CA ----------------
 
         function grunt_rush_FLS1:area_hold_eval(cfg)
+            -- Calculate if position holding should be done in the specified area
+            -- See grunt_rush_FLS1:hold_eval() for format of 'cfg'
+            -- Returns the attack details if a viable attack combo was found, nil otherwise
+
+            -- ***** Note: this entire CA needs to be overhauled, so I'm leaving most as it is for now
+            -- ***** even if there's a lot of duplication w.r.t. area_hold_eval()
 
             cfg = cfg or {}
 
@@ -2112,7 +2118,7 @@ return {
             end
             --DBG.dbms(filter_units)
             local units = AH.get_live_units(filter_units)
-            if (not units[1]) then return 'none' end
+            if (not units[1]) then return end
 
             -- Then get all the enemies (this is all of them, to get the HP ratio)
             local enemies = AH.get_live_units {
@@ -2122,11 +2128,11 @@ return {
 
             -- Get HP ratio of units that can reach right part of map as function of y coordinate
             local x_min, y_min, x_max, y_max = 1, 1, wesnoth.get_map_size()
-            if cfg.rush_area then
-                if cfg.rush_area.x_min then x_min = cfg.rush_area.x_min end
-                if cfg.rush_area.x_max then x_max = cfg.rush_area.x_max end
-                if cfg.rush_area.y_min then y_min = cfg.rush_area.y_min end
-                if cfg.rush_area.y_max then y_max = cfg.rush_area.y_max end
+            if cfg.hold_area then
+                if cfg.hold_area.x_min then x_min = cfg.hold_area.x_min end
+                if cfg.hold_area.x_max then x_max = cfg.hold_area.x_max end
+                if cfg.hold_area.y_min then y_min = cfg.hold_area.y_min end
+                if cfg.hold_area.y_max then y_max = cfg.hold_area.y_max end
             end
             local hp_ratio_y = self:hp_ratio_y(units, enemies, x_min, x_max, y_min, y_max)
 
@@ -2175,11 +2181,11 @@ return {
             end
             --print('goal:', goal.x, goal.y)
 
-            local rush_cfg = {}
-            rush_cfg.units, rush_cfg.goal = units, goal
+            local hold_cfg = {}
+            hold_cfg.units, hold_cfg.goal = units, goal
 
             if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-            return 'hold', rush_cfg
+            return hold_cfg
         end
 
         function grunt_rush_FLS1:hold_eval()
@@ -2193,34 +2199,32 @@ return {
                 return 0
             end
 
-            ----- Set up the config table for all rushes first -----
-            -- filter_units .x .y: the area from which to draw units for this rush
-            -- rush_area .x_min .x_max .y_min .y_max: the area to consider into which to rush
+            ----- Set up the config table for all hold areas first -----
+            -- filter_units .x .y: the area from which to draw units for this hold
+            -- hold_area .x_min .x_max .y_min .y_max: the area to consider where to hold
             -- hold .x .max_y: the coordinates to consider when holding a position (to be separated out later)
 
             local width, height = wesnoth.get_map_size()
 
             local cfg_left = {
                 filter_units = { x = '1-15,16-20', y = '1-15,1-6' },
-                rush_area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15},
+                hold_area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15},
                 hold = { x = 11, max_y = 15 }
             }
 
             local cfg_right = {
                 filter_units = { x = '1-99,22-99', y = '1-11,12-25' },
-                rush_area = { x_min = 25, x_max = width, y_min = 11, y_max = height},
+                hold_area = { x_min = 25, x_max = width, y_min = 11, y_max = height},
                 hold = { x = 27, max_y = 22 }
             }
 
             ----- Now start evaluating things -----
 
             -- Left gets evaluated (and possibly executed) first
-            local action_left, rush_cfg_left = self:area_hold_eval(cfg_left)
-            --print('Rush action left: ', action_left)
-            --DBG.dbms(rush_cfg_left)
+            local hold_cfg_left = self:area_hold_eval(cfg_left)
+            --DBG.dbms(hold_cfg_left)
 
-            -- If we got here, we're down to holding.  Check left first, then right
-            if (action_left == 'hold') then
+            if hold_cfg_left then
                 -- Only do this on the left if we don't have enough units out there already
                 local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no',
                     x = '1-15', y = '1-15'
@@ -2230,19 +2234,18 @@ return {
                 }
                 local hp_ratio = self:hp_ratio(units, enemies)
                 if (hp_ratio < 1) then
-                    self.data.hold_action, self.data.hold_cfg = action_left, rush_cfg_left
+                    self.data.hold_cfg = hold_cfg_left
                     if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                     return score_hold
                 end
             end
 
-            -- If we got here, check for rush on the right
-            local action_right, rush_cfg_right = self:area_hold_eval(cfg_right)
-            --print('Rush action right: ', action_right)
-            --DBG.dbms(rush_cfg_right)
+            -- If we got here, check for hold on the right
+            local hold_cfg_right = self:area_hold_eval(cfg_right)
+            --DBG.dbms(hold_cfg_right)
 
-            if (action_right == 'hold') then
-                self.data.hold_action, self.data.hold_cfg = action_right, rush_cfg_right
+            if hold_cfg_right then
+                self.data.hold_cfg = hold_cfg_right
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return score_hold
             end
@@ -2252,11 +2255,10 @@ return {
         end
 
         function grunt_rush_FLS1:hold_exec()
-            if AH.print_exec() then print('     - Executing hold CA (' .. self.data.hold_action .. ')') end
+            if AH.print_exec() then print('     - Executing hold CA') end
 
-            -- Otherwise, hold position
-            self:hold_position(self.data.hold_cfg.units, self.data.hold_cfg.goal, { ignore_terrain_at_night = true, called_from = 'rush_right' } )
-            self.data.hold_action, self.data.hold_cfg = nil, nil
+            self:hold_position(self.data.hold_cfg.units, self.data.hold_cfg.goal, { ignore_terrain_at_night = true, called_from = 'hold CA' } )
+            self.data.hold_cfg = nil
         end
 
         -----------Spread poison ----------------
