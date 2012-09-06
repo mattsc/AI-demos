@@ -1932,12 +1932,12 @@ return {
             end
             --print('attack_y before', attack_y)
 
-            if (type(self.data.RR_attack_y) ~= 'table') then self.data.RR_attack_y = {} end
-            if self.data.RR_attack_y[wesnoth.current.turn] and (self.data.RR_attack_y[wesnoth.current.turn] > attack_y) then
-                attack_y = self.data.RR_attack_y[wesnoth.current.turn]
-            else
-                self.data.RR_attack_y[wesnoth.current.turn] = attack_y
-            end
+            --if (type(self.data.RR_attack_y) ~= 'table') then self.data.RR_attack_y = {} end
+            --if self.data.RR_attack_y[wesnoth.current.turn] and (self.data.RR_attack_y[wesnoth.current.turn] > attack_y) then
+            --    attack_y = self.data.RR_attack_y[wesnoth.current.turn]
+            --else
+            --    self.data.RR_attack_y[wesnoth.current.turn] = attack_y
+            --end
             --print('attack_y after', attack_y)
 
             -- If a suitable attack_y was found, figure out what targets there might be
