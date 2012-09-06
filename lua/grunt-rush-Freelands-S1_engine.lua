@@ -2700,7 +2700,7 @@ return {
                     ai.recruit('Orcish Archer', best_hex[1], best_hex[2])
                     return
                 else
-                    self.data.recruit_bank_gold = grunt_rush_FLS1:should_have_gold_next_turn(archer_cost)
+                    self.data.recruit_bank_gold = self.data.recruit_bank_gold or grunt_rush_FLS1:should_have_gold_next_turn(archer_cost)
                 end
             end
 
@@ -2716,7 +2716,7 @@ return {
                     ai.recruit('Troll Whelp', best_hex[1], best_hex[2])
                     return
                 else
-                    self.data.recruit_bank_gold = grunt_rush_FLS1:should_have_gold_next_turn(whelp_cost)
+                    self.data.recruit_bank_gold = self.data.recruit_bank_gold or grunt_rush_FLS1:should_have_gold_next_turn(whelp_cost)
                 end
             end
 
