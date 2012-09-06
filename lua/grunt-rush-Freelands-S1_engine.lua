@@ -2027,57 +2027,10 @@ return {
                     return 'rush', rush_cfg
                 end
             end
-
-            -- If we got here, we should hold position on the right instead
-            --print('Holding position on right down to y = ' .. attack_y)
-            --if AH.show_messages() then W.message { speaker = 'narrator', message = 'Holding position on right down to y = ' .. attack_y } end
-
-            -- Get all units with moves left (before was for those with attacks left)
-            local filter_units = { side = wesnoth.current.side, canrecruit = 'no',
-                formula = '$this_unit.moves > 0'
-            }
-            if cfg.filter_units then
-                if cfg.filter_units.x then filter_units.x = cfg.filter_units.x end
-                if cfg.filter_units.y then filter_units.y = cfg.filter_units.y end
-            end
-            --DBG.dbms(filter_units)
-            local units = AH.get_live_units(filter_units)
-            if (not units[1]) then return 'none' end
-
-            -- If there's a village in the two rows around attack_y, make that the goal
-            -- Otherwise it's just { hold_x, attack_y }
-
-            local hold_x = math.floor((x_min + x_max) / 2.)
-            local hold_max_y = y_max
-            if cfg.hold then
-               if cfg.hold.x then hold_x = cfg.hold.x end
-               if cfg.hold.max_y then hold_max_y = cfg.hold.max_y end
-            end
-
-            if (attack_y > hold_max_y) then attack_y = hold_max_y end
-            local goal = { x = hold_x, y = attack_y }
-            for y = attack_y - 1, attack_y + 1 do
-                for x = x_min,x_max do
-                    --print(x,y)
-                    local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
-                    if is_village then
-                        goal = { x = x, y = y }
-                        break
-                    end
-                end
-            end
-            --print('goal:', goal.x, goal.y)
-
-            local rush_cfg = {}
-            rush_cfg.units, rush_cfg.goal = units, goal
-
-            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-            return 'hold', rush_cfg
         end
 
         function grunt_rush_FLS1:rush_eval()
-            local score_left_high, score_left_low = 351000, 301000
-            local score_right_high, score_right_low = 350000, 300000
+            local score_rush = 350000
             if AH.print_eval() then print('     - Evaluating rush CA:', os.clock()) end
 
             -- Skip this if AI is much stronger than enemy
@@ -2115,7 +2068,7 @@ return {
             if (action_left == 'rush') then
                 self.data.rush_action, self.data.rush_cfg = action_left, rush_cfg_left
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                return score_left_high
+                return score_rush
             end
 
             -- If we got here, check for rush on the right
@@ -2126,38 +2079,12 @@ return {
             if (action_right == 'rush') then
                 self.data.rush_action, self.data.rush_cfg = action_right, rush_cfg_right
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                return score_right_high
+                return score_rush
             end
-
-            -- If we got here, we're down to holding.  Check left first, then right
-            if (action_left == 'hold') then
-                -- Only do this on the left if we don't have enough units out there already
-                local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no',
-                    x = '1-15', y = '1-15'
-                }
-                local enemies = AH.get_live_units { x = '1-15', y = '1-15',
-                    { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
-                }
-                local hp_ratio = self:hp_ratio(units, enemies)
-                if (hp_ratio < 1) then
-                    self.data.rush_action, self.data.rush_cfg = action_left, rush_cfg_left
-                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                    return score_left_low
-                end
-            end
-
-            if (action_right == 'hold') then
-                self.data.rush_action, self.data.rush_cfg = action_right, rush_cfg_right
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                return score_right_low
-            end
-
-            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-            return 0
         end
 
         function grunt_rush_FLS1:rush_exec()
-            if AH.print_exec() then print('     - Executing rush_right CA (' .. self.data.rush_action .. ')') end
+            if AH.print_exec() then print('     - Executing rush CA (' .. self.data.rush_action .. ')') end
 
             -- If a rush attack was found, execute it:
             if (self.data.rush_action == 'rush') then
@@ -2177,10 +2104,169 @@ return {
 
                 return  -- So that we don't go on to the next part
             end
+        end
+
+        ----------- Hold CA ----------------
+
+        function grunt_rush_FLS1:area_hold_eval(cfg)
+
+            cfg = cfg or {}
+
+            -- Get all units with moves left (before was for those with attacks left)
+            local filter_units = { side = wesnoth.current.side, canrecruit = 'no',
+                formula = '$this_unit.moves > 0'
+            }
+            if cfg.filter_units then
+                if cfg.filter_units.x then filter_units.x = cfg.filter_units.x end
+                if cfg.filter_units.y then filter_units.y = cfg.filter_units.y end
+            end
+            --DBG.dbms(filter_units)
+            local units = AH.get_live_units(filter_units)
+            if (not units[1]) then return 'none' end
+
+            -- Then get all the enemies (this is all of them, to get the HP ratio)
+            local enemies = AH.get_live_units {
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+            }
+            --print('#units, #enemies', #units, #enemies)
+
+            -- Get HP ratio of units that can reach right part of map as function of y coordinate
+            local x_min, y_min, x_max, y_max = 1, 1, wesnoth.get_map_size()
+            if cfg.rush_area then
+                if cfg.rush_area.x_min then x_min = cfg.rush_area.x_min end
+                if cfg.rush_area.x_max then x_max = cfg.rush_area.x_max end
+                if cfg.rush_area.y_min then y_min = cfg.rush_area.y_min end
+                if cfg.rush_area.y_max then y_max = cfg.rush_area.y_max end
+            end
+            local hp_ratio_y = self:hp_ratio_y(units, enemies, x_min, x_max, y_min, y_max)
+
+            -- We'll do this step by step for easier experimenting
+            -- To be streamlined later
+            local tod = wesnoth.get_time_of_day()
+
+            local attack_y, attack_flag = y_min, falso
+            for y = attack_y,y_max do
+                --print(y, hp_ratio_y[y])
+
+                if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
+                    attack_flag = false
+                    if (hp_ratio_y[y] >= 2.0) then attack_y = y end
+                end
+                if (tod.id == 'dusk') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
+                    attack_flag = true
+                    if (hp_ratio_y[y] > 0.1) then attack_y = y end
+                end
+            end
+            --print('attack_y before', attack_y)
+            --print('Holding position on right down to y = ' .. attack_y)
+            --if AH.show_messages() then W.message { speaker = 'narrator', message = 'Holding position on right down to y = ' .. attack_y } end
+
+            -- If there's a village in the two rows around attack_y, make that the goal
+            -- Otherwise it's just { hold_x, attack_y }
+
+            local hold_x = math.floor((x_min + x_max) / 2.)
+            local hold_max_y = y_max
+            if cfg.hold then
+               if cfg.hold.x then hold_x = cfg.hold.x end
+               if cfg.hold.max_y then hold_max_y = cfg.hold.max_y end
+            end
+
+            if (attack_y > hold_max_y) then attack_y = hold_max_y end
+            local goal = { x = hold_x, y = attack_y }
+            for y = attack_y - 1, attack_y + 1 do
+                for x = x_min,x_max do
+                    --print(x,y)
+                    local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
+                    if is_village then
+                        goal = { x = x, y = y }
+                        break
+                    end
+                end
+            end
+            --print('goal:', goal.x, goal.y)
+
+            local rush_cfg = {}
+            rush_cfg.units, rush_cfg.goal = units, goal
+
+            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+            return 'hold', rush_cfg
+        end
+
+        function grunt_rush_FLS1:hold_eval()
+
+            local score_hold = 300000
+            if AH.print_eval() then print('     - Evaluating hold CA:', os.clock()) end
+
+            -- Skip this if AI is much stronger than enemy
+            if self:full_offensive() then
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 0
+            end
+
+            ----- Set up the config table for all rushes first -----
+            -- filter_units .x .y: the area from which to draw units for this rush
+            -- rush_area .x_min .x_max .y_min .y_max: the area to consider into which to rush
+            -- hold .x .max_y: the coordinates to consider when holding a position (to be separated out later)
+
+            local width, height = wesnoth.get_map_size()
+
+            local cfg_left = {
+                filter_units = { x = '1-15,16-20', y = '1-15,1-6' },
+                rush_area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15},
+                hold = { x = 11, max_y = 15 }
+            }
+
+            local cfg_right = {
+                filter_units = { x = '1-99,22-99', y = '1-11,12-25' },
+                rush_area = { x_min = 25, x_max = width, y_min = 11, y_max = height},
+                hold = { x = 27, max_y = 22 }
+            }
+
+            ----- Now start evaluating things -----
+
+            -- Left gets evaluated (and possibly executed) first
+            local action_left, rush_cfg_left = self:area_hold_eval(cfg_left)
+            --print('Rush action left: ', action_left)
+            --DBG.dbms(rush_cfg_left)
+
+            -- If we got here, we're down to holding.  Check left first, then right
+            if (action_left == 'hold') then
+                -- Only do this on the left if we don't have enough units out there already
+                local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no',
+                    x = '1-15', y = '1-15'
+                }
+                local enemies = AH.get_live_units { x = '1-15', y = '1-15',
+                    { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+                }
+                local hp_ratio = self:hp_ratio(units, enemies)
+                if (hp_ratio < 1) then
+                    self.data.hold_action, self.data.hold_cfg = action_left, rush_cfg_left
+                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                    return score_hold
+                end
+            end
+
+            -- If we got here, check for rush on the right
+            local action_right, rush_cfg_right = self:area_hold_eval(cfg_right)
+            --print('Rush action right: ', action_right)
+            --DBG.dbms(rush_cfg_right)
+
+            if (action_right == 'hold') then
+                self.data.hold_action, self.data.hold_cfg = action_right, rush_cfg_right
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return score_hold
+            end
+
+            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+            return 0
+        end
+
+        function grunt_rush_FLS1:hold_exec()
+            if AH.print_exec() then print('     - Executing hold CA (' .. self.data.hold_action .. ')') end
 
             -- Otherwise, hold position
-            self:hold_position(self.data.rush_cfg.units, self.data.rush_cfg.goal, { ignore_terrain_at_night = true, called_from = 'rush_right' } )
-            self.data.rush_action, self.data.rush_cfg = nil, nil
+            self:hold_position(self.data.hold_cfg.units, self.data.hold_cfg.goal, { ignore_terrain_at_night = true, called_from = 'rush_right' } )
+            self.data.hold_action, self.data.hold_cfg = nil, nil
         end
 
         -----------Spread poison ----------------
