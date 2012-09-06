@@ -1881,6 +1881,9 @@ return {
         --------- Grunt rush right ------------
 
         function grunt_rush_FLS1:area_rush_eval(cfg)
+            -- Calculate if a rush should be done in the specified area
+            -- See grunt_rush_FLS1:rush_eval() for format of 'cfg'
+            -- Returns the attack details if a viable attack combo was found, nil otherwise
 
             cfg = cfg or {}
 
@@ -1895,7 +1898,7 @@ return {
             end
             --DBG.dbms(filter_units)
             local units = AH.get_live_units(filter_units)
-            if (not units[1]) then return 'none' end
+            if (not units[1]) then return end
 
             -- Then get all the enemies (this is all of them, to get the HP ratio)
             local enemies = AH.get_live_units {
@@ -1930,15 +1933,7 @@ return {
                     if (hp_ratio_y[y] > 0.1) then attack_y = y end
                 end
             end
-            --print('attack_y before', attack_y)
-
-            --if (type(self.data.RR_attack_y) ~= 'table') then self.data.RR_attack_y = {} end
-            --if self.data.RR_attack_y[wesnoth.current.turn] and (self.data.RR_attack_y[wesnoth.current.turn] > attack_y) then
-            --    attack_y = self.data.RR_attack_y[wesnoth.current.turn]
-            --else
-            --    self.data.RR_attack_y[wesnoth.current.turn] = attack_y
-            --end
-            --print('attack_y after', attack_y)
+            --print('attack_y', attack_y)
 
             -- If a suitable attack_y was found, figure out what targets there might be
             if attack_flag and (attack_y > 0) then
@@ -2024,9 +2019,11 @@ return {
                 if (max_rating > -9e99) then
                     local rush_cfg = {}
                     rush_cfg.attackers, rush_cfg.dsts, rush_cfg.enemy = best_attackers, best_dsts, best_enemy
-                    return 'rush', rush_cfg
+                    return rush_cfg
                 end
             end
+
+            return nil  -- Yes, I know that the 'nil' is unnecessary :-)
         end
 
         function grunt_rush_FLS1:rush_eval()
@@ -2042,68 +2039,61 @@ return {
             ----- Set up the config table for all rushes first -----
             -- filter_units .x .y: the area from which to draw units for this rush
             -- rush_area .x_min .x_max .y_min .y_max: the area to consider into which to rush
-            -- hold .x .max_y: the coordinates to consider when holding a position (to be separated out later)
 
             local width, height = wesnoth.get_map_size()
 
             local cfg_left = {
                 filter_units = { x = '1-15,16-20', y = '1-15,1-6' },
-                rush_area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15},
-                hold = { x = 11, max_y = 15 }
+                rush_area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15}
             }
 
             local cfg_right = {
                 filter_units = { x = '1-99,22-99', y = '1-11,12-25' },
-                rush_area = { x_min = 25, x_max = width, y_min = 11, y_max = height},
-                hold = { x = 27, max_y = 22 }
+                rush_area = { x_min = 25, x_max = width, y_min = 11, y_max = height}
             }
 
             ----- Now start evaluating things -----
 
             -- Left gets evaluated (and possibly executed) first
-            local action_left, rush_cfg_left = self:area_rush_eval(cfg_left)
-            --print('Rush action left: ', action_left)
+            local rush_cfg_left = self:area_rush_eval(cfg_left)
             --DBG.dbms(rush_cfg_left)
 
-            if (action_left == 'rush') then
-                self.data.rush_action, self.data.rush_cfg = action_left, rush_cfg_left
+            if rush_cfg_left then
+                self.data.rush_cfg = rush_cfg_left
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return score_rush
             end
 
             -- If we got here, check for rush on the right
-            local action_right, rush_cfg_right = self:area_rush_eval(cfg_right)
-            --print('Rush action right: ', action_right)
+            local rush_cfg_right = self:area_rush_eval(cfg_right)
             --DBG.dbms(rush_cfg_right)
 
-            if (action_right == 'rush') then
-                self.data.rush_action, self.data.rush_cfg = action_right, rush_cfg_right
+            if rush_cfg_right then
+                self.data.rush_cfg = rush_cfg_right
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return score_rush
             end
+
+            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+            return 0
         end
 
         function grunt_rush_FLS1:rush_exec()
-            if AH.print_exec() then print('     - Executing rush CA (' .. self.data.rush_action .. ')') end
+            if AH.print_exec() then print('     - Executing rush CA') end
 
-            -- If a rush attack was found, execute it:
-            if (self.data.rush_action == 'rush') then
-                while self.data.rush_cfg.attackers and (table.maxn(self.data.rush_cfg.attackers) > 0) do
-                    if AH.show_messages() then W.message { speaker = self.data.rush_cfg.attackers[1].id, message = 'Rush right: Combo attack' } end
-                    AH.movefull_outofway_stopunit(ai, self.data.rush_cfg.attackers[1], self.data.rush_cfg.dsts[1])
-                    ai.attack(self.data.rush_cfg.attackers[1], self.data.rush_cfg.enemy)
+            while self.data.rush_cfg.attackers and (table.maxn(self.data.rush_cfg.attackers) > 0) do
+                if AH.show_messages() then W.message { speaker = self.data.rush_cfg.attackers[1].id, message = 'Rush right: Combo attack' } end
+                AH.movefull_outofway_stopunit(ai, self.data.rush_cfg.attackers[1], self.data.rush_cfg.dsts[1])
+                ai.attack(self.data.rush_cfg.attackers[1], self.data.rush_cfg.enemy)
 
-                    -- Delete this attack from the combo
-                    table.remove(self.data.rush_cfg.attackers, 1)
-                    table.remove(self.data.rush_cfg.dsts, 1)
+                -- Delete this attack from the combo
+                table.remove(self.data.rush_cfg.attackers, 1)
+                table.remove(self.data.rush_cfg.dsts, 1)
 
-                    -- If enemy got killed, we need to stop here
-                    if (not self.data.rush_cfg.enemy.valid) then self.data.rush_cfg.attackers, self.data.rush_cfg.dsts = nil, nil end
-                end
-                self.data.rush_action, self.data.rush_cfg = nil, nil
-
-                return  -- So that we don't go on to the next part
+                -- If enemy got killed, we need to stop here
+                if (not self.data.rush_cfg.enemy.valid) then self.data.rush_cfg.attackers, self.data.rush_cfg.dsts = nil, nil end
             end
+            self.data.rush_cfg = nil
         end
 
         ----------- Hold CA ----------------
