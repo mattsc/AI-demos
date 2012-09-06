@@ -2017,9 +2017,9 @@ return {
 
                 -- Now we know which attacks to do
                 if (max_rating > -9e99) then
-                    local rush_cfg = {}
-                    rush_cfg.attackers, rush_cfg.dsts, rush_cfg.enemy = best_attackers, best_dsts, best_enemy
-                    return rush_cfg
+                    local rush = {}
+                    rush.attackers, rush.dsts, rush.enemy = best_attackers, best_dsts, best_enemy
+                    return rush
                 end
             end
 
@@ -2052,26 +2052,22 @@ return {
                 rush_area = { x_min = 25, x_max = width, y_min = 11, y_max = height}
             }
 
+            -- This way it will be easy to change the priorities on the fly later:
+            local cfgs = {}
+            cfgs[1] = cfg_left
+            cfgs[2] = cfg_right
+
             ----- Now start evaluating things -----
 
-            -- Left gets evaluated (and possibly executed) first
-            local rush_cfg_left = self:area_rush_eval(cfg_left)
-            --DBG.dbms(rush_cfg_left)
+            for i,cfg in ipairs(cfgs) do
+                local rush = self:area_rush_eval(cfg)
+                --DBG.dbms(rush)
 
-            if rush_cfg_left then
-                self.data.rush_cfg = rush_cfg_left
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                return score_rush
-            end
-
-            -- If we got here, check for rush on the right
-            local rush_cfg_right = self:area_rush_eval(cfg_right)
-            --DBG.dbms(rush_cfg_right)
-
-            if rush_cfg_right then
-                self.data.rush_cfg = rush_cfg_right
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                return score_rush
+                if rush then
+                    self.data.rush = rush
+                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                    return score_rush
+                end
             end
 
             if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
@@ -2081,19 +2077,19 @@ return {
         function grunt_rush_FLS1:rush_exec()
             if AH.print_exec() then print('     - Executing rush CA') end
 
-            while self.data.rush_cfg.attackers and (table.maxn(self.data.rush_cfg.attackers) > 0) do
-                if AH.show_messages() then W.message { speaker = self.data.rush_cfg.attackers[1].id, message = 'Rush right: Combo attack' } end
-                AH.movefull_outofway_stopunit(ai, self.data.rush_cfg.attackers[1], self.data.rush_cfg.dsts[1])
-                ai.attack(self.data.rush_cfg.attackers[1], self.data.rush_cfg.enemy)
+            while self.data.rush.attackers and (table.maxn(self.data.rush.attackers) > 0) do
+                if AH.show_messages() then W.message { speaker = self.data.rush.attackers[1].id, message = 'Rush: Combo attack' } end
+                AH.movefull_outofway_stopunit(ai, self.data.rush.attackers[1], self.data.rush.dsts[1])
+                ai.attack(self.data.rush.attackers[1], self.data.rush.enemy)
 
                 -- Delete this attack from the combo
-                table.remove(self.data.rush_cfg.attackers, 1)
-                table.remove(self.data.rush_cfg.dsts, 1)
+                table.remove(self.data.rush.attackers, 1)
+                table.remove(self.data.rush.dsts, 1)
 
                 -- If enemy got killed, we need to stop here
-                if (not self.data.rush_cfg.enemy.valid) then self.data.rush_cfg.attackers, self.data.rush_cfg.dsts = nil, nil end
+                if (not self.data.rush.enemy.valid) then self.data.rush.attackers = nil end
             end
-            self.data.rush_cfg = nil
+            self.data.rush = nil
         end
 
         ----------- Hold CA ----------------
