@@ -1920,7 +1920,6 @@ return {
                     { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
                 }
                 local hp_ratio = self:hp_ratio(units, enemies)
-                print('Hold left (hold) hp_ratio:', hp_ratio)
                 if (hp_ratio < 1) then
                     self.data.HL_rush_action, self.data.HL_rush_cfg = action, rush_cfg
                     if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
@@ -2027,7 +2026,12 @@ return {
                 attack_y = attack_y + 1  -- Targets can be one hex farther south
                 --print('Looking for targets on right down to y = ' .. attack_y)
 
-                local targets = AH.table_copy(enemies)  -- Want this so that 'enemies' array is not modified
+                -- Now get the targets (=enemies inside the rush area)
+                local targets = AH.get_live_units { 
+                    x = x_min .. '-' .. x_max, y = y_min .. '-' .. y_max,
+                    { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+                }
+
                 -- Take out targets that are too far south
                 for i=#targets,1,-1 do
                     if (targets[i].y > attack_y) then table.remove(targets, i) end
