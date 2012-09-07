@@ -70,8 +70,8 @@ return {
             -- 1. If Turn >= 16 and HP ratio > 1.5
             -- 2. IF HP ratio > 2 under all circumstance (well, starting from Turn 3, to avoid problems at beginning)
 
-            if (self:hp_ratio() > 1.5) and (wesnoth.current.turn >= 16) then return true end
-            if (self:hp_ratio() > 2.0) and (wesnoth.current.turn >= 3) then return true end
+            if (grunt_rush_FLS1:hp_ratio() > 1.5) and (wesnoth.current.turn >= 16) then return true end
+            if (grunt_rush_FLS1:hp_ratio() > 2.0) and (wesnoth.current.turn >= 3) then return true end
             return false
         end
 
@@ -196,7 +196,7 @@ return {
 
                     -- 2. If the 'exposure' at the attack location is too high, don't do it either
                     for i_a,a in ipairs(attackers) do
-                        local counter_table = self:calc_counter_attack(a, dsts[i_a])
+                        local counter_table = grunt_rush_FLS1:calc_counter_attack(a, dsts[i_a])
                         --DBG.dbms(counter_table)
                         --print(a.id, dsts[i_a][1], dsts[i_a][2], counter_table.average_def_stats.hp_chance[0],  counter_table.average_def_stats.average_hp)
                         -- Use a condition when damage is too much to be worthwhile
@@ -563,7 +563,7 @@ return {
                 if ((a.att_stats.hp_chance[0] == 0) and (a.att_stats.poisoned == 0) and (a.att_stats.slowed == 0)) then
 
                     -- Get maximum possible counter attack damage possible by enemies on next turn
-                    local max_counter_damage = self:calc_counter_attack(unit, { a.x, a.y }).max_counter_damage
+                    local max_counter_damage = grunt_rush_FLS1:calc_counter_attack(unit, { a.x, a.y }).max_counter_damage
                     --print('  max counter attack damage:', max_counter_damage)
 
                     -- and add this to damage possible on this attack
@@ -628,7 +628,7 @@ return {
                 local leader = wesnoth.get_units { side = s.side, canrecruit = 'yes' }[1]
                 print('   Player ' .. s.side .. ' (' .. leader.type .. '): ' .. #units .. ' Units with total HP: ' .. total_hp)
             end
-            if self:full_offensive() then print(' Full offensive mode (mostly done by RCA AI)') end
+            if grunt_rush_FLS1:full_offensive() then print(' Full offensive mode (mostly done by RCA AI)') end
         end
 
         ------ Reset variables at beginning of turn -----------
@@ -643,11 +643,11 @@ return {
         function grunt_rush_FLS1: reset_vars_exec()
             --print(' Resetting variables at beginning of Turn ' .. wesnoth.current.turn)
 
-            -- Reset self.data at beginning of turn, but need to keep 'complained_about_luck' variable
-            local complained_about_luck = self.data.SP_complained_about_luck
-            local enemy_is_undead = self.data.enemy_is_undead
-            self.data = {}
-            self.data.SP_complained_about_luck = complained_about_luck
+            -- Reset grunt_rush_FLS1.data at beginning of turn, but need to keep 'complained_about_luck' variable
+            local complained_about_luck = grunt_rush_FLS1.data.SP_complained_about_luck
+            local enemy_is_undead = grunt_rush_FLS1.data.enemy_is_undead
+            grunt_rush_FLS1.data = {}
+            grunt_rush_FLS1.data.SP_complained_about_luck = complained_about_luck
 
             if (enemy_is_undead == nil) then
                 local enemy_leader = wesnoth.get_units{
@@ -656,7 +656,7 @@ return {
                     }[1]
                 enemy_is_undead = (enemy_leader.__cfg.race == "undead") or (enemy_leader.type == "Dark Sorcerer")
             end
-            self.data.enemy_is_undead = enemy_is_undead
+            grunt_rush_FLS1.data.enemy_is_undead = enemy_is_undead
         end
 
         ------ Hard coded -----------
@@ -704,7 +704,7 @@ return {
                 ai.recruit('Orcish Grunt', 17, 5)
                 ai.recruit('Wolf Rider', 18, 3)
                 ai.recruit('Orcish Archer', 18, 4)
-                if (self.data.enemy_is_undead) then
+                if (grunt_rush_FLS1.data.enemy_is_undead) then
                     ai.recruit('Wolf Rider', 20, 3)
                 else
                     ai.recruit('Orcish Assassin', 20, 4)
@@ -713,7 +713,7 @@ return {
             if (wesnoth.current.turn == 2) then
                 ai.move_full(17, 5, 12, 5)
                 ai.move_full(18, 3, 12, 2)
-                if (self.data.enemy_is_undead) then
+                if (grunt_rush_FLS1.data.enemy_is_undead) then
                     ai.move_full(20, 3, 28, 5)
                 else
                     ai.move_full(20, 4, 24, 7)
@@ -754,8 +754,8 @@ return {
                     if (not unit_in_way) then
                         local next_hop = AH.next_hop(leader, k[1], k[2])
                         if next_hop and (next_hop[1] == k[1]) and (next_hop[2] == k[2]) then
-                            self.data.MLK_leader = leader
-                            self.data.MLK_leader_move = { k[1], k[2] }
+                            grunt_rush_FLS1.data.MLK_leader = leader
+                            grunt_rush_FLS1.data.MLK_leader_move = { k[1], k[2] }
                             if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                             return score
                         end
@@ -772,10 +772,10 @@ return {
 
         function grunt_rush_FLS1:move_leader_to_keep_exec()
             if AH.print_exec() then print('     - Executing move_leader_to_keep CA') end
-            if AH.show_messages() then W.message { speaker = self.data.MLK_leader.id, message = 'Moving back to keep' } end
+            if AH.show_messages() then W.message { speaker = grunt_rush_FLS1.data.MLK_leader.id, message = 'Moving back to keep' } end
             -- This has to be a partial move !!
-            ai.move(self.data.MLK_leader, self.data.MLK_leader_move[1], self.data.MLK_leader_move[2])
-            self.data.MLK_leader, self.data.MLK_leader_move = nil, nil
+            ai.move(grunt_rush_FLS1.data.MLK_leader, grunt_rush_FLS1.data.MLK_leader_move[1], grunt_rush_FLS1.data.MLK_leader_move[2])
+            grunt_rush_FLS1.data.MLK_leader, grunt_rush_FLS1.data.MLK_leader_move = nil, nil
         end
 
         ------ Retreat injured units -----------
@@ -866,7 +866,7 @@ return {
             end
 
             if (max_rating > -9e99) then
-                self.data.RIU_retreat_unit, self.data.RIU_retreat_village = best_unit, best_village
+                grunt_rush_FLS1.data.RIU_retreat_unit, grunt_rush_FLS1.data.RIU_retreat_village = best_unit, best_village
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return score
             end
@@ -901,7 +901,7 @@ return {
             end
 
             if (max_rating > -9e99) then
-                self.data.RIU_retreat_unit, self.data.RIU_retreat_village = best_unit, best_village
+                grunt_rush_FLS1.data.RIU_retreat_unit, grunt_rush_FLS1.data.RIU_retreat_village = best_unit, best_village
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return score
             end
@@ -912,9 +912,9 @@ return {
 
         function grunt_rush_FLS1:retreat_injured_units_exec()
             if AH.print_exec() then print('     - Executing retreat_injured_units CA') end
-            if AH.show_messages() then W.message { speaker = self.data.RIU_retreat_unit.id, message = 'Retreating to village' } end
-            AH.movefull_outofway_stopunit(ai, self.data.RIU_retreat_unit, self.data.RIU_retreat_village)
-            self.data.RIU_retreat_unit, self.data.RIU_retreat_village = nil, nil
+            if AH.show_messages() then W.message { speaker = grunt_rush_FLS1.data.RIU_retreat_unit.id, message = 'Retreating to village' } end
+            AH.movefull_outofway_stopunit(ai, grunt_rush_FLS1.data.RIU_retreat_unit, grunt_rush_FLS1.data.RIU_retreat_village)
+            grunt_rush_FLS1.data.RIU_retreat_unit, grunt_rush_FLS1.data.RIU_retreat_village = nil, nil
         end
 
         ------ Attack with high CTK -----------
@@ -1011,7 +1011,7 @@ return {
             end
 
             if (max_rating > -9e99) then
-                self.data.AWE_attack = best_attack
+                grunt_rush_FLS1.data.AWE_attack = best_attack
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return score
             end
@@ -1023,10 +1023,10 @@ return {
         function grunt_rush_FLS1:attack_weak_enemy_exec()
             if AH.print_exec() then print('     - Executing attack_weak_enemy CA') end
 
-            local attacker = wesnoth.get_unit(self.data.AWE_attack.att_loc.x, self.data.AWE_attack.att_loc.y)
-            local defender = wesnoth.get_unit(self.data.AWE_attack.def_loc.x, self.data.AWE_attack.def_loc.y)
+            local attacker = wesnoth.get_unit(grunt_rush_FLS1.data.AWE_attack.att_loc.x, grunt_rush_FLS1.data.AWE_attack.att_loc.y)
+            local defender = wesnoth.get_unit(grunt_rush_FLS1.data.AWE_attack.def_loc.x, grunt_rush_FLS1.data.AWE_attack.def_loc.y)
             if AH.show_messages() then W.message { speaker = attacker.id, message = "Attacking weak enemy" } end
-            AH.movefull_outofway_stopunit(ai, attacker, self.data.AWE_attack, { dx = 0.5, dy = -0.1 })
+            AH.movefull_outofway_stopunit(ai, attacker, grunt_rush_FLS1.data.AWE_attack, { dx = 0.5, dy = -0.1 })
             ai.attack(attacker, defender)
         end
 
@@ -1049,7 +1049,7 @@ return {
 
             -- Only consider attack by leader if he is on the keep, so that he doesn't wander off
             if leader and wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep then
-                local best_attack = self:get_attack_with_counter_attack(leader)
+                local best_attack = grunt_rush_FLS1:get_attack_with_counter_attack(leader)
                 if best_attack and
                     (not wesnoth.get_terrain_info(wesnoth.get_terrain(best_attack.x, best_attack.y)).keep)
                 then
@@ -1064,7 +1064,7 @@ return {
 
         function grunt_rush_FLS1:set_attack_by_leader_flag_exec()
             if AH.print_exec() then print('     - Setting leader attack in attack_by_leader_flag_exec()') end
-            self.data.attack_by_leader_flag = true
+            grunt_rush_FLS1.data.attack_by_leader_flag = true
         end
 
         ------ Attack leader threats -----------
@@ -1087,9 +1087,9 @@ return {
 
             -- Only consider attack by leader if he is on the keep, so that he doesn't wander off
             if leader and wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep then
-                local best_attack = self:get_attack_with_counter_attack(leader)
+                local best_attack = grunt_rush_FLS1:get_attack_with_counter_attack(leader)
                 if best_attack then
-                    self.data.ALT_best_attack = best_attack
+                    grunt_rush_FLS1.data.ALT_best_attack = best_attack
                     if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                     return score
                 end
@@ -1120,11 +1120,11 @@ return {
             --print('#enemies, #units, #units_MP', #enemies, #units, #units_MP)
 
             -- Check first if a trapping attack is possible
-            local attackers, dsts, enemy = self:best_trapping_attack_opposite(units, enemies)
+            local attackers, dsts, enemy = grunt_rush_FLS1:best_trapping_attack_opposite(units, enemies)
             if attackers then
-                self.data.ALT_trapping_attackers = attackers
-                self.data.ALT_trapping_dsts = dsts
-                self.data.ALT_trapping_enemy = enemy
+                grunt_rush_FLS1.data.ALT_trapping_attackers = attackers
+                grunt_rush_FLS1.data.ALT_trapping_dsts = dsts
+                grunt_rush_FLS1.data.ALT_trapping_enemy = enemy
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return score
             end
@@ -1191,10 +1191,10 @@ return {
                         -- (High CTK targets are taken care of by separate CA right before this one)
                         local already_attacked_twice = false
                         local xy_turn = e.x * 1000. + e.y + wesnoth.current.turn / 1000.
-                        if self.data[xy_turn] and (self.data[xy_turn] >= 2) then
+                        if grunt_rush_FLS1.data[xy_turn] and (grunt_rush_FLS1.data[xy_turn] >= 2) then
                             already_attacked_twice = true
                         end
-                        --print('  already_attacked_twice', already_attacked_twice, e.x, e.y, xy_turn, self.data[xy_turn])
+                        --print('  already_attacked_twice', already_attacked_twice, e.x, e.y, xy_turn, grunt_rush_FLS1.data[xy_turn])
 
                         -- Not a very clean way of doing this, clean up later !!!!
                         if already_attacked_twice then rating = -9.9e99 end  -- the 9.9 here is intentional !!!!
@@ -1238,7 +1238,7 @@ return {
             end
 
             if (max_rating > -9e99) then
-                self.data.ALT_best_attack = best_attack
+                grunt_rush_FLS1.data.ALT_best_attack = best_attack
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return score
             end
@@ -1251,67 +1251,67 @@ return {
             if AH.print_exec() then print('     - Executing attack_leader_threat CA') end
             -- If a trapping attack was found, we do that first
             -- All of this should be made more consistent later
-            if self.data.ALT_trapping_attackers then
+            if grunt_rush_FLS1.data.ALT_trapping_attackers then
                 if AH.show_messages() then W.message { speaker = 'narrator', message = 'Trapping attack possible (in attack_leader_threats)' } end
 
                 -- Reorder the trapping attacks so that those that do not need to move a unit out of the way happen first
                 -- This is in case the unit_in_way is one of the trappers (which might be moved in the wrong direction)
-                for i = #self.data.ALT_trapping_attackers,1,-1 do
-                    local unit_in_way = wesnoth.get_unit(self.data.ALT_trapping_dsts[i][1], self.data.ALT_trapping_dsts[i][2])
-                    if unit_in_way and ((unit_in_way.x ~= self.data.ALT_trapping_attackers[i].x) or (unit_in_way.y ~= self.data.ALT_trapping_attackers[i].y)) then
-                        table.insert(self.data.ALT_trapping_attackers, self.data.ALT_trapping_attackers[i])
-                        table.insert(self.data.ALT_trapping_dsts, self.data.ALT_trapping_dsts[i])
-                        table.remove(self.data.ALT_trapping_attackers, i)
-                        table.remove(self.data.ALT_trapping_dsts, i)
+                for i = #grunt_rush_FLS1.data.ALT_trapping_attackers,1,-1 do
+                    local unit_in_way = wesnoth.get_unit(grunt_rush_FLS1.data.ALT_trapping_dsts[i][1], grunt_rush_FLS1.data.ALT_trapping_dsts[i][2])
+                    if unit_in_way and ((unit_in_way.x ~= grunt_rush_FLS1.data.ALT_trapping_attackers[i].x) or (unit_in_way.y ~= grunt_rush_FLS1.data.ALT_trapping_attackers[i].y)) then
+                        table.insert(grunt_rush_FLS1.data.ALT_trapping_attackers, grunt_rush_FLS1.data.ALT_trapping_attackers[i])
+                        table.insert(grunt_rush_FLS1.data.ALT_trapping_dsts, grunt_rush_FLS1.data.ALT_trapping_dsts[i])
+                        table.remove(grunt_rush_FLS1.data.ALT_trapping_attackers, i)
+                        table.remove(grunt_rush_FLS1.data.ALT_trapping_dsts, i)
                     end
                 end
 
-                for i,attacker in ipairs(self.data.ALT_trapping_attackers) do
+                for i,attacker in ipairs(grunt_rush_FLS1.data.ALT_trapping_attackers) do
                     -- Need to check that enemy was not killed by previous attack
-                    if self.data.ALT_trapping_enemy and self.data.ALT_trapping_enemy.valid then
-                        AH.movefull_outofway_stopunit(ai, attacker, self.data.ALT_trapping_dsts[i])
-                        ai.attack(attacker, self.data.ALT_trapping_enemy)
+                    if grunt_rush_FLS1.data.ALT_trapping_enemy and grunt_rush_FLS1.data.ALT_trapping_enemy.valid then
+                        AH.movefull_outofway_stopunit(ai, attacker, grunt_rush_FLS1.data.ALT_trapping_dsts[i])
+                        ai.attack(attacker, grunt_rush_FLS1.data.ALT_trapping_enemy)
 
                         -- Counter for how often this unit was attacked this turn
-                        if self.data.ALT_trapping_enemy.valid then
-                            local xy_turn = self.data.ALT_trapping_enemy.x * 1000. + self.data.ALT_trapping_enemy.y + wesnoth.current.turn / 1000.
-                            if (not self.data[xy_turn]) then
-                                self.data[xy_turn] = 1
+                        if grunt_rush_FLS1.data.ALT_trapping_enemy.valid then
+                            local xy_turn = grunt_rush_FLS1.data.ALT_trapping_enemy.x * 1000. + grunt_rush_FLS1.data.ALT_trapping_enemy.y + wesnoth.current.turn / 1000.
+                            if (not grunt_rush_FLS1.data[xy_turn]) then
+                                grunt_rush_FLS1.data[xy_turn] = 1
                             else
-                                self.data[xy_turn] = self.data[xy_turn] + 1
+                                grunt_rush_FLS1.data[xy_turn] = grunt_rush_FLS1.data[xy_turn] + 1
                             end
-                            --print('Attack number on this unit this turn:', xy_turn, self.data[xy_turn])
+                            --print('Attack number on this unit this turn:', xy_turn, grunt_rush_FLS1.data[xy_turn])
                         end
                     end
                 end
-                self.data.ALT_trapping_attackers, self.data.ALT_trapping_dsts, self.data.ALT_trapping_enemy = nil, nil, nil
+                grunt_rush_FLS1.data.ALT_trapping_attackers, grunt_rush_FLS1.data.ALT_trapping_dsts, grunt_rush_FLS1.data.ALT_trapping_enemy = nil, nil, nil
 
                 -- Need to return here, as other attacks are not valid in this case
                 return
             end
 
-            local attacker = wesnoth.get_unit(self.data.ALT_best_attack.att_loc.x, self.data.ALT_best_attack.att_loc.y)
-            local defender = wesnoth.get_unit(self.data.ALT_best_attack.def_loc.x, self.data.ALT_best_attack.def_loc.y)
+            local attacker = wesnoth.get_unit(grunt_rush_FLS1.data.ALT_best_attack.att_loc.x, grunt_rush_FLS1.data.ALT_best_attack.att_loc.y)
+            local defender = wesnoth.get_unit(grunt_rush_FLS1.data.ALT_best_attack.def_loc.x, grunt_rush_FLS1.data.ALT_best_attack.def_loc.y)
 
             -- Counter for how often this unit was attacked this turn
             if defender.valid then
                 local xy_turn = defender.x * 1000. + defender.y + wesnoth.current.turn / 1000.
-                if (not self.data[xy_turn]) then
-                    self.data[xy_turn] = 1
+                if (not grunt_rush_FLS1.data[xy_turn]) then
+                    grunt_rush_FLS1.data[xy_turn] = 1
                 else
-                    self.data[xy_turn] = self.data[xy_turn] + 1
+                    grunt_rush_FLS1.data[xy_turn] = grunt_rush_FLS1.data[xy_turn] + 1
                 end
-                --print('Attack number on this unit this turn:', xy_turn, self.data[xy_turn])
+                --print('Attack number on this unit this turn:', xy_turn, grunt_rush_FLS1.data[xy_turn])
             end
 
             if AH.show_messages() then W.message { speaker = attacker.id, message = 'Attacking leader threat' } end
-            AH.movefull_outofway_stopunit(ai, attacker, self.data.ALT_best_attack, { dx = 0.5, dy = -0.1 })
+            AH.movefull_outofway_stopunit(ai, attacker, grunt_rush_FLS1.data.ALT_best_attack, { dx = 0.5, dy = -0.1 })
             ai.attack(attacker, defender)
-            self.data.ALT_best_attack = nil
+            grunt_rush_FLS1.data.ALT_best_attack = nil
 
             -- Reset variable indicating that this was an attack by the leader
             -- Can be done whether it was the leader who attacked or not:
-            self.data.attack_by_leader_flag = nil
+            grunt_rush_FLS1.data.attack_by_leader_flag = nil
         end
 
         --------- ZOC enemy ------------
@@ -1326,7 +1326,7 @@ return {
             -- Decide whether to attack units on the left, and trap them if possible
 
             -- Skip this if AI is much stronger than enemy
-            if self:full_offensive() then
+            if grunt_rush_FLS1:full_offensive() then
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return 0
             end
@@ -1359,7 +1359,7 @@ return {
             end
 
             -- If units without moves on left are outnumbered (by HP, depending on time of day), don't do anything
-            local hp_ratio = self:hp_ratio(units, enemies)
+            local hp_ratio = grunt_rush_FLS1:hp_ratio(units, enemies)
             --print('ZOC enemy: HP ratio:', hp_ratio)
 
             local tod = wesnoth.get_time_of_day()
@@ -1383,11 +1383,11 @@ return {
             end
 
             -- Check whether we can find a trapping attack using two units on opposite sides of an enemy
-            local attackers, dsts, enemy = self:best_trapping_attack_opposite(units_MP, enemies)
+            local attackers, dsts, enemy = grunt_rush_FLS1:best_trapping_attack_opposite(units_MP, enemies)
             if attackers then
-                self.data.ZOC_attackers = attackers
-                self.data.ZOC_dsts = dsts
-                self.data.ZOC_enemy = enemy
+                grunt_rush_FLS1.data.ZOC_attackers = attackers
+                grunt_rush_FLS1.data.ZOC_dsts = dsts
+                grunt_rush_FLS1.data.ZOC_enemy = enemy
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return score
             end
@@ -1403,24 +1403,24 @@ return {
 
             -- Reorder the trapping attacks so that those that do not need to move a unit out of the way happen first
             -- This is in case the unit_in_way is one of the trappers (which might be moved in the wrong direction)
-            for i = #self.data.ZOC_attackers,1,-1 do
-                local unit_in_way = wesnoth.get_unit(self.data.ZOC_dsts[i][1], self.data.ZOC_dsts[i][2])
-                if unit_in_way and ((unit_in_way.x ~= self.data.ZOC_attackers[i].x) or (unit_in_way.y ~= self.data.ZOC_attackers[i].y)) then
-                    table.insert(self.data.ZOC_attackers, self.data.ZOC_attackers[i])
-                    table.insert(self.data.ZOC_dsts, self.data.ZOC_dsts[i])
-                    table.remove(self.data.ZOC_attackers, i)
-                    table.remove(self.data.ZOC_dsts, i)
+            for i = #grunt_rush_FLS1.data.ZOC_attackers,1,-1 do
+                local unit_in_way = wesnoth.get_unit(grunt_rush_FLS1.data.ZOC_dsts[i][1], grunt_rush_FLS1.data.ZOC_dsts[i][2])
+                if unit_in_way and ((unit_in_way.x ~= grunt_rush_FLS1.data.ZOC_attackers[i].x) or (unit_in_way.y ~= grunt_rush_FLS1.data.ZOC_attackers[i].y)) then
+                    table.insert(grunt_rush_FLS1.data.ZOC_attackers, grunt_rush_FLS1.data.ZOC_attackers[i])
+                    table.insert(grunt_rush_FLS1.data.ZOC_dsts, grunt_rush_FLS1.data.ZOC_dsts[i])
+                    table.remove(grunt_rush_FLS1.data.ZOC_attackers, i)
+                    table.remove(grunt_rush_FLS1.data.ZOC_dsts, i)
                 end
             end
 
-            for i,attacker in ipairs(self.data.ZOC_attackers) do
+            for i,attacker in ipairs(grunt_rush_FLS1.data.ZOC_attackers) do
                 -- Need to check that enemy was not killed by previous attack
-                if self.data.ZOC_enemy and self.data.ZOC_enemy.valid then
-                    AH.movefull_outofway_stopunit(ai, attacker, self.data.ZOC_dsts[i])
-                    ai.attack(attacker, self.data.ZOC_enemy)
+                if grunt_rush_FLS1.data.ZOC_enemy and grunt_rush_FLS1.data.ZOC_enemy.valid then
+                    AH.movefull_outofway_stopunit(ai, attacker, grunt_rush_FLS1.data.ZOC_dsts[i])
+                    ai.attack(attacker, grunt_rush_FLS1.data.ZOC_enemy)
                 end
             end
-            self.data.ZOC_attackers, self.data.ZOC_dsts, self.data.ZOC_enemy = nil, nil, nil
+            grunt_rush_FLS1.data.ZOC_attackers, grunt_rush_FLS1.data.ZOC_dsts, grunt_rush_FLS1.data.ZOC_enemy = nil, nil, nil
         end
 
 
@@ -1537,7 +1537,7 @@ return {
                             -- Make him the preferred village taker unless he's likely to die
                             -- but only if he's on the keep
                             if u.canrecruit then
-                                local counter_table = self:calc_counter_attack(u, { v[1], v[2] })
+                                local counter_table = grunt_rush_FLS1:calc_counter_attack(u, { v[1], v[2] })
                                 local max_counter_damage = counter_table.max_counter_damage
                                 --print('    max_counter_damage:', u.id, max_counter_damage)
                                 if (max_counter_damage < u.hitpoints) and wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
@@ -1558,7 +1558,7 @@ return {
             --print('max_rating', max_rating)
 
             if (max_rating > -9e99) then
-                self.data.GV_unit, self.data.GV_village = best_unit, best_village
+                grunt_rush_FLS1.data.GV_unit, grunt_rush_FLS1.data.GV_village = best_unit, best_village
 
                 -- Villages owned by AI, but threatened by enemies
                 -- have scores < 500 (< 1000 - a few times 10)
@@ -1584,24 +1584,24 @@ return {
 
         function grunt_rush_FLS1:grab_villages_exec()
             if AH.print_exec() then print('     - Executing grab_villages CA') end
-            if self.data.GV_unit.canrecruit then
-                if AH.show_messages() then W.message { speaker = self.data.GV_unit.id, message = 'The leader, me, is about to grab a village.  Need to recruit first.' } end
+            if grunt_rush_FLS1.data.GV_unit.canrecruit then
+                if AH.show_messages() then W.message { speaker = grunt_rush_FLS1.data.GV_unit.id, message = 'The leader, me, is about to grab a village.  Need to recruit first.' } end
                 -- Recruiting first; we're doing that differently here than in attack_leader_threat,
                 -- by running a mini CA eval/exec loop
                 local recruit_loop = true
                 while recruit_loop do
-                    local eval = self:recruit_orcs_eval()
+                    local eval = grunt_rush_FLS1:recruit_orcs_eval()
                     if (eval > 0) then
-                        self:recruit_orcs_exec()
+                        grunt_rush_FLS1:recruit_orcs_exec()
                     else
                         recruit_loop = false
                     end
                 end
             end
 
-            if AH.show_messages() then W.message { speaker = self.data.GV_unit.id, message = 'Grabbing/holding village' } end
-            AH.movefull_outofway_stopunit(ai, self.data.GV_unit, self.data.GV_village)
-            self.data.GV_unit, self.data.GV_village = nil, nil
+            if AH.show_messages() then W.message { speaker = grunt_rush_FLS1.data.GV_unit.id, message = 'Grabbing/holding village' } end
+            AH.movefull_outofway_stopunit(ai, grunt_rush_FLS1.data.GV_unit, grunt_rush_FLS1.data.GV_village)
+            grunt_rush_FLS1.data.GV_unit, grunt_rush_FLS1.data.GV_village = nil, nil
         end
 
         --------- Protect Center ------------
@@ -1621,7 +1621,7 @@ return {
             end
 
             -- Skip this if AI is much stronger than enemy
-            if self:full_offensive() then
+            if grunt_rush_FLS1:full_offensive() then
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return 0
             end
@@ -1696,7 +1696,7 @@ return {
             local protect_loc = { x = 18, y = 9 }
 
             if AH.show_messages() then W.message { speaker = 'narrator', message = 'Protecting map center' } end
-            self:hold_position(units_MP, protect_loc, { called_from = 'protect_center' })
+            grunt_rush_FLS1:hold_position(units_MP, protect_loc, { called_from = 'protect_center' })
         end
 
         --------- Hold left ------------
@@ -1709,7 +1709,7 @@ return {
             -- Also move a goblin to the far-west village
 
             -- Skip this if AI is much stronger than enemy
-            if self:full_offensive() then
+            if grunt_rush_FLS1:full_offensive() then
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return 0
             end
@@ -1774,7 +1774,7 @@ return {
             --print('#units_left, #units_MP, #units_noMP, #enemy_units_left', #units_left, #units_MP, #units_noMP, #enemy_units_left)
 
             -- If units without moves on left are outnumbered (by HP), send some more over there
-            local hp_ratio_left = self:hp_ratio(units_noMP, enemy_units_left)
+            local hp_ratio_left = grunt_rush_FLS1:hp_ratio(units_noMP, enemy_units_left)
             --print('Left HP ratio:', hp_ratio_left)
 
             if (hp_ratio_left < 0.67) then
@@ -1891,7 +1891,7 @@ return {
             local goal = { x = 11, y = 9 }  -- southern-most of western villages
 
             if AH.show_messages() then W.message { speaker = 'narrator', message = 'Holding left (west)' } end
-            self:hold_position(units_left, goal, { called_from = 'hold_left' })
+            grunt_rush_FLS1:hold_position(units_left, goal, { called_from = 'hold_left' })
         end
 
         --------- Grunt rush right ------------
@@ -1930,7 +1930,7 @@ return {
                 if cfg.rush_area.y_min then y_min = cfg.rush_area.y_min end
                 if cfg.rush_area.y_max then y_max = cfg.rush_area.y_max end
             end
-            local hp_ratio_y, number_units_y = self:hp_ratio_y(units, enemies, x_min, x_max, y_min, y_max)
+            local hp_ratio_y, number_units_y = grunt_rush_FLS1:hp_ratio_y(units, enemies, x_min, x_max, y_min, y_max)
 
             -- We'll do this step by step for easier experimenting
             -- To be streamlined later
@@ -2050,7 +2050,7 @@ return {
             if AH.print_eval() then print('     - Evaluating rush CA:', os.clock()) end
 
             -- Skip this if AI is much stronger than enemy
-            if self:full_offensive() then
+            if grunt_rush_FLS1:full_offensive() then
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return 0
             end
@@ -2079,11 +2079,11 @@ return {
             ----- Now start evaluating things -----
 
             for i,cfg in ipairs(cfgs) do
-                local rush = self:area_rush_eval(cfg)
+                local rush = grunt_rush_FLS1:area_rush_eval(cfg)
                 --DBG.dbms(rush)
 
                 if rush then
-                    self.data.rush = rush
+                    grunt_rush_FLS1.data.rush = rush
                     if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                     return score_rush
                 end
@@ -2096,19 +2096,19 @@ return {
         function grunt_rush_FLS1:rush_exec()
             if AH.print_exec() then print('     - Executing rush CA') end
 
-            while self.data.rush.attackers and (table.maxn(self.data.rush.attackers) > 0) do
-                if AH.show_messages() then W.message { speaker = self.data.rush.attackers[1].id, message = 'Rush: Combo attack' } end
-                AH.movefull_outofway_stopunit(ai, self.data.rush.attackers[1], self.data.rush.dsts[1])
-                ai.attack(self.data.rush.attackers[1], self.data.rush.enemy)
+            while grunt_rush_FLS1.data.rush.attackers and (table.maxn(grunt_rush_FLS1.data.rush.attackers) > 0) do
+                if AH.show_messages() then W.message { speaker = grunt_rush_FLS1.data.rush.attackers[1].id, message = 'Rush: Combo attack' } end
+                AH.movefull_outofway_stopunit(ai, grunt_rush_FLS1.data.rush.attackers[1], grunt_rush_FLS1.data.rush.dsts[1])
+                ai.attack(grunt_rush_FLS1.data.rush.attackers[1], grunt_rush_FLS1.data.rush.enemy)
 
                 -- Delete this attack from the combo
-                table.remove(self.data.rush.attackers, 1)
-                table.remove(self.data.rush.dsts, 1)
+                table.remove(grunt_rush_FLS1.data.rush.attackers, 1)
+                table.remove(grunt_rush_FLS1.data.rush.dsts, 1)
 
                 -- If enemy got killed, we need to stop here
-                if (not self.data.rush.enemy.valid) then self.data.rush.attackers = nil end
+                if (not grunt_rush_FLS1.data.rush.enemy.valid) then grunt_rush_FLS1.data.rush.attackers = nil end
             end
-            self.data.rush = nil
+            grunt_rush_FLS1.data.rush = nil
         end
 
         ----------- Hold CA ----------------
@@ -2149,7 +2149,7 @@ return {
                 if cfg.hold_area.y_min then y_min = cfg.hold_area.y_min end
                 if cfg.hold_area.y_max then y_max = cfg.hold_area.y_max end
             end
-            local hp_ratio_y, number_units_y = self:hp_ratio_y(units, enemies, x_min, x_max, y_min, y_max)
+            local hp_ratio_y, number_units_y = grunt_rush_FLS1:hp_ratio_y(units, enemies, x_min, x_max, y_min, y_max)
 
             -- We'll do this step by step for easier experimenting
             -- To be streamlined later
@@ -2212,7 +2212,7 @@ return {
             if AH.print_eval() then print('     - Evaluating hold CA:', os.clock()) end
 
             -- Skip this if AI is much stronger than enemy
-            if self:full_offensive() then
+            if grunt_rush_FLS1:full_offensive() then
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return 0
             end
@@ -2263,7 +2263,7 @@ return {
                     --DBG.dbms(filter_enemies)
                     local enemies = AH.get_live_units(filter_enemies)
 
-                    local hp_ratio = self:hp_ratio(units, enemies)
+                    local hp_ratio = grunt_rush_FLS1:hp_ratio(units, enemies)
                     --print('hp_ratio, #units, #enemies', hp_ratio, #units, #enemies)
 
                     -- Don't evaluate for holding position if the hp_ratio in the area is already high enough
@@ -2273,11 +2273,11 @@ return {
                 end
 
                 if eval_hold then
-                    local hold = self:area_hold_eval(cfg)
+                    local hold = grunt_rush_FLS1:area_hold_eval(cfg)
                     --DBG.dbms(hold)
 
                     if hold then
-                        self.data.hold = hold
+                        grunt_rush_FLS1.data.hold = hold
                         if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                         return score_hold
                     end
@@ -2291,8 +2291,8 @@ return {
         function grunt_rush_FLS1:hold_exec()
             if AH.print_exec() then print('     - Executing hold CA') end
 
-            self:hold_position(self.data.hold.units, self.data.hold.goal, { ignore_terrain_at_night = true, called_from = 'hold CA' } )
-            self.data.hold = nil
+            grunt_rush_FLS1:hold_position(grunt_rush_FLS1.data.hold.units, grunt_rush_FLS1.data.hold.goal, { ignore_terrain_at_night = true, called_from = 'hold CA' } )
+            grunt_rush_FLS1.data.hold = nil
         end
 
         -----------Spread poison ----------------
@@ -2527,7 +2527,7 @@ return {
                 end
             end
             if (max_rating > -9e99) then
-                self.data.SP_attack, self.data.SP_support_attack, self.data.SP_also_attack = best_attack, best_support_attack, best_support_also_attack
+                grunt_rush_FLS1.data.SP_attack, grunt_rush_FLS1.data.SP_support_attack, grunt_rush_FLS1.data.SP_also_attack = best_attack, best_support_attack, best_support_also_attack
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return score
             end
@@ -2538,17 +2538,17 @@ return {
 
         function grunt_rush_FLS1:spread_poison_exec()
             if AH.print_exec() then print('     - Executing spread_poison CA') end
-            local attacker = wesnoth.get_unit(self.data.SP_attack.att_loc.x, self.data.SP_attack.att_loc.y)
-            local defender = wesnoth.get_unit(self.data.SP_attack.def_loc.x, self.data.SP_attack.def_loc.y)
+            local attacker = wesnoth.get_unit(grunt_rush_FLS1.data.SP_attack.att_loc.x, grunt_rush_FLS1.data.SP_attack.att_loc.y)
+            local defender = wesnoth.get_unit(grunt_rush_FLS1.data.SP_attack.def_loc.x, grunt_rush_FLS1.data.SP_attack.def_loc.y)
 
             -- Also need to get the supporter at this time, since it might be the unit that's move out of the way
             local suporter = {}
-            if self.data.SP_support_attack then
-                supporter = wesnoth.get_unit(self.data.SP_support_attack.att_loc.x, self.data.SP_support_attack.att_loc.y)
+            if grunt_rush_FLS1.data.SP_support_attack then
+                supporter = wesnoth.get_unit(grunt_rush_FLS1.data.SP_support_attack.att_loc.x, grunt_rush_FLS1.data.SP_support_attack.att_loc.y)
             end
 
             if AH.show_messages() then W.message { speaker = attacker.id, message = "Poison attack" } end
-            AH.movefull_outofway_stopunit(ai, attacker, self.data.SP_attack, { dx = 0., dy = 0. })
+            AH.movefull_outofway_stopunit(ai, attacker, grunt_rush_FLS1.data.SP_attack, { dx = 0., dy = 0. })
             local def_hp = defender.hitpoints
 
             -- Find the poison weapon
@@ -2567,25 +2567,25 @@ return {
             local dw = -1
             if AH.got_1_11() then dw = 0 end
             ai.attack(attacker, defender, poison_weapon + dw)
-            self.data.SP_attack = nil
+            grunt_rush_FLS1.data.SP_attack = nil
 
             -- In case either attacker or defender died, don't do anything
             if (not attacker.valid) then return end
             if (not defender.valid) then return end
 
             -- A little joke: if the assassin misses all 3 poison attacks, complain
-            if (not self.data.SP_complained_about_luck) and (defender.hitpoints == def_hp) then
-                self.data.SP_complained_about_luck = true
+            if (not grunt_rush_FLS1.data.SP_complained_about_luck) and (defender.hitpoints == def_hp) then
+                grunt_rush_FLS1.data.SP_complained_about_luck = true
                 W.delay { time = 1000 }
                 W.message { speaker = attacker.id, message = "Oh, come on !" }
             end
 
-            if self.data.SP_support_attack then
+            if grunt_rush_FLS1.data.SP_support_attack then
                 if AH.show_messages() then W.message { speaker = supporter.id, message = 'Supporting poisoner attack' } end
-                AH.movefull_outofway_stopunit(ai, supporter, self.data.SP_support_attack)
-                if self.data.SP_also_attack then ai.attack(supporter, defender) end
+                AH.movefull_outofway_stopunit(ai, supporter, grunt_rush_FLS1.data.SP_support_attack)
+                if grunt_rush_FLS1.data.SP_also_attack then ai.attack(supporter, defender) end
             end
-            self.data.SP_support_attack, self.data.SP_also_attack = nil, nil
+            grunt_rush_FLS1.data.SP_support_attack, grunt_rush_FLS1.data.SP_also_attack = nil, nil
         end
 
         ----------Recruitment -----------------
@@ -2595,7 +2595,7 @@ return {
             if AH.skip_CA('recruit_orcs') then return 0 end
             if AH.print_eval() then print('     - Evaluating recruit_orcs CA:', os.clock()) end
 
-            if self.data.attack_by_leader_flag then
+            if grunt_rush_FLS1.data.attack_by_leader_flag then
                 if AH.show_messages() then W.message { speaker = 'narrator', message = 'Leader attack imminent.  Recruiting first.' } end
                 score = 461000
             end
@@ -2614,7 +2614,7 @@ return {
             end
 
             -- Check if we're banking gold for next turn
-            if (self.data.recruit_bank_gold) then
+            if (grunt_rush_FLS1.data.recruit_bank_gold) then
                 return 0
             end
 
@@ -2652,7 +2652,7 @@ return {
             local archer_cost = wesnoth.unit_types["Orcish Archer"].cost
             local assassin_cost = wesnoth.unit_types["Orcish Assassin"].cost
             local wolf_cost = wesnoth.unit_types["Wolf Rider"].cost
-            local hp_ratio = self:hp_ratio()
+            local hp_ratio = grunt_rush_FLS1:hp_ratio()
 
             if AH.print_exec() then print('     - Executing recruit_orcs CA') end
             -- Recruiting logic (in that order):
@@ -2706,7 +2706,7 @@ return {
             local assassins = AH.get_live_units { side = wesnoth.current.side, type = 'Orcish Assassin,Orcish Slayer', canrecruit = 'no' }
 
             local assassin = assassins[1]
-            if (not assassin) and (wesnoth.sides[wesnoth.current.side].gold >= assassin_cost) and (not self.data.enemy_is_undead)  and (hp_ratio > 0.4) then
+            if (not assassin) and (wesnoth.sides[wesnoth.current.side].gold >= assassin_cost) and (not grunt_rush_FLS1.data.enemy_is_undead)  and (hp_ratio > 0.4) then
                 --print('recruiting assassin')
                 ai.recruit('Orcish Assassin', best_hex[1], best_hex[2])
                 return
@@ -2724,7 +2724,7 @@ return {
                     ai.recruit('Orcish Archer', best_hex[1], best_hex[2])
                     return
                 else
-                    self.data.recruit_bank_gold = self.data.recruit_bank_gold or grunt_rush_FLS1:should_have_gold_next_turn(archer_cost)
+                    grunt_rush_FLS1.data.recruit_bank_gold = grunt_rush_FLS1.data.recruit_bank_gold or grunt_rush_FLS1:should_have_gold_next_turn(archer_cost)
                 end
             end
 
@@ -2740,11 +2740,11 @@ return {
                     ai.recruit('Troll Whelp', best_hex[1], best_hex[2])
                     return
                 else
-                    self.data.recruit_bank_gold = self.data.recruit_bank_gold or grunt_rush_FLS1:should_have_gold_next_turn(whelp_cost)
+                    grunt_rush_FLS1.data.recruit_bank_gold = grunt_rush_FLS1.data.recruit_bank_gold or grunt_rush_FLS1:should_have_gold_next_turn(whelp_cost)
                 end
             end
 
-            if (self.data.recruit_bank_gold) then
+            if (grunt_rush_FLS1.data.recruit_bank_gold) then
                 --print('Banking gold to recruit unit next turn')
                 return
             end
@@ -2796,7 +2796,7 @@ return {
             end
 
             -- Recruit an assassin, if there are fewer than 3 (in addition to previous assassin recruit)
-            if (#assassins < 3) and (wesnoth.sides[wesnoth.current.side].gold >= assassin_cost) and (not self.data.enemy_is_undead) then
+            if (#assassins < 3) and (wesnoth.sides[wesnoth.current.side].gold >= assassin_cost) and (not grunt_rush_FLS1.data.enemy_is_undead) then
                 --print('recruiting assassin based on numbers')
                 ai.recruit('Orcish Assassin', best_hex[1], best_hex[2])
                 return
