@@ -657,6 +657,7 @@ return {
 
         function grunt_rush_FLS1:hardcoded_eval()
             local score = 500000
+            if AH.skip_CA('hardcoded') then return 0 end
             if AH.print_eval() then print('     - Evaluating hardcoded CA:', os.clock()) end
 
             -- To make sure we have a wolf rider and a grunt in the right positions on Turn 1
@@ -721,6 +722,8 @@ return {
 
         function grunt_rush_FLS1:move_leader_to_keep_eval()
             local score = 480000
+            if AH.skip_CA('move_leader_to_keep') then return 0 end
+
             if AH.print_eval() then print('     - Evaluating move_leader_to_keep CA:', os.clock()) end
 
             -- Move of leader to keep is done by hand here
@@ -794,6 +797,7 @@ return {
 
         function grunt_rush_FLS1:retreat_injured_units_eval_filtered(unit_filter, terrain_filter, min_hp)
             local score = 470000
+            if AH.skip_CA('retreat_injured_units') then return 0 end
             if AH.print_eval() then print('     - Evaluating retreat_injured_units CA:', os.clock()) end
 
             -- Find very injured units and move them to a village, if possible
@@ -911,6 +915,7 @@ return {
 
         function grunt_rush_FLS1:attack_weak_enemy_eval()
             local score = 465000
+            if AH.skip_CA('attack_weak_enemy') then return 0 end
             if AH.print_eval() then print('     - Evaluating attack_weak_enemy CA:', os.clock()) end
 
             -- Attack any enemy where the chance to kill is > 40%
@@ -1025,6 +1030,7 @@ return {
             -- Sets a variable when attack by leader is imminent.
             -- In that case, recruiting needs to be done first
             local score = 460010
+            if AH.skip_CA('set_attack_by_leader_flag') then return 0 end
             if AH.print_eval() then print('     - Evaluating set_attack_by_leader_flag CA:', os.clock()) end
 
             -- We also add here (and, in fact, evaluate first) possible attacks by the leader
@@ -1059,6 +1065,7 @@ return {
 
         function grunt_rush_FLS1:attack_leader_threat_eval()
             local score = 460000
+            if AH.skip_CA('attack_leader_threat') then return 0 end
             if AH.print_eval() then print('     - Evaluating attack_leader_threat CA:', os.clock()) end
 
             -- Attack enemies that have made it too far north
@@ -1306,6 +1313,7 @@ return {
         -- To be extended later, or to be combined with other CAs
 
         function grunt_rush_FLS1:ZOC_enemy_eval()
+            if AH.skip_CA('ZOC_enemy') then return 0 end
             local score = 390000
             if AH.print_eval() then print('     - Evaluating ZOC_enemy CA:', os.clock()) end
 
@@ -1414,6 +1422,7 @@ return {
 
         function grunt_rush_FLS1:grab_villages_eval()
             local score_high, score_low_enemy, score_low_own = 462000, 305000, 280000
+            if AH.skip_CA('grab_villages') then return 0 end
             if AH.print_eval() then print('     - Evaluating grab_villages CA:', os.clock()) end
 
             --local leave_own_villages = wesnoth.get_variable "leave_own_villages"
@@ -1593,6 +1602,7 @@ return {
 
         function grunt_rush_FLS1:protect_center_eval()
             local score = 352000
+            if AH.skip_CA('protect_center') then return 0 end
             if AH.print_eval() then print('     - Evaluating protect_center CA:', os.clock()) end
 
             -- Move units to protect the center villages
@@ -2028,6 +2038,7 @@ return {
 
         function grunt_rush_FLS1:rush_eval()
             local score_rush = 350000
+            if AH.skip_CA('rush') then return 0 end
             if AH.print_eval() then print('     - Evaluating rush CA:', os.clock()) end
 
             -- Skip this if AI is much stronger than enemy
@@ -2187,6 +2198,7 @@ return {
         function grunt_rush_FLS1:hold_eval()
 
             local score_hold = 300000
+            if AH.skip_CA('hold') then return 0 end
             if AH.print_eval() then print('     - Evaluating hold CA:', os.clock()) end
 
             -- Skip this if AI is much stronger than enemy
@@ -2277,6 +2289,7 @@ return {
 
         function grunt_rush_FLS1:spread_poison_eval()
             local score = 463000
+            if AH.skip_CA('spread_poison') then return 0 end
 
             -- As an experiment: reduce importance of spreading poison during night
             -- This is supposed to help with the rush on the right, freeing up units for that
@@ -2569,6 +2582,7 @@ return {
 
         function grunt_rush_FLS1:recruit_orcs_eval()
             local score = 181000
+            if AH.skip_CA('recruit_orcs') then return 0 end
             if AH.print_eval() then print('     - Evaluating recruit_orcs CA:', os.clock()) end
 
             if self.data.attack_by_leader_flag then
