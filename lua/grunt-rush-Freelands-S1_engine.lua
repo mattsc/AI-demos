@@ -38,25 +38,31 @@ return {
         function grunt_rush_FLS1:hp_ratio_y(my_units, enemies, x_min, x_max, y_min, y_max)
             -- HP ratio as function of y coordinate
             -- This is the maximum of total HP of all units that can get to any hex with the given y
+            -- Also returns the same value for the number of units that can get to that y
 
             --print('#my_units, #enemies', #my_units, #enemies)
-            local attack_map = AH.attack_map(my_units, { return_value = 'hitpoints' })
-            local enemy_attack_map = AH.attack_map(enemies, { moves = "max", return_value = 'hitpoints' })
+            -- The following is a duplication and slow, but until I actually know whether it
+            -- works, I'll not put in the effort to optimize it
+            local attack_map = AH.attack_map(my_units)
+            local attack_map_hp = AH.attack_map(my_units, { return_value = 'hitpoints' })
+            local enemy_attack_map_hp = AH.attack_map(enemies, { moves = "max", return_value = 'hitpoints' })
             --AH.put_labels(enemy_attack_map)
 
-            local hp_y, enemy_hp_y, hp_ratio = {}, {}, {}
+            local hp_y, enemy_hp_y, hp_ratio, number_units_y = {}, {}, {}, {}
             for y = y_min,y_max do
-                hp_y[y], enemy_hp_y[y] = 0, 0
+                hp_y[y], enemy_hp_y[y], number_units_y[y] = 0, 0, 0
                 for x = x_min,x_max do
-                    local hp = attack_map:get(x,y) or 0
+                    local number_units = attack_map:get(x,y) or 0
+                    if (number_units > number_units_y[y]) then number_units_y[y] = number_units end
+                    local hp = attack_map_hp:get(x,y) or 0
                     if (hp > hp_y[y]) then hp_y[y] = hp end
-                    local enemy_hp = enemy_attack_map:get(x,y) or 0
+                    local enemy_hp = enemy_attack_map_hp:get(x,y) or 0
                     if (enemy_hp > enemy_hp_y[y]) then enemy_hp_y[y] = enemy_hp end
                 end
                 hp_ratio[y] = hp_y[y] / (enemy_hp_y[y] + 1e-6)
             end
 
-            return hp_ratio
+            return hp_ratio, number_units_y
         end
 
         function grunt_rush_FLS1:full_offensive()
@@ -1924,23 +1930,25 @@ return {
                 if cfg.rush_area.y_min then y_min = cfg.rush_area.y_min end
                 if cfg.rush_area.y_max then y_max = cfg.rush_area.y_max end
             end
-            local hp_ratio_y = self:hp_ratio_y(units, enemies, x_min, x_max, y_min, y_max)
+            local hp_ratio_y, number_units_y = self:hp_ratio_y(units, enemies, x_min, x_max, y_min, y_max)
 
             -- We'll do this step by step for easier experimenting
             -- To be streamlined later
             local tod = wesnoth.get_time_of_day()
 
-            local attack_y, attack_flag = y_min, falso
+            local attack_y, attack_flag = y_min, false
             for y = attack_y,y_max do
-                --print(y, hp_ratio_y[y])
+                --print(y, hp_ratio_y[y], number_units_y[y])
 
                 if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
                     attack_flag = false
-                    if (hp_ratio_y[y] >= 2.0) then attack_y = y end
+                    if (hp_ratio_y[y] >= 4.0) then attack_y = y end
                 end
                 if (tod.id == 'dusk') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
                     attack_flag = true
-                    if (hp_ratio_y[y] > 0.1) then attack_y = y end
+                    if (hp_ratio_y[y] > 0.666) and (number_units_y[y] >= 4) then attack_y = y end
+                    -- Or, if we're much stronger, we don't care about the number of units
+                    if (hp_ratio_y[y] >= 2.0) then attack_y = y end
                 end
             end
             --print('attack_y', attack_y)
@@ -2141,23 +2149,25 @@ return {
                 if cfg.hold_area.y_min then y_min = cfg.hold_area.y_min end
                 if cfg.hold_area.y_max then y_max = cfg.hold_area.y_max end
             end
-            local hp_ratio_y = self:hp_ratio_y(units, enemies, x_min, x_max, y_min, y_max)
+            local hp_ratio_y, number_units_y = self:hp_ratio_y(units, enemies, x_min, x_max, y_min, y_max)
 
             -- We'll do this step by step for easier experimenting
             -- To be streamlined later
             local tod = wesnoth.get_time_of_day()
 
-            local attack_y, attack_flag = y_min, falso
+            local attack_y, attack_flag = y_min, false
             for y = attack_y,y_max do
-                --print(y, hp_ratio_y[y])
+                --print(y, hp_ratio_y[y], number_units_y[y])
 
                 if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
                     attack_flag = false
-                    if (hp_ratio_y[y] >= 2.0) then attack_y = y end
+                    if (hp_ratio_y[y] >= 4.0) then attack_y = y end
                 end
                 if (tod.id == 'dusk') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
                     attack_flag = true
-                    if (hp_ratio_y[y] > 0.1) then attack_y = y end
+                    if (hp_ratio_y[y] > 0.666) and (number_units_y[y] >= 4) then attack_y = y end
+                    -- Or, if we're much stronger, we don't care about the number of units
+                    if (hp_ratio_y[y] >= 2.0) then attack_y = y end
                 end
             end
             --print('attack_y before', attack_y)
