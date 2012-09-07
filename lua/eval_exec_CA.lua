@@ -10,6 +10,9 @@
 --
 -- Not required:
 -- 1. Reloading after making changes, either to this file, or to Fred's engine functions
+--    Just make the changes, save and the right-click should execute the changed version
+-- 2. Launching game with Fred in control of Side 1
+--    Only thing required is that era 'Default+Experimental AI' is used
 
 local function CA_name()
     -- This function sets the name of the CA to be executed or evaluated
