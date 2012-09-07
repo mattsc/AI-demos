@@ -2821,10 +2821,10 @@ return {
         end
 
         function grunt_rush_FLS1:should_have_gold_next_turn(amount)
-            -- This should really calculate income and current gold and see if it exceeds
-            -- the amount to ensure that the AI still recruits something if income is negative
+            -- Check if we can recruit this unit next turn
+            -- The idea if our income is too low, we spend the cash we do have on cheaper stuff
 
-            return true
+            return (wesnoth.sides[wesnoth.current.side].gold + wesnoth.sides[wesnoth.current.side].total_income >= amount)
         end
 
         return grunt_rush_FLS1
