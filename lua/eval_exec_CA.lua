@@ -24,7 +24,6 @@ return {
     eval_exec_CA = function(exec_also, ai)
         -- exec_also = nil/false: only evaluate the CA
         -- exec_also = true: also execute the CA, if eval score > 0
-
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
 
@@ -59,16 +58,20 @@ return {
         end
 
         if (score > 0) and exec_also then
-            local exec_name = CA_name() .. '_exec'
-            wesnoth.message("Executing individual CA: " .. exec_name .. "()")
+            if ai then
+                local exec_name = CA_name() .. '_exec'
+                wesnoth.message("  -> Executing individual CA: " .. exec_name .. "()")
 
-            -- Loop through the my_ai table until we find the function we are looking for
-            local exec_function = ''
-            for k,v in pairs(my_ai) do
-                if (k == exec_name) then
-                    exec_function = v
-                    exec_function()
+                -- Loop through the my_ai table until we find the function we are looking for
+                local exec_function = ''
+                for k,v in pairs(my_ai) do
+                    if (k == exec_name) then
+                        exec_function = v
+                        exec_function()
+                    end
                 end
+            else
+                wesnoth.message("!!!!! Error !!!!!  CAs not activated for execution.  Use right-click option.")
             end
         end
     end
