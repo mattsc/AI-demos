@@ -1,18 +1,7 @@
 -- This is a collection of functions that can be used to evaluate and/or execute
 -- individual candidate actions from the right-click menu
 --
--- Required: 
--- 1. Wesnoth needs to be launched in debug mode, i.e. with the -d option
---    Activating debug mode later does not work (actually, that's e requirement for the
---    menu option to be set up in era.cfg, rather than for these functions here
--- 2. The MP game needs to be launched from the MP lobby
--- 3. The name of the CA to be tested needs to be set in function CA_name() below
---
--- Not required:
--- 1. Reloading after making changes, either to this file, or to Fred's engine functions
---    Just make the changes, save and the right-click should execute the changed version
--- 2. Launching game with Fred in control of Side 1
---    Only thing required is that era 'Default+Experimental AI' is used
+-- See the github wiki page for a detailed description how to use them
 
 local function CA_name()
     -- This function sets the name of the CA to be executed or evaluated
@@ -25,15 +14,21 @@ end
 
 return {
     debug_CA = function()
-        local debug_CA_mode = true
+        -- CA debugging mode is enabled if this function returns true,
+        -- that is, only if 'debug_CA_mode=true' is set and if we're in debug mode
+        local debug_CA_mode = false
         if debug_CA_mode and wesnoth.game_config.debug then
             wesnoth.fire_event("debug_CA")
         end
     end,
 
     eval_exec_CA = function(exec_also, ai)
-        -- exec_also = nil/false: only evaluate the CA
-        -- exec_also = true: also execute the CA, if eval score > 0
+        -- Evaluates and potentially executes the CA with name returned by CA_name()
+        -- Input:
+        --   exec_also = nil/false: only evaluate the CA
+        --   exec_also = true: also execute the CA, if eval score > 0
+        --   ai: the ai function table
+
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
 
@@ -57,9 +52,8 @@ return {
         -- Now display the evaluation score
         local score = 0
         if found then
-            -- Need to set up a fake 'self.data' table, as that does not exist outside the AI
+            -- Need to set up a fake 'self.data' table, as that does not exist outside the AI engine
             if not my_ai.data then my_ai.data = {} end
-
             score = eval_function()
             wesnoth.message("  Score : " .. score)
         else
@@ -67,6 +61,7 @@ return {
             return
         end
 
+        -- If the score is positive and exec_also=true is set, execute the CA
         if (score > 0) and exec_also then
             if ai then
                 local exec_name = CA_name() .. '_exec'
@@ -81,14 +76,14 @@ return {
                     end
                 end
             else
-                wesnoth.message("!!!!! Error !!!!!  CAs not activated for execution.  Use right-click option.")
+                wesnoth.message("!!!!! Error !!!!!  CAs not activated for execution.")
             end
         end
     end,
 
     choose_CA = function()
         -- Let's the user choose a CA from a menu
-        -- The result will be stored in WML variable 'debug_CA_name'
+        -- The result is stored in WML variable 'debug_CA_name'
 
         -- Set up array of CAs to choose from
         -- Get all the custom AI functions
