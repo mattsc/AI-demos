@@ -21,6 +21,13 @@ local function CA_name()
 end
 
 return {
+    debug_CA = function()
+        local debug_CA_mode = false
+        if debug_CA_mode and wesnoth.game_config.debug then
+            wesnoth.fire_event("debug_CA")
+        end
+    end,
+
     eval_exec_CA = function(exec_also, ai)
         -- exec_also = nil/false: only evaluate the CA
         -- exec_also = true: also execute the CA, if eval score > 0
