@@ -116,7 +116,7 @@ return {
             },
             cas
         )
-        wesnoth.message(cas[choice])
+        --wesnoth.message(cas[choice])
 
         -- Now set the WML variable
         wesnoth.set_variable('debug_CA_name', cas[choice])
