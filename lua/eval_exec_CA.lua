@@ -22,7 +22,7 @@ end
 
 return {
     debug_CA = function()
-        local debug_CA_mode = false
+        local debug_CA_mode = true
         if debug_CA_mode and wesnoth.game_config.debug then
             wesnoth.fire_event("debug_CA")
         end
