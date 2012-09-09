@@ -16,8 +16,11 @@
 
 local function CA_name()
     -- This function sets the name of the CA to be executed or evaluated
-    -- Just edit it by hand
-    return 'recruit_orcs'
+    -- It takes the value from WML variable 'debug_CA_name' if that variable exists,
+    -- otherwise it defaults to 'recruit_orcs'
+
+    local name = wesnoth.get_variable('debug_CA_name')
+    return name or 'recruit_orcs'
 end
 
 return {
@@ -81,5 +84,41 @@ return {
                 wesnoth.message("!!!!! Error !!!!!  CAs not activated for execution.  Use right-click option.")
             end
         end
+    end,
+
+    choose_CA = function()
+        -- Let's the user choose a CA from a menu
+        -- The result will be stored in WML variable 'debug_CA_name'
+
+        -- Set up array of CAs to choose from
+        -- Get all the custom AI functions
+        local my_ai = wesnoth.dofile("~add-ons/AI-demos/lua/grunt-rush-Freelands-S1_engine.lua").init(ai)
+
+        -- Loop through the my_ai table and set up table of all available CAs
+        local cas = {}
+        for k,v in pairs(my_ai) do
+            local pos = string.find(k, '_eval')
+            if (pos) then
+                table.insert(cas, string.sub(k, 1, pos-1))
+            end
+        end
+
+        -- Sort the CAs alphabetically
+        table.sort(cas, function(a, b) return (a < b) end)
+
+        -- Let user choose one of the CAs
+        local choice = helper.get_user_choice(
+            {
+                speaker = "narrator",
+                image = "wesnoth-icon.png", 
+                caption = "Choose Candidate Action",
+                message = "Which CA do you want to evaluate or execute?"
+            },
+            cas
+        )
+        wesnoth.message(cas[choice])
+
+        -- Now set the WML variable
+        wesnoth.set_variable('debug_CA_name', cas[choice])
     end
 }
