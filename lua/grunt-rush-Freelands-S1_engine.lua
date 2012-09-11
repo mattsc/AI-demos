@@ -629,11 +629,7 @@ return {
                 print('   Player ' .. s.side .. ' (' .. leader.type .. '): ' .. #units .. ' Units with total HP: ' .. total_hp)
             end
             if grunt_rush_FLS1:full_offensive() then print(' Full offensive mode (mostly done by RCA AI)') end
-analyze_enemy_unit('Footpad')
-analyze_enemy_unit('Dwarvish Thunderguard')
-analyze_enemy_unit('Poacher')
-analyze_enemy_unit('Dwarvish Guardsman')
-analyze_enemy_unit('Ghost')
+DBG.dbms(analyze_enemy_unit('Footpad'))
         end
 
         ------ Reset variables at beginning of turn -----------
