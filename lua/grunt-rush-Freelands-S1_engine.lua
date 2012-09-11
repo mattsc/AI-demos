@@ -1959,7 +1959,7 @@ return {
                 --print('Looking for targets on right down to y = ' .. attack_y)
 
                 -- Now get the targets (=enemies inside the rush area)
-                local targets = AH.get_live_units { 
+                local targets = AH.get_live_units {
                     x = x_min .. '-' .. x_max, y = y_min .. '-' .. y_max,
                     { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
                 }
@@ -2415,8 +2415,9 @@ return {
                     end
                     for att in H.child_range(defender.__cfg, 'attack') do
                         if att.range == attack_range then
-                            for sp in H.child_range(att, 'specials') do
-                                if H.get_child(sp, 'magical') then
+                            for special in H.child_range(att, 'specials') do
+                                local mod = helper.get_child(special, 'chance_to_hit')
+                                if mod and (mod.id == 'magical') then
                                    rating = rating - 500
                                 end
                             end
