@@ -47,7 +47,7 @@ function analyze_enemy_unit(unit_type_id)
             local poison = false
             -- TODO: handle more abilities (charge, steadfast, drain, marksman, magical)
             for special in helper.child_range(attack, 'specials') do
-                if helper.get_child(special, 'poison') and (not not_living) then
+                if helper.get_child(special, 'poison') and can_poison then
                     poison = true
                 end
             end
@@ -55,8 +55,8 @@ function analyze_enemy_unit(unit_type_id)
             local attack_damage = attack.damage*attack.number*wesnoth.unit_resistance(unit, attack.type)
 
             -- include terrain defense (flat or other?)
-            if poison and can_poison then
                 attack_damage = attack_damage + 800
+            if poison then
             end
 
             if attack_damage > best_damage then
