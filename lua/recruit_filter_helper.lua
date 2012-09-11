@@ -39,13 +39,26 @@ function analyze_enemy_unit(unit_type_id)
     local analysis = {}
 
     local unit = wesnoth.create_unit { type = unit_type_id }
+    local can_poison = not (helper.get_child(unit.__cfg, "status").not_living or wesnoth.unit_ability(unit, 'regenerate'))
     for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
         local best_damage = 0
         local best_attack = nil
         for attack in helper.child_range(wesnoth.unit_types[recruit_id].__cfg, "attack") do
+            local poison = false
+            -- TODO: handle more abilities (charge, steadfast, drain, marksman, magical)
+            for special in helper.child_range(attack, 'specials') do
+                if helper.get_child(special, 'poison') and (not not_living) then
+                    poison = true
+                end
+            end
+
             local attack_damage = attack.damage*attack.number*wesnoth.unit_resistance(unit, attack.type)
-            -- TODO: include abilities (poison, charge, steadfast, drain, marksman, magical)
+
             -- include terrain defense (flat or other?)
+            if poison and can_poison then
+                attack_damage = attack_damage + 800
+            end
+
             if attack_damage > best_damage then
                 best_damage = attack_damage
                 best_attack = attack
