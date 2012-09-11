@@ -69,7 +69,7 @@ function analyze_enemy_unit(unit_type_id)
         for attack in helper.child_range(wesnoth.unit_types[attacker_id].__cfg, "attack") do
             local defense = unit_defense
             local poison = false
-            -- TODO: handle more abilities (charge, steadfast, drain)
+            -- TODO: handle more abilities (charge, drain)
             for special in helper.child_range(attack, 'specials') do
                 local mod
                 if helper.get_child(special, 'poison') and can_poison then
@@ -90,6 +90,20 @@ function analyze_enemy_unit(unit_type_id)
                 end
             end
 
+            -- Handle drain for defender
+            local drain_recovery = 0
+            for defender_attack in helper.child_range(defender.__cfg, 'attack') do
+                if (defender_attack.range == attack.range) then
+                    for special in helper.child_range(defender_attack, 'specials') do
+                        if helper.get_child(special, 'drains') then
+                            -- TODO: handle chance to hit & resistance
+                            -- currently assumes no resistance and 50% chance to hit using supplied constant
+                            drain_recovery = defender_attack.damage*defender_attack.number*25
+                        end
+                    end
+                end
+            end
+
             defense = defense/100.0
             local resistance = wesnoth.unit_resistance(defender, attack.type)
             if steadfast and (resistance < 100) then
@@ -103,14 +117,14 @@ function analyze_enemy_unit(unit_type_id)
                 -- Damage is always at least 1
                 base_damage = 100
             end
-            local attack_damage = base_damage*attack.number*defense
+            local attack_damage = base_damage*attack.number*defense-drain_recovery
 
             if poison then
                 -- Add poison damage * probability of poisoning
                 attack_damage = attack_damage + 800*(1-((1-defense)^attack.number))
             end
 
-            if attack_damage > best_damage then
+            if (not best_attack) or (attack_damage > best_damage) then
                 best_damage = attack_damage
                 best_attack = attack
             end

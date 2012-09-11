@@ -633,6 +633,7 @@ analyze_enemy_unit('Footpad')
 analyze_enemy_unit('Dwarvish Thunderguard')
 analyze_enemy_unit('Poacher')
 analyze_enemy_unit('Dwarvish Guardsman')
+analyze_enemy_unit('Ghost')
         end
 
         ------ Reset variables at beginning of turn -----------
