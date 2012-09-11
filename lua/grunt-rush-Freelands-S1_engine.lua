@@ -629,6 +629,10 @@ return {
                 print('   Player ' .. s.side .. ' (' .. leader.type .. '): ' .. #units .. ' Units with total HP: ' .. total_hp)
             end
             if grunt_rush_FLS1:full_offensive() then print(' Full offensive mode (mostly done by RCA AI)') end
+analyze_enemy_unit('Footpad')
+analyze_enemy_unit('Dwarvish Thunderguard')
+analyze_enemy_unit('Poacher')
+analyze_enemy_unit('Dwarvish Guardsman')
         end
 
         ------ Reset variables at beginning of turn -----------
@@ -1959,7 +1963,7 @@ return {
                 --print('Looking for targets on right down to y = ' .. attack_y)
 
                 -- Now get the targets (=enemies inside the rush area)
-                local targets = AH.get_live_units { 
+                local targets = AH.get_live_units {
                     x = x_min .. '-' .. x_max, y = y_min .. '-' .. y_max,
                     { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
                 }
