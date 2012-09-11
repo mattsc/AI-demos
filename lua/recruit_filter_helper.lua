@@ -51,8 +51,16 @@ end
 
 function analyze_enemy_unit(unit_type_id)
     local function get_best_attack(attacker_id, defender, unit_defense, can_poison)
+        -- Try to find the average damage for each possible attack and return the one that deals the most damage
+        -- Would be preferable to call simulate combat, but that requires the defender to be on the map according
+        -- to documentation and we are looking for hypothetical situations so would have to search for available
+        -- locations for the defender that would have the desired defense. We would also need to remove nearby units
+        -- in order to ensure that adjacent units are not modifying the result.
         local best_damage = 0
         local best_attack = nil
+        -- This doesn't actually check for the ability steadfast, but gives correct answer in the default era
+        -- TODO: find a more reliable method
+        local steadfast = wesnoth.unit_ability(defender, "resistance")
 
         for attack in helper.child_range(wesnoth.unit_types[attacker_id].__cfg, "attack") do
             local defense = unit_defense
@@ -79,8 +87,16 @@ function analyze_enemy_unit(unit_type_id)
             end
 
             defense = defense/100.0
-            local base_damage = attack.damage*wesnoth.unit_resistance(defender, attack.type)
+            local resistance = wesnoth.unit_resistance(defender, attack.type)
+            if steadfast and (resistance < 100) then
+                resistance = 100 - ((100 - resistance) * 2)
+                if (resistance < 50) then
+                    resistance = 50
+                end
+            end
+            local base_damage = attack.damage*resistance
             if (base_damage < 100) and (attack.damage > 0) then
+                -- Damage is always at least 1
                 base_damage = 100
             end
             local attack_damage = base_damage*attack.number*defense
