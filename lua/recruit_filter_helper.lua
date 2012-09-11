@@ -35,20 +35,27 @@ function not_living(unit)
     return not (not helper.get_child(unit.__cfg, "status").not_living)
 end
 
+function get_best_defense(unit)
+    local terrain_archetypes = { "Wo", "Ww", "Wwr", "Ss", "Gt", "Ds", "Ft", "Hh", "Mm", "Vi", "Ch", "Uu", "At", "Qt", "^Uf", "Xt" }
+    local best_defense = 100
+
+    for i, terrain in ipairs(terrain_archetypes) do
+        local defense = wesnoth.unit_defense(unit, terrain)
+        if defense < best_defense then
+            best_defense = defense
+        end
+    end
+
+    return best_defense
+end
+
 function analyze_enemy_unit(unit_type_id)
-    local analysis = {}
-
-    local unit = wesnoth.create_unit { type = unit_type_id }
-    local can_poison = not (helper.get_child(unit.__cfg, "status").not_living or wesnoth.unit_ability(unit, 'regenerate'))
-    local flat_defense = wesnoth.unit_defense(unit, "Gt")
-    print(unit_type_id)
-
-    for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
+    local function get_best_attack(attacker_id, defender, unit_defense, can_poison)
         local best_damage = 0
         local best_attack = nil
 
-        for attack in helper.child_range(wesnoth.unit_types[recruit_id].__cfg, "attack") do
-            local defense = flat_defense
+        for attack in helper.child_range(wesnoth.unit_types[attacker_id].__cfg, "attack") do
+            local defense = unit_defense
             local poison = false
             -- TODO: handle more abilities (charge, steadfast, drain)
             for special in helper.child_range(attack, 'specials') do
@@ -72,7 +79,7 @@ function analyze_enemy_unit(unit_type_id)
             end
 
             defense = defense/100.0
-            local attack_damage = attack.damage*attack.number*wesnoth.unit_resistance(unit, attack.type)*defense
+            local attack_damage = attack.damage*attack.number*wesnoth.unit_resistance(defender, attack.type)*defense
 
             if poison then
                 -- Add poison damage * probability of poisoning
@@ -84,6 +91,22 @@ function analyze_enemy_unit(unit_type_id)
                 best_attack = attack
             end
         end
-        print(recruit_id, best_attack.name, best_damage)
+
+        return best_attack, best_damage
+    end
+
+    local analysis = {}
+
+    local unit = wesnoth.create_unit { type = unit_type_id }
+    local can_poison = not (helper.get_child(unit.__cfg, "status").not_living or wesnoth.unit_ability(unit, 'regenerate'))
+    local flat_defense = wesnoth.unit_defense(unit, "Gt")
+    local best_defense = get_best_defense(unit)
+    print(unit_type_id, flat_defense, best_defense)
+
+    for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
+        best_flat_attack, best_flat_damage = get_best_attack(recruit_id, unit, flat_defense, can_poison)
+        best_high_defense_attack, best_high_defense_damage = get_best_attack(recruit_id, unit, best_defense, can_poison)
+
+        print(recruit_id, best_flat_attack.name, best_flat_damage, best_high_defense_attack.name, best_high_defense_damage)
     end
 end
