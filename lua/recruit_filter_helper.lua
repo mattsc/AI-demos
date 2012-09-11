@@ -51,11 +51,15 @@ end
 
 function analyze_enemy_unit(unit_type_id)
     local function get_best_attack(attacker_id, defender, unit_defense, can_poison)
-        -- Try to find the average damage for each possible attack and return the one that deals the most damage
+        -- Try to find the average damage for each possible attack and return the one that deals the most damage.
         -- Would be preferable to call simulate combat, but that requires the defender to be on the map according
         -- to documentation and we are looking for hypothetical situations so would have to search for available
         -- locations for the defender that would have the desired defense. We would also need to remove nearby units
-        -- in order to ensure that adjacent units are not modifying the result.
+        -- in order to ensure that adjacent units are not modifying the result. In addition, the time of day is
+        -- assumed to be neutral here, which is not assured in the simulation.
+        -- Ideally, this function would be a clone of simulate combat, but run for each time of day in the scenario and on arbitrary terrain.
+        -- In several cases this function only approximates the correct value (eg Thunderguard vs Goblin Spearman has damage capped by target health)
+        -- In some cases (like poison), this approximation is preferred to the actual value.
         local best_damage = 0
         local best_attack = nil
         -- This doesn't actually check for the ability steadfast, but gives correct answer in the default era
