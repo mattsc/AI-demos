@@ -79,7 +79,11 @@ function analyze_enemy_unit(unit_type_id)
             end
 
             defense = defense/100.0
-            local attack_damage = attack.damage*attack.number*wesnoth.unit_resistance(defender, attack.type)*defense
+            local base_damage = attack.damage*wesnoth.unit_resistance(defender, attack.type)
+            if (base_damage < 100) and (attack.damage > 0) then
+                base_damage = 100
+            end
+            local attack_damage = base_damage*attack.number*defense
 
             if poison then
                 -- Add poison damage * probability of poisoning
