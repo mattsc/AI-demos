@@ -40,6 +40,7 @@ function analyze_enemy_unit(unit_type_id)
 
     local unit = wesnoth.create_unit { type = unit_type_id }
     local can_poison = not (helper.get_child(unit.__cfg, "status").not_living or wesnoth.unit_ability(unit, 'regenerate'))
+    print(unit_type_id)
     for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
         local best_damage = 0
         local best_attack = nil
