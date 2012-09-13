@@ -21,7 +21,7 @@ function wesnoth.wml_actions.message(cfg)
             else caption = unit.__cfg.name end
 
         -- If speaker = second_unit -> get second_unit name
-        elseif cfg.speaker == "second_unit" then 
+        elseif cfg.speaker == "second_unit" then
             local ec = wesnoth.current.event_context
             local second_unit = wesnoth.get_unit(ec.x2,ec.y2)
             if second_unit == nil then caption = ""

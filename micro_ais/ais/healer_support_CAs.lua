@@ -1,4 +1,4 @@
-return { 
+return {
     activate = function(side)
 
         local H = wesnoth.require "lua/helper.lua"

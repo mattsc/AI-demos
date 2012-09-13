@@ -12,7 +12,7 @@ return {
         function wolves:wolves_eval()
             local wolves = wesnoth.get_units { side = wesnoth.current.side, type = 'Wolf', formula = '$this_unit.moves > 0' }
             -- Wolves hunt deer, but only close to the forest
-            local prey = wesnoth.get_units { type = 'Deer', 
+            local prey = wesnoth.get_units { type = 'Deer',
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
                 { "filter_location", { terrain = '*^F*', radius = 3 } }
             }
@@ -28,7 +28,7 @@ return {
 
             local wolves = wesnoth.get_units { side = wesnoth.current.side, type = 'Wolf', formula = '$this_unit.moves > 0' }
             -- Wolves hunt deer, but only close to the forest
-            local prey = wesnoth.get_units { type = 'Deer', 
+            local prey = wesnoth.get_units { type = 'Deer',
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
                 { "filter_location", { terrain = '*^F*', radius = 3 } }
             }
@@ -45,7 +45,7 @@ return {
             -- Find prey that is closest to all 3 wolves
             local target = {}
             local min_dist = 9999
-            for i,p in ipairs(prey) do 
+            for i,p in ipairs(prey) do
                 local dist = 0
                 for j,w in ipairs(wolves) do
                     dist = dist + H.distance_between(w.x, w.y, p.x, p.y)
@@ -154,7 +154,7 @@ return {
 
             -- Add a random rating; avoid big animals, tuskers
             -- On their wandering, they avoid the dogs (but not when attacking)
-            local avoid_units = wesnoth.get_units { type = 'Yeti,Giant Spider,Tarantula,Bear', 
+            local avoid_units = wesnoth.get_units { type = 'Yeti,Giant Spider,Tarantula,Bear',
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
             --print('#avoid_units', #avoid_units)
@@ -189,6 +189,6 @@ return {
             end
         end
 
-        return wolves	
+        return wolves
     end
 }

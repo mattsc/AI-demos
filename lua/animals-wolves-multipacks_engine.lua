@@ -11,7 +11,7 @@ return {
 
         function wolves:color_label(x, y, text)
             -- For displaying the wolf pack number in color underneath each wolf
-            if (wesnoth.current.side == 2) then 
+            if (wesnoth.current.side == 2) then
                 text = "<span color='#63B8FF'>" .. text .. "</span>"
             else
                 text = "<span color='#98FB98'>" .. text .. "</span>"
@@ -20,7 +20,7 @@ return {
         end
 
         function wolves:assign_packs()
-            -- Assign the pack numbers to each wolf.  Keeps numbers of existing packs 
+            -- Assign the pack numbers to each wolf.  Keeps numbers of existing packs
             -- (unless pack size is down to one).  Pack number is stored in wolf unit variables
             -- Also returns a table with the packs (locations and id's of each wolf in a pack)
 
@@ -47,14 +47,14 @@ return {
                     packs[k] = nil
                 end
             end
-            --print('After removing packs of 1')           
+            --print('After removing packs of 1')
             --for k,p in pairs(packs) do print(' have pack:', k, ' #members:', #p) end
             --DBG.dbms(packs)
 
             -- Wolves that are not in a pack (new ones or those removed above)
             local nopack_wolves = {}
             for i,w in ipairs(wolves) do
-                if (not w.variables.pack) then 
+                if (not w.variables.pack) then
                     table.insert(nopack_wolves, w)
                     -- Also erase any goal one of these might have
                     w.variables.pack, w.variables.x, w.variables.y = nil, nil, nil
@@ -73,7 +73,7 @@ return {
                         if (d1 + d2 < min_dist) then
                             min_dist = d1 + d2
                             best_wolf, best_ind = w, i
-                        end                        
+                        end
                     end
                     if (min_dist < 9e99) then
                         table.insert(packs[k], { x = best_wolf.x, y = best_wolf.y, id = best_wolf.id })
@@ -82,7 +82,7 @@ return {
                     end
                 end
             end
-            --print('After completing packs of 2')           
+            --print('After completing packs of 2')
             --for k,p in pairs(packs) do print(' have pack:', k, ' #members:', #p) end
 
             -- Second, group remaining single wolves
@@ -137,7 +137,7 @@ return {
                     table.remove(nopack_wolves, best_ind[i])
                 end
             end
-            --print('After grouping remaining single wolves')           
+            --print('After grouping remaining single wolves')
             --for k,p in pairs(packs) do print(' have pack:', k, ' #members:', #p) end
 
             --DBG.dbms(packs)
@@ -162,7 +162,7 @@ return {
         end
 
         function wolves:wolves_attack_exec()
-            
+
             -- First get all the packs
             local packs = self:assign_packs()
             --DBG.dbms(packs)
@@ -240,12 +240,12 @@ return {
                             local target = wesnoth.get_unit( k % 1000, math.floor(k / 1000))
                             rating = rating - target.hitpoints / 100.
 
-                            -- Also, any target sitting next to a wolf of the same pack that has 
-                            -- no attacks left is priority targeted (in order to stick with 
+                            -- Also, any target sitting next to a wolf of the same pack that has
+                            -- no attacks left is priority targeted (in order to stick with
                             -- the same target for all wolves of the pack)
                             for x, y in H.adjacent_tiles(target.x, target.y) do
                                 local adj_unit = wesnoth.get_unit(x, y)
-                                if adj_unit and (adj_unit.variables.pack == pack_number) 
+                                if adj_unit and (adj_unit.variables.pack == pack_number)
                                     and (adj_unit.side == wesnoth.current.side) and (adj_unit.attacks_left == 0)
                                 then
                                     rating = rating + 10 -- very strongly favors this target
@@ -370,7 +370,7 @@ return {
                 if (not goal[1]) or (r == 1) then
                     local w,h,b = wesnoth.get_map_size()
                     local locs = {}
-                    locs = wesnoth.get_locations { x = '1-'..w, y = '1-'..h, 
+                    locs = wesnoth.get_locations { x = '1-'..w, y = '1-'..h,
                         { "not", { terrain = '*^X*,Wo' } }
                     }
                     local rand = AH.random(#locs)
@@ -389,7 +389,7 @@ return {
                 --   -> find hexes that can be reached by all wolves
                 -- 2. Getting closest to the goal (secondary to 1.)
 
-                -- Number of wolves that can reach each hex, 
+                -- Number of wolves that can reach each hex,
                 local reach_map = LS.create()
                 for i,w in ipairs(wolves) do
                     local reach = wesnoth.find_reach(w)
@@ -433,7 +433,7 @@ return {
                     goto_hex = AH.find_best_move(wolves[1], function(x, y)
                         return -H.distance_between(x, y, cg[1], cg[2])
                     end)
-                    -- We could move this wolf right here, but for convenience all the actual moves are 
+                    -- We could move this wolf right here, but for convenience all the actual moves are
                     -- grouped together below.  Speed wise that should not really make a difference, but could be optimized
                 end
                 --print('goto_hex', goto_hex[1], goto_hex[2])
@@ -454,6 +454,6 @@ return {
             end
         end
 
-        return wolves	
+        return wolves
     end
 }

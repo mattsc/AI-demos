@@ -36,7 +36,7 @@ return {
             if AH.print_eval() then print('     - Evaluating recruit_orcs CA:', os.clock()) end
 
             -- Check if there is enough gold to recruit at least a grunt
-            if (wesnoth.sides[wesnoth.current.side].gold < 12) then 
+            if (wesnoth.sides[wesnoth.current.side].gold < 12) then
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return 0
             end
@@ -98,7 +98,7 @@ return {
                     for j,e in ipairs(enemy_leaders) do
                         rating = rating + 1 / H.distance_between(c[1], c[2], e.x, e.y) ^ 2.
                     end
-                    if (rating > max_rating) then 
+                    if (rating > max_rating) then
                         max_rating, best_hex = rating, { c[1], c[2] }
                     end
                 end
@@ -252,7 +252,7 @@ return {
                     for j,e in ipairs(enemy_leaders) do
                         rating = rating + 1 / H.distance_between(c[1], c[2], e.x, e.y) ^ 2.
                     end
-                    if (rating > max_rating) then 
+                    if (rating > max_rating) then
                         max_rating, best_hex = rating, { c[1], c[2] }
                     end
                 end
@@ -316,7 +316,7 @@ return {
             end
 
             -- Check if there are units with moves left
-            local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no', 
+            local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no',
                 formula = '$this_unit.moves > 0'
             }
             if (not units[1]) then
@@ -365,7 +365,7 @@ return {
                         -- If an enemy can get within one move, we want to hold it
                         for k,e in ipairs(enemies) do
                             local path_e, cost_e = wesnoth.find_path(e, v[1], v[2])
-                            if (cost_e <= e.max_moves) then 
+                            if (cost_e <= e.max_moves) then
                                 --print('  within enemy reach', e.id)
                                 rating = rating + 10
                             end
@@ -420,7 +420,7 @@ return {
 
             -- If a unit with a poisoned weapon can make an attack, we'll do that preferentially
             -- (with some exceptions)
-            local poisoners = AH.get_live_units { side = wesnoth.current.side, 
+            local poisoners = AH.get_live_units { side = wesnoth.current.side,
                 formula = '$this_unit.attacks_left > 0',
                 { "filter_wml", {
                     { "attack", {
@@ -463,7 +463,7 @@ return {
                     -- Strongest enemy gets poisoned first
                     local rating = defender.hitpoints
 
-                    -- Always attack enemy leader, if possible 
+                    -- Always attack enemy leader, if possible
                     if defender.canrecruit then rating = rating + 1000 end
 
                     -- Enemies that can regenerate are not good targets
@@ -507,6 +507,6 @@ return {
             self.data.attack = nil
         end
 
-        return generic_rush	
+        return generic_rush
     end
 }

@@ -105,7 +105,7 @@ return {
         local choice = helper.get_user_choice(
             {
                 speaker = "narrator",
-                image = "wesnoth-icon.png", 
+                image = "wesnoth-icon.png",
                 caption = "Choose Candidate Action",
                 message = "Which CA do you want to evaluate or execute?"
             },

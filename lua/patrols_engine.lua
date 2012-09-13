@@ -118,7 +118,7 @@ return {
 	                                end
 	                        end
 	                end
-	
+
 	                -- perform the move
                         local x, y = wesnoth.find_vacant_tile(self.data.next_step_x, self.data.next_step_y, jabb)
 	                local nh = AH.next_hop( jabb, x, y)

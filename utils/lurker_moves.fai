@@ -1,18 +1,18 @@
 fai 'lurker_moves.fai'
 # run_file('~add-ons/AItest/ai/lurker_moves.fai') #
 
-def is_swamp(map, xx, yy)   
+def is_swamp(map, xx, yy)
     # Tests whether terrain at xx,yy is swamp_water #
-    map( 
+    map(
         filter( map.terrain, (x=xx) and (y=yy)),
-        self.id 
+        self.id
     )[0] = 'swamp_water';
 
 def reachable_swamp(unit_loc,map)
     # get all reachable swamp locs for unit at unit_loc #
     # exclude own location #
-    filter( 
-        unit_moves( unit_loc ), 
+    filter(
+        unit_moves( unit_loc ),
         (is_swamp( map, x, y )) and (self != unit_loc)
     );
 
@@ -23,7 +23,7 @@ def random(array)
 def reachable_enemies_next_to_swamp(unit_loc,attacks,map)
     # Returns all the attacks for enemies that the unit at 'unit_loc' #
     # can reach and that are next to a swamp hex #
-    filter( 
+    filter(
         map( attacks.attacks, self),
         (move_from = unit_loc) and (is_swamp( map, attack_from.x, attack_from.y))
     );

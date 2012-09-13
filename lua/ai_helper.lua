@@ -105,13 +105,13 @@ function ai_helper.clear_labels()
     local w,h,b = wesnoth.get_map_size()
     for x = 1,w do
         for y = 1,h do
-          W.label { x = x, y = y, text = "" } 
+          W.label { x = x, y = y, text = "" }
         end
     end
 end
 
 function ai_helper.put_labels(map, factor)
-    -- Take map (location set) and put label containing 'value' onto the map 
+    -- Take map (location set) and put label containing 'value' onto the map
     -- factor: multiply by 'factor' if set
     -- print 'nan' if element exists but is not a number
 
@@ -120,7 +120,7 @@ function ai_helper.put_labels(map, factor)
     ai_helper.clear_labels()
     map:iter(function(x, y, data)
           local out = tonumber(data) or 'nan'
-          if (out ~= 'nan') then out = out * factor end 
+          if (out ~= 'nan') then out = out * factor end
           W.label { x = x, y = y, text = out }
     end)
 end
@@ -396,8 +396,8 @@ function ai_helper.get_live_units(filter)
     -- So that 'filter' in calling function is not modified (if it's a variable):
     local live_filter = ai_helper.table_copy(filter)
 
-    local filter_not_petrified = { "not", { 
-        { "filter_wml", { 
+    local filter_not_petrified = { "not", {
+        { "filter_wml", {
             { "status", { petrified = "yes" } }
         } }
     } }
@@ -487,7 +487,7 @@ end
 function ai_helper.get_dst_src(units)
     -- Produces the same output as ai.get_dst_src()   (available in 1.11.0)
     -- If units is given, use them, otherwise do it for all units on side
-    
+
     local my_units = {}
     if units then
         my_units = units
@@ -516,10 +516,10 @@ function ai_helper.my_moves()
     local dstsrc = ai.get_dstsrc()
 
     local my_moves = {}
-    for key,value in pairs(dstsrc) do 
+    for key,value in pairs(dstsrc) do
         --print("src: ",value[1].x,value[1].y,"    -- dst: ",key.x,key.y)
-        table.insert( my_moves, 
-            {   src = { x = value[1].x , y = value[1].y }, 
+        table.insert( my_moves,
+            {   src = { x = value[1].x , y = value[1].y },
                 dst = { x = key.x , y = key.y }
             }
         )
@@ -536,10 +536,10 @@ function ai_helper.enemy_moves()
     local dstsrc = ai.get_enemy_dstsrc()
 
     local enemy_moves = {}
-    for key,value in pairs(dstsrc) do 
+    for key,value in pairs(dstsrc) do
         --print("src: ",value[1].x,value[1].y,"    -- dst: ",key.x,key.y)
-        table.insert( enemy_moves, 
-            {   src = { x = value[1].x , y = value[1].y }, 
+        table.insert( enemy_moves,
+            {   src = { x = value[1].x , y = value[1].y },
                 dst = { x = key.x , y = key.y }
             }
         )
@@ -580,8 +580,8 @@ end
 
 function ai_helper.can_reach(unit, x, y, cfg)
     -- Returns true if unit can reach (x,y), else false
-    -- This only returns true if the hex is unoccupied, or at most occupied by unit on same side as 'unit' 
-    -- that can move away (can be modified with options below) 
+    -- This only returns true if the hex is unoccupied, or at most occupied by unit on same side as 'unit'
+    -- that can move away (can be modified with options below)
     -- cfg:
     --   moves = 'max' use max_moves instead of current moves
     --   ignore_units: if true, ignore both own and enemy units
@@ -735,7 +735,7 @@ end
 function ai_helper.movefull_stopunit(ai, unit, x, y)
     -- Does ai.move_full for a unit if not at (x,y), otherwise ai.stopunit_moves
     -- Coordinates can be given as x and y components, or as a 2-element table { x, y }
-    if (type(x) ~= 'number') then 
+    if (type(x) ~= 'number') then
         if x[1] then
             x, y = x[1], x[2]
         else
@@ -753,7 +753,7 @@ end
 function ai_helper.movefull_outofway_stopunit(ai, unit, x, y, cfg)
     -- Same as ai_help.movefull_stopunit(), but also moves unit out of way if there is one
     -- Additional input: cfg for ai_helper.move_unit_out_of_way()
-    if (type(x) ~= 'number') then 
+    if (type(x) ~= 'number') then
         if x[1] then
             x, y = x[1], x[2]
         else
@@ -804,16 +804,16 @@ function ai_helper.get_attacks_unit(unit, moves)
     -- Need to find reachable hexes that are
     -- 1. next to a (non-petrified) enemy unit
     -- 2. not occupied by an allied unit (except for unit itself)
-    W.store_reachable_locations { 
+    W.store_reachable_locations {
         { "filter", { x = unit.x, y = unit.y } },
         { "filter_location", {
-            { "filter_adjacent_location", { 
-                { "filter", { 
+            { "filter_adjacent_location", {
+                { "filter", {
                     { "filter_side",
                         { { "enemy_of", { side = unit.side } } }
                     },
                     { "not", {
-                        { "filter_wml", { 
+                        { "filter_wml", {
                             { "status", { petrified = "yes" } }  -- This is important!
                         } }
                     } }
@@ -848,11 +848,11 @@ function ai_helper.get_attacks_unit(unit, moves)
                 { { "enemy_of", { side = unit.side } } }
             },
             { "not", {
-                { "filter_wml", { 
+                { "filter_wml", {
                     { "status", { petrified = "yes" } }  -- This is important!
                 } }
             } },
-            { "filter_location", 
+            { "filter_location",
                 { { "filter_adjacent_location", { x = p.x, y = p.y } } }
             }
         }
@@ -912,28 +912,28 @@ function ai_helper.get_attacks_unit_occupied(unit)
     -- Need to find reachable hexes that are
     -- 1. next to a (non-petrified) enemy unit
     -- 2. not occupied by a unit of a different side (incl. allies)
-    W.store_reachable_locations { 
+    W.store_reachable_locations {
         { "filter", { x = unit.x, y = unit.y } },
         { "filter_location", {
-            { "filter_adjacent_location", { 
-                { "filter", { 
+            { "filter_adjacent_location", {
+                { "filter", {
                     { "filter_side",
                         { { "enemy_of", { side = unit.side } } }
                     },
                     { "not", {
-                        { "filter_wml", { 
+                        { "filter_wml", {
                             { "status", { petrified = "yes" } }  -- This is important!
                         } }
                     } }
                 } }
             } },
-            { "not", { 
+            { "not", {
                 { "filter", { { "not", { side = unit.side } } } }
             } }
         } },
         variable = "tmp_locs"
     }
-    
+
     local attack_loc = H.get_variable_array("tmp_locs")
     W.clear_variable { name = "tmp_locs" }
     --print("reachable attack locs:", unit.id, #attack_loc)
@@ -976,11 +976,11 @@ function ai_helper.get_attacks_unit_occupied(unit)
                     { { "enemy_of", { side = unit.side } } }
                 },
                 { "not", {
-                    { "filter_wml", { 
+                    { "filter_wml", {
                         { "status", { petrified = "yes" } }  -- This is important!
                     } }
                 } },
-                { "filter_location", 
+                { "filter_location",
                     { { "filter_adjacent_location", { x = p.x, y = p.y } } }
                 }
             }
@@ -1062,7 +1062,7 @@ end
 
 function ai_helper.attack_map(units, cfg)
     -- Attack map: number of units which can attack each hex
-    -- Return value is a location set, where the value is the 
+    -- Return value is a location set, where the value is the
     --   number of units that can attack a hex
     -- cfg: parameters to wesnoth.find_reach, such as {additional_turns = 1}
     -- additional, {moves = 'max'} can be set inside cfg, which sets unit MP to max_moves before calculation
@@ -1095,7 +1095,7 @@ function ai_helper.add_next_attack_level(combos, attacks)
         local hex_xy = a.y + a.x * 1000.  -- attack hex (src)
         local att_xy = a.att_loc.y + a.att_loc.x * 1000.  -- attacker hex (dst)
         if (not combos[1]) then  -- if this is the first recursion level, set up new combos for this level
-            --print('New array') 
+            --print('New array')
             table.insert(combos_this_level, {{ h = hex_xy, a = att_xy }})
         else
             -- Otherwise, we need to go through the already existing elements in 'combos'
@@ -1180,7 +1180,7 @@ function ai_helper.get_attack_combos_no_order(units, enemy)
     -- Returns an array similar to that given by ai.get_attacks
     -- Only the combinations of which unit from which hex are considered, but not in which order the
     -- attacks are done
-    -- Return values: 
+    -- Return values:
     --   1. Attack combinations in form { dst = src }
     --   2. All the attacks indexed by [dst][src]
 
@@ -1196,7 +1196,7 @@ function ai_helper.get_attack_combos_no_order(units, enemy)
     if (not attacks[1]) then return {}, {} end
 
     -- Find all hexes adjacent to enemy that can be reached by any attacker
-    -- Put this into an array that has dst as key, 
+    -- Put this into an array that has dst as key,
     -- and array of all units (src) that can get there as value (in from x*1000+y)
     local attacks_dst_src = {}
     for i,a in ipairs(attacks) do
@@ -1246,7 +1246,7 @@ function ai_helper.get_attack_combos_no_order(units, enemy)
         local sum_key, sum_value = 0, 0
         local tmp = {}
         for dst,src in pairs(att) do
-            if (src == 0) then 
+            if (src == 0) then
                 att[dst] = nil
             else
                 tmp[src] = src  -- no typo!!
