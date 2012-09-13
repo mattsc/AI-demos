@@ -629,7 +629,7 @@ return {
                 print('   Player ' .. s.side .. ' (' .. leader.type .. '): ' .. #units .. ' Units with total HP: ' .. total_hp)
             end
             if grunt_rush_FLS1:full_offensive() then print(' Full offensive mode (mostly done by RCA AI)') end
-DBG.dbms(analyze_enemy_unit('Footpad'))
+            get_hp_efficiency()
         end
 
         ------ Reset variables at beginning of turn -----------
