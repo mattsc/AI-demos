@@ -81,7 +81,7 @@ return {
 
             -- Recruit on the castle hex that is closest to the combination of the enemy leaders
             local enemy_leaders = AH.get_live_units { canrecruit = 'yes',
-	        { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
+                { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
             }
 
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
@@ -196,9 +196,9 @@ return {
             local rushers = AH.get_live_units { side = wesnoth.current.side, type = rusher_type }
             local all_units = AH.get_live_units { side = wesnoth.current.side }
             -- This one is just for stats display in the terminal window
-	    local enemies = AH.get_live_units {
+            local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
-	    }
+            }
             --print('#all_units, #rushers, #enemies', #all_units, #rushers, #enemies)
 
             if (#rushers / (#all_units+1) > 0.6) then
@@ -235,7 +235,7 @@ return {
 
             -- Recruit on the castle hex that is closest to the combination of the enemy leaders
             local enemy_leaders = AH.get_live_units { canrecruit = 'yes',
-	        { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
+                { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
             }
 
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
@@ -324,9 +324,9 @@ return {
                 return 0
             end
 
-	    local enemies = AH.get_live_units {
+            local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
-	    }
+            }
 
             local villages = wesnoth.get_locations { terrain = '*^V*' }
             -- Just in case:

@@ -781,7 +781,7 @@ return {
         ------ Retreat injured units -----------
 
         function grunt_rush_FLS1:retreat_injured_units_eval()
-   	        -- First we retreat non-troll units w/ <12 HP to villages.
+                -- First we retreat non-troll units w/ <12 HP to villages.
             local score = grunt_rush_FLS1:retreat_injured_units_eval_filtered(
                 { side = wesnoth.current.side, canrecruit = 'no',
                     formula = '$this_unit.moves > 0',
@@ -830,7 +830,7 @@ return {
                 return 0
             end
 
-	        local villages = wesnoth.get_locations { terrain = terrain_filter }
+                local villages = wesnoth.get_locations { terrain = terrain_filter }
             --print('#villages', #villages)
 
             -- Only retreat to safe villages
