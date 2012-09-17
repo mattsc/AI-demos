@@ -444,7 +444,8 @@ return {
             -- Set up an array containing the open villages to retreat to
             local open_villages = {}
             for i,v in ipairs(hold.villages) do
-                if (not wesnoth.get_unit(v.x, v.y)) then
+                local unit_in_way = wesnoth.get_unit(v.x, v.y)
+                if (not unit_in_way) or (unit_in_way.moves > 0) then
                     table.insert(open_villages, v)
                 end
             end
@@ -479,6 +480,11 @@ return {
                             -- All else being equal, retreat the most injured unit first
                             rating = rating + (u.max_hitpoints - u.hitpoints) / 100.
 print(u.x, u.y, rating)
+
+                            -- If there's a unit in the way, add a very minor penalty
+                            -- It was checked previously that this unit has moves left
+                            if wesnoth.get_unit(v.x, v.y) then rating = rating - 0.001 end
+
                             if (rating > max_rating) then
                                 max_rating, best_unit, best_village, ind_u, ind_v = rating, u, v, i, j
                             end
