@@ -467,26 +467,26 @@ return {
                 local max_rating, best_unit, best_village, ind_u, ind_v = -9e99, {}, {}, -1
                 for i,u in ipairs(most_injured) do
                     for j,v in ipairs(open_villages) do
-                        -- The rating is mostly the distance between unit and village
-                        local next_hop = AH.next_hop(u, v.x, v.y)
-                        if next_hop then
-                            -- The closer the unit can get to the village, the better
-                            local dist = H.distance_between(v.x, v.y, next_hop[1], next_hop[2])
-                            local rating = -dist
+                        local rating = 0
 
-                            -- Big bonus if the unit can get there
-                            if (dist == 0) then rating = rating + 100 end
+                        -- The rating is mostly how close the unit can get to the village
+                        -- Cannot use AH.next_hop here, as that excludes occupied locations
+                        local path, cost = wesnoth.find_path(u, v.x, v.y)
+                        if (cost <= u.moves) then
+                            rating = rating + 100
+                        else
+                            rating = rating - cost
+                        end
 
-                            -- All else being equal, retreat the most injured unit first
-                            rating = rating + (u.max_hitpoints - u.hitpoints) / 100.
+                        -- All else being equal, retreat the most injured unit first
+                        rating = rating + (u.max_hitpoints - u.hitpoints) / 100.
 
-                            -- If there's a unit in the way, add a very minor penalty
-                            -- It was checked previously that this unit has moves left
-                            if wesnoth.get_unit(v.x, v.y) then rating = rating - 0.001 end
+                        -- If there's a unit in the way, add a very minor penalty
+                        -- It was checked previously that this unit has moves left
+                        if wesnoth.get_unit(v.x, v.y) then rating = rating - 0.001 end
 
-                            if (rating > max_rating) then
-                                max_rating, best_unit, best_village, ind_u, ind_v = rating, u, v, i, j
-                            end
+                        if (rating > max_rating) then
+                            max_rating, best_unit, best_village, ind_u, ind_v = rating, u, v, i, j
                         end
                     end
                 end
