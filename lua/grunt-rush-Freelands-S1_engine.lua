@@ -467,17 +467,21 @@ return {
                 for i,u in ipairs(most_injured) do
                     for j,v in ipairs(open_villages) do
                         -- The rating is mostly the distance between unit and village
-                        local dist = H.distance_between(u.x, u.y, v.x, v.y)
-                        local rating = dist
+                        local next_hop = AH.next_hop(u, v.x, v.y)
+                        if next_hop then
+                            -- The closer the unit can get to the village, the better
+                            local dist = H.distance_between(v.x, v.y, next_hop[1], next_hop[2])
+                            local rating = -dist
 
-                        -- Big bonus if the unit can get there
-                        if (dist == 0) then rating = rating + 100 end
+                            -- Big bonus if the unit can get there
+                            if (dist == 0) then rating = rating + 100 end
 
-                        -- All else being equal, retreat the most injured unit first
-                        rating = rating + u.max_hitpoints - u.hitpoints
-
-                        if (rating > max_rating) then
-                           max_rating, best_unit, best_village, ind_u, ind_v = rating, u, v, i, j
+                            -- All else being equal, retreat the most injured unit first
+                            rating = rating + (u.max_hitpoints - u.hitpoints) / 100.
+print(u.x, u.y, rating)
+                            if (rating > max_rating) then
+                                max_rating, best_unit, best_village, ind_u, ind_v = rating, u, v, i, j
+                            end
                         end
                     end
                 end
