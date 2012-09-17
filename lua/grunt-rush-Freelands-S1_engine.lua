@@ -2539,7 +2539,15 @@ return {
         function grunt_rush_FLS1:hold_exec()
             if AH.print_exec() then print('     - Executing hold CA') end
 
-            grunt_rush_FLS1:retreat_units(grunt_rush_FLS1.data.hold, { ignore_terrain_at_night = true, called_from = 'hold CA' } )
+            -- During day: call retreat_units()
+            -- During night: call hold_position()
+            local tod = wesnoth.get_time_of_day()
+
+            if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
+                grunt_rush_FLS1:retreat_units(grunt_rush_FLS1.data.hold, { ignore_terrain_at_night = true, called_from = 'hold CA (retreat_units)' } )
+            else
+                grunt_rush_FLS1:hold_position(self.data.hold.units, self.data.hold.goal, { ignore_terrain_at_night = true, called_from = 'hold CA (hold_position)' } )
+            end
             grunt_rush_FLS1.data.hold = nil
         end
 
