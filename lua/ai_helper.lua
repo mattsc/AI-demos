@@ -734,6 +734,7 @@ end
 
 function ai_helper.movefull_stopunit(ai, unit, x, y)
     -- Does ai.move_full for a unit if not at (x,y), otherwise ai.stopunit_moves
+    -- Uses ai_helper.next_hop(), so that it works if unit cannot get there in one move
     -- Coordinates can be given as x and y components, or as a 2-element table { x, y }
     if (type(x) ~= 'number') then
         if x[1] then
@@ -743,8 +744,9 @@ function ai_helper.movefull_stopunit(ai, unit, x, y)
         end
     end
 
-    if (x ~= unit.x) or (y ~= unit.y) then
-        ai.move_full(unit, x, y)
+    local next_hop = ai_helper.next_hop(unit, x, y)
+    if next_hop and ((next_hop[1] ~= unit.x) or (next_hop[2] ~= unit.y)) then
+        ai.move_full(unit, next_hop[1], next_hop[2])
     else
         ai.stopunit_moves(unit)
     end
