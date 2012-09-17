@@ -424,24 +424,26 @@ return {
             end
         end
 
-        function grunt_rush_FLS1:retreat_units(units, goal, cfg)
-            -- Set up a defensive position at (goal.x, goal.y) using 'units'
-            -- goal should be a village or an otherwise strong position, or this doesn't make sense
-            -- cfg: table with additional parameters:
-            --   ignore_terrain_at_night: if true, terrain has (almost) no influence on choosing positions for
-            --     close units
+        function grunt_rush_FLS1:retreat_units(hold, cfg)
+            -- Retreat units to a defensive position
+            -- Hold is a container variable containing:
+            --  goal: set up position at (goal.x, goal.y)
+            --  units: the units to use for this
+            -- cfg: table with additional parameters (probably to be gotten rid of later):
+            --   ignore_terrain_at_night: if true, terrain has (almost) no influence on
+            -- choosing positions for close units
 
             cfg = cfg or {}
             cfg.called_from = cfg.called_from or ''
 
             -- If this is a village, we try to hold the position itself,
             -- otherwise just set up position around it
-            local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(goal.x, goal.y)).village
+            local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(hold.goal.x, hold.goal.y)).village
 
             -- If a unit is there already, simply hold the position
             -- Later we can add something for switching it for a better unit, if desired
             if is_village then
-                local unit_at_goal = wesnoth.get_unit(goal.x, goal.y)
+                local unit_at_goal = wesnoth.get_unit(hold.goal.x, hold.goal.y)
                 if unit_at_goal and (unit_at_goal.side == wesnoth.current.side) and (unit_at_goal.moves > 0) then
                     ai.stopunit_moves(unit_at_goal)
                     return
@@ -451,10 +453,10 @@ return {
                 -- If so, we take the strongest and farthest away
                 local max_rating, best_unit = -9e99, {}
                 if (not unit_at_goal) then
-                    for i,u in ipairs(units) do
-                        local path, cost = wesnoth.find_path(u, goal.x, goal.y)
+                    for i,u in ipairs(hold.units) do
+                        local path, cost = wesnoth.find_path(u, hold.goal.x, hold.goal.y)
                         if (cost <= u.moves) then
-                            local rating = u.hitpoints + H.distance_between(u.x, u.y, goal.x, goal.y) / 100.
+                            local rating = u.hitpoints + H.distance_between(u.x, u.y, hold.goal.x, hold.goal.y) / 100.
                             if (rating > max_rating) then
                                 max_rating, best_unit = rating, u
                             end
@@ -462,7 +464,7 @@ return {
                     end
                 end
                 if max_rating > -9e99 then
-                    AH.movefull_outofway_stopunit(ai, best_unit, goal)
+                    AH.movefull_outofway_stopunit(ai, best_unit, hold.goal)
                     return
                 end
            end
@@ -471,8 +473,8 @@ return {
             -- (or the goal is not a village)
             -- Split up units into those that can get within one move of goal, and those that cannot
             local far_units, close_units = {}, {}
-            for i,u in ipairs(units) do
-                local path, cost = wesnoth.find_path(u, goal.x, goal.y, { ignore_units = true } )
+            for i,u in ipairs(hold.units) do
+                local path, cost = wesnoth.find_path(u, hold.goal.x, hold.goal.y, { ignore_units = true } )
                 if (cost < u.moves * 2) then
                     table.insert(close_units, u)
                 else
@@ -483,7 +485,7 @@ return {
 
             -- At this point, if there's an enemy at the goal hex, need to find a different goal
             if unit_at_goal and (unit_at_goal.side ~= wesnoth.current.side) then
-                goal.x, goal.y = wesnoth.find_vacant_tile(goal.x, goal.y)
+                hold.goal.x, hold.goal.y = wesnoth.find_vacant_tile(hold.goal.x, hold.goal.y)
             end
 
             -- The close units are moved first
@@ -493,14 +495,14 @@ return {
                     local reach_map = AH.get_reachable_unocc(u)
                     reach_map:iter( function(x, y, v)
                         local rating = 0
-                        local dist = H.distance_between(x, y, goal.x, goal.y)
-                        if (dist <= -1) or (y > goal.y + 1) then rating = rating - 1000 end
+                        local dist = H.distance_between(x, y, hold.goal.x, hold.goal.y)
+                        if (dist <= -1) or (y > hold.goal.y + 1) then rating = rating - 1000 end
                         rating = rating - dist
 
                         local x1, y1 = u.x, u.y
                         wesnoth.extract_unit(u)
                         u.x, u.y = x, y
-                        local path, cost = wesnoth.find_path(u, goal.x, goal.y, { ignore_units = true } )
+                        local path, cost = wesnoth.find_path(u, hold.goal.x, hold.goal.y, { ignore_units = true } )
                         wesnoth.put_unit(x1, y1, u)
                         if cost > u.moves then rating = rating - 1000 end
 
@@ -547,8 +549,8 @@ return {
                 local max_rating, best_hex, best_unit = -9e99, {}, {}
                 for i,u in ipairs(far_units) do
 
-                    local next_hop = AH.next_hop(u, goal.x, goal.y)
-                    if (not next_hop) then next_hop = { goal.x, goal.y } end
+                    local next_hop = AH.next_hop(u, hold.goal.x, hold.goal.y)
+                    if (not next_hop) then next_hop = { hold.goal.x, hold.goal.y } end
 
                     -- Is there a threat on the next_hop position?
                     -- If so, take terrain into account (for all hexes for that unit)
@@ -591,7 +593,7 @@ return {
                 end
 
                 if (max_rating > -9e99) then
-                    if AH.show_messages() then W.message { speaker = best_unit.id, message = 'Hold position (' .. cfg.called_from .. '): Moving far unit ' .. goal.x .. ',' .. goal.y } end
+                    if AH.show_messages() then W.message { speaker = best_unit.id, message = 'Hold position (' .. cfg.called_from .. '): Moving far unit ' .. hold.goal.x .. ',' .. hold.goal.y } end
                     AH.movefull_outofway_stopunit(ai, best_unit, best_hex)
                     return
                 end
@@ -2465,7 +2467,7 @@ return {
         function grunt_rush_FLS1:hold_exec()
             if AH.print_exec() then print('     - Executing hold CA') end
 
-            grunt_rush_FLS1:hold_position(grunt_rush_FLS1.data.hold.units, grunt_rush_FLS1.data.hold.goal, { ignore_terrain_at_night = true, called_from = 'hold CA' } )
+            grunt_rush_FLS1:retreat_units(grunt_rush_FLS1.data.hold, { ignore_terrain_at_night = true, called_from = 'hold CA' } )
             grunt_rush_FLS1.data.hold = nil
         end
 
