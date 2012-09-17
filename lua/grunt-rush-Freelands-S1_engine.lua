@@ -461,6 +461,7 @@ return {
             end
 
             -- Now retreat those units toward those villages
+            local units_moved = false
             while most_injured[1] do
                 local max_rating, best_unit, best_village, ind_u, ind_v = -9e99, {}, {}, -1
                 for i,u in ipairs(most_injured) do
@@ -483,15 +484,17 @@ return {
 
                 -- If a good retreat option was found, do it
                 if (max_rating > -9e99) then
-                    local next_hop = AH.next_hop(best_unit, best_village.x, best_village.y)
-                    AH.movefull_outofway_stopunit(ai, best_unit, next_hop)
+                    AH.movefull_outofway_stopunit(ai, best_unit, best_village)
                     table.remove(most_injured, ind_u)
                     table.remove(open_villages, ind_v)
+                    units_moved = true
                 -- Otherwise stop the loop
                 else
                     most_injured = {}
                 end
             end
+            -- If we moved injured units, do a return here, because things need to be recalculated
+            if units_moved then return end
 
             -- If this is a village, we try to hold the position itself,
             -- otherwise just set up position around it
