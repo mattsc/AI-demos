@@ -479,7 +479,6 @@ return {
 
                             -- All else being equal, retreat the most injured unit first
                             rating = rating + (u.max_hitpoints - u.hitpoints) / 100.
-print(u.x, u.y, rating)
 
                             -- If there's a unit in the way, add a very minor penalty
                             -- It was checked previously that this unit has moves left

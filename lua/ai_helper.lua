@@ -769,8 +769,9 @@ function ai_helper.movefull_outofway_stopunit(ai, unit, x, y, cfg)
         ai_helper.move_unit_out_of_way(ai, unit_in_way, cfg)
     end
 
-    if (x ~= unit.x) or (y ~= unit.y) then
-        ai.move_full(unit, x, y)
+    local next_hop = ai_helper.next_hop(unit, x, y)
+    if next_hop and ((next_hop[1] ~= unit.x) or (next_hop[2] ~= unit.y)) then
+        ai.move_full(unit, next_hop[1], next_hop[2])
     else
         ai.stopunit_moves(unit)
     end
