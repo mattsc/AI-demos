@@ -428,6 +428,7 @@ return {
             -- Retreat units to a defensive position
             -- Hold is a container variable containing:
             --  goal: set up position at (goal.x, goal.y)
+            --  villages: an array containing the coordinates of villages to which to retreat injured units
             --  units: the units to use for this
             -- cfg: table with additional parameters (probably to be gotten rid of later):
             --   ignore_terrain_at_night: if true, terrain has (almost) no influence on
@@ -435,6 +436,62 @@ return {
 
             cfg = cfg or {}
             cfg.called_from = cfg.called_from or ''
+
+            -- We start by retreating the most injured units toward the villages
+            -- This is done even if the units are not injured, as villages
+            -- are usually the strongest positions
+
+            -- Set up an array containing the open villages to retreat to
+            local open_villages = {}
+            for i,v in ipairs(hold.villages) do
+                if (not wesnoth.get_unit(v.x, v.y)) then
+                    table.insert(open_villages, v)
+                end
+            end
+
+            -- Find the most injured units
+            local most_injured = AH.table_copy(hold.units)
+            table.sort(most_injured, function(a, b)
+                return a.max_hitpoints - a.hitpoints > b.max_hitpoints - b.hitpoints
+            end)
+
+            -- Only keep as many injured units as there are open villages
+            for i = #most_injured,#open_villages+1,-1 do
+                table.remove(most_injured, i)
+            end
+
+            -- Now retreat those units toward those villages
+            while most_injured[1] do
+                local max_rating, best_unit, best_village, ind_u, ind_v = -9e99, {}, {}, -1
+                for i,u in ipairs(most_injured) do
+                    for j,v in ipairs(open_villages) do
+                        -- The rating is mostly the distance between unit and village
+                        local dist = H.distance_between(u.x, u.y, v.x, v.y)
+                        local rating = dist
+
+                        -- Big bonus if the unit can get there
+                        if (dist == 0) then rating = rating + 100 end
+
+                        -- All else being equal, retreat the most injured unit first
+                        rating = rating + u.max_hitpoints - u.hitpoints
+
+                        if (rating > max_rating) then
+                           max_rating, best_unit, best_village, ind_u, ind_v = rating, u, v, i, j
+                        end
+                    end
+                end
+
+                -- If a good retreat option was found, do it
+                if (max_rating > -9e99) then
+                    local next_hop = AH.next_hop(best_unit, best_village.x, best_village.y)
+                    AH.movefull_outofway_stopunit(ai, best_unit, next_hop)
+                    table.remove(most_injured, ind_u)
+                    table.remove(open_villages, ind_v)
+                -- Otherwise stop the loop
+                else
+                    most_injured = {}
+                end
+            end
 
             -- If this is a village, we try to hold the position itself,
             -- otherwise just set up position around it
@@ -2405,13 +2462,15 @@ return {
                 filter_units = { x = '1-15,16-20', y = '1-15,1-6' },
                 hold_area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15},
                 hold = { x = 11, max_y = 15 },
-                hold_condition = { hp_ratio = 1.0, x = '1-15', y = '1-15' }
+                hold_condition = { hp_ratio = 1.0, x = '1-15', y = '1-15' },
+                villages = {}
             }
 
             local cfg_right = {
                 filter_units = { x = '1-99,22-99', y = '1-11,12-25' },
                 hold_area = { x_min = 25, x_max = width, y_min = 11, y_max = height},
-                hold = { x = 27, max_y = 22 }
+                hold = { x = 27, max_y = 22 },
+                villages = { { x = 24, y = 7 }, { x = 28, y = 5 } }
             }
 
             -- This way it will be easy to change the priorities on the fly later:
@@ -2453,6 +2512,7 @@ return {
                     --DBG.dbms(hold)
 
                     if hold then
+                        hold.villages = cfg.villages
                         grunt_rush_FLS1.data.hold = hold
                         if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                         return score_hold
