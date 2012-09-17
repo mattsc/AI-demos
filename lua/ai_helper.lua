@@ -763,10 +763,14 @@ function ai_helper.movefull_outofway_stopunit(ai, unit, x, y, cfg)
         end
     end
 
-    local unit_in_way = wesnoth.get_unit(x, y)
-    if unit_in_way and ((unit_in_way.x ~= unit.x) or (unit_in_way.y ~= unit.y)) then
-        --W.message { speaker = 'narrator', message = 'Moving out of way' }
-        ai_helper.move_unit_out_of_way(ai, unit_in_way, cfg)
+    -- Only move unit out of way if the main unit can get there
+    local path, cost = wesnoth.find_path(unit, x, y)
+    if (cost <= unit.moves) then
+        local unit_in_way = wesnoth.get_unit(x, y)
+        if unit_in_way and ((unit_in_way.x ~= unit.x) or (unit_in_way.y ~= unit.y)) then
+            --W.message { speaker = 'narrator', message = 'Moving out of way' }
+            ai_helper.move_unit_out_of_way(ai, unit_in_way, cfg)
+        end
     end
 
     local next_hop = ai_helper.next_hop(unit, x, y)
