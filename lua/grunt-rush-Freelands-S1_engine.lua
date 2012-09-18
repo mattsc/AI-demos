@@ -2440,9 +2440,9 @@ return {
             local tod = wesnoth.get_time_of_day()
 
             if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
-                grunt_rush_FLS1:retreat_units(grunt_rush_FLS1.data.hold, { ignore_terrain_at_night = true, called_from = 'hold CA (retreat_units)' } )
+                grunt_rush_FLS1:retreat_units(grunt_rush_FLS1.data.hold, { called_from = 'hold CA' } )
             else
-                grunt_rush_FLS1:hold_position(self.data.hold.units, self.data.hold.goal, { ignore_terrain_at_night = true, called_from = 'hold CA (hold_position)' } )
+                grunt_rush_FLS1:hold_position(self.data.hold.units, self.data.hold.goal, { ignore_terrain_at_night = true, called_from = 'hold CA' } )
             end
             grunt_rush_FLS1.data.hold = nil
         end
