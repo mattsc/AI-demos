@@ -521,26 +521,21 @@ return {
                 if (goal.y < l[2] + 1) then goal.y = l[2] + 1 end
             end
 
-            -- At this point, if there's an enemy at the goal hex, need to find a different goal
-            if unit_at_goal and (unit_at_goal.side ~= wesnoth.current.side) then
-                hold.goal.x, hold.goal.y = wesnoth.find_vacant_tile(hold.goal.x, hold.goal.y)
-            end
-
-            -- The close units are moved first
-            if close_units[1] then
-                local max_rating, best_hex, best_unit = -9e99, {}, {}
-                for i,u in ipairs(close_units) do
+            -- Now retreat all the remaining units
+            while retreaters[1] do
+                local max_rating, best_hex, best_unit, ind_u = -9e99, {}, {}, -1
+                for i,u in ipairs(retreaters) do
                     local reach_map = AH.get_reachable_unocc(u)
                     reach_map:iter( function(x, y, v)
                         local rating = 0
-                        local dist = H.distance_between(x, y, hold.goal.x, hold.goal.y)
-                        if (dist <= -1) or (y > hold.goal.y + 1) then rating = rating - 1000 end
+                        local dist = H.distance_between(x, y, goal.x, goal.y)
+                        if (y > goal.y + 1) then rating = rating - 1000 end
                         rating = rating - dist
 
                         local x1, y1 = u.x, u.y
                         wesnoth.extract_unit(u)
                         u.x, u.y = x, y
-                        local path, cost = wesnoth.find_path(u, hold.goal.x, hold.goal.y, { ignore_units = true } )
+                        local path, cost = wesnoth.find_path(u, goal.x, goal.y, { ignore_units = true } )
                         wesnoth.put_unit(x1, y1, u)
                         if cost > u.moves then rating = rating - 1000 end
 
@@ -552,28 +547,20 @@ return {
                         rating = rating + u.y + u.x / 2.
 
                         local terrain_weighting = 0.333
-                        if cfg.ignore_terrain_at_night then
-                            local tod = wesnoth.get_time_of_day()
-                            if (tod.id == 'dusk') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
-                                terrain_weighting = 0.01
-                            end
-                        end
 
                         local defense = 100 - wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))
                         rating = rating + defense * terrain_weighting
 
-                        -- Finally, in general, the farther south the better (map specific, of course)
-                        rating = rating + y
-
                         if (rating > max_rating) then
-                            max_rating, best_hex, best_unit = rating, { x, y }, u
+                            max_rating, best_hex, best_unit, ind_u = rating, { x, y }, u, i
                         end
                     end)
                 end
 
-                if AH.show_messages() then W.message { speaker = best_unit.id, message = 'Hold position (' .. cfg.called_from .. '): Moving close unit' } end
+                if AH.show_messages() then W.message { speaker = best_unit.id, message = 'Retreat units (' .. cfg.called_from .. ')' } end
                 AH.movefull_outofway_stopunit(ai, best_unit, best_hex)
-                return
+                -- Then remove the unit from consideration next time around
+                table.remove(retreaters, ind_u)
             end
         end
 
