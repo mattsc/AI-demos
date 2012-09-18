@@ -493,7 +493,8 @@ return {
 
                 -- If a good retreat option was found, do it
                 if (max_rating > -9e99) then
-                    AH.movefull_outofway_stopunit(ai, best_unit, best_village)
+                   if AH.show_messages() then W.message { speaker = best_unit.id, message = 'Retreat injured unit (' .. cfg.called_from .. ')' } end
+                   AH.movefull_outofway_stopunit(ai, best_unit, best_village)
                     -- Also save where this unit moved to, for setting up protection for them
                     table.insert(injured_locs, { best_unit.x, best_unit.y })
 
@@ -557,7 +558,7 @@ return {
                     end)
                 end
 
-                if AH.show_messages() then W.message { speaker = best_unit.id, message = 'Retreat units (' .. cfg.called_from .. ')' } end
+                if AH.show_messages() then W.message { speaker = best_unit.id, message = 'Retreat unit (' .. cfg.called_from .. ')' } end
                 AH.movefull_outofway_stopunit(ai, best_unit, best_hex)
                 -- Then remove the unit from consideration next time around
                 table.remove(retreaters, ind_u)
