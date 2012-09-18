@@ -462,6 +462,7 @@ return {
             end
 
             -- Now retreat those units toward those villages
+            local injured_locs = {}  -- Array for saving where the injured units moved to
             while most_injured[1] do
                 local max_rating, best_unit, best_village, ind_u, ind_v = -9e99, {}, {}, -1
                 for i,u in ipairs(most_injured) do
@@ -493,6 +494,10 @@ return {
                 -- If a good retreat option was found, do it
                 if (max_rating > -9e99) then
                     AH.movefull_outofway_stopunit(ai, best_unit, best_village)
+                    -- Also save where this unit moved to, for setting up protection for them
+                    table.insert(injured_locs, { best_unit.x, best_unit.y })
+
+                    -- Then remove unit and village from the tables
                     table.remove(most_injured, ind_u)
                     table.remove(open_villages, ind_v)
                 -- Otherwise stop the loop
@@ -507,6 +512,13 @@ return {
             local retreaters = {}
             for i,u in ipairs(hold.units) do
                 if (u.moves > 0) then table.insert(retreaters, u) end
+            end
+
+            -- Find how far south the defensive position should be set up
+            -- (This is a temporary measure, to be replaced by more sophisticated/general stuff later)
+            local goal = hold.goal
+            for i,l in ipairs(injured_locs) do
+                if (goal.y < l[2] + 1) then goal.y = l[2] + 1 end
             end
 
             -- If this is a village, we try to hold the position itself,
