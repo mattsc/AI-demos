@@ -522,6 +522,9 @@ return {
                 if (goal.y < l[2] + 1) then goal.y = l[2] + 1 end
             end
 
+            -- Set up an array that hold retreaters that have already moved
+            local units_moved = {}
+
             -- Now retreat all the remaining units
             while retreaters[1] do
                 local max_rating, best_hex, best_unit, ind_u = -9e99, {}, {}, -1
@@ -529,28 +532,40 @@ return {
                     local reach_map = AH.get_reachable_unocc(u)
                     reach_map:iter( function(x, y, v)
                         local rating = 0
-                        local dist = H.distance_between(x, y, goal.x, goal.y)
-                        if (y > goal.y + 1) then rating = rating - 1000 end
-                        rating = rating - dist
 
-                        local x1, y1 = u.x, u.y
-                        wesnoth.extract_unit(u)
-                        u.x, u.y = x, y
-                        local path, cost = wesnoth.find_path(u, goal.x, goal.y, { ignore_units = true } )
-                        wesnoth.put_unit(x1, y1, u)
-                        if cost > u.moves then rating = rating - 1000 end
+                        -- First rating is distance between goal and location
+                        -- with y distance being much more important
+                        rating = rating - math.abs(x - goal.x)
+                        rating = rating - math.abs(y - goal.y) * 4
 
-                        -- Small bonus if this is on a village
+                        -- In particular, do not like positions too far south -> additional penalty
+                        if (y > goal.y + 1) then rating = rating - (y - goal.y) * 10 end
+
+                        -- Small bonus if this is on a village (villages really should already be
+                        -- taken care of separately above)
                         local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
                         if is_village then rating = rating + 2.1 end
 
                         -- Take southern and eastern units first
+                        -- We might want to change this later to using strong units first,
+                        -- then retreating weaker units behind them
                         rating = rating + u.y + u.x / 2.
 
-                        local terrain_weighting = 0.333
-
+                        -- Rating for the terrain
+                        -- 10% has slightly higher weighting than one hex in y
+                        local terrain_weighting = 0.5
                         local defense = 100 - wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))
                         rating = rating + defense * terrain_weighting
+
+                        -- We also, ideally, want to be 3 hexes from the closest unit that has
+                        -- already moved, so as to ZOC the area
+                        local min_dist = 9999
+                        for j,m in ipairs(units_moved) do
+                            local dist = H.distance_between(x, y, m.x, m.y)
+                            if (dist < min_dist) then min_dist = dist end
+                        end
+                        if (min_dist == 3) then rating = rating + 6 end
+                        if (min_dist == 2) then rating = rating + 4 end
 
                         if (rating > max_rating) then
                             max_rating, best_hex, best_unit, ind_u = rating, { x, y }, u, i
@@ -561,6 +576,7 @@ return {
                 if AH.show_messages() then W.message { speaker = best_unit.id, message = 'Retreat unit (' .. cfg.called_from .. ')' } end
                 AH.movefull_outofway_stopunit(ai, best_unit, best_hex)
                 -- Then remove the unit from consideration next time around
+                table.insert(units_moved, best_unit)
                 table.remove(retreaters, ind_u)
             end
         end
