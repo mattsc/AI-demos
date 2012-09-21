@@ -210,7 +210,7 @@ return {
         end
 
         function micro_ais:healer_support_exec()
-            W.message { speaker = self.data.HS_unit.id, message = 'Moving in for healing.  (This includes moving next to units that are unhurt but threatened by enemies.)' }
+            W.message { speaker = self.data.HS_unit.id, message = 'Moving in to back injured and/or threatened units' }
 
             AH.movefull_outofway_stopunit(ai, self.data.HS_unit, self.data.HS_hex)
             self.data.HS_unit, self.data.HS_hex =  nil, nil
