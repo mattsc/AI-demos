@@ -176,12 +176,12 @@ return {
                         -- Strongly discourage hexes that can be reached by enemies
                         rating = rating - (enemy_attack_map:get(r[1], r[2]) or 0) * 1000
 
-                        -- Prefer villages and strong terrain, but since enemy cannot attack here, this is not so important
+                        -- All else being more or less equal, prefer villages and strong terrain
                         local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(r[1], r[2])).village
-                        if is_village then rating = rating + 0.2 end
+                        if is_village then rating = rating + 2 end
 
                         local defense = 100 - wesnoth.unit_defense(h, wesnoth.get_terrain(r[1], r[2]))
-                        rating = rating + defense / 100.
+                        rating = rating + defense / 10.
 
                         --rating_map:insert(r[1], r[2], rating)
                     end
