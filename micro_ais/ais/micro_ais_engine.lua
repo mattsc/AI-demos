@@ -168,13 +168,17 @@ return {
                         end
                     end
 
+                    -- Number of enemies that can threaten the healer at that position
+                    -- This has to be no larger than cfg.max_threats for hex to be considered
+                    local enemies_in_reach = enemy_attack_map:get(r[1], r[2]) or 0
+
                     -- If this hex fulfills those requirements, 'rating' is now greater than 0
                     -- and we do the rest of the rating, otherwise set rating to below max_rating
-                    if (rating == 0) then
+                    if (rating == 0) or (enemies_in_reach > (cfg.max_threats or 9999)) then
                         rating = max_rating - 1
                     else
                         -- Strongly discourage hexes that can be reached by enemies
-                        rating = rating - (enemy_attack_map:get(r[1], r[2]) or 0) * 1000
+                        rating = rating - enemies_in_reach * 1000
 
                         -- All else being more or less equal, prefer villages and strong terrain
                         local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(r[1], r[2])).village

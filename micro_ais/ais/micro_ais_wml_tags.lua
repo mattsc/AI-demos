@@ -26,6 +26,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
         local cfg_hs = {}
         if cfg.injured_units_only then cfg_hs.injured_units_only = true end
+        if cfg.max_threats then cfg_hs.max_threats = cfg.max_threats end
 
         -- Add the CAs
         if (cfg.action == 'add') then

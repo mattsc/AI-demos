@@ -4,11 +4,16 @@ return {
         -- This needs to be set up as a string
 
         cfg = cfg or {}
-        cfg_str = ''
+        cfg_str = '{ dummy = false' -- This is a dirty trick ...
         -- Only one option so far, so this is easy
         if cfg.injured_units_only then
-            cfg_str = '{ injured_units_only = true }'
+            cfg_str = cfg_str ..', injured_units_only = true'
         end
+        if cfg.max_threats then
+            cfg_str = cfg_str ..', max_threats = ' .. cfg.max_threats
+        end
+        cfg_str = cfg_str .. ' }'
+        --print('cfg_str', cfg_str)
 
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
