@@ -80,7 +80,7 @@ return {
 
         ------ Place healers -----------
 
-        function micro_ais:healer_support_eval()
+        function micro_ais:healer_support_eval(cfg)
 
             -- Should happen with higher priority than attacks, except at beginning of turn,
             -- when we want attacks done first
@@ -89,6 +89,8 @@ return {
             local score = 105000
             if self.data.HS_return_score then score = self.data.HS_return_score end
             --print('healer_support score:', score)
+
+            cfg = cfg or {}
 
             local healers = wesnoth.get_units { side = wesnoth.current.side, ability = "healing",
                 formula = '$this_unit.moves > 0'
@@ -157,7 +159,11 @@ return {
                             if (H.distance_between(u.x, u.y, r[1], r[2]) == 1) then
                                 -- !!!!!!! These ratings have to be positive or the method doesn't work !!!!!!!!!
                                 rating = rating + u.max_hitpoints - u.hitpoints
-                                rating = rating + 15 * (enemy_attack_map:get(u.x, u.y) or 0)
+
+                                -- If injured_units_only = true then don't count units with full HP
+                                if (u.max_hitpoints - u.hitpoints > 0) or (not cfg.injured_units_only) then
+                                    rating = rating + 15 * (enemy_attack_map:get(u.x, u.y) or 0)
+                                end
                             end
                         end
                     end
