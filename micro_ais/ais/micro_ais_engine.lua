@@ -210,7 +210,11 @@ return {
         end
 
         function micro_ais:healer_support_exec()
-            W.message { speaker = self.data.HS_unit.id, message = 'Moving in to back injured and/or threatened units' }
+            -- Only show this message in the healer_support scenario in AI-Demos
+            local scenario = wesnoth.get_variable("scenario_name")
+            if (scenario == 'healer_support') then
+                W.message { speaker = self.data.HS_unit.id, message = 'Moving in to back injured and/or threatened units' }
+            end
 
             AH.movefull_outofway_stopunit(ai, self.data.HS_unit, self.data.HS_hex)
             self.data.HS_unit, self.data.HS_hex =  nil, nil
