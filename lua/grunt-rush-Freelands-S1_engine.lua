@@ -519,6 +519,12 @@ return {
                 if (u.moves > 0) then table.insert(retreaters, u) end
             end
 
+            -- Also need all the enemies
+            local enemies = AH.get_live_units {
+                { "filter_side", {{"enemy_of", { side = wesnoth.current.side } }} }
+            }
+            --print('Retreat units: #enemies', #enemies)
+
             -- Find how far south the defensive position should be set up
             -- (This is a temporary measure, to be replaced by more sophisticated/general stuff later)
             local goal = hold.goal
@@ -531,6 +537,10 @@ return {
 
             -- Now retreat all the remaining units
             while retreaters[1] do
+                -- First, find where the enemy can attack
+                -- This needs to be done after every move
+                local enemy_attack_map = AH.attack_map(enemies, { moves = 'max' })
+
                 local max_rating, best_hex, best_unit, ind_u = -9e99, {}, {}, -1
                 for i,u in ipairs(retreaters) do
                     local reach_map = AH.get_reachable_unocc(u)
@@ -538,17 +548,14 @@ return {
                         local rating = 0
 
                         -- First rating is distance between goal and location
-                        -- with y distance being much more important
-                        rating = rating - math.abs(x - goal.x)
-                        rating = rating - math.abs(y - goal.y) * 4
+                        -- On top of that, y distance is somewhat more important than x
+                        local dist = H.distance_between(x, y, goal.x, goal.y)
+                        rating = rating - dist * 4
+                        rating = rating - math.abs(x - goal.x) / 2.
+                        rating = rating - math.abs(y - goal.y)
 
                         -- In particular, do not like positions too far south -> additional penalty
                         if (y > goal.y + 1) then rating = rating - (y - goal.y) * 10 end
-
-                        -- Small bonus if this is on a village (villages really should already be
-                        -- taken care of separately above)
-                        local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
-                        if is_village then rating = rating + 2.1 end
 
                         -- Take southern and eastern units first
                         -- We might want to change this later to using strong units first,
@@ -556,10 +563,22 @@ return {
                         rating = rating + u.y + u.x / 2.
 
                         -- Rating for the terrain
-                        -- 10% has slightly higher weighting than one hex in y
-                        local terrain_weighting = 0.5
+                        -- This has very little effect if the hex is not threatened by enemies
+                        -- If it is, we take terrain into account
+                        -- As this is a retreat CA, we prefer unthreatened hexes, so terrain rating
+                        -- is a negative contribution
+                        -- All of this might have to be done more carefully later
+                        local terrain_weight = 0.01
+                        if enemy_attack_map:get(x, y) then
+                            terrain_weight = 0.51
+                        end
+
                         local defense = 100 - wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))
-                        rating = rating + defense * terrain_weighting
+                        rating = rating + (20 - defense) * terrain_weight
+
+                        -- Small bonus if this is on a village
+                        local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
+                        if is_village then rating = rating + 10 * terrain_weight end
 
                         -- We also, ideally, want to be 3 hexes from the closest unit that has
                         -- already moved, so as to ZOC the area
@@ -571,10 +590,14 @@ return {
                         if (min_dist == 3) then rating = rating + 6 end
                         if (min_dist == 2) then rating = rating + 4 end
 
+                        reach_map:insert(x, y, rating)
+
                         if (rating > max_rating) then
                             max_rating, best_hex, best_unit, ind_u = rating, { x, y }, u, i
                         end
                     end)
+                    --AH.put_labels(reach_map)
+                    --W.message { speaker = u.id, message = 'Retreat unit rating map' }
                 end
 
                 if AH.show_messages() then W.message { speaker = best_unit.id, message = 'Retreat unit (' .. cfg.called_from .. ')' } end
