@@ -2051,7 +2051,7 @@ return {
             grunt_rush_FLS1:hold_position(units_left, goal, { called_from = 'hold_left' })
         end
 
-        --------- Grunt rush right ------------
+        --------- Rush CA ------------
 
         function grunt_rush_FLS1:area_rush_eval(cfg)
             -- Calculate if a rush should be done in the specified area
@@ -2093,16 +2093,14 @@ return {
             -- To be streamlined later
             local tod = wesnoth.get_time_of_day()
 
-            local attack_y, attack_flag = y_min, false
+            local attack_y = y_min
             for y = attack_y,y_max do
                 --print(y, hp_ratio_y[y], number_units_y[y])
 
                 if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
-                    attack_flag = false
                     if (hp_ratio_y[y] >= 4.0) then attack_y = y end
                 end
                 if (tod.id == 'dusk') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
-                    attack_flag = true
                     if (hp_ratio_y[y] > 0.666) and (number_units_y[y] >= 4) then attack_y = y end
                     -- Or, if we're much stronger, we don't care about the number of units
                     if (hp_ratio_y[y] >= 2.0) then attack_y = y end
@@ -2111,7 +2109,7 @@ return {
             --print('attack_y', attack_y)
 
             -- If a suitable attack_y was found, figure out what targets there might be
-            if attack_flag and (attack_y > 0) then
+            if (attack_y > 0) then
                 attack_y = attack_y + 1  -- Targets can be one hex farther south
                 --print('Looking for targets on right down to y = ' .. attack_y)
 
@@ -2312,16 +2310,14 @@ return {
             -- To be streamlined later
             local tod = wesnoth.get_time_of_day()
 
-            local attack_y, attack_flag = y_min, false
+            local attack_y = y_min
             for y = attack_y,y_max do
                 --print(y, hp_ratio_y[y], number_units_y[y])
 
                 if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
-                    attack_flag = false
                     if (hp_ratio_y[y] >= 4.0) then attack_y = y end
                 end
                 if (tod.id == 'dusk') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
-                    attack_flag = true
                     if (hp_ratio_y[y] > 0.666) and (number_units_y[y] >= 4) then attack_y = y end
                     -- Or, if we're much stronger, we don't care about the number of units
                     if (hp_ratio_y[y] >= 2.0) then attack_y = y end
