@@ -451,7 +451,11 @@ return {
             end
 
             -- Find the most injured units
-            local most_injured = AH.table_copy(hold.units)
+            local most_injured = {}
+            for i,u in ipairs(hold.units) do
+                if (u.hitpoints < u.max_hitpoints) then table.insert(most_injured, u) end
+            end
+
             table.sort(most_injured, function(a, b)
                 return a.max_hitpoints - a.hitpoints > b.max_hitpoints - b.hitpoints
             end)
