@@ -539,7 +539,14 @@ return {
             while retreaters[1] do
                 -- First, find where the enemy can attack
                 -- This needs to be done after every move
+                -- And units with MP left need to be taken off the map
+                local units_MP = wesnoth.get_units { side = wesnoth.current.side, formula = '$this_unit.moves > 0' }
+                for iu,uMP in ipairs(units_MP) do wesnoth.extract_unit(uMP) end
+
                 local enemy_attack_map = AH.attack_map(enemies, { moves = 'max' })
+
+                -- Put the units back out there
+                for iu,uMP in ipairs(units_MP) do wesnoth.put_unit(uMP.x, uMP.y, uMP) end
 
                 local max_rating, best_hex, best_unit, ind_u = -9e99, {}, {}, -1
                 for i,u in ipairs(retreaters) do
