@@ -556,8 +556,16 @@ return {
 
                         -- First rating is distance between goal and location
                         -- On top of that, y distance is somewhat more important than x
-                        local dist = H.distance_between(x, y, goal.x, goal.y)
-                        rating = rating - dist * 4
+                        --local dist = H.distance_between(x, y, goal.x, goal.y)
+                        --rating = rating - dist * 4
+                        -- Do distance in a path-finding sense
+                        local x1, y1 = u.x, u.y
+                        wesnoth.extract_unit(u)
+                        u.x, u.y = x, y
+                        local path, cost = wesnoth.find_path(u, goal.x, goal.y, { ignore_units = true } )
+                        wesnoth.put_unit(x1, y1, u)
+                        rating = rating - cost * 4
+
                         rating = rating - math.abs(x - goal.x) / 2.
                         rating = rating - math.abs(y - goal.y)
 
