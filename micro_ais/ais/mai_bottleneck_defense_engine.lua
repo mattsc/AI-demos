@@ -38,6 +38,18 @@ return {
                 if (healing_rating > rating) then rating = healing_rating end
             end
 
+            -- If this did not produce a positive rating, we add a
+            -- distance-based rating, to get units to the bottleneck in the first place
+            if (rating <= 0) then
+                local combined_dist = 0
+                self.data.def_map:iter(function(x_def, y_def, v)
+                    combined_dist = combined_dist + H.distance_between(x, y, x_def, y_def)
+                end)
+                combined_dist = combined_dist / self.data.def_map:size()
+
+                rating = 1000 - combined_dist * 10.
+            end
+
             -- Now add the unit specific rating
             if (rating > 0) then
                 rating = rating + unit.hitpoints/10. + unit.experience/100.
@@ -168,27 +180,15 @@ return {
             end
             --DBG.dbms(def_coords)
 
-            -- ***** start map-specific information *****
-            -- defense positioning
-            local coords = {
-                {14,6,1000}, {14,10,1000},
-                {15,8,990}, {15,9,990},
-                {15,7,980}, {15,10,980}, {16,7,980}, {16,8,980}, {16,9,980},
-                {15,6,970}, {15,11,970}, {16,6,970}, {16,10,970},
-                {17,7,970}, {17,8,970}, {17,9,970}, {17,10,970},
-                {18,6,960}, {18,7,960}, {18,8,960}, {18,9,960}
-            }
-            local coords = AH.array_merge(def_coords, coords)
-            self.data.def_map = AH.LS_of_triples(coords)
+            self.data.def_map = AH.LS_of_triples(def_coords)
             --AH.put_labels(self.data.def_map)
             --W.message {speaker="narrator", message="Defense map" }
 
+            -- ***** start map-specific information *****
             -- healer positioning
             local coords = { {14,7,10000}, {14,9,10000},
                 {15,9,5000}, {15,8,4990}, {15,10,4990}, {15,7,4990},
-                {16,8,4980}, {16,9,4980}, {16,7,4980},
-                {17,7,970}, {17,8,970}, {17,9,970}, {17,10,970},
-                {18,6,960}, {18,7,960}, {18,8,960}, {18,9,960}
+                {16,8,4980}, {16,9,4980}, {16,7,4980}
             }
             self.data.healer_map = AH.LS_of_triples(coords)
             --AH.put_labels(self.data.healer_map)
@@ -197,9 +197,7 @@ return {
             -- leader positioning
             local coords = { {14,7,10000}, {14,9,10000},
                 {15,8,4000}, {15,9,3990}, {15,7,3990}, {15,10,3990},
-                {16,8,3980}, {16,7,3980}, {16,9,3980},
-                {17,7,970}, {17,8,970}, {17,9,970}, {17,10,970},
-                {18,6,960}, {18,7,960}, {18,8,960}, {18,9,960}
+                {16,8,3980}, {16,7,3980}, {16,9,3980}
             }
             self.data.leader_map = AH.LS_of_triples(coords)
             --AH.put_labels(self.data.leader_map)
