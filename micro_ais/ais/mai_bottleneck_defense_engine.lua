@@ -143,7 +143,7 @@ return {
             return max_rating, best_weapon, best_tar
         end
 
-        function bottleneck_defense:move_eval()
+        function bottleneck_defense:bottleneck_move_eval()
             -- Find the best unit move
 
             -- get all units with moves left
@@ -343,40 +343,51 @@ return {
             end
 
             if max_rating == 0 then
-                return 0
+                -- In this case we take MP away from all units
+                -- This is done so that the RCA AI CAs can be kept in place
+                self.data.bottleneck_moves_done = true
             else
+                self.data.bottleneck_moves_done = false
                 self.data.unit = best_unit
                 self.data.hex = best_hex
-                return 300000
             end
+            return 300000
         end
 
-        function bottleneck_defense:move_exec()
+        function bottleneck_defense:bottleneck_move_exec()
 
-            local x, y = AH.get_LS_xy(self.data.hex)
-            --print("Moving unit:",self.data.unit.id, self.data.unit.x, self.data.unit.y, " ->", x, y, " -- turn:", wesnoth.current.turn)
+            if self.data.bottleneck_moves_done then
+                local units = wesnoth.get_units { side = wesnoth.current.side, formula = '$this_unit.moves > 0' }
+                for i,u in ipairs(units) do
+                    ai.stopunit_moves(u)
+                end
+            else
+                local x, y = AH.get_LS_xy(self.data.hex)
+                --print("Moving unit:",self.data.unit.id, self.data.unit.x, self.data.unit.y, " ->", x, y, " -- turn:", wesnoth.current.turn)
 
-            if (self.data.unit.x ~= x) or (self.data.unit.y ~= y) then  -- test needed for level-up move
-                ai.move(self.data.unit, x, y)   -- don't want full move, as this might be stepping out of the way
-            end
+                if (self.data.unit.x ~= x) or (self.data.unit.y ~= y) then  -- test needed for level-up move
+                    ai.move(self.data.unit, x, y)   -- don't want full move, as this might be stepping out of the way
+                end
 
-            -- If this is a move for a level-up attack, do that one also
-            if self.data.lu_target then
-                --print("Level-up attack",self.data.unit.id, self.data.lu_target.id, self.data.lu_weapon)
-                --W.message {speaker=self.data.unit.id, message="Level-up attack" }
+                -- If this is a move for a level-up attack, do that one also
+                if self.data.lu_target then
+                    --print("Level-up attack",self.data.unit.id, self.data.lu_target.id, self.data.lu_weapon)
+                    --W.message {speaker=self.data.unit.id, message="Level-up attack" }
 
-                local dw = -1
-                if AH.got_1_11() then dw = 0 end
-                ai.attack(self.data.unit, self.data.lu_target, self.data.lu_weapon + dw)
+                    local dw = -1
+                    if AH.got_1_11() then dw = 0 end
+                    ai.attack(self.data.unit, self.data.lu_target, self.data.lu_weapon + dw)
+                end
             end
 
             self.data.unit = nil
             self.data.hex = nil
             self.data.lu_target = nil
             self.data.lu_weapon = nil
+            self.data.bottleneck_moves_done = nil
         end
 
-        function bottleneck_defense:attack_eval()
+        function bottleneck_defense:bottleneck_attack_eval()
 
             -- All units with attacks_left and enemies next to them
             -- This will be much easier once the 'attacks' variable is implemented
@@ -386,6 +397,7 @@ return {
                 }
             }
             --print("\n\nAttackers:",#attackers)
+            if (not attackers[1]) then return 0 end
 
             -- Variables to store best attacker/target pair
             local max_rating = 0
@@ -440,25 +452,37 @@ return {
             --print("Best attack:",best_att.id, best_tar.id, max_rating, best_weapon)
 
             if max_rating == 0 then
-                return 0
+                -- In this case we take attacks away from all units
+                -- This is done so that the RCA AI CAs can be kept in place
+                self.data.bottleneck_attacks_done = true
             else
+                self.data.bottleneck_attacks_done = false
                 self.data.attacker = best_att
                 self.data.target = best_tar
                 self.data.weapon = best_weapon
-                return 290000
             end
+            return 290000
         end
 
-        function bottleneck_defense:attack_exec()
+        function bottleneck_defense:bottleneck_attack_exec()
 
-            --W.message {speaker=self.data.attacker.id, message="Attacking" }
+            if self.data.bottleneck_attacks_done then
+                local units = wesnoth.get_units { side = wesnoth.current.side, formula = '$this_unit.attacks_left > 0' }
+                for i,u in ipairs(units) do
+                    ai.stopunit_attacks(u)
+                end
+            else
+                --W.message {speaker=self.data.attacker.id, message="Attacking" }
 
-            local dw = -1
-            if AH.got_1_11() then dw = 0 end
-            ai.attack(self.data.attacker, self.data.target, self.data.weapon + dw)
+                local dw = -1
+                if AH.got_1_11() then dw = 0 end
+                ai.attack(self.data.attacker, self.data.target, self.data.weapon + dw)
+            end
+
             self.data.attacker = nil
             self.data.target = nil
             self.data.weapon = nil
+            self.data.bottleneck_attacks_done = nil
         end
 
         return bottleneck_defense

@@ -20,6 +20,8 @@ function wesnoth.wml_actions.micro_ai(cfg)
     end
 
     -- Now deal with each specific micro AI
+
+    --------- Healer Support Micro AI ------------------------------------
     if (cfg.ai_type == 'healer_support') then
         -- If aggression = 0: Never let the healers participate in attacks
         -- This is done by not deleting the attacks aspect
@@ -56,6 +58,28 @@ function wesnoth.wml_actions.micro_ai(cfg)
                     path = "stage[main_loop].candidate_action[healers_can_attack]"
                 }
             end
+        end
+
+        return
+    end
+
+    --------- Bottleneck Defense Micro AI ------------------------------------
+    if (cfg.ai_type == 'bottleneck_defense') then
+
+        -- Add the CAs
+        if (cfg.action == 'add') then
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".activate(cfg.side)
+        end
+
+        -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
+        if (cfg.action == 'change') then
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".remove(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".activate(cfg.side)
+        end
+
+        -- Remove the CAs
+        if (cfg.action == 'delete') then
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".remove(cfg.side)
         end
 
         return
