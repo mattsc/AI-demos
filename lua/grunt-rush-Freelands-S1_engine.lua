@@ -629,6 +629,10 @@ return {
                 -- Then remove the unit from consideration next time around
                 table.insert(units_moved, best_unit)
                 table.remove(retreaters, ind_u)
+
+                if hold.one_unit_per_call then
+                    return
+                end
             end
         end
 
@@ -2434,7 +2438,8 @@ return {
                 hold_area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15},
                 hold = { x = 11, max_y = 15 },
                 hold_condition = { hp_ratio = 1.0, x = '1-15', y = '1-15' },
-                villages = {}
+                villages = { { x = 11, y = 9 }, { x = 8, y = 5 }, { x = 12, y = 5 }, { x = 12, y = 2 } },
+                one_unit_per_call = true
             }
 
             local cfg_right = {
@@ -2484,6 +2489,7 @@ return {
 
                     if hold then
                         hold.villages = cfg.villages
+                        hold.one_unit_per_call = cfg.one_unit_per_call
                         grunt_rush_FLS1.data.hold = hold
                         if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                         return score_hold
@@ -2498,10 +2504,7 @@ return {
         function grunt_rush_FLS1:hold_exec()
             if AH.print_exec() then print('     - Executing hold CA') end
 
-            -- During day: call retreat_units()
-            -- During night: call hold_position()
             local tod = wesnoth.get_time_of_day()
-
             if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
                 grunt_rush_FLS1.data.hold.retreat = true
             else
