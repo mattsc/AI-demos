@@ -49,7 +49,7 @@ return {
                 end)
 
                 -- We only count the hex if it is on our side of the line
-                local enemy_dist = H.distance_between(x, y, self.data.enemy_hex.x, self.data.enemy_hex.y)
+                local enemy_dist = H.distance_between(x, y, self.data.enemy_hex[1], self.data.enemy_hex[2])
                 if (min_dist < enemy_dist) then
                     combined_dist = combined_dist / self.data.def_map:size()
                     rating = 1000 - combined_dist * 10.
@@ -185,14 +185,16 @@ return {
                 i = i + 1
             end
             --DBG.dbms(def_coords)
-
             self.data.def_map = AH.LS_of_triples(def_coords)
             --AH.put_labels(self.data.def_map)
             --W.message {speaker="narrator", message="Defense map" }
 
+            -- Getting enemy_hex from cfg
+            self.data.enemy_hex = cfg.enemy_hex
+            --DBG.dbms(self.data.enemy_hex)
+
             -- ***** start map-specific information *****
 
-            self.data.enemy_hex = { x = 12, y = 8 }
             -- healer positioning
             local coords = { {14,7,10000}, {14,9,10000},
                 {15,9,5000}, {15,8,4990}, {15,10,4990}, {15,7,4990},

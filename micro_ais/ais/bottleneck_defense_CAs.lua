@@ -5,7 +5,8 @@ return {
 
         cfg = cfg or {}
 
-        local cfg_str = '{ x = "' .. cfg.x .. '", y = "' .. cfg.y .. '" }'
+        local cfg_str = '{ x = "' .. cfg.x .. '", y = "' .. cfg.y .. '"'
+        local cfg_str = cfg_str .. ', enemy_hex = { ' .. cfg.enemy_hex .. ' } }'
         --print('Bottleneck Defense: cfg_str = ',cfg_str)
 
         local H = wesnoth.require "lua/helper.lua"
