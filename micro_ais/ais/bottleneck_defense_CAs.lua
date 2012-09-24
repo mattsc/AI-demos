@@ -5,6 +5,9 @@ return {
 
         cfg = cfg or {}
 
+        local cfg_str = '{ x = "' .. cfg.x .. '", y = "' .. cfg.y .. '" }'
+        --print('Bottleneck Defense: cfg_str = ',cfg_str)
+
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
 
@@ -19,7 +22,7 @@ return {
                 id = "bottleneck_move",
                 name = "bottleneck_move",
                 max_score = 300000,
-                evaluation = "return (...):bottleneck_move_eval()",
+                evaluation = "return (...):bottleneck_move_eval(" .. cfg_str .. ")",
                 execution = "(...):bottleneck_move_exec()"
             } }
         }

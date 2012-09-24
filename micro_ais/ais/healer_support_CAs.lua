@@ -4,7 +4,7 @@ return {
         -- This needs to be set up as a string
 
         cfg = cfg or {}
-        cfg_str = '{ dummy = false' -- This is a dirty trick ...
+        local cfg_str = '{ dummy = false' -- This is a dirty trick ...
         -- Only one option so far, so this is easy
         if cfg.injured_units_only then
             cfg_str = cfg_str ..', injured_units_only = true'

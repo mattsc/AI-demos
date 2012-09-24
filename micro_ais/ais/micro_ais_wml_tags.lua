@@ -66,15 +66,22 @@ function wesnoth.wml_actions.micro_ai(cfg)
     --------- Bottleneck Defense Micro AI ------------------------------------
     if (cfg.ai_type == 'bottleneck_defense') then
 
+        local cfg_bd = {}
+        if (not cfg.x) or (not cfg.y) then
+            H.wml_error("Bottleneck Defense Micro AI missing required x= and/or y= attribute")
+        else
+            cfg_bd.x, cfg_bd.y = cfg.x, cfg.y
+        end
+
         -- Add the CAs
         if (cfg.action == 'add') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".activate(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".activate(cfg.side, cfg_bd)
         end
 
         -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
         if (cfg.action == 'change') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".remove(cfg.side)
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".activate(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".activate(cfg.side, cfg_bd)
         end
 
         -- Remove the CAs
