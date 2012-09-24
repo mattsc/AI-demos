@@ -1,7 +1,7 @@
 return {
     init = function(ai)
 
-        local micro_ais = {}
+        local healer_support = {}
 
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
@@ -17,12 +17,12 @@ return {
 
         -- Set variables and aspects correctly at the beginning of the turn
         -- This will be blacklisted after first execution each turn
-        function micro_ais:initialize_healer_support_eval()
+        function healer_support:initialize_healer_support_eval()
             local score = 999990
             return score
         end
 
-        function micro_ais:initialize_healer_support_exec()
+        function healer_support:initialize_healer_support_exec()
             --print(' Initializing healer_support at beginning of Turn ' .. wesnoth.current.turn)
 
             -- First, modify the attacks aspect to exclude healers
@@ -54,12 +54,12 @@ return {
 
         -- After attacks by all other units are done, reset things so that healers can attack, if desired
         -- This will be blacklisted after first execution each turn
-        function micro_ais:healers_can_attack_eval()
+        function healer_support:healers_can_attack_eval()
             local score = 99990
             return score
         end
 
-        function micro_ais:healers_can_attack_exec()
+        function healer_support:healers_can_attack_exec()
             --print(' Letting healers participate in attacks from now on')
 
             --local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
@@ -80,7 +80,7 @@ return {
 
         ------ Place healers -----------
 
-        function micro_ais:healer_support_eval(cfg)
+        function healer_support:healer_support_eval(cfg)
 
             -- Should happen with higher priority than attacks, except at beginning of turn,
             -- when we want attacks done first
@@ -209,7 +209,7 @@ return {
             return 0
         end
 
-        function micro_ais:healer_support_exec()
+        function healer_support:healer_support_exec()
             -- Only show this message in the healer_support scenario in AI-Demos
             local scenario = wesnoth.get_variable("scenario_name")
             if (scenario == 'healer_support') then
@@ -220,6 +220,6 @@ return {
             self.data.HS_unit, self.data.HS_hex =  nil, nil
         end
 
-        return micro_ais
+        return healer_support
     end
 }
