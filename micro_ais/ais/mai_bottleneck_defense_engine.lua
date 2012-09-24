@@ -9,33 +9,38 @@ return {
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
-        function bottleneck_defense:get_rating(unit, hex_def, hex_healer, hex_leader, hex_healing, is_leader, is_healer)
-            -- Calculate rating of a unit given a hex's defense, healer, leader and healing values
+        function bottleneck_defense:get_rating(unit, x, y, is_leader, is_healer)
+            -- Calculate rating of a unit at the given coordinates
             -- Don't want to extract is_healer and is_leader inside this function, as it is very slow
 
             local rating = 0
 
             -- Defense positioning rating
-            if hex_def and (not is_healer) and (not is_leader) then
-                rating = hex_def + unit.hitpoints/10. + unit.experience/100.
+            if (not is_healer) and (not is_leader) then
+                rating = self.data.def_map:get(x, y) or 0
             end
 
             -- Healer positioning rating
-            if hex_healer and is_healer then
-                local healer_rating = hex_healer + unit.hitpoints/10. + unit.experience/100.
+            if is_healer then
+                local healer_rating = self.data.healer_map:get(x, y) or 0
                 if (healer_rating > rating) then rating = healer_rating end
             end
 
             -- Leader positioning rating
-            if hex_leader and is_leader then
-                local leader_rating = hex_leader + unit.hitpoints/10. + unit.experience/100.
+            if is_leader then
+                local leader_rating = self.data.leader_map:get(x, y) or 0
                 if (leader_rating > rating) then rating = leader_rating end
             end
 
             -- Injured unit positioning
-            if hex_healing and (unit.hitpoints < unit.max_hitpoints) then
-                local healing_rating = hex_healing + (unit.max_hitpoints - unit.hitpoints)
+            if (unit.hitpoints < unit.max_hitpoints) then
+                local healing_rating = self.data.healing_map:get(x, y) or 0
                 if (healing_rating > rating) then rating = healing_rating end
+            end
+
+            -- Now add the unit specific rating
+            if (rating > 0) then
+                rating = rating + unit.hitpoints/10. + unit.experience/100.
             end
 
             return rating
@@ -49,7 +54,7 @@ return {
             -- just a sanity check: unit to move out of the way needs to be on our side:
             if (unit.side ~= wesnoth.current.side) then return nil end
 
-           local reach_map = AH.LS_of_triples(wesnoth.find_reach(unit))
+           local reach = wesnoth.find_reach(unit)
 
            -- Find all the occupied hexes, by any unit
            -- (too slow if we do this inside the loop for a specific hex)
@@ -61,30 +66,27 @@ return {
            --DBG.dbms(occ_hexes,false,"variable",false)
 
            -- find the closest unoccupied reachable hex in the east
-           local best_reach = -1
-           local best_hex = 0
-           for ind,r in pairs(reach_map.values) do
-               -- (r > best_reach) : move shorter than previous best move
-               -- (x > unit.x) : move toward east ***** map-specific *****
+           local best_reach, best_hex = -1, {}
+           for i,r in ipairs(reach) do
+               -- (r[3] > best_reach) : move shorter than previous best move
+               -- (r[1] > unit.x) : move toward east ***** map-specific *****
                -- (not occ_hex) : unoccupied hexes only
-               local x = AH.get_LS_xy(ind)
-               if (r > best_reach) and (x > unit.x) and (not occ_hexes.values[ind]) then
-                   best_reach = r
-                   best_hex = ind
+               if (r[3] > best_reach) and (r[1] > unit.x) and (not occ_hexes:get(r[1], r[2])) then
+                   best_reach = r[3]
+                   best_hex = { r[1], r[2] }
                end
            end
-           --print("Best reach: ",unit.id, best_reach,best_hex)
+           --print("Best reach: ",unit.id, best_reach, best_hex[1], best_hex[2])
 
            if best_reach > -1 then return best_hex end
         end
 
-        function bottleneck_defense:get_level_up_attack_rating(attacker, ind, targets, unit_in_way, target_level)
+        function bottleneck_defense:get_level_up_attack_rating(attacker, x, y, targets, unit_in_way, target_level)
 
             local max_rating = 0
             local best_tar = {}
             local best_weapon = -1
 
-            local x, y = AH.get_LS_xy(ind)
             -- Go through the targets
             for i,t in ipairs(targets) do
 
@@ -177,8 +179,8 @@ return {
                 {18,6,960}, {18,7,960}, {18,8,960}, {18,9,960}
             }
             local coords = AH.array_merge(def_coords, coords)
-            local def_map = AH.LS_of_triples(coords)
-            --AH.put_labels(def_map)
+            self.data.def_map = AH.LS_of_triples(coords)
+            --AH.put_labels(self.data.def_map)
             --W.message {speaker="narrator", message="Defense map" }
 
             -- healer positioning
@@ -188,8 +190,8 @@ return {
                 {17,7,970}, {17,8,970}, {17,9,970}, {17,10,970},
                 {18,6,960}, {18,7,960}, {18,8,960}, {18,9,960}
             }
-            local healer_map = AH.LS_of_triples(coords)
-            --AH.put_labels(healer_map)
+            self.data.healer_map = AH.LS_of_triples(coords)
+            --AH.put_labels(self.data.healer_map)
             --W.message {speaker="narrator", message="Healer map" }
 
             -- leader positioning
@@ -199,22 +201,22 @@ return {
                 {17,7,970}, {17,8,970}, {17,9,970}, {17,10,970},
                 {18,6,960}, {18,7,960}, {18,8,960}, {18,9,960}
             }
-            local leader_map = AH.LS_of_triples(coords)
-            --AH.put_labels(leader_map)
+            self.data.leader_map = AH.LS_of_triples(coords)
+            --AH.put_labels(self.data.leader_map)
             --W.message {speaker="narrator", message="leader map" }
 
             -- healing map: positions next to healers, needs to be calculated each time
             -- Get all locations next to a healer with x>13, and excluding (14,8)
             local healers = wesnoth.get_units { side = wesnoth.current.side, ability = "healing" }
-            local healing_map = LS.create()
+            self.data.healing_map = LS.create()
             for i,h in ipairs(healers) do
                 for x, y in H.adjacent_tiles(h.x, h.y) do
                     if (x > 13) and not((x == 14) and (y == 8)) then
-                        healing_map:insert(x, y, 3000 + h.x/100.)  -- farther away from enemy is good **** map-specific
+                        self.data.healing_map:insert(x, y, 3000 + h.x/100.)  -- farther away from enemy is good **** map-specific
                     end
                 end
             end
-            --AH.put_labels(healing_map)
+            --AH.put_labels(self.data.healing_map)
             --W.message {speaker="narrator", message="Healing map" }
 
             -- Find all attack positions next to enemies
@@ -265,7 +267,7 @@ return {
                 local is_healer = (u.__cfg.usage == "healer")
                 local is_leader = ((u.type == "Sergeant") or (u.type == "Lieutenant") or (u.type == "General"))
 
-                local rating = self:get_rating(u, def_map:get(u.x, u.y), healer_map:get(u.x, u.y), leader_map:get(u.x, u.y), healing_map:get(u.x, u.y), is_leader, is_healer)
+                local rating = self:get_rating(u, u.x, u.y, is_leader, is_healer)
                 occ_hexes:insert(u.x, u.y, rating)
 
                 -- A unit that cannot move any more, (or at least cannot move out of the way)
@@ -277,12 +279,9 @@ return {
             --AH.put_labels(occ_hexes)
             --W.message {speaker="narrator", message="occupied hexes" }
 
-
             -- Go through all units with moves left
             -- Variables to store best unit/move
-            local max_rating = 0
-            local best_unit = {}
-            local best_hex = -1
+            local max_rating, best_unit, best_hex = 0, {}, {}
 
             for i,u in ipairs(units) do
 
@@ -290,49 +289,49 @@ return {
                 local is_healer = (u.__cfg.usage == "healer")
                 local is_leader = ((u.type == "Sergeant") or (u.type == "Lieutenant") or (u.type == "General"))
 
-                local current_rating = self:get_rating(u, def_map:get(u.x, u.y), healer_map:get(u.x, u.y), leader_map:get(u.x, u.y), healing_map:get(u.x, u.y), is_leader, is_healer)
+                local current_rating = self:get_rating(u, u.x, u.y, is_leader, is_healer)
                 --print("Finding move for:",u.id, u.x, u.y, current_rating)
 
                 -- Find all hexes the unit can reach ...
-                local reach_map = LS.of_pairs(wesnoth.find_reach(u))
+                local reach = wesnoth.find_reach(u)
 
                 -- ... and go through all of them
-                for ind,r in pairs(reach_map.values) do
-                    local rating = self:get_rating(u, def_map.values[ind], healer_map.values[ind], leader_map.values[ind], healing_map.values[ind], is_leader, is_healer)
-                    --print(" ->",ind,rating,occ_hexes.values[ind])
+                for i,r in ipairs(reach) do
+                    local rating = self:get_rating(u, r[1], r[2], is_leader, is_healer)
+                    --print(" ->",r[1],r[2],rating,occ_hexes:get(r[1], r[2]))
 
                     -- A move is only considered if it improves the overall rating,
                     -- that is, its rating must be higher than:
                     --   1. the rating of the unit on the target hex (if there is one)
                     --   2. the rating of the currently considered unit on its current hex
-                    if occ_hexes.values[ind] and (occ_hexes.values[ind] >= rating) then rating = 0 end
+                    if occ_hexes:get(r[1], r[2]) and (occ_hexes:get(r[1], r[2]) >= rating) then rating = 0 end
                     if (rating <= current_rating) then rating = 0 end
-                    --print("   ->",ind,rating,occ_hexes.values[ind])
+                    --print("   ->",r[1],r[2],rating,occ_hexes:get(r[1], r[2]))
 
                     -- If the target hex is occupied, give it a (very) small penalty
-                    if occ_hexes.values[ind] then rating = rating - 0.001 end
+                    if occ_hexes:get(r[1], r[2]) then rating = rating - 0.001 end
 
                     -- Now only valid and possible moves should have a rating > 0
                     if rating > max_rating then
                         max_rating = rating
                         best_unit = u
-                        best_hex = ind
+                        best_hex = { r[1], r[2] }
                     end
 
                     -- Finally, we check whether a level-up attack is possible from this hex
-                    if attack_map.values[ind] then
-                        local lu_rating, weapon, target = self:get_level_up_attack_rating(u, ind, attack_map.values[ind].targets, attack_map.values[ind].unit_in_way)
+                    if attack_map:get(r[1], r[2]) then
+                        local lu_rating, weapon, target = self:get_level_up_attack_rating(u, r[1], r[2], attack_map:get(r[1], r[2]).targets, attack_map:get(r[1], r[2]).unit_in_way)
                         -- Very small penalty if there's a unit in the way
-                        if attack_map.values[ind].unit_in_way then lu_rating = lu_rating - 0.001 end
+                        if attack_map:get(r[1], r[2]).unit_in_way then lu_rating = lu_rating - 0.001 end
 
-                        if occ_hexes.values[ind] and (occ_hexes.values[ind] >= lu_rating) then lu_rating = 0 end
+                        if occ_hexes:get(r[1], r[2]) and (occ_hexes:get(r[1], r[2]) >= lu_rating) then lu_rating = 0 end
                         if (lu_rating <= current_rating) then lu_rating = 0 end
 
                         if (lu_rating > max_rating) then
-                            --print("New best level-up attack",u.id, ind, lu_rating, target.id, weapon)
+                            --print("New best level-up attack",u.id, r[1], r[2], lu_rating, target.id, weapon)
                             max_rating = lu_rating
                             best_unit = u
-                            best_hex = ind
+                            best_hex = { r[1], r[2] }
                             self.data.lu_target = target
                             self.data.lu_weapon = weapon
                         end
@@ -341,16 +340,17 @@ return {
                 end
             end
 
-            --print("Best move:",best_unit.id,max_rating,AH.get_LS_xy(best_hex))
+            --print("Best move:",best_unit.id,max_rating,best_hex[1],best_hex[2])
 
             -- If there's another unit in the best location, moving it out of the way becomes the best move
             -- It should have been checked that this is possible
-            local x, y = AH.get_LS_xy(best_hex)
-            local unit_in_way = wesnoth.get_units { x=x, y=y, { "not", { id = best_unit.id } } }[1]
+            local unit_in_way = wesnoth.get_units { x = best_hex[1], y = best_hex[2],
+                { "not", { id = best_unit.id } }
+            }[1]
             if unit_in_way then
                 best_hex = self:move_out_of_way(unit_in_way)
                 best_unit = unit_in_way
-                --print("Moving out of way:", best_unit.id, AH.get_LS_xy(best_hex))
+                --print("Moving out of way:", best_unit.id, best_hex[1], best_hex[2])
 
                 -- also need to delete these, they will be reset on the next turn
                 self.data.lu_target = nil
@@ -377,11 +377,10 @@ return {
                     ai.stopunit_moves(u)
                 end
             else
-                local x, y = AH.get_LS_xy(self.data.hex)
-                --print("Moving unit:",self.data.unit.id, self.data.unit.x, self.data.unit.y, " ->", x, y, " -- turn:", wesnoth.current.turn)
+                --print("Moving unit:",self.data.unit.id, self.data.unit.x, self.data.unit.y, " ->", best_hex[1], best_hex[2], " -- turn:", wesnoth.current.turn)
 
-                if (self.data.unit.x ~= x) or (self.data.unit.y ~= y) then  -- test needed for level-up move
-                    ai.move(self.data.unit, x, y)   -- don't want full move, as this might be stepping out of the way
+                if (self.data.unit.x ~= self.data.hex[1]) or (self.data.unit.y ~= self.data.hex[2]) then  -- test needed for level-up move
+                    ai.move(self.data.unit, self.data.hex[1], self.data.hex[2])   -- don't want full move, as this might be stepping out of the way
                 end
 
                 -- If this is a move for a level-up attack, do that one also
@@ -395,11 +394,10 @@ return {
                 end
             end
 
-            self.data.unit = nil
-            self.data.hex = nil
-            self.data.lu_target = nil
-            self.data.lu_weapon = nil
+            self.data.unit, self.data.hex = nil, nil
+            self.data.lu_target, self.data.lu_weapon = nil, nil
             self.data.bottleneck_moves_done = nil
+            self.data.def_map, self.data.healer_map, self.data.leader_map, self.data.healing_map = nil, nil, nil, nil
         end
 
         function bottleneck_defense:bottleneck_attack_eval()
