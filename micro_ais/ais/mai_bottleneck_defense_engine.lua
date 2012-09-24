@@ -41,13 +41,19 @@ return {
             -- If this did not produce a positive rating, we add a
             -- distance-based rating, to get units to the bottleneck in the first place
             if (rating <= 0) then
-                local combined_dist = 0
+                local combined_dist, min_dist = 0, 9e99
                 self.data.def_map:iter(function(x_def, y_def, v)
-                    combined_dist = combined_dist + H.distance_between(x, y, x_def, y_def)
+                    local dist = H.distance_between(x, y, x_def, y_def)
+                    combined_dist = combined_dist + dist
+                    if (dist < min_dist) then min_dist = dist end
                 end)
-                combined_dist = combined_dist / self.data.def_map:size()
 
-                rating = 1000 - combined_dist * 10.
+                -- We only count the hex if it is on our side of the line
+                local enemy_dist = H.distance_between(x, y, self.data.enemy_hex.x, self.data.enemy_hex.y)
+                if (min_dist < enemy_dist) then
+                    combined_dist = combined_dist / self.data.def_map:size()
+                    rating = 1000 - combined_dist * 10.
+                end
             end
 
             -- Now add the unit specific rating
@@ -185,6 +191,8 @@ return {
             --W.message {speaker="narrator", message="Defense map" }
 
             -- ***** start map-specific information *****
+
+            self.data.enemy_hex = { x = 12, y = 8 }
             -- healer positioning
             local coords = { {14,7,10000}, {14,9,10000},
                 {15,9,5000}, {15,8,4990}, {15,10,4990}, {15,7,4990},
