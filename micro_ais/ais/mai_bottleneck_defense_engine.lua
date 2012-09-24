@@ -16,9 +16,8 @@ return {
             local rating = 0
 
             -- Defense positioning rating
-            if (not is_healer) and (not is_leader) then
-                rating = self.data.def_map:get(x, y) or 0
-            end
+            -- This includes all units; can exclude leaders/healer with specific key
+            rating = self.data.def_map:get(x, y) or 0
 
             -- Healer positioning rating
             if is_healer then
@@ -193,16 +192,45 @@ return {
             self.data.enemy_hex = cfg.enemy_hex
             --DBG.dbms(self.data.enemy_hex)
 
-            -- ***** start map-specific information *****
+            -- Setting up healer position map
+            self.data.healer_map = LS.create()
+            if (not cfg.healer_x) then
+                self.data.def_map:iter( function(x, y, v)
+                    for xa, ya in H.adjacent_tiles(x, y) do
+                        -- This rating adds up the scores of all the adjacent def_map hexes
+                        local rating = self.data.def_map:get(x, y) or 0
+                        rating = rating + (self.data.healer_map:get(xa, ya) or 0)
+                        self.data.healer_map:insert(xa, ya, rating)
+                    end
+                end)
+            end
 
-            -- healer positioning
-            local coords = { {14,7,10000}, {14,9,10000},
-                {15,9,5000}, {15,8,4990}, {15,10,4990}, {15,7,4990},
-                {16,8,4980}, {16,9,4980}, {16,7,4980}
-            }
-            self.data.healer_map = AH.LS_of_triples(coords)
+            -- Now go over this, and eliminate:
+            -- 1. Hexes that are on the line itself
+            -- 2. Hexes that are closer to enemy_hex than to any of the front-line hexes
+            -- Note that we do not need to check for passability, as only reachable hexes are considered later
+
+            self.data.healer_map:iter( function(x, y, v)
+                local dist_enemy = H.distance_between(x, y, cfg.enemy_hex[1], cfg.enemy_hex[2])
+                local min_dist = 9e99
+                self.data.def_map:iter( function(xd, yd, vd)
+                    local dist_line = H.distance_between(x, y, xd, yd)
+                    if (dist_line == 0) then self.data.healer_map:remove(x,y) end
+                    if (dist_line < min_dist) then min_dist = dist_line end
+                end)
+                if (dist_enemy <= min_dist) then self.data.healer_map:remove(x,y) end
+            end)
+
+            -- Finally, we need to sort the map, and assign descending values
+            local locs = AH.to_triples(self.data.healer_map)
+            table.sort(locs, function(a, b) return a[3] > b[3] end)
+            for i,l in ipairs(locs) do l[3] = 5010 - i * 10 end
+            self.data.healer_map = AH.LS_of_triples(locs)
+
             --AH.put_labels(self.data.healer_map)
             --W.message {speaker="narrator", message="Healer map" }
+
+            -- ***** start map-specific information *****
 
             -- leader positioning
             local coords = { {14,7,10000}, {14,9,10000},
