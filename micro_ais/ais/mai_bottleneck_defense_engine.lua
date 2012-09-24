@@ -14,7 +14,6 @@ return {
             -- Don't want to extract is_healer and is_leader inside this function, as it is very slow
 
             local rating = 0
-
             -- Defense positioning rating
             -- This includes all units; can exclude leaders/healer with specific key
             rating = self.data.def_map:get(x, y) or 0
@@ -233,7 +232,7 @@ return {
             -- ***** start map-specific information *****
 
             -- leader positioning
-            local coords = { {14,7,10000}, {14,9,10000},
+            local coords = {
                 {15,8,4000}, {15,9,3990}, {15,7,3990}, {15,10,3990},
                 {16,8,3980}, {16,7,3980}, {16,9,3980}
             }
@@ -289,7 +288,6 @@ return {
 
             -- ***** end map-specific information *****
 
-
             -- First, get the rating of all units in their current positions
             -- A move is only considered if it improves the overall rating,
             -- that is, its rating must be higher than:
@@ -330,11 +328,13 @@ return {
 
                 -- Find all hexes the unit can reach ...
                 local reach = wesnoth.find_reach(u)
+                --local reach_map = LS.create()
 
                 -- ... and go through all of them
                 for i,r in ipairs(reach) do
                     local rating = self:get_rating(u, r[1], r[2], is_leader, is_healer)
                     --print(" ->",r[1],r[2],rating,occ_hexes:get(r[1], r[2]))
+                    --reach_map:insert(r[1], r[2], rating)
 
                     -- A move is only considered if it improves the overall rating,
                     -- that is, its rating must be higher than:
@@ -372,8 +372,9 @@ return {
                             self.data.lu_weapon = weapon
                         end
                     end
-
                 end
+                --AH.put_labels(reach_map)
+                --W.message { speaker = u.id, message = 'My rating map' }
             end
 
             --print("Best move:",best_unit.id,max_rating,best_hex[1],best_hex[2])
