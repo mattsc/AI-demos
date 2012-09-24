@@ -1,14 +1,14 @@
 return {
     init = function(ai)
 
-        local defend_pass = {}
+        local bottleneck_defense = {}
 
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
         local LS = wesnoth.require "lua/location_set.lua"
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
 
-        function defend_pass:get_rating(unit, hex_def, hex_healer, hex_leader, hex_healing, is_leader, is_healer)
+        function bottleneck_defense:get_rating(unit, hex_def, hex_healer, hex_leader, hex_healing, is_leader, is_healer)
             -- Calculate rating of a unit given a hex's defense, healer, leader and healing values
             -- Don't want to extract is_healer and is_leader inside this function, as it is very slow
 
@@ -40,7 +40,7 @@ return {
             return rating
         end
 
-        function defend_pass:move_out_of_way(unit)
+        function bottleneck_defense:move_out_of_way(unit)
             -- Find the best move out of the way for a unit
             -- Only move toward the east (=away from enemy)
             -- and choose the shortest possible move
@@ -77,7 +77,7 @@ return {
            if best_reach > -1 then return best_hex end
         end
 
-        function defend_pass:get_level_up_attack_rating(attacker, ind, targets, unit_in_way, target_level)
+        function bottleneck_defense:get_level_up_attack_rating(attacker, ind, targets, unit_in_way, target_level)
 
             local max_rating = 0
             local best_tar = {}
@@ -143,7 +143,7 @@ return {
             return max_rating, best_weapon, best_tar
         end
 
-        function defend_pass:move_eval()
+        function bottleneck_defense:move_eval()
             -- Find the best unit move
 
             -- get all units with moves left
@@ -351,7 +351,7 @@ return {
             end
         end
 
-        function defend_pass:move_exec()
+        function bottleneck_defense:move_exec()
 
             local x, y = AH.get_LS_xy(self.data.hex)
             --print("Moving unit:",self.data.unit.id, self.data.unit.x, self.data.unit.y, " ->", x, y, " -- turn:", wesnoth.current.turn)
@@ -376,7 +376,7 @@ return {
             self.data.lu_weapon = nil
         end
 
-        function defend_pass:attack_eval()
+        function bottleneck_defense:attack_eval()
 
             -- All units with attacks_left and enemies next to them
             -- This will be much easier once the 'attacks' variable is implemented
@@ -449,7 +449,7 @@ return {
             end
         end
 
-        function defend_pass:attack_exec()
+        function bottleneck_defense:attack_exec()
 
             --W.message {speaker=self.data.attacker.id, message="Attacking" }
 
@@ -461,6 +461,6 @@ return {
             self.data.weapon = nil
         end
 
-        return defend_pass
+        return bottleneck_defense
     end
 }
