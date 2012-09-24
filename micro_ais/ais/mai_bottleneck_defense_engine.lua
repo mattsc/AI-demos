@@ -146,16 +146,29 @@ return {
 
         function bottleneck_defense:bottleneck_move_eval(cfg)
             -- Find the best unit move
-
             -- get all units with moves left
             local units = wesnoth.get_units { side = wesnoth.current.side, formula = '$this_unit.moves > 0' }
 
             -- No units with moves left, nothing to be done here
             if (not units[1]) then return 0 end
 
+            -- Set up the arrays that tell the AI where to defend the bottleneck
+            -- Get the x and y coordinates (this assumes that cfg.x and cfg.y have the same length)
+            local def_coords = {}
+            for x in string.gmatch(cfg.x, "%d+") do
+                table.insert(def_coords, { x })
+            end
+            local i = 1
+            for y in string.gmatch(cfg.y, "%d+") do
+                table.insert(def_coords[i], y)
+                table.insert(def_coords[i], 10010 - i * 10) -- the rating
+                i = i + 1
+            end
+            --DBG.dbms(def_coords)
+
             -- ***** start map-specific information *****
             -- defense positioning
-            local coords = { {14,7,10000}, {14,9,10000}, {14,8,9990},
+            local coords = {
                 {14,6,1000}, {14,10,1000},
                 {15,8,990}, {15,9,990},
                 {15,7,980}, {15,10,980}, {16,7,980}, {16,8,980}, {16,9,980},
@@ -163,6 +176,7 @@ return {
                 {17,7,970}, {17,8,970}, {17,9,970}, {17,10,970},
                 {18,6,960}, {18,7,960}, {18,8,960}, {18,9,960}
             }
+            local coords = AH.array_merge(def_coords, coords)
             local def_map = AH.LS_of_triples(coords)
             --AH.put_labels(def_map)
             --W.message {speaker="narrator", message="Defense map" }
