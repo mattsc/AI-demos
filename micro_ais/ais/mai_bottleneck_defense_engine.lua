@@ -160,12 +160,9 @@ return {
            if best_reach > -1 then return best_hex end
         end
 
-        function bottleneck_defense:get_level_up_attack_rating(attacker, x, y, targets, unit_in_way, target_level)
+        function bottleneck_defense:get_level_up_attack_rating(attacker, x, y, targets)
 
-            local max_rating = 0
-            local best_tar = {}
-            local best_weapon = -1
-
+            local max_rating, best_tar, best_weapon = 0, {}, -1
             -- Go through the targets
             for i,t in ipairs(targets) do
 
@@ -173,23 +170,7 @@ return {
                 local n_weapon = 0
                 for weapon in H.child_range(attacker.__cfg, "attack") do
                     n_weapon = n_weapon + 1
-
-                    local x1, y1 = attacker.x, attacker.y
-
-                    local att_stats, def_stats = 0, 0
-                    -- if there's already a unit there
-                    if unit_in_way then
-                        --print("in the way:", unit_in_way.id,x,y,attacker.id)
-                        wesnoth.put_unit(13, 5, unit_in_way)   -- ***** map-specific *****
-                        wesnoth.put_unit(x, y, attacker)
-                        att_stats, def_stats = wesnoth.simulate_combat(attacker, n_weapon, t)
-                        wesnoth.put_unit(x1, y1, attacker)
-                        wesnoth.put_unit(x, y, unit_in_way)
-                    else
-                        wesnoth.put_unit(x, y, attacker)
-                        att_stats, def_stats = wesnoth.simulate_combat(attacker, n_weapon, t)
-                        wesnoth.put_unit(x1, y1, attacker)
-                    end
+                    local att_stats, def_stats = AH.simulate_combat_loc(attacker, { x, y }, t, n_weapon)
                     --DBG.dbms(att_stats,false,"variable",false)
                     --print(attacker.id, att_stats.average_hp, def_stats.average_hp)
 
@@ -214,9 +195,7 @@ return {
                     --print("Level-up rating:",rating)
 
                     if rating > max_rating then
-                        max_rating = rating
-                        best_tar = t
-                        best_weapon = n_weapon
+                        max_rating, best_tar, best_weapon = rating, t, n_weapon
                     end
                 end
             end
@@ -288,7 +267,7 @@ return {
                         if (dist_line < min_dist) then min_dist = dist_line end
                     end)
                     if (min_dist > 0) and (min_dist < dist_enemy) then
-                        self.data.healing_map:insert(x, y, 3000 + dist_enemy)  -- farther away from enemy is good **** map-specific
+                        self.data.healing_map:insert(x, y, 3000 + dist_enemy)  -- farther away from enemy is good
                     end
                 end
             end
@@ -399,7 +378,7 @@ return {
 
                     -- Finally, we check whether a level-up attack is possible from this hex
                     if attack_map:get(r[1], r[2]) then
-                        local lu_rating, weapon, target = self:get_level_up_attack_rating(u, r[1], r[2], attack_map:get(r[1], r[2]).targets, attack_map:get(r[1], r[2]).unit_in_way)
+                        local lu_rating, weapon, target = self:get_level_up_attack_rating(u, r[1], r[2], attack_map:get(r[1], r[2]).targets)
                         -- Very small penalty if there's a unit in the way
                         if attack_map:get(r[1], r[2]).unit_in_way then lu_rating = lu_rating - 0.001 end
 
