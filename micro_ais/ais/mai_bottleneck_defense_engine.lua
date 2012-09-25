@@ -127,8 +127,8 @@ return {
 
         function bottleneck_defense:move_out_of_way(unit)
             -- Find the best move out of the way for a unit
-            -- Only move toward the east (=away from enemy)
             -- and choose the shortest possible move
+            -- Returns nil if no move was found
 
             -- just a sanity check: unit to move out of the way needs to be on our side:
             if (unit.side ~= wesnoth.current.side) then return nil end
@@ -160,50 +160,6 @@ return {
            --print("Best reach: ",unit.id, best_reach, best_hex[1], best_hex[2])
 
            if best_reach > -1 then return best_hex end
-        end
-
-        function bottleneck_defense:get_level_up_attack_rating(attacker, x, y, targets)
-
-            local max_rating, best_tar, best_weapon = 0, {}, -1
-            -- Go through the targets
-            for i,t in ipairs(targets) do
-
-                local target_level = t.__cfg.level
-                local n_weapon = 0
-                for weapon in H.child_range(attacker.__cfg, "attack") do
-                    n_weapon = n_weapon + 1
-                    local att_stats, def_stats = AH.simulate_combat_loc(attacker, { x, y }, t, n_weapon)
-                    --DBG.dbms(att_stats,false,"variable",false)
-                    --print(attacker.id, att_stats.average_hp, def_stats.average_hp)
-
-                    -- Level-up attack when:
-                    -- 1. max_experience-experience <= target.level and chance to die = 0
-                    -- 2. max_experience-experience <= target.level*8 and chance to die = 0
-                    --   and chance to kill > 66% and remaining av hitpoints > 20
-                    -- #1 is a definite level up, #2 is not, so #1 gets priority
-
-                    local rating = 0
-                    if (attacker.max_experience - attacker.experience <= target_level) then
-                        if (att_stats.hp_chance[0] == 0) then
-                            -- weakest enemy is best (favors stronger weapon)
-                            rating = 15000 - def_stats.average_hp
-                        end
-                    else
-                        if (attacker.max_experience - attacker.experience <= 8 * target_level) and (att_stats.hp_chance[0] == 0) and (def_stats.hp_chance[0] >= 0.66) and (att_stats.average_hp >= 20) then
-                            -- strongest attacker and weakest enemy is best
-                            rating = 14000 + att_stats.average_hp - def_stats.average_hp/2.
-                        end
-                    end
-                    --print("Level-up rating:",rating)
-
-                    if rating > max_rating then
-                        max_rating, best_tar, best_weapon = rating, t, n_weapon
-                    end
-                end
-            end
-
-            --print("Best level-up attack:", max_rating, best_weapon)
-            return max_rating, best_weapon, best_tar
         end
 
         function bottleneck_defense:bottleneck_move_eval(cfg)
@@ -276,42 +232,6 @@ return {
             --AH.put_labels(self.data.healing_map)
             --W.message {speaker="narrator", message="Healing map" }
 
-            -- ***** start map-specific information *****
-
-            -- Find all attack positions next to enemies
-            -- This part would be *a lot* easier if ai.get_attacks() existed already
-            -- Will be redone when that has been added
-            local attack_locs = wesnoth.get_locations { x="14-999",
-                { "filter_adjacent_location", {
-                    { "filter", { { "not", {side = wesnoth.current.side} } } }
-                } }
-            }
-            local attack_map = LS.create()
-            for i,l in ipairs(attack_locs) do
-
-                local data = {}
-                -- For each location, store the attackable enemies, and whether there is a unit in the way
-                -- (want to do this here, rather than in the loop, for speed reasons)
-                local targets = wesnoth.get_units {
-                    { "not", {side = wesnoth.current.side} },
-                    { "filter_location",
-                        { { "filter_adjacent_location", { x = l[1], y = l[2] } } }
-                    }
-                }
-                --print(l[1], l[2], #targets)
-                data.targets = targets
-
-                local unit_in_way = wesnoth.get_unit(l[1], l[2])
-                if unit_in_way then
-                    data.unit_in_way = unit_in_way
-                end
-                attack_map:insert(l[1], l[2], data)
-            end
-            --AH.put_labels(attack_map)
-            --W.message {speaker="narrator", message="Attack map" }
-
-            -- ***** end map-specific information *****
-
             -- First, get the rating of all units in their current positions
             -- A move is only considered if it improves the overall rating,
             -- that is, its rating must be higher than:
@@ -354,7 +274,23 @@ return {
                 local reach = wesnoth.find_reach(u)
                 --local reach_map = LS.create()
 
-                -- ... and go through all of them
+                -- Also find all attacks it can do
+                local attacks = AH.get_attacks_unit_occupied(u)
+                -- Need to eliminate those that are across the line
+                for i_a = #attacks,1,-1 do
+                    local dist_enemy = H.distance_between(attacks[i_a].x, attacks[i_a].y, self.data.enemy_hex[1], self.data.enemy_hex[2])
+                    local min_dist = 9e99
+                    self.data.def_map:iter( function(xd, yd, vd)
+                        local dist_line = H.distance_between(xd, yd, self.data.enemy_hex[1], self.data.enemy_hex[2])
+                        if (dist_line < min_dist) then min_dist = dist_line end
+                    end)
+                    if (dist_enemy < min_dist) then
+                        --print('Removing attack #' .. i, attacks[i_a].x, attacks[i_a].y, min_dist, dist_enemy)
+                        table.remove(attacks, i_a)
+                    end
+                end
+
+                -- Now find the best move
                 for i,r in ipairs(reach) do
                     local rating = self:get_rating(u, r[1], r[2], is_leader, is_healer)
                     --print(" ->",r[1],r[2],rating,occ_hexes:get(r[1], r[2]))
@@ -373,27 +309,67 @@ return {
 
                     -- Now only valid and possible moves should have a rating > 0
                     if rating > max_rating then
-                        max_rating = rating
-                        best_unit = u
-                        best_hex = { r[1], r[2] }
+                        max_rating, best_unit, best_hex = rating, u, { r[1], r[2] }
                     end
 
                     -- Finally, we check whether a level-up attack is possible from this hex
-                    if attack_map:get(r[1], r[2]) then
-                        local lu_rating, weapon, target = self:get_level_up_attack_rating(u, r[1], r[2], attack_map:get(r[1], r[2]).targets)
-                        -- Very small penalty if there's a unit in the way
-                        if attack_map:get(r[1], r[2]).unit_in_way then lu_rating = lu_rating - 0.001 end
+                    -- Level-up-attacks will always get a rating greater than any other move
+                    for j,a in ipairs(attacks) do
+                        if (a.x == r[1]) and (a.y == r[2]) then
+                            --print('Evaluating attack', u.id, a.x, a.y, a.def_loc.x, a.def_loc.y)
+                            local defender = wesnoth.get_unit(a.def_loc.x, a.def_loc.y)
+                            local defender_level = defender.__cfg.level
 
-                        if occ_hexes:get(r[1], r[2]) and (occ_hexes:get(r[1], r[2]) >= lu_rating) then lu_rating = 0 end
-                        if (lu_rating <= current_rating) then lu_rating = 0 end
+                            -- For this one, we really want to go through all weapons individually
+                            local n_weapon = 0
+                            for weapon in H.child_range(u.__cfg, "attack") do
+                                n_weapon = n_weapon + 1
+                                -- Need to simulate combat again, as we now need it for each weapon (not just best weapon)
+                                -- There's a bit of extra overhead in here that could be removed if it turns out to be a problem
+                                local att_stats, def_stats = AH.simulate_combat_loc(u, { a.x, a.y }, defender, n_weapon)
 
-                        if (lu_rating > max_rating) then
-                            --print("New best level-up attack",u.id, r[1], r[2], lu_rating, target.id, weapon)
-                            max_rating = lu_rating
-                            best_unit = u
-                            best_hex = { r[1], r[2] }
-                            self.data.lu_target = target
-                            self.data.lu_weapon = weapon
+                                -- Level-up attack when:
+                                -- 1. max_experience-experience <= target.level and chance to die = 0
+                                -- 2. max_experience-experience <= target.level*8 and chance to die = 0
+                                --   and chance to kill > 66% and remaining av hitpoints > 20
+                                -- #1 is a definite level up, #2 is not, so #1 gets priority
+                                local lu_rating = 0
+                                if (u.max_experience - u.experience <= defender_level) then
+                                    if (att_stats.hp_chance[0] == 0) then
+                                        -- weakest enemy is best (favors stronger weapon)
+                                        lu_rating = 15000 - def_stats.average_hp
+                                    end
+                                else
+                                    if (u.max_experience - u.experience <= 8 * defender_level) and (att_stats.hp_chance[0] == 0) and (def_stats.hp_chance[0] >= 0.66) and (att_stats.average_hp >= 20) then
+                                        -- strongest attacker and weakest enemy is best
+                                        lu_rating = 14000 + att_stats.average_hp - def_stats.average_hp/2.
+                                    end
+                                end
+
+                                -- Very small penalty if there's a unit in the way
+                                -- We also need to check whether this unit can move out of the way
+                                -- within the restriction of this scenario.  AH.get_attacks_unit() only
+                                -- check whether moving out of the way in _any_ direction is possible
+                                if a.attack_hex_occupied then
+                                    local moow = self:move_out_of_way(wesnoth.get_unit(a.x, a.y))
+                                    if moow then
+                                        lu_rating = lu_rating - 0.001
+                                    else
+                                        lu_rating = 0
+                                    end
+                                end
+
+                                --print("Level-up rating:",lu_rating)
+
+                                if (lu_rating > max_rating) then
+                                    max_rating, best_unit, best_hex = lu_rating, u, { r[1], r[2] }
+                                    -- The following are also needed in this case
+                                    -- We don't have to worry about unsetting them, as LU attacks
+                                    -- always have higher priority than any other move
+                                    self.data.lu_defender = defender
+                                    self.data.lu_weapon = n_weapon
+                                end
+                            end
                         end
                     end
                 end
@@ -404,7 +380,7 @@ return {
             --print("Best move:",best_unit.id,max_rating,best_hex[1],best_hex[2])
 
             -- If there's another unit in the best location, moving it out of the way becomes the best move
-            -- It should have been checked that this is possible
+            -- It has been checked that this is possible
             local unit_in_way = wesnoth.get_units { x = best_hex[1], y = best_hex[2],
                 { "not", { id = best_unit.id } }
             }[1]
@@ -414,10 +390,11 @@ return {
                 --print("Moving out of way:", best_unit.id, best_hex[1], best_hex[2])
 
                 -- also need to delete these, they will be reset on the next turn
-                self.data.lu_target = nil
+                self.data.lu_defender = nil
                 self.data.lu_weapon = nil
             end
 
+            -- Set the variables for bottleneck_move_exec()
             if max_rating == 0 then
                 -- In this case we take MP away from all units
                 -- This is done so that the RCA AI CAs can be kept in place
@@ -445,18 +422,18 @@ return {
                 end
 
                 -- If this is a move for a level-up attack, do that one also
-                if self.data.lu_target then
-                    --print("Level-up attack",self.data.unit.id, self.data.lu_target.id, self.data.lu_weapon)
+                if self.data.lu_defender then
+                    --print("Level-up attack",self.data.unit.id, self.data.lu_defender.id, self.data.lu_weapon)
                     --W.message {speaker=self.data.unit.id, message="Level-up attack" }
 
                     local dw = -1
                     if AH.got_1_11() then dw = 0 end
-                    ai.attack(self.data.unit, self.data.lu_target, self.data.lu_weapon + dw)
+                    ai.attack(self.data.unit, self.data.lu_defender, self.data.lu_weapon + dw)
                 end
             end
 
             self.data.unit, self.data.hex = nil, nil
-            self.data.lu_target, self.data.lu_weapon = nil, nil
+            self.data.lu_defender, self.data.lu_weapon = nil, nil
             self.data.bottleneck_moves_done = nil
             self.data.def_map, self.data.healer_map, self.data.leader_map, self.data.healing_map = nil, nil, nil, nil
         end
