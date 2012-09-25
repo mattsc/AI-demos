@@ -82,6 +82,12 @@ function wesnoth.wml_actions.micro_ai(cfg)
             cfg_bd.enemy_hex = cfg.enemy_hex
         end
 
+        -- Optional keys: healer_x, healer_y
+        if cfg.healer_x and cfg.healer_y then
+            cfg_bd.healer_x = cfg.healer_x
+            cfg_bd.healer_y = cfg.healer_y
+        end
+
         -- Add the CAs
         if (cfg.action == 'add') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".activate(cfg.side, cfg_bd)

@@ -6,7 +6,12 @@ return {
         cfg = cfg or {}
 
         local cfg_str = '{ x = "' .. cfg.x .. '", y = "' .. cfg.y .. '"'
-        local cfg_str = cfg_str .. ', enemy_hex = { ' .. cfg.enemy_hex .. ' } }'
+        local cfg_str = cfg_str .. ', enemy_hex = { ' .. cfg.enemy_hex .. ' }'
+        if cfg.healer_x and cfg.healer_y then
+            cfg_str = cfg_str .. ', healer_x = "' .. cfg.healer_x .. '", healer_y = "' .. cfg.healer_y .. '"'
+        end
+        cfg_str = cfg_str .. ' }'
+
         --print('Bottleneck Defense: cfg_str = ',cfg_str)
 
         local H = wesnoth.require "lua/helper.lua"
