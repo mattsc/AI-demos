@@ -147,12 +147,14 @@ return {
            -- find the closest unoccupied reachable hex in the east
            local best_reach, best_hex = -1, {}
            for i,r in ipairs(reach) do
-               -- (r[3] > best_reach) : move shorter than previous best move
-               -- (r[1] > unit.x) : move toward east ***** map-specific *****
-               -- (not occ_hex) : unoccupied hexes only
-               if (r[3] > best_reach) and (r[1] > unit.x) and (not occ_hexes:get(r[1], r[2])) then
-                   best_reach = r[3]
-                   best_hex = { r[1], r[2] }
+               -- Best hex to move out of way to:
+               --  (r[3] > best_reach) : move shorter than previous best move
+               --  (not occ_hex) : unoccupied hexes only
+               --  dist_enemy_hex > dist_enemy: move away from enemy
+               local dist_enemy_hex = H.distance_between(r[1], r[2], self.data.enemy_hex[1], self.data.enemy_hex[2])
+               local dist_enemy = H.distance_between(unit.x, unit.y, self.data.enemy_hex[1], self.data.enemy_hex[2])
+               if (r[3] > best_reach) and (not occ_hexes:get(r[1], r[2])) and (dist_enemy_hex > dist_enemy) then
+                   best_reach, best_hex = r[3], { r[1], r[2] }
                end
            end
            --print("Best reach: ",unit.id, best_reach, best_hex[1], best_hex[2])
