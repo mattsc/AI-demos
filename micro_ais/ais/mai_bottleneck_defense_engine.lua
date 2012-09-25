@@ -275,21 +275,27 @@ return {
             --AH.put_labels(self.data.leader_map)
             --W.message {speaker="narrator", message="leader map" }
 
-            -- ***** start map-specific information *****
-
             -- healing map: positions next to healers, needs to be calculated each time
-            -- Get all locations next to a healer with x>13, and excluding (14,8)
             local healers = wesnoth.get_units { side = wesnoth.current.side, ability = "healing" }
             self.data.healing_map = LS.create()
             for i,h in ipairs(healers) do
                 for x, y in H.adjacent_tiles(h.x, h.y) do
-                    if (x > 13) and not((x == 14) and (y == 8)) then
-                        self.data.healing_map:insert(x, y, 3000 + h.x/100.)  -- farther away from enemy is good **** map-specific
+                    -- Cannot be on the line, and needs to be farther from enemy than from line
+                    local dist_enemy = H.distance_between(x, y, self.data.enemy_hex[1], self.data.enemy_hex[2])
+                    local min_dist = 9e99
+                    self.data.def_map:iter( function(xd, yd, vd)
+                        local dist_line = H.distance_between(x, y, xd, yd)
+                        if (dist_line < min_dist) then min_dist = dist_line end
+                    end)
+                    if (min_dist > 0) and (min_dist < dist_enemy) then
+                        self.data.healing_map:insert(x, y, 3000 + dist_enemy)  -- farther away from enemy is good **** map-specific
                     end
                 end
             end
             --AH.put_labels(self.data.healing_map)
             --W.message {speaker="narrator", message="Healing map" }
+
+            -- ***** start map-specific information *****
 
             -- Find all attack positions next to enemies
             -- This part would be *a lot* easier if ai.get_attacks() existed already
