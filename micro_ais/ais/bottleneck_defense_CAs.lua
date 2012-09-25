@@ -5,11 +5,23 @@ return {
 
         cfg = cfg or {}
 
+        -- Add the x,y= keys
         local cfg_str = '{ x = "' .. cfg.x .. '", y = "' .. cfg.y .. '"'
+
+        -- Add the enemy_hex = key
         local cfg_str = cfg_str .. ', enemy_hex = { ' .. cfg.enemy_hex .. ' }'
+
+        -- Add the healer_x,healer_y= keys
         if cfg.healer_x and cfg.healer_y then
             cfg_str = cfg_str .. ', healer_x = "' .. cfg.healer_x .. '", healer_y = "' .. cfg.healer_y .. '"'
         end
+
+        -- Add the leader_x,leader_y= keys
+        if cfg.leader_x and cfg.leader_y then
+            cfg_str = cfg_str .. ', leader_x = "' .. cfg.leader_x .. '", leader_y = "' .. cfg.leader_y .. '"'
+        end
+
+        -- Closing bracket
         cfg_str = cfg_str .. ' }'
 
         --print('Bottleneck Defense: cfg_str = ',cfg_str)

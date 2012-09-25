@@ -259,16 +259,23 @@ return {
             --AH.put_labels(self.data.healer_map)
             --W.message {speaker="narrator", message="Healer map" }
 
-            -- ***** start map-specific information *****
+            -- Setting up leader position map
+            -- If leader_x, leader_y are not given, we create the leader positioning array
+            if (not cfg.leader_x) then
+                self.data.leader_map = self:create_map(4000)
+            else
+                -- Otherwise, if leader_x,leader_y are given, extract locs from there
+                self.data.leader_map = self:triple_from_keys(cfg.leader_x, cfg.leader_y, 4000)
 
-            -- leader positioning
-            local coords = {
-                {15,8,4000}, {15,9,3990}, {15,7,3990}, {15,10,3990},
-                {16,8,3980}, {16,7,3980}, {16,9,3980}
-            }
-            self.data.leader_map = AH.LS_of_triples(coords)
+                -- Use def_map value for any hexes that are defined in there as well
+                self.data.leader_map:inter_merge(self.data.def_map,
+                    function(x, y, v1, v2) return v2 or v1 end
+                )
+            end
             --AH.put_labels(self.data.leader_map)
             --W.message {speaker="narrator", message="leader map" }
+
+            -- ***** start map-specific information *****
 
             -- healing map: positions next to healers, needs to be calculated each time
             -- Get all locations next to a healer with x>13, and excluding (14,8)
