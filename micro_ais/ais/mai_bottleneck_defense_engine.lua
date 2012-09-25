@@ -9,6 +9,44 @@ return {
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
+        function bottleneck_defense:is_my_side(map, enemy_map)
+            -- Create map that contains 'true' for all hexes that are
+            -- on the AI's side of the map
+
+            -- Get copy of leader to do pathfinding from each hex to the
+            -- front-line hexes, both own (stored in 'map') and enemy (enemy_map) front-line hexes
+            local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+            local dummy_unit = wesnoth.copy_unit(leader)
+
+            local side_map = LS.create()
+            local w,h,b = wesnoth.get_map_size()
+            for x = 1,w do
+                for y = 1,h do
+                    -- Put dummy unit at the hex
+                    dummy_unit.x, dummy_unit.y = x, y
+
+                    -- Find closest movement cost to own front-line hexes
+                    local min_cost, min_cost_enemy = 9e99, 9e99
+                    map:iter(function(xm, ym, v)
+                       local path, cost = wesnoth.find_path(dummy_unit, xm, ym)
+                       if (cost < min_cost) then min_cost = cost end
+                    end)
+
+                    -- Find closest movement cost to enemy front-line hexes
+                    enemy_map:iter(function(xm, ym, v)
+                       local path, cost = wesnoth.find_path(dummy_unit, xm, ym)
+                       if (cost < min_cost_enemy) then min_cost_enemy = cost end
+                    end)
+
+                    if (min_cost < min_cost_enemy) then
+                        side_map:insert(x, y, true)
+                    end
+                end
+            end
+
+            return side_map
+        end
+
         function bottleneck_defense:triple_from_keys(key_x, key_y, max_value)
             -- Turn x,y = comma-separated lists into a location set
             local coords = {}
