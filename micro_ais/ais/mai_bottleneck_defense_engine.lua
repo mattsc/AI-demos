@@ -22,27 +22,44 @@ return {
             local w,h,b = wesnoth.get_map_size()
             for x = 1,w do
                 for y = 1,h do
-                    -- Put dummy unit at the hex
-                    dummy_unit.x, dummy_unit.y = x, y
+                    -- The hex might have been covered already previously
+                    if (not territory_map:get(x,y)) then
+                        dummy_unit.x, dummy_unit.y = x, y
 
-                    -- Find closest movement cost to own front-line hexes
-                    local min_cost, min_cost_enemy = 9e99, 9e99
-                    map:iter(function(xm, ym, v)
-                       local path, cost = wesnoth.find_path(dummy_unit, xm, ym, { ignore_units = true })
-                       if (cost < min_cost) then min_cost = cost end
-                    end)
+                        -- Find closest movement cost to own front-line hexes
+                        local min_cost, best_path = 9e99, {}
+                        map:iter(function(xm, ym, v)
+                            local path, cost = wesnoth.find_path(dummy_unit, xm, ym, { ignore_units = true })
+                            if (cost < min_cost) then
+                               min_cost, best_path = cost, path
+                            end
+                        end)
 
-                    -- Find closest movement cost to enemy front-line hexes
-                    enemy_map:iter(function(xm, ym, v)
-                       local path, cost = wesnoth.find_path(dummy_unit, xm, ym, { ignore_units = true })
-                       if (cost < min_cost_enemy) then min_cost_enemy = cost end
-                    end)
-
-                    if (min_cost < min_cost_enemy) then
-                        territory_map:insert(x, y, true)
+                        local min_cost_enemy, best_path_enemy = 9e99, {}
+                        enemy_map:iter(function(xm, ym, v)
+                            local path, cost = wesnoth.find_path(dummy_unit, xm, ym, { ignore_units = true })
+                            if (cost < min_cost_enemy) then
+                               min_cost_enemy, best_path_enemy = cost, path
+                            end
+                        end)
+                        if (min_cost < min_cost_enemy) then
+                            for i,p in ipairs(best_path) do
+                                territory_map:insert(p[1], p[2], 1)
+                            end
+                        else
+                            for i,p in ipairs(best_path_enemy) do
+                                territory_map:insert(p[1], p[2], 0)
+                            end
+                        end
                     end
                 end
             end
+
+            -- Now we need to go over it again and delete all the zeros
+            territory_map:iter(function(x, y, v)
+                if (territory_map:get(x, y) == 0) then territory_map:remove(x, y) end
+            end)
+
 
             return territory_map
         end
@@ -195,7 +212,8 @@ return {
 
             -- enemy_map can be a temporary variable, what we really need is the side_map
             local enemy_map = self:triple_from_keys(cfg.enemy_x, cfg.enemy_y, 10000)
-            self.data.is_my_territory = self:is_my_territory(self.data.def_map, enemy_map)
+            -- This one is a bit expensive, esp. on large maps -> don't delete every move and reuse
+            self.data.is_my_territory = self.data.is_my_territory or self:is_my_territory(self.data.def_map, enemy_map)
             --AH.put_labels(self.data.is_my_territory)
             --W.message {speaker="narrator", message="Side map" }
 
@@ -455,7 +473,7 @@ return {
             self.data.unit, self.data.hex = nil, nil
             self.data.lu_defender, self.data.lu_weapon = nil, nil
             self.data.bottleneck_moves_done = nil
-            self.data.def_map, self.data.is_my_territory = nil, nil
+            self.data.def_map = nil
             self.data.healer_map, self.data.leader_map, self.data.healing_map = nil, nil, nil
         end
 
