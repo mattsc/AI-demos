@@ -14,8 +14,8 @@ return {
             -- on the AI's side of the map
 
             -- Get copy of leader to do pathfinding from each hex to the
-            -- If there is no leader, use any unit
             -- front-line hexes, both own (stored in 'map') and enemy (enemy_map) front-line hexes
+            -- If there is no leader, use first unit found
             local unit = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
             if (not unit) then unit = wesnoth.get_units { side = wesnoth.current.side }[1] end
             local dummy_unit = wesnoth.copy_unit(unit)
@@ -28,7 +28,7 @@ return {
                     if (not territory_map:get(x,y)) then
                         dummy_unit.x, dummy_unit.y = x, y
 
-                        -- Find closest movement cost to own front-line hexes
+                        -- Find lowest movement cost to own front-line hexes
                         local min_cost, best_path = 9e99, {}
                         map:iter(function(xm, ym, v)
                             local path, cost = wesnoth.find_path(dummy_unit, xm, ym, { ignore_units = true })
@@ -37,6 +37,7 @@ return {
                             end
                         end)
 
+                        -- And the same to the enemy front line
                         local min_cost_enemy, best_path_enemy = 9e99, {}
                         enemy_map:iter(function(xm, ym, v)
                             local path, cost = wesnoth.find_path(dummy_unit, xm, ym, { ignore_units = true })
@@ -44,11 +45,14 @@ return {
                                min_cost_enemy, best_path_enemy = cost, path
                             end
                         end)
+
+                        -- We can set this for the entire path
+                        -- for efficiency reasons (this is pretty slow, esp. on large maps)
                         if (min_cost < min_cost_enemy) then
                             for i,p in ipairs(best_path) do
-                                territory_map:insert(p[1], p[2], 1)
+                                territory_map:insert(p[1], p[2], true)
                             end
-                        else
+                        else  -- We do need to use 0's in this case though, false won't work
                             for i,p in ipairs(best_path_enemy) do
                                 territory_map:insert(p[1], p[2], 0)
                             end
@@ -62,12 +66,11 @@ return {
                 if (territory_map:get(x, y) == 0) then territory_map:remove(x, y) end
             end)
 
-
             return territory_map
         end
 
         function bottleneck_defense:triple_from_keys(key_x, key_y, max_value)
-            -- Turn x,y = comma-separated lists into a location set
+            -- Turn 'key_x= key_y=' comma-separated lists into a location set
             local coords = {}
             for x in string.gmatch(key_x, "%d+") do
                 table.insert(coords, { x })
@@ -83,8 +86,9 @@ return {
             return AH.LS_of_triples(coords)
         end
 
-        function bottleneck_defense:create_map(max_value)
-            -- Create the locations for the healers and leaders if not given by WML keys
+        function bottleneck_defense:create_positioning_map(max_value)
+            -- Create the positioning maps for the healers and leaders, if not given by WML keys
+            -- Max_value: the rating value for the first hex in the set
 
             -- First, find all locations adjacent to def_map
             -- This might include hexes on the line itself, but
@@ -119,11 +123,12 @@ return {
         function bottleneck_defense:get_rating(unit, x, y, has_leadership, is_healer)
             -- Calculate rating of a unit at the given coordinates
             -- Don't want to extract is_healer and has_leadership inside this function, as it is very slow
+            -- thus they are provided as parameters from the calling function
 
             local rating = 0
             -- Defense positioning rating
             -- We exclude healers/leaders here, as we don't necessarily want them on the front line
-            if (not is_healer) and (not has_leadership)then
+            if (not is_healer) and (not has_leadership) then
                 rating = self.data.def_map:get(x, y) or 0
             end
 
@@ -133,23 +138,23 @@ return {
                 if (healer_rating > rating) then rating = healer_rating end
             end
 
-            -- Leader positioning rating
+            -- Leadership unit positioning rating
             if has_leadership then
-                local leader_rating = self.data.leader_map:get(x, y) or 0
+                local leadership_rating = self.data.leadership_map:get(x, y) or 0
 
-                -- If leader is injured -> prefer hexes next to healers
+                -- If leadership unit is injured -> prefer hexes next to healers
                 if (unit.hitpoints < unit.max_hitpoints) then
                     for xa, ya in H.adjacent_tiles(x, y) do
                         local adj = wesnoth.get_unit(xa, ya)
                         if adj and (adj.__cfg.usage == "healer") then
-                            leader_rating = leader_rating + 100
+                            leadership_rating = leadership_rating + 100
                             break
                         end
                     end
 
                 end
 
-                if (leader_rating > rating) then rating = leader_rating end
+                if (leadership_rating > rating) then rating = leadership_rating end
             end
 
             -- Injured unit positioning
@@ -213,7 +218,7 @@ return {
         end
 
         function bottleneck_defense:bottleneck_move_eval(cfg)
-            -- Check whether the leader should be included or not
+            -- Check whether the side leader should be included or not
             if cfg.active_side_leader and (not self.data.side_leader_activated) then
                 local can_still_recruit = false  -- enough gold left for another recruit?
                 local recruit_list = wesnoth.sides[wesnoth.current.side].recruit
@@ -228,7 +233,7 @@ return {
                 if (not can_still_recruit) then self.data.side_leader_activated = true end
             end
 
-            -- Now find all units, including the leader or not, depending on the previous check
+            -- Now find all units, including the leader or not, depending on situation and settings
             local units = {}
             if self.data.side_leader_activated then
                 units = wesnoth.get_units { side = wesnoth.current.side,
@@ -240,7 +245,7 @@ return {
                 }
             end
 
-            -- No units with moves left, nothing to be done here
+            -- If there's no units with moves left, nothing to be done here
             if (not units[1]) then return 0 end
 
             -- Set up the arrays that tell the AI where to defend the bottleneck
@@ -249,24 +254,24 @@ return {
             --AH.put_labels(self.data.def_map)
             --W.message {speaker="narrator", message="Defense map" }
 
-            -- enemy_map can be a temporary variable, what we really need is the side_map
-            local enemy_map = self:triple_from_keys(cfg.enemy_x, cfg.enemy_y, 10000)
+            -- Get the territory map, describing which hex is on AI's side of the bottleneck
             -- This one is a bit expensive, esp. on large maps -> don't delete every move and reuse
             -- However, after a reload, self.data.is_my_territory is an empty string
             --  -> need to recalculate in that case also  (the reason is that is_my_territory is not a WML table)
             if (not self.data.is_my_territory) or (type(self.data.is_my_territory) == 'string') then
+                local enemy_map = self:triple_from_keys(cfg.enemy_x, cfg.enemy_y, 10000)
                 self.data.is_my_territory = self:is_my_territory(self.data.def_map, enemy_map)
             end
             --AH.put_labels(self.data.is_my_territory)
-            --W.message {speaker="narrator", message="Side map" }
+            --W.message {speaker="narrator", message="Territory map" }
 
-            -- Setting up healer position map
-            -- If healer_x, healer_y are not given, we create the healer positioning array
-            if (not cfg.healer_x) then
-                self.data.healer_map = self:create_map(5000)
-            else
-                -- Otherwise, if healer_x,healer_y are given, extract locs from there
+            -- Setting up healer positioning map
+            if cfg.healer_x and cfg.healer_y then
+                -- If healer_x,healer_y are given, extract locs from there
                 self.data.healer_map = self:triple_from_keys(cfg.healer_x, cfg.healer_y, 5000)
+            else
+                -- Otherwise create the map here
+                self.data.healer_map = self:create_positioning_map(5000)
             end
             -- Use def_map values for any healer hexes that are defined in def_map as well
             self.data.healer_map:inter_merge(self.data.def_map,
@@ -276,23 +281,24 @@ return {
             --AH.put_labels(self.data.healer_map)
             --W.message {speaker="narrator", message="Healer map" }
 
-            -- Setting up leader position map
-            -- If leader_x, leader_y are not given, we create the leader positioning array
-            if (not cfg.leader_x) then
-                self.data.leader_map = self:create_map(4000)
+            -- Setting up leadership position map
+            -- If leader_x, leader_y are not given, we create the leadership positioning array
+            if cfg.leader_x and cfg.leader_y then
+                -- If leader_x,leader_y are given, extract locs from there
+                self.data.leadership_map = self:triple_from_keys(cfg.leader_x, cfg.leader_y, 4000)
             else
-                -- Otherwise, if leader_x,leader_y are given, extract locs from there
-                self.data.leader_map = self:triple_from_keys(cfg.leader_x, cfg.leader_y, 4000)
-
+                -- Otherwise create the map here
+                self.data.leadership_map = self:create_positioning_map(4000)
             end
-            -- Use def_map values for any leader hexes that are defined in def_map as well
-            self.data.leader_map:inter_merge(self.data.def_map,
+            -- Use def_map values for any leadership hexes that are defined in def_map as well
+            self.data.leadership_map:inter_merge(self.data.def_map,
                 function(x, y, v1, v2) return v2 or v1 end
             )
-            --AH.put_labels(self.data.leader_map)
-            --W.message {speaker="narrator", message="leader map" }
+            --AH.put_labels(self.data.leadership_map)
+            --W.message {speaker="narrator", message="Leadership map" }
 
-            -- healing map: positions next to healers, needs to be calculated each time
+            -- healing map: positions next to healers, needs to be calculated each move
+            -- Healers get moved with higher priority, so don't need to check their MP
             local healers = wesnoth.get_units { side = wesnoth.current.side, ability = "healing" }
             self.data.healing_map = LS.create()
             for i,h in ipairs(healers) do
@@ -313,6 +319,7 @@ return {
             --AH.put_labels(self.data.healing_map)
             --W.message {speaker="narrator", message="Healing map" }
 
+            -- Now on to evaluating possible moves:
             -- First, get the rating of all units in their current positions
             -- A move is only considered if it improves the overall rating,
             -- that is, its rating must be higher than:
@@ -322,7 +329,7 @@ return {
             local occ_hexes = LS.create()
 
             for i,u in ipairs(all_units) do
-                -- Is this a healer or leader?
+                -- Is this a healer or leadership unit?
                 local is_healer = (u.__cfg.usage == "healer")
                 local has_leadership = AH.has_ability(u, "leadership")
 
@@ -339,12 +346,11 @@ return {
             --W.message {speaker="narrator", message="occupied hexes" }
 
             -- Find all attack positions next to enemies
-            -- This is done up here, because it's too slow otherwise
-            local attacks = {}
+            -- This is done up here rather than in the loop, because it's too slow otherwise
             local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
-
+            local attacks = {}
             for i,e in ipairs(enemies) do
                 local defender_level = e.__cfg.level -- because this is slow, do it here
                 for x,y in H.adjacent_tiles(e.x, e.y) do
@@ -365,17 +371,15 @@ return {
             local max_rating, best_unit, best_hex = 0, {}, {}
             for i,u in ipairs(units) do
 
-                -- Is this a healer or leader?
+                -- Is this a healer or leadership unit?
                 local is_healer = (u.__cfg.usage == "healer")
                 local has_leadership = AH.has_ability(u, "leadership")
 
                 local current_rating = self:get_rating(u, u.x, u.y, has_leadership, is_healer)
                 --print("Finding move for:",u.id, u.x, u.y, current_rating)
 
-                -- Find all hexes the unit can reach ...
+                -- Find the best move for all hexes the unit can reach ...
                 local reach = wesnoth.find_reach(u)
-
-                -- Now find the best move
                 for i,r in ipairs(reach) do
                     local rating = self:get_rating(u, r[1], r[2], has_leadership, is_healer)
                     --print(" ->",r[1],r[2],rating,occ_hexes:get(r[1], r[2]))
@@ -398,17 +402,18 @@ return {
                     end
 
                     -- Finally, we check whether a level-up attack is possible from this hex
-                    -- Level-up-attacks will always get a rating greater than any other move
+                    -- Level-up-attacks will always get a rating greater than any move
+                    -- So if this is the case, they are done first
                     for j,a in ipairs(attacks) do
+                        -- Only do calc. if there's a theoretical chance for leveling up (speeds things up a lot)
                         if (a.x == r[1]) and (a.y == r[2]) and (u.max_experience - u.experience <= 8 * a.defender_level) then
                             --print('Evaluating attack', u.id, a.x, a.y, a.defender.x, a.defender.y)
 
                             -- For this one, we really want to go through all weapons individually
+                            -- as the best chosen automatically might not be the best for this specific task
                             local n_weapon = 0
                             for weapon in H.child_range(u.__cfg, "attack") do
                                 n_weapon = n_weapon + 1
-                                -- Need to simulate combat again, as we now need it for each weapon (not just best weapon)
-                                -- There's a bit of extra overhead in here that could be removed if it turns out to be a problem
                                 local att_stats, def_stats = AH.simulate_combat_loc(u, { a.x, a.y }, a.defender, n_weapon)
 
                                 -- Level-up attack when:
@@ -430,9 +435,7 @@ return {
                                 end
 
                                 -- Very small penalty if there's a unit in the way
-                                -- We also need to check whether this unit can move out of the way
-                                -- within the restriction of this scenario.  AH.get_attacks_unit() only
-                                -- check whether moving out of the way in _any_ direction is possible
+                                -- We also need to check whether this unit can actually move out of the way
                                 if a.unit_in_way then
                                     local moow = self:move_out_of_way(a.unit_in_way)
                                     if moow then
@@ -460,7 +463,8 @@ return {
             end
             --print("Best move:",best_unit.id,max_rating,best_hex[1],best_hex[2])
 
-            -- If there's another unit in the best location, moving it out of the way becomes the best move
+            -- Finally, if there's another unit in the best location,
+            -- moving it out of the way becomes the best move
             -- It has been checked that this is possible
             local unit_in_way = wesnoth.get_units { x = best_hex[1], y = best_hex[2],
                 { "not", { id = best_unit.id } }
@@ -470,12 +474,13 @@ return {
                 best_unit = unit_in_way
                 --print("Moving out of way:", best_unit.id, best_hex[1], best_hex[2])
 
-                -- also need to delete these, they will be reset on the next turn
+                -- Also need to delete the level-up attack fields
+                -- They will be reset on the next turn
                 self.data.lu_defender = nil
                 self.data.lu_weapon = nil
             end
 
-            -- Set the variables for bottleneck_move_exec()
+            -- Set the variables for the exec() function
             if max_rating == 0 then
                 -- In this case we take MP away from all units
                 -- This is done so that the RCA AI CAs can be kept in place
@@ -511,7 +516,7 @@ return {
                     ai.move(self.data.unit, self.data.hex[1], self.data.hex[2])   -- don't want full move, as this might be stepping out of the way
                 end
 
-                -- If this is a move for a level-up attack, do that one also
+                -- If this is a move for a level-up attack, do the attack also
                 if self.data.lu_defender then
                     --print("Level-up attack",self.data.unit.id, self.data.lu_defender.id, self.data.lu_weapon)
                     --W.message {speaker=self.data.unit.id, message="Level-up attack" }
@@ -522,11 +527,12 @@ return {
                 end
             end
 
+            -- Now delete almost everything
+            -- Keep: self.data.is_my_territory, self.data.side_leader_activated
             self.data.unit, self.data.hex = nil, nil
             self.data.lu_defender, self.data.lu_weapon = nil, nil
             self.data.bottleneck_moves_done = nil
-            self.data.def_map = nil
-            self.data.healer_map, self.data.leader_map, self.data.healing_map = nil, nil, nil
+            self.data.def_map, self.data.healer_map, self.data.leadership_map, self.data.healing_map = nil, nil, nil, nil
         end
 
         function bottleneck_defense:bottleneck_attack_eval()
