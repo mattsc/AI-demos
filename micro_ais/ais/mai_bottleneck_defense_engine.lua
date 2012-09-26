@@ -237,7 +237,11 @@ return {
             -- enemy_map can be a temporary variable, what we really need is the side_map
             local enemy_map = self:triple_from_keys(cfg.enemy_x, cfg.enemy_y, 10000)
             -- This one is a bit expensive, esp. on large maps -> don't delete every move and reuse
-            self.data.is_my_territory = self.data.is_my_territory or self:is_my_territory(self.data.def_map, enemy_map)
+            -- However, after a reload, self.data.is_my_territory is an empty string
+            --  -> need to recalculate in that case also  (the reason is that is_my_territory is not a WML table)
+            if (not self.data.is_my_territory) or (type(self.data.is_my_territory) == 'string') then
+                self.data.is_my_territory = self:is_my_territory(self.data.def_map, enemy_map)
+            end
             --AH.put_labels(self.data.is_my_territory)
             --W.message {speaker="narrator", message="Side map" }
 
