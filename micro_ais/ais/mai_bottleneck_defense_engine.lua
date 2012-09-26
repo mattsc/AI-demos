@@ -198,9 +198,33 @@ return {
         end
 
         function bottleneck_defense:bottleneck_move_eval(cfg)
-            -- Find the best unit move
-            -- get all units with moves left
-            local units = wesnoth.get_units { side = wesnoth.current.side, formula = '$this_unit.moves > 0' }
+            -- Check whether the leader should be included or not
+            if (not self.data.side_leader_activated) then
+                local can_still_recruit = false  -- enough gold left for another recruit?
+                local recruit_list = wesnoth.sides[wesnoth.current.side].recruit
+                for i,recruit_type in ipairs(recruit_list) do
+                    local cost = wesnoth.unit_types[recruit_type].cost
+                    local current_gold = wesnoth.sides[wesnoth.current.side].gold
+                    if (cost <= current_gold) then
+                        can_still_recruit = true
+                        break
+                    end
+                end
+                if (not can_still_recruit) then self.data.side_leader_activated = true end
+            end
+
+            -- Now find all units, including the leader or not, depending on the previous check
+            local units = {}
+            if self.data.side_leader_activated then
+                units = wesnoth.get_units { side = wesnoth.current.side,
+                    formula = '$this_unit.moves > 0'
+                }
+            else
+                units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no',
+                    formula = '$this_unit.moves > 0'
+                }
+            end
+
             -- No units with moves left, nothing to be done here
             if (not units[1]) then return 0 end
 
@@ -448,7 +472,16 @@ return {
         function bottleneck_defense:bottleneck_move_exec()
 
             if self.data.bottleneck_moves_done then
-                local units = wesnoth.get_units { side = wesnoth.current.side, formula = '$this_unit.moves > 0' }
+                local units = {}
+                if self.data.side_leader_activated then
+                    units = wesnoth.get_units { side = wesnoth.current.side,
+                        formula = '$this_unit.moves > 0'
+                    }
+                else
+                    units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no',
+                        formula = '$this_unit.moves > 0'
+                    }
+                end
                 for i,u in ipairs(units) do
                     ai.stopunit_moves(u)
                 end
