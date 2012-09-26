@@ -89,10 +89,10 @@ function wesnoth.wml_actions.micro_ai(cfg)
             cfg_bd.healer_y = cfg.healer_y
         end
 
-        -- Optional keys: leader_x, leader_y
-        if cfg.leader_x and cfg.leader_y then
-            cfg_bd.leader_x = cfg.leader_x
-            cfg_bd.leader_y = cfg.leader_y
+        -- Optional keys: leadership_x, leadership_y
+        if cfg.leadership_x and cfg.leadership_y then
+            cfg_bd.leadership_x = cfg.leadership_x
+            cfg_bd.leadership_y = cfg.leadership_y
         end
 
         -- Optional key: active_side_leader

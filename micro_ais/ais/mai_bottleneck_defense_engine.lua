@@ -282,10 +282,10 @@ return {
             --W.message {speaker="narrator", message="Healer map" }
 
             -- Setting up leadership position map
-            -- If leader_x, leader_y are not given, we create the leadership positioning array
-            if cfg.leader_x and cfg.leader_y then
-                -- If leader_x,leader_y are given, extract locs from there
-                self.data.leadership_map = self:triple_from_keys(cfg.leader_x, cfg.leader_y, 4000)
+            -- If leadership_x, leadership_y are not given, we create the leadership positioning array
+            if cfg.leadership_x and cfg.leadership_y then
+                -- If leadership_x,leadership_y are given, extract locs from there
+                self.data.leadership_map = self:triple_from_keys(cfg.leadership_x, cfg.leadership_y, 4000)
             else
                 -- Otherwise create the map here
                 self.data.leadership_map = self:create_positioning_map(4000)

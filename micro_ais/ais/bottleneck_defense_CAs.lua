@@ -16,9 +16,9 @@ return {
             cfg_str = cfg_str .. ', healer_x = "' .. cfg.healer_x .. '", healer_y = "' .. cfg.healer_y .. '"'
         end
 
-        -- Add the leader_x,leader_y= keys
-        if cfg.leader_x and cfg.leader_y then
-            cfg_str = cfg_str .. ', leader_x = "' .. cfg.leader_x .. '", leader_y = "' .. cfg.leader_y .. '"'
+        -- Add the leadership_x,leadership_y= keys
+        if cfg.leadership_x and cfg.leadership_y then
+            cfg_str = cfg_str .. ', leadership_x = "' .. cfg.leadership_x .. '", leadership_y = "' .. cfg.leadership_y .. '"'
         end
 
         -- Add the active_side_leader key
