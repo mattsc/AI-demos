@@ -95,6 +95,11 @@ function wesnoth.wml_actions.micro_ai(cfg)
             cfg_bd.leader_y = cfg.leader_y
         end
 
+        -- Optional key: active_side_leader
+        if cfg.active_side_leader then
+            cfg_bd.active_side_leader = cfg.active_side_leader
+        end
+
         -- Add the CAs
         if (cfg.action == 'add') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".activate(cfg.side, cfg_bd)

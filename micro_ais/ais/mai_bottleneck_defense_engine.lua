@@ -199,7 +199,7 @@ return {
 
         function bottleneck_defense:bottleneck_move_eval(cfg)
             -- Check whether the leader should be included or not
-            if (not self.data.side_leader_activated) then
+            if cfg.active_side_leader and (not self.data.side_leader_activated) then
                 local can_still_recruit = false  -- enough gold left for another recruit?
                 local recruit_list = wesnoth.sides[wesnoth.current.side].recruit
                 for i,recruit_type in ipairs(recruit_list) do

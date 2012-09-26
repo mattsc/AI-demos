@@ -21,9 +21,13 @@ return {
             cfg_str = cfg_str .. ', leader_x = "' .. cfg.leader_x .. '", leader_y = "' .. cfg.leader_y .. '"'
         end
 
+        -- Add the active_side_leader key
+        if cfg.active_side_leader then
+            cfg_str = cfg_str .. ', active_side_leader = true'
+        end
+
         -- Closing bracket
         cfg_str = cfg_str .. ' }'
-
         --print('Bottleneck Defense: cfg_str = ',cfg_str)
 
         local H = wesnoth.require "lua/helper.lua"
