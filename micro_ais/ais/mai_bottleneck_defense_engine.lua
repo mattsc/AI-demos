@@ -114,14 +114,14 @@ return {
             return map
         end
 
-        function bottleneck_defense:get_rating(unit, x, y, is_leader, is_healer)
+        function bottleneck_defense:get_rating(unit, x, y, has_leadership, is_healer)
             -- Calculate rating of a unit at the given coordinates
-            -- Don't want to extract is_healer and is_leader inside this function, as it is very slow
+            -- Don't want to extract is_healer and has_leadership inside this function, as it is very slow
 
             local rating = 0
             -- Defense positioning rating
             -- We exclude healers/leaders here, as we don't necessarily want them on the front line
-            if (not is_healer) and (not is_leader)then
+            if (not is_healer) and (not has_leadership)then
                 rating = self.data.def_map:get(x, y) or 0
             end
 
@@ -132,7 +132,7 @@ return {
             end
 
             -- Leader positioning rating
-            if is_leader then
+            if has_leadership then
                 local leader_rating = self.data.leader_map:get(x, y) or 0
 
                 -- If leader is injured -> prefer hexes next to healers
@@ -322,12 +322,9 @@ return {
             for i,u in ipairs(all_units) do
                 -- Is this a healer or leader?
                 local is_healer = (u.__cfg.usage == "healer")
+                local has_leadership = AH.has_ability(u, "leadership")
 
-print('leader:', u.id, wesnoth.unit_ability(u, 'regenerate'))
-
-                local is_leader = ((u.type == "Sergeant") or (u.type == "Lieutenant") or (u.type == "General"))
-
-                local rating = self:get_rating(u, u.x, u.y, is_leader, is_healer)
+                local rating = self:get_rating(u, u.x, u.y, has_leadership, is_healer)
                 occ_hexes:insert(u.x, u.y, rating)
 
                 -- A unit that cannot move any more, (or at least cannot move out of the way)
@@ -368,9 +365,9 @@ print('leader:', u.id, wesnoth.unit_ability(u, 'regenerate'))
 
                 -- Is this a healer or leader?
                 local is_healer = (u.__cfg.usage == "healer")
-                local is_leader = ((u.type == "Sergeant") or (u.type == "Lieutenant") or (u.type == "General"))
+                local has_leadership = AH.has_ability(u, "leadership")
 
-                local current_rating = self:get_rating(u, u.x, u.y, is_leader, is_healer)
+                local current_rating = self:get_rating(u, u.x, u.y, has_leadership, is_healer)
                 --print("Finding move for:",u.id, u.x, u.y, current_rating)
 
                 -- Find all hexes the unit can reach ...
@@ -378,7 +375,7 @@ print('leader:', u.id, wesnoth.unit_ability(u, 'regenerate'))
 
                 -- Now find the best move
                 for i,r in ipairs(reach) do
-                    local rating = self:get_rating(u, r[1], r[2], is_leader, is_healer)
+                    local rating = self:get_rating(u, r[1], r[2], has_leadership, is_healer)
                     --print(" ->",r[1],r[2],rating,occ_hexes:get(r[1], r[2]))
                     --reach_map:insert(r[1], r[2], rating)
 
