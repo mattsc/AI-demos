@@ -14,9 +14,11 @@ return {
             -- on the AI's side of the map
 
             -- Get copy of leader to do pathfinding from each hex to the
+            -- If there is no leader, use any unit
             -- front-line hexes, both own (stored in 'map') and enemy (enemy_map) front-line hexes
-            local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
-            local dummy_unit = wesnoth.copy_unit(leader)
+            local unit = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+            if (not unit) then unit = wesnoth.get_units { side = wesnoth.current.side }[1] end
+            local dummy_unit = wesnoth.copy_unit(unit)
 
             local territory_map = LS.create()
             local w,h,b = wesnoth.get_map_size()
