@@ -8,8 +8,8 @@ return {
         -- Add the x,y= keys
         local cfg_str = '{ x = "' .. cfg.x .. '", y = "' .. cfg.y .. '"'
 
-        -- Add the enemy_hex = key
-        local cfg_str = cfg_str .. ', enemy_hex = { ' .. cfg.enemy_hex .. ' }'
+        -- Add the enemy_x,enemy_y= keys
+        local cfg_str = cfg_str .. ', enemy_x = "' .. cfg.enemy_x .. '", enemy_y = "' .. cfg.enemy_y .. '"'
 
         -- Add the healer_x,healer_y= keys
         if cfg.healer_x and cfg.healer_y then

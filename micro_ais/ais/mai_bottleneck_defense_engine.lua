@@ -9,7 +9,7 @@ return {
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
-        function bottleneck_defense:is_my_side(map, enemy_map)
+        function bottleneck_defense:is_my_territory(map, enemy_map)
             -- Create map that contains 'true' for all hexes that are
             -- on the AI's side of the map
 
@@ -18,7 +18,7 @@ return {
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
             local dummy_unit = wesnoth.copy_unit(leader)
 
-            local side_map = LS.create()
+            local territory_map = LS.create()
             local w,h,b = wesnoth.get_map_size()
             for x = 1,w do
                 for y = 1,h do
@@ -28,23 +28,23 @@ return {
                     -- Find closest movement cost to own front-line hexes
                     local min_cost, min_cost_enemy = 9e99, 9e99
                     map:iter(function(xm, ym, v)
-                       local path, cost = wesnoth.find_path(dummy_unit, xm, ym)
+                       local path, cost = wesnoth.find_path(dummy_unit, xm, ym, { ignore_units = true })
                        if (cost < min_cost) then min_cost = cost end
                     end)
 
                     -- Find closest movement cost to enemy front-line hexes
                     enemy_map:iter(function(xm, ym, v)
-                       local path, cost = wesnoth.find_path(dummy_unit, xm, ym)
+                       local path, cost = wesnoth.find_path(dummy_unit, xm, ym, { ignore_units = true })
                        if (cost < min_cost_enemy) then min_cost_enemy = cost end
                     end)
 
                     if (min_cost < min_cost_enemy) then
-                        side_map:insert(x, y, true)
+                        territory_map:insert(x, y, true)
                     end
                 end
             end
 
-            return side_map
+            return territory_map
         end
 
         function bottleneck_defense:triple_from_keys(key_x, key_y, max_value)
@@ -68,29 +68,18 @@ return {
             -- Create the locations for the healers and leaders if not given by WML keys
 
             -- First, find all locations adjacent to def_map
+            -- This might include hexes on the line itself, but
+            -- only store those that are not in enemy territory
             local map = LS.create()
             self.data.def_map:iter( function(x, y, v)
                 for xa, ya in H.adjacent_tiles(x, y) do
-                    -- This rating adds up the scores of all the adjacent def_map hexes
-                    local rating = self.data.def_map:get(x, y) or 0
-                    rating = rating + (map:get(xa, ya) or 0)
-                    map:insert(xa, ya, rating)
+                    if self.data.is_my_territory:get(xa, ya) then
+                        -- This rating adds up the scores of all the adjacent def_map hexes
+                        local rating = self.data.def_map:get(x, y) or 0
+                        rating = rating + (map:get(xa, ya) or 0)
+                        map:insert(xa, ya, rating)
+                    end
                 end
-            end)
-
-            -- Now go over this, and eliminate:
-            -- 1. Hexes that are on the defenseline itself
-            -- 2. Hexes that are closer to enemy_hex than to any of the front-line hexes
-            -- Note that we do not need to check for passability, as only reachable hexes are considered later
-            map:iter( function(x, y, v)
-                local dist_enemy = H.distance_between(x, y, self.data.enemy_hex[1], self.data.enemy_hex[2])
-                local min_dist = 9e99
-                self.data.def_map:iter( function(xd, yd, vd)
-                    local dist_line = H.distance_between(x, y, xd, yd)
-                    if (dist_line == 0) then map:remove(x,y) end
-                    if (dist_line < min_dist) then min_dist = dist_line end
-                end)
-                if (dist_enemy <= min_dist) then map:remove(x,y) end
             end)
 
             -- We need to sort the map, and assign descending values
@@ -99,7 +88,7 @@ return {
             for i,l in ipairs(locs) do l[3] = max_value + 10 - i * 10 end
             map = AH.LS_of_triples(locs)
 
-            -- Finally, we merge the defense map into this, as healers (by default)
+            -- Finally, we merge the defense map into this, as healers/leaders (by default)
             -- can take position on the front line
             map:union_merge(self.data.def_map,
                 function(x, y, v1, v2) return v1 or v2 end
@@ -139,20 +128,13 @@ return {
 
             -- If this did not produce a positive rating, we add a
             -- distance-based rating, to get units to the bottleneck in the first place
-            if (rating <= 0) then
-                local combined_dist, min_dist = 0, 9e99
+            if (rating <= 0) and self.data.is_my_territory:get(x, y) then
+                local combined_dist = 0
                 self.data.def_map:iter(function(x_def, y_def, v)
-                    local dist = H.distance_between(x, y, x_def, y_def)
-                    combined_dist = combined_dist + dist
-                    if (dist < min_dist) then min_dist = dist end
+                    combined_dist = combined_dist + H.distance_between(x, y, x_def, y_def)
                 end)
-
-                -- We only count the hex if it is on our side of the line
-                local enemy_dist = H.distance_between(x, y, self.data.enemy_hex[1], self.data.enemy_hex[2])
-                if (min_dist < enemy_dist) then
-                    combined_dist = combined_dist / self.data.def_map:size()
-                    rating = 1000 - combined_dist * 10.
-                end
+                combined_dist = combined_dist / self.data.def_map:size()
+                rating = 1000 - combined_dist * 10.
             end
 
             -- Now add the unit specific rating
@@ -185,14 +167,12 @@ return {
            -- find the closest unoccupied reachable hex in the east
            local best_reach, best_hex = -1, {}
            for i,r in ipairs(reach) do
-               -- Best hex to move out of way to:
-               --  (r[3] > best_reach) : move shorter than previous best move
-               --  (not occ_hex) : unoccupied hexes only
-               --  dist_enemy_hex > dist_enemy: move away from enemy
-               local dist_enemy_hex = H.distance_between(r[1], r[2], self.data.enemy_hex[1], self.data.enemy_hex[2])
-               local dist_enemy = H.distance_between(unit.x, unit.y, self.data.enemy_hex[1], self.data.enemy_hex[2])
-               if (r[3] > best_reach) and (not occ_hexes:get(r[1], r[2])) and (dist_enemy_hex > dist_enemy) then
-                   best_reach, best_hex = r[3], { r[1], r[2] }
+               if self.data.is_my_territory:get(r[1], r[2]) and (not occ_hexes:get(r[1], r[2])) then
+                   -- Best hex to move out of way to:
+                   --  (r[3] > best_reach) : move shorter than previous best move
+                   if (r[3] > best_reach) then
+                       best_reach, best_hex = r[3], { r[1], r[2] }
+                   end
                end
            end
            --print("Best reach: ",unit.id, best_reach, best_hex[1], best_hex[2])
@@ -214,9 +194,11 @@ return {
             --AH.put_labels(self.data.def_map)
             --W.message {speaker="narrator", message="Defense map" }
 
-            -- Getting enemy_hex from cfg
-            self.data.enemy_hex = cfg.enemy_hex
-            --DBG.dbms(self.data.enemy_hex)
+            -- enemy_map can be a temporary variable, what we really need is the side_map
+            local enemy_map = self:triple_from_keys(cfg.enemy_x, cfg.enemy_y, 10000)
+            self.data.is_my_territory = self:is_my_territory(self.data.def_map, enemy_map)
+            --AH.put_labels(self.data.is_my_territory)
+            --W.message {speaker="narrator", message="Side map" }
 
             -- Setting up healer position map
             -- If healer_x, healer_y are not given, we create the healer positioning array
@@ -225,12 +207,12 @@ return {
             else
                 -- Otherwise, if healer_x,healer_y are given, extract locs from there
                 self.data.healer_map = self:triple_from_keys(cfg.healer_x, cfg.healer_y, 5000)
-
-                -- Use def_map value for any hexes that are defined in there as well
-                self.data.healer_map:inter_merge(self.data.def_map,
-                    function(x, y, v1, v2) return v2 or v1 end
-                )
             end
+            -- Use def_map values for any healer hexes that are defined in def_map as well
+            self.data.healer_map:inter_merge(self.data.def_map,
+                function(x, y, v1, v2) return v2 or v1 end
+            )
+
             --AH.put_labels(self.data.healer_map)
             --W.message {speaker="narrator", message="Healer map" }
 
@@ -242,11 +224,11 @@ return {
                 -- Otherwise, if leader_x,leader_y are given, extract locs from there
                 self.data.leader_map = self:triple_from_keys(cfg.leader_x, cfg.leader_y, 4000)
 
-                -- Use def_map value for any hexes that are defined in there as well
-                self.data.leader_map:inter_merge(self.data.def_map,
-                    function(x, y, v1, v2) return v2 or v1 end
-                )
             end
+            -- Use def_map values for any leader hexes that are defined in def_map as well
+            self.data.leader_map:inter_merge(self.data.def_map,
+                function(x, y, v1, v2) return v2 or v1 end
+            )
             --AH.put_labels(self.data.leader_map)
             --W.message {speaker="narrator", message="leader map" }
 
@@ -255,15 +237,16 @@ return {
             self.data.healing_map = LS.create()
             for i,h in ipairs(healers) do
                 for x, y in H.adjacent_tiles(h.x, h.y) do
-                    -- Cannot be on the line, and needs to be farther from enemy than from line
-                    local dist_enemy = H.distance_between(x, y, self.data.enemy_hex[1], self.data.enemy_hex[2])
-                    local min_dist = 9e99
-                    self.data.def_map:iter( function(xd, yd, vd)
-                        local dist_line = H.distance_between(x, y, xd, yd)
-                        if (dist_line < min_dist) then min_dist = dist_line end
-                    end)
-                    if (min_dist > 0) and (min_dist < dist_enemy) then
-                        self.data.healing_map:insert(x, y, 3000 + dist_enemy)  -- farther away from enemy is good
+                    -- Cannot be on the line, and needs to be in own territory
+                    if self.data.is_my_territory:get(x, y) then
+                        local min_dist = 9e99
+                        self.data.def_map:iter( function(xd, yd, vd)
+                            local dist_line = H.distance_between(x, y, xd, yd)
+                            if (dist_line < min_dist) then min_dist = dist_line end
+                        end)
+                        if (min_dist > 0) then
+                            self.data.healing_map:insert(x, y, 3000 + min_dist)  -- farther away from enemy is good
+                        end
                     end
                 end
             end
@@ -298,7 +281,6 @@ return {
             -- Go through all units with moves left
             -- Variables to store best unit/move
             local max_rating, best_unit, best_hex = 0, {}, {}
-
             for i,u in ipairs(units) do
 
                 -- Is this a healer or leader?
@@ -314,16 +296,10 @@ return {
 
                 -- Also find all attacks it can do
                 local attacks = AH.get_attacks_unit_occupied(u)
-                -- Need to eliminate those that are across the line
+                -- Need to eliminate those that are in enemy territory
                 for i_a = #attacks,1,-1 do
-                    local dist_enemy = H.distance_between(attacks[i_a].x, attacks[i_a].y, self.data.enemy_hex[1], self.data.enemy_hex[2])
-                    local min_dist = 9e99
-                    self.data.def_map:iter( function(xd, yd, vd)
-                        local dist_line = H.distance_between(xd, yd, self.data.enemy_hex[1], self.data.enemy_hex[2])
-                        if (dist_line < min_dist) then min_dist = dist_line end
-                    end)
-                    if (dist_enemy < min_dist) then
-                        --print('Removing attack #' .. i, attacks[i_a].x, attacks[i_a].y, min_dist, dist_enemy)
+                    if (not self.data.is_my_territory:get(attacks[i_a].x, attacks[i_a].y)) then
+                        --print('Removing attack #' .. i, attacks[i_a].x, attacks[i_a].y)
                         table.remove(attacks, i_a)
                     end
                 end
@@ -473,7 +449,8 @@ return {
             self.data.unit, self.data.hex = nil, nil
             self.data.lu_defender, self.data.lu_weapon = nil, nil
             self.data.bottleneck_moves_done = nil
-            self.data.def_map, self.data.healer_map, self.data.leader_map, self.data.healing_map = nil, nil, nil, nil
+            self.data.def_map, self.data.is_my_territory = nil, nil
+            self.data.healer_map, self.data.leader_map, self.data.healing_map = nil, nil, nil
         end
 
         function bottleneck_defense:bottleneck_attack_eval()

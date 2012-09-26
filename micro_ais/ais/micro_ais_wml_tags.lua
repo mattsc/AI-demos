@@ -68,6 +68,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
         -- Set up the cfg array
         local cfg_bd = {}
+
         -- x,y for bottleneck defense
         if (not cfg.x) or (not cfg.y) then
             H.wml_error("Bottleneck Defense Micro AI missing required x= and/or y= attribute")
@@ -75,11 +76,11 @@ function wesnoth.wml_actions.micro_ai(cfg)
             cfg_bd.x, cfg_bd.y = cfg.x, cfg.y
         end
 
-        -- enemy_hex for bottleneck defense
-        if (not cfg.enemy_hex) then
-            H.wml_error("Bottleneck Defense Micro AI missing required enemy_hex= attribute")
+        -- enemy_x,enemy_y for bottleneck defense
+        if (not cfg.enemy_x) or (not cfg.enemy_y) then
+            H.wml_error("Bottleneck Defense Micro AI missing required enemy_x= and/or enemy_y= attribute")
         else
-            cfg_bd.enemy_hex = cfg.enemy_hex
+            cfg_bd.enemy_x, cfg_bd.enemy_y = cfg.enemy_x, cfg.enemy_y
         end
 
         -- Optional keys: healer_x, healer_y
