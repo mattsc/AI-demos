@@ -184,7 +184,6 @@ return {
             -- Find the best unit move
             -- get all units with moves left
             local units = wesnoth.get_units { side = wesnoth.current.side, formula = '$this_unit.moves > 0' }
-
             -- No units with moves left, nothing to be done here
             if (not units[1]) then return 0 end
 
@@ -260,8 +259,8 @@ return {
             --   2. the rating of the currently considered unit on its current hex
             local all_units = wesnoth.get_units { side = wesnoth.current.side }
             local occ_hexes = LS.create()
-            for i,u in ipairs(all_units) do
 
+            for i,u in ipairs(all_units) do
                 -- Is this a healer or leader?
                 local is_healer = (u.__cfg.usage == "healer")
                 local is_leader = ((u.type == "Sergeant") or (u.type == "Lieutenant") or (u.type == "General"))
@@ -278,6 +277,28 @@ return {
             --AH.put_labels(occ_hexes)
             --W.message {speaker="narrator", message="occupied hexes" }
 
+            -- Find all attack positions next to enemies
+            -- This is done up here, because it's too slow otherwise
+            local attacks = {}
+            local enemies = AH.get_live_units {
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+            }
+
+            for i,e in ipairs(enemies) do
+                local defender_level = e.__cfg.level -- because this is slow, do it here
+                for x,y in H.adjacent_tiles(e.x, e.y) do
+                    if self.data.is_my_territory:get(x,y) then
+                        local unit_in_way = wesnoth.get_unit(x, y)
+                        local data = { x = x, y = y,
+                            defender = e,
+                            defender_level = defender_level,
+                            unit_in_way = unit_in_way
+                        }
+                        table.insert(attacks, data)
+                    end
+                end
+            end
+
             -- Go through all units with moves left
             -- Variables to store best unit/move
             local max_rating, best_unit, best_hex = 0, {}, {}
@@ -292,17 +313,6 @@ return {
 
                 -- Find all hexes the unit can reach ...
                 local reach = wesnoth.find_reach(u)
-                --local reach_map = LS.create()
-
-                -- Also find all attacks it can do
-                local attacks = AH.get_attacks_unit_occupied(u)
-                -- Need to eliminate those that are in enemy territory
-                for i_a = #attacks,1,-1 do
-                    if (not self.data.is_my_territory:get(attacks[i_a].x, attacks[i_a].y)) then
-                        --print('Removing attack #' .. i, attacks[i_a].x, attacks[i_a].y)
-                        table.remove(attacks, i_a)
-                    end
-                end
 
                 -- Now find the best move
                 for i,r in ipairs(reach) do
@@ -329,10 +339,8 @@ return {
                     -- Finally, we check whether a level-up attack is possible from this hex
                     -- Level-up-attacks will always get a rating greater than any other move
                     for j,a in ipairs(attacks) do
-                        if (a.x == r[1]) and (a.y == r[2]) then
-                            --print('Evaluating attack', u.id, a.x, a.y, a.def_loc.x, a.def_loc.y)
-                            local defender = wesnoth.get_unit(a.def_loc.x, a.def_loc.y)
-                            local defender_level = defender.__cfg.level
+                        if (a.x == r[1]) and (a.y == r[2]) and (u.max_experience - u.experience <= 8 * a.defender_level) then
+                            --print('Evaluating attack', u.id, a.x, a.y, a.defender.x, a.defender.y)
 
                             -- For this one, we really want to go through all weapons individually
                             local n_weapon = 0
@@ -340,7 +348,7 @@ return {
                                 n_weapon = n_weapon + 1
                                 -- Need to simulate combat again, as we now need it for each weapon (not just best weapon)
                                 -- There's a bit of extra overhead in here that could be removed if it turns out to be a problem
-                                local att_stats, def_stats = AH.simulate_combat_loc(u, { a.x, a.y }, defender, n_weapon)
+                                local att_stats, def_stats = AH.simulate_combat_loc(u, { a.x, a.y }, a.defender, n_weapon)
 
                                 -- Level-up attack when:
                                 -- 1. max_experience-experience <= target.level and chance to die = 0
@@ -348,13 +356,13 @@ return {
                                 --   and chance to kill > 66% and remaining av hitpoints > 20
                                 -- #1 is a definite level up, #2 is not, so #1 gets priority
                                 local lu_rating = 0
-                                if (u.max_experience - u.experience <= defender_level) then
+                                if (u.max_experience - u.experience <= a.defender_level) then
                                     if (att_stats.hp_chance[0] == 0) then
                                         -- weakest enemy is best (favors stronger weapon)
                                         lu_rating = 15000 - def_stats.average_hp
                                     end
                                 else
-                                    if (u.max_experience - u.experience <= 8 * defender_level) and (att_stats.hp_chance[0] == 0) and (def_stats.hp_chance[0] >= 0.66) and (att_stats.average_hp >= 20) then
+                                    if (u.max_experience - u.experience <= 8 * a.defender_level) and (att_stats.hp_chance[0] == 0) and (def_stats.hp_chance[0] >= 0.66) and (att_stats.average_hp >= 20) then
                                         -- strongest attacker and weakest enemy is best
                                         lu_rating = 14000 + att_stats.average_hp - def_stats.average_hp/2.
                                     end
@@ -364,15 +372,14 @@ return {
                                 -- We also need to check whether this unit can move out of the way
                                 -- within the restriction of this scenario.  AH.get_attacks_unit() only
                                 -- check whether moving out of the way in _any_ direction is possible
-                                if a.attack_hex_occupied then
-                                    local moow = self:move_out_of_way(wesnoth.get_unit(a.x, a.y))
+                                if a.unit_in_way then
+                                    local moow = self:move_out_of_way(a.unit_in_way)
                                     if moow then
                                         lu_rating = lu_rating - 0.001
                                     else
                                         lu_rating = 0
                                     end
                                 end
-
                                 --print("Level-up rating:",lu_rating)
 
                                 if (lu_rating > max_rating) then
@@ -380,7 +387,7 @@ return {
                                     -- The following are also needed in this case
                                     -- We don't have to worry about unsetting them, as LU attacks
                                     -- always have higher priority than any other move
-                                    self.data.lu_defender = defender
+                                    self.data.lu_defender = a.defender
                                     self.data.lu_weapon = n_weapon
                                 end
                             end
@@ -390,7 +397,6 @@ return {
                 --AH.put_labels(reach_map)
                 --W.message { speaker = u.id, message = 'My rating map' }
             end
-
             --print("Best move:",best_unit.id,max_rating,best_hex[1],best_hex[2])
 
             -- If there's another unit in the best location, moving it out of the way becomes the best move
