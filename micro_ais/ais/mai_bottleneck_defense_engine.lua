@@ -134,6 +134,19 @@ return {
             -- Leader positioning rating
             if is_leader then
                 local leader_rating = self.data.leader_map:get(x, y) or 0
+
+                -- If leader is injured -> prefer hexes next to healers
+                if (unit.hitpoints < unit.max_hitpoints) then
+                    for xa, ya in H.adjacent_tiles(x, y) do
+                        local adj = wesnoth.get_unit(xa, ya)
+                        if adj and (adj.__cfg.usage == "healer") then
+                            leader_rating = leader_rating + 100
+                            break
+                        end
+                    end
+
+                end
+
                 if (leader_rating > rating) then rating = leader_rating end
             end
 
