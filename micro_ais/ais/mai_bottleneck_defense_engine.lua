@@ -322,6 +322,9 @@ return {
             for i,u in ipairs(all_units) do
                 -- Is this a healer or leader?
                 local is_healer = (u.__cfg.usage == "healer")
+
+print('leader:', u.id, wesnoth.unit_ability(u, 'regenerate'))
+
                 local is_leader = ((u.type == "Sergeant") or (u.type == "Lieutenant") or (u.type == "General"))
 
                 local rating = self:get_rating(u, u.x, u.y, is_leader, is_healer)

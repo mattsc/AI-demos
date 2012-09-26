@@ -409,6 +409,17 @@ function ai_helper.get_live_units(filter)
     return wesnoth.get_units(live_filter)
 end
 
+function ai_helper.has_ability(unit, ability)
+    -- Returns true/false depending on whether unit has leadership ability
+    local has_ability = false
+    local abilities = H.get_child(unit.__cfg, "abilities")
+    if abilities then
+        if H.get_child(abilities, ability) then has_ability = true end
+    end
+    return has_ability
+end
+
+
 --------- Location set related helper functions ----------
 
 function ai_helper.get_LS_xy(index)
