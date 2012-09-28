@@ -1,6 +1,9 @@
 0.11.0
 - Introduction of Micro AIs and the [micro_ai] tag
   - This includes a new scenario: Healer Support, which is the first to use the MAI functionality
+  - Bottleneck Defense (formerly Pass Defense)
+    - Changed code to work as a Micro AI
+    - Generalized code to work on any map with a bottleneck
   - See http://wiki.wesnoth.org/Micro_AIs for details
 - Generic Rush
   - Do not try to spread poison to undead units
@@ -20,7 +23,7 @@
   - Do not poison enemy if enemy could level up on its turn after being attacked
   - Lots of refactoring and tuning of priorities and ratings
 - ai_helper:
-  - Added functions ai_helper.get_closest_location(), ai_helper.skip_CA()
+  - Added functions ai_helper.get_closest_location(), ai_helper.skip_CA(), ai_helper.has_ability()
   - ai_helper.movefull_stopunit(), ai_helper.move_unit_out_of_way(): now works also if unit cannot get there in one move
   - ai_helper.movefull_outofway_stopunit(): only move unit out of way if the approaching unit can actually get there
 - Scale background image in campaign menu to avoid horizontal scroll bar
