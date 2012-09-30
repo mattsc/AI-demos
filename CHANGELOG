@@ -1,4 +1,4 @@
-0.11.0
+0.11.0, 30 Sep 2012
 - Introduction of Micro AIs and the [micro_ai] tag
   - This includes a new scenario: Healer Support, which is the first to use the MAI functionality
   - Bottleneck Defense (formerly Pass Defense)
