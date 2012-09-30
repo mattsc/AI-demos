@@ -2277,7 +2277,7 @@ return {
             }
 
             local cfg_right = {
-                filter_units = { x = '1-99,22-99', y = '1-11,12-25' },
+                filter_units = { x = '16-99,22-99', y = '1-11,12-25' },
                 rush_area = { x_min = 25, x_max = width, y_min = 11, y_max = height}
             }
 
@@ -2443,7 +2443,7 @@ return {
             }
 
             local cfg_right = {
-                filter_units = { x = '1-99,22-99', y = '1-11,12-25' },
+                filter_units = { x = '16-99,22-99', y = '1-11,12-25' },
                 hold_area = { x_min = 25, x_max = width, y_min = 11, y_max = height},
                 hold = { x = 27, max_y = 22 },
                 villages = { { x = 24, y = 7 }, { x = 28, y = 5 } }
