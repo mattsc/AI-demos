@@ -1818,7 +1818,7 @@ return {
 
         --------- Protect Center ------------
 
-        function grunt_rush_FLS1:protect_center_eval()
+        function grunt_rush_FLS1:protect_center_eval_old()
             local score = 352000
             if AH.skip_CA('protect_center') then return 0 end
             if AH.print_eval() then print('     - Evaluating protect_center CA:', os.clock()) end
@@ -1900,7 +1900,7 @@ return {
             return 0
         end
 
-        function grunt_rush_FLS1:protect_center_exec()
+        function grunt_rush_FLS1:protect_center_exec_old()
             if AH.print_exec() then print('     - Executing protect_center CA') end
             local units_MP = wesnoth.get_units { side = wesnoth.current.side, x = '1-24', canrecruit = 'no',
                 formula = '$this_unit.moves > 0'
@@ -2271,6 +2271,11 @@ return {
 
             local width, height = wesnoth.get_map_size()
 
+            local cfg_center = {
+                filter_units = { x = '16-25,15-22', y = '1-13,14-19' },
+                rush_area = { x_min = 15, x_max = 23, y_min = 9, y_max = 16}
+            }
+
             local cfg_left = {
                 filter_units = { x = '1-15,16-20', y = '1-15,1-6' },
                 rush_area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15}
@@ -2283,8 +2288,9 @@ return {
 
             -- This way it will be easy to change the priorities on the fly later:
             local cfgs = {}
-            cfgs[1] = cfg_left
-            cfgs[2] = cfg_right
+            table.insert(cfgs, cfg_center)
+            table.insert(cfgs, cfg_left)
+            table.insert(cfgs, cfg_right)
 
             ----- Now start evaluating things -----
 
@@ -2433,6 +2439,15 @@ return {
 
             local width, height = wesnoth.get_map_size()
 
+            local cfg_center = {
+                filter_units = { x = '16-25,15-22', y = '1-13,14-19' },
+                hold_area = { x_min = 15, x_max = 23, y_min = 9, y_max = 16},
+                hold = { x = 20, max_y = 15 },
+                hold_condition = { hp_ratio = 0.67, x = '15-23', y = '1-16' },
+                villages = { { x = 18, y = 9 }, { x = 24, y = 7 }, { x = 22, y = 2 } },
+                one_unit_per_call = true
+            }
+
             local cfg_left = {
                 filter_units = { x = '1-15,16-20', y = '1-15,1-6' },
                 hold_area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15},
@@ -2451,8 +2466,9 @@ return {
 
             -- This way it will be easy to change the priorities on the fly later:
             local cfgs = {}
-            cfgs[1] = cfg_left
-            cfgs[2] = cfg_right
+            table.insert(cfgs, cfg_center)
+            table.insert(cfgs, cfg_left)
+            table.insert(cfgs, cfg_right)
 
             ----- Now start evaluating things -----
 
