@@ -83,6 +83,13 @@ return {
             -- hold .x .max_y: the coordinates to consider when holding a position (to be separated out later)
             -- hold_condition .hp_ratio, .x .y: Only hold position if hp_ratio in area give is smaller than the value given
 
+            -- The 'cfgs' table is stored in 'grunt_rush_FLS1.data.area_cfgs' and retrieved from there if it already exists
+            -- This is automatically deleted at the beginning of each turn, so a recalculation is forced then
+
+            if grunt_rush_FLS1.data.area_cfgs then
+                return grunt_rush_FLS1.data.area_cfgs
+            end
+
             local cfg_center = {
                 filter_units = { x = '16-25,15-22', y = '1-13,14-19' },
                 rush_area = { x_min = 15, x_max = 23, y_min = 9, y_max = 16},
@@ -112,12 +119,12 @@ return {
             }
 
             -- This way it will be easy to change the priorities on the fly later:
-            local cfgs = {}
-            table.insert(cfgs, cfg_center)
-            table.insert(cfgs, cfg_left)
-            table.insert(cfgs, cfg_right)
+            grunt_rush_FLS1.data.area_cfgs = {}
+            table.insert(grunt_rush_FLS1.data.area_cfgs, cfg_center)
+            table.insert(grunt_rush_FLS1.data.area_cfgs, cfg_left)
+            table.insert(grunt_rush_FLS1.data.area_cfgs, cfg_right)
 
-            return cfgs
+            return grunt_rush_FLS1.data.area_cfgs
         end
 
         function grunt_rush_FLS1:best_trapping_attack_opposite(units_org, enemies_org)
