@@ -75,7 +75,7 @@ return {
             return false
         end
 
-        function grunt_rush_FLS1:get_area_cfgs()
+        function grunt_rush_FLS1:get_area_cfgs(recalc)
             -- Set up the config table for the different map areas
             -- filter_units .x .y: the area from which to draw units for this hold
             -- rush_area .x_min .x_max .y_min .y_max: the area to consider where to attack
@@ -86,7 +86,10 @@ return {
             -- The 'cfgs' table is stored in 'grunt_rush_FLS1.data.area_cfgs' and retrieved from there if it already exists
             -- This is automatically deleted at the beginning of each turn, so a recalculation is forced then
 
-            if grunt_rush_FLS1.data.area_cfgs then
+            -- Optional parameter:
+            -- recalc: if set to 'true', force recalculation of cfgs even if 'grunt_rush_FLS1.data.area_cfgs' exists
+
+            if (not recalc) and grunt_rush_FLS1.data.area_cfgs then
                 return grunt_rush_FLS1.data.area_cfgs
             end
 
