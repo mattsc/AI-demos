@@ -75,6 +75,51 @@ return {
             return false
         end
 
+        function grunt_rush_FLS1:get_area_cfgs()
+            -- Set up the config table for the different map areas
+            -- filter_units .x .y: the area from which to draw units for this hold
+            -- rush_area .x_min .x_max .y_min .y_max: the area to consider where to attack
+            -- hold_area .x_min .x_max .y_min .y_max: the area to consider where to hold
+            -- hold .x .max_y: the coordinates to consider when holding a position (to be separated out later)
+            -- hold_condition .hp_ratio, .x .y: Only hold position if hp_ratio in area give is smaller than the value given
+
+            local cfg_center = {
+                filter_units = { x = '16-25,15-22', y = '1-13,14-19' },
+                rush_area = { x_min = 15, x_max = 23, y_min = 9, y_max = 16},
+                hold_area = { x_min = 15, x_max = 23, y_min = 9, y_max = 16},
+                hold = { x = 20, max_y = 15 },
+                hold_condition = { hp_ratio = 0.67, x = '15-23', y = '1-16' },
+                villages = { { x = 18, y = 9 }, { x = 24, y = 7 }, { x = 22, y = 2 } },
+                one_unit_per_call = true
+            }
+
+            local cfg_left = {
+                filter_units = { x = '1-15,16-20', y = '1-15,1-6' },
+                rush_area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15},
+                hold_area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15},
+                hold = { x = 11, max_y = 15 },
+                hold_condition = { hp_ratio = 1.0, x = '1-15', y = '1-15' },
+                villages = { { x = 11, y = 9 }, { x = 8, y = 5 }, { x = 12, y = 5 }, { x = 12, y = 2 } },
+                one_unit_per_call = true
+            }
+
+            local cfg_right = {
+                filter_units = { x = '16-99,22-99', y = '1-11,12-25' },
+                rush_area = { x_min = 25, x_max = width, y_min = 11, y_max = height},
+                hold_area = { x_min = 25, x_max = width, y_min = 11, y_max = height},
+                hold = { x = 27, max_y = 22 },
+                villages = { { x = 24, y = 7 }, { x = 28, y = 5 } }
+            }
+
+            -- This way it will be easy to change the priorities on the fly later:
+            local cfgs = {}
+            table.insert(cfgs, cfg_center)
+            table.insert(cfgs, cfg_left)
+            table.insert(cfgs, cfg_right)
+
+            return cfgs
+        end
+
         function grunt_rush_FLS1:best_trapping_attack_opposite(units_org, enemies_org)
             -- Find best trapping attack on enemy by putting two units on opposite sides
             -- Inputs:
@@ -2170,32 +2215,7 @@ return {
                 return 0
             end
 
-            ----- Set up the config table for all rushes first -----
-            -- filter_units .x .y: the area from which to draw units for this rush
-            -- rush_area .x_min .x_max .y_min .y_max: the area to consider into which to rush
-
-            local width, height = wesnoth.get_map_size()
-
-            local cfg_center = {
-                filter_units = { x = '16-25,15-22', y = '1-13,14-19' },
-                rush_area = { x_min = 15, x_max = 23, y_min = 9, y_max = 16}
-            }
-
-            local cfg_left = {
-                filter_units = { x = '1-15,16-20', y = '1-15,1-6' },
-                rush_area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15}
-            }
-
-            local cfg_right = {
-                filter_units = { x = '16-99,22-99', y = '1-11,12-25' },
-                rush_area = { x_min = 25, x_max = width, y_min = 11, y_max = height}
-            }
-
-            -- This way it will be easy to change the priorities on the fly later:
-            local cfgs = {}
-            table.insert(cfgs, cfg_center)
-            table.insert(cfgs, cfg_left)
-            table.insert(cfgs, cfg_right)
+            local cfgs = grunt_rush_FLS1:get_area_cfgs()
 
             ----- Now start evaluating things -----
 
@@ -2336,44 +2356,7 @@ return {
                 return 0
             end
 
-            ----- Set up the config table for all hold areas first -----
-            -- filter_units .x .y: the area from which to draw units for this hold
-            -- hold_area .x_min .x_max .y_min .y_max: the area to consider where to hold
-            -- hold .x .max_y: the coordinates to consider when holding a position (to be separated out later)
-            -- hold_condition .hp_ratio, .x .y: Only hold position if hp_ratio in area give is smaller than the value given
-
-            local width, height = wesnoth.get_map_size()
-
-            local cfg_center = {
-                filter_units = { x = '16-25,15-22', y = '1-13,14-19' },
-                hold_area = { x_min = 15, x_max = 23, y_min = 9, y_max = 16},
-                hold = { x = 20, max_y = 15 },
-                hold_condition = { hp_ratio = 0.67, x = '15-23', y = '1-16' },
-                villages = { { x = 18, y = 9 }, { x = 24, y = 7 }, { x = 22, y = 2 } },
-                one_unit_per_call = true
-            }
-
-            local cfg_left = {
-                filter_units = { x = '1-15,16-20', y = '1-15,1-6' },
-                hold_area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15},
-                hold = { x = 11, max_y = 15 },
-                hold_condition = { hp_ratio = 1.0, x = '1-15', y = '1-15' },
-                villages = { { x = 11, y = 9 }, { x = 8, y = 5 }, { x = 12, y = 5 }, { x = 12, y = 2 } },
-                one_unit_per_call = true
-            }
-
-            local cfg_right = {
-                filter_units = { x = '16-99,22-99', y = '1-11,12-25' },
-                hold_area = { x_min = 25, x_max = width, y_min = 11, y_max = height},
-                hold = { x = 27, max_y = 22 },
-                villages = { { x = 24, y = 7 }, { x = 28, y = 5 } }
-            }
-
-            -- This way it will be easy to change the priorities on the fly later:
-            local cfgs = {}
-            table.insert(cfgs, cfg_center)
-            table.insert(cfgs, cfg_left)
-            table.insert(cfgs, cfg_right)
+            local cfgs = grunt_rush_FLS1:get_area_cfgs()
 
             ----- Now start evaluating things -----
 
