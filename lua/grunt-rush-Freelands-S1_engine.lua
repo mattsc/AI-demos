@@ -97,6 +97,8 @@ return {
                 filter_units = { x = '16-25,15-22', y = '1-13,14-19' },
                 rush_area = { x_min = 15, x_max = 23, y_min = 9, y_max = 16},
                 hold_area = { x_min = 15, x_max = 23, y_min = 9, y_max = 16},
+                threat_area = { x_min = 15, x_max = 23, y_min = 1, y_max = 16},
+                enemy_area = { x_min = 15, x_max = 23, y_min = 1, y_max = 16},
                 hold = { x = 20, max_y = 15 },
                 hold_condition = { hp_ratio = 0.67, x = '15-23', y = '1-16' },
                 villages = { { x = 18, y = 9 }, { x = 24, y = 7 }, { x = 22, y = 2 } },
@@ -107,26 +109,69 @@ return {
                 filter_units = { x = '1-15,16-20', y = '1-15,1-6' },
                 rush_area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15},
                 hold_area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15},
+                threat_area = { x_min = 1, x_max = 14, y_min = 1, y_max = 15},
                 hold = { x = 11, max_y = 15 },
                 hold_condition = { hp_ratio = 1.0, x = '1-15', y = '1-15' },
                 villages = { { x = 11, y = 9 }, { x = 8, y = 5 }, { x = 12, y = 5 }, { x = 12, y = 2 } },
                 one_unit_per_call = true
             }
 
+            local width, height = wesnoth.get_map_size()
             local cfg_right = {
                 filter_units = { x = '16-99,22-99', y = '1-11,12-25' },
                 rush_area = { x_min = 25, x_max = width, y_min = 11, y_max = height},
                 hold_area = { x_min = 25, x_max = width, y_min = 11, y_max = height},
+                threat_area = { x_min = 25, x_max = width, y_min = 1, y_max = height},
                 hold = { x = 27, max_y = 22 },
                 villages = { { x = 24, y = 7 }, { x = 28, y = 5 } }
             }
 
             -- This way it will be easy to change the priorities on the fly later:
-            grunt_rush_FLS1.data.area_cfgs = {}
-            table.insert(grunt_rush_FLS1.data.area_cfgs, cfg_center)
-            table.insert(grunt_rush_FLS1.data.area_cfgs, cfg_left)
-            table.insert(grunt_rush_FLS1.data.area_cfgs, cfg_right)
+            cfgs = {}
+            table.insert(cfgs, cfg_center)
+            table.insert(cfgs, cfg_left)
+            table.insert(cfgs, cfg_right)
 
+            -- Now find how many enemies can get to each area
+            local my_units = AH.get_live_units { side = wesnoth.current.side }
+            local enemies = AH.get_live_units {
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+            }
+            local attack_map = AH.attack_map(my_units)
+            local attack_map_hp = AH.attack_map(my_units, { return_value = 'hitpoints' })
+            local enemy_attack_map = AH.attack_map(enemies, { moves = "max" })
+            local enemy_attack_map_hp = AH.attack_map(enemies, { moves = "max", return_value = 'hitpoints' })
+
+            -- Find how many enemies threaten each of the hold areas
+            local enemy_num, enemy_hp = {}, {}
+            for i,c in ipairs(cfgs) do
+                enemy_num[i], enemy_hp[i] = 0, 0
+                for x = c.hold_area.x_min,c.hold_area.x_max do
+                    for y = c.hold_area.y_min,c.hold_area.y_max do
+                        local en = enemy_attack_map:get(x, y) or 0
+                        if (en > enemy_num[i]) then enemy_num[i] = en end
+                        local hp = enemy_attack_map_hp:get(x, y) or 0
+                        if (hp > enemy_hp[i]) then enemy_hp[i] = hp end
+                    end
+                end
+                --print('enemy threat:', i, enemy_num[i], enemy_hp[i])
+            end
+
+            -- Also find how many enemies are already present in threat_area
+            local present_enemies = {}
+            for i,c in ipairs(cfgs) do
+                present_enemies[i] = 0
+                for j,e in ipairs(enemies) do
+                    if (e.x >= c.threat_area.x_min) and (e.x <= c.threat_area.x_max) and
+                        (e.y >= c.threat_area.y_min) and (e.y <= c.threat_area.y_max)
+                    then
+                        present_enemies[i] = present_enemies[i] + 1
+                    end
+                end
+                --print('present enemies:', i, present_enemies[i])
+            end
+
+            grunt_rush_FLS1.data.area_cfgs = cfgs
             return grunt_rush_FLS1.data.area_cfgs
         end
 
