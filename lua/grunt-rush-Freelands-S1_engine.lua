@@ -2849,7 +2849,7 @@ return {
             return 0
         end
 
-        function grunt_rush_FLS1:recruit_orcs_exec()
+        function grunt_rush_FLS1:recruit_orcs_exec_experimental()
             if AH.print_exec() then print('     - Executing recruit_rushers CA') end
 
             -- Some of the values calculated here can be done once per turn or even per game
@@ -2955,7 +2955,7 @@ return {
             return best_hex
         end
 
-        function grunt_rush_FLS1:recruit_orcs_exec_old()
+        function grunt_rush_FLS1:recruit_orcs_exec()
             local whelp_cost = wesnoth.unit_types["Troll Whelp"].cost
             local archer_cost = wesnoth.unit_types["Orcish Archer"].cost
             local assassin_cost = wesnoth.unit_types["Orcish Assassin"].cost
