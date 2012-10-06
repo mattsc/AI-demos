@@ -15,7 +15,7 @@ return {
             -- Hitpoint ratio of own units / enemy units
             -- If arguments are not given, use all units on the side
             if (not my_units) then
-                my_units = AH.get_live_units { side = wesnoth.current.side }
+                my_units = AH.get_live_units { { "filter_side", {{"allied_with", {side = wesnoth.current.side} }} } }
             end
             if (not enemies) then
                 enemies = AH.get_live_units {
