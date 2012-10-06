@@ -2952,7 +2952,7 @@ return {
                 AH.move_unit_out_of_way(ai, unit_in_way, { dx = 0.1, dy = 0.5 })
             end
 
-            return best_hex
+            return best_hex, best_hex_left
         end
 
         function grunt_rush_FLS1:recruit_orcs_exec()
@@ -2968,7 +2968,7 @@ return {
             -- All of this is contingent on having enough gold (eval checked for gold > 12)
             -- -> if not enough gold for something else, recruit a grunt at the end
 
-            local best_hex = grunt_rush_FLS1:find_best_recruit_hex()
+            local best_hex, best_hex_left = grunt_rush_FLS1:find_best_recruit_hex()
 
             if AH.show_messages() then W.message { speaker = leader.id, message = 'Recruiting' } end
 
