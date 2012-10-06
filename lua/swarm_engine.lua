@@ -11,9 +11,9 @@ return {
 
         function swarm:scatter_swarm_eval()
             -- Any enemy within 1 hex of a unit will cause swarm to scatter
-            local enemies = wesnoth.get_units { 
+            local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
-                { "filter_location", 
+                { "filter_location",
                     { radius = 1, { "filter", { side = wesnoth.current.side } } }
                 }
             }
@@ -36,9 +36,9 @@ return {
                 if (units[i].moves == 0) then table.remove(units, i) end
             end
 
-            local enemies = wesnoth.get_units { 
+            local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
-                { "filter_location", 
+                { "filter_location",
                     { radius = 3, { "filter", { side = wesnoth.current.side } } }
                 }
             }
@@ -135,8 +135,8 @@ return {
             end)
 
             AH.movefull_stopunit(ai, unit, best_hex)
-        end        
+        end
 
-        return swarm	
+        return swarm
     end
 }

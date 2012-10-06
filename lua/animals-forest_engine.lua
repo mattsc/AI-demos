@@ -11,7 +11,7 @@ return {
 
         function forest_animals:new_rabbit_eval()
             -- If there are fewer than 4-6 rabbits out there, we get some more out of their holes
-            -- I want this to happen only once, at the beginning of the turn, so 
+            -- I want this to happen only once, at the beginning of the turn, so
             -- I'll let the CA blacklist itself
             return 310000
         end
@@ -28,11 +28,11 @@ return {
             -- We also add a random number to it, for selection of the holes later
             --print('before:', #holes)
             for i = #holes,1,-1 do
-                local enemies = wesnoth.get_units { 
+                local enemies = wesnoth.get_units {
                     { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
                     { "filter_location", { x = holes[i].x, y = holes[i].y, radius = 3 } }
                 }
-                if enemies[1] then 
+                if enemies[1] then
                     table.remove(holes, i)
                 else
                     holes[i].random = AH.random(100)
@@ -68,7 +68,7 @@ return {
         function forest_animals:tusker_attack_eval()
             -- Check whether there is an enemy next to a tusklet
             local tuskers = wesnoth.get_units { side = wesnoth.current.side, type = 'Tusker', formula = '$this_unit.moves > 0' }
-            local adj_enemies = wesnoth.get_units { 
+            local adj_enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
                 { "filter_adjacent", { side = wesnoth.current.side, type = 'Tusklet' } }
             }
@@ -83,7 +83,7 @@ return {
 
         function forest_animals:tusker_attack_exec()
             local tuskers = wesnoth.get_units { side = wesnoth.current.side, type = 'Tusker', formula = '$this_unit.moves > 0' }
-            local adj_enemies = wesnoth.get_units { 
+            local adj_enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
                 { "filter_adjacent", { side = wesnoth.current.side, type = 'Tusklet' } }
             }
@@ -228,7 +228,7 @@ return {
                 --print('  #close_enemies after move', #close_enemies, #enemies, unit.id)
 
                 -- If there are close enemies, run away (and rabbits disappear into holes)
-                if close_enemies[1] then 
+                if close_enemies[1] then
                     -- Calculate the hex that maximizes distance of unit from enemies
                     -- Returns nil if the only hex that can be reached is the one the unit is on
                     local farthest_hex = AH.find_best_move(unit, function(x, y)
@@ -238,7 +238,7 @@ return {
                             rating = rating - 1 / d^2
                         end
                         -- If this is a rabbit, try to go for holes
-                        if (unit.type == 'Rabbit') and hole_map:get(x, y) then 
+                        if (unit.type == 'Rabbit') and hole_map:get(x, y) then
                             rating = rating + 1000
                             -- but if possible, go to another hole
                             if (x == unit.x) and (y == unit.y) then rating = rating - 10 end
@@ -247,12 +247,12 @@ return {
                         return rating
                     end)
                     --print('  farthest_hex: ', farthest_hex[1], farthest_hex[2])
-        
+
                     -- This will always find at least the hex the unit is on
                     -- so no check is necessary
                     AH.movefull_stopunit(ai, unit, farthest_hex)
                     -- If this is a rabbit ending on a hole -> disappears
-                    if (unit.type == 'Rabbit') and hole_map:get(farthest_hex[1], farthest_hex[2]) then 
+                    if (unit.type == 'Rabbit') and hole_map:get(farthest_hex[1], farthest_hex[2]) then
                         wesnoth.put_unit(farthest_hex[1], farthest_hex[2])
                     end
                 end
@@ -286,7 +286,7 @@ return {
                 -- find closest tusker
                 local goto_tusker = {}
                 local min_dist = 9999
-                for i,t in ipairs(tuskers) do 
+                for i,t in ipairs(tuskers) do
                     local dist = H.distance_between(t.x, t.y, tusklet.x, tusklet.y)
                     if (dist < min_dist) then
                         min_dist = dist
@@ -307,6 +307,6 @@ return {
             end
         end
 
-        return forest_animals	
+        return forest_animals
     end
 }

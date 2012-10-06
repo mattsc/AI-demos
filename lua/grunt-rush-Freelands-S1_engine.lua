@@ -75,6 +75,115 @@ return {
             return false
         end
 
+        function grunt_rush_FLS1:get_area_cfgs(recalc)
+            -- Set up the config table for the different map areas
+            -- filter_units .x .y: the area from which to draw units for this hold
+            -- rush_area .x_min .x_max .y_min .y_max: the area to consider where to attack
+            -- hold_area .x_min .x_max .y_min .y_max: the area to consider where to hold
+            -- hold .x .max_y: the coordinates to consider when holding a position (to be separated out later)
+            -- hold_condition .hp_ratio, .x .y: Only hold position if hp_ratio in area give is smaller than the value given
+
+            -- The 'cfgs' table is stored in 'grunt_rush_FLS1.data.area_cfgs' and retrieved from there if it already exists
+            -- This is automatically deleted at the beginning of each turn, so a recalculation is forced then
+
+            -- Optional parameter:
+            -- recalc: if set to 'true', force recalculation of cfgs even if 'grunt_rush_FLS1.data.area_cfgs' exists
+
+            if (not recalc) and grunt_rush_FLS1.data.area_cfgs then
+                return grunt_rush_FLS1.data.area_cfgs
+            end
+
+            local cfg_center = {
+                filter_units = { x = '16-25,15-22', y = '1-13,14-19' },
+                rush_area = { x_min = 15, x_max = 23, y_min = 9, y_max = 16},
+                hold_area = { x_min = 15, x_max = 23, y_min = 9, y_max = 16},
+                threat_area = { x_min = 15, x_max = 23, y_min = 1, y_max = 16},
+                enemy_area = { x_min = 15, x_max = 23, y_min = 1, y_max = 16},
+                hold = { x = 20, max_y = 15 },
+                hold_condition = { hp_ratio = 0.67, x = '15-23', y = '1-16' },
+                villages = { { x = 18, y = 9 }, { x = 24, y = 7 }, { x = 22, y = 2 } },
+                one_unit_per_call = true
+            }
+
+            local cfg_left = {
+                filter_units = { x = '1-15,16-20', y = '1-15,1-6' },
+                rush_area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15},
+                hold_area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15},
+                threat_area = { x_min = 1, x_max = 14, y_min = 1, y_max = 15},
+                hold = { x = 11, max_y = 15 },
+                hold_condition = { hp_ratio = 1.0, x = '1-15', y = '1-15' },
+                villages = { { x = 11, y = 9 }, { x = 8, y = 5 }, { x = 12, y = 5 }, { x = 12, y = 2 } },
+                one_unit_per_call = true
+            }
+
+            local width, height = wesnoth.get_map_size()
+            local cfg_right = {
+                filter_units = { x = '16-99,22-99', y = '1-11,12-25' },
+                rush_area = { x_min = 25, x_max = width, y_min = 11, y_max = height},
+                hold_area = { x_min = 25, x_max = width, y_min = 11, y_max = height},
+                threat_area = { x_min = 25, x_max = width, y_min = 1, y_max = height},
+                hold = { x = 27, max_y = 22 },
+                villages = { { x = 24, y = 7 }, { x = 28, y = 5 } }
+            }
+
+            -- This way it will be easy to change the priorities on the fly later:
+            cfgs = {}
+            table.insert(cfgs, cfg_center)
+            table.insert(cfgs, cfg_left)
+            table.insert(cfgs, cfg_right)
+
+            -- Now find how many enemies can get to each area
+            local my_units = AH.get_live_units { side = wesnoth.current.side }
+            local enemies = AH.get_live_units {
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+            }
+            local attack_map = AH.attack_map(my_units)
+            local attack_map_hp = AH.attack_map(my_units, { return_value = 'hitpoints' })
+            local enemy_attack_map = AH.attack_map(enemies, { moves = "max" })
+            local enemy_attack_map_hp = AH.attack_map(enemies, { moves = "max", return_value = 'hitpoints' })
+
+            -- Find how many enemies threaten each of the hold areas
+            local enemy_num, enemy_hp = {}, {}
+            for i_c,c in ipairs(cfgs) do
+                enemy_num[i_c], enemy_hp[i_c] = 0, 0
+                for x = c.hold_area.x_min,c.hold_area.x_max do
+                    for y = c.hold_area.y_min,c.hold_area.y_max do
+                        local en = enemy_attack_map:get(x, y) or 0
+                        if (en > enemy_num[i_c]) then enemy_num[i_c] = en end
+                        local hp = enemy_attack_map_hp:get(x, y) or 0
+                        if (hp > enemy_hp[i_c]) then enemy_hp[i_c] = hp end
+                    end
+                end
+                --print('enemy threat:', i_c, enemy_num[i_c], enemy_hp[i_c])
+            end
+
+            -- Also find how many enemies are already present in threat_area
+            local present_enemies = {}
+            for i_c,c in ipairs(cfgs) do
+                present_enemies[i_c] = 0
+                for j,e in ipairs(enemies) do
+                    if (e.x >= c.threat_area.x_min) and (e.x <= c.threat_area.x_max) and
+                        (e.y >= c.threat_area.y_min) and (e.y <= c.threat_area.y_max)
+                    then
+                        present_enemies[i_c] = present_enemies[i_c] + 1
+                    end
+                end
+                --print('present enemies:', i_c, present_enemies[i_c])
+            end
+
+            -- Now set this up as global variable
+            grunt_rush_FLS1.data.area_cfgs = cfgs
+
+            -- We also need an area_parms global variable
+            -- This might be set/reset independently of area_cfgs -> separate variable
+            grunt_rush_FLS1.data.area_parms = {}
+            for i_c,c in ipairs(cfgs) do
+                grunt_rush_FLS1.data.area_parms[i_c] = {}
+            end
+
+            return grunt_rush_FLS1.data.area_cfgs
+        end
+
         function grunt_rush_FLS1:best_trapping_attack_opposite(units_org, enemies_org)
             -- Find best trapping attack on enemy by putting two units on opposite sides
             -- Inputs:
@@ -419,6 +528,218 @@ return {
                 if (max_rating > -9e99) then
                     if AH.show_messages() then W.message { speaker = best_unit.id, message = 'Hold position (' .. cfg.called_from .. '): Moving far unit ' .. goal.x .. ',' .. goal.y } end
                     AH.movefull_outofway_stopunit(ai, best_unit, best_hex)
+                    return
+                end
+            end
+        end
+
+        function grunt_rush_FLS1:retreat_units(hold, cfg)
+            -- Retreat units to a defensive position
+            -- Hold is a container variable containing:
+            --  goal: set up position at (goal.x, goal.y)
+            --  villages: an array containing the coordinates of villages to which to retreat injured units
+            --  units: the units to use for this
+            -- cfg: table with additional parameters (probably to be gotten rid of later):
+            --   ignore_terrain_at_night: if true, terrain has (almost) no influence on
+            -- choosing positions for close units
+
+            cfg = cfg or {}
+            cfg.called_from = cfg.called_from or ''
+
+            -- If hold.retreat is set (seriously injured units are retreated elsewhere):
+            -- We start by retreating the most injured units toward the villages
+            -- This is done even if the units are not injured, as villages
+            -- are usually the strongest positions
+
+            if hold.retreat then
+                -- Set up an array containing the open villages to retreat to
+                local open_villages = {}
+                for i,v in ipairs(hold.villages) do
+                    local unit_in_way = wesnoth.get_unit(v.x, v.y)
+                    if (not unit_in_way) or (unit_in_way.moves > 0) then
+                        table.insert(open_villages, v)
+                    end
+                end
+
+                -- Find the most injured units
+                local most_injured = {}
+                for i,u in ipairs(hold.units) do
+                    if (u.hitpoints < u.max_hitpoints) then table.insert(most_injured, u) end
+                end
+
+                table.sort(most_injured, function(a, b)
+                    return a.max_hitpoints - a.hitpoints > b.max_hitpoints - b.hitpoints
+                end)
+
+                -- Only keep as many injured units as there are open villages
+                for i = #most_injured,#open_villages+1,-1 do
+                    table.remove(most_injured, i)
+                end
+
+                -- Now retreat those units toward those villages
+                local injured_locs = {}  -- Array for saving where the injured units moved to
+                while most_injured[1] do
+                    local max_rating, best_unit, best_village, ind_u, ind_v = -9e99, {}, {}, -1
+                    for i,u in ipairs(most_injured) do
+                        for j,v in ipairs(open_villages) do
+                            local rating = 0
+
+                            -- The rating is mostly how close the unit can get to the village
+                            -- Cannot use AH.next_hop here, as that excludes occupied locations
+                            local path, cost = wesnoth.find_path(u, v.x, v.y)
+                            if (cost <= u.moves) then
+                                rating = rating + 100
+                            else
+                                rating = rating - cost
+                            end
+
+                            -- All else being equal, retreat the most injured unit first
+                            rating = rating + (u.max_hitpoints - u.hitpoints) / 100.
+
+                            -- If there's a unit in the way, add a very minor penalty
+                            -- It was checked previously that this unit has moves left
+                            if wesnoth.get_unit(v.x, v.y) then rating = rating - 0.001 end
+
+                            if (rating > max_rating) then
+                                max_rating, best_unit, best_village, ind_u, ind_v = rating, u, v, i, j
+                            end
+                        end
+                    end
+
+                    -- If a good retreat option was found, do it
+                    if (max_rating > -9e99) then
+                       if AH.show_messages() then W.message { speaker = best_unit.id, message = 'Retreat injured unit (' .. cfg.called_from .. ')' } end
+                       AH.movefull_outofway_stopunit(ai, best_unit, best_village)
+                        -- Also save where this unit moved to, for setting up protection for them
+                        table.insert(injured_locs, { best_unit.x, best_unit.y })
+
+                        -- Then remove unit and village from the tables
+                        table.remove(most_injured, ind_u)
+                        table.remove(open_villages, ind_v)
+                    -- Otherwise stop the loop
+                    else
+                        most_injured = {}
+                    end
+                end
+            end
+
+            -- At this point, we find which of the original units have moves left
+            -- (this then excludes those that just retreated toward a village, as well
+            -- as those that might have lost their MP by moving out of the way)
+            local retreaters = {}
+            for i,u in ipairs(hold.units) do
+                if (u.moves > 0) then table.insert(retreaters, u) end
+            end
+
+            -- Also need all the enemies
+            local enemies = AH.get_live_units {
+                { "filter_side", {{"enemy_of", { side = wesnoth.current.side } }} }
+            }
+            --print('Retreat units: #enemies', #enemies)
+
+            -- Find how far south the defensive position should be set up
+            -- (This is a temporary measure, to be replaced by more sophisticated/general stuff later)
+            local goal = hold.goal
+            local injured_locs = injured_locs or {}
+            for i,l in ipairs(injured_locs) do
+                if (goal.y < l[2] + 1) then goal.y = l[2] + 1 end
+            end
+
+            -- Set up an array that hold retreaters that have already moved
+            local units_moved = {}
+
+            -- Now retreat all the remaining units
+            while retreaters[1] do
+                -- First, find where the enemy can attack
+                -- This needs to be done after every move
+                -- And units with MP left need to be taken off the map
+                local units_MP = wesnoth.get_units { side = wesnoth.current.side, formula = '$this_unit.moves > 0' }
+                for iu,uMP in ipairs(units_MP) do wesnoth.extract_unit(uMP) end
+
+                local enemy_attack_map = AH.attack_map(enemies, { moves = 'max' })
+
+                -- Put the units back out there
+                for iu,uMP in ipairs(units_MP) do wesnoth.put_unit(uMP.x, uMP.y, uMP) end
+
+                local max_rating, best_hex, best_unit, ind_u = -9e99, {}, {}, -1
+                for i,u in ipairs(retreaters) do
+                    local reach_map = AH.get_reachable_unocc(u)
+                    reach_map:iter( function(x, y, v)
+                        local rating = 0
+
+                        -- First rating is distance between goal and location
+                        -- On top of that, y distance is somewhat more important than x
+                        --local dist = H.distance_between(x, y, goal.x, goal.y)
+                        --rating = rating - dist * 4
+                        -- Do distance in a path-finding sense
+                        local x1, y1 = u.x, u.y
+                        wesnoth.extract_unit(u)
+                        u.x, u.y = x, y
+                        local path, cost = wesnoth.find_path(u, goal.x, goal.y, { ignore_units = true } )
+                        wesnoth.put_unit(x1, y1, u)
+                        rating = rating - cost * 4
+
+                        rating = rating - math.abs(x - goal.x) / 2.
+                        rating = rating - math.abs(y - goal.y)
+
+                        -- In particular, do not like positions too far south -> additional penalty
+                        if (y > goal.y + 1) then rating = rating - (y - goal.y) * 10 end
+
+                        -- Take southern and eastern units first
+                        -- We might want to change this later to using strong units first,
+                        -- then retreating weaker units behind them
+                        rating = rating + u.y + u.x / 2.
+
+                        -- Rating for the terrain
+                        -- This has very little effect if the hex is not threatened by enemies
+                        -- If it is, we take terrain into account
+                        -- As this is a retreat CA, we prefer unthreatened hexes, so terrain rating
+                        -- is a negative contribution
+                        -- All of this might have to be done more carefully later
+                        local terrain_weight = 0.01
+                        if enemy_attack_map:get(x, y) then
+                            terrain_weight = 0.51
+                        end
+
+                        local defense = 100 - wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))
+
+                        if hold.retreat then
+                            rating = rating + (defense - 80) * terrain_weight
+                        else
+                            rating = rating + (defense - 20) * terrain_weight
+                        end
+
+                        -- Small bonus if this is on a village
+                        local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
+                        if is_village then rating = rating + 10 * terrain_weight end
+
+                        -- We also, ideally, want to be 3 hexes from the closest unit that has
+                        -- already moved, so as to ZOC the area
+                        local min_dist = 9999
+                        for j,m in ipairs(units_moved) do
+                            local dist = H.distance_between(x, y, m.x, m.y)
+                            if (dist < min_dist) then min_dist = dist end
+                        end
+                        if (min_dist == 3) then rating = rating + 6 end
+                        if (min_dist == 2) then rating = rating + 4 end
+
+                        reach_map:insert(x, y, rating)
+
+                        if (rating > max_rating) then
+                            max_rating, best_hex, best_unit, ind_u = rating, { x, y }, u, i
+                        end
+                    end)
+                    --AH.put_labels(reach_map)
+                    --W.message { speaker = u.id, message = 'Retreat unit rating map' }
+                end
+
+                if AH.show_messages() then W.message { speaker = best_unit.id, message = 'Retreat unit (' .. cfg.called_from .. ')' } end
+                AH.movefull_outofway_stopunit(ai, best_unit, best_hex)
+                -- Then remove the unit from consideration next time around
+                table.insert(units_moved, best_unit)
+                table.remove(retreaters, ind_u)
+
+                if hold.one_unit_per_call then
                     return
                 end
             end
@@ -782,7 +1103,7 @@ return {
         ------ Retreat injured units -----------
 
         function grunt_rush_FLS1:retreat_injured_units_eval()
-   	        -- First we retreat non-troll units w/ <12 HP to villages.
+                -- First we retreat non-troll units w/ <12 HP to villages.
             local score = grunt_rush_FLS1:retreat_injured_units_eval_filtered(
                 { side = wesnoth.current.side, canrecruit = 'no',
                     formula = '$this_unit.moves > 0',
@@ -831,7 +1152,7 @@ return {
                 return 0
             end
 
-	        local villages = wesnoth.get_locations { terrain = terrain_filter }
+                local villages = wesnoth.get_locations { terrain = terrain_filter }
             --print('#villages', #villages)
 
             -- Only retreat to safe villages
@@ -1605,101 +1926,6 @@ return {
             grunt_rush_FLS1.data.GV_unit, grunt_rush_FLS1.data.GV_village = nil, nil
         end
 
-        --------- Protect Center ------------
-
-        function grunt_rush_FLS1:protect_center_eval()
-            local score = 352000
-            if AH.skip_CA('protect_center') then return 0 end
-            if AH.print_eval() then print('     - Evaluating protect_center CA:', os.clock()) end
-
-            -- Move units to protect the center villages
-            local units_MP = wesnoth.get_units { side = wesnoth.current.side, x = '1-24', canrecruit = 'no',
-                formula = '$this_unit.moves > 0'
-            }
-            if (not units_MP[1]) then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                return 0
-            end
-
-            -- Skip this if AI is much stronger than enemy
-            if grunt_rush_FLS1:full_offensive() then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                return 0
-            end
-
-            local protect_loc = { x = 18, y = 9 }
-
-            --print('Considering center village')
-
-            -- Figure out how many enemies can get there, and count their total HP
-            local enemies = AH.get_live_units {
-                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
-            }
-
-            -- If there's one of AI's units on the village, take it off (for enemy path finding)
-            -- whether it has MP left or not
-            local unit_on_village = wesnoth.get_unit(protect_loc.x, protect_loc.y)
-            if unit_on_village and (unit_on_village.moves == 0) and (unit_on_village.side == wesnoth.current.side) then
-                wesnoth.extract_unit(unit_on_village)
-            end
-
-            -- Take all our own units with MP left off the map
-            for i,u in ipairs(units_MP) do wesnoth.extract_unit(u) end
-
-            local enemy_hp = 0
-            for i,e in ipairs(enemies) do
-                -- Add up hitpoints of enemy units that can get there
-                if AH.can_reach(e, protect_loc.x, protect_loc.y, { moves = 'max' }) then
-                    --print('Enemy can get there:', e.id, e.x, e.y)
-                    enemy_hp = enemy_hp + e.hitpoints
-                end
-            end
-            --print('Total enemy hitpoints:', enemy_hp)
-
-            -- Put our units back out there
-            for i,u in ipairs(units_MP) do wesnoth.put_unit(u.x, u.y, u) end
-            if unit_on_village and (unit_on_village.moves == 0) and (unit_on_village.side == wesnoth.current.side) then
-                wesnoth.put_unit(unit_on_village.x, unit_on_village.y, unit_on_village)
-            end
-
-            -- If no enemies can reach the village, return 0
-            if (enemy_hp == 0) then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                return 0
-            end
-            --print('Enemies that can reach center village found.  Total HP:', enemy_hp)
-
-            -- Now check whether we have enough defenders there already
-            local defenders = AH.get_live_units { side = wesnoth.current.side, x = '17-22', y = '7-11',
-                formula = '$this_unit.moves = 0'
-            }
-            --print('#defenders', #defenders)
-            local defender_hp = 0
-            for i,d in ipairs(defenders) do defender_hp = defender_hp + d.hitpoints end
-            --print('Total defender hitpoints:', defender_hp)
-
-            -- Want at least half enemy_hp in the area
-            if (defender_hp <= 0.67 * enemy_hp) then
-                --print('Moving units to protect center village')
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                return score
-            end
-
-            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-            return 0
-        end
-
-        function grunt_rush_FLS1:protect_center_exec()
-            if AH.print_exec() then print('     - Executing protect_center CA') end
-            local units_MP = wesnoth.get_units { side = wesnoth.current.side, x = '1-24', canrecruit = 'no',
-                formula = '$this_unit.moves > 0'
-            }
-            local protect_loc = { x = 18, y = 9 }
-
-            if AH.show_messages() then W.message { speaker = 'narrator', message = 'Protecting map center' } end
-            grunt_rush_FLS1:hold_position(units_MP, protect_loc, { called_from = 'protect_center' })
-        end
-
         --------- Hold left ------------
 
         function grunt_rush_FLS1:hold_left_eval_old()
@@ -1895,12 +2121,13 @@ return {
             grunt_rush_FLS1:hold_position(units_left, goal, { called_from = 'hold_left' })
         end
 
-        --------- Grunt rush right ------------
+        --------- Rush CA ------------
 
-        function grunt_rush_FLS1:area_rush_eval(cfg)
+        function grunt_rush_FLS1:area_rush_eval(cfg, i_c)
             -- Calculate if a rush should be done in the specified area
             -- See grunt_rush_FLS1:rush_eval() for format of 'cfg'
             -- Returns the attack details if a viable attack combo was found, nil otherwise
+            -- i_c: the index for the global 'parms' array, so that parameters can be set for the correct area
 
             cfg = cfg or {}
 
@@ -1917,7 +2144,7 @@ return {
             local units = AH.get_live_units(filter_units)
             if (not units[1]) then return end
 
-            -- Then get all the enemies (this is all of them, to get the HP ratio)
+            -- Then get all the enemies (this needs to be all of them, to get the HP ratio)
             local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
@@ -1933,20 +2160,16 @@ return {
             end
             local hp_ratio_y, number_units_y = grunt_rush_FLS1:hp_ratio_y(units, enemies, x_min, x_max, y_min, y_max)
 
-            -- We'll do this step by step for easier experimenting
-            -- To be streamlined later
             local tod = wesnoth.get_time_of_day()
 
-            local attack_y, attack_flag = y_min, false
+            local attack_y = y_min
             for y = attack_y,y_max do
                 --print(y, hp_ratio_y[y], number_units_y[y])
 
                 if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
-                    attack_flag = false
                     if (hp_ratio_y[y] >= 4.0) then attack_y = y end
                 end
                 if (tod.id == 'dusk') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
-                    attack_flag = true
                     if (hp_ratio_y[y] > 0.666) and (number_units_y[y] >= 4) then attack_y = y end
                     -- Or, if we're much stronger, we don't care about the number of units
                     if (hp_ratio_y[y] >= 2.0) then attack_y = y end
@@ -1954,8 +2177,19 @@ return {
             end
             --print('attack_y', attack_y)
 
+            -- attack_y can never be less than what has been used during this move already
+            if grunt_rush_FLS1.data.area_parms[i_c].advance_y then
+                if (grunt_rush_FLS1.data.area_parms[i_c].advance_y > attack_y) then
+                    attack_y = grunt_rush_FLS1.data.area_parms[i_c].advance_y
+                else
+                    grunt_rush_FLS1.data.area_parms[i_c].advance_y = attack_y
+                end
+            else
+                grunt_rush_FLS1.data.area_parms[i_c].advance_y = attack_y
+            end
+
             -- If a suitable attack_y was found, figure out what targets there might be
-            if attack_flag and (attack_y > 0) then
+            if (attack_y > 0) then
                 attack_y = attack_y + 1  -- Targets can be one hex farther south
                 --print('Looking for targets on right down to y = ' .. attack_y)
 
@@ -2056,31 +2290,12 @@ return {
                 return 0
             end
 
-            ----- Set up the config table for all rushes first -----
-            -- filter_units .x .y: the area from which to draw units for this rush
-            -- rush_area .x_min .x_max .y_min .y_max: the area to consider into which to rush
-
-            local width, height = wesnoth.get_map_size()
-
-            local cfg_left = {
-                filter_units = { x = '1-15,16-20', y = '1-15,1-6' },
-                rush_area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15}
-            }
-
-            local cfg_right = {
-                filter_units = { x = '1-99,22-99', y = '1-11,12-25' },
-                rush_area = { x_min = 25, x_max = width, y_min = 11, y_max = height}
-            }
-
-            -- This way it will be easy to change the priorities on the fly later:
-            local cfgs = {}
-            cfgs[1] = cfg_left
-            cfgs[2] = cfg_right
+            local cfgs = grunt_rush_FLS1:get_area_cfgs()
 
             ----- Now start evaluating things -----
 
-            for i,cfg in ipairs(cfgs) do
-                local rush = grunt_rush_FLS1:area_rush_eval(cfg)
+            for i_c,cfg in ipairs(cfgs) do
+                local rush = grunt_rush_FLS1:area_rush_eval(cfg, i_c)
                 --DBG.dbms(rush)
 
                 if rush then
@@ -2156,16 +2371,14 @@ return {
             -- To be streamlined later
             local tod = wesnoth.get_time_of_day()
 
-            local attack_y, attack_flag = y_min, false
+            local attack_y = y_min
             for y = attack_y,y_max do
                 --print(y, hp_ratio_y[y], number_units_y[y])
 
                 if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
-                    attack_flag = false
                     if (hp_ratio_y[y] >= 4.0) then attack_y = y end
                 end
                 if (tod.id == 'dusk') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
-                    attack_flag = true
                     if (hp_ratio_y[y] > 0.666) and (number_units_y[y] >= 4) then attack_y = y end
                     -- Or, if we're much stronger, we don't care about the number of units
                     if (hp_ratio_y[y] >= 2.0) then attack_y = y end
@@ -2218,31 +2431,7 @@ return {
                 return 0
             end
 
-            ----- Set up the config table for all hold areas first -----
-            -- filter_units .x .y: the area from which to draw units for this hold
-            -- hold_area .x_min .x_max .y_min .y_max: the area to consider where to hold
-            -- hold .x .max_y: the coordinates to consider when holding a position (to be separated out later)
-            -- hold_condition .hp_ratio, .x .y: Only hold position if hp_ratio in area give is smaller than the value given
-
-            local width, height = wesnoth.get_map_size()
-
-            local cfg_left = {
-                filter_units = { x = '1-15,16-20', y = '1-15,1-6' },
-                hold_area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15},
-                hold = { x = 11, max_y = 15 },
-                hold_condition = { hp_ratio = 1.0, x = '1-15', y = '1-15' }
-            }
-
-            local cfg_right = {
-                filter_units = { x = '1-99,22-99', y = '1-11,12-25' },
-                hold_area = { x_min = 25, x_max = width, y_min = 11, y_max = height},
-                hold = { x = 27, max_y = 22 }
-            }
-
-            -- This way it will be easy to change the priorities on the fly later:
-            local cfgs = {}
-            cfgs[1] = cfg_left
-            cfgs[2] = cfg_right
+            local cfgs = grunt_rush_FLS1:get_area_cfgs()
 
             ----- Now start evaluating things -----
 
@@ -2278,6 +2467,8 @@ return {
                     --DBG.dbms(hold)
 
                     if hold then
+                        hold.villages = cfg.villages
+                        hold.one_unit_per_call = cfg.one_unit_per_call
                         grunt_rush_FLS1.data.hold = hold
                         if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                         return score_hold
@@ -2292,7 +2483,16 @@ return {
         function grunt_rush_FLS1:hold_exec()
             if AH.print_exec() then print('     - Executing hold CA') end
 
-            grunt_rush_FLS1:hold_position(grunt_rush_FLS1.data.hold.units, grunt_rush_FLS1.data.hold.goal, { ignore_terrain_at_night = true, called_from = 'hold CA' } )
+            local tod = wesnoth.get_time_of_day()
+            if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
+                grunt_rush_FLS1.data.hold.retreat = true
+            else
+                grunt_rush_FLS1.data.hold.retreat = nil
+            end
+
+            grunt_rush_FLS1:retreat_units(grunt_rush_FLS1.data.hold, { called_from = 'hold CA' } )
+
+
             grunt_rush_FLS1.data.hold = nil
         end
 
@@ -2416,8 +2616,9 @@ return {
                     end
                     for att in H.child_range(defender.__cfg, 'attack') do
                         if att.range == attack_range then
-                            for sp in H.child_range(att, 'specials') do
-                                if H.get_child(sp, 'magical') then
+                            for special in H.child_range(att, 'specials') do
+                                local mod = helper.get_child(special, 'chance_to_hit')
+                                if mod and (mod.id == 'magical') then
                                    rating = rating - 500
                                 end
                             end

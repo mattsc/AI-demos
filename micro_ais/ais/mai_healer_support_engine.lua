@@ -1,7 +1,7 @@
 return {
     init = function(ai)
 
-        local micro_ais = {}
+        local healer_support = {}
 
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
@@ -17,12 +17,12 @@ return {
 
         -- Set variables and aspects correctly at the beginning of the turn
         -- This will be blacklisted after first execution each turn
-        function micro_ais:initialize_healer_support_eval()
+        function healer_support:initialize_healer_support_eval()
             local score = 999990
             return score
         end
 
-        function micro_ais:initialize_healer_support_exec()
+        function healer_support:initialize_healer_support_exec()
             --print(' Initializing healer_support at beginning of Turn ' .. wesnoth.current.turn)
 
             -- First, modify the attacks aspect to exclude healers
@@ -54,12 +54,12 @@ return {
 
         -- After attacks by all other units are done, reset things so that healers can attack, if desired
         -- This will be blacklisted after first execution each turn
-        function micro_ais:healers_can_attack_eval()
+        function healer_support:healers_can_attack_eval()
             local score = 99990
             return score
         end
 
-        function micro_ais:healers_can_attack_exec()
+        function healer_support:healers_can_attack_exec()
             --print(' Letting healers participate in attacks from now on')
 
             --local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
@@ -80,7 +80,7 @@ return {
 
         ------ Place healers -----------
 
-        function micro_ais:healer_support_eval()
+        function healer_support:healer_support_eval(cfg)
 
             -- Should happen with higher priority than attacks, except at beginning of turn,
             -- when we want attacks done first
@@ -89,6 +89,8 @@ return {
             local score = 105000
             if self.data.HS_return_score then score = self.data.HS_return_score end
             --print('healer_support score:', score)
+
+            cfg = cfg or {}
 
             local healers = wesnoth.get_units { side = wesnoth.current.side, ability = "healing",
                 formula = '$this_unit.moves > 0'
@@ -157,25 +159,33 @@ return {
                             if (H.distance_between(u.x, u.y, r[1], r[2]) == 1) then
                                 -- !!!!!!! These ratings have to be positive or the method doesn't work !!!!!!!!!
                                 rating = rating + u.max_hitpoints - u.hitpoints
-                                rating = rating + 15 * (enemy_attack_map:get(u.x, u.y) or 0)
+
+                                -- If injured_units_only = true then don't count units with full HP
+                                if (u.max_hitpoints - u.hitpoints > 0) or (not cfg.injured_units_only) then
+                                    rating = rating + 15 * (enemy_attack_map:get(u.x, u.y) or 0)
+                                end
                             end
                         end
                     end
 
+                    -- Number of enemies that can threaten the healer at that position
+                    -- This has to be no larger than cfg.max_threats for hex to be considered
+                    local enemies_in_reach = enemy_attack_map:get(r[1], r[2]) or 0
+
                     -- If this hex fulfills those requirements, 'rating' is now greater than 0
                     -- and we do the rest of the rating, otherwise set rating to below max_rating
-                    if (rating == 0) then
+                    if (rating == 0) or (enemies_in_reach > (cfg.max_threats or 9999)) then
                         rating = max_rating - 1
                     else
                         -- Strongly discourage hexes that can be reached by enemies
-                        rating = rating - (enemy_attack_map:get(r[1], r[2]) or 0) * 1000
+                        rating = rating - enemies_in_reach * 1000
 
-                        -- Prefer villages and strong terrain, but since enemy cannot attack here, this is not so important
+                        -- All else being more or less equal, prefer villages and strong terrain
                         local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(r[1], r[2])).village
-                        if is_village then rating = rating + 0.2 end
+                        if is_village then rating = rating + 2 end
 
                         local defense = 100 - wesnoth.unit_defense(h, wesnoth.get_terrain(r[1], r[2]))
-                        rating = rating + defense / 100.
+                        rating = rating + defense / 10.
 
                         --rating_map:insert(r[1], r[2], rating)
                     end
@@ -199,13 +209,17 @@ return {
             return 0
         end
 
-        function micro_ais:healer_support_exec()
-            W.message { speaker = self.data.HS_unit.id, message = 'Moving in for healing.  (This includes moving next to units that are unhurt but threatened by enemies.)' }
+        function healer_support:healer_support_exec()
+            -- Only show this message in the healer_support scenario in AI-Demos
+            local scenario = wesnoth.get_variable("scenario_name")
+            if (scenario == 'healer_support') then
+                W.message { speaker = self.data.HS_unit.id, message = 'Moving in to back injured and/or threatened units' }
+            end
 
             AH.movefull_outofway_stopunit(ai, self.data.HS_unit, self.data.HS_hex)
             self.data.HS_unit, self.data.HS_hex =  nil, nil
         end
 
-        return micro_ais
+        return healer_support
     end
 }

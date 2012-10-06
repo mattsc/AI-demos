@@ -31,7 +31,7 @@ return {
 
             local units = wesnoth.get_units { side = wesnoth.current.side, type = types, formula = '$this_unit.moves > 0' }
             local avoid = LS.of_pairs(wesnoth.get_locations { radius = 1,
-                { "filter", { type = 'Yeti,Giant Spider,Tarantula,Bear,Dog', 
+                { "filter", { type = 'Yeti,Giant Spider,Tarantula,Bear,Dog',
                     { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
                 } }
             })
@@ -43,7 +43,7 @@ return {
                 if (not unit.variables.x) or (r == 1) then
                     local locs = {}
                     if (types == 'Bear') then
-                        locs = wesnoth.get_locations { x = '1-40', y = '1-18', 
+                        locs = wesnoth.get_locations { x = '1-40', y = '1-18',
                             { "not", { terrain = '*^X*,Wo' } },
                             { "not", { x = unit.x, y = unit.y, radius = 12 } }
                         }
@@ -115,7 +115,7 @@ return {
                 for x, y in H.adjacent_tiles(unit.x, unit.y) do
                     local enemy = wesnoth.get_unit(x, y)
                     if enemy and (enemy.side ~= wesnoth.current.side) then
-                        if (enemy.hitpoints < min_hp) then 
+                        if (enemy.hitpoints < min_hp) then
                             min_hp = enemy.hitpoints
                             target = enemy
                         end

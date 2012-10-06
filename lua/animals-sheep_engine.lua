@@ -12,7 +12,7 @@ return {
         function sheep:herding_area(center_x, center_y)
             -- Find the area that the sheep can occupy
             -- First, find all contiguous grass hexes around center hex
-            local herding_area = LS.of_pairs(wesnoth.get_locations {  
+            local herding_area = LS.of_pairs(wesnoth.get_locations {
                 x = center_x, y = center_y, radius = 8,
                 { "filter_radius", { terrain = 'G*' } }
             } )
@@ -29,9 +29,9 @@ return {
 
         function sheep:close_enemy_eval()
             -- Any enemy within 8 hexes of a sheep will get attention by the dogs
-            local enemies = wesnoth.get_units { 
+            local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
-                { "filter_location", 
+                { "filter_location",
                     { radius = 8, { "filter", { side = wesnoth.current.side, type = 'Ram,Sheep' } } }
                 }
             }
@@ -50,9 +50,9 @@ return {
             local sheep = wesnoth.get_units { side = wesnoth.current.side, type = 'Ram,Sheep' }
 
             -- We start with enemies within 4 hexes, which will be attacked
-            local enemies = wesnoth.get_units { 
+            local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
-                { "filter_location", 
+                { "filter_location",
                     { radius = 4, { "filter", { side = wesnoth.current.side, type = 'Ram,Sheep' } } }
                 }
             }
@@ -71,7 +71,7 @@ return {
                         -- 3rd: most distant dog goes first
                         rating = rating + H.distance_between(e.x, e.y, d.x, d.y) / 100.
                         reach_map:insert(x, y, rating)
-                
+
                         if (rating > max_rating) then
                             max_rating = rating
                             best_hex = { x, y }
@@ -96,9 +96,9 @@ return {
             -- If we got here, no enemies to attack where found, so we go on to block other enemies
             --print('Dogs: No enemies close enough to warrant attack')
             -- Now we get all enemies within 8 hexes
-            local enemies = wesnoth.get_units { 
+            local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
-                { "filter_location", 
+                { "filter_location",
                     { radius = 8, { "filter", { side = wesnoth.current.side, type = 'Ram,Sheep' } } }
                 }
             }
@@ -148,9 +148,9 @@ return {
             -- Sheep runs from any enemy within 8 hexes (after the dogs have moved in)
             local sheep = wesnoth.get_units { side = wesnoth.current.side, type = 'Ram,Sheep',
                 formula = '$this_unit.moves > 0',
-                { "filter_location", 
-                    { 
-                        { "filter", { { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} } } 
+                { "filter_location",
+                    {
+                        { "filter", { { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} } }
                         },
                         radius = 8
                     }
@@ -164,9 +164,9 @@ return {
         function sheep:sheep_runs_enemy_exec()
             local sheep = wesnoth.get_units { side = wesnoth.current.side, type = 'Ram,Sheep',
                 formula = '$this_unit.moves > 0',
-                { "filter_location", 
-                    { 
-                        { "filter", { { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} } } 
+                { "filter_location",
+                    {
+                        { "filter", { { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} } }
                         },
                         radius = 8
                     }
@@ -176,7 +176,7 @@ return {
             -- Simply start with the first of these sheep
             sheep = sheep[1]
             -- And find the close enemies
-            local enemies = wesnoth.get_units { 
+            local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
                 { "filter_location", { x = sheep.x, y = sheep.y , radius = 8 } }
             }
@@ -299,7 +299,7 @@ return {
             end
 
             -- Now we move the best dog
-            -- If it's already in the best position, we just take moves away from it 
+            -- If it's already in the best position, we just take moves away from it
             -- (to avoid black-listing of CA, in the worst case)
             if (best_hex[1] == best_dog.x) and (best_hex[2] == best_dog.y) then
                 ai.stopunit_moves(best_dog)
@@ -387,6 +387,6 @@ return {
             AH.movefull_stopunit(ai, dog, best_hex)
         end
 
-        return sheep	
+        return sheep
     end
 }

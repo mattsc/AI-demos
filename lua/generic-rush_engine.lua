@@ -364,9 +364,9 @@ return {
                 return 0
             end
 
-	    local enemies = AH.get_live_units {
+            local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
-	    }
+            }
 
             local villages = wesnoth.get_locations { terrain = '*^V*' }
             -- Just in case:
@@ -468,7 +468,8 @@ return {
                             { "poison", { } }
                         } }
                     } }
-                } }
+                } },
+                can_recruit = 'no'
             }
             --print('#poisoners', #poisoners)
             if (not poisoners[1]) then

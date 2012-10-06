@@ -20,19 +20,25 @@ function wesnoth.wml_actions.micro_ai(cfg)
     end
 
     -- Now deal with each specific micro AI
+
+    --------- Healer Support Micro AI ------------------------------------
     if (cfg.ai_type == 'healer_support') then
         -- If aggression = 0: Never let the healers participate in attacks
         -- This is done by not deleting the attacks aspect
 
+        local cfg_hs = {}
+        if cfg.injured_units_only then cfg_hs.injured_units_only = true end
+        if cfg.max_threats then cfg_hs.max_threats = cfg.max_threats end
+
         -- Add the CAs
         if (cfg.action == 'add') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/healer_support_CAs.lua".activate(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/healer_support_CAs.lua".activate(cfg.side, cfg_hs)
         end
 
         -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
         if (cfg.action == 'change') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/healer_support_CAs.lua".remove(cfg.side)
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/healer_support_CAs.lua".activate(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/healer_support_CAs.lua".activate(cfg.side, cfg_hs)
         end
 
         -- Remove the CAs
@@ -52,6 +58,62 @@ function wesnoth.wml_actions.micro_ai(cfg)
                     path = "stage[main_loop].candidate_action[healers_can_attack]"
                 }
             end
+        end
+
+        return
+    end
+
+    --------- Bottleneck Defense Micro AI ------------------------------------
+    if (cfg.ai_type == 'bottleneck_defense') then
+
+        -- Set up the cfg array
+        local cfg_bd = {}
+
+        -- x,y for bottleneck defense
+        if (not cfg.x) or (not cfg.y) then
+            H.wml_error("Bottleneck Defense Micro AI missing required x= and/or y= attribute")
+        else
+            cfg_bd.x, cfg_bd.y = cfg.x, cfg.y
+        end
+
+        -- enemy_x,enemy_y for bottleneck defense
+        if (not cfg.enemy_x) or (not cfg.enemy_y) then
+            H.wml_error("Bottleneck Defense Micro AI missing required enemy_x= and/or enemy_y= attribute")
+        else
+            cfg_bd.enemy_x, cfg_bd.enemy_y = cfg.enemy_x, cfg.enemy_y
+        end
+
+        -- Optional keys: healer_x, healer_y
+        if cfg.healer_x and cfg.healer_y then
+            cfg_bd.healer_x = cfg.healer_x
+            cfg_bd.healer_y = cfg.healer_y
+        end
+
+        -- Optional keys: leadership_x, leadership_y
+        if cfg.leadership_x and cfg.leadership_y then
+            cfg_bd.leadership_x = cfg.leadership_x
+            cfg_bd.leadership_y = cfg.leadership_y
+        end
+
+        -- Optional key: active_side_leader
+        if cfg.active_side_leader then
+            cfg_bd.active_side_leader = cfg.active_side_leader
+        end
+
+        -- Add the CAs
+        if (cfg.action == 'add') then
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".activate(cfg.side, cfg_bd)
+        end
+
+        -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
+        if (cfg.action == 'change') then
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".remove(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".activate(cfg.side, cfg_bd)
+        end
+
+        -- Remove the CAs
+        if (cfg.action == 'delete') then
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".remove(cfg.side)
         end
 
         return
