@@ -183,7 +183,7 @@ return {
             -- Check if leader is on keep
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
 
-            if (not wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep) then
+            if (not leader) or (not wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep) then
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return 0
             end
