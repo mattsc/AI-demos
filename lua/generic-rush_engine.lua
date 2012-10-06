@@ -313,7 +313,7 @@ return {
         function generic_rush:find_best_recruit_hex()
             -- Recruit on the castle hex that is closest to the combination of the enemy leaders
             local enemy_leaders = AH.get_live_units { canrecruit = 'yes',
-	        { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
+	            { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
             }
 
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
@@ -322,9 +322,9 @@ return {
                 { "filter_radius", { terrain = 'C*,K*' } }
             }
 
-            local max_rating, best_hex = -9e99, {}
+            local max_rating, best_hex = 0, {}
             for i,c in ipairs(castle) do
-                local rating = -9e99
+                local rating = 0
                 local unit = wesnoth.get_unit(c[1], c[2])
                 if (not unit) then
                     for j,e in ipairs(enemy_leaders) do
