@@ -9,6 +9,7 @@ return {
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
         local LS = wesnoth.require "lua/location_set.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
+        local RFH = wesnoth.require "~/add-ons/AI-demos/lua/recruit_filter_helper.lua"
 
         ------ Stats at beginning of turn -----------
 
@@ -36,7 +37,7 @@ return {
             if AH.print_eval() then print('     - Evaluating recruit_orcs CA:', os.clock()) end
 
             -- Check if there is enough gold to recruit at least a grunt
-            if (wesnoth.sides[wesnoth.current.side].gold < 12) then 
+            if (wesnoth.sides[wesnoth.current.side].gold < 12) then
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return 0
             end
@@ -79,30 +80,7 @@ return {
 
             if AH.print_exec() then print('     - Executing recruit_orcs CA') end
 
-            -- Recruit on the castle hex that is closest to the combination of the enemy leaders
-            local enemy_leaders = AH.get_live_units { canrecruit = 'yes',
-	        { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
-            }
-
-            local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
-            local castle = wesnoth.get_locations {
-                x = leader.x, y = leader.y, radius = 5,
-                { "filter_radius", { terrain = 'C*,K*' } }
-            }
-
-            local max_rating, best_hex = -9e99, {}
-            for i,c in ipairs(castle) do
-                local rating = -9e99
-                local unit = wesnoth.get_unit(c[1], c[2])
-                if (not unit) then
-                    for j,e in ipairs(enemy_leaders) do
-                        rating = rating + 1 / H.distance_between(c[1], c[2], e.x, e.y) ^ 2.
-                    end
-                    if (rating > max_rating) then 
-                        max_rating, best_hex = rating, { c[1], c[2] }
-                    end
-                end
-            end
+            local best_hex = generic_rush:find_best_recruit_hex()
 
             -- Recruit an assassin, if there is none
             local assassin = AH.get_live_units { side = wesnoth.current.side, type = 'Orcish Assassin' }[1]
@@ -176,13 +154,6 @@ return {
         function generic_rush:recruit_other_factions_eval(rusher_type)
             if AH.print_eval() then print('     - Evaluating recruit_general CA with ' .. rusher_type, os.clock()) end
 
-            -- Start the rush recruiting after first 3 other units have been recruited
-            local units = wesnoth.get_units { side = wesnoth.current.side }
-            if (#units < 4) then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                return 0
-            end
-
             -- Check if there is enough gold to recruit the rusher_type unit
             if (wesnoth.sides[wesnoth.current.side].gold < wesnoth.unit_types[rusher_type].cost) then
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
@@ -192,19 +163,6 @@ return {
             -- Check if leader is on keep
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
 
-            -- Check if we have fewer than 60% rusher_type units
-            local rushers = AH.get_live_units { side = wesnoth.current.side, type = rusher_type }
-            local all_units = AH.get_live_units { side = wesnoth.current.side }
-            -- This one is just for stats display in the terminal window
-	    local enemies = AH.get_live_units {
-                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
-	    }
-            --print('#all_units, #rushers, #enemies', #all_units, #rushers, #enemies)
-
-            if (#rushers / (#all_units+1) > 0.6) then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                return 0
-            end
             if (not wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep) then
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return 0
@@ -233,30 +191,7 @@ return {
             -- The type of unit for the rush defaults to grunt, but can be set as something else
             if (not rusher_type) then rusher_type = 'Orcish Grunt' end
 
-            -- Recruit on the castle hex that is closest to the combination of the enemy leaders
-            local enemy_leaders = AH.get_live_units { canrecruit = 'yes',
-	        { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
-            }
-
-            local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
-            local castle = wesnoth.get_locations {
-                x = leader.x, y = leader.y, radius = 5,
-                { "filter_radius", { terrain = 'C*,K*' } }
-            }
-
-            local max_rating, best_hex = -9e99, {}
-            for i,c in ipairs(castle) do
-                local rating = -9e99
-                local unit = wesnoth.get_unit(c[1], c[2])
-                if (not unit) then
-                    for j,e in ipairs(enemy_leaders) do
-                        rating = rating + 1 / H.distance_between(c[1], c[2], e.x, e.y) ^ 2.
-                    end
-                    if (rating > max_rating) then 
-                        max_rating, best_hex = rating, { c[1], c[2] }
-                    end
-                end
-            end
+            local best_hex = generic_rush:find_best_recruit_hex()
 
             --W.message { speaker = leader.id, message = 'Recruiting now: ' .. rusher_type }
             ai.recruit(rusher_type, best_hex[1], best_hex[2])
@@ -291,11 +226,81 @@ return {
         function generic_rush:recruit_rushers_exec()
             if AH.print_exec() then print('     - Executing recruit_rushers CA') end
 
-            if (self.data.recruit_rusher_type == 'Orcish Grunt') then
-                self:recruit_orcs_exec()
-            else
-                self:recruit_other_factions_exec(self.data.recruit_rusher_type)
+            -- Some of the values calculated here can be done once per turn or even per game
+            local efficiency = get_hp_efficiency()
+
+            -- Count enemies of each type
+            local enemies = AH.get_live_units {
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }}}
+            }
+            local enemy_counts = {}
+            local enemy_types = {}
+            for i, unit in ipairs(enemies) do
+                if enemy_counts[unit.type] == nil then
+                    table.insert(enemy_types, unit.type)
+                    enemy_counts[unit.type] = 1
+                else
+                    enemy_counts[unit.type] = enemy_counts[unit.type] + 1
+                end
             end
+
+            -- Determine effectiveness of recruitable units against each enemy unit type
+            local recruit_effectiveness = {}
+            for i, unit_type in ipairs(enemy_types) do
+                local analysis = analyze_enemy_unit(unit_type)
+                for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
+                    if recruit_effectiveness[recruit_id] == nil then
+                        recruit_effectiveness[recruit_id] = 0
+                    end
+                    recruit_effectiveness[recruit_id] = recruit_effectiveness[recruit_id] + analysis[recruit_id].defense.damage
+                end
+            end
+
+            -- Find best recruit based on damage done to enemies present, and hp/gold ratio
+            local score = 0
+            local recruit_type = nil
+            for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
+                local unit_score = recruit_effectiveness[recruit_id]*efficiency[recruit_id]
+                local recruit_count = #(AH.get_live_units { side = wesnoth.current.side, type = recruit_id, canrecruit = 'no' })
+                local recruit_modifier = 1+recruit_count/10
+                if unit_score/recruit_modifier > score then
+                    score = unit_score
+                    recruit_type = recruit_id
+                end
+            end
+            if wesnoth.unit_types[recruit_type].cost <= wesnoth.sides[wesnoth.current.side].gold then
+                local best_hex = generic_rush:find_best_recruit_hex()
+                ai.recruit(recruit_type, best_hex[1], best_hex[2])
+            end
+        end
+
+        function generic_rush:find_best_recruit_hex()
+            -- Recruit on the castle hex that is closest to the combination of the enemy leaders
+            local enemy_leaders = AH.get_live_units { canrecruit = 'yes',
+	        { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
+            }
+
+            local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+            local castle = wesnoth.get_locations {
+                x = leader.x, y = leader.y, radius = 5,
+                { "filter_radius", { terrain = 'C*,K*' } }
+            }
+
+            local max_rating, best_hex = -9e99, {}
+            for i,c in ipairs(castle) do
+                local rating = -9e99
+                local unit = wesnoth.get_unit(c[1], c[2])
+                if (not unit) then
+                    for j,e in ipairs(enemy_leaders) do
+                        rating = rating + 1 / H.distance_between(c[1], c[2], e.x, e.y) ^ 2.
+                    end
+                    if (rating > max_rating) then
+                        max_rating, best_hex = rating, { c[1], c[2] }
+                    end
+                end
+            end
+
+            return best_hex
         end
 
         ------- Grab Villages CA --------------
@@ -316,7 +321,7 @@ return {
             end
 
             -- Check if there are units with moves left
-            local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no', 
+            local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no',
                 formula = '$this_unit.moves > 0'
             }
             if (not units[1]) then
@@ -365,7 +370,7 @@ return {
                         -- If an enemy can get within one move, we want to hold it
                         for k,e in ipairs(enemies) do
                             local path_e, cost_e = wesnoth.find_path(e, v[1], v[2])
-                            if (cost_e <= e.max_moves) then 
+                            if (cost_e <= e.max_moves) then
                                 --print('  within enemy reach', e.id)
                                 rating = rating + 10
                             end
@@ -420,7 +425,7 @@ return {
 
             -- If a unit with a poisoned weapon can make an attack, we'll do that preferentially
             -- (with some exceptions)
-            local poisoners = AH.get_live_units { side = wesnoth.current.side, 
+            local poisoners = AH.get_live_units { side = wesnoth.current.side,
                 formula = '$this_unit.attacks_left > 0',
                 { "filter_wml", {
                     { "attack", {
@@ -463,7 +468,7 @@ return {
                     -- Strongest enemy gets poisoned first
                     local rating = defender.hitpoints
 
-                    -- Always attack enemy leader, if possible 
+                    -- Always attack enemy leader, if possible
                     if defender.canrecruit then rating = rating + 1000 end
 
                     -- Enemies that can regenerate are not good targets
@@ -507,6 +512,6 @@ return {
             self.data.attack = nil
         end
 
-        return generic_rush	
+        return generic_rush
     end
 }
