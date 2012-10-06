@@ -11,6 +11,26 @@ return {
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
         local RFH = wesnoth.require "~/add-ons/AI-demos/lua/recruit_filter_helper.lua"
 
+        function generic_rush:hp_ratio(my_units, enemies)
+            -- Hitpoint ratio of own units / enemy units
+            -- If arguments are not given, use all units on the side
+            if (not my_units) then
+                my_units = AH.get_live_units { side = wesnoth.current.side }
+            end
+            if (not enemies) then
+                enemies = AH.get_live_units {
+                    { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+                }
+            end
+
+            local my_hp, enemy_hp = 0, 0
+            for i,u in ipairs(my_units) do my_hp = my_hp + u.hitpoints end
+            for i,u in ipairs(enemies) do enemy_hp = enemy_hp + u.hitpoints end
+
+            --print('HP ratio:', my_hp / (enemy_hp + 1e-6)) -- to avoid div by 0
+            return my_hp / (enemy_hp + 1e-6)
+        end
+
         ------ Stats at beginning of turn -----------
 
         -- This will be blacklisted after first execution each turn
@@ -259,8 +279,9 @@ return {
             -- Find best recruit based on damage done to enemies present, and hp/gold ratio
             local score = 0
             local recruit_type = nil
+            local hp_ratio = generic_rush:hp_ratio()
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
-                local unit_score = recruit_effectiveness[recruit_id]*efficiency[recruit_id]
+                local unit_score = recruit_effectiveness[recruit_id]*(efficiency[recruit_id]*hp_ratio)
                 local recruit_count = #(AH.get_live_units { side = wesnoth.current.side, type = recruit_id, canrecruit = 'no' })
                 local recruit_modifier = 1+recruit_count/10
                 if unit_score/recruit_modifier > score then

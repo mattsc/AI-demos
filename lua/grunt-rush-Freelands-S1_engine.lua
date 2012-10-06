@@ -2682,8 +2682,9 @@ return {
             -- Find best recruit based on damage done to enemies present, and hp/gold ratio
             local score = 0
             local recruit_type = nil
+            local hp_ratio = grunt_rush_FLS1:hp_ratio()
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
-                local unit_score = recruit_effectiveness[recruit_id]*efficiency[recruit_id]
+                local unit_score = recruit_effectiveness[recruit_id]*(efficiency[recruit_id]*hp_ratio)
                 local recruit_count = #(AH.get_live_units { side = wesnoth.current.side, type = recruit_id, canrecruit = 'no' })
                 local recruit_modifier = 1+recruit_count/10
                 if unit_score/recruit_modifier > score then
