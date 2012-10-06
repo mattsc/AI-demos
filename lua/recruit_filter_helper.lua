@@ -120,8 +120,8 @@ function analyze_enemy_unit(unit_type_id)
             local attack_damage = base_damage*attack.number*defense-drain_recovery
 
             if poison then
-                -- Add poison damage * probability of poisoning
-                attack_damage = attack_damage + 800*(1-((1-defense)^attack.number))
+                -- Add half poison damage * probability of poisoning
+                attack_damage = attack_damage + 400*(1-((1-defense)^attack.number))
             end
 
             if (not best_attack) or (attack_damage > best_damage) then
