@@ -1380,4 +1380,23 @@ function ai_helper.attack_combo_stats(attackers, dsts, enemy)
     return sorted_attackers, sorted_dsts, combo_def_stats, combo_att_stats
 end
 
+function ai_helper.get_closest_enemy()
+    local enemies = ai_helper.get_live_units {
+    { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
+    }
+
+    local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+
+    local closest_distance, location = 9e99, {}
+    for i,u in ipairs(enemies) do
+        enemy_distance = helper.distance_between(leader.x, leader.y, u.x, u.y)
+        if enemy_distance < closest_distance then
+            closest_distance = enemy_distance
+            location = {x=u.x, y=u.y}
+        end
+    end
+
+    return closest_distance, location
+end
+
 return ai_helper

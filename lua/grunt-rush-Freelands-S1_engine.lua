@@ -32,7 +32,7 @@ return {
             for i,u in ipairs(enemies) do enemy_hp = enemy_hp + u.hitpoints end
 
             --print('HP ratio:', my_hp / (enemy_hp + 1e-6)) -- to avoid div by 0
-            return my_hp / (enemy_hp + 1e-6)
+            return my_hp / (enemy_hp + 1e-6), my_hp, enemy_hp
         end
 
         function grunt_rush_FLS1:hp_ratio_y(my_units, enemies, x_min, x_max, y_min, y_max)
@@ -950,6 +950,7 @@ return {
                 print('   Player ' .. s.side .. ' (' .. leader.type .. '): ' .. #units .. ' Units with total HP: ' .. total_hp)
             end
             if grunt_rush_FLS1:full_offensive() then print(' Full offensive mode (mostly done by RCA AI)') end
+            get_hp_efficiency()
         end
 
         ------ Reset variables at beginning of turn -----------
@@ -2848,19 +2849,69 @@ return {
             return 0
         end
 
-        function grunt_rush_FLS1:recruit_orcs_exec()
-            local whelp_cost = wesnoth.unit_types["Troll Whelp"].cost
-            local archer_cost = wesnoth.unit_types["Orcish Archer"].cost
-            local assassin_cost = wesnoth.unit_types["Orcish Assassin"].cost
-            local wolf_cost = wesnoth.unit_types["Wolf Rider"].cost
-            local hp_ratio = grunt_rush_FLS1:hp_ratio()
+        function grunt_rush_FLS1:recruit_orcs_exec_experimental()
+            if AH.print_exec() then print('     - Executing recruit_rushers CA') end
 
-            if AH.print_exec() then print('     - Executing recruit_orcs CA') end
-            -- Recruiting logic (in that order):
-            -- ... under revision ...
-            -- All of this is contingent on having enough gold (eval checked for gold > 12)
-            -- -> if not enough gold for something else, recruit a grunt at the end
+            -- Some of the values calculated here can be done once per turn or even per game
+            local efficiency = get_hp_efficiency()
 
+            -- Count enemies of each type
+            local enemies = AH.get_live_units {
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }}}
+            }
+            local enemy_counts = {}
+            local enemy_types = {}
+            for i, unit in ipairs(enemies) do
+                if enemy_counts[unit.type] == nil then
+                    table.insert(enemy_types, unit.type)
+                    enemy_counts[unit.type] = 1
+                else
+                    enemy_counts[unit.type] = enemy_counts[unit.type] + 1
+                end
+            end
+
+            -- Determine effectiveness of recruitable units against each enemy unit type
+            local recruit_effectiveness = {}
+            for i, unit_type in ipairs(enemy_types) do
+                local analysis = analyze_enemy_unit(unit_type)
+                for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
+                    if recruit_effectiveness[recruit_id] == nil then
+                        recruit_effectiveness[recruit_id] = 0
+                    end
+                    recruit_effectiveness[recruit_id] = recruit_effectiveness[recruit_id] + analysis[recruit_id].defense.damage
+                end
+            end
+
+            -- Find best recruit based on damage done to enemies present, and hp/gold ratio
+            local score = 0
+            local recruit_type = nil
+            local hp_ratio, my_hp, enemy_hp = grunt_rush_FLS1:hp_ratio()
+            my_hp = my_hp + wesnoth.sides[wesnoth.current.side].gold*2
+            local enemy_gold = 0
+            local enemies = wesnoth.get_sides {{"enemy_of", {side = wesnoth.current.side} }}
+            for i,s in ipairs(enemies) do
+                enemy_gold = enemy_gold + s.gold
+            end
+            enemy_hp = enemy_hp+enemy_gold*2
+            hp_ratio = my_hp/(enemy_hp + 1e-6)
+            for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
+                local recruit_count = #(AH.get_live_units { side = wesnoth.current.side, type = recruit_id, canrecruit = 'no' })
+                local recruit_modifier = 1+(recruit_count^1.5)/10
+                local unit_score = recruit_effectiveness[recruit_id]*(efficiency[recruit_id]*hp_ratio)
+                unit_score = unit_score/recruit_modifier
+                wesnoth.message(recruit_id .. " score: " .. unit_score)
+                if unit_score > score then
+                    score = unit_score
+                    recruit_type = recruit_id
+                end
+            end
+            if wesnoth.unit_types[recruit_type].cost <= wesnoth.sides[wesnoth.current.side].gold then
+                local best_hex = grunt_rush_FLS1:find_best_recruit_hex()
+                ai.recruit(recruit_type, best_hex[1], best_hex[2])
+            end
+        end
+
+        function grunt_rush_FLS1:find_best_recruit_hex()
             local goal = { x = 27, y = 16 }
 
             -- First, find open castle hex closest to goal
@@ -2900,6 +2951,24 @@ return {
                 if AH.show_messages() then W.message { speaker = unit_in_way.id, message = 'Moving out of way for recruiting' } end
                 AH.move_unit_out_of_way(ai, unit_in_way, { dx = 0.1, dy = 0.5 })
             end
+
+            return best_hex, best_hex_left
+        end
+
+        function grunt_rush_FLS1:recruit_orcs_exec()
+            local whelp_cost = wesnoth.unit_types["Troll Whelp"].cost
+            local archer_cost = wesnoth.unit_types["Orcish Archer"].cost
+            local assassin_cost = wesnoth.unit_types["Orcish Assassin"].cost
+            local wolf_cost = wesnoth.unit_types["Wolf Rider"].cost
+            local hp_ratio = grunt_rush_FLS1:hp_ratio()
+
+            if AH.print_exec() then print('     - Executing recruit_orcs CA') end
+            -- Recruiting logic (in that order):
+            -- ... under revision ...
+            -- All of this is contingent on having enough gold (eval checked for gold > 12)
+            -- -> if not enough gold for something else, recruit a grunt at the end
+
+            local best_hex, best_hex_left = grunt_rush_FLS1:find_best_recruit_hex()
 
             if AH.show_messages() then W.message { speaker = leader.id, message = 'Recruiting' } end
 
