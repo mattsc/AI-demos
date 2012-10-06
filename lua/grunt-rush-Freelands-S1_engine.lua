@@ -2671,7 +2671,7 @@ return {
                     if recruit_effectiveness[recruit_id] == nil then
                         recruit_effectiveness[recruit_id] = 0
                     end
-                    recruit_effectiveness[recruit_id] = recruit_effectiveness[recruit_id] + analysis[recruit_id].offense.damage
+                    recruit_effectiveness[recruit_id] = recruit_effectiveness[recruit_id] + analysis[recruit_id].defense.damage
                 end
             end
             local score = 0
