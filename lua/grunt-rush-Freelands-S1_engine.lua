@@ -2121,7 +2121,7 @@ return {
             grunt_rush_FLS1:hold_position(units_left, goal, { called_from = 'hold_left' })
         end
 
-        --------- Rush CA ------------
+        --------- zone_control CA ------------
 
         function grunt_rush_FLS1:area_rush_eval(cfg, i_c)
             -- Calculate if a rush should be done in the specified area
@@ -2279,56 +2279,6 @@ return {
             return nil  -- Yes, I know that the 'nil' is unnecessary :-)
         end
 
-        function grunt_rush_FLS1:rush_eval()
-            local score_rush = 350000
-            if AH.skip_CA('rush') then return 0 end
-            if AH.print_eval() then print('     - Evaluating rush CA:', os.clock()) end
-
-            -- Skip this if AI is much stronger than enemy
-            if grunt_rush_FLS1:full_offensive() then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                return 0
-            end
-
-            local cfgs = grunt_rush_FLS1:get_area_cfgs()
-
-            ----- Now start evaluating things -----
-
-            for i_c,cfg in ipairs(cfgs) do
-                local rush = grunt_rush_FLS1:area_rush_eval(cfg, i_c)
-                --DBG.dbms(rush)
-
-                if rush then
-                    grunt_rush_FLS1.data.rush = rush
-                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                    return score_rush
-                end
-            end
-
-            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-            return 0
-        end
-
-        function grunt_rush_FLS1:rush_exec()
-            if AH.print_exec() then print('     - Executing rush CA') end
-
-            while grunt_rush_FLS1.data.rush.attackers and (table.maxn(grunt_rush_FLS1.data.rush.attackers) > 0) do
-                if AH.show_messages() then W.message { speaker = grunt_rush_FLS1.data.rush.attackers[1].id, message = 'Rush: Combo attack' } end
-                AH.movefull_outofway_stopunit(ai, grunt_rush_FLS1.data.rush.attackers[1], grunt_rush_FLS1.data.rush.dsts[1])
-                ai.attack(grunt_rush_FLS1.data.rush.attackers[1], grunt_rush_FLS1.data.rush.enemy)
-
-                -- Delete this attack from the combo
-                table.remove(grunt_rush_FLS1.data.rush.attackers, 1)
-                table.remove(grunt_rush_FLS1.data.rush.dsts, 1)
-
-                -- If enemy got killed, we need to stop here
-                if (not grunt_rush_FLS1.data.rush.enemy.valid) then grunt_rush_FLS1.data.rush.attackers = nil end
-            end
-            grunt_rush_FLS1.data.rush = nil
-        end
-
-        ----------- Hold CA ----------------
-
         function grunt_rush_FLS1:area_hold_eval(cfg)
             -- Calculate if position holding should be done in the specified area
             -- See grunt_rush_FLS1:hold_eval() for format of 'cfg'
@@ -2419,11 +2369,10 @@ return {
             return hold
         end
 
-        function grunt_rush_FLS1:hold_eval()
-
-            local score_hold = 300000
-            if AH.skip_CA('hold') then return 0 end
-            if AH.print_eval() then print('     - Evaluating hold CA:', os.clock()) end
+        function grunt_rush_FLS1:zone_control_eval()
+            local score_zone_control = 350000
+            if AH.skip_CA('zone_control') then return 0 end
+            if AH.print_eval() then print('     - Evaluating zone_control CA:', os.clock()) end
 
             -- Skip this if AI is much stronger than enemy
             if grunt_rush_FLS1:full_offensive() then
@@ -2435,7 +2384,18 @@ return {
 
             ----- Now start evaluating things -----
 
-            for i,cfg in ipairs(cfgs) do
+            for i_c,cfg in ipairs(cfgs) do
+                -- Evaluate potential rushes first
+                local rush = grunt_rush_FLS1:area_rush_eval(cfg, i_c)
+                --DBG.dbms(rush)
+
+                if rush then
+                    grunt_rush_FLS1.data.rush = rush
+                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                    return score_zone_control
+                end
+
+                -- Now evaluate the hold
                 -- Only check for possible position holding if hold_condition is met
                 local eval_hold = true
                 if cfg.hold_condition then
@@ -2471,7 +2431,7 @@ return {
                         hold.one_unit_per_call = cfg.one_unit_per_call
                         grunt_rush_FLS1.data.hold = hold
                         if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                        return score_hold
+                        return score_zone_control
                     end
                 end
             end
@@ -2480,8 +2440,28 @@ return {
             return 0
         end
 
-        function grunt_rush_FLS1:hold_exec()
-            if AH.print_exec() then print('     - Executing hold CA') end
+        function grunt_rush_FLS1:zone_control_exec()
+            if grunt_rush_FLS1.data.rush then
+                if AH.print_exec() then print('     - Executing zone_control CA (rush)') end
+
+                while grunt_rush_FLS1.data.rush.attackers and (table.maxn(grunt_rush_FLS1.data.rush.attackers) > 0) do
+                    if AH.show_messages() then W.message { speaker = grunt_rush_FLS1.data.rush.attackers[1].id, message = 'Rush: Combo attack' } end
+                    AH.movefull_outofway_stopunit(ai, grunt_rush_FLS1.data.rush.attackers[1], grunt_rush_FLS1.data.rush.dsts[1])
+                    ai.attack(grunt_rush_FLS1.data.rush.attackers[1], grunt_rush_FLS1.data.rush.enemy)
+
+                    -- Delete this attack from the combo
+                    table.remove(grunt_rush_FLS1.data.rush.attackers, 1)
+                    table.remove(grunt_rush_FLS1.data.rush.dsts, 1)
+
+                    -- If enemy got killed, we need to stop here
+                    if (not grunt_rush_FLS1.data.rush.enemy.valid) then grunt_rush_FLS1.data.rush.attackers = nil end
+                end
+                grunt_rush_FLS1.data.rush = nil
+                return
+            end
+
+            -- This means that if we got here, this must be a 'hold' execution
+            if AH.print_exec() then print('     - Executing zone_control CA (hold)') end
 
             local tod = wesnoth.get_time_of_day()
             if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
@@ -2490,8 +2470,7 @@ return {
                 grunt_rush_FLS1.data.hold.retreat = nil
             end
 
-            grunt_rush_FLS1:retreat_units(grunt_rush_FLS1.data.hold, { called_from = 'hold CA' } )
-
+            grunt_rush_FLS1:retreat_units(grunt_rush_FLS1.data.hold, { called_from = 'zone_control CA' } )
 
             grunt_rush_FLS1.data.hold = nil
         end
