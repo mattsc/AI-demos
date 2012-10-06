@@ -163,7 +163,7 @@ function get_hp_efficiency()
     for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
         local unit = wesnoth.create_unit { type = recruit_id }
         local flat_defense = (100-wesnoth.unit_defense(unit, "Gt"))/100.0
-        efficiency[recruit_id] = flat_defense*(wesnoth.unit_types[recruit_id].max_hitpoints^1.5)/wesnoth.unit_types[recruit_id].cost
+        efficiency[recruit_id] = flat_defense*(wesnoth.unit_types[recruit_id].max_hitpoints^1.5)/(wesnoth.unit_types[recruit_id].cost^2)
     end
     return efficiency
 end
