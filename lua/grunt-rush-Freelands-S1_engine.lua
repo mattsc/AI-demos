@@ -2651,6 +2651,8 @@ return {
         function grunt_rush_FLS1:recruit_orcs_exec()
             -- Some of the values calculated here can be done once per turn or even per game
             local efficiency = get_hp_efficiency()
+
+            -- Count enemies of each type
             local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }}}
             }
@@ -2664,6 +2666,8 @@ return {
                     enemy_counts[unit.type] = enemy_counts[unit.type] + 1
                 end
             end
+
+            -- Determine effectiveness of recruitable units against each enemy unit type
             local recruit_effectiveness = {}
             for i, unit_type in ipairs(enemy_types) do
                 local analysis = analyze_enemy_unit(unit_type)
@@ -2674,11 +2678,15 @@ return {
                     recruit_effectiveness[recruit_id] = recruit_effectiveness[recruit_id] + analysis[recruit_id].defense.damage
                 end
             end
+
+            -- Find best recruit based on damage done to enemies present, and hp/gold ratio
             local score = 0
             local recruit_type = nil
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
                 local unit_score = recruit_effectiveness[recruit_id]*efficiency[recruit_id]
-                if unit_score > score then
+                local recruit_count = #(AH.get_live_units { side = wesnoth.current.side, type = recruit_id, canrecruit = 'no' })
+                local recruit_modifier = 1+recruit_count/10
+                if unit_score/recruit_modifier > score then
                     score = unit_score
                     recruit_type = recruit_id
                 end
