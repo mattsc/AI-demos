@@ -302,7 +302,7 @@ return {
                 local recruit_count = #(AH.get_live_units { side = wesnoth.current.side, type = recruit_id, canrecruit = 'no' })
                 local recruit_modifier = 1+recruit_count/10
                 local offense_score = recruit_effectiveness[recruit_id]^0.5/(recruit_modifier^2)
-                local defense_score = (100*efficiency[recruit_id]/hp_ratio)/recruit_modifier
+                local defense_score = (100*efficiency[recruit_id]/(hp_ratio^0.5))/recruit_modifier
                 local move_score = (distance_to_enemy^2 / (cost / wesnoth.unit_types[recruit_id].max_moves)) / (10*recruit_modifier^4)
                 --wesnoth.message(recruit_id .. " distance: " .. distance_to_enemy .. " / " .. (cost / wesnoth.unit_types[recruit_id].max_moves) .. " = " .. move_score)
                 local unit_score = offense_score + defense_score + move_score
