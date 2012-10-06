@@ -28,7 +28,7 @@ return {
             for i,u in ipairs(enemies) do enemy_hp = enemy_hp + u.hitpoints end
 
             --print('HP ratio:', my_hp / (enemy_hp + 1e-6)) -- to avoid div by 0
-            return my_hp / (enemy_hp + 1e-6)
+            return my_hp / (enemy_hp + 1e-6), my_hp, enemy_hp
         end
 
         ------ Stats at beginning of turn -----------
@@ -279,12 +279,22 @@ return {
             -- Find best recruit based on damage done to enemies present, and hp/gold ratio
             local score = 0
             local recruit_type = nil
-            local hp_ratio = generic_rush:hp_ratio()
+            local hp_ratio, my_hp, enemy_hp = generic_rush:hp_ratio()
+            my_hp = my_hp + wesnoth.sides[wesnoth.current.side].gold*2
+            local enemy_gold = 0
+            local enemies = wesnoth.get_sides {{"enemy_of", {side = wesnoth.current.side} }}
+            for i,s in ipairs(enemies) do
+                enemy_gold = enemy_gold + s.gold
+            end
+            enemy_hp = enemy_hp+enemy_gold*2
+            hp_ratio = my_hp/(enemy_hp + 1e-6)
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
-                local unit_score = recruit_effectiveness[recruit_id]*(efficiency[recruit_id]*hp_ratio)
                 local recruit_count = #(AH.get_live_units { side = wesnoth.current.side, type = recruit_id, canrecruit = 'no' })
-                local recruit_modifier = 1+recruit_count/10
-                if unit_score/recruit_modifier > score then
+                local recruit_modifier = 1+(recruit_count^1.5)/10
+                local unit_score = recruit_effectiveness[recruit_id]*(efficiency[recruit_id]*hp_ratio)
+                unit_score = unit_score/recruit_modifier
+                wesnoth.message(recruit_id .. " score: " .. unit_score)
+                if unit_score > score then
                     score = unit_score
                     recruit_type = recruit_id
                 end
