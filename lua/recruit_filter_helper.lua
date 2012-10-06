@@ -133,7 +133,7 @@ function analyze_enemy_unit(unit_type_id)
         return best_attack, best_damage
     end
 
-    local analysis = { unit = unit_type_id }
+    local analysis = {}
 
     local unit = wesnoth.create_unit { type = unit_type_id }
     local can_poison = not (helper.get_child(unit.__cfg, "status").not_living or wesnoth.unit_ability(unit, 'regenerate'))
@@ -144,10 +144,15 @@ function analyze_enemy_unit(unit_type_id)
         best_flat_attack, best_flat_damage = get_best_attack(recruit_id, unit, flat_defense, can_poison)
         best_high_defense_attack, best_high_defense_damage = get_best_attack(recruit_id, unit, best_defense, can_poison)
 
-        local result = { "attacks_against", {unit = recruit_id,
-            {"attack_result", {name = "defense", {"attack", best_flat_attack}, damage = best_flat_damage}},
-            {"attack_result", {name = "offense", {"attack", best_high_defense_attack}, damage = best_high_defense_damage}} } }
-        table.insert(analysis, result)
+--        local result = { "attacks_against", {unit = recruit_id,
+--            {"attack_result", {name = "defense", {"attack", best_flat_attack}, damage = best_flat_damage}},
+--            {"attack_result", {name = "offense", {"attack", best_high_defense_attack}, damage = best_high_defense_damage}} } }
+        local result = {
+            offense = { attack = best_flat_attack, damage = best_flat_damage },
+            defense = { attack = best_high_defense_attack, damage = best_high_defense_damage }
+        }
+        analysis[recruit_id] = result
+--        table.insert(analysis, result)
     end
 
     return analysis
@@ -155,7 +160,7 @@ end
 
 function get_hp_efficiency()
     local efficiency = {}
-    for i, recruit_id in ipairs(wesnoth.sides[2].recruit) do
+    for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
         local unit = wesnoth.create_unit { type = recruit_id }
     --    local flat_defense = wesnoth.unit_defense(unit, "Gt")
         efficiency[recruit_id] = wesnoth.unit_types[recruit_id].max_hitpoints/wesnoth.unit_types[recruit_id].cost
