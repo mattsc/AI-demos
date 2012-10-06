@@ -469,7 +469,7 @@ return {
                         } }
                     } }
                 } },
-                can_recruit = 'no'
+                canrecruit = 'no'
             }
             --print('#poisoners', #poisoners)
             if (not poisoners[1]) then
