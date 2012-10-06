@@ -1,3 +1,14 @@
+0.next
+- Generic Rush:
+  - New recruit algorithm
+    - Can counter recruit
+    - Recruits scouts based on map size
+    - Can handle multiple allies and opponents
+    - Should work with any faction (though non-standard abilities may not be accounted for or mishandled)
+  - No longer freezes when trying to poison units with ghouls
+  - Now able to keep playing after leader death
+  - Leaders who can poison no longer wander away from their keep
+
 0.11.0, 30 Sep 2012
 - Introduction of Micro AIs and the [micro_ai] tag
   - This includes a new scenario: Healer Support, which is the first to use the MAI functionality
