@@ -275,7 +275,7 @@ return {
                         recruit_vulnerability[recruit_id] = 0
                     end
                     recruit_effectiveness[recruit_id] = recruit_effectiveness[recruit_id] + analysis[recruit_id].defense.damage * enemy_counts[unit_type]
-                    recruit_vulnerability[recruit_id] = recruit_vulnerability[recruit_id] + analysis[recruit_id].retaliation.damage * enemy_counts[unit_type]
+                    recruit_vulnerability[recruit_id] = recruit_vulnerability[recruit_id] + analysis[recruit_id].retaliation.damage^2 * enemy_counts[unit_type]
                 end
             end
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
