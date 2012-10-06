@@ -428,7 +428,8 @@ return {
                             { "poison", { } }
                         } }
                     } }
-                } }
+                } },
+                can_recruit = 'no'
             }
             --print('#poisoners', #poisoners)
             if (not poisoners[1]) then
