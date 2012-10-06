@@ -144,34 +144,43 @@ return {
 
             -- Find how many enemies threaten each of the hold areas
             local enemy_num, enemy_hp = {}, {}
-            for i,c in ipairs(cfgs) do
-                enemy_num[i], enemy_hp[i] = 0, 0
+            for i_c,c in ipairs(cfgs) do
+                enemy_num[i_c], enemy_hp[i_c] = 0, 0
                 for x = c.hold_area.x_min,c.hold_area.x_max do
                     for y = c.hold_area.y_min,c.hold_area.y_max do
                         local en = enemy_attack_map:get(x, y) or 0
-                        if (en > enemy_num[i]) then enemy_num[i] = en end
+                        if (en > enemy_num[i_c]) then enemy_num[i_c] = en end
                         local hp = enemy_attack_map_hp:get(x, y) or 0
-                        if (hp > enemy_hp[i]) then enemy_hp[i] = hp end
+                        if (hp > enemy_hp[i_c]) then enemy_hp[i_c] = hp end
                     end
                 end
-                --print('enemy threat:', i, enemy_num[i], enemy_hp[i])
+                --print('enemy threat:', i_c, enemy_num[i_c], enemy_hp[i_c])
             end
 
             -- Also find how many enemies are already present in threat_area
             local present_enemies = {}
-            for i,c in ipairs(cfgs) do
-                present_enemies[i] = 0
+            for i_c,c in ipairs(cfgs) do
+                present_enemies[i_c] = 0
                 for j,e in ipairs(enemies) do
                     if (e.x >= c.threat_area.x_min) and (e.x <= c.threat_area.x_max) and
                         (e.y >= c.threat_area.y_min) and (e.y <= c.threat_area.y_max)
                     then
-                        present_enemies[i] = present_enemies[i] + 1
+                        present_enemies[i_c] = present_enemies[i_c] + 1
                     end
                 end
-                --print('present enemies:', i, present_enemies[i])
+                --print('present enemies:', i_c, present_enemies[i_c])
             end
 
+            -- Now set this up as global variable
             grunt_rush_FLS1.data.area_cfgs = cfgs
+
+            -- We also need an area_parms global variable
+            -- This might be set/reset independently of area_cfgs -> separate variable
+            grunt_rush_FLS1.data.area_parms = {}
+            for i_c,c in ipairs(cfgs) do
+                grunt_rush_FLS1.data.area_parms[i_c] = {}
+            end
+
             return grunt_rush_FLS1.data.area_cfgs
         end
 
@@ -2113,10 +2122,11 @@ return {
 
         --------- Rush CA ------------
 
-        function grunt_rush_FLS1:area_rush_eval(cfg)
+        function grunt_rush_FLS1:area_rush_eval(cfg, i_c)
             -- Calculate if a rush should be done in the specified area
             -- See grunt_rush_FLS1:rush_eval() for format of 'cfg'
             -- Returns the attack details if a viable attack combo was found, nil otherwise
+            -- i_c: the index for the global 'parms' array, so that parameters can be set for the correct area
 
             cfg = cfg or {}
 
@@ -2133,7 +2143,7 @@ return {
             local units = AH.get_live_units(filter_units)
             if (not units[1]) then return end
 
-            -- Then get all the enemies (this is all of them, to get the HP ratio)
+            -- Then get all the enemies (this needs to be all of them, to get the HP ratio)
             local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
@@ -2149,8 +2159,6 @@ return {
             end
             local hp_ratio_y, number_units_y = grunt_rush_FLS1:hp_ratio_y(units, enemies, x_min, x_max, y_min, y_max)
 
-            -- We'll do this step by step for easier experimenting
-            -- To be streamlined later
             local tod = wesnoth.get_time_of_day()
 
             local attack_y = y_min
@@ -2167,6 +2175,17 @@ return {
                 end
             end
             --print('attack_y', attack_y)
+
+            -- attack_y can never be less than what has been used during this move already
+            if grunt_rush_FLS1.data.area_parms[i_c].advance_y then
+                if (grunt_rush_FLS1.data.area_parms[i_c].advance_y > attack_y) then
+                    attack_y = grunt_rush_FLS1.data.area_parms[i_c].advance_y
+                else
+                    grunt_rush_FLS1.data.area_parms[i_c].advance_y = attack_y
+                end
+            else
+                grunt_rush_FLS1.data.area_parms[i_c].advance_y = attack_y
+            end
 
             -- If a suitable attack_y was found, figure out what targets there might be
             if (attack_y > 0) then
@@ -2274,8 +2293,8 @@ return {
 
             ----- Now start evaluating things -----
 
-            for i,cfg in ipairs(cfgs) do
-                local rush = grunt_rush_FLS1:area_rush_eval(cfg)
+            for i_c,cfg in ipairs(cfgs) do
+                local rush = grunt_rush_FLS1:area_rush_eval(cfg, i_c)
                 --DBG.dbms(rush)
 
                 if rush then
