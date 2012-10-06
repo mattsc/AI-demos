@@ -141,18 +141,18 @@ function analyze_enemy_unit(unit_type_id)
     local best_defense = get_best_defense(unit)
 
     for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
+        local recruit = wesnoth.create_unit { type = recruit_id }
+        local can_poison_retaliation = not (helper.get_child(recruit.__cfg, "status").not_living or wesnoth.unit_ability(recruit, 'regenerate'))
         best_flat_attack, best_flat_damage = get_best_attack(recruit_id, unit, flat_defense, can_poison)
         best_high_defense_attack, best_high_defense_damage = get_best_attack(recruit_id, unit, best_defense, can_poison)
+        best_retaliation, best_retaliation_damage = get_best_attack(unit_type_id, recruit, wesnoth.unit_defense(recruit, "Gt"), can_poison_retaliation)
 
---        local result = { "attacks_against", {unit = recruit_id,
---            {"attack_result", {name = "defense", {"attack", best_flat_attack}, damage = best_flat_damage}},
---            {"attack_result", {name = "offense", {"attack", best_high_defense_attack}, damage = best_high_defense_damage}} } }
         local result = {
             offense = { attack = best_flat_attack, damage = best_flat_damage },
-            defense = { attack = best_high_defense_attack, damage = best_high_defense_damage }
+            defense = { attack = best_high_defense_attack, damage = best_high_defense_damage },
+            retaliation = { attack = best_retaliation, damage = best_retaliation_damage }
         }
         analysis[recruit_id] = result
---        table.insert(analysis, result)
     end
 
     return analysis
@@ -162,7 +162,7 @@ function get_hp_efficiency()
     local efficiency = {}
     for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
         local unit = wesnoth.create_unit { type = recruit_id }
-        local flat_defense = (100-wesnoth.unit_defense(unit, "Gt"))/100.0
+        local flat_defense = (100-wesnoth.unit_defense(unit, "Gt"))
         efficiency[recruit_id] = flat_defense*(wesnoth.unit_types[recruit_id].max_hitpoints^1.3)/(wesnoth.unit_types[recruit_id].cost^2)
     end
     return efficiency

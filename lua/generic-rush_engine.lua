@@ -266,17 +266,21 @@ return {
 
             -- Determine effectiveness of recruitable units against each enemy unit type
             local recruit_effectiveness = {}
+            local recruit_vulnerability = {}
             for i, unit_type in ipairs(enemy_types) do
                 local analysis = analyze_enemy_unit(unit_type)
                 for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
                     if recruit_effectiveness[recruit_id] == nil then
                         recruit_effectiveness[recruit_id] = 0
+                        recruit_vulnerability[recruit_id] = 0
                     end
                     recruit_effectiveness[recruit_id] = recruit_effectiveness[recruit_id] + analysis[recruit_id].defense.damage * enemy_counts[unit_type]
+                    recruit_vulnerability[recruit_id] = recruit_vulnerability[recruit_id] + analysis[recruit_id].retaliation.damage * enemy_counts[unit_type]
                 end
             end
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
                 recruit_effectiveness[recruit_id] = recruit_effectiveness[recruit_id] / #enemies
+                recruit_vulnerability[recruit_id] = recruit_vulnerability[recruit_id] / #enemies
             end
 
             -- Find best recruit based on damage done to enemies present, speed, and hp/gold ratio
@@ -295,16 +299,14 @@ return {
             local distance_to_enemy, enemy_location = AH.get_closest_enemy()
             local best_hex = generic_rush:find_best_recruit_hex()
 
-            --wesnoth.message("hp ratio: " .. my_hp .. " / " .. enemy_hp .. " = " .. hp_ratio)
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
                 local recruit_unit = wesnoth.create_unit { type = recruit_id, x = best_hex[1], y = best_hex[2] }
                 local path, cost = wesnoth.find_path(recruit_unit, enemy_location.x, enemy_location.y, {ignore_units = true})
                 local recruit_count = #(AH.get_live_units { side = wesnoth.current.side, type = recruit_id, canrecruit = 'no' })
                 local recruit_modifier = 1+recruit_count/10
                 local offense_score = recruit_effectiveness[recruit_id]^0.5/(recruit_modifier^2)
-                local defense_score = (100*efficiency[recruit_id]/(hp_ratio^0.5))/recruit_modifier
+                local defense_score = (1500*efficiency[recruit_id]/(recruit_vulnerability[recruit_id]*hp_ratio^0.5))/recruit_modifier
                 local move_score = (distance_to_enemy^2 / (cost / wesnoth.unit_types[recruit_id].max_moves)) / (10*recruit_modifier^4)
-                --wesnoth.message(recruit_id .. " distance: " .. distance_to_enemy .. " / " .. (cost / wesnoth.unit_types[recruit_id].max_moves) .. " = " .. move_score)
                 local unit_score = offense_score + defense_score + move_score
                 wesnoth.message(recruit_id .. " score: " .. offense_score .. " + " .. defense_score .. " + " .. move_score  .. " = " .. unit_score)
                 if unit_score > score then
