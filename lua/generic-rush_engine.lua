@@ -304,11 +304,11 @@ return {
                 local path, cost = wesnoth.find_path(recruit_unit, enemy_location.x, enemy_location.y, {ignore_units = true})
                 local recruit_count = #(AH.get_live_units { side = wesnoth.current.side, type = recruit_id, canrecruit = 'no' })
                 local recruit_modifier = 1+recruit_count/10
-                local offense_score = recruit_effectiveness[recruit_id]^0.5/(recruit_modifier^2)
-                local defense_score = (1500*efficiency[recruit_id]/(recruit_vulnerability[recruit_id]*hp_ratio^0.5))/recruit_modifier
+                local offense_score = recruit_effectiveness[recruit_id]^0.5/(recruit_modifier^1.5)
+                local defense_score = (2500*efficiency[recruit_id]/(recruit_vulnerability[recruit_id]*hp_ratio^0.5))/recruit_modifier
                 local move_score = (distance_to_enemy^2 / (cost / wesnoth.unit_types[recruit_id].max_moves)) / (10*recruit_modifier^4)
                 local unit_score = offense_score + defense_score + move_score
-                wesnoth.message(recruit_id .. " score: " .. offense_score .. " + " .. defense_score .. " + " .. move_score  .. " = " .. unit_score)
+                --print(recruit_id .. " score: " .. offense_score .. " + " .. defense_score .. " + " .. move_score  .. " = " .. unit_score)
                 if unit_score > score then
                     score = unit_score
                     recruit_type = recruit_id
