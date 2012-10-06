@@ -272,8 +272,11 @@ return {
                     if recruit_effectiveness[recruit_id] == nil then
                         recruit_effectiveness[recruit_id] = 0
                     end
-                    recruit_effectiveness[recruit_id] = recruit_effectiveness[recruit_id] + analysis[recruit_id].defense.damage
+                    recruit_effectiveness[recruit_id] = recruit_effectiveness[recruit_id] + analysis[recruit_id].defense.damage * enemy_counts[unit_type]
                 end
+            end
+            for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
+                recruit_effectiveness[recruit_id] = recruit_effectiveness[recruit_id] / #enemies
             end
 
             -- Find best recruit based on damage done to enemies present, and hp/gold ratio
@@ -291,9 +294,10 @@ return {
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
                 local recruit_count = #(AH.get_live_units { side = wesnoth.current.side, type = recruit_id, canrecruit = 'no' })
                 local recruit_modifier = 1+(recruit_count^1.5)/10
-                local unit_score = recruit_effectiveness[recruit_id]*(efficiency[recruit_id]*hp_ratio)
-                unit_score = unit_score/recruit_modifier
-                wesnoth.message(recruit_id .. " score: " .. unit_score)
+                local offense_score = recruit_effectiveness[recruit_id]^0.5/recruit_modifier
+                local defense_score = (400*efficiency[recruit_id]/hp_ratio)/(1+recruit_count/10)
+                local unit_score = offense_score + defense_score
+                wesnoth.message(recruit_id .. " score: " .. offense_score .. " + " .. defense_score .. " = " .. unit_score)
                 if unit_score > score then
                     score = unit_score
                     recruit_type = recruit_id
