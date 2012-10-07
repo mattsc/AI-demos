@@ -2117,7 +2117,7 @@ return {
 
         --------- zone_control CA ------------
 
-        function grunt_rush_FLS1:area_rush_eval(cfg, i_c)
+        function grunt_rush_FLS1:get_zone_action(cfg, i_c)
             -- Calculate if a rush should be done in the specified area
             -- See grunt_rush_FLS1:rush_eval() for format of 'cfg'
             -- Returns the attack details if a viable attack combo was found, nil otherwise
@@ -2264,9 +2264,10 @@ return {
 
                 -- Now we know which attacks to do
                 if (max_rating > -9e99) then
-                    local rush = {}
-                    rush.attackers, rush.dsts, rush.enemy = best_attackers, best_dsts, best_enemy
-                    return 'rush', rush
+                    local action = {}
+                    action.rush = {}
+                    action.rush.attackers, action.rush.dsts, action.rush.enemy = best_attackers, best_dsts, best_enemy
+                    return action
                 end
             end
 
@@ -2319,14 +2320,15 @@ return {
                 end
                 --print('goal:', goal.x, goal.y)
 
-                local hold = {}
-                hold.units, hold.goal = units, goal
+                local action = {}
+                action.hold = {}
+                action.hold.units, action.hold.goal = units, goal
 
-                hold.villages = cfg.villages
-                hold.one_unit_per_call = cfg.one_unit_per_call
+                action.hold.villages = cfg.villages
+                action.hold.one_unit_per_call = cfg.one_unit_per_call
 
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                return 'hold', hold
+                return action
             end
         end
 
@@ -2343,21 +2345,12 @@ return {
 
             local cfgs = grunt_rush_FLS1:get_area_cfgs()
 
-            ----- Now start evaluating things -----
-
             for i_c,cfg in ipairs(cfgs) do
-                -- Evaluate potential rushes first
-                local action, rush = grunt_rush_FLS1:area_rush_eval(cfg, i_c)
+                local zone_action = grunt_rush_FLS1:get_zone_action(cfg, i_c)
                 --DBG.dbms(rush)
 
-                if action and (action == 'rush') then
-                    grunt_rush_FLS1.data.rush = rush
-                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                    return score_zone_control
-                end
-
-                if action and (action == 'hold') then
-                    grunt_rush_FLS1.data.hold = rush
+                if zone_action then
+                    grunt_rush_FLS1.data.zone_action = zone_action
                     if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                     return score_zone_control
                 end
@@ -2368,22 +2361,22 @@ return {
         end
 
         function grunt_rush_FLS1:zone_control_exec()
-            if grunt_rush_FLS1.data.rush then
+            if grunt_rush_FLS1.data.zone_action.rush then
                 if AH.print_exec() then print('     - Executing zone_control CA (rush)') end
 
-                while grunt_rush_FLS1.data.rush.attackers and (table.maxn(grunt_rush_FLS1.data.rush.attackers) > 0) do
-                    if AH.show_messages() then W.message { speaker = grunt_rush_FLS1.data.rush.attackers[1].id, message = 'Rush: Combo attack' } end
-                    AH.movefull_outofway_stopunit(ai, grunt_rush_FLS1.data.rush.attackers[1], grunt_rush_FLS1.data.rush.dsts[1])
-                    ai.attack(grunt_rush_FLS1.data.rush.attackers[1], grunt_rush_FLS1.data.rush.enemy)
+                while grunt_rush_FLS1.data.zone_action.rush.attackers and (table.maxn(grunt_rush_FLS1.data.zone_action.rush.attackers) > 0) do
+                    if AH.show_messages() then W.message { speaker = grunt_rush_FLS1.data.zone_action.rush.attackers[1].id, message = 'Rush: Combo attack' } end
+                    AH.movefull_outofway_stopunit(ai, grunt_rush_FLS1.data.zone_action.rush.attackers[1], grunt_rush_FLS1.data.zone_action.rush.dsts[1])
+                    ai.attack(grunt_rush_FLS1.data.zone_action.rush.attackers[1], grunt_rush_FLS1.data.zone_action.rush.enemy)
 
                     -- Delete this attack from the combo
-                    table.remove(grunt_rush_FLS1.data.rush.attackers, 1)
-                    table.remove(grunt_rush_FLS1.data.rush.dsts, 1)
+                    table.remove(grunt_rush_FLS1.data.zone_action.rush.attackers, 1)
+                    table.remove(grunt_rush_FLS1.data.zone_action.rush.dsts, 1)
 
                     -- If enemy got killed, we need to stop here
-                    if (not grunt_rush_FLS1.data.rush.enemy.valid) then grunt_rush_FLS1.data.rush.attackers = nil end
+                    if (not grunt_rush_FLS1.data.zone_action.rush.enemy.valid) then grunt_rush_FLS1.data.zone_action.rush.attackers = nil end
                 end
-                grunt_rush_FLS1.data.rush = nil
+                grunt_rush_FLS1.data.zone_action = nil
                 return
             end
 
@@ -2392,14 +2385,14 @@ return {
 
             local tod = wesnoth.get_time_of_day()
             if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
-                grunt_rush_FLS1.data.hold.retreat = true
+                grunt_rush_FLS1.data.zone_action.hold.retreat = true
             else
-                grunt_rush_FLS1.data.hold.retreat = nil
+                grunt_rush_FLS1.data.zone_action.hold.retreat = nil
             end
 
-            grunt_rush_FLS1:retreat_units(grunt_rush_FLS1.data.hold, { called_from = 'zone_control CA' } )
+            grunt_rush_FLS1:retreat_units(grunt_rush_FLS1.data.zone_action.hold, { called_from = 'zone_control CA' } )
 
-            grunt_rush_FLS1.data.hold = nil
+            grunt_rush_FLS1.data.zone_action = nil
         end
 
         -----------Spread poison ----------------
