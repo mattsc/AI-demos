@@ -1,4 +1,4 @@
-0.next
+0.11.1, 6 Oct 2012
 - Generic Rush:
   - New recruit algorithm
     - Can counter recruit
@@ -8,6 +8,8 @@
   - No longer freezes when trying to poison units with ghouls
   - Now able to keep playing after leader death
   - Leaders who can poison no longer wander away from their keep
+- Freelands Side 1 Grunt Rush:
+  - More refactoring, but so far only small changes to behavior
 
 0.11.0, 30 Sep 2012
 - Introduction of Micro AIs and the [micro_ai] tag
