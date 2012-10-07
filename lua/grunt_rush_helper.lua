@@ -44,7 +44,7 @@ function grunt_rush_helper.GRFLS1_hello()
                 speaker = 'narrator',
                 caption = "Message from the Freelands AI  (Fred v" .. version .. ")",
                 image = 'wesnoth-icon.png', message = "I only know how to play Northerners for Side 1 on the Freelands map.  Sorry!"
-                }
+            }
             W.endlevel { result = 'defeat' }
         else
             W.message {

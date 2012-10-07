@@ -76,12 +76,12 @@ local function eval_CA(no_messages)
     return score
 end
 
-local function exec_CA(ai)
+local function exec_CA(ai, no_messages)
     -- Executes the CA with name returned by CA_name()
 
     if ai then
         local exec_name = CA_name() .. '_exec'
-        wesnoth.message("  -> Executing individual CA: " .. exec_name .. "()")
+        if (not no_messages) then wesnoth.message("  -> Executing individual CA: " .. exec_name .. "()") end
 
         -- Get all the custom AI functions
         my_ai = wesnoth.dofile("~add-ons/AI-demos/lua/grunt-rush-Freelands-S1_engine.lua").init(ai)
@@ -191,6 +191,36 @@ return {
             wesnoth.message('No CA has a score greater than 0')
             wesnoth.set_variable('debug_CA_name', 'recruit_orcs')
         end
-    end
+    end,
 
+    play_turn = function(ai)
+        -- Play through an entire AI turn
+
+        local H = wesnoth.require "lua/helper.lua"
+        local W = H.set_wml_action_metatable {}
+
+        while 1 do
+            local ca, score = highest_score_CA()
+
+            if (score > 0) then
+                W.message {
+                    speaker = 'narrator',
+                    caption = "Executing " .. ca .. " CA",
+                    image = 'wesnoth-icon.png', message = "Score: " .. score
+                }
+
+                -- Need to evaluate the CA again first, so that 'self.data' gets set up
+                wesnoth.set_variable('debug_CA_name', ca)
+                eval_CA(true)
+                exec_CA(ai, true)
+            else
+                W.message {
+                    speaker = 'narrator',
+                    caption = "No more CAs with positive scores to execute",
+                    image = 'wesnoth-icon.png', message = "Note that the RCA AI might still take over some moves at this point.  That cannot be simulated here."
+                }
+                break
+            end
+        end
+    end
 }
