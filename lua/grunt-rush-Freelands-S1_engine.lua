@@ -980,7 +980,7 @@ return {
             return score
         end
 
-        function grunt_rush_FLS1: reset_vars_exec()
+        function grunt_rush_FLS1:reset_vars_exec()
             --print(' Resetting variables at beginning of Turn ' .. wesnoth.current.turn)
 
             -- Reset grunt_rush_FLS1.data at beginning of turn, but need to keep 'complained_about_luck' variable
