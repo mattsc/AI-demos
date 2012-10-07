@@ -95,9 +95,7 @@ return {
 
             local cfg_center = {
                 filter_units = { x = '16-25,15-22', y = '1-13,14-19' },
-                rush_area = { x_min = 15, x_max = 23, y_min = 9, y_max = 16},
-                hold_area = { x_min = 15, x_max = 23, y_min = 9, y_max = 16},
-                threat_area = { x_min = 15, x_max = 23, y_min = 1, y_max = 16},
+                area = { x_min = 15, x_max = 23, y_min = 9, y_max = 16},
                 enemy_area = { x_min = 15, x_max = 23, y_min = 1, y_max = 16},
                 hold = { x = 20, max_y = 15 },
                 hold_condition = { hp_ratio = 0.67, x = '15-23', y = '1-16' },
@@ -107,9 +105,7 @@ return {
 
             local cfg_left = {
                 filter_units = { x = '1-15,16-20', y = '1-15,1-6' },
-                rush_area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15},
-                hold_area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15},
-                threat_area = { x_min = 1, x_max = 14, y_min = 1, y_max = 15},
+                area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15},
                 hold = { x = 11, max_y = 15 },
                 hold_condition = { hp_ratio = 1.0, x = '1-15', y = '1-15' },
                 villages = { { x = 11, y = 9 }, { x = 8, y = 5 }, { x = 12, y = 5 }, { x = 12, y = 2 } },
@@ -119,9 +115,7 @@ return {
             local width, height = wesnoth.get_map_size()
             local cfg_right = {
                 filter_units = { x = '16-99,22-99', y = '1-11,12-25' },
-                rush_area = { x_min = 25, x_max = width, y_min = 11, y_max = height},
-                hold_area = { x_min = 25, x_max = width, y_min = 11, y_max = height},
-                threat_area = { x_min = 25, x_max = width, y_min = 1, y_max = height},
+                area = { x_min = 25, x_max = width, y_min = 11, y_max = height},
                 hold = { x = 27, max_y = 22 },
                 villages = { { x = 24, y = 7 }, { x = 28, y = 5 } }
             }
@@ -146,8 +140,8 @@ return {
             local enemy_num, enemy_hp = {}, {}
             for i_c,c in ipairs(cfgs) do
                 enemy_num[i_c], enemy_hp[i_c] = 0, 0
-                for x = c.hold_area.x_min,c.hold_area.x_max do
-                    for y = c.hold_area.y_min,c.hold_area.y_max do
+                for x = c.area.x_min,c.area.x_max do
+                    for y = c.area.y_min,c.area.y_max do
                         local en = enemy_attack_map:get(x, y) or 0
                         if (en > enemy_num[i_c]) then enemy_num[i_c] = en end
                         local hp = enemy_attack_map_hp:get(x, y) or 0
@@ -157,13 +151,13 @@ return {
                 --print('enemy threat:', i_c, enemy_num[i_c], enemy_hp[i_c])
             end
 
-            -- Also find how many enemies are already present in threat_area
+            -- Also find how many enemies are already present in area
             local present_enemies = {}
             for i_c,c in ipairs(cfgs) do
                 present_enemies[i_c] = 0
                 for j,e in ipairs(enemies) do
-                    if (e.x >= c.threat_area.x_min) and (e.x <= c.threat_area.x_max) and
-                        (e.y >= c.threat_area.y_min) and (e.y <= c.threat_area.y_max)
+                    if (e.x >= c.area.x_min) and (e.x <= c.area.x_max) and
+                        (e.y >= c.area.y_min) and (e.y <= c.area.y_max)
                     then
                         present_enemies[i_c] = present_enemies[i_c] + 1
                     end
@@ -2131,10 +2125,10 @@ return {
 
             cfg = cfg or {}
 
-            -- Get all units to consider
+            -- Get all units to consider (i.e. with moves left in the area)
             -- First, set up the filter for the units to consider
             local filter_units = { side = wesnoth.current.side, canrecruit = 'no',
-                formula = '$this_unit.attacks_left > 0'
+                formula = '$this_unit.moves > 0'
             }
             if cfg.filter_units then
                 if cfg.filter_units.x then filter_units.x = cfg.filter_units.x end
@@ -2152,11 +2146,11 @@ return {
 
             -- Get HP ratio of units that can reach right part of map as function of y coordinate
             local x_min, y_min, x_max, y_max = 1, 1, wesnoth.get_map_size()
-            if cfg.rush_area then
-                if cfg.rush_area.x_min then x_min = cfg.rush_area.x_min end
-                if cfg.rush_area.x_max then x_max = cfg.rush_area.x_max end
-                if cfg.rush_area.y_min then y_min = cfg.rush_area.y_min end
-                if cfg.rush_area.y_max then y_max = cfg.rush_area.y_max end
+            if cfg.area then
+                if cfg.area.x_min then x_min = cfg.area.x_min end
+                if cfg.area.x_max then x_max = cfg.area.x_max end
+                if cfg.area.y_min then y_min = cfg.area.y_min end
+                if cfg.area.y_max then y_max = cfg.area.y_max end
             end
             local hp_ratio_y, number_units_y = grunt_rush_FLS1:hp_ratio_y(units, enemies, x_min, x_max, y_min, y_max)
 
@@ -2272,75 +2266,11 @@ return {
                 if (max_rating > -9e99) then
                     local rush = {}
                     rush.attackers, rush.dsts, rush.enemy = best_attackers, best_dsts, best_enemy
-                    return rush
+                    return 'rush', rush
                 end
             end
 
-            return nil  -- Yes, I know that the 'nil' is unnecessary :-)
-        end
-
-        function grunt_rush_FLS1:area_hold_eval(cfg)
-            -- Calculate if position holding should be done in the specified area
-            -- See grunt_rush_FLS1:hold_eval() for format of 'cfg'
-            -- Returns the attack details if a viable attack combo was found, nil otherwise
-
-            -- ***** Note: this entire CA needs to be overhauled, so I'm leaving most as it is for now
-            -- ***** even if there's a lot of duplication w.r.t. area_hold_eval()
-
-            cfg = cfg or {}
-
-            -- Get all units with moves left (before was for those with attacks left)
-            local filter_units = { side = wesnoth.current.side, canrecruit = 'no',
-                formula = '$this_unit.moves > 0'
-            }
-            if cfg.filter_units then
-                if cfg.filter_units.x then filter_units.x = cfg.filter_units.x end
-                if cfg.filter_units.y then filter_units.y = cfg.filter_units.y end
-            end
-            --DBG.dbms(filter_units)
-            local units = AH.get_live_units(filter_units)
-            if (not units[1]) then return end
-
-            -- Then get all the enemies (this is all of them, to get the HP ratio)
-            local enemies = AH.get_live_units {
-                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
-            }
-            --print('#units, #enemies', #units, #enemies)
-
-            -- Get HP ratio of units that can reach right part of map as function of y coordinate
-            local x_min, y_min, x_max, y_max = 1, 1, wesnoth.get_map_size()
-            if cfg.hold_area then
-                if cfg.hold_area.x_min then x_min = cfg.hold_area.x_min end
-                if cfg.hold_area.x_max then x_max = cfg.hold_area.x_max end
-                if cfg.hold_area.y_min then y_min = cfg.hold_area.y_min end
-                if cfg.hold_area.y_max then y_max = cfg.hold_area.y_max end
-            end
-            local hp_ratio_y, number_units_y = grunt_rush_FLS1:hp_ratio_y(units, enemies, x_min, x_max, y_min, y_max)
-
-            -- We'll do this step by step for easier experimenting
-            -- To be streamlined later
-            local tod = wesnoth.get_time_of_day()
-
-            local attack_y = y_min
-            for y = attack_y,y_max do
-                --print(y, hp_ratio_y[y], number_units_y[y])
-
-                if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
-                    if (hp_ratio_y[y] >= 4.0) then attack_y = y end
-                end
-                if (tod.id == 'dusk') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
-                    if (hp_ratio_y[y] > 0.666) and (number_units_y[y] >= 4) then attack_y = y end
-                    -- Or, if we're much stronger, we don't care about the number of units
-                    if (hp_ratio_y[y] >= 2.0) then attack_y = y end
-                end
-            end
-            --print('attack_y before', attack_y)
-            --print('Holding position on right down to y = ' .. attack_y)
-            --if AH.show_messages() then W.message { speaker = 'narrator', message = 'Holding position on right down to y = ' .. attack_y } end
-
-            -- If there's a village in the two rows around attack_y, make that the goal
-            -- Otherwise it's just { hold_x, attack_y }
-
+            -- If we got here, check for holding the area
             local hold_x = math.floor((x_min + x_max) / 2.)
             local hold_max_y = y_max
             if cfg.hold then
@@ -2366,7 +2296,7 @@ return {
             hold.units, hold.goal = units, goal
 
             if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-            return hold
+            return 'hold', hold
         end
 
         function grunt_rush_FLS1:zone_control_eval()
@@ -2386,47 +2316,46 @@ return {
 
             for i_c,cfg in ipairs(cfgs) do
                 -- Evaluate potential rushes first
-                local rush = grunt_rush_FLS1:area_rush_eval(cfg, i_c)
+                local action, rush = grunt_rush_FLS1:area_rush_eval(cfg, i_c)
                 --DBG.dbms(rush)
 
-                if rush then
+                if action and (action == 'rush') then
                     grunt_rush_FLS1.data.rush = rush
                     if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                     return score_zone_control
                 end
 
-                -- Now evaluate the hold
-                -- Only check for possible position holding if hold_condition is met
-                local eval_hold = true
-                if cfg.hold_condition then
-                    local filter_units = { side = wesnoth.current.side, canrecruit = 'no' }
-                    filter_units.x = cfg.hold_condition.x
-                    filter_units.y = cfg.hold_condition.y
-                    --DBG.dbms(filter_units)
-                    local units = AH.get_live_units(filter_units)
+                if action and (action == 'hold') then
 
-                    local filter_enemies = { canrecruit = 'no',
-                        { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
-                    }
-                    filter_enemies.x = cfg.hold_condition.x
-                    filter_enemies.y = cfg.hold_condition.y
-                    --DBG.dbms(filter_enemies)
-                    local enemies = AH.get_live_units(filter_enemies)
+                    -- Now evaluate the hold
+                    -- Only check for possible position holding if hold_condition is met
+                    local eval_hold = true
+                    if cfg.hold_condition then
+                        local filter_units = { side = wesnoth.current.side, canrecruit = 'no' }
+                        filter_units.x = cfg.hold_condition.x
+                        filter_units.y = cfg.hold_condition.y
+                        --DBG.dbms(filter_units)
+                        local units = AH.get_live_units(filter_units)
 
-                    local hp_ratio = grunt_rush_FLS1:hp_ratio(units, enemies)
-                    --print('hp_ratio, #units, #enemies', hp_ratio, #units, #enemies)
+                        local filter_enemies = { canrecruit = 'no',
+                            { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+                        }
+                        filter_enemies.x = cfg.hold_condition.x
+                        filter_enemies.y = cfg.hold_condition.y
+                        --DBG.dbms(filter_enemies)
+                        local enemies = AH.get_live_units(filter_enemies)
 
-                    -- Don't evaluate for holding position if the hp_ratio in the area is already high enough
-                    if (hp_ratio >= cfg.hold_condition.hp_ratio) then
-                        eval_hold = false
+                        local hp_ratio = grunt_rush_FLS1:hp_ratio(units, enemies)
+                        --print('hp_ratio, #units, #enemies', hp_ratio, #units, #enemies)
+
+                        -- Don't evaluate for holding position if the hp_ratio in the area is already high enough
+                        if (hp_ratio >= cfg.hold_condition.hp_ratio) then
+                            eval_hold = false
+                        end
                     end
-                end
 
-                if eval_hold then
-                    local hold = grunt_rush_FLS1:area_hold_eval(cfg)
-                    --DBG.dbms(hold)
-
-                    if hold then
+                    if eval_hold then
+                        local hold = rush
                         hold.villages = cfg.villages
                         hold.one_unit_per_call = cfg.one_unit_per_call
                         grunt_rush_FLS1.data.hold = hold
