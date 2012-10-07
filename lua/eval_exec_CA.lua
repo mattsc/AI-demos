@@ -100,7 +100,10 @@ return {
         for k,v in pairs(tmp_ai) do
             local pos = string.find(k, '_eval')
             if pos and (pos == string.len(k) - 4) then
-                table.insert(cas, string.sub(k, 1, pos-1))
+                local name = string.sub(k, 1, pos-1)
+                if (name ~= 'stats') and (name ~= 'reset_vars') then
+                    table.insert(cas, name)
+                end
             end
         end
 
