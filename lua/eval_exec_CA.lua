@@ -93,7 +93,7 @@ return {
         local cas = {}
         for k,v in pairs(my_ai) do
             local pos = string.find(k, '_eval')
-            if (pos) then
+            if pos and (pos == string.len(k) - 4) then
                 table.insert(cas, string.sub(k, 1, pos-1))
             end
         end
