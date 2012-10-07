@@ -50,7 +50,7 @@ function get_best_defense(unit)
 end
 
 function analyze_enemy_unit(unit_type_id)
-    local function get_best_attack(attacker_id, defender, unit_defense, can_poison)
+    local function get_best_attack(attacker, defender, unit_defense, can_poison)
         -- Try to find the average damage for each possible attack and return the one that deals the most damage.
         -- Would be preferable to call simulate combat, but that requires the defender to be on the map according
         -- to documentation and we are looking for hypothetical situations so would have to search for available
@@ -66,7 +66,7 @@ function analyze_enemy_unit(unit_type_id)
         -- TODO: find a more reliable method
         local steadfast = wesnoth.unit_ability(defender, "resistance")
 
-        for attack in helper.child_range(wesnoth.unit_types[attacker_id].__cfg, "attack") do
+        for attack in helper.child_range(wesnoth.unit_types[attacker.type].__cfg, "attack") do
             local defense = unit_defense
             local poison = false
             -- TODO: handle more abilities (charge, drain)
@@ -95,7 +95,7 @@ function analyze_enemy_unit(unit_type_id)
             for defender_attack in helper.child_range(defender.__cfg, 'attack') do
                 if (defender_attack.range == attack.range) then
                     for special in helper.child_range(defender_attack, 'specials') do
-                        if helper.get_child(special, 'drains') then
+                        if helper.get_child(special, 'drains') and (not helper.get_child(attacker.__cfg, "status").not_living) then
                             -- TODO: handle chance to hit & resistance
                             -- currently assumes no resistance and 50% chance to hit using supplied constant
                             drain_recovery = defender_attack.damage*defender_attack.number*25
@@ -143,9 +143,9 @@ function analyze_enemy_unit(unit_type_id)
     for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
         local recruit = wesnoth.create_unit { type = recruit_id }
         local can_poison_retaliation = not (helper.get_child(recruit.__cfg, "status").not_living or wesnoth.unit_ability(recruit, 'regenerate'))
-        best_flat_attack, best_flat_damage = get_best_attack(recruit_id, unit, flat_defense, can_poison)
-        best_high_defense_attack, best_high_defense_damage = get_best_attack(recruit_id, unit, best_defense, can_poison)
-        best_retaliation, best_retaliation_damage = get_best_attack(unit_type_id, recruit, wesnoth.unit_defense(recruit, "Gt"), can_poison_retaliation)
+        best_flat_attack, best_flat_damage = get_best_attack(recruit, unit, flat_defense, can_poison)
+        best_high_defense_attack, best_high_defense_damage = get_best_attack(recruit, unit, best_defense, can_poison)
+        best_retaliation, best_retaliation_damage = get_best_attack(unit, recruit, wesnoth.unit_defense(recruit, "Gt"), can_poison_retaliation)
 
         local result = {
             offense = { attack = best_flat_attack, damage = best_flat_damage },
