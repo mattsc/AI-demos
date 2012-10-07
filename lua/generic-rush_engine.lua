@@ -280,7 +280,7 @@ return {
             end
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
                 recruit_effectiveness[recruit_id] = recruit_effectiveness[recruit_id] / #enemies
-                recruit_vulnerability[recruit_id] = (recruit_vulnerability[recruit_id] / #enemies)/1000
+                recruit_vulnerability[recruit_id] = recruit_vulnerability[recruit_id] / #enemies
             end
 
             -- Find best recruit based on damage done to enemies present, speed, and hp/gold ratio
