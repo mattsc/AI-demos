@@ -2271,32 +2271,63 @@ return {
             end
 
             -- If we got here, check for holding the area
-            local hold_x = math.floor((x_min + x_max) / 2.)
-            local hold_max_y = y_max
-            if cfg.hold then
-               if cfg.hold.x then hold_x = cfg.hold.x end
-               if cfg.hold.max_y then hold_max_y = cfg.hold.max_y end
-            end
+            -- Only check for possible position holding if hold_condition is met
+            local eval_hold = true
+            if cfg.hold_condition then
+                local filter_units = { side = wesnoth.current.side, canrecruit = 'no' }
+                filter_units.x = cfg.hold_condition.x
+                filter_units.y = cfg.hold_condition.y
+                --DBG.dbms(filter_units)
+                local units = AH.get_live_units(filter_units)
 
-            if (attack_y > hold_max_y) then attack_y = hold_max_y end
-            local goal = { x = hold_x, y = attack_y }
-            for y = attack_y - 1, attack_y + 1 do
-                for x = x_min,x_max do
-                    --print(x,y)
-                    local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
-                    if is_village then
-                        goal = { x = x, y = y }
-                        break
-                    end
+                local filter_enemies = { canrecruit = 'no',
+                    { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+                }
+                filter_enemies.x = cfg.hold_condition.x
+                filter_enemies.y = cfg.hold_condition.y
+                --DBG.dbms(filter_enemies)
+                local enemies = AH.get_live_units(filter_enemies)
+
+                local hp_ratio = grunt_rush_FLS1:hp_ratio(units, enemies)
+                --print('hp_ratio, #units, #enemies', hp_ratio, #units, #enemies)
+
+                -- Don't evaluate for holding position if the hp_ratio in the area is already high enough
+                if (hp_ratio >= cfg.hold_condition.hp_ratio) then
+                    eval_hold = false
                 end
             end
-            --print('goal:', goal.x, goal.y)
 
-            local hold = {}
-            hold.units, hold.goal = units, goal
+            if eval_hold then
+                local hold_x = math.floor((x_min + x_max) / 2.)
+                local hold_max_y = y_max
+                if cfg.hold then
+                    if cfg.hold.x then hold_x = cfg.hold.x end
+                    if cfg.hold.max_y then hold_max_y = cfg.hold.max_y end
+                end
 
-            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-            return 'hold', hold
+                if (attack_y > hold_max_y) then attack_y = hold_max_y end
+                local goal = { x = hold_x, y = attack_y }
+                for y = attack_y - 1, attack_y + 1 do
+                    for x = x_min,x_max do
+                        --print(x,y)
+                        local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
+                        if is_village then
+                            goal = { x = x, y = y }
+                            break
+                        end
+                    end
+                end
+                --print('goal:', goal.x, goal.y)
+
+                local hold = {}
+                hold.units, hold.goal = units, goal
+
+                hold.villages = cfg.villages
+                hold.one_unit_per_call = cfg.one_unit_per_call
+
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return 'hold', hold
+            end
         end
 
         function grunt_rush_FLS1:zone_control_eval()
@@ -2326,42 +2357,9 @@ return {
                 end
 
                 if action and (action == 'hold') then
-
-                    -- Now evaluate the hold
-                    -- Only check for possible position holding if hold_condition is met
-                    local eval_hold = true
-                    if cfg.hold_condition then
-                        local filter_units = { side = wesnoth.current.side, canrecruit = 'no' }
-                        filter_units.x = cfg.hold_condition.x
-                        filter_units.y = cfg.hold_condition.y
-                        --DBG.dbms(filter_units)
-                        local units = AH.get_live_units(filter_units)
-
-                        local filter_enemies = { canrecruit = 'no',
-                            { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
-                        }
-                        filter_enemies.x = cfg.hold_condition.x
-                        filter_enemies.y = cfg.hold_condition.y
-                        --DBG.dbms(filter_enemies)
-                        local enemies = AH.get_live_units(filter_enemies)
-
-                        local hp_ratio = grunt_rush_FLS1:hp_ratio(units, enemies)
-                        --print('hp_ratio, #units, #enemies', hp_ratio, #units, #enemies)
-
-                        -- Don't evaluate for holding position if the hp_ratio in the area is already high enough
-                        if (hp_ratio >= cfg.hold_condition.hp_ratio) then
-                            eval_hold = false
-                        end
-                    end
-
-                    if eval_hold then
-                        local hold = rush
-                        hold.villages = cfg.villages
-                        hold.one_unit_per_call = cfg.one_unit_per_call
-                        grunt_rush_FLS1.data.hold = hold
-                        if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                        return score_zone_control
-                    end
+                    grunt_rush_FLS1.data.hold = rush
+                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                    return score_zone_control
                 end
             end
 
