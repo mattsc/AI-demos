@@ -9,7 +9,7 @@ function grunt_rush_helper.is_GRFLS1()
     local stage = H.get_child( H.get_child( wesnoth.sides[1].__cfg, 'ai'), 'stage')
     for CA in H.child_range(stage, 'candidate_action') do
         --print(CA.name)
-        if (CA.name == 'rush_right') then return true end
+        if (CA.name == 'zone_control') then return true end
     end
 
     return false
