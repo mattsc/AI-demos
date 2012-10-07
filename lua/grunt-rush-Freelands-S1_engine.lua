@@ -2118,14 +2118,15 @@ return {
         --------- zone_control CA ------------
 
         function grunt_rush_FLS1:get_zone_action(cfg, i_c)
-            -- Calculate if a rush should be done in the specified area
-            -- See grunt_rush_FLS1:rush_eval() for format of 'cfg'
-            -- Returns the attack details if a viable attack combo was found, nil otherwise
+            -- Find the best action to do in the zone described in 'cfg'
+            -- This is all done together in one function, rather than in separate CAs so that
+            --  1. Zones get done one at a time (rather than one CA at a time)
+            --  2. Relative scoring of different types of moves is possible
             -- i_c: the index for the global 'parms' array, so that parameters can be set for the correct area
 
             cfg = cfg or {}
 
-            -- Get all units to consider (i.e. with moves left in the area)
+            -- Get all units to consider (i.e. with moves left) in the area
             -- First, set up the filter for the units to consider
             local filter_units = { side = wesnoth.current.side, canrecruit = 'no',
                 formula = '$this_unit.moves > 0'
@@ -2156,36 +2157,36 @@ return {
 
             local tod = wesnoth.get_time_of_day()
 
-            local attack_y = y_min
-            for y = attack_y,y_max do
+            local advance_y = y_min
+            for y = advance_y,y_max do
                 --print(y, hp_ratio_y[y], number_units_y[y])
 
                 if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
-                    if (hp_ratio_y[y] >= 4.0) then attack_y = y end
+                    if (hp_ratio_y[y] >= 4.0) then advance_y = y end
                 end
                 if (tod.id == 'dusk') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
-                    if (hp_ratio_y[y] > 0.666) and (number_units_y[y] >= 4) then attack_y = y end
+                    if (hp_ratio_y[y] > 0.666) and (number_units_y[y] >= 4) then advance_y = y end
                     -- Or, if we're much stronger, we don't care about the number of units
-                    if (hp_ratio_y[y] >= 2.0) then attack_y = y end
+                    if (hp_ratio_y[y] >= 2.0) then advance_y = y end
                 end
             end
-            --print('attack_y', attack_y)
+            --print('advance_y', advance_y)
 
-            -- attack_y can never be less than what has been used during this move already
+            -- advance_y can never be less than what has been used during this move already
             if grunt_rush_FLS1.data.area_parms[i_c].advance_y then
-                if (grunt_rush_FLS1.data.area_parms[i_c].advance_y > attack_y) then
-                    attack_y = grunt_rush_FLS1.data.area_parms[i_c].advance_y
+                if (grunt_rush_FLS1.data.area_parms[i_c].advance_y > advance_y) then
+                    advance_y = grunt_rush_FLS1.data.area_parms[i_c].advance_y
                 else
-                    grunt_rush_FLS1.data.area_parms[i_c].advance_y = attack_y
+                    grunt_rush_FLS1.data.area_parms[i_c].advance_y = advance_y
                 end
             else
-                grunt_rush_FLS1.data.area_parms[i_c].advance_y = attack_y
+                grunt_rush_FLS1.data.area_parms[i_c].advance_y = advance_y
             end
 
-            -- If a suitable attack_y was found, figure out what targets there might be
-            if (attack_y > 0) then
-                attack_y = attack_y + 1  -- Targets can be one hex farther south
-                --print('Looking for targets on right down to y = ' .. attack_y)
+            -- If a suitable advance_y was found, figure out what targets there might be
+            if (advance_y > 0) then
+                advance_y = advance_y + 1  -- Targets can be one hex farther south
+                --print('Looking for targets on right down to y = ' .. advance_y)
 
                 -- Now get the targets (=enemies inside the rush area)
                 local targets = AH.get_live_units {
@@ -2195,7 +2196,7 @@ return {
 
                 -- Take out targets that are too far south
                 for i=#targets,1,-1 do
-                    if (targets[i].y > attack_y) then table.remove(targets, i) end
+                    if (targets[i].y > advance_y) then table.remove(targets, i) end
                 end
                 --print('#targets filtered', #targets)
 
@@ -2306,9 +2307,9 @@ return {
                     if cfg.hold.max_y then hold_max_y = cfg.hold.max_y end
                 end
 
-                if (attack_y > hold_max_y) then attack_y = hold_max_y end
-                local goal = { x = hold_x, y = attack_y }
-                for y = attack_y - 1, attack_y + 1 do
+                if (advance_y > hold_max_y) then advance_y = hold_max_y end
+                local goal = { x = hold_x, y = advance_y }
+                for y = advance_y - 1, advance_y + 1 do
                     for x = x_min,x_max do
                         --print(x,y)
                         local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
