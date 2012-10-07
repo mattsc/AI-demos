@@ -96,6 +96,14 @@ return {
             local cfg_center = {
                 filter_units = { x = '16-25,15-22', y = '1-13,14-19' },
                 area = { x_min = 15, x_max = 23, y_min = 9, y_max = 16},
+                advance = {
+                    dawn =         { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
+                    morning =      { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
+                    afternoon =    { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
+                    dusk =         { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 },
+                    first_watch =  { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 },
+                    second_watch = { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 }
+                },
                 enemy_area = { x_min = 15, x_max = 23, y_min = 1, y_max = 16},
                 hold = { x = 20, max_y = 15 },
                 hold_condition = { hp_ratio = 0.67, x = '15-23', y = '1-16' },
@@ -106,6 +114,14 @@ return {
             local cfg_left = {
                 filter_units = { x = '1-15,16-20', y = '1-15,1-6' },
                 area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15},
+                advance = {
+                    dawn =         { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
+                    morning =      { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
+                    afternoon =    { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
+                    dusk =         { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 },
+                    first_watch =  { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 },
+                    second_watch = { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 }
+                },
                 hold = { x = 11, max_y = 15 },
                 hold_condition = { hp_ratio = 1.0, x = '1-15', y = '1-15' },
                 villages = { { x = 11, y = 9 }, { x = 8, y = 5 }, { x = 12, y = 5 }, { x = 12, y = 2 } },
@@ -116,6 +132,14 @@ return {
             local cfg_right = {
                 filter_units = { x = '16-99,22-99', y = '1-11,12-25' },
                 area = { x_min = 25, x_max = width, y_min = 11, y_max = height},
+                advance = {
+                    dawn =         { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
+                    morning =      { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
+                    afternoon =    { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
+                    dusk =         { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 },
+                    first_watch =  { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 },
+                    second_watch = { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 }
+                },
                 hold = { x = 27, max_y = 22 },
                 villages = { { x = 24, y = 7 }, { x = 28, y = 5 } }
             }
@@ -2156,21 +2180,19 @@ return {
             local hp_ratio_y, number_units_y = grunt_rush_FLS1:hp_ratio_y(units, enemies, x_min, x_max, y_min, y_max)
 
             local tod = wesnoth.get_time_of_day()
+            local min_hp_ratio = cfg.advance[tod.id].min_hp_ratio or 1.0
+            local min_units = cfg.advance[tod.id].min_units or 0
+            local min_hp_ratio_always = cfg.advance[tod.id].min_hp_ratio_always or 2.0
+            --print(min_hp_ratio, min_units, min_hp_ratio_always)
 
             local advance_y = y_min
             for y = advance_y,y_max do
                 --print(y, hp_ratio_y[y], number_units_y[y])
 
-                if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
-                    if (hp_ratio_y[y] >= 4.0) then advance_y = y end
-                end
-                if (tod.id == 'dusk') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
-                    if (hp_ratio_y[y] > 0.666) and (number_units_y[y] >= 4) then advance_y = y end
-                    -- Or, if we're much stronger, we don't care about the number of units
-                    if (hp_ratio_y[y] >= 2.0) then advance_y = y end
-                end
+                if (hp_ratio_y[y] >= min_hp_ratio) and (number_units_y[y] >= min_units) then advance_y = y end
+                if (hp_ratio_y[y] >= min_hp_ratio_always) then advance_y = y end
             end
-            --print('advance_y', advance_y)
+            --print('advance_y zone #' .. i_c, advance_y)
 
             -- advance_y can never be less than what has been used during this move already
             if grunt_rush_FLS1.data.area_parms[i_c].advance_y then
