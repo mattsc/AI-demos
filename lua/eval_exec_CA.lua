@@ -37,7 +37,11 @@ return {
         wesnoth.message("Evaluating individual CA: " .. eval_name .. "()")
 
         -- Get all the custom AI functions
-        local my_ai = wesnoth.dofile("~add-ons/AI-demos/lua/grunt-rush-Freelands-S1_engine.lua").init(ai)
+        my_ai = wesnoth.dofile("~add-ons/AI-demos/lua/grunt-rush-Freelands-S1_engine.lua").init(ai)
+
+        -- Need to set up a fake 'self.data' table, as that does not exist outside the AI engine
+        -- This is taken from the global table 'self_data_table', because it needs to persist between moves
+        my_ai.data = self_data_table
 
         -- Loop through the my_ai table until we find the function we are looking for
         local found = false
@@ -53,8 +57,6 @@ return {
         -- Now display the evaluation score
         local score = 0
         if found then
-            -- Need to set up a fake 'self.data' table, as that does not exist outside the AI engine
-            if not my_ai.data then my_ai.data = {} end
             score = eval_function()
             wesnoth.message("  Score : " .. score)
         else
@@ -80,6 +82,9 @@ return {
                 wesnoth.message("!!!!! Error !!!!!  CAs not activated for execution.")
             end
         end
+
+        -- At the end, transfer my_ai.data content to global self_data_table
+        self_data_table = my_ai.data
     end,
 
     choose_CA = function()
@@ -88,11 +93,11 @@ return {
 
         -- Set up array of CAs to choose from
         -- Get all the custom AI functions
-        local my_ai = wesnoth.dofile("~add-ons/AI-demos/lua/grunt-rush-Freelands-S1_engine.lua").init(ai)
+        local tmp_ai = wesnoth.dofile("~add-ons/AI-demos/lua/grunt-rush-Freelands-S1_engine.lua").init(ai)
 
-        -- Loop through the my_ai table and set up table of all available CAs
+        -- Loop through the tmp_ai table and set up table of all available CAs
         local cas = {}
-        for k,v in pairs(my_ai) do
+        for k,v in pairs(tmp_ai) do
             local pos = string.find(k, '_eval')
             if pos and (pos == string.len(k) - 4) then
                 table.insert(cas, string.sub(k, 1, pos-1))
