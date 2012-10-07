@@ -1,7 +1,8 @@
 -- This is a collection of functions that can be used to evaluate and/or execute
 -- individual candidate actions from the right-click menu
 --
--- See the github wiki page for a detailed description how to use them
+-- See the github wiki page for a detailed description of how to use them:
+-- https://github.com/mattsc/Wesnoth-AI-Demos/wiki/CA-debugging
 
 local function CA_name()
     -- This function sets the name of the CA to be executed or evaluated
@@ -82,7 +83,7 @@ return {
     end,
 
     choose_CA = function()
-        -- Let's the user choose a CA from a menu
+        -- Lets the user choose a CA from a menu
         -- The result is stored in WML variable 'debug_CA_name'
 
         -- Set up array of CAs to choose from
