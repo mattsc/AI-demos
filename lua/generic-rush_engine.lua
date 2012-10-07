@@ -274,13 +274,13 @@ return {
                         recruit_effectiveness[recruit_id] = 0
                         recruit_vulnerability[recruit_id] = 0
                     end
-                    recruit_effectiveness[recruit_id] = recruit_effectiveness[recruit_id] + analysis[recruit_id].defense.damage * enemy_counts[unit_type]
-                    recruit_vulnerability[recruit_id] = recruit_vulnerability[recruit_id] + analysis[recruit_id].retaliation.damage * enemy_counts[unit_type]
+                    recruit_effectiveness[recruit_id] = recruit_effectiveness[recruit_id] + analysis[recruit_id].defense.damage * enemy_counts[unit_type]^2
+                    recruit_vulnerability[recruit_id] = recruit_vulnerability[recruit_id] + (analysis[recruit_id].retaliation.damage * enemy_counts[unit_type])^2
                 end
             end
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
-                recruit_effectiveness[recruit_id] = recruit_effectiveness[recruit_id] / #enemies
-                recruit_vulnerability[recruit_id] = recruit_vulnerability[recruit_id] / #enemies
+                recruit_effectiveness[recruit_id] = (recruit_effectiveness[recruit_id] / (#enemies)^2)^0.5
+                recruit_vulnerability[recruit_id] = (recruit_vulnerability[recruit_id] / ((#enemies)^2))^0.5
             end
 
             -- Calculate hp ratio including available gold
@@ -308,15 +308,15 @@ return {
                 -- Use time to enemy to encourage recruiting fast units when the opponent is far away (game is beginning or we're winning)
                 local recruit_unit = wesnoth.create_unit { type = recruit_id, x = best_hex[1], y = best_hex[2] }
                 local path, cost = wesnoth.find_path(recruit_unit, enemy_location.x, enemy_location.y, {ignore_units = true})
-                local move_score = (distance_to_enemy^2 / (cost / wesnoth.unit_types[recruit_id].max_moves)) / (10*recruit_modifier^4)
+                local move_score = (distance_to_enemy^2 / (cost / wesnoth.unit_types[recruit_id].max_moves)) / (50*recruit_modifier)
 
                 -- Estimate effectiveness on offense and defense
-                local offense_score = recruit_effectiveness[recruit_id]^0.5/(recruit_modifier^1.5)
-                local defense_score = (2500*efficiency[recruit_id]/(recruit_vulnerability[recruit_id]*hp_ratio^0.5))/recruit_modifier
+                local offense_score = recruit_effectiveness[recruit_id]^0.7
+                local defense_score = (250*efficiency[recruit_id]/(recruit_vulnerability[recruit_id]*hp_ratio^0.5))
 
-                local unit_score = offense_score + defense_score + move_score
-                --print(recruit_id .. " score: " .. offense_score .. " + " .. defense_score .. " + " .. move_score  .. " = " .. unit_score)
+                local unit_score = (offense_score + defense_score + move_score)/recruit_modifier
                 if unit_score > score then
+                wesnoth.message(recruit_id .. " score: " .. offense_score .. " + " .. defense_score .. " + " .. move_score  .. " = " .. unit_score)
                     score = unit_score
                     recruit_type = recruit_id
                 end
