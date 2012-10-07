@@ -119,9 +119,11 @@ function analyze_enemy_unit(unit_type_id)
             end
             local attack_damage = base_damage*attack.number*defense-drain_recovery
 
+            local poison_damage = 0
             if poison then
-                -- Add 3/4 poison damage * probability of poisoning
-                attack_damage = attack_damage + 600*(1-((1-defense)^attack.number))
+                -- Add poison damage * probability of poisoning
+                poison_damage = 800*(1-((1-defense)^attack.number))
+                attack_damage = attack_damage + poison_damage
             end
 
             if (not best_attack) or (attack_damage > best_damage) then
@@ -130,7 +132,7 @@ function analyze_enemy_unit(unit_type_id)
             end
         end
 
-        return best_attack, best_damage
+        return best_attack, best_damage, poison_damage
     end
 
     local analysis = {}
@@ -143,14 +145,14 @@ function analyze_enemy_unit(unit_type_id)
     for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
         local recruit = wesnoth.create_unit { type = recruit_id }
         local can_poison_retaliation = not (helper.get_child(recruit.__cfg, "status").not_living or wesnoth.unit_ability(recruit, 'regenerate'))
-        best_flat_attack, best_flat_damage = get_best_attack(recruit, unit, flat_defense, can_poison)
-        best_high_defense_attack, best_high_defense_damage = get_best_attack(recruit, unit, best_defense, can_poison)
-        best_retaliation, best_retaliation_damage = get_best_attack(unit, recruit, wesnoth.unit_defense(recruit, "Gt"), can_poison_retaliation)
+        best_flat_attack, best_flat_damage, flat_poison = get_best_attack(recruit, unit, flat_defense, can_poison)
+        best_high_defense_attack, best_high_defense_damage, high_defense_poison = get_best_attack(recruit, unit, best_defense, can_poison)
+        best_retaliation, best_retaliation_damage, retaliation_poison = get_best_attack(unit, recruit, wesnoth.unit_defense(recruit, "Gt"), can_poison_retaliation)
 
         local result = {
-            offense = { attack = best_flat_attack, damage = best_flat_damage },
-            defense = { attack = best_high_defense_attack, damage = best_high_defense_damage },
-            retaliation = { attack = best_retaliation, damage = best_retaliation_damage }
+            offense = { attack = best_flat_attack, damage = best_flat_damage, poison_damage = flat_poison },
+            defense = { attack = best_high_defense_attack, damage = best_high_defense_damage, poison_damage = high_defense_poison },
+            retaliation = { attack = best_retaliation, damage = best_retaliation_damage, poison_damage = retaliation_poison }
         }
         analysis[recruit_id] = result
     end
