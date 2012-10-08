@@ -21,6 +21,32 @@ local function CA_name()
     return name or 'recruit_orcs'
 end
 
+local function set_menus()
+    -- Set the two menu items that have the selecetd CA name in them
+    -- They need to be reset when that is changed, that's why this is done here
+
+    local H = wesnoth.require "lua/helper.lua"
+    local W = H.set_wml_action_metatable {}
+
+    W.set_menu_item {
+        id = 'm01_eval',
+        description = 'Evaluate Single Candidate Action: ' .. CA_name(),
+        image = 'items/ring-red.png~CROP(26,26,20,20)',
+        { 'command',
+            { { 'fire_event', { name = 'eval_CA' } } }
+        }
+    }
+
+    W.set_menu_item {
+        id = 'm02_exec',
+        description = 'Evaluate and Execute Single Candidate Action: ' .. CA_name(),
+        image = 'items/ring-gold.png~CROP(26,26,20,20)',
+        { 'command',
+            { { 'fire_event', { name = 'exec_CA' } } }
+        }
+    }
+end
+
 local function get_all_CA_names()
     -- Return an array of CA names to choose from
 
@@ -199,6 +225,8 @@ return {
 
         -- Now set the WML variable
         wesnoth.set_variable('debug_CA_name', cas[choice])
+        -- And set the menu items accordingly
+        set_menus()
     end,
 
     highest_score_CA = function()
@@ -214,6 +242,8 @@ return {
             wesnoth.message('No CA has a score greater than 0')
             wesnoth.set_variable('debug_CA_name', 'recruit_orcs')
         end
+        -- And set the menu items accordingly
+        set_menus()
     end,
 
     play_turn = function(ai)
@@ -250,5 +280,10 @@ return {
                 break
             end
         end
+    end,
+
+    set_menus = function()
+        -- Set the menus so that they display the name of the CA to be executed/evaluated
+        set_menus()
     end
 }
