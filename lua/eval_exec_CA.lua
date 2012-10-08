@@ -4,6 +4,14 @@
 -- See the github wiki page for a detailed description of how to use them:
 -- https://github.com/mattsc/Wesnoth-AI-Demos/wiki/CA-debugging
 
+local function wrong_side(side)
+    if (side ~= wesnoth.current.side) then
+        wesnoth.message("!!!!! Error !!!!!  You need to be in control of Side " .. side)
+        return true
+    end
+    return false
+end
+
 local function CA_name()
     -- This function returns the name of the CA to be executed or evaluated
     -- It takes the value from WML variable 'debug_CA_name' if that variable exists,
@@ -123,13 +131,16 @@ return {
     debug_CA = function()
         -- CA debugging mode is enabled if this function returns true,
         -- that is, only if 'debug_CA_mode=true' is set and if we're in debug mode
-        local debug_CA_mode = true
+        local debug_CA_mode = false
         if debug_CA_mode and wesnoth.game_config.debug then
             wesnoth.fire_event("debug_CA")
         end
     end,
 
     reset_vars = function()
+        -- Reset the 'self.data' variable to beginning-of-turn values
+        if wrong_side(1) then return end
+
         -- Get the old selected CA name
         local name = CA_name()
 
@@ -147,11 +158,13 @@ return {
     eval_CA = function()
         -- This simply calls the function of the same name
         -- Done so that it is available from several functions inside this table
+        if wrong_side(1) then return end
         eval_CA()
     end,
 
     eval_exec_CA = function(ai)
         -- This calls eval_CA(), then exec(CA) if the score is >0
+        if wrong_side(1) then return end
         local score = eval_CA()
         if (score > 0) then exec_CA(ai) end
     end,
@@ -159,6 +172,7 @@ return {
     choose_CA = function()
         -- Lets the user choose a CA from a menu
         -- The result is stored in WML variable 'debug_CA_name'
+        if wrong_side(1) then return end
 
         local cas = get_all_CA_names()
 
@@ -180,6 +194,7 @@ return {
 
     highest_score_CA = function()
         -- Finds and displays the name of the highest-scoring CA
+        if wrong_side(1) then return end
 
         local ca, score = highest_score_CA()
 
@@ -194,6 +209,7 @@ return {
 
     play_turn = function(ai)
         -- Play through an entire AI turn
+        if wrong_side(1) then return end
 
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
