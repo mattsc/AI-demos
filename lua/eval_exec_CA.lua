@@ -105,6 +105,9 @@ local function exec_CA(ai, no_messages)
                 exec_function()
             end
         end
+
+        -- At the end, transfer my_ai.data content to global self_data_table
+        self_data_table = my_ai.data
     else
         wesnoth.message("!!!!! Error !!!!!  CAs not activated for execution.")
     end
@@ -153,6 +156,12 @@ return {
 
         -- Now reset the CA name
         wesnoth.set_variable('debug_CA_name', name)
+    end,
+
+    show_vars = function()
+        local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
+        DBG.dbms(self_data_table, true, 'self.data', true)
+        wesnoth.clear_messages()
     end,
 
     eval_CA = function()
