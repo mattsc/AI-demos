@@ -41,7 +41,6 @@ local function eval_CA(no_messages)
     -- Evaluates the CA with name returned by CA_name()
 
     local eval_name = CA_name() .. '_eval'
-    if (not no_messages) then wesnoth.message("Evaluating individual CA: " .. eval_name .. "()") end
 
     -- Get all the custom AI functions
     my_ai = wesnoth.dofile("~add-ons/AI-demos/lua/grunt-rush-Freelands-S1_engine.lua").init(ai)
@@ -65,9 +64,9 @@ local function eval_CA(no_messages)
     local score = 0
     if found then
         score = eval_function()
-        if (not no_messages) then wesnoth.message("  Score : " .. score) end
+        if (not no_messages) then wesnoth.message("Evaluation score for " .. CA_name() .. ': ' .. score) end
     else
-        if (not no_messages) then wesnoth.message("  Found no function of that name") end
+        if (not no_messages) then wesnoth.message("Found no CA of that name: " .. CA_name()) end
     end
 
     -- At the end, transfer my_ai.data content to global self_data_table
@@ -81,7 +80,7 @@ local function exec_CA(ai, no_messages)
 
     if ai then
         local exec_name = CA_name() .. '_exec'
-        if (not no_messages) then wesnoth.message("  -> Executing individual CA: " .. exec_name .. "()") end
+        if (not no_messages) then wesnoth.message("Executing CA: " .. CA_name()) end
 
         -- Get all the custom AI functions
         my_ai = wesnoth.dofile("~add-ons/AI-demos/lua/grunt-rush-Freelands-S1_engine.lua").init(ai)
@@ -124,7 +123,7 @@ return {
     debug_CA = function()
         -- CA debugging mode is enabled if this function returns true,
         -- that is, only if 'debug_CA_mode=true' is set and if we're in debug mode
-        local debug_CA_mode = false
+        local debug_CA_mode = true
         if debug_CA_mode and wesnoth.game_config.debug then
             wesnoth.fire_event("debug_CA")
         end
@@ -185,7 +184,7 @@ return {
         local ca, score = highest_score_CA()
 
         if (score > 0) then
-            wesnoth.message('Highest scoring CA: ' .. ca .. ' -> ' .. score)
+            wesnoth.message('Highest scoring CA: ' .. ca .. ': ' .. score)
             wesnoth.set_variable('debug_CA_name', ca)
         else
             wesnoth.message('No CA has a score greater than 0')
