@@ -214,6 +214,10 @@ return {
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
 
+        -- First reset all the variables
+        wesnoth.set_variable('debug_CA_name', 'reset_vars')
+        exec_CA({})
+
         while 1 do
             local ca, score = highest_score_CA()
 
