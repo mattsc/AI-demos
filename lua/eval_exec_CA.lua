@@ -137,7 +137,7 @@ return {
         end
     end,
 
-    reset_vars = function()
+    reset_vars = function(no_messages)
         -- Reset the 'self.data' variable to beginning-of-turn values
         if wrong_side(1) then return end
 
@@ -149,7 +149,7 @@ return {
 
         -- And call it for execution
         -- Don't need the actual 'ai_global' for that, but need a dummy table)
-        exec_CA({})
+        exec_CA({}, no_messages)
 
         -- Now reset the CA name
         wesnoth.set_variable('debug_CA_name', name)
