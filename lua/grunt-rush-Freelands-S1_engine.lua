@@ -2207,8 +2207,8 @@ return {
 
             -- If a suitable advance_y was found, figure out what targets there might be
             if (advance_y > 0) then
-                advance_y = advance_y + 1  -- Targets can be one hex farther south
-                --print('Looking for targets on right down to y = ' .. advance_y)
+                attack_y = attack_y + 1  -- Targets can be one hex farther south
+                --print('Looking for targets on right down to y = ' .. attack_y)
 
                 -- Now get the targets (=enemies inside the rush area)
                 local targets = AH.get_live_units {
@@ -2218,7 +2218,7 @@ return {
 
                 -- Take out targets that are too far south
                 for i=#targets,1,-1 do
-                    if (targets[i].y > advance_y) then table.remove(targets, i) end
+                    if (targets[i].y > attack_y) then table.remove(targets, i) end
                 end
                 --print('#targets filtered', #targets)
 
