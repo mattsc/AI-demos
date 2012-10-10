@@ -597,7 +597,7 @@ return {
                 -- Now retreat those units toward those villages
                 local injured_locs = {}  -- Array for saving where the injured units moved to
                 while most_injured[1] do
-                    local max_rating, best_unit, best_village, ind_u, ind_v = -9e99, {}, {}, -1
+                    local max_rating, best_unit, best_village, ind_u, ind_v = -9e99, {}, {}, -1, -1
                     for i,u in ipairs(most_injured) do
                         for j,v in ipairs(open_villages) do
                             local rating = 0
@@ -2207,7 +2207,7 @@ return {
 
             -- If a suitable advance_y was found, figure out what targets there might be
             if (advance_y > 0) then
-                attack_y = attack_y + 1  -- Targets can be one hex farther south
+                attack_y = advance_y + 1  -- Targets can be one hex farther south
                 --print('Looking for targets on right down to y = ' .. attack_y)
 
                 -- Now get the targets (=enemies inside the rush area)
@@ -2296,6 +2296,7 @@ return {
 
             -- If we got here, check for holding the area
             -- Only check for possible position holding if hold_condition is met
+            -- If hold_condition does not exist, it's true by default
             local eval_hold = true
             if cfg.hold_condition then
                 local filter_units = { side = wesnoth.current.side, canrecruit = 'no' }
@@ -2320,6 +2321,9 @@ return {
                     eval_hold = false
                 end
             end
+
+            -- However, if there are unoccupied or enemy-occupied villages in the hold area, try to take those
+
 
             if eval_hold then
                 local hold_x = math.floor((x_min + x_max) / 2.)
@@ -2353,6 +2357,8 @@ return {
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return action
             end
+
+            return nil  -- This is technically unnecessary
         end
 
         function grunt_rush_FLS1:zone_control_eval()
