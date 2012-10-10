@@ -574,7 +574,7 @@ return {
                 local open_villages = {}
                 for i,v in ipairs(hold.villages) do
                     local unit_in_way = wesnoth.get_unit(v.x, v.y)
-                    if (not unit_in_way) or (unit_in_way.moves > 0) then
+                    if (not unit_in_way) or ((unit_in_way.side == wesnoth.current.side) and (unit_in_way.moves > 0)) then
                         table.insert(open_villages, v)
                     end
                 end
@@ -2297,22 +2297,24 @@ return {
             -- If we got here, check for holding the area
             -- Only check for possible position holding if hold_condition is met
             -- If hold_condition does not exist, it's true by default
-            local eval_hold = true
+            local filter_units = { side = wesnoth.current.side, canrecruit = 'no' }
+            local filter_enemies = { canrecruit = 'no',
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+            }
+
             if cfg.hold_condition then
-                local filter_units = { side = wesnoth.current.side, canrecruit = 'no' }
                 filter_units.x = cfg.hold_condition.x
                 filter_units.y = cfg.hold_condition.y
-                --DBG.dbms(filter_units)
-                local units = AH.get_live_units(filter_units)
-
-                local filter_enemies = { canrecruit = 'no',
-                    { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
-                }
                 filter_enemies.x = cfg.hold_condition.x
                 filter_enemies.y = cfg.hold_condition.y
-                --DBG.dbms(filter_enemies)
-                local enemies = AH.get_live_units(filter_enemies)
+            end
 
+            local units = AH.get_live_units(filter_units)
+            local enemies = AH.get_live_units(filter_enemies)
+
+            local eval_hold = true
+            local get_villages = false
+            if cfg.hold_condition then
                 local hp_ratio = grunt_rush_FLS1:hp_ratio(units, enemies)
                 --print('hp_ratio, #units, #enemies', hp_ratio, #units, #enemies)
 
@@ -2322,8 +2324,23 @@ return {
                 end
             end
 
-            -- However, if there are unoccupied or enemy-occupied villages in the hold area, try to take those
-
+            -- If there are unoccupied or enemy-occupied villages in the hold area, try to take those
+            -- if we do not have enough units that have moved already are in the area
+            if (not eval_hold) then
+                local n_units_noMP = 0
+                for i,u in ipairs(units) do
+                    if (u.moves == 0) then n_units_noMP = n_units_noMP + 1 end
+                end
+                if (n_units_noMP < #cfg.villages/2) then
+                    for i,v in ipairs(cfg.villages) do
+                        local owner = wesnoth.get_village_owner(v.x, v.y)
+                        if (not owner) or wesnoth.is_enemy(owner, wesnoth.current.side) then
+                            eval_hold, get_villages = true, true
+                        end
+                    end
+                end
+                print('Zone ' .. i_c, n_units_noMP, #cfg.villages)
+            end
 
             if eval_hold then
                 local hold_x = math.floor((x_min + x_max) / 2.)
@@ -2352,6 +2369,7 @@ return {
                 action.hold.units, action.hold.goal = units, goal
 
                 action.hold.villages = cfg.villages
+                action.hold.get_villages = get_villages -- This says whether village capturing is specific priority
                 action.hold.one_unit_per_call = cfg.one_unit_per_call
 
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
@@ -2898,7 +2916,7 @@ return {
 
             local best_hex, best_hex_left = grunt_rush_FLS1:find_best_recruit_hex()
 
-            if AH.show_messages() then W.message { speaker = leader.id, message = 'Recruiting' } end
+            if AH.show_messages() then W.message { speaker = 'narrator', message = 'Recruiting' } end
 
             -- Recruit an assassin, if there is none
             local assassins = AH.get_live_units { side = wesnoth.current.side, type = 'Orcish Assassin,Orcish Slayer', canrecruit = 'no' }
