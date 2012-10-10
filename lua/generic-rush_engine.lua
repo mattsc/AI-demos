@@ -296,6 +296,10 @@ return {
 
             local distance_to_enemy, enemy_location = AH.get_closest_enemy()
             local best_hex = generic_rush:find_best_recruit_hex()
+            if #best_hex == 0 then
+                print('Found no hex to recruit, aborting recruit CA')
+                return
+            end
 
             -- Find best recruit based on damage done to enemies present, speed, and hp/gold ratio
             local score = 0
@@ -338,7 +342,7 @@ return {
                 { "filter_radius", { terrain = 'C*,K*' } }
             }
 
-            local max_rating, best_hex = 0, {}
+            local max_rating, best_hex = -1, {}
             for i,c in ipairs(castle) do
                 local rating = 0
                 local unit = wesnoth.get_unit(c[1], c[2])
