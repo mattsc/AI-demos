@@ -729,15 +729,20 @@ return {
 
                         -- Small bonus if this is on a village
                         -- Or a huge bonus if it is an unowned or enemy-owned village
+                        -- (but only if it is one of the saved villages)
                         local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
                         if is_village then
                             rating = rating + 10 * terrain_weight
 
-                            local owner = wesnoth.get_village_owner(x, y)
-                            if (not owner) then
-                                rating = rating + 1000
-                            else
-                                if wesnoth.is_enemy(owner, wesnoth.current.side) then rating = rating + 2000 end
+                            for i,v in ipairs(hold.villages) do
+                                if (v.x == x) and (v.y == y) then
+                                    local owner = wesnoth.get_village_owner(x, y)
+                                    if (not owner) then
+                                        rating = rating + 100
+                                    else
+                                        if wesnoth.is_enemy(owner, wesnoth.current.side) then rating = rating + 200 end
+                                    end
+                                end
                             end
                         end
 
@@ -1777,7 +1782,7 @@ return {
         ----------Grab villages -----------
 
         function grunt_rush_FLS1:grab_villages_eval()
-            local score_high, score_low_enemy, score_low_own = 462000, 305000, 280000
+            local score_high, score_low_enemy, score_low_own = 305000, 305000, 280000
             if AH.skip_CA('grab_villages') then return 0 end
             if AH.print_eval() then print('     - Evaluating grab_villages CA:', os.clock()) end
 
@@ -2319,14 +2324,14 @@ return {
                 filter_enemies.y = cfg.hold_condition.y
             end
 
-            local units = AH.get_live_units(filter_units)
-            local enemies = AH.get_live_units(filter_enemies)
+            local hold_units = AH.get_live_units(filter_units)
+            local hold_enemies = AH.get_live_units(filter_enemies)
 
             local eval_hold = true
             local get_villages = false
             if cfg.hold_condition then
-                local hp_ratio = grunt_rush_FLS1:hp_ratio(units, enemies)
-                --print('hp_ratio, #units, #enemies', hp_ratio, #units, #enemies)
+                local hp_ratio = grunt_rush_FLS1:hp_ratio(hold_units, hold_enemies)
+                --print('hp_ratio, #hold_units, #hold_enemies', hp_ratio, #hold_units, #hold_enemies)
 
                 -- Don't evaluate for holding position if the hp_ratio in the area is already high enough
                 if (hp_ratio >= cfg.hold_condition.hp_ratio) then
@@ -2338,7 +2343,7 @@ return {
             -- if we do not have enough units that have moved already are in the area
             if (not eval_hold) then
                 local n_units_noMP = 0
-                for i,u in ipairs(units) do
+                for i,u in ipairs(hold_units) do
                     if (u.moves == 0) then n_units_noMP = n_units_noMP + 1 end
                 end
                 if (n_units_noMP < #cfg.villages/2) then
@@ -2349,7 +2354,6 @@ return {
                         end
                     end
                 end
-                print('Zone ' .. i_c, n_units_noMP, #cfg.villages)
             end
 
             if eval_hold then
