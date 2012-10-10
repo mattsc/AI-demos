@@ -728,8 +728,18 @@ return {
                         end
 
                         -- Small bonus if this is on a village
+                        -- Or a huge bonus if it is an unowned or enemy-owned village
                         local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
-                        if is_village then rating = rating + 10 * terrain_weight end
+                        if is_village then
+                            rating = rating + 10 * terrain_weight
+
+                            local owner = wesnoth.get_village_owner(x, y)
+                            if (not owner) then
+                                rating = rating + 1000
+                            else
+                                if wesnoth.is_enemy(owner, wesnoth.current.side) then rating = rating + 2000 end
+                            end
+                        end
 
                         -- We also, ideally, want to be 3 hexes from the closest unit that has
                         -- already moved, so as to ZOC the area
@@ -1801,7 +1811,7 @@ return {
             --print('#units, #enemies', #units, #enemies)
 
             -- Now we check if a unit can get to a village
-            local max_rating, best_village, best_unit = -9e99, {}, {}  -- yes, want '0' here
+            local max_rating, best_village, best_unit = -9e99, {}, {}
             for j,v in ipairs(villages) do
                 local close_village = true -- a "close" village is one that is closer to theAI keep than to the closest enemy keep
 
