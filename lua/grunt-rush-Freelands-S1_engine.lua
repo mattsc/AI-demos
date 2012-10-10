@@ -2328,7 +2328,6 @@ return {
             local hold_enemies = AH.get_live_units(filter_enemies)
 
             local eval_hold = true
-            local get_villages = false
             if cfg.hold_condition then
                 local hp_ratio = grunt_rush_FLS1:hp_ratio(hold_units, hold_enemies)
                 --print('hp_ratio, #hold_units, #hold_enemies', hp_ratio, #hold_units, #hold_enemies)
@@ -2350,7 +2349,7 @@ return {
                     for i,v in ipairs(cfg.villages) do
                         local owner = wesnoth.get_village_owner(v.x, v.y)
                         if (not owner) or wesnoth.is_enemy(owner, wesnoth.current.side) then
-                            eval_hold, get_villages = true, true
+                            eval_hold = true
                         end
                     end
                 end
@@ -2383,7 +2382,6 @@ return {
                 action.hold.units, action.hold.goal = units, goal
 
                 action.hold.villages = cfg.villages
-                action.hold.get_villages = get_villages -- This says whether village capturing is specific priority
                 action.hold.one_unit_per_call = cfg.one_unit_per_call
 
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
