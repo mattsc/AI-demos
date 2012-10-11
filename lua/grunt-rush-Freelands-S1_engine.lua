@@ -952,37 +952,9 @@ return {
             grunt_rush_FLS1.data.MLK_leader, grunt_rush_FLS1.data.MLK_leader_move = nil, nil
         end
 
-        ------ Retreat injured units -----------
+        ------ Retreat injured units (not a separate CA any more) -----------
 
-        function grunt_rush_FLS1:retreat_injured_units_eval()
-                -- First we retreat non-troll units w/ <12 HP to villages.
-            local score = grunt_rush_FLS1:retreat_injured_units_eval_filtered(
-                { side = wesnoth.current.side, canrecruit = 'no',
-                    formula = '$this_unit.moves > 0',
-                    { 'not', { race = "troll" } }
-                }, "*^V*", 12)
-            if (score > 0) then return score end
-            -- Then we retreat troll units with <16 HP to mountains
-            -- We use a slightly higher min_hp b/c trolls generally have low defense.
-            -- Also since trolls regen at start of turn, they only have <12 HP if poisoned
-            -- or reduced to <4 HP on enemy's turn.
-            return grunt_rush_FLS1:retreat_injured_units_eval_filtered(
-                { side = wesnoth.current.side, canrecruit = 'no',
-                    formula = '$this_unit.moves > 0',
-                    race = "troll"
-                }, "!,*^X*,!,M*^*", 16)
-            -- We exclude impassable terrain to speed up evaluation.
-            -- We do NOT exclude mountain villages! Maybe we should?
-        end
-
-        function grunt_rush_FLS1:retreat_injured_units_eval_filtered(unit_filter, terrain_filter, min_hp)
-            local score = 470000
-            if AH.skip_CA('retreat_injured_units') then return 0 end
-            if AH.print_eval() then print('     - Evaluating retreat_injured_units CA:', os.clock()) end
-
-            -- Find very injured units and move them to a village, if possible
-            local units = wesnoth.get_units(unit_filter)
-
+        function grunt_rush_FLS1:get_retreat_injured_units(units, terrain_filter, min_hp)
             -- Pick units that have less than min_hp HP
             -- with poisoning counting as -8 HP and slowed as -4
             local healees = {}
@@ -1001,7 +973,7 @@ return {
             --print('#healees', #healees)
             if (not healees[1]) then
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                return 0
+                return nil
             end
 
             local villages = wesnoth.get_locations { terrain = terrain_filter }
@@ -1040,9 +1012,10 @@ return {
             end
 
             if (max_rating > -9e99) then
-                grunt_rush_FLS1.data.RIU_retreat_unit, grunt_rush_FLS1.data.RIU_retreat_village = best_unit, best_village
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                return score
+                local action = {}
+                action.retreat = {}
+                action.retreat.unit, action.retreat.hex =  best_unit, best_village
+                return action
             end
 
             -- No safe villages within 1 turn - try to move to closest reachable empty village within 4 turns
@@ -1075,20 +1048,13 @@ return {
             end
 
             if (max_rating > -9e99) then
-                grunt_rush_FLS1.data.RIU_retreat_unit, grunt_rush_FLS1.data.RIU_retreat_village = best_unit, best_village
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                return score
+                local action = {}
+                action.retreat = {}
+                action.retreat.unit, action.retreat.hex =  best_unit, best_village
+                return action
             end
 
-            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-            return 0
-        end
-
-        function grunt_rush_FLS1:retreat_injured_units_exec()
-            if AH.print_exec() then print('     - Executing retreat_injured_units CA') end
-            if AH.show_messages() then W.message { speaker = grunt_rush_FLS1.data.RIU_retreat_unit.id, message = 'Retreating to village' } end
-            AH.movefull_outofway_stopunit(ai, grunt_rush_FLS1.data.RIU_retreat_unit, grunt_rush_FLS1.data.RIU_retreat_village)
-            grunt_rush_FLS1.data.RIU_retreat_unit, grunt_rush_FLS1.data.RIU_retreat_village = nil, nil
+            return nil
         end
 
         ------ Attack with high CTK -----------
@@ -1972,6 +1938,37 @@ return {
 
             -- **** This ends the common initialization for all zone actions ****
 
+            -- **** Retreat seriously injured units
+
+            -- Note: while injured units are dealt with on a zone-by-zone basis,
+            -- they can retreat to hexes outside the zones
+            local trolls, non_trolls = {}, {}
+            for i,u in ipairs(zone_units) do
+                if (u.__cfg.race == 'troll') then
+                    table.insert(trolls, u)
+                else
+                    table.insert(non_trolls, u)
+                end
+            end
+            --print('#trolls, #non_trolls', #trolls, #non_trolls)
+
+            -- First we retreat non-troll units w/ <12 HP to villages.
+            if non_trolls[1] then
+                local action = grunt_rush_FLS1:get_retreat_injured_units(non_trolls, "*^V*", 12)
+                if action then return action end
+            end
+
+            -- Then we retreat troll units with <16 HP to mountains
+            -- We use a slightly higher min_hp b/c trolls generally have low defense.
+            -- Also since trolls regen at start of turn, they only have <12 HP if poisoned
+            -- or reduced to <4 HP on enemy's turn.
+            -- We exclude impassable terrain to speed up evaluation.
+            -- We do NOT exclude mountain villages! Maybe we should?
+            if trolls[1] then
+                local action = grunt_rush_FLS1:get_retreat_injured_units(trolls, "!,*^X*,!,M*^*", 16)
+                if action then return action end
+            end
+
             -- **** Attack evaluation ****
 
             local targets = {}
@@ -2031,6 +2028,12 @@ return {
         end
 
         function grunt_rush_FLS1:zone_control_exec()
+            if grunt_rush_FLS1.data.zone_action.retreat then
+                if AH.print_exec() then print('     - Executing zone_control CA (retreat)') end
+                if AH.show_messages() then W.message { speaker = grunt_rush_FLS1.data.zone_action.retreat.unit.id, message = 'Zone action: Retreat injured unit' } end
+                AH.movefull_outofway_stopunit(ai, grunt_rush_FLS1.data.zone_action.retreat.unit, grunt_rush_FLS1.data.zone_action.retreat.hex)
+            end
+
             if grunt_rush_FLS1.data.zone_action.attack then
                 if AH.print_exec() then print('     - Executing zone_control CA (attack)') end
 
@@ -2046,21 +2049,20 @@ return {
                     -- If enemy got killed, we need to stop here
                     if (not grunt_rush_FLS1.data.zone_action.attack.enemy.valid) then grunt_rush_FLS1.data.zone_action.attack.attackers = nil end
                 end
-                grunt_rush_FLS1.data.zone_action = nil
-                return
             end
 
-            -- This means that if we got here, this must be a 'hold' execution
-            if AH.print_exec() then print('     - Executing zone_control CA (hold)') end
+            if grunt_rush_FLS1.data.zone_action.hold then
+                if AH.print_exec() then print('     - Executing zone_control CA (hold)') end
 
-            local tod = wesnoth.get_time_of_day()
-            if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
-                grunt_rush_FLS1.data.zone_action.hold.retreat = true
-            else
-                grunt_rush_FLS1.data.zone_action.hold.retreat = nil
+                local tod = wesnoth.get_time_of_day()
+                if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
+                    grunt_rush_FLS1.data.zone_action.hold.retreat = true
+                else
+                    grunt_rush_FLS1.data.zone_action.hold.retreat = nil
+                end
+
+                grunt_rush_FLS1:hold_area(grunt_rush_FLS1.data.zone_action.hold, { called_from = 'zone_control CA' } )
             end
-
-            grunt_rush_FLS1:hold_area(grunt_rush_FLS1.data.zone_action.hold, { called_from = 'zone_control CA' } )
 
             grunt_rush_FLS1.data.zone_action = nil
         end
