@@ -377,103 +377,12 @@ return {
         end
 
         function grunt_rush_FLS1:hold_area(hold, cfg)
-            -- Hold an area by setting up a defensive position
-
-            cfg = cfg or {}
-            cfg.called_from = cfg.called_from or ''
-
-            -- If hold.retreat is set (seriously injured units are retreated elsewhere):
-            -- We start by retreating the most injured units toward the villages
-            -- This is done even if the units are not injured, as villages
-            -- are usually the strongest positions
-
-            if hold.retreat then
-                -- Set up an array containing the open villages to retreat to
-                local open_villages = {}
-                for i,v in ipairs(hold.cfg.villages) do
-                    local unit_in_way = wesnoth.get_unit(v.x, v.y)
-                    if (not unit_in_way) or ((unit_in_way.side == wesnoth.current.side) and (unit_in_way.moves > 0)) then
-                        table.insert(open_villages, v)
-                    end
-                end
-
-                -- Find the most injured units
-                local most_injured = {}
-                for i,u in ipairs(hold.units) do
-                    if (u.hitpoints < u.max_hitpoints) then table.insert(most_injured, u) end
-                end
-
-                table.sort(most_injured, function(a, b)
-                    return a.max_hitpoints - a.hitpoints > b.max_hitpoints - b.hitpoints
-                end)
-
-                -- Only keep as many injured units as there are open villages
-                for i = #most_injured,#open_villages+1,-1 do
-                    table.remove(most_injured, i)
-                end
-
-                -- Now retreat those units toward those villages
-                local injured_locs = {}  -- Array for saving where the injured units moved to
-                while most_injured[1] do
-                    local max_rating, best_unit, best_village, ind_u, ind_v = -9e99, {}, {}, -1, -1
-                    for i,u in ipairs(most_injured) do
-                        for j,v in ipairs(open_villages) do
-                            local rating = 0
-
-                            -- The rating is mostly how close the unit can get to the village
-                            -- Cannot use AH.next_hop here, as that excludes occupied locations
-                            local path, cost = wesnoth.find_path(u, v.x, v.y)
-                            if (cost <= u.moves) then
-                                rating = rating + 100
-                            else
-                                rating = rating - cost
-                            end
-
-                            -- All else being equal, retreat the most injured unit first
-                            rating = rating + (u.max_hitpoints - u.hitpoints) / 100.
-
-                            -- If there's a unit in the way, add a very minor penalty
-                            -- It was checked previously that this unit has moves left
-                            if wesnoth.get_unit(v.x, v.y) then rating = rating - 0.001 end
-
-                            if (rating > max_rating) then
-                                max_rating, best_unit, best_village, ind_u, ind_v = rating, u, v, i, j
-                            end
-                        end
-                    end
-
-                    -- If a good retreat option was found, do it
-                    if (max_rating > -9e99) then
-                        if AH.show_messages() then W.message { speaker = best_unit.id, message = 'Retreat injured unit (' .. cfg.called_from .. ')' } end
-                        AH.movefull_outofway_stopunit(ai, best_unit, best_village)
-                        -- Also save where this unit moved to, for setting up protection for them
-                        table.insert(injured_locs, { best_unit.x, best_unit.y })
-
-                        -- Then remove unit and village from the tables
-                        table.remove(most_injured, ind_u)
-                        table.remove(open_villages, ind_v)
-                    -- Otherwise stop the loop
-                    else
-                        most_injured = {}
-                    end
-                end
-            end
-
-            -- At this point, we find which of the original units have moves left
-            -- (to exclude those that just retreated toward a village, as well
-            -- as those that might have lost their MP by moving out of the way)
-            local holders = {}
-            for i,u in ipairs(hold.units) do
-                if (u.moves > 0) then table.insert(holders, u) end
-            end
-
+            local holders = hold.units
             -- Also need all the enemies
             local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", { side = wesnoth.current.side } }} }
             }
 
-            -- Find how far south the defensive position should be set up
-            -- (This is a temporary measure, to be replaced by more sophisticated/general stuff later)
             local goal = hold.goal
             local injured_locs = injured_locs or {}
             for i,l in ipairs(injured_locs) do
@@ -551,11 +460,7 @@ return {
                             -- Rating for the terrain
                             local terrain_weight = 0.51
                             local defense = 100 - wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))
-                            if hold.retreat then
-                                rating = rating + (defense - 80) * terrain_weight
-                            else
-                                rating = rating + (defense - 20) * terrain_weight
-                            end
+                            rating = rating + defense * terrain_weight
 
                             reach_map:insert(x, y, rating)
 
@@ -1821,6 +1726,80 @@ return {
             return nil
         end
 
+        function grunt_rush_FLS1:get_zone_villages(units, cfg)
+
+            -- Set up an array containing the open villages to retreat to
+            local open_villages = {}
+            for i,v in ipairs(cfg.villages) do
+                local unit_in_way = wesnoth.get_unit(v.x, v.y)
+                if (not unit_in_way) or ((unit_in_way.side == wesnoth.current.side) and (unit_in_way.moves > 0)) then
+                    table.insert(open_villages, v)
+                end
+            end
+
+                -- Find the most injured units
+                local most_injured = {}
+                for i,u in ipairs(hold.units) do
+                    if (u.hitpoints < u.max_hitpoints) then table.insert(most_injured, u) end
+                end
+
+                table.sort(most_injured, function(a, b)
+                    return a.max_hitpoints - a.hitpoints > b.max_hitpoints - b.hitpoints
+                end)
+
+                -- Only keep as many injured units as there are open villages
+                for i = #most_injured,#open_villages+1,-1 do
+                    table.remove(most_injured, i)
+                end
+
+                -- Now retreat those units toward those villages
+                local injured_locs = {}  -- Array for saving where the injured units moved to
+                while most_injured[1] do
+                    local max_rating, best_unit, best_village, ind_u, ind_v = -9e99, {}, {}, -1, -1
+                    for i,u in ipairs(most_injured) do
+                        for j,v in ipairs(open_villages) do
+                            local rating = 0
+
+                            -- The rating is mostly how close the unit can get to the village
+                            -- Cannot use AH.next_hop here, as that excludes occupied locations
+                            local path, cost = wesnoth.find_path(u, v.x, v.y)
+                            if (cost <= u.moves) then
+                                rating = rating + 100
+                            else
+                                rating = rating - cost
+                            end
+
+                            -- All else being equal, retreat the most injured unit first
+                            rating = rating + (u.max_hitpoints - u.hitpoints) / 100.
+
+                            -- If there's a unit in the way, add a very minor penalty
+                            -- It was checked previously that this unit has moves left
+                            if wesnoth.get_unit(v.x, v.y) then rating = rating - 0.001 end
+
+                            if (rating > max_rating) then
+                                max_rating, best_unit, best_village, ind_u, ind_v = rating, u, v, i, j
+                            end
+                        end
+                    end
+
+                    -- If a good retreat option was found, do it
+                    if (max_rating > -9e99) then
+                        if AH.show_messages() then W.message { speaker = best_unit.id, message = 'Retreat injured unit (' .. cfg.called_from .. ')' } end
+                        AH.movefull_outofway_stopunit(ai, best_unit, best_village)
+                        -- Also save where this unit moved to, for setting up protection for them
+                        table.insert(injured_locs, { best_unit.x, best_unit.y })
+
+                        -- Then remove unit and village from the tables
+                        table.remove(most_injured, ind_u)
+                        table.remove(open_villages, ind_v)
+                    -- Otherwise stop the loop
+                    else
+                        most_injured = {}
+                    end
+                end
+            end
+        end
+
         function grunt_rush_FLS1:get_zone_hold(hold_units, hold_enemies, hold_y, cfg)
             -- Only check for possible position holding if hold_condition is met
             -- If hold_condition does not exist, it's true by default
@@ -1983,6 +1962,27 @@ return {
             local action = grunt_rush_FLS1:get_zone_attack(zone_units, targets)
             if action then return action end
 
+            -- **** Villages evaluation ****
+            -- This should include both retreating to villages and village grabbing
+            -- (not complete yet)
+
+            local injured_units = {}
+            for i,u in ipairs(zone_units) do
+                if (u.hitpoints< u.max_hitpoints) then
+                    table.insert(injured_units, u)
+                end
+            end
+            print('#injured_units', #injured_units)
+
+            local tod = wesnoth.get_time_of_day()
+            if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
+              --  grunt_rush_FLS1.data.zone_action.hold.retreat = true
+            else
+              --  grunt_rush_FLS1.data.zone_action.hold.retreat = nil
+            end
+            --local action = get_zone_villages()
+            --if action then return action end
+
             -- **** Hold position evaluation ****
 
             -- If we got here, check for holding the area
@@ -2053,13 +2053,6 @@ return {
 
             if grunt_rush_FLS1.data.zone_action.hold then
                 if AH.print_exec() then print('     - Executing zone_control CA (hold)') end
-
-                local tod = wesnoth.get_time_of_day()
-                if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
-                    grunt_rush_FLS1.data.zone_action.hold.retreat = true
-                else
-                    grunt_rush_FLS1.data.zone_action.hold.retreat = nil
-                end
 
                 grunt_rush_FLS1:hold_area(grunt_rush_FLS1.data.zone_action.hold, { called_from = 'zone_control CA' } )
             end
