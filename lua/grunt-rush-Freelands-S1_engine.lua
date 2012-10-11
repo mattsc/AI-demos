@@ -481,9 +481,6 @@ return {
                 if (goal.y < l[2] + 1) then goal.y = l[2] + 1 end
             end
 
-            -- Set up an array that holds all units in the area that have already moved
-            local units_moved = {}
-
             -- Now move units into holding positions
             while holders[1] do
                 -- First, find where the enemy can attack
@@ -592,7 +589,6 @@ return {
                 if AH.show_messages() then W.message { speaker = best_unit.id, message = 'Hold area (' .. cfg.called_from .. ')' } end
                 AH.movefull_outofway_stopunit(ai, best_unit, best_hex)
                 -- Then remove the unit from consideration next time around
-                table.insert(units_moved, best_unit)
                 table.remove(holders, ind_u)
 
                 if hold.cfg.one_unit_per_call then
