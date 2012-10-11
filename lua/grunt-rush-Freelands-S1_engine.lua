@@ -77,7 +77,7 @@ return {
 
         function grunt_rush_FLS1:get_area_cfgs(recalc)
             -- Set up the config table for the different map areas
-            -- filter_units .x .y: the area from which to draw units for this hold
+            -- unit_filter .x .y: the area from which to draw units for this hold
             -- rush_area .x_min .x_max .y_min .y_max: the area to consider where to attack
             -- hold_area .x_min .x_max .y_min .y_max: the area to consider where to hold
             -- hold .x .max_y: the coordinates to consider when holding a position (to be separated out later)
@@ -94,7 +94,7 @@ return {
             end
 
             local cfg_center = {
-                filter_units = { x = '16-25,15-22', y = '1-13,14-19' },
+                unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
                 area = { x_min = 15, x_max = 23, y_min = 9, y_max = 16},
                 advance = {
                     dawn =         { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
@@ -112,7 +112,7 @@ return {
             }
 
             local cfg_left = {
-                filter_units = { x = '1-15,16-20', y = '1-15,1-6' },
+                unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
                 area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15},
                 advance = {
                     dawn =         { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
@@ -130,7 +130,7 @@ return {
 
             local width, height = wesnoth.get_map_size()
             local cfg_right = {
-                filter_units = { x = '16-99,22-99', y = '1-11,12-25' },
+                unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
                 area = { x_min = 25, x_max = width, y_min = 11, y_max = height},
                 advance = {
                     dawn =         { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
@@ -445,8 +445,8 @@ return {
 
                     -- If a good retreat option was found, do it
                     if (max_rating > -9e99) then
-                       if AH.show_messages() then W.message { speaker = best_unit.id, message = 'Retreat injured unit (' .. cfg.called_from .. ')' } end
-                       AH.movefull_outofway_stopunit(ai, best_unit, best_village)
+                        if AH.show_messages() then W.message { speaker = best_unit.id, message = 'Retreat injured unit (' .. cfg.called_from .. ')' } end
+                        AH.movefull_outofway_stopunit(ai, best_unit, best_village)
                         -- Also save where this unit moved to, for setting up protection for them
                         table.insert(injured_locs, { best_unit.x, best_unit.y })
 
@@ -1004,7 +1004,7 @@ return {
                 return 0
             end
 
-                local villages = wesnoth.get_locations { terrain = terrain_filter }
+            local villages = wesnoth.get_locations { terrain = terrain_filter }
             --print('#villages', #villages)
 
             -- Only retreat to safe villages
@@ -1601,7 +1601,7 @@ return {
         ----------Grab villages -----------
 
         function grunt_rush_FLS1:grab_villages_eval()
-            local score_high, score_low_enemy, score_low_own = 305000, 305000, 280000
+            local score_high, score_low_enemy, score_low_own = 462000, 305000, 280000
             if AH.skip_CA('grab_villages') then return 0 end
             if AH.print_eval() then print('     - Evaluating grab_villages CA:', os.clock()) end
 
@@ -1780,6 +1780,78 @@ return {
 
         --------- zone_control CA ------------
 
+        function grunt_rush_FLS1:get_zone_attack(attackers, targets)
+
+            -- Also want an 'attackers' map, indexed by position (for speed reasons)
+            local attacker_map = {}
+            for i,u in ipairs(attackers) do attacker_map[u.x * 1000 + u.y] = u end
+
+            local max_rating, best_attackers, best_dsts, best_enemy = -9e99, {}, {}, {}
+            for i,e in ipairs(targets) do
+                --print('\n', i, e.id)
+                local attack_combos, attacks_dst_src = AH.get_attack_combos_no_order(attackers, e)
+                --DBG.dbms(attack_combos)
+                --DBG.dbms(attacks_dst_src)
+                --print('#attack_combos', #attack_combos)
+
+                local enemy_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(e.x, e.y)).village
+                local enemy_cost = e.__cfg.cost
+
+                for j,combo in ipairs(attack_combos) do
+                    -- attackers and dsts arrays for stats calculation
+                    local atts, dsts = {}, {}
+                    for dst,src in pairs(combo) do
+                        table.insert(atts, attacker_map[src])
+                        table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
+                    end
+                    local sorted_atts, sorted_dsts, combo_def_stats, combo_att_stats = AH.attack_combo_stats(atts, dsts, e)
+                    --DBG.dbms(combo_def_stats)
+
+                    -- Don't attack under certain circumstances
+                    local dont_attack = false
+
+                    local rating = 0
+                    local damage = 0
+                    for k,att_stats in ipairs(combo_att_stats) do
+                        if (att_stats.hp_chance[0] >= 0.5) then dont_attack = true end
+                        damage = damage + sorted_atts[k].hitpoints - att_stats.average_hp
+                    end
+                    local damage_enemy = e.hitpoints - combo_def_stats.average_hp
+                    --print(' - #attacks, damage, damage_enemy', #sorted_atts, damage, damage_enemy, dont_attack)
+
+                    rating = rating + damage_enemy - damage / 2.
+
+                    -- Chance to kill is very important (for both sides)
+                    rating = rating + combo_def_stats.hp_chance[0] * 50.
+                    for k,a in ipairs(sorted_atts) do
+                        rating = rating - combo_att_stats[k].hp_chance[0] * 25.
+                    end
+
+                    -- Cost of enemy is another factor
+                    rating = rating + enemy_cost
+
+                    -- If this is on the village, then the expected enemy HP matter:
+                    -- The fewer, the better (choose 25 as about neutral for now)
+                    if enemy_on_village then
+                        rating = rating + (25 - combo_def_stats.average_hp)
+                    end
+
+                    --print(' -----------------------> rating', rating)
+                    if (not dont_attack) and (rating > max_rating) then
+                        max_rating, best_attackers, best_dsts, best_enemy = rating, sorted_atts, sorted_dsts, e
+                    end
+                end
+            end
+            --print('max_rating ', max_rating)
+            --DBG.dbms(best_combo)
+
+            if (max_rating > -9e99) then
+                return best_attackers, best_dsts, best_enemy
+            end
+
+            return nil
+        end
+
         function grunt_rush_FLS1:get_zone_action(cfg, i_c)
             -- Find the best action to do in the zone described in 'cfg'
             -- This is all done together in one function, rather than in separate CAs so that
@@ -1789,26 +1861,27 @@ return {
 
             cfg = cfg or {}
 
-            -- Get all units to consider (i.e. with moves left) in the area
-            -- First, set up the filter for the units to consider
-            local filter_units = { side = wesnoth.current.side, canrecruit = 'no',
+            -- First, set up the general filters and tables, to be used by all actions
+
+            -- Unit filter:
+            local unit_filter = { side = wesnoth.current.side, canrecruit = 'no',
                 formula = '$this_unit.moves > 0'
             }
-            if cfg.filter_units then
-                if cfg.filter_units.x then filter_units.x = cfg.filter_units.x end
-                if cfg.filter_units.y then filter_units.y = cfg.filter_units.y end
+            if cfg.unit_filter then
+                if cfg.unit_filter.x then unit_filter.x = cfg.unit_filter.x end
+                if cfg.unit_filter.y then unit_filter.y = cfg.unit_filter.y end
             end
-            --DBG.dbms(filter_units)
-            local units = AH.get_live_units(filter_units)
-            if (not units[1]) then return end
+            --DBG.dbms(unit_filter)
+            local zone_units = AH.get_live_units(unit_filter)
+            if (not zone_units[1]) then return end
 
             -- Then get all the enemies (this needs to be all of them, to get the HP ratio)
             local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
-            --print('#units, #enemies', #units, #enemies)
+            --print('#zone_units, #enemies', #zone_units, #enemies)
 
-            -- Get HP ratio of units that can reach right part of map as function of y coordinate
+            -- Get HP ratio and number of units that can reach the zone as function of y coordinate
             local x_min, y_min, x_max, y_max = 1, 1, wesnoth.get_map_size()
             if cfg.area then
                 if cfg.area.x_min then x_min = cfg.area.x_min end
@@ -1816,7 +1889,7 @@ return {
                 if cfg.area.y_min then y_min = cfg.area.y_min end
                 if cfg.area.y_max then y_max = cfg.area.y_max end
             end
-            local hp_ratio_y, number_units_y = grunt_rush_FLS1:hp_ratio_y(units, enemies, x_min, x_max, y_min, y_max)
+            local hp_ratio_y, number_units_y = grunt_rush_FLS1:hp_ratio_y(zone_units, enemies, x_min, x_max, y_min, y_max)
 
             local tod = wesnoth.get_time_of_day()
             local min_hp_ratio = cfg.advance[tod.id].min_hp_ratio or 1.0
@@ -1843,112 +1916,47 @@ return {
             else
                 grunt_rush_FLS1.data.area_parms[i_c].advance_y = advance_y
             end
+            --print('advance_y zone #' .. i_c, advance_y)
 
-            -- If a suitable advance_y was found, figure out what targets there might be
-            if (advance_y > 0) then
-                attack_y = advance_y + 1  -- Targets can be one hex farther south
-                --print('Looking for targets on right down to y = ' .. attack_y)
+            -- **** This ends the common initialization for all zone actions ****
 
-                -- Now get the targets (=enemies inside the rush area)
-                local targets = AH.get_live_units {
-                    x = x_min .. '-' .. x_max, y = y_min .. '-' .. y_max,
-                    { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
-                }
+            -- **** Attack evaluation ****
 
-                -- Take out targets that are too far south
-                for i=#targets,1,-1 do
-                    if (targets[i].y > attack_y) then table.remove(targets, i) end
-                end
-                --print('#targets filtered', #targets)
-
-                -- Also want an 'attackers' array, indexed by position
-                local attackers = {}
-                for i,u in ipairs(units) do attackers[u.x * 1000 + u.y] = u end
-
-                local max_rating, best_attackers, best_dsts, best_enemy = -9e99, {}, {}, {}
-                for i,e in ipairs(targets) do
-                    --print('\n', i, e.id)
-                    local attack_combos, attacks_dst_src = AH.get_attack_combos_no_order(units, e)
-                    --DBG.dbms(attack_combos)
-                    --DBG.dbms(attacks_dst_src)
-                    --print('#attack_combos', #attack_combos)
-
-                    local enemy_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(e.x, e.y)).village
-                    local enemy_cost = e.__cfg.cost
-
-                    for j,combo in ipairs(attack_combos) do
-                        -- attackers and dsts arrays for stats calculation
-                        local atts, dsts = {}, {}
-                        for dst,src in pairs(combo) do
-                            table.insert(atts, attackers[src])
-                            table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
-                        end
-                        local sorted_atts, sorted_dsts, combo_def_stats, combo_att_stats = AH.attack_combo_stats(atts, dsts, e)
-                        --DBG.dbms(combo_def_stats)
-
-                        -- Don't attack under certain circumstances
-                        local dont_attack = false
-
-                        local rating = 0
-                        local damage = 0
-                        for k,att_stats in ipairs(combo_att_stats) do
-                            if (att_stats.hp_chance[0] >= 0.5) then dont_attack = true end
-                            damage = damage + sorted_atts[k].hitpoints - att_stats.average_hp
-                        end
-                        local damage_enemy = e.hitpoints - combo_def_stats.average_hp
-                        --print(' - #attacks, damage, damage_enemy', #sorted_atts, damage, damage_enemy, dont_attack)
-
-                        rating = rating + damage_enemy - damage / 2.
-
-                        -- Chance to kill is very important (for both sides)
-                        rating = rating + combo_def_stats.hp_chance[0] * 50.
-                        for k,a in ipairs(sorted_atts) do
-                            rating = rating - combo_att_stats[k].hp_chance[0] * 25.
-                        end
-
-                        -- Cost of enemy is another factor
-                        rating = rating + enemy_cost
-
-                        -- If this is on the village, then the expected enemy HP matter:
-                        -- The fewer, the better (choose 25 as about neutral for now)
-                        if enemy_on_village then
-                            rating = rating + (25 - combo_def_stats.average_hp)
-                        end
-
-                        --print(' -----------------------> rating', rating)
-                        if (not dont_attack) and (rating > max_rating) then
-                            max_rating, best_attackers, best_dsts, best_enemy = rating, sorted_atts, sorted_dsts, e
-                        end
-                    end
-                end
-                --print('max_rating ', max_rating)
-                --DBG.dbms(best_combo)
-
-                -- Now we know which attacks to do
-                if (max_rating > -9e99) then
-                    local action = {}
-                    action.rush = {}
-                    action.rush.attackers, action.rush.dsts, action.rush.enemy = best_attackers, best_dsts, best_enemy
-                    return action
+            local targets = {}
+            for i,e in ipairs(enemies) do
+                if (e.x >= x_min) and (e.x <= x_max) and (e.y >= y_min) and (e.y <= y_max)
+                    and (e.y <= advance_y + 1)
+                then
+                    table.insert(targets, e)
                 end
             end
+
+            local attackers, dsts, enemy = grunt_rush_FLS1:get_zone_attack(zone_units, targets)
+            if attackers then
+                local action = {}
+                action.attack = {}
+                action.attack.attackers, action.attack.dsts, action.attack.enemy = attackers, dsts, enemy
+                return action
+            end
+
+            -- **** Hold position evaluation ****
 
             -- If we got here, check for holding the area
             -- Only check for possible position holding if hold_condition is met
             -- If hold_condition does not exist, it's true by default
-            local filter_units = { side = wesnoth.current.side, canrecruit = 'no' }
+            local unit_filter = { side = wesnoth.current.side, canrecruit = 'no' }
             local filter_enemies = { canrecruit = 'no',
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
 
             if cfg.hold_condition then
-                filter_units.x = cfg.hold_condition.x
-                filter_units.y = cfg.hold_condition.y
+                unit_filter.x = cfg.hold_condition.x
+                unit_filter.y = cfg.hold_condition.y
                 filter_enemies.x = cfg.hold_condition.x
                 filter_enemies.y = cfg.hold_condition.y
             end
 
-            local hold_units = AH.get_live_units(filter_units)
+            local hold_units = AH.get_live_units(unit_filter)
             local hold_enemies = AH.get_live_units(filter_enemies)
 
             local eval_hold = true
@@ -2003,7 +2011,7 @@ return {
 
                 local action = {}
                 action.hold = {}
-                action.hold.units, action.hold.goal = units, goal
+                action.hold.units, action.hold.goal = zone_units, goal
                 action.hold.cfg = cfg
 
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
@@ -2042,20 +2050,20 @@ return {
         end
 
         function grunt_rush_FLS1:zone_control_exec()
-            if grunt_rush_FLS1.data.zone_action.rush then
-                if AH.print_exec() then print('     - Executing zone_control CA (rush)') end
+            if grunt_rush_FLS1.data.zone_action.attack then
+                if AH.print_exec() then print('     - Executing zone_control CA (attack)') end
 
-                while grunt_rush_FLS1.data.zone_action.rush.attackers and (table.maxn(grunt_rush_FLS1.data.zone_action.rush.attackers) > 0) do
-                    if AH.show_messages() then W.message { speaker = grunt_rush_FLS1.data.zone_action.rush.attackers[1].id, message = 'Rush: Combo attack' } end
-                    AH.movefull_outofway_stopunit(ai, grunt_rush_FLS1.data.zone_action.rush.attackers[1], grunt_rush_FLS1.data.zone_action.rush.dsts[1])
-                    ai.attack(grunt_rush_FLS1.data.zone_action.rush.attackers[1], grunt_rush_FLS1.data.zone_action.rush.enemy)
+                while grunt_rush_FLS1.data.zone_action.attack.attackers and (table.maxn(grunt_rush_FLS1.data.zone_action.attack.attackers) > 0) do
+                    if AH.show_messages() then W.message { speaker = grunt_rush_FLS1.data.zone_action.attack.attackers[1].id, message = 'Zone action: Combo attack' } end
+                    AH.movefull_outofway_stopunit(ai, grunt_rush_FLS1.data.zone_action.attack.attackers[1], grunt_rush_FLS1.data.zone_action.attack.dsts[1])
+                    ai.attack(grunt_rush_FLS1.data.zone_action.attack.attackers[1], grunt_rush_FLS1.data.zone_action.attack.enemy)
 
                     -- Delete this attack from the combo
-                    table.remove(grunt_rush_FLS1.data.zone_action.rush.attackers, 1)
-                    table.remove(grunt_rush_FLS1.data.zone_action.rush.dsts, 1)
+                    table.remove(grunt_rush_FLS1.data.zone_action.attack.attackers, 1)
+                    table.remove(grunt_rush_FLS1.data.zone_action.attack.dsts, 1)
 
                     -- If enemy got killed, we need to stop here
-                    if (not grunt_rush_FLS1.data.zone_action.rush.enemy.valid) then grunt_rush_FLS1.data.zone_action.rush.attackers = nil end
+                    if (not grunt_rush_FLS1.data.zone_action.attack.enemy.valid) then grunt_rush_FLS1.data.zone_action.attack.attackers = nil end
                 end
                 grunt_rush_FLS1.data.zone_action = nil
                 return
