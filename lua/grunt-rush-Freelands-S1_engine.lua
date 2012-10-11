@@ -572,7 +572,7 @@ return {
             if hold.retreat then
                 -- Set up an array containing the open villages to retreat to
                 local open_villages = {}
-                for i,v in ipairs(hold.villages) do
+                for i,v in ipairs(hold.cfg.villages) do
                     local unit_in_way = wesnoth.get_unit(v.x, v.y)
                     if (not unit_in_way) or ((unit_in_way.side == wesnoth.current.side) and (unit_in_way.moves > 0)) then
                         table.insert(open_villages, v)
@@ -680,73 +680,27 @@ return {
                 -- Put the units back out there
                 for iu,uMP in ipairs(units_MP) do wesnoth.put_unit(uMP.x, uMP.y, uMP) end
 
-                local max_rating, best_hex, best_unit, ind_u = -9e99, {}, {}, -1
-                for i,u in ipairs(retreaters) do
-                    local reach_map = AH.get_reachable_unocc(u)
-                    reach_map:iter( function(x, y, v)
+                -- First calculate a unit independent rating map
+                rating_map = LS.create()
+                for x = hold.cfg.area.x_min, hold.cfg.area.x_max do
+                    --for y = hold.cfg.area.y_min, hold.cfg.area.y_max do
+                    for y = goal.y-2, goal.y+1 do
                         local rating = 0
 
-                        -- First rating is distance between goal and location
-                        -- On top of that, y distance is somewhat more important than x
-                        --local dist = H.distance_between(x, y, goal.x, goal.y)
-                        --rating = rating - dist * 4
-                        -- Do distance in a path-finding sense
-                        local x1, y1 = u.x, u.y
-                        wesnoth.extract_unit(u)
-                        u.x, u.y = x, y
-                        local path, cost = wesnoth.find_path(u, goal.x, goal.y, { ignore_units = true } )
-                        wesnoth.put_unit(x1, y1, u)
-                        if (cost > u.max_moves) then
-                            rating = rating - cost * 4
-                        end
+                        local y_dist = math.abs(y - goal.y)
+                        --y_dist = math.floor(y_dist / 2) * 2.
+                        rating = rating - y_dist
 
                         rating = rating - math.abs(x - goal.x) / 2.
-                        rating = rating - math.abs(y - goal.y)
 
                         -- In particular, do not like positions too far south -> additional penalty
                         if (y > goal.y + 1) then rating = rating - (y - goal.y) * 10 end
 
-                        -- Take southern and eastern units first
-                        -- We might want to change this later to using strong units first,
-                        -- then retreating weaker units behind them
-                        rating = rating + u.y + u.x / 2.
-
-                        -- Rating for the terrain
-                        -- This has very little effect if the hex is not threatened by enemies
-                        -- If it is, we take terrain into account
-                        -- As this is a retreat CA, we prefer unthreatened hexes, so terrain rating
-                        -- is a negative contribution
-                        -- All of this might have to be done more carefully later
-                        local terrain_weight = 0.01
-                        if enemy_attack_map:get(x, y) then
-                            terrain_weight = 0.51
-                        end
-
-                        local defense = 100 - wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))
-
-                        if hold.retreat then
-                            rating = rating + (defense - 80) * terrain_weight
-                        else
-                            rating = rating + (defense - 20) * terrain_weight
-                        end
-
                         -- Small bonus if this is on a village
-                        -- Or a huge bonus if it is an unowned or enemy-owned village
-                        -- (but only if it is one of the saved villages)
+                        -- Village will also get bonus from defense rating below
                         local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
                         if is_village then
-                            rating = rating + 10 * terrain_weight
-
-                            for i,v in ipairs(hold.villages) do
-                                if (v.x == x) and (v.y == y) then
-                                    local owner = wesnoth.get_village_owner(x, y)
-                                    if (not owner) then
-                                        rating = rating + 100
-                                    else
-                                        if wesnoth.is_enemy(owner, wesnoth.current.side) then rating = rating + 200 end
-                                    end
-                                end
-                            end
+                            rating = rating + 5
                         end
 
                         -- We also, ideally, want to be 3 hexes from the closest unit that has
@@ -759,12 +713,60 @@ return {
                         if (min_dist == 3) then rating = rating + 6 end
                         if (min_dist == 2) then rating = rating + 4 end
 
-                        reach_map:insert(x, y, rating)
+                       rating_map:insert(x, y, rating)
+                    end
+                end
+                --AH.put_labels(rating_map)
+                --W.message { speaker = 'narrator', message = 'Retreat unit: unit-independent rating map' }
 
-                        if (rating > max_rating) then
-                            max_rating, best_hex, best_unit, ind_u = rating, { x, y }, u, i
+                -- Now we go on to the unit-dependent rating part
+                local max_rating, best_hex, best_unit, ind_u = -9e99, {}, {}, -1
+                for i,u in ipairs(retreaters) do
+                    local reach_map = AH.get_reachable_unocc(u)
+                    local max_rating_unit, best_hex_unit = -9e99, {}
+                    reach_map:iter( function(x, y, v)
+                        -- If this is inside cfg.area
+                        if rating_map:get(x, y) then
+                            rating = rating_map:get(x, y)
+
+                            -- Take southern and eastern units first
+                            -- We might want to change this later to using strong units first,
+                            -- then retreating weaker units behind them
+                            rating = rating + u.y + u.x / 2.
+
+                            -- Rating for the terrain
+                            local terrain_weight = 0.51
+                            local defense = 100 - wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))
+                            if hold.retreat then
+                                rating = rating + (defense - 80) * terrain_weight
+                            else
+                                rating = rating + (defense - 20) * terrain_weight
+                            end
+
+                            reach_map:insert(x, y, rating)
+
+                            if (rating > max_rating_unit) then
+                                max_rating_unit, best_hex_unit = rating, { x, y }
+                            end
+                        else
+                            reach_map:remove(x, y)
                         end
                     end)
+
+                    -- If we cannot get into the area, take direct path to goal hex
+                    if (max_rating_unit == -9e99) then
+                        local next_hop = AH.next_hop(u, goal.x, goal.y)
+                        local dist = H.distance_between(next_hop[1], next_hop[2], goal.x, goal.y)
+                        --print('cannot get there: ', u.id, dist, goal.x, goal.y)
+                        max_rating_unit = -1000 - dist
+                        best_hex_unit = next_hop
+                    end
+
+                    if (max_rating_unit > max_rating) then
+                        max_rating, best_hex, best_unit, ind_u = max_rating_unit, best_hex_unit, u, i
+                    end
+                    --print('max_rating:', max_rating)
+
                     --AH.put_labels(reach_map)
                     --W.message { speaker = u.id, message = 'Retreat unit rating map' }
                 end
@@ -775,7 +777,7 @@ return {
                 table.insert(units_moved, best_unit)
                 table.remove(retreaters, ind_u)
 
-                if hold.one_unit_per_call then
+                if hold.cfg.one_unit_per_call then
                     return
                 end
             end
@@ -2383,9 +2385,7 @@ return {
                 local action = {}
                 action.hold = {}
                 action.hold.units, action.hold.goal = units, goal
-
-                action.hold.villages = cfg.villages
-                action.hold.one_unit_per_call = cfg.one_unit_per_call
+                action.hold.cfg = cfg
 
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return action
