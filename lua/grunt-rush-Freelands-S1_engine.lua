@@ -104,9 +104,8 @@ return {
                     first_watch =  { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 },
                     second_watch = { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 }
                 },
-                enemy_area = { x_min = 15, x_max = 23, y_min = 1, y_max = 16},
                 hold = { x = 20, max_y = 15 },
-                hold_condition = { hp_ratio = 0.67, x = '15-23', y = '1-16' },
+                hold_condition = { hp_ratio = 0.67 },
                 villages = { { x = 18, y = 9 }, { x = 24, y = 7 }, { x = 22, y = 2 } },
                 one_unit_per_call = true
             }
@@ -123,7 +122,7 @@ return {
                     second_watch = { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 }
                 },
                 hold = { x = 11, max_y = 15 },
-                hold_condition = { hp_ratio = 1.0, x = '1-15', y = '1-15' },
+                hold_condition = { hp_ratio = 1.0 },
                 villages = { { x = 11, y = 9 }, { x = 8, y = 5 }, { x = 12, y = 5 }, { x = 12, y = 2 } },
                 one_unit_per_call = true
             }
@@ -1846,7 +1845,59 @@ return {
             --DBG.dbms(best_combo)
 
             if (max_rating > -9e99) then
-                return best_attackers, best_dsts, best_enemy
+                local action = {}
+                action.attack = {}
+                action.attack.attackers, action.attack.dsts, action.attack.enemy = best_attackers, best_dsts, best_enemy
+                return action
+            end
+
+            return nil
+        end
+
+        function grunt_rush_FLS1:get_zone_hold(hold_units, hold_enemies, hold_y, cfg)
+            -- Only check for possible position holding if hold_condition is met
+            -- If hold_condition does not exist, it's true by default
+
+            local eval_hold = true
+            if cfg.hold_condition then
+                local hp_ratio = grunt_rush_FLS1:hp_ratio(hold_units, hold_enemies)
+                --print('hp_ratio, #hold_units, #hold_enemies', hp_ratio, #hold_units, #hold_enemies)
+
+                -- Don't evaluate for holding position if the hp_ratio in the area is already high enough
+                if (hp_ratio >= cfg.hold_condition.hp_ratio) then
+                    eval_hold = false
+                end
+            end
+
+            if eval_hold then
+                local hold_x = math.floor((cfg.area.x_min + cfg.area.x_max) / 2.)
+                local hold_max_y = cfg.area.y_max
+                if cfg.hold then
+                    if cfg.hold.x then hold_x = cfg.hold.x end
+                    if cfg.hold.max_y then hold_max_y = cfg.hold.max_y end
+                end
+
+                if (hold_y > hold_max_y) then hold_y = hold_max_y end
+                local goal = { x = hold_x, y = hold_y }
+                for y = hold_y - 1, hold_y + 1 do
+                    for x = cfg.area.x_min,cfg.area.x_max do
+                        --print(x,y)
+                        local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
+                        if is_village then
+                            goal = { x = x, y = y }
+                            break
+                        end
+                    end
+                end
+                --print('goal:', goal.x, goal.y)
+
+                local action = {}
+                action.hold = {}
+                action.hold.units, action.hold.goal = hold_units, goal
+                action.hold.cfg = cfg
+
+                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                return action
             end
 
             return nil
@@ -1931,92 +1982,21 @@ return {
                 end
             end
 
-            local attackers, dsts, enemy = grunt_rush_FLS1:get_zone_attack(zone_units, targets)
-            if attackers then
-                local action = {}
-                action.attack = {}
-                action.attack.attackers, action.attack.dsts, action.attack.enemy = attackers, dsts, enemy
-                return action
-            end
+            local action = grunt_rush_FLS1:get_zone_attack(zone_units, targets)
+            if action then return action end
 
             -- **** Hold position evaluation ****
 
             -- If we got here, check for holding the area
-            -- Only check for possible position holding if hold_condition is met
-            -- If hold_condition does not exist, it's true by default
-            local unit_filter = { side = wesnoth.current.side, canrecruit = 'no' }
-            local filter_enemies = { canrecruit = 'no',
-                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
-            }
-
-            if cfg.hold_condition then
-                unit_filter.x = cfg.hold_condition.x
-                unit_filter.y = cfg.hold_condition.y
-                filter_enemies.x = cfg.hold_condition.x
-                filter_enemies.y = cfg.hold_condition.y
-            end
-
-            local hold_units = AH.get_live_units(unit_filter)
-            local hold_enemies = AH.get_live_units(filter_enemies)
-
-            local eval_hold = true
-            if cfg.hold_condition then
-                local hp_ratio = grunt_rush_FLS1:hp_ratio(hold_units, hold_enemies)
-                --print('hp_ratio, #hold_units, #hold_enemies', hp_ratio, #hold_units, #hold_enemies)
-
-                -- Don't evaluate for holding position if the hp_ratio in the area is already high enough
-                if (hp_ratio >= cfg.hold_condition.hp_ratio) then
-                    eval_hold = false
+            local enemies_hold_area = {}
+            for i,e in ipairs(enemies) do
+                if (e.x >= x_min) and (e.x <= x_max) and (e.y >= y_min) and (e.y <= y_max) then
+                    table.insert(enemies_hold_area, e)
                 end
             end
 
-            -- If there are unoccupied or enemy-occupied villages in the hold area, try to take those
-            -- if we do not have enough units that have moved already are in the area
-            if (not eval_hold) then
-                local n_units_noMP = 0
-                for i,u in ipairs(hold_units) do
-                    if (u.moves == 0) then n_units_noMP = n_units_noMP + 1 end
-                end
-                if (n_units_noMP < #cfg.villages/2) then
-                    for i,v in ipairs(cfg.villages) do
-                        local owner = wesnoth.get_village_owner(v.x, v.y)
-                        if (not owner) or wesnoth.is_enemy(owner, wesnoth.current.side) then
-                            eval_hold = true
-                        end
-                    end
-                end
-            end
-
-            if eval_hold then
-                local hold_x = math.floor((x_min + x_max) / 2.)
-                local hold_max_y = y_max
-                if cfg.hold then
-                    if cfg.hold.x then hold_x = cfg.hold.x end
-                    if cfg.hold.max_y then hold_max_y = cfg.hold.max_y end
-                end
-
-                if (advance_y > hold_max_y) then advance_y = hold_max_y end
-                local goal = { x = hold_x, y = advance_y }
-                for y = advance_y - 1, advance_y + 1 do
-                    for x = x_min,x_max do
-                        --print(x,y)
-                        local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
-                        if is_village then
-                            goal = { x = x, y = y }
-                            break
-                        end
-                    end
-                end
-                --print('goal:', goal.x, goal.y)
-
-                local action = {}
-                action.hold = {}
-                action.hold.units, action.hold.goal = zone_units, goal
-                action.hold.cfg = cfg
-
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                return action
-            end
+            local action = grunt_rush_FLS1:get_zone_hold(zone_units, enemies_hold_area, advance_y, cfg)
+            if action then return action end
 
             return nil  -- This is technically unnecessary
         end
