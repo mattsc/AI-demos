@@ -672,6 +672,7 @@ return {
                 -- This needs to be done after every move
                 -- And units with MP left need to be taken off the map
                 local units_MP = wesnoth.get_units { side = wesnoth.current.side, formula = '$this_unit.moves > 0' }
+                local units_noMP = wesnoth.get_units { side = wesnoth.current.side, formula = '$this_unit.moves = 0' }
                 for iu,uMP in ipairs(units_MP) do wesnoth.extract_unit(uMP) end
 
                 local enemy_attack_map = AH.attack_map(enemies, { moves = 'max' })
@@ -695,7 +696,9 @@ return {
                         u.x, u.y = x, y
                         local path, cost = wesnoth.find_path(u, goal.x, goal.y, { ignore_units = true } )
                         wesnoth.put_unit(x1, y1, u)
-                        rating = rating - cost * 4
+                        if (cost > u.max_moves) then
+                            rating = rating - cost * 4
+                        end
 
                         rating = rating - math.abs(x - goal.x) / 2.
                         rating = rating - math.abs(y - goal.y)
@@ -749,7 +752,7 @@ return {
                         -- We also, ideally, want to be 3 hexes from the closest unit that has
                         -- already moved, so as to ZOC the area
                         local min_dist = 9999
-                        for j,m in ipairs(units_moved) do
+                        for j,m in ipairs(units_noMP) do
                             local dist = H.distance_between(x, y, m.x, m.y)
                             if (dist < min_dist) then min_dist = dist end
                         end
