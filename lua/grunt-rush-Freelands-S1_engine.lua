@@ -377,15 +377,8 @@ return {
             return nil
         end
 
-        function grunt_rush_FLS1:retreat_units(hold, cfg)
-            -- Retreat units to a defensive position
-            -- Hold is a container variable containing:
-            --  goal: set up position at (goal.x, goal.y)
-            --  villages: an array containing the coordinates of villages to which to retreat injured units
-            --  units: the units to use for this
-            -- cfg: table with additional parameters (probably to be gotten rid of later):
-            --   ignore_terrain_at_night: if true, terrain has (almost) no influence on
-            -- choosing positions for close units
+        function grunt_rush_FLS1:hold_area(hold, cfg)
+            -- Hold an area by setting up a defensive position
 
             cfg = cfg or {}
             cfg.called_from = cfg.called_from or ''
@@ -468,18 +461,17 @@ return {
             end
 
             -- At this point, we find which of the original units have moves left
-            -- (this then excludes those that just retreated toward a village, as well
+            -- (to exclude those that just retreated toward a village, as well
             -- as those that might have lost their MP by moving out of the way)
-            local retreaters = {}
+            local holders = {}
             for i,u in ipairs(hold.units) do
-                if (u.moves > 0) then table.insert(retreaters, u) end
+                if (u.moves > 0) then table.insert(holders, u) end
             end
 
             -- Also need all the enemies
             local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", { side = wesnoth.current.side } }} }
             }
-            --print('Retreat units: #enemies', #enemies)
 
             -- Find how far south the defensive position should be set up
             -- (This is a temporary measure, to be replaced by more sophisticated/general stuff later)
@@ -489,11 +481,11 @@ return {
                 if (goal.y < l[2] + 1) then goal.y = l[2] + 1 end
             end
 
-            -- Set up an array that hold retreaters that have already moved
+            -- Set up an array that holds all units in the area that have already moved
             local units_moved = {}
 
-            -- Now retreat all the remaining units
-            while retreaters[1] do
+            -- Now move units into holding positions
+            while holders[1] do
                 -- First, find where the enemy can attack
                 -- This needs to be done after every move
                 -- And units with MP left need to be taken off the map
@@ -543,11 +535,11 @@ return {
                     end
                 end
                 --AH.put_labels(rating_map)
-                --W.message { speaker = 'narrator', message = 'Retreat unit: unit-independent rating map' }
+                --W.message { speaker = 'narrator', message = 'Hold area: unit-independent rating map' }
 
                 -- Now we go on to the unit-dependent rating part
                 local max_rating, best_hex, best_unit, ind_u = -9e99, {}, {}, -1
-                for i,u in ipairs(retreaters) do
+                for i,u in ipairs(holders) do
                     local reach_map = AH.get_reachable_unocc(u)
                     local max_rating_unit, best_hex_unit = -9e99, {}
                     reach_map:iter( function(x, y, v)
@@ -594,14 +586,14 @@ return {
                     --print('max_rating:', max_rating)
 
                     --AH.put_labels(reach_map)
-                    --W.message { speaker = u.id, message = 'Retreat unit rating map' }
+                    --W.message { speaker = u.id, message = 'Hold area: unit-specific rating map' }
                 end
 
-                if AH.show_messages() then W.message { speaker = best_unit.id, message = 'Retreat unit (' .. cfg.called_from .. ')' } end
+                if AH.show_messages() then W.message { speaker = best_unit.id, message = 'Hold area (' .. cfg.called_from .. ')' } end
                 AH.movefull_outofway_stopunit(ai, best_unit, best_hex)
                 -- Then remove the unit from consideration next time around
                 table.insert(units_moved, best_unit)
-                table.remove(retreaters, ind_u)
+                table.remove(holders, ind_u)
 
                 if hold.cfg.one_unit_per_call then
                     return
@@ -2083,7 +2075,7 @@ return {
                 grunt_rush_FLS1.data.zone_action.hold.retreat = nil
             end
 
-            grunt_rush_FLS1:retreat_units(grunt_rush_FLS1.data.zone_action.hold, { called_from = 'zone_control CA' } )
+            grunt_rush_FLS1:hold_area(grunt_rush_FLS1.data.zone_action.hold, { called_from = 'zone_control CA' } )
 
             grunt_rush_FLS1.data.zone_action = nil
         end
