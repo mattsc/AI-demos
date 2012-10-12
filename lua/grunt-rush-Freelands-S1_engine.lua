@@ -1939,12 +1939,20 @@ return {
 
                 AH.movefull_outofway_stopunit(ai, unit, dst)
 
-                if grunt_rush_FLS1.data.zone_action.enemy then
-                    ai.attack(unit, grunt_rush_FLS1.data.zone_action.enemy)
-                end
-
+                -- Remove these from the table
                 table.remove(grunt_rush_FLS1.data.zone_action.units, 1)
                 table.remove(grunt_rush_FLS1.data.zone_action.dsts, 1)
+
+                -- Then do the attack, if there is one to do
+                if grunt_rush_FLS1.data.zone_action.enemy then
+                    ai.attack(unit, grunt_rush_FLS1.data.zone_action.enemy)
+
+                    -- If enemy got killed, we need to stop here
+                    if (not grunt_rush_FLS1.data.zone_action.enemy.valid) then
+                        grunt_rush_FLS1.data.zone_action.units = nil
+                    end
+                end
+
             end
 
             grunt_rush_FLS1.data.zone_action = nil
