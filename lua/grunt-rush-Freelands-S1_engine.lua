@@ -1649,19 +1649,33 @@ return {
             return nil
         end
 
-        function grunt_rush_FLS1:get_zone_hold(hold_units, hold_enemies, hold_y, cfg)
+        function grunt_rush_FLS1:get_zone_hold(units, units_noMP, enemies, hold_y, cfg)
             -- Only check for possible position holding if hold_condition is met
             -- If hold_condition does not exist, it's true by default
 
             local eval_hold = true
             if cfg.hold_condition then
-                local hp_ratio = grunt_rush_FLS1:hp_ratio(hold_units, hold_enemies)
-                --print('hp_ratio, #hold_units, #hold_enemies', hp_ratio, #hold_units, #hold_enemies)
+                local hp_ratio = grunt_rush_FLS1:hp_ratio(units, enemies)
+                --print('hp_ratio, #units, #enemies', hp_ratio, #units, #enemies)
 
                 -- Don't evaluate for holding position if the hp_ratio in the area is already high enough
                 if (hp_ratio >= cfg.hold_condition.hp_ratio) then
                     eval_hold = false
                 end
+            end
+
+            -- If there are unoccupied or enemy-occupied villages in the hold area, send units there
+            -- if we do not have enough units that have moved already are in the area
+            if (not eval_hold) then
+                if (#units_noMP < #cfg.villages/2) then
+                    for i,v in ipairs(cfg.villages) do
+                        local owner = wesnoth.get_village_owner(v.x, v.y)
+                        if (not owner) or wesnoth.is_enemy(owner, wesnoth.current.side) then
+                            eval_hold, get_villages = true, true
+                        end
+                    end
+                end
+                --print('#units_noMP, #cfg.villages', #units_noMP, #cfg.villages)
             end
 
             if eval_hold then
@@ -1687,7 +1701,7 @@ return {
                 --print('goal:', goal.x, goal.y)
 
                 local action = { units = {}, dsts = {} }
-                action.units[1], action.dsts[1] = grunt_rush_FLS1:hold_area(hold_units, goal, cfg)
+                action.units[1], action.dsts[1] = grunt_rush_FLS1:hold_area(units, goal, cfg)
                 return action
 
             end
@@ -1707,15 +1721,22 @@ return {
             -- First, set up the general filters and tables, to be used by all actions
 
             -- Unit filter:
-            local unit_filter = { side = wesnoth.current.side, canrecruit = 'no',
-                formula = '$this_unit.moves > 0'
-            }
+            local unit_filter = { side = wesnoth.current.side, canrecruit = 'no' }
             if cfg.unit_filter then
                 if cfg.unit_filter.x then unit_filter.x = cfg.unit_filter.x end
                 if cfg.unit_filter.y then unit_filter.y = cfg.unit_filter.y end
             end
             --DBG.dbms(unit_filter)
-            local zone_units = AH.get_live_units(unit_filter)
+            local all_units = AH.get_live_units(unit_filter)
+            local zone_units, zone_units_noMP = {}, {}
+            for i,u in ipairs(all_units) do
+                if (u.moves > 0) then
+                    table.insert(zone_units, u)
+                else
+                    table.insert(zone_units_noMP, u)
+                end
+            end
+
             if (not zone_units[1]) then return end
 
             -- Then get all the enemies (this needs to be all of them, to get the HP ratio)
@@ -1865,7 +1886,7 @@ return {
             end
 
             if (zone_units[1]) then
-                local action = grunt_rush_FLS1:get_zone_hold(zone_units, enemies_hold_area, advance_y, cfg)
+                local action = grunt_rush_FLS1:get_zone_hold(zone_units, zone_units_noMP, enemies_hold_area, advance_y, cfg)
                 if action then
                     action.action = cfg.zone_id .. ': ' .. 'hold position'
                     return action
