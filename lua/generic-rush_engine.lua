@@ -338,7 +338,7 @@ return {
 
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
             local castle = wesnoth.get_locations {
-                x = leader.x, y = leader.y, radius = 5,
+                x = leader.x, y = leader.y, radius = 200,
                 { "filter_radius", { terrain = 'C*,K*' } }
             }
             local width,height,border = wesnoth.get_map_size()
