@@ -1471,73 +1471,43 @@ return {
 
         ----------Grab villages -----------
 
-        function grunt_rush_FLS1:grab_villages_eval()
-            local score_high, score_low_enemy, score_low_own = 462000, 305000, 280000
-            if AH.skip_CA('grab_villages') then return 0 end
-            if AH.print_eval() then print('     - Evaluating grab_villages CA:', os.clock()) end
-
-            --local leave_own_villages = wesnoth.get_variable "leave_own_villages"
-            --if leave_own_villages then
-            --    --print('Lowering village holding priority')
-            --    score_low = 250000
-            --end
-
-            -- Check if there are units with moves left
-            -- New: include the leader in this
-            local units = wesnoth.get_units { side = wesnoth.current.side,
-                formula = '$this_unit.moves > 0'
-            }
-            if (not units[1]) then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                return 0
-            end
-
-            local enemies = AH.get_live_units {
-                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
-            }
-
-            local villages = wesnoth.get_locations { terrain = '*^V*' }
-            -- Just in case:
-            if (not villages[1]) then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                return 0
-            end
-
+        function grunt_rush_FLS1:eval_grab_villages(units, villages, enemies, retreat_injured_units)
             --print('#units, #enemies', #units, #enemies)
 
-            -- Now we check if a unit can get to a village
+            -- Check if a unit can get to a village
             local max_rating, best_village, best_unit = -9e99, {}, {}
             for j,v in ipairs(villages) do
                 local close_village = true -- a "close" village is one that is closer to theAI keep than to the closest enemy keep
 
                 local my_leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
                 local my_keep = AH.get_closest_location({my_leader.x, my_leader.y}, { terrain = 'K*' })
-                local dist_my_keep = H.distance_between(v[1], v[2], my_keep[1], my_keep[2])
+
+                local dist_my_keep = H.distance_between(v.x, v.y, my_keep[1], my_keep[2])
 
                 local enemy_leaders = AH.get_live_units { canrecruit = 'yes',
                     { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
                 }
                 for i,e in ipairs(enemy_leaders) do
                     local enemy_keep = AH.get_closest_location({e.x, e.y}, { terrain = 'K*' })
-                    local dist_enemy_keep = H.distance_between(v[1], v[2], enemy_keep[1], enemy_keep[2])
+                    local dist_enemy_keep = H.distance_between(v.x, v.y, enemy_keep[1], enemy_keep[2])
                     if (dist_enemy_keep < dist_my_keep) then
                         close_village = false
                         break
                     end
                 end
-                --print('village is close village:', v[1], v[2], close_village)
+                --print('village is close village:', v.x, v.y, close_village)
 
                 for i,u in ipairs(units) do
-                    local path, cost = wesnoth.find_path(u, v[1], v[2])
+                    local path, cost = wesnoth.find_path(u, v.x, v.y)
 
-                    local unit_in_way = wesnoth.get_unit(v[1], v[2])
+                    local unit_in_way = wesnoth.get_unit(v.x, v.y)
                     if unit_in_way then
                         if (unit_in_way.id == u.id) then unit_in_way = nil end
                     end
 
                     -- Rate all villages that can be reached and are unoccupied by other units
                     if (cost <= u.moves) and (not unit_in_way) then
-                        --print('Can reach:', u.id, v[1], v[2], cost)
+                        --print('Can reach:', u.id, v.x, v.y, cost)
                         local rating = 0
 
                         -- If an enemy can get onto the village, we want to hold it
@@ -1545,7 +1515,7 @@ return {
                         -- This will also prefer close villages over far ones, everything else being equal
                         wesnoth.extract_unit(u)
                         for k,e in ipairs(enemies) do
-                            local path_e, cost_e = wesnoth.find_path(e, v[1], v[2])
+                            local path_e, cost_e = wesnoth.find_path(e,v.x, v.y)
                             if (cost_e <= e.max_moves) then
                                 --print('  within enemy reach', e.id)
                                 -- Prefer close villages that are in reach of many enemies,
@@ -1562,7 +1532,7 @@ return {
                         -- Unowned and enemy-owned villages get a large bonus
                         -- but we do not seek them out specifically, as the standard CA does that
                         -- That means, we only do the rest for villages that can be reached by an enemy
-                        local owner = wesnoth.get_village_owner(v[1], v[2])
+                        local owner = wesnoth.get_village_owner(v.x, v.y)
                         if (not owner) then
                             rating = rating + 1000
                         else
@@ -1571,18 +1541,20 @@ return {
 
                         -- It is impossible for these numbers to add up to zero, so we do the
                         -- detail rating only for those
-                        if (rating ~= 0) then
-                            -- Grunts are good tanks for villages: give them a bonus rating
-                            if (u.type ~= 'Orcish Grunt') then rating = rating + 1 end
-
+                        if (rating ~= 0) or retreat_injured_units then
                             -- Finally, since these can be reached by the enemy, want the strongest unit to go first
-                            rating = rating + u.hitpoints / 100.
+                            -- except when we're retreating injured units, then it's the most injured unit first
+                            if retreat_injured_units then
+                                rating = rating + (u.max_hitpoints - u.hitpoints) / 100.
+                            else
+                                rating = rating + u.hitpoints / 100.
+                            end
 
                             -- If this is the leader, calculate counter attack damage
                             -- Make him the preferred village taker unless he's likely to die
                             -- but only if he's on the keep
                             if u.canrecruit then
-                                local counter_table = grunt_rush_FLS1:calc_counter_attack(u, { v[1], v[2] })
+                                local counter_table = grunt_rush_FLS1:calc_counter_attack(u, { v.x, v.y })
                                 local max_counter_damage = counter_table.max_counter_damage
                                 --print('    max_counter_damage:', u.id, max_counter_damage)
                                 if (max_counter_damage < u.hitpoints) and wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
@@ -1603,50 +1575,13 @@ return {
             --print('max_rating', max_rating)
 
             if (max_rating > -9e99) then
-                grunt_rush_FLS1.data.GV_unit, grunt_rush_FLS1.data.GV_village = best_unit, best_village
-
-                -- Villages owned by AI, but threatened by enemies
-                -- have scores < 500 (< 1000 - a few times 10)
-                if (max_rating < 500) then
-                    -- Those are low priority and we only going there is there's nothing else to do
-                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                    return score_low_own
-                else
-                    -- Unowned and enemy-owned villages are taken with high priority during day, low priority at night
-                    -- but even at night with higher priority than own villages
-                    local tod = wesnoth.get_time_of_day()
-                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                    if (tod.id == 'dusk') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
-                        return score_low_enemy
-                    else
-                        return score_high
-                    end
-                end
-            end
-            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-            return 0
-        end
-
-        function grunt_rush_FLS1:grab_villages_exec()
-            if AH.print_exec() then print('     - Executing grab_villages CA') end
-            if grunt_rush_FLS1.data.GV_unit.canrecruit then
-                if AH.show_messages() then W.message { speaker = grunt_rush_FLS1.data.GV_unit.id, message = 'The leader, me, is about to grab a village.  Need to recruit first.' } end
-                -- Recruiting first; we're doing that differently here than in attack_leader_threat,
-                -- by running a mini CA eval/exec loop
-                local recruit_loop = true
-                while recruit_loop do
-                    local eval = grunt_rush_FLS1:recruit_orcs_eval()
-                    if (eval > 0) then
-                        grunt_rush_FLS1:recruit_orcs_exec()
-                    else
-                        recruit_loop = false
-                    end
-                end
+                local action = {}
+                action.village = {}
+                action.village.unit, action.village.village =  best_unit, best_village
+                return action
             end
 
-            if AH.show_messages() then W.message { speaker = grunt_rush_FLS1.data.GV_unit.id, message = 'Grabbing/holding village' } end
-            AH.movefull_outofway_stopunit(ai, grunt_rush_FLS1.data.GV_unit, grunt_rush_FLS1.data.GV_village)
-            grunt_rush_FLS1.data.GV_unit, grunt_rush_FLS1.data.GV_village = nil, nil
+            return nil
         end
 
         --------- zone_control CA ------------
@@ -1724,80 +1659,6 @@ return {
             end
 
             return nil
-        end
-
-        function grunt_rush_FLS1:get_zone_villages(units, cfg)
-
-            -- Set up an array containing the open villages to retreat to
-            local open_villages = {}
-            for i,v in ipairs(cfg.villages) do
-                local unit_in_way = wesnoth.get_unit(v.x, v.y)
-                if (not unit_in_way) or ((unit_in_way.side == wesnoth.current.side) and (unit_in_way.moves > 0)) then
-                    table.insert(open_villages, v)
-                end
-            end
-
-                -- Find the most injured units
-                local most_injured = {}
-                for i,u in ipairs(hold.units) do
-                    if (u.hitpoints < u.max_hitpoints) then table.insert(most_injured, u) end
-                end
-
-                table.sort(most_injured, function(a, b)
-                    return a.max_hitpoints - a.hitpoints > b.max_hitpoints - b.hitpoints
-                end)
-
-                -- Only keep as many injured units as there are open villages
-                for i = #most_injured,#open_villages+1,-1 do
-                    table.remove(most_injured, i)
-                end
-
-                -- Now retreat those units toward those villages
-                local injured_locs = {}  -- Array for saving where the injured units moved to
-                while most_injured[1] do
-                    local max_rating, best_unit, best_village, ind_u, ind_v = -9e99, {}, {}, -1, -1
-                    for i,u in ipairs(most_injured) do
-                        for j,v in ipairs(open_villages) do
-                            local rating = 0
-
-                            -- The rating is mostly how close the unit can get to the village
-                            -- Cannot use AH.next_hop here, as that excludes occupied locations
-                            local path, cost = wesnoth.find_path(u, v.x, v.y)
-                            if (cost <= u.moves) then
-                                rating = rating + 100
-                            else
-                                rating = rating - cost
-                            end
-
-                            -- All else being equal, retreat the most injured unit first
-                            rating = rating + (u.max_hitpoints - u.hitpoints) / 100.
-
-                            -- If there's a unit in the way, add a very minor penalty
-                            -- It was checked previously that this unit has moves left
-                            if wesnoth.get_unit(v.x, v.y) then rating = rating - 0.001 end
-
-                            if (rating > max_rating) then
-                                max_rating, best_unit, best_village, ind_u, ind_v = rating, u, v, i, j
-                            end
-                        end
-                    end
-
-                    -- If a good retreat option was found, do it
-                    if (max_rating > -9e99) then
-                        if AH.show_messages() then W.message { speaker = best_unit.id, message = 'Retreat injured unit (' .. cfg.called_from .. ')' } end
-                        AH.movefull_outofway_stopunit(ai, best_unit, best_village)
-                        -- Also save where this unit moved to, for setting up protection for them
-                        table.insert(injured_locs, { best_unit.x, best_unit.y })
-
-                        -- Then remove unit and village from the tables
-                        table.remove(most_injured, ind_u)
-                        table.remove(open_villages, ind_v)
-                    -- Otherwise stop the loop
-                    else
-                        most_injured = {}
-                    end
-                end
-            end
         end
 
         function grunt_rush_FLS1:get_zone_hold(hold_units, hold_enemies, hold_y, cfg)
@@ -1963,25 +1824,28 @@ return {
             if action then return action end
 
             -- **** Villages evaluation ****
+
             -- This should include both retreating to villages and village grabbing
             -- (not complete yet)
 
-            local injured_units = {}
-            for i,u in ipairs(zone_units) do
-                if (u.hitpoints< u.max_hitpoints) then
-                    table.insert(injured_units, u)
-                end
-            end
-            print('#injured_units', #injured_units)
-
+            -- During daytime, we retreat injured units toward villages
+            -- Seriously injured units are already dealt with separately
             local tod = wesnoth.get_time_of_day()
             if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
-              --  grunt_rush_FLS1.data.zone_action.hold.retreat = true
-            else
-              --  grunt_rush_FLS1.data.zone_action.hold.retreat = nil
+                local injured_units = {}
+                for i,u in ipairs(zone_units) do
+                    if (u.hitpoints< u.max_hitpoints) then
+                        table.insert(injured_units, u)
+                    end
+                end
+                --print('#injured_units', #injured_units)
+
+                if injured_units[1] then
+                    local action = grunt_rush_FLS1:eval_grab_villages(injured_units, cfg.villages, enemies, true)
+
+                    if action then return action end
+                end
             end
-            --local action = get_zone_villages()
-            --if action then return action end
 
             -- **** Hold position evaluation ****
 
@@ -2049,6 +1913,12 @@ return {
                     -- If enemy got killed, we need to stop here
                     if (not grunt_rush_FLS1.data.zone_action.attack.enemy.valid) then grunt_rush_FLS1.data.zone_action.attack.attackers = nil end
                 end
+            end
+
+            if grunt_rush_FLS1.data.zone_action.village then
+                if AH.print_exec() then print('     - Executing zone_control CA (village)') end
+                if AH.show_messages() then W.message { speaker = grunt_rush_FLS1.data.zone_action.village.unit.id, message = 'Zone action: Grab village' } end
+                AH.movefull_outofway_stopunit(ai, grunt_rush_FLS1.data.zone_action.village.unit, grunt_rush_FLS1.data.zone_action.village.village)
             end
 
             if grunt_rush_FLS1.data.zone_action.hold then
