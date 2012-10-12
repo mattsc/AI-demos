@@ -1,7 +1,30 @@
-0.next
+0.11.2, 12 Oct 2012
+- ***** Important Note: This will be the last release of AI-Demos for Wesnoth 1.10 *****
+  - Some of the next steps required at this point will only be possible with the new capabilities of BfW 1.11
+  - Except for potential bug fixes, this will therefore be the last release of AI-Demos for Wesnoth 1.10
+  - Further development will only be done for Wesnoth 1.11 and later; this will _not_ be backward compatible
+  - We will make sure to use only capabilities of released versions of 1.11 (currently 1.11.0), so no compiling of trunk will be necessary
 - Generic Rush:
-  - New recruit algorithm:
+  - New recruit algorithm, incl.:
     - Know about drain not affecting undead units
+- Freelands Side 1 Grunt Rush:
+  - New zone_control CA (completely reworked how several of the CAs function)
+    - Works on a zone-by-zone basis, rather than map-wide
+    - Several of the old CAs were combined into zone_control, acting in a more coordinated way (within a zone) in this way
+    - This includes some changes to behavior, but nothing earth shattering
+    - A bunch of bug fixes going along with that
+    - Units are now sent into zones to capture villages, if there aren't enough units already
+      - This is particularly important for the NW villages
+    - Capturing of enemy-owned or unowned villages has higher priority on a zone-by-zone basis
+  - Updated CA debugger
+    - Now needs only a 1-turn initialization and turn number is reset afterward
+    - New right-click option to let AI play through an entire turn
+    - New right-click option to find the highest scoring CA
+    - Simulation of self.data table as used by Fred during a turn
+    - New right-click option to clear or show content of self.data table
+    - Only show real evaluation functions in menu
+    - Debugger now gives error message if used with Side 2 (instead of crashing Wesnoth)
+    - Selected CA name is now shown in right-click menu
 
 0.11.1, 6 Oct 2012
 - Generic Rush:
