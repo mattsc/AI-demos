@@ -94,6 +94,7 @@ return {
             end
 
             local cfg_center = {
+                zone_id = 'center',
                 unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
                 area = { x_min = 15, x_max = 23, y_min = 9, y_max = 16},
                 advance = {
@@ -110,7 +111,8 @@ return {
             }
 
             local cfg_left = {
-                unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
+                zone_id = 'left',
+               unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
                 area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15},
                 advance = {
                     dawn =         { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
@@ -127,6 +129,7 @@ return {
 
             local width, height = wesnoth.get_map_size()
             local cfg_right = {
+                zone_id = 'right',
                 unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
                 area = { x_min = 25, x_max = width, y_min = 11, y_max = height},
                 advance = {
@@ -1778,7 +1781,7 @@ return {
             if non_trolls[1] then
                 local action = grunt_rush_FLS1:get_retreat_injured_units(non_trolls, "*^V*", 12)
                 if action then
-                    action.action = 'retreat severely injured units (non-trolls)'
+                    action.action = cfg.zone_id .. ': ' .. 'retreat severely injured units (non-trolls)'
                     return action
                 end
             end
@@ -1792,7 +1795,7 @@ return {
             if trolls[1] then
                 local action = grunt_rush_FLS1:get_retreat_injured_units(trolls, "!,*^X*,!,M*^*", 16)
                 if action then
-                    action.action = 'retreat severely injured units (trolls)'
+                    action.action = cfg.zone_id .. ': ' .. 'retreat severely injured units (trolls)'
                     return action
                 end
             end
@@ -1810,7 +1813,7 @@ return {
 
             local action = grunt_rush_FLS1:get_zone_attack(zone_units, targets)
             if action then
-                action.action = 'attack'
+                action.action = cfg.zone_id .. ': ' .. 'attack'
                 return action
             end
 
@@ -1835,7 +1838,7 @@ return {
                 if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
                     local action = grunt_rush_FLS1:eval_grab_villages(injured_units, cfg.villages, enemies, true)
                     if action then
-                        action.action = 'retreat injured units (daytime)'
+                        action.action = cfg.zone_id .. ': ' .. 'retreat injured units (daytime)'
                         return action
                     end
                 end
@@ -1846,7 +1849,7 @@ return {
             if not_injured_units[1] then
                 local action = grunt_rush_FLS1:eval_grab_villages(not_injured_units, cfg.villages, enemies, false)
                 if action and (action.rating > 100) then
-                    action.action = 'grab villages'
+                    action.action = cfg.zone_id .. ': ' .. 'grab villages'
                     return action
                 end
             end
@@ -1864,7 +1867,7 @@ return {
             if (zone_units[1]) then
                 local action = grunt_rush_FLS1:get_zone_hold(zone_units, enemies_hold_area, advance_y, cfg)
                 if action then
-                    action.action = 'hold position'
+                    action.action = cfg.zone_id .. ': ' .. 'hold position'
                     return action
                 end
             end
@@ -1908,8 +1911,8 @@ return {
                 local unit = grunt_rush_FLS1.data.zone_action.units[1]
                 local dst = grunt_rush_FLS1.data.zone_action.dsts[1]
 
-                if AH.print_exec() then print('     - Executing zone_control CA : ' .. action) end
-                if AH.show_messages() then W.message { speaker = unit.id, message = 'Zone action: ' .. action } end
+                if AH.print_exec() then print('     - Executing zone_control CA ' .. action) end
+                if AH.show_messages() then W.message { speaker = unit.id, message = 'Zone action ' .. action } end
 
                 AH.movefull_outofway_stopunit(ai, unit, dst)
 
