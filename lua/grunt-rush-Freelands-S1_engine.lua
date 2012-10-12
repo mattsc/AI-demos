@@ -2475,7 +2475,7 @@ return {
 
             -- Recruit a goblin, if there is none, starting Turn 5
             -- But only if way over to western-most village is clear
-            if (wesnoth.current.turn >= 5) then
+            if (wesnoth.current.turn >= 5555) then
                 local gobo = AH.get_live_units { side = wesnoth.current.side, type = 'Goblin Spearman' }[1]
                 if (not gobo) then
                     -- Make sure that there aren't enemies in the way
