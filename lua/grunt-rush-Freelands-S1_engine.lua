@@ -1868,7 +1868,9 @@ return {
             -- Otherwise we go for unowned and enemy-owned
             -- The rating>100 part is to exclude threatened but already owned villages
             if not_injured_units[1] then
-                local action = grunt_rush_FLS1:eval_grab_villages(not_injured_units, cfg.retreat_villages, enemies, false)
+                -- For this, we consider all villages, not just the retreat_villages
+                local villages = wesnoth.get_locations { terrain = '*^V*' }
+                local action = grunt_rush_FLS1:eval_grab_villages(not_injured_units, villages, enemies, false)
                 if action and (action.rating > 100) then
                     action.action = cfg.zone_id .. ': ' .. 'grab villages'
                     return action
