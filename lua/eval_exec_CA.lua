@@ -4,6 +4,11 @@
 -- See the github wiki page for a detailed description of how to use them:
 -- https://github.com/mattsc/Wesnoth-AI-Demos/wiki/CA-debugging
 
+local function debug_CA()
+    -- Edit manually whether you want debug_CA mode or not
+    return false
+end
+
 local function wrong_side(side)
     if (side ~= wesnoth.current.side) then
         wesnoth.message("!!!!! Error !!!!!  You need to be in control of Side " .. side)
@@ -160,7 +165,7 @@ return {
     debug_CA = function()
         -- CA debugging mode is enabled if this function returns true,
         -- that is, only if 'debug_CA_mode=true' is set and if we're in debug mode
-        local debug_CA_mode = false
+        local debug_CA_mode = debug_CA()
         if debug_CA_mode and wesnoth.game_config.debug then
             wesnoth.fire_event("debug_CA")
         end
