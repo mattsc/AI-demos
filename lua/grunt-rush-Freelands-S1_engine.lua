@@ -106,8 +106,7 @@ return {
                 },
                 hold = { x = 20, max_y = 15 },
                 hold_condition = { hp_ratio = 0.67 },
-                villages = { { x = 18, y = 9 }, { x = 24, y = 7 }, { x = 22, y = 2 } },
-                one_unit_per_call = true
+                villages = { { x = 18, y = 9 }, { x = 24, y = 7 }, { x = 22, y = 2 } }
             }
 
             local cfg_left = {
@@ -123,8 +122,7 @@ return {
                 },
                 hold = { x = 11, max_y = 15 },
                 hold_condition = { hp_ratio = 1.0 },
-                villages = { { x = 11, y = 9 }, { x = 8, y = 5 }, { x = 12, y = 5 }, { x = 12, y = 2 } },
-                one_unit_per_call = true
+                villages = { { x = 11, y = 9 }, { x = 8, y = 5 }, { x = 12, y = 5 }, { x = 12, y = 2 } }
             }
 
             local width, height = wesnoth.get_map_size()
@@ -496,9 +494,7 @@ return {
                 -- Then remove the unit from consideration next time around
                 table.remove(holders, ind_u)
 
-                if hold.cfg.one_unit_per_call then
-                    return
-                end
+                return
             end
         end
 
