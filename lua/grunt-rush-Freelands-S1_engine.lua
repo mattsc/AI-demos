@@ -1572,6 +1572,7 @@ return {
 
             if (max_rating > -9e99) then
                 local action = {}
+                action.rating = max_rating
                 action.village = {}
                 action.village.unit, action.village.village =  best_unit, best_village
                 return action
@@ -1843,10 +1844,11 @@ return {
                 end
             end
 
-            -- Otherwise we might go for unowned, enemy-owned or threatened villages
+            -- Otherwise we go for unowned and enemy-owned
+            -- The rating>100 part is to exclude threatened but already owned villages
             if not_injured_units[1] then
                 local action = grunt_rush_FLS1:eval_grab_villages(not_injured_units, cfg.villages, enemies, false)
-                if action then return action end
+                if action and (action.rating > 100) then return action end
             end
 
             -- **** Hold position evaluation ****
