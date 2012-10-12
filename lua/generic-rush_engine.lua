@@ -341,12 +341,13 @@ return {
                 x = leader.x, y = leader.y, radius = 5,
                 { "filter_radius", { terrain = 'C*,K*' } }
             }
+            local width,height,border = wesnoth.get_map_size()
 
             local max_rating, best_hex = -1, {}
             for i,c in ipairs(castle) do
                 local rating = 0
                 local unit = wesnoth.get_unit(c[1], c[2])
-                if (not unit) then
+                if (not unit) and c[1] > 0 and c[1] <= width and c[2] > 0 and c[2] <= height then
                     for j,e in ipairs(enemy_leaders) do
                         rating = rating + 1 / H.distance_between(c[1], c[2], e.x, e.y) ^ 2.
                     end
