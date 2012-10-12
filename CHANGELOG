@@ -1,3 +1,7 @@
+0.11.3, 12 Oct 2012
+- Original release of v0.11.3 for Wesnoth 1.11
+  - Identical to v0.11.2, except for the "this is the last 1.10 release" messages
+
 0.11.2, 12 Oct 2012
 - ***** Important Note: This will be the last release of AI-Demos for Wesnoth 1.10 *****
   - Some of the next steps required at this point will only be possible with the new capabilities of BfW 1.11
