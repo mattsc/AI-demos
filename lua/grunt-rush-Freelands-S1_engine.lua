@@ -107,7 +107,7 @@ return {
                 },
                 hold = { x = 20, max_y = 15 },
                 hold_condition = { hp_ratio = 0.67 },
-                villages = { { x = 18, y = 9 }, { x = 24, y = 7 }, { x = 22, y = 2 } }
+                retreat_villages = { { 18, 9 }, { 24, 7 }, { 22, 2 } }
             }
 
             local cfg_left = {
@@ -124,7 +124,7 @@ return {
                 },
                 hold = { x = 11, max_y = 15 },
                 hold_condition = { hp_ratio = 1.0 },
-                villages = { { x = 11, y = 9 }, { x = 8, y = 5 }, { x = 12, y = 5 }, { x = 12, y = 2 } }
+                retreat_villages = { { 11, 9 }, { 8, 5 }, { 12, 5 }, { 12, 2 } }
             }
 
             local width, height = wesnoth.get_map_size()
@@ -141,7 +141,7 @@ return {
                     second_watch = { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 }
                 },
                 hold = { x = 27, max_y = 22 },
-                villages = { { x = 24, y = 7 }, { x = 28, y = 5 } }
+                retreat_villages = { { 24, 7 }, { 28, 5 } }
             }
 
             -- This way it will be easy to change the priorities on the fly later:
@@ -1471,32 +1471,32 @@ return {
                 local my_leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
                 local my_keep = AH.get_closest_location({my_leader.x, my_leader.y}, { terrain = 'K*' })
 
-                local dist_my_keep = H.distance_between(v.x, v.y, my_keep[1], my_keep[2])
+                local dist_my_keep = H.distance_between(v[1], v[2], my_keep[1], my_keep[2])
 
                 local enemy_leaders = AH.get_live_units { canrecruit = 'yes',
                     { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
                 }
                 for i,e in ipairs(enemy_leaders) do
                     local enemy_keep = AH.get_closest_location({e.x, e.y}, { terrain = 'K*' })
-                    local dist_enemy_keep = H.distance_between(v.x, v.y, enemy_keep[1], enemy_keep[2])
+                    local dist_enemy_keep = H.distance_between(v[1], v[2], enemy_keep[1], enemy_keep[2])
                     if (dist_enemy_keep < dist_my_keep) then
                         close_village = false
                         break
                     end
                 end
-                --print('village is close village:', v.x, v.y, close_village)
+                --print('village is close village:', v[1], v[2], close_village)
 
                 for i,u in ipairs(units) do
-                    local path, cost = wesnoth.find_path(u, v.x, v.y)
+                    local path, cost = wesnoth.find_path(u, v[1], v[2])
 
-                    local unit_in_way = wesnoth.get_unit(v.x, v.y)
+                    local unit_in_way = wesnoth.get_unit(v[1], v[2])
                     if unit_in_way then
                         if (unit_in_way.id == u.id) then unit_in_way = nil end
                     end
 
                     -- Rate all villages that can be reached and are unoccupied by other units
                     if (cost <= u.moves) and (not unit_in_way) then
-                        --print('Can reach:', u.id, v.x, v.y, cost)
+                        --print('Can reach:', u.id, v[1], v[2], cost)
                         local rating = 0
 
                         -- If an enemy can get onto the village, we want to hold it
@@ -1504,7 +1504,7 @@ return {
                         -- This will also prefer close villages over far ones, everything else being equal
                         wesnoth.extract_unit(u)
                         for k,e in ipairs(enemies) do
-                            local path_e, cost_e = wesnoth.find_path(e,v.x, v.y)
+                            local path_e, cost_e = wesnoth.find_path(e,v[1], v[2])
                             if (cost_e <= e.max_moves) then
                                 --print('  within enemy reach', e.id)
                                 -- Prefer close villages that are in reach of many enemies,
@@ -1521,7 +1521,7 @@ return {
                         -- Unowned and enemy-owned villages get a large bonus
                         -- but we do not seek them out specifically, as the standard CA does that
                         -- That means, we only do the rest for villages that can be reached by an enemy
-                        local owner = wesnoth.get_village_owner(v.x, v.y)
+                        local owner = wesnoth.get_village_owner(v[1], v[2])
                         if (not owner) then
                             rating = rating + 1000
                         else
@@ -1543,7 +1543,7 @@ return {
                             -- Make him the preferred village taker unless he's likely to die
                             -- but only if he's on the keep
                             if u.canrecruit then
-                                local counter_table = grunt_rush_FLS1:calc_counter_attack(u, { v.x, v.y })
+                                local counter_table = grunt_rush_FLS1:calc_counter_attack(u, { v[1], v[2] })
                                 local max_counter_damage = counter_table.max_counter_damage
                                 --print('    max_counter_damage:', u.id, max_counter_damage)
                                 if (max_counter_damage < u.hitpoints) and wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
@@ -1667,15 +1667,15 @@ return {
             -- If there are unoccupied or enemy-occupied villages in the hold area, send units there
             -- if we do not have enough units that have moved already are in the area
             if (not eval_hold) then
-                if (#units_noMP < #cfg.villages/2) then
-                    for i,v in ipairs(cfg.villages) do
-                        local owner = wesnoth.get_village_owner(v.x, v.y)
+                if (#units_noMP < #cfg.retreat_villages/2) then
+                    for i,v in ipairs(cfg.retreat_villages) do
+                        local owner = wesnoth.get_village_owner(v[1], v[2])
                         if (not owner) or wesnoth.is_enemy(owner, wesnoth.current.side) then
                             eval_hold, get_villages = true, true
                         end
                     end
                 end
-                --print('#units_noMP, #cfg.villages', #units_noMP, #cfg.villages)
+                --print('#units_noMP, #cfg.retreat_villages', #units_noMP, #cfg.retreat_villages)
             end
 
             if eval_hold then
@@ -1857,7 +1857,7 @@ return {
             if injured_units[1] then
                 local tod = wesnoth.get_time_of_day()
                 if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
-                    local action = grunt_rush_FLS1:eval_grab_villages(injured_units, cfg.villages, enemies, true)
+                    local action = grunt_rush_FLS1:eval_grab_villages(injured_units, cfg.retreat_villages, enemies, true)
                     if action then
                         action.action = cfg.zone_id .. ': ' .. 'retreat injured units (daytime)'
                         return action
@@ -1868,7 +1868,7 @@ return {
             -- Otherwise we go for unowned and enemy-owned
             -- The rating>100 part is to exclude threatened but already owned villages
             if not_injured_units[1] then
-                local action = grunt_rush_FLS1:eval_grab_villages(not_injured_units, cfg.villages, enemies, false)
+                local action = grunt_rush_FLS1:eval_grab_villages(not_injured_units, cfg.retreat_villages, enemies, false)
                 if action and (action.rating > 100) then
                     action.action = cfg.zone_id .. ': ' .. 'grab villages'
                     return action
