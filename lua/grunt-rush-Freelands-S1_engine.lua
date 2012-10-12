@@ -1842,15 +1842,13 @@ return {
 
             -- This should include both retreating to villages of injured units and village grabbing
 
-            local injured_units, not_injured_units = {}, {}
+            local injured_units = {}
             for i,u in ipairs(zone_units) do
                 if (u.hitpoints< u.max_hitpoints) then
                     table.insert(injured_units, u)
-                else
-                    table.insert(not_injured_units, u)
                 end
             end
-            --print('#injured_units, #not_injured_units', #injured_units, #not_injured_units)
+            --print('#injured_units', #injured_units)
 
             -- During daytime, we retreat injured units toward villages
             -- (Seriously injured units are already dealt with previously)
@@ -1865,12 +1863,13 @@ return {
                 end
             end
 
-            -- Otherwise we go for unowned and enemy-owned
+            -- Otherwise we go for unowned and enemy-owned villages
+            -- This needs to happen for all units, not just not-injured ones
             -- The rating>100 part is to exclude threatened but already owned villages
-            if not_injured_units[1] then
+            if zone_units[1] then
                 -- For this, we consider all villages, not just the retreat_villages
                 local villages = wesnoth.get_locations { terrain = '*^V*' }
-                local action = grunt_rush_FLS1:eval_grab_villages(not_injured_units, villages, enemies, false)
+                local action = grunt_rush_FLS1:eval_grab_villages(zone_units, villages, enemies, false)
                 if action and (action.rating > 100) then
                     action.action = cfg.zone_id .. ': ' .. 'grab villages'
                     return action
