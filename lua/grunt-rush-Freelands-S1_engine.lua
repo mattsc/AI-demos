@@ -1780,7 +1780,7 @@ return {
 
             -- **** Retreat seriously injured units
 
-            -- Note: while injured units are dealt with on a zone-by-zone basis,
+            -- Note: while severely injured units are dealt with on a zone-by-zone basis,
             -- they can retreat to hexes outside the zones
             local trolls, non_trolls = {}, {}
             for i,u in ipairs(zone_units) do
@@ -1825,26 +1825,32 @@ return {
 
             -- **** Villages evaluation ****
 
-            -- This should include both retreating to villages and village grabbing
-            -- (not complete yet)
+            -- This should include both retreating to villages of injured units and village grabbing
+
+            local injured_units, not_injured_units = {}, {}
+            for i,u in ipairs(zone_units) do
+                if (u.hitpoints< u.max_hitpoints) then
+                    table.insert(injured_units, u)
+                else
+                    table.insert(not_injured_units, u)
+                end
+            end
+            --print('#injured_units, #not_injured_units', #injured_units, #not_injured_units)
 
             -- During daytime, we retreat injured units toward villages
-            -- Seriously injured units are already dealt with separately
-            local tod = wesnoth.get_time_of_day()
-            if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
-                local injured_units = {}
-                for i,u in ipairs(zone_units) do
-                    if (u.hitpoints< u.max_hitpoints) then
-                        table.insert(injured_units, u)
-                    end
-                end
-                --print('#injured_units', #injured_units)
-
-                if injured_units[1] then
+            -- (Seriously injured units are already dealt with previously)
+            if injured_units[1] then
+                local tod = wesnoth.get_time_of_day()
+                if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
                     local action = grunt_rush_FLS1:eval_grab_villages(injured_units, cfg.villages, enemies, true)
-
                     if action then return action end
                 end
+            end
+
+            -- Otherwise we might go for unowned, enemy-owned or threatened villages
+            if not_injured_units[1] then
+                local action = grunt_rush_FLS1:eval_grab_villages(not_injured_units, cfg.villages, enemies, false)
+                if action then return action end
             end
 
             -- **** Hold position evaluation ****
