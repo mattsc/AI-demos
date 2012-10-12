@@ -374,14 +374,11 @@ return {
             return nil
         end
 
-        function grunt_rush_FLS1:hold_area(hold, cfg)
-            local holders = hold.units
-            -- Also need all the enemies
+        function grunt_rush_FLS1:hold_area(holders, goal, cfg)
             local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", { side = wesnoth.current.side } }} }
             }
 
-            local goal = hold.goal
             local injured_locs = injured_locs or {}
             for i,l in ipairs(injured_locs) do
                 if (goal.y < l[2] + 1) then goal.y = l[2] + 1 end
@@ -403,8 +400,8 @@ return {
 
                 -- First calculate a unit independent rating map
                 rating_map = LS.create()
-                for x = hold.cfg.area.x_min, hold.cfg.area.x_max do
-                    --for y = hold.cfg.area.y_min, hold.cfg.area.y_max do
+                for x = cfg.area.x_min, cfg.area.x_max do
+                    --for y = cfg.area.y_min, cfg.area.y_max do
                     for y = goal.y-2, goal.y+1 do
                         local rating = 0
 
@@ -441,7 +438,7 @@ return {
                 --W.message { speaker = 'narrator', message = 'Hold area: unit-independent rating map' }
 
                 -- Now we go on to the unit-dependent rating part
-                local max_rating, best_hex, best_unit, ind_u = -9e99, {}, {}, -1
+                local max_rating, best_hex, best_unit = -9e99, {}, {}
                 for i,u in ipairs(holders) do
                     local reach_map = AH.get_reachable_unocc(u)
                     local max_rating_unit, best_hex_unit = -9e99, {}
@@ -481,7 +478,7 @@ return {
                     end
 
                     if (max_rating_unit > max_rating) then
-                        max_rating, best_hex, best_unit, ind_u = max_rating_unit, best_hex_unit, u, i
+                        max_rating, best_hex, best_unit = max_rating_unit, best_hex_unit, u
                     end
                     --print('max_rating:', max_rating)
 
@@ -489,12 +486,7 @@ return {
                     --W.message { speaker = u.id, message = 'Hold area: unit-specific rating map' }
                 end
 
-                if AH.show_messages() then W.message { speaker = best_unit.id, message = 'Hold area (' .. cfg.called_from .. ')' } end
-                AH.movefull_outofway_stopunit(ai, best_unit, best_hex)
-                -- Then remove the unit from consideration next time around
-                table.remove(holders, ind_u)
-
-                return
+                return best_unit, best_hex
             end
         end
 
@@ -913,9 +905,8 @@ return {
             end
 
             if (max_rating > -9e99) then
-                local action = {}
-                action.retreat = {}
-                action.retreat.unit, action.retreat.hex =  best_unit, best_village
+                local action = { units = {}, dsts = {} }
+                action.units[1], action.dsts[1] = best_unit, best_village
                 return action
             end
 
@@ -949,9 +940,8 @@ return {
             end
 
             if (max_rating > -9e99) then
-                local action = {}
-                action.retreat = {}
-                action.retreat.unit, action.retreat.hex =  best_unit, best_village
+                local action = { units = {}, dsts = {} }
+                action.units[1], action.dsts[1] = best_unit, best_village
                 return action
             end
 
@@ -1571,10 +1561,9 @@ return {
             --print('max_rating', max_rating)
 
             if (max_rating > -9e99) then
-                local action = {}
+                local action = { units = {}, dsts = {} }
+                action.units[1], action.dsts[1] = best_unit, best_village
                 action.rating = max_rating
-                action.village = {}
-                action.village.unit, action.village.village =  best_unit, best_village
                 return action
             end
 
@@ -1650,8 +1639,7 @@ return {
 
             if (max_rating > -9e99) then
                 local action = {}
-                action.attack = {}
-                action.attack.attackers, action.attack.dsts, action.attack.enemy = best_attackers, best_dsts, best_enemy
+                action.units, action.dsts, action.enemy = best_attackers, best_dsts, best_enemy
                 return action
             end
 
@@ -1695,13 +1683,10 @@ return {
                 end
                 --print('goal:', goal.x, goal.y)
 
-                local action = {}
-                action.hold = {}
-                action.hold.units, action.hold.goal = hold_units, goal
-                action.hold.cfg = cfg
-
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                local action = { units = {}, dsts = {} }
+                action.units[1], action.dsts[1] = grunt_rush_FLS1:hold_area(hold_units, goal, cfg)
                 return action
+
             end
 
             return nil
@@ -1792,7 +1777,10 @@ return {
             -- First we retreat non-troll units w/ <12 HP to villages.
             if non_trolls[1] then
                 local action = grunt_rush_FLS1:get_retreat_injured_units(non_trolls, "*^V*", 12)
-                if action then return action end
+                if action then
+                    action.action = 'retreat severely injured units (non-trolls)'
+                    return action
+                end
             end
 
             -- Then we retreat troll units with <16 HP to mountains
@@ -1803,7 +1791,10 @@ return {
             -- We do NOT exclude mountain villages! Maybe we should?
             if trolls[1] then
                 local action = grunt_rush_FLS1:get_retreat_injured_units(trolls, "!,*^X*,!,M*^*", 16)
-                if action then return action end
+                if action then
+                    action.action = 'retreat severely injured units (trolls)'
+                    return action
+                end
             end
 
             -- **** Attack evaluation ****
@@ -1818,7 +1809,10 @@ return {
             end
 
             local action = grunt_rush_FLS1:get_zone_attack(zone_units, targets)
-            if action then return action end
+            if action then
+                action.action = 'attack'
+                return action
+            end
 
             -- **** Villages evaluation ****
 
@@ -1840,7 +1834,10 @@ return {
                 local tod = wesnoth.get_time_of_day()
                 if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
                     local action = grunt_rush_FLS1:eval_grab_villages(injured_units, cfg.villages, enemies, true)
-                    if action then return action end
+                    if action then
+                        action.action = 'retreat injured units (daytime)'
+                        return action
+                    end
                 end
             end
 
@@ -1848,7 +1845,10 @@ return {
             -- The rating>100 part is to exclude threatened but already owned villages
             if not_injured_units[1] then
                 local action = grunt_rush_FLS1:eval_grab_villages(not_injured_units, cfg.villages, enemies, false)
-                if action and (action.rating > 100) then return action end
+                if action and (action.rating > 100) then
+                    action.action = 'grab villages'
+                    return action
+                end
             end
 
             -- **** Hold position evaluation ****
@@ -1861,8 +1861,13 @@ return {
                 end
             end
 
-            local action = grunt_rush_FLS1:get_zone_hold(zone_units, enemies_hold_area, advance_y, cfg)
-            if action then return action end
+            if (zone_units[1]) then
+                local action = grunt_rush_FLS1:get_zone_hold(zone_units, enemies_hold_area, advance_y, cfg)
+                if action then
+                    action.action = 'hold position'
+                    return action
+                end
+            end
 
             return nil  -- This is technically unnecessary
         end
@@ -1896,39 +1901,24 @@ return {
         end
 
         function grunt_rush_FLS1:zone_control_exec()
-            if grunt_rush_FLS1.data.zone_action.retreat then
-                if AH.print_exec() then print('     - Executing zone_control CA (retreat)') end
-                if AH.show_messages() then W.message { speaker = grunt_rush_FLS1.data.zone_action.retreat.unit.id, message = 'Zone action: Retreat injured unit' } end
-                AH.movefull_outofway_stopunit(ai, grunt_rush_FLS1.data.zone_action.retreat.unit, grunt_rush_FLS1.data.zone_action.retreat.hex)
-            end
 
-            if grunt_rush_FLS1.data.zone_action.attack then
-                if AH.print_exec() then print('     - Executing zone_control CA (attack)') end
+            local action = grunt_rush_FLS1.data.zone_action.action
+            while grunt_rush_FLS1.data.zone_action.units and (table.maxn(grunt_rush_FLS1.data.zone_action.units) > 0) do
 
-                while grunt_rush_FLS1.data.zone_action.attack.attackers and (table.maxn(grunt_rush_FLS1.data.zone_action.attack.attackers) > 0) do
-                    if AH.show_messages() then W.message { speaker = grunt_rush_FLS1.data.zone_action.attack.attackers[1].id, message = 'Zone action: Combo attack' } end
-                    AH.movefull_outofway_stopunit(ai, grunt_rush_FLS1.data.zone_action.attack.attackers[1], grunt_rush_FLS1.data.zone_action.attack.dsts[1])
-                    ai.attack(grunt_rush_FLS1.data.zone_action.attack.attackers[1], grunt_rush_FLS1.data.zone_action.attack.enemy)
+                local unit = grunt_rush_FLS1.data.zone_action.units[1]
+                local dst = grunt_rush_FLS1.data.zone_action.dsts[1]
 
-                    -- Delete this attack from the combo
-                    table.remove(grunt_rush_FLS1.data.zone_action.attack.attackers, 1)
-                    table.remove(grunt_rush_FLS1.data.zone_action.attack.dsts, 1)
+                if AH.print_exec() then print('     - Executing zone_control CA : ' .. action) end
+                if AH.show_messages() then W.message { speaker = unit.id, message = 'Zone action: ' .. action } end
 
-                    -- If enemy got killed, we need to stop here
-                    if (not grunt_rush_FLS1.data.zone_action.attack.enemy.valid) then grunt_rush_FLS1.data.zone_action.attack.attackers = nil end
+                AH.movefull_outofway_stopunit(ai, unit, dst)
+
+                if grunt_rush_FLS1.data.zone_action.enemy then
+                    ai.attack(unit, grunt_rush_FLS1.data.zone_action.enemy)
                 end
-            end
 
-            if grunt_rush_FLS1.data.zone_action.village then
-                if AH.print_exec() then print('     - Executing zone_control CA (village)') end
-                if AH.show_messages() then W.message { speaker = grunt_rush_FLS1.data.zone_action.village.unit.id, message = 'Zone action: Grab village' } end
-                AH.movefull_outofway_stopunit(ai, grunt_rush_FLS1.data.zone_action.village.unit, grunt_rush_FLS1.data.zone_action.village.village)
-            end
-
-            if grunt_rush_FLS1.data.zone_action.hold then
-                if AH.print_exec() then print('     - Executing zone_control CA (hold)') end
-
-                grunt_rush_FLS1:hold_area(grunt_rush_FLS1.data.zone_action.hold, { called_from = 'zone_control CA' } )
+                table.remove(grunt_rush_FLS1.data.zone_action.units, 1)
+                table.remove(grunt_rush_FLS1.data.zone_action.dsts, 1)
             end
 
             grunt_rush_FLS1.data.zone_action = nil
