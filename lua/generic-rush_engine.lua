@@ -144,18 +144,6 @@ return {
         function generic_rush:grab_villages_eval()
             if AH.print_eval() then print('     - Evaluating grab_villages CA:', os.clock()) end
 
-            -- Determine the unit type for the rusher first (use other units first for grabbing villages)
-            local rusher_type = 'Orcish Grunt'  -- The default
-
-            -- Faction is checked by seeing if the side can recruit the rusher unit type
-            for i,r in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
-                if (r == 'Elvish Fighter') or (r == 'Spearman') or (r == 'Skeleton')
-                    or (r == 'Dwarvish Fighter') or (r == 'Drake Fighter') then
-                    --print('grab_villages: Found in recruit list: ' .. r)
-                    rusher_type = r
-                end
-            end
-
             -- Check if there are units with moves left
             local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no',
                 formula = '$this_unit.moves > 0'
@@ -220,10 +208,7 @@ return {
                             if wesnoth.is_enemy(owner, wesnoth.current.side) then rating = rating + 2000 end
                         end
 
-                        -- Grunts (or unit defined in 'rusher_type') are needed elsewhere, so use other units first
-                        if (u.type ~= rusher_type) then rating = rating + 1 end
-
-                        -- Finally, since these can be reached by the enemy, want the strongest orc to go first
+                        -- Finally, since these can be reached by the enemy, want the strongest unit to go first
                         rating = rating + u.hitpoints / 100.
 
                         if (rating > max_rating) then
