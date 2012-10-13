@@ -1,3 +1,12 @@
+0.11.3+
+- Generic Rush:
+  - Recruit algorithm:
+    - Somewhat improved, though there are still glaring flaws
+  - New castle switching CA:
+    - Attempts to find castles closer to the action for recruiting and moves to them
+    - Will use multiple castles to speed recruiting
+    - Castles in Cynsaun Battlefield are too far apart for it to work there
+
 0.11.3, 12 Oct 2012
 - Original release of v0.11.3 for Wesnoth 1.11
   - Identical to v0.11.2, except for the "this is the last 1.10 release" messages
