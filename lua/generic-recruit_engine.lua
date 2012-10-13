@@ -226,13 +226,13 @@ return {
 
             -- Calculate hp ratio including available gold
             local hp_ratio, my_hp, enemy_hp = ai_cas:hp_ratio()
-            my_hp = my_hp + wesnoth.sides[wesnoth.current.side].gold*2
+            my_hp = my_hp + wesnoth.sides[wesnoth.current.side].gold*2.3
             local enemy_gold = 0
             local enemies = wesnoth.get_sides {{"enemy_of", {side = wesnoth.current.side} }}
             for i,s in ipairs(enemies) do
                 enemy_gold = enemy_gold + s.gold
             end
-            enemy_hp = enemy_hp+enemy_gold*2
+            enemy_hp = enemy_hp+enemy_gold*2.3
             hp_ratio = my_hp/(enemy_hp + 1e-6)
 
             local distance_to_enemy, enemy_location = AH.get_closest_enemy()
