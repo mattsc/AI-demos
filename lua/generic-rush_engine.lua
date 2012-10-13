@@ -53,7 +53,65 @@ return {
 
         ------- Recruit CA --------------
 
-       wesnoth.require("~add-ons/AI-demos/lua/generic-recruit_engine.lua").init(ai, generic_rush)
+        wesnoth.require("~add-ons/AI-demos/lua/generic-recruit_engine.lua").init(ai, generic_rush)
+
+        -------- Castle Switch CA --------------
+
+        function generic_rush:castle_switch_eval()
+            local leader = wesnoth.get_units {
+                    side = wesnoth.current.side,
+                    canrecruit = 'yes',
+                    formula = '$this_unit.moves > 0'
+                }[1]
+            if not leader then
+                -- CA is irrelevant if no leader
+                return 0
+            end
+
+            local keeps = wesnoth.get_locations { terrain = "K*,*^Kov" }
+            if #keeps == 2 then
+                -- Skip if there aren't extra keeps to evaluate
+                -- In this situation we'd only switch keeps if we were running away
+                return 0
+            end
+
+            local enemy_leaders = AH.get_live_units { canrecruit = 'yes',
+	            { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
+            }
+
+            -- Look for the best keep
+            local best_score, best_loc = 0, {}
+            for i,loc in ipairs(keeps) do
+                -- Only consider keeps within 3 turns movement
+                local path, cost = wesnoth.find_path(leader, loc[1], loc[2])
+                local score = 0
+                -- Prefer closer keeps to enemy
+                local turns = cost/leader.max_moves
+                if turns <= 3 and turns > 0 then
+                    score = 1/turns
+                    for j,e in ipairs(enemy_leaders) do
+                        score = score + 1 / H.distance_between(loc[1], loc[2], e.x, e.y) ^ 2.
+                    end
+
+                    if score > best_score then
+                        best_score = score
+                        best_loc = loc
+                    end
+                end
+            end
+
+            if best_score > 0 then
+                self.data.target_keep = best_loc
+                return 290000
+            end
+
+            return 0
+        end
+
+        function generic_rush:castle_switch_exec()
+            local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+            AH.movefull_stopunit(ai, leader, self.data.target_keep[1], self.data.target_keep[2])
+        end
 
         ------- Grab Villages CA --------------
 
