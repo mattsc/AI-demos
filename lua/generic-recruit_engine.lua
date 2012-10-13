@@ -276,7 +276,7 @@ return {
 
             local castle = wesnoth.get_locations {
                 x = leader.x, y = leader.y, radius = 200,
-                { "filter_radius", { terrain = 'C*,K*' } }
+                { "filter_radius", { terrain = 'C*,K*,*^Kov,*^Cov' } }
             }
             local width,height,border = wesnoth.get_map_size()
 
