@@ -2310,68 +2310,6 @@ return {
             return 0
         end
 
-        function grunt_rush_FLS1:recruit_orcs_exec_experimental()
-            if AH.print_exec() then print('     - Executing recruit_rushers CA') end
-
-            -- Some of the values calculated here can be done once per turn or even per game
-            local efficiency = get_hp_efficiency()
-
-            -- Count enemies of each type
-            local enemies = AH.get_live_units {
-                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }}}
-            }
-            local enemy_counts = {}
-            local enemy_types = {}
-            for i, unit in ipairs(enemies) do
-                if enemy_counts[unit.type] == nil then
-                    table.insert(enemy_types, unit.type)
-                    enemy_counts[unit.type] = 1
-                else
-                    enemy_counts[unit.type] = enemy_counts[unit.type] + 1
-                end
-            end
-
-            -- Determine effectiveness of recruitable units against each enemy unit type
-            local recruit_effectiveness = {}
-            for i, unit_type in ipairs(enemy_types) do
-                local analysis = analyze_enemy_unit(unit_type)
-                for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
-                    if recruit_effectiveness[recruit_id] == nil then
-                        recruit_effectiveness[recruit_id] = 0
-                    end
-                    recruit_effectiveness[recruit_id] = recruit_effectiveness[recruit_id] + analysis[recruit_id].defense.damage
-                end
-            end
-
-            -- Find best recruit based on damage done to enemies present, and hp/gold ratio
-            local score = 0
-            local recruit_type = nil
-            local hp_ratio, my_hp, enemy_hp = grunt_rush_FLS1:hp_ratio()
-            my_hp = my_hp + wesnoth.sides[wesnoth.current.side].gold*2
-            local enemy_gold = 0
-            local enemies = wesnoth.get_sides {{"enemy_of", {side = wesnoth.current.side} }}
-            for i,s in ipairs(enemies) do
-                enemy_gold = enemy_gold + s.gold
-            end
-            enemy_hp = enemy_hp+enemy_gold*2
-            hp_ratio = my_hp/(enemy_hp + 1e-6)
-            for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
-                local recruit_count = #(AH.get_live_units { side = wesnoth.current.side, type = recruit_id, canrecruit = 'no' })
-                local recruit_modifier = 1+(recruit_count^1.5)/10
-                local unit_score = recruit_effectiveness[recruit_id]*(efficiency[recruit_id]*hp_ratio)
-                unit_score = unit_score/recruit_modifier
-                wesnoth.message(recruit_id .. " score: " .. unit_score)
-                if unit_score > score then
-                    score = unit_score
-                    recruit_type = recruit_id
-                end
-            end
-            if wesnoth.unit_types[recruit_type].cost <= wesnoth.sides[wesnoth.current.side].gold then
-                local best_hex = grunt_rush_FLS1:find_best_recruit_hex()
-                ai.recruit(recruit_type, best_hex[1], best_hex[2])
-            end
-        end
-
         function grunt_rush_FLS1:find_best_recruit_hex()
             local goal = { x = 27, y = 16 }
 
