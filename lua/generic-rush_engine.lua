@@ -61,7 +61,7 @@ return {
             local leader = wesnoth.get_units {
                     side = wesnoth.current.side,
                     canrecruit = 'yes',
-                    formula = '$this_unit.moves = $this_unit.max_moves'
+                    formula = '($this_unit.moves = $this_unit.max_moves) and ($this_unit.hitpoints = $this_unit.max_hitpoints)'
                 }[1]
             if not leader then
                 -- CA is irrelevant if no leader
