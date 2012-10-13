@@ -68,7 +68,7 @@ return {
                 return 0
             end
 
-            local keeps = wesnoth.get_locations { terrain = "K*,*^Kov" }
+            local keeps = wesnoth.get_locations { terrain = "K*,*^Kov", { "not", { {"filter", {}} }}, }
             if #keeps == 2 then
                 -- Skip if there aren't extra keeps to evaluate
                 -- In this situation we'd only switch keeps if we were running away
