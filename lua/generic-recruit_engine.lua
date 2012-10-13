@@ -140,7 +140,7 @@ return {
                 -- raw durability is a function of defense and hp
                 -- efficiency decreases faster than cost increases to avoid recruiting many expensive units
                 -- there is a requirement for bodies in order to block movement
-                efficiency[recruit_id] = 10*(wesnoth.unit_types[recruit_id].max_hitpoints^1.5)/(wesnoth.unit_types[recruit_id].cost^2)
+                efficiency[recruit_id] = 10*(wesnoth.unit_types[recruit_id].max_hitpoints^1.4)/(wesnoth.unit_types[recruit_id].cost^2)
             end
             return efficiency
         end
@@ -249,11 +249,11 @@ return {
                 -- Use time to enemy to encourage recruiting fast units when the opponent is far away (game is beginning or we're winning)
                 local recruit_unit = wesnoth.create_unit { type = recruit_id, x = best_hex[1], y = best_hex[2] }
                 local path, cost = wesnoth.find_path(recruit_unit, enemy_location.x, enemy_location.y, {ignore_units = true})
-                local move_score = (distance_to_enemy^2 / (cost / wesnoth.unit_types[recruit_id].max_moves)) / (20*recruit_modifier^2)
+                local move_score = (distance_to_enemy^2 / (cost / wesnoth.unit_types[recruit_id].max_moves)^0.5) / (20*recruit_modifier^2)
 
                 -- Estimate effectiveness on offense and defense
-                local offense_score = recruit_effectiveness[recruit_id]/(recruit_modifier^4)
-                local defense_score = (900*efficiency[recruit_id]/(recruit_vulnerability[recruit_id]*hp_ratio^0.7))
+                local offense_score = recruit_effectiveness[recruit_id]/(wesnoth.unit_types[recruit_id].cost^0.45*recruit_modifier^4)
+                local defense_score = (6500*efficiency[recruit_id]/(recruit_vulnerability[recruit_id]^1.4*hp_ratio^0.7))
 
                 local unit_score = (offense_score + defense_score + move_score)
                -- wesnoth.message(recruit_id .. " score: " .. offense_score .. " + " .. defense_score .. " + " .. move_score  .. " = " .. unit_score)
