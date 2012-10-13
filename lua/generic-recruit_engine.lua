@@ -36,7 +36,7 @@ return {
                 local best_attack = nil
                 -- This doesn't actually check for the ability steadfast, but gives correct answer in the default era
                 -- TODO: find a more reliable method
-                local steadfast = wesnoth.unit_ability(defender, "resistance")
+                local steadfast = false -- wesnoth.unit_ability(defender, "resistance")
 
                 for attack in helper.child_range(wesnoth.unit_types[attacker.type].__cfg, "attack") do
                     local defense = unit_defense
