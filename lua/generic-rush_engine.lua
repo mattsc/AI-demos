@@ -114,6 +114,27 @@ return {
             local x, y = self.data.target_keep[1], self.data.target_keep[2]
             local next_hop = AH.next_hop(leader, x, y)
             if next_hop and ((next_hop[1] ~= leader.x) or (next_hop[2] ~= leader.y)) then
+
+                -- See if there is a nearby village that can be captured en-route
+                local close_villages = wesnoth.get_locations {
+                    { "and", { x = next_hop[1], y = next_hop[2], radius = 3 }},
+                    terrain = "*^V*",
+                    owner_side = 0 }
+                for i,loc in ipairs(close_villages) do
+                    local path_village, cost_village = wesnoth.find_path(leader, loc[1], loc[2])
+                    if cost_village <= leader.moves then
+                        local dummy_leader = wesnoth.copy_unit(leader)
+                        dummy_leader.x = loc[1]
+                        dummy_leader.y = loc[2]
+                        local path_keep, cost_keep = wesnoth.find_path(dummy_leader, x, y)
+                        -- There is, go there instead
+                        if cost_keep <= leader.max_moves then
+                            next_hop = loc
+                            break
+                        end
+                    end
+                end
+
                 ai.move(leader, next_hop[1], next_hop[2])
             end
         end
