@@ -61,7 +61,7 @@ return {
             local leader = wesnoth.get_units {
                     side = wesnoth.current.side,
                     canrecruit = 'yes',
-                    formula = '$this_unit.moves > 0'
+                    formula = '$this_unit.moves = $this_unit.max_moves'
                 }[1]
             if not leader then
                 -- CA is irrelevant if no leader
@@ -110,7 +110,12 @@ return {
 
         function generic_rush:castle_switch_exec()
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
-            AH.movefull_stopunit(ai, leader, self.data.target_keep[1], self.data.target_keep[2])
+
+            local x, y = self.data.target_keep[1], self.data.target_keep[2]
+            local next_hop = AH.next_hop(leader, x, y)
+            if next_hop and ((next_hop[1] ~= leader.x) or (next_hop[2] ~= leader.y)) then
+                ai.move(leader, next_hop[1], next_hop[2])
+            end
         end
 
         ------- Grab Villages CA --------------
