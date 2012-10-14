@@ -156,6 +156,32 @@ return {
             return false
         end
 
+        function get_hp_ratio_with_gold()
+            -- Hitpoint ratio of own units / enemy units
+            -- Also convert available gold to a hp estimate
+            my_units = AH.get_live_units {
+                { "filter_side", {{"allied_with", {side = wesnoth.current.side} }} }
+            }
+            enemies = AH.get_live_units {
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+            }
+
+            local my_hp, enemy_hp = 0, 0
+            for i,u in ipairs(my_units) do my_hp = my_hp + u.hitpoints end
+            for i,u in ipairs(enemies) do enemy_hp = enemy_hp + u.hitpoints end
+
+            my_hp = my_hp + wesnoth.sides[wesnoth.current.side].gold*2.3
+            local enemy_gold = 0
+            local enemies = wesnoth.get_sides {{"enemy_of", {side = wesnoth.current.side} }}
+            for i,s in ipairs(enemies) do
+                enemy_gold = enemy_gold + s.gold
+            end
+            enemy_hp = enemy_hp+enemy_gold*2.3
+            hp_ratio = my_hp/(enemy_hp + 1e-6)
+
+            return hp_ratio
+        end
+
         function ai_cas:recruit_rushers_eval()
             if AH.print_eval() then print('     - Evaluating recruit_general CA with ' .. rusher_type, os.clock()) end
 
@@ -235,16 +261,7 @@ return {
                 recruit_vulnerability[recruit_id] = (recruit_vulnerability[recruit_id] / ((#enemies)^2))^0.5
             end
 
-            -- Calculate hp ratio including available gold
-            local hp_ratio, my_hp, enemy_hp = ai_cas:hp_ratio()
-            my_hp = my_hp + wesnoth.sides[wesnoth.current.side].gold*2.3
-            local enemy_gold = 0
-            local enemies = wesnoth.get_sides {{"enemy_of", {side = wesnoth.current.side} }}
-            for i,s in ipairs(enemies) do
-                enemy_gold = enemy_gold + s.gold
-            end
-            enemy_hp = enemy_hp+enemy_gold*2.3
-            hp_ratio = my_hp/(enemy_hp + 1e-6)
+            local hp_ratio = get_hp_ratio_with_gold()
 
             local distance_to_enemy, enemy_location = AH.get_closest_enemy()
             local best_hex = self.data.recruit.best_hex
