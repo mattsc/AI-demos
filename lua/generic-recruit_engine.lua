@@ -182,14 +182,11 @@ return {
             return hp_ratio
         end
 
-        function ai_cas:recruit_rushers_eval()
-            if AH.print_eval() then print('     - Evaluating recruit_general CA with ' .. rusher_type, os.clock()) end
-
+        function do_recruit_eval(data)
             -- Check if leader is on keep
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
 
             if (not leader) or (not wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep) then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return 0
             end
 
@@ -203,29 +200,24 @@ return {
                 end
             end
             if not enough_gold then
-                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return 0
             end
 
             local best_hex = ai_cas:find_best_recruit_hex(leader)
             if #best_hex == 0 then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return 0
             end
 
-            if self.data.recruit == nil then
-                self.data.recruit = {}
+            if data.recruit == nil then
+                data.recruit = init_data()
             end
-            self.data.recruit.best_hex = best_hex
-            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+            data.recruit.best_hex = best_hex
             return 300000
         end
 
-        function ai_cas:recruit_rushers_exec()
-            if AH.print_exec() then print('     - Executing recruit_rushers CA') end
-
-            -- Some of the values calculated here can be done once per turn or even per game
-            local efficiency = get_hp_efficiency()
+        function init_data()
+            local data = {}
+            data.hp_efficiency = get_hp_efficiency()
 
             -- Count enemies of each type
             local enemies = AH.get_live_units {
@@ -241,6 +233,36 @@ return {
                     enemy_counts[unit.type] = enemy_counts[unit.type] + 1
                 end
             end
+            data.enemy_counts = enemy_counts
+            data.enemy_types = enemy_types
+            data.num_enemies = #enemies
+
+            return data
+        end
+
+        function ai_cas:recruit_rushers_eval()
+            if AH.print_eval() then print('     - Evaluating recruit_general CA with ' .. rusher_type, os.clock()) end
+
+            local score = do_recruit_eval(self.data)
+            if score == 0 then
+                -- We're done for the turn, discard data
+                self.data.recruit = nil
+            end
+
+            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+            return score
+        end
+
+        function ai_cas:recruit_rushers_exec()
+            if AH.print_exec() then print('     - Executing recruit_rushers CA') end
+
+            local efficiency = self.data.recruit.hp_efficiency
+            local enemy_counts = self.data.recruit.enemy_counts
+            local enemy_types = self.data.recruit.enemy_types
+            local num_enemies =  self.data.recruit.num_enemies
+            local hp_ratio = get_hp_ratio_with_gold()
+            local distance_to_enemy, enemy_location = AH.get_closest_enemy()
+            local best_hex = self.data.recruit.best_hex
 
             -- Determine effectiveness of recruitable units against each enemy unit type
             local recruit_effectiveness = {}
@@ -257,14 +279,9 @@ return {
                 end
             end
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
-                recruit_effectiveness[recruit_id] = (recruit_effectiveness[recruit_id] / (#enemies)^2)^0.5
-                recruit_vulnerability[recruit_id] = (recruit_vulnerability[recruit_id] / ((#enemies)^2))^0.5
+                recruit_effectiveness[recruit_id] = (recruit_effectiveness[recruit_id] / (num_enemies)^2)^0.5
+                recruit_vulnerability[recruit_id] = (recruit_vulnerability[recruit_id] / ((num_enemies)^2))^0.5
             end
-
-            local hp_ratio = get_hp_ratio_with_gold()
-
-            local distance_to_enemy, enemy_location = AH.get_closest_enemy()
-            local best_hex = self.data.recruit.best_hex
 
             -- Find best recruit based on damage done to enemies present, speed, and hp/gold ratio
             local score = 0
