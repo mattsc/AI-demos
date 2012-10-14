@@ -1300,164 +1300,110 @@ function ai_helper.get_attack_combos_no_order(units, enemy)
     return combos, attacks_dst_src
 end
 
-function ai_helper.attack_combo_stats(attackers, dsts, enemy)
+function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy)
     -- Calculate attack combination outcomes using
-    -- attackers: array of attacker units (this is done so that
+    -- tmp_attackers: array of attacker units (this is done so that
     --   the units need not be found here, as likely doing it in the
     --   calling function is more efficient (because of repetition)
-    -- dsts: array of the hexes (format {x, y}) from which the attackers attack
+    -- tmp_dsts: array of the hexes (format {x, y}) from which the attackers attack
     --   must be in same order as 'attackers'
     -- enemy: the enemy being attacked
     --
     -- Return values: see end of this function for explanations
     --
-    -- Note: this whole thing is not correct for the hp_chance distribution,
-    -- but chance_to_kill and average_hp should be approx. right
+    -- Note: the combined defender stats are approximate in some cases (e.g. attacks
+    -- with slow and drain, but should be good otherwise
+    -- Doing all of it right is not possible for computation time reasons
 
-    -- For large number of attackers, we cannot go through all combinations (would take too long)
-    --> Rate individual attacks first, and execute in that order
+    -- We first simulate and rate the individual attacks
     local ratings = {}
-
-    for i,a in ipairs(attackers) do
-        local att_stats, def_stats = ai_helper.simulate_combat_loc(a, dsts[i], enemy)
-        --DBG.dbms(att_stats)
+    local tmp_att_stats, tmp_def_stats = {}, {}
+    for i,a in ipairs(tmp_attackers) do
+        tmp_att_stats[i], tmp_def_stats[i] = ai_helper.simulate_combat_loc(a, tmp_dsts[i], enemy)
 
         -- Damage done to own unit is bad
-        local rating = att_stats.average_hp - a.hitpoints
+        local rating = tmp_att_stats[i].average_hp - a.hitpoints
         -- Damage done to enemy is good
-        local rating = rating + enemy.hitpoints - def_stats.average_hp
+        local rating = rating + enemy.hitpoints - tmp_def_stats[i].average_hp
 
         -- Chance to kill own unit is very bad
-        rating = rating - att_stats.hp_chance[0] * 50
+        rating = rating - tmp_att_stats[i].hp_chance[0] * 50
         -- Chance to kill enemy is very good
-        rating = rating + def_stats.hp_chance[0] * 50
+        rating = rating + tmp_def_stats[i].hp_chance[0] * 50
 
-        --print(i, a.id, att_stats.average_hp, def_stats.average_hp, '  -->', rating)
         ratings[i] = { i, rating }
     end
-    --DBG.dbms(ratings)
 
-    -- Sort by rating
+    -- Now sort all the arrays based on this rating
+    -- This will give the order in which the individual attacks are executed
     table.sort(ratings, function(a, b) return a[2] > b[2] end)
-    --DBG.dbms(ratings)
 
-    -- Reorder attackers, dsts in this order
-    local sorted_attackers, sorted_dsts = {}, {}
+    -- Reorder attackers, dsts and stats in this order
+    local attackers, dsts, att_stats, def_stats = {}, {}, {}, {}
     for i,r in ipairs(ratings) do
-        sorted_attackers[i], sorted_dsts[i] = attackers[r[1]], dsts[r[1]]
+        attackers[i], dsts[i] = tmp_attackers[r[1]], tmp_dsts[r[1]]
+        att_stats[i], def_stats[i] = tmp_att_stats[r[1]], tmp_def_stats[r[1]]
     end
-    attackers, dsts, ratings = nil, nil, nil
+    tmp_attackers, tmp_dsts, tmp_att_stats, tmp_def_stats = nil, nil, nil, nil
+    -- Just making sure that everything worked:
+    --print(#attackers, #dsts, #att_stats, #def_stats)
+    --for i,a in ipairs(attackers) do print(i, a.id) end
+    --DBG.dbms(dsts)
+    --DBG.dbms(att_stats)
+    --DBG.dbms(def_stats)
 
-    -- Now we calculate the attack combo stats
-    -- This currently only takes damage into account, not poisoning etc.
-    -- (will wait for 1.11 to do that)
-    local enemy_hitpoints = enemy.hitpoints
+    -- Now on to the calculation of the combined defender stats
+    -- This method gives the right results (and is independent of attack order)
+    -- for most attacks, but isn't quite right for things like slow and drain
+    -- Doing it right is prohibitive in terms of calculation time though, this
+    -- is an acceptable approximation
 
-    local combo_att_stats, combo_def_stats = {}, {}
-    for i,attacker in ipairs(sorted_attackers) do
-        local dst = sorted_dsts[i]
-        --print(i, attacker.id, dst[1], dst[2])
+    -- Build up a hp_chance array for the combined hp_chance
+    -- For the first attack, it's simply the defenders hp_chance distribution
+    local hp_combo = ai_helper.table_copy(def_stats[1].hp_chance)
 
-        local att_stats, def_stats = ai_helper.simulate_combat_loc(attacker, dst, enemy)
+    -- Then we go through all the other attacks
+    for i = 2,#attackers do
+        -- Need a temporary array of zeros for the new result (because several attacks can combine to the same HP)
+        local tmp_array = {}
+        for hp1,p1 in pairs(hp_combo) do tmp_array[hp1] = 0 end
 
-        --print('  before:', enemy.hitpoints)
-        enemy.hitpoints = def_stats.average_hp
-        --print('  after: ', enemy.hitpoints, def_stats.hp_chance[0])
-
-        -- For the enemy, we simply take the last stats
-        combo_def_stats = def_stats
-
-        -- For the attackers, we build up an array (in the same order as the attackers array)
-        combo_att_stats[i] = att_stats
+        for hp1,p1 in pairs(hp_combo) do -- Note: need pairs(), not ipairs() !!
+            -- If hp_combo is ~=0, "anker" the hp_chance array of the second attack here
+            if (p1 > 0) then
+                local dhp = hp1 - enemy.hitpoints  -- This is the offset in HP (starting point for the second attack)
+                -- All percentages for the second attacks are considered, and if ~=0 offset by dhp
+                for hp2,p2 in pairs(def_stats[i].hp_chance) do
+                    if (p2>0) then
+                        local new_hp = hp2 + dhp  -- The offset is defined to be negative
+                        if (new_hp < 0) then new_hp = 0 end  -- HP can't go below 0
+                        tmp_array[new_hp] = tmp_array[new_hp] + p1*p2  -- New percentage is product of two individual ones
+                    end
+                end
+            end
+        end
+        -- Finally, transfer result to hp_combo table for next iteration
+        hp_combo = ai_helper.table_copy(tmp_array)
     end
-    -- Reset the enemy's hitpoints
-    enemy.hitpoints = enemy_hitpoints
+    --DBG.dbms(hp_combo)
+    --print('HPC[0]', hp_combo[0])
+
+    -- Finally, set up the combined def_stats table
+    local def_stats_combo = {}
+    def_stats_combo.hp_chance = hp_combo
+    local av_hp = 0
+    for hp,p in ipairs(hp_combo) do av_hp = av_hp + hp*p end
+    def_stats_combo.average_hp = av_hp
+
+    -- For now, we set slowed and poisoned always to zero -- !!!!! FIX !!!!!
+    def_stats_combo.slowed, def_stats_combo.posioned = 0, 0
 
     -- Finally, we return:
     -- - the sorted attackers and dsts arrays
-    -- - defender stats: one set of stats
-    -- - attacker_stats: an array of stats for each attacker, in the same order as 'attackers'
-    return sorted_attackers, sorted_dsts, combo_def_stats, combo_att_stats
-end
-
-function ai_helper.attack_combo_stats_experimental(attackers, dsts, enemy)
-    -- Calculate attack combination outcomes using
-    -- attackers: array of attacker units (this is done so that
-    --   the units need not be found here, as likely doing it in the
-    --   calling function is more efficient (because of repetition)
-    -- dsts: array of the hexes (format {x, y}) from which the attackers attack
-    --   must be in same order as 'attackers'
-    -- enemy: the enemy being attacked
-    --
-    -- Return values: see end of this function for explanations
-    --
-    -- Note: this whole thing is not correct for the hp_chance distribution,
-    -- but chance_to_kill and average_hp should be approx. right
-
-    -- For large number of attackers, we cannot go through all combinations (would take too long)
-    --> Rate individual attacks first, and execute in that order
-    local ratings = {}
-
-    for i,a in ipairs(attackers) do
-        local att_stats, def_stats = ai_helper.simulate_combat_loc(a, dsts[i], enemy)
-        --DBG.dbms(att_stats)
-
-        -- Damage done to own unit is bad
-        local rating = att_stats.average_hp - a.hitpoints
-        -- Damage done to enemy is good
-        local rating = rating + enemy.hitpoints - def_stats.average_hp
-
-        -- Chance to kill own unit is very bad
-        rating = rating - att_stats.hp_chance[0] * 50
-        -- Chance to kill enemy is very good
-        rating = rating + def_stats.hp_chance[0] * 50
-
-        --print(i, a.id, att_stats.average_hp, def_stats.average_hp, '  -->', rating)
-        ratings[i] = { i, rating }
-    end
-    --DBG.dbms(ratings)
-
-    -- Sort by rating
-    table.sort(ratings, function(a, b) return a[2] > b[2] end)
-    --DBG.dbms(ratings)
-
-    -- Reorder attackers, dsts in this order
-    local sorted_attackers, sorted_dsts = {}, {}
-    for i,r in ipairs(ratings) do
-        sorted_attackers[i], sorted_dsts[i] = attackers[r[1]], dsts[r[1]]
-    end
-    attackers, dsts, ratings = nil, nil, nil
-
-    -- Now we calculate the attack combo stats
-    -- This currently only takes damage into account, not poisoning etc.
-    -- (will wait for 1.11 to do that)
-    local enemy_hitpoints = enemy.hitpoints
-
-    local combo_att_stats, combo_def_stats = {}, {}
-    for i,attacker in ipairs(sorted_attackers) do
-        local dst = sorted_dsts[i]
-        --print(i, attacker.id, dst[1], dst[2])
-
-        local att_stats, def_stats = ai_helper.simulate_combat_loc(attacker, dst, enemy)
-
-        --print('  before:', enemy.hitpoints)
-        enemy.hitpoints = def_stats.average_hp
-        --print('  after: ', enemy.hitpoints, def_stats.hp_chance[0])
-
-        -- For the enemy, we simply take the last stats
-        combo_def_stats = def_stats
-
-        -- For the attackers, we build up an array (in the same order as the attackers array)
-        combo_att_stats[i] = att_stats
-    end
-    -- Reset the enemy's hitpoints
-    enemy.hitpoints = enemy_hitpoints
-
-    -- Finally, we return:
-    -- - the sorted attackers and dsts arrays
-    -- - defender stats: one set of stats
-    -- - attacker_stats: an array of stats for each attacker, in the same order as 'attackers'
-    return sorted_attackers, sorted_dsts, combo_def_stats, combo_att_stats
+    -- - defender combo stats: one set of stats containing the defender stats after the attack combination
+    -- - att_stats: an array of stats for each attacker, in the same order as 'attackers'
+    -- - def_stats: an array of defender stats for each individual attacks, in the same order as 'attackers'
+    return attackers, dsts, def_stats_combo, att_stats, def_stats
 end
 
 function ai_helper.get_closest_enemy()
