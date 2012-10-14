@@ -145,6 +145,17 @@ return {
             return efficiency
         end
 
+        function can_slow(unit)
+            for defender_attack in helper.child_range(unit.__cfg, 'attack') do
+                for special in helper.child_range(defender_attack, 'specials') do
+                    if helper.get_child(special, 'slow') then
+                        return true
+                    end
+                end
+            end
+            return false
+        end
+
         function ai_cas:recruit_rushers_eval()
             if AH.print_eval() then print('     - Evaluating recruit_general CA with ' .. rusher_type, os.clock()) end
 
@@ -255,7 +266,10 @@ return {
                 local offense_score = recruit_effectiveness[recruit_id]/(wesnoth.unit_types[recruit_id].cost^0.45*recruit_modifier^4)
                 local defense_score = (6000*efficiency[recruit_id]/(recruit_vulnerability[recruit_id]^1.4*hp_ratio^0.7))
 
-                local unit_score = (offense_score + defense_score + move_score)
+                local unit_score = offense_score + defense_score + move_score
+                if can_slow(recruit_unit) then
+                    unit_score = unit_score + 2.5
+                end
                -- wesnoth.message(recruit_id .. " score: " .. offense_score .. " + " .. defense_score .. " + " .. move_score  .. " = " .. unit_score)
                 if unit_score > score then
 
