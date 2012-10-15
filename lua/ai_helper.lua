@@ -1300,7 +1300,7 @@ function ai_helper.get_attack_combos_no_order(units, enemy)
     return combos, attacks_dst_src
 end
 
-function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy)
+function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, rating_cfg)
     -- Calculate attack combination outcomes using
     -- tmp_attackers: array of attacker units (this is done so that
     --   the units need not be found here, as likely doing it in the
@@ -1308,12 +1308,17 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy)
     -- tmp_dsts: array of the hexes (format {x, y}) from which the attackers attack
     --   must be in same order as 'attackers'
     -- enemy: the enemy being attacked
+    -- rating_cfg: config table with adjustable parameters to influence ratin
+    --  - damage_ratio: how much more important doing damage is than receiving damage (default: 1)
     --
     -- Return values: see end of this function for explanations
     --
     -- Note: the combined defender stats are approximate in some cases (e.g. attacks
     -- with slow and drain, but should be good otherwise
     -- Doing all of it right is not possible for computation time reasons
+
+    rating_cfg = rating_cfg or {}
+    local damage_ratio = rating_cfg.damage_ratio or 1.
 
     -- We first simulate and rate the individual attacks
     local ratings = {}
@@ -1324,13 +1329,14 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy)
         -- Damage done to own unit is bad
         local rating = tmp_att_stats[i].average_hp - a.hitpoints
         -- Damage done to enemy is good
-        local rating = rating + enemy.hitpoints - tmp_def_stats[i].average_hp
+        local rating = rating + (enemy.hitpoints - tmp_def_stats[i].average_hp) * damage_ratio
 
         -- Chance to kill own unit is very bad
         rating = rating - tmp_att_stats[i].hp_chance[0] * 50
         -- Chance to kill enemy is very good
-        rating = rating + tmp_def_stats[i].hp_chance[0] * 50
+        rating = rating + tmp_def_stats[i].hp_chance[0] * 50 * damage_ratio
 
+        --print(i, rating)
         ratings[i] = { i, rating }
     end
 
