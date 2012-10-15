@@ -298,7 +298,7 @@ return {
 
                 -- Estimate effectiveness on offense and defense
                 local offense_score = recruit_effectiveness[recruit_id]/(wesnoth.unit_types[recruit_id].cost^0.45*recruit_modifier^4)
-                local defense_score = (6000*efficiency[recruit_id]/(recruit_vulnerability[recruit_id]^1.4*hp_ratio^0.7))
+                local defense_score = (5000*efficiency[recruit_id]/(recruit_vulnerability[recruit_id]^1.4*hp_ratio^0.7))
 
                 local unit_score = offense_score + defense_score + move_score
                 if can_slow(recruit_unit) then
