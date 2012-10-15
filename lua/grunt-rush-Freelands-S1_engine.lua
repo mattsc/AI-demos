@@ -1640,8 +1640,9 @@ return {
             --DBG.dbms(best_combo)
 
             if (max_rating > -9e99) then
-                local action = {}
-                action.units, action.dsts, action.enemy = best_attackers, best_dsts, best_enemy
+                -- Only execute the first of these attacks
+                local action = { units = {}, dsts = {}, enemy = best_enemy }
+                action.units[1], action.dsts[1] = best_attackers[1], best_dsts[1]
                 return action
             end
 
