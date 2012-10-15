@@ -294,7 +294,7 @@ return {
                 -- Use time to enemy to encourage recruiting fast units when the opponent is far away (game is beginning or we're winning)
                 local recruit_unit = wesnoth.create_unit { type = recruit_id, x = best_hex[1], y = best_hex[2] }
                 local path, cost = wesnoth.find_path(recruit_unit, enemy_location.x, enemy_location.y, {ignore_units = true})
-                local move_score = (distance_to_enemy^2 / (cost / wesnoth.unit_types[recruit_id].max_moves)^0.5) / (20*recruit_modifier^2)
+                local move_score = (distance_to_enemy^2 / (cost / wesnoth.unit_types[recruit_id].max_moves)^0.3) / (20*recruit_modifier^2)
 
                 -- Estimate effectiveness on offense and defense
                 local offense_score = recruit_effectiveness[recruit_id]/(wesnoth.unit_types[recruit_id].cost^0.45*recruit_modifier^4)
