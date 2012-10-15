@@ -48,7 +48,13 @@ return {
                 return 0
             end
 
-            local keeps = wesnoth.get_locations { terrain = "K*,*^Kov", { "not", { {"filter", {}} }}, }
+            local keeps = wesnoth.get_locations {
+                terrain = "K*,*^Kov", -- Keeps
+                { "not", { {"filter", {}} }}, -- That have no unit
+                { "not", { radius = 5, {"filter", { canrecruit = 'yes',
+	                { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
+                }} }} -- That are not too close to an enemy leader
+            }
             if #keeps <= 2 then
                 -- Skip if there aren't extra keeps to evaluate
                 -- In this situation we'd only switch keeps if we were running away
