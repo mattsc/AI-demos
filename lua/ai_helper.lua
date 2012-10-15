@@ -1332,9 +1332,31 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, rating_cfg
         local rating = rating + (enemy.hitpoints - tmp_def_stats[i].average_hp) * damage_ratio
 
         -- Chance to kill own unit is very bad
-        rating = rating - tmp_att_stats[i].hp_chance[0] * 50
+        rating = rating - tmp_att_stats[i].hp_chance[0] * 100
         -- Chance to kill enemy is very good
-        rating = rating + tmp_def_stats[i].hp_chance[0] * 50 * damage_ratio
+        rating = rating + tmp_def_stats[i].hp_chance[0] * 100 * damage_ratio
+
+        -- Also want units with highest attack outcome uncertainties to go early
+        -- So that we can change our mind in case of unfavorable outcome
+        local outcome_variance = 0
+        local av = tmp_def_stats[i].average_hp
+        local n_outcomes = 0
+
+        for hp,p in ipairs(tmp_def_stats[i].hp_chance) do
+            if (p > 0) then
+                local dv = p * (hp - av)^2
+                --print(hp,p,av, dv)
+                outcome_variance = outcome_variance + dv
+                n_outcomes = n_outcomes + 1
+            end
+        end
+        outcome_variance = outcome_variance / n_outcomes
+        --print('outcome_variance', outcome_variance)
+
+        -- Note that this is a variance, not a standard deviations (as in, it's squared),
+        -- so it does not matter much for low-variance attacks, but takes on large values for
+        -- high variance attacks.  I think this is what we want.
+        rating = rating + outcome_variance
 
         --print(i, rating)
         ratings[i] = { i, rating }
