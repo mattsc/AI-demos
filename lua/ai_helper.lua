@@ -421,17 +421,17 @@ end
 
 function ai_helper.has_weapon_special(unit, special)
     -- Returns true/false depending on whether unit has a weapon with the given special
-    local has_special = false
+    -- Also returns the number of the first poisoned weapon
     local weapon_number = 0
     for att in H.child_range(unit.__cfg, 'attack') do
         weapon_number = weapon_number + 1
         for sp in H.child_range(att, 'specials') do
             if H.get_child(sp, special) then
-                has_special = true
+                return true, weapon_number
             end
         end
     end
-    return has_special
+    return false
 end
 
 --------- Location set related helper functions ----------
