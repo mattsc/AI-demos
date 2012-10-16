@@ -7,8 +7,12 @@
     - Will use multiple castles to speed recruiting
     - Castles in Cynsaun Battlefield are too far apart for it to work there
 <<<<<<< HEAD
+<<<<<<< HEAD
   - Less biased about selecting units to capture villages
 =======
+=======
+  - Less biased about selecting units to capture villages
+>>>>>>> Merged Alarantalara's and mattsc's simultaneous changelog commit
 - Freelands Side 1 Grunt Rush:
   - New method to calculate attack combinations
     - Faster and more accurate calculation of outcome
