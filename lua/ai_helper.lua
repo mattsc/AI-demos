@@ -410,7 +410,7 @@ function ai_helper.get_live_units(filter)
 end
 
 function ai_helper.has_ability(unit, ability)
-    -- Returns true/false depending on whether unit has leadership ability
+    -- Returns true/false depending on whether unit has the given ability
     local has_ability = false
     local abilities = H.get_child(unit.__cfg, "abilities")
     if abilities then
@@ -418,7 +418,6 @@ function ai_helper.has_ability(unit, ability)
     end
     return has_ability
 end
-
 
 --------- Location set related helper functions ----------
 
