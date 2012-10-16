@@ -1409,6 +1409,8 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, rating_cfg
     -- Build up a hp_chance array for the combined hp_chance
     -- For the first attack, it's simply the defenders hp_chance distribution
     local hp_combo = ai_helper.table_copy(def_stats[1].hp_chance)
+    -- Also get an approximate value for slowed/poisoned chance after attack combo
+    local slowed, poisoned = 1 - def_stats[1].slowed, 1 - def_stats[1].poisoned
 
     -- Then we go through all the other attacks
     for i = 2,#attackers do
@@ -1432,6 +1434,10 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, rating_cfg
         end
         -- Finally, transfer result to hp_combo table for next iteration
         hp_combo = ai_helper.table_copy(tmp_array)
+
+        -- And the slowed/poisoned percentage
+        slowed = slowed * (1 - def_stats[i].slowed)
+        poisoned = poisoned * (1 - def_stats[i].poisoned)
     end
     --DBG.dbms(hp_combo)
     --print('HPC[0]', hp_combo[0])
@@ -1444,7 +1450,7 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, rating_cfg
     def_stats_combo.average_hp = av_hp
 
     -- For now, we set slowed and poisoned always to zero -- !!!!! FIX !!!!!
-    def_stats_combo.slowed, def_stats_combo.poisoned = 0, 0
+    def_stats_combo.slowed, def_stats_combo.poisoned = 1. - slowed, 1. - poisoned
 
     -- Finally, we return:
     -- - the sorted attackers and dsts arrays
