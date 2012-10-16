@@ -11,7 +11,6 @@
   - New method to calculate attack combinations
     - Faster and more accurate calculation of outcome
     - Modified relative ranking of the individual attacks within a combo
->>>>>>> Updated changelog
 
 0.11.3, 12 Oct 2012
 - Original release of v0.11.3 for Wesnoth 1.11
