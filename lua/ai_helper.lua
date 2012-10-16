@@ -1427,6 +1427,9 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, rating_cfg
                     if (p2>0) then
                         local new_hp = hp2 + dhp  -- The offset is defined to be negative
                         if (new_hp < 0) then new_hp = 0 end  -- HP can't go below 0
+                        -- Also, for if the enemy has drain:
+                        if (new_hp > enemy.max_hitpoints) then new_hp = enemy.max_hitpoints end
+                        --print(enemy.id .. ': ' .. enemy.hitpoints .. '/' .. enemy.max_hitpoints ..':', hp1, p1, hp2, p2, dhp, new_hp)
                         tmp_array[new_hp] = tmp_array[new_hp] + p1*p2  -- New percentage is product of two individual ones
                     end
                 end
