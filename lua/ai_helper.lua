@@ -1424,7 +1424,7 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, rating_cfg
     def_stats_combo.average_hp = av_hp
 
     -- For now, we set slowed and poisoned always to zero -- !!!!! FIX !!!!!
-    def_stats_combo.slowed, def_stats_combo.posioned = 0, 0
+    def_stats_combo.slowed, def_stats_combo.poisoned = 0, 0
 
     -- Finally, we return:
     -- - the sorted attackers and dsts arrays
