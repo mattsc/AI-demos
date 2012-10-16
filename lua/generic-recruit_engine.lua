@@ -267,28 +267,65 @@ return {
             -- Determine effectiveness of recruitable units against each enemy unit type
             local recruit_effectiveness = {}
             local recruit_vulnerability = {}
+            local attack_type_count = {} -- The number of units who will likely use a given attack type
+            --local attack_range_count = {} -- The number of units who will likely use a given attack range
+            local unit_attack_type_count = {} -- The attack types a unit will use
             for i, unit_type in ipairs(enemy_types) do
                 local analysis = analyze_enemy_unit(unit_type)
                 for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
+                    -- This line should be moved out of the loop!
+                    local recruit_count = #(AH.get_live_units { side = wesnoth.current.side, type = recruit_id, canrecruit = 'no' })
+
                     if recruit_effectiveness[recruit_id] == nil then
                         recruit_effectiveness[recruit_id] = 0
                         recruit_vulnerability[recruit_id] = 0
                     end
                     recruit_effectiveness[recruit_id] = recruit_effectiveness[recruit_id] + analysis[recruit_id].defense.damage * enemy_counts[unit_type]^2
                     recruit_vulnerability[recruit_id] = recruit_vulnerability[recruit_id] + (analysis[recruit_id].retaliation.damage * enemy_counts[unit_type])^2
+
+                    local attack_type = analysis[recruit_id].defense.attack.type
+                    if attack_type_count[attack_type] == nil then
+                        attack_type_count[attack_type] = 0
+                    end
+                    attack_type_count[attack_type] = attack_type_count[attack_type] + recruit_count
+
+                    --local attack_range = analysis[recruit_id].defense.attack.range
+                    --if attack_range_count[attack_range] == nil then
+                    --    attack_range_count[attack_range] = 0
+                    --end
+                    --attack_range_count[attack_range] = attack_type_count[attack_type] + recruit_count
+
+                    if unit_attack_type_count[recruit_id] == nil then
+                        unit_attack_type_count[recruit_id] = {}
+                    end
+                    unit_attack_type_count[recruit_id][attack_type] = true
                 end
             end
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
                 recruit_effectiveness[recruit_id] = (recruit_effectiveness[recruit_id] / (num_enemies)^2)^0.5
                 recruit_vulnerability[recruit_id] = (recruit_vulnerability[recruit_id] / ((num_enemies)^2))^0.5
             end
+            -- Correct count of units for each range
+            --for range, count in pairs(attack_range_count) do
+            --    attack_range_count[range] = count/enemy_counts
+            --end
+            -- Correct count of units for each attack type
+            for attack_type, count in pairs(attack_type_count) do
+                attack_type_count[attack_type] = count/num_enemies
+            end
 
             -- Find best recruit based on damage done to enemies present, speed, and hp/gold ratio
             local score = 0
             local recruit_type = nil
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
-                -- Count number of units of this type. Used to avoid recruiting too many of the same unit
-                local recruit_count = #(AH.get_live_units { side = wesnoth.current.side, type = recruit_id, canrecruit = 'no' })
+                -- Count number of units with the same attack type. Used to avoid recruiting too many of the same unit
+                local attack_types = 0
+                local recruit_count = 0
+                for attack_type, count in pairs(unit_attack_type_count[recruit_id]) do
+                    attack_types = attack_types + 1
+                    recruit_count = recruit_count + attack_type_count[attack_type]
+                end
+                recruit_count = recruit_count / attack_types
                 local recruit_modifier = 1+recruit_count/50
 
                 -- Use time to enemy to encourage recruiting fast units when the opponent is far away (game is beginning or we're winning)
