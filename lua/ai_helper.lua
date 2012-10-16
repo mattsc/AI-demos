@@ -1372,6 +1372,12 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, rating_cfg
         -- high variance attacks.  I think this is what we want.
         rating = rating + outcome_variance
 
+        -- If attacker has attack with 'slow' special, it should always go first
+        -- This isn't quite true in reality, but can be refined later
+        if ai_helper.has_weapon_special(a, "slow") then
+            rating = rating + 50  -- but not quite as high as a really high CTK
+        end
+
         --print(i, rating)
         ratings[i] = { i, rating }
     end
