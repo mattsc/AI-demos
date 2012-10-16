@@ -74,7 +74,7 @@ return {
                 -- Prefer closer keeps to enemy
                 local turns = cost/leader.max_moves
                 if turns <= 3 and turns > 0 then
-                    score = 1/turns
+                    score = 1/(math.ceil(turns))
                     for j,e in ipairs(enemy_leaders) do
                         score = score + 1 / H.distance_between(loc[1], loc[2], e.x, e.y) ^ 2.
                     end
