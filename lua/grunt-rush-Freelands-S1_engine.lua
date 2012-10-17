@@ -308,7 +308,7 @@ return {
                             table.insert(attackers, att)
                             table.insert(dsts, { math.floor(dst / 1000), dst % 1000 })
                         end
-                        attackers, dsts, combo_def_stats, combo_att_stats = AH.attack_combo_stats(attackers, dsts, e)
+                        attackers, dsts, combo_att_stats, combo_def_stats = AH.attack_combo_stats(attackers, dsts, e)
                     end
 
                     -- Don't attack under certain circumstances:
@@ -583,7 +583,7 @@ return {
             local dsts = {}
             for i,e in ipairs(enemy_attackers) do table.insert(dsts, { e.x, e.y }) end
             -- only need the defender stats
-            local tmp1, tmp2, def_stats = AH.attack_combo_stats(enemy_attackers, dsts, unit)
+            local tmp1, tmp2, tmp3, def_stats = AH.attack_combo_stats(enemy_attackers, dsts, unit)
 
             counter_table.average_def_stats = def_stats
 
@@ -1598,7 +1598,7 @@ return {
                         table.insert(atts, attacker_map[src])
                         table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
                     end
-                    local sorted_atts, sorted_dsts, combo_def_stats, combo_att_stats = AH.attack_combo_stats(atts, dsts, e)
+                    local sorted_atts, sorted_dsts, combo_att_stats, combo_def_stats = AH.attack_combo_stats(atts, dsts, e)
                     --DBG.dbms(combo_def_stats)
 
                     -- Don't attack under certain circumstances
