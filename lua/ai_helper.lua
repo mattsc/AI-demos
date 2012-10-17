@@ -1482,4 +1482,68 @@ function ai_helper.get_closest_enemy()
     return closest_distance, location
 end
 
+function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, cfg)
+    -- Returns a common (but configurable) kind of rating for attacks
+    -- att_stats: can be a single attacker stats table, or an array of several
+    -- def_stats: has to be a single defender stats table
+    -- attackers: single attacker or table of attackers, in same order as att_stats
+    -- defender: defender unit table
+    -- cfg: table of rating parameters
+    --  - own_damage_weight (1.0):
+    --  - ctk_weight (0.5):
+
+    -- Set up the rating config parameters
+    cfg = cfg or {}
+    local own_damage_weight = cfg.own_damage_weight or 1.0
+    local ctk_weight = cfg.ctk_weight or 0.5
+    local resource_weight = cfg.resource_weight or 0.25
+    local village_bonus = village_bonus or 5
+
+    -- If att is a single stats table, make it a one-element array
+    -- That way all the rest can be done in in the same way for single and combo attacks
+    if att_stats.hp_chance then
+        att_stats = { att_stats }
+        attackers = { attackers }
+    end
+
+    -- Collect the necessary information
+    -- Average damage to all attackers and the defender
+    local damage, ctd, resources_used = 0, 0, 0
+    for i,as in ipairs(att_stats) do
+        --print(attackers[i].id, as.average_hp)
+        damage = damage + attackers[i].hitpoints - as.average_hp
+        ctd = ctd + as.hp_chance[0]  -- Chance to die
+        resources_used = resources_used + attackers[i].__cfg.cost
+    end
+
+    local defender_damage = defender.hitpoints - def_stats.average_hp
+    local ctk = def_stats.hp_chance[0]
+    local defender_cost = defender.__cfg.cost
+
+    local defender_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(defender.x, defender.y)).village
+
+    --print('damage, defender_damage', damage, defender_damage)
+    --print('ctd, ctk', ctd, ctk)  -- Chance to kill
+    --print('resources_used, defender_cost', resources_used, defender_cost)
+    --print('defender_on_village', defender_on_village)
+
+    -- Now add all this together in a rating
+    local rating = 0
+
+    -- Rating based on the attack outcome
+    rating = rating + defender_damage - damage * own_damage_weight
+    rating = rating + (ctk - ctd * own_damage_weight) * 100. * ctk_weight
+
+    -- Resources used (cost) of units on both sides
+    -- Only the delta between ratings makes a difference -> absolute value meaningless
+    -- Don't want this to be too highly rated, or single-unit attacks will always be chosen
+    rating = rating + (defender_cost - resources_used) * resource_weight
+
+    -- Bonus (or penalty) for units on villages
+    if defender_on_village then rating = rating + village_bonus end
+
+    --print('--> attack rating:', rating)
+    return rating
+end
+
 return ai_helper
