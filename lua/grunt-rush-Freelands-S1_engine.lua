@@ -1601,38 +1601,21 @@ return {
                     local sorted_atts, sorted_dsts, combo_att_stats, combo_def_stats = AH.attack_combo_stats(atts, dsts, e)
                     --DBG.dbms(combo_def_stats)
 
-                    -- Don't attack under certain circumstances
-                    local dont_attack = false
-
-                    local rating = 0
-                    local damage = 0
+                    -- Don't attack if CTD is too high for any of the attackers
+                    local do_attack = true
                     for k,att_stats in ipairs(combo_att_stats) do
-                        if (att_stats.hp_chance[0] >= 0.5) then dont_attack = true end
-                        damage = damage + sorted_atts[k].hitpoints - att_stats.average_hp
-                    end
-                    local damage_enemy = e.hitpoints - combo_def_stats.average_hp
-                    --print(' - #attacks, damage, damage_enemy', #sorted_atts, damage, damage_enemy, dont_attack)
-
-                    rating = rating + damage_enemy - damage / 2.
-
-                    -- Chance to kill is very important (for both sides)
-                    rating = rating + combo_def_stats.hp_chance[0] * 50.
-                    for k,a in ipairs(sorted_atts) do
-                        rating = rating - combo_att_stats[k].hp_chance[0] * 25.
+                        if (att_stats.hp_chance[0] >= 0.5) then
+                            do_attack = false
+                            break
+                        end
                     end
 
-                    -- Cost of enemy is another factor
-                    rating = rating + enemy_cost
-
-                    -- If this is on the village, then the expected enemy HP matter:
-                    -- The fewer, the better (choose 25 as about neutral for now)
-                    if enemy_on_village then
-                        rating = rating + (25 - combo_def_stats.average_hp)
-                    end
-
-                    --print(' -----------------------> rating', rating)
-                    if (not dont_attack) and (rating > max_rating) then
-                        max_rating, best_attackers, best_dsts, best_enemy = rating, sorted_atts, sorted_dsts, e
+                    if do_attack then
+                        local rating = AH.attack_rating(combo_att_stats, combo_def_stats, sorted_atts, e)
+                        --print(' -----------------------> rating', rating)
+                        if (rating > max_rating) then
+                            max_rating, best_attackers, best_dsts, best_enemy = rating, sorted_atts, sorted_dsts, e
+                        end
                     end
                 end
             end
