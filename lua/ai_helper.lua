@@ -1507,8 +1507,8 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, cfg)
         attackers = { attackers }
     end
 
-    -- Collect the necessary information
-    -- Average damage to all attackers and the defender
+    ----- Collect the necessary information -----
+    --- All the per-attacker contributions: ---
     local damage, ctd, resources_used = 0, 0, 0
     local xp_bonus = 0
     local attacker_about_to_level_bonus, defender_about_to_level_penalty = 0, 0
@@ -1527,11 +1527,10 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, cfg)
         end
 
         -- Will the attacker level in this attack (or likely do so?)
-        -- This one is cumulative
         local defender_level = defender.__cfg.level
         if (as.hp_chance[0] < 0.4) then
             if (attackers[i].max_experience - attackers[i].experience <= defender_level) then
-                attacker_about_to_level_bonus = attacker_about_to_level_bonus+ 100
+                attacker_about_to_level_bonus = attacker_about_to_level_bonus + 100
             else
                 if (attackers[i].max_experience - attackers[i].experience <= defender_level * 8) and (def_stats.hp_chance[0] >= 0.6) then
                     attacker_about_to_level_bonus = attacker_about_to_level_bonus + 50
@@ -1540,56 +1539,53 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, cfg)
         end
 
         -- Will the defender level in this attack (or likely do so?)
-        -- This one is not cumulative
         local attacker_level = attackers[i].__cfg.level
         if (def_stats.hp_chance[0] < 0.6) then
             if (defender.max_experience - defender.experience <= attacker_level) then
-                defender_about_to_level_penalty = 2000
-            end
-            if (defender.max_experience - defender.experience <= attacker_level * 8) and (as.hp_chance[0] >= 0.4) then
-                defender_about_to_level_penalty = 1000
+                defender_about_to_level_penalty = defender_about_to_level_penalty + 2000
+            else
+                if (defender.max_experience - defender.experience <= attacker_level * 8) and (as.hp_chance[0] >= 0.4) then
+                    defender_about_to_level_penalty = defender_about_to_level_penalty + 1000
+                end
             end
         end
     end
 
+    --- All the defender-related information: ---
     local defender_damage = defender.hitpoints - def_stats.average_hp
-    local ctk = def_stats.hp_chance[0]
+    local ctk = def_stats.hp_chance[0]  -- Chance to kill
 
     -- XP bonus is positive for defender as well - want to get rid of high-XP opponents first
+    -- Except if the defender will likely level up through the attack (dealt with above)
     local defender_xp_bonus = defender.experience * xp_weight
-    -- Except if the defender will likely level up through the attack
-
 
     local defender_cost = defender.__cfg.cost
-
     local defender_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(defender.x, defender.y)).village
 
-    --print('damage, defender_damage', damage, defender_damage)
-    --print('ctd, ctk', ctd, ctk)  -- Chance to kill
-    --print('resources_used, defender_cost', resources_used, defender_cost)
-    --print('defender_on_village', defender_on_village)
-
-    -- Now add all this together in a rating
-    local rating = 0
+    ----- Now add all this together in a rating -----
+    -- We use separate attacker(s) and defender ratings, so that attack combos can be dealt with easily
+    local defender_rating, attacker_rating = 0, 0
 
     -- Rating based on the attack outcome
-    rating = rating + defender_damage - damage * own_damage_weight
-    rating = rating + (ctk - ctd * own_damage_weight) * 100. * ctk_weight
+    defender_rating = defender_rating + defender_damage + ctk * 100. * ctk_weight
+    attacker_rating = attacker_rating - (damage + ctd * 100. * ctk_weight) * own_damage_weight
 
     -- XP-based rating
-    rating = rating + xp_bonus + defender_xp_bonus
-    rating = rating + attacker_about_to_level_bonus - defender_about_to_level_penalty
+    defender_rating = defender_rating + defender_xp_bonus - defender_about_to_level_penalty
+    attacker_rating = attacker_rating + xp_bonus + attacker_about_to_level_bonus
 
     -- Resources used (cost) of units on both sides
     -- Only the delta between ratings makes a difference -> absolute value meaningless
     -- Don't want this to be too highly rated, or single-unit attacks will always be chosen
-    rating = rating + (defender_cost - resources_used) * resource_weight
+    defender_rating = defender_rating + defender_cost * resource_weight
+    attacker_rating = attacker_rating - resources_used * resource_weight
 
     -- Bonus (or penalty) for units on villages
-    if defender_on_village then rating = rating + village_bonus end
+    if defender_on_village then defender_rating = defender_rating + village_bonus end
 
-    --print('--> attack rating:', rating)
-    return rating
+    local rating = defender_rating + attacker_rating
+    --print('--> attack rating, defender_rating, attacker_rating:', rating, defender_rating, attacker_rating)
+    return rating, defender_rating, attacker_rating
 end
 
 return ai_helper
