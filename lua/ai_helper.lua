@@ -1340,17 +1340,11 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, rating_cfg
     for i,a in ipairs(tmp_attackers) do
         tmp_att_stats[i], tmp_def_stats[i] = ai_helper.simulate_combat_loc(a, tmp_dsts[i], enemy)
 
-        -- Damage done to own unit is bad
-        local rating = tmp_att_stats[i].average_hp - a.hitpoints
-        -- Damage done to enemy is good
-        local rating = rating + (enemy.hitpoints - tmp_def_stats[i].average_hp) * damage_ratio
+        -- Get the base rating from ai_helper.attack_rating()
+        local rating = ai_helper.attack_rating(tmp_att_stats[i], tmp_def_stats[i], a, enemy)
+        --print('rating:', rating)
 
-        -- Chance to kill own unit is very bad
-        rating = rating - tmp_att_stats[i].hp_chance[0] * 100
-        -- Chance to kill enemy is very good
-        rating = rating + tmp_def_stats[i].hp_chance[0] * 100 * damage_ratio
-
-        -- Also want units with highest attack outcome uncertainties to go early
+        -- But for combos, also want units with highest attack outcome uncertainties to go early
         -- So that we can change our mind in case of unfavorable outcome
         local outcome_variance = 0
         local av = tmp_def_stats[i].average_hp
@@ -1378,7 +1372,7 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, rating_cfg
             rating = rating + 50  -- but not quite as high as a really high CTK
         end
 
-        --print(i, rating)
+        --print('Final rating', rating, i)
         ratings[i] = { i, rating }
     end
 
