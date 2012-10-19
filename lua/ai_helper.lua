@@ -1497,7 +1497,8 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, cfg)
     local own_damage_weight = cfg.own_damage_weight or 1.0
     local ctk_weight = cfg.ctk_weight or 0.5
     local resource_weight = cfg.resource_weight or 0.25
-    local village_bonus = village_bonus or 5
+    local village_bonus = cfg.village_bonus or 5
+    local xp_weight = cfg.xp_weight or 0.2
 
     -- If att is a single stats table, make it a one-element array
     -- That way all the rest can be done in in the same way for single and combo attacks
@@ -1509,15 +1510,56 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, cfg)
     -- Collect the necessary information
     -- Average damage to all attackers and the defender
     local damage, ctd, resources_used = 0, 0, 0
+    local xp_bonus = 0
+    local attacker_about_to_level_bonus, defender_about_to_level_penalty = 0, 0
     for i,as in ipairs(att_stats) do
         --print(attackers[i].id, as.average_hp)
         damage = damage + attackers[i].hitpoints - as.average_hp
         ctd = ctd + as.hp_chance[0]  -- Chance to die
         resources_used = resources_used + attackers[i].__cfg.cost
+
+        -- If there's no chance to die, using unit with lots of XP is good
+        -- Otherwise it's bad
+        if (as.hp_chance[0] > 0) then
+            xp_bonus = xp_bonus - attackers[i].experience * xp_weight
+        else
+            xp_bonus = xp_bonus + attackers[i].experience * xp_weight
+        end
+
+        -- Will the attacker level in this attack (or likely do so?)
+        -- This one is cumulative
+        local defender_level = defender.__cfg.level
+        if (as.hp_chance[0] < 0.4) then
+            if (attackers[i].max_experience - attackers[i].experience <= defender_level) then
+                attacker_about_to_level_bonus = attacker_about_to_level_bonus+ 100
+            else
+                if (attackers[i].max_experience - attackers[i].experience <= defender_level * 8) and (def_stats.hp_chance[0] >= 0.6) then
+                    attacker_about_to_level_bonus = attacker_about_to_level_bonus + 50
+                end
+            end
+        end
+
+        -- Will the defender level in this attack (or likely do so?)
+        -- This one is not cumulative
+        local attacker_level = attackers[i].__cfg.level
+        if (def_stats.hp_chance[0] < 0.6) then
+            if (defender.max_experience - defender.experience <= attacker_level) then
+                defender_about_to_level_penalty = 2000
+            end
+            if (defender.max_experience - defender.experience <= attacker_level * 8) and (as.hp_chance[0] >= 0.4) then
+                defender_about_to_level_penalty = 1000
+            end
+        end
     end
 
     local defender_damage = defender.hitpoints - def_stats.average_hp
     local ctk = def_stats.hp_chance[0]
+
+    -- XP bonus is positive for defender as well - want to get rid of high-XP opponents first
+    local defender_xp_bonus = defender.experience * xp_weight
+    -- Except if the defender will likely level up through the attack
+
+
     local defender_cost = defender.__cfg.cost
 
     local defender_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(defender.x, defender.y)).village
@@ -1533,6 +1575,10 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, cfg)
     -- Rating based on the attack outcome
     rating = rating + defender_damage - damage * own_damage_weight
     rating = rating + (ctk - ctd * own_damage_weight) * 100. * ctk_weight
+
+    -- XP-based rating
+    rating = rating + xp_bonus + defender_xp_bonus
+    rating = rating + attacker_about_to_level_bonus - defender_about_to_level_penalty
 
     -- Resources used (cost) of units on both sides
     -- Only the delta between ratings makes a difference -> absolute value meaningless
