@@ -1599,7 +1599,7 @@ return {
                         table.insert(atts, attacker_map[src])
                         table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
                     end
-                    local rating, sorted_atts, sorted_dsts, combo_att_stats = AH.attack_combo_stats(atts, dsts, e)
+                    local rating, sorted_atts, sorted_dsts, combo_att_stats, combo_def_stats = AH.attack_combo_stats(atts, dsts, e)
                     --DBG.dbms(combo_def_stats)
 
                     -- Don't attack if CTD is too high for any of the attackers
@@ -1609,6 +1609,20 @@ return {
                             do_attack = false
                             break
                         end
+                    end
+
+                    -- Discourage use of poisoners in attacks that may result in kill
+                    if (combo_def_stats.hp_chance[0] > 0) then
+                        local number_poisoners = 0
+                        for i,a in ipairs(sorted_atts) do
+                            local is_poisoner = AH.has_weapon_special(a, 'poison')
+                            if is_poisoner then
+                                number_poisoners = number_poisoners + 1
+                                rating = rating - 100
+                            end
+                        end
+                        -- Really discourage the use of several poisoners
+                        if (number_poisoners > 1) then rating = rating - 1000 end
                     end
 
                     if do_attack then
