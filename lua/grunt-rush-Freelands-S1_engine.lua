@@ -151,43 +151,43 @@ return {
             table.insert(cfgs, cfg_right)
 
             -- Now find how many enemies can get to each area
-            local my_units = AH.get_live_units { side = wesnoth.current.side }
-            local enemies = AH.get_live_units {
-                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
-            }
-            local attack_map = AH.attack_map(my_units)
-            local attack_map_hp = AH.attack_map(my_units, { return_value = 'hitpoints' })
-            local enemy_attack_map = AH.attack_map(enemies, { moves = "max" })
-            local enemy_attack_map_hp = AH.attack_map(enemies, { moves = "max", return_value = 'hitpoints' })
+            --local my_units = AH.get_live_units { side = wesnoth.current.side }
+            --local enemies = AH.get_live_units {
+            --    { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+            --}
+            --local attack_map = AH.attack_map(my_units)
+            --local attack_map_hp = AH.attack_map(my_units, { return_value = 'hitpoints' })
+            --local enemy_attack_map = AH.attack_map(enemies, { moves = "max" })
+            --local enemy_attack_map_hp = AH.attack_map(enemies, { moves = "max", return_value = 'hitpoints' })
 
             -- Find how many enemies threaten each of the hold areas
-            local enemy_num, enemy_hp = {}, {}
-            for i_c,c in ipairs(cfgs) do
-                enemy_num[i_c], enemy_hp[i_c] = 0, 0
-                for x = c.area.x_min,c.area.x_max do
-                    for y = c.area.y_min,c.area.y_max do
-                        local en = enemy_attack_map:get(x, y) or 0
-                        if (en > enemy_num[i_c]) then enemy_num[i_c] = en end
-                        local hp = enemy_attack_map_hp:get(x, y) or 0
-                        if (hp > enemy_hp[i_c]) then enemy_hp[i_c] = hp end
-                    end
-                end
-                --print('enemy threat:', i_c, enemy_num[i_c], enemy_hp[i_c])
-            end
+            --local enemy_num, enemy_hp = {}, {}
+            --for i_c,c in ipairs(cfgs) do
+            --    enemy_num[i_c], enemy_hp[i_c] = 0, 0
+            --    for x = c.area.x_min,c.area.x_max do
+            --        for y = c.area.y_min,c.area.y_max do
+            --            local en = enemy_attack_map:get(x, y) or 0
+            --            if (en > enemy_num[i_c]) then enemy_num[i_c] = en end
+            --            local hp = enemy_attack_map_hp:get(x, y) or 0
+            --            if (hp > enemy_hp[i_c]) then enemy_hp[i_c] = hp end
+            --        end
+            --    end
+            --    --print('enemy threat:', i_c, enemy_num[i_c], enemy_hp[i_c])
+            --end
 
             -- Also find how many enemies are already present in area
-            local present_enemies = {}
-            for i_c,c in ipairs(cfgs) do
-                present_enemies[i_c] = 0
-                for j,e in ipairs(enemies) do
-                    if (e.x >= c.area.x_min) and (e.x <= c.area.x_max) and
-                        (e.y >= c.area.y_min) and (e.y <= c.area.y_max)
-                    then
-                        present_enemies[i_c] = present_enemies[i_c] + 1
-                    end
-                end
-                --print('present enemies:', i_c, present_enemies[i_c])
-            end
+            --local present_enemies = {}
+            --for i_c,c in ipairs(cfgs) do
+            --    present_enemies[i_c] = 0
+            --    for j,e in ipairs(enemies) do
+            --        if (e.x >= c.area.x_min) and (e.x <= c.area.x_max) and
+            --            (e.y >= c.area.y_min) and (e.y <= c.area.y_max)
+            --        then
+            --            present_enemies[i_c] = present_enemies[i_c] + 1
+            --        end
+            --    end
+            --    --print('present enemies:', i_c, present_enemies[i_c])
+            --end
 
             -- Now set this up as global variable
             grunt_rush_FLS1.data.area_cfgs = cfgs
