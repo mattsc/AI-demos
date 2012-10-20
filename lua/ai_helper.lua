@@ -1459,7 +1459,7 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy)
     -- - defender combo stats: one set of stats containing the defender stats after the attack combination
     -- - att_stats: an array of stats for each attacker, in the same order as 'attackers'
     -- - def_stats: an array of defender stats for each individual attacks, in the same order as 'attackers'
-    return attackers, dsts, att_stats, def_stats_combo, def_stats, rating
+    return rating, attackers, dsts, att_stats, def_stats_combo, def_stats
 end
 
 function ai_helper.get_closest_enemy()

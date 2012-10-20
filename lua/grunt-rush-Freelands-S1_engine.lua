@@ -302,13 +302,14 @@ return {
                     -- Now we need to calculate the attack combo stats
                     local combo_def_stats, combo_att_stats = {}, {}
                     local attackers, dsts = {}, {}
+                    local rating = 0
                     if trapping_attack then
                         for dst,src in pairs(combo) do
                             local att = wesnoth.get_unit(math.floor(src / 1000), src % 1000)
                             table.insert(attackers, att)
                             table.insert(dsts, { math.floor(dst / 1000), dst % 1000 })
                         end
-                        attackers, dsts, combo_att_stats, combo_def_stats = AH.attack_combo_stats(attackers, dsts, e)
+                        rating, attackers, dsts, combo_att_stats, combo_def_stats = AH.attack_combo_stats(attackers, dsts, e)
                     end
 
                     -- Don't attack under certain circumstances:
@@ -583,7 +584,7 @@ return {
             local dsts = {}
             for i,e in ipairs(enemy_attackers) do table.insert(dsts, { e.x, e.y }) end
             -- only need the defender stats
-            local tmp1, tmp2, tmp3, def_stats = AH.attack_combo_stats(enemy_attackers, dsts, unit)
+            local rating, tmp1, tmp2, tmp3, def_stats = AH.attack_combo_stats(enemy_attackers, dsts, unit)
 
             counter_table.average_def_stats = def_stats
 
@@ -1598,7 +1599,7 @@ return {
                         table.insert(atts, attacker_map[src])
                         table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
                     end
-                    local sorted_atts, sorted_dsts, combo_att_stats, combo_def_stats = AH.attack_combo_stats(atts, dsts, e)
+                    local rating, sorted_atts, sorted_dsts, combo_att_stats = AH.attack_combo_stats(atts, dsts, e)
                     --DBG.dbms(combo_def_stats)
 
                     -- Don't attack if CTD is too high for any of the attackers
@@ -1611,7 +1612,6 @@ return {
                     end
 
                     if do_attack then
-                        local rating = AH.attack_rating(combo_att_stats, combo_def_stats, sorted_atts, e)
                         --print(' -----------------------> rating', rating)
                         if (rating > max_rating) then
                             max_rating, best_attackers, best_dsts, best_enemy = rating, sorted_atts, sorted_dsts, e
@@ -1620,7 +1620,6 @@ return {
                 end
             end
             --print('max_rating ', max_rating)
-            --DBG.dbms(best_combo)
 
             if (max_rating > -9e99) then
                 -- Only execute the first of these attacks
