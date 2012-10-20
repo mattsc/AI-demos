@@ -1314,7 +1314,7 @@ function ai_helper.get_attack_combos_no_order(units, enemy)
     return combos, attacks_dst_src
 end
 
-function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, rating_cfg)
+function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy)
     -- Calculate attack combination outcomes using
     -- tmp_attackers: array of attacker units (this is done so that
     --   the units need not be found here, as likely doing it in the
@@ -1322,8 +1322,6 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, rating_cfg
     -- tmp_dsts: array of the hexes (format {x, y}) from which the attackers attack
     --   must be in same order as 'attackers'
     -- enemy: the enemy being attacked
-    -- rating_cfg: config table with adjustable parameters to influence ratin
-    --  - damage_ratio: how much more important doing damage is than receiving damage (default: 1)
     --
     -- Return values: see end of this function for explanations
     --
@@ -1331,17 +1329,15 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, rating_cfg
     -- with slow and drain, but should be good otherwise
     -- Doing all of it right is not possible for computation time reasons
 
-    rating_cfg = rating_cfg or {}
-    local damage_ratio = rating_cfg.damage_ratio or 1.
-
     -- We first simulate and rate the individual attacks
-    local ratings = {}
+    local ratings, tmp_attacker_ratings = {}, {}
     local tmp_att_stats, tmp_def_stats = {}, {}
     for i,a in ipairs(tmp_attackers) do
         tmp_att_stats[i], tmp_def_stats[i] = ai_helper.simulate_combat_loc(a, tmp_dsts[i], enemy)
 
         -- Get the base rating from ai_helper.attack_rating()
-        local rating = ai_helper.attack_rating(tmp_att_stats[i], tmp_def_stats[i], a, enemy)
+        local rating, dummy, tmp_ar = ai_helper.attack_rating(tmp_att_stats[i], tmp_def_stats[i], a, enemy)
+        tmp_attacker_ratings[i] = tmp_ar
         --print('rating:', rating)
 
         -- But for combos, also want units with highest attack outcome uncertainties to go early
@@ -1381,12 +1377,13 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, rating_cfg
     table.sort(ratings, function(a, b) return a[2] > b[2] end)
 
     -- Reorder attackers, dsts and stats in this order
-    local attackers, dsts, att_stats, def_stats = {}, {}, {}, {}
+    local attackers, dsts, att_stats, def_stats, attacker_ratings = {}, {}, {}, {}, {}
     for i,r in ipairs(ratings) do
         attackers[i], dsts[i] = tmp_attackers[r[1]], tmp_dsts[r[1]]
         att_stats[i], def_stats[i] = tmp_att_stats[r[1]], tmp_def_stats[r[1]]
+        attacker_ratings[i] = tmp_attacker_ratings[r[1]]
     end
-    tmp_attackers, tmp_dsts, tmp_att_stats, tmp_def_stats = nil, nil, nil, nil
+    tmp_attackers, tmp_dsts, tmp_att_stats, tmp_def_stats, tmp_attacker_ratings = nil, nil, nil, nil, nil
     -- Just making sure that everything worked:
     --print(#attackers, #dsts, #att_stats, #def_stats)
     --for i,a in ipairs(attackers) do print(i, a.id) end
@@ -1449,12 +1446,20 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, rating_cfg
     -- For now, we set slowed and poisoned always to zero -- !!!!! FIX !!!!!
     def_stats_combo.slowed, def_stats_combo.poisoned = 1. - slowed, 1. - poisoned
 
+    -- Get the total rating for this attack combo:
+    --   = sum of all the attacker ratings and the defender rating with the final def_stats
+    -- -> we need one run through attack_rating() to get the defender rating given these stats
+    -- It doesn't matter which attacker and att_stats are chosen for that
+    local dummy, rating = ai_helper.attack_rating(att_stats[1], def_stats_combo, attackers[1], enemy)
+    for i,r in ipairs(attacker_ratings) do rating = rating + r end
+    --print('\n',rating)
+
     -- Finally, we return:
     -- - the sorted attackers and dsts arrays
     -- - defender combo stats: one set of stats containing the defender stats after the attack combination
     -- - att_stats: an array of stats for each attacker, in the same order as 'attackers'
     -- - def_stats: an array of defender stats for each individual attacks, in the same order as 'attackers'
-    return attackers, dsts, att_stats, def_stats_combo, def_stats
+    return attackers, dsts, att_stats, def_stats_combo, def_stats, rating
 end
 
 function ai_helper.get_closest_enemy()
