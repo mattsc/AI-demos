@@ -1719,8 +1719,7 @@ return {
             -- Unit filter:
             local unit_filter = { side = wesnoth.current.side, canrecruit = 'no' }
             if cfg.unit_filter then
-                if cfg.unit_filter.x then unit_filter.x = cfg.unit_filter.x end
-                if cfg.unit_filter.y then unit_filter.y = cfg.unit_filter.y end
+                for k,v in pairs(cfg.unit_filter) do unit_filter[k] = v end
             end
             --DBG.dbms(unit_filter)
             local all_units = AH.get_live_units(unit_filter)
