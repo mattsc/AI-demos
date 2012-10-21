@@ -93,6 +93,24 @@ return {
                 return grunt_rush_FLS1.data.area_cfgs
             end
 
+
+            local cfg_leader_threat = {
+                zone_id = 'leader_threat',
+                unit_filter = { x = '1-16,17-37', y = '1-7,1-10' },
+                area = { x_min = 1, x_max = 37, y_min = 1, y_max = 9},
+                advance = {
+                    dawn =         { min_hp_ratio = 0.7, min_units = 0, min_hp_ratio_always = 4.0 },
+                    morning =      { min_hp_ratio = 0.7, min_units = 0, min_hp_ratio_always = 4.0 },
+                    afternoon =    { min_hp_ratio = 0.7, min_units = 0, min_hp_ratio_always = 4.0 },
+                    dusk =         { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 },
+                    first_watch =  { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 },
+                    second_watch = { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 }
+                },
+                hold = { x = 20, max_y = 9 },
+                hold_condition = { hp_ratio = 0.67 },
+                retreat_villages = { { 22, 2 }, { 18, 9 }, { 24, 7 } }
+            }
+
             local cfg_center = {
                 zone_id = 'center',
                 unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
@@ -112,7 +130,7 @@ return {
 
             local cfg_left = {
                 zone_id = 'left',
-               unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
+                unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
                 area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15},
                 advance = {
                     dawn =         { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
@@ -146,6 +164,7 @@ return {
 
             -- This way it will be easy to change the priorities on the fly later:
             cfgs = {}
+            table.insert(cfgs, cfg_leader_threat)
             table.insert(cfgs, cfg_center)
             table.insert(cfgs, cfg_left)
             table.insert(cfgs, cfg_right)
@@ -1170,6 +1189,9 @@ return {
                 return 0
             end
             --print('#attacks', #attacks)
+
+            -- Temporarily disable the rest
+            if 1 then return 0 end
 
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
 
