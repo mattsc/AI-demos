@@ -85,7 +85,6 @@ return {
             -- rush_area .x_min .x_max .y_min .y_max: the area to consider where to attack
             -- hold_area .x_min .x_max .y_min .y_max: the area to consider where to hold
             -- hold .x .max_y: the coordinates to consider when holding a position (to be separated out later)
-            -- hold_condition .hp_ratio, .x .y: Only hold position if hp_ratio in area give is smaller than the value given
 
             -- The 'cfgs' table is stored in 'grunt_rush_FLS1.data.area_cfgs' and retrieved from there if it already exists
             -- This is automatically deleted at the beginning of each turn, so a recalculation is forced then
@@ -110,8 +109,7 @@ return {
                     first_watch =  { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 },
                     second_watch = { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 }
                 },
-                hold = { x = 20, max_y = 9 },
-                hold_condition = { hp_ratio = 0.67 },
+                hold = { x = 20, max_y = 9, hp_ratio = 0.67 },
                 retreat_villages = { { 22, 2 }, { 18, 9 }, { 24, 7 } }
             }
 
@@ -127,8 +125,7 @@ return {
                     first_watch =  { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 },
                     second_watch = { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 }
                 },
-                hold = { x = 20, max_y = 15 },
-                hold_condition = { hp_ratio = 0.67 },
+                hold = { x = 20, max_y = 15, hp_ratio = 0.67 },
                 retreat_villages = { { 18, 9 }, { 24, 7 }, { 22, 2 } }
             }
 
@@ -144,8 +141,7 @@ return {
                     first_watch =  { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 },
                     second_watch = { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 }
                 },
-                hold = { x = 11, max_y = 15 },
-                hold_condition = { hp_ratio = 1.0 },
+                hold = { x = 11, max_y = 15, hp_ratio = 1.0 },
                 retreat_villages = { { 11, 9 }, { 8, 5 }, { 12, 5 }, { 12, 2 } }
             }
 
@@ -1674,16 +1670,16 @@ return {
         end
 
         function grunt_rush_FLS1:get_zone_hold(units, units_noMP, enemies, hold_y, cfg)
-            -- Only check for possible position holding if hold_condition is met
-            -- If hold_condition does not exist, it's true by default
+            -- Only check for possible position holding if hold.hp_ratio is met
+            -- If hold.hp_ratio does not exist, it's true by default
 
             local eval_hold = true
-            if cfg.hold_condition then
+            if cfg.hold.hp_ratio then
                 local hp_ratio = grunt_rush_FLS1:hp_ratio(units, enemies)
                 --print('hp_ratio, #units, #enemies', hp_ratio, #units, #enemies)
 
                 -- Don't evaluate for holding position if the hp_ratio in the area is already high enough
-                if (hp_ratio >= cfg.hold_condition.hp_ratio) then
+                if (hp_ratio >= cfg.hold.hp_ratio) then
                     eval_hold = false
                 end
             end
