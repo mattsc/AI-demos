@@ -1497,7 +1497,9 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, dsts
     local own_damage_weight = cfg.own_damage_weight or 1.0
     local ctk_weight = cfg.ctk_weight or 0.5
     local resource_weight = cfg.resource_weight or 0.25
-    local village_bonus = cfg.village_bonus or 5
+    local terrain_weight = cfg.terrain_weight or 0.111
+    local village_bonus = cfg.village_bonus or 25
+    local defender_village_bonus = cfg.defender_village_bonus or 5
     local xp_weight = cfg.xp_weight or 0.2
     local distance_leader_weight = cfg.distance_leader_weight or 1.0
 
@@ -1518,6 +1520,7 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, dsts
     local damage, ctd, resources_used = 0, 0, 0
     local xp_bonus = 0
     local attacker_about_to_level_bonus, defender_about_to_level_penalty = 0, 0
+    local relative_distances, attacker_defenses, attackers_on_villages = 0, 0, 0
     for i,as in ipairs(att_stats) do
         --print(attackers[i].id, as.average_hp)
         damage = damage + attackers[i].hitpoints - as.average_hp
@@ -1536,9 +1539,17 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, dsts
         local x, y = dsts[i][1], dsts[i][2]
 
         -- Position units in between AI leader and defender
-        local relative_distance = H.distance_between(defender.x, defender.y, leader.x, leader.y)
+        relative_distances = relative_distances
+            + H.distance_between(defender.x, defender.y, leader.x, leader.y)
             - H.distance_between(x, y, leader.x, leader.y)
-        rating = rating + relative_distance * distance_leader_weight
+
+        -- Terrain and village bonus
+        attacker_defenses = attacker_defenses - wesnoth.unit_defense(attackers[i], wesnoth.get_terrain(x, y))
+
+        local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
+        if is_village then
+            attackers_on_villages = attackers_on_villages + 1
+        end
 
         -- Will the attacker level in this attack (or likely do so?)
         local defender_level = defender.__cfg.level
@@ -1584,6 +1595,11 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, dsts
     defender_rating = defender_rating + defender_damage + ctk * 100. * ctk_weight
     attacker_rating = attacker_rating - (damage + ctd * 100. * ctk_weight) * own_damage_weight
 
+    -- Terrain and position related ratings
+    attacker_rating = attacker_rating + relative_distances * distance_leader_weight
+    attacker_rating = attacker_rating + attacker_defenses * terrain_weight
+    attacker_rating = attacker_rating + attackers_on_villages * village_bonus
+
     -- XP-based rating
     defender_rating = defender_rating + defender_xp_bonus - defender_about_to_level_penalty
     attacker_rating = attacker_rating + xp_bonus + attacker_about_to_level_bonus
@@ -1595,7 +1611,7 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, dsts
     attacker_rating = attacker_rating - resources_used * resource_weight
 
     -- Bonus (or penalty) for units on villages
-    if defender_on_village then defender_rating = defender_rating + village_bonus end
+    if defender_on_village then defender_rating = defender_rating + defender_village_bonus end
 
     local rating = defender_rating + attacker_rating
     --print('--> attack rating, defender_rating, attacker_rating:', rating, defender_rating, attacker_rating)
