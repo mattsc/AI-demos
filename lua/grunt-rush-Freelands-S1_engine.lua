@@ -1773,6 +1773,23 @@ return {
                 local unit = grunt_rush_FLS1.data.zone_action.units[1]
                 local dst = grunt_rush_FLS1.data.zone_action.dsts[1]
 
+                -- If this is the leader, recruit first
+                -- We're doing that by running a mini CA eval/exec loop
+                if unit.canrecruit then
+                    --print('-------------------->  This is the leader.  Recruit first.')
+                    if AH.show_messages() then W.message { speaker = grunt_rush_FLS1.data.GV_unit.id, message = 'The leader, me, is about to move.  Need to recruit first.' } end
+
+                    local recruit_loop = true
+                    while recruit_loop do
+                        local eval = grunt_rush_FLS1:recruit_orcs_eval()
+                        if (eval > 0) then
+                            grunt_rush_FLS1:recruit_orcs_exec()
+                        else
+                            recruit_loop = false
+                        end
+                    end
+                end
+
                 if AH.print_exec() then print('     - Executing zone_control CA ' .. action) end
                 if AH.show_messages() then W.message { speaker = unit.id, message = 'Zone action ' .. action } end
 
