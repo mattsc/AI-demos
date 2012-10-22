@@ -81,8 +81,18 @@ return {
 
         function grunt_rush_FLS1:get_zone_cfgs(recalc)
             -- Set up the config table for the different map zones
-            -- unit_filter .x .y: the zone from which to draw units for this hold
-            -- hold .x .max_y: the coordinates to consider when holding a position (to be separated out later)
+            -- zone_id: ID for the zone; only needed for debug messages
+            -- zone: SLF describing the zone
+            -- unit_filter: SUF of the units considered for moves for this zone
+            -- advance: table describing the advance conditions for each TOD
+            --   - min_hp_ratio: don't advance to location where you don't have at least this HP ratio and ...
+            --   - min_units: .. and if you don't have at least this many units to advance with
+            --   - min_hp_ratio_always: same as min_hp_ratio, but do so independent of number of units available
+            -- hold: table describing where to hold a position
+            --   - x: the central x coordinate of the hold
+            --   - max_y: the maximum y coordinate where to hold
+            --   - hp_ratio: the minimum HP ratio required to hold at this position
+            -- retreat_villages: array of villages to which to retreat injured units
 
             -- The 'cfgs' table is stored in 'grunt_rush_FLS1.data.zone_cfgs' and retrieved from there if it already exists
             -- This is automatically deleted at the beginning of each turn, so a recalculation is forced then
@@ -93,7 +103,6 @@ return {
             if (not recalc) and grunt_rush_FLS1.data.zone_cfgs then
                 return grunt_rush_FLS1.data.zone_cfgs
             end
-
 
             local cfg_leader_threat = {
                 zone_id = 'leader_threat',
