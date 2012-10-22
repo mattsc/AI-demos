@@ -1502,6 +1502,7 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, dsts
     local defender_village_bonus = cfg.defender_village_bonus or 5
     local xp_weight = cfg.xp_weight or 0.2
     local distance_leader_weight = cfg.distance_leader_weight or 1.0
+    local occupied_hex_penalty = cfg.occupied_hex_penalty or 0.1
 
     -- If att is a single stats table, make it a one-element array
     -- That way all the rest can be done in in the same way for single and combo attacks
@@ -1521,6 +1522,7 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, dsts
     local xp_bonus = 0
     local attacker_about_to_level_bonus, defender_about_to_level_penalty = 0, 0
     local relative_distances, attacker_defenses, attackers_on_villages = 0, 0, 0
+    local occupied_hexes = 0
     for i,as in ipairs(att_stats) do
         --print(attackers[i].id, as.average_hp)
         damage = damage + attackers[i].hitpoints - as.average_hp
@@ -1545,10 +1547,17 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, dsts
 
         -- Terrain and village bonus
         attacker_defenses = attacker_defenses - wesnoth.unit_defense(attackers[i], wesnoth.get_terrain(x, y))
-
         local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
         if is_village then
             attackers_on_villages = attackers_on_villages + 1
+        end
+
+        -- Count occupied attack hexes (which get a small rating penalty)
+        -- Note: it must be checked previously that the unit on the hex can move away
+        if (x ~= attackers[i].x) or (y ~= attackers[i].y) then
+            if wesnoth.get_unit(x, y) then
+                occupied_hexes = occupied_hexes + 1
+            end
         end
 
         -- Will the attacker level in this attack (or likely do so?)
@@ -1599,6 +1608,7 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, dsts
     attacker_rating = attacker_rating + relative_distances * distance_leader_weight
     attacker_rating = attacker_rating + attacker_defenses * terrain_weight
     attacker_rating = attacker_rating + attackers_on_villages * village_bonus
+    attacker_rating = attacker_rating - occupied_hexes * occupied_hex_penalty
 
     -- XP-based rating
     defender_rating = defender_rating + defender_xp_bonus - defender_about_to_level_penalty
