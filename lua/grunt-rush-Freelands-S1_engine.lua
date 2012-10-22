@@ -102,7 +102,6 @@ return {
                 zone_id = 'leader_threat',
                 zone = { x = '1-37', y = '1-9' },
                 unit_filter = { x = '1-16,17-37', y = '1-7,1-10' },
-                area = { x_min = 1, x_max = 37, y_min = 1, y_max = 9},
                 advance = {
                     dawn =         { min_hp_ratio = 0.7, min_units = 0, min_hp_ratio_always = 4.0 },
                     morning =      { min_hp_ratio = 0.7, min_units = 0, min_hp_ratio_always = 4.0 },
@@ -120,7 +119,6 @@ return {
                 zone_id = 'center',
                 zone = { x = '15-23', y = '9-16' },
                 unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
-                area = { x_min = 15, x_max = 23, y_min = 9, y_max = 16},
                 advance = {
                     dawn =         { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
                     morning =      { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
@@ -138,7 +136,6 @@ return {
                 zone_id = 'left',
                 zone = { x = '4-14', y = '3-15' },
                 unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
-                area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15},
                 advance = {
                     dawn =         { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
                     morning =      { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
@@ -157,7 +154,6 @@ return {
                 zone_id = 'right',
                 zone = { x = '25-34', y = '11-24' },
                 unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
-                area = { x_min = 25, x_max = width, y_min = 11, y_max = height},
                 advance = {
                     dawn =         { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
                     morning =      { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
@@ -430,10 +426,12 @@ return {
                 for iu,uMP in ipairs(units_MP) do wesnoth.put_unit(uMP.x, uMP.y, uMP) end
 
                 -- First calculate a unit independent rating map
+                local zone = wesnoth.get_locations(cfg.zone)
                 rating_map = LS.create()
-                for x = cfg.area.x_min, cfg.area.x_max do
-                    --for y = cfg.area.y_min, cfg.area.y_max do
-                    for y = goal.y-2, goal.y+1 do
+                for i,hex in ipairs(zone) do
+                    local x, y = hex[1], hex[2]
+
+                    if (y >= goal.y-2) and (y <= goal.y+1) then
                         local rating = 0
 
                         local y_dist = math.abs(y - goal.y)
@@ -474,7 +472,7 @@ return {
                     local reach_map = AH.get_reachable_unocc(u)
                     local max_rating_unit, best_hex_unit = -9e99, {}
                     reach_map:iter( function(x, y, v)
-                        -- If this is inside cfg.area
+                        -- If this is inside the zone
                         if rating_map:get(x, y) then
                             rating = rating_map:get(x, y)
 
@@ -1705,17 +1703,15 @@ return {
             end
 
             if eval_hold then
-                local hold_x = math.floor((cfg.area.x_min + cfg.area.x_max) / 2.)
-                local hold_max_y = cfg.area.y_max
-                if cfg.hold then
-                    if cfg.hold.x then hold_x = cfg.hold.x end
-                    if cfg.hold.max_y then hold_max_y = cfg.hold.max_y end
-                end
+                local hold_x = cfg.hold.x
+                local hold_max_y = cfg.hold.max_y
 
                 if (hold_y > hold_max_y) then hold_y = hold_max_y end
                 local goal = { x = hold_x, y = hold_y }
-                for y = hold_y - 1, hold_y + 1 do
-                    for x = cfg.area.x_min,cfg.area.x_max do
+                local zone = wesnoth.get_locations(cfg.zone)
+                for i,hex in ipairs(zone) do
+                    local x, y = hex[1], hex[2]
+                    if (y >= hold_y - 1) and (y <= hold_y + 1) then
                         --print(x,y)
                         local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
                         if is_village then
