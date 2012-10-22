@@ -82,7 +82,7 @@ return {
         function grunt_rush_FLS1:get_zone_cfgs(recalc)
             -- Set up the config table for the different map zones
             -- zone_id: ID for the zone; only needed for debug messages
-            -- zone: SLF describing the zone
+            -- zone_filter: SLF describing the zone
             -- unit_filter: SUF of the units considered for moves for this zone
             -- advance: table describing the advance conditions for each TOD
             --   - min_hp_ratio: don't advance to location where you don't have at least this HP ratio and ...
@@ -106,7 +106,7 @@ return {
 
             local cfg_leader_threat = {
                 zone_id = 'leader_threat',
-                zone = { x = '1-37', y = '1-9' },
+                zone_filter = { x = '1-37', y = '1-9' },
                 unit_filter = { x = '1-16,17-37', y = '1-7,1-10' },
                 advance = {
                     dawn =         { min_hp_ratio = 0.7, min_units = 0, min_hp_ratio_always = 4.0 },
@@ -122,7 +122,7 @@ return {
 
             local cfg_center = {
                 zone_id = 'center',
-                zone = { x = '15-23', y = '9-16' },
+                zone_filter = { x = '15-23', y = '9-16' },
                 unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
                 advance = {
                     dawn =         { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
@@ -138,7 +138,7 @@ return {
 
             local cfg_left = {
                 zone_id = 'left',
-                zone = { x = '4-14', y = '3-15' },
+                zone_filter = { x = '4-14', y = '3-15' },
                 unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
                 advance = {
                     dawn =         { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
@@ -155,7 +155,7 @@ return {
             local width, height = wesnoth.get_map_size()
             local cfg_right = {
                 zone_id = 'right',
-                zone = { x = '25-34', y = '11-24' },
+                zone_filter = { x = '25-34', y = '11-24' },
                 unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
                 advance = {
                     dawn =         { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
@@ -429,7 +429,7 @@ return {
                 for iu,uMP in ipairs(units_MP) do wesnoth.put_unit(uMP.x, uMP.y, uMP) end
 
                 -- First calculate a unit independent rating map
-                local zone = wesnoth.get_locations(cfg.zone)
+                local zone = wesnoth.get_locations(zone_filter)
                 rating_map = LS.create()
                 for i,hex in ipairs(zone) do
                     local x, y = hex[1], hex[2]
@@ -1711,7 +1711,7 @@ return {
 
                 if (hold_y > hold_max_y) then hold_y = hold_max_y end
                 local goal = { x = hold_x, y = hold_y }
-                local zone = wesnoth.get_locations(cfg.zone)
+                local zone = wesnoth.get_locations(zone_filter)
                 for i,hex in ipairs(zone) do
                     local x, y = hex[1], hex[2]
                     if (y >= hold_y - 1) and (y <= hold_y + 1) then
@@ -1770,7 +1770,7 @@ return {
             --print('#zone_units, #enemies', #zone_units, #enemies)
 
             -- Get all the hexes in the zone
-            local zone = wesnoth.get_locations(cfg.zone)
+            local zone = wesnoth.get_locations(zone_filter)
             local zone_map = LS.of_pairs(zone)
 
             -- Get HP ratio and number of units that can reach the zone as function of y coordinate
