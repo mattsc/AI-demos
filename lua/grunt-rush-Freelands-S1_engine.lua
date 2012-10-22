@@ -1100,43 +1100,6 @@ return {
             ai.attack(attacker, defender)
         end
 
-        ------ Attack by leader flag -----------
-
-        function grunt_rush_FLS1:set_attack_by_leader_flag_eval()
-            -- Sets a variable when attack by leader is imminent.
-            -- In that case, recruiting needs to be done first
-            local score = 460010
-            if AH.skip_CA('set_attack_by_leader_flag') then return 0 end
-            if AH.print_eval() then print('     - Evaluating set_attack_by_leader_flag CA:', os.clock()) end
-
-            -- We also add here (and, in fact, evaluate first) possible attacks by the leader
-            -- Rate them very conservatively
-            -- If leader can die this turn on or next enemy turn, it is not done, even if _really_ unlikely
-
-            local leader = wesnoth.get_units{ side = wesnoth.current.side, canrecruit = 'yes',
-                formula = '$this_unit.attacks_left > 0'
-            }[1]
-
-            -- Only consider attack by leader if he is on the keep, so that he doesn't wander off
-            if leader and wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep then
-                local best_attack = grunt_rush_FLS1:get_attack_with_counter_attack(leader)
-                if best_attack and
-                    (not wesnoth.get_terrain_info(wesnoth.get_terrain(best_attack.x, best_attack.y)).keep)
-                then
-                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                    return score
-                end
-            end
-
-            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-            return 0
-        end
-
-        function grunt_rush_FLS1:set_attack_by_leader_flag_exec()
-            if AH.print_exec() then print('     - Setting leader attack in attack_by_leader_flag_exec()') end
-            grunt_rush_FLS1.data.attack_by_leader_flag = true
-        end
-
         ------ Attack leader threats -----------
 
         function grunt_rush_FLS1:attack_leader_threat_eval()
@@ -1264,10 +1227,6 @@ return {
             AH.movefull_outofway_stopunit(ai, attacker, grunt_rush_FLS1.data.ALT_best_attack, { dx = 0.5, dy = -0.1 })
             ai.attack(attacker, defender)
             grunt_rush_FLS1.data.ALT_best_attack = nil
-
-            -- Reset variable indicating that this was an attack by the leader
-            -- Can be done whether it was the leader who attacked or not:
-            grunt_rush_FLS1.data.attack_by_leader_flag = nil
         end
 
         --------- ZOC enemy ------------
@@ -2227,11 +2186,6 @@ return {
             local score = 181000
             if AH.skip_CA('recruit_orcs') then return 0 end
             if AH.print_eval() then print('     - Evaluating recruit_orcs CA:', os.clock()) end
-
-            if grunt_rush_FLS1.data.attack_by_leader_flag then
-                if AH.show_messages() then W.message { speaker = 'narrator', message = 'Leader attack imminent.  Recruiting first.' } end
-                score = 461000
-            end
 
             -- Check if there is enough gold to recruit at least a grunt
             if (wesnoth.sides[wesnoth.current.side].gold < 12) then
