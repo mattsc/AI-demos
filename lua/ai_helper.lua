@@ -1336,7 +1336,7 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy)
         tmp_att_stats[i], tmp_def_stats[i] = ai_helper.simulate_combat_loc(a, tmp_dsts[i], enemy)
 
         -- Get the base rating from ai_helper.attack_rating()
-        local rating, dummy, tmp_ar = ai_helper.attack_rating(tmp_att_stats[i], tmp_def_stats[i], a, enemy)
+        local rating, dummy, tmp_ar = ai_helper.attack_rating(tmp_att_stats[i], tmp_def_stats[i], a, enemy, tmp_dsts[i])
         tmp_attacker_ratings[i] = tmp_ar
         --print('rating:', rating)
 
@@ -1450,7 +1450,7 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy)
     --   = sum of all the attacker ratings and the defender rating with the final def_stats
     -- -> we need one run through attack_rating() to get the defender rating given these stats
     -- It doesn't matter which attacker and att_stats are chosen for that
-    local dummy, rating = ai_helper.attack_rating(att_stats[1], def_stats_combo, attackers[1], enemy)
+    local dummy, rating = ai_helper.attack_rating(att_stats[1], def_stats_combo, attackers[1], enemy, dsts[1])
     for i,r in ipairs(attacker_ratings) do rating = rating + r end
     --print('\n',rating)
 
@@ -1481,12 +1481,13 @@ function ai_helper.get_closest_enemy()
     return closest_distance, location
 end
 
-function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, cfg)
+function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, dsts, cfg)
     -- Returns a common (but configurable) kind of rating for attacks
     -- att_stats: can be a single attacker stats table, or an array of several
     -- def_stats: has to be a single defender stats table
     -- attackers: single attacker or table of attackers, in same order as att_stats
     -- defender: defender unit table
+    -- dsts: the attack locations, in same order as att_stats
     -- cfg: table of rating parameters
     --  - own_damage_weight (1.0):
     --  - ctk_weight (0.5):
@@ -1498,13 +1499,19 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, cfg)
     local resource_weight = cfg.resource_weight or 0.25
     local village_bonus = cfg.village_bonus or 5
     local xp_weight = cfg.xp_weight or 0.2
+    local distance_leader_weight = cfg.distance_leader_weight or 1.0
 
     -- If att is a single stats table, make it a one-element array
     -- That way all the rest can be done in in the same way for single and combo attacks
     if att_stats.hp_chance then
         att_stats = { att_stats }
         attackers = { attackers }
+        dsts = { dsts }
     end
+
+    -- We also need the leader (well, the location at least)
+    -- because if there's no other difference, prefer location _between_ the leader and the enemy
+    local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
 
     ----- Collect the necessary information -----
     --- All the per-attacker contributions: ---
@@ -1524,6 +1531,14 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, cfg)
         else
             xp_bonus = xp_bonus + attackers[i].experience * xp_weight
         end
+
+        -- The attack position (this is just for convenience)
+        local x, y = dsts[i][1], dsts[i][2]
+
+        -- Position units in between AI leader and defender
+        local relative_distance = H.distance_between(defender.x, defender.y, leader.x, leader.y)
+            - H.distance_between(x, y, leader.x, leader.y)
+        rating = rating + relative_distance * distance_leader_weight
 
         -- Will the attacker level in this attack (or likely do so?)
         local defender_level = defender.__cfg.level

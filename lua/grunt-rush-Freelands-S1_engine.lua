@@ -615,6 +615,7 @@ return {
             -- Also calculate median counter attack results
             -- using the ai_helper function (might not be most efficient, but good for now)
             local dsts = {}
+            -- This is not the correct dst, but again, good enough for now
             for i,e in ipairs(enemy_attackers) do table.insert(dsts, { e.x, e.y }) end
             -- only need the defender stats
             local rating, tmp1, tmp2, tmp3, def_stats = AH.attack_combo_stats(enemy_attackers, dsts, unit)
