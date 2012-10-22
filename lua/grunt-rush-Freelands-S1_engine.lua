@@ -1528,13 +1528,16 @@ return {
                     -- which means 50% CDT for normal units and 0% for leader
                     local do_attack = true
                     for k,att_stats in ipairs(combo_att_stats) do
-                        if (not sorted_atts[k].canrecruit) and (att_stats.hp_chance[0] >= 0.5) then
-                            do_attack = false
-                            break
-                        end
-                        if sorted_atts[k].canrecruit and (att_stats.hp_chance[0] > 0.0) then
-                            do_attack = false
-                            break
+                        if (not sorted_atts[k].canrecruit) then
+                            if (att_stats.hp_chance[0] >= 0.5) then
+                                do_attack = false
+                                break
+                            end
+                        else
+                            if (att_stats.hp_chance[0] > 0.0) or (att_stats.slowed > 0.0) or (att_stats.poisoned > 0.0) then
+                                do_attack = false
+                                break
+                            end
                         end
                     end
 
@@ -1544,6 +1547,12 @@ return {
                             if a.canrecruit then
                                 local x, y = sorted_dsts[k][1], sorted_dsts[k][2]
                                 local counter_attack = grunt_rush_FLS1:calc_counter_attack(a, { x, y })
+
+                                -- If there's a chance to be poisoned or slowed, don't do it
+                                if (counter_attack.average_def_stats.slowed > 0.0) or (counter_attack.average_def_stats.poisoned > 0.0) then
+                                    do_attack = false
+                                    break
+                                end
 
                                 -- Add max counter damage on next turn to maximum damage this turn
                                 local min_hp = 10000
