@@ -1544,8 +1544,17 @@ return {
                             if a.canrecruit then
                                 local x, y = sorted_dsts[k][1], sorted_dsts[k][2]
                                 local counter_attack = grunt_rush_FLS1:calc_counter_attack(a, { x, y })
-                                local max_counter_damage = counter_attack.max_counter_damage
-                                if (max_counter_damage >= a.hitpoints) then
+
+                                -- Add max counter damage on next turn to maximum damage this turn
+                                local min_hp = 10000
+                                for hp,p in pairs(combo_att_stats[k].hp_chance) do
+                                    if (p > 0) and (hp < min_hp) then
+                                        min_hp = hp
+                                    end
+                                end
+                                local min_outcome = min_hp - counter_attack.max_counter_damage
+
+                                if (min_outcome <= 0) then
                                     do_attack = false
                                     break
                                 end
