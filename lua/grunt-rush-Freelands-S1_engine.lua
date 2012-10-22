@@ -79,21 +79,19 @@ return {
             return false
         end
 
-        function grunt_rush_FLS1:get_area_cfgs(recalc)
-            -- Set up the config table for the different map areas
-            -- unit_filter .x .y: the area from which to draw units for this hold
-            -- rush_area .x_min .x_max .y_min .y_max: the area to consider where to attack
-            -- hold_area .x_min .x_max .y_min .y_max: the area to consider where to hold
+        function grunt_rush_FLS1:get_zone_cfgs(recalc)
+            -- Set up the config table for the different map zones
+            -- unit_filter .x .y: the zone from which to draw units for this hold
             -- hold .x .max_y: the coordinates to consider when holding a position (to be separated out later)
 
-            -- The 'cfgs' table is stored in 'grunt_rush_FLS1.data.area_cfgs' and retrieved from there if it already exists
+            -- The 'cfgs' table is stored in 'grunt_rush_FLS1.data.zone_cfgs' and retrieved from there if it already exists
             -- This is automatically deleted at the beginning of each turn, so a recalculation is forced then
 
             -- Optional parameter:
-            -- recalc: if set to 'true', force recalculation of cfgs even if 'grunt_rush_FLS1.data.area_cfgs' exists
+            -- recalc: if set to 'true', force recalculation of cfgs even if 'grunt_rush_FLS1.data.zone_cfgs' exists
 
-            if (not recalc) and grunt_rush_FLS1.data.area_cfgs then
-                return grunt_rush_FLS1.data.area_cfgs
+            if (not recalc) and grunt_rush_FLS1.data.zone_cfgs then
+                return grunt_rush_FLS1.data.zone_cfgs
             end
 
 
@@ -169,7 +167,7 @@ return {
             table.insert(cfgs, cfg_left)
             table.insert(cfgs, cfg_right)
 
-            -- Now find how many enemies can get to each area
+            -- Now find how many enemies can get to each zone
             --local my_units = AH.get_live_units { side = wesnoth.current.side }
             --local enemies = AH.get_live_units {
             --    { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
@@ -179,12 +177,12 @@ return {
             --local enemy_attack_map = AH.attack_map(enemies, { moves = "max" })
             --local enemy_attack_map_hp = AH.attack_map(enemies, { moves = "max", return_value = 'hitpoints' })
 
-            -- Find how many enemies threaten each of the hold areas
+            -- Find how many enemies threaten each of the hold zones
             --local enemy_num, enemy_hp = {}, {}
             --for i_c,c in ipairs(cfgs) do
             --    enemy_num[i_c], enemy_hp[i_c] = 0, 0
-            --    for x = c.area.x_min,c.area.x_max do
-            --        for y = c.area.y_min,c.area.y_max do
+            --    for x = c.zone.x_min,c.zone.x_max do
+            --        for y = c.zone.y_min,c.zone.y_max do
             --            local en = enemy_attack_map:get(x, y) or 0
             --            if (en > enemy_num[i_c]) then enemy_num[i_c] = en end
             --            local hp = enemy_attack_map_hp:get(x, y) or 0
@@ -194,13 +192,13 @@ return {
             --    --print('enemy threat:', i_c, enemy_num[i_c], enemy_hp[i_c])
             --end
 
-            -- Also find how many enemies are already present in area
+            -- Also find how many enemies are already present in zone
             --local present_enemies = {}
             --for i_c,c in ipairs(cfgs) do
             --    present_enemies[i_c] = 0
             --    for j,e in ipairs(enemies) do
-            --        if (e.x >= c.area.x_min) and (e.x <= c.area.x_max) and
-            --            (e.y >= c.area.y_min) and (e.y <= c.area.y_max)
+            --        if (e.x >= c.zone.x_min) and (e.x <= c.zone.x_max) and
+            --            (e.y >= c.zone.y_min) and (e.y <= c.zone.y_max)
             --        then
             --            present_enemies[i_c] = present_enemies[i_c] + 1
             --        end
@@ -209,16 +207,16 @@ return {
             --end
 
             -- Now set this up as global variable
-            grunt_rush_FLS1.data.area_cfgs = cfgs
+            grunt_rush_FLS1.data.zone_cfgs = cfgs
 
-            -- We also need an area_parms global variable
-            -- This might be set/reset independently of area_cfgs -> separate variable
-            grunt_rush_FLS1.data.area_parms = {}
+            -- We also need an zone_parms global variable
+            -- This might be set/reset independently of zone_cfgs -> separate variable
+            grunt_rush_FLS1.data.zone_parms = {}
             for i_c,c in ipairs(cfgs) do
-                grunt_rush_FLS1.data.area_parms[i_c] = {}
+                grunt_rush_FLS1.data.zone_parms[i_c] = {}
             end
 
-            return grunt_rush_FLS1.data.area_cfgs
+            return grunt_rush_FLS1.data.zone_cfgs
         end
 
         function grunt_rush_FLS1:best_trapping_attack_opposite(units_org, enemies_org)
@@ -397,7 +395,7 @@ return {
             return nil
         end
 
-        function grunt_rush_FLS1:hold_area(holders, goal, cfg)
+        function grunt_rush_FLS1:hold_zone(holders, goal, cfg)
             local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", { side = wesnoth.current.side } }} }
             }
@@ -447,7 +445,7 @@ return {
                         end
 
                         -- We also, ideally, want to be 3 hexes from the closest unit that has
-                        -- already moved, so as to ZOC the area
+                        -- already moved, so as to ZOC the zone
                         local min_dist = 9999
                         for j,m in ipairs(units_noMP) do
                             local dist = H.distance_between(x, y, m.x, m.y)
@@ -460,7 +458,7 @@ return {
                     end
                 end
                 --AH.put_labels(rating_map)
-                --W.message { speaker = 'narrator', message = 'Hold area: unit-independent rating map' }
+                --W.message { speaker = 'narrator', message = 'Hold zone: unit-independent rating map' }
 
                 -- Now we go on to the unit-dependent rating part
                 local max_rating, best_hex, best_unit = -9e99, {}, {}
@@ -492,7 +490,7 @@ return {
                         end
                     end)
 
-                    -- If we cannot get into the area, take direct path to goal hex
+                    -- If we cannot get into the zone, take direct path to goal hex
                     if (max_rating_unit == -9e99) then
                         local next_hop = AH.next_hop(u, goal.x, goal.y)
                         if (not next_hop) then next_hop = { u.x, u.y } end
@@ -508,7 +506,7 @@ return {
                     --print('max_rating:', max_rating)
 
                     --AH.put_labels(reach_map)
-                    --W.message { speaker = u.id, message = 'Hold area: unit-specific rating map' }
+                    --W.message { speaker = u.id, message = 'Hold zone: unit-specific rating map' }
                 end
 
                 return best_unit, best_hex
@@ -1405,7 +1403,7 @@ return {
                 return 0
             end
 
-            -- Check how many enemies are in the same area
+            -- Check how many enemies are in the same zone
             local enemies = AH.get_live_units { x = '1-15,16-20', y = '1-15,1-6',
                 { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
             }
@@ -1678,14 +1676,14 @@ return {
                 local hp_ratio = grunt_rush_FLS1:hp_ratio(units, enemies)
                 --print('hp_ratio, #units, #enemies', hp_ratio, #units, #enemies)
 
-                -- Don't evaluate for holding position if the hp_ratio in the area is already high enough
+                -- Don't evaluate for holding position if the hp_ratio in the zone is already high enough
                 if (hp_ratio >= cfg.hold.hp_ratio) then
                     eval_hold = false
                 end
             end
 
-            -- If there are unoccupied or enemy-occupied villages in the hold area, send units there
-            -- if we do not have enough units that have moved already are in the area
+            -- If there are unoccupied or enemy-occupied villages in the hold zone, send units there
+            -- if we do not have enough units that have moved already are in the zone
             if (not eval_hold) then
                 if (#units_noMP < #cfg.retreat_villages/2) then
                     for i,v in ipairs(cfg.retreat_villages) do
@@ -1719,7 +1717,7 @@ return {
                 --print('goal:', goal.x, goal.y)
 
                 local action = { units = {}, dsts = {} }
-                action.units[1], action.dsts[1] = grunt_rush_FLS1:hold_area(units, goal, cfg)
+                action.units[1], action.dsts[1] = grunt_rush_FLS1:hold_zone(units, goal, cfg)
                 return action
 
             end
@@ -1732,7 +1730,7 @@ return {
             -- This is all done together in one function, rather than in separate CAs so that
             --  1. Zones get done one at a time (rather than one CA at a time)
             --  2. Relative scoring of different types of moves is possible
-            -- i_c: the index for the global 'parms' array, so that parameters can be set for the correct area
+            -- i_c: the index for the global 'parms' array, so that parameters can be set for the correct zone
 
             cfg = cfg or {}
 
@@ -1793,14 +1791,14 @@ return {
             --print('advance_y zone #' .. i_c, advance_y)
 
             -- advance_y can never be less than what has been used during this move already
-            if grunt_rush_FLS1.data.area_parms[i_c].advance_y then
-                if (grunt_rush_FLS1.data.area_parms[i_c].advance_y > advance_y) then
-                    advance_y = grunt_rush_FLS1.data.area_parms[i_c].advance_y
+            if grunt_rush_FLS1.data.zone_parms[i_c].advance_y then
+                if (grunt_rush_FLS1.data.zone_parms[i_c].advance_y > advance_y) then
+                    advance_y = grunt_rush_FLS1.data.zone_parms[i_c].advance_y
                 else
-                    grunt_rush_FLS1.data.area_parms[i_c].advance_y = advance_y
+                    grunt_rush_FLS1.data.zone_parms[i_c].advance_y = advance_y
                 end
             else
-                grunt_rush_FLS1.data.area_parms[i_c].advance_y = advance_y
+                grunt_rush_FLS1.data.zone_parms[i_c].advance_y = advance_y
             end
             --print('advance_y zone #' .. i_c, advance_y)
 
@@ -1898,16 +1896,16 @@ return {
 
             -- **** Hold position evaluation ****
 
-            -- If we got here, check for holding the area
-            local enemies_hold_area = {}
+            -- If we got here, check for holding the zone
+            local enemies_hold_zone = {}
             for i,e in ipairs(enemies) do
                 if zone_map:get(e.x, e.y) then
-                    table.insert(enemies_hold_area, e)
+                    table.insert(enemies_hold_zone, e)
                 end
             end
 
             if (zone_units[1]) then
-                local action = grunt_rush_FLS1:get_zone_hold(zone_units, zone_units_noMP, enemies_hold_area, advance_y, cfg)
+                local action = grunt_rush_FLS1:get_zone_hold(zone_units, zone_units_noMP, enemies_hold_zone, advance_y, cfg)
                 if action then
                     action.action = cfg.zone_id .. ': ' .. 'hold position'
                     return action
@@ -1928,7 +1926,7 @@ return {
                 return 0
             end
 
-            local cfgs = grunt_rush_FLS1:get_area_cfgs()
+            local cfgs = grunt_rush_FLS1:get_zone_cfgs()
 
             for i_c,cfg in ipairs(cfgs) do
                 local zone_action = grunt_rush_FLS1:get_zone_action(cfg, i_c)
