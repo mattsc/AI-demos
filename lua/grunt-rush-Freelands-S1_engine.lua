@@ -429,7 +429,7 @@ return {
                 for iu,uMP in ipairs(units_MP) do wesnoth.put_unit(uMP.x, uMP.y, uMP) end
 
                 -- First calculate a unit independent rating map
-                local zone = wesnoth.get_locations(zone_filter)
+                local zone = wesnoth.get_locations(cfg.zone_filter)
                 rating_map = LS.create()
                 for i,hex in ipairs(zone) do
                     local x, y = hex[1], hex[2]
@@ -1711,7 +1711,7 @@ return {
 
                 if (hold_y > hold_max_y) then hold_y = hold_max_y end
                 local goal = { x = hold_x, y = hold_y }
-                local zone = wesnoth.get_locations(zone_filter)
+                local zone = wesnoth.get_locations(cfg.zone_filter)
                 for i,hex in ipairs(zone) do
                     local x, y = hex[1], hex[2]
                     if (y >= hold_y - 1) and (y <= hold_y + 1) then
@@ -1770,7 +1770,7 @@ return {
             --print('#zone_units, #enemies', #zone_units, #enemies)
 
             -- Get all the hexes in the zone
-            local zone = wesnoth.get_locations(zone_filter)
+            local zone = wesnoth.get_locations(cfg.zone_filter)
             local zone_map = LS.of_pairs(zone)
 
             -- Get HP ratio and number of units that can reach the zone as function of y coordinate
