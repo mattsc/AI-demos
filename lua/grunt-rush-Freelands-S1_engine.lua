@@ -1772,17 +1772,9 @@ return {
 
             -- Get all the hexes in the zone
             local zone = wesnoth.get_locations(cfg.zone)
-            --DBG.dbms(zone)
+            local zone_map = LS.of_pairs(zone)
 
             -- Get HP ratio and number of units that can reach the zone as function of y coordinate
-            local x_min, y_min, x_max, y_max = 1, 1, wesnoth.get_map_size()
-            if cfg.area then
-                if cfg.area.x_min then x_min = cfg.area.x_min end
-                if cfg.area.x_max then x_max = cfg.area.x_max end
-                if cfg.area.y_min then y_min = cfg.area.y_min end
-                if cfg.area.y_max then y_max = cfg.area.y_max end
-            end
-
             local hp_ratio_y, number_units_y = grunt_rush_FLS1:hp_ratio_y(zone_units, enemies, zone)
 
             local tod = wesnoth.get_time_of_day()
@@ -1863,9 +1855,7 @@ return {
 
             local targets = {}
             for i,e in ipairs(enemies) do
-                if (e.x >= x_min) and (e.x <= x_max) and (e.y >= y_min) and (e.y <= y_max)
-                    and (e.y <= advance_y + 1)
-                then
+                if zone_map:get(e.x, e.y) and (e.y <= advance_y + 1) then
                     table.insert(targets, e)
                 end
             end
@@ -1919,7 +1909,7 @@ return {
             -- If we got here, check for holding the area
             local enemies_hold_area = {}
             for i,e in ipairs(enemies) do
-                if (e.x >= x_min) and (e.x <= x_max) and (e.y >= y_min) and (e.y <= y_max) then
+                if zone_map:get(e.x, e.y) then
                     table.insert(enemies_hold_area, e)
                 end
             end
