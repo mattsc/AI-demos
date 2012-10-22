@@ -1196,16 +1196,16 @@ return {
                 return score
             end
 
-            -- Now check if attacks on any of these units is possible
+            -- Temporarily disable the rest
+            if 1 then return 0 end
+
+           -- Now check if attacks on any of these units is possible
             local attacks = AH.get_attacks_occupied(units)
             if (not attacks[1]) then
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return 0
             end
             --print('#attacks', #attacks)
-
-            -- Temporarily disable the rest
-            if 1 then return 0 end
 
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
 
