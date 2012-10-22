@@ -1791,12 +1791,20 @@ return {
             local min_hp_ratio_always = cfg.advance[tod.id].min_hp_ratio_always or 2.0
             --print(min_hp_ratio, min_units, min_hp_ratio_always)
 
+            -- Start with the minimum for the zone
+            local y_min = 9e99
+            for y,hp_y in pairs(hp_ratio_y) do
+                if (y < y_min) then y_min = y end
+            end
+
             local advance_y = y_min
-            for y = advance_y,y_max do
+            for y,hp_y in pairs(hp_ratio_y) do
                 --print(y, hp_ratio_y[y], number_units_y[y])
 
-                if (hp_ratio_y[y] >= min_hp_ratio) and (number_units_y[y] >= min_units) then advance_y = y end
-                if (hp_ratio_y[y] >= min_hp_ratio_always) then advance_y = y end
+                if (y > advance_y) then
+                    if (hp_y >= min_hp_ratio) and (number_units_y[y] >= min_units) then advance_y = y end
+                    if (hp_y >= min_hp_ratio_always) then advance_y = y end
+                end
             end
             --print('advance_y zone #' .. i_c, advance_y)
 
