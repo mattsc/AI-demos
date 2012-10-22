@@ -181,6 +181,8 @@ return {
             table.insert(cfgs, cfg_left)
             table.insert(cfgs, cfg_right)
 
+            -- The following is placeholder code for later, when we might want to
+            -- set up the priority of the zones dynamically
             -- Now find how many enemies can get to each zone
             --local my_units = AH.get_live_units { side = wesnoth.current.side }
             --local enemies = AH.get_live_units {
