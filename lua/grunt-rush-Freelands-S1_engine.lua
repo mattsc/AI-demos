@@ -1532,9 +1532,24 @@ return {
                             do_attack = false
                             break
                         end
-                        if sorted_atts[k].canrecruit and (att_stats.hp_chance[0] >= 0.0) then
+                        if sorted_atts[k].canrecruit and (att_stats.hp_chance[0] > 0.0) then
                             do_attack = false
                             break
+                        end
+                    end
+
+                    -- If the leader is involved, make sure it leaves him in a save spot
+                    if do_attack then
+                        for k,a in ipairs(sorted_atts) do
+                            if a.canrecruit then
+                                local x, y = sorted_dsts[k][1], sorted_dsts[k][2]
+                                local counter_attack = grunt_rush_FLS1:calc_counter_attack(a, { x, y })
+                                local max_counter_damage = counter_attack.max_counter_damage
+                                if (max_counter_damage >= a.hitpoints) then
+                                    do_attack = false
+                                    break
+                                end
+                            end
                         end
                     end
 
@@ -1708,7 +1723,7 @@ return {
             else
                 grunt_rush_FLS1.data.zone_parms[i_c].advance_y = advance_y
             end
-            --print('advance_y zone #' .. i_c, advance_y)
+            --print('advance_y zone ' .. cfg.zone_id, advance_y)
 
             -- **** This ends the common initialization for all zone actions ****
 
