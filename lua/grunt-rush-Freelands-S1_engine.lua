@@ -1525,9 +1525,14 @@ return {
                     --DBG.dbms(combo_def_stats)
 
                     -- Don't attack if CTD is too high for any of the attackers
+                    -- which means 50% CDT for normal units and 0% for leader
                     local do_attack = true
                     for k,att_stats in ipairs(combo_att_stats) do
-                        if (att_stats.hp_chance[0] >= 0.5) then
+                        if (not sorted_atts[k].canrecruit) and (att_stats.hp_chance[0] >= 0.5) then
+                            do_attack = false
+                            break
+                        end
+                        if sorted_atts[k].canrecruit and (att_stats.hp_chance[0] >= 0.0) then
                             do_attack = false
                             break
                         end
