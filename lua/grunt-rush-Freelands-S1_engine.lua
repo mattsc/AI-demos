@@ -1156,14 +1156,14 @@ return {
             }[1]
 
             -- Only consider attack by leader if he is on the keep, so that he doesn't wander off
-            if leader and wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep then
-                local best_attack = grunt_rush_FLS1:get_attack_with_counter_attack(leader)
-                if best_attack then
-                    grunt_rush_FLS1.data.ALT_best_attack = best_attack
-                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
-                    return score
-                end
-            end
+            --if leader and wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep then
+            --    local best_attack = grunt_rush_FLS1:get_attack_with_counter_attack(leader)
+            --    if best_attack then
+            --        grunt_rush_FLS1.data.ALT_best_attack = best_attack
+            --        if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+            --        return score
+            --    end
+            --end
 
             -- If we got here, that means no suitable attack was found for the leader
             -- So we look into attacks by the other units
