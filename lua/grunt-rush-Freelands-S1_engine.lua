@@ -1652,7 +1652,10 @@ return {
                 end
             end
 
-            if (not zone_units[1]) then return end
+            -- Also get the leader separately
+            local leaders = AH.get_live_units { side = wesnoth.current.side, canrecruit = 'yes' }
+
+            if (not zone_units[1]) and (not leaders[1]) then return end
 
             -- Then get all the enemies (this needs to be all of them, to get the HP ratio)
             local enemies = AH.get_live_units {
@@ -1743,6 +1746,12 @@ return {
 
             -- **** Attack evaluation ****
 
+            local attackers = {}
+            for i,u in ipairs(zone_units) do table.insert(attackers, u) end
+            for i,u in ipairs(leaders) do
+                if (u.attacks_left > 0) then table.insert(attackers, u) end
+            end
+
             local targets = {}
             -- If cfg.attack.use_enemies_in_reach is set, we use all enemies that
             -- can get to the zone (Note: this should only be used for small zones,
@@ -1767,7 +1776,7 @@ return {
                 end
             end
 
-            local action = grunt_rush_FLS1:get_zone_attack(zone_units, targets)
+            local action = grunt_rush_FLS1:get_zone_attack(attackers, targets)
             if action then
                 action.action = cfg.zone_id .. ': ' .. 'attack'
                 return action
