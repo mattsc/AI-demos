@@ -1746,10 +1746,14 @@ return {
 
             -- **** Attack evaluation ****
 
+            -- Attackers include other units as well as leader
+            -- but only if he is on his keep, in order to prevent him from wandering off
             local attackers = {}
             for i,u in ipairs(zone_units) do table.insert(attackers, u) end
             for i,u in ipairs(leaders) do
-                if (u.attacks_left > 0) then table.insert(attackers, u) end
+                if (u.attacks_left > 0) and wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
+                    table.insert(attackers, u)
+                end
             end
 
             local targets = {}
