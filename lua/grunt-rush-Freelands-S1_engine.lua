@@ -89,9 +89,10 @@ return {
             --   - min_units: .. and if you don't have at least this many units to advance with
             --   - min_hp_ratio_always: same as min_hp_ratio, but do so independent of number of units available
             -- attack: table describing the type of zone attack to be done
-            --   - use_enemies_in_reach: if set to 'true', use enemies that can reach zone, otherwise use units inside the zone
+            --   - use_enemies_in_reach: if set, use enemies that can reach zone, otherwise use units inside the zone
             --       Note: only use with very small zones, otherwise it can be very slow
             -- hold: table describing where to hold a position
+            --   - skip: if set, skip hold action for this zone
             --   - x: the central x coordinate of the hold
             --   - max_y: the maximum y coordinate where to hold
             --   - hp_ratio: the minimum HP ratio required to hold at this position
@@ -120,7 +121,7 @@ return {
                     second_watch = { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 }
                 },
                 attack = { use_enemies_in_reach = true },
-                hold = { x = 20, max_y = 9, hp_ratio = 0.67 },
+                hold = { skip = true },
                 retreat_villages = { { 22, 2 }, { 18, 9 }, { 24, 7 } }
             }
 
@@ -1927,18 +1928,20 @@ return {
             -- **** Hold position evaluation ****
 
             -- If we got here, check for holding the zone
-            local enemies_hold_zone = {}
-            for i,e in ipairs(enemies) do
-                if zone_map:get(e.x, e.y) then
-                    table.insert(enemies_hold_zone, e)
+            if (not cfg.hold.skip) then
+                local enemies_hold_zone = {}
+                for i,e in ipairs(enemies) do
+                    if zone_map:get(e.x, e.y) then
+                        table.insert(enemies_hold_zone, e)
+                    end
                 end
-            end
 
-            if (zone_units[1]) then
-                local action = grunt_rush_FLS1:get_zone_hold(zone_units, zone_units_noMP, enemies_hold_zone, advance_y, cfg)
-                if action then
-                    action.action = cfg.zone_id .. ': ' .. 'hold position'
-                    return action
+                if (zone_units[1]) then
+                    local action = grunt_rush_FLS1:get_zone_hold(zone_units, zone_units_noMP, enemies_hold_zone, advance_y, cfg)
+                    if action then
+                        action.action = cfg.zone_id .. ': ' .. 'hold position'
+                        return action
+                    end
                 end
             end
 
