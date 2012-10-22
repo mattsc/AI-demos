@@ -88,6 +88,9 @@ return {
             --   - min_hp_ratio: don't advance to location where you don't have at least this HP ratio and ...
             --   - min_units: .. and if you don't have at least this many units to advance with
             --   - min_hp_ratio_always: same as min_hp_ratio, but do so independent of number of units available
+            -- attack: table describing the type of zone attack to be done
+            --   - use_enemies_in_reach: if set to 'true', use enemies that can reach zone, otherwise use units inside the zone
+            --       Note: only use with very small zones, otherwise it can be very slow
             -- hold: table describing where to hold a position
             --   - x: the central x coordinate of the hold
             --   - max_y: the maximum y coordinate where to hold
@@ -106,7 +109,7 @@ return {
 
             local cfg_leader_threat = {
                 zone_id = 'leader_threat',
-                zone_filter = { x = '1-37', y = '1-9' },
+                zone_filter = { { 'filter', { canrecruit = 'yes', side = wesnoth.current.side } } },
                 unit_filter = { x = '1-16,17-37', y = '1-7,1-10' },
                 advance = {
                     dawn =         { min_hp_ratio = 0.7, min_units = 0, min_hp_ratio_always = 4.0 },
@@ -116,6 +119,7 @@ return {
                     first_watch =  { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 },
                     second_watch = { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 }
                 },
+                attack = { use_enemies_in_reach = true },
                 hold = { x = 20, max_y = 9, hp_ratio = 0.67 },
                 retreat_villages = { { 22, 2 }, { 18, 9 }, { 24, 7 } }
             }
@@ -1853,9 +1857,26 @@ return {
             -- **** Attack evaluation ****
 
             local targets = {}
-            for i,e in ipairs(enemies) do
-                if zone_map:get(e.x, e.y) and (e.y <= advance_y + 1) then
-                    table.insert(targets, e)
+            -- If cfg.attack.use_enemies_in_reach is set, we use all enemies that
+            -- can get to the zone (Note: this should only be used for small zones,
+            -- such as that consisting only of the AI leader position) otherwise it
+            -- might be very slow!!!)
+            if cfg.attack and cfg.attack.use_enemies_in_reach then
+                for i,e in ipairs(enemies) do
+                    for j,hex in ipairs(zone) do
+                        local path, cost = wesnoth.find_path(e, hex[1], hex[2], { ignore_units = true })
+                        if (cost <= e.max_moves + 1) then
+                            table.insert(targets, e)
+                            break  -- so that the same unit does not get added several times
+                        end
+                    end
+                end
+            -- Otherwise use all units inside the zone
+            else
+                for i,e in ipairs(enemies) do
+                    if zone_map:get(e.x, e.y) and (e.y <= advance_y + 1) then
+                        table.insert(targets, e)
+                    end
                 end
             end
 
