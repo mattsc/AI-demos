@@ -35,7 +35,7 @@ return {
             return my_hp / (enemy_hp + 1e-6), my_hp, enemy_hp
         end
 
-        function grunt_rush_FLS1:hp_ratio_y(my_units, enemies, x_min, x_max, y_min, y_max)
+        function grunt_rush_FLS1:hp_ratio_y(my_units, enemies, zone)
             -- HP ratio as function of y coordinate
             -- This is the maximum of total HP of all units that can get to any hex with the given y
             -- Also returns the same value for the number of units that can get to that y
@@ -49,19 +49,23 @@ return {
             --AH.put_labels(enemy_attack_map)
 
             local hp_y, enemy_hp_y, hp_ratio, number_units_y = {}, {}, {}, {}
-            for y = y_min,y_max do
-                hp_y[y], enemy_hp_y[y], number_units_y[y] = 0, 0, 0
-                for x = x_min,x_max do
-                    local number_units = attack_map:get(x,y) or 0
-                    if (number_units > number_units_y[y]) then number_units_y[y] = number_units end
-                    local hp = attack_map_hp:get(x,y) or 0
-                    if (hp > hp_y[y]) then hp_y[y] = hp end
-                    local enemy_hp = enemy_attack_map_hp:get(x,y) or 0
-                    if (enemy_hp > enemy_hp_y[y]) then enemy_hp_y[y] = enemy_hp end
-                end
-                hp_ratio[y] = hp_y[y] / (enemy_hp_y[y] + 1e-6)
-            end
 
+            for i,hex in ipairs(zone) do
+                -- Initialize the arrays for the given y, if they don't exist yet
+                local x, y = hex[1], hex[2]  -- simply for ease of reading
+                if (not hp_y[y]) then
+                    hp_y[y], enemy_hp_y[y], number_units_y[y] = 0, 0, 0
+                end
+                local number_units = attack_map:get(x, y) or 0
+                if (number_units > number_units_y[y]) then number_units_y[y] = number_units end
+                local hp = attack_map_hp:get(x, y) or 0
+                if (hp > hp_y[y]) then hp_y[y] = hp end
+                local enemy_hp = enemy_attack_map_hp:get(x, y) or 0
+                if (enemy_hp > enemy_hp_y[y]) then enemy_hp_y[y] = enemy_hp end
+            end
+            for y,hp in pairs(hp_y) do  -- needs to be pairs, not ipairs !!!
+                hp_ratio[y] = hp / ((enemy_hp_y[y] + 1e-6) or 1e-6)
+            end
             return hp_ratio, number_units_y
         end
 
@@ -96,6 +100,7 @@ return {
 
             local cfg_leader_threat = {
                 zone_id = 'leader_threat',
+                zone = { x = '1-37', y = '1-9' },
                 unit_filter = { x = '1-16,17-37', y = '1-7,1-10' },
                 area = { x_min = 1, x_max = 37, y_min = 1, y_max = 9},
                 advance = {
@@ -113,6 +118,7 @@ return {
 
             local cfg_center = {
                 zone_id = 'center',
+                zone = { x = '15-23', y = '9-16' },
                 unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
                 area = { x_min = 15, x_max = 23, y_min = 9, y_max = 16},
                 advance = {
@@ -130,6 +136,7 @@ return {
 
             local cfg_left = {
                 zone_id = 'left',
+                zone = { x = '4-14', y = '3-15' },
                 unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
                 area = { x_min = 4, x_max = 14, y_min = 3, y_max = 15},
                 advance = {
@@ -148,6 +155,7 @@ return {
             local width, height = wesnoth.get_map_size()
             local cfg_right = {
                 zone_id = 'right',
+                zone = { x = '25-34', y = '11-24' },
                 unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
                 area = { x_min = 25, x_max = width, y_min = 11, y_max = height},
                 advance = {
@@ -1762,6 +1770,10 @@ return {
             }
             --print('#zone_units, #enemies', #zone_units, #enemies)
 
+            -- Get all the hexes in the zone
+            local zone = wesnoth.get_locations(cfg.zone)
+            --DBG.dbms(zone)
+
             -- Get HP ratio and number of units that can reach the zone as function of y coordinate
             local x_min, y_min, x_max, y_max = 1, 1, wesnoth.get_map_size()
             if cfg.area then
@@ -1770,7 +1782,8 @@ return {
                 if cfg.area.y_min then y_min = cfg.area.y_min end
                 if cfg.area.y_max then y_max = cfg.area.y_max end
             end
-            local hp_ratio_y, number_units_y = grunt_rush_FLS1:hp_ratio_y(zone_units, enemies, x_min, x_max, y_min, y_max)
+
+            local hp_ratio_y, number_units_y = grunt_rush_FLS1:hp_ratio_y(zone_units, enemies, zone)
 
             local tod = wesnoth.get_time_of_day()
             local min_hp_ratio = cfg.advance[tod.id].min_hp_ratio or 1.0
