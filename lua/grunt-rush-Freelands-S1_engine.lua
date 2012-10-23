@@ -688,6 +688,7 @@ return {
 
         function grunt_rush_FLS1:hardcoded_eval()
             local score = 500000
+            local start_time = os.clock()
             if AH.skip_CA('hardcoded') then return 0 end
             if AH.print_eval() then print('     - Evaluating hardcoded CA:', os.clock()) end
 
@@ -696,7 +697,7 @@ return {
             if (wesnoth.current.turn == 1) then
                 local unit = wesnoth.get_unit(17,5)
                 if (not unit) then
-                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                    if AH.print_eval() then print('       - Done evaluating HC :', os.clock(), ' ---------------> ', os.clock() - start_time) end
                     return score
                 end
             end
@@ -705,7 +706,7 @@ return {
             if (wesnoth.current.turn == 2) then
                 local unit = wesnoth.get_unit(17,5)
                 if unit and (unit.moves >=5) then
-                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                    if AH.print_eval() then print('       - Done evaluating HC :', os.clock(), ' ---------------> ', os.clock() - start_time) end
                     return score
                 end
             end
@@ -714,16 +715,16 @@ return {
             if (wesnoth.current.turn == 3) then
                 local unit = wesnoth.get_unit(12,5)
                 if unit and (unit.moves >=5) then
-                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                    if AH.print_eval() then print('       - Done evaluating HC:', os.clock(), ' ---------------> ', os.clock() - start_time) end
                     return score
                 end
             end
-            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+            if AH.print_eval() then print('       - Done evaluating HC:', os.clock(), ' ---------------> ', os.clock() - start_time) end
             return 0
         end
 
         function grunt_rush_FLS1:hardcoded_exec()
-            if AH.print_exec() then print('     - Executing hardcoded CA') end
+            if AH.print_exec() then print('   ' .. os.clock() .. ' Executing hardcoded CA') end
             if AH.show_messages() then W.message { speaker = 'narrator', message = 'Executing hardcoded move(s)' } end
             if (wesnoth.current.turn == 1) then
                 ai.recruit('Orcish Grunt', 17, 5)
@@ -753,6 +754,7 @@ return {
 
         function grunt_rush_FLS1:move_leader_to_keep_eval()
             local score = 480000
+            local start_time = os.clock()
             if AH.skip_CA('move_leader_to_keep') then return 0 end
 
             if AH.print_eval() then print('     - Evaluating move_leader_to_keep CA:', os.clock()) end
@@ -764,7 +766,7 @@ return {
                 formula = '$this_unit.attacks_left > 0'
             }[1]
             if (not leader) then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                if AH.print_eval() then print('       - Done evaluating MLK:', os.clock(), ' ---------------> ', os.clock() - start_time) end
                 return 0
             end
 
@@ -781,22 +783,22 @@ return {
                         if next_hop and (next_hop[1] == k[1]) and (next_hop[2] == k[2]) then
                             grunt_rush_FLS1.data.MLK_leader = leader
                             grunt_rush_FLS1.data.MLK_leader_move = { k[1], k[2] }
-                            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                            if AH.print_eval() then print('       - Done evaluating MLK:', os.clock(), ' ---------------> ', os.clock() - start_time) end
                             return score
                         end
                     end
                 else -- If the leader already is on the keep, don't consider lesser priority ones
-                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                    if AH.print_eval() then print('       - Done evaluating MLK:', os.clock(), ' ---------------> ', os.clock() - start_time) end
                     return 0
                 end
             end
 
-            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+            if AH.print_eval() then print('       - Done evaluating MLK:', os.clock(), ' ---------------> ', os.clock() - start_time) end
             return 0
         end
 
         function grunt_rush_FLS1:move_leader_to_keep_exec()
-            if AH.print_exec() then print('     - Executing move_leader_to_keep CA') end
+            if AH.print_exec() then print('   ' .. os.clock() .. ' Executing move_leader_to_keep CA') end
             if AH.show_messages() then W.message { speaker = grunt_rush_FLS1.data.MLK_leader.id, message = 'Moving back to keep' } end
             -- This has to be a partial move !!
             ai.move(grunt_rush_FLS1.data.MLK_leader, grunt_rush_FLS1.data.MLK_leader_move[1], grunt_rush_FLS1.data.MLK_leader_move[2])
@@ -823,7 +825,6 @@ return {
             end
             --print('#healees', #healees)
             if (not healees[1]) then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return nil
             end
 
@@ -910,6 +911,7 @@ return {
 
         function grunt_rush_FLS1:attack_weak_enemy_eval()
             local score = 465000
+            local start_time = os.clock()
             if AH.skip_CA('attack_weak_enemy') then return 0 end
             if AH.print_eval() then print('     - Evaluating attack_weak_enemy CA:', os.clock()) end
 
@@ -921,7 +923,7 @@ return {
                 formula = '$this_unit.attacks_left > 0'
             }
             if (not units[1]) then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                if AH.print_eval() then print('       - Done evaluating AWE:', os.clock(), ' ---------------> ', os.clock() - start_time) end
                 return 0
             end
 
@@ -933,7 +935,7 @@ return {
             -- and that AI unit cannot die
             local attacks = AH.get_attacks_occupied(units, { simulate_combat = true })
             if (not attacks[1]) then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                if AH.print_eval() then print('       - Done evaluating AWE:', os.clock(), ' ---------------> ', os.clock() - start_time) end
                 return 0
             end
 
@@ -1001,16 +1003,16 @@ return {
 
             if (max_rating > -9e99) then
                 grunt_rush_FLS1.data.AWE_attack = best_attack
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                if AH.print_eval() then print('       - Done evaluating AWE:', os.clock(), ' ---------------> ', os.clock() - start_time) end
                 return score
             end
 
-            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+            if AH.print_eval() then print('       - Done evaluating AWE:', os.clock(), ' ---------------> ', os.clock() - start_time) end
             return 0
         end
 
         function grunt_rush_FLS1:attack_weak_enemy_exec()
-            if AH.print_exec() then print('     - Executing attack_weak_enemy CA') end
+            if AH.print_exec() then print('   ' .. os.clock() .. ' Executing attack_weak_enemy CA') end
 
             local attacker = wesnoth.get_unit(grunt_rush_FLS1.data.AWE_attack.att_loc.x, grunt_rush_FLS1.data.AWE_attack.att_loc.y)
             local defender = wesnoth.get_unit(grunt_rush_FLS1.data.AWE_attack.def_loc.x, grunt_rush_FLS1.data.AWE_attack.def_loc.y)
@@ -1023,6 +1025,7 @@ return {
 
         function grunt_rush_FLS1:attack_leader_threat_eval()
             local score = 460000
+            local start_time = os.clock()
             if AH.skip_CA('attack_leader_threat') then return 0 end
             if AH.print_eval() then print('     - Evaluating attack_leader_threat CA:', os.clock()) end
 
@@ -1032,7 +1035,7 @@ return {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
             if (not enemies[1]) then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                if AH.print_eval() then print('       - Done evaluating ALT:', os.clock(), ' ---------------> ', os.clock() - start_time) end
                 return 0
             end
 
@@ -1040,7 +1043,7 @@ return {
                 formula = '$this_unit.attacks_left > 0'
             }
             if (not units[1]) then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                if AH.print_eval() then print('       - Done evaluating ALT:', os.clock(), ' ---------------> ', os.clock() - start_time) end
                 return 0
             end
 
@@ -1056,16 +1059,16 @@ return {
                 grunt_rush_FLS1.data.ALT_trapping_attackers = attackers
                 grunt_rush_FLS1.data.ALT_trapping_dsts = dsts
                 grunt_rush_FLS1.data.ALT_trapping_enemy = enemy
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                if AH.print_eval() then print('       - Done evaluating ALT:', os.clock(), ' ---------------> ', os.clock() - start_time) end
                 return score
             end
 
-            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+            if AH.print_eval() then print('       - Done evaluating ALT:', os.clock(), ' ---------------> ', os.clock() - start_time) end
             return 0
         end
 
         function grunt_rush_FLS1:attack_leader_threat_exec()
-            if AH.print_exec() then print('     - Executing attack_leader_threat CA') end
+            if AH.print_exec() then print('   ' .. os.clock() .. ' Executing attack_leader_threat CA') end
             -- If a trapping attack was found, we do that first
             -- All of this should be made more consistent later
             if grunt_rush_FLS1.data.ALT_trapping_attackers then
@@ -1134,13 +1137,14 @@ return {
         function grunt_rush_FLS1:ZOC_enemy_eval()
             if AH.skip_CA('ZOC_enemy') then return 0 end
             local score = 390000
+            local start_time = os.clock()
             if AH.print_eval() then print('     - Evaluating ZOC_enemy CA:', os.clock()) end
 
             -- Decide whether to attack units on the left, and trap them if possible
 
             -- Skip this if AI is much stronger than enemy
             if grunt_rush_FLS1:full_offensive() then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                if AH.print_eval() then print('       - Done evaluating ZOC:', os.clock(), ' ---------------> ', os.clock() - start_time) end
                 return 0
             end
 
@@ -1156,7 +1160,7 @@ return {
             -- If no unit in this part of the map can move, we're done (> Level 0 only)
             --print('#units_MP', #units_MP)
             if (not units_MP[1]) then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                if AH.print_eval() then print('       - Done evaluating ZOC:', os.clock(), ' ---------------> ', os.clock() - start_time) end
                 return 0
             end
 
@@ -1167,7 +1171,7 @@ return {
             --print('#enemies', #enemies)
             -- If there are no enemies in this part of the map, we're also done
             if (not enemies[1]) then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                if AH.print_eval() then print('       - Done evaluating ZOC:', os.clock(), ' ---------------> ', os.clock() - start_time) end
                 return 0
             end
 
@@ -1178,19 +1182,19 @@ return {
             local tod = wesnoth.get_time_of_day()
             if (tod.id == 'morning') or (tod.id == 'afternoon') then
                 if (hp_ratio < 1.5) then
-                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                    if AH.print_eval() then print('       - Done evaluating ZOC:', os.clock(), ' ---------------> ', os.clock() - start_time) end
                     return 0
                 end
             end
             if (tod.id == 'dusk') or (tod.id == 'dawn') then
                 if (hp_ratio < 1.25) then
-                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                    if AH.print_eval() then print('       - Done evaluating ZOC:', os.clock(), ' ---------------> ', os.clock() - start_time) end
                     return 0
                 end
             end
             if (tod.id == 'first_watch') or (tod.id == 'second_watch') then
                 if (hp_ratio < 1) then
-                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                    if AH.print_eval() then print('       - Done evaluating ZOC:', os.clock(), ' ---------------> ', os.clock() - start_time) end
                     return 0
                 end
             end
@@ -1201,17 +1205,17 @@ return {
                 grunt_rush_FLS1.data.ZOC_attackers = attackers
                 grunt_rush_FLS1.data.ZOC_dsts = dsts
                 grunt_rush_FLS1.data.ZOC_enemy = enemy
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                if AH.print_eval() then print('       - Done evaluating ZOC:', os.clock(), ' ---------------> ', os.clock() - start_time) end
                 return score
             end
 
             -- Otherwise don't do anything
-            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+            if AH.print_eval() then print('       - Done evaluating ZOC:', os.clock(), ' ---------------> ', os.clock() - start_time) end
             return 0
         end
 
         function grunt_rush_FLS1:ZOC_enemy_exec()
-            if AH.print_exec() then print('     - Executing ZOC_enemy CA') end
+            if AH.print_exec() then print('   ' .. os.clock() .. ' Executing ZOC_enemy CA') end
             if AH.show_messages() then W.message { speaker = 'narrator', message = 'Starting trapping attack (in ZOC_enemy)' } end
 
             -- Reorder the trapping attacks so that those that do not need to move a unit out of the way happen first
@@ -1779,12 +1783,13 @@ return {
 
         function grunt_rush_FLS1:zone_control_eval()
             local score_zone_control = 350000
+            local start_time = os.clock()
             if AH.skip_CA('zone_control') then return 0 end
             if AH.print_eval() then print('     - Evaluating zone_control CA:', os.clock()) end
 
             -- Skip this if AI is much stronger than enemy
             if grunt_rush_FLS1:full_offensive() then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                if AH.print_eval() then print('       - Done evaluating ZC :', os.clock(), ' ---------------> ', os.clock() - start_time) end
                 return 0
             end
 
@@ -1796,12 +1801,12 @@ return {
 
                 if zone_action then
                     grunt_rush_FLS1.data.zone_action = zone_action
-                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                    if AH.print_eval() then print('       - Done evaluating ZC :', os.clock(), ' ---------------> ', os.clock() - start_time) end
                     return score_zone_control
                 end
             end
 
-            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+            if AH.print_eval() then print('       - Done evaluating ZC:', os.clock(), ' ---------------> ', os.clock() - start_time) end
             return 0
         end
 
@@ -1830,7 +1835,7 @@ return {
                     end
                 end
 
-                if AH.print_exec() then print('     - Executing zone_control CA ' .. action) end
+                if AH.print_exec() then print('   ' .. os.clock() .. ' Executing zone_control CA ' .. action) end
                 if AH.show_messages() then W.message { speaker = unit.id, message = 'Zone action ' .. action } end
 
                 AH.movefull_outofway_stopunit(ai, unit, dst)
@@ -1858,6 +1863,7 @@ return {
 
         function grunt_rush_FLS1:spread_poison_eval()
             local score = 463000
+            local start_time = os.clock()
             if AH.skip_CA('spread_poison') then return 0 end
 
             -- As an experiment: reduce importance of spreading poison during night
@@ -1900,14 +1906,14 @@ return {
 
             --print('#poisoners, #others', #poisoners, #others)
             if (not poisoners[1]) then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                if AH.print_eval() then print('       - Done evaluating SP :', os.clock(), ' ---------------> ', os.clock() - start_time) end
                 return 0
             end
 
             local attacks = AH.get_attacks_occupied(poisoners, { simulate_combat = true })
             --print('#attacks', #attacks)
             if (not attacks[1]) then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                if AH.print_eval() then print('       - Done evaluating SP :', os.clock(), ' ---------------> ', os.clock() - start_time) end
                 return 0
             end
 
@@ -2077,16 +2083,16 @@ return {
             end
             if (max_rating > -9e99) then
                 grunt_rush_FLS1.data.SP_attack, grunt_rush_FLS1.data.SP_support_attack, grunt_rush_FLS1.data.SP_also_attack = best_attack, best_support_attack, best_support_also_attack
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                if AH.print_eval() then print('       - Done evaluating SP :', os.clock(), ' ---------------> ', os.clock() - start_time) end
                 return score
             end
 
-            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+            if AH.print_eval() then print('       - Done evaluating SP :', os.clock(), ' ---------------> ', os.clock() - start_time) end
             return 0
         end
 
         function grunt_rush_FLS1:spread_poison_exec()
-            if AH.print_exec() then print('     - Executing spread_poison CA') end
+            if AH.print_exec() then print('   ' .. os.clock() .. ' Executing spread_poison CA') end
             local attacker = wesnoth.get_unit(grunt_rush_FLS1.data.SP_attack.att_loc.x, grunt_rush_FLS1.data.SP_attack.att_loc.y)
             local defender = wesnoth.get_unit(grunt_rush_FLS1.data.SP_attack.def_loc.x, grunt_rush_FLS1.data.SP_attack.def_loc.y)
 
@@ -2132,19 +2138,20 @@ return {
 
         function grunt_rush_FLS1:recruit_orcs_eval()
             local score = 181000
+            local start_time = os.clock()
             if AH.skip_CA('recruit_orcs') then return 0 end
             if AH.print_eval() then print('     - Evaluating recruit_orcs CA:', os.clock()) end
 
             -- Check if there is enough gold to recruit at least a grunt
             if (wesnoth.sides[wesnoth.current.side].gold < 12) then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                if AH.print_eval() then print('       - Done evaluating RO :', os.clock(), ' ---------------> ', os.clock() - start_time) end
                 return 0
             end
 
             -- Check if leader is on keep
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
             if (not wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep) then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                if AH.print_eval() then print('       - Done evaluating RO :', os.clock(), ' ---------------> ', os.clock() - start_time) end
                 return 0
             end
 
@@ -2161,7 +2168,7 @@ return {
             for i,c in ipairs(castle) do
                 local unit_in_way = wesnoth.get_unit(c[1], c[2])
                 if (not unit_in_way) then -- If no unit in way, we're good
-                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                    if AH.print_eval() then print('       - Done evaluating RO :', os.clock(), ' ---------------> ', os.clock() - start_time) end
                     return score
                 else
                     -- Otherwise check whether the unit can move away (non-leaders only)
@@ -2170,7 +2177,7 @@ return {
                     if (not unit_in_way.canrecruit) then
                         local move_away = AH.get_reachable_unocc(unit_in_way)
                         if (move_away:size() > 1) then
-                            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                            if AH.print_eval() then print('       - Done evaluating RO :', os.clock(), ' ---------------> ', os.clock() - start_time) end
                             return score
                         end
                     end
@@ -2178,7 +2185,7 @@ return {
             end
 
             -- Otherwise: no recruiting
-            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+            if AH.print_eval() then print('       - Done evaluating RO :', os.clock(), ' ---------------> ', os.clock() - start_time) end
             return 0
         end
 
@@ -2233,7 +2240,7 @@ return {
             local wolf_cost = wesnoth.unit_types["Wolf Rider"].cost
             local hp_ratio = grunt_rush_FLS1:hp_ratio()
 
-            if AH.print_exec() then print('     - Executing recruit_orcs CA') end
+            if AH.print_exec() then print('   ' .. os.clock() .. ' Executing recruit_orcs CA') end
             -- Recruiting logic (in that order):
             -- ... under revision ...
             -- All of this is contingent on having enough gold (eval checked for gold > 12)
