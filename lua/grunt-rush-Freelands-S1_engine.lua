@@ -579,6 +579,22 @@ return {
             -- If no attacks are found, we're done; return empty table
             if (not attack_combos[1]) then return {} end
 
+            -- Find the maximum number of attackers in a single combo
+            -- Evaluate only those that have this number of attacks
+            local max_attacks = 0
+            for i,combo in ipairs(attack_combos) do
+                local number = 0
+                for dst,src in pairs(combo) do number = number + 1 end
+                if (number > max_attacks) then max_attacks = number end
+            end
+            -- Now eliminate all those that have fewer individual attacks
+            for i = #attack_combos,1,-1 do
+                local number = 0
+                for dst,src in pairs(attack_combos[i]) do number = number + 1 end
+                if (number < max_attacks) then table.remove(attack_combos, i) end
+            end
+            --print('#attack_combos', #attack_combos, os.clock())
+
             -- Want an 'enemies' map, indexed by position (for speed reasons)
             local enemies_map = {}
             for i,u in ipairs(enemies) do enemies_map[u.x * 1000 + u.y] = u end
@@ -1403,7 +1419,7 @@ return {
                                 end
                                 local max_damage = a.hitpoints - min_hp
                                 local min_outcome = counter_min_hp - max_damage
-                                print('min_outcome, counter_min_hp, max_damage', min_outcome, counter_min_hp, max_damage)
+                                --print('min_outcome, counter_min_hp, max_damage', min_outcome, counter_min_hp, max_damage)
 
                                 if (min_outcome <= 0) then
                                     do_attack = false
