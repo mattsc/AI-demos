@@ -1665,7 +1665,8 @@ return {
                 for i,e in ipairs(enemies) do
                     for j,hex in ipairs(zone) do
                         local path, cost = wesnoth.find_path(e, hex[1], hex[2], { ignore_units = true })
-                        if (cost <= e.max_moves + 1) then
+                        local movecost = wesnoth.unit_movement_cost(e, wesnoth.get_terrain(hex[1], hex[2]))
+                        if (cost <= e.max_moves + movecost) then
                             table.insert(targets, e)
                             break  -- so that the same unit does not get added several times
                         end
