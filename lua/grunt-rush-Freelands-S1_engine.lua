@@ -576,8 +576,8 @@ return {
                 end
             end
 
-            -- If no attacks are found, we're done; return empty table
-            if (not attack_combos[1]) then return {} end
+            -- If no attacks are found, we're done; return full HP and empty table
+            if (not attack_combos[1]) then return unit.hitpoints, {} end
 
             -- Find the maximum number of attackers in a single combo
             -- Evaluate only those that have this number of attacks
@@ -1323,9 +1323,9 @@ return {
                             -- but only if he's on the keep
                             if u.canrecruit then
                                 local min_hp, counter_def_stats = grunt_rush_FLS1:calc_counter_attack(u, { v[1], v[2] })
-                                print('    min_hp:', u.id, min_hp)
+                                --print('    min_hp:', u.id, min_hp)
                                 if (min_hp > 0) and wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
-                                    print('      -> take village with leader')
+                                    --print('      -> take village with leader')
                                     rating = rating + 2
                                 else
                                     rating = -9e99
@@ -1535,7 +1535,8 @@ return {
             -- First, set up the general filters and tables, to be used by all actions
 
             -- Unit filter:
-            local unit_filter = { side = wesnoth.current.side, canrecruit = 'no' }
+            -- This includes the leader.  Needs to be excluded specifically if he shouldn't take part in an action
+            local unit_filter = { side = wesnoth.current.side }
             if cfg.unit_filter then
                 for k,v in pairs(cfg.unit_filter) do unit_filter[k] = v end
             end
@@ -1550,10 +1551,7 @@ return {
                 end
             end
 
-            -- Also get the leader separately
-            local leaders = AH.get_live_units { side = wesnoth.current.side, canrecruit = 'yes' }
-
-            if (not zone_units[1]) and (not leaders[1]) then return end
+            if (not zone_units[1]) then return end
 
             -- Then get all the enemies (this needs to be all of them, to get the HP ratio)
             local enemies = AH.get_live_units {
@@ -1609,6 +1607,7 @@ return {
 
             -- Note: while severely injured units are dealt with on a zone-by-zone basis,
             -- they can retreat to hexes outside the zones
+            -- This includes the leader even if he is not on his keep
             local trolls, non_trolls = {}, {}
             for i,u in ipairs(zone_units) do
                 if (u.__cfg.race == 'troll') then
@@ -1644,12 +1643,15 @@ return {
 
             -- **** Attack evaluation ****
 
-            -- Attackers include other units as well as leader
-            -- but only if he is on his keep, in order to prevent him from wandering off
+            -- Attackers include the leader but only if he is on his
+            -- keep, in order to prevent him from wandering off
             local attackers = {}
-            for i,u in ipairs(zone_units) do table.insert(attackers, u) end
-            for i,u in ipairs(leaders) do
-                if (u.attacks_left > 0) and wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
+            for i,u in ipairs(zone_units) do
+                if u.canrecruit then
+                    if wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
+                        table.insert(attackers, u)
+                    end
+                else
                     table.insert(attackers, u)
                 end
             end
@@ -1687,11 +1689,18 @@ return {
             -- **** Villages evaluation ****
 
             -- This should include both retreating to villages of injured units and village grabbing
+            -- The leader is only included if he is on the keep
 
             local injured_units = {}
             for i,u in ipairs(zone_units) do
                 if (u.hitpoints< u.max_hitpoints) then
-                    table.insert(injured_units, u)
+                    if u.canrecruit then
+                        if wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
+                            table.insert(injured_units, u)
+                        end
+                    else
+                        table.insert(injured_units, u)
+                    end
                 end
             end
             --print('#injured_units', #injured_units)
@@ -1711,11 +1720,25 @@ return {
 
             -- Otherwise we go for unowned and enemy-owned villages
             -- This needs to happen for all units, not just not-injured ones
+            -- Also includes the leader, if he's on his keep
             -- The rating>100 part is to exclude threatened but already owned villages
-            if zone_units[1] then
+
+            local village_grabbers = {}
+            for i,u in ipairs(zone_units) do
+                if u.canrecruit then
+                    if wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
+                        table.insert(village_grabbers, u)
+                    end
+                else
+                    table.insert(village_grabbers, u)
+                end
+            end
+            --print('#village_grabbers', #village_grabbers)
+
+            if village_grabbers[1] then
                 -- For this, we consider all villages, not just the retreat_villages
                 local villages = wesnoth.get_locations { terrain = '*^V*' }
-                local action = grunt_rush_FLS1:eval_grab_villages(zone_units, villages, enemies, false)
+                local action = grunt_rush_FLS1:eval_grab_villages(village_grabbers, villages, enemies, false)
                 if action and (action.rating > 100) then
                     action.action = cfg.zone_id .. ': ' .. 'grab villages'
                     return action
@@ -1726,6 +1749,14 @@ return {
 
             -- If we got here, check for holding the zone
             if (not cfg.hold.skip) then
+                -- The leader does not participate in position holding (for now, at least)
+                local holders = {}
+                for i,u in ipairs(zone_units) do
+                    if (not u.canrecruit) then
+                        table.insert(holders, u)
+                    end
+                end
+
                 local enemies_hold_zone = {}
                 for i,e in ipairs(enemies) do
                     if zone_map:get(e.x, e.y) then
@@ -1733,8 +1764,8 @@ return {
                     end
                 end
 
-                if (zone_units[1]) then
-                    local action = grunt_rush_FLS1:get_zone_hold(zone_units, zone_units_noMP, enemies_hold_zone, advance_y, cfg)
+                if (holders[1]) then
+                    local action = grunt_rush_FLS1:get_zone_hold(holders, zone_units_noMP, enemies_hold_zone, advance_y, cfg)
                     if action then
                         action.action = cfg.zone_id .. ': ' .. 'hold position'
                         return action
@@ -1785,7 +1816,7 @@ return {
                 -- We're doing that by running a mini CA eval/exec loop
                 if unit.canrecruit then
                     --print('-------------------->  This is the leader.  Recruit first.')
-                    if AH.show_messages() then W.message { speaker = grunt_rush_FLS1.data.GV_unit.id, message = 'The leader, me, is about to move.  Need to recruit first.' } end
+                    if AH.show_messages() then W.message { speaker = unit.id, message = 'The leader is about to move.  Need to recruit first.' } end
 
                     local recruit_loop = true
                     while recruit_loop do
