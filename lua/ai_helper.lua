@@ -928,18 +928,23 @@ function ai_helper.get_attacks(units, moves)
     return attacks
 end
 
-function ai_helper.get_attacks_unit_occupied(unit)
+function ai_helper.get_attacks_unit_occupied(unit, cfg)
     -- Same as get_attacks_unit(), but also consider hexes that are occupied by a unit that can move away
     -- This only makes sense to be used with own units, not enemies,
     -- so it's a separate function from get_attacks-unit() and moves = 'max' does not make sense here
     -- Get all attacks a unit can do
+    -- cfg: table with config parameters
+    --  simulate_combat: if set, also simulate the combat and return result (this is slow; only set if needed)
+
     -- Returns {} if no attacks can be done, otherwise table with fields
     --   x, y: attack position
     --   att_loc: { x = x, y = y } of attacking unit (don't use id, could be ambiguous)
     --   def_loc: { x = x, y = y } of defending unit
-    --   att_stats, def_stats: as returned by wesnoth.simulate_combat
+    --   att_stats, def_stats: as returned by wesnoth.simulate_combat (if cfg.simulate_combat is set)
     --   attack_hex_occupied: boolean storing whether an own unit that can move away is on the attack hex
     -- This is somewhat slow, but will hopefully replaced soon by built-in AI function
+
+    cfg = cfg or {}
 
     -- Need to find reachable hexes that are
     -- 1. next to a (non-petrified) enemy unit
@@ -1022,7 +1027,10 @@ function ai_helper.get_attacks_unit_occupied(unit)
             if unit_in_way then attack_hex_occupied = true end
 
             for j,t in pairs(targets) do
-                local att_stats, def_stats = wesnoth.simulate_combat(unit, t)
+                local att_stats, def_stats = nil, nil
+                if cfg.simulate_combat then
+                    att_stats, def_stats = wesnoth.simulate_combat(unit, t)
+                end
 
                 table.insert(attacks, {
                     x = p.x, y = p.y,
@@ -1043,14 +1051,14 @@ function ai_helper.get_attacks_unit_occupied(unit)
     return attacks
 end
 
-function ai_helper.get_attacks_occupied(units)
+function ai_helper.get_attacks_occupied(units, cfg)
     -- Wrapper function for ai_helper.get_attacks_unit_occupied
-    -- Returns the same sort of table, but for the attacks of several units
+    -- Returns the same sort of table (and cfg has the same structure), but for the attacks of several units
     -- This is somewhat slow, but will hopefully replaced soon by built-in AI function
 
     local attacks = {}
     for k,u in pairs(units) do
-        local attacks_unit = ai_helper.get_attacks_unit_occupied(u)
+        local attacks_unit = ai_helper.get_attacks_unit_occupied(u, cfg)
 
         if attacks_unit[1] then
             for i,a in ipairs(attacks_unit) do

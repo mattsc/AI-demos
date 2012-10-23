@@ -924,7 +924,7 @@ return {
 
             -- First check if attacks with >= 40% CTK are possible for any unit
             -- and that AI unit cannot die
-            local attacks = AH.get_attacks_occupied(units)
+            local attacks = AH.get_attacks_occupied(units, { simulate_combat = true })
             if (not attacks[1]) then
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
                 return 0
@@ -1864,7 +1864,7 @@ return {
                 return 0
             end
 
-            local attacks = AH.get_attacks_occupied(poisoners)
+            local attacks = AH.get_attacks_occupied(poisoners, { simulate_combat = true })
             --print('#attacks', #attacks)
             if (not attacks[1]) then
                 if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
@@ -1875,7 +1875,7 @@ return {
                 formula = '$this_unit.attacks_left <= 0'
             }
 
-            local other_attacks = AH.get_attacks_occupied(others)
+            local other_attacks = AH.get_attacks_occupied(others, { simulate_combat = true })
             --print('#other_attacks', #other_attacks)
 
             -- For counter attack damage calculation:
