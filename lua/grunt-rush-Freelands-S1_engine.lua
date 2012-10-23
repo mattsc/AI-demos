@@ -357,11 +357,10 @@ return {
 
                     -- 2. If the 'exposure' at the attack location is too high, don't do it either
                     for i_a,a in ipairs(attackers) do
-                        local counter_table = grunt_rush_FLS1:calc_counter_attack(a, dsts[i_a])
-                        --DBG.dbms(counter_table)
-                        --print(a.id, dsts[i_a][1], dsts[i_a][2], counter_table.average_def_stats.hp_chance[0],  counter_table.average_def_stats.average_hp)
+                        local min_hp, counter_def_stats = grunt_rush_FLS1:calc_counter_attack(a, dsts[i_a])
+                        --print(a.id, dsts[i_a][1], dsts[i_a][2], counter_def_stats.hp_chance[0], counter_def_stats.average_hp)
                         -- Use a condition when damage is too much to be worthwhile
-                        if (counter_table.average_def_stats.hp_chance[0] > 0.30) or (counter_table.average_def_stats.average_hp < 10) then
+                        if (counter_def_stats.hp_chance[0] > 0.30) or (counter_def_stats.average_hp < 10) then
                             --print('Trapping attack too dangerous')
                             trapping_attack = false
                         end
@@ -530,11 +529,9 @@ return {
         end
 
         function grunt_rush_FLS1:calc_counter_attack(unit, hex)
-            -- Get counter attack results a 'unit' might experience next turn if it moved to 'hex'
-            -- Return table contains fields:
-            --   max_counter_damage: the maximum counter attack damage that could potentially be done
-            --   enemy_attackers: a table containing the coordinates of all enemy units that could attack
-            --   average_def_stats: the defender stats (in some average sense) after all those attacks
+            -- Get counter attack results a unit might experience next turn if it moved to 'hex'
+            -- Return worst case scenario HP and def_stats
+            -- This uses real counter_attack combinations
 
             -- All enemy units
             local enemies = AH.get_live_units {
@@ -542,89 +539,83 @@ return {
             }
             --print('#enemies', #enemies)
 
-            -- Need to take units with MP off the map for this
+            -- Need to take units with MP off the map for enemy path finding
             local units_MP = wesnoth.get_units { side = unit.side, formula = '$this_unit.moves > 0' }
-            for iu,uMP in ipairs(units_MP) do wesnoth.extract_unit(uMP) end
 
-            -- Now find the enemies that can attack 'hex'
-            local enemy_attackers = {}
-            for i,e in ipairs(enemies) do
-                local attack_map = AH.get_reachable_attack_map(e, {moves = "max"})
-                if attack_map:get(hex[1], hex[2]) then
-                    --print('Can attack this hex:', e.id)
-                    table.insert(enemy_attackers, e)
+            -- Take all units with MP left off the map, except the unit under investigation itself
+            for i,u in ipairs(units_MP) do
+                if (u.x ~= unit.x) or (u.y ~= unit.y) then
+                    wesnoth.extract_unit(u)
                 end
             end
-            --print('#enemy_attackers', #enemy_attackers)
 
-            -- Put the units back out there
-            for iu,uMP in ipairs(units_MP) do wesnoth.put_unit(uMP.x, uMP.y, uMP) end
-
-            -- Set up the return array
-            local counter_table = {}
-            counter_table.enemy_attackers = {}
-            for i,e in ipairs(enemy_attackers) do table.insert(counter_table.enemy_attackers, { e.x, e.y }) end
-
-            -- Now we calculate the maximum counter attack damage for each of those attackers
-            -- We first need to put our unit into the position of interest
+            -- Now we put our unit into the position of interest
             -- (and remove any unit that might be there)
             local org_hex = { unit.x, unit.y }
             local unit_in_way = {}
             if (org_hex[1] ~= hex[1]) or (org_hex[2] ~= hex[2]) then
                 unit_in_way = wesnoth.get_unit(hex[1], hex[2])
                 if unit_in_way then wesnoth.extract_unit(unit_in_way) end
-
                 wesnoth.put_unit(hex[1], hex[2], unit)
             end
 
-            -- Now simulate all the attacks on 'unit' on 'hex'
-            local max_counter_damage = 0
-            for i,e in ipairs(enemy_attackers) do
-                --print('Evaluating counter attack attack by: ', e.id)
-
-                local n_weapon = 0
-                local min_hp = unit.hitpoints
-                for weapon in H.child_range(e.__cfg, "attack") do
-                    --print('  weapon #', n_weapon)
-                    n_weapon = n_weapon + 1
-
-                    -- Terrain enemy is on does not matter for this, we're only interested in the damage done to 'unit'
-                    local att_stats, def_stats = wesnoth.simulate_combat(e, n_weapon, unit)
-
-                    -- Find minimum HP of our unit
-                    -- find the minimum hp outcome
-                    -- Note: cannot use ipairs() because count starts at 0
-                    local min_hp_weapon = unit.hitpoints
-                    for hp,chance in pairs(def_stats.hp_chance) do
-                        if ((chance > 0) and (hp < min_hp_weapon)) then
-                            min_hp_weapon = hp
-                        end
-                    end
-                    if (min_hp_weapon < min_hp) then min_hp = min_hp_weapon end
-                end
-                --print('    min_hp:',min_hp, ' max damage:',unit.hitpoints-min_hp)
-                max_counter_damage = max_counter_damage + unit.hitpoints - min_hp
-            end
-            --print('  max counter attack damage:', max_counter_damage)
+            -- Get all possible attack combination
+            local attack_combos = AH.get_attack_combos_no_order(enemies, unit, { max_moves = true })
+            --DBG.dbms(attack_combos)
+            --DBG.dbms(attacks_dst_src)
+            --print('#attack_combos', #attack_combos, os.clock())
 
             -- Put units back to where they were
             if (org_hex[1] ~= hex[1]) or (org_hex[2] ~= hex[2]) then
                 wesnoth.put_unit(org_hex[1], org_hex[2], unit)
                 if unit_in_way then wesnoth.put_unit(hex[1], hex[2], unit_in_way) end
             end
-            counter_table.max_counter_damage = max_counter_damage
+            for i,u in ipairs(units_MP) do
+                if (u.x ~= unit.x) or (u.y ~= unit.y) then
+                    wesnoth.put_unit(u.x, u.y, u)
+                end
+            end
 
-            -- Also calculate median counter attack results
-            -- using the ai_helper function (might not be most efficient, but good for now)
-            local dsts = {}
-            -- This is not the correct dst, but again, good enough for now
-            for i,e in ipairs(enemy_attackers) do table.insert(dsts, { e.x, e.y }) end
-            -- only need the defender stats
-            local rating, tmp1, tmp2, tmp3, def_stats = AH.attack_combo_stats(enemy_attackers, dsts, unit)
+            -- If no attacks are found, we're done; return empty table
+            if (not attack_combos[1]) then return {} end
 
-            counter_table.average_def_stats = def_stats
+            -- Want an 'enemies' map, indexed by position (for speed reasons)
+            local enemies_map = {}
+            for i,u in ipairs(enemies) do enemies_map[u.x * 1000 + u.y] = u end
 
-            return counter_table
+            -- Now find the worst-case counter attack
+            local max_rating, worst_hp, worst_def_stats = -9e99, 0, {}
+            for i,combo in ipairs(attack_combos) do
+                -- attackers and dsts arrays for stats calculation
+                local atts, dsts = {}, {}
+                for dst,src in pairs(combo) do
+                    table.insert(atts, enemies_map[src])
+                    table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
+                end
+
+                -- Get the attack combo outcome.  We're really only interested in combo_def_stats
+                local default_rating, sorted_atts, sorted_dsts, combo_att_stats, combo_def_stats = AH.attack_combo_stats(atts, dsts, unit)
+
+                -- Minimum hitpoints for the unit after this attack combo
+                local min_hp = 10000
+                for hp,p in pairs(combo_def_stats.hp_chance) do
+                    if (p > 0) and (hp < min_hp) then min_hp = hp end
+                end
+
+                -- Rating, for the purpose of counter attack evaluation, is simply
+                -- minimum hitpoints and chance to die combination
+                local rating = -min_hp + combo_def_stats.hp_chance[0] * 100
+                --print(i, #atts, min_hp, combo_def_stats.hp_chance[0], ' -->', rating)
+
+                if (rating > max_rating) then
+                    max_rating = rating
+                    worst_hp, worst_def_stats = min_hp, combo_def_stats
+                end
+            end
+            --print(max_rating, worst_hp)
+            --DBG.dbms(worst_def_stats)
+
+            return worst_hp, worst_def_stats
         end
 
         ------ Stats at beginning of turn -----------
@@ -1315,11 +1306,10 @@ return {
                             -- Make him the preferred village taker unless he's likely to die
                             -- but only if he's on the keep
                             if u.canrecruit then
-                                local counter_table = grunt_rush_FLS1:calc_counter_attack(u, { v[1], v[2] })
-                                local max_counter_damage = counter_table.max_counter_damage
-                                --print('    max_counter_damage:', u.id, max_counter_damage)
-                                if (max_counter_damage < u.hitpoints) and wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
-                                    --print('      -> take village with leader')
+                                local min_hp, counter_def_stats = grunt_rush_FLS1:calc_counter_attack(u, { v[1], v[2] })
+                                print('    min_hp:', u.id, min_hp)
+                                if (min_hp > 0) and wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
+                                    print('      -> take village with leader')
                                     rating = rating + 2
                                 else
                                     rating = -9e99
@@ -1396,22 +1386,24 @@ return {
                         for k,a in ipairs(sorted_atts) do
                             if a.canrecruit then
                                 local x, y = sorted_dsts[k][1], sorted_dsts[k][2]
-                                local counter_attack = grunt_rush_FLS1:calc_counter_attack(a, { x, y })
+                                local counter_min_hp, counter_def_stats = grunt_rush_FLS1:calc_counter_attack(a, { x, y })
 
                                 -- If there's a chance to be poisoned or slowed, don't do it
-                                if (counter_attack.average_def_stats.slowed > 0.0) or (counter_attack.average_def_stats.poisoned > 0.0) then
+                                if (counter_def_stats.slowed > 0.0) or (counter_def_stats.poisoned > 0.0) then
                                     do_attack = false
                                     break
                                 end
 
-                                -- Add max counter damage on next turn to maximum damage this turn
+                                -- Add max damages from this turn and counter attack
                                 local min_hp = 10000
                                 for hp,p in pairs(combo_att_stats[k].hp_chance) do
                                     if (p > 0) and (hp < min_hp) then
                                         min_hp = hp
                                     end
                                 end
-                                local min_outcome = min_hp - counter_attack.max_counter_damage
+                                local max_damage = a.hitpoints - min_hp
+                                local min_outcome = counter_min_hp - max_damage
+                                print('min_outcome, counter_min_hp, max_damage', min_outcome, counter_min_hp, max_damage)
 
                                 if (min_outcome <= 0) then
                                     do_attack = false
