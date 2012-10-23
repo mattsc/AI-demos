@@ -1207,14 +1207,27 @@ function ai_helper.get_attack_combos(units, enemy)
     return combos
 end
 
-function ai_helper.get_attack_combos_no_order(units, enemy)
+function ai_helper.get_attack_combos_no_order(units, enemy, cfg)
     -- Calculate attack combination result by 'units' on 'enemy'
     -- Returns an array similar to that given by ai.get_attacks
     -- Only the combinations of which unit from which hex are considered, but not in which order the
     -- attacks are done
+    -- cfg: A config table to do the calculation under different conditions
+    --   - max_moves: if set, find attacks as if all units have maximum MP (good for enemy attack combos)
     -- Return values:
     --   1. Attack combinations in form { dst = src }
     --   2. All the attacks indexed by [dst][src]
+
+    cfg = cfg or {}
+
+    -- If max_moves is set, set moves for all units to max_moves
+    if cfg.max_moves then
+        cfg.current_moves = {}
+        for i,u in ipairs(units) do
+            cfg.current_moves[i] = u.moves
+            u.moves = u.max_moves
+        end
+    end
 
     local attacks = ai_helper.get_attacks_occupied(units)
     --print('# all attacks', #attacks)
@@ -1225,6 +1238,14 @@ function ai_helper.get_attack_combos_no_order(units, enemy)
         end
     end
     --print('# enemy attacks', #attacks)
+
+    -- Now reset the moves
+    if cfg.max_moves then
+        for i,u in ipairs(units) do
+            u.moves = cfg.current_moves[i]
+        end
+    end
+
     if (not attacks[1]) then return {}, {} end
 
     -- Find all hexes adjacent to enemy that can be reached by any attacker
