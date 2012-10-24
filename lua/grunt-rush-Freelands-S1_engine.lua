@@ -287,11 +287,11 @@ return {
 
             local max_rating, best_attackers, best_dsts, best_enemy = -9e99, {}, {}, {}
             for i,e in ipairs(enemies) do
-                --print('\n', i, e.id)
+                --print(i, e.id, os.clock())
                 local attack_combos, attacks_dst_src = AH.get_attack_combos_no_order(units, e)
                 --DBG.dbms(attack_combos)
                 --DBG.dbms(attacks_dst_src)
-                --print('#attack_combos', #attack_combos)
+                --print('#attack_combos', #attack_combos, os.clock())
 
                 local enemy_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(e.x, e.y)).village
                 local enemy_cost = e.__cfg.cost
@@ -395,7 +395,7 @@ return {
                             end
                         end
 
-                        --print(' -----------------------> zoc attack rating', rating)
+                        --print(' -----------------------> zoc attack rating', rating, os.clock())
                         if (rating > max_rating) then
                             max_rating, best_attackers, best_dsts, best_enemy = rating, attackers, dsts, e
                         end
@@ -613,9 +613,12 @@ return {
                 local default_rating, sorted_atts, sorted_dsts, combo_att_stats, combo_def_stats = AH.attack_combo_stats(atts, dsts, unit)
 
                 -- Minimum hitpoints for the unit after this attack combo
-                local min_hp = 10000
-                for hp,p in pairs(combo_def_stats.hp_chance) do
-                    if (p > 0) and (hp < min_hp) then min_hp = hp end
+                local min_hp = 0
+                for hp = 0,unit.hitpoints do
+                    if (combo_def_stats.hp_chance[hp] > 0) then
+                        min_hp = hp
+                        break
+                    end
                 end
 
                 -- Rating, for the purpose of counter attack evaluation, is simply
@@ -1415,12 +1418,14 @@ return {
                                 end
 
                                 -- Add max damages from this turn and counter attack
-                                local min_hp = 10000
-                                for hp,p in pairs(combo_att_stats[k].hp_chance) do
-                                    if (p > 0) and (hp < min_hp) then
+                                local min_hp = 0
+                                for hp = 0,a.hitpoints do
+                                    if (combo_att_stats[k].hp_chance[hp] > 0) then
                                         min_hp = hp
+                                        break
                                     end
                                 end
+
                                 local max_damage = a.hitpoints - min_hp
                                 local min_outcome = counter_min_hp - max_damage
                                 --print('min_outcome, counter_min_hp, max_damage', min_outcome, counter_min_hp, max_damage)
