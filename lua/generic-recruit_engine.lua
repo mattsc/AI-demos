@@ -281,7 +281,7 @@ return {
                         recruit_vulnerability[recruit_id] = 0
                     end
                     recruit_effectiveness[recruit_id] = recruit_effectiveness[recruit_id] + analysis[recruit_id].defense.damage * enemy_counts[unit_type]^2
-                    recruit_vulnerability[recruit_id] = recruit_vulnerability[recruit_id] + (analysis[recruit_id].retaliation.damage * enemy_counts[unit_type])^2
+                    recruit_vulnerability[recruit_id] = recruit_vulnerability[recruit_id] + (analysis[recruit_id].retaliation.damage * enemy_counts[unit_type])^3
 
                     local attack_type = analysis[recruit_id].defense.attack.type
                     if attack_type_count[attack_type] == nil then
@@ -303,7 +303,7 @@ return {
             end
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
                 recruit_effectiveness[recruit_id] = (recruit_effectiveness[recruit_id] / (num_enemies)^2)^0.5
-                recruit_vulnerability[recruit_id] = (recruit_vulnerability[recruit_id] / ((num_enemies)^2))^0.5
+                recruit_vulnerability[recruit_id] = (recruit_vulnerability[recruit_id] / ((num_enemies)^2))
             end
             -- Correct count of units for each range
             --for range, count in pairs(attack_range_count) do
@@ -315,8 +315,9 @@ return {
             end
 
             -- Find best recruit based on damage done to enemies present, speed, and hp/gold ratio
-            local score = 0
-            local recruit_type = nil
+
+            local recruit_scores = {}
+            local best_scores = {offense = 0, defense = 0, move = 0}
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
                 -- Count number of units with the same attack type. Used to avoid recruiting too many of the same unit
                 local attack_types = 0
@@ -331,20 +332,39 @@ return {
                 -- Use time to enemy to encourage recruiting fast units when the opponent is far away (game is beginning or we're winning)
                 local recruit_unit = wesnoth.create_unit { type = recruit_id, x = best_hex[1], y = best_hex[2] }
                 local path, cost = wesnoth.find_path(recruit_unit, enemy_location.x, enemy_location.y, {ignore_units = true})
-                local move_score = (distance_to_enemy^2 / (cost / wesnoth.unit_types[recruit_id].max_moves)^0.3) / (20*recruit_modifier^2)
+                local move_score = (distance_to_enemy^2 / (cost / wesnoth.unit_types[recruit_id].max_moves)^0.3) / recruit_modifier
 
                 -- Estimate effectiveness on offense and defense
-                local offense_score = recruit_effectiveness[recruit_id]/(wesnoth.unit_types[recruit_id].cost^0.45*recruit_modifier^4)
-                local defense_score = (4000*efficiency[recruit_id]/(recruit_vulnerability[recruit_id]^1.4*hp_ratio^0.7))
+                local offense_score = recruit_effectiveness[recruit_id]/(wesnoth.unit_types[recruit_id].cost^0.3*recruit_modifier^4)
+                local defense_score = efficiency[recruit_id]/recruit_vulnerability[recruit_id]
 
-                local unit_score = offense_score + defense_score + move_score
-                if can_slow(recruit_unit) then
-                    unit_score = unit_score + 2.5
+                local unit_score = {offense = offense_score, defense = defense_score, move = move_score}
+                recruit_scores[recruit_id] = unit_score
+                for key, score in pairs(unit_score) do
+                    if score > best_scores[key] then
+                        best_scores[key] = score
+                    end
                 end
-               -- wesnoth.message(recruit_id .. " score: " .. offense_score .. " + " .. defense_score .. " + " .. move_score  .. " = " .. unit_score)
-                if unit_score > score then
 
-                    score = unit_score
+                if can_slow(recruit_unit) then
+                    unit_score["slows"] = true
+                end
+            end
+            local best_score = 0
+            local recruit_type = nil
+            for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
+                local scores = recruit_scores[recruit_id]
+                local offense_score = (scores["offense"]/best_scores["offense"])^0.5
+                local defense_score = (scores["defense"]/best_scores["defense"])^0.5
+                local move_score = scores["move"]/best_scores["move"]
+                local score = offense_score*2 + defense_score*hp_ratio^0.7 + move_score
+
+                if scores["slows"] then
+                    score = score + 0.1
+                end
+                --wesnoth.message(recruit_id .. " score: " .. offense_score*2 .. " + " .. defense_score*hp_ratio^0.7 .. " + " .. move_score  .. " = " .. score)
+                if score > best_score then
+                    best_score = score
                     recruit_type = recruit_id
                 end
             end
