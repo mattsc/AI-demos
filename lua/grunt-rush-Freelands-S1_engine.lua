@@ -2155,9 +2155,7 @@ return {
             -- If several attacks have poison, this will always find the last one
             local is_poisoner, poison_weapon = AH.has_weapon_special(attacker, "poison")
 
-            local dw = -1
-            if AH.got_1_11() then dw = 0 end
-            ai.attack(attacker, defender, poison_weapon + dw)
+            ai.attack(attacker, defender, poison_weapon)
             grunt_rush_FLS1.data.SP_attack = nil
 
             -- In case either attacker or defender died, don't do anything
