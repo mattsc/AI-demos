@@ -1367,8 +1367,9 @@ return {
             for i,u in ipairs(attackers) do attacker_map[u.x * 1000 + u.y] = u end
 
             local max_rating, best_attackers, best_dsts, best_enemy = -9e99, {}, {}, {}
+            local counter_table = {}  -- Counter attacks are very expensive, store to avoid duplication
             for i,e in ipairs(targets) do
-                --print('\n', i, e.id)
+                --print(i, e.id, os.clock())
                 local attack_combos, attacks_dst_src = AH.get_attack_combos_no_order(attackers, e)
                 --DBG.dbms(attack_combos)
                 --DBG.dbms(attacks_dst_src)
@@ -1409,7 +1410,18 @@ return {
                         for k,a in ipairs(sorted_atts) do
                             if a.canrecruit then
                                 local x, y = sorted_dsts[k][1], sorted_dsts[k][2]
-                                local counter_min_hp, counter_def_stats = grunt_rush_FLS1:calc_counter_attack(a, { x, y })
+                                local att_ind = sorted_atts[k].x * 1000 + sorted_atts[k].y
+                                local dst_ind = x * 1000 + y
+                                if (not counter_table[att_ind]) then counter_table[att_ind] = {} end
+                                if (not counter_table[att_ind][dst_ind]) then
+                                    --print('Calculating new counter attack combination')
+                                    local counter_min_hp, counter_def_stats = grunt_rush_FLS1:calc_counter_attack(a, { x, y })
+                                    counter_table[att_ind][dst_ind] = { min_hp = counter_min_hp, counter_def_stats = counter_def_stats }
+                                else
+                                    --print('Counter attack combo already calculated.  Re-using.')
+                                end
+                                local counter_min_hp = counter_table[att_ind][dst_ind].min_hp
+                                local counter_def_stats = counter_table[att_ind][dst_ind].counter_def_stats
 
                                 -- If there's a chance to be poisoned or slowed, don't do it
                                 if (counter_def_stats.slowed > 0.0) or (counter_def_stats.poisoned > 0.0) then
@@ -1462,7 +1474,7 @@ return {
                     end
                 end
             end
-            --print('max_rating ', max_rating)
+            --print('max_rating ', max_rating, os.clock())
 
             if (max_rating > -9e99) then
                 -- Only execute the first of these attacks
