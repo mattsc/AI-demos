@@ -1329,6 +1329,7 @@ return {
                             -- Make him the preferred village taker unless he's likely to die
                             -- but only if he's on the keep
                             if u.canrecruit then
+                                -- These are usually individual calls, so while expensive, this is fine
                                 local min_hp, counter_def_stats = grunt_rush_FLS1:calc_counter_attack(u, { v[1], v[2] })
                                 --print('    min_hp:', u.id, min_hp)
                                 if (min_hp > 0) and wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
