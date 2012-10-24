@@ -286,6 +286,7 @@ return {
 
             local max_rating, best_attackers, best_dsts, best_enemy = -9e99, {}, {}, {}
             local counter_table = {}  -- Counter attacks are very expensive, store to avoid duplication
+            local precalc_attacks = {}  -- same reason
             for i,e in ipairs(enemies) do
                 --print(i, e.id, os.clock())
                 local attack_combos, attacks_dst_src = AH.get_attack_combos_no_order(units, e)
@@ -342,7 +343,7 @@ return {
                             table.insert(attackers, att)
                             table.insert(dsts, { math.floor(dst / 1000), dst % 1000 })
                         end
-                        rating, attackers, dsts, combo_att_stats, combo_def_stats = AH.attack_combo_stats(attackers, dsts, e)
+                        rating, attackers, dsts, combo_att_stats, combo_def_stats = AH.attack_combo_stats(attackers, dsts, e, precalc_attacks)
                     end
 
                     -- Don't attack under certain circumstances:
@@ -617,6 +618,7 @@ return {
 
             -- Now find the worst-case counter attack
             local max_rating, worst_hp, worst_def_stats = -9e99, 0, {}
+            local precalc_attacks = {}  -- To avoid unnecessary duplication of calculations
             for i,combo in ipairs(attack_combos) do
                 -- attackers and dsts arrays for stats calculation
                 local atts, dsts = {}, {}
@@ -626,7 +628,7 @@ return {
                 end
 
                 -- Get the attack combo outcome.  We're really only interested in combo_def_stats
-                local default_rating, sorted_atts, sorted_dsts, combo_att_stats, combo_def_stats = AH.attack_combo_stats(atts, dsts, unit)
+                local default_rating, sorted_atts, sorted_dsts, combo_att_stats, combo_def_stats = AH.attack_combo_stats(atts, dsts, unit, precalc_attacks)
 
                 -- Minimum hitpoints for the unit after this attack combo
                 local min_hp = 0
@@ -663,7 +665,7 @@ return {
 
         function grunt_rush_FLS1:stats_exec()
             local tod = wesnoth.get_time_of_day()
-            print(' Beginning of Turn ' .. wesnoth.current.turn .. ' (' .. tod.name ..') stats:')
+            print(' Beginning of Turn ' .. wesnoth.current.turn .. ' (' .. tod.name ..') stats (CPU time ' .. os.clock() .. ')')
 
             for i,s in ipairs(wesnoth.sides) do
                 local total_hp = 0
@@ -1385,8 +1387,9 @@ return {
 
             local max_rating, best_attackers, best_dsts, best_enemy = -9e99, {}, {}, {}
             local counter_table = {}  -- Counter attacks are very expensive, store to avoid duplication
+            local precalc_attacks = {}  -- same reason
             for i,e in ipairs(targets) do
-                --print(i, e.id, os.clock())
+                --print('\n', i, e.id, os.clock())
                 local attack_combos, attacks_dst_src = AH.get_attack_combos_no_order(attackers, e)
                 --DBG.dbms(attack_combos)
                 --DBG.dbms(attacks_dst_src)
@@ -1396,13 +1399,14 @@ return {
                 local enemy_cost = e.__cfg.cost
 
                 for j,combo in ipairs(attack_combos) do
+                    --print('combo ' .. j, os.clock())
                     -- attackers and dsts arrays for stats calculation
                     local atts, dsts = {}, {}
                     for dst,src in pairs(combo) do
                         table.insert(atts, attacker_map[src])
                         table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
                     end
-                    local rating, sorted_atts, sorted_dsts, combo_att_stats, combo_def_stats = AH.attack_combo_stats(atts, dsts, e)
+                    local rating, sorted_atts, sorted_dsts, combo_att_stats, combo_def_stats = AH.attack_combo_stats(atts, dsts, e, precalc_attacks)
                     --DBG.dbms(combo_def_stats)
 
                     -- Don't attack if CTD is too high for any of the attackers
@@ -1484,7 +1488,7 @@ return {
                     end
 
                     if do_attack then
-                        --print(' -----------------------> rating', rating)
+                        --print(' -----------------------> rating', rating, os.clock())
                         if (rating > max_rating) then
                             max_rating, best_attackers, best_dsts, best_enemy = rating, sorted_atts, sorted_dsts, e
                         end
@@ -1642,6 +1646,7 @@ return {
             -- **** This ends the common initialization for all zone actions ****
 
             -- **** Retreat seriously injured units
+            --print('retreat', os.clock())
 
             -- Note: while severely injured units are dealt with on a zone-by-zone basis,
             -- they can retreat to hexes outside the zones
@@ -1680,6 +1685,7 @@ return {
             end
 
             -- **** Attack evaluation ****
+            --print('attack', os.clock())
 
             -- Attackers include the leader but only if he is on his
             -- keep, in order to prevent him from wandering off
@@ -1726,6 +1732,7 @@ return {
             end
 
             -- **** Villages evaluation ****
+            --print('villages', os.clock())
 
             -- This should include both retreating to villages of injured units and village grabbing
             -- The leader is only included if he is on the keep
@@ -1785,6 +1792,7 @@ return {
             end
 
             -- **** Hold position evaluation ****
+            --print('hold', os.clock())
 
             -- If we got here, check for holding the zone
             if (not cfg.hold.skip) then
@@ -1830,12 +1838,15 @@ return {
             local cfgs = grunt_rush_FLS1:get_zone_cfgs()
 
             for i_c,cfg in ipairs(cfgs) do
+                --print('zone_control: ', cfg.zone_id, os.clock())
                 local zone_action = grunt_rush_FLS1:get_zone_action(cfg, i_c)
-                --DBG.dbms(rush)
 
                 if zone_action then
                     grunt_rush_FLS1.data.zone_action = zone_action
                     if AH.print_eval() then print('       - Done evaluating ZC :', os.clock(), ' ---------------> ', os.clock() - start_time) end
+                    if (os.clock() - start_time > 10) then
+                        W.message{ speaker = 'narrator', message = 'This took a really long time (which it should not).  If you can, would you mind sending us a screen grab of this situation?  Thanks!' }
+                    end
                     return score_zone_control
                 end
             end
@@ -2156,8 +2167,8 @@ return {
             -- A little joke: if the assassin misses all 3 poison attacks, complain
             if (not grunt_rush_FLS1.data.SP_complained_about_luck) and (defender.hitpoints == def_hp) then
                 grunt_rush_FLS1.data.SP_complained_about_luck = true
-                W.delay { time = 1000 }
-                W.message { speaker = attacker.id, message = "Oh, come on !" }
+                --W.delay { time = 1000 }
+                --W.message { speaker = attacker.id, message = "Oh, come on !" }
             end
 
             if grunt_rush_FLS1.data.SP_support_attack then

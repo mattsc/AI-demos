@@ -1360,7 +1360,7 @@ function ai_helper.get_attack_combos_no_order(units, enemy, cfg)
     return combos, attacks_dst_src
 end
 
-function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy)
+function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc)
     -- Calculate attack combination outcomes using
     -- tmp_attackers: array of attacker units (this is done so that
     --   the units need not be found here, as likely doing it in the
@@ -1368,6 +1368,8 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy)
     -- tmp_dsts: array of the hexes (format {x, y}) from which the attackers attack
     --   must be in same order as 'attackers'
     -- enemy: the enemy being attacked
+    -- precalc: an optional table of pre-calculated attack outcomes
+    --   - As this is a table, we can modify it in here, which also modifies it in the calling function
     --
     -- Return values: see end of this function for explanations
     --
@@ -1375,47 +1377,72 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy)
     -- with slow and drain, but should be good otherwise
     -- Doing all of it right is not possible for computation time reasons
 
+    precalc = precalc or {}
+
     -- We first simulate and rate the individual attacks
     local ratings, tmp_attacker_ratings = {}, {}
     local tmp_att_stats, tmp_def_stats = {}, {}
     for i,a in ipairs(tmp_attackers) do
-        tmp_att_stats[i], tmp_def_stats[i] = ai_helper.simulate_combat_loc(a, tmp_dsts[i], enemy)
+        -- Initialize or use the 'precalc' table
+        local enemy_ind = enemy.x * 1000 + enemy.y
+        local att_ind = a.x * 1000 + a.y
+        local dst_ind = tmp_dsts[i][1] * 1000 + tmp_dsts[i][2]
+        if (not precalc[enemy_ind]) then precalc[enemy_ind] = {} end
+        if (not precalc[enemy_ind][att_ind]) then precalc[enemy_ind][att_ind] = {} end
 
-        -- Get the base rating from ai_helper.attack_rating()
-        local rating, dummy, tmp_ar = ai_helper.attack_rating(tmp_att_stats[i], tmp_def_stats[i], a, enemy, tmp_dsts[i])
-        tmp_attacker_ratings[i] = tmp_ar
-        --print('rating:', rating)
+        if (not precalc[enemy_ind][att_ind][dst_ind]) then
+            --print('Calculating attack combo stats:', enemy_ind, att_ind, dst_ind)
+            tmp_att_stats[i], tmp_def_stats[i] = ai_helper.simulate_combat_loc(a, tmp_dsts[i], enemy)
 
-        -- But for combos, also want units with highest attack outcome uncertainties to go early
-        -- So that we can change our mind in case of unfavorable outcome
-        local outcome_variance = 0
-        local av = tmp_def_stats[i].average_hp
-        local n_outcomes = 0
+            -- Get the base rating from ai_helper.attack_rating()
+            local rating, dummy, tmp_ar = ai_helper.attack_rating(tmp_att_stats[i], tmp_def_stats[i], a, enemy, tmp_dsts[i])
+            tmp_attacker_ratings[i] = tmp_ar
+            --print('rating:', rating)
 
-        for hp,p in ipairs(tmp_def_stats[i].hp_chance) do
-            if (p > 0) then
-                local dv = p * (hp - av)^2
-                --print(hp,p,av, dv)
-                outcome_variance = outcome_variance + dv
-                n_outcomes = n_outcomes + 1
+            -- But for combos, also want units with highest attack outcome uncertainties to go early
+            -- So that we can change our mind in case of unfavorable outcome
+            local outcome_variance = 0
+            local av = tmp_def_stats[i].average_hp
+            local n_outcomes = 0
+
+            for hp,p in ipairs(tmp_def_stats[i].hp_chance) do
+                if (p > 0) then
+                    local dv = p * (hp - av)^2
+                    --print(hp,p,av, dv)
+                    outcome_variance = outcome_variance + dv
+                    n_outcomes = n_outcomes + 1
+                end
             end
+            outcome_variance = outcome_variance / n_outcomes
+            --print('outcome_variance', outcome_variance)
+
+            -- Note that this is a variance, not a standard deviations (as in, it's squared),
+            -- so it does not matter much for low-variance attacks, but takes on large values for
+            -- high variance attacks.  I think this is what we want.
+            rating = rating + outcome_variance
+
+            -- If attacker has attack with 'slow' special, it should always go first
+            -- This isn't quite true in reality, but can be refined later
+            if ai_helper.has_weapon_special(a, "slow") then
+                rating = rating + 50  -- but not quite as high as a really high CTK
+            end
+
+            --print('Final rating', rating, i)
+            ratings[i] = { i, rating }
+
+            precalc[enemy_ind][att_ind][dst_ind] = {
+                rating = rating,  -- Cannot use { i, rating } here, as 'i' might be different next time
+                attacker_ratings = tmp_attacker_ratings[i],
+                att_stats = tmp_att_stats[i],
+                def_stats = tmp_def_stats[i]
+            }
+        else
+            --print('Stats already exist')
+            ratings[i] = { i, precalc[enemy_ind][att_ind][dst_ind].rating }
+            tmp_attacker_ratings[i] = precalc[enemy_ind][att_ind][dst_ind].attacker_ratings
+            tmp_att_stats[i] = precalc[enemy_ind][att_ind][dst_ind].att_stats
+            tmp_def_stats[i] = precalc[enemy_ind][att_ind][dst_ind].def_stats
         end
-        outcome_variance = outcome_variance / n_outcomes
-        --print('outcome_variance', outcome_variance)
-
-        -- Note that this is a variance, not a standard deviations (as in, it's squared),
-        -- so it does not matter much for low-variance attacks, but takes on large values for
-        -- high variance attacks.  I think this is what we want.
-        rating = rating + outcome_variance
-
-        -- If attacker has attack with 'slow' special, it should always go first
-        -- This isn't quite true in reality, but can be refined later
-        if ai_helper.has_weapon_special(a, "slow") then
-            rating = rating + 50  -- but not quite as high as a really high CTK
-        end
-
-        --print('Final rating', rating, i)
-        ratings[i] = { i, rating }
     end
 
     -- Now sort all the arrays based on this rating
