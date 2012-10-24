@@ -54,6 +54,19 @@ function ai_helper.print_eval()
     return false
 end
 
+function ai_helper.done_eval_messages(start_time, ca_name)
+    ca_name = ca_name or 'unknown'
+    local dt = os.clock() - start_time
+    if ai_helper.print_eval() then print('       - Done evaluating ' .. ca_name .. ':', os.clock(), ' ---------------> ', dt) end
+    if (dt >= 10) then
+        W.message{
+            speaker = 'narrator',
+            caption = 'Evaluation of candidate action ' .. ca_name .. ' took ' .. dt .. ' seconds',
+            message = 'This took a really long time (which it should not).  If you can, would you mind sending us a screen grab of this situation?  Thanks!'
+        }
+    end
+end
+
 function ai_helper.got_1_11()
    if not wesnoth.compare_versions then return false end
    return wesnoth.compare_versions(wesnoth.game_config.version, ">=", "1.11.0-svn")
