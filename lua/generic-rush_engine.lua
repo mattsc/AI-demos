@@ -316,20 +316,9 @@ return {
 
             -- Find the poison weapon
             -- If several attacks have poison, this will always find the last one
-            local poison_weapon, weapon_number = -1, 0
-            for att in H.child_range(attacker.__cfg, 'attack') do
-                weapon_number = weapon_number + 1
-                for sp in H.child_range(att, 'specials') do
-                    if H.get_child(sp, 'poison') then
-                        --print('is_poinsoner:', attacker.id, ' weapon number: ', weapon_number)
-                        poison_weapon = weapon_number
-                    end
-                end
-            end
+            local is_poisoner, poison_weapon = AH.has_weapon_special(attacker, "poison")
 
-            local dw = -1
-            if AH.got_1_11() then dw = 0 end
-            ai.attack(attacker, defender, poison_weapon + dw)
+            ai.attack(attacker, defender, poison_weapon)
 
             self.data.attack = nil
         end
