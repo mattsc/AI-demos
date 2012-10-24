@@ -69,7 +69,7 @@ end
 
 function ai_helper.got_1_11()
    if not wesnoth.compare_versions then return false end
-   return wesnoth.compare_versions(wesnoth.game_config.version, ">=", "1.11.0-svn")
+   return wesnoth.compare_versions(wesnoth.game_config.version, ">=", "1.11.0")
 end
 
 function ai_helper.got_exactly_1_11_0_svn()
