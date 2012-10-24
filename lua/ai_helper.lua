@@ -808,6 +808,23 @@ end
 
 ---------- Attack related helper functions --------------
 
+function ai_helper.simulate_combat_loc_fake(attacker, dst, defender, weapon)
+    -- A function to return a fake simulate_combat result
+    -- Used to test how long simulate_combat takes
+    local att_stats, def_stats = { hp_chance = {} }, { hp_chance = {} }
+
+    for i = 0,38 do att_stats.hp_chance[i], def_stats.hp_chance[i] = 0, 0 end
+
+    att_stats.hp_chance[21], att_stats.hp_chance[23], att_stats.hp_chance[25], att_stats.hp_chance[27] = 0.125, 0.375, 0.375, 0.125
+    att_stats.poisoned, att_stats.slowed, att_stats.average_hp = 0.875, 0, 24
+
+    def_stats.hp_chance[0], def_stats.hp_chance[2], def_stats.hp_chance[10] = 0.09, 0.42, 0.49
+    def_stats.poisoned, def_stats.slowed, def_stats.average_hp = 0, 0, 1.74
+
+    return att_stats, def_stats
+end
+
+
 function ai_helper.simulate_combat_loc(attacker, dst, defender, weapon)
     -- Get simulate_combat results for unit 'attacker' attacking unit at 'defender'
     -- when on terrain as that at 'dst', which is of form {x,y}
