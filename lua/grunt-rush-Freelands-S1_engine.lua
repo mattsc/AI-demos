@@ -242,7 +242,6 @@ return {
             --   - These units don't actually have to be able to attack the enemies, that is determined here
             -- - enemies: the enemies for which trapping is to be attempted
             -- Output: the attackers and dsts arrays and the enemy; or nil, if no suitable attack was found
-
             if (not units_org) then return end
             if (not enemies_org) then return end
 
@@ -286,6 +285,7 @@ return {
             if (not enemies[1]) then return nil end
 
             local max_rating, best_attackers, best_dsts, best_enemy = -9e99, {}, {}, {}
+            local counter_table = {}  -- Counter attacks are very expensive, store to avoid duplication
             for i,e in ipairs(enemies) do
                 --print(i, e.id, os.clock())
                 local attack_combos, attacks_dst_src = AH.get_attack_combos_no_order(units, e)
@@ -356,13 +356,29 @@ return {
                     --print('  trapping_attack after elim: ', trapping_attack)
 
                     -- 2. If the 'exposure' at the attack location is too high, don't do it either
-                    for i_a,a in ipairs(attackers) do
-                        local min_hp, counter_def_stats = grunt_rush_FLS1:calc_counter_attack(a, dsts[i_a])
-                        --print(a.id, dsts[i_a][1], dsts[i_a][2], counter_def_stats.hp_chance[0], counter_def_stats.average_hp)
-                        -- Use a condition when damage is too much to be worthwhile
-                        if (counter_def_stats.hp_chance[0] > 0.30) or (counter_def_stats.average_hp < 10) then
-                            --print('Trapping attack too dangerous')
-                            trapping_attack = false
+                    if trapping_attack then
+
+                        for i_a,a in ipairs(attackers) do
+                            local x, y = dsts[i_a][1], dsts[i_a][2]
+                            local att_ind = a.x * 1000 + a.y
+                            local dst_ind = x * 1000 + y
+                            if (not counter_table[att_ind]) then counter_table[att_ind] = {} end
+                            if (not counter_table[att_ind][dst_ind]) then
+                                --print('Calculating new counter attack combination')
+                                local counter_min_hp, counter_def_stats = grunt_rush_FLS1:calc_counter_attack(a, { x, y })
+                                counter_table[att_ind][dst_ind] = { min_hp = counter_min_hp, counter_def_stats = counter_def_stats }
+                            else
+                                --print('Counter attack combo already calculated.  Re-using.')
+                            end
+                            local counter_min_hp = counter_table[att_ind][dst_ind].min_hp
+                            local counter_def_stats = counter_table[att_ind][dst_ind].counter_def_stats
+
+                            --print(a.id, dsts[i_a][1], dsts[i_a][2], counter_def_stats.hp_chance[0], counter_def_stats.average_hp)
+                            -- Use a condition when damage is too much to be worthwhile
+                            if (counter_def_stats.hp_chance[0] > 0.30) or (counter_def_stats.average_hp < 10) then
+                                --print('Trapping attack too dangerous')
+                                trapping_attack = false
+                            end
                         end
                     end
 
@@ -402,7 +418,7 @@ return {
                     end
                 end
             end
-            --print('max_rating ', max_rating)
+            --print('max_rating ', max_rating, os.clock())
 
             if (max_rating > -9e99) then
                 return best_attackers, best_dsts, best_enemy
