@@ -2244,7 +2244,7 @@ return {
             }
 
             -- Recruit on the castle hex that is closest to the above-defined 'goal'
-            local max_rating, best_hex, best_hex_left = -9e99, {}, {}
+            local max_rating, best_hex = -9e99, {}, {}
             for i,c in ipairs(castle) do
                 local unit_in_way = wesnoth.get_unit(c[1], c[2])
                 local rating = -9e99
@@ -2273,7 +2273,7 @@ return {
                 AH.move_unit_out_of_way(ai, unit_in_way, { dx = 0.1, dy = 0.5 })
             end
 
-            return best_hex, best_hex_left
+            return best_hex
         end
 
         function grunt_rush_FLS1:recruit_orcs_exec()
@@ -2289,7 +2289,7 @@ return {
             -- All of this is contingent on having enough gold (eval checked for gold > 12)
             -- -> if not enough gold for something else, recruit a grunt at the end
 
-            local best_hex, best_hex_left = grunt_rush_FLS1:find_best_recruit_hex()
+            local best_hex = grunt_rush_FLS1:find_best_recruit_hex()
 
             if AH.show_messages() then W.message { speaker = 'narrator', message = 'Recruiting' } end
 
@@ -2341,20 +2341,12 @@ return {
             end
 
             -- Recruit a goblin, if there is none, starting Turn 5
-            -- But only if way over to western-most village is clear
-            if (wesnoth.current.turn >= 5555) then
+            if (wesnoth.current.turn >= 5) then
                 local gobo = AH.get_live_units { side = wesnoth.current.side, type = 'Goblin Spearman' }[1]
                 if (not gobo) then
-                    -- Make sure that there aren't enemies in the way
-                    local enemy_units_left = AH.get_live_units { x = '1-17', y = '1-8',
-                        { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
-                    }
-                    if (not enemy_units_left[1]) then
-                        -- Goblin should be recruited on the left though
-                        --print('recruiting goblin based on numbers')
-                        ai.recruit('Goblin Spearman', best_hex_left[1], best_hex_left[2])
-                        return
-                    end
+                    --print('recruiting goblin based on numbers')
+                    ai.recruit('Goblin Spearman', best_hex[1], best_hex[2])
+                    return
                 end
             end
 
