@@ -577,10 +577,9 @@ return {
             end
 
             -- Get all possible attack combination
-            local attack_combos = AH.get_attack_combos_no_order(enemies, unit, { max_moves = true })
-            --DBG.dbms(attack_combos)
-            --DBG.dbms(attacks_dst_src)
-            --print('#attack_combos', #attack_combos, os.clock())
+            local all_attack_combos = AH.get_attack_combos_no_order(enemies, unit, { max_moves = true })
+            --DBG.dbms(all_attack_combos)
+            --print('#all_attack_combos', #all_attack_combos, os.clock())
 
             -- Put units back to where they were
             if (org_hex[1] ~= hex[1]) or (org_hex[2] ~= hex[2]) then
@@ -594,22 +593,26 @@ return {
             end
 
             -- If no attacks are found, we're done; return full HP and empty table
-            if (not attack_combos[1]) then return unit.hitpoints, {} end
+            if (not all_attack_combos[1]) then return unit.hitpoints, {} end
 
             -- Find the maximum number of attackers in a single combo
             -- Evaluate only those that have this number of attacks
             local max_attacks = 0
-            for i,combo in ipairs(attack_combos) do
+            for i,combo in ipairs(all_attack_combos) do
                 local number = 0
                 for dst,src in pairs(combo) do number = number + 1 end
                 if (number > max_attacks) then max_attacks = number end
             end
             -- Now eliminate all those that have fewer individual attacks
-            for i = #attack_combos,1,-1 do
+            local attack_combos = {}
+            for i = #all_attack_combos,1,-1 do
                 local number = 0
-                for dst,src in pairs(attack_combos[i]) do number = number + 1 end
-                if (number < max_attacks) then table.remove(attack_combos, i) end
+                for dst,src in pairs(all_attack_combos[i]) do number = number + 1 end
+                if (number == max_attacks) then
+                    table.insert(attack_combos, all_attack_combos[i])
+                end
             end
+            all_attack_combos = nil
             --print('#attack_combos', #attack_combos, os.clock())
 
             -- Want an 'enemies' map, indexed by position (for speed reasons)
