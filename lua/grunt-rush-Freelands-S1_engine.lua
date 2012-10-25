@@ -615,6 +615,34 @@ return {
             all_attack_combos = nil
             --print('#attack_combos', #attack_combos, os.clock())
 
+            -- For the counter attack calculation, we keep only unique combinations of units
+            -- This is because counter attacks are, almost by definition, a very expensive calculation
+            local unique_combos = {}
+            for i,combo in ipairs(attack_combos) do
+                -- To find unique combos, we mark all units involved in the combo by their
+                -- positions (src), combined in a string.  For that, the positions need to
+                -- be sorted.  Unfortunately, sorting only works on arrays, not general table
+                local tmp_arr, ind, str = {}, {}, ''
+                -- Set up the array, and sort
+                for dst,src in pairs(combo) do table.insert(tmp_arr, src) end
+                table.sort(tmp_arr, function(a, b) return a > b end)
+
+                -- Then construct the index string
+                for j,src in ipairs(tmp_arr) do str = str .. src end
+
+                -- Now insert this combination, if it does not exist yet
+                -- For now, we simply use the first attack of this unit combination
+                -- Later, this will be replaced by the "best" attack
+                if not unique_combos[str] then
+                    unique_combos[str] = combo
+                end
+            end
+            -- Then put the remaining combos back into an 'attack_combos' array
+            attack_combos = {}
+            for k,combo in pairs(unique_combos) do table.insert(attack_combos, combo) end
+            unique_combos = nil
+            --print('#attack_combos', #attack_combos, os.clock())
+
             -- Want an 'enemies' map, indexed by position (for speed reasons)
             local enemies_map = {}
             for i,u in ipairs(enemies) do enemies_map[u.x * 1000 + u.y] = u end
