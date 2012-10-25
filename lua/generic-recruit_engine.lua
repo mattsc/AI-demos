@@ -362,7 +362,7 @@ return {
                 if scores["slows"] then
                     score = score + 0.1
                 end
-                wesnoth.message(recruit_id .. " score: " .. offense_score*2 .. " + " .. defense_score/hp_ratio .. " + " .. move_score  .. " = " .. score)
+                --wesnoth.message(recruit_id .. " score: " .. offense_score*2 .. " + " .. defense_score/hp_ratio .. " + " .. move_score  .. " = " .. score)
                 if score > best_score then
                     best_score = score
                     recruit_type = recruit_id
