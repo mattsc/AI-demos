@@ -638,7 +638,7 @@ return {
             attack_combos = {}
             for k,combo in pairs(unique_combos) do table.insert(attack_combos, combo) end
             unique_combos = nil
-            print('#attack_combos', #attack_combos, os.clock())
+            --print('#attack_combos', #attack_combos, os.clock())
 
             -- Want an 'enemies' map, indexed by position (for speed reasons)
             local enemies_map = {}
