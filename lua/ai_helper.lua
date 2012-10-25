@@ -72,11 +72,6 @@ function ai_helper.got_1_11()
    return wesnoth.compare_versions(wesnoth.game_config.version, ">=", "1.11.0")
 end
 
-function ai_helper.got_exactly_1_11_0_svn()
-   if not wesnoth.compare_versions then return false end
-   return wesnoth.compare_versions(wesnoth.game_config.version, "==", "1.11.0-svn")
-end
-
 function ai_helper.filter(input, condition)
     -- equivalent of filter() function in Formula AI
 
@@ -1268,7 +1263,8 @@ function ai_helper.get_attack_combos_no_order(units, enemy, cfg)
     end
 
     local attacks = ai_helper.get_attacks_occupied(units)
-    --print('# all attacks', #attacks)
+
+    --print('# all attacks', #attacks, os.clock())
     --Eliminate those that are not on 'enemy'
     for i = #attacks,1,-1 do
         if (attacks[i].def_loc.x ~= enemy.x) or (attacks[i].def_loc.y ~= enemy.y) then
