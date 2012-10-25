@@ -357,12 +357,12 @@ return {
                 local offense_score = (scores["offense"]/best_scores["offense"])^0.5
                 local defense_score = (scores["defense"]/best_scores["defense"])^0.5
                 local move_score = scores["move"]/best_scores["move"]
-                local score = offense_score*2 + defense_score*hp_ratio^0.7 + move_score
+                local score = offense_score*2 + defense_score/hp_ratio + move_score
 
                 if scores["slows"] then
                     score = score + 0.1
                 end
-                --wesnoth.message(recruit_id .. " score: " .. offense_score*2 .. " + " .. defense_score*hp_ratio^0.7 .. " + " .. move_score  .. " = " .. score)
+                wesnoth.message(recruit_id .. " score: " .. offense_score*2 .. " + " .. defense_score/hp_ratio .. " + " .. move_score  .. " = " .. score)
                 if score > best_score then
                     best_score = score
                     recruit_type = recruit_id
