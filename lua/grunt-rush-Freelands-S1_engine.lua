@@ -2413,7 +2413,7 @@ return {
             -- If we got here, none of the previous conditions kicked in -> random recruit
             -- (if gold >= 17, for simplicity)
             if (wesnoth.sides[wesnoth.current.side].gold >= 17) then
-                W.set_variable { name = "LUA_random", rand = 'Orcish Archer,Orcish Assassin,Wolf Rider' }
+                W.set_variable { name = "LUA_random", rand = 'Orcish Archer,Orcish Assassin,Wolf Rider,Troll Whelp,Orcish Grunt' }
                 local type = wesnoth.get_variable "LUA_random"
                 wesnoth.set_variable "LUA_random"
                 --print('random recruit: ', type)
