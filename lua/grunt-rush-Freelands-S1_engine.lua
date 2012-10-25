@@ -605,11 +605,11 @@ return {
             end
             -- Now eliminate all those that have fewer individual attacks
             local attack_combos = {}
-            for i = #all_attack_combos,1,-1 do
+            for i,combo in ipairs(all_attack_combos) do
                 local number = 0
-                for dst,src in pairs(all_attack_combos[i]) do number = number + 1 end
+                for dst,src in pairs(combo) do number = number + 1 end
                 if (number == max_attacks) then
-                    table.insert(attack_combos, all_attack_combos[i])
+                    table.insert(attack_combos, combo)
                 end
             end
             all_attack_combos = nil
