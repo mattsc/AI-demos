@@ -596,18 +596,15 @@ return {
             if (not all_attack_combos[1]) then return unit.hitpoints, {} end
 
             -- Find the maximum number of attackers in a single combo
-            -- Evaluate only those that have this number of attacks
-            local max_attacks = 0
+            -- and keep only those that have this number of attacks
+            local max_attacks, attack_combos = 0, {}
             for i,combo in ipairs(all_attack_combos) do
                 local number = 0
                 for dst,src in pairs(combo) do number = number + 1 end
-                if (number > max_attacks) then max_attacks = number end
-            end
-            -- Now eliminate all those that have fewer individual attacks
-            local attack_combos = {}
-            for i,combo in ipairs(all_attack_combos) do
-                local number = 0
-                for dst,src in pairs(combo) do number = number + 1 end
+                if (number > max_attacks) then
+                    max_attacks = number
+                    attack_combos = {}
+                end
                 if (number == max_attacks) then
                     table.insert(attack_combos, combo)
                 end
@@ -641,7 +638,7 @@ return {
             attack_combos = {}
             for k,combo in pairs(unique_combos) do table.insert(attack_combos, combo) end
             unique_combos = nil
-            --print('#attack_combos', #attack_combos, os.clock())
+            print('#attack_combos', #attack_combos, os.clock())
 
             -- Want an 'enemies' map, indexed by position (for speed reasons)
             local enemies_map = {}
