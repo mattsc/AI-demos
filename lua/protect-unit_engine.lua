@@ -330,9 +330,7 @@ return {
             local units = wesnoth.get_units{id = ids, formula = '$this_unit.attacks_left > 0'}
             if (not units[1]) then return 0 end
 
-            -- This routine is somewhat slow, but wil hopefully be replaced soon
-            -- by built-in ai.get_attacks()
-            local attacks = AH.get_attacks(units)
+            local attacks = AH.get_attacks(units, { simulate_combat = true })
 
             if (not attacks[1]) then return 0 end
             --print('#attacks',#attacks,ids)
@@ -360,22 +358,22 @@ return {
             -- Now evaluate every attack
             for i,a in pairs(attacks) do
 
-                --print(i,a.x,a.y)
+                --print(i,a.dst.x,a.dst.y)
                 --print('  chance to die:',a.att_stats.hp_chance[0])
 
                 -- Only consider if there is no chance to die or to be poisoned or slowed
                 if ((a.att_stats.hp_chance[0] == 0) and (a.att_stats.poisoned == 0) and (a.att_stats.slowed == 0)) then
 
                     -- Get maximum possible retaliation possible by enemies on next turn
-                    local my_unit = wesnoth.get_unit(a.att_loc.x, a.att_loc.y)
+                    local my_unit = wesnoth.get_unit(a.src.x, a.src.y)
                     local max_retal = 0
 
                     for j,ea in ipairs(enemy_attacks) do
-                        local can_attack = ea.attack_map:get(a.x, a.y)
+                        local can_attack = ea.attack_map:get(a.dst.x, a.dst.y)
                         if can_attack then
 
                             -- Check first if this attack combination has already been calculated
-                            local str = (a.att_loc.x + a.att_loc.y * 1000) .. '-' .. (a.def_loc.x + a.def_loc.y * 1000)
+                            local str = (a.src.x + a.src.y * 1000) .. '-' .. (a.target.x + a.target.y * 1000)
                             --print(str)
                             if retal_table[str] then  -- If so, use saved value
                                 --print('    retal already calculated: ',str,retal_table[str])
@@ -446,11 +444,11 @@ return {
         end
 
         function protect_unit:attack_exec()
-            local attacker = wesnoth.get_unit(self.data.best_attack.att_loc.x, self.data.best_attack.att_loc.y)
-            local defender = wesnoth.get_unit(self.data.best_attack.def_loc.x, self.data.best_attack.def_loc.y)
+            local attacker = wesnoth.get_unit(self.data.best_attack.src.x, self.data.best_attack.src.y)
+            local defender = wesnoth.get_unit(self.data.best_attack.target.x, self.data.best_attack.target.y)
             --W.message {speaker=attacker.id, message="Attacking" }
 
-            AH.movefull_stopunit(ai, attacker, self.data.best_attack.x, self.data.best_attack.y)
+            AH.movefull_stopunit(ai, attacker, self.data.best_attack.dst.x, self.data.best_attack.dst.y)
             ai.attack(attacker, defender)
             self.data.best_attack = nil
         end
