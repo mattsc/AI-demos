@@ -1076,8 +1076,8 @@ function ai_helper.add_next_attack_level(combos, attacks)
     local combos_this_level = {}
 
     for i,a in ipairs(attacks) do
-        local hex_xy = a.y + a.x * 1000.  -- attack hex (src)
-        local att_xy = a.att_loc.y + a.att_loc.x * 1000.  -- attacker hex (dst)
+        local hex_xy = a.dst.y + a.dst.x * 1000.  -- attack hex (src)
+        local att_xy = a.src.y + a.src.x * 1000.  -- attacker hex (dst)
         if (not combos[1]) then  -- if this is the first recursion level, set up new combos for this level
             --print('New array')
             table.insert(combos_this_level, {{ h = hex_xy, a = att_xy }})
@@ -1125,7 +1125,7 @@ function ai_helper.get_attack_combos(units, enemy)
     --print('# all attacks', #attacks)
     -- Eliminate those that are not on 'enemy'
     for i = #attacks,1,-1 do
-        if (attacks[i].def_loc.x ~= enemy.x) or (attacks[i].def_loc.y ~= enemy.y) then
+        if (attacks[i].target.x ~= enemy.x) or (attacks[i].target.y ~= enemy.y) then
             table.remove(attacks, i)
         end
     end
@@ -1181,12 +1181,12 @@ function ai_helper.get_attack_combos_no_order(units, enemy, cfg)
         end
     end
 
-    local attacks = ai_helper.get_attacks_occupied(units)
+    local attacks = ai_helper.get_attacks(units, { include_occupied = true })
 
     --print('# all attacks', #attacks, os.clock())
     --Eliminate those that are not on 'enemy'
     for i = #attacks,1,-1 do
-        if (attacks[i].def_loc.x ~= enemy.x) or (attacks[i].def_loc.y ~= enemy.y) then
+        if (attacks[i].target.x ~= enemy.x) or (attacks[i].target.y ~= enemy.y) then
             table.remove(attacks, i)
         end
     end
@@ -1206,9 +1206,9 @@ function ai_helper.get_attack_combos_no_order(units, enemy, cfg)
     -- and array of all units (src) that can get there as value (in from x*1000+y)
     local attacks_dst_src = {}
     for i,a in ipairs(attacks) do
-        local xy = a.x * 1000 + a.y
+        local xy = a.dst.x * 1000 + a.dst.y
         if (not attacks_dst_src[xy]) then attacks_dst_src[xy] = { 0 } end  -- for attack by no unit on this hex
-        table.insert(attacks_dst_src[xy], a.att_loc.x * 1000 + a.att_loc.y )
+        table.insert(attacks_dst_src[xy], a.src.x * 1000 + a.src.y )
     end
     --DBG.dbms(attacks_dst_src)
 
@@ -1277,8 +1277,8 @@ function ai_helper.get_attack_combos_no_order(units, enemy, cfg)
     -- This is for easy indexing later, and is returned as a second argument by the function
     local attacks_dst_src = {}
     for i,a in ipairs(attacks) do
-        local xy_dst = a.x * 1000 + a.y
-        local xy_src = a.att_loc.x * 1000 + a.att_loc.y
+        local xy_dst = a.dst.x * 1000 + a.dst.y
+        local xy_src = a.src.x * 1000 + a.src.y
 
         if (not attacks_dst_src[xy_dst]) then attacks_dst_src[xy_dst] = { } end  -- for attack by no unit on this hex
         attacks_dst_src[xy_dst][xy_src] = a
