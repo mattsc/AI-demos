@@ -153,7 +153,7 @@ return {
 
             -- First check if attacks are possible for any unit
             local return_value = 200000
-            local attacks = AH.get_attacks(units)
+            local attacks = AH.get_attacks(units, { simulate_combat = true })
             -- If one with > 50% chance of kill is possible, set return_value to lower than combat CA
             for i,a in ipairs(attacks) do
                 if (a.def_stats.hp_chance[0] > 0.5) then
@@ -259,8 +259,8 @@ return {
             -- Go through all possible attacks with poisoners
             local max_rating, best_attack = -9e99, {}
             for i,a in ipairs(attacks) do
-                local attacker = wesnoth.get_unit(a.att_loc.x, a.att_loc.y)
-                local defender = wesnoth.get_unit(a.def_loc.x, a.def_loc.y)
+                local attacker = wesnoth.get_unit(a.src.x, a.src.y)
+                local defender = wesnoth.get_unit(a.target.x, a.target.y)
 
                 -- Don't try to poison a unit that cannot be poisoned
                 local status = H.get_child(defender.__cfg, "status")
@@ -287,7 +287,7 @@ return {
                     rating = rating + defender_defense / 2.
 
                     -- For the same attacker/defender pair, go to strongest terrain
-                    local attack_defense = 100 - wesnoth.unit_defense(attacker, wesnoth.get_terrain(a.x, a.y))
+                    local attack_defense = 100 - wesnoth.unit_defense(attacker, wesnoth.get_terrain(a.dst.x, a.dst.y))
                     rating = rating + attack_defense / 100.
                     --print('rating', rating)
 
@@ -309,10 +309,10 @@ return {
         function generic_rush:spread_poison_exec()
             if AH.print_exec() then print('     - Executing spread_poison CA') end
 
-            local attacker = wesnoth.get_unit(self.data.attack.att_loc.x, self.data.attack.att_loc.y)
-            local defender = wesnoth.get_unit(self.data.attack.def_loc.x, self.data.attack.def_loc.y)
+            local attacker = wesnoth.get_unit(self.data.attack.src.x, self.data.attack.src.y)
+            local defender = wesnoth.get_unit(self.data.attack.target.x, self.data.attack.target.y)
 
-            AH.movefull_stopunit(ai, attacker, self.data.attack.x, self.data.attack.y)
+            AH.movefull_stopunit(ai, attacker, self.data.attack.dst.x, self.data.attack.dst.y)
 
             -- Find the poison weapon
             -- If several attacks have poison, this will always find the last one
