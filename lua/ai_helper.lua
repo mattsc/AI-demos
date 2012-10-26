@@ -496,6 +496,8 @@ end
 
 function ai_helper.get_dst_src_units(units, cfg)
     -- Get the dst_src LS for 'units'
+    -- cfg: configuration table
+    --   - moves: if set to 'max' use max_moves of units, rather than current moves
 
     local max_moves = false
     if cfg then
@@ -524,7 +526,7 @@ end
 
 function ai_helper.get_dst_src(units)
     -- Produces the same output as ai.get_dst_src()   (available in 1.11.0)
-    -- If units is given, use them, otherwise do it for all units on side
+    -- If units is given, use them, otherwise do it for all units on the current side
 
     local my_units = {}
     if units then
@@ -591,6 +593,7 @@ function ai_helper.next_hop(unit, x, y, cfg)
     -- Returns coordinates of the endpoint of the hop, and movement cost to get there
     -- only unoccupied hexes are considered
     -- cfg: extra options for wesnoth.find_path()
+
     local path, cost = wesnoth.find_path(unit, x, y, cfg)
 
     -- If unit cannot get there:
@@ -739,7 +742,9 @@ end
 function ai_helper.move_unit_out_of_way(ai, unit, cfg)
     -- Find best close location to move unit to
     -- Main rating is the moves the unit still has left after that
-    -- Other, configurable, parameters are given to function in 'cfg'
+    -- Other, configurable, parameters are given to function in 'cfg':
+    --   - dx, dy: the direction in which moving out of the way is preferred
+    --   - labels: if set, display labels of the rating for each hex the unit can reach
 
     cfg = cfg or {}
 
