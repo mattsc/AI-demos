@@ -978,7 +978,7 @@ return {
 
             -- First check if attacks with >= 40% CTK are possible for any unit
             -- and that AI unit cannot die
-            local attacks = AH.get_attacks_occupied(units, { simulate_combat = true })
+            local attacks = AH.get_attacks(units, { simulate_combat = true, include_occupied = true })
             if (not attacks[1]) then
                 AH.done_eval_messages(start_time, ca_name)
                 return 0
@@ -1006,21 +1006,21 @@ return {
                 end
 
                 if ( one_strike_kill
-                    or (a.def_loc.x == enemy_leader.x) and (a.def_loc.y == enemy_leader.y) and (a.def_stats.hp_chance[0] > 0) )
+                    or (a.target.x == enemy_leader.x) and (a.target.y == enemy_leader.y) and (a.def_stats.hp_chance[0] > 0) )
                     or ( (a.def_stats.hp_chance[0] >= 0.40) and (a.att_stats.hp_chance[0] == 0) )
                 then
-                    local attacker = wesnoth.get_unit(a.att_loc.x, a.att_loc.y)
+                    local attacker = wesnoth.get_unit(a.src.x, a.src.y)
 
                     local rating = a.att_stats.average_hp - 2 * a.def_stats.average_hp
                     rating = rating + a.def_stats.hp_chance[0] * 50
 
                     rating = rating - (attacker.max_experience - attacker.experience) / 3.  -- the closer to leveling the unit is, the better
 
-                    local attack_defense = 100 - wesnoth.unit_defense(attacker, wesnoth.get_terrain(a.x, a.y))
+                    local attack_defense = 100 - wesnoth.unit_defense(attacker, wesnoth.get_terrain(a.dst.x, a.dst.y))
                     rating = rating + attack_defense / 100.
-                    --print('    rating:', rating, a.x, a.y)
+                    --print('    rating:', rating, a.dst.x, a.dst.y)
 
-                    if (a.def_loc.x == enemy_leader.x) and (a.def_loc.y == enemy_leader.y) and (a.def_stats.hp_chance[0] > 0)
+                    if (a.target.x == enemy_leader.x) and (a.target.y == enemy_leader.y) and (a.def_stats.hp_chance[0] > 0)
                     then rating = rating + 1000 end
 
                     -- Minor penalty if unit needs to be moved out of the way
@@ -1029,11 +1029,11 @@ return {
 
                     -- From dawn to afternoon, only attack if not more than 2 other enemy units are close
                     -- (but only if this is not the enemy leader; we attack him unconditionally)
-                    local enemies_in_reach = enemy_attack_map:get(a.x, a.y)
+                    local enemies_in_reach = enemy_attack_map:get(a.dst.x, a.dst.y)
                     --print('  enemies_in_reach', enemies_in_reach)
 
                     -- Need '>3' here, because the weak enemy himself is counted also
-                    if (enemies_in_reach > 3) and ((a.def_loc.x ~= enemy_leader.x) or (a.def_loc.y ~= enemy_leader.y)) then
+                    if (enemies_in_reach > 3) and ((a.target.x ~= enemy_leader.x) or (a.target.y ~= enemy_leader.y)) then
                         local tod = wesnoth.get_time_of_day()
                         if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
                             rating = -9e99
@@ -1059,10 +1059,10 @@ return {
         function grunt_rush_FLS1:attack_weak_enemy_exec()
             if AH.print_exec() then print('   ' .. os.clock() .. ' Executing attack_weak_enemy CA') end
 
-            local attacker = wesnoth.get_unit(grunt_rush_FLS1.data.AWE_attack.att_loc.x, grunt_rush_FLS1.data.AWE_attack.att_loc.y)
-            local defender = wesnoth.get_unit(grunt_rush_FLS1.data.AWE_attack.def_loc.x, grunt_rush_FLS1.data.AWE_attack.def_loc.y)
+            local attacker = wesnoth.get_unit(grunt_rush_FLS1.data.AWE_attack.src.x, grunt_rush_FLS1.data.AWE_attack.src.y)
+            local defender = wesnoth.get_unit(grunt_rush_FLS1.data.AWE_attack.target.x, grunt_rush_FLS1.data.AWE_attack.target.y)
             if AH.show_messages() then W.message { speaker = attacker.id, message = "Attacking weak enemy" } end
-            AH.movefull_outofway_stopunit(ai, attacker, grunt_rush_FLS1.data.AWE_attack, { dx = 0.5, dy = -0.1 })
+            AH.movefull_outofway_stopunit(ai, attacker, grunt_rush_FLS1.data.AWE_attack.dst, { dx = 0.5, dy = -0.1 })
             ai.attack(attacker, defender)
         end
 
@@ -1975,7 +1975,7 @@ return {
                 return 0
             end
 
-            local attacks = AH.get_attacks_occupied(poisoners, { simulate_combat = true })
+            local attacks = AH.get_attacks(poisoners, { simulate_combat = true, include_occupied = true })
             --print('#attacks', #attacks)
             if (not attacks[1]) then
                 AH.done_eval_messages(start_time, ca_name)
@@ -1986,7 +1986,7 @@ return {
                 formula = '$this_unit.attacks_left <= 0'
             }
 
-            local other_attacks = AH.get_attacks_occupied(others, { simulate_combat = true })
+            local other_attacks = AH.get_attacks(others, { simulate_combat = true, include_occupied = true })
             --print('#other_attacks', #other_attacks)
 
             -- For counter attack damage calculation:
@@ -1999,8 +1999,8 @@ return {
             -- Go through all possible attacks with poisoners
             local max_rating, best_attack = -9e99, {}
             for i,a in ipairs(attacks) do
-                local attacker = wesnoth.get_unit(a.att_loc.x, a.att_loc.y)
-                local defender = wesnoth.get_unit(a.def_loc.x, a.def_loc.y)
+                local attacker = wesnoth.get_unit(a.src.x, a.src.y)
+                local defender = wesnoth.get_unit(a.target.x, a.target.y)
 
                 -- Don't try to poison a unit that cannot be poisoned
                 local status = H.get_child(defender.__cfg, "status")
@@ -2048,19 +2048,19 @@ return {
                     rating = rating + defender_defense / 4.
 
                     -- Also want to attack from the strongest possible terrain
-                    local attack_defense = 100 - wesnoth.unit_defense(attacker, wesnoth.get_terrain(a.x, a.y))
+                    local attack_defense = 100 - wesnoth.unit_defense(attacker, wesnoth.get_terrain(a.dst.x, a.dst.y))
                     rating = rating + attack_defense / 2.
-                    --print('rating', rating, attacker.id, a.x, a.y)
+                    --print('rating', rating, attacker.id, a.dst.x, a.dst.y)
 
                     -- And from village everything else being equal
-                    local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(a.x, a.y)).village
+                    local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(a.dst.x, a.dst.y)).village
                     if is_village then rating = rating + 0.5 end
 
                     -- Minor penalty if unit needs to be moved out of the way
                     if a.attack_hex_occupied then rating = rating - 0.1 end
 
                     -- From dawn to afternoon, only attack if not more than 2 enemy units are close
-                    local enemies_in_reach = enemy_attack_map:get(a.x, a.y)
+                    local enemies_in_reach = enemy_attack_map:get(a.dst.x, a.dst.y)
                     --print('  enemies_in_reach', enemies_in_reach)
 
                     if (enemies_in_reach > 2) then
@@ -2081,8 +2081,8 @@ return {
                         local support_no_attacks = false
                         for j,una in ipairs(units_no_attacks) do
                             --print('unit no attacks left: ', una.id)
-                            if (H.distance_between(una.x, una.y, a.def_loc.x, a.def_loc.y) == 1)
-                                and (H.distance_between(una.x, una.y, a.x, a.y) == 1)
+                            if (H.distance_between(una.x, una.y, a.target.x, a.target.y) == 1)
+                                and (H.distance_between(una.x, una.y, a.dst.x, a.dst.y) == 1)
                             then
                                 --print('  can be support unit for this (no attacks left)')
                                 support_no_attacks = true
@@ -2098,14 +2098,14 @@ return {
                             -- Check whether one of the other units can attack that same enemy, but from a different hex
                             -- adjacent to poisoner
                             for j,oa in ipairs(other_attacks) do
-                                if (oa.def_loc.x == a.def_loc.x) and (oa.def_loc.y == a.def_loc.y)
-                                    and (H.distance_between(oa.x, oa.y, a.x, a.y) == 1)
+                                if (oa.target.x == a.target.x) and (oa.target.y == a.target.y)
+                                    and (H.distance_between(oa.dst.x, oa.dst.y, a.dst.x, a.dst.y) == 1)
                                 then
                                     -- Now rate those hexes
-                                    local supporter = wesnoth.get_unit(oa.att_loc.x, oa.att_loc.y)
-                                    local support_rating = 100 - wesnoth.unit_defense(supporter, wesnoth.get_terrain(oa.att_loc.x, oa.att_loc.y))
+                                    local supporter = wesnoth.get_unit(oa.src.x, oa.src.y)
+                                    local support_rating = 100 - wesnoth.unit_defense(supporter, wesnoth.get_terrain(oa.src.x, oa.src.y))
                                     support_rating = support_rating + oa.att_stats.average_hp - oa.def_stats.average_hp
-                                    --print('  Supporting attack', oa.x, oa.y, support_rating)
+                                    --print('  Supporting attack', oa.dst.x, oa.dst.y, support_rating)
 
                                     -- Minor penalty if unit needs to be moved out of the way
                                     if oa.attack_hex_occupied then support_rating = support_rating - 0.1 end
@@ -2134,7 +2134,7 @@ return {
                     -- or the defender is hurt already
                     if enemy_on_village and (not support_also_attack) and (defender.max_hitpoints - defender.hitpoints < 8) then rating = -9e99 end
 
-                    --print('  -> final poisoner rating', rating, attacker.id, a.x, a.y)
+                    --print('  -> final poisoner rating', rating, attacker.id, a.dst.x, a.dst.y)
 
                     if rating > max_rating then
                         max_rating, best_attack = rating, a
@@ -2158,17 +2158,17 @@ return {
 
         function grunt_rush_FLS1:spread_poison_exec()
             if AH.print_exec() then print('   ' .. os.clock() .. ' Executing spread_poison CA') end
-            local attacker = wesnoth.get_unit(grunt_rush_FLS1.data.SP_attack.att_loc.x, grunt_rush_FLS1.data.SP_attack.att_loc.y)
-            local defender = wesnoth.get_unit(grunt_rush_FLS1.data.SP_attack.def_loc.x, grunt_rush_FLS1.data.SP_attack.def_loc.y)
+            local attacker = wesnoth.get_unit(grunt_rush_FLS1.data.SP_attack.src.x, grunt_rush_FLS1.data.SP_attack.src.y)
+            local defender = wesnoth.get_unit(grunt_rush_FLS1.data.SP_attack.target.x, grunt_rush_FLS1.data.SP_attack.target.y)
 
             -- Also need to get the supporter at this time, since it might be the unit that's move out of the way
             local suporter = {}
             if grunt_rush_FLS1.data.SP_support_attack then
-                supporter = wesnoth.get_unit(grunt_rush_FLS1.data.SP_support_attack.att_loc.x, grunt_rush_FLS1.data.SP_support_attack.att_loc.y)
+                supporter = wesnoth.get_unit(grunt_rush_FLS1.data.SP_support_attack.src.x, grunt_rush_FLS1.data.SP_support_attack.src.y)
             end
 
             if AH.show_messages() then W.message { speaker = attacker.id, message = "Poison attack" } end
-            AH.movefull_outofway_stopunit(ai, attacker, grunt_rush_FLS1.data.SP_attack, { dx = 0., dy = 0. })
+            AH.movefull_outofway_stopunit(ai, attacker, grunt_rush_FLS1.data.SP_attack.dst, { dx = 0., dy = 0. })
             local def_hp = defender.hitpoints
 
             -- Find the poison weapon
@@ -2191,7 +2191,7 @@ return {
 
             if grunt_rush_FLS1.data.SP_support_attack then
                 if AH.show_messages() then W.message { speaker = supporter.id, message = 'Supporting poisoner attack' } end
-                AH.movefull_outofway_stopunit(ai, supporter, grunt_rush_FLS1.data.SP_support_attack)
+                AH.movefull_outofway_stopunit(ai, supporter, grunt_rush_FLS1.data.SP_support_attack.dst)
                 if grunt_rush_FLS1.data.SP_also_attack then ai.attack(supporter, defender) end
             end
             grunt_rush_FLS1.data.SP_support_attack, grunt_rush_FLS1.data.SP_also_attack = nil, nil
