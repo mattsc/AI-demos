@@ -965,13 +965,12 @@ function ai_helper.get_attacks(units, moves)
 end
 
 function ai_helper.get_attacks_unit_occupied(unit, cfg)
-    -- Same as get_attacks_unit(), but also consider hexes that are occupied by a unit that can move away
-    -- This only makes sense to be used with own units, not enemies,
-    -- so it's a separate function from get_attacks-unit() and moves = 'max' does not make sense here
     -- Get all attacks a unit can do
+    -- This includes a variety of configurable options, passed in the 'cfg' table
     -- cfg: table with config parameters
     --  moves: "current" (default for units on current side) or "max" (always used for units on other sides)
-    --  simulate_combat: if set, also simulate the combat and return result (this is slow; only set if needed)
+    --  include_occupied (false): if set, also include hexes occupied by own-side units that can move away
+    --  simulate_combat (false): if set, also simulate the combat and return result (this is slow; only set if needed)
 
     -- Returns {} if no attacks can be done, otherwise table with fields
     --   x, y: attack position
