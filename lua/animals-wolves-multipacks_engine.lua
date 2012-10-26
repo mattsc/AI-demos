@@ -189,7 +189,7 @@ return {
 
                     -- ... and check if any targets are in reach
                     local attacks = {}
-                    if wolves[1] then attacks = AH.get_attacks(wolves) end
+                    if wolves[1] then attacks = AH.get_attacks(wolves, { simulate_combat = true }) end
                     --print('pack, wolves, attacks:', pack_number, #wolves, #attacks)
                     --DBG.dbms(attacks)
 
@@ -198,8 +198,8 @@ return {
                     for i=#attacks,1,-1 do
                         --print(i, attacks[i].x, attacks[i].y)
                         for j,w in ipairs(wolves) do
-                            local nh = AH.next_hop(w, attacks[i].x, attacks[i].y)
-                            local d = H.distance_between(nh[1], nh[2], attacks[i].x, attacks[i].y)
+                            local nh = AH.next_hop(w, attacks[i].dst.x, attacks[i].dst.y)
+                            local d = H.distance_between(nh[1], nh[2], attacks[i].dst.x, attacks[i].dst.y)
                             --print('  ', i, w.x, w.y, d)
                             if d > 3 then
                                 table.remove(attacks, i)
@@ -218,13 +218,13 @@ return {
                         local diff_wolves, diff_hexes = {}, {}
                         for i,a in ipairs(attacks) do
                             -- Number different wolves
-                            local att_xy = a.att_loc.x + a.att_loc.y * 1000
-                            local def_xy = a.def_loc.x + a.def_loc.y * 1000
+                            local att_xy = a.src.x + a.src.y * 1000
+                            local def_xy = a.target.x + a.target.y * 1000
                             if (not diff_wolves[def_xy]) then diff_wolves[def_xy] = {} end
                             diff_wolves[def_xy][att_xy] = 1
                             -- Number different hexes
                             if (not diff_hexes[def_xy]) then diff_hexes[def_xy] = {} end
-                            diff_hexes[def_xy][a.x + a.y * 1000] = 1
+                            diff_hexes[def_xy][a.dst.x + a.dst.y * 1000] = 1
                         end
                         --DBG.dbms(diff_wolves)
                         --DBG.dbms(diff_hexes)
@@ -264,7 +264,7 @@ return {
                         -- on subsequent iterations
                         local max_rating, best_attack = -9e99, {}
                         for i,a in ipairs(attacks) do
-                            if (a.def_loc.x == best_target.x) and (a.def_loc.y == best_target.y) then
+                            if (a.target.x == best_target.x) and (a.target.y == best_target.y) then
                                 -- HP outcome is rating, twice as important for target as for attacker
                                 local rating = a.att_stats.average_hp / 2. - a.def_stats.average_hp
                                 if (rating > max_rating) then
@@ -273,10 +273,10 @@ return {
                             end
                         end
 
-                        local attacker = wesnoth.get_unit(best_attack.att_loc.x, best_attack.att_loc.y)
-                        local defender = wesnoth.get_unit(best_attack.def_loc.x, best_attack.def_loc.y)
+                        local attacker = wesnoth.get_unit(best_attack.src.x, best_attack.src.y)
+                        local defender = wesnoth.get_unit(best_attack.target.x, best_attack.target.y)
                         W.label { x = attacker.x, y = attacker.y, text = "" }
-                        AH.movefull_stopunit(ai, attacker, best_attack.x, best_attack.y)
+                        AH.movefull_stopunit(ai, attacker, best_attack.dst.x, best_attack.dst.y)
                         self:color_label(attacker.x, attacker.y, pack_number)
 
                         local a_x, a_y, d_x, d_y = attacker.x, attacker.y, defender.x, defender.y

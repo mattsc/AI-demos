@@ -77,10 +77,10 @@ return {
             --print('#my_units', #my_units)
             if (not my_units[1]) then return end
 
-            local my_attacks = AH.get_attacks(my_units)
+            local my_attacks = AH.get_attacks(my_units, { simulate_combat = true })
 
             for i, att in ipairs(my_attacks) do
-                if (att.def_loc.x == enemy_in_way.x) and (att.def_loc.y == enemy_in_way.y) then
+                if (att.target.x == enemy_in_way.x) and (att.target.y == enemy_in_way.y) then
 
                     -- Rating: expected HP of attacker and defender
                     local rating = att.att_stats.average_hp - 2 * att.def_stats.average_hp
@@ -105,7 +105,7 @@ return {
                 local rating = att.att_stats.average_hp - 2 * att.def_stats.average_hp
 
                 -- plus, give a huge bonus for closeness to enemy_in_way
-                local tmp_defender = wesnoth.get_unit(att.def_loc.x, att.def_loc.y)
+                local tmp_defender = wesnoth.get_unit(att.target.x, att.target.y)
                 local dist = H.distance_between(enemy_in_way.x, enemy_in_way.y, tmp_defender.x, tmp_defender.y)
                 --print('    distance:',enemy_in_way.id, tmp_defender.id, dist)
 
@@ -147,10 +147,10 @@ return {
         end
 
         function messenger_escort:attack_exec()
-            local attacker = wesnoth.get_unit(self.data.best_attack.att_loc.x, self.data.best_attack.att_loc.y)
-            local defender = wesnoth.get_unit(self.data.best_attack.def_loc.x, self.data.best_attack.def_loc.y)
+            local attacker = wesnoth.get_unit(self.data.best_attack.src.x, self.data.best_attack.src.y)
+            local defender = wesnoth.get_unit(self.data.best_attack.target.x, self.data.best_attack.target.y)
 
-            AH.movefull_stopunit(ai, attacker, self.data.best_attack.x, self.data.best_attack.y)
+            AH.movefull_stopunit(ai, attacker, self.data.best_attack.dst.x, self.data.best_attack.dst.y)
             ai.attack(attacker, defender)
             self.data.best_attack = nil
         end

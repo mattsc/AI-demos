@@ -207,12 +207,12 @@ return {
             --print('#my_units', #my_units)
             if (not my_units[1]) then return end
 
-            local my_attacks = AH.get_attacks(my_units)
+            local my_attacks = AH.get_attacks(my_units, { simulate_combat = true })
             --DBG.dbms(my_attacks,false,"variable",false)
 
             for i, att in ipairs(my_attacks) do
                 for j,t in ipairs(targets) do
-                    if (att.def_loc.x == t.x) and (att.def_loc.y == t.y) then
+                    if (att.target.x == t.x) and (att.target.y == t.y) then
 
                         -- Rating based on:
                         --    expected attacker and defender HP (defender HP being more important)
@@ -220,8 +220,8 @@ return {
                         --    closeness of attack hex to 'unit'
                         local rating = att.att_stats.average_hp - 2 * att.def_stats.average_hp
                         rating = rating + att.def_stats.hp_chance[0] * 50
-                        rating = rating - 10 * H.distance_between(unit.x, unit.y, att.x, att.y)
-                        --print('    rating:', rating, att.x, att.y)
+                        rating = rating - 10 * H.distance_between(unit.x, unit.y, att.dst.x, att.dst.y)
+                        --print('    rating:', rating, att.dst.x, att.dst.y)
 
                         if (rating > max_rating) then
                             max_rating = rating
@@ -268,12 +268,12 @@ return {
 
                 if attack then  -- If an attack is possible, do it
 
-                    local attacker = wesnoth.get_unit(attack.att_loc.x, attack.att_loc.y)
-                    local defender = wesnoth.get_unit(attack.def_loc.x, attack.def_loc.y)
+                    local attacker = wesnoth.get_unit(attack.src.x, attack.src.y)
+                    local defender = wesnoth.get_unit(attack.target.x, attack.target.y)
 
                     --W.message {speaker=attacker.id, message="Attacking" }
-                    AH.movefull_stopunit(ai, attacker, attack.x, attack.y)
-                    --print('Attacking',attacker.id, defender.id, attack.x, attack.y)
+                    AH.movefull_stopunit(ai, attacker, attack.dst.x, attack.dst.y)
+                    --print('Attacking',attacker.id, defender.id, attack.dst.x, attack.dst.y)
                     local def_id = defender.id -- This is in case the defender dies on this attack
                     ai.attack(attacker, defender)
 
