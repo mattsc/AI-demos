@@ -7,26 +7,6 @@ local ai_helper = {}
 
 ----- General helper functions ------
 
-function ai_helper.skip_CA(name)
-    -- Checks whether the candidate action with 'name' should be skipped
-    -- It compares 'name' to the list of CA names in variable 'dont_skip' below.  True is returned
-    -- if 'name' is not in that list, false otherwise
-    -- Only ever returns true in debug mode
-
-    if 1 then return false end -- *** Comment out this line to activate this function *** --
-
-    -- The variable 'dont_skip' holds the name of the CAs that should not be skipped as a comma separated string of names
-    -- In other words, it holds the names of the only CAs that will be evaluated and executed
-    --local dont_skip = ''
-    --local dont_skip = 'rush'
-    local dont_skip = 'hardcoded,recruit_orcs,rush,hold'
-
-    if wesnoth.game_config.debug and (not string.find(dont_skip, name)) then
-        return true
-    end
-    return false
-end
-
 function ai_helper.show_messages()
     -- Returns true or false (hard-coded).  To be used to
     -- show messages if in debug mode

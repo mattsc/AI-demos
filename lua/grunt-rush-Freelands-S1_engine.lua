@@ -738,7 +738,6 @@ return {
         function grunt_rush_FLS1:hardcoded_eval()
             local score = 500000
             local start_time, ca_name = os.clock(), 'hard_coded'
-            if AH.skip_CA('hardcoded') then return 0 end
             if AH.print_eval() then print('     - Evaluating hardcoded CA:', os.clock()) end
 
             -- To make sure we have a wolf rider and a grunt in the right positions on Turn 1
@@ -804,8 +803,6 @@ return {
         function grunt_rush_FLS1:move_leader_to_keep_eval()
             local score = 480000
             local start_time, ca_name = os.clock(), 'move_leader_to_keep'
-            if AH.skip_CA('move_leader_to_keep') then return 0 end
-
             if AH.print_eval() then print('     - Evaluating move_leader_to_keep CA:', os.clock()) end
 
             -- Move of leader to keep is done by hand here
@@ -961,7 +958,6 @@ return {
         function grunt_rush_FLS1:attack_weak_enemy_eval()
             local score = 465000
             local start_time, ca_name = os.clock(), 'attack_weak_enemy'
-            if AH.skip_CA('attack_weak_enemy') then return 0 end
             if AH.print_eval() then print('     - Evaluating attack_weak_enemy CA:', os.clock()) end
 
             -- Attack any enemy where the chance to kill is > 40%
@@ -1075,7 +1071,6 @@ return {
         function grunt_rush_FLS1:attack_leader_threat_eval()
             local score = 460000
             local start_time, ca_name = os.clock(), 'attack_leader_threat'
-            if AH.skip_CA('attack_leader_threat') then return 0 end
             if AH.print_eval() then print('     - Evaluating attack_leader_threat CA:', os.clock()) end
 
             -- Attack enemies that have made it too far north
@@ -1186,7 +1181,6 @@ return {
         function grunt_rush_FLS1:ZOC_enemy_eval()
             local score = 390000
             local start_time, ca_name = os.clock(), 'ZOC_enemy'
-            if AH.skip_CA('ZOC_enemy') then return 0 end
             if AH.print_eval() then print('     - Evaluating ZOC_enemy CA:', os.clock()) end
 
             -- Decide whether to attack units on the left, and trap them if possible
@@ -1854,7 +1848,6 @@ return {
         function grunt_rush_FLS1:zone_control_eval()
             local score_zone_control = 350000
             local start_time, ca_name = os.clock(), 'zone_control'
-            if AH.skip_CA('zone_control') then return 0 end
             if AH.print_eval() then print('     - Evaluating zone_control CA:', os.clock()) end
 
             -- Skip this if AI is much stronger than enemy
@@ -1936,8 +1929,6 @@ return {
 
         function grunt_rush_FLS1:spread_poison_eval()
             local score = 463000
-            local start_time, ca_name = os.clock(), 'spread_poison'
-            if AH.skip_CA('spread_poison') then return 0 end
 
             -- As an experiment: reduce importance of spreading poison during night
             -- This is supposed to help with the rush on the right, freeing up units for that
@@ -1947,6 +1938,7 @@ return {
                 score = 310000
             end
 
+            local start_time, ca_name = os.clock(), 'spread_poison'
             if AH.print_eval() then print('     - Evaluating spread_posion CA:', os.clock()) end
 
             -- If a unit with a poisoned weapon can make an attack, we'll do that preferentially
@@ -2210,7 +2202,6 @@ return {
         function grunt_rush_FLS1:recruit_orcs_eval()
             local score = 181000
             local start_time, ca_name = os.clock(), 'recruit_orcs'
-            if AH.skip_CA('recruit_orcs') then return 0 end
             if AH.print_eval() then print('     - Evaluating recruit_orcs CA:', os.clock()) end
 
             -- Check if there is enough gold to recruit at least a grunt
