@@ -868,9 +868,9 @@ function ai_helper.get_attacks_unit(unit, cfg)
     --  simulate_combat (false): if set, also simulate the combat and return result (this is slow; only set if needed)
 
     -- Returns {} if no attacks can be done, otherwise table with fields
-    --   x, y: attack position
-    --   att_loc: { x = x, y = y } of attacking unit (don't use id, could be ambiguous)
-    --   def_loc: { x = x, y = y } of defending unit
+    --   dst: { x = x, y = y } of attack position
+    --   src: { x = x, y = y } of attacking unit (don't use id, could be ambiguous)
+    --   target: { x = x, y = y } of defending unit
     --   att_stats, def_stats: as returned by wesnoth.simulate_combat (if cfg.simulate_combat is set)
     --   attack_hex_occupied: boolean storing whether an own unit that can move away is on the attack hex
 
@@ -978,9 +978,9 @@ function ai_helper.get_attacks_unit(unit, cfg)
                 end
 
                 table.insert(attacks, {
-                    x = p.x, y = p.y,
-                    att_loc = { x = x1, y = y1 },
-                    def_loc = { x = t.x, y = t.y },
+                    dst = { x = p.x, y = p.y },
+                    src = { x = x1, y = y1 },
+                    target = { x = t.x, y = t.y },
                     att_stats = att_stats,
                     def_stats = def_stats,
                     attack_hex_occupied = attack_hex_occupied
