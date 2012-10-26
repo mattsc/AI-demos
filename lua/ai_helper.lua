@@ -853,9 +853,9 @@ function ai_helper.simulate_combat_loc(attacker, dst, defender, weapon)
     attacker_dst.x, attacker_dst.y = dst[1], dst[2]
 
     if weapon then
-        return wesnoth.simulate_combat( attacker_dst, weapon, defender)
+        return wesnoth.simulate_combat(attacker_dst, weapon, defender)
     else
-        return wesnoth.simulate_combat( attacker_dst, defender)
+        return wesnoth.simulate_combat(attacker_dst, defender)
     end
 end
 
@@ -970,6 +970,7 @@ function ai_helper.get_attacks_unit_occupied(unit, cfg)
     -- so it's a separate function from get_attacks-unit() and moves = 'max' does not make sense here
     -- Get all attacks a unit can do
     -- cfg: table with config parameters
+    --  moves: "current" (default for units on current side) or "max" (always used for units on other sides)
     --  simulate_combat: if set, also simulate the combat and return result (this is slow; only set if needed)
 
     -- Returns {} if no attacks can be done, otherwise table with fields
@@ -978,9 +979,14 @@ function ai_helper.get_attacks_unit_occupied(unit, cfg)
     --   def_loc: { x = x, y = y } of defending unit
     --   att_stats, def_stats: as returned by wesnoth.simulate_combat (if cfg.simulate_combat is set)
     --   attack_hex_occupied: boolean storing whether an own unit that can move away is on the attack hex
-    -- This is somewhat slow, but will hopefully replaced soon by built-in AI function
 
     cfg = cfg or {}
+
+    -- 'moves' can be either "current" or "max"
+    -- For unit on current side: use "current" by default, or override by cfg.moves
+    local moves = cfg.moves or "current"
+    -- For unit on any other side, only moves="max" makes sense
+    if (unit.side ~= wesnoth.current.side) then moves = "max" end
 
     -- Need to find reachable hexes that are
     -- 1. next to a (non-petrified) enemy unit
@@ -1004,6 +1010,7 @@ function ai_helper.get_attacks_unit_occupied(unit, cfg)
                 { "filter", { { "not", { side = unit.side } } } }
             } }
         } },
+        moves = moves,
         variable = "tmp_locs"
     }
 
