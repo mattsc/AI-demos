@@ -5,7 +5,7 @@ local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
 local ai_helper = {}
 
------ General helper functions ------
+----- Debugging helper functions ------
 
 function ai_helper.show_messages()
     -- Returns true or false (hard-coded).  To be used to
@@ -46,6 +46,33 @@ function ai_helper.done_eval_messages(start_time, ca_name)
         }
     end
 end
+
+function ai_helper.clear_labels()
+    -- Clear all labels on a map
+    local w,h,b = wesnoth.get_map_size()
+    for x = 1,w do
+        for y = 1,h do
+          W.label { x = x, y = y, text = "" }
+        end
+    end
+end
+
+function ai_helper.put_labels(map, factor)
+    -- Take map (location set) and put label containing 'value' onto the map
+    -- factor: multiply by 'factor' if set
+    -- print 'nan' if element exists but is not a number
+
+    factor = factor or 1
+
+    ai_helper.clear_labels()
+    map:iter(function(x, y, data)
+          local out = tonumber(data) or 'nan'
+          if (out ~= 'nan') then out = out * factor end
+          W.label { x = x, y = y, text = out }
+    end)
+end
+
+----- General functionality and maths helper functions ------
 
 function ai_helper.got_1_11()
    if not wesnoth.compare_versions then return false end
@@ -88,31 +115,6 @@ function ai_helper.choose(input, value)
     return best_input, max_value, best_key
 end
 
-function ai_helper.clear_labels()
-    -- Clear all labels on a map
-    local w,h,b = wesnoth.get_map_size()
-    for x = 1,w do
-        for y = 1,h do
-          W.label { x = x, y = y, text = "" }
-        end
-    end
-end
-
-function ai_helper.put_labels(map, factor)
-    -- Take map (location set) and put label containing 'value' onto the map
-    -- factor: multiply by 'factor' if set
-    -- print 'nan' if element exists but is not a number
-
-    factor = factor or 1
-
-    ai_helper.clear_labels()
-    map:iter(function(x, y, data)
-          local out = tonumber(data) or 'nan'
-          if (out ~= 'nan') then out = out * factor end
-          W.label { x = x, y = y, text = out }
-    end)
-end
-
 function ai_helper.random(min, max)
     -- Use this function as Lua's 'math.random' is not replay or MP safe
 
@@ -121,6 +123,143 @@ function ai_helper.random(min, max)
     local res = wesnoth.get_variable "LUA_random"
     wesnoth.set_variable "LUA_random"
     return res
+end
+
+function ai_helper.table_copy(t)
+    -- Make a copy of a table (rather than just another pointer to the same table)
+    local copy = {}
+    for k,v in pairs(t) do copy[k] = v end
+    return copy
+end
+
+function ai_helper.array_merge(a1, a2)
+    -- Merge two arrays
+    -- I want to do this without overwriting t1 or t2 -> create a new table
+    -- This only works with arrays, not general tables
+    local merger = {}
+    for i,a in pairs(a1) do table.insert(merger, a) end
+    for i,a in pairs(a2) do table.insert(merger, a) end
+    return merger
+end
+
+--------- Location set related helper functions ----------
+
+function ai_helper.get_LS_xy(index)
+    -- Get the x,y coordinates from a location set index
+    -- For some reason, there doesn't seem to be a LS function for this
+
+    local tmp_set = LS.create()
+    tmp_set.values[index] = 1
+    local xy = tmp_set:to_pairs()[1]
+
+    return xy[1], xy[2]
+end
+
+function ai_helper.LS_of_triples(table)
+    -- Create a location set from a table of 3-element tables
+    -- Elements 1 and 2 are x,y coordinates, #3 is value to be inserted
+
+    local set = LS.create()
+    for k,t in pairs(table) do
+        set:insert(t[1], t[2], t[3])
+    end
+    return set
+end
+
+function ai_helper.to_triples(set)
+    local res = {}
+    set:iter(function(x, y, v) table.insert(res, { x, y, v }) end)
+    return res
+end
+
+function ai_helper.LS_random_hex(set)
+    -- Select a random hex from the hexes in location set 'set'
+    -- This seems "inelegant", but I can't come up with another way without creating an extra array
+    -- Return -1, -1 if set is empty
+
+    local r = ai_helper.random(set:size())
+    local i, xr, yr = 1, -1, -1
+    set:iter( function(x, y, v)
+        if (i == r) then xr, yr = x, y end
+        i = i + 1
+    end)
+
+    return xr, yr
+end
+
+--------- Location, position or hex related helper functions ----------
+
+function ai_helper.find_opposite_hex_adjacent(hex, center_hex)
+    -- Find the hex that is opposite of 'hex' w.r.t. 'center_hex'
+    -- Both input hexes are of format { x, y }
+    -- Output: {opp_x, opp_y} -- or nil if 'hex' and 'center_hex' are not adjacent (or no opposite hex is found, e.g. for hexes on border)
+
+    -- If the two input hexes are not adjacent, return nil
+    if (H.distance_between(hex[1], hex[2], center_hex[1], center_hex[2]) ~= 1) then return nil end
+
+    -- Finding the opposite x position is easy
+    local opp_x = center_hex[1] + (center_hex[1] - hex[1])
+
+    -- y is slightly more tricky, because of the hexagonal shape, but there's a neat trick
+    -- that saves us from having to build in a lot of if statements
+    -- Among the adjacent hexes, it is the one with the correct x, and y _different_ from hex[2]
+    for x, y in H.adjacent_tiles(center_hex[1], center_hex[2]) do
+        if (x == opp_x) and (y ~= hex[2]) then return { x, y } end
+    end
+
+    return nil
+end
+
+function ai_helper.find_opposite_hex(hex, center_hex)
+    -- Find the hex that is opposite of 'hex' w.r.t. 'center_hex'
+    -- Using "square coordinate" method by JaMiT
+    -- Note: this also works for non-adjacent hexes, but might return hexes that are not on the map!
+    -- Both input hexes are of format { x, y }
+    -- Output: {opp_x, opp_y}
+
+    -- Finding the opposite x position is easy
+    local opp_x = center_hex[1] + (center_hex[1] - hex[1])
+
+    -- Going to "square geometry" for y coordinate
+    local y_sq = hex[2] * 2 - (hex[1] % 2)
+    local yc_sq = center_hex[2] * 2 - (center_hex[1] % 2)
+
+    -- Now the same equation as for x can be used for y
+    local opp_y = yc_sq + (yc_sq - y_sq)
+    opp_y = math.floor((opp_y + 1) / 2)
+
+    return {opp_x, opp_y}
+end
+
+function ai_helper.is_opposite_adjacent(hex1, hex2, center_hex)
+    -- Returns true if 'hex1' and 'hex2' are opposite from each other w.r.t center_hex
+
+    local opp_hex = ai_helper.find_opposite_hex_adjacent(hex1, center_hex)
+
+    if opp_hex and (opp_hex[1] == hex2[1]) and (opp_hex[2] == hex2[2]) then return true end
+    return false
+end
+
+function ai_helper.get_closest_location(hex, location_filter)
+    -- Get the location closest to 'hex' (in format { x, y })
+    -- that matches 'location_filter' (in WML table format)
+    -- Returns nil if no terrain matching the filter was found
+
+    local locs = wesnoth.get_locations(location_filter)
+
+    local max_rating, closest_hex = -9e99, {}
+    for i,l in ipairs(locs) do
+        local rating = -H.distance_between(hex[1], hex[2], l[1], l[2])
+        if (rating > max_rating) then
+            max_rating, best_hex = rating, l
+        end
+    end
+
+    if (max_rating > -9e99) then
+        return best_hex
+    else
+        return nil
+    end
 end
 
 function ai_helper.distance_map(units, map)
@@ -201,28 +340,6 @@ function ai_helper.generalized_distance(x1, y1, x2, y2)
 
     -- Otherwise, return standard distance
     return H.distance_between(x1, y1, x2, y2)
-end
-
-function ai_helper.get_closest_location(hex, location_filter)
-    -- Get the location closest to 'hex' (in format { x, y })
-    -- that matches 'location_filter' (in WML table format)
-    -- Returns nil if no terrain matching the filter was found
-
-    local locs = wesnoth.get_locations(location_filter)
-
-    local max_rating, closest_hex = -9e99, {}
-    for i,l in ipairs(locs) do
-        local rating = -H.distance_between(hex[1], hex[2], l[1], l[2])
-        if (rating > max_rating) then
-            max_rating, best_hex = rating, l
-        end
-    end
-
-    if (max_rating > -9e99) then
-        return best_hex
-    else
-        return nil
-    end
 end
 
 function ai_helper.xyoff(x, y, ori, hex)
@@ -308,73 +425,7 @@ function ai_helper.xyoff(x, y, ori, hex)
     return
 end
 
-function ai_helper.table_copy(t)
-    -- Make a copy of a table (rather than just another pointer to the same table)
-    local copy = {}
-    for k,v in pairs(t) do copy[k] = v end
-    return copy
-end
-
-function ai_helper.array_merge(a1, a2)
-    -- Merge two arrays
-    -- I want to do this without overwriting t1 or t2 -> create a new table
-    -- This only works with arrays, not general tables
-    local merger = {}
-    for i,a in pairs(a1) do table.insert(merger, a) end
-    for i,a in pairs(a2) do table.insert(merger, a) end
-    return merger
-end
-
-function ai_helper.find_opposite_hex_adjacent(hex, center_hex)
-    -- Find the hex that is opposite of 'hex' w.r.t. 'center_hex'
-    -- Both input hexes are of format { x, y }
-    -- Output: {opp_x, opp_y} -- or nil if 'hex' and 'center_hex' are not adjacent (or no opposite hex is found, e.g. for hexes on border)
-
-    -- If the two input hexes are not adjacent, return nil
-    if (H.distance_between(hex[1], hex[2], center_hex[1], center_hex[2]) ~= 1) then return nil end
-
-    -- Finding the opposite x position is easy
-    local opp_x = center_hex[1] + (center_hex[1] - hex[1])
-
-    -- y is slightly more tricky, because of the hexagonal shape, but there's a neat trick
-    -- that saves us from having to build in a lot of if statements
-    -- Among the adjacent hexes, it is the one with the correct x, and y _different_ from hex[2]
-    for x, y in H.adjacent_tiles(center_hex[1], center_hex[2]) do
-        if (x == opp_x) and (y ~= hex[2]) then return { x, y } end
-    end
-
-    return nil
-end
-
-function ai_helper.find_opposite_hex(hex, center_hex)
-    -- Find the hex that is opposite of 'hex' w.r.t. 'center_hex'
-    -- Using "square coordinate" method by JaMiT
-    -- Note: this also works for non-adjacent hexes, but might return hexes that are not on the map!
-    -- Both input hexes are of format { x, y }
-    -- Output: {opp_x, opp_y}
-
-    -- Finding the opposite x position is easy
-    local opp_x = center_hex[1] + (center_hex[1] - hex[1])
-
-    -- Going to "square geometry" for y coordinate
-    local y_sq = hex[2] * 2 - (hex[1] % 2)
-    local yc_sq = center_hex[2] * 2 - (center_hex[1] % 2)
-
-    -- Now the same equation as for x can be used for y
-    local opp_y = yc_sq + (yc_sq - y_sq)
-    opp_y = math.floor((opp_y + 1) / 2)
-
-    return {opp_x, opp_y}
-end
-
-function ai_helper.is_opposite_adjacent(hex1, hex2, center_hex)
-    -- Returns true if 'hex1' and 'hex2' are opposite from each other w.r.t center_hex
-
-    local opp_hex = ai_helper.find_opposite_hex_adjacent(hex1, center_hex)
-
-    if opp_hex and (opp_hex[1] == hex2[1]) and (opp_hex[2] == hex2[2]) then return true end
-    return false
-end
+--------- Unit related helper functions ----------
 
 function ai_helper.get_live_units(filter)
     -- Same as wesnoth.get_units(), except that it only returns non-petrified units
@@ -395,6 +446,25 @@ function ai_helper.get_live_units(filter)
     table.insert(live_filter, filter_not_petrified)
 
     return wesnoth.get_units(live_filter)
+end
+
+function ai_helper.get_closest_enemy()
+    local enemies = ai_helper.get_live_units {
+        { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
+    }
+
+    local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+
+    local closest_distance, location = 9e99, {}
+    for i,u in ipairs(enemies) do
+        enemy_distance = helper.distance_between(leader.x, leader.y, u.x, u.y)
+        if enemy_distance < closest_distance then
+            closest_distance = enemy_distance
+            location = { x = u.x, y = u.y}
+        end
+    end
+
+    return closest_distance, location
 end
 
 function ai_helper.has_ability(unit, ability)
@@ -420,51 +490,6 @@ function ai_helper.has_weapon_special(unit, special)
         end
     end
     return false
-end
-
---------- Location set related helper functions ----------
-
-function ai_helper.get_LS_xy(index)
-    -- Get the x,y coordinates from a location set index
-    -- For some reason, there doesn't seem to be a LS function for this
-
-    local tmp_set = LS.create()
-    tmp_set.values[index] = 1
-    local xy = tmp_set:to_pairs()[1]
-
-    return xy[1], xy[2]
-end
-
-function ai_helper.LS_of_triples(table)
-    -- Create a location set from a table of 3-element tables
-    -- Elements 1 and 2 are x,y coordinates, #3 is value to be inserted
-
-    local set = LS.create()
-    for k,t in pairs(table) do
-        set:insert(t[1], t[2], t[3])
-    end
-    return set
-end
-
-function ai_helper.to_triples(set)
-    local res = {}
-    set:iter(function(x, y, v) table.insert(res, { x, y, v }) end)
-    return res
-end
-
-function ai_helper.LS_random_hex(set)
-    -- Select a random hex from the hexes in location set 'set'
-    -- This seems "inelegant", but I can't come up with another way without creating an extra array
-    -- Return -1, -1 if set is empty
-
-    local r = ai_helper.random(set:size())
-    local i, xr, yr = 1, -1, -1
-    set:iter( function(x, y, v)
-        if (i == r) then xr, yr = x, y end
-        i = i + 1
-    end)
-
-    return xr, yr
 end
 
 --------- Move related helper functions ----------
@@ -1522,25 +1547,6 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc)
     -- - att_stats: an array of stats for each attacker, in the same order as 'attackers'
     -- - def_stats: an array of defender stats for each individual attacks, in the same order as 'attackers'
     return rating, attackers, dsts, att_stats, def_stats_combo, def_stats
-end
-
-function ai_helper.get_closest_enemy()
-    local enemies = ai_helper.get_live_units {
-    { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
-    }
-
-    local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
-
-    local closest_distance, location = 9e99, {}
-    for i,u in ipairs(enemies) do
-        enemy_distance = helper.distance_between(leader.x, leader.y, u.x, u.y)
-        if enemy_distance < closest_distance then
-            closest_distance = enemy_distance
-            location = {x=u.x, y=u.y}
-        end
-    end
-
-    return closest_distance, location
 end
 
 function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, dsts, cfg)
