@@ -1026,9 +1026,13 @@ function ai_helper.get_attacks_unit_occupied(unit, cfg)
     -- Go through all attack locations
     for i,p in pairs(attack_loc) do
 
-        -- In this case, units on the side of 'unit' can still be at the attack hex.
-        -- Only consider the hex if that unit can move away
-        local can_move_away = true  -- whether a potential unit_in_way can move away
+        -- At this point, units on the side of 'unit' can still be at the attack hex.
+        -- By default, exclude those hexes, but if 'include_occupied' is set
+        -- units that can move away are fine
+
+        -- Flag whether a potential unit_in_way can move away
+        -- We also set this to true if there is no unit in the way
+        local can_move_away = true
 
         local unit_in_way = wesnoth.get_unit(p.x, p.y)
         -- If unit_in_way is the unit itself, that doesn't count
@@ -1036,9 +1040,13 @@ function ai_helper.get_attacks_unit_occupied(unit, cfg)
 
         -- If there's a unit_in_way, and it is not the unit itself, check whether it can move away
         if unit_in_way then
-            local move_away = ai_helper.get_reachable_unocc(unit_in_way, { moves = moves })
-            if (move_away:size() <= 1) then can_move_away = false end
-            --print('Can move away:', unit_in_way.id, can_move_away)
+            if (not cfg.include_occupied) then
+                can_move_away = false
+            else
+                local move_away = ai_helper.get_reachable_unocc(unit_in_way, { moves = moves })
+                if (move_away:size() <= 1) then can_move_away = false end
+                --print('Can move away:', unit_in_way.id, can_move_away)
+            end
         end
         -- Now can_move_away = true if there's no unit, or if it can move away
 
