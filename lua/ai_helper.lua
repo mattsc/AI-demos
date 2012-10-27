@@ -1034,19 +1034,18 @@ function ai_helper.get_attack_map_unit(unit, cfg)
     local old_moves = unit.moves
     if max_moves then unit.moves = unit.max_moves end
 
-    local reach = LS.create()
+    local reach = {}
+    reach.units = LS.create()
+    reach.hitpoints = LS.create()
+
     local initial_reach = wesnoth.find_reach(unit, cfg)
 
-    local return_value = {
-        units = 1,
-        hitpoints = unit.hitpoints,
-        srcs = { unit.x * 1000 + unit.y }
-    }
-
     for i,loc in ipairs(initial_reach) do
-        reach:insert(loc[1], loc[2], return_value)
+        reach.units:insert(loc[1], loc[2], 1)
+        reach.hitpoints:insert(loc[1], loc[2], unit.hitpoints)
         for x, y in H.adjacent_tiles(loc[1], loc[2]) do
-            reach:insert(x, y, return_value)
+            reach.units:insert(x, y, 1)
+            reach.hitpoints:insert(x, y, unit.hitpoints)
         end
     end
 
@@ -1065,28 +1064,21 @@ function ai_helper.get_attack_map(units, cfg)
     -- cfg: table with config parameters
     --  max_moves: if set use max_moves for units (this setting is always used for units on other sides)
 
-    local AM = LS.create()  -- attack map
+    local attack_map1 = {}
+    attack_map1.units = LS.create()
+    attack_map1.hitpoints = LS.create()
 
     for i,u in ipairs(units) do
-        local reach = ai_helper.get_attack_map_unit(u, cfg)
-        AM:union_merge(reach, function(x, y, v1, v2)
-            local return_value = v1 or {}  -- cannot do 'v1 or v2' here, because of how the pointers work!!
-            -- Thus, if v1 exists, we need to merge v2 into it
-            if v1 then
-                return_value.units = v1.units + v2.units
-                return_value.hitpoints = v1.hitpoints + v2.hitpoints
-                table.insert(v1.srcs, v2.srcs[1])
-            else  -- otherwise copy the values from v2
-                return_value.units = v2.units
-                return_value.hitpoints = v2.hitpoints
-                return_value.srcs = { v2.srcs[1] }  -- again, done this way because of the pointers
-            end
-
-            return return_value
+        local attack_map2 = ai_helper.get_attack_map_unit(u, cfg)
+        attack_map1.units:union_merge(attack_map2.units, function(x, y, v1, v2)
+            return (v1 or 0) + v2
+        end)
+        attack_map1.hitpoints:union_merge(attack_map2.hitpoints, function(x, y, v1, v2)
+            return (v1 or 0) + v2
         end)
     end
 
-    return AM
+    return attack_map1
 end
 
 function ai_helper.add_next_attack_level(combos, attacks)
