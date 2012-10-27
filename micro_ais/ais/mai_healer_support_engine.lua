@@ -132,8 +132,8 @@ return {
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
-            local enemy_attack_map = AH.attack_map(enemies, { moves = 'max' })
-            --AH.put_labels(enemy_attack_map)
+            local enemy_attack_map = AH.get_attack_map(enemies)
+            --AH.put_labels(enemy_attack_map.units)
 
             -- Put units back out there
             for i,u in ipairs(units_MP) do wesnoth.put_unit(u.x, u.y, u) end
@@ -162,7 +162,7 @@ return {
 
                                 -- If injured_units_only = true then don't count units with full HP
                                 if (u.max_hitpoints - u.hitpoints > 0) or (not cfg.injured_units_only) then
-                                    rating = rating + 15 * (enemy_attack_map:get(u.x, u.y) or 0)
+                                    rating = rating + 15 * (enemy_attack_map.units:get(u.x, u.y) or 0)
                                 end
                             end
                         end
@@ -170,7 +170,7 @@ return {
 
                     -- Number of enemies that can threaten the healer at that position
                     -- This has to be no larger than cfg.max_threats for hex to be considered
-                    local enemies_in_reach = enemy_attack_map:get(r[1], r[2]) or 0
+                    local enemies_in_reach = enemy_attack_map.units:get(r[1], r[2]) or 0
 
                     -- If this hex fulfills those requirements, 'rating' is now greater than 0
                     -- and we do the rest of the rating, otherwise set rating to below max_rating
