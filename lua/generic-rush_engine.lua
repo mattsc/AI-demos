@@ -226,7 +226,10 @@ return {
                 self.data.unit, self.data.village = best_unit, best_village
                 if (max_rating >= 1000) then
                     AH.done_eval_messages(start_time, ca_name)
-                    return return_value else return 0
+                    return return_value
+                else
+                    AH.done_eval_messages(start_time, ca_name)
+                    return 0
                 end
             end
             AH.done_eval_messages(start_time, ca_name)
@@ -235,7 +238,7 @@ return {
 
         function generic_rush:grab_villages_exec()
             if AH.print_exec() then print('   ' .. os.clock() .. ' Executing grab_villages CA') end
-            if AH.show_messages() then W.message { speaker = self.data.unit.id, message = 'Switching castles' } end
+            if AH.show_messages() then W.message { speaker = self.data.unit.id, message = 'Grab villages' } end
 
             AH.movefull_stopunit(ai, self.data.unit, self.data.village)
             self.data.unit, self.data.village = nil, nil

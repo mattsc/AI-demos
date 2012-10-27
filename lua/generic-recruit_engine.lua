@@ -1,6 +1,7 @@
 return {
     init = function(ai, ai_cas)
         local H = wesnoth.require "lua/helper.lua"
+        local W = H.set_wml_action_metatable {}
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
 
         function living(unit)
