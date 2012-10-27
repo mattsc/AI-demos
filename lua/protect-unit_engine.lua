@@ -215,12 +215,12 @@ return {
             }
 
             -- My attack map
-            local MAM = AH.attack_map(my_units)  -- enemy attack map
+            local MAM = AH.get_attack_map(my_units).units  -- enemy attack map
             --AH.put_labels(MAM)
             --W.message {speaker="narrator", message="My attack map" }
 
             -- Enemy attack map
-            local EAM = AH.attack_map(enemy_units, {moves = "max"})  -- enemy attack map
+            local EAM = AH.get_attack_map(enemy_units).units  -- enemy attack map
             --AH.put_labels(EAM)
             --W.message {speaker="narrator", message="Enemy attack map" }
 
@@ -345,7 +345,7 @@ return {
             -- Find all hexes enemies can attack on their next turn
             local enemy_attacks = {}
             for i,e in ipairs(enemies) do
-                local attack_map = AH.get_reachable_attack_map(e, {moves = "max"})
+                local attack_map = AH.get_attack_map_unit(e).units
                 table.insert(enemy_attacks, { enemy = e, attack_map = attack_map })
             end
 
