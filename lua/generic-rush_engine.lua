@@ -48,8 +48,11 @@ return {
                 return 0
             end
 
+            local width,height,border = wesnoth.get_map_size()
             local keeps = wesnoth.get_locations {
                 terrain = "K*^*,*^Kov", -- Keeps
+                x = '1-'..width,
+                y = '1-'..height,
                 { "not", { {"filter", {}} }}, -- That have no unit
                 { "not", { radius = 5, {"filter", { canrecruit = 'yes',
 	                { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
