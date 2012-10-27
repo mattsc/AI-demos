@@ -40,7 +40,7 @@ return {
             }
             --print('#avoid_units', #avoid_units)
             -- negative hit for hexes the bears, spiders and yetis can attack
-            local avoid = AH.attack_map(avoid_units, {moves = 'max'})
+            local avoid = AH.get_attack_map(avoid_units).units  -- max_moves=true is always set for enemy units
 
             -- Find prey that is closest to all 3 wolves
             local target = {}
@@ -159,7 +159,7 @@ return {
             }
             --print('#avoid_units', #avoid_units)
             -- negative hit for hexes the bears, spiders and yetis can attack
-            local avoid = AH.attack_map(avoid_units, {moves = 'max'})
+            local avoid = AH.get_attack_map(avoid_units).units
 
             local max_rating = -9e99
             local goal_hex = {}
