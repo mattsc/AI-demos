@@ -1014,22 +1014,34 @@ function ai_helper.get_attacks(units, cfg)
     return attacks
 end
 
-function ai_helper.get_reachable_attack_map(unit, cfg)
+function ai_helper.get_attack_map_unit(unit, cfg)
     -- Get all hexes that a unit can attack
-    -- Return value is a location set, where the value is 1 for each hex that can be attacked
-    -- cfg: parameters to wesnoth.find_reach, such as {additional_turns = 1}
-    -- additionally, {moves = 'max'} can be set inside cfg, which sets unit MP to max_moves before calculation
+    -- Return value is a location set, where the values are tables, containing
+    --   - units: the number of units (always 1 for this function)
+    --   - hitpoints: the combined hitpoints of the units
+    --   - srcs: an array containing the positions of the units
+    -- cfg: table with config parameters
+    --  max_moves: if set use max_moves for units (this setting is always used for units on other sides)
 
     cfg = cfg or {}
 
+    -- 'moves' can be either "current" or "max"
+    -- For unit on current side: use "current" by default, or override by cfg.moves
+    local max_moves = cfg.max_moves
+    -- For unit on any other side, only max_moves=true makes sense
+    if (unit.side ~= wesnoth.current.side) then max_moves = true end
+
     local old_moves = unit.moves
-    if (cfg.moves == 'max') then unit.moves = unit.max_moves end
+    if max_moves then unit.moves = unit.max_moves end
 
     local reach = LS.create()
     local initial_reach = wesnoth.find_reach(unit, cfg)
 
-    local return_value = 1
-    if (cfg.return_value == 'hitpoints') then return_value = unit.hitpoints end
+    local return_value = {
+        units = 1,
+        hitpoints = unit.hitpoints,
+        srcs = { unit.x * 1000 + unit.y }
+    }
 
     for i,loc in ipairs(initial_reach) do
         reach:insert(loc[1], loc[2], return_value)
@@ -1038,29 +1050,41 @@ function ai_helper.get_reachable_attack_map(unit, cfg)
         end
     end
 
-    -- Reset unit moves (can be done whether it was changed or not)
-    unit.moves = old_moves
+    -- Reset unit moves
+    if max_moves then unit.moves = old_moves end
 
     return reach
 end
 
-function ai_helper.attack_map(units, cfg)
-    -- Attack map: number of units which can attack each hex
-    -- Return value is a location set, where the value is the
-    --   number of units that can attack a hex
-    -- cfg: parameters to wesnoth.find_reach, such as {additional_turns = 1}
-    -- additional, {moves = 'max'} can be set inside cfg, which sets unit MP to max_moves before calculation
+function ai_helper.get_attack_map(units, cfg)
+    -- Get all hexes that units can attack (this is really just a wrapper function for ai_helper.get_attack_map_unit()
+    -- Return value is a location set, where the values are tables, containing
+    --   - units: the number of units (always 1 for this function)
+    --   - hitpoints: the combined hitpoints of the units
+    --   - srcs: an array containing the positions of the units
+    -- cfg: table with config parameters
+    --  max_moves: if set use max_moves for units (this setting is always used for units on other sides)
 
     local AM = LS.create()  -- attack map
 
     for i,u in ipairs(units) do
-        local reach = ai_helper.get_reachable_attack_map(u, cfg)
+        local reach = ai_helper.get_attack_map_unit(u, cfg)
         AM:union_merge(reach, function(x, y, v1, v2)
-            return (v1 or 0) + v2
+            local return_value = v1 or {}  -- cannot do 'v1 or v2' here, because of how the pointers work!!
+            -- Thus, if v1 exists, we need to merge v2 into it
+            if v1 then
+                return_value.units = v1.units + v2.units
+                return_value.hitpoints = v1.hitpoints + v2.hitpoints
+                table.insert(v1.srcs, v2.srcs[1])
+            else  -- otherwise copy the values from v2
+                return_value.units = v2.units
+                return_value.hitpoints = v2.hitpoints
+                return_value.srcs = { v2.srcs[1] }  -- again, done this way because of the pointers
+            end
+
+            return return_value
         end)
     end
-    --ai_helper.put_labels(AM)
-    --W.message {speaker="narrator", message="Attack map" }
 
     return AM
 end
