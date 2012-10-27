@@ -241,7 +241,8 @@ return {
         end
 
         function ai_cas:recruit_rushers_eval()
-            if AH.print_eval() then print('     - Evaluating recruit_general CA with ' .. rusher_type, os.clock()) end
+            local start_time, ca_name = os.clock(), 'recruit_rushers'
+            if AH.print_eval() then print('     - Evaluating recruit_rushers CA:', os.clock()) end
 
             local score = do_recruit_eval(self.data)
             if score == 0 then
@@ -249,12 +250,13 @@ return {
                 self.data.recruit = nil
             end
 
-            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+            AH.done_eval_messages(start_time, ca_name)
             return score
         end
 
         function ai_cas:recruit_rushers_exec()
-            if AH.print_exec() then print('     - Executing recruit_rushers CA') end
+            if AH.print_exec() then print('   ' .. os.clock() .. ' Executing recruit_rushers CA') end
+            if AH.show_messages() then W.message { speaker = 'narrator', message = 'Recruiting' } end
 
             local efficiency = self.data.recruit.hp_efficiency
             local enemy_counts = self.data.recruit.enemy_counts

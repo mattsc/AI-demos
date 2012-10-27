@@ -39,6 +39,9 @@ return {
         -------- Castle Switch CA --------------
 
         function generic_rush:castle_switch_eval()
+            local start_time, ca_name = os.clock(), 'castle_switch'
+            if AH.print_eval() then print('     - Evaluating castle_switch CA:', os.clock()) end
+
             local leader = wesnoth.get_units {
                     side = wesnoth.current.side,
                     canrecruit = 'yes',
@@ -46,6 +49,7 @@ return {
                 }[1]
             if not leader then
                 -- CA is irrelevant if no leader
+                AH.done_eval_messages(start_time, ca_name)
                 return 0
             end
 
@@ -62,6 +66,7 @@ return {
             if #keeps <= 2 then
                 -- Skip if there aren't extra keeps to evaluate
                 -- In this situation we'd only switch keeps if we were running away
+                AH.done_eval_messages(start_time, ca_name)
                 return 0
             end
 
@@ -92,14 +97,19 @@ return {
 
             if best_score > 0 then
                 self.data.target_keep = best_loc
+                AH.done_eval_messages(start_time, ca_name)
                 return 290000
             end
 
+            AH.done_eval_messages(start_time, ca_name)
             return 0
         end
 
         function generic_rush:castle_switch_exec()
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+
+            if AH.print_exec() then print('   ' .. os.clock() .. ' Executing castle_switch CA') end
+            if AH.show_messages() then W.message { speaker = leader.id, message = 'Switching castles' } end
 
             local x, y = self.data.target_keep[1], self.data.target_keep[2]
             local next_hop = AH.next_hop(leader, x, y)
@@ -132,6 +142,7 @@ return {
         ------- Grab Villages CA --------------
 
         function generic_rush:grab_villages_eval()
+            local start_time, ca_name = os.clock(), 'grab_villages'
             if AH.print_eval() then print('     - Evaluating grab_villages CA:', os.clock()) end
 
             -- Check if there are units with moves left
@@ -139,7 +150,7 @@ return {
                 formula = '$this_unit.moves > 0'
             }
             if (not units[1]) then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                AH.done_eval_messages(start_time, ca_name)
                 return 0
             end
 
@@ -150,7 +161,7 @@ return {
             local villages = wesnoth.get_locations { terrain = '*^V*' }
             -- Just in case:
             if (not villages[1]) then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                AH.done_eval_messages(start_time, ca_name)
                 return 0
             end
             --print('#units, #enemies', #units, #enemies)
@@ -214,16 +225,17 @@ return {
             if (max_rating > -9e99) then
                 self.data.unit, self.data.village = best_unit, best_village
                 if (max_rating >= 1000) then
-                    if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                    AH.done_eval_messages(start_time, ca_name)
                     return return_value else return 0
                 end
             end
-            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+            AH.done_eval_messages(start_time, ca_name)
             return 0
         end
 
         function generic_rush:grab_villages_exec()
-            if AH.print_exec() then print('     - Executing grab_villages CA') end
+            if AH.print_exec() then print('   ' .. os.clock() .. ' Executing grab_villages CA') end
+            if AH.show_messages() then W.message { speaker = self.data.unit.id, message = 'Switching castles' } end
 
             AH.movefull_stopunit(ai, self.data.unit, self.data.village)
             self.data.unit, self.data.village = nil, nil
@@ -232,6 +244,7 @@ return {
         ------- Spread Poison CA --------------
 
         function generic_rush:spread_poison_eval()
+            local start_time, ca_name = os.clock(), 'spread_poison'
             if AH.print_eval() then print('     - Evaluating spread_poison CA:', os.clock()) end
 
             -- If a unit with a poisoned weapon can make an attack, we'll do that preferentially
@@ -249,14 +262,14 @@ return {
             }
             --print('#poisoners', #poisoners)
             if (not poisoners[1]) then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                AH.done_eval_messages(start_time, ca_name)
                 return 0
             end
 
             local attacks = AH.get_attacks(poisoners)
             --print('#attacks', #attacks)
             if (not attacks[1]) then
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                AH.done_eval_messages(start_time, ca_name)
                 return 0
             end
 
@@ -303,17 +316,19 @@ return {
 
             if (max_rating > -9e99) then
                 self.data.attack = best_attack
-                if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+                AH.done_eval_messages(start_time, ca_name)
                 return 190000
             end
-            if AH.print_eval() then print('       - Done evaluating:', os.clock()) end
+            AH.done_eval_messages(start_time, ca_name)
             return 0
         end
 
         function generic_rush:spread_poison_exec()
-            if AH.print_exec() then print('     - Executing spread_poison CA') end
-
             local attacker = wesnoth.get_unit(self.data.attack.src.x, self.data.attack.src.y)
+
+            if AH.print_exec() then print('   ' .. os.clock() .. ' Executing spread_poison CA') end
+            if AH.show_messages() then W.message { speaker = attacker.id, message = 'Poison attack' } end
+
             local defender = wesnoth.get_unit(self.data.attack.target.x, self.data.attack.target.y)
 
             AH.movefull_stopunit(ai, attacker, self.data.attack.dst.x, self.data.attack.dst.y)
