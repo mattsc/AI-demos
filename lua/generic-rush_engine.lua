@@ -21,13 +21,14 @@ return {
 
         function generic_rush:stats_exec()
             local tod = wesnoth.get_time_of_day()
-            print(' Beginning of Turn ' .. wesnoth.current.turn .. ' (' .. tod.name ..') stats:')
+            print(' Beginning of Turn ' .. wesnoth.current.turn .. ' (' .. tod.name ..') stats (CPU time ' .. os.clock() .. ')')
 
             for i,s in ipairs(wesnoth.sides) do
                 local total_hp = 0
                 local units = AH.get_live_units { side = s.side }
                 for i,u in ipairs(units) do total_hp = total_hp + u.hitpoints end
-                print('   Player ' .. s.side .. ': ' .. #units .. ' Units with total HP: ' .. total_hp)
+                local leader = wesnoth.get_units { side = s.side, canrecruit = 'yes' }[1]
+                print('   Player ' .. s.side .. ' (' .. leader.type .. '): ' .. #units .. ' Units with total HP: ' .. total_hp)
             end
         end
 
