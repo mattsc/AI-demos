@@ -43,9 +43,8 @@ return {
             --print('#my_units, #enemies', #my_units, #enemies)
             -- The following is a duplication and slow, but until I actually know whether it
             -- works, I'll not put in the effort to optimize it
-            local attack_map = AH.attack_map(my_units)
-            local attack_map_hp = AH.attack_map(my_units, { return_value = 'hitpoints' })
-            local enemy_attack_map_hp = AH.attack_map(enemies, { moves = "max", return_value = 'hitpoints' })
+            local attack_map = AH.get_attack_map(my_units)
+            local enemy_attack_map = AH.get_attack_map(enemies)
             --AH.put_labels(enemy_attack_map)
 
             local hp_y, enemy_hp_y, hp_ratio, number_units_y = {}, {}, {}, {}
@@ -56,11 +55,11 @@ return {
                 if (not hp_y[y]) then
                     hp_y[y], enemy_hp_y[y], number_units_y[y] = 0, 0, 0
                 end
-                local number_units = attack_map:get(x, y) or 0
+                local number_units = attack_map.units:get(x, y) or 0
                 if (number_units > number_units_y[y]) then number_units_y[y] = number_units end
-                local hp = attack_map_hp:get(x, y) or 0
+                local hp = attack_map.hitpoints:get(x, y) or 0
                 if (hp > hp_y[y]) then hp_y[y] = hp end
-                local enemy_hp = enemy_attack_map_hp:get(x, y) or 0
+                local enemy_hp = enemy_attack_map.hitpoints:get(x, y) or 0
                 if (enemy_hp > enemy_hp_y[y]) then enemy_hp_y[y] = enemy_hp end
             end
             for y,hp in pairs(hp_y) do  -- needs to be pairs, not ipairs !!!
@@ -445,8 +444,6 @@ return {
                 local units_MP = wesnoth.get_units { side = wesnoth.current.side, formula = '$this_unit.moves > 0' }
                 local units_noMP = wesnoth.get_units { side = wesnoth.current.side, formula = '$this_unit.moves = 0' }
                 for iu,uMP in ipairs(units_MP) do wesnoth.extract_unit(uMP) end
-
-                local enemy_attack_map = AH.attack_map(enemies, { moves = 'max' })
 
                 -- Put the units back out there
                 for iu,uMP in ipairs(units_MP) do wesnoth.put_unit(uMP.x, uMP.y, uMP) end
@@ -881,7 +878,7 @@ return {
             local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
-            local enemy_attack_map = AH.attack_map(enemies, { moves = 'max' })
+            local enemy_attack_map = AH.get_attack_map(enemies)
 
             local max_rating, best_village, best_unit = -9e99, {}, {}
 
@@ -901,7 +898,7 @@ return {
                             -- villages in the north are preferable (since they are supposedly away from the enemy)
                             rating = rating - v[2]
 
-                            if (rating > max_rating) and ((enemy_attack_map:get(v[1], v[2]) or 0) <= 1 ) then
+                            if (rating > max_rating) and ((enemy_attack_map.units:get(v[1], v[2]) or 0) <= 1 ) then
                                 max_rating, best_village, best_unit = rating, v, u
                             end
                         end
@@ -935,7 +932,7 @@ return {
                             -- villages in the north are preferable (since they are supposedly away from the enemy)
                             rating = rating - (v[2] * 1.5)
 
-                            if (rating > max_rating) and ((enemy_attack_map:get(v[1], v[2]) or 0) <= 1 ) then
+                            if (rating > max_rating) and ((enemy_attack_map.units:get(v[1], v[2]) or 0) <= 1 ) then
                                 local next_hop = AH.next_hop(u, v[1], v[2])
                                 max_rating, best_village, best_unit = rating, next_hop, u
                             end
@@ -988,8 +985,8 @@ return {
             local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
-            local enemy_attack_map = AH.attack_map(enemies, {moves = "max"})
-            --AH.put_labels(enemy_attack_map)
+            local enemy_attack_map = AH.get_attack_map(enemies)
+            --AH.put_labels(enemy_attack_map.units)
 
             local max_rating, best_attack = -9e99, {}
             for i,a in ipairs(attacks) do
@@ -1029,7 +1026,7 @@ return {
 
                     -- From dawn to afternoon, only attack if not more than 2 other enemy units are close
                     -- (but only if this is not the enemy leader; we attack him unconditionally)
-                    local enemies_in_reach = enemy_attack_map:get(a.dst.x, a.dst.y)
+                    local enemies_in_reach = enemy_attack_map.units:get(a.dst.x, a.dst.y)
                     --print('  enemies_in_reach', enemies_in_reach)
 
                     -- Need '>3' here, because the weak enemy himself is counted also
@@ -1993,8 +1990,8 @@ return {
             local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
-            local enemy_attack_map = AH.attack_map(enemies, {moves = "max"})
-            --AH.put_labels(enemy_attack_map)
+            local enemy_attack_map = AH.get_attack_map(enemies)
+            --AH.put_labels(enemy_attack_map.units)
 
             -- Go through all possible attacks with poisoners
             local max_rating, best_attack = -9e99, {}
@@ -2060,7 +2057,7 @@ return {
                     if a.attack_hex_occupied then rating = rating - 0.1 end
 
                     -- From dawn to afternoon, only attack if not more than 2 enemy units are close
-                    local enemies_in_reach = enemy_attack_map:get(a.dst.x, a.dst.y)
+                    local enemies_in_reach = enemy_attack_map.units:get(a.dst.x, a.dst.y)
                     --print('  enemies_in_reach', enemies_in_reach)
 
                     if (enemies_in_reach > 2) then
