@@ -1094,26 +1094,28 @@ function ai_helper.add_next_attack_combo_level(combos, attacks)
     local combos_this_level = {}
 
     for i,a in ipairs(attacks) do
-        local hex_xy = a.dst.y + a.dst.x * 1000.  -- attack hex (src)
-        local att_xy = a.src.y + a.src.x * 1000.  -- attacker hex (dst)
+        local dst = a.dst.y + a.dst.x * 1000.  -- attack hex (src)
+        local src = a.src.y + a.src.x * 1000.  -- attacker hex (dst)
         if (not combos[1]) then  -- if this is the first recursion level, set up new combos for this level
             --print('New array')
-            table.insert(combos_this_level, {{ h = hex_xy, a = att_xy }})
+            local move = {}
+            move[dst] = src
+            table.insert(combos_this_level, move)
         else
             -- Otherwise, we need to go through the already existing elements in 'combos'
             -- to see if either hex, or attacker is already used; and then add new attack to each
             for j,combo in ipairs(combos) do
                 local this_combo = {}  -- needed because tables are pointers, need to create a separate one
                 local add_combo = true
-                for k,move in ipairs(combo) do
-                    if (move.h == hex_xy) or (move.a == att_xy) then
+                for d,s in pairs(combo) do
+                    if (d == dst) or (s == src) then
                         add_combo = false
                         break
                     end
-                    table.insert(this_combo, move)  -- insert individual moves to a combo
+                    this_combo[d] = s  -- insert individual moves to a combo
                 end
                 if add_combo then  -- and add it into the array, if it contains only unique moves
-                    table.insert(this_combo, { h = hex_xy, a = att_xy })
+                    this_combo[dst] = src
                     table.insert(combos_this_level, this_combo)
                 end
             end
@@ -1132,10 +1134,11 @@ end
 
 function ai_helper.get_attack_combos_full(units, enemy)
     -- Calculate attack combination result by 'units' on 'enemy'
-    -- Returns an array similar to that given by ai.get_attacks
     -- All combinations of all units are taken into account, as well as their order
     -- This can result in a _very_ large number of possible combinations
     -- Use ai_helper.get_attack_combos() instead if order does not matter
+    -- Return value:
+    --   1. Attack combinations in form { dst = src }
 
     -- The combos are obtained by recursive call of ai_helper.add_next_attack_combo_level()
 
