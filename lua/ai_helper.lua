@@ -1082,8 +1082,10 @@ function ai_helper.get_attack_map(units, cfg)
 end
 
 function ai_helper.add_next_attack_combo_level(combos, attacks)
-    -- Build up the combos for this recursion level, and call the next recursion level, if possible
-    -- Need to build up a copy of the array, otherwise original is changed
+    -- This is called from ai_helper.get_attack_combos_full() and
+    -- builds up the combos for the next recursion level.
+    -- It also calls the next recursion level, if possible
+    -- Important: function needs to make a copy of the input array, otherwise original is changed
 
     -- Set up the array, if this is the first recursion level
     if (not combos) then combos = {} end
@@ -1148,29 +1150,8 @@ function ai_helper.get_attack_combos_full(units, enemy)
     --print('# enemy attacks', #attacks)
     if (not attacks[1]) then return {} end
 
-    -- The following is not needed any more
-    --local hexes = LS.create()
-    --for x,y in H.adjacent_tiles(enemy.x, enemy.y) do
-    --    for i,a in ipairs(attacks) do
-    --        if (a.x == x) and (a.y == y) then
-    --            hexes:insert(x, y)
-    --        end
-    --    end
-    --end
-    --DBG.dbms(hexes)
-
     -- This recursive function does all the work:
     local combos = ai_helper.add_next_attack_combo_level(combos, attacks)
-
-    -- Output of all possible attack combinations:
-    --for i,c in ipairs(combos) do
-    --    local str = ''
-    --    for j,m in ipairs(c) do
-    --        str = str .. '   ' .. m.a .. '->' .. m.h
-    --    end
-    --    print(str)
-    --end
-    --print(#combos)
 
     return combos
 end
