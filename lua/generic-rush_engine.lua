@@ -176,47 +176,58 @@ return {
                 end
             end
 
-            -- Now we check if a unit can get to a village
-            local max_rating, best_village, best_unit = -9e99, {}, {}
-            for i,u in ipairs(units) do
-                for j,v in ipairs(villages) do
-                    local path, cost = wesnoth.find_path(u, v[1], v[2])
+            -- Also find which locations can be attacked by enemies
+            local enemy_attack_map = AH.get_attack_map(enemies).units
 
-                    local unit_in_way = wesnoth.get_unit(v[1], v[2])
-                    if unit_in_way then
-                        if (unit_in_way.id == u.id) then unit_in_way = nil end
+            -- Now we go through the villages and units
+            local max_rating, best_village, best_unit = -9e99, {}, {}
+            for j,v in ipairs(villages) do
+                -- First collect all information that only depends on the village
+                local village_rating = 0  -- This is the unit independent rating
+
+                local unit_in_way = wesnoth.get_unit(v[1], v[2])
+
+                -- If an enemy can get within one move of the village, we want to hold it
+                if enemy_attack_map:get(v[1], v[2]) then
+                        --print('  within enemy reach', v[1], v[2])
+                        village_rating = village_rating + 10
+                end
+
+                -- Unowned and enemy-owned villages get a large bonus
+                local owner = wesnoth.get_village_owner(v[1], v[2])
+                if (not owner) then
+                    village_rating = village_rating + 1000
+                else
+                    if wesnoth.is_enemy(owner, wesnoth.current.side) then village_rating = village_rating + 2000 end
+                end
+
+                -- Now we go on to the unit-dependent rating
+                for i,u in ipairs(units) do
+                    -- Skip villages that have units other than 'u' itself on them
+                    local village_occupied = false
+                    if unit_in_way and ((unit_in_way.x ~= u.x) or (unit_in_way.y ~= u.y)) then
+                        village_occupied = true
                     end
 
                     -- Rate all villages that can be reached and are unoccupied by other units
-                    if (cost <= u.moves) and (not unit_in_way) then
-                        --print('Can reach:', u.id, v[1], v[2], cost)
-                        local rating = 0
+                    if (not village_occupied) then
+                        -- Path finding is expensive, so we do a first cut simply by distance
+                        -- There is no way a unit can get to the village if the distance is greater than its moves
+                        local dist = H.distance_between(u.x, u.y, v[1], v[2])
+                        if (dist <= u.moves) then
+                            local path, cost = wesnoth.find_path(u, v[1], v[2])
+                            if (cost <= u.moves) then
+                                --print('Can reach:', u.id, v[1], v[2], cost)
+                                local rating = village_rating
+                                -- Finally, since these can be reached by the enemy, want the strongest unit to go first
+                                rating = rating + u.hitpoints / 100.
 
-                        -- If an enemy can get within one move, we want to hold it
-                        for k,e in ipairs(enemies) do
-                            local path_e, cost_e = wesnoth.find_path(e, v[1], v[2])
-                            if (cost_e <= e.max_moves) then
-                                --print('  within enemy reach', e.id)
-                                rating = rating + 10
+                                if (rating > max_rating) then
+                                    max_rating, best_village, best_unit = rating, v, u
+                                end
+                                --print('  rating:', rating)
                             end
                         end
-
-                        -- Unowned and enemy-owned villages get a large bonus
-                        local owner = wesnoth.get_village_owner(v[1], v[2])
-                        if (not owner) then
-                            rating = rating + 1000
-                        else
-                            if wesnoth.is_enemy(owner, wesnoth.current.side) then rating = rating + 2000 end
-                        end
-
-                        -- Finally, since these can be reached by the enemy, want the strongest unit to go first
-                        rating = rating + u.hitpoints / 100.
-
-                        if (rating > max_rating) then
-                            max_rating, best_village, best_unit = rating, v, u
-                        end
-
-                        --print('  rating:', rating)
                     end
                 end
             end
