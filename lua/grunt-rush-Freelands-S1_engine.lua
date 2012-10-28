@@ -288,7 +288,7 @@ return {
             local precalc_attacks = {}  -- same reason
             for i,e in ipairs(enemies) do
                 --print(i, e.id, os.clock())
-                local attack_combos, attacks_dst_src = AH.get_attack_combos(units, e)
+                local attack_combos, attacks_dst_src = AH.get_attack_combos(units, e, { include_occupied = true })
                 --DBG.dbms(attack_combos)
                 --DBG.dbms(attacks_dst_src)
                 --print('#attack_combos', #attack_combos, os.clock())
@@ -574,7 +574,7 @@ return {
             end
 
             -- Get all possible attack combination
-            local all_attack_combos = AH.get_attack_combos(enemies, unit, { max_moves = true })
+            local all_attack_combos = AH.get_attack_combos(enemies, unit, { include_occupied = true })  -- Don't need moves='max'
             --DBG.dbms(all_attack_combos)
             --print('#all_attack_combos', #all_attack_combos, os.clock())
 
@@ -1409,7 +1409,7 @@ return {
             local precalc_attacks = {}  -- same reason
             for i,e in ipairs(targets) do
                 --print('\n', i, e.id, os.clock())
-                local attack_combos, attacks_dst_src = AH.get_attack_combos(attackers, e)
+                local attack_combos, attacks_dst_src = AH.get_attack_combos(attackers, e, { include_occupied = true })
                 --DBG.dbms(attack_combos)
                 --DBG.dbms(attacks_dst_src)
                 --print('#attack_combos', #attack_combos)
