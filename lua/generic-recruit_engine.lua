@@ -226,12 +226,27 @@ return {
             }
             local enemy_counts = {}
             local enemy_types = {}
-            for i, unit in ipairs(enemies) do
-                if enemy_counts[unit.type] == nil then
-                    table.insert(enemy_types, unit.type)
-                    enemy_counts[unit.type] = 1
+
+            local function add_unit_type(unit_type)
+                if enemy_counts[unit_type] == nil then
+                    table.insert(enemy_types, unit_type)
+                    enemy_counts[unit_type] = 1
                 else
-                    enemy_counts[unit.type] = enemy_counts[unit.type] + 1
+                    enemy_counts[unit_type] = enemy_counts[unit_type] + 1
+                end
+            end
+
+            -- Collect all enemies on map
+            for i, unit in ipairs(enemies) do
+                add_unit_type(unit.type)
+            end
+            -- Collect all possible enemy recruits and count them as virtual enemies
+            local enemy_sides = wesnoth.get_sides({
+                { "enemy_of", {side = wesnoth.current.side} },
+                { "has_unit", { canrecruit = true }} })
+            for i, side in ipairs(enemy_sides) do
+                for j, unit_type in ipairs(wesnoth.sides[side.side].recruit) do
+                    add_unit_type(unit_type)
                 end
             end
             data.enemy_counts = enemy_counts
