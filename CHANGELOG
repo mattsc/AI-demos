@@ -1,3 +1,22 @@
+0.11.5
+- ai_helper:
+  - Many changes and improvements to existing functions, and addition of new functions, incl.:
+    - attack_combo_stats, attack_rating, get_attack_combos*, get_attacks*, get_attack_map*, simulate_combat*, done_eval_messages
+- Generic Rush:
+  - Many improvements to recruit algorithm
+  - Significantly speed up grab_villages CA
+    - *** One of the changes makes return to BfW 1.10 impossible ***
+- Freelands Side 1 Grunt Rush:
+  - Make use of new ai_helper functions and functionality
+  - Attacks now take XP into account, discourage use of poisoners under certain circumstances
+  - zone_control:
+    - Incorporate attack_leader_threads
+    - Zone shapes do not have to be rectangular any more
+    - Leader now participates in zone attacks and other actions, if safe
+      - Recruit first if he does so
+  - Faster and more accurate counter attack calculation
+  - Lots of clean-up, optimization and refactoring: improves speed, functionality and configurability
+
 0.11.4, 16 Oct 2012
 - Generic Rush:
   - Recruit algorithm:
