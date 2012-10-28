@@ -1081,7 +1081,7 @@ function ai_helper.get_attack_map(units, cfg)
     return attack_map1
 end
 
-function ai_helper.add_next_attack_level(combos, attacks)
+function ai_helper.add_next_attack_combo_level(combos, attacks)
     -- Build up the combos for this recursion level, and call the next recursion level, if possible
     -- Need to build up a copy of the array, otherwise original is changed
 
@@ -1120,7 +1120,7 @@ function ai_helper.add_next_attack_level(combos, attacks)
 
     local combos_next_level = {}
     if combos_this_level[1] then  -- If moves were found for this level, also find those for the next level
-        combos_next_level = ai_helper.add_next_attack_level(combos_this_level, attacks)
+        combos_next_level = ai_helper.add_next_attack_combo_level(combos_this_level, attacks)
     end
 
     -- Finally, combine this level and next level combos
@@ -1128,14 +1128,14 @@ function ai_helper.add_next_attack_level(combos, attacks)
     return combos_this_level
 end
 
-function ai_helper.get_attack_combos(units, enemy)
+function ai_helper.get_attack_combos_full(units, enemy)
     -- Calculate attack combination result by 'units' on 'enemy'
     -- Returns an array similar to that given by ai.get_attacks
     -- All combinations of all units are taken into account, as well as their order
     -- This can result in a _very_ large number of possible combinations
-    -- Use ai_helper.get_attack_combos_no_order() instead if order does not matter
+    -- Use ai_helper.get_attack_combos() instead if order does not matter
 
-    -- The combos are obtained by recursive call of ai_helper.add_next_attack_level()
+    -- The combos are obtained by recursive call of ai_helper.add_next_attack_combo_level()
 
     local attacks = ai_helper.get_attacks(units)
     --print('# all attacks', #attacks)
@@ -1160,7 +1160,7 @@ function ai_helper.get_attack_combos(units, enemy)
     --DBG.dbms(hexes)
 
     -- This recursive function does all the work:
-    local combos = ai_helper.add_next_attack_level(combos, attacks)
+    local combos = ai_helper.add_next_attack_combo_level(combos, attacks)
 
     -- Output of all possible attack combinations:
     --for i,c in ipairs(combos) do
@@ -1175,7 +1175,7 @@ function ai_helper.get_attack_combos(units, enemy)
     return combos
 end
 
-function ai_helper.get_attack_combos_no_order(units, enemy, cfg)
+function ai_helper.get_attack_combos(units, enemy, cfg)
     -- Calculate attack combination result by 'units' on 'enemy'
     -- Returns an array similar to that given by ai.get_attacks
     -- Only the combinations of which unit from which hex are considered, but not in which order the
