@@ -6,6 +6,7 @@
   - Many improvements to recruit algorithm
   - Significantly speed up grab_villages CA
     - *** One of the changes makes return to BfW 1.10 impossible ***
+  - Fix bug with leader movement when keeps are present on map borders
 - Freelands Side 1 Grunt Rush:
   - Make use of new ai_helper functions and functionality
   - Attacks now take XP into account, discourage use of poisoners under certain circumstances
