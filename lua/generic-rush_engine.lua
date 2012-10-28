@@ -168,16 +168,22 @@ return {
 
             -- First check if attacks are possible for any unit
             local return_value = 200000
-            local attacks = AH.get_attacks(units, { simulate_combat = true })
             -- If one with > 50% chance of kill is possible, set return_value to lower than combat CA
+            local attacks = ai.get_attacks()
+            --print(#attacks)
             for i,a in ipairs(attacks) do
-                if (a.def_stats.hp_chance[0] > 0.5) then
+                if (#a.movements == 1) and (a.chance_to_kill > 0.5) then
                     return_value = 90000
+                    break
                 end
             end
 
             -- Also find which locations can be attacked by enemies
             local enemy_attack_map = AH.get_attack_map(enemies).units
+
+            for i,u in ipairs(units) do
+                local reach_map = AH.get_reachable_unocc(u)
+            end
 
             -- Now we go through the villages and units
             local max_rating, best_village, best_unit = -9e99, {}, {}
