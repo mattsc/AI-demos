@@ -378,7 +378,7 @@ return {
                 local score = offense_score*3 + defense_score/hp_ratio + move_score
 
                 if scores["slows"] then
-                    score = score + 0.1
+                    score = score + 0.75
                 end
                 --wesnoth.message(recruit_id .. " score: " .. offense_score*3 .. " + " .. defense_score/hp_ratio .. " + " .. move_score  .. " = " .. score)
                 if score > best_score then
