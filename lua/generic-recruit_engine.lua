@@ -141,7 +141,7 @@ return {
                 -- raw durability is a function of defense and hp
                 -- efficiency decreases faster than cost increases to avoid recruiting many expensive units
                 -- there is a requirement for bodies in order to block movement
-                efficiency[recruit_id] = 10*(wesnoth.unit_types[recruit_id].max_hitpoints^1.4)/(wesnoth.unit_types[recruit_id].cost^2)
+                efficiency[recruit_id] = 10*(wesnoth.unit_types[recruit_id].max_hitpoints^1.7)/(wesnoth.unit_types[recruit_id].cost^2)
             end
             return efficiency
         end
