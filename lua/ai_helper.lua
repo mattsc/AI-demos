@@ -1194,23 +1194,39 @@ function ai_helper.get_attack_combos(units, enemy, cfg)
 
     -- Now we set up an array of all attack combinations
     -- at this time, this includes all the 'no unit attacks this hex' elements
+    -- which have a value of 0 for 'src'
+    -- They need to be kept in this part, so that we get the combos that do not
+    -- use the maximum amount of units possible.  They will be eliminated below.
     local attack_array = {}
+    -- For all values of 'dst'
     for dst,ads in pairs(attacks_dst_src) do
-        --print(dst, ads)
-
         local org_array = ai_helper.table_copy(attack_array)
         attack_array = {}
 
+        -- Go through all the values of 'src'
         for i,src in ipairs(ads) do
+            -- If the array does not exist, set it up
             if (not org_array[1]) then
                 local tmp = {}
                 tmp[dst] = src
                 table.insert(attack_array, tmp)
-            else
+            else  -- otherwise, add the new dst-src pair to each element of the existing array
                 for j,o in ipairs(org_array) do
-                    local tmp = ai_helper.table_copy(o)
-                    tmp[dst] = src
-                    table.insert(attack_array, tmp)
+                    -- but only do so if that 'src' value does not exist already
+                    -- except for 0's those all need to be kept
+                    local add_attack = true
+                    for d,s in pairs(o) do
+                        if (s == src) and (src ~=0) then
+                            add_attack = false
+                            break
+                        end
+                    end
+                    -- Finally, add it to the array
+                    if add_attack then
+                        local tmp = ai_helper.table_copy(o)
+                        tmp[dst] = src
+                        table.insert(attack_array, tmp)
+                    end
                 end
             end
         end
@@ -1218,39 +1234,22 @@ function ai_helper.get_attack_combos(units, enemy, cfg)
     --DBG.dbms(attack_array)
     --print('#attack_array before:', #attack_array)
 
-    -- Now eliminate all that have same the unit on different hexes
+    -- Now eliminate all the 0s
     -- Also eliminate the combo that has no attacks on any hex (all zeros)
-    -- Could be put into the loop above, but for simplicity, I'm keeping it here for now.
-
-    local combos = {}
     for i,att in ipairs(attack_array) do
-        -- We check for same units on different hexes by summing up all
-        -- dst and src terms in two ways: simple sum, and sum of unique terms only
-        -- Only if those are equal is the combo kept
-        -- Also, zeros are eliminated in this step
-
-        local sum_key, sum_value = 0, 0
-        local tmp = {}
+        local count = 0
         for dst,src in pairs(att) do
             if (src == 0) then
                 att[dst] = nil
             else
-                tmp[src] = src  -- no typo!!
-                sum_value = sum_value + src
+                count = count + 1
             end
         end
-
-        for k,v in pairs(tmp) do
-            sum_key = sum_key + k
-        end
-        --print(i,sum_key,sum_value)
-
-        if (sum_key == sum_value) and (sum_key ~= 0) then
-            table.insert(combos, att)
-        end
+        -- This last step eliminates the "empty attack combo" (the one with all zeros)
+        if (count == 0) then table.remove(attack_array, i) end
     end
-    --print('#combos after:', #combos)
-    --DBG.dbms(combos)
+    --print('#attack_array after:', #attack_array)
+    --DBG.dbms(attack_array)
 
     -- Finally, we set up a slightly different attacks_dst_src
     -- It's a double array with keys [dst][src] and contains the individual attacks
@@ -1265,7 +1264,7 @@ function ai_helper.get_attack_combos(units, enemy, cfg)
     end
     --DBG.dbms(attacks_dst_src)
 
-    return combos, attacks_dst_src
+    return attack_array, attacks_dst_src
 end
 
 function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc)
