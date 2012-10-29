@@ -387,9 +387,12 @@ return {
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
                 local scores = recruit_scores[recruit_id]
                 local offense_score = (scores["offense"]/best_scores["offense"])^0.5
+                local offense_weight = 2.5
                 local defense_score = (scores["defense"]/best_scores["defense"])^0.5
+                local defense_weight = 1/hp_ratio^0.7
                 local move_score = scores["move"]/best_scores["move"]
-                local score = offense_score*2.5 + defense_score/hp_ratio^0.7 + move_score*(distance_to_enemy/15)^2
+                local move_weight = (distance_to_enemy/15)^2
+                local score = offense_score*offense_weight + defense_score*defense_weight + move_score*move_weight
 
                 local bonus =0
                 if scores["slows"] then
@@ -400,7 +403,7 @@ return {
                 end
                 score = score + bonus
 
-                --print(recruit_id .. " score: " .. offense_score*2.5 .. " + " .. defense_score/hp_ratio^0.5 .. " + " .. move_score*(distance_to_enemy/15)^2  .. " + " .. bonus  .. " = " .. score)
+                --print(recruit_id .. " score: " .. offense_score*offense_weight .. " + " .. defense_score*defense_weight .. " + " .. move_score*move_weight  .. " + " .. bonus  .. " = " .. score)
                 if score > best_score then
                     best_score = score
                     recruit_type = recruit_id
