@@ -1497,9 +1497,9 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, dsts
         -- If there's no chance to die, using unit with lots of XP is good
         -- Otherwise it's bad
         if (as.hp_chance[0] > 0) then
-            xp_bonus = xp_bonus - attackers[i].experience * xp_weight
+            xp_bonus = xp_bonus - attackers[i].experience
         else
-            xp_bonus = xp_bonus + attackers[i].experience * xp_weight
+            xp_bonus = xp_bonus + attackers[i].experience
         end
 
         -- The attack position (this is just for convenience)
@@ -1556,7 +1556,7 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, dsts
 
     -- XP bonus is positive for defender as well - want to get rid of high-XP opponents first
     -- Except if the defender will likely level up through the attack (dealt with above)
-    local defender_xp_bonus = defender.experience * xp_weight
+    local defender_xp_bonus = defender.experience
 
     local defender_cost = defender.__cfg.cost
     local defender_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(defender.x, defender.y)).village
@@ -1576,8 +1576,8 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, dsts
     attacker_rating = attacker_rating - occupied_hexes * occupied_hex_penalty
 
     -- XP-based rating
-    defender_rating = defender_rating + defender_xp_bonus - defender_about_to_level_penalty
-    attacker_rating = attacker_rating + xp_bonus + attacker_about_to_level_bonus
+    defender_rating = defender_rating + defender_xp_bonus * xp_weight - defender_about_to_level_penalty
+    attacker_rating = attacker_rating + xp_bonus * xp_weight + attacker_about_to_level_bonus
 
     -- Resources used (cost) of units on both sides
     -- Only the delta between ratings makes a difference -> absolute value meaningless
