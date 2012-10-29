@@ -1433,14 +1433,29 @@ end
 
 function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, dsts, cfg)
     -- Returns a common (but configurable) kind of rating for attacks
+    -- Inputs:
     -- att_stats: can be a single attacker stats table, or an array of several
     -- def_stats: has to be a single defender stats table
-    -- attackers: single attacker or table of attackers, in same order as att_stats
+    -- attackers: single attacker unit or table of attacker units, in same order as att_stats
     -- defender: defender unit table
     -- dsts: the attack locations, in same order as att_stats
-    -- cfg: table of rating parameters
-    --  - own_damage_weight (1.0):
-    --  - ctk_weight (0.5):
+    -- cfg: table of configurable rating parameters
+    --  - own_damage_weight (1.0): ratio of rating for own damage / enemy damage
+    --  - ctk_weight (0.5): rating bonus for each % point of CTK
+    --  - resource_weight (0.25): rating for each gold of resources used (all the attackers)
+    --  - terrain_weight (0.111): rating for each % point of terrain defense
+    --  - village_bonus (25): rating bonus if attacker is on a village
+    --  - defender_village_bonus (5): rating bonus if defender is on a village
+    --  - xp_weight (0.2): rating for each XP (both attackers and defenders)
+    --  - distance_leader_weight (1.0): rating of attack hex distance from AI leader (relative to enemy distance from leader)
+    --  - occupied_hex_penalty (0.1): rating penalty if the attack hex is occupied
+    --
+    -- Returns:
+    --   - Overall rating for the attack or attack combo
+    --   - Attacker rating: this one is additive for the individual attacks in a combo
+    --   - Defender rating: not additive for attack combos; needs to be calculated for the
+    --     defender stats of the last attack in a combo (that works for everything except
+    --     the rating whether the defender is about to level in the attack combo)
 
     -- Set up the rating config parameters
     cfg = cfg or {}
@@ -1466,8 +1481,8 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, dsts
     -- because if there's no other difference, prefer location _between_ the leader and the enemy
     local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
 
-    ----- Collect the necessary information -----
-    --- All the per-attacker contributions: ---
+    ---------- Collect the necessary information ----------
+    ------ All the per-attacker contributions: ------
     local damage, ctd, resources_used = 0, 0, 0
     local xp_bonus = 0
     local attacker_about_to_level_bonus, defender_about_to_level_penalty = 0, 0
@@ -1535,7 +1550,7 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, dsts
         end
     end
 
-    --- All the defender-related information: ---
+    ------ All the defender-related information: ------
     local defender_damage = defender.hitpoints - def_stats.average_hp
     local ctk = def_stats.hp_chance[0]  -- Chance to kill
 
@@ -1546,7 +1561,7 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, dsts
     local defender_cost = defender.__cfg.cost
     local defender_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(defender.x, defender.y)).village
 
-    ----- Now add all this together in a rating -----
+    ---------- Now add all this together in a rating ----------
     -- We use separate attacker(s) and defender ratings, so that attack combos can be dealt with easily
     local defender_rating, attacker_rating = 0, 0
 
