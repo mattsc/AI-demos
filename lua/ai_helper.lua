@@ -1263,9 +1263,14 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc)
     --   must be in same order as 'attackers'
     -- enemy: the enemy being attacked
     -- precalc: an optional table of pre-calculated attack outcomes
-    --   - As this is a table, we can modify it in here, which also modifies it in the calling function
+    --   - As this is a table, we can modify it in here (add outcomes), which also modifies it in the calling function
     --
-    -- Return values: see end of this function for explanations
+    -- Return values:
+    --   - the rating for this attack combination as returned by ai_helper.attack_rating()
+    --   - the sorted attackers and dsts arrays
+    --   - defender combo stats: one set of stats containing the defender stats after the attack combination
+    --   - att_stats: an array of stats for each attacker, in the same order as 'attackers'
+    --   - def_stats: an array of defender stats for each individual attack, in the same order as 'attackers'
     --
     -- Note: the combined defender stats are approximate in some cases (e.g. attacks
     -- with slow and drain, but should be good otherwise
@@ -1312,7 +1317,7 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc)
 
             -- Note that this is a variance, not a standard deviations (as in, it's squared),
             -- so it does not matter much for low-variance attacks, but takes on large values for
-            -- high variance attacks.  I think this is what we want.
+            -- high variance attacks.  I think that is what we want.
             rating = rating + outcome_variance
 
             -- If attacker has attack with 'slow' special, it should always go first
@@ -1324,6 +1329,7 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc)
             --print('Final rating', rating, i)
             ratings[i] = { i, rating }
 
+            -- Now add this attack to the precalc table, so that next time around, we don't have to do this again
             precalc[enemy_ind][att_ind][dst_ind] = {
                 rating = rating,  -- Cannot use { i, rating } here, as 'i' might be different next time
                 attacker_ratings = tmp_attacker_ratings[i],
@@ -1368,6 +1374,7 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc)
     -- For the first attack, it's simply the defenders hp_chance distribution
     local hp_combo = ai_helper.table_copy(def_stats[1].hp_chance)
     -- Also get an approximate value for slowed/poisoned chance after attack combo
+    -- (this is 1-slowed for calc. reasons; changed below)
     local slowed, poisoned = 1 - def_stats[1].slowed, 1 - def_stats[1].poisoned
 
     -- Then we go through all the other attacks
@@ -1396,7 +1403,7 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc)
         -- Finally, transfer result to hp_combo table for next iteration
         hp_combo = ai_helper.table_copy(tmp_array)
 
-        -- And the slowed/poisoned percentage
+        -- And the slowed/poisoned percentage (this is 1-slowed for calc. reasons; changed below)
         slowed = slowed * (1 - def_stats[i].slowed)
         poisoned = poisoned * (1 - def_stats[i].poisoned)
     end
@@ -1410,7 +1417,7 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc)
     for hp,p in ipairs(hp_combo) do av_hp = av_hp + hp*p end
     def_stats_combo.average_hp = av_hp
 
-    -- For now, we set slowed and poisoned always to zero -- !!!!! FIX !!!!!
+    -- Slowed/poisoned: go from 1-value -> value
     def_stats_combo.slowed, def_stats_combo.poisoned = 1. - slowed, 1. - poisoned
 
     -- Get the total rating for this attack combo:
@@ -1421,11 +1428,6 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc)
     for i,r in ipairs(attacker_ratings) do rating = rating + r end
     --print('\n',rating)
 
-    -- Finally, we return:
-    -- - the sorted attackers and dsts arrays
-    -- - defender combo stats: one set of stats containing the defender stats after the attack combination
-    -- - att_stats: an array of stats for each attacker, in the same order as 'attackers'
-    -- - def_stats: an array of defender stats for each individual attacks, in the same order as 'attackers'
     return rating, attackers, dsts, att_stats, def_stats_combo, def_stats
 end
 
