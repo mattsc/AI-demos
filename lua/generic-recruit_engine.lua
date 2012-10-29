@@ -286,10 +286,13 @@ return {
             local recruit_effectiveness = {}
             local recruit_vulnerability = {}
             local attack_type_count = {} -- The number of units who will likely use a given attack type
-            --local attack_range_count = {} -- The number of units who will likely use a given attack range
+            local attack_range_count = {} -- The number of units who will likely use a given attack range
             local unit_attack_type_count = {} -- The attack types a unit will use
+            local unit_attack_range_count = {} -- The ranges a unit will use
+            local enemy_type_count = 0
             for i, unit_type in ipairs(enemy_types) do
                 local analysis = analyze_enemy_unit(unit_type)
+                enemy_type_count = enemy_type_count + 1
                 for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
                     -- This line should be moved out of the loop!
                     local recruit_count = #(AH.get_live_units { side = wesnoth.current.side, type = recruit_id, canrecruit = 'no' })
@@ -307,16 +310,21 @@ return {
                     end
                     attack_type_count[attack_type] = attack_type_count[attack_type] + recruit_count
 
-                    --local attack_range = analysis[recruit_id].defense.attack.range
-                    --if attack_range_count[attack_range] == nil then
-                    --    attack_range_count[attack_range] = 0
-                    --end
-                    --attack_range_count[attack_range] = attack_type_count[attack_type] + recruit_count
+                    local attack_range = analysis[recruit_id].defense.attack.range
+                    if attack_range_count[attack_range] == nil then
+                        attack_range_count[attack_range] = 0
+                    end
+                    attack_range_count[attack_range] = attack_range_count[attack_range] + recruit_count
 
                     if unit_attack_type_count[recruit_id] == nil then
                         unit_attack_type_count[recruit_id] = {}
                     end
                     unit_attack_type_count[recruit_id][attack_type] = true
+
+                    if unit_attack_range_count[recruit_id] == nil then
+                        unit_attack_range_count[recruit_id] = {}
+                    end
+                    unit_attack_range_count[recruit_id][attack_range] = true
                 end
             end
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
@@ -324,12 +332,18 @@ return {
                 recruit_vulnerability[recruit_id] = (recruit_vulnerability[recruit_id] / ((num_enemies)^2))
             end
             -- Correct count of units for each range
-            --for range, count in pairs(attack_range_count) do
-            --    attack_range_count[range] = count/enemy_counts
-            --end
+            local most_common_range = nil
+            local most_common_range_count = 0
+            for range, count in pairs(attack_range_count) do
+                attack_range_count[range] = count/enemy_type_count
+                if attack_range_count[range] > most_common_range_count then
+                    most_common_range = range
+                    most_common_range_count = attack_range_count[range]
+                end
+            end
             -- Correct count of units for each attack type
             for attack_type, count in pairs(attack_type_count) do
-                attack_type_count[attack_type] = count/num_enemies
+                attack_type_count[attack_type] = count/enemy_type_count
             end
 
             -- Find best recruit based on damage done to enemies present, speed, and hp/gold ratio
@@ -377,10 +391,16 @@ return {
                 local move_score = scores["move"]/best_scores["move"]
                 local score = offense_score*3 + defense_score/hp_ratio + move_score*(distance_to_enemy/15)^2
 
+                local bonus =0
                 if scores["slows"] then
-                    score = score + 0.75
+                    bonus = bonus + 0.75
                 end
-                --wesnoth.message(recruit_id .. " score: " .. offense_score*3 .. " + " .. defense_score/hp_ratio .. " + " .. move_score*(distance_to_enemy/15)^2  .. " = " .. score)
+                for attack_range, count in pairs(unit_attack_range_count[recruit_id]) do
+                    bonus = bonus + 0.02 * most_common_range_count / (attack_range_count[attack_range]+1)
+                end
+                score = score + bonus
+
+                wesnoth.message(recruit_id .. " score: " .. offense_score*3 .. " + " .. defense_score/hp_ratio .. " + " .. move_score*(distance_to_enemy/15)^2  .. " + " .. bonus  .. " = " .. score)
                 if score > best_score then
                     best_score = score
                     recruit_type = recruit_id
