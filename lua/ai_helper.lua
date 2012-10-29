@@ -1479,7 +1479,7 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, dsts
 
     -- We also need the leader (well, the location at least)
     -- because if there's no other difference, prefer location _between_ the leader and the enemy
-    local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+    local leader = wesnoth.get_units { side = attackers[1].side, canrecruit = 'yes' }[1]
 
     ---------- Collect the necessary information ----------
     ------ All the per-attacker contributions: ------
