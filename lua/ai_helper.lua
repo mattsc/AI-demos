@@ -1251,20 +1251,7 @@ function ai_helper.get_attack_combos(units, enemy, cfg)
     --print('#attack_array after:', #attack_array)
     --DBG.dbms(attack_array)
 
-    -- Finally, we set up a slightly different attacks_dst_src
-    -- It's a double array with keys [dst][src] and contains the individual attacks
-    -- This is for easy indexing later, and is returned as a second argument by the function
-    local attacks_dst_src = {}
-    for i,a in ipairs(attacks) do
-        local xy_dst = a.dst.x * 1000 + a.dst.y
-        local xy_src = a.src.x * 1000 + a.src.y
-
-        if (not attacks_dst_src[xy_dst]) then attacks_dst_src[xy_dst] = { } end  -- for attack by no unit on this hex
-        attacks_dst_src[xy_dst][xy_src] = a
-    end
-    --DBG.dbms(attacks_dst_src)
-
-    return attack_array, attacks_dst_src
+    return attack_array
 end
 
 function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc)

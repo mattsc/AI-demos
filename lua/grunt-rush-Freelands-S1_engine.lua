@@ -288,9 +288,8 @@ return {
             local precalc_attacks = {}  -- same reason
             for i,e in ipairs(enemies) do
                 --print(i, e.id, os.clock())
-                local attack_combos, attacks_dst_src = AH.get_attack_combos(units, e, { include_occupied = true })
+                local attack_combos = AH.get_attack_combos(units, e, { include_occupied = true })
                 --DBG.dbms(attack_combos)
-                --DBG.dbms(attacks_dst_src)
                 --print('#attack_combos', #attack_combos, os.clock())
 
                 local enemy_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(e.x, e.y)).village
@@ -1409,9 +1408,8 @@ return {
             local precalc_attacks = {}  -- same reason
             for i,e in ipairs(targets) do
                 --print('\n', i, e.id, os.clock())
-                local attack_combos, attacks_dst_src = AH.get_attack_combos(attackers, e, { include_occupied = true })
+                local attack_combos = AH.get_attack_combos(attackers, e, { include_occupied = true })
                 --DBG.dbms(attack_combos)
-                --DBG.dbms(attacks_dst_src)
                 --print('#attack_combos', #attack_combos)
 
                 local enemy_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(e.x, e.y)).village
