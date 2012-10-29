@@ -384,14 +384,15 @@ return {
             end
             local best_score = 0
             local recruit_type = nil
+            local offense_weight = 2.5
+            local defense_weight = 1/hp_ratio^0.7
+            local move_weight = (distance_to_enemy/15)^2
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
                 local scores = recruit_scores[recruit_id]
                 local offense_score = (scores["offense"]/best_scores["offense"])^0.5
-                local offense_weight = 2.5
                 local defense_score = (scores["defense"]/best_scores["defense"])^0.5
-                local defense_weight = 1/hp_ratio^0.7
                 local move_score = scores["move"]/best_scores["move"]
-                local move_weight = (distance_to_enemy/15)^2
+
                 local score = offense_score*offense_weight + defense_score*defense_weight + move_score*move_weight
 
                 local bonus =0
