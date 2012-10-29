@@ -353,7 +353,7 @@ return {
                 local move_score = distance_to_enemy^2 / (((cost / wesnoth.unit_types[recruit_id].max_moves)^0.5) * wesnoth.unit_types[recruit_id].cost^0.4)
 
                 -- Estimate effectiveness on offense and defense
-                local offense_score = recruit_effectiveness[recruit_id]/(wesnoth.unit_types[recruit_id].cost^0.5*recruit_modifier^4)
+                local offense_score = recruit_effectiveness[recruit_id]/(wesnoth.unit_types[recruit_id].cost^0.4*recruit_modifier^4)
                 local defense_score = efficiency[recruit_id]/recruit_vulnerability[recruit_id]
 
                 local unit_score = {offense = offense_score, defense = defense_score, move = move_score}
