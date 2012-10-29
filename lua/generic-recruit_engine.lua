@@ -367,7 +367,7 @@ return {
                 local move_score = ((wesnoth.unit_types[recruit_id].max_moves / cost)^0.5) / wesnoth.unit_types[recruit_id].cost^0.4
 
                 -- Estimate effectiveness on offense and defense
-                local offense_score = recruit_effectiveness[recruit_id]/(wesnoth.unit_types[recruit_id].cost^0.4*recruit_modifier^4)
+                local offense_score = recruit_effectiveness[recruit_id]/(wesnoth.unit_types[recruit_id].cost^0.3*recruit_modifier^4)
                 local defense_score = efficiency[recruit_id]/recruit_vulnerability[recruit_id]
 
                 local unit_score = {offense = offense_score, defense = defense_score, move = move_score}
@@ -389,7 +389,7 @@ return {
                 local offense_score = (scores["offense"]/best_scores["offense"])^0.5
                 local defense_score = (scores["defense"]/best_scores["defense"])^0.5
                 local move_score = scores["move"]/best_scores["move"]
-                local score = offense_score*3 + defense_score/hp_ratio + move_score*(distance_to_enemy/15)^2
+                local score = offense_score*2.5 + defense_score/hp_ratio^0.7 + move_score*(distance_to_enemy/15)^2
 
                 local bonus =0
                 if scores["slows"] then
@@ -400,7 +400,7 @@ return {
                 end
                 score = score + bonus
 
-                wesnoth.message(recruit_id .. " score: " .. offense_score*3 .. " + " .. defense_score/hp_ratio .. " + " .. move_score*(distance_to_enemy/15)^2  .. " + " .. bonus  .. " = " .. score)
+                --print(recruit_id .. " score: " .. offense_score*2.5 .. " + " .. defense_score/hp_ratio^0.5 .. " + " .. move_score*(distance_to_enemy/15)^2  .. " + " .. bonus  .. " = " .. score)
                 if score > best_score then
                     best_score = score
                     recruit_type = recruit_id
