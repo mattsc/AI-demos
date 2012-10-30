@@ -364,7 +364,7 @@ return {
                 -- Use time to enemy to encourage recruiting fast units when the opponent is far away (game is beginning or we're winning)
                 local recruit_unit = wesnoth.create_unit { type = recruit_id, x = best_hex[1], y = best_hex[2] }
                 local path, cost = wesnoth.find_path(recruit_unit, enemy_location.x, enemy_location.y, {ignore_units = true})
-                local move_score = ((wesnoth.unit_types[recruit_id].max_moves / cost)^0.5) / wesnoth.unit_types[recruit_id].cost^0.4
+                local move_score = wesnoth.unit_types[recruit_id].max_moves / (cost*wesnoth.unit_types[recruit_id].cost^0.5)
 
                 -- Estimate effectiveness on offense and defense
                 local offense_score = recruit_effectiveness[recruit_id]/(wesnoth.unit_types[recruit_id].cost^0.3*recruit_modifier^4)
@@ -384,9 +384,9 @@ return {
             end
             local best_score = 0
             local recruit_type = nil
-            local offense_weight = 2.5
-            local defense_weight = 1/hp_ratio^0.7
-            local move_weight = (distance_to_enemy/15)^2
+            local offense_weight = 2.75
+            local defense_weight = 1/hp_ratio^0.5
+            local move_weight = math.max((distance_to_enemy/16)^2, 0.5)
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
                 local scores = recruit_scores[recruit_id]
                 local offense_score = (scores["offense"]/best_scores["offense"])^0.5
@@ -395,7 +395,7 @@ return {
 
                 local score = offense_score*offense_weight + defense_score*defense_weight + move_score*move_weight
 
-                local bonus =0
+                local bonus = 0
                 if scores["slows"] then
                     bonus = bonus + 0.75
                 end
