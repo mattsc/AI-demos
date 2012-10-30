@@ -402,6 +402,7 @@ return {
                 for attack_range, count in pairs(unit_attack_range_count[recruit_id]) do
                     bonus = bonus + 0.02 * most_common_range_count / (attack_range_count[attack_range]+1)
                 end
+                bonus = bonus + 0.05 * wesnoth.races[wesnoth.unit_types[recruit_id].__cfg.race].num_traits^2
                 score = score + bonus
 
                 --print(recruit_id .. " score: " .. offense_score*offense_weight .. " + " .. defense_score*defense_weight .. " + " .. move_score*move_weight  .. " + " .. bonus  .. " = " .. score)
