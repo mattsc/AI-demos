@@ -1278,6 +1278,13 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc)
 
     precalc = precalc or {}
 
+    --print()
+    --print('Enemy:', enemy.id, enemy.x, enemy.y)
+    --print('Attackers:')
+    --for i,a in ipairs(tmp_attackers) do
+    --    print('  ' .. a.id, a.x, a.y)
+    --end
+
     -- We first simulate and rate the individual attacks
     local ratings, tmp_attacker_ratings = {}, {}
     local tmp_att_stats, tmp_def_stats = {}, {}
