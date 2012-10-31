@@ -309,7 +309,7 @@ return {
                 local on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(defender.x, defender.y)).village
 
                 -- Also, poisoning units that would level up through the attack is very bad
-                local about_to_level = defender.max_experience - defender.experience <= attacker.__cfg.level
+                local about_to_level = defender.max_experience - defender.experience <= wesnoth.unit_types[attacker.type].level
 
                 if (not cant_poison) and (not on_village) and (not about_to_level) then
                     -- Strongest enemy gets poisoned first

@@ -14,7 +14,7 @@ return {
             local max_rating = -9999
             local best_weapon = -1
 
-            local target_level = target.__cfg.level
+            local target_level = wesnoth.unit_types[target.type].level
             local n_weapon = 0
             for weapon in H.child_range(attacker.__cfg, "attack") do
                 n_weapon = n_weapon + 1
@@ -1596,7 +1596,7 @@ return {
             local leader = wesnoth.get_units { side = wesnoth.current.side, formula = '$this_unit.moves > 0',
                 canrecruit = 'yes'
             }[1]
-            --print('Leader:', leader.id, leader.__cfg.level, wesnoth.sides[wesnoth.current.side].gold)
+            --print('Leader:', leader.id, wesnoth.unit_types[leader.type].level, wesnoth.sides[wesnoth.current.side].gold)
 
             -- !!!!!!!!!!!! I need to change this, use more accurate condition !!!!!!!!!!!!!
             if (wesnoth.sides[wesnoth.current.side].gold >= 15) then
@@ -1606,7 +1606,7 @@ return {
             end
 
             -- Leader specific rating:
-            local leader_level = leader.__cfg.level
+            local leader_level = wesnoth.unit_types[leader.type].level
             local my_units_noMP = wesnoth.get_units{ side = wesnoth.current.side, formula = '$this_unit.moves <= 0',
                 { "not", { id = id } }
             }
@@ -1622,7 +1622,7 @@ return {
 
             local special = LS.create()
             for i,u in ipairs(my_units_noMP) do
-                local unit_level = u.__cfg.level
+                local unit_level = wesnoth.unit_types[u.type].level
                 if ( unit_level < leader_level) then
                     -- Small bonus for lower_level unit itself
                     local rating = leader_level - unit_level

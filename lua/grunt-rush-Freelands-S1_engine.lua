@@ -250,7 +250,7 @@ return {
 
             -- Need to eliminate units that are Level 0 (trappers) or skirmishers (enemies)
             for i = #units,1,-1 do
-                if (units[i].__cfg.level == 0) then
+                if (wesnoth.unit_types[units[i].type].level == 0) then
                     --print('Eliminating ' .. units[i].id .. ' from trappers: Level 0 unit')
                     table.remove(units, i)
                 end
@@ -293,7 +293,7 @@ return {
                 --print('#attack_combos', #attack_combos, os.clock())
 
                 local enemy_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(e.x, e.y)).village
-                local enemy_cost = e.__cfg.cost
+                local enemy_cost = wesnoth.unit_types[e.type].cost
 
                 for j,combo in ipairs(attack_combos) do
                     -- Only keep combos that include exactly 2 attackers
@@ -314,7 +314,7 @@ return {
                         local hex = { math.floor(dst[1] / 1000), dst[1] % 1000 }
                         local opp_hex = AH.find_opposite_hex(hex, { e.x, e.y })
                         local opp_unit = wesnoth.get_unit(opp_hex[1], opp_hex[2])
-                        if opp_unit and (opp_unit.moves == 0) and (opp_unit.side == wesnoth.current.side) and (opp_unit.__cfg.level > 0) then
+                        if opp_unit and (opp_unit.moves == 0) and (opp_unit.side == wesnoth.current.side) and (wesnoth.unit_types[opp_unit.type].level > 0) then
                             trapping_attack = true
                         end
                         --print('  trapping_attack: ', trapping_attack)
@@ -398,7 +398,7 @@ return {
                             -- Also, the less a unit costs, the better
                             -- This will also favor attacks by single unit, if possible, unless
                             -- 2-unit attack has much larger chance of success/damage
-                            rating = rating - attackers[i_a].__cfg.cost
+                            rating = rating - wesnoth.unit_types[attackers[i_a].type].cost
                             -- Own unit on village gets bonus too
                             local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(dsts[i_a][1], dsts[i_a][2])).village
                             if is_village then rating = rating + 20 end
@@ -1413,7 +1413,7 @@ return {
                 --print('#attack_combos', #attack_combos)
 
                 local enemy_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(e.x, e.y)).village
-                local enemy_cost = e.__cfg.cost
+                local enemy_cost = wesnoth.unit_types[e.type].cost
 
                 for j,combo in ipairs(attack_combos) do
                     --print('combo ' .. j, os.clock())
@@ -2002,7 +2002,7 @@ return {
                 local cant_poison = status.poisoned or status.not_living
 
                 -- Also, poisoning units that would level up through the attack or could level up immediately after is very bad
-                local about_to_level = (defender.max_experience - defender.experience) <= (attacker.__cfg.level * 2)
+                local about_to_level = (defender.max_experience - defender.experience) <= (wesnoth.unit_types[attacker.type].level * 2)
 
                 if (not cant_poison) and (not about_to_level) then
                     -- Strongest enemy gets poisoned first

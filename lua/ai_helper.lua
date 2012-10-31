@@ -1426,7 +1426,7 @@ function ai_helper.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc)
     -- It doesn't matter which attacker and att_stats are chosen for that
     local dummy, rating = ai_helper.attack_rating(att_stats[1], def_stats_combo, attackers[1], enemy, dsts[1])
     for i,r in ipairs(attacker_ratings) do rating = rating + r end
-    --print('\n',rating)
+    --print('    --> rating:', rating)
 
     return rating, attackers, dsts, att_stats, def_stats_combo, def_stats
 end
@@ -1492,7 +1492,7 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, dsts
         --print(attackers[i].id, as.average_hp)
         damage = damage + attackers[i].hitpoints - as.average_hp
         ctd = ctd + as.hp_chance[0]  -- Chance to die
-        resources_used = resources_used + attackers[i].__cfg.cost
+        resources_used = resources_used + wesnoth.unit_types[attackers[i].type].cost
 
         -- If there's no chance to die, using unit with lots of XP is good
         -- Otherwise it's bad
@@ -1506,6 +1506,7 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, dsts
         local x, y = dsts[i][1], dsts[i][2]
 
         -- Position units in between AI leader and defender
+        -- This number is larger for attack hexes closer to the side leader
         relative_distances = relative_distances
             + H.distance_between(defender.x, defender.y, leader.x, leader.y)
             - H.distance_between(x, y, leader.x, leader.y)
@@ -1526,7 +1527,7 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, dsts
         end
 
         -- Will the attacker level in this attack (or likely do so?)
-        local defender_level = defender.__cfg.level
+        local defender_level = wesnoth.unit_types[defender.type].level
         if (as.hp_chance[0] < 0.4) then
             if (attackers[i].max_experience - attackers[i].experience <= defender_level) then
                 attacker_about_to_level_bonus = attacker_about_to_level_bonus + 100
@@ -1538,7 +1539,7 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, dsts
         end
 
         -- Will the defender level in this attack (or likely do so?)
-        local attacker_level = attackers[i].__cfg.level
+        local attacker_level = wesnoth.unit_types[attackers[i].type].level
         if (def_stats.hp_chance[0] < 0.6) then
             if (defender.max_experience - defender.experience <= attacker_level) then
                 defender_about_to_level_penalty = defender_about_to_level_penalty + 2000
@@ -1558,7 +1559,7 @@ function ai_helper.attack_rating(att_stats, def_stats, attackers, defender, dsts
     -- Except if the defender will likely level up through the attack (dealt with above)
     local defender_xp_bonus = defender.experience
 
-    local defender_cost = defender.__cfg.cost
+    local defender_cost = wesnoth.unit_types[defender.type].cost
     local defender_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(defender.x, defender.y)).village
 
     ---------- Now add all this together in a rating ----------

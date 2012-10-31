@@ -352,13 +352,12 @@ return {
             }
             local attacks = {}
             for i,e in ipairs(enemies) do
-                local defender_level = e.__cfg.level -- because this is slow, do it here
                 for x,y in H.adjacent_tiles(e.x, e.y) do
                     if self.data.is_my_territory:get(x,y) then
                         local unit_in_way = wesnoth.get_unit(x, y)
                         local data = { x = x, y = y,
                             defender = e,
-                            defender_level = defender_level,
+                            defender_level = wesnoth.unit_types[e.type].level,
                             unit_in_way = unit_in_way
                         }
                         table.insert(attacks, data)
