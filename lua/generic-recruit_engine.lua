@@ -5,7 +5,7 @@ return {
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
 
         function living(unit)
-            return not helper.get_child(unit.__cfg, "status").not_living
+            return not unit.status.not_living
         end
 
         function get_best_defense(unit)

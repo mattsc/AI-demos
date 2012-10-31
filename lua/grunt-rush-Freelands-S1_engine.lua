@@ -856,10 +856,10 @@ return {
             for i,u in ipairs(units) do
                 local hp_eff = u.hitpoints
                 if (hp_eff < min_hp + 8) then
-                    if H.get_child(u.__cfg, "status").poisoned then hp_eff = hp_eff - 8 end
+                    if u.status.poisoned then hp_eff = hp_eff - 8 end
                 end
                 if (hp_eff < min_hp + 4) then
-                    if H.get_child(u.__cfg, "status").slowed then hp_eff = hp_eff - 4 end
+                    if u.status.slowed then hp_eff = hp_eff - 4 end
                 end
                 if (hp_eff < min_hp) then
                     table.insert(healees, u)
@@ -891,8 +891,8 @@ return {
                             --print('  can be reached by', u.id, u.x, u.y)
                             local rating = - u.hitpoints + u.max_hitpoints / 2.
 
-                            if H.get_child(u.__cfg, "status").poisoned then rating = rating + 8 end
-                            if H.get_child(u.__cfg, "status").slowed then rating = rating + 4 end
+                            if u.status.poisoned then rating = rating + 8 end
+                            if u.status.slowed then rating = rating + 4 end
 
                             -- villages in the north are preferable (since they are supposedly away from the enemy)
                             rating = rating - v[2]
@@ -925,8 +925,8 @@ return {
 
                             rating = rating - cost
 
-                            if H.get_child(u.__cfg, "status").poisoned then rating = rating + 8 end
-                            if H.get_child(u.__cfg, "status").slowed then rating = rating + 4 end
+                            if u.status.poisoned then rating = rating + 8 end
+                            if u.status.slowed then rating = rating + 4 end
 
                             -- villages in the north are preferable (since they are supposedly away from the enemy)
                             rating = rating - (v[2] * 1.5)
@@ -1998,8 +1998,7 @@ return {
                 local defender = wesnoth.get_unit(a.target.x, a.target.y)
 
                 -- Don't try to poison a unit that cannot be poisoned
-                local status = H.get_child(defender.__cfg, "status")
-                local cant_poison = status.poisoned or status.not_living
+                local cant_poison = defender.status.poisoned or defender.status.not_living
 
                 -- Also, poisoning units that would level up through the attack or could level up immediately after is very bad
                 local about_to_level = (defender.max_experience - defender.experience) <= (wesnoth.unit_types[attacker.type].level * 2)

@@ -32,5 +32,5 @@ function troll_target(unit)
 end
 
 function not_living(unit)
-    return not (not helper.get_child(unit.__cfg, "status").not_living)
+    return not (not unit.status.not_living)
 end
