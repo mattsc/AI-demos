@@ -65,7 +65,7 @@ return {
 	                { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
                 }} }} -- That are not too close to an enemy leader
             }
-            if #keeps <= 2 then
+            if #keeps < 1 then
                 -- Skip if there aren't extra keeps to evaluate
                 -- In this situation we'd only switch keeps if we were running away
                 AH.done_eval_messages(start_time, ca_name)
