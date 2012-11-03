@@ -65,7 +65,7 @@ function battle_calcs.battle_outcome_coefficients(att_cfg, def_cfg)
     --   - strikes: total number of strikes
     --   - max_hits: maximum number of hits the unit can survive
     --
-    -- Output: table with the coefficients needed to calculate the distribution
+    -- Output: table with the coefficients needed to calculate the distribution for both attacker and defender
     -- First index: number of hits landed on the defender.  Each of those contains an array of
     -- coefficient tables, of format:
     -- { num = value, am = value, ah = value, dm = value, dh = value }
@@ -79,6 +79,9 @@ function battle_calcs.battle_outcome_coefficients(att_cfg, def_cfg)
     local hit_miss_counts = {}
     battle_calcs.add_next_strike(att_cfg, def_cfg, hit_miss_counts)
     --DBG.dbms(hit_miss_counts)
+
+    -- We first calculate the coefficients for the defender HP distribution
+    -- so this is sorted by the number of hits the attacker lands
 
     -- counts is an array 4 layers deep, where the indices are the number of misses/hits
     -- are the indices in order attacker miss, attacker hit, defender miss, defender hit
@@ -98,7 +101,7 @@ function battle_calcs.battle_outcome_coefficients(att_cfg, def_cfg)
     end
     --DBG.dbms(counts)
 
-    local coeffs = {}
+    local coeffs_def = {}
     for am,v1 in pairs(counts) do  -- attacker miss count
         for ah,v2 in pairs(v1) do  -- attacker hit count
             -- Set up the exponent coefficients for attacker hits/misses
@@ -107,7 +110,7 @@ function battle_calcs.battle_outcome_coefficients(att_cfg, def_cfg)
             if (am > 0) then exp.am = am end
             if (ah > 0) then exp.ah = ah end
 
-            -- We combine defender results by testing whether they produce the same sum
+            -- We combine results by testing whether they produce the same sum
             -- with two very different hit probabilities, hp1 = 0.6, hp2 = 0.137
             -- This will only happen is the coefficients add up to multiples of 1
             local sum1, sum2 = 0,0
@@ -124,13 +127,13 @@ function battle_calcs.battle_outcome_coefficients(att_cfg, def_cfg)
             -- Now, coefficients are set up for each value of total hits by attacker
             -- This holds all the coefficients that need to be added to get the propability
             -- of the defender receiving this number of hits
-            if (not coeffs[ah]) then coeffs[ah] = {} end
+            if (not coeffs_def[ah]) then coeffs_def[ah] = {} end
 
             -- If sum1 and sum2 are equal, that means all the defender probs added up to 1, or
             -- multiple thereof, which means the can all be combine in the calculation
             if (math.abs(sum1 - sum2) < 1e-9) then
                 exp.num = sum1
-                table.insert(coeffs[ah], exp)
+                table.insert(coeffs_def[ah], exp)
             -- If not, the defender probs don't add up to something nice and all
             -- need to be calculated one by one
             else
@@ -140,15 +143,80 @@ function battle_calcs.battle_outcome_coefficients(att_cfg, def_cfg)
                         tmp_exp.num = num
                         if (dm > 0) then tmp_exp.dm = dm end
                         if (dh > 0) then tmp_exp.dh = dh end
-                        table.insert(coeffs[ah], tmp_exp)
+                        table.insert(coeffs_def[ah], tmp_exp)
                     end
                 end
             end
         end
     end
-    --DBG.dbms(coeffs)
+    --DBG.dbms(coeffs_def)
 
-    return coeffs
+    -- Now we do the same for the HP distribution of the attacker,
+    -- which means everything needs to be sorted by defender hits
+    local counts = {}
+    for i,c in ipairs(hit_miss_counts) do
+        local i1 = c.hit_miss_counts[3] -- note that the order here is different from above
+        local i2 = c.hit_miss_counts[4]
+        local i3 = c.hit_miss_counts[1]
+        local i4 = c.hit_miss_counts[2]
+        if not counts[i1] then counts[i1] = {} end
+        if not counts[i1][i2] then counts[i1][i2] = {} end
+        if not counts[i1][i2][i3] then counts[i1][i2][i3] = {} end
+        counts[i1][i2][i3][i4] = (counts[i1][i2][i3][i4] or 0) + 1
+    end
+    --DBG.dbms(counts)
+
+    local coeffs_att = {}
+    for dm,v1 in pairs(counts) do  -- defender miss count
+        for dh,v2 in pairs(v1) do  -- defender hit count
+            -- Set up the exponent coefficients for attacker hits/misses
+            local exp = { }  -- Array for an individual set of coefficients
+            -- Only populate those indices that have exponents > 0
+            if (dm > 0) then exp.dm = dm end
+            if (dh > 0) then exp.dh = dh end
+
+            -- We combine results by testing whether they produce the same sum
+            -- with two very different hit probabilities, hp1 = 0.6, hp2 = 0.137
+            -- This will only happen is the coefficients add up to multiples of 1
+            local sum1, sum2 = 0,0
+            local hp1, hp2 = 0.6, 0.137
+            for am,v3 in pairs(v2) do  -- attacker miss count
+                for ah,num in pairs(v3) do  -- attacker hit count
+                    --print(am, ah, dm, dh, num)
+                    sum1 = sum1 + num * hp1^ah * (1-hp1)^am
+                    sum2 = sum2 + num * hp2^ah * (1-hp2)^am
+                end
+            end
+            --print('sum:', sum1, sum2, dh)
+
+            -- Now, coefficients are set up for each value of total hits by attacker
+            -- This holds all the coefficients that need to be added to get the propability
+            -- of the defender receiving this number of hits
+            if (not coeffs_att[dh]) then coeffs_att[dh] = {} end
+
+            -- If sum1 and sum2 are equal, that means all the defender probs added up to 1, or
+            -- multiple thereof, which means the can all be combine in the calculation
+            if (math.abs(sum1 - sum2) < 1e-9) then
+                exp.num = sum1
+                table.insert(coeffs_att[dh], exp)
+            -- If not, the defender probs don't add up to something nice and all
+            -- need to be calculated one by one
+            else
+                for am,v3 in pairs(v2) do  -- defender miss count
+                    for ah,num in pairs(v3) do  -- defender hit count
+                        local tmp_exp = AH.table_copy(exp)
+                        tmp_exp.num = num
+                        if (am > 0) then tmp_exp.am = am end
+                        if (ah > 0) then tmp_exp.ah = ah end
+                        table.insert(coeffs_att[dh], tmp_exp)
+                    end
+                end
+            end
+        end
+    end
+    --DBG.dbms(coeffs_att)
+
+    return coeffs_att, coeffs_def
 end
 
 function battle_calcs.print_coefficients()
@@ -158,6 +226,7 @@ function battle_calcs.print_coefficients()
     -- Configure these values at will
     local attacker_strikes, defender_strikes = 3, 3  -- number of strikes
     local att_hit_prob, def_hit_prob = 0.8, 0.4  -- probability of landing a hit attacker/defender
+    local attacker_coeffs = true -- attacker coefficients if set to true, defender coefficients otherwise
 
     -- Go through all combinations of maximum hits either attacker or defender can survive
     for ahits = attacker_strikes,0,-1 do
@@ -166,7 +235,12 @@ function battle_calcs.print_coefficients()
             local att_cfg = { strikes = attacker_strikes, max_hits = ahits }
             local def_cfg = { strikes = attacker_strikes, max_hits = dhits }
 
-            local coeffs = battle_calcs.battle_outcome_coefficients(att_cfg, def_cfg)
+            local coeffs, dummy = {}, {}
+            if attacker_coeffs then
+                coeffs = battle_calcs.battle_outcome_coefficients(att_cfg, def_cfg)
+            else
+                dummy, coeffs = battle_calcs.battle_outcome_coefficients(att_cfg, def_cfg)
+            end
 
             print()
             print('Attacker: ' .. att_cfg.strikes .. ' strikes, can survive ' .. att_cfg.max_hits .. ' hits')
