@@ -3,7 +3,7 @@ local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
 local battle_calcs = {}
 
-function battle_calcs.add_next_strike(att_cfg, def_cfg, arr, n, hit_miss_counts, hit_miss_str)
+function battle_calcs.add_next_strike(att_cfg, def_cfg, arr, n_att, n_def, att_strike, hit_miss_counts, hit_miss_str)
     -- Recursive function that sets up the sequences of strikes (misses and hits)
     -- Each call corresponds to one strike of one of the combattants and can be
     -- either miss (value 0) or hit (1)
@@ -16,12 +16,36 @@ function battle_calcs.add_next_strike(att_cfg, def_cfg, arr, n, hit_miss_counts,
     -- - Other parameters of for recursive use only and are initialized below
 
     -- On the first call of this function, initialize variables
-    n = (n or 0) + 1  -- Strike counts (sum of both attacker and defender strikes)
     -- Counts for hits/misses by both units:
     --  - Indices 1 & 2: hit/miss for attacker
     --  - Indices 3 & 4: hit/miss for defender
     hit_miss_counts = hit_miss_counts or { 0, 0, 0, 0 }
     hit_miss_str = hit_miss_str or ''  -- string with the hit/miss sequence; for visualization only
+
+    -- Strike counts
+    --  - n_att/n_def = number of strikes taken by attacker/defender
+    --  - att_strike: if true, it's the attacker's turn, otherwise it's the defender's turn
+    if (not n_att) then
+        n_att = 1
+        n_def = 0
+        att_strike = true
+    else
+        if att_strike then
+            if (n_def < def_cfg.strikes) then
+                n_def = n_def + 1
+                att_strike = false
+            else
+                n_att = n_att + 1
+            end
+        else
+            if (n_att < att_cfg.strikes) then
+                n_att = n_att + 1
+                att_strike = true
+            else
+                n_def = n_def + 1
+            end
+        end
+    end
 
     -- Create both a hit and a miss
     for i = 0,1 do  -- 0:miss, 1: hit
@@ -31,9 +55,7 @@ function battle_calcs.add_next_strike(att_cfg, def_cfg, arr, n, hit_miss_counts,
 
         -- Flag whether the opponent was killed by this strike
         local killed_opp = false  -- Defaults to falso
-
-        -- Odd values of n are strikes by the attacker
-        if (n % 2 == 1) then
+        if att_strike then
             tmp_hmstr = hit_miss_str .. i  -- attacker hit/miss in string: 0 or 1
             tmp_hmc[i+1] = tmp_hmc[i+1] + 1  -- Increment hit/miss counts
             -- Set variable if opponent was killed:
@@ -48,10 +70,11 @@ function battle_calcs.add_next_strike(att_cfg, def_cfg, arr, n, hit_miss_counts,
 
         -- If we've reached the total number of strikes, add this hit/miss combination to table,
         -- but only if the opponent wasn't killed, as that would end the battle
-        if (n < att_cfg.strikes + def_cfg.strikes) and (not killed_opp) then
-            battle_calcs.add_next_strike(att_cfg, def_cfg, arr, n, tmp_hmc, tmp_hmstr)
+        if (n_att + n_def < att_cfg.strikes + def_cfg.strikes) and (not killed_opp) then
+            battle_calcs.add_next_strike(att_cfg, def_cfg, arr, n_att, n_def, att_strike, tmp_hmc, tmp_hmstr)
         -- Otherwise, call the next recursion level
         else
+            --print(tmp_hmstr)
             table.insert(arr, { hit_miss_str = tmp_hmstr, hit_miss_counts = tmp_hmc })
         end
     end
@@ -224,16 +247,17 @@ function battle_calcs.print_coefficients()
     -- Also print numerical values for a given hit probability
 
     -- Configure these values at will
-    local attacker_strikes, defender_strikes = 3, 3  -- number of strikes
+    local attacker_strikes, defender_strikes = 3, 1  -- number of strikes
     local att_hit_prob, def_hit_prob = 0.8, 0.4  -- probability of landing a hit attacker/defender
-    local attacker_coeffs = true -- attacker coefficients if set to true, defender coefficients otherwise
+    local attacker_coeffs = false -- attacker coefficients if set to true, defender coefficients otherwise
 
     -- Go through all combinations of maximum hits either attacker or defender can survive
-    for ahits = attacker_strikes,0,-1 do
-        for dhits = defender_strikes,0,-1 do
+    -- Note how this has to be crossed between ahits and defender_strikes and vice versa
+    for ahits = defender_strikes,0,-1 do
+        for dhits = attacker_strikes,0,-1 do
             -- Get the coefficients for this case
             local att_cfg = { strikes = attacker_strikes, max_hits = ahits }
-            local def_cfg = { strikes = attacker_strikes, max_hits = dhits }
+            local def_cfg = { strikes = defender_strikes, max_hits = dhits }
 
             local coeffs, dummy = {}, {}
             if attacker_coeffs then
