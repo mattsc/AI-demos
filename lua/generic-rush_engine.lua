@@ -119,7 +119,7 @@ return {
                 local path, cost = wesnoth.find_path(leader, x, y)
                 local turn_cost = math.ceil(cost/leader.max_moves)
 
-                -- See if there is a nearby village that can be captured with delaying progress
+                -- See if there is a nearby village that can be captured without delaying progress
                 local close_villages = wesnoth.get_locations {
                     { "and", { x = next_hop[1], y = next_hop[2], radius = 3 }},
                     terrain = "*^V*",
