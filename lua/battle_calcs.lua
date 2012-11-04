@@ -244,8 +244,30 @@ function battle_calcs.battle_outcome_coefficients(cfg)
             end
         end
     end
-    --DBG.dbms(coeffs_att)
 
+    -- The probability for the number of hits with the most terms can be skipped
+    -- and 1-sum(other_terms) can be used instead.  Set a flag for which term to skip
+    local max_number, biggest_equation = 0, -1
+    for hits,v in pairs(coeffs_att) do
+        local number = 0
+        for i,c in pairs(v) do number = number + 1 end
+        if (number > max_number) then
+            max_number, biggest_equation = number, hits
+        end
+    end
+    coeffs_att[biggest_equation].skip = true
+
+    local max_number, biggest_equation = 0, -1
+    for hits,v in pairs(coeffs_def) do
+        local number = 0
+        for i,c in pairs(v) do number = number + 1 end
+        if (number > max_number) then
+            max_number, biggest_equation = number, hits
+        end
+    end
+    coeffs_def[biggest_equation].skip = true
+
+    --DBG.dbms(coeffs_def)
     return coeffs_att, coeffs_def
 end
 
@@ -306,11 +328,15 @@ function battle_calcs.print_coefficients()
                        prob = prob * def_hit_prob ^ exp.dh
                         str = str .. ' phd^' .. exp.dh
                     end
+
                     hit_prob = hit_prob + prob  -- total probabilty for this number of hits landed
                     if (i ~= #combs) then str = str .. '  +  ' end
                 end
 
-                print(hits .. ':  ' .. str)
+                local skip_str = ''
+                if combs.skip then skip_str = ' (skip)' end
+
+                print(hits .. skip_str .. ':  ' .. str)
                 print('      = ' .. hit_prob)
             end
         end
