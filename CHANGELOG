@@ -1,17 +1,13 @@
-0.11.5
-- Units now use correct weapons to attack again in all scenarios
-- ai_helper:
-  - Many changes and improvements to existing functions, and addition of new functions, incl.:
-    - attack_combo_stats, attack_rating, get_attack_combos*, get_attacks*, get_attack_map*, simulate_combat*, done_eval_messages
+0.11.5, 4 Nov 2012
+- Bug fix: Units now use correct weapons to attack again in all scenarios
 - Generic Rush:
   - Many improvements to recruit algorithm
   - Significantly speed up grab_villages CA
-    - *** One of the changes makes return to BfW 1.10 impossible ***
+    - *** One of the grab_villages changes makes return to BfW 1.10 impossible ***
   - Fix bug with leader movement when keeps are present on map borders
   - Better handling of split keeps
   - Improved movement to keeps when unclaimed villages nearby
 - Freelands Side 1 Grunt Rush:
-  - Make use of new ai_helper functions and functionality
   - Attacks now take XP into account, discourage use of poisoners under certain circumstances
   - zone_control:
     - Incorporate attack_leader_threads
@@ -19,7 +15,15 @@
     - Leader now participates in zone attacks and other actions, if safe
       - Recruit first if he does so
   - Faster and more accurate counter attack calculation
+  - Make use of new ai_helper functions and functionality
   - Lots of clean-up, optimization and refactoring: improves speed, functionality and configurability
+- Bottleneck Defense: 
+  - Make RCA AI side more aggressive, in order to avoid potential stalemate at the end
+- Remove era "Experimental AI (adjustable parameters) as there currently are no adjustable parameters
+- ai_helper:
+  - Many changes and improvements to existing functions, and addition of new functions, incl.:
+    - attack_combo_stats, attack_rating, get_attack_combos*, get_attacks*, get_attack_map*, simulate_combat*, done_eval_messages
+- New function library battle_calcs.lua for battle outcome calculations: not used in an AI yet
 
 0.11.4, 16 Oct 2012
 - Generic Rush:
