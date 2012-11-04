@@ -12,6 +12,7 @@ function battle_calcs.unit_attack_info(unit, cache)
     -- Return table has sub-tables:
     --  - attacks: the attack tables from unit.__cfg
     --  - resist_mod: resistance modifiers (multiplicative factors) index by attack type
+    --  - alignment: just that
 
     -- Set up a unit id.  We use id+type+side for this, since the
     -- unit can level up.  Side is added to avoid the problem of MP leaders sometimes having
@@ -23,8 +24,13 @@ function battle_calcs.unit_attack_info(unit, cache)
     if cache and cache[id] then
         return cache[id]
     else  -- otherwise collect the information
-        local unit_info = { attacks = {}, resist_mod = {} }
-        for attack in H.child_range(unit.__cfg, 'attack') do
+        local unit_cfg = unit.__cfg
+        local unit_info = {
+            attacks = {},
+            resist_mod = {},
+            alignment = unit_cfg.alignment
+        }
+        for attack in H.child_range(unit_cfg, 'attack') do
             table.insert(unit_info.attacks, attack)
         end
 
