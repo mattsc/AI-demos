@@ -3,13 +3,13 @@ local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
 local battle_calcs = {}
 
-function battle_calcs.add_next_strike(att_cfg, def_cfg, arr, n_att, n_def, att_strike, hit_miss_counts, hit_miss_str)
+function battle_calcs.add_next_strike(cfg, arr, n_att, n_def, att_strike, hit_miss_counts, hit_miss_str)
     -- Recursive function that sets up the sequences of strikes (misses and hits)
     -- Each call corresponds to one strike of one of the combattants and can be
     -- either miss (value 0) or hit (1)
     --
     -- Inputs:
-    -- - att_cfg, def_cfg: config table for the attacker and defender with the following fields:
+    -- - cfg: config table with sub-tables att/def for the attacker/defender with the following fields:
     --   - strikes: total number of strikes
     --   - max_hits: maximum number of hits the unit can survive
     -- - arr: an empty array that will hold the output table
@@ -31,14 +31,14 @@ function battle_calcs.add_next_strike(att_cfg, def_cfg, arr, n_att, n_def, att_s
         att_strike = true
     else
         if att_strike then
-            if (n_def < def_cfg.strikes) then
+            if (n_def < cfg.def.strikes) then
                 n_def = n_def + 1
                 att_strike = false
             else
                 n_att = n_att + 1
             end
         else
-            if (n_att < att_cfg.strikes) then
+            if (n_att < cfg.att.strikes) then
                 n_att = n_att + 1
                 att_strike = true
             else
@@ -59,19 +59,19 @@ function battle_calcs.add_next_strike(att_cfg, def_cfg, arr, n_att, n_def, att_s
             tmp_hmstr = hit_miss_str .. i  -- attacker hit/miss in string: 0 or 1
             tmp_hmc[i+1] = tmp_hmc[i+1] + 1  -- Increment hit/miss counts
             -- Set variable if opponent was killed:
-            if (tmp_hmc[2] > def_cfg.max_hits) then killed_opp = true end
+            if (tmp_hmc[2] > cfg.def.max_hits) then killed_opp = true end
         -- Even values of n are strikes by the defender
         else
             tmp_hmstr = hit_miss_str .. (i+2)  -- defender hit/miss in string: 2 or 3
             tmp_hmc[i+3] = tmp_hmc[i+3] + 1  -- Increment hit/miss counts
             -- Set variable if opponent was killed:
-            if (tmp_hmc[4] > att_cfg.max_hits) then killed_opp = true end
+            if (tmp_hmc[4] > cfg.att.max_hits) then killed_opp = true end
         end
 
         -- If we've reached the total number of strikes, add this hit/miss combination to table,
         -- but only if the opponent wasn't killed, as that would end the battle
-        if (n_att + n_def < att_cfg.strikes + def_cfg.strikes) and (not killed_opp) then
-            battle_calcs.add_next_strike(att_cfg, def_cfg, arr, n_att, n_def, att_strike, tmp_hmc, tmp_hmstr)
+        if (n_att + n_def < cfg.att.strikes + cfg.def.strikes) and (not killed_opp) then
+            battle_calcs.add_next_strike(cfg, arr, n_att, n_def, att_strike, tmp_hmc, tmp_hmstr)
         -- Otherwise, call the next recursion level
         else
             --print(tmp_hmstr)
@@ -80,11 +80,11 @@ function battle_calcs.add_next_strike(att_cfg, def_cfg, arr, n_att, n_def, att_s
     end
 end
 
-function battle_calcs.battle_outcome_coefficients(att_cfg, def_cfg)
+function battle_calcs.battle_outcome_coefficients(cfg)
     -- Determine the coefficients needed to calculate the hitpoint probability distribution
     -- of a given battle
     -- Inputs:
-    -- - att_cfg, def_cfg: config table for the attacker and defender with the following fields:
+    -- - cfg: config table with sub-tables att/def for the attacker/defender with the following fields:
     --   - strikes: total number of strikes
     --   - max_hits: maximum number of hits the unit can survive
     --
@@ -100,7 +100,7 @@ function battle_calcs.battle_outcome_coefficients(att_cfg, def_cfg)
 
     -- Get the hit/miss counts for the battle
     local hit_miss_counts = {}
-    battle_calcs.add_next_strike(att_cfg, def_cfg, hit_miss_counts)
+    battle_calcs.add_next_strike(cfg, hit_miss_counts)
     --DBG.dbms(hit_miss_counts)
 
     -- We first calculate the coefficients for the defender HP distribution
@@ -256,19 +256,21 @@ function battle_calcs.print_coefficients()
     for ahits = defender_strikes,0,-1 do
         for dhits = attacker_strikes,0,-1 do
             -- Get the coefficients for this case
-            local att_cfg = { strikes = attacker_strikes, max_hits = ahits }
-            local def_cfg = { strikes = defender_strikes, max_hits = dhits }
+            local cfg = {
+                att = { strikes = attacker_strikes, max_hits = ahits },
+                def = { strikes = defender_strikes, max_hits = dhits }
+            }
 
             local coeffs, dummy = {}, {}
             if attacker_coeffs then
-                coeffs = battle_calcs.battle_outcome_coefficients(att_cfg, def_cfg)
+                coeffs = battle_calcs.battle_outcome_coefficients(cfg)
             else
-                dummy, coeffs = battle_calcs.battle_outcome_coefficients(att_cfg, def_cfg)
+                dummy, coeffs = battle_calcs.battle_outcome_coefficients(cfg)
             end
 
             print()
-            print('Attacker: ' .. att_cfg.strikes .. ' strikes, can survive ' .. att_cfg.max_hits .. ' hits')
-            print('Defender: ' .. def_cfg.strikes .. ' strikes, can survive ' .. def_cfg.max_hits .. ' hits')
+            print('Attacker: ' .. cfg.att.strikes .. ' strikes, can survive ' .. cfg.att.max_hits .. ' hits')
+            print('Defender: ' .. cfg.def.strikes .. ' strikes, can survive ' .. cfg.def.max_hits .. ' hits')
             print('Chance of hits on defender: ')
 
             -- The first indices of coeffs are the possible number of hits the attacker can land on the defender
