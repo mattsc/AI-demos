@@ -12,6 +12,7 @@ function battle_calcs.add_next_strike(cfg, arr, n_att, n_def, att_strike, hit_mi
     -- - cfg: config table with sub-tables att/def for the attacker/defender with the following fields:
     --   - strikes: total number of strikes
     --   - max_hits: maximum number of hits the unit can survive
+    --   - firststrike: set to true if attack has firststrike special
     -- - arr: an empty array that will hold the output table
     -- - Other parameters of for recursive use only and are initialized below
 
@@ -26,9 +27,15 @@ function battle_calcs.add_next_strike(cfg, arr, n_att, n_def, att_strike, hit_mi
     --  - n_att/n_def = number of strikes taken by attacker/defender
     --  - att_strike: if true, it's the attacker's turn, otherwise it's the defender's turn
     if (not n_att) then
-        n_att = 1
-        n_def = 0
-        att_strike = true
+        if cfg.def.firststrike and (not cfg.att.firststrike) then
+            n_att = 0
+            n_def = 1
+            att_strike = false
+        else
+            n_att = 1
+            n_def = 0
+            att_strike = true
+        end
     else
         if att_strike then
             if (n_def < cfg.def.strikes) then
@@ -247,9 +254,10 @@ function battle_calcs.print_coefficients()
     -- Also print numerical values for a given hit probability
 
     -- Configure these values at will
-    local attacker_strikes, defender_strikes = 3, 1  -- number of strikes
+    local attacker_strikes, defender_strikes = 3, 3  -- number of strikes
     local att_hit_prob, def_hit_prob = 0.8, 0.4  -- probability of landing a hit attacker/defender
-    local attacker_coeffs = false -- attacker coefficients if set to true, defender coefficients otherwise
+    local attacker_coeffs = true -- attacker coefficients if set to true, defender coefficients otherwise
+    local defender_firststrike, attacker_firststrike = true, false
 
     -- Go through all combinations of maximum hits either attacker or defender can survive
     -- Note how this has to be crossed between ahits and defender_strikes and vice versa
@@ -257,8 +265,8 @@ function battle_calcs.print_coefficients()
         for dhits = attacker_strikes,0,-1 do
             -- Get the coefficients for this case
             local cfg = {
-                att = { strikes = attacker_strikes, max_hits = ahits },
-                def = { strikes = defender_strikes, max_hits = dhits }
+                att = { strikes = attacker_strikes, max_hits = ahits, firststrike = attacker_firststrike },
+                def = { strikes = defender_strikes, max_hits = dhits, firststrike = defender_firststrike }
             }
 
             local coeffs, dummy = {}, {}
