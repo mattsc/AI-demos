@@ -1271,9 +1271,7 @@ return {
                 end
                 if (not unit_in_way) then
                     AH.movefull_stopunit(ai, best_attacker, best_loc)
-                    local dw = -1
-                    if AH.got_1_11() then dw = 0 end
-                    ai.attack(best_attacker, best_target, best_weapon + dw)
+                    ai.attack(best_attacker, best_target, best_weapon)
                 end
 
                 if (not best_target.valid) then
@@ -1391,9 +1389,7 @@ return {
                         end
 
                         if (max_rating > -9999) then
-                            local dw = -1
-                            if AH.got_1_11() then dw = 0 end
-                            ai.attack(best_unit, best_target, best_weapon + dw)
+                            ai.attack(best_unit, best_target, best_weapon)
 
                             if (not best_target.valid) then
                                 --print('Enemy was killed.  Reevaluating formations.')

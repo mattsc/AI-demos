@@ -239,9 +239,7 @@ return {
             end
 
             if max_rating > -9e99 then
-                local dw = -1
-                if AH.got_1_11() then dw = 0 end
-                ai.attack(messenger, best_tar, best_weapon + dw)
+                ai.attack(messenger, best_tar, best_weapon)
             end
 
             -- Finally, make sure unit is really done after this

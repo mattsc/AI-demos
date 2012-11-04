@@ -520,9 +520,7 @@ return {
                     --print("Level-up attack",self.data.unit.id, self.data.lu_defender.id, self.data.lu_weapon)
                     --W.message {speaker=self.data.unit.id, message="Level-up attack" }
 
-                    local dw = -1
-                    if AH.got_1_11() then dw = 0 end
-                    ai.attack(self.data.unit, self.data.lu_defender, self.data.lu_weapon + dw)
+                    ai.attack(self.data.unit, self.data.lu_defender, self.data.lu_weapon)
                 end
             end
 
@@ -611,9 +609,7 @@ return {
             else
                 --W.message {speaker=self.data.attacker.id, message="Attacking" }
 
-                local dw = -1
-                if AH.got_1_11() then dw = 0 end
-                ai.attack(self.data.attacker, self.data.target, self.data.weapon + dw)
+                ai.attack(self.data.attacker, self.data.target, self.data.weapon)
             end
 
             self.data.attacker, self.data.target, self.data.weapon = nil, nil, nil
