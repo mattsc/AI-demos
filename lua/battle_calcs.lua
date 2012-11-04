@@ -1,7 +1,44 @@
+local H = wesnoth.require "lua/helper.lua"
 local AH = wesnoth.dofile "~/add-ons/AI-demos/lua/ai_helper.lua"
 local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
 local battle_calcs = {}
+
+function battle_calcs.unit_attack_info(unit, cache)
+    -- Return a table containing information about a unit's attack-related properties
+    -- The result can be cached if variable 'cache' is given
+    -- This is done in order to avoid duplication of slow processes, such as access to unit.__cfg
+
+    -- Return table has sub-tables:
+    --  - attacks: the attack tables from unit.__cfg
+    --  - resist_mod: resistance modifiers (multiplicative factors) index by attack type
+
+    -- Set up a unit id.  We use id+type+side for this, since the
+    -- unit can level up.  Side is added to avoid the problem of MP leaders sometimes having
+    -- the same id when the game is started from the command-line
+    local id = unit.id .. unit.type .. unit.side
+    --print(id)
+
+    -- If cache for this unit exists, return it
+    if cache and cache[id] then
+        return cache[id]
+    else  -- otherwise collect the information
+        local unit_info = { attacks = {}, resist_mod = {} }
+        for attack in H.child_range(unit.__cfg, 'attack') do
+            table.insert(unit_info.attacks, attack)
+        end
+
+        local attack_types = { "arcane", "blade", "cold", "fire", "impact", "pierce" }
+        for i,at in ipairs(attack_types) do
+            unit_info.resist_mod[at] = wesnoth.unit_resistance(unit, at) / 100.
+        end
+
+        -- If we're caching, add this to 'cache'
+        if cache then cache[id] = unit_info end
+
+        return unit_info
+    end
+end
 
 function battle_calcs.add_next_strike(cfg, arr, n_att, n_def, att_strike, hit_miss_counts, hit_miss_str)
     -- Recursive function that sets up the sequences of strikes (misses and hits)
