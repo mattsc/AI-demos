@@ -1,4 +1,5 @@
 0.11.5
+- Units now use correct weapons to attack again in all scenarios
 - ai_helper:
   - Many changes and improvements to existing functions, and addition of new functions, incl.:
     - attack_combo_stats, attack_rating, get_attack_combos*, get_attacks*, get_attack_map*, simulate_combat*, done_eval_messages
