@@ -46,6 +46,34 @@ function battle_calcs.unit_attack_info(unit, cache)
     end
 end
 
+function battle_calcs.strike_damage(attacker, defender, weapon, cache)
+    -- Return the single strike damage of an attack by 'attacker' on 'defender' with 'weapon'
+    -- Here, 'weapon' is the weapon number in Lua counts, i.e., counts start at 1
+    -- 'cache' can be given to pass through to battle_calcs.unit_attack_info()
+    -- Right now we're not caching the results of strike_damage as it seems fast enough
+    -- That might be changed later
+
+    local attacker_info = battle_calcs.unit_attack_info(attacker, cache)
+    local resist_mod = battle_calcs.unit_attack_info(defender, cache).resist_mod[attacker_info.attacks[weapon].type]
+
+    -- Base damage time resistance modifyer
+    local damage = attacker_info.attacks[weapon].damage * resist_mod
+
+    -- Lawful bonus
+    if (attacker_info.alignment ~= 'neutral') then
+        local lawful_bonus = wesnoth.get_time_of_day().lawful_bonus
+        if (lawful_bonus ~= 0) then
+            if (attacker_info.alignment == 'lawful') then
+                damage = damage * (1 + lawful_bonus / 100.)
+            else
+                damage = damage * (1 - lawful_bonus / 100.)
+            end
+        end
+    end
+
+    return H.round(damage)
+end
+
 function battle_calcs.add_next_strike(cfg, arr, n_att, n_def, att_strike, hit_miss_counts, hit_miss_str)
     -- Recursive function that sets up the sequences of strikes (misses and hits)
     -- Each call corresponds to one strike of one of the combattants and can be
