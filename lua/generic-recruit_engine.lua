@@ -329,7 +329,7 @@ return {
             end
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
                 recruit_effectiveness[recruit_id] = (recruit_effectiveness[recruit_id] / (num_enemies)^2)^0.5
-                recruit_vulnerability[recruit_id] = (recruit_vulnerability[recruit_id] / ((num_enemies)^2))
+                recruit_vulnerability[recruit_id] = (recruit_vulnerability[recruit_id] / ((num_enemies)^2))^0.5
             end
             -- Correct count of units for each range
             local most_common_range = nil
