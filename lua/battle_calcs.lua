@@ -48,6 +48,7 @@ end
 
 function battle_calcs.strike_damage(attacker, defender, weapon, cache)
     -- Return the single strike damage of an attack by 'attacker' on 'defender' with 'weapon'
+    -- Also returns the number of strikes (since we're accessing the information already anyway)
     -- Here, 'weapon' is the weapon number in Lua counts, i.e., counts start at 1
     -- 'cache' can be given to pass through to battle_calcs.unit_attack_info()
     -- Right now we're not caching the results of strike_damage as it seems fast enough
@@ -56,7 +57,7 @@ function battle_calcs.strike_damage(attacker, defender, weapon, cache)
     local attacker_info = battle_calcs.unit_attack_info(attacker, cache)
     local resist_mod = battle_calcs.unit_attack_info(defender, cache).resist_mod[attacker_info.attacks[weapon].type]
 
-    -- Base damage time resistance modifyer
+    -- Base damage time resistance modifier
     local damage = attacker_info.attacks[weapon].damage * resist_mod
 
     -- Lawful bonus
@@ -71,7 +72,7 @@ function battle_calcs.strike_damage(attacker, defender, weapon, cache)
         end
     end
 
-    return H.round(damage)
+    return H.round(damage), attacker_info.attacks[weapon].number
 end
 
 function battle_calcs.add_next_strike(cfg, arr, n_att, n_def, att_strike, hit_miss_counts, hit_miss_str)
