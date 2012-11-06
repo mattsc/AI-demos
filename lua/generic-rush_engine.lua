@@ -63,7 +63,12 @@ return {
                 { "not", { {"filter", {}} }}, -- That have no unit
                 { "not", { radius = 6, {"filter", { canrecruit = 'yes',
 	                { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
-                }} }} -- That are not too close to an enemy leader
+                }} }}, -- That are not too close to an enemy leader
+                { "not", {
+                    x = leader.x, y = leader.y, terrain = "K*^*,*^Kov",
+                    radius = 2,
+                    { "filter_radius", { terrain = 'C*^*,K*^*,*^Kov,*^Cov' } }
+                }} -- That are not close and connected to a keep the leader is on
             }
             if #keeps < 1 then
                 -- Skip if there aren't extra keeps to evaluate
