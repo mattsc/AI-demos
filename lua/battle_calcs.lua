@@ -453,8 +453,8 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
 
     -- Collect all the information needed for the calculation
     -- Strike damage and numbers
-    local att_damage, att_strikes = battle_calcs.strike_damage(attacker, defender, cfg.att_weapon, cache)
-    local def_damage, def_strikes = battle_calcs.strike_damage(defender, attacker, cfg.def_weapon, cache)
+    local att_damage, att_attack = battle_calcs.strike_damage(attacker, defender, cfg.att_weapon, cache)
+    local def_damage, def_attack = battle_calcs.strike_damage(defender, attacker, cfg.def_weapon, cache)
 
     -- Max. hits either unit can survive
     local att_max_hits = math.floor((attacker.hitpoints - 1) / def_damage)
@@ -469,8 +469,8 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
 
     -- Get the coefficients for this kind of combat
     local cfg = {
-        att = { strikes = att_strikes, max_hits = att_max_hits },
-        def = { strikes = def_strikes, max_hits = def_max_hits }
+        att = { strikes = att_attack.number, max_hits = att_max_hits, firststrike = att_attack.firststrike },
+        def = { strikes = def_attack.number, max_hits = def_max_hits, firststrike = def_attack.firststrike }
     }
     local att_coeffs, def_coeffs = battle_calcs.battle_outcome_coefficients(cfg)
 
