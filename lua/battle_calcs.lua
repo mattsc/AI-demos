@@ -464,10 +464,11 @@ function battle_calcs.print_coefficients()
     end
 end
 
-function battle_calcs.hp_distribution(coeffs, att_hit_prob, def_hit_prob, starting_hp, damage)
+function battle_calcs.hp_distribution(coeffs, att_hit_prob, def_hit_prob, starting_hp, damage, opp_attack)
     -- Multiply out the coefficients from battle_calcs.battle_outcome_coefficients()
     -- For a given attacker and defender hit/miss probability
     -- Also needed: the starting HP for the unit and the damage done by the opponent
+    -- and the opponent attack information (opp_attack)
 
     local stats  = { hp_chance = {}, average_hp = 0 }
     local skip_hp, skip_prob = -1, 1
@@ -496,6 +497,20 @@ function battle_calcs.hp_distribution(coeffs, att_hit_prob, def_hit_prob, starti
             -- Also subtract this probability from the total prob. (=1), to get prob. of skipped outcome
             skip_prob = skip_prob - hp_prob
         end
+    end
+
+    -- Add poison probability
+    if opp_attack.poison then
+        stats.posioned = 1. - stats.hp_chance[starting_hp]
+    else
+        stats.poisoned = 0
+    end
+
+    -- Add slow probability
+    if opp_attack.slow then
+        stats.slowed = 1. - stats.hp_chance[starting_hp]
+    else
+        stats.slowed = 0
     end
 
     -- Finally, add in the outcome that was skipped
@@ -537,8 +552,8 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
 
     -- And multiply out the factors
     -- Note that att_hit_prob, def_hit_prob need to be in that order for both calls
-    local att_stats  = battle_calcs.hp_distribution(att_coeffs, att_hit_prob, def_hit_prob, attacker.hitpoints, def_damage)
-    local def_stats  = battle_calcs.hp_distribution(def_coeffs, att_hit_prob, def_hit_prob, defender.hitpoints, att_damage)
+    local att_stats = battle_calcs.hp_distribution(att_coeffs, att_hit_prob, def_hit_prob, attacker.hitpoints, def_damage, def_attack)
+    local def_stats = battle_calcs.hp_distribution(def_coeffs, att_hit_prob, def_hit_prob, defender.hitpoints, att_damage, att_attack)
 
     return att_stats, def_stats
 end
