@@ -464,6 +464,33 @@ function battle_calcs.print_coefficients()
     end
 end
 
+function battle_calcs.hp_distribution(coeffs, att_hit_prob, def_hit_prob, starting_hp, damage)
+    -- Multiply out the coefficients from battle_calcs.battle_outcome_coefficients()
+    -- For a given attacker and defender hit/miss probability
+    -- Also needed: the starting HP for the unit and the damage done by the opponent
+
+    local stats  = { hp_chance = {}, average_hp = 0 }
+    for hits = 0,#coeffs do
+        local hp_prob = 0.  -- probability for this number of hits
+        for i,exp in ipairs(coeffs[hits]) do  -- exp: exponents (and factor) for a set
+            local prob = exp.num  -- probability for this set
+            if exp.am then prob = prob * (1 - att_hit_prob) ^ exp.am end
+            if exp.ah then prob = prob * att_hit_prob ^ exp.ah end
+            if exp.dm then prob = prob * (1 - def_hit_prob) ^ exp.dm end
+            if exp.dh then prob = prob * def_hit_prob ^ exp.dh end
+
+            hp_prob = hp_prob + prob  -- total probabilty for this number of hits landed
+        end
+        local hp = starting_hp - hits * damage
+        if (hp < 0) then hp = 0 end
+
+        stats.hp_chance[hp] = hp_prob
+        stats.average_hp = stats.average_hp + hp * hp_prob
+    end
+
+    return stats
+end
+
 function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
     -- Calculate the stats of a combat by attacker vs. defender
     -- cfg: input parameters
@@ -495,44 +522,9 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
     local att_coeffs, def_coeffs = battle_calcs.battle_outcome_coefficients(cfg, cache)
 
     -- And multiply out the factors
-    local att_stats  = { hp_chance = {}, average_hp = 0 }
-    local def_stats  = { hp_chance = {}, average_hp = 0 }
-    -- ... for the attacker
-    for hits = 0,#att_coeffs do
-        local hp_prob = 0.  -- probability for this number of hits
-        for i,exp in ipairs(att_coeffs[hits]) do  -- exp: exponents (and factor) for a set
-            local prob = exp.num  -- probability for this set
-            if exp.am then prob = prob * (1 - att_hit_prob) ^ exp.am end
-            if exp.ah then prob = prob * att_hit_prob ^ exp.ah end
-            if exp.dm then prob = prob * (1 - def_hit_prob) ^ exp.dm end
-            if exp.dh then prob = prob * def_hit_prob ^ exp.dh end
-
-            hp_prob = hp_prob + prob  -- total probabilty for this number of hits landed
-        end
-        local hp = attacker.hitpoints - hits * def_damage
-        if (hp < 0) then hp = 0 end
-
-        att_stats.hp_chance[hp] = hp_prob
-        att_stats.average_hp = att_stats.average_hp + hp * hp_prob
-    end
-    -- ... and for the defender
-    for hits = 0,#def_coeffs do
-        local hp_prob = 0.  -- probability for this number of hits
-        for i,exp in ipairs(def_coeffs[hits]) do  -- exp: exponents (and factor) for a set
-            local prob = exp.num  -- probability for this set
-            if exp.am then prob = prob * (1 - att_hit_prob) ^ exp.am end
-            if exp.ah then prob = prob * att_hit_prob ^ exp.ah end
-            if exp.dm then prob = prob * (1 - def_hit_prob) ^ exp.dm end
-            if exp.dh then prob = prob * def_hit_prob ^ exp.dh end
-
-            hp_prob = hp_prob + prob  -- total probabilty for this number of hits landed
-        end
-        local hp = defender.hitpoints - hits * att_damage
-        if (hp < 0) then hp = 0 end
-
-        def_stats.hp_chance[hp] = hp_prob
-        def_stats.average_hp = def_stats.average_hp + hp * hp_prob
-    end
+    -- Note that att_hit_prob, def_hit_prob need to be in that order for both calls
+    local att_stats  = battle_calcs.hp_distribution(att_coeffs, att_hit_prob, def_hit_prob, attacker.hitpoints, def_damage)
+    local def_stats  = battle_calcs.hp_distribution(def_coeffs, att_hit_prob, def_hit_prob, defender.hitpoints, att_damage)
 
     return att_stats, def_stats
 end
