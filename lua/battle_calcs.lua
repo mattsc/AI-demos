@@ -92,18 +92,24 @@ function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, 
     local att_damage = attacker_info.attacks[att_weapon].damage
     local def_damage = defender_info.attacks[def_weapon].damage
 
-    -- Opponent resistance modifier
-    local att_damage = att_damage * defender_info.resist_mod[attacker_info.attacks[att_weapon].type]
-    local def_damage = def_damage * attacker_info.resist_mod[defender_info.attacks[def_weapon].type]
+    -- Take 'charge' into account
+    if attacker_info.attacks[att_weapon].charge then
+        att_damage = att_damage * 2
+        def_damage = def_damage * 2
+    end
 
-    -- Lawful bonus
+    -- Opponent resistance modifier
+    local att_multiplier = defender_info.resist_mod[attacker_info.attacks[att_weapon].type]
+    local def_multiplier = attacker_info.resist_mod[defender_info.attacks[def_weapon].type]
+
+    -- TOD modifier
     if (attacker_info.alignment ~= 'neutral') then
         local lawful_bonus = wesnoth.get_time_of_day().lawful_bonus
         if (lawful_bonus ~= 0) then
             if (attacker_info.alignment == 'lawful') then
-                att_damage = att_damage * (1 + lawful_bonus / 100.)
+                att_multiplier = att_multiplier * (1 + lawful_bonus / 100.)
             else
-                att_damage = att_damage * (1 - lawful_bonus / 100.)
+                att_multiplier = att_multiplier * (1 - lawful_bonus / 100.)
             end
         end
     end
@@ -111,20 +117,27 @@ function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, 
         local lawful_bonus = wesnoth.get_time_of_day().lawful_bonus
         if (lawful_bonus ~= 0) then
             if (defender_info.alignment == 'lawful') then
-                def_damage = def_damage * (1 + lawful_bonus / 100.)
+                def_multiplier = def_multiplier * (1 + lawful_bonus / 100.)
             else
-                def_damage = def_damage * (1 - lawful_bonus / 100.)
+                def_multiplier = def_multiplier * (1 - lawful_bonus / 100.)
             end
         end
     end
 
-    -- Take 'charge' into account
-    if attacker_info.attacks[att_weapon].charge then
-        att_damage = att_damage * 2
-        def_damage = def_damage * 2
+    -- Rounding of .5 values is done differently depending on whether the
+    -- multiplier is greater or smaller than 1
+    if (att_multiplier > 1) then
+        att_damage = H.round(att_damage * att_multiplier - 0.001)
+    else
+        att_damage = H.round(att_damage * att_multiplier + 0.001)
+    end
+    if (def_multiplier > 1) then
+        def_damage = H.round(def_damage * def_multiplier - 0.001)
+    else
+        def_damage = H.round(def_damage * def_multiplier + 0.001)
     end
 
-    return H.round(att_damage), H.round(def_damage), attacker_info.attacks[att_weapon], defender_info.attacks[def_weapon]
+    return att_damage, def_damage, attacker_info.attacks[att_weapon], defender_info.attacks[def_weapon]
 end
 
 function battle_calcs.add_next_strike(cfg, arr, n_att, n_def, att_strike, hit_miss_counts, hit_miss_str)
