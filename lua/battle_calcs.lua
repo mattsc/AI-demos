@@ -31,7 +31,15 @@ function battle_calcs.unit_attack_info(unit, cache)
             alignment = unit_cfg.alignment
         }
         for attack in H.child_range(unit_cfg, 'attack') do
-            table.insert(unit_info.attacks, attack)
+            -- Extract only string and number values from attack
+            local a = {}
+            for k,v in pairs(attack) do
+                if (type(v) == 'number') or (type(v) == 'string') then
+                    a[k] = v
+                end
+            end
+
+            table.insert(unit_info.attacks, a)
         end
 
         local attack_types = { "arcane", "blade", "cold", "fire", "impact", "pierce" }
