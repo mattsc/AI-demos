@@ -537,14 +537,17 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
     if (def_max_hits > att_attack.number) then def_max_hits = att_attack.number end
 
     -- Probability of landing a hit
-    -- Probability of landing a hit
-    local att_hit_prob = att_attack.chance_to_hit
-        or wesnoth.unit_defense(defender, wesnoth.get_terrain(defender.x, defender.y)) / 100.
-    local def_hit_prob = def_attack.chance_to_hit
-        or wesnoth.unit_defense(attacker, wesnoth.get_terrain(attacker.x, attacker.y)) / 100.
-    --print(att_damage, att_max_hits, att_hit_prob)
-    --print(def_damage, def_max_hits, def_hit_prob)
+    local att_hit_prob = wesnoth.unit_defense(defender, wesnoth.get_terrain(defender.x, defender.y)) / 100.
+    local def_hit_prob = wesnoth.unit_defense(attacker, wesnoth.get_terrain(attacker.x, attacker.y)) / 100.
 
+    -- Magical: attack and defense, and under all circumstances
+    if att_attack.magical then att_hit_prob = 0.7 end
+    if def_attack.magical then def_hit_prob = 0.7 end
+
+    -- Marksman: attack only, and only if terrain defense is less
+    if att_attack.marksman and (att_hit_prob < 0.6) then
+        att_hit_prob = 0.6
+    end
     --print(att_damage, att_strikes, att_max_hits, att_hit_prob)
     --print(def_damage, def_strikes, def_max_hits, def_hit_prob)
 
