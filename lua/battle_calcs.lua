@@ -476,7 +476,9 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
 
     -- Max. hits either unit can survive
     local att_max_hits = math.floor((attacker.hitpoints - 1) / def_damage)
+    if (att_max_hits > def_attack.number) then att_max_hits = def_attack.number end
     local def_max_hits = math.floor((defender.hitpoints - 1) / att_damage)
+    if (def_max_hits > att_attack.number) then def_max_hits = att_attack.number end
 
     -- Probability of landing a hit
     local def_hit_prob = wesnoth.unit_defense(attacker, wesnoth.get_terrain(attacker.x, attacker.y)) / 100.
