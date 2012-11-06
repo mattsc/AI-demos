@@ -77,8 +77,8 @@ function battle_calcs.unit_attack_info(unit, cache)
     end
 end
 
-function battle_calcs.strike_damage(attacker, defender, weapon, cache)
-    -- Return the single strike damage of an attack by 'attacker' on 'defender' with 'weapon'
+function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, cache)
+    -- Return the single strike damage of an attack by 'attacker' on 'defender' with 'weapon' for both combatants
     -- Also returns the other information about the attack (since we're accessing the information already anyway)
     -- Here, 'weapon' is the weapon number in Lua counts, i.e., counts start at 1
     -- 'cache' can be given to pass through to battle_calcs.unit_attack_info()
@@ -86,24 +86,39 @@ function battle_calcs.strike_damage(attacker, defender, weapon, cache)
     -- That might be changed later
 
     local attacker_info = battle_calcs.unit_attack_info(attacker, cache)
-    local resist_mod = battle_calcs.unit_attack_info(defender, cache).resist_mod[attacker_info.attacks[weapon].type]
+    local defender_info = battle_calcs.unit_attack_info(defender, cache)
 
-    -- Base damage time resistance modifier
-    local damage = attacker_info.attacks[weapon].damage * resist_mod
+    -- Base damage
+    local att_damage = attacker_info.attacks[att_weapon].damage
+    local def_damage = defender_info.attacks[def_weapon].damage
+
+    -- Opponent resistance modifier
+    local att_damage = att_damage * defender_info.resist_mod[attacker_info.attacks[att_weapon].type]
+    local def_damage = def_damage * attacker_info.resist_mod[defender_info.attacks[def_weapon].type]
 
     -- Lawful bonus
     if (attacker_info.alignment ~= 'neutral') then
         local lawful_bonus = wesnoth.get_time_of_day().lawful_bonus
         if (lawful_bonus ~= 0) then
             if (attacker_info.alignment == 'lawful') then
-                damage = damage * (1 + lawful_bonus / 100.)
+                att_damage = att_damage * (1 + lawful_bonus / 100.)
             else
-                damage = damage * (1 - lawful_bonus / 100.)
+                att_damage = att_damage * (1 - lawful_bonus / 100.)
+            end
+        end
+    end
+    if (defender_info.alignment ~= 'neutral') then
+        local lawful_bonus = wesnoth.get_time_of_day().lawful_bonus
+        if (lawful_bonus ~= 0) then
+            if (defender_info.alignment == 'lawful') then
+                def_damage = def_damage * (1 + lawful_bonus / 100.)
+            else
+                def_damage = def_damage * (1 - lawful_bonus / 100.)
             end
         end
     end
 
-    return H.round(damage), attacker_info.attacks[weapon]
+    return H.round(att_damage), H.round(def_damage), attacker_info.attacks[att_weapon], defender_info.attacks[def_weapon]
 end
 
 function battle_calcs.add_next_strike(cfg, arr, n_att, n_def, att_strike, hit_miss_counts, hit_miss_str)
@@ -527,8 +542,8 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
 
     -- Collect all the information needed for the calculation
     -- Strike damage and numbers
-    local att_damage, att_attack = battle_calcs.strike_damage(attacker, defender, cfg.att_weapon, cache)
-    local def_damage, def_attack = battle_calcs.strike_damage(defender, attacker, cfg.def_weapon, cache)
+    local att_damage, def_damage, att_attack, def_attack =
+        battle_calcs.strike_damage(attacker, defender, cfg.att_weapon, cfg.def_weapon, cache)
 
     -- Max. hits either unit can survive
     local att_max_hits = math.floor((attacker.hitpoints - 1) / def_damage)
