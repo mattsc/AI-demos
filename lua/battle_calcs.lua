@@ -564,11 +564,20 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
     local att_damage, def_damage, att_attack, def_attack =
         battle_calcs.strike_damage(attacker, defender, cfg.att_weapon, cfg.def_weapon, cache)
 
-    -- Max. hits either unit can survive
+    -- Take swarm into account
+    local att_strikes, def_strikes = att_attack.number, def_attack.number
+    if att_attack.swarm then
+        att_strikes = math.floor(att_strikes * attacker.hitpoints / attacker.max_hitpoints)
+    end
+    if def_attack.swarm then
+        def_strikes = math.floor(def_strikes * defender.hitpoints / defender.max_hitpoints)
+    end
+
+    -- Maximum number of hits that either unit can survive
     local att_max_hits = math.floor((attacker.hitpoints - 1) / def_damage)
-    if (att_max_hits > def_attack.number) then att_max_hits = def_attack.number end
+    if (att_max_hits > def_strikes) then att_max_hits = def_strikes end
     local def_max_hits = math.floor((defender.hitpoints - 1) / att_damage)
-    if (def_max_hits > att_attack.number) then def_max_hits = att_attack.number end
+    if (def_max_hits > att_strikes) then def_max_hits = att_strikes end
 
     -- Probability of landing a hit
     local att_hit_prob = wesnoth.unit_defense(defender, wesnoth.get_terrain(defender.x, defender.y)) / 100.
@@ -587,8 +596,8 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
 
     -- Get the coefficients for this kind of combat
     local cfg = {
-        att = { strikes = att_attack.number, max_hits = att_max_hits, firststrike = att_attack.firststrike },
-        def = { strikes = def_attack.number, max_hits = def_max_hits, firststrike = def_attack.firststrike }
+        att = { strikes = att_strikes, max_hits = att_max_hits, firststrike = att_attack.firststrike },
+        def = { strikes = def_strikes, max_hits = def_max_hits, firststrike = def_attack.firststrike }
     }
     local att_coeffs, def_coeffs = battle_calcs.battle_outcome_coefficients(cfg, cache)
 
