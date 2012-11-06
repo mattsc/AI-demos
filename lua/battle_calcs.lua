@@ -444,7 +444,8 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
     local att_coeffs, def_coeffs = battle_calcs.battle_outcome_coefficients(cfg)
 
     -- And multiply out the factors
-    local att_stats, def_stats = { hp_chance = {} }, { hp_chance = {} }
+    local att_stats  = { hp_chance = {}, average_hp = 0 }
+    local def_stats  = { hp_chance = {}, average_hp = 0 }
     -- ... for the attacker
     for hits = 0,#att_coeffs do
         local hp_prob = 0.  -- probability for this number of hits
@@ -459,7 +460,9 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
         end
         local hp = attacker.hitpoints - hits * def_damage
         if (hp < 0) then hp = 0 end
+
         att_stats.hp_chance[hp] = hp_prob
+        att_stats.average_hp = att_stats.average_hp + hp * hp_prob
     end
     -- ... and for the defender
     for hits = 0,#def_coeffs do
@@ -475,7 +478,9 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
         end
         local hp = defender.hitpoints - hits * att_damage
         if (hp < 0) then hp = 0 end
+
         def_stats.hp_chance[hp] = hp_prob
+        def_stats.average_hp = def_stats.average_hp + hp * hp_prob
     end
 
     return att_stats, def_stats
