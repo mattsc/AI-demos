@@ -197,6 +197,8 @@ function battle_calcs.battle_outcome_coefficients(cfg)
     -- - cfg: config table with sub-tables att/def for the attacker/defender with the following fields:
     --   - strikes: total number of strikes
     --   - max_hits: maximum number of hits the unit can survive
+    --   - firststrike: whether the unit has firststrike weapon special on this attack
+    -- The result can be cached if variable 'cache' is given
     --
     -- Output: table with the coefficients needed to calculate the distribution for both attacker and defender
     -- First index: number of hits landed on the defender.  Each of those contains an array of
