@@ -118,6 +118,12 @@ function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, 
         end
     end
 
+    -- Take 'charge' into account
+    if attacker_info.attacks[att_weapon].charge then
+        att_damage = att_damage * 2
+        def_damage = def_damage * 2
+    end
+
     return H.round(att_damage), H.round(def_damage), attacker_info.attacks[att_weapon], defender_info.attacks[def_weapon]
 end
 
