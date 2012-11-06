@@ -470,23 +470,37 @@ function battle_calcs.hp_distribution(coeffs, att_hit_prob, def_hit_prob, starti
     -- Also needed: the starting HP for the unit and the damage done by the opponent
 
     local stats  = { hp_chance = {}, average_hp = 0 }
+    local skip_hp, skip_prob = -1, 1
     for hits = 0,#coeffs do
-        local hp_prob = 0.  -- probability for this number of hits
-        for i,exp in ipairs(coeffs[hits]) do  -- exp: exponents (and factor) for a set
-            local prob = exp.num  -- probability for this set
-            if exp.am then prob = prob * (1 - att_hit_prob) ^ exp.am end
-            if exp.ah then prob = prob * att_hit_prob ^ exp.ah end
-            if exp.dm then prob = prob * (1 - def_hit_prob) ^ exp.dm end
-            if exp.dh then prob = prob * def_hit_prob ^ exp.dh end
-
-            hp_prob = hp_prob + prob  -- total probabilty for this number of hits landed
-        end
         local hp = starting_hp - hits * damage
         if (hp < 0) then hp = 0 end
 
-        stats.hp_chance[hp] = hp_prob
-        stats.average_hp = stats.average_hp + hp * hp_prob
+        -- Calculation of the outcome with the most terms can be skipped
+        if coeffs[hits].skip then
+            skip_hp = hp
+        else
+            local hp_prob = 0.  -- probability for this number of hits
+            for i,exp in ipairs(coeffs[hits]) do  -- exp: exponents (and factor) for a set
+                local prob = exp.num  -- probability for this set
+                if exp.am then prob = prob * (1 - att_hit_prob) ^ exp.am end
+                if exp.ah then prob = prob * att_hit_prob ^ exp.ah end
+                if exp.dm then prob = prob * (1 - def_hit_prob) ^ exp.dm end
+                if exp.dh then prob = prob * def_hit_prob ^ exp.dh end
+
+                hp_prob = hp_prob + prob  -- total probabilty for this number of hits landed
+            end
+
+            stats.hp_chance[hp] = hp_prob
+            stats.average_hp = stats.average_hp + hp * hp_prob
+
+            -- Also subtract this probability from the total prob. (=1), to get prob. of skipped outcome
+            skip_prob = skip_prob - hp_prob
+        end
     end
+
+    -- Finally, add in the outcome that was skipped
+    stats.hp_chance[skip_hp] = skip_prob
+    stats.average_hp = stats.average_hp + skip_hp * skip_prob
 
     return stats
 end
