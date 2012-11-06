@@ -17,7 +17,7 @@ function battle_calcs.unit_attack_info(unit, cache)
     -- Set up a unit id.  We use id+type+side for this, since the
     -- unit can level up.  Side is added to avoid the problem of MP leaders sometimes having
     -- the same id when the game is started from the command-line
-    local id = unit.id .. unit.type .. unit.side
+    local id = 'unitinfo-' .. unit.id .. unit.type .. unit.side
     --print(id)
 
     -- If cache for this unit exists, return it
