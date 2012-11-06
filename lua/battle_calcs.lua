@@ -31,8 +31,31 @@ function battle_calcs.unit_attack_info(unit, cache)
             alignment = unit_cfg.alignment
         }
         for attack in H.child_range(unit_cfg, 'attack') do
-            -- Extract only string and number values from attack
+            -- Extract information for specials; we do this first because some
+            -- custom special might have the same name as one of the default scalar fields
             local a = {}
+            for special in H.child_range(attack, 'specials') do
+                for i,sp in ipairs(special) do
+                    if (sp[1] == 'damage') then  -- this is 'backstab'
+                        if (sp[2].id == 'backstab') then
+                            a.backstab = true
+                        else
+                            if (sp[2].id == 'charge') then a.charge = true end
+                        end
+                    else
+                        -- magical, marksman
+                        if (sp[1] == 'chance_to_hit') then
+                            a[sp[1]] = sp[2].value
+                        else
+                            a[sp[1]] = true
+                        end
+                    end
+
+
+                end
+            end
+
+            -- Now extract the scalar (string and number) values from attack
             for k,v in pairs(attack) do
                 if (type(v) == 'number') or (type(v) == 'string') then
                     a[k] = v
