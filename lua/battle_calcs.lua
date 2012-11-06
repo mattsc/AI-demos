@@ -190,7 +190,7 @@ function battle_calcs.add_next_strike(cfg, arr, n_att, n_def, att_strike, hit_mi
     end
 end
 
-function battle_calcs.battle_outcome_coefficients(cfg)
+function battle_calcs.battle_outcome_coefficients(cfg, cache)
     -- Determine the coefficients needed to calculate the hitpoint probability distribution
     -- of a given battle
     -- Inputs:
@@ -210,170 +210,186 @@ function battle_calcs.battle_outcome_coefficients(cfg)
     -- and dhp is the same for the defender
     -- Terms that have exponents of 0 are omitted
 
-    -- Get the hit/miss counts for the battle
-    local hit_miss_counts = {}
-    battle_calcs.add_next_strike(cfg, hit_miss_counts)
-    --DBG.dbms(hit_miss_counts)
 
-    -- We first calculate the coefficients for the defender HP distribution
-    -- so this is sorted by the number of hits the attacker lands
+    -- Set up the cache id
+    local id = 'coeff-' .. cfg.att.strikes .. '-' .. cfg.att.max_hits
+    if cfg.att.firststrike then id = id .. 'fs' end
+    id = id .. 'x' .. cfg.def.strikes .. '-' .. cfg.def.max_hits
+    if cfg.def.firststrike then id = id .. 'fs' end
+    --print(id)
 
-    -- counts is an array 4 layers deep, where the indices are the number of misses/hits
-    -- are the indices in order attacker miss, attacker hit, defender miss, defender hit
-    -- This is so that they can be grouped by number of attacker hits/misses, for
-    -- subsequent simplification
-    -- The element value is number of times we get the given combination of hits/misses
-    local counts = {}
-    for i,c in ipairs(hit_miss_counts) do
-        local i1 = c.hit_miss_counts[1]
-        local i2 = c.hit_miss_counts[2]
-        local i3 = c.hit_miss_counts[3]
-        local i4 = c.hit_miss_counts[4]
-        if not counts[i1] then counts[i1] = {} end
-        if not counts[i1][i2] then counts[i1][i2] = {} end
-        if not counts[i1][i2][i3] then counts[i1][i2][i3] = {} end
-        counts[i1][i2][i3][i4] = (counts[i1][i2][i3][i4] or 0) + 1
-    end
-    --DBG.dbms(counts)
+    -- If cache for this unit exists, return it
+    if cache and cache[id] then
+        return cache[id][1], cache[id][2]
+    else
+        -- Get the hit/miss counts for the battle
+        local hit_miss_counts = {}
+        battle_calcs.add_next_strike(cfg, hit_miss_counts)
+        --DBG.dbms(hit_miss_counts)
 
-    local coeffs_def = {}
-    for am,v1 in pairs(counts) do  -- attacker miss count
-        for ah,v2 in pairs(v1) do  -- attacker hit count
-            -- Set up the exponent coefficients for attacker hits/misses
+        -- We first calculate the coefficients for the defender HP distribution
+        -- so this is sorted by the number of hits the attacker lands
+
+        -- counts is an array 4 layers deep, where the indices are the number of misses/hits
+        -- are the indices in order attacker miss, attacker hit, defender miss, defender hit
+        -- This is so that they can be grouped by number of attacker hits/misses, for
+        -- subsequent simplification
+        -- The element value is number of times we get the given combination of hits/misses
+        local counts = {}
+        for i,c in ipairs(hit_miss_counts) do
+            local i1 = c.hit_miss_counts[1]
+            local i2 = c.hit_miss_counts[2]
+            local i3 = c.hit_miss_counts[3]
+            local i4 = c.hit_miss_counts[4]
+            if not counts[i1] then counts[i1] = {} end
+            if not counts[i1][i2] then counts[i1][i2] = {} end
+            if not counts[i1][i2][i3] then counts[i1][i2][i3] = {} end
+            counts[i1][i2][i3][i4] = (counts[i1][i2][i3][i4] or 0) + 1
+        end
+        --DBG.dbms(counts)
+
+        local coeffs_def = {}
+        for am,v1 in pairs(counts) do  -- attacker miss count
+            for ah,v2 in pairs(v1) do  -- attacker hit count
+                -- Set up the exponent coefficients for attacker hits/misses
             local exp = { }  -- Array for an individual set of coefficients
-            -- Only populate those indices that have exponents > 0
-            if (am > 0) then exp.am = am end
+                -- Only populate those indices that have exponents > 0
+                if (am > 0) then exp.am = am end
             if (ah > 0) then exp.ah = ah end
 
-            -- We combine results by testing whether they produce the same sum
-            -- with two very different hit probabilities, hp1 = 0.6, hp2 = 0.137
-            -- This will only happen is the coefficients add up to multiples of 1
-            local sum1, sum2 = 0,0
-            local hp1, hp2 = 0.6, 0.137
-            for dm,v3 in pairs(v2) do  -- defender miss count
-                for dh,num in pairs(v3) do  -- defender hit count
-                    --print(am, ah, dm, dh, num)
-                    sum1 = sum1 + num * hp1^dh * (1-hp1)^dm
-                    sum2 = sum2 + num * hp2^dh * (1-hp2)^dm
-                end
-            end
-            --print('sum:', sum1, sum2, ah)
-
-            -- Now, coefficients are set up for each value of total hits by attacker
-            -- This holds all the coefficients that need to be added to get the propability
-            -- of the defender receiving this number of hits
-            if (not coeffs_def[ah]) then coeffs_def[ah] = {} end
-
-            -- If sum1 and sum2 are equal, that means all the defender probs added up to 1, or
-            -- multiple thereof, which means the can all be combine in the calculation
-            if (math.abs(sum1 - sum2) < 1e-9) then
-                exp.num = sum1
-                table.insert(coeffs_def[ah], exp)
-            -- If not, the defender probs don't add up to something nice and all
-            -- need to be calculated one by one
-            else
+                -- We combine results by testing whether they produce the same sum
+                -- with two very different hit probabilities, hp1 = 0.6, hp2 = 0.137
+                -- This will only happen is the coefficients add up to multiples of 1
+                local sum1, sum2 = 0,0
+                local hp1, hp2 = 0.6, 0.137
                 for dm,v3 in pairs(v2) do  -- defender miss count
                     for dh,num in pairs(v3) do  -- defender hit count
-                        local tmp_exp = AH.table_copy(exp)
-                        tmp_exp.num = num
-                        if (dm > 0) then tmp_exp.dm = dm end
-                        if (dh > 0) then tmp_exp.dh = dh end
-                        table.insert(coeffs_def[ah], tmp_exp)
+                        --print(am, ah, dm, dh, num)
+                        sum1 = sum1 + num * hp1^dh * (1-hp1)^dm
+                        sum2 = sum2 + num * hp2^dh * (1-hp2)^dm
                     end
                 end
-            end
-        end
-    end
-    --DBG.dbms(coeffs_def)
+                --print('sum:', sum1, sum2, ah)
 
-    -- Now we do the same for the HP distribution of the attacker,
-    -- which means everything needs to be sorted by defender hits
-    local counts = {}
-    for i,c in ipairs(hit_miss_counts) do
-        local i1 = c.hit_miss_counts[3] -- note that the order here is different from above
-        local i2 = c.hit_miss_counts[4]
-        local i3 = c.hit_miss_counts[1]
-        local i4 = c.hit_miss_counts[2]
-        if not counts[i1] then counts[i1] = {} end
-        if not counts[i1][i2] then counts[i1][i2] = {} end
-        if not counts[i1][i2][i3] then counts[i1][i2][i3] = {} end
-        counts[i1][i2][i3][i4] = (counts[i1][i2][i3][i4] or 0) + 1
-    end
-    --DBG.dbms(counts)
+                -- Now, coefficients are set up for each value of total hits by attacker
+                -- This holds all the coefficients that need to be added to get the propability
+                -- of the defender receiving this number of hits
+                if (not coeffs_def[ah]) then coeffs_def[ah] = {} end
 
-    local coeffs_att = {}
-    for dm,v1 in pairs(counts) do  -- defender miss count
-        for dh,v2 in pairs(v1) do  -- defender hit count
-            -- Set up the exponent coefficients for attacker hits/misses
-            local exp = { }  -- Array for an individual set of coefficients
-            -- Only populate those indices that have exponents > 0
-            if (dm > 0) then exp.dm = dm end
-            if (dh > 0) then exp.dh = dh end
-
-            -- We combine results by testing whether they produce the same sum
-            -- with two very different hit probabilities, hp1 = 0.6, hp2 = 0.137
-            -- This will only happen is the coefficients add up to multiples of 1
-            local sum1, sum2 = 0,0
-            local hp1, hp2 = 0.6, 0.137
-            for am,v3 in pairs(v2) do  -- attacker miss count
-                for ah,num in pairs(v3) do  -- attacker hit count
-                    --print(am, ah, dm, dh, num)
-                    sum1 = sum1 + num * hp1^ah * (1-hp1)^am
-                    sum2 = sum2 + num * hp2^ah * (1-hp2)^am
-                end
-            end
-            --print('sum:', sum1, sum2, dh)
-
-            -- Now, coefficients are set up for each value of total hits by attacker
-            -- This holds all the coefficients that need to be added to get the propability
-            -- of the defender receiving this number of hits
-            if (not coeffs_att[dh]) then coeffs_att[dh] = {} end
-
-            -- If sum1 and sum2 are equal, that means all the defender probs added up to 1, or
+                -- If sum1 and sum2 are equal, that means all the defender probs added up to 1, or
             -- multiple thereof, which means the can all be combine in the calculation
-            if (math.abs(sum1 - sum2) < 1e-9) then
-                exp.num = sum1
-                table.insert(coeffs_att[dh], exp)
-            -- If not, the defender probs don't add up to something nice and all
-            -- need to be calculated one by one
-            else
-                for am,v3 in pairs(v2) do  -- defender miss count
-                    for ah,num in pairs(v3) do  -- defender hit count
-                        local tmp_exp = AH.table_copy(exp)
-                        tmp_exp.num = num
-                        if (am > 0) then tmp_exp.am = am end
-                        if (ah > 0) then tmp_exp.ah = ah end
-                        table.insert(coeffs_att[dh], tmp_exp)
+                if (math.abs(sum1 - sum2) < 1e-9) then
+                    exp.num = sum1
+                table.insert(coeffs_def[ah], exp)
+                -- If not, the defender probs don't add up to something nice and all
+                -- need to be calculated one by one
+                else
+                    for dm,v3 in pairs(v2) do  -- defender miss count
+                        for dh,num in pairs(v3) do  -- defender hit count
+                            local tmp_exp = AH.table_copy(exp)
+                            tmp_exp.num = num
+                            if (dm > 0) then tmp_exp.dm = dm end
+                            if (dh > 0) then tmp_exp.dh = dh end
+                            table.insert(coeffs_def[ah], tmp_exp)
+                        end
                     end
                 end
             end
         end
-    end
+        --DBG.dbms(coeffs_def)
 
-    -- The probability for the number of hits with the most terms can be skipped
-    -- and 1-sum(other_terms) can be used instead.  Set a flag for which term to skip
-    local max_number, biggest_equation = 0, -1
-    for hits,v in pairs(coeffs_att) do
-        local number = 0
-        for i,c in pairs(v) do number = number + 1 end
-        if (number > max_number) then
-            max_number, biggest_equation = number, hits
+        -- Now we do the same for the HP distribution of the attacker,
+        -- which means everything needs to be sorted by defender hits
+        local counts = {}
+        for i,c in ipairs(hit_miss_counts) do
+        local i1 = c.hit_miss_counts[3] -- note that the order here is different from above
+            local i2 = c.hit_miss_counts[4]
+            local i3 = c.hit_miss_counts[1]
+        local i4 = c.hit_miss_counts[2]
+            if not counts[i1] then counts[i1] = {} end
+            if not counts[i1][i2] then counts[i1][i2] = {} end
+            if not counts[i1][i2][i3] then counts[i1][i2][i3] = {} end
+            counts[i1][i2][i3][i4] = (counts[i1][i2][i3][i4] or 0) + 1
         end
-    end
-    coeffs_att[biggest_equation].skip = true
+        --DBG.dbms(counts)
 
-    local max_number, biggest_equation = 0, -1
-    for hits,v in pairs(coeffs_def) do
-        local number = 0
-        for i,c in pairs(v) do number = number + 1 end
-        if (number > max_number) then
-            max_number, biggest_equation = number, hits
+        local coeffs_att = {}
+        for dm,v1 in pairs(counts) do  -- defender miss count
+            for dh,v2 in pairs(v1) do  -- defender hit count
+                -- Set up the exponent coefficients for attacker hits/misses
+                local exp = { }  -- Array for an individual set of coefficients
+                -- Only populate those indices that have exponents > 0
+                if (dm > 0) then exp.dm = dm end
+                if (dh > 0) then exp.dh = dh end
+
+                -- We combine results by testing whether they produce the same sum
+                -- with two very different hit probabilities, hp1 = 0.6, hp2 = 0.137
+                -- This will only happen is the coefficients add up to multiples of 1
+                local sum1, sum2 = 0,0
+                local hp1, hp2 = 0.6, 0.137
+            for am,v3 in pairs(v2) do  -- attacker miss count
+                    for ah,num in pairs(v3) do  -- attacker hit count
+                        --print(am, ah, dm, dh, num)
+                    sum1 = sum1 + num * hp1^ah * (1-hp1)^am
+                        sum2 = sum2 + num * hp2^ah * (1-hp2)^am
+                    end
+                end
+                --print('sum:', sum1, sum2, dh)
+
+                -- Now, coefficients are set up for each value of total hits by attacker
+                -- This holds all the coefficients that need to be added to get the propability
+                -- of the defender receiving this number of hits
+                if (not coeffs_att[dh]) then coeffs_att[dh] = {} end
+
+                -- If sum1 and sum2 are equal, that means all the defender probs added up to 1, or
+                -- multiple thereof, which means the can all be combine in the calculation
+                if (math.abs(sum1 - sum2) < 1e-9) then
+                    exp.num = sum1
+                    table.insert(coeffs_att[dh], exp)
+                -- If not, the defender probs don't add up to something nice and all
+                -- need to be calculated one by one
+                else
+                    for am,v3 in pairs(v2) do  -- defender miss count
+                        for ah,num in pairs(v3) do  -- defender hit count
+                            local tmp_exp = AH.table_copy(exp)
+                        tmp_exp.num = num
+                            if (am > 0) then tmp_exp.am = am end
+                            if (ah > 0) then tmp_exp.ah = ah end
+                        table.insert(coeffs_att[dh], tmp_exp)
+                        end
+                    end
+                end
+            end
         end
-    end
-    coeffs_def[biggest_equation].skip = true
 
-    --DBG.dbms(coeffs_def)
-    return coeffs_att, coeffs_def
+        -- The probability for the number of hits with the most terms can be skipped
+        -- and 1-sum(other_terms) can be used instead.  Set a flag for which term to skip
+        local max_number, biggest_equation = 0, -1
+        for hits,v in pairs(coeffs_att) do
+            local number = 0
+            for i,c in pairs(v) do number = number + 1 end
+            if (number > max_number) then
+                max_number, biggest_equation = number, hits
+            end
+        end
+        coeffs_att[biggest_equation].skip = true
+
+        local max_number, biggest_equation = 0, -1
+        for hits,v in pairs(coeffs_def) do
+            local number = 0
+            for i,c in pairs(v) do number = number + 1 end
+            if (number > max_number) then
+                max_number, biggest_equation = number, hits
+            end
+        end
+        coeffs_def[biggest_equation].skip = true
+        --DBG.dbms(coeffs_def)
+
+        -- If we're caching, add this to 'cache'
+        if cache then cache[id] = { coeffs_att, coeffs_def } end
+
+        return coeffs_att, coeffs_def
+    end
 end
 
 function battle_calcs.print_coefficients()
@@ -474,7 +490,7 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
         att = { strikes = att_attack.number, max_hits = att_max_hits, firststrike = att_attack.firststrike },
         def = { strikes = def_attack.number, max_hits = def_max_hits, firststrike = def_attack.firststrike }
     }
-    local att_coeffs, def_coeffs = battle_calcs.battle_outcome_coefficients(cfg)
+    local att_coeffs, def_coeffs = battle_calcs.battle_outcome_coefficients(cfg, cache)
 
     -- And multiply out the factors
     local att_stats  = { hp_chance = {}, average_hp = 0 }
