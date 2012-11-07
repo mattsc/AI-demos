@@ -392,7 +392,7 @@ return {
                 local scores = recruit_scores[recruit_id]
                 local offense_score = (scores["offense"]/best_scores["offense"])^0.5
                 local defense_score = (scores["defense"]/best_scores["defense"])^0.5
-                local move_score = scores["move"]/best_scores["move"]^0.5
+                local move_score = scores["move"]/best_scores["move"]
 
                 local score = offense_score*offense_weight + defense_score*defense_weight + move_score*move_weight
 
