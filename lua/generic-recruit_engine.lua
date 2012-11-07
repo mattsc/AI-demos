@@ -205,7 +205,7 @@ return {
                 return 0
             end
 
-            local best_hex = ai_cas:find_best_recruit_hex(leader)
+            local best_hex = ai_cas:find_best_recruit_hex(leader, data)
             if #best_hex == 0 then
                 return 0
             end
@@ -417,20 +417,26 @@ return {
             end
         end
 
-        function ai_cas:find_best_recruit_hex(leader)
+        function ai_cas:find_best_recruit_hex(leader, data)
             -- Recruit on the castle hex that is closest to the combination of the enemy leaders
             local enemy_leaders = AH.get_live_units { canrecruit = 'yes',
 	            { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
             }
 
-            local castle = wesnoth.get_locations {
-                x = leader.x, y = leader.y, radius = 200,
-                { "filter_radius", { terrain = 'C*^*,K*^*,*^Kov,*^Cov' } }
-            }
+            if (not data.castle) or (data.castle.x ~= leader.x) then
+                data.castle = {
+                    locs = wesnoth.get_locations {
+                        x = leader.x, y = leader.y, radius = 200,
+                        { "filter_radius", { terrain = 'C*^*,K*^*,*^Kov,*^Cov' } }
+                    },
+                    x = leader.x,
+                    y = leader.y
+                }
+            end
             local width,height,border = wesnoth.get_map_size()
 
             local max_rating, best_hex = -1, {}
-            for i,c in ipairs(castle) do
+            for i,c in ipairs(data.castle.locs) do
                 local rating = 0
                 local unit = wesnoth.get_unit(c[1], c[2])
                 if (not unit) and c[1] > 0 and c[1] <= width and c[2] > 0 and c[2] <= height then
