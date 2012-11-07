@@ -626,6 +626,168 @@ function battle_calcs.simulate_combat_fake()
     return att_stats, def_stats
 end
 
+function battle_calcs.attack_rating(att_stats, def_stats, attackers, defender, dsts, cfg)
+    -- Returns a common (but configurable) kind of rating for attacks
+    -- Inputs:
+    -- att_stats: can be a single attacker stats table, or an array of several
+    -- def_stats: has to be a single defender stats table
+    -- attackers: single attacker unit or table of attacker units, in same order as att_stats
+    -- defender: defender unit table
+    -- dsts: the attack locations, in same order as att_stats
+    -- cfg: table of configurable rating parameters
+    --  - own_damage_weight (1.0): ratio of rating for own damage / enemy damage
+    --  - ctk_weight (0.5): rating bonus for each % point of CTK
+    --  - resource_weight (0.25): rating for each gold of resources used (all the attackers)
+    --  - terrain_weight (0.111): rating for each % point of terrain defense
+    --  - village_bonus (25): rating bonus if attacker is on a village
+    --  - defender_village_bonus (5): rating bonus if defender is on a village
+    --  - xp_weight (0.2): rating for each XP (both attackers and defenders)
+    --  - distance_leader_weight (1.0): rating of attack hex distance from AI leader (relative to enemy distance from leader)
+    --  - occupied_hex_penalty (0.1): rating penalty if the attack hex is occupied
+    --
+    -- Returns:
+    --   - Overall rating for the attack or attack combo
+    --   - Attacker rating: this one is additive for the individual attacks in a combo
+    --   - Defender rating: not additive for attack combos; needs to be calculated for the
+    --     defender stats of the last attack in a combo (that works for everything except
+    --     the rating whether the defender is about to level in the attack combo)
+
+    -- Set up the rating config parameters
+    cfg = cfg or {}
+    local own_damage_weight = cfg.own_damage_weight or 1.0
+    local ctk_weight = cfg.ctk_weight or 0.5
+    local resource_weight = cfg.resource_weight or 0.25
+    local terrain_weight = cfg.terrain_weight or 0.111
+    local village_bonus = cfg.village_bonus or 25
+    local defender_village_bonus = cfg.defender_village_bonus or 5
+    local xp_weight = cfg.xp_weight or 0.2
+    local distance_leader_weight = cfg.distance_leader_weight or 1.0
+    local occupied_hex_penalty = cfg.occupied_hex_penalty or 0.1
+
+    -- If att is a single stats table, make it a one-element array
+    -- That way all the rest can be done in in the same way for single and combo attacks
+    if att_stats.hp_chance then
+        att_stats = { att_stats }
+        attackers = { attackers }
+        dsts = { dsts }
+    end
+
+    -- We also need the leader (well, the location at least)
+    -- because if there's no other difference, prefer location _between_ the leader and the enemy
+    local leader = wesnoth.get_units { side = attackers[1].side, canrecruit = 'yes' }[1]
+
+    ---------- Collect the necessary information ----------
+    ------ All the per-attacker contributions: ------
+    local damage, ctd, resources_used = 0, 0, 0
+    local xp_bonus = 0
+    local attacker_about_to_level_bonus, defender_about_to_level_penalty = 0, 0
+    local relative_distances, attacker_defenses, attackers_on_villages = 0, 0, 0
+    local occupied_hexes = 0
+    for i,as in ipairs(att_stats) do
+        --print(attackers[i].id, as.average_hp)
+        damage = damage + attackers[i].hitpoints - as.average_hp
+        ctd = ctd + as.hp_chance[0]  -- Chance to die
+        resources_used = resources_used + wesnoth.unit_types[attackers[i].type].cost
+
+        -- If there's no chance to die, using unit with lots of XP is good
+        -- Otherwise it's bad
+        if (as.hp_chance[0] > 0) then
+            xp_bonus = xp_bonus - attackers[i].experience
+        else
+            xp_bonus = xp_bonus + attackers[i].experience
+        end
+
+        -- The attack position (this is just for convenience)
+        local x, y = dsts[i][1], dsts[i][2]
+
+        -- Position units in between AI leader and defender
+        -- This number is larger for attack hexes closer to the side leader
+        relative_distances = relative_distances
+            + H.distance_between(defender.x, defender.y, leader.x, leader.y)
+            - H.distance_between(x, y, leader.x, leader.y)
+
+        -- Terrain and village bonus
+        attacker_defenses = attacker_defenses - wesnoth.unit_defense(attackers[i], wesnoth.get_terrain(x, y))
+        local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
+        if is_village then
+            attackers_on_villages = attackers_on_villages + 1
+        end
+
+        -- Count occupied attack hexes (which get a small rating penalty)
+        -- Note: it must be checked previously that the unit on the hex can move away
+        if (x ~= attackers[i].x) or (y ~= attackers[i].y) then
+            if wesnoth.get_unit(x, y) then
+                occupied_hexes = occupied_hexes + 1
+            end
+        end
+
+        -- Will the attacker level in this attack (or likely do so?)
+        local defender_level = wesnoth.unit_types[defender.type].level
+        if (as.hp_chance[0] < 0.4) then
+            if (attackers[i].max_experience - attackers[i].experience <= defender_level) then
+                attacker_about_to_level_bonus = attacker_about_to_level_bonus + 100
+            else
+                if (attackers[i].max_experience - attackers[i].experience <= defender_level * 8) and (def_stats.hp_chance[0] >= 0.6) then
+                    attacker_about_to_level_bonus = attacker_about_to_level_bonus + 50
+                end
+            end
+        end
+
+        -- Will the defender level in this attack (or likely do so?)
+        local attacker_level = wesnoth.unit_types[attackers[i].type].level
+        if (def_stats.hp_chance[0] < 0.6) then
+            if (defender.max_experience - defender.experience <= attacker_level) then
+                defender_about_to_level_penalty = defender_about_to_level_penalty + 2000
+            else
+                if (defender.max_experience - defender.experience <= attacker_level * 8) and (as.hp_chance[0] >= 0.4) then
+                    defender_about_to_level_penalty = defender_about_to_level_penalty + 1000
+                end
+            end
+        end
+    end
+
+    ------ All the defender-related information: ------
+    local defender_damage = defender.hitpoints - def_stats.average_hp
+    local ctk = def_stats.hp_chance[0]  -- Chance to kill
+
+    -- XP bonus is positive for defender as well - want to get rid of high-XP opponents first
+    -- Except if the defender will likely level up through the attack (dealt with above)
+    local defender_xp_bonus = defender.experience
+
+    local defender_cost = wesnoth.unit_types[defender.type].cost
+    local defender_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(defender.x, defender.y)).village
+
+    ---------- Now add all this together in a rating ----------
+    -- We use separate attacker(s) and defender ratings, so that attack combos can be dealt with easily
+    local defender_rating, attacker_rating = 0, 0
+
+    -- Rating based on the attack outcome
+    defender_rating = defender_rating + defender_damage + ctk * 100. * ctk_weight
+    attacker_rating = attacker_rating - (damage + ctd * 100. * ctk_weight) * own_damage_weight
+
+    -- Terrain and position related ratings
+    attacker_rating = attacker_rating + relative_distances * distance_leader_weight
+    attacker_rating = attacker_rating + attacker_defenses * terrain_weight
+    attacker_rating = attacker_rating + attackers_on_villages * village_bonus
+    attacker_rating = attacker_rating - occupied_hexes * occupied_hex_penalty
+
+    -- XP-based rating
+    defender_rating = defender_rating + defender_xp_bonus * xp_weight - defender_about_to_level_penalty
+    attacker_rating = attacker_rating + xp_bonus * xp_weight + attacker_about_to_level_bonus
+
+    -- Resources used (cost) of units on both sides
+    -- Only the delta between ratings makes a difference -> absolute value meaningless
+    -- Don't want this to be too highly rated, or single-unit attacks will always be chosen
+    defender_rating = defender_rating + defender_cost * resource_weight
+    attacker_rating = attacker_rating - resources_used * resource_weight
+
+    -- Bonus (or penalty) for units on villages
+    if defender_on_village then defender_rating = defender_rating + defender_village_bonus end
+
+    local rating = defender_rating + attacker_rating
+    --print('--> attack rating, defender_rating, attacker_rating:', rating, defender_rating, attacker_rating)
+    return rating, defender_rating, attacker_rating
+end
 
 function battle_calcs.simulate_combat_loc(attacker, dst, defender, weapon)
     -- Get simulate_combat results for unit 'attacker' attacking unit at 'defender'
@@ -824,169 +986,6 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc
     --print('    --> rating:', rating)
 
     return rating, attackers, dsts, att_stats, def_stats_combo, def_stats
-end
-
-function battle_calcs.attack_rating(att_stats, def_stats, attackers, defender, dsts, cfg)
-    -- Returns a common (but configurable) kind of rating for attacks
-    -- Inputs:
-    -- att_stats: can be a single attacker stats table, or an array of several
-    -- def_stats: has to be a single defender stats table
-    -- attackers: single attacker unit or table of attacker units, in same order as att_stats
-    -- defender: defender unit table
-    -- dsts: the attack locations, in same order as att_stats
-    -- cfg: table of configurable rating parameters
-    --  - own_damage_weight (1.0): ratio of rating for own damage / enemy damage
-    --  - ctk_weight (0.5): rating bonus for each % point of CTK
-    --  - resource_weight (0.25): rating for each gold of resources used (all the attackers)
-    --  - terrain_weight (0.111): rating for each % point of terrain defense
-    --  - village_bonus (25): rating bonus if attacker is on a village
-    --  - defender_village_bonus (5): rating bonus if defender is on a village
-    --  - xp_weight (0.2): rating for each XP (both attackers and defenders)
-    --  - distance_leader_weight (1.0): rating of attack hex distance from AI leader (relative to enemy distance from leader)
-    --  - occupied_hex_penalty (0.1): rating penalty if the attack hex is occupied
-    --
-    -- Returns:
-    --   - Overall rating for the attack or attack combo
-    --   - Attacker rating: this one is additive for the individual attacks in a combo
-    --   - Defender rating: not additive for attack combos; needs to be calculated for the
-    --     defender stats of the last attack in a combo (that works for everything except
-    --     the rating whether the defender is about to level in the attack combo)
-
-    -- Set up the rating config parameters
-    cfg = cfg or {}
-    local own_damage_weight = cfg.own_damage_weight or 1.0
-    local ctk_weight = cfg.ctk_weight or 0.5
-    local resource_weight = cfg.resource_weight or 0.25
-    local terrain_weight = cfg.terrain_weight or 0.111
-    local village_bonus = cfg.village_bonus or 25
-    local defender_village_bonus = cfg.defender_village_bonus or 5
-    local xp_weight = cfg.xp_weight or 0.2
-    local distance_leader_weight = cfg.distance_leader_weight or 1.0
-    local occupied_hex_penalty = cfg.occupied_hex_penalty or 0.1
-
-    -- If att is a single stats table, make it a one-element array
-    -- That way all the rest can be done in in the same way for single and combo attacks
-    if att_stats.hp_chance then
-        att_stats = { att_stats }
-        attackers = { attackers }
-        dsts = { dsts }
-    end
-
-    -- We also need the leader (well, the location at least)
-    -- because if there's no other difference, prefer location _between_ the leader and the enemy
-    local leader = wesnoth.get_units { side = attackers[1].side, canrecruit = 'yes' }[1]
-
-    ---------- Collect the necessary information ----------
-    ------ All the per-attacker contributions: ------
-    local damage, ctd, resources_used = 0, 0, 0
-    local xp_bonus = 0
-    local attacker_about_to_level_bonus, defender_about_to_level_penalty = 0, 0
-    local relative_distances, attacker_defenses, attackers_on_villages = 0, 0, 0
-    local occupied_hexes = 0
-    for i,as in ipairs(att_stats) do
-        --print(attackers[i].id, as.average_hp)
-        damage = damage + attackers[i].hitpoints - as.average_hp
-        ctd = ctd + as.hp_chance[0]  -- Chance to die
-        resources_used = resources_used + wesnoth.unit_types[attackers[i].type].cost
-
-        -- If there's no chance to die, using unit with lots of XP is good
-        -- Otherwise it's bad
-        if (as.hp_chance[0] > 0) then
-            xp_bonus = xp_bonus - attackers[i].experience
-        else
-            xp_bonus = xp_bonus + attackers[i].experience
-        end
-
-        -- The attack position (this is just for convenience)
-        local x, y = dsts[i][1], dsts[i][2]
-
-        -- Position units in between AI leader and defender
-        -- This number is larger for attack hexes closer to the side leader
-        relative_distances = relative_distances
-            + H.distance_between(defender.x, defender.y, leader.x, leader.y)
-            - H.distance_between(x, y, leader.x, leader.y)
-
-        -- Terrain and village bonus
-        attacker_defenses = attacker_defenses - wesnoth.unit_defense(attackers[i], wesnoth.get_terrain(x, y))
-        local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
-        if is_village then
-            attackers_on_villages = attackers_on_villages + 1
-        end
-
-        -- Count occupied attack hexes (which get a small rating penalty)
-        -- Note: it must be checked previously that the unit on the hex can move away
-        if (x ~= attackers[i].x) or (y ~= attackers[i].y) then
-            if wesnoth.get_unit(x, y) then
-                occupied_hexes = occupied_hexes + 1
-            end
-        end
-
-        -- Will the attacker level in this attack (or likely do so?)
-        local defender_level = wesnoth.unit_types[defender.type].level
-        if (as.hp_chance[0] < 0.4) then
-            if (attackers[i].max_experience - attackers[i].experience <= defender_level) then
-                attacker_about_to_level_bonus = attacker_about_to_level_bonus + 100
-            else
-                if (attackers[i].max_experience - attackers[i].experience <= defender_level * 8) and (def_stats.hp_chance[0] >= 0.6) then
-                    attacker_about_to_level_bonus = attacker_about_to_level_bonus + 50
-                end
-            end
-        end
-
-        -- Will the defender level in this attack (or likely do so?)
-        local attacker_level = wesnoth.unit_types[attackers[i].type].level
-        if (def_stats.hp_chance[0] < 0.6) then
-            if (defender.max_experience - defender.experience <= attacker_level) then
-                defender_about_to_level_penalty = defender_about_to_level_penalty + 2000
-            else
-                if (defender.max_experience - defender.experience <= attacker_level * 8) and (as.hp_chance[0] >= 0.4) then
-                    defender_about_to_level_penalty = defender_about_to_level_penalty + 1000
-                end
-            end
-        end
-    end
-
-    ------ All the defender-related information: ------
-    local defender_damage = defender.hitpoints - def_stats.average_hp
-    local ctk = def_stats.hp_chance[0]  -- Chance to kill
-
-    -- XP bonus is positive for defender as well - want to get rid of high-XP opponents first
-    -- Except if the defender will likely level up through the attack (dealt with above)
-    local defender_xp_bonus = defender.experience
-
-    local defender_cost = wesnoth.unit_types[defender.type].cost
-    local defender_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(defender.x, defender.y)).village
-
-    ---------- Now add all this together in a rating ----------
-    -- We use separate attacker(s) and defender ratings, so that attack combos can be dealt with easily
-    local defender_rating, attacker_rating = 0, 0
-
-    -- Rating based on the attack outcome
-    defender_rating = defender_rating + defender_damage + ctk * 100. * ctk_weight
-    attacker_rating = attacker_rating - (damage + ctd * 100. * ctk_weight) * own_damage_weight
-
-    -- Terrain and position related ratings
-    attacker_rating = attacker_rating + relative_distances * distance_leader_weight
-    attacker_rating = attacker_rating + attacker_defenses * terrain_weight
-    attacker_rating = attacker_rating + attackers_on_villages * village_bonus
-    attacker_rating = attacker_rating - occupied_hexes * occupied_hex_penalty
-
-    -- XP-based rating
-    defender_rating = defender_rating + defender_xp_bonus * xp_weight - defender_about_to_level_penalty
-    attacker_rating = attacker_rating + xp_bonus * xp_weight + attacker_about_to_level_bonus
-
-    -- Resources used (cost) of units on both sides
-    -- Only the delta between ratings makes a difference -> absolute value meaningless
-    -- Don't want this to be too highly rated, or single-unit attacks will always be chosen
-    defender_rating = defender_rating + defender_cost * resource_weight
-    attacker_rating = attacker_rating - resources_used * resource_weight
-
-    -- Bonus (or penalty) for units on villages
-    if defender_on_village then defender_rating = defender_rating + defender_village_bonus end
-
-    local rating = defender_rating + attacker_rating
-    --print('--> attack rating, defender_rating, attacker_rating:', rating, defender_rating, attacker_rating)
-    return rating, defender_rating, attacker_rating
 end
 
 return battle_calcs
