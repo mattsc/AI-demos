@@ -3,6 +3,7 @@ return {
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
+        local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
         function living(unit)
             return not unit.status.not_living
@@ -210,13 +211,13 @@ return {
             end
 
             if data.recruit == nil then
-                data.recruit = init_data()
+                data.recruit = init_data(leader)
             end
             data.recruit.best_hex = best_hex
             return 300000
         end
 
-        function init_data()
+        function init_data(leader)
             local data = {}
             data.hp_efficiency = get_hp_efficiency()
 
@@ -443,6 +444,32 @@ return {
             end
 
             return best_hex
+        end
+
+        function get_reachable_villages(leader)
+            -- Only consider villages reachable by our fastest unit
+            local fastest_unit_speed = 0
+            for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
+                if wesnoth.unit_types[recruit_id].max_moves > fastest_unit_speed then
+                    fastest_unit_speed = wesnoth.unit_types[recruit_id].max_moves
+                end
+            end
+
+            -- get a list of all unowned villages within fastest_unit_speed
+            -- TODO get list of villages not owned by allies instead
+            -- this may have false positives (villages that can't be reached due to difficult/impassible terrain)
+            local villages = wesnoth.get_locations {
+                terrain = '*^V*',
+                owner_side = 0,
+                { "and", {
+                    radius = fastest_unit_speed,
+                    { "and", {
+                        x = leader.x, y = leader.y, radius = 200,
+                        { "filter_radius", { terrain = 'C*^*,K*^*,*^Kov,*^Cov' } },
+                    } }
+                }}
+
+            }
         end
     end -- init()
 }
