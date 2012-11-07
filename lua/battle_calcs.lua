@@ -683,7 +683,7 @@ function battle_calcs.attack_rating(att_stats, def_stats, attackers, defender, d
     local occupied_hex_penalty = cfg.occupied_hex_penalty or -0.1
 
     -- If att is a single stats table, make it a one-element array
-    -- That way all the rest can be done in in the same way for single and combo attacks
+    -- That way all the rest can be done in the same way for single and combo attacks
     if att_stats.hp_chance then
         att_stats = { att_stats }
         attackers = { attackers }
@@ -783,11 +783,14 @@ function battle_calcs.attack_rating(att_stats, def_stats, attackers, defender, d
     defender_rating = defender_rating + defender_damage + ctk * 100. * ctk_weight
     attacker_rating = attacker_rating - (damage + ctd * 100. * ctk_weight) * own_damage_weight
 
-    -- Terrain and position related ratings
+    -- Position and village related ratings
     attacker_rating = attacker_rating + relative_distances * distance_leader_weight
-    attacker_rating = attacker_rating + attacker_defenses * terrain_weight
     attacker_rating = attacker_rating + attackers_on_villages * village_bonus
     attacker_rating = attacker_rating + occupied_hexes * occupied_hex_penalty
+
+    -- Terrain related rating
+    -- This needs to be an average, since otherwise it will always be biased with number of units in a combo
+    attacker_rating = attacker_rating + (attacker_defenses / #att_stats) * terrain_weight
 
     -- XP-based rating
     defender_rating = defender_rating + defender_xp_bonus * xp_weight + defender_about_to_level_penalty
