@@ -626,6 +626,21 @@ function battle_calcs.simulate_combat_fake()
     return att_stats, def_stats
 end
 
+function battle_calcs.simulate_combat_loc(attacker, dst, defender, weapon)
+    -- Get simulate_combat results for unit 'attacker' attacking unit at 'defender'
+    -- when on terrain of same type as that at 'dst', which is of form {x,y}
+    -- If 'weapon' is set (to number of attack), use that weapon (starting at 1), otherwise use best weapon
+
+    local attacker_dst = wesnoth.copy_unit(attacker)
+    attacker_dst.x, attacker_dst.y = dst[1], dst[2]
+
+    if weapon then
+        return wesnoth.simulate_combat(attacker_dst, weapon, defender)
+    else
+        return wesnoth.simulate_combat(attacker_dst, defender)
+    end
+end
+
 function battle_calcs.attack_rating(att_stats, def_stats, attackers, defender, dsts, cfg)
     -- Returns a common (but configurable) kind of rating for attacks
     -- Inputs:
@@ -787,21 +802,6 @@ function battle_calcs.attack_rating(att_stats, def_stats, attackers, defender, d
     local rating = defender_rating + attacker_rating
     --print('--> attack rating, defender_rating, attacker_rating:', rating, defender_rating, attacker_rating)
     return rating, defender_rating, attacker_rating
-end
-
-function battle_calcs.simulate_combat_loc(attacker, dst, defender, weapon)
-    -- Get simulate_combat results for unit 'attacker' attacking unit at 'defender'
-    -- when on terrain of same type as that at 'dst', which is of form {x,y}
-    -- If 'weapon' is set (to number of attack), use that weapon (starting at 1), otherwise use best weapon
-
-    local attacker_dst = wesnoth.copy_unit(attacker)
-    attacker_dst.x, attacker_dst.y = dst[1], dst[2]
-
-    if weapon then
-        return wesnoth.simulate_combat(attacker_dst, weapon, defender)
-    else
-        return wesnoth.simulate_combat(attacker_dst, defender)
-    end
 end
 
 function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc)
