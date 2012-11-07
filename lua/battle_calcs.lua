@@ -665,10 +665,12 @@ function battle_calcs.attack_rating(att_stats, def_stats, attackers, defender, d
     --
     -- Returns:
     --   - Overall rating for the attack or attack combo
-    --   - Attacker rating: this one is additive for the individual attacks in a combo
     --   - Defender rating: not additive for attack combos; needs to be calculated for the
     --     defender stats of the last attack in a combo (that works for everything except
     --     the rating whether the defender is about to level in the attack combo)
+    --   - Attacker rating: this one is split up into two terms:
+    --     - a term that is additive for individual attacks in a combo
+    --     - a term that needs to be average for the individual attacks in a combo
 
     -- Set up the rating config parameters
     cfg = cfg or {}
@@ -777,37 +779,37 @@ function battle_calcs.attack_rating(att_stats, def_stats, attackers, defender, d
 
     ---------- Now add all this together in a rating ----------
     -- We use separate attacker(s) and defender ratings, so that attack combos can be dealt with easily
-    local defender_rating, attacker_rating = 0, 0
+    local defender_rating, attacker_rating_add, attacker_rating_average = 0, 0, 0
 
     -- Rating based on the attack outcome
     defender_rating = defender_rating + defender_damage + ctk * 100. * ctk_weight
-    attacker_rating = attacker_rating - (damage + ctd * 100. * ctk_weight) * own_damage_weight
+    attacker_rating_add = attacker_rating_add - (damage + ctd * 100. * ctk_weight) * own_damage_weight
 
     -- Position and village related ratings
-    attacker_rating = attacker_rating + relative_distances * distance_leader_weight
-    attacker_rating = attacker_rating + attackers_on_villages * village_bonus
-    attacker_rating = attacker_rating + occupied_hexes * occupied_hex_penalty
+    attacker_rating_add = attacker_rating_add + relative_distances * distance_leader_weight
+    attacker_rating_add = attacker_rating_add + attackers_on_villages * village_bonus
+    attacker_rating_add = attacker_rating_add + occupied_hexes * occupied_hex_penalty
 
     -- Terrain related rating
     -- This needs to be an average, since otherwise it will always be biased with number of units in a combo
-    attacker_rating = attacker_rating + (attacker_defenses / #att_stats) * terrain_weight
+    attacker_rating_average = attacker_rating_average + (attacker_defenses / #att_stats) * terrain_weight
 
     -- XP-based rating
     defender_rating = defender_rating + defender_xp_bonus * xp_weight + defender_about_to_level_penalty
-    attacker_rating = attacker_rating + xp_bonus * xp_weight + attacker_about_to_level_bonus
+    attacker_rating_add = attacker_rating_add + xp_bonus * xp_weight + attacker_about_to_level_bonus
 
     -- Resources used (cost) of units on both sides
     -- Only the delta between ratings makes a difference -> absolute value meaningless
     -- Don't want this to be too highly rated, or single-unit attacks will always be chosen
     defender_rating = defender_rating + defender_cost * resource_weight
-    attacker_rating = attacker_rating - resources_used * resource_weight
+    attacker_rating_add = attacker_rating_add - resources_used * resource_weight
 
     -- Bonus (or penalty) for units on villages
     if defender_on_village then defender_rating = defender_rating + defender_village_bonus end
 
-    local rating = defender_rating + attacker_rating
-    --print('--> attack rating, defender_rating, attacker_rating:', rating, defender_rating, attacker_rating)
-    return rating, defender_rating, attacker_rating
+    local rating = defender_rating + attacker_rating_add + attacker_rating_average
+    --print('--> attack rating, defender_rating, attacker_rating:', rating, defender_rating, attacker_rating_add, attacker_rating_average)
+    return rating, defender_rating, attacker_rating_add, attacker_rating_average
 end
 
 function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc)
