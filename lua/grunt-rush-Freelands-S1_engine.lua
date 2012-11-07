@@ -7,6 +7,7 @@ return {
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
+        local BC = wesnoth.dofile "~/add-ons/AI-demos/lua/battle_calcs.lua"
         local LS = wesnoth.require "lua/location_set.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
         local RFH = wesnoth.require "~/add-ons/AI-demos/lua/recruit_filter_helper.lua"
@@ -341,7 +342,7 @@ return {
                             table.insert(attackers, att)
                             table.insert(dsts, { math.floor(dst / 1000), dst % 1000 })
                         end
-                        rating, attackers, dsts, combo_att_stats, combo_def_stats = AH.attack_combo_stats(attackers, dsts, e, precalc_attacks)
+                        rating, attackers, dsts, combo_att_stats, combo_def_stats = BC.attack_combo_stats(attackers, dsts, e, precalc_attacks)
                     end
 
                     -- Don't attack under certain circumstances:
@@ -652,7 +653,7 @@ return {
                 end
 
                 -- Get the attack combo outcome.  We're really only interested in combo_def_stats
-                local default_rating, sorted_atts, sorted_dsts, combo_att_stats, combo_def_stats = AH.attack_combo_stats(atts, dsts, unit, precalc_attacks)
+                local default_rating, sorted_atts, sorted_dsts, combo_att_stats, combo_def_stats = BC.attack_combo_stats(atts, dsts, unit, precalc_attacks)
 
                 -- Minimum hitpoints for the unit after this attack combo
                 local min_hp = 0
@@ -1423,7 +1424,7 @@ return {
                         table.insert(atts, attacker_map[src])
                         table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
                     end
-                    local rating, sorted_atts, sorted_dsts, combo_att_stats, combo_def_stats = AH.attack_combo_stats(atts, dsts, e, precalc_attacks)
+                    local rating, sorted_atts, sorted_dsts, combo_att_stats, combo_def_stats = BC.attack_combo_stats(atts, dsts, e, precalc_attacks)
                     --DBG.dbms(combo_def_stats)
 
                     -- Don't attack if CTD is too high for any of the attackers
