@@ -658,7 +658,7 @@ function battle_calcs.attack_rating(att_stats, def_stats, attackers, defender, d
     --  - defender_village_bonus (5): rating bonus if defender is on a village
     --  - xp_weight (0.2): rating for each XP (both attackers and defenders)
     --  - distance_leader_weight (1.0): rating of attack hex distance from AI leader (relative to enemy distance from leader)
-    --  - occupied_hex_penalty (0.1): rating penalty if the attack hex is occupied
+    --  - occupied_hex_penalty (-0.1): rating penalty if the attack hex is occupied
     --
     -- Returns:
     --   - Overall rating for the attack or attack combo
@@ -677,7 +677,7 @@ function battle_calcs.attack_rating(att_stats, def_stats, attackers, defender, d
     local defender_village_bonus = cfg.defender_village_bonus or 5
     local xp_weight = cfg.xp_weight or 0.2
     local distance_leader_weight = cfg.distance_leader_weight or 1.0
-    local occupied_hex_penalty = cfg.occupied_hex_penalty or 0.1
+    local occupied_hex_penalty = cfg.occupied_hex_penalty or -0.1
 
     -- If att is a single stats table, make it a one-element array
     -- That way all the rest can be done in in the same way for single and combo attacks
@@ -752,10 +752,10 @@ function battle_calcs.attack_rating(att_stats, def_stats, attackers, defender, d
         local attacker_level = wesnoth.unit_types[attackers[i].type].level
         if (def_stats.hp_chance[0] < 0.6) then
             if (defender.max_experience - defender.experience <= attacker_level) then
-                defender_about_to_level_penalty = defender_about_to_level_penalty + 2000
+                defender_about_to_level_penalty = defender_about_to_level_penalty - 2000
             else
                 if (defender.max_experience - defender.experience <= attacker_level * 8) and (as.hp_chance[0] >= 0.4) then
-                    defender_about_to_level_penalty = defender_about_to_level_penalty + 1000
+                    defender_about_to_level_penalty = defender_about_to_level_penalty - 1000
                 end
             end
         end
@@ -784,10 +784,10 @@ function battle_calcs.attack_rating(att_stats, def_stats, attackers, defender, d
     attacker_rating = attacker_rating + relative_distances * distance_leader_weight
     attacker_rating = attacker_rating + attacker_defenses * terrain_weight
     attacker_rating = attacker_rating + attackers_on_villages * village_bonus
-    attacker_rating = attacker_rating - occupied_hexes * occupied_hex_penalty
+    attacker_rating = attacker_rating + occupied_hexes * occupied_hex_penalty
 
     -- XP-based rating
-    defender_rating = defender_rating + defender_xp_bonus * xp_weight - defender_about_to_level_penalty
+    defender_rating = defender_rating + defender_xp_bonus * xp_weight + defender_about_to_level_penalty
     attacker_rating = attacker_rating + xp_bonus * xp_weight + attacker_about_to_level_bonus
 
     -- Resources used (cost) of units on both sides
