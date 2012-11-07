@@ -6,6 +6,7 @@ return {
 	local H = wesnoth.require "lua/helper.lua"
 	local W = H.set_wml_action_metatable {}
 	local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
+    local BC = wesnoth.dofile "~/add-ons/AI-demos/lua/battle_calcs.lua"
 	local LS = wesnoth.require "lua/location_set.lua"
 	local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
@@ -19,7 +20,7 @@ return {
 	    for weapon in H.child_range(attacker.__cfg, "attack") do
 	        n_weapon = n_weapon + 1
 
-	        local att_stats, def_stats = AH.simulate_combat_loc(attacker, loc, target, n_weapon)
+	        local att_stats, def_stats = BC.simulate_combat_loc(attacker, loc, target, n_weapon)
 	        --DBG.dbms(att_stats,false,"variable",false)
 	        --print(attacker.id, att_stats.average_hp, def_stats.average_hp)
 
