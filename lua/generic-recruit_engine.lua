@@ -276,13 +276,10 @@ return {
             if AH.print_exec() then print('   ' .. os.clock() .. ' Executing recruit_rushers CA') end
             if AH.show_messages() then W.message { speaker = 'narrator', message = 'Recruiting' } end
 
-            local efficiency = self.data.recruit.hp_efficiency
             local enemy_counts = self.data.recruit.enemy_counts
             local enemy_types = self.data.recruit.enemy_types
             local num_enemies =  self.data.recruit.num_enemies
             local hp_ratio = get_hp_ratio_with_gold()
-            local distance_to_enemy, enemy_location = AH.get_closest_enemy()
-            local best_hex = self.data.recruit.best_hex
 
             -- Determine effectiveness of recruitable units against each enemy unit type
             local recruit_effectiveness = {}
@@ -348,10 +345,70 @@ return {
                 attack_type_count[attack_type] = count/enemy_type_count
             end
 
-            -- Find best recruit based on damage done to enemies present, speed, and hp/gold ratio
+            local recruit_type = nil
+            local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+            while true do
+                recruit_type = ai_cas:find_best_recruit(attack_type_count, unit_attack_type_count, recruit_effectiveness, recruit_vulnerability, attack_range_count, unit_attack_range_count, most_common_range_count)
+                if recruit_type ~= nil then
+                    break
+                end
+                self.data.recruit.best_hex, self.data.recruit.target_hex = ai_cas:find_best_recruit_hex(leader, self.data)
+            end
 
+            if wesnoth.unit_types[recruit_type].cost <= wesnoth.sides[wesnoth.current.side].gold then
+                ai.recruit(recruit_type, self.data.recruit.best_hex[1], self.data.recruit.best_hex[2])
+            end
+        end
+
+        function ai_cas:find_best_recruit_hex(leader, data)
+            -- Find the best recruit hex
+            -- First choice: a hex that can reach an unowned village
+            -- Second choice: a hex close to the enemy
+            local enemy_leaders = AH.get_live_units { canrecruit = 'yes',
+	            { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
+            }
+
+            if (not data.castle) or (data.castle.x ~= leader.x) or (data.castle.y ~= leader.y) then
+                data.castle = {
+                    locs = wesnoth.get_locations {
+                        x = leader.x, y = leader.y, radius = 200,
+                        { "filter_radius", { terrain = 'C*^*,K*^*,*^Kov,*^Cov' } }
+                    },
+                    x = leader.x,
+                    y = leader.y
+                }
+            end
+            local width,height,border = wesnoth.get_map_size()
+
+            local best_hex, village = get_village_target(leader, data)
+            if not village[1] then
+                -- no available village, look for hex closest to enemy leader
+                local max_rating = -1
+                for i,c in ipairs(data.castle.locs) do
+                    local rating = 0
+                    local unit = wesnoth.get_unit(c[1], c[2])
+                    if (not unit) and c[1] > 0 and c[1] <= width and c[2] > 0 and c[2] <= height then
+                        for j,e in ipairs(enemy_leaders) do
+                            rating = rating + 1 / H.distance_between(c[1], c[2], e.x, e.y) ^ 2.
+                        end
+                        if (rating > max_rating) then
+                            max_rating, best_hex = rating, { c[1], c[2] }
+                        end
+                    end
+                end
+            end
+
+            return best_hex, village[1]
+        end
+
+        function ai_cas:find_best_recruit(attack_type_count, unit_attack_type_count, recruit_effectiveness, recruit_vulnerability, attack_range_count, unit_attack_range_count, most_common_range_count)
+            -- Find best recruit based on damage done to enemies present, speed, and hp/gold ratio
+            local distance_to_enemy, enemy_location = AH.get_closest_enemy()
             local recruit_scores = {}
             local best_scores = {offense = 0, defense = 0, move = 0}
+            local best_hex = self.data.recruit.best_hex
+            local target_hex = self.data.recruit.target_hex
+            local efficiency = self.data.recruit.hp_efficiency
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
                 -- Count number of units with the same attack type. Used to avoid recruiting too many of the same unit
                 local attack_types = 0
@@ -413,53 +470,11 @@ return {
                     recruit_type = recruit_id
                 end
             end
-            if wesnoth.unit_types[recruit_type].cost <= wesnoth.sides[wesnoth.current.side].gold then
-                ai.recruit(recruit_type, best_hex[1], best_hex[2])
-            end
+
+            return recruit_type
         end
 
-        function ai_cas:find_best_recruit_hex(leader, data)
-            -- Recruit on the castle hex that is closest to the combination of the enemy leaders
-            local enemy_leaders = AH.get_live_units { canrecruit = 'yes',
-	            { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
-            }
-
-            if (not data.castle) or (data.castle.x ~= leader.x) or (data.castle.y ~= leader.y) then
-                data.castle = {
-                    locs = wesnoth.get_locations {
-                        x = leader.x, y = leader.y, radius = 200,
-                        { "filter_radius", { terrain = 'C*^*,K*^*,*^Kov,*^Cov' } }
-                    },
-                    x = leader.x,
-                    y = leader.y
-                }
-            end
-            local width,height,border = wesnoth.get_map_size()
-
-            --local best_hex, village = get_village_target(leader, data)
-            -- Temporary until get_village target is ready
-            local best_hex, village = {}, nil
-            if not village then
-                -- no available village, look for hex closest to enemy leader
-                local max_rating = -1
-                for i,c in ipairs(data.castle.locs) do
-                    local rating = 0
-                    local unit = wesnoth.get_unit(c[1], c[2])
-                    if (not unit) and c[1] > 0 and c[1] <= width and c[2] > 0 and c[2] <= height then
-                        for j,e in ipairs(enemy_leaders) do
-                            rating = rating + 1 / H.distance_between(c[1], c[2], e.x, e.y) ^ 2.
-                        end
-                        if (rating > max_rating) then
-                            max_rating, best_hex = rating, { c[1], c[2] }
-                        end
-                    end
-                end
-            end
-
-            return best_hex
-        end
-
-        function get_reachable_villages(leader)
+        function get_village_target(leader, data)
             -- Only consider villages reachable by our fastest unit
             local fastest_unit_speed = 0
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
@@ -467,6 +482,14 @@ return {
                     fastest_unit_speed = wesnoth.unit_types[recruit_id].max_moves
                 end
             end
+
+            local locsx, locsy = {}, {}
+            for i,loc in ipairs(data.castle.locs) do
+                locsx[i] = loc[1]
+                locsy[i] = loc[2]
+            end
+            locsx = table.concat(locsx, ",")
+            locsy = table.concat(locsy, ",")
 
             -- get a list of all unowned villages within fastest_unit_speed
             -- TODO get list of villages not owned by allies instead
@@ -476,13 +499,27 @@ return {
                 owner_side = 0,
                 { "and", {
                     radius = fastest_unit_speed,
-                    { "and", {
-                        x = leader.x, y = leader.y, radius = 200,
-                        { "filter_radius", { terrain = 'C*^*,K*^*,*^Kov,*^Cov' } },
-                    } }
+                    x = locsx, y = locsy
                 }}
-
             }
+
+            local hex, target = {}, {}
+
+            for i,v in ipairs(villages) do
+                local close_castle_hexes = wesnoth.get_locations {
+                    x = locsx, y = locsy,
+                    { "and", {
+                      x = v[1], y = v[2],
+                      radius = fastest_unit_speed
+                    }}
+                }
+
+                for j,c in ipairs(close_castle_hexes) do
+                  local distance = H.distance_between(v[1], v[2], c[1], c[2])
+                end
+            end
+
+            return hex, target
         end
     end -- init()
 }
