@@ -647,7 +647,7 @@ function battle_calcs.simulate_combat_loc(attacker, dst, defender, weapon)
     end
 end
 
-function battle_calcs.attack_rating(att_stats, def_stats, attacker, defender, dst, cfg)
+function battle_calcs.attack_rating(attacker, defender, dst, cfg)
     -- Returns a common (but configurable) rating for attacks
     -- Inputs:
     -- att_stats: attacker stats table
@@ -655,7 +655,10 @@ function battle_calcs.attack_rating(att_stats, def_stats, attacker, defender, ds
     -- attackers: attacker unit table
     -- defender: defender unit table
     -- dst: the attack location in form { x, y }
-    -- cfg: table of configurable rating parameters
+    -- cfg: table of optional inputs and configurable rating parameters
+    --  Optional inputs:
+    --    - att_stats, def_stats: if given, use these stats, otherwise calculate them here
+    --      Note: these are calculated in combination, that is they either both need to be passed or both be omitted
     --
     -- Returns:
     --   - Overall rating for the attack or attack combo
@@ -666,8 +669,9 @@ function battle_calcs.attack_rating(att_stats, def_stats, attacker, defender, ds
     --     - a term that is additive for individual attacks in a combo
     --     - a term that needs to be average for the individual attacks in a combo
 
-    -- Set up the rating config parameters
     cfg = cfg or {}
+
+    -- Set up the config parameters for the rating
     local xp_weight = cfg.xp_weight or 0.25
     local level_weight = cfg.level_weight or 1.0
     local defender_level_weight = cfg.defender_level_weight or 1.0
@@ -675,6 +679,15 @@ function battle_calcs.attack_rating(att_stats, def_stats, attacker, defender, ds
     local defense_weight = cfg.defense_weight or 0.5
     local occupied_hex_penalty = cfg.occupied_hex_penalty or -0.01
     local own_value_weight = cfg.own_value_weight or 1.0
+
+    -- Get att_stats, def_stats
+    -- If they are passed in cfg, use those
+    local att_stats, def_stats = {}, {}
+    if (not cfg.att_stats) or (not cfg.def_stats) then
+        att_stats,def_stats = battle_calcs.battle_outcome(unit, enemy, cfg_stats)
+    else
+        att_stats, def_stats = cfg.att_stats, cfg.def_stats
+    end
 
     -- We also need the leader (well, the location at least)
     -- because if there's no other difference, prefer location _between_ the leader and the enemy
