@@ -743,6 +743,7 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg)
     cfg = cfg or {}
 
     -- Set up the config parameters for the rating
+    local defender_starting_damage_weight = defender_starting_damage_weight or 0.33
     local xp_weight = cfg.xp_weight or 0.25
     local level_weight = cfg.level_weight or 1.0
     local defender_level_weight = cfg.defender_level_weight or 1.0
@@ -852,6 +853,11 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg)
     -- Additional, add the chance to kill, in order to emphasize enemies we might be able to kill
     value_fraction = value_fraction + def_stats.hp_chance[0]
     --print('  defender value_fraction damage + CTD:', value_fraction)
+
+    -- And prefer to attack already damage enemies
+    local defender_starting_damage_fraction = (defender.max_hitpoints - defender.hitpoints) / defender.max_hitpoints
+    value_fraction = value_fraction + defender_starting_damage_fraction * defender_starting_damage_weight
+    --print('  defender_starting_damage_fraction:', defender_starting_damage_fraction, value_fraction)
 
     -- Being closer to leveling is good, we want to get rid of those enemies first
     local xp_bonus = 1. - (defender.max_experience - defender.experience) / defender.max_experience
