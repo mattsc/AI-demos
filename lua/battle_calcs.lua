@@ -561,6 +561,9 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
     -- Calculate the stats of a combat by attacker vs. defender
     -- cfg: input parameters
     --  - att_weapon/def_weapon: attacker/defender weapon number
+    --  - dst: { x, y }: the attack location; defaults to { attacker.x, attacker. y }
+
+    local dst = cfg.dst or { attacker.x, attacker.y }
 
     -- Collect all the information needed for the calculation
     -- Strike damage and numbers
@@ -584,7 +587,7 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
 
     -- Probability of landing a hit
     local att_hit_prob = wesnoth.unit_defense(defender, wesnoth.get_terrain(defender.x, defender.y)) / 100.
-    local def_hit_prob = wesnoth.unit_defense(attacker, wesnoth.get_terrain(attacker.x, attacker.y)) / 100.
+    local def_hit_prob = wesnoth.unit_defense(attacker, wesnoth.get_terrain(dst[1], dst[2])) / 100.
 
     -- Magical: attack and defense, and under all circumstances
     if att_attack.magical then att_hit_prob = 0.7 end
