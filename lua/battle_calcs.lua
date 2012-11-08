@@ -589,14 +589,14 @@ function battle_calcs.hp_distribution(coeffs, att_hit_prob, def_hit_prob, starti
     end
 
     -- Add poison probability
-    if opp_attack.poison then
+    if opp_attack and opp_attack.poison then
         stats.posioned = 1. - stats.hp_chance[starting_hp]
     else
         stats.poisoned = 0
     end
 
     -- Add slow probability
-    if opp_attack.slow then
+    if opp_attack and opp_attack.slow then
         stats.slowed = 1. - stats.hp_chance[starting_hp]
     else
         stats.slowed = 0
@@ -624,13 +624,19 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
     -- Strike damage and numbers
     local att_damage, def_damage, att_attack, def_attack =
         battle_calcs.strike_damage(attacker, defender, cfg.att_weapon, cfg.def_weapon, cache)
+    --print(att_damage,def_damage)
 
     -- Take swarm into account
-    local att_strikes, def_strikes = att_attack.number, def_attack.number
+    local att_strikes, def_strikes = att_attack.number, 0
+    if (def_damage > 0) then
+        def_strikes = def_attack.number
+    end
+    --print(att_strikes, def_strikes)
+
     if att_attack.swarm then
         att_strikes = math.floor(att_strikes * attacker.hitpoints / attacker.max_hitpoints)
     end
-    if def_attack.swarm then
+    if def_attack and def_attack.swarm then
         def_strikes = math.floor(def_strikes * defender.hitpoints / defender.max_hitpoints)
     end
 
@@ -646,7 +652,7 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
 
     -- Magical: attack and defense, and under all circumstances
     if att_attack.magical then att_hit_prob = 0.7 end
-    if def_attack.magical then def_hit_prob = 0.7 end
+    if def_attack and def_attack.magical then def_hit_prob = 0.7 end
 
     -- Marksman: attack only, and only if terrain defense is less
     if att_attack.marksman and (att_hit_prob < 0.6) then
@@ -656,9 +662,12 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
     --print(def_damage, def_strikes, def_max_hits, def_hit_prob)
 
     -- Get the coefficients for this kind of combat
+    local def_firstrike = false
+    if def_attack and def_attack.firststrike then def_firstrike = true end
+
     local cfg = {
         att = { strikes = att_strikes, max_hits = att_max_hits, firststrike = att_attack.firststrike },
-        def = { strikes = def_strikes, max_hits = def_max_hits, firststrike = def_attack.firststrike }
+        def = { strikes = def_strikes, max_hits = def_max_hits, firststrike = def_firstrike }
     }
     local att_coeffs, def_coeffs = battle_calcs.battle_outcome_coefficients(cfg, cache)
 
@@ -666,6 +675,8 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
     -- Note that att_hit_prob, def_hit_prob need to be in that order for both calls
     local att_stats = battle_calcs.hp_distribution(att_coeffs, att_hit_prob, def_hit_prob, attacker.hitpoints, def_damage, def_attack)
     local def_stats = battle_calcs.hp_distribution(def_coeffs, att_hit_prob, def_hit_prob, defender.hitpoints, att_damage, att_attack)
+    --DBG.dbms(att_stats)
+    --DBG.dbms(def_stats)
 
     return att_stats, def_stats
 end
