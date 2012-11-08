@@ -423,7 +423,7 @@ return {
 	            { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
             }
 
-            if (not data.castle) or (data.castle.x ~= leader.x) then
+            if (not data.castle) or (data.castle.x ~= leader.x) or (data.castle.y ~= leader.y) then
                 data.castle = {
                     locs = wesnoth.get_locations {
                         x = leader.x, y = leader.y, radius = 200,
