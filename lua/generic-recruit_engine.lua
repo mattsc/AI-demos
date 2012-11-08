@@ -436,16 +436,22 @@ return {
             end
             local width,height,border = wesnoth.get_map_size()
 
-            local max_rating, best_hex = -1, {}
-            for i,c in ipairs(data.castle.locs) do
-                local rating = 0
-                local unit = wesnoth.get_unit(c[1], c[2])
-                if (not unit) and c[1] > 0 and c[1] <= width and c[2] > 0 and c[2] <= height then
-                    for j,e in ipairs(enemy_leaders) do
-                        rating = rating + 1 / H.distance_between(c[1], c[2], e.x, e.y) ^ 2.
-                    end
-                    if (rating > max_rating) then
-                        max_rating, best_hex = rating, { c[1], c[2] }
+            --local best_hex, village = get_village_target(leader, data)
+            -- Temporary until get_village target is ready
+            local best_hex, village = {}, nil
+            if not village then
+                -- no available village, look for hex closest to enemy leader
+                local max_rating = -1
+                for i,c in ipairs(data.castle.locs) do
+                    local rating = 0
+                    local unit = wesnoth.get_unit(c[1], c[2])
+                    if (not unit) and c[1] > 0 and c[1] <= width and c[2] > 0 and c[2] <= height then
+                        for j,e in ipairs(enemy_leaders) do
+                            rating = rating + 1 / H.distance_between(c[1], c[2], e.x, e.y) ^ 2.
+                        end
+                        if (rating > max_rating) then
+                            max_rating, best_hex = rating, { c[1], c[2] }
+                        end
                     end
                 end
             end
