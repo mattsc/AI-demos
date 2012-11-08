@@ -81,6 +81,10 @@ function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, 
     -- Return the single strike damage of an attack by 'attacker' on 'defender' with 'weapon' for both combatants
     -- Also returns the other information about the attack (since we're accessing the information already anyway)
     -- Here, 'weapon' is the weapon number in Lua counts, i.e., counts start at 1
+    -- If def_weapon = 0, return 0 for defender damage
+    -- This can be used for defenders that do not have the right kind of weapon, or if
+    -- only the attacker damage is of interest
+    --
     -- 'cache' can be given to pass through to battle_calcs.unit_attack_info()
     -- Right now we're not caching the results of strike_damage as it seems fast enough
     -- That might be changed later
@@ -88,19 +92,11 @@ function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, 
     local attacker_info = battle_calcs.unit_attack_info(attacker, cache)
     local defender_info = battle_calcs.unit_attack_info(defender, cache)
 
-    -- Base damage
+    -- Attacker base damage
     local att_damage = attacker_info.attacks[att_weapon].damage
-    local def_damage = defender_info.attacks[def_weapon].damage
-
-    -- Take 'charge' into account
-    if attacker_info.attacks[att_weapon].charge then
-        att_damage = att_damage * 2
-        def_damage = def_damage * 2
-    end
 
     -- Opponent resistance modifier
     local att_multiplier = defender_info.resist_mod[attacker_info.attacks[att_weapon].type]
-    local def_multiplier = attacker_info.resist_mod[defender_info.attacks[def_weapon].type]
 
     -- TOD modifier
     if (attacker_info.alignment ~= 'neutral') then
@@ -113,15 +109,34 @@ function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, 
             end
         end
     end
-    if (defender_info.alignment ~= 'neutral') then
-        local lawful_bonus = wesnoth.get_time_of_day().lawful_bonus
-        if (lawful_bonus ~= 0) then
-            if (defender_info.alignment == 'lawful') then
-                def_multiplier = def_multiplier * (1 + lawful_bonus / 100.)
-            else
-                def_multiplier = def_multiplier * (1 - lawful_bonus / 100.)
+
+    -- Now do all this for the defender, if def_weapon ~= 0
+    local def_damage, def_multiplier = 0, 1.
+    if (def_weapon ~= 0) then
+        -- Defender base damage
+        def_damage = defender_info.attacks[def_weapon].damage
+
+        -- Opponent resistance modifier
+        def_multiplier = attacker_info.resist_mod[defender_info.attacks[def_weapon].type]
+
+        -- TOD modifier
+        if (defender_info.alignment ~= 'neutral') then
+            local lawful_bonus = wesnoth.get_time_of_day().lawful_bonus
+            if (lawful_bonus ~= 0) then
+                if (defender_info.alignment == 'lawful') then
+                    def_multiplier = def_multiplier * (1 + lawful_bonus / 100.)
+                else
+                    def_multiplier = def_multiplier * (1 - lawful_bonus / 100.)
+                end
             end
         end
+
+    end
+
+    -- Take 'charge' into account
+    if attacker_info.attacks[att_weapon].charge then
+        att_damage = att_damage * 2
+        def_damage = def_damage * 2
     end
 
     -- Rounding of .5 values is done differently depending on whether the
@@ -131,10 +146,13 @@ function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, 
     else
         att_damage = H.round(att_damage * att_multiplier + 0.001)
     end
-    if (def_multiplier > 1) then
-        def_damage = H.round(def_damage * def_multiplier - 0.001)
-    else
-        def_damage = H.round(def_damage * def_multiplier + 0.001)
+
+    if (def_weapon ~= 0) then
+        if (def_multiplier > 1) then
+            def_damage = H.round(def_damage * def_multiplier - 0.001)
+        else
+            def_damage = H.round(def_damage * def_multiplier + 0.001)
+        end
     end
 
     return att_damage, def_damage, attacker_info.attacks[att_weapon], defender_info.attacks[def_weapon]
