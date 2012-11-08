@@ -158,6 +158,43 @@ function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, 
     return att_damage, def_damage, attacker_info.attacks[att_weapon], defender_info.attacks[def_weapon]
 end
 
+function battle_calcs.best_weapons(attacker, defender, cache)
+    -- Return the number of the best weapons for attacker and defender
+    -- Ideally, we would do a full attack_rating here for all combinations,
+    -- but that would take too long.  So we simply define the best weapons
+    -- as those that do the most damage
+    -- Returns 0 if defender does not have a weapon for this range
+
+    local attacker_info = battle_calcs.unit_attack_info(attacker, cache)
+    local defender_info = battle_calcs.unit_attack_info(defender, cache)
+
+    -- Best attacker weapon
+    local max_rating, best_att_weapon = -9e99, 0
+    for i,weapon in ipairs(attacker_info.attacks) do
+        local att_damage = battle_calcs.strike_damage(attacker, defender, i, 0, cache)
+        local rating = att_damage * weapon.number
+        if (rating > max_rating) then
+            max_rating, best_att_weapon = rating, i
+        end
+    end
+    --print('Best attacker weapon:', best_att_weapon)
+
+    -- Best defender weapon for the same range
+    local max_rating, best_def_weapon = -9e99, 0
+    for i,weapon in ipairs(defender_info.attacks) do
+        if (weapon.range == attacker_info.attacks[best_att_weapon].range) then
+            local def_damage = battle_calcs.strike_damage(defender, attacker, i, 0, cache)
+            local rating = def_damage * weapon.number
+            if (rating > max_rating) then
+                max_rating, best_def_weapon = rating, i
+            end
+        end
+    end
+    --print('Best defender weapon:', best_def_weapon)
+
+    return best_att_weapon, best_def_weapon
+end
+
 function battle_calcs.add_next_strike(cfg, arr, n_att, n_def, att_strike, hit_miss_counts, hit_miss_str)
     -- Recursive function that sets up the sequences of strikes (misses and hits)
     -- Each call corresponds to one strike of one of the combattants and can be
