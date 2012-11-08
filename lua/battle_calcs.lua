@@ -941,7 +941,8 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc
             tmp_att_stats[i], tmp_def_stats[i] = battle_calcs.simulate_combat_loc(a, tmp_dsts[i], enemy)
 
             -- Get the base rating from battle_calcs.attack_rating()
-            local rating, dummy, tmp_ar = battle_calcs.attack_rating(tmp_att_stats[i], tmp_def_stats[i], a, enemy, tmp_dsts[i])
+            local attack_cfg = { att_stats = tmp_att_stats[i], def_stats = tmp_def_stats[i]}
+            local rating, dummy, tmp_ar = battle_calcs.attack_rating(a, enemy, tmp_dsts[i], attack_cfg)
             tmp_attacker_ratings[i] = tmp_ar
             --print('rating:', rating)
 
@@ -1071,7 +1072,8 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc
     --   = sum of all the attacker ratings and the defender rating with the final def_stats
     -- -> we need one run through attack_rating() to get the defender rating given these stats
     -- It doesn't matter which attacker and att_stats are chosen for that
-    local dummy, rating = battle_calcs.attack_rating(att_stats[1], def_stats_combo, attackers[1], enemy, dsts[1])
+    local attack_cfg = { att_stats = att_stats[1], def_stats = def_stats_combo}
+    local dummy, rating = battle_calcs.attack_rating(attackers[1], enemy, dsts[1], attack_cfg)
     for i,r in ipairs(attacker_ratings) do rating = rating + r end
     --print('    --> rating:', rating)
 
