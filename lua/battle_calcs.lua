@@ -659,6 +659,7 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg)
     --  Optional inputs:
     --    - att_stats, def_stats: if given, use these stats, otherwise calculate them here
     --      Note: these are calculated in combination, that is they either both need to be passed or both be omitted
+    --    - cache: cache table to be passed to battle_calcs.battle_outcome
     --
     -- Returns:
     --   - Overall rating for the attack or attack combo
@@ -684,7 +685,7 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg)
     -- If they are passed in cfg, use those
     local att_stats, def_stats = {}, {}
     if (not cfg.att_stats) or (not cfg.def_stats) then
-        att_stats,def_stats = battle_calcs.battle_outcome(unit, enemy, cfg_stats)
+        att_stats,def_stats = battle_calcs.battle_outcome(unit, enemy, cfg_stats, cfg.cache)
     else
         att_stats, def_stats = cfg.att_stats, cfg.def_stats
     end
