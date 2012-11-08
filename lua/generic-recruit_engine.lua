@@ -483,13 +483,7 @@ return {
                 end
             end
 
-            local locsx, locsy = {}, {}
-            for i,loc in ipairs(data.castle.locs) do
-                locsx[i] = loc[1]
-                locsy[i] = loc[2]
-            end
-            locsx = table.concat(locsx, ",")
-            locsy = table.concat(locsy, ",")
+            local locsx, locsy = AH.split_location_list_to_strings(data.castle.locs)
 
             -- get a list of all unowned villages within fastest_unit_speed
             -- TODO get list of villages not owned by allies instead

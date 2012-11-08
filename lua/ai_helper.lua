@@ -425,6 +425,21 @@ function ai_helper.xyoff(x, y, ori, hex)
     return
 end
 
+function ai_helper.split_location_list_to_strings(list)
+    -- Convert a list of locations as returned by wesnoth.get_locations into a pair of strings
+    -- suitable for passing in as x,y coordinate lists to wesnoth.get_locations.
+    -- Could alternatively convert to a WML table and use the find_in argument, but this is simpler.
+    local locsx, locsy = {}, {}
+    for i,loc in ipairs(list) do
+        locsx[i] = loc[1]
+        locsy[i] = loc[2]
+    end
+    locsx = table.concat(locsx, ",")
+    locsy = table.concat(locsy, ",")
+
+    return locsx, locsy
+end
+
 --------- Unit related helper functions ----------
 
 function ai_helper.get_live_units(filter)
