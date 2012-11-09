@@ -194,15 +194,13 @@ return {
             end
 
             -- Check if there is enough gold to recruit a unit
-            local gold = wesnoth.sides[wesnoth.current.side].gold
-            local enough_gold = false
+            local cheapest_unit_cost = 9e99
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
-                if wesnoth.unit_types[recruit_id].cost <= gold then
-                    enough_gold = true
-                    break
+                if wesnoth.unit_types[recruit_id].cost < cheapest_unit_cost then
+                    cheapest_unit_cost = wesnoth.unit_types[recruit_id].cost
                 end
             end
-            if not enough_gold then
+            if cheapest_unit_cost > wesnoth.sides[wesnoth.current.side].gold then
                 return 0
             end
 
@@ -215,6 +213,7 @@ return {
                 data.recruit = init_data(leader)
             end
             data.recruit.best_hex = best_hex
+            data.recruit.cheapest_unit_cost = cheapest_unit_cost
             return 300000
         end
 
@@ -409,6 +408,13 @@ return {
             local best_hex = self.data.recruit.best_hex
             local target_hex = self.data.recruit.target_hex
             local efficiency = self.data.recruit.hp_efficiency
+
+            local gold_limit = 9e99
+            if self.data.castle.loose_gold_limit >= self.data.recruit.cheapest_unit_cost then
+                gold_limit = self.data.castle.loose_gold_limit
+            end
+            print (self.data.castle.loose_gold_limit .. " " .. self.data.recruit.cheapest_unit_cost .. " " .. gold_limit)
+
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
                 -- Count number of units with the same attack type. Used to avoid recruiting too many of the same unit
                 local attack_types = 0
@@ -465,7 +471,7 @@ return {
                 score = score + bonus
 
                 --print(recruit_id .. " score: " .. offense_score*offense_weight .. " + " .. defense_score*defense_weight .. " + " .. move_score*move_weight  .. " + " .. bonus  .. " = " .. score)
-                if score > best_score then
+                if score > best_score and wesnoth.unit_types[recruit_id].cost <= gold_limit then
                     best_score = score
                     recruit_type = recruit_id
                 end
@@ -521,24 +527,48 @@ return {
                 end
             end
 
+            local village_count = #villages
             for i,v in ipairs(villages) do
-                local closest_hex, distance = AH.get_closest_location(v, {
+                local close_castle_hexes = wesnoth.get_locations {
                     x = locsx, y = locsy,
                     { "and", {
                       x = v[1], y = v[2],
                       radius = fastest_unit_speed
                     }},
                     { "not", { { "filter", {} } } }
+                }
+
+                local test_bat = wesnoth.create_unit({
+                    type = "Vampire Bat",
+                    side = wesnoth.current.side,
+                    x = v[1], y = v[2]
                 })
-                if distance < shortest_distance then
-                    hex = closest_hex
-                    target = v
-                    shortest_distance = distance
+                local viable_village = false
+                for j,c in ipairs(close_castle_hexes) do
+                    local path, distance = wesnoth.find_path(test_bat, c[1], c[2], {viewing_side=0})
+                    if distance < shortest_distance then
+                        hex = c
+                        target = v
+                        shortest_distance = distance
+                    end
+                    --
+                    if distance <= fastest_unit_speed then
+                        viable_village = true
+                    end
+                end
+                if not viable_village then
+                    -- this village could not be reached by any unit
+                    -- (bats have movement as good or better than everything)
+                    -- eliminate it from consideration
+                    table.insert(data.castle.assigned_villages_x, v[1])
+                    table.insert(data.castle.assigned_villages_y, v[2])
+                    village_count = village_count - 1
                 end
             end
 
             table.insert(data.castle.assigned_villages_x, target[1])
             table.insert(data.castle.assigned_villages_y, target[2])
+            data.castle.loose_gold_limit = wesnoth.sides[wesnoth.current.side].gold/village_count
 
             return hex, target
         end
