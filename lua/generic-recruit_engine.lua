@@ -362,6 +362,7 @@ return {
             local enemy_leaders = AH.get_live_units { canrecruit = 'yes',
 	            { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
             }
+            local closest_enemy_distance, closest_enemy_location = AH.get_closest_enemy()
 
             if (not data.castle) or (data.castle.x ~= leader.x) or (data.castle.y ~= leader.y) then
                 data.castle = {
@@ -386,6 +387,7 @@ return {
                         for j,e in ipairs(enemy_leaders) do
                             rating = rating + 1 / H.distance_between(c[1], c[2], e.x, e.y) ^ 2.
                         end
+                        rating = rating + 1 / H.distance_between(c[1], c[2], closest_enemy_location.x, closest_enemy_location.y) ^ 2.
                         if (rating > max_rating) then
                             max_rating, best_hex = rating, { c[1], c[2] }
                         end
