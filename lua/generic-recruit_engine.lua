@@ -508,6 +508,19 @@ return {
 
             local hex, target, shortest_distance = {}, {}, fastest_unit_speed+1
 
+            if not data.castle.assigned_villages_x then
+                data.castle.assigned_villages_x = {}
+                data.castle.assigned_villages_y = {}
+                for i,v in ipairs(villages) do
+                    local path, cost = wesnoth.find_path(leader, v[1], v[2])
+                    if cost < leader.max_moves then
+                        table.insert(data.castle.assigned_villages_x, v[1])
+                        table.insert(data.castle.assigned_villages_y, v[2])
+                        break
+                    end
+                end
+            end
+
             for i,v in ipairs(villages) do
                 local closest_hex, distance = AH.get_closest_location(v, {
                     x = locsx, y = locsy,
@@ -524,13 +537,8 @@ return {
                 end
             end
 
-            if not data.castle.assigned_villages_x then
-                data.castle.assigned_villages_x = { target[1] }
-                data.castle.assigned_villages_y = { target[2] }
-            else
-                table.insert(data.castle.assigned_villages_x, target[1])
-                table.insert(data.castle.assigned_villages_y, target[2])
-            end
+            table.insert(data.castle.assigned_villages_x, target[1])
+            table.insert(data.castle.assigned_villages_y, target[2])
 
             return hex, target
         end
