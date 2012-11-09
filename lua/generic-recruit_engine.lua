@@ -194,12 +194,7 @@ return {
             end
 
             -- Check if there is enough gold to recruit a unit
-            local cheapest_unit_cost = 9e99
-            for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
-                if wesnoth.unit_types[recruit_id].cost < cheapest_unit_cost then
-                    cheapest_unit_cost = wesnoth.unit_types[recruit_id].cost
-                end
-            end
+            local cheapest_unit_cost = AH.get_cheapest_recruit_cost()
             if cheapest_unit_cost > wesnoth.sides[wesnoth.current.side].gold then
                 return 0
             end

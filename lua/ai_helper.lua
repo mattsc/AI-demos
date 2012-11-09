@@ -507,6 +507,16 @@ function ai_helper.has_weapon_special(unit, special)
     return false
 end
 
+function ai_helper.get_cheapest_recruit_cost()
+    local cheapest_unit_cost = 9e99
+    for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
+        if wesnoth.unit_types[recruit_id].cost < cheapest_unit_cost then
+            cheapest_unit_cost = wesnoth.unit_types[recruit_id].cost
+        end
+    end
+    return cheapest_unit_cost
+end
+
 --------- Move related helper functions ----------
 
 function ai_helper.get_dst_src_units(units, cfg)
