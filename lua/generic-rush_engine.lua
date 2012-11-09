@@ -129,6 +129,7 @@ return {
                     { "and", { x = next_hop[1], y = next_hop[2], radius = 3 }},
                     terrain = "*^V*",
                     owner_side = 0 }
+                local cheapest_unit_cost = AH.get_cheapest_recruit_cost()
                 for i,loc in ipairs(close_villages) do
                     local path_village, cost_village = wesnoth.find_path(leader, loc[1], loc[2])
                     if cost_village <= leader.moves then
@@ -136,8 +137,11 @@ return {
                         dummy_leader.x = loc[1]
                         dummy_leader.y = loc[2]
                         local path_keep, cost_keep = wesnoth.find_path(dummy_leader, x, y)
-                        -- There is, go there instead
-                        if math.ceil(cost_keep/leader.max_moves) < turn_cost then
+                        local turns_from_keep = math.ceil(cost_keep/leader.max_moves)
+                        if turns_from_keep < turn_cost
+                        or (turns_from_keep == 1 and wesnoth.sides[wesnoth.current.side].gold < cheapest_unit_cost)
+                        then
+                            -- There is, go there instead
                             next_hop = loc
                             break
                         end
