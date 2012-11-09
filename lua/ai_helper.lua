@@ -247,7 +247,7 @@ function ai_helper.get_closest_location(hex, location_filter)
 
     local locs = wesnoth.get_locations(location_filter)
 
-    local max_rating, closest_hex = -9e99, {}
+    local max_rating, best_hex = -9e99, {}
     for i,l in ipairs(locs) do
         local rating = -H.distance_between(hex[1], hex[2], l[1], l[2])
         if (rating > max_rating) then
@@ -256,9 +256,9 @@ function ai_helper.get_closest_location(hex, location_filter)
     end
 
     if (max_rating > -9e99) then
-        return best_hex
+        return best_hex, -max_rating
     else
-        return nil
+        return nil, 9e99
     end
 end
 
