@@ -500,17 +500,13 @@ return {
             local hex, target = {}, {}
 
             for i,v in ipairs(villages) do
-                local close_castle_hexes = wesnoth.get_locations {
+                local closest_hex, distance = AH.get_closest_location(v, {
                     x = locsx, y = locsy,
                     { "and", {
                       x = v[1], y = v[2],
                       radius = fastest_unit_speed
                     }}
-                }
-
-                for j,c in ipairs(close_castle_hexes) do
-                  local distance = H.distance_between(v[1], v[2], c[1], c[2])
-                end
+                })
             end
 
             return hex, target
