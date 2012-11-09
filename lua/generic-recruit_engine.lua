@@ -578,7 +578,7 @@ return {
 
             table.insert(data.castle.assigned_villages_x, target[1])
             table.insert(data.castle.assigned_villages_y, target[2])
-            data.castle.loose_gold_limit = wesnoth.sides[wesnoth.current.side].gold/village_count
+            data.castle.loose_gold_limit = math.floor(wesnoth.sides[wesnoth.current.side].gold/village_count + 0.5)
 
             return hex, target
         end
