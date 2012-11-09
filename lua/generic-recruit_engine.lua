@@ -199,7 +199,7 @@ return {
                 return 0
             end
 
-            local best_hex = ai_cas:find_best_recruit_hex(leader, data)
+            local best_hex, target_hex = ai_cas:find_best_recruit_hex(leader, data)
             if #best_hex == 0 then
                 return 0
             end
@@ -208,6 +208,7 @@ return {
                 data.recruit = init_data(leader)
             end
             data.recruit.best_hex = best_hex
+            data.recruit.target_hex = target_hex
             data.recruit.cheapest_unit_cost = cheapest_unit_cost
             return 300000
         end
@@ -392,7 +393,7 @@ return {
                 end
             end
 
-            return best_hex, village[1]
+            return best_hex, village
         end
 
         function ai_cas:find_best_recruit(attack_type_count, unit_attack_type_count, recruit_effectiveness, recruit_vulnerability, attack_range_count, unit_attack_range_count, most_common_range_count)
@@ -467,8 +468,19 @@ return {
 
                 --print(recruit_id .. " score: " .. offense_score*offense_weight .. " + " .. defense_score*defense_weight .. " + " .. move_score*move_weight  .. " + " .. bonus  .. " = " .. score)
                 if score > best_score and wesnoth.unit_types[recruit_id].cost <= gold_limit then
-                    best_score = score
-                    recruit_type = recruit_id
+                    local update_score = true
+                    if target_hex[1] then
+                        local recruit_unit = wesnoth.create_unit { type = recruit_id, x = best_hex[1], y = best_hex[2] }
+                        local path, cost = wesnoth.find_path(recruit_unit, target_hex[1], target_hex[2], {viewing_side=0})
+                        if cost > wesnoth.unit_types[recruit_id].max_moves then
+                            update_score = false
+                        end
+                    end
+
+                    if update_score then
+                        best_score = score
+                        recruit_type = recruit_id
+                    end
                 end
             end
 
