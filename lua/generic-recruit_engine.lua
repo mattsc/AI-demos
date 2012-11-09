@@ -488,16 +488,25 @@ return {
             -- get a list of all unowned villages within fastest_unit_speed
             -- TODO get list of villages not owned by allies instead
             -- this may have false positives (villages that can't be reached due to difficult/impassible terrain)
+            local exclude_x, exclude_y = "0", "0"
+            if data.castle.assigned_villages_x ~= nil then
+                exclude_x = table.concat(data.castle.assigned_villages_x, ",")
+                exclude_y = table.concat(data.castle.assigned_villages_y, ",")
+            end
             local villages = wesnoth.get_locations {
                 terrain = '*^V*',
                 owner_side = 0,
                 { "and", {
                     radius = fastest_unit_speed,
                     x = locsx, y = locsy
+                }},
+                { "not", {
+                    x = exclude_x,
+                    y = exclude_y
                 }}
             }
 
-            local hex, target = {}, {}
+            local hex, target, shortest_distance = {}, {}, fastest_unit_speed+1
 
             for i,v in ipairs(villages) do
                 local closest_hex, distance = AH.get_closest_location(v, {
@@ -505,8 +514,22 @@ return {
                     { "and", {
                       x = v[1], y = v[2],
                       radius = fastest_unit_speed
-                    }}
+                    }},
+                    { "not", { { "filter", {} } } }
                 })
+                if distance < shortest_distance then
+                    hex = closest_hex
+                    target = v
+                    shortest_distance = distance
+                end
+            end
+
+            if not data.castle.assigned_villages_x then
+                data.castle.assigned_villages_x = { target[1] }
+                data.castle.assigned_villages_y = { target[2] }
+            else
+                table.insert(data.castle.assigned_villages_x, target[1])
+                table.insert(data.castle.assigned_villages_y, target[2])
             end
 
             return hex, target
