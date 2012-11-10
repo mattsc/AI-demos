@@ -590,14 +590,14 @@ function battle_calcs.hp_distribution(coeffs, att_hit_prob, def_hit_prob, starti
 
     -- Add poison probability
     if opp_attack and opp_attack.poison then
-        stats.poisoned = 1. - stats.hp_chance[starting_hp]
+        stats.poisoned = 1. - (stats.hp_chance[starting_hp] or 0)
     else
         stats.poisoned = 0
     end
 
     -- Add slow probability
     if opp_attack and opp_attack.slow then
-        stats.slowed = 1. - stats.hp_chance[starting_hp]
+        stats.slowed = 1. - (stats.hp_chance[starting_hp] or 0)
     else
         stats.slowed = 0
     end
@@ -948,11 +948,11 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
 
         if (not cache[enemy_ind][att_ind][dst_ind]) then
             -- Get the base rating
-            local rating, def_score, att_score, att_def_score, att_stats, def_stats =
+            local base_rating, def_score, att_score, att_def_score, att_stats, def_stats =
                 battle_calcs.attack_rating(a, enemy, tmp_dsts[i], { cache = cache } )
             tmp_attacker_ratings[i] = att_score
             tmp_att_stats[i], tmp_def_stats[i] = att_stats, def_stats
-            --print('rating:', rating, def_score, att_score, att_def_score)
+            --print('rating:', base_rating, def_score, att_score, att_def_score)
             --DBG.dbms(att_stats)
 
             -- But for combos, also want units with highest attack outcome uncertainties to go early
@@ -976,7 +976,7 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
             -- Note that this is a variance, not a standard deviations (as in, it's squared),
             -- so it does not matter much for low-variance attacks, but takes on large values for
             -- high variance attacks.  I think that is what we want.
-            rating = rating + outcome_variance
+            local rating = base_rating + outcome_variance
 
             -- If attacker has attack with 'slow' special, it should always go first
             -- This isn't quite true in reality, but can be refined later
@@ -985,18 +985,20 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
             end
 
             --print('Final rating', rating, i)
-            ratings[i] = { i, rating }
+            ratings[i] = { i, rating, base_rating, def_score, att_score, att_def_score }
 
             -- Now add this attack to the cache table, so that next time around, we don't have to do this again
             cache[enemy_ind][att_ind][dst_ind] = {
-                rating = rating,  -- Cannot use { i, rating } here, as 'i' might be different next time
+                rating = { -1, rating, base_rating, def_score, att_score, att_def_score },  -- Cannot use { i, rating, ... } here, as 'i' might be different next time
                 attacker_ratings = tmp_attacker_ratings[i],
                 att_stats = tmp_att_stats[i],
                 def_stats = tmp_def_stats[i]
             }
         else
             --print('Stats already exist')
-            ratings[i] = { i, cache[enemy_ind][att_ind][dst_ind].rating }
+            local tmp_rating = cache[enemy_ind][att_ind][dst_ind].rating
+            tmp_rating[1] = i
+            ratings[i] = tmp_rating
             tmp_attacker_ratings[i] = cache[enemy_ind][att_ind][dst_ind].attacker_ratings
             tmp_att_stats[i] = cache[enemy_ind][att_ind][dst_ind].att_stats
             tmp_def_stats[i] = cache[enemy_ind][att_ind][dst_ind].def_stats
@@ -1007,13 +1009,15 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
     -- This will give the order in which the individual attacks are executed
     table.sort(ratings, function(a, b) return a[2] > b[2] end)
 
-    -- Reorder attackers, dsts and stats in this order
+    -- Reorder attackers, dsts in this order
     local attackers, dsts, att_stats, def_stats, attacker_ratings = {}, {}, {}, {}, {}
     for i,r in ipairs(ratings) do
         attackers[i], dsts[i] = tmp_attackers[r[1]], tmp_dsts[r[1]]
-        att_stats[i], def_stats[i] = tmp_att_stats[r[1]], tmp_def_stats[r[1]]
-        attacker_ratings[i] = tmp_attacker_ratings[r[1]]
     end
+    -- Only keep the stats/ratings for the first attacker, the rest needs to be recalculated
+    att_stats[1], def_stats[1] = tmp_att_stats[ratings[1][1]], tmp_def_stats[ratings[1][1]]
+    attacker_ratings[1] = tmp_attacker_ratings[ratings[1][1]]
+
     tmp_attackers, tmp_dsts, tmp_att_stats, tmp_def_stats, tmp_attacker_ratings = nil, nil, nil, nil, nil
     -- Just making sure that everything worked:
     --print(#attackers, #dsts, #att_stats, #def_stats)
@@ -1022,72 +1026,84 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
     --DBG.dbms(att_stats)
     --DBG.dbms(def_stats)
 
-    -- Now on to the calculation of the combined defender stats
-    -- This method gives the right results (and is independent of attack order)
-    -- for most attacks, but isn't quite right for things like slow and drain
-    -- Doing it right is prohibitive in terms of calculation time though, this
-    -- is an acceptable approximation
-
-    -- Build up a hp_chance array for the combined hp_chance
-    -- For the first attack, it's simply the defenders hp_chance distribution
-    local hp_combo = AH.table_copy(def_stats[1].hp_chance)
+ -- ********** ---
     -- Also get an approximate value for slowed/poisoned chance after attack combo
     -- (this is 1-slowed for calc. reasons; changed below)
-    local slowed, poisoned = 1 - def_stats[1].slowed, 1 - def_stats[1].poisoned
+--    local slowed, poisoned = 1 - def_stats[1].slowed, 1 - def_stats[1].poisoned
 
     -- Then we go through all the other attacks
     for i = 2,#attackers do
-        -- Need a temporary array of zeros for the new result (because several attacks can combine to the same HP)
-        local tmp_array = {}
-        for hp1,p1 in pairs(hp_combo) do tmp_array[hp1] = 0 end
+        --print('Attacker', i, attackers[i].id)
 
-        for hp1,p1 in pairs(hp_combo) do -- Note: need pairs(), not ipairs() !!
-            -- If hp_combo is ~=0, "anker" the hp_chance array of the second attack here
-            if (p1 > 0) then
-                local dhp = hp1 - enemy.hitpoints  -- This is the offset in HP (starting point for the second attack)
-                -- All percentages for the second attacks are considered, and if ~=0 offset by dhp
-                for hp2,p2 in pairs(def_stats[i].hp_chance) do
-                    if (p2>0) then
-                        local new_hp = hp2 + dhp  -- The offset is defined to be negative
-                        if (new_hp < 0) then new_hp = 0 end  -- HP can't go below 0
-                        -- Also, for if the enemy has drain:
-                        if (new_hp > enemy.max_hitpoints) then new_hp = enemy.max_hitpoints end
-                        --print(enemy.id .. ': ' .. enemy.hitpoints .. '/' .. enemy.max_hitpoints ..':', hp1, p1, hp2, p2, dhp, new_hp)
-                        tmp_array[new_hp] = (tmp_array[new_hp] or 0) + p1*p2  -- New percentage is product of two individual ones
-                    end
+        att_stats[i] = { hp_chance = {} }
+        def_stats[i] = { hp_chance = {} }
+
+        for hp1,p1 in pairs(def_stats[i-1].hp_chance) do -- Note: need pairs(), not ipairs() !!
+            if (hp1 == 0) then
+                att_stats[i].hp_chance[attackers[i].hitpoints] =
+                    (att_stats[i].hp_chance[attackers[i].hitpoints] or 0) + p1
+                def_stats[i].hp_chance[0] = (def_stats[i].hp_chance[0] or 0) + p1
+            else
+                --print(hp1, p1)
+                local org_hp = enemy.hitpoints
+                enemy.hitpoints = hp1
+                local ast, dst = battle_calcs.battle_outcome(attackers[i], enemy, { dst = dsts[i] } , cache)
+                enemy.hitpoints = org_hp
+
+                for hp2,p2 in pairs(ast.hp_chance) do
+                    att_stats[i].hp_chance[hp2] = (att_stats[i].hp_chance[hp2] or 0) + p1 * p2
+                end
+                for hp2,p2 in pairs(dst.hp_chance) do
+                    def_stats[i].hp_chance[hp2] = (def_stats[i].hp_chance[hp2] or 0) + p1 * p2
                 end
             end
         end
-        -- Finally, transfer result to hp_combo table for next iteration
-        hp_combo = AH.table_copy(tmp_array)
+
+        -- Get the average HP
+        local av_hp = 0
+        for hp,p in pairs(att_stats[i].hp_chance) do av_hp = av_hp + hp*p end
+        att_stats[i].average_hp = av_hp
+        local av_hp = 0
+        for hp,p in pairs(def_stats[i].hp_chance) do av_hp = av_hp + hp*p end
+        def_stats[i].average_hp = av_hp
+
 
         -- And the slowed/poisoned percentage (this is 1-slowed for calc. reasons; changed below)
-        slowed = slowed * (1 - def_stats[i].slowed)
-        poisoned = poisoned * (1 - def_stats[i].poisoned)
+--        slowed = slowed * (1 - def_stats[i].slowed)
+--        poisoned = poisoned * (1 - def_stats[i].poisoned)
+        att_stats[i].poisoned, att_stats[i].slowed = 0, 0
+        def_stats[i].poisoned, def_stats[i].slowed = 0, 0
     end
-    --DBG.dbms(hp_combo)
-    --print('HPC[0]', hp_combo[0])
+    --DBG.dbms(att_stats)
+    --DBG.dbms(def_stats)
+    --print('Enemy CTK:', def_stats[#attackers].hp_chance[0])
 
-    -- Finally, set up the combined def_stats table
-    local def_stats_combo = {}
-    def_stats_combo.hp_chance = hp_combo
-    local av_hp = 0
-    for hp,p in pairs(hp_combo) do av_hp = av_hp + hp*p end
-    def_stats_combo.average_hp = av_hp
-
-    -- Slowed/poisoned: go from 1-value -> value
-    def_stats_combo.slowed, def_stats_combo.poisoned = 1. - slowed, 1. - poisoned
+--    def_stats_combo.slowed, def_stats_combo.poisoned = 1. - slowed, 1. - poisoned
 
     -- Get the total rating for this attack combo:
     --   = sum of all the attacker ratings and the defender rating with the final def_stats
     -- -> we need one run through attack_rating() to get the defender rating given these stats
-    -- It doesn't matter which attacker and att_stats are chosen for that
-    local attack_cfg = { att_stats = att_stats[1], def_stats = def_stats_combo}
-    local dummy, rating = battle_calcs.attack_rating(attackers[1], enemy, dsts[1], attack_cfg)
-    for i,r in ipairs(attacker_ratings) do rating = rating + r end
-    --print('    --> rating:', rating)
+    --DBG.dbms(ratings)
 
-    return rating, attackers, dsts, att_stats, def_stats_combo, def_stats
+    -- Rating for first attack exists already
+    local def_rating = ratings[1][4]
+    local att_rating, att_rating_av = ratings[1][5], ratings[1][6]
+    -- but the others need to be calculated with the new stats
+    for i = 2,#attackers do
+        local cfg = { att_stats = att_stats[i], def_stats = def_stats[i], cache = cache }
+        local r, dr, ar, ar_av = battle_calcs.attack_rating(attackers[i], enemy, dsts[i], cfg)
+        --print(attackers[i].id, r, dr, ar, ar_av)
+
+        def_rating = dr
+        att_rating = att_rating + ar
+        att_rating_av = att_rating_av + ar_av
+    end
+    att_rating_av = att_rating_av / #attackers
+
+    local rating = def_rating + att_rating + att_rating_av
+    --print(rating, def_rating, att_rating, att_rating_av)
+
+    return rating, attackers, dsts, att_stats, def_stats[#attackers], def_stats
 end
 
 return battle_calcs
