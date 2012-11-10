@@ -590,7 +590,7 @@ function battle_calcs.hp_distribution(coeffs, att_hit_prob, def_hit_prob, starti
 
     -- Add poison probability
     if opp_attack and opp_attack.poison then
-        stats.posioned = 1. - stats.hp_chance[starting_hp]
+        stats.poisoned = 1. - stats.hp_chance[starting_hp]
     else
         stats.poisoned = 0
     end
@@ -632,7 +632,7 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
     -- Collect all the information needed for the calculation
     -- Strike damage and numbers
     local att_damage, def_damage, att_attack, def_attack =
-        battle_calcs.strike_damage(attacker, defender, cfg.att_weapon, cfg.def_weapon, cache)
+        battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, cache)
     --print(att_damage,def_damage)
 
     -- Take swarm into account
@@ -946,13 +946,11 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
         if (not cache[enemy_ind][att_ind]) then cache[enemy_ind][att_ind] = {} end
 
         if (not cache[enemy_ind][att_ind][dst_ind]) then
-            --print('Calculating attack combo stats:', enemy_ind, att_ind, dst_ind)
-            tmp_att_stats[i], tmp_def_stats[i] = battle_calcs.simulate_combat_loc(a, tmp_dsts[i], enemy)
-
-            -- Get the base rating from battle_calcs.attack_rating()
-            local attack_cfg = { att_stats = tmp_att_stats[i], def_stats = tmp_def_stats[i]}
-            local rating, dummy, tmp_ar = battle_calcs.attack_rating(a, enemy, tmp_dsts[i], attack_cfg)
-            tmp_attacker_ratings[i] = tmp_ar
+            -- Get the base rating
+            local rating, def_score, att_score, att_def_score, att_stats, def_stats =
+                battle_calcs.attack_rating(a, enemy, tmp_dsts[i], { cache = cache } )
+            tmp_attacker_ratings[i] = att_score
+            tmp_att_stats[i], tmp_def_stats[i] = att_stats, def_stats
             --print('rating:', rating)
 
             -- But for combos, also want units with highest attack outcome uncertainties to go early
@@ -961,7 +959,7 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
             local av = tmp_def_stats[i].average_hp
             local n_outcomes = 0
 
-            for hp,p in ipairs(tmp_def_stats[i].hp_chance) do
+            for hp,p in pairs(tmp_def_stats[i].hp_chance) do
                 if (p > 0) then
                     local dv = p * (hp - av)^2
                     --print(hp,p,av, dv)
@@ -1052,7 +1050,7 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
                         -- Also, for if the enemy has drain:
                         if (new_hp > enemy.max_hitpoints) then new_hp = enemy.max_hitpoints end
                         --print(enemy.id .. ': ' .. enemy.hitpoints .. '/' .. enemy.max_hitpoints ..':', hp1, p1, hp2, p2, dhp, new_hp)
-                        tmp_array[new_hp] = tmp_array[new_hp] + p1*p2  -- New percentage is product of two individual ones
+                        tmp_array[new_hp] = (tmp_array[new_hp] or 0) + p1*p2  -- New percentage is product of two individual ones
                     end
                 end
             end
@@ -1071,7 +1069,7 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
     local def_stats_combo = {}
     def_stats_combo.hp_chance = hp_combo
     local av_hp = 0
-    for hp,p in ipairs(hp_combo) do av_hp = av_hp + hp*p end
+    for hp,p in pairs(hp_combo) do av_hp = av_hp + hp*p end
     def_stats_combo.average_hp = av_hp
 
     -- Slowed/poisoned: go from 1-value -> value

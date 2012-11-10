@@ -658,7 +658,7 @@ return {
                 -- Minimum hitpoints for the unit after this attack combo
                 local min_hp = 0
                 for hp = 0,unit.hitpoints do
-                    if (combo_def_stats.hp_chance[hp] > 0) then
+                    if combo_def_stats.hp_chance[hp] and (combo_def_stats.hp_chance[hp] > 0) then
                         min_hp = hp
                         break
                     end
@@ -1471,7 +1471,7 @@ return {
                                 -- Add max damages from this turn and counter attack
                                 local min_hp = 0
                                 for hp = 0,a.hitpoints do
-                                    if (combo_att_stats[k].hp_chance[hp] > 0) then
+                                    if combo_att_stats[k].hp_chance[hp] and (combo_att_stats[k].hp_chance[hp] > 0) then
                                         min_hp = hp
                                         break
                                     end
