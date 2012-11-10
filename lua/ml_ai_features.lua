@@ -1,14 +1,11 @@
 return {
     init = function(ai)
         ai.ml_debug_message("hello world, at beginning of ml_ai_features right now")
-        H = wesnoth.require('lua/helper.lua')
+        local H = wesnoth.require('lua/helper.lua')
         wesnoth.require("~add-ons/AI-demos/lua/ml_utilities.lua")
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
-        T = H.set_wml_tag_metatable{}
-        U = H.set_wml_tag_metatable{}
 
-        ml_ai = {}
-        no_more_recruiting_for_turn = {0,0 }
+        local ml_ai = {}
         local dead_units = {}
         local last_attacker = nil
         local last_defender = nil

@@ -5,6 +5,7 @@ return {
         local recruit_ai = {}
         local T = H.set_wml_tag_metatable{}
         local no_more_recruiting_for_turn = {0,0}
+        local ml_ai = nil
         if not ai.ml_debug_message then   -- This means that ML Recruiter is not installed
             W.message {
                 speaker = 'narrator',
@@ -20,7 +21,7 @@ return {
             return recruit_ai
         else
             ai.ml_debug_message("hello world, at beginning of ml_ai_general right now")
-            wesnoth.require('~add-ons/AI-demos/lua/ml_ai_features.lua').init(ai)
+            ml_ai = wesnoth.require('~add-ons/AI-demos/lua/ml_ai_features.lua').init(ai)
             wesnoth.require('~add-ons/AI-demos/lua/class.lua')
             ai.ml_debug_message("hello world, finished initializing ml_ai_general right now")
             ai.ml_debug_message(string.format("Power to raise metric to: %.1f\tModel being used:%s\tUse a single, non-faction-specific model:%s\tmodel directory:%s\tCA Score:%d",

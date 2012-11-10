@@ -1,7 +1,7 @@
 return {
     init = function(ai)
 
-        wesnoth.require('~add-ons/AI-demos/lua/ml_ai_features.lua').init(ai)
+        local ml_ai = wesnoth.require('~add-ons/AI-demos/lua/ml_ai_features.lua').init(ai)
 
         local function findpattern(text, pattern, start)
           return string.sub(text, string.find(text, pattern, start))
