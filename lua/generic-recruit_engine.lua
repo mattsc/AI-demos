@@ -411,7 +411,7 @@ return {
             if self.data.castle.loose_gold_limit >= self.data.recruit.cheapest_unit_cost then
                 gold_limit = self.data.castle.loose_gold_limit
             end
-            print (self.data.castle.loose_gold_limit .. " " .. self.data.recruit.cheapest_unit_cost .. " " .. gold_limit)
+            --print (self.data.castle.loose_gold_limit .. " " .. self.data.recruit.cheapest_unit_cost .. " " .. gold_limit)
 
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
                 -- Count number of units with the same attack type. Used to avoid recruiting too many of the same unit
@@ -425,7 +425,13 @@ return {
                 local recruit_modifier = 1+recruit_count/50
 
                 -- Use time to enemy to encourage recruiting fast units when the opponent is far away (game is beginning or we're winning)
-                local recruit_unit = wesnoth.create_unit { type = recruit_id, x = best_hex[1], y = best_hex[2] }
+                -- Base distance on
+                local recruit_unit
+                if target_hex[1] then
+                    recruit_unit = wesnoth.create_unit { type = recruit_id, x = target_hex[1], y = target_hex[2] }
+                else
+                    recruit_unit = wesnoth.create_unit { type = recruit_id, x = best_hex[1], y = best_hex[2] }
+                end
                 local path, cost = wesnoth.find_path(recruit_unit, enemy_location.x, enemy_location.y, {ignore_units = true})
                 local move_score = wesnoth.unit_types[recruit_id].max_moves / (cost*wesnoth.unit_types[recruit_id].cost^0.5)
 
