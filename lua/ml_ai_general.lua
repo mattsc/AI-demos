@@ -1,16 +1,32 @@
 return {
     init = function(ai,default_command_line_parms)
-        ai.ml_debug_message("hello world, at beginning of ml_ai_general right now")
-        H = wesnoth.require('lua/helper.lua')
-        T = H.set_wml_tag_metatable{}
+        local H = wesnoth.require('lua/helper.lua')
+        local W = H.set_wml_action_metatable {}
         local recruit_ai = {}
-        no_more_recruiting_for_turn = {0,0}
-        wesnoth.require('~add-ons/AI-demos/lua/ml_ai_features.lua').init(ai)
-        wesnoth.require('~add-ons/AI-demos/lua/class.lua')
-        ai.ml_debug_message("hello world, finished initializing ml_ai_general right now")
-        ai.ml_debug_message(string.format("Power to raise metric to: %.1f\tModel being used:%s\tUse a single, non-faction-specific model:%s\tmodel directory:%s\tCA Score:%d",
-            default_command_line_parms.default_metric_cost_power,default_command_line_parms.which_model,default_command_line_parms.single_model,
-            default_command_line_parms.model_directory,default_command_line_parms.recruit_CA_score))
+        local T = H.set_wml_tag_metatable{}
+        local no_more_recruiting_for_turn = {0,0}
+        if not ai.ml_debug_message then   -- This means that ML Recruiter is not installed
+            W.message {
+                speaker = 'narrator',
+                caption = "Message from the ML Recruiter",
+                image = 'wesnoth-icon.png', message = "ML Recruiter is not installed.  Please download and install the patch." ..
+                        "  See the instructions at http://wiki.wesnoth.org/Machine_Learning_Recruiter#Applying_the_patch"
+            }
+            function recruit_ai:recruit_eval(recruiter_obj)
+                return 0
+            end
+            W.endlevel { result = 'defeat' }
+            global_recruit_ai = {0,0}
+            return recruit_ai
+        else
+            ai.ml_debug_message("hello world, at beginning of ml_ai_general right now")
+            wesnoth.require('~add-ons/AI-demos/lua/ml_ai_features.lua').init(ai)
+            wesnoth.require('~add-ons/AI-demos/lua/class.lua')
+            ai.ml_debug_message("hello world, finished initializing ml_ai_general right now")
+            ai.ml_debug_message(string.format("Power to raise metric to: %.1f\tModel being used:%s\tUse a single, non-faction-specific model:%s\tmodel directory:%s\tCA Score:%d",
+                default_command_line_parms.default_metric_cost_power,default_command_line_parms.which_model,default_command_line_parms.single_model,
+                default_command_line_parms.model_directory,default_command_line_parms.recruit_CA_score))
+        end
 
         local function get_command_line_parms()
             local retval = {}
@@ -31,7 +47,6 @@ return {
         end
 
         local function initialize(ai,default_parms)
-
             ai.ml_debug_message("Initializing ML AI for side " .. wesnoth.current.side)
             wesnoth.require("~add-ons/AI-demos/lua/ml_ai_events.lua").init(ai)
 
