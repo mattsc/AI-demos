@@ -781,11 +781,11 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg)
     ------ All the attacker contributions: ------
     --print('Attacker:', attacker.id, att_stats.average_hp)
 
-    -- Add up score for the attacking unit
+    -- Add up rating for the attacking unit
     -- We add this up in units of fraction of max_hitpoints
     -- It is multiplied by unit cost later, to get a gold equivalent value
 
-    -- Average damage to unit is negative score
+    -- Average damage to unit is negative rating
     local value_fraction = - (attacker.hitpoints - att_stats.average_hp) / attacker.max_hitpoints
     --print('  value_fraction damage:', value_fraction)
 
@@ -837,19 +837,19 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg)
     --print('  value_fraction after village bonus:', value_fraction)
 
     -- Now convert this into gold-equivalent value
-    local attacker_score = value_fraction * wesnoth.unit_types[attacker.type].cost
-    --print('-> attacker score:', attacker_score)
+    local attacker_rating = value_fraction * wesnoth.unit_types[attacker.type].cost
+    --print('-> attacker rating:', attacker_rating)
 
-    ------ We also get a terrain defense score, but this cannot simply be added to the rest ------
+    ------ We also get a terrain defense rating, but this cannot simply be added to the rest ------
     local attacker_defense = - wesnoth.unit_defense(attacker, wesnoth.get_terrain(dst[1], dst[2])) / 100.
     attacker_defense = attacker_defense * defense_weight
-    local attacker_defense_score = attacker_defense * wesnoth.unit_types[attacker.type].cost
-    --print('-> attacker_defense score:', attacker_defense_score)
+    local attacker_rating_av = attacker_defense * wesnoth.unit_types[attacker.type].cost
+    --print('-> attacker rating for averaging:', attacker_rating_av)
 
     ------ Now (most of) the same for the defender ------
     --print('Defender:', defender.id, def_stats.average_hp)
 
-    -- Average damage to defender is positive score
+    -- Average damage to defender is positive rating
     local value_fraction = (defender.hitpoints - def_stats.average_hp) / defender.max_hitpoints
     --print('  defender value_fraction damage:', value_fraction)
 
@@ -890,17 +890,17 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg)
     --print('  value_fraction after village bonus:', value_fraction)
 
     -- Now convert this into gold-equivalent value
-    local defender_score = value_fraction * wesnoth.unit_types[defender.type].cost
-    --print('-> defender score:', defender_score)
+    local defender_rating = value_fraction * wesnoth.unit_types[defender.type].cost
+    --print('-> defender rating:', defender_rating)
 
     -- Finally apply factor of own unit weight to enemy unit weight
-    attacker_score = attacker_score * own_value_weight
-    attacker_defense_score = attacker_defense_score * own_value_weight
+    attacker_rating = attacker_rating * own_value_weight
+    attacker_rating_av = attacker_rating_av * own_value_weight
 
-    local rating = defender_score + attacker_score + attacker_defense_score
+    local rating = defender_rating + attacker_rating + attacker_rating_av
     --print('---> rating:', rating)
 
-    return rating, defender_score, attacker_score, attacker_defense_score, att_stats, def_stats
+    return rating, defender_rating, attacker_rating, attacker_rating_av, att_stats, def_stats
 end
 
 function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
@@ -948,11 +948,11 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
 
         if (not cache[enemy_ind][att_ind][dst_ind]) then
             -- Get the base rating
-            local base_rating, def_score, att_score, att_def_score, att_stats, def_stats =
+            local base_rating, def_rating, att_rating, att_rating_av, att_stats, def_stats =
                 battle_calcs.attack_rating(a, enemy, tmp_dsts[i], { cache = cache } )
-            tmp_attacker_ratings[i] = att_score
+            tmp_attacker_ratings[i] = att_rating
             tmp_att_stats[i], tmp_def_stats[i] = att_stats, def_stats
-            --print('rating:', base_rating, def_score, att_score, att_def_score)
+            --print('rating:', base_rating, def_rating, att_rating, att_rating_av)
             --DBG.dbms(att_stats)
 
             -- But for combos, also want units with highest attack outcome uncertainties to go early
@@ -985,11 +985,11 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
             end
 
             --print('Final rating', rating, i)
-            ratings[i] = { i, rating, base_rating, def_score, att_score, att_def_score }
+            ratings[i] = { i, rating, base_rating, def_rating, att_rating, att_rating_av }
 
             -- Now add this attack to the cache table, so that next time around, we don't have to do this again
             cache[enemy_ind][att_ind][dst_ind] = {
-                rating = { -1, rating, base_rating, def_score, att_score, att_def_score },  -- Cannot use { i, rating, ... } here, as 'i' might be different next time
+                rating = { -1, rating, base_rating, def_rating, att_rating, att_rating_av },  -- Cannot use { i, rating, ... } here, as 'i' might be different next time
                 attacker_ratings = tmp_attacker_ratings[i],
                 att_stats = tmp_att_stats[i],
                 def_stats = tmp_def_stats[i]
