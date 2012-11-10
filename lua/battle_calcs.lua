@@ -81,6 +81,10 @@ function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, 
     -- Return the single strike damage of an attack by 'attacker' on 'defender' with 'weapon' for both combatants
     -- Also returns the other information about the attack (since we're accessing the information already anyway)
     -- Here, 'weapon' is the weapon number in Lua counts, i.e., counts start at 1
+    -- If def_weapon = 0, return 0 for defender damage
+    -- This can be used for defenders that do not have the right kind of weapon, or if
+    -- only the attacker damage is of interest
+    --
     -- 'cache' can be given to pass through to battle_calcs.unit_attack_info()
     -- Right now we're not caching the results of strike_damage as it seems fast enough
     -- That might be changed later
@@ -88,19 +92,11 @@ function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, 
     local attacker_info = battle_calcs.unit_attack_info(attacker, cache)
     local defender_info = battle_calcs.unit_attack_info(defender, cache)
 
-    -- Base damage
+    -- Attacker base damage
     local att_damage = attacker_info.attacks[att_weapon].damage
-    local def_damage = defender_info.attacks[def_weapon].damage
-
-    -- Take 'charge' into account
-    if attacker_info.attacks[att_weapon].charge then
-        att_damage = att_damage * 2
-        def_damage = def_damage * 2
-    end
 
     -- Opponent resistance modifier
     local att_multiplier = defender_info.resist_mod[attacker_info.attacks[att_weapon].type]
-    local def_multiplier = attacker_info.resist_mod[defender_info.attacks[def_weapon].type]
 
     -- TOD modifier
     if (attacker_info.alignment ~= 'neutral') then
@@ -113,15 +109,34 @@ function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, 
             end
         end
     end
-    if (defender_info.alignment ~= 'neutral') then
-        local lawful_bonus = wesnoth.get_time_of_day().lawful_bonus
-        if (lawful_bonus ~= 0) then
-            if (defender_info.alignment == 'lawful') then
-                def_multiplier = def_multiplier * (1 + lawful_bonus / 100.)
-            else
-                def_multiplier = def_multiplier * (1 - lawful_bonus / 100.)
+
+    -- Now do all this for the defender, if def_weapon ~= 0
+    local def_damage, def_multiplier = 0, 1.
+    if (def_weapon ~= 0) then
+        -- Defender base damage
+        def_damage = defender_info.attacks[def_weapon].damage
+
+        -- Opponent resistance modifier
+        def_multiplier = attacker_info.resist_mod[defender_info.attacks[def_weapon].type]
+
+        -- TOD modifier
+        if (defender_info.alignment ~= 'neutral') then
+            local lawful_bonus = wesnoth.get_time_of_day().lawful_bonus
+            if (lawful_bonus ~= 0) then
+                if (defender_info.alignment == 'lawful') then
+                    def_multiplier = def_multiplier * (1 + lawful_bonus / 100.)
+                else
+                    def_multiplier = def_multiplier * (1 - lawful_bonus / 100.)
+                end
             end
         end
+
+    end
+
+    -- Take 'charge' into account
+    if attacker_info.attacks[att_weapon].charge then
+        att_damage = att_damage * 2
+        def_damage = def_damage * 2
     end
 
     -- Rounding of .5 values is done differently depending on whether the
@@ -131,13 +146,53 @@ function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, 
     else
         att_damage = H.round(att_damage * att_multiplier + 0.001)
     end
-    if (def_multiplier > 1) then
-        def_damage = H.round(def_damage * def_multiplier - 0.001)
-    else
-        def_damage = H.round(def_damage * def_multiplier + 0.001)
+
+    if (def_weapon ~= 0) then
+        if (def_multiplier > 1) then
+            def_damage = H.round(def_damage * def_multiplier - 0.001)
+        else
+            def_damage = H.round(def_damage * def_multiplier + 0.001)
+        end
     end
 
     return att_damage, def_damage, attacker_info.attacks[att_weapon], defender_info.attacks[def_weapon]
+end
+
+function battle_calcs.best_weapons(attacker, defender, cache)
+    -- Return the number of the best weapons for attacker and defender
+    -- Ideally, we would do a full attack_rating here for all combinations,
+    -- but that would take too long.  So we simply define the best weapons
+    -- as those that do the most damage
+    -- Returns 0 if defender does not have a weapon for this range
+
+    local attacker_info = battle_calcs.unit_attack_info(attacker, cache)
+    local defender_info = battle_calcs.unit_attack_info(defender, cache)
+
+    -- Best attacker weapon
+    local max_rating, best_att_weapon = -9e99, 0
+    for i,weapon in ipairs(attacker_info.attacks) do
+        local att_damage = battle_calcs.strike_damage(attacker, defender, i, 0, cache)
+        local rating = att_damage * weapon.number
+        if (rating > max_rating) then
+            max_rating, best_att_weapon = rating, i
+        end
+    end
+    --print('Best attacker weapon:', best_att_weapon)
+
+    -- Best defender weapon for the same range
+    local max_rating, best_def_weapon = -9e99, 0
+    for i,weapon in ipairs(defender_info.attacks) do
+        if (weapon.range == attacker_info.attacks[best_att_weapon].range) then
+            local def_damage = battle_calcs.strike_damage(defender, attacker, i, 0, cache)
+            local rating = def_damage * weapon.number
+            if (rating > max_rating) then
+                max_rating, best_def_weapon = rating, i
+            end
+        end
+    end
+    --print('Best defender weapon:', best_def_weapon)
+
+    return best_att_weapon, best_def_weapon
 end
 
 function battle_calcs.add_next_strike(cfg, arr, n_att, n_def, att_strike, hit_miss_counts, hit_miss_str)
@@ -534,14 +589,14 @@ function battle_calcs.hp_distribution(coeffs, att_hit_prob, def_hit_prob, starti
     end
 
     -- Add poison probability
-    if opp_attack.poison then
+    if opp_attack and opp_attack.poison then
         stats.posioned = 1. - stats.hp_chance[starting_hp]
     else
         stats.poisoned = 0
     end
 
     -- Add slow probability
-    if opp_attack.slow then
+    if opp_attack and opp_attack.slow then
         stats.slowed = 1. - stats.hp_chance[starting_hp]
     else
         stats.slowed = 0
@@ -561,21 +616,36 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
     -- Calculate the stats of a combat by attacker vs. defender
     -- cfg: input parameters
     --  - att_weapon/def_weapon: attacker/defender weapon number
+    --      if not given, get "best" weapon (Note: both must be given, or they will both be determined)
     --  - dst: { x, y }: the attack location; defaults to { attacker.x, attacker. y }
 
     local dst = cfg.dst or { attacker.x, attacker.y }
+
+    local att_weapon, def_weapon = 0, 0
+    if (not cfg.att_weapon) or (not cfg.def_weapon) then
+        att_weapon, def_weapon = battle_calcs.best_weapons(attacker, defender, cache)
+    else
+        att_weapon, def_weapon = cfg.att_weapon, cfg.def_weapon
+    end
+    --print('Weapons:', att_weapon, def_weapon)
 
     -- Collect all the information needed for the calculation
     -- Strike damage and numbers
     local att_damage, def_damage, att_attack, def_attack =
         battle_calcs.strike_damage(attacker, defender, cfg.att_weapon, cfg.def_weapon, cache)
+    --print(att_damage,def_damage)
 
     -- Take swarm into account
-    local att_strikes, def_strikes = att_attack.number, def_attack.number
+    local att_strikes, def_strikes = att_attack.number, 0
+    if (def_damage > 0) then
+        def_strikes = def_attack.number
+    end
+    --print(att_strikes, def_strikes)
+
     if att_attack.swarm then
         att_strikes = math.floor(att_strikes * attacker.hitpoints / attacker.max_hitpoints)
     end
-    if def_attack.swarm then
+    if def_attack and def_attack.swarm then
         def_strikes = math.floor(def_strikes * defender.hitpoints / defender.max_hitpoints)
     end
 
@@ -591,7 +661,7 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
 
     -- Magical: attack and defense, and under all circumstances
     if att_attack.magical then att_hit_prob = 0.7 end
-    if def_attack.magical then def_hit_prob = 0.7 end
+    if def_attack and def_attack.magical then def_hit_prob = 0.7 end
 
     -- Marksman: attack only, and only if terrain defense is less
     if att_attack.marksman and (att_hit_prob < 0.6) then
@@ -601,9 +671,12 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
     --print(def_damage, def_strikes, def_max_hits, def_hit_prob)
 
     -- Get the coefficients for this kind of combat
+    local def_firstrike = false
+    if def_attack and def_attack.firststrike then def_firstrike = true end
+
     local cfg = {
         att = { strikes = att_strikes, max_hits = att_max_hits, firststrike = att_attack.firststrike },
-        def = { strikes = def_strikes, max_hits = def_max_hits, firststrike = def_attack.firststrike }
+        def = { strikes = def_strikes, max_hits = def_max_hits, firststrike = def_firstrike }
     }
     local att_coeffs, def_coeffs = battle_calcs.battle_outcome_coefficients(cfg, cache)
 
@@ -611,6 +684,8 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
     -- Note that att_hit_prob, def_hit_prob need to be in that order for both calls
     local att_stats = battle_calcs.hp_distribution(att_coeffs, att_hit_prob, def_hit_prob, attacker.hitpoints, def_damage, def_attack)
     local def_stats = battle_calcs.hp_distribution(def_coeffs, att_hit_prob, def_hit_prob, defender.hitpoints, att_damage, att_attack)
+    --DBG.dbms(att_stats)
+    --DBG.dbms(def_stats)
 
     return att_stats, def_stats
 end
@@ -673,10 +748,12 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg)
     --   - Attacker rating: this one is split up into two terms:
     --     - a term that is additive for individual attacks in a combo
     --     - a term that needs to be average for the individual attacks in a combo
+    --   - att_stats, def_stats: useful if they were calculated here, rather than passed down
 
     cfg = cfg or {}
 
     -- Set up the config parameters for the rating
+    local defender_starting_damage_weight = defender_starting_damage_weight or 0.33
     local xp_weight = cfg.xp_weight or 0.25
     local level_weight = cfg.level_weight or 1.0
     local defender_level_weight = cfg.defender_level_weight or 1.0
@@ -689,11 +766,9 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg)
     -- If they are passed in cfg, use those
     local att_stats, def_stats = {}, {}
     if (not cfg.att_stats) or (not cfg.def_stats) then
-        local battle_cfg = {
-            att_weapon = cfg.att_weapon or 1,
-            def_weapon = cfg.def_weapon or 1,
-            dst = dst
-        }
+        -- If cfg specifies the weapons use those, otherwise use "best" weapons
+        -- In the latter case, cfg.???_weapon will be nil, which will be passed on
+        local battle_cfg = { att_weapon = cfg.att_weapon, def_weapon = cfg.def_weapon, dst = dst }
         att_stats,def_stats = battle_calcs.battle_outcome(attacker, defender, battle_cfg, cfg.cache)
     else
         att_stats, def_stats = cfg.att_stats, cfg.def_stats
@@ -782,6 +857,11 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg)
     value_fraction = value_fraction + def_stats.hp_chance[0]
     --print('  defender value_fraction damage + CTD:', value_fraction)
 
+    -- And prefer to attack already damage enemies
+    local defender_starting_damage_fraction = (defender.max_hitpoints - defender.hitpoints) / defender.max_hitpoints
+    value_fraction = value_fraction + defender_starting_damage_fraction * defender_starting_damage_weight
+    --print('  defender_starting_damage_fraction:', defender_starting_damage_fraction, value_fraction)
+
     -- Being closer to leveling is good, we want to get rid of those enemies first
     local xp_bonus = 1. - (defender.max_experience - defender.experience) / defender.max_experience
     value_fraction = value_fraction + xp_bonus * xp_weight
@@ -820,10 +900,10 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg)
     local rating = defender_score + attacker_score + attacker_defense_score
     --print('---> rating:', rating)
 
-    return rating, defender_score, attacker_score, attacker_defense_score
+    return rating, defender_score, attacker_score, attacker_defense_score, att_stats, def_stats
 end
 
-function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc)
+function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
     -- Calculate attack combination outcomes using
     -- tmp_attackers: array of attacker units (this is done so that
     --   the units need not be found here, as likely doing it in the
@@ -831,7 +911,7 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc
     -- tmp_dsts: array of the hexes (format {x, y}) from which the attackers attack
     --   must be in same order as 'attackers'
     -- enemy: the enemy being attacked
-    -- precalc: an optional table of pre-calculated attack outcomes
+    -- cache: an optional table of pre-calculated attack outcomes
     --   - As this is a table, we can modify it in here (add outcomes), which also modifies it in the calling function
     --
     -- Return values:
@@ -845,7 +925,7 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc
     -- with slow and drain, but should be good otherwise
     -- Doing all of it right is not possible for computation time reasons
 
-    precalc = precalc or {}
+    cache = cache or {}
 
     --print()
     --print('Enemy:', enemy.id, enemy.x, enemy.y)
@@ -858,19 +938,20 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc
     local ratings, tmp_attacker_ratings = {}, {}
     local tmp_att_stats, tmp_def_stats = {}, {}
     for i,a in ipairs(tmp_attackers) do
-        -- Initialize or use the 'precalc' table
+        -- Initialize or use the 'cache' table
         local enemy_ind = enemy.x * 1000 + enemy.y
         local att_ind = a.x * 1000 + a.y
         local dst_ind = tmp_dsts[i][1] * 1000 + tmp_dsts[i][2]
-        if (not precalc[enemy_ind]) then precalc[enemy_ind] = {} end
-        if (not precalc[enemy_ind][att_ind]) then precalc[enemy_ind][att_ind] = {} end
+        if (not cache[enemy_ind]) then cache[enemy_ind] = {} end
+        if (not cache[enemy_ind][att_ind]) then cache[enemy_ind][att_ind] = {} end
 
-        if (not precalc[enemy_ind][att_ind][dst_ind]) then
+        if (not cache[enemy_ind][att_ind][dst_ind]) then
             --print('Calculating attack combo stats:', enemy_ind, att_ind, dst_ind)
             tmp_att_stats[i], tmp_def_stats[i] = battle_calcs.simulate_combat_loc(a, tmp_dsts[i], enemy)
 
             -- Get the base rating from battle_calcs.attack_rating()
-            local rating, dummy, tmp_ar = battle_calcs.attack_rating(tmp_att_stats[i], tmp_def_stats[i], a, enemy, tmp_dsts[i])
+            local attack_cfg = { att_stats = tmp_att_stats[i], def_stats = tmp_def_stats[i]}
+            local rating, dummy, tmp_ar = battle_calcs.attack_rating(a, enemy, tmp_dsts[i], attack_cfg)
             tmp_attacker_ratings[i] = tmp_ar
             --print('rating:', rating)
 
@@ -905,8 +986,8 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc
             --print('Final rating', rating, i)
             ratings[i] = { i, rating }
 
-            -- Now add this attack to the precalc table, so that next time around, we don't have to do this again
-            precalc[enemy_ind][att_ind][dst_ind] = {
+            -- Now add this attack to the cache table, so that next time around, we don't have to do this again
+            cache[enemy_ind][att_ind][dst_ind] = {
                 rating = rating,  -- Cannot use { i, rating } here, as 'i' might be different next time
                 attacker_ratings = tmp_attacker_ratings[i],
                 att_stats = tmp_att_stats[i],
@@ -914,10 +995,10 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc
             }
         else
             --print('Stats already exist')
-            ratings[i] = { i, precalc[enemy_ind][att_ind][dst_ind].rating }
-            tmp_attacker_ratings[i] = precalc[enemy_ind][att_ind][dst_ind].attacker_ratings
-            tmp_att_stats[i] = precalc[enemy_ind][att_ind][dst_ind].att_stats
-            tmp_def_stats[i] = precalc[enemy_ind][att_ind][dst_ind].def_stats
+            ratings[i] = { i, cache[enemy_ind][att_ind][dst_ind].rating }
+            tmp_attacker_ratings[i] = cache[enemy_ind][att_ind][dst_ind].attacker_ratings
+            tmp_att_stats[i] = cache[enemy_ind][att_ind][dst_ind].att_stats
+            tmp_def_stats[i] = cache[enemy_ind][att_ind][dst_ind].def_stats
         end
     end
 
@@ -1000,7 +1081,8 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc
     --   = sum of all the attacker ratings and the defender rating with the final def_stats
     -- -> we need one run through attack_rating() to get the defender rating given these stats
     -- It doesn't matter which attacker and att_stats are chosen for that
-    local dummy, rating = battle_calcs.attack_rating(att_stats[1], def_stats_combo, attackers[1], enemy, dsts[1])
+    local attack_cfg = { att_stats = att_stats[1], def_stats = def_stats_combo}
+    local dummy, rating = battle_calcs.attack_rating(attackers[1], enemy, dsts[1], attack_cfg)
     for i,r in ipairs(attacker_ratings) do rating = rating + r end
     --print('    --> rating:', rating)
 

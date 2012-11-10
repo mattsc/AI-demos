@@ -1,3 +1,7 @@
+0.11.6
+- Generic Rush
+  - Much improved placement of recruited units
+  - The leader now captures villages rather than moving to a new keep when if it can't recruit any more in the current turn
 0.11.5, 4 Nov 2012
 - Bug fix: Units now use correct weapons to attack again in all scenarios
 - Generic Rush:
@@ -17,7 +21,7 @@
   - Faster and more accurate counter attack calculation
   - Make use of new ai_helper functions and functionality
   - Lots of clean-up, optimization and refactoring: improves speed, functionality and configurability
-- Bottleneck Defense: 
+- Bottleneck Defense:
   - Make RCA AI side more aggressive, in order to avoid potential stalemate at the end
 - Remove era "Experimental AI (adjustable parameters) as there currently are no adjustable parameters
 - ai_helper:

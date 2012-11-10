@@ -247,7 +247,7 @@ function ai_helper.get_closest_location(hex, location_filter)
 
     local locs = wesnoth.get_locations(location_filter)
 
-    local max_rating, closest_hex = -9e99, {}
+    local max_rating, best_hex = -9e99, {}
     for i,l in ipairs(locs) do
         local rating = -H.distance_between(hex[1], hex[2], l[1], l[2])
         if (rating > max_rating) then
@@ -256,9 +256,9 @@ function ai_helper.get_closest_location(hex, location_filter)
     end
 
     if (max_rating > -9e99) then
-        return best_hex
+        return best_hex, -max_rating
     else
-        return nil
+        return nil, 9e99
     end
 end
 
@@ -425,6 +425,21 @@ function ai_helper.xyoff(x, y, ori, hex)
     return
 end
 
+function ai_helper.split_location_list_to_strings(list)
+    -- Convert a list of locations as returned by wesnoth.get_locations into a pair of strings
+    -- suitable for passing in as x,y coordinate lists to wesnoth.get_locations.
+    -- Could alternatively convert to a WML table and use the find_in argument, but this is simpler.
+    local locsx, locsy = {}, {}
+    for i,loc in ipairs(list) do
+        locsx[i] = loc[1]
+        locsy[i] = loc[2]
+    end
+    locsx = table.concat(locsx, ",")
+    locsy = table.concat(locsy, ",")
+
+    return locsx, locsy
+end
+
 --------- Unit related helper functions ----------
 
 function ai_helper.get_live_units(filter)
@@ -448,16 +463,26 @@ function ai_helper.get_live_units(filter)
     return wesnoth.get_units(live_filter)
 end
 
-function ai_helper.get_closest_enemy()
+function ai_helper.get_closest_enemy(loc)
+    -- Get the closest enemy to loc, or the leader if loc not specified
+    local x, y
+
     local enemies = ai_helper.get_live_units {
         { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
     }
 
-    local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+    if not loc then
+        local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+        x = leader.x
+        y = leader.y
+    else
+        x = loc[1]
+        y = loc[2]
+    end
 
     local closest_distance, location = 9e99, {}
     for i,u in ipairs(enemies) do
-        enemy_distance = helper.distance_between(leader.x, leader.y, u.x, u.y)
+        enemy_distance = helper.distance_between(x, y, u.x, u.y)
         if enemy_distance < closest_distance then
             closest_distance = enemy_distance
             location = { x = u.x, y = u.y}
@@ -490,6 +515,16 @@ function ai_helper.has_weapon_special(unit, special)
         end
     end
     return false
+end
+
+function ai_helper.get_cheapest_recruit_cost()
+    local cheapest_unit_cost = 9e99
+    for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
+        if wesnoth.unit_types[recruit_id].cost < cheapest_unit_cost then
+            cheapest_unit_cost = wesnoth.unit_types[recruit_id].cost
+        end
+    end
+    return cheapest_unit_cost
 end
 
 --------- Move related helper functions ----------
