@@ -400,12 +400,17 @@ return {
 
         function ai_cas:find_best_recruit(attack_type_count, unit_attack_type_count, recruit_effectiveness, recruit_vulnerability, attack_range_count, unit_attack_range_count, most_common_range_count)
             -- Find best recruit based on damage done to enemies present, speed, and hp/gold ratio
-            local distance_to_enemy, enemy_location = AH.get_closest_enemy()
             local recruit_scores = {}
             local best_scores = {offense = 0, defense = 0, move = 0}
             local best_hex = self.data.recruit.best_hex
             local target_hex = self.data.recruit.target_hex
             local efficiency = self.data.recruit.hp_efficiency
+            local distance_to_enemy, enemy_location
+            if target_hex[1] then
+                distance_to_enemy, enemy_location = AH.get_closest_enemy(target_hex)
+            else
+                distance_to_enemy, enemy_location = AH.get_closest_enemy(best_hex)
+            end
 
             local gold_limit = 9e99
             if self.data.castle.loose_gold_limit >= self.data.recruit.cheapest_unit_cost then
