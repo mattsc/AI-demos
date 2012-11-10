@@ -463,16 +463,26 @@ function ai_helper.get_live_units(filter)
     return wesnoth.get_units(live_filter)
 end
 
-function ai_helper.get_closest_enemy()
+function ai_helper.get_closest_enemy(loc)
+    -- Get the closest enemy to loc, or the leader if loc not specified
+    local x, y
+
     local enemies = ai_helper.get_live_units {
         { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
     }
 
-    local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+    if not loc then
+        local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+        x = leader.x
+        y = leader.y
+    else
+        x = loc[1]
+        y = loc[2]
+    end
 
     local closest_distance, location = 9e99, {}
     for i,u in ipairs(enemies) do
-        enemy_distance = helper.distance_between(leader.x, leader.y, u.x, u.y)
+        enemy_distance = helper.distance_between(x, y, u.x, u.y)
         if enemy_distance < closest_distance then
             closest_distance = enemy_distance
             location = { x = u.x, y = u.y}
