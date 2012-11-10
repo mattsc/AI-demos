@@ -900,7 +900,7 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg)
     return rating, defender_score, attacker_score, attacker_defense_score
 end
 
-function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc)
+function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
     -- Calculate attack combination outcomes using
     -- tmp_attackers: array of attacker units (this is done so that
     --   the units need not be found here, as likely doing it in the
@@ -908,7 +908,7 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc
     -- tmp_dsts: array of the hexes (format {x, y}) from which the attackers attack
     --   must be in same order as 'attackers'
     -- enemy: the enemy being attacked
-    -- precalc: an optional table of pre-calculated attack outcomes
+    -- cache: an optional table of pre-calculated attack outcomes
     --   - As this is a table, we can modify it in here (add outcomes), which also modifies it in the calling function
     --
     -- Return values:
@@ -922,7 +922,7 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc
     -- with slow and drain, but should be good otherwise
     -- Doing all of it right is not possible for computation time reasons
 
-    precalc = precalc or {}
+    cache = cache or {}
 
     --print()
     --print('Enemy:', enemy.id, enemy.x, enemy.y)
@@ -935,14 +935,14 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc
     local ratings, tmp_attacker_ratings = {}, {}
     local tmp_att_stats, tmp_def_stats = {}, {}
     for i,a in ipairs(tmp_attackers) do
-        -- Initialize or use the 'precalc' table
+        -- Initialize or use the 'cache' table
         local enemy_ind = enemy.x * 1000 + enemy.y
         local att_ind = a.x * 1000 + a.y
         local dst_ind = tmp_dsts[i][1] * 1000 + tmp_dsts[i][2]
-        if (not precalc[enemy_ind]) then precalc[enemy_ind] = {} end
-        if (not precalc[enemy_ind][att_ind]) then precalc[enemy_ind][att_ind] = {} end
+        if (not cache[enemy_ind]) then cache[enemy_ind] = {} end
+        if (not cache[enemy_ind][att_ind]) then cache[enemy_ind][att_ind] = {} end
 
-        if (not precalc[enemy_ind][att_ind][dst_ind]) then
+        if (not cache[enemy_ind][att_ind][dst_ind]) then
             --print('Calculating attack combo stats:', enemy_ind, att_ind, dst_ind)
             tmp_att_stats[i], tmp_def_stats[i] = battle_calcs.simulate_combat_loc(a, tmp_dsts[i], enemy)
 
@@ -983,8 +983,8 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc
             --print('Final rating', rating, i)
             ratings[i] = { i, rating }
 
-            -- Now add this attack to the precalc table, so that next time around, we don't have to do this again
-            precalc[enemy_ind][att_ind][dst_ind] = {
+            -- Now add this attack to the cache table, so that next time around, we don't have to do this again
+            cache[enemy_ind][att_ind][dst_ind] = {
                 rating = rating,  -- Cannot use { i, rating } here, as 'i' might be different next time
                 attacker_ratings = tmp_attacker_ratings[i],
                 att_stats = tmp_att_stats[i],
@@ -992,10 +992,10 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, precalc
             }
         else
             --print('Stats already exist')
-            ratings[i] = { i, precalc[enemy_ind][att_ind][dst_ind].rating }
-            tmp_attacker_ratings[i] = precalc[enemy_ind][att_ind][dst_ind].attacker_ratings
-            tmp_att_stats[i] = precalc[enemy_ind][att_ind][dst_ind].att_stats
-            tmp_def_stats[i] = precalc[enemy_ind][att_ind][dst_ind].def_stats
+            ratings[i] = { i, cache[enemy_ind][att_ind][dst_ind].rating }
+            tmp_attacker_ratings[i] = cache[enemy_ind][att_ind][dst_ind].attacker_ratings
+            tmp_att_stats[i] = cache[enemy_ind][att_ind][dst_ind].att_stats
+            tmp_def_stats[i] = cache[enemy_ind][att_ind][dst_ind].def_stats
         end
     end
 
