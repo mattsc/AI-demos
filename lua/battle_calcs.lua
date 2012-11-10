@@ -938,6 +938,7 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
     local ratings, tmp_attacker_ratings = {}, {}
     local tmp_att_stats, tmp_def_stats = {}, {}
     for i,a in ipairs(tmp_attackers) do
+        --print('\n', a.id)
         -- Initialize or use the 'cache' table
         local enemy_ind = enemy.x * 1000 + enemy.y
         local att_ind = a.x * 1000 + a.y
@@ -951,7 +952,8 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
                 battle_calcs.attack_rating(a, enemy, tmp_dsts[i], { cache = cache } )
             tmp_attacker_ratings[i] = att_score
             tmp_att_stats[i], tmp_def_stats[i] = att_stats, def_stats
-            --print('rating:', rating)
+            --print('rating:', rating, def_score, att_score, att_def_score)
+            --DBG.dbms(att_stats)
 
             -- But for combos, also want units with highest attack outcome uncertainties to go early
             -- So that we can change our mind in case of unfavorable outcome
@@ -961,9 +963,10 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
 
             for hp,p in pairs(tmp_def_stats[i].hp_chance) do
                 if (p > 0) then
-                    local dv = p * (hp - av)^2
-                    --print(hp,p,av, dv)
-                    outcome_variance = outcome_variance + dv
+                    local dhp_norm = (hp - av) / enemy.max_hitpoints * wesnoth.unit_types[enemy.type].cost
+                    local dvar = p * dhp_norm^2
+                    --print(hp,p,av, dvar)
+                    outcome_variance = outcome_variance + dvar
                     n_outcomes = n_outcomes + 1
                 end
             end
