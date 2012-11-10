@@ -748,6 +748,7 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg)
     --   - Attacker rating: this one is split up into two terms:
     --     - a term that is additive for individual attacks in a combo
     --     - a term that needs to be average for the individual attacks in a combo
+    --   - att_stats, def_stats: useful if they were calculated here, rather than passed down
 
     cfg = cfg or {}
 
@@ -899,7 +900,7 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg)
     local rating = defender_score + attacker_score + attacker_defense_score
     --print('---> rating:', rating)
 
-    return rating, defender_score, attacker_score, attacker_defense_score
+    return rating, defender_score, attacker_score, attacker_defense_score, att_stats, def_stats
 end
 
 function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
