@@ -1935,7 +1935,7 @@ return {
             end
 
             local start_time, ca_name = os.clock(), 'spread_poison'
-            if AH.print_eval() then print('     - Evaluating spread_posion CA:', os.clock()) end
+            if AH.print_eval() then print('     - Evaluating spread_poison CA:', os.clock()) end
 
             -- If a unit with a poisoned weapon can make an attack, we'll do that preferentially
             -- (with some exceptions)
