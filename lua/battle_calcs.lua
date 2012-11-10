@@ -616,9 +616,18 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
     -- Calculate the stats of a combat by attacker vs. defender
     -- cfg: input parameters
     --  - att_weapon/def_weapon: attacker/defender weapon number
+    --      if not given, get "best" weapon (Note: both must be given, or they will both be determined)
     --  - dst: { x, y }: the attack location; defaults to { attacker.x, attacker. y }
 
     local dst = cfg.dst or { attacker.x, attacker.y }
+
+    local att_weapon, def_weapon = 0, 0
+    if (not cfg.att_weapon) or (not cfg.def_weapon) then
+        att_weapon, def_weapon = battle_calcs.best_weapons(attacker, defender, cache)
+    else
+        att_weapon, def_weapon = cfg.att_weapon, cfg.def_weapon
+    end
+    --print('Weapons:', att_weapon, def_weapon)
 
     -- Collect all the information needed for the calculation
     -- Strike damage and numbers
@@ -756,16 +765,9 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg)
     -- If they are passed in cfg, use those
     local att_stats, def_stats = {}, {}
     if (not cfg.att_stats) or (not cfg.def_stats) then
-        -- Check whether cfg specifies the weapons, otherwise use "best" weapons
-        local att_weapon, def_weapon = 0, 0
-        if (not cfg.att_weapon) or (not cfg.def_weapon) then
-            att_weapon, def_weapon = battle_calcs.best_weapons(attacker, defender, cache)
-        else
-            att_weapon, def_weapon = cfg.att_weapon, cfg.def_weapon
-        end
-        --print('Weapons:', att_weapon, def_weapon)
-
-        local battle_cfg = { att_weapon = att_weapon, def_weapon = def_weapon, dst = dst }
+        -- If cfg specifies the weapons use those, otherwise use "best" weapons
+        -- In the latter case, cfg.???_weapon will be nil, which will be passed on
+        local battle_cfg = { att_weapon = cfg.att_weapon, def_weapon = cfg.def_weapon, dst = dst }
         att_stats,def_stats = battle_calcs.battle_outcome(attacker, defender, battle_cfg, cfg.cache)
     else
         att_stats, def_stats = cfg.att_stats, cfg.def_stats
