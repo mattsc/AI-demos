@@ -917,15 +917,11 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
     --   - As this is a table, we can modify it in here (add outcomes), which also modifies it in the calling function
     --
     -- Return values:
-    --   - the rating for this attack combination as returned by battle_calcs.attack_rating()
+    --   - the rating for this attack combination calculated from battle_calcs.attack_rating() results
     --   - the sorted attackers and dsts arrays
-    --   - defender combo stats: one set of stats containing the defender stats after the attack combination
     --   - att_stats: an array of stats for each attacker, in the same order as 'attackers'
+    --   - defender combo stats: one set of stats containing the defender stats after the attack combination
     --   - def_stats: an array of defender stats for each individual attack, in the same order as 'attackers'
-    --
-    -- Note: the combined defender stats are approximate in some cases (e.g. attacks
-    -- with slow and drain, but should be good otherwise
-    -- Doing all of it right is not possible for computation time reasons
 
     cache = cache or {}
 
@@ -1028,7 +1024,8 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
     --DBG.dbms(att_stats)
     --DBG.dbms(def_stats)
 
-    -- Then we go through all the other attacks
+    -- Then we go through all the other attacks and calculate the outcomes
+    -- based on all the possible outcomes of the previous attacks
     for i = 2,#attackers do
         --print('Attacker', i, attackers[i].id)
 
@@ -1078,9 +1075,6 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
 
     -- Get the total rating for this attack combo:
     --   = sum of all the attacker ratings and the defender rating with the final def_stats
-    -- -> we need one run through attack_rating() to get the defender rating given these stats
-    --DBG.dbms(ratings)
-
     -- Rating for first attack exists already
     local def_rating = ratings[1][4]
     local att_rating, att_rating_av = ratings[1][5], ratings[1][6]
@@ -1094,6 +1088,7 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
         att_rating = att_rating + ar
         att_rating_av = att_rating_av + ar_av
     end
+    -- and att_rating_av needs to be averaged rather than summed up
     att_rating_av = att_rating_av / #attackers
 
     local rating = def_rating + att_rating + att_rating_av
