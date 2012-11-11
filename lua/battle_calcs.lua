@@ -788,7 +788,14 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg)
     -- It is multiplied by unit cost later, to get a gold equivalent value
 
     -- Average damage to unit is negative rating
-    local value_fraction = - (attacker.hitpoints - att_stats.average_hp) / attacker.max_hitpoints
+    local damage = attacker.hitpoints - att_stats.average_hp
+    -- Count poisoned as additional 8 HP damage times probability of being poisoned
+    damage = damage + 8 * att_stats.poisoned
+    -- Count slowed as additional 6 HP damage times probability of being slowed
+    damage = damage + 6 * att_stats.slowed
+
+    -- Fraction damage (= fractional value of the unit)
+    local value_fraction = - damage / attacker.max_hitpoints
     --print('  value_fraction damage:', value_fraction)
 
     -- Additional, subtract the chance to die, in order to (de)emphasize units that might die
@@ -852,7 +859,14 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg)
     --print('Defender:', defender.id, def_stats.average_hp)
 
     -- Average damage to defender is positive rating
-    local value_fraction = (defender.hitpoints - def_stats.average_hp) / defender.max_hitpoints
+    local damage = defender.hitpoints - def_stats.average_hp
+    -- Count poisoned as additional 8 HP damage times probability of being poisoned
+    damage = damage + 8 * def_stats.poisoned
+    -- Count slowed as additional 6 HP damage times probability of being slowed
+    damage = damage + 6 * def_stats.slowed
+
+    -- Fraction damage (= fractional value of the unit)
+    local value_fraction = damage / defender.max_hitpoints
     --print('  defender value_fraction damage:', value_fraction)
 
     -- Additional, add the chance to kill, in order to emphasize enemies we might be able to kill
