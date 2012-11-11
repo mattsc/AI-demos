@@ -68,9 +68,9 @@ return {
                         mod = helper.get_child(special, 'damage')
                         if mod then
                             if mod.backstab then
-                                -- Assume backstab happens on only 1/3 of attacks
+                                -- Assume backstab happens on only 1/2 of attacks
                                 -- TODO: find out what actual probability is
-                                damage_multiplier = damage_multiplier*(mod.multiply*0.33 + 0.67)
+                                damage_multiplier = damage_multiplier*(mod.multiply*0.5 + 0.5)
                             end
                         end
                     end
