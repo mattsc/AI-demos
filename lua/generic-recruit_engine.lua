@@ -477,23 +477,21 @@ return {
                     bonus = bonus + 0.02 * most_common_range_count / (attack_range_count[attack_range]+1)
                 end
                 bonus = bonus + 0.05 * wesnoth.races[wesnoth.unit_types[recruit_id].__cfg.race].num_traits^2
+                if target_hex[1] then
+                    local recruit_unit = wesnoth.create_unit { type = recruit_id, x = best_hex[1], y = best_hex[2] }
+                    local path, cost = wesnoth.find_path(recruit_unit, target_hex[1], target_hex[2], {viewing_side=0})
+                    if cost > wesnoth.unit_types[recruit_id].max_moves then
+                        -- large penalty if the unit can't reach the target village
+                        bonus = bonus - 1
+                    end
+                end
                 score = score + bonus
 
                 --print(recruit_id .. " score: " .. offense_score*offense_weight .. " + " .. defense_score*defense_weight .. " + " .. move_score*move_weight  .. " + " .. bonus  .. " = " .. score)
                 if score > best_score and wesnoth.unit_types[recruit_id].cost <= gold_limit then
-                    local update_score = true
-                    if target_hex[1] then
-                        local recruit_unit = wesnoth.create_unit { type = recruit_id, x = best_hex[1], y = best_hex[2] }
-                        local path, cost = wesnoth.find_path(recruit_unit, target_hex[1], target_hex[2], {viewing_side=0})
-                        if cost > wesnoth.unit_types[recruit_id].max_moves then
-                            update_score = false
-                        end
-                    end
-
-                    if update_score then
-                        best_score = score
-                        recruit_type = recruit_id
-                    end
+                    print("Passed score/gold limit")
+                    best_score = score
+                    recruit_type = recruit_id
                 end
             end
 
