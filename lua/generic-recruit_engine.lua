@@ -539,7 +539,7 @@ return {
                 data.castle.assigned_villages_y = {}
                 for i,v in ipairs(villages) do
                     local path, cost = wesnoth.find_path(leader, v[1], v[2])
-                    if cost < leader.max_moves then
+                    if cost <= leader.max_moves then
                         table.insert(data.castle.assigned_villages_x, v[1])
                         table.insert(data.castle.assigned_villages_y, v[2])
                         break
