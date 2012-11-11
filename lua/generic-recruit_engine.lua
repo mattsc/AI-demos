@@ -489,7 +489,6 @@ return {
 
                 --print(recruit_id .. " score: " .. offense_score*offense_weight .. " + " .. defense_score*defense_weight .. " + " .. move_score*move_weight  .. " + " .. bonus  .. " = " .. score)
                 if score > best_score and wesnoth.unit_types[recruit_id].cost <= gold_limit then
-                    print("Passed score/gold limit")
                     best_score = score
                     recruit_type = recruit_id
                 end
