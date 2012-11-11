@@ -233,10 +233,10 @@ return {
                         -- There is no way a unit can get to the village if the distance is greater than its moves
                         local dist = H.distance_between(u.x, u.y, v[1], v[2])
                         if (dist <= u.moves) then
-                            village_rating = village_rating - 1
-                            reachable = true
                             local path, cost = wesnoth.find_path(u, v[1], v[2])
                             if (cost <= u.moves) then
+                                village_rating = village_rating - 1
+                                reachable = true
                                 --print('Can reach:', u.id, v[1], v[2], cost)
                                 local rating = 0
                                 -- Finally, since these can be reached by the enemy, want the strongest unit to go first
