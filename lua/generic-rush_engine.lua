@@ -194,10 +194,6 @@ return {
             -- Also find which locations can be attacked by enemies
             local enemy_attack_map = AH.get_attack_map(enemies).units
 
-            for i,u in ipairs(units) do
-                local reach_map = AH.get_reachable_unocc(u)
-            end
-
             -- Now we go through the villages and units
             local max_rating, best_village, best_unit = -9e99, {}, {}
             for j,v in ipairs(villages) do
