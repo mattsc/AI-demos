@@ -977,9 +977,10 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
             local rating = base_rating + outcome_variance
 
             -- If attacker has attack with 'slow' special, it should always go first
+            -- Almost, bonus should not be quite as high as a really high CTK
             -- This isn't quite true in reality, but can be refined later
             if AH.has_weapon_special(a, "slow") then
-                rating = rating + 50  -- but not quite as high as a really high CTK
+                rating = rating + wesnoth.unit_types[enemy.type].cost / 2.
             end
 
             --print('Final rating', rating, i)
