@@ -212,13 +212,14 @@ return {
                 -- Unowned and enemy-owned villages get a large bonus
                 local owner = wesnoth.get_village_owner(v[1], v[2])
                 if (not owner) then
-                    village_rating = village_rating + 1000
+                    village_rating = village_rating + 10000
                 else
                     if wesnoth.is_enemy(owner, wesnoth.current.side) then village_rating = village_rating + 2000 end
+                    if wesnoth.is_enemy(owner, wesnoth.current.side) then village_rating = village_rating + 20000 end
                 end
-                local best_unit_rating = 0
 
                 -- Now we go on to the unit-dependent rating
+                local best_unit_rating = 0
                 local reachable = false
                 for i,u in ipairs(units) do
                     -- Skip villages that have units other than 'u' itself on them
