@@ -162,35 +162,37 @@ function battle_calcs.best_weapons(attacker, defender, cache)
     -- Return the number of the best weapons for attacker and defender
     -- Ideally, we would do a full attack_rating here for all combinations,
     -- but that would take too long.  So we simply define the best weapons
-    -- as those that do the most damage
+    -- as those that has the biggest difference between
+    -- damage done and damage received (the latter divided by 2)
     -- Returns 0 if defender does not have a weapon for this range
 
     local attacker_info = battle_calcs.unit_attack_info(attacker, cache)
     local defender_info = battle_calcs.unit_attack_info(defender, cache)
 
     -- Best attacker weapon
-    local max_rating, best_att_weapon = -9e99, 0
-    for i,weapon in ipairs(attacker_info.attacks) do
+    local max_rating, best_att_weapon, best_def_weapon = 0, 0, 0
+    for i,att_weapon in ipairs(attacker_info.attacks) do
         local att_damage = battle_calcs.strike_damage(attacker, defender, i, 0, cache)
-        local rating = att_damage * weapon.number
-        if (rating > max_rating) then
-            max_rating, best_att_weapon = rating, i
-        end
-    end
-    --print('Best attacker weapon:', best_att_weapon)
 
-    -- Best defender weapon for the same range
-    local max_rating, best_def_weapon = -9e99, 0
-    for i,weapon in ipairs(defender_info.attacks) do
-        if (weapon.range == attacker_info.attacks[best_att_weapon].range) then
-            local def_damage = battle_calcs.strike_damage(defender, attacker, i, 0, cache)
-            local rating = def_damage * weapon.number
-            if (rating > max_rating) then
-                max_rating, best_def_weapon = rating, i
+        local max_def_rating, tmp_best_def_weapon = 0, 0
+        for j,def_weapon in ipairs(defender_info.attacks) do
+            if (def_weapon.range == att_weapon.range) then
+                local def_damage = battle_calcs.strike_damage(defender, attacker, j, 0, cache)
+                local def_rating = def_damage * def_weapon.number
+                if (def_rating > max_def_rating) then
+                    max_def_rating, tmp_best_def_weapon = def_rating, j
+                end
             end
         end
+
+        local rating = att_damage * att_weapon.number - max_def_rating / 2.
+        --print(i, rating, att_damage, att_weapon.number, best_def_weapon, tmp_best_def_weapon)
+
+        if (rating > max_rating) then
+            max_rating, best_att_weapon, best_def_weapon = rating, i, tmp_best_def_weapon
+        end
     end
-    --print('Best defender weapon:', best_def_weapon)
+    --print('Best attacker/defender weapon:', best_att_weapon, best_def_weapon)
 
     return best_att_weapon, best_def_weapon
 end
