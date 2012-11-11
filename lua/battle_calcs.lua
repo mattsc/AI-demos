@@ -588,26 +588,26 @@ function battle_calcs.hp_distribution(coeffs, att_hit_prob, def_hit_prob, starti
         end
     end
 
+    -- Add in the outcome that was skipped
+    stats.hp_chance[skip_hp] = skip_prob
+    stats.average_hp = stats.average_hp + skip_hp * skip_prob
+
+    -- And always set hp_chance[0] since it is of such importance in the analysis
+    stats.hp_chance[0] = stats.hp_chance[0] or 0
+
     -- Add poison probability
     if opp_attack and opp_attack.poison then
-        stats.poisoned = 1. - (stats.hp_chance[starting_hp] or 0)
+        stats.poisoned = 1. - stats.hp_chance[starting_hp]
     else
         stats.poisoned = 0
     end
 
     -- Add slow probability
     if opp_attack and opp_attack.slow then
-        stats.slowed = 1. - (stats.hp_chance[starting_hp] or 0)
+        stats.slowed = 1. - stats.hp_chance[starting_hp]
     else
         stats.slowed = 0
     end
-
-    -- Finally, add in the outcome that was skipped
-    stats.hp_chance[skip_hp] = skip_prob
-    stats.average_hp = stats.average_hp + skip_hp * skip_prob
-
-    -- Always set hp_chance[0] since it is of such importance in the analysis
-    stats.hp_chance[0] = stats.hp_chance[0] or 0
 
     return stats
 end
