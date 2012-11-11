@@ -43,6 +43,7 @@ return {
                 for attack in helper.child_range(wesnoth.unit_types[attacker.type].__cfg, "attack") do
                     local defense = unit_defense
                     local poison = false
+                    local damage_multiplier = 1
                     -- TODO: handle more abilities (charge, drain)
                     for special in helper.child_range(attack, 'specials') do
                         local mod
@@ -51,7 +52,7 @@ return {
                         end
 
                         -- Handle marksman and magical
-                        -- TODO: Make this work properly for UMC chance_to_hit
+                        -- TODO: Make this work properly for UMC chance_to_hit (does not account for all keys)
                         mod = helper.get_child(special, 'chance_to_hit')
                         if mod then
                             if mod.cumulative then
@@ -60,6 +61,16 @@ return {
                                 end
                             else
                                 defense = mod.value
+                            end
+                        end
+
+                        -- Handle backstab
+                        mod = helper.get_child(special, 'damage')
+                        if mod then
+                            if mod.backstab then
+                                -- Assume backstab happens on only 1/3 of attacks
+                                -- TODO: find out what actual probability is
+                                damage_multiplier = damage_multiplier*(mod.multiply*0.33 + 0.67)
                             end
                         end
                     end
@@ -87,7 +98,7 @@ return {
                             resistance = 50
                         end
                     end
-                    local base_damage = attack.damage*resistance
+                    local base_damage = attack.damage*resistance*damage_multiplier
                     if (base_damage < 100) and (attack.damage > 0) then
                         -- Damage is always at least 1
                         base_damage = 100
