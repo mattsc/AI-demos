@@ -455,7 +455,11 @@ return {
                 if can_slow(recruit_unit) then
                     unit_score["slows"] = true
                 end
+                if wesnoth.match_unit(recruit_unit, { ability = "healing" }) then
+                    unit_score["heals"] = true
+                end
             end
+            local healer_count, healable_count = get_unit_counts_for_healing()
             local best_score = 0
             local recruit_type = nil
             local offense_weight = 2.75
@@ -471,7 +475,10 @@ return {
 
                 local bonus = 0
                 if scores["slows"] then
-                    bonus = bonus + 0.75
+                    bonus = bonus + 0.5
+                end
+                if scores["heals"] then
+                    bonus = bonus + (healable_count/(healer_count+1))/20
                 end
                 for attack_range, count in pairs(unit_attack_range_count[recruit_id]) do
                     bonus = bonus + 0.02 * most_common_range_count / (attack_range_count[attack_range]+1)
@@ -495,6 +502,18 @@ return {
             end
 
             return recruit_type
+        end
+
+        function get_unit_counts_for_healing()
+            local healers = #AH.get_live_units {
+                side = wesnoth.current.side,
+                ability = "healing"
+            }
+            local healable = #AH.get_live_units {
+                side = wesnoth.current.side,
+                { "not", { ability = "regenerates" }}
+            }
+            return healers, healable
         end
 
         function get_village_target(leader, data)
