@@ -554,6 +554,8 @@ return {
                 })
                 num_recruits = num_recruits + 1
             end
+
+            local width,height,border = wesnoth.get_map_size()
             for i,v in ipairs(villages) do
                 local close_castle_hexes = wesnoth.get_locations {
                     x = locsx, y = locsy,
@@ -570,21 +572,24 @@ return {
 
                 local viable_village = false
                 for j,c in ipairs(close_castle_hexes) do
-                    local distance = 0
-                    for x,id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
-                        local path, unit_distance = wesnoth.find_path(test_units[id], c[1], c[2], {viewing_side=0})
-                        distance = distance + unit_distance
-                    end
-                    distance = distance / num_recruits
+                    if c[1] > 0 and c[2] > 0 and c[1] <= width and c[2] <= height then
+                        local distance = 0
+                        for x,id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
+                            local path, unit_distance = wesnoth.find_path(test_units[id], c[1], c[2], {viewing_side=0})
+                            distance = distance + unit_distance
+                        end
+                        distance = distance / num_recruits
 
-                    if distance < shortest_distance then
-                        hex = c
-                        target = v
-                        shortest_distance = distance
-                    end
-                    --
-                    if distance <= fastest_unit_speed then
-                        viable_village = true
+                        if distance < shortest_distance then
+                            hex = c
+                            target = v
+                            shortest_distance = distance
+                        end
+
+                        -- Village is only viable if at least one unit can reach it
+                        if distance <= fastest_unit_speed then
+                            viable_village = true
+                        end
                     end
                 end
                 if not viable_village then
