@@ -196,6 +196,7 @@ return {
 
             -- Now we go through the villages and units
             local max_rating, best_village, best_unit = -9e99, {}, {}
+            local village_ratings = {}
             for j,v in ipairs(villages) do
                 -- First collect all information that only depends on the village
                 local village_rating = 0  -- This is the unit independent rating
@@ -205,7 +206,7 @@ return {
                 -- If an enemy can get within one move of the village, we want to hold it
                 if enemy_attack_map:get(v[1], v[2]) then
                         --print('  within enemy reach', v[1], v[2])
-                        village_rating = village_rating + 10
+                        village_rating = village_rating + 100
                 end
 
                 -- Unowned and enemy-owned villages get a large bonus
@@ -215,8 +216,10 @@ return {
                 else
                     if wesnoth.is_enemy(owner, wesnoth.current.side) then village_rating = village_rating + 2000 end
                 end
+                local best_unit_rating = 0
 
                 -- Now we go on to the unit-dependent rating
+                local reachable = false
                 for i,u in ipairs(units) do
                     -- Skip villages that have units other than 'u' itself on them
                     local village_occupied = false
@@ -230,20 +233,29 @@ return {
                         -- There is no way a unit can get to the village if the distance is greater than its moves
                         local dist = H.distance_between(u.x, u.y, v[1], v[2])
                         if (dist <= u.moves) then
+                            village_rating = village_rating - 1
+                            reachable = true
                             local path, cost = wesnoth.find_path(u, v[1], v[2])
                             if (cost <= u.moves) then
                                 --print('Can reach:', u.id, v[1], v[2], cost)
-                                local rating = village_rating
+                                local rating = 0
                                 -- Finally, since these can be reached by the enemy, want the strongest unit to go first
                                 rating = rating + u.hitpoints / 100.
 
-                                if (rating > max_rating) then
-                                    max_rating, best_village, best_unit = rating, v, u
+                                if (rating > best_unit_rating) then
+                                    best_unit_rating, best_unit = rating, u
                                 end
                                 --print('  rating:', rating)
                             end
                         end
                     end
+                end
+                village_ratings[v] = {village_rating, best_unit, reachable}
+            end
+            for j,v in ipairs(villages) do
+                local rating = village_ratings[v][1]
+                if village_ratings[v][3] and rating > max_rating then
+                    max_rating, best_village, best_unit = rating, v, village_ratings[v][2]
                 end
             end
             --print('max_rating', max_rating)
