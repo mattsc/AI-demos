@@ -214,7 +214,6 @@ return {
                 if (not owner) then
                     village_rating = village_rating + 10000
                 else
-                    if wesnoth.is_enemy(owner, wesnoth.current.side) then village_rating = village_rating + 2000 end
                     if wesnoth.is_enemy(owner, wesnoth.current.side) then village_rating = village_rating + 20000 end
                 end
 
