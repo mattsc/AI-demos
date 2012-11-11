@@ -1026,11 +1026,6 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
     --DBG.dbms(att_stats)
     --DBG.dbms(def_stats)
 
- -- ********** ---
-    -- Also get an approximate value for slowed/poisoned chance after attack combo
-    -- (this is 1-slowed for calc. reasons; changed below)
---    local slowed, poisoned = 1 - def_stats[1].slowed, 1 - def_stats[1].poisoned
-
     -- Then we go through all the other attacks
     for i = 2,#attackers do
         --print('Attacker', i, attackers[i].id)
@@ -1056,6 +1051,14 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
                 for hp2,p2 in pairs(dst.hp_chance) do
                     def_stats[i].hp_chance[hp2] = (def_stats[i].hp_chance[hp2] or 0) + p1 * p2
                 end
+
+                -- Also do poisoned, slowed
+                if (not att_stats[i].poisoned) then
+                    att_stats[i].poisoned = ast.poisoned
+                    att_stats[i].slowed = ast.slowed
+                    def_stats[i].poisoned = 1. - (1. - dst.poisoned) * (1. - def_stats[i-1].poisoned)
+                    def_stats[i].slowed = 1. - (1. - dst.slowed) * (1. - def_stats[i-1].slowed)
+                end
             end
         end
 
@@ -1066,19 +1069,10 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
         local av_hp = 0
         for hp,p in pairs(def_stats[i].hp_chance) do av_hp = av_hp + hp*p end
         def_stats[i].average_hp = av_hp
-
-
-        -- And the slowed/poisoned percentage (this is 1-slowed for calc. reasons; changed below)
---        slowed = slowed * (1 - def_stats[i].slowed)
---        poisoned = poisoned * (1 - def_stats[i].poisoned)
-        att_stats[i].poisoned, att_stats[i].slowed = 0, 0
-        def_stats[i].poisoned, def_stats[i].slowed = 0, 0
     end
     --DBG.dbms(att_stats)
     --DBG.dbms(def_stats)
     --print('Enemy CTK:', def_stats[#attackers].hp_chance[0])
-
---    def_stats_combo.slowed, def_stats_combo.poisoned = 1. - slowed, 1. - poisoned
 
     -- Get the total rating for this attack combo:
     --   = sum of all the attacker ratings and the defender rating with the final def_stats
