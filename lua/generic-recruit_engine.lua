@@ -548,10 +548,14 @@ return {
             end
 
             local village_count = #villages
-            local test_bat = wesnoth.create_unit({
-                type = "Vampire Bat",
-                side = wesnoth.current.side
-            })
+            local test_units, num_recruits = {}, 0
+            for x,id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
+                test_units[id] =  wesnoth.create_unit({
+                    type = id,
+                    side = wesnoth.current.side
+                })
+                num_recruits = num_recruits + 1
+            end
             for i,v in ipairs(villages) do
                 local close_castle_hexes = wesnoth.get_locations {
                     x = locsx, y = locsy,
@@ -561,12 +565,20 @@ return {
                     }},
                     { "not", { { "filter", {} } } }
                 }
-                test_bat.x = v[1]
-                test_bat.y = v[2]
+                for x,id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
+                    test_units[id].x = v[1]
+                    test_units[id].y = v[2]
+                end
 
                 local viable_village = false
                 for j,c in ipairs(close_castle_hexes) do
-                    local path, distance = wesnoth.find_path(test_bat, c[1], c[2], {viewing_side=0})
+                    local distance = 0
+                    for x,id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
+                        local path, unit_distance = wesnoth.find_path(test_units[id], c[1], c[2], {viewing_side=0})
+                        distance = distance + unit_distance
+                    end
+                    distance = distance / num_recruits
+
                     if distance < shortest_distance then
                         hex = c
                         target = v
