@@ -790,9 +790,13 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg)
     -- Average damage to unit is negative rating
     local damage = attacker.hitpoints - att_stats.average_hp
     -- Count poisoned as additional 8 HP damage times probability of being poisoned
-    damage = damage + 8 * att_stats.poisoned
+    if (att_stats.poisoned ~= 0) then
+        damage = damage + 8 * (att_stats.poisoned - att_stats.hp_chance[0])
+    end
     -- Count slowed as additional 6 HP damage times probability of being slowed
-    damage = damage + 6 * att_stats.slowed
+    if (att_stats.slowed ~= 0) then
+        damage = damage + 6 * (att_stats.slowed - att_stats.hp_chance[0])
+    end
 
     -- Fraction damage (= fractional value of the unit)
     local value_fraction = - damage / attacker.max_hitpoints
@@ -861,9 +865,13 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg)
     -- Average damage to defender is positive rating
     local damage = defender.hitpoints - def_stats.average_hp
     -- Count poisoned as additional 8 HP damage times probability of being poisoned
-    damage = damage + 8 * def_stats.poisoned
+    if (def_stats.poisoned ~= 0) then
+        damage = damage + 8 * (def_stats.poisoned - def_stats.hp_chance[0])
+    end
     -- Count slowed as additional 6 HP damage times probability of being slowed
-    damage = damage + 6 * def_stats.slowed
+    if (def_stats.slowed ~= 0) then
+        damage = damage + 6 * (def_stats.slowed - def_stats.hp_chance[0])
+    end
 
     -- Fraction damage (= fractional value of the unit)
     local value_fraction = damage / defender.max_hitpoints
