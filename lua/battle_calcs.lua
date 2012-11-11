@@ -777,7 +777,7 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg)
     end
 
     -- We also need the leader (well, the location at least)
-    -- because if there's no other difference, prefer location _between_ the leader and the enemy
+    -- because if there's no other difference, prefer location _between_ the leader and the defender
     local leader = wesnoth.get_units { side = attacker.side, canrecruit = 'yes' }[1]
 
     ------ All the attacker contributions: ------
@@ -814,7 +814,7 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg)
     value_fraction = value_fraction + level_bonus * level_weight
     --print('  level bonus:', level_bonus, value_fraction)
 
-    -- Get a very small bonus for hexes in between enemy and AI leader
+    -- Get a very small bonus for hexes in between defender and AI leader
     -- 'relative_distances' is larger for attack hexes closer to the side leader (possible values: -1 .. 1)
     local relative_distances =
         H.distance_between(defender.x, defender.y, leader.x, leader.y)
@@ -895,7 +895,7 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg)
     local defender_rating = value_fraction * wesnoth.unit_types[defender.type].cost
     --print('-> defender rating:', defender_rating)
 
-    -- Finally apply factor of own unit weight to enemy unit weight
+    -- Finally apply factor of own unit weight to defender unit weight
     attacker_rating = attacker_rating * own_value_weight
     attacker_rating_av = attacker_rating_av * own_value_weight
 
@@ -905,14 +905,14 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg)
     return rating, defender_rating, attacker_rating, attacker_rating_av, att_stats, def_stats
 end
 
-function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
+function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cache)
     -- Calculate attack combination outcomes using
     -- tmp_attackers: array of attacker units (this is done so that
     --   the units need not be found here, as likely doing it in the
     --   calling function is more efficient (because of repetition)
     -- tmp_dsts: array of the hexes (format {x, y}) from which the attackers attack
     --   must be in same order as 'attackers'
-    -- enemy: the enemy being attacked
+    -- defender: the unit being attacked
     -- cache: an optional table of pre-calculated attack outcomes
     --   - As this is a table, we can modify it in here (add outcomes), which also modifies it in the calling function
     --
@@ -926,7 +926,7 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
     cache = cache or {}
 
     --print()
-    --print('Enemy:', enemy.id, enemy.x, enemy.y)
+    --print('Defender:', defender.id, defender.x, defender.y)
     --print('Attackers:')
     --for i,a in ipairs(tmp_attackers) do
     --    print('  ' .. a.id, a.x, a.y)
@@ -938,16 +938,16 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
     for i,a in ipairs(tmp_attackers) do
         --print('\n', a.id)
         -- Initialize or use the 'cache' table
-        local enemy_ind = enemy.x * 1000 + enemy.y
+        local defender_ind = defender.x * 1000 + defender.y
         local att_ind = a.x * 1000 + a.y
         local dst_ind = tmp_dsts[i][1] * 1000 + tmp_dsts[i][2]
-        if (not cache[enemy_ind]) then cache[enemy_ind] = {} end
-        if (not cache[enemy_ind][att_ind]) then cache[enemy_ind][att_ind] = {} end
+        if (not cache[defender_ind]) then cache[defender_ind] = {} end
+        if (not cache[defender_ind][att_ind]) then cache[defender_ind][att_ind] = {} end
 
-        if (not cache[enemy_ind][att_ind][dst_ind]) then
+        if (not cache[defender_ind][att_ind][dst_ind]) then
             -- Get the base rating
             local base_rating, def_rating, att_rating, att_rating_av, att_stats, def_stats =
-                battle_calcs.attack_rating(a, enemy, tmp_dsts[i], { cache = cache } )
+                battle_calcs.attack_rating(a, defender, tmp_dsts[i], { cache = cache } )
             tmp_attacker_ratings[i] = att_rating
             tmp_att_stats[i], tmp_def_stats[i] = att_stats, def_stats
             --print('rating:', base_rating, def_rating, att_rating, att_rating_av)
@@ -961,7 +961,7 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
 
             for hp,p in pairs(tmp_def_stats[i].hp_chance) do
                 if (p > 0) then
-                    local dhp_norm = (hp - av) / enemy.max_hitpoints * wesnoth.unit_types[enemy.type].cost
+                    local dhp_norm = (hp - av) / defender.max_hitpoints * wesnoth.unit_types[defender.type].cost
                     local dvar = p * dhp_norm^2
                     --print(hp,p,av, dvar)
                     outcome_variance = outcome_variance + dvar
@@ -980,14 +980,14 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
             -- Almost, bonus should not be quite as high as a really high CTK
             -- This isn't quite true in reality, but can be refined later
             if AH.has_weapon_special(a, "slow") then
-                rating = rating + wesnoth.unit_types[enemy.type].cost / 2.
+                rating = rating + wesnoth.unit_types[defender.type].cost / 2.
             end
 
             --print('Final rating', rating, i)
             ratings[i] = { i, rating, base_rating, def_rating, att_rating, att_rating_av }
 
             -- Now add this attack to the cache table, so that next time around, we don't have to do this again
-            cache[enemy_ind][att_ind][dst_ind] = {
+            cache[defender_ind][att_ind][dst_ind] = {
                 rating = { -1, rating, base_rating, def_rating, att_rating, att_rating_av },  -- Cannot use { i, rating, ... } here, as 'i' might be different next time
                 attacker_ratings = tmp_attacker_ratings[i],
                 att_stats = tmp_att_stats[i],
@@ -995,12 +995,12 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
             }
         else
             --print('Stats already exist')
-            local tmp_rating = cache[enemy_ind][att_ind][dst_ind].rating
+            local tmp_rating = cache[defender_ind][att_ind][dst_ind].rating
             tmp_rating[1] = i
             ratings[i] = tmp_rating
-            tmp_attacker_ratings[i] = cache[enemy_ind][att_ind][dst_ind].attacker_ratings
-            tmp_att_stats[i] = cache[enemy_ind][att_ind][dst_ind].att_stats
-            tmp_def_stats[i] = cache[enemy_ind][att_ind][dst_ind].def_stats
+            tmp_attacker_ratings[i] = cache[defender_ind][att_ind][dst_ind].attacker_ratings
+            tmp_att_stats[i] = cache[defender_ind][att_ind][dst_ind].att_stats
+            tmp_def_stats[i] = cache[defender_ind][att_ind][dst_ind].def_stats
         end
     end
 
@@ -1040,10 +1040,10 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
                 def_stats[i].hp_chance[0] = (def_stats[i].hp_chance[0] or 0) + p1
             else
                 --print(hp1, p1)
-                local org_hp = enemy.hitpoints
-                enemy.hitpoints = hp1
-                local ast, dst = battle_calcs.battle_outcome(attackers[i], enemy, { dst = dsts[i] } , cache)
-                enemy.hitpoints = org_hp
+                local org_hp = defender.hitpoints
+                defender.hitpoints = hp1
+                local ast, dst = battle_calcs.battle_outcome(attackers[i], defender, { dst = dsts[i] } , cache)
+                defender.hitpoints = org_hp
 
                 for hp2,p2 in pairs(ast.hp_chance) do
                     att_stats[i].hp_chance[hp2] = (att_stats[i].hp_chance[hp2] or 0) + p1 * p2
@@ -1072,7 +1072,7 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
     end
     --DBG.dbms(att_stats)
     --DBG.dbms(def_stats)
-    --print('Enemy CTK:', def_stats[#attackers].hp_chance[0])
+    --print('Defender CTK:', def_stats[#attackers].hp_chance[0])
 
     -- Get the total rating for this attack combo:
     --   = sum of all the attacker ratings and the defender rating with the final def_stats
@@ -1082,7 +1082,7 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, enemy, cache)
     -- but the others need to be calculated with the new stats
     for i = 2,#attackers do
         local cfg = { att_stats = att_stats[i], def_stats = def_stats[i], cache = cache }
-        local r, dr, ar, ar_av = battle_calcs.attack_rating(attackers[i], enemy, dsts[i], cfg)
+        local r, dr, ar, ar_av = battle_calcs.attack_rating(attackers[i], defender, dsts[i], cfg)
         --print(attackers[i].id, r, dr, ar, ar_av)
 
         def_rating = dr
