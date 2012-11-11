@@ -5,7 +5,7 @@ return {
         local recruit_ai = {}
         local T = H.set_wml_tag_metatable{}
         local no_more_recruiting_for_turn = {0,0}
-        local ml_ai = nil
+        local ml_ai
         if not ai.ml_debug_message then   -- This means that ML Recruiter is not installed
             W.message {
                 speaker = 'narrator',
@@ -23,6 +23,7 @@ return {
             ai.ml_debug_message("hello world, at beginning of ml_ai_general right now")
             ml_ai = wesnoth.require('~add-ons/AI-demos/lua/ml_ai_features.lua').init(ai)
             wesnoth.require('~add-ons/AI-demos/lua/class.lua')
+            wesnoth.require('~add-ons/AI-demos/lua/ml_utilities.lua')
             ai.ml_debug_message("hello world, finished initializing ml_ai_general right now")
             ai.ml_debug_message(string.format("Power to raise metric to: %.1f\tModel being used:%s\tUse a single, non-faction-specific model:%s\tmodel directory:%s\tCA Score:%d",
                 default_command_line_parms.default_metric_cost_power,default_command_line_parms.which_model,default_command_line_parms.single_model,
@@ -268,7 +269,7 @@ return {
             local recruitable_units = self:get_allowed_recruits(recruits)
             local unit_metrics = {}
             ai.ml_debug_message("Feature dictionary without the 'RECRUIT'")
-            ml_ai:output_feature_dictionary{dict=feature_dictionary,debug=true,label="DEBUG:,"} -- Output feature dictionary for debug purposes
+            output_feature_dictionary{dict=feature_dictionary,debug=true,label="DEBUG:,",ai=ai} -- Output feature dictionary for debug purposes
             for _,new_unit in ipairs(recruitable_units) do
                 feature_dictionary.RECRUITED = new_unit
                 local recruited_dependent_features = ml_ai:compute_recruited_dependent_features(function(x) return feature_dictionary[x] end)

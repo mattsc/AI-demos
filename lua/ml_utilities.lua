@@ -99,3 +99,36 @@ function return_merged_tables(t1,t2)
     for k,v in pairs(t2) do combined[k] = v end
     return combined
 end
+
+local function sortpairs(t, lt)
+    local u = { }
+    for k, v in pairs(t) do table.insert(u, { key = k, value = v }) end
+    table.sort(u, lt)
+    return u
+end
+
+
+function output_feature_dictionary(arg)
+    local feature_dictionary = arg.dict
+    local debug = arg.debug or false
+    local label = arg.label or "PRERECRUIT:, "
+    local out = ""
+    local g = sortpairs(feature_dictionary,
+        function(A,B) if A.key == "id" then return true elseif B.key == "id" then return false else return A.key < B.key end  end)
+    for _, i in ipairs(g) do
+        if type(i.value) == "number" and math.floor(i.value) ~= i.value then
+            out = out .. string.format("%s:%.3f,",i.key,i.value)
+        else
+            if string.find(i.value,",") then
+                out = out .. string.format("%s:'%s', ",i.key,i.value)
+            else
+                out = out .. i.key .. ":" .. i.value  .. ", "
+            end
+        end
+    end
+    if debug then
+        arg.ai.ml_debug_message(label .. out)
+    else
+        arg.ai.ml_info_message(label .. out)
+    end
+end
