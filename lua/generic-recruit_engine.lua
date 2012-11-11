@@ -540,6 +540,7 @@ return {
                     if cost <= leader.max_moves then
                         table.insert(data.castle.assigned_villages_x, v[1])
                         table.insert(data.castle.assigned_villages_y, v[2])
+                        table.remove(villages, i)
                         break
                     end
                 end
