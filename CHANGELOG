@@ -1,7 +1,19 @@
-0.11.6
+0.12.0
 - Generic Rush
   - Much improved placement of recruited units
-  - The leader now captures villages rather than moving to a new keep when if it can't recruit any more in the current turn
+  - The leader now captures villages rather than moving to a new keep if it can't recruit any more in the current turn
+- Freelands Side 1 Grunt Rush:
+  - Switch to use of battle_calcs.lua instead of wesnoth.simulate_combat (not quite finished yet)
+- battle_calcs is now a complete library independent of wesnoth.simulate_combat, including:
+  - Fast (and cached) battle-outcome calculations (still some work to be done for specials like drain and berserk)
+  - Calculation of single-strike damage and best weapon
+  - New gold-based attack rating system
+  - Correct HP statistics and attack rating for battle combinations
+- New lua test scenario:
+  - Can be accessed by moving Grnk to snowy mountains at 9,1 in Switchboard scenario
+- Patrols:
+  - Turn Jabb AI into a BCA, in preparation for making it a Micro AI
+
 0.11.5, 4 Nov 2012
 - Bug fix: Units now use correct weapons to attack again in all scenarios
 - Generic Rush:
