@@ -7,8 +7,18 @@ return {
           return string.sub(text, string.find(text, pattern, start))
         end
 
+        local function a_human_is_in_the_game()
+            local sides = wesnoth.sides
+            for _, side in ipairs(sides) do
+                if side.controller ~= "ai" and side.controller ~= "null" then
+                    ai.ml_debug_message("A human is in the game, so we are not defining events due to the bug reported at https://gna.org/bugs/?20280")
+                    return true
+                end
+            end
+            return false
+        end
 
-        if (ml_ai_events_already_run == nil) then
+        if (ml_ai_events_already_run == nil and not a_human_is_in_the_game()) then
             ml_ai_events_already_run = true
             local game_events = wesnoth.game_events
             local old_on_event = game_events.on_event
