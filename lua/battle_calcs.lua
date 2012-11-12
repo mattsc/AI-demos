@@ -170,11 +170,11 @@ function battle_calcs.best_weapons(attacker, defender, cache)
     local defender_info = battle_calcs.unit_attack_info(defender, cache)
 
     -- Best attacker weapon
-    local max_rating, best_att_weapon, best_def_weapon = 0, 0, 0
+    local max_rating, best_att_weapon, best_def_weapon = -9e99, 0, 0
     for i,att_weapon in ipairs(attacker_info.attacks) do
         local att_damage = battle_calcs.strike_damage(attacker, defender, i, 0, cache)
 
-        local max_def_rating, tmp_best_def_weapon = 0, 0
+        local max_def_rating, tmp_best_def_weapon = -9e99, 0
         for j,def_weapon in ipairs(defender_info.attacks) do
             if (def_weapon.range == att_weapon.range) then
                 local def_damage = battle_calcs.strike_damage(defender, attacker, j, 0, cache)
@@ -185,7 +185,8 @@ function battle_calcs.best_weapons(attacker, defender, cache)
             end
         end
 
-        local rating = att_damage * att_weapon.number - max_def_rating / 2.
+        local rating = att_damage * att_weapon.number
+        if (max_def_rating > -9e99) then rating = rating - max_def_rating / 2. end
         --print(i, rating, att_damage, att_weapon.number, best_def_weapon, tmp_best_def_weapon)
 
         if (rating > max_rating) then
