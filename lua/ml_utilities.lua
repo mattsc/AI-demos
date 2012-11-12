@@ -3,6 +3,8 @@
 --
 --
 
+local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
+
 -- From http://lua-users.org/wiki/CopyTable
 function deepcopy(object)
     local lookup_table = {}
@@ -131,4 +133,16 @@ function output_feature_dictionary(arg)
     else
         arg.ai.ml_info_message(label .. out)
     end
+end
+
+function get_sides_with_leaders()
+    local sides = wesnoth.sides
+    local sides_with_leaders = {}
+    for _, side_info in ipairs(sides) do
+        local leaders_on_this_side = #AH.get_live_units{canrecruit=true, side = side_info.side }
+        if leaders_on_this_side >= 1 then
+            table.insert(sides_with_leaders,side_info.side)
+        end
+    end
+    return sides_with_leaders
 end

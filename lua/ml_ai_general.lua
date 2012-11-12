@@ -4,8 +4,11 @@ return {
         local W = H.set_wml_action_metatable {}
         local recruit_ai = {}
         local T = H.set_wml_tag_metatable{}
-        local no_more_recruiting_for_turn = {0,0}
+        local no_more_recruiting_for_turn = {0,0 }
         local ml_ai
+
+
+
         if not ai.ml_debug_message then   -- This means that ML Recruiter is not installed
             W.message {
                 speaker = 'narrator',
@@ -20,14 +23,30 @@ return {
             global_recruit_ai = {0,0}
             return recruit_ai
         else
-            ai.ml_debug_message("hello world, at beginning of ml_ai_general right now")
-            ml_ai = wesnoth.require('~add-ons/AI-demos/lua/ml_ai_features.lua').init(ai)
-            wesnoth.require('~add-ons/AI-demos/lua/class.lua')
             wesnoth.require('~add-ons/AI-demos/lua/ml_utilities.lua')
-            ai.ml_debug_message("hello world, finished initializing ml_ai_general right now")
-            ai.ml_debug_message(string.format("Power to raise metric to: %.1f\tModel being used:%s\tUse a single, non-faction-specific model:%s\tmodel directory:%s\tCA Score:%d",
-                default_command_line_parms.default_metric_cost_power,default_command_line_parms.which_model,default_command_line_parms.single_model,
-                default_command_line_parms.model_directory,default_command_line_parms.recruit_CA_score))
+            local sides_with_leaders = get_sides_with_leaders()
+            if #sides_with_leaders == 2 and wesnoth.is_enemy(sides_with_leaders[1],sides_with_leaders[2]) then
+                ai.ml_debug_message("hello world, at beginning of ml_ai_general right now")
+                ml_ai = wesnoth.require('~add-ons/AI-demos/lua/ml_ai_features.lua').init(ai)
+                wesnoth.require('~add-ons/AI-demos/lua/class.lua')
+                ai.ml_debug_message("hello world, finished initializing ml_ai_general right now")
+                ai.ml_debug_message(string.format("Power to raise metric to: %.1f\tModel being used:%s\tUse a single, non-faction-specific model:%s\tmodel directory:%s\tCA Score:%d",
+                    default_command_line_parms.default_metric_cost_power,default_command_line_parms.which_model,default_command_line_parms.single_model,
+                    default_command_line_parms.model_directory,default_command_line_parms.recruit_CA_score))
+            else
+                W.message {
+                    speaker = 'narrator',
+                    caption = "Message from the ML Recruiter",
+                    image = 'wesnoth-icon.png', message = "The ML Recruiter currently only works in scenarios in which there are exactly two leaders." ..
+                            "  These leaders must be on opposing sides."
+                }
+                function recruit_ai:recruit_eval(recruiter_obj)
+                    return 0
+                end
+                W.endlevel { result = 'defeat' }
+                global_recruit_ai = {0,0}
+                return recruit_ai
+            end
         end
 
         local function get_command_line_parms()
