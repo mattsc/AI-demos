@@ -14,7 +14,7 @@ function battle_calcs.unit_attack_info(unit, cache)
     --  - resist_mod: resistance modifiers (multiplicative factors) index by attack type
     --  - alignment: just that
 
-    -- Set up a unit id.  We use id+type+side for this, since the
+    -- Set up a cache id.  We use id+type+side for this, since the
     -- unit can level up.  Side is added to avoid the problem of MP leaders sometimes having
     -- the same id when the game is started from the command-line
     local id = 'unitinfo-' .. unit.id .. unit.type .. unit.side
@@ -52,8 +52,6 @@ function battle_calcs.unit_attack_info(unit, cache)
                         a[sp[1]] = true
                     end
                 end
-
-
             end
         end
 
@@ -86,10 +84,22 @@ function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, 
     -- This can be used for defenders that do not have the right kind of weapon, or if
     -- only the attacker damage is of interest
     --
-    -- 'cache' can be given to pass through to battle_calcs.unit_attack_info()
-    -- Right now we're not caching the results of strike_damage as it seems fast enough
-    -- That might be changed later
+    -- 'cache' can be given to cache strike damage and to pass through to battle_calcs.unit_attack_info()
 
+    -- Set up a cache id.  We use id+type+side for this, since the
+    -- unit can level up.  Side is added to avoid the problem of MP leaders sometimes having
+    -- the same id when the game is started from the command-line
+    local id = 'strikedamage-' .. attacker.id .. attacker.type .. attacker.side
+    id = id .. 'x' .. defender.id .. defender.type .. defender.side
+    id = id .. '-' .. att_weapon .. 'x' .. def_weapon
+    --print(id)
+
+    -- If cache for this unit exists, return it
+    if cache and cache[id] then
+        return cache[id].att_damage, cache[id].def_damage, cache[id].att_attack, cache[id].def_attack
+    end
+
+    -- If not cached, calculate the damage
     local attacker_info = battle_calcs.unit_attack_info(attacker, cache)
     local defender_info = battle_calcs.unit_attack_info(defender, cache)
 
@@ -154,6 +164,16 @@ function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, 
         else
             def_damage = H.round(def_damage * def_multiplier + 0.001)
         end
+    end
+
+    -- If we're caching, add this to 'cache'
+    if cache then
+        cache[id] = {
+            att_damage = att_damage,
+            def_damage = def_damage,
+            att_attack = attacker_info.attacks[att_weapon],
+            def_attack = defender_info.attacks[def_weapon]
+        }
     end
 
     return att_damage, def_damage, attacker_info.attacks[att_weapon], defender_info.attacks[def_weapon]
