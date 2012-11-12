@@ -19,7 +19,8 @@ return {
           return set
         end
 
-        function ml_ai:get_my_side_and_enemy_side() 
+        function ml_ai:get_my_side_and_enemy_side()
+            -- TODO:  Need to rewrite this to do multiplayer
             local my_side = wesnoth.current.side
             local enemy_side = 1
             if my_side == 1 then enemy_side = 2 end
@@ -31,7 +32,6 @@ return {
         end
 
         function ml_ai:decision_feature_computer(omit_current_unit,fill_RECRUITED)  -- Compute the logical features
-            --TODO:  All features should be factored out into a separate .lua file
             local feature_dictionary = ml_ai:unit_features(omit_current_unit,fill_RECRUITED)   --TODO:  This shouldn't be a special case
             local feature_list = {ml_ai.village_features,
                 ml_ai.terrain_features,
