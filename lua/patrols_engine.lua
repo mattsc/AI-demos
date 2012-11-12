@@ -8,7 +8,7 @@ return {
 
         -------------------- Konrad patrol behavior -----------------------------------
 
-        function patrols:konrad_village_retreat_evaluation()
+        function patrols:konrad_village_retreat_eval()
 
             -- Store Konrad if he is wounded
             units_to_heal = wesnoth.get_units
@@ -28,7 +28,7 @@ return {
             return score
         end
 
-        function patrols:konrad_village_retreat_execution()
+        function patrols:konrad_village_retreat_exec()
 
             local villages = { {13,7}, {25,12}, {28,16}, {30,21} }
 
@@ -62,7 +62,7 @@ return {
             self.data.units_to_heal = nil
         end
 
-        function patrols:konrad_change_goto_evaluation()
+        function patrols:konrad_change_goto_eval()
 
             -- Is Konrad at one of the waypoints?
             local unit_wp1 = wesnoth.get_units { id = "Konrad", x = 18, y = 9 }[1]
@@ -78,7 +78,7 @@ return {
             return score
         end
 
-        function patrols:konrad_change_goto_execution()
+        function patrols:konrad_change_goto_exec()
 
             -- We can simply modify Konrad at the waypoints
             -- If he's not there, nothing will happen
