@@ -90,7 +90,15 @@ return {
         ------------------------ Jabb patrol behavior (from 'A Rough Life') ----------------------------
 
 
-        function patrols:jabb_do_moves()
+        function patrols:patrol_eval()
+            -- acquire Jabb
+            local jabb = wesnoth.get_units( { id = "Goblin Handler Jabb" } )[1]
+
+            if (jabb.moves > 0) then return 300000 end
+            return 0
+        end
+
+        function patrols:patrol_exec()
                 -- acquire Jabb
                 local jabb = wesnoth.get_units( { id = "Goblin Handler Jabb" } )[1]
 
