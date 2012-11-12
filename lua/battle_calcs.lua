@@ -23,58 +23,59 @@ function battle_calcs.unit_attack_info(unit, cache)
     -- If cache for this unit exists, return it
     if cache and cache[id] then
         return cache[id]
-    else  -- otherwise collect the information
-        local unit_cfg = unit.__cfg
-        local unit_info = {
-            attacks = {},
-            resist_mod = {},
-            alignment = unit_cfg.alignment
-        }
-        for attack in H.child_range(unit_cfg, 'attack') do
-            -- Extract information for specials; we do this first because some
-            -- custom special might have the same name as one of the default scalar fields
-            local a = {}
-            for special in H.child_range(attack, 'specials') do
-                for i,sp in ipairs(special) do
-                    if (sp[1] == 'damage') then  -- this is 'backstab'
-                        if (sp[2].id == 'backstab') then
-                            a.backstab = true
-                        else
-                            if (sp[2].id == 'charge') then a.charge = true end
-                        end
-                    else
-                        -- magical, marksman
-                        if (sp[1] == 'chance_to_hit') then
-                            a[sp[2].id] = true
-                        else
-                            a[sp[1]] = true
-                        end
-                    end
-
-
-                end
-            end
-
-            -- Now extract the scalar (string and number) values from attack
-            for k,v in pairs(attack) do
-                if (type(v) == 'number') or (type(v) == 'string') then
-                    a[k] = v
-                end
-            end
-
-            table.insert(unit_info.attacks, a)
-        end
-
-        local attack_types = { "arcane", "blade", "cold", "fire", "impact", "pierce" }
-        for i,at in ipairs(attack_types) do
-            unit_info.resist_mod[at] = wesnoth.unit_resistance(unit, at) / 100.
-        end
-
-        -- If we're caching, add this to 'cache'
-        if cache then cache[id] = unit_info end
-
-        return unit_info
     end
+
+    -- Otherwise collect the information
+    local unit_cfg = unit.__cfg
+    local unit_info = {
+        attacks = {},
+        resist_mod = {},
+        alignment = unit_cfg.alignment
+    }
+    for attack in H.child_range(unit_cfg, 'attack') do
+        -- Extract information for specials; we do this first because some
+        -- custom special might have the same name as one of the default scalar fields
+        local a = {}
+        for special in H.child_range(attack, 'specials') do
+            for i,sp in ipairs(special) do
+                if (sp[1] == 'damage') then  -- this is 'backstab'
+                    if (sp[2].id == 'backstab') then
+                        a.backstab = true
+                    else
+                        if (sp[2].id == 'charge') then a.charge = true end
+                    end
+                else
+                    -- magical, marksman
+                    if (sp[1] == 'chance_to_hit') then
+                        a[sp[2].id] = true
+                    else
+                        a[sp[1]] = true
+                    end
+                end
+
+
+            end
+        end
+
+        -- Now extract the scalar (string and number) values from attack
+        for k,v in pairs(attack) do
+            if (type(v) == 'number') or (type(v) == 'string') then
+                a[k] = v
+            end
+        end
+
+        table.insert(unit_info.attacks, a)
+    end
+
+    local attack_types = { "arcane", "blade", "cold", "fire", "impact", "pierce" }
+    for i,at in ipairs(attack_types) do
+        unit_info.resist_mod[at] = wesnoth.unit_resistance(unit, at) / 100.
+    end
+
+    -- If we're caching, add this to 'cache'
+    if cache then cache[id] = unit_info end
+
+    return unit_info
 end
 
 function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, cache)
