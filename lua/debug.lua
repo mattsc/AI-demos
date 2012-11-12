@@ -10,7 +10,8 @@ local debug_utils = {}
 -- If the variable is a table or if it can be dumped to a table an extensive syntactically correct output is displayed.
 -- arguments:
 -- lua_var: the variable to investigate
--- clear (boolean, optional): whether the chat window should be cleared before displaying the message
+-- clear (boolean/int, optional): if set, chat window will be cleared before displaying the message
+--       if set to -1, only print message, don't display in chat window
 -- name (string, optional): a name to be assigned to the variable, used in the message; useful if there are several
 -- variables to be outputted to distinguish their messages
 -- onscreen (boolean, optional): whether the message shall be displayed in a wml [message] dialog too
@@ -155,7 +156,8 @@ function debug_utils.dbms(lua_var, clear, name, onscreen, wrap, only_return)
 
         if clear and wesnoth then wesnoth.clear_messages() end
         if not only_return then
-                if wesnoth then wesnoth.message("dbms", result) end; print(result)
+                if wesnoth and clear and (clear == -1) then wesnoth.message("dbms", result) end;
+                print(result)
         end
         local continue = true
         if onscreen and wesnoth and not only_return then
