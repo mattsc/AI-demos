@@ -6,7 +6,7 @@ return {
         local H = wesnoth.require "lua/helper.lua"
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
 
-        function guardians:coward_evaluation(id)
+        function guardians:coward_eval(id)
 
             local unit = wesnoth.get_units{ id = id }[1]
 
@@ -17,7 +17,7 @@ return {
             end
         end
 
-        function guardians:coward_execution(id, radius, seek_x, seek_y, avoid_x, avoid_y)
+        function guardians:coward_exec(id, radius, seek_x, seek_y, avoid_x, avoid_y)
 
             local unit = wesnoth.get_units{ id = id }[1]
             local reach = wesnoth.find_reach(unit)
@@ -106,7 +106,7 @@ return {
             if unit then ai.stopunit_all(unit) end
         end
 
-        function guardians:return_guardian_evaluation(id, to_x, to_y)
+        function guardians:return_guardian_eval(id, to_x, to_y)
 
             local unit = wesnoth.get_units { id=id }[1]
 
@@ -120,7 +120,7 @@ return {
             return value
         end
 
-        function guardians:return_guardian_execution(id, to_x, to_y)
+        function guardians:return_guardian_exec(id, to_x, to_y)
 
             local unit = wesnoth.get_units { id=id }[1]
             --print("Exec guardian move",unit.id)
@@ -131,7 +131,7 @@ return {
             end
         end
 
-        function guardians:stationed_guardian_evaluation(id)
+        function guardians:stationed_guardian_eval(id)
 
             local unit = wesnoth.get_units { id=id }[1]
 
@@ -145,7 +145,7 @@ return {
             return value
         end
 
-        function guardians:stationed_guardian_execution(id, radius, s_x, s_y, g_x, g_y)
+        function guardians:stationed_guardian_exec(id, radius, s_x, s_y, g_x, g_y)
             -- (s_x,s_y): coordinates where unit is stationed; tries to move here if there is nobody to attack
             -- (g_x,g_y): location that the unit guards
 

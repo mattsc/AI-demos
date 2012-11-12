@@ -6,7 +6,7 @@ return {
         local LS = wesnoth.require "lua/location_set.lua"
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
 
-        function lurkers:lurker_attack_evaluation()
+        function lurkers:lurker_attack_eval()
 
             -- If any lurker has moves left, we return score just above standard combat CA
             local units = wesnoth.get_units { side = wesnoth.current.side, type = 'Swamp Lurker', formula = '$this_unit.moves > 0' }
@@ -18,7 +18,7 @@ return {
             return eval
         end
 
-        function lurkers:lurker_attack_execution()
+        function lurkers:lurker_attack_exec()
 
             -- We simply pick the first of the lurkers, they have no strategy
             local me = wesnoth.get_units { side = wesnoth.current.side, type = 'Swamp Lurker', formula = '$this_unit.moves > 0' }[1]
