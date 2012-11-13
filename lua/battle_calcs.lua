@@ -767,7 +767,7 @@ function battle_calcs.simulate_combat_loc(attacker, dst, defender, weapon)
     end
 end
 
-function battle_calcs.attack_rating(attacker, defender, dst, cfg)
+function battle_calcs.attack_rating(attacker, defender, dst, cfg, cache)
     -- Returns a common (but configurable) rating for attacks
     -- Inputs:
     -- att_stats: attacker stats table
@@ -783,7 +783,7 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg)
     --        This parameter is meaningless (unused) if att_stats/def_stats are passed
     --        Defaults to weapon that does most damage to the opponent
     --        Note: as with the stats, they either both need to be passed or both be omitted
-    --    - cache: cache table to be passed to battle_calcs.battle_outcome
+    -- cache: cache table to be passed to battle_calcs.battle_outcome
     --
     -- Returns:
     --   - Overall rating for the attack or attack combo
@@ -814,7 +814,7 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg)
         -- If cfg specifies the weapons use those, otherwise use "best" weapons
         -- In the latter case, cfg.???_weapon will be nil, which will be passed on
         local battle_cfg = { att_weapon = cfg.att_weapon, def_weapon = cfg.def_weapon, dst = dst }
-        att_stats,def_stats = battle_calcs.battle_outcome(attacker, defender, battle_cfg, cfg.cache)
+        att_stats,def_stats = battle_calcs.battle_outcome(attacker, defender, battle_cfg, cache)
     else
         att_stats, def_stats = cfg.att_stats, cfg.def_stats
     end
@@ -1014,7 +1014,7 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cach
         if (not cache_this_move[defender_ind][att_ind][dst_ind]) then
             -- Get the base rating
             local base_rating, def_rating, att_rating, att_rating_av, att_stats, def_stats =
-                battle_calcs.attack_rating(a, defender, tmp_dsts[i], { cache = cache } )
+                battle_calcs.attack_rating(a, defender, tmp_dsts[i], {}, cache )
             tmp_attacker_ratings[i] = att_rating
             tmp_att_stats[i], tmp_def_stats[i] = att_stats, def_stats
             --print('rating:', base_rating, def_rating, att_rating, att_rating_av)
@@ -1148,8 +1148,8 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cach
     local att_rating, att_rating_av = ratings[1][5], ratings[1][6]
     -- but the others need to be calculated with the new stats
     for i = 2,#attackers do
-        local cfg = { att_stats = att_stats[i], def_stats = def_stats[i], cache = cache }
-        local r, dr, ar, ar_av = battle_calcs.attack_rating(attackers[i], defender, dsts[i], cfg)
+        local cfg = { att_stats = att_stats[i], def_stats = def_stats[i] }
+        local r, dr, ar, ar_av = battle_calcs.attack_rating(attackers[i], defender, dsts[i], cfg, cache)
         --print(attackers[i].id, r, dr, ar, ar_av)
 
         def_rating = dr
