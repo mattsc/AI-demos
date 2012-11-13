@@ -482,7 +482,7 @@ function ai_helper.get_closest_enemy(loc)
 
     local closest_distance, location = 9e99, {}
     for i,u in ipairs(enemies) do
-        enemy_distance = helper.distance_between(x, y, u.x, u.y)
+        enemy_distance = H.distance_between(x, y, u.x, u.y)
         if enemy_distance < closest_distance then
             closest_distance = enemy_distance
             location = { x = u.x, y = u.y}
