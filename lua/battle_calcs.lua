@@ -187,7 +187,7 @@ function battle_calcs.best_weapons(attacker, defender, cache)
     -- damage done and damage received (the latter divided by 2)
     -- Returns 0 if defender does not have a weapon for this range
     --
-    -- 'cache' can be given to cache strike damage and to pass through to battle_calcs.unit_attack_info()
+    -- 'cache' can be given to cache best weapons
 
     -- Set up a cache index.  We use id+max_hitpoints+side for each unit, since the
     -- unit can level up.  Side is added to avoid the problem of MP leaders sometimes having
