@@ -211,15 +211,22 @@ return {
             end
 
             local best_hex, target_hex = ai_cas:find_best_recruit_hex(leader, data)
-            if #best_hex == 0 then
+            get_current_castle(leader, data)
+            local no_space = true
+            for i,c in ipairs(data.castle.locs) do
+                local unit = wesnoth.get_unit(c[1], c[2])
+                if (not unit) then
+                    no_space = false
+                    break
+                end
+            end
+            if no_space then
                 return 0
             end
 
             if data.recruit == nil then
                 data.recruit = init_data(leader)
             end
-            data.recruit.best_hex = best_hex
-            data.recruit.target_hex = target_hex
             data.recruit.cheapest_unit_cost = cheapest_unit_cost
             return 300000
         end
@@ -353,16 +360,32 @@ return {
 
             local recruit_type = nil
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
-            while true do
-                recruit_type = ai_cas:find_best_recruit(attack_type_count, unit_attack_type_count, recruit_effectiveness, recruit_vulnerability, attack_range_count, unit_attack_range_count, most_common_range_count)
-                if recruit_type ~= nil then
-                    break
-                end
+            repeat
                 self.data.recruit.best_hex, self.data.recruit.target_hex = ai_cas:find_best_recruit_hex(leader, self.data)
-            end
+                recruit_type = ai_cas:find_best_recruit(attack_type_count, unit_attack_type_count, recruit_effectiveness, recruit_vulnerability, attack_range_count, unit_attack_range_count, most_common_range_count)
+            until recruit_type ~= nil
 
             if wesnoth.unit_types[recruit_type].cost <= wesnoth.sides[wesnoth.current.side].gold then
                 ai.recruit(recruit_type, self.data.recruit.best_hex[1], self.data.recruit.best_hex[2])
+            end
+        end
+
+        function get_current_castle(leader, data)
+            if (not data.castle) or (data.castle.x ~= leader.x) or (data.castle.y ~= leader.y) then
+                data.castle = {}
+                local width,height,border = wesnoth.get_map_size()
+
+                data.castle = {
+                    locs = wesnoth.get_locations {
+                        x = "1-"..width, y = "1-"..height,
+                        { "and", {
+                            x = leader.x, y = leader.y, radius = 200,
+                            { "filter_radius", { terrain = 'C*^*,K*^*,*^Kov,*^Cov' } }
+                        }}
+                    },
+                    x = leader.x,
+                    y = leader.y
+                }
             end
         end
 
@@ -375,17 +398,7 @@ return {
             }
             local closest_enemy_distance, closest_enemy_location = AH.get_closest_enemy()
 
-            if (not data.castle) or (data.castle.x ~= leader.x) or (data.castle.y ~= leader.y) then
-                data.castle = {
-                    locs = wesnoth.get_locations {
-                        x = leader.x, y = leader.y, radius = 200,
-                        { "filter_radius", { terrain = 'C*^*,K*^*,*^Kov,*^Cov' } }
-                    },
-                    x = leader.x,
-                    y = leader.y
-                }
-            end
-            local width,height,border = wesnoth.get_map_size()
+            get_current_castle(leader, data)
 
             local best_hex, village = get_village_target(leader, data)
             if not village[1] then
@@ -394,7 +407,7 @@ return {
                 for i,c in ipairs(data.castle.locs) do
                     local rating = 0
                     local unit = wesnoth.get_unit(c[1], c[2])
-                    if (not unit) and c[1] > 0 and c[1] <= width and c[2] > 0 and c[2] <= height then
+                    if (not unit) then
                         for j,e in ipairs(enemy_leaders) do
                             rating = rating + 1 / H.distance_between(c[1], c[2], e.x, e.y) ^ 2.
                         end
