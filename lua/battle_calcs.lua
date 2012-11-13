@@ -186,6 +186,20 @@ function battle_calcs.best_weapons(attacker, defender, cache)
     -- as those that has the biggest difference between
     -- damage done and damage received (the latter divided by 2)
     -- Returns 0 if defender does not have a weapon for this range
+    --
+    -- 'cache' can be given to cache strike damage and to pass through to battle_calcs.unit_attack_info()
+
+    -- Set up a cache index.  We use id+max_hitpoints+side for each unit, since the
+    -- unit can level up.  Side is added to avoid the problem of MP leaders sometimes having
+    -- the same id when the game is started from the command-line
+    local cind = 'BW-' .. attacker.id .. attacker.max_hitpoints .. attacker.side
+    cind = cind .. 'x' .. defender.id .. defender.max_hitpoints .. defender.side
+    --print(cind)
+
+    -- If cache for this unit exists, return it
+    if cache and cache[cind] then
+        return cache[cind].best_att_weapon, cache[cind].best_def_weapon
+    end
 
     local attacker_info = battle_calcs.unit_attack_info(attacker, cache)
     local defender_info = battle_calcs.unit_attack_info(defender, cache)
@@ -215,6 +229,11 @@ function battle_calcs.best_weapons(attacker, defender, cache)
         end
     end
     --print('Best attacker/defender weapon:', best_att_weapon, best_def_weapon)
+
+    -- If we're caching, add this to 'cache'
+    if cache then
+        cache[cind] = { best_att_weapon = best_att_weapon, best_def_weapon = best_def_weapon }
+    end
 
     return best_att_weapon, best_def_weapon
 end
