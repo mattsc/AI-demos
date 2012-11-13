@@ -3,11 +3,11 @@ return {
         local H = wesnoth.require('lua/helper.lua')
         local W = H.set_wml_action_metatable {}
         local recruit_ai = {}
+        recruit_ai.data = {}
         local T = H.set_wml_tag_metatable{}
         local no_more_recruiting_for_turn = {0,0 }
         local ml_ai
-
-
+        local ron_recruit = {}
 
         if not ai.ml_debug_message then   -- This means that ML Recruiter is not installed
             W.message {
@@ -28,6 +28,7 @@ return {
             if #sides_with_leaders == 2 and wesnoth.is_enemy(sides_with_leaders[1],sides_with_leaders[2]) then
                 ai.ml_debug_message("hello world, at beginning of ml_ai_general right now")
                 ml_ai = wesnoth.require('~add-ons/AI-demos/lua/ml_ai_features.lua').init(ai)
+                wesnoth.require("~add-ons/AI-demos/lua/generic-recruit_engine.lua").init(ai, ron_recruit)
                 wesnoth.require('~add-ons/AI-demos/lua/class.lua')
                 ai.ml_debug_message("hello world, finished initializing ml_ai_general right now")
                 ai.ml_debug_message(string.format("Power to raise metric to: %.1f\tModel being used:%s\tUse a single, non-faction-specific model:%s\tmodel directory:%s\tCA Score:%d",
@@ -329,60 +330,36 @@ return {
             return recruiter:recruit(recruits)
         end
 
-
         function recruit_ai:recruit_eval(recruiter_obj)
             if no_more_recruiting_for_turn[wesnoth.current.side] == wesnoth.current.turn then  -- We decided we're done recruiting
                 return 0
             end
-            local leaders_on_current_side = wesnoth.get_units { side = wesnoth.current.side, canrecruit = true }
-            local leader_on_keep = false
-            local leader = leaders_on_current_side[1]
-            --ai.ml_debug_message("Leader is on " .. leader.x .. " " .. leader.y)
-            local width,height,border = wesnoth.get_map_size()
-            --ai.ml_debug_message("width " .. width .. " height: " .. height .. " border " .. border)
-            if wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep then
-                --ai.ml_debug_message("Leader is on the keep")
-                leader_on_keep = true
-            else
-                --ai.ml_debug_message("Leader is not on the keep")
+
+            local recruit_eval = do_recruit_eval(self.data)
+            if recruit_eval == 0 then
                 return 0
-            end
-            
-            local unit_in_way = true
-            for _,loc in ipairs(wesnoth.get_locations { x=leader.x, y=leader.y, radius=400  , T.filter_radius{ terrain = 'K*,C*'  } }) do
-                --ai.ml_debug_message("Found a candidate spot at " .. loc[1] .. " " .. loc[2])
-                local terrain = wesnoth.get_terrain(loc[1], loc[2])
-
-                if ((wesnoth.get_terrain_info(terrain).castle or wesnoth.get_terrain_info(terrain).keep) and loc[1] > 0 and loc[1] <= width
-                    and loc[2] > 0 and loc[2] <= height)  then
-                    if (wesnoth.get_unit(loc[1],loc[2]) == nil) then
-                        unit_in_way = false
-                        --ai.ml_debug_message("Found a spot at " .. loc[1] .. " " .. loc[2])
-                        --ai.ml_debug_message (terrain)
-                        break
-                    end
-                end
-
-            end
-            
-            if leader_on_keep and (not unit_in_way) then
-                unit_to_recruit = recruiter_obj:recruit()
-                local cost_for_unit_we_want = wesnoth.unit_types[unit_to_recruit].cost
-                ai.ml_info_message("Side: " .. wesnoth.current.side .. " Gold: " .. wesnoth.sides[wesnoth.current.side].gold .. " Unit we want: " .. unit_to_recruit)
+            else
+                self.unit_to_recruit = recruiter_obj:recruit()
+                local cost_for_unit_we_want = wesnoth.unit_types[self.unit_to_recruit].cost
+                ai.ml_info_message("Side: " .. wesnoth.current.side .. " Gold: " .. wesnoth.sides[wesnoth.current.side].gold .. " Unit we want: " .. self.unit_to_recruit)
                 if cost_for_unit_we_want > wesnoth.sides[wesnoth.current.side].gold then
                     no_more_recruiting_for_turn[wesnoth.current.side] = wesnoth.current.turn
                     return 0
                 end
                 return default_command_line_parms.recruit_CA_score
-            else
-                return 0
             end
         end
             
 
         function recruit_ai:recruit_execution()
-            ai.recruit(unit_to_recruit)
-            ai.ml_info_message ("We just recruited a " .. unit_to_recruit .. " for side " .. wesnoth.current.side .. " Gold is now: " .. wesnoth.sides[wesnoth.current.side].gold)
+            if default_command_line_parms.use_RCA_AI_recruit_location then
+                ai.recruit(self.unit_to_recruit)
+            else
+                local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+                self.data.recruit.best_hex, self.data.recruit.target_hex = ron_recruit:find_best_recruit_hex(leader, self.data)
+                ai.recruit(self.unit_to_recruit,self.data.recruit.best_hex[1],self.data.recruit.best_hex[2])
+            end
+            ai.ml_info_message ("We just recruited a " .. self.unit_to_recruit .. " for side " .. wesnoth.current.side .. " Gold is now: " .. wesnoth.sides[wesnoth.current.side].gold)
         end
 
         initialize(ai,default_command_line_parms)
