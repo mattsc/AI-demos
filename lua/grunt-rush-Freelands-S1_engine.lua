@@ -286,7 +286,7 @@ return {
 
             local max_rating, best_attackers, best_dsts, best_enemy = -9e99, {}, {}, {}
             local counter_table = {}  -- Counter attacks are very expensive, store to avoid duplication
-            local precalc_attacks = {}  -- same reason
+            local cache_this_move = {}  -- same reason
             for i,e in ipairs(enemies) do
                 --print(i, e.id, os.clock())
                 local attack_combos = AH.get_attack_combos(units, e, { include_occupied = true })
@@ -342,7 +342,7 @@ return {
                             table.insert(attackers, att)
                             table.insert(dsts, { math.floor(dst / 1000), dst % 1000 })
                         end
-                        rating, attackers, dsts, combo_att_stats, combo_def_stats = BC.attack_combo_stats(attackers, dsts, e, precalc_attacks)
+                        rating, attackers, dsts, combo_att_stats, combo_def_stats = BC.attack_combo_stats(attackers, dsts, e, grunt_rush_FLS1.data.cache, cache_this_move)
                     end
 
                     -- Don't attack under certain circumstances:
@@ -643,7 +643,7 @@ return {
 
             -- Now find the worst-case counter attack
             local max_rating, worst_hp, worst_def_stats = -9e99, 0, {}
-            local precalc_attacks = {}  -- To avoid unnecessary duplication of calculations
+            local cache_this_move = {}  -- To avoid unnecessary duplication of calculations
             for i,combo in ipairs(attack_combos) do
                 -- attackers and dsts arrays for stats calculation
                 local atts, dsts = {}, {}
@@ -653,7 +653,7 @@ return {
                 end
 
                 -- Get the attack combo outcome.  We're really only interested in combo_def_stats
-                local default_rating, sorted_atts, sorted_dsts, combo_att_stats, combo_def_stats = BC.attack_combo_stats(atts, dsts, unit, precalc_attacks)
+                local default_rating, sorted_atts, sorted_dsts, combo_att_stats, combo_def_stats = BC.attack_combo_stats(atts, dsts, unit, grunt_rush_FLS1.data.cache, cache_this_move)
 
                 -- Minimum hitpoints for the unit after this attack combo
                 local min_hp = 0
@@ -717,7 +717,18 @@ return {
             -- Reset grunt_rush_FLS1.data at beginning of turn, but need to keep 'complained_about_luck' variable
             local complained_about_luck = grunt_rush_FLS1.data.SP_complained_about_luck
             local enemy_is_undead = grunt_rush_FLS1.data.enemy_is_undead
+
+            --if grunt_rush_FLS1.data.cache then
+            --    local count = 0
+            --    for k,v in pairs(grunt_rush_FLS1.data.cache) do
+            --        print(k)
+            --        count = count + 1
+            --    end
+            --    print('Number of cache entires:', count)
+            --end
+
             grunt_rush_FLS1.data = {}
+            grunt_rush_FLS1.data.cache = {}
             grunt_rush_FLS1.data.SP_complained_about_luck = complained_about_luck
 
             if (enemy_is_undead == nil) then
@@ -1406,7 +1417,7 @@ return {
 
             local max_rating, best_attackers, best_dsts, best_enemy = -9e99, {}, {}, {}
             local counter_table = {}  -- Counter attacks are very expensive, store to avoid duplication
-            local precalc_attacks = {}  -- same reason
+            local cache_this_move = {}  -- same reason
             for i,e in ipairs(targets) do
                 --print('\n', i, e.id, os.clock())
                 local attack_combos = AH.get_attack_combos(attackers, e, { include_occupied = true })
@@ -1424,7 +1435,7 @@ return {
                         table.insert(atts, attacker_map[src])
                         table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
                     end
-                    local rating, sorted_atts, sorted_dsts, combo_att_stats, combo_def_stats = BC.attack_combo_stats(atts, dsts, e, precalc_attacks)
+                    local rating, sorted_atts, sorted_dsts, combo_att_stats, combo_def_stats = BC.attack_combo_stats(atts, dsts, e, grunt_rush_FLS1.data.cache, cache_this_move)
                     --DBG.dbms(combo_def_stats)
 
                     -- Don't attack if CTD is too high for any of the attackers
