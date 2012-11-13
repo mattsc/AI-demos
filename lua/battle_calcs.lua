@@ -657,10 +657,12 @@ end
 
 function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
     -- Calculate the stats of a combat by attacker vs. defender
-    -- cfg: input parameters
+    -- cfg: optional input parameters
     --  - att_weapon/def_weapon: attacker/defender weapon number
     --      if not given, get "best" weapon (Note: both must be given, or they will both be determined)
     --  - dst: { x, y }: the attack location; defaults to { attacker.x, attacker. y }
+
+    cfg = cfg or {}
 
     local dst = cfg.dst or { attacker.x, attacker.y }
 
