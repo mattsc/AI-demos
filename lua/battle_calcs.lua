@@ -970,7 +970,7 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg)
     return rating, defender_rating, attacker_rating, attacker_rating_av, att_stats, def_stats
 end
 
-function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cache)
+function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cache, cache_this_move)
     -- Calculate attack combination outcomes using
     -- tmp_attackers: array of attacker units (this is done so that
     --   the units need not be found here, as likely doing it in the
@@ -978,8 +978,10 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cach
     -- tmp_dsts: array of the hexes (format {x, y}) from which the attackers attack
     --   must be in same order as 'attackers'
     -- defender: the unit being attacked
-    -- cache: an optional table of pre-calculated attack outcomes
-    --   - As this is a table, we can modify it in here (add outcomes), which also modifies it in the calling function
+    -- cache: the cache table to be passed through to other battle_calcs functions
+    -- cache_this_move: an optional table of pre-calculated attack outcomes
+    --   - This is different from the other cache tables used in this file
+    --   - This table may only persist for this move (move, not turn !!!), as otherwise too many things change
     --
     -- Return values:
     --   - the rating for this attack combination calculated from battle_calcs.attack_rating() results
@@ -988,7 +990,7 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cach
     --   - defender combo stats: one set of stats containing the defender stats after the attack combination
     --   - def_stats: an array of defender stats for each individual attack, in the same order as 'attackers'
 
-    cache = cache or {}
+    cache_this_move = cache_this_move or {}
 
     --print()
     --print('Defender:', defender.id, defender.x, defender.y)
@@ -1002,14 +1004,14 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cach
     local tmp_att_stats, tmp_def_stats = {}, {}
     for i,a in ipairs(tmp_attackers) do
         --print('\n', a.id)
-        -- Initialize or use the 'cache' table
+        -- Initialize or use the 'cache_this_move' table
         local defender_ind = defender.x * 1000 + defender.y
         local att_ind = a.x * 1000 + a.y
         local dst_ind = tmp_dsts[i][1] * 1000 + tmp_dsts[i][2]
-        if (not cache[defender_ind]) then cache[defender_ind] = {} end
-        if (not cache[defender_ind][att_ind]) then cache[defender_ind][att_ind] = {} end
+        if (not cache_this_move[defender_ind]) then cache_this_move[defender_ind] = {} end
+        if (not cache_this_move[defender_ind][att_ind]) then cache_this_move[defender_ind][att_ind] = {} end
 
-        if (not cache[defender_ind][att_ind][dst_ind]) then
+        if (not cache_this_move[defender_ind][att_ind][dst_ind]) then
             -- Get the base rating
             local base_rating, def_rating, att_rating, att_rating_av, att_stats, def_stats =
                 battle_calcs.attack_rating(a, defender, tmp_dsts[i], { cache = cache } )
@@ -1051,8 +1053,8 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cach
             --print('Final rating', rating, i)
             ratings[i] = { i, rating, base_rating, def_rating, att_rating, att_rating_av }
 
-            -- Now add this attack to the cache table, so that next time around, we don't have to do this again
-            cache[defender_ind][att_ind][dst_ind] = {
+            -- Now add this attack to the cache_this_move table, so that next time around, we don't have to do this again
+            cache_this_move[defender_ind][att_ind][dst_ind] = {
                 rating = { -1, rating, base_rating, def_rating, att_rating, att_rating_av },  -- Cannot use { i, rating, ... } here, as 'i' might be different next time
                 attacker_ratings = tmp_attacker_ratings[i],
                 att_stats = tmp_att_stats[i],
@@ -1060,12 +1062,12 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cach
             }
         else
             --print('Stats already exist')
-            local tmp_rating = cache[defender_ind][att_ind][dst_ind].rating
+            local tmp_rating = cache_this_move[defender_ind][att_ind][dst_ind].rating
             tmp_rating[1] = i
             ratings[i] = tmp_rating
-            tmp_attacker_ratings[i] = cache[defender_ind][att_ind][dst_ind].attacker_ratings
-            tmp_att_stats[i] = cache[defender_ind][att_ind][dst_ind].att_stats
-            tmp_def_stats[i] = cache[defender_ind][att_ind][dst_ind].def_stats
+            tmp_attacker_ratings[i] = cache_this_move[defender_ind][att_ind][dst_ind].attacker_ratings
+            tmp_att_stats[i] = cache_this_move[defender_ind][att_ind][dst_ind].att_stats
+            tmp_def_stats[i] = cache_this_move[defender_ind][att_ind][dst_ind].def_stats
         end
     end
 
