@@ -661,6 +661,8 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
     --  - att_weapon/def_weapon: attacker/defender weapon number
     --      if not given, get "best" weapon (Note: both must be given, or they will both be determined)
     --  - dst: { x, y }: the attack location; defaults to { attacker.x, attacker. y }
+    --
+    -- 'cache' can be given to cache battle_outcome results
 
     cfg = cfg or {}
 
@@ -673,6 +675,19 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
         att_weapon, def_weapon = cfg.att_weapon, cfg.def_weapon
     end
     --print('Weapons:', att_weapon, def_weapon)
+
+    -- Set up a cache index.  We use id+max_hitpoints+side for each unit, since the
+    -- unit can level up.  Side is added to avoid the problem of MP leaders sometimes having
+    -- the same id when the game is started from the command-line
+    local cind = 'BO-' .. attacker.id .. attacker.max_hitpoints .. attacker.side .. att_weapon
+    cind = cind .. 'x' .. defender.id .. defender.max_hitpoints .. defender.side .. def_weapon
+    cind = cind .. '-' .. dst[1] .. '-' .. dst[2]
+    --print(cind)
+
+    -- If cache for this unit exists, return it
+    if cache and cache[cind] then
+        return cache[cind].att_stats, cache[cind].def_stats
+    end
 
     -- Collect all the information needed for the calculation
     -- Strike damage and numbers
@@ -731,6 +746,9 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
     local def_stats = battle_calcs.hp_distribution(def_coeffs, att_hit_prob, def_hit_prob, defender.hitpoints, att_damage, att_attack)
     --DBG.dbms(att_stats)
     --DBG.dbms(def_stats)
+
+    -- If we're caching, add this to 'cache'
+    if cache then cache[cind] = { att_stats = att_stats, def_stats = def_stats } end
 
     return att_stats, def_stats
 end
