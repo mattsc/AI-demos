@@ -344,15 +344,15 @@ function battle_calcs.battle_outcome_coefficients(cfg, cache)
 
 
     -- Set up the cache id
-    local id = 'coeff-' .. cfg.att.strikes .. '-' .. cfg.att.max_hits
-    if cfg.att.firststrike then id = id .. 'fs' end
-    id = id .. 'x' .. cfg.def.strikes .. '-' .. cfg.def.max_hits
-    if cfg.def.firststrike then id = id .. 'fs' end
-    --print(id)
+    local cind = 'coeff-' .. cfg.att.strikes .. '-' .. cfg.att.max_hits
+    if cfg.att.firststrike then cind = cind .. 'fs' end
+    cind = cind .. 'x' .. cfg.def.strikes .. '-' .. cfg.def.max_hits
+    if cfg.def.firststrike then cind = cind .. 'fs' end
+    --print(cind)
 
     -- If cache for this unit exists, return it
-    if cache and cache[id] then
-        return cache[id][1], cache[id][2]
+    if cache and cache[cind] then
+        return cache[cind].coeffs_att, cache[cind].coeffs_def
     else
         -- Get the hit/miss counts for the battle
         local hit_miss_counts = {}
@@ -518,7 +518,7 @@ function battle_calcs.battle_outcome_coefficients(cfg, cache)
         --DBG.dbms(coeffs_def)
 
         -- If we're caching, add this to 'cache'
-        if cache then cache[id] = { coeffs_att, coeffs_def } end
+        if cache then cache[cind] = { coeffs_att = coeffs_att, coeffs_def = coeffs_def } end
 
         return coeffs_att, coeffs_def
     end
