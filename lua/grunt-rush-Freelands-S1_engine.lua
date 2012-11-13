@@ -154,6 +154,7 @@ return {
                     second_watch = { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 }
                 },
                 hold = { x = 11, max_y = 15, hp_ratio = 1.0 },
+                secure = { x = 11, y = 9, moves_away = 2, min_units = 1 },
                 retreat_villages = { { 11, 9 }, { 8, 5 }, { 12, 5 }, { 12, 2 } }
             }
 
@@ -1536,14 +1537,15 @@ return {
             return nil
         end
 
-        function grunt_rush_FLS1:get_zone_hold(units, units_noMP, enemies, hold_y, cfg)
+        function grunt_rush_FLS1:get_zone_hold(units, units_noMP, zone_enemies, all_enemies, hold_y, cfg)
             -- Only check for possible position holding if hold.hp_ratio is met
+            -- or is conditions in cfg.secure are met
             -- If hold.hp_ratio does not exist, it's true by default
 
             local eval_hold = true
             if cfg.hold.hp_ratio then
-                local hp_ratio = grunt_rush_FLS1:hp_ratio(units, enemies)
-                --print('hp_ratio, #units, #enemies', hp_ratio, #units, #enemies)
+                local hp_ratio = grunt_rush_FLS1:hp_ratio(units, zone_enemies)
+                --print('hp_ratio, #units, #zone_enemies', hp_ratio, #units, #zone_enemies)
 
                 -- Don't evaluate for holding position if the hp_ratio in the zone is already high enough
                 if (hp_ratio >= cfg.hold.hp_ratio) then
@@ -1588,7 +1590,59 @@ return {
                 local action = { units = {}, dsts = {} }
                 action.units[1], action.dsts[1] = grunt_rush_FLS1:hold_zone(units, goal, cfg)
                 return action
+            end
 
+            -- If we got here, check whether there are instruction to secure the zone
+            -- That is, whether units are not in the zone, but are threatening a key location in it
+            -- The parameters for this are set in cfg.secure
+            if cfg.secure then
+                -- Count units that are already in the zone (no MP left) that
+                -- are not the side leader
+                local number_units_noMP_noleader = 0
+                for i,u in ipairs(units_noMP) do
+                    if (not u.canrecruit) then number_units_noMP_noleader = number_units_noMP_noleader + 1 end
+                end
+                --print('Units already in zone:', number_units_noMP_noleader)
+
+                -- If there are not enough units, move others there
+                if (number_units_noMP_noleader < cfg.secure.min_units) then
+                    -- Check whether (cfg.secure.x,cfg.secure.y) is threatened
+                    local enemy_threats = false
+                    for i,e in ipairs(all_enemies) do
+                        local path, cost = wesnoth.find_path(e, cfg.secure.x, cfg.secure.y)
+                        if (cost <= e.max_moves * cfg.secure.moves_away) then
+                           enemy_threats = true
+                           break
+                        end
+                    end
+                    --print(cfg.zone_id, 'need to secure ' .. cfg.secure.x .. ',' .. cfg.secure.y, enemy_threats)
+
+                    -- If we need to secure the zone
+                    if enemy_threats then
+                        -- The best unit is simply the one that can get there first
+                        -- If several can make it in the same number of moves, use the one with the most HP
+                        local max_rating, best_unit = -9e99, {}
+                        for i,u in ipairs(units) do
+                            local path, cost = wesnoth.find_path(u, cfg.secure.x, cfg.secure.y)
+                            local rating = - math.ceil(cost / u.max_moves)
+
+                            rating = rating + u.hitpoints / 100.
+
+                            if (rating > max_rating) then
+                                max_rating, best_unit = rating, u
+                            end
+                        end
+
+                        -- Find move for the unit found above
+                        if (max_rating > -9e99) then
+                            local dst = AH.next_hop(best_unit, cfg.secure.x, cfg.secure.y)
+                            if dst then
+                                local action = { units = { best_unit }, dsts = { dst } }
+                                return action
+                            end
+                        end
+                    end
+                end
             end
 
             return nil
@@ -1841,7 +1895,7 @@ return {
                 end
 
                 if (holders[1]) then
-                    local action = grunt_rush_FLS1:get_zone_hold(holders, zone_units_noMP, enemies_hold_zone, advance_y, cfg)
+                    local action = grunt_rush_FLS1:get_zone_hold(holders, zone_units_noMP, enemies_hold_zone, enemies, advance_y, cfg)
                     if action then
                         action.action = cfg.zone_id .. ': ' .. 'hold position'
                         return action
