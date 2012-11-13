@@ -14,15 +14,15 @@ function battle_calcs.unit_attack_info(unit, cache)
     --  - resist_mod: resistance modifiers (multiplicative factors) index by attack type
     --  - alignment: just that
 
-    -- Set up a cache id.  We use id+type+side for this, since the
+    -- Set up a cache index.  We use id+max_hitpoints+side, since the
     -- unit can level up.  Side is added to avoid the problem of MP leaders sometimes having
     -- the same id when the game is started from the command-line
-    local id = 'unitinfo-' .. unit.id .. unit.type .. unit.side
-    --print(id)
+    local cind = 'UI-' .. unit.id .. unit.max_hitpoints .. unit.side
+    --print(cind)
 
     -- If cache for this unit exists, return it
-    if cache and cache[id] then
-        return cache[id]
+    if cache and cache[cind] then
+        return cache[cind]
     end
 
     -- Otherwise collect the information
@@ -71,7 +71,7 @@ function battle_calcs.unit_attack_info(unit, cache)
     end
 
     -- If we're caching, add this to 'cache'
-    if cache then cache[id] = unit_info end
+    if cache then cache[cind] = unit_info end
 
     return unit_info
 end
@@ -86,17 +86,17 @@ function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, 
     --
     -- 'cache' can be given to cache strike damage and to pass through to battle_calcs.unit_attack_info()
 
-    -- Set up a cache id.  We use id+type+side for this, since the
+    -- Set up a cache index.  We use id+max_hitpoints+side for each unit, since the
     -- unit can level up.  Side is added to avoid the problem of MP leaders sometimes having
     -- the same id when the game is started from the command-line
-    local id = 'strikedamage-' .. attacker.id .. attacker.type .. attacker.side
-    id = id .. 'x' .. defender.id .. defender.type .. defender.side
-    id = id .. '-' .. att_weapon .. 'x' .. def_weapon
-    --print(id)
+    local cind = 'SD-' .. attacker.id .. attacker.max_hitpoints .. attacker.side
+    cind = cind .. 'x' .. defender.id .. defender.max_hitpoints .. defender.side
+    cind = cind .. '-' .. att_weapon .. 'x' .. def_weapon
+    --print(cind)
 
     -- If cache for this unit exists, return it
-    if cache and cache[id] then
-        return cache[id].att_damage, cache[id].def_damage, cache[id].att_attack, cache[id].def_attack
+    if cache and cache[cind] then
+        return cache[cind].att_damage, cache[cind].def_damage, cache[cind].att_attack, cache[cind].def_attack
     end
 
     -- If not cached, calculate the damage
@@ -168,7 +168,7 @@ function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, 
 
     -- If we're caching, add this to 'cache'
     if cache then
-        cache[id] = {
+        cache[cind] = {
             att_damage = att_damage,
             def_damage = def_damage,
             att_attack = attacker_info.attacks[att_weapon],
