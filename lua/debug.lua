@@ -17,7 +17,6 @@ local debug_utils = {}
 -- onscreen (boolean, optional): whether the message shall be displayed in a wml [message] dialog too
 -- That [message] dialog can get very slow for large tables such as unit arrays.
 function debug_utils.dbms(lua_var, clear, name, onscreen, wrap, only_return)
-        if type(clear) ~= "boolean" then clear = false end  -- !!!!! changed from WLP default
         if type(name) ~= "string" then name = "lua_var" end
         if type(onscreen) ~= "boolean" then onscreen = false end  -- !!!!! changed from WLP default
 
@@ -156,7 +155,8 @@ function debug_utils.dbms(lua_var, clear, name, onscreen, wrap, only_return)
 
         if clear and wesnoth then wesnoth.clear_messages() end
         if not only_return then
-                if wesnoth and clear and (clear == -1) then wesnoth.message("dbms", result) end;
+print(clear)
+                if wesnoth and ((not clear) or (clear and (clear ~= -1))) then wesnoth.message("dbms", result) end;
                 print(result)
         end
         local continue = true
