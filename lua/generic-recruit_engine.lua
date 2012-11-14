@@ -453,6 +453,8 @@ return {
             end
             --print (self.data.castle.loose_gold_limit .. " " .. self.data.recruit.cheapest_unit_cost .. " " .. gold_limit)
 
+            local recruitable_units = {}
+
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
                 -- Count number of units with the same attack type. Used to avoid recruiting too many of the same unit
                 local attack_types = 0
@@ -493,6 +495,7 @@ return {
                 if wesnoth.match_unit(recruit_unit, { ability = "healing" }) then
                     unit_score["heals"] = true
                 end
+                recruitable_units[recruit_id] = recruit_unit
             end
             local healer_count, healable_count = get_unit_counts_for_healing()
             local best_score = 0
@@ -520,8 +523,9 @@ return {
                 end
                 bonus = bonus + 0.05 * wesnoth.races[wesnoth.unit_types[recruit_id].__cfg.race].num_traits^2
                 if target_hex[1] then
-                    local recruit_unit = wesnoth.create_unit { type = recruit_id, x = best_hex[1], y = best_hex[2] }
-                    local path, cost = wesnoth.find_path(recruit_unit, target_hex[1], target_hex[2], {viewing_side=0})
+                    recruitable_units[recruit_id].x = best_hex[1]
+                    recruitable_units[recruit_id].y = best_hex[2]
+                    local path, cost = wesnoth.find_path(recruitable_units[recruit_id], target_hex[1], target_hex[2], {viewing_side=0})
                     if cost > wesnoth.unit_types[recruit_id].max_moves then
                         -- large penalty if the unit can't reach the target village
                         bonus = bonus - 1
