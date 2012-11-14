@@ -587,7 +587,7 @@ return {
                 }}
             }
 
-            local hex, target, shortest_distance = {}, {}, fastest_unit_speed+1
+            local hex, target, shortest_distance = {}, {}, AH.no_path
 
             if not data.castle.assigned_villages_x then
                 data.castle.assigned_villages_x = {}
@@ -630,7 +630,7 @@ return {
                 end
 
                 local viable_village = false
-                local village_best_hex, village_shortest_distance = {}, fastest_unit_speed+1
+                local village_best_hex, village_shortest_distance = {}, AH.no_path
                 for j,c in ipairs(close_castle_hexes) do
                     if c[1] > 0 and c[2] > 0 and c[1] <= width and c[2] <= height then
                         local distance = 0
