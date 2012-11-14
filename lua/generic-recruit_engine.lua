@@ -23,7 +23,7 @@ return {
             return best_defense
         end
 
-        function analyze_enemy_unit(unit_type_id)
+        function ai_cas:analyze_enemy_unit(unit_type_id)
             local function get_best_attack(attacker, defender, unit_defense, can_poison)
                 -- Try to find the average damage for each possible attack and return the one that deals the most damage.
                 -- Would be preferable to call simulate combat, but that requires the defender to be on the map according
@@ -121,6 +121,16 @@ return {
                 return best_attack, best_damage, poison_damage
             end
 
+            -- Use cached information when possible: this is expensive
+            -- TODO: Invalidate cache when recruit list changes
+            if not self.data.analyses then
+                self.data.analyses = {}
+            else
+                if self.data.analyses[unit_type_id] then
+                    return self.data.analyses[unit_type_id]
+                end
+            end
+
             local analysis = {}
 
             local unit = wesnoth.create_unit { type = unit_type_id }
@@ -143,6 +153,8 @@ return {
                 analysis[recruit_id] = result
             end
 
+            -- Cache result before returning
+            self.data.analyses[unit_type_id] = analysis
             return analysis
         end
 
