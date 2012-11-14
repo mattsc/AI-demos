@@ -623,7 +623,6 @@ return {
                     }},
                     { "not", { { "filter", {} } } }
                 }
-                    test_units[id].y = v[2]
                 for u,unit in ipairs(test_units) do
                     test_units[u].x = v[1]
                     test_units[u].y = v[2]
