@@ -635,6 +635,11 @@ return {
                         for x,unit in ipairs(test_units) do
                             local path, unit_distance = wesnoth.find_path(unit, c[1], c[2], {viewing_side=0, max_cost=fastest_unit_speed})
                             distance = distance + unit_distance
+
+                            -- Village is only viable if at least one unit can reach it
+                            if distance <= unit.max_moves then
+                                viable_village = true
+                            end
                         end
                         distance = distance / num_recruits
 
@@ -642,11 +647,6 @@ return {
                             hex = c
                             target = v
                             shortest_distance = distance
-                        end
-
-                        -- Village is only viable if at least one unit can reach it
-                        if distance <= unit.max_moves then
-                            viable_village = true
                         end
                     end
                 end
