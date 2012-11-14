@@ -633,7 +633,7 @@ return {
                     if c[1] > 0 and c[2] > 0 and c[1] <= width and c[2] <= height then
                         local distance = 0
                         for x,id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
-                            local path, unit_distance = wesnoth.find_path(test_units[id], c[1], c[2], {viewing_side=0})
+                            local path, unit_distance = wesnoth.find_path(test_units[id], c[1], c[2], {viewing_side=0, max_cost=fastest_unit_speed})
                             distance = distance + unit_distance
                         end
                         distance = distance / num_recruits
