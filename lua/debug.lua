@@ -155,7 +155,6 @@ function debug_utils.dbms(lua_var, clear, name, onscreen, wrap, only_return)
 
         if clear and wesnoth then wesnoth.clear_messages() end
         if not only_return then
-print(clear)
                 if wesnoth and ((not clear) or (clear and (clear ~= -1))) then wesnoth.message("dbms", result) end;
                 print(result)
         end
