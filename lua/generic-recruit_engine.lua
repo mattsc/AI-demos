@@ -609,7 +609,8 @@ return {
                 num_recruits = num_recruits + 1
                 test_units[num_recruits] =  wesnoth.create_unit({
                     type = id,
-                    side = wesnoth.current.side
+                    side = wesnoth.current.side,
+                    random_traits = false
                 })
             end
 
