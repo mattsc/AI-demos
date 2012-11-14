@@ -22,7 +22,7 @@ function ai_helper.print_exec()
     -- Just edit the following line (easier than trying to set WML variable)
     local print_exec_flag = true
     if wesnoth.game_config.debug then return print_exec_flag end
-    return true
+    return false
 end
 
 function ai_helper.print_eval()
@@ -31,7 +31,7 @@ function ai_helper.print_eval()
     -- Just edit the following line (easier than trying to set WML variable)
     local print_eval_flag = false
     if wesnoth.game_config.debug then return print_eval_flag end
-    return true
+    return false
 end
 
 function ai_helper.done_eval_messages(start_time, ca_name)
