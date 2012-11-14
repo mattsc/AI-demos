@@ -210,7 +210,6 @@ return {
                 return 0
             end
 
-            local best_hex, target_hex = ai_cas:find_best_recruit_hex(leader, data)
             get_current_castle(leader, data)
             local no_space = true
             for i,c in ipairs(data.castle.locs) do
