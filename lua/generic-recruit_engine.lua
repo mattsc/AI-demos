@@ -314,7 +314,7 @@ return {
             local unit_attack_range_count = {} -- The ranges a unit will use
             local enemy_type_count = 0
             for i, unit_type in ipairs(enemy_types) do
-                local analysis = analyze_enemy_unit(unit_type)
+                local analysis = ai_cas:analyze_enemy_unit(unit_type)
                 enemy_type_count = enemy_type_count + 1
                 for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
                     -- This line should be moved out of the loop!
