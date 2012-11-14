@@ -606,11 +606,11 @@ return {
             local village_count = #villages
             local test_units, num_recruits = {}, 0
             for x,id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
-                test_units[id] =  wesnoth.create_unit({
+                num_recruits = num_recruits + 1
+                test_units[num_recruits] =  wesnoth.create_unit({
                     type = id,
                     side = wesnoth.current.side
                 })
-                num_recruits = num_recruits + 1
             end
 
             local width,height,border = wesnoth.get_map_size()
@@ -623,17 +623,18 @@ return {
                     }},
                     { "not", { { "filter", {} } } }
                 }
-                for x,id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
-                    test_units[id].x = v[1]
                     test_units[id].y = v[2]
+                for u,unit in ipairs(test_units) do
+                    test_units[u].x = v[1]
+                    test_units[u].y = v[2]
                 end
 
                 local viable_village = false
                 for j,c in ipairs(close_castle_hexes) do
                     if c[1] > 0 and c[2] > 0 and c[1] <= width and c[2] <= height then
                         local distance = 0
-                        for x,id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
-                            local path, unit_distance = wesnoth.find_path(test_units[id], c[1], c[2], {viewing_side=0, max_cost=fastest_unit_speed})
+                        for x,unit in ipairs(test_units) do
+                            local path, unit_distance = wesnoth.find_path(unit, c[1], c[2], {viewing_side=0, max_cost=fastest_unit_speed})
                             distance = distance + unit_distance
                         end
                         distance = distance / num_recruits
