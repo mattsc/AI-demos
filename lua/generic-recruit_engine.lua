@@ -639,7 +639,7 @@ return {
                             distance = distance + unit_distance
 
                             -- Village is only viable if at least one unit can reach it
-                            if distance <= unit.max_moves then
+                            if unit_distance <= unit.max_moves then
                                 viable_village = true
                             end
                         end
