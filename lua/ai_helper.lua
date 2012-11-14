@@ -529,6 +529,8 @@ end
 
 --------- Move related helper functions ----------
 
+ai_helper.no_path = 42424242  -- Value returned by engine for distance when no path is found
+
 function ai_helper.get_dst_src_units(units, cfg)
     -- Get the dst_src LS for 'units'
     -- cfg: configuration table
@@ -632,7 +634,7 @@ function ai_helper.next_hop(unit, x, y, cfg)
     local path, cost = wesnoth.find_path(unit, x, y, cfg)
 
     -- If unit cannot get there:
-    if cost >= 42424242 then return nil, cost end
+    if cost >= ai_helper.no_path then return nil, cost end
 
     -- If none of the hexes are unoccupied, use current position as default
     local next_hop, nh_cost = {unit.x, unit.y}, 0
