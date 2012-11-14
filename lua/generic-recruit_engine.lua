@@ -629,6 +629,7 @@ return {
                 end
 
                 local viable_village = false
+                local village_best_hex, village_shortest_distance = {}, fastest_unit_speed+1
                 for j,c in ipairs(close_castle_hexes) do
                     if c[1] > 0 and c[2] > 0 and c[1] <= width and c[2] <= height then
                         local distance = 0
@@ -643,12 +644,16 @@ return {
                         end
                         distance = distance / num_recruits
 
-                        if distance < shortest_distance then
-                            hex = c
-                            target = v
-                            shortest_distance = distance
+                        if distance < village_shortest_distance then
+                            village_best_hex = c
+                            village_shortest_distance = distance
                         end
                     end
+                end
+                if village_shortest_distance < shortest_distance then
+                    hex = village_best_hex
+                    target = v
+                    shortest_distance = village_shortest_distance
                 end
                 if not viable_village then
                     -- this village could not be reached by any unit
