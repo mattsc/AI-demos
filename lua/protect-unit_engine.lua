@@ -168,17 +168,18 @@ return {
             -- Always 94000 if one of the units can still move
             local units = wesnoth.get_units{id = ids, formula = '$this_unit.moves > 0'}
 
+            -- For the time being, we disable the dialog
             -- If AI parameters are not set, bring up the dialog
             -- For demo scenario only, delete for real use
-            if (not self.data.enemy_weight) then
-                W.message { speaker = "narrator", image = "wesnoth-icon.png", message = "Before we get going, you can set some of the AI parameters.  If you want to work with the default values, just click on 'Close' in the following dialog." }
+            --if (not self.data.enemy_weight) then
+            --    W.message { speaker = "narrator", image = "wesnoth-icon.png", message = "Before we get going, you can set some of the AI parameters.  If you want to work with the default values, just click on 'Close' in the following dialog." }
 
-                local r = wesnoth.show_dialog(self.dialog, self.preshow, self.postshow)
+            --    local r = wesnoth.show_dialog(self.dialog, self.preshow, self.postshow)
 
-                local tmp = 'toward enemy'
-                if (self.data.bearing == -1) then tmp = 'away from enemy' end
-                W.message { speaker = "narrator", image = "wesnoth-icon.png", caption = "Parameters set to:", message = "Enemy unit weight = " .. self.data.enemy_weight .. "\nMy unit weight = " .. self.data.my_unit_weight .. "\nGoal distance weight = " .. self.data.distance_weight .. "\nTerrain defense weight = " .. self.data.terrain_weight .. "\nBearing: " .. tmp }
-            end
+            --    local tmp = 'toward enemy'
+            --    if (self.data.bearing == -1) then tmp = 'away from enemy' end
+            --    W.message { speaker = "narrator", image = "wesnoth-icon.png", caption = "Parameters set to:", message = "Enemy unit weight = " .. self.data.enemy_weight .. "\nMy unit weight = " .. self.data.my_unit_weight .. "\nGoal distance weight = " .. self.data.distance_weight .. "\nTerrain defense weight = " .. self.data.terrain_weight .. "\nBearing: " .. tmp }
+            --end
 
             if units[1] then
                 return 94000
