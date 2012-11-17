@@ -1689,6 +1689,7 @@ return {
 
                 local action = { units = {}, dsts = {} }
                 action.units[1], action.dsts[1] = grunt_rush_FLS1:hold_zone(holders, goal, cfg)
+                action.action = cfg.zone_id .. ': ' .. 'hold position'
                 return action
             end
 
@@ -1738,6 +1739,7 @@ return {
                             local dst = AH.next_hop(best_unit, cfg.secure.x, cfg.secure.y)
                             if dst then
                                 local action = { units = { best_unit }, dsts = { dst } }
+                                action.action = cfg.zone_id .. ': ' .. 'secure zone'
                                 return action
                             end
                         end
@@ -1900,10 +1902,7 @@ return {
 
             if (not cfg.hold.skip) then
                 local action = grunt_rush_FLS1:zone_action_hold(zone_units, zone_units_noMP, enemies, zone_map, advance_y, cfg)
-                if action then
-                    action.action = cfg.zone_id .. ': ' .. 'hold position'
-                    return action
-                end
+                if action then return action end
             end
 
             return nil  -- This is technically unnecessary
