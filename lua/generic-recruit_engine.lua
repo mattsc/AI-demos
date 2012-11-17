@@ -605,13 +605,24 @@ return {
 
             local village_count = #villages
             local test_units, num_recruits = {}, 0
+            local movetypes = {}
             for x,id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
-                num_recruits = num_recruits + 1
-                test_units[num_recruits] =  wesnoth.create_unit({
-                    type = id,
-                    side = wesnoth.current.side,
-                    random_traits = false
-                })
+                local custom_movement = H.get_child(wesnoth.unit_types[id].__cfg, "movement_costs")
+                local movetype = wesnoth.unit_types[id].__cfg.movement_type
+                if custom_movement
+                or (not movetypes[movetype])
+                or (movetypes[movetype] > wesnoth.unit_types[id].max_moves)
+                then
+                    if not custom_movement then
+                        movetypes[movetype] = wesnoth.unit_types[id].max_moves
+                    end
+                    num_recruits = num_recruits + 1
+                    test_units[num_recruits] =  wesnoth.create_unit({
+                        type = id,
+                        side = wesnoth.current.side,
+                        random_traits = false
+                    })
+                end
             end
 
             local width,height,border = wesnoth.get_map_size()
