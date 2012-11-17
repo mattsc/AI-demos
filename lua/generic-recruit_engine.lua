@@ -604,26 +604,8 @@ return {
             end
 
             local village_count = #villages
-            local test_units, num_recruits = {}, 0
-            local movetypes = {}
-            for x,id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
-                local custom_movement = H.get_child(wesnoth.unit_types[id].__cfg, "movement_costs")
-                local movetype = wesnoth.unit_types[id].__cfg.movement_type
-                if custom_movement
-                or (not movetypes[movetype])
-                or (movetypes[movetype] > wesnoth.unit_types[id].max_moves)
-                then
-                    if not custom_movement then
-                        movetypes[movetype] = wesnoth.unit_types[id].max_moves
-                    end
-                    num_recruits = num_recruits + 1
-                    test_units[num_recruits] =  wesnoth.create_unit({
-                        type = id,
-                        side = wesnoth.current.side,
-                        random_traits = false
-                    })
-                end
-            end
+            local test_units = get_test_units()
+            local num_recruits = #test_units
 
             local width,height,border = wesnoth.get_map_size()
             for i,v in ipairs(villages) do
@@ -681,6 +663,31 @@ return {
             data.castle.loose_gold_limit = math.floor(wesnoth.sides[wesnoth.current.side].gold/village_count + 0.5)
 
             return hex, target
+        end
+
+        function get_test_units()
+            local test_units, num_recruits = {}, 0
+            local movetypes = {}
+            for x,id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
+                local custom_movement = H.get_child(wesnoth.unit_types[id].__cfg, "movement_costs")
+                local movetype = wesnoth.unit_types[id].__cfg.movement_type
+                if custom_movement
+                or (not movetypes[movetype])
+                or (movetypes[movetype] > wesnoth.unit_types[id].max_moves)
+                then
+                    if not custom_movement then
+                        movetypes[movetype] = wesnoth.unit_types[id].max_moves
+                    end
+                    num_recruits = num_recruits + 1
+                    test_units[num_recruits] =  wesnoth.create_unit({
+                        type = id,
+                        side = wesnoth.current.side,
+                        random_traits = false
+                    })
+                end
+            end
+
+            return test_units
         end
     end -- init()
 }
