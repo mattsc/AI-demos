@@ -1410,7 +1410,7 @@ return {
 
         --------- zone_control CA ------------
 
-        function grunt_rush_FLS1:zone_retreat_injured(units, cfg)
+        function grunt_rush_FLS1:zone_action_retreat_injured(units, cfg)
             -- **** Retreat seriously injured units
             --print('retreat', os.clock())
 
@@ -1451,7 +1451,7 @@ return {
             end
         end
 
-        function grunt_rush_FLS1:get_zone_attack(units, enemies, zone, zone_map, advance_y, cfg)
+        function grunt_rush_FLS1:zone_action_attack(units, enemies, zone, zone_map, advance_y, cfg)
 
             --print('attack', os.clock())
 
@@ -1619,7 +1619,7 @@ return {
             return nil
         end
 
-        function grunt_rush_FLS1:get_zone_hold(units, units_noMP, zone_enemies, all_enemies, hold_y, cfg)
+        function grunt_rush_FLS1:zone_action_hold(units, units_noMP, zone_enemies, all_enemies, hold_y, cfg)
             -- Only check for possible position holding if hold.hp_ratio is met
             -- or is conditions in cfg.secure are met
             -- If hold.hp_ratio does not exist, it's true by default
@@ -1810,12 +1810,12 @@ return {
 
             -- **** This ends the common initialization for all zone actions ****
 
-            local action = grunt_rush_FLS1:zone_retreat_injured(zone_units, cfg)
+            local action = grunt_rush_FLS1:zone_action_retreat_injured(zone_units, cfg)
             if action then return action end
 
             -- **** Attack evaluation ****
 
-            local action = grunt_rush_FLS1:get_zone_attack(zone_units, enemies, zone, zone_map, advance_y, cfg)
+            local action = grunt_rush_FLS1:zone_action_attack(zone_units, enemies, zone, zone_map, advance_y, cfg)
             if action then return action end
 
             -- **** Villages evaluation ****
@@ -1899,7 +1899,7 @@ return {
                 end
 
                 if (holders[1]) then
-                    local action = grunt_rush_FLS1:get_zone_hold(holders, zone_units_noMP, enemies_hold_zone, enemies, advance_y, cfg)
+                    local action = grunt_rush_FLS1:zone_action_hold(holders, zone_units_noMP, enemies_hold_zone, enemies, advance_y, cfg)
                     if action then
                         action.action = cfg.zone_id .. ': ' .. 'hold position'
                         return action
