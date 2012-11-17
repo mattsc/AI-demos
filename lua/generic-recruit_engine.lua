@@ -669,7 +669,6 @@ return {
                 end
                 if not viable_village then
                     -- this village could not be reached by any unit
-                    -- (bats have movement as good or better than everything)
                     -- eliminate it from consideration
                     table.insert(data.castle.assigned_villages_x, v[1])
                     table.insert(data.castle.assigned_villages_y, v[2])
