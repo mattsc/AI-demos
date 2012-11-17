@@ -1410,6 +1410,47 @@ return {
 
         --------- zone_control CA ------------
 
+        function grunt_rush_FLS1:zone_retreat_injured(units, cfg)
+            -- **** Retreat seriously injured units
+            --print('retreat', os.clock())
+
+            -- Note: while severely injured units are dealt with on a zone-by-zone basis,
+            -- they can retreat to hexes outside the zones
+            -- This includes the leader even if he is not on his keep
+            local trolls, non_trolls = {}, {}
+            for i,u in ipairs(units) do
+                if (u.__cfg.race == 'troll') then
+                    table.insert(trolls, u)
+                else
+                    table.insert(non_trolls, u)
+                end
+            end
+            --print('#trolls, #non_trolls', #trolls, #non_trolls)
+
+            -- First we retreat non-troll units w/ <12 HP to villages.
+            if non_trolls[1] then
+                local action = grunt_rush_FLS1:get_retreat_injured_units(non_trolls, "*^V*", 12)
+                if action then
+                    action.action = cfg.zone_id .. ': ' .. 'retreat severely injured units (non-trolls)'
+                    return action
+                end
+            end
+
+            -- Then we retreat troll units with <16 HP to mountains
+            -- We use a slightly higher min_hp b/c trolls generally have low defense.
+            -- Also since trolls regen at start of turn, they only have <12 HP if poisoned
+            -- or reduced to <4 HP on enemy's turn.
+            -- We exclude impassable terrain to speed up evaluation.
+            -- We do NOT exclude mountain villages! Maybe we should?
+            if trolls[1] then
+                local action = grunt_rush_FLS1:get_retreat_injured_units(trolls, "!,*^X*,!,M*^*", 16)
+                if action then
+                    action.action = cfg.zone_id .. ': ' .. 'retreat severely injured units (trolls)'
+                    return action
+                end
+            end
+        end
+
         function grunt_rush_FLS1:get_zone_attack(attackers, targets)
 
             -- Also want an 'attackers' map, indexed by position (for speed reasons)
@@ -1728,44 +1769,8 @@ return {
 
             -- **** This ends the common initialization for all zone actions ****
 
-            -- **** Retreat seriously injured units
-            --print('retreat', os.clock())
-
-            -- Note: while severely injured units are dealt with on a zone-by-zone basis,
-            -- they can retreat to hexes outside the zones
-            -- This includes the leader even if he is not on his keep
-            local trolls, non_trolls = {}, {}
-            for i,u in ipairs(zone_units) do
-                if (u.__cfg.race == 'troll') then
-                    table.insert(trolls, u)
-                else
-                    table.insert(non_trolls, u)
-                end
-            end
-            --print('#trolls, #non_trolls', #trolls, #non_trolls)
-
-            -- First we retreat non-troll units w/ <12 HP to villages.
-            if non_trolls[1] then
-                local action = grunt_rush_FLS1:get_retreat_injured_units(non_trolls, "*^V*", 12)
-                if action then
-                    action.action = cfg.zone_id .. ': ' .. 'retreat severely injured units (non-trolls)'
-                    return action
-                end
-            end
-
-            -- Then we retreat troll units with <16 HP to mountains
-            -- We use a slightly higher min_hp b/c trolls generally have low defense.
-            -- Also since trolls regen at start of turn, they only have <12 HP if poisoned
-            -- or reduced to <4 HP on enemy's turn.
-            -- We exclude impassable terrain to speed up evaluation.
-            -- We do NOT exclude mountain villages! Maybe we should?
-            if trolls[1] then
-                local action = grunt_rush_FLS1:get_retreat_injured_units(trolls, "!,*^X*,!,M*^*", 16)
-                if action then
-                    action.action = cfg.zone_id .. ': ' .. 'retreat severely injured units (trolls)'
-                    return action
-                end
-            end
+            local action = grunt_rush_FLS1:zone_retreat_injured(zone_units, cfg)
+            if action then return action end
 
             -- **** Attack evaluation ****
             --print('attack', os.clock())
