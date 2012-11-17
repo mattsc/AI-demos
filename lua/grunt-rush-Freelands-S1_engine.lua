@@ -1451,8 +1451,68 @@ return {
             end
         end
 
-        function grunt_rush_FLS1:zone_action_attack(units, enemies, zone, zone_map, advance_y, cfg)
+        function grunt_rush_FLS1:zone_action_villages(units, enemies, cfg)
+            --print('villages', os.clock())
 
+            -- This should include both retreating to villages of injured units and village grabbing
+            -- The leader is only included if he is on the keep
+
+            local injured_units = {}
+            for i,u in ipairs(units) do
+                if (u.hitpoints< u.max_hitpoints) then
+                    if u.canrecruit then
+                        if wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
+                            table.insert(injured_units, u)
+                        end
+                    else
+                        table.insert(injured_units, u)
+                    end
+                end
+            end
+            --print('#injured_units', #injured_units)
+
+            -- During daytime, we retreat injured units toward villages
+            -- (Seriously injured units are already dealt with previously)
+            if injured_units[1] then
+                local tod = wesnoth.get_time_of_day()
+                if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
+                    local action = grunt_rush_FLS1:eval_grab_villages(injured_units, cfg.retreat_villages, enemies, true)
+                    if action then
+                        action.action = cfg.zone_id .. ': ' .. 'retreat injured units (daytime)'
+                        return action
+                    end
+                end
+            end
+
+            -- Otherwise we go for unowned and enemy-owned villages
+            -- This needs to happen for all units, not just not-injured ones
+            -- Also includes the leader, if he's on his keep
+            -- The rating>100 part is to exclude threatened but already owned villages
+
+            local village_grabbers = {}
+            for i,u in ipairs(units) do
+                if u.canrecruit then
+                    if wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
+                        table.insert(village_grabbers, u)
+                    end
+                else
+                    table.insert(village_grabbers, u)
+                end
+            end
+            --print('#village_grabbers', #village_grabbers)
+
+            if village_grabbers[1] then
+                -- For this, we consider all villages, not just the retreat_villages
+                local villages = wesnoth.get_locations { terrain = '*^V*' }
+                local action = grunt_rush_FLS1:eval_grab_villages(village_grabbers, villages, enemies, false)
+                if action and (action.rating > 100) then
+                    action.action = cfg.zone_id .. ': ' .. 'grab villages'
+                    return action
+                end
+            end
+        end
+
+        function grunt_rush_FLS1:zone_action_attack(units, enemies, zone, zone_map, advance_y, cfg)
             --print('attack', os.clock())
 
             -- Attackers include the leader but only if he is on his
@@ -1834,72 +1894,14 @@ return {
             if action then return action end
 
             -- **** Attack evaluation ****
-
             local action = grunt_rush_FLS1:zone_action_attack(zone_units, enemies, zone, zone_map, advance_y, cfg)
             if action then return action end
 
-            -- **** Villages evaluation **** xxxxxx
-            --print('villages', os.clock())
-
-            -- This should include both retreating to villages of injured units and village grabbing
-            -- The leader is only included if he is on the keep
-
-            local injured_units = {}
-            for i,u in ipairs(zone_units) do
-                if (u.hitpoints< u.max_hitpoints) then
-                    if u.canrecruit then
-                        if wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
-                            table.insert(injured_units, u)
-                        end
-                    else
-                        table.insert(injured_units, u)
-                    end
-                end
-            end
-            --print('#injured_units', #injured_units)
-
-            -- During daytime, we retreat injured units toward villages
-            -- (Seriously injured units are already dealt with previously)
-            if injured_units[1] then
-                local tod = wesnoth.get_time_of_day()
-                if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
-                    local action = grunt_rush_FLS1:eval_grab_villages(injured_units, cfg.retreat_villages, enemies, true)
-                    if action then
-                        action.action = cfg.zone_id .. ': ' .. 'retreat injured units (daytime)'
-                        return action
-                    end
-                end
-            end
-
-            -- Otherwise we go for unowned and enemy-owned villages
-            -- This needs to happen for all units, not just not-injured ones
-            -- Also includes the leader, if he's on his keep
-            -- The rating>100 part is to exclude threatened but already owned villages
-
-            local village_grabbers = {}
-            for i,u in ipairs(zone_units) do
-                if u.canrecruit then
-                    if wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
-                        table.insert(village_grabbers, u)
-                    end
-                else
-                    table.insert(village_grabbers, u)
-                end
-            end
-            --print('#village_grabbers', #village_grabbers)
-
-            if village_grabbers[1] then
-                -- For this, we consider all villages, not just the retreat_villages
-                local villages = wesnoth.get_locations { terrain = '*^V*' }
-                local action = grunt_rush_FLS1:eval_grab_villages(village_grabbers, villages, enemies, false)
-                if action and (action.rating > 100) then
-                    action.action = cfg.zone_id .. ': ' .. 'grab villages'
-                    return action
-                end
-            end
+            -- **** Villages evaluation ****
+            local action = grunt_rush_FLS1:zone_action_villages(zone_units, enemies, cfg)
+            if action then return action end
 
             -- **** Hold position evaluation ****
-
             if (not cfg.hold.skip) then
                 local action = grunt_rush_FLS1:zone_action_hold(zone_units, zone_units_noMP, enemies, zone_map, advance_y, cfg)
                 if action then return action end
