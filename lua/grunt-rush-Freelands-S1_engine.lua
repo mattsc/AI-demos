@@ -86,6 +86,9 @@ return {
             -- unit_filter: SUF of the units considered for moves for this zone
             -- do_action: if given, evaluate only the listed actions for the zone
             --   if not given, evaluate all actions (that should be the default)
+            -- skip_action: actions listed here will be skipped from evaluation, all
+            --   others will be evaluation.
+            --   !!! Obviously, only do_action _or_ skip_action should be given, not both !!!
             -- advance: table describing the advance conditions for each TOD
             --   - min_hp_ratio: don't advance to location where you don't have at least this HP ratio and ...
             --   - min_units: .. and if you don't have at least this many units to advance with
@@ -94,7 +97,6 @@ return {
             --   - use_enemies_in_reach: if set, use enemies that can reach zone, otherwise use units inside the zone
             --       Note: only use with very small zones, otherwise it can be very slow
             -- hold: table describing where to hold a position
-            --   - skip: if set, skip hold action for this zone
             --   - x: the central x coordinate of the hold
             --   - max_y: the maximum y coordinate where to hold
             --   - hp_ratio: the minimum HP ratio required to hold at this position
@@ -114,6 +116,7 @@ return {
                 zone_id = 'leader_threat',
                 zone_filter = { { 'filter', { canrecruit = 'yes', side = wesnoth.current.side } } },
                 unit_filter = { x = '1-16,17-37', y = '1-7,1-10' },
+                skip_action = { hold = true },
                 advance = {
                     dawn =         { min_hp_ratio = 0.7, min_units = 0, min_hp_ratio_always = 4.0 },
                     morning =      { min_hp_ratio = 0.7, min_units = 0, min_hp_ratio_always = 4.0 },
@@ -123,7 +126,6 @@ return {
                     second_watch = { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 }
                 },
                 attack = { use_enemies_in_reach = true },
-                hold = { skip = true },
                 retreat_villages = { { 22, 2 }, { 18, 9 }, { 24, 7 } }
             }
 
@@ -1894,25 +1896,31 @@ return {
 
             -- **** Retreat severely injured units evaluation ****
             if (not cfg.do_action) or cfg.do_action.retreat_injured then
-                local action = grunt_rush_FLS1:zone_action_retreat_injured(zone_units, cfg)
-                if action then return action end
+                if (not cfg.skip_action) or (not cfg.skip_action.retreat_injured)  then
+                    local action = grunt_rush_FLS1:zone_action_retreat_injured(zone_units, cfg)
+                    if action then return action end
+                end
             end
 
             -- **** Attack evaluation ****
             if (not cfg.do_action) or cfg.do_action.attack then
-                local action = grunt_rush_FLS1:zone_action_attack(zone_units, enemies, zone, zone_map, advance_y, cfg)
-                if action then return action end
+                if (not cfg.skip_action) or (not cfg.skip_action.attack)  then
+                    local action = grunt_rush_FLS1:zone_action_attack(zone_units, enemies, zone, zone_map, advance_y, cfg)
+                    if action then return action end
+                end
             end
 
             -- **** Villages evaluation ****
             if (not cfg.do_action) or cfg.do_action.villages then
-                local action = grunt_rush_FLS1:zone_action_villages(zone_units, enemies, cfg)
-                if action then return action end
+                if (not cfg.skip_action) or (not cfg.skip_action.villages)  then
+                    local action = grunt_rush_FLS1:zone_action_villages(zone_units, enemies, cfg)
+                    if action then return action end
+                end
             end
 
             -- **** Hold position evaluation ****
             if (not cfg.do_action) or cfg.do_action.hold then
-                if (not cfg.hold.skip) then
+                if (not cfg.skip_action) or (not cfg.skip_action.hold)  then
                     local action = grunt_rush_FLS1:zone_action_hold(zone_units, zone_units_noMP, enemies, zone_map, advance_y, cfg)
                     if action then return action end
                 end
