@@ -112,6 +112,22 @@ return {
                 return grunt_rush_FLS1.data.zone_cfgs
             end
 
+            local width, height = wesnoth.get_map_size()
+            local cfg_full_map = {
+                zone_id = 'full_map',
+                zone_filter = { x = '1-' .. width , y = '1-' .. height },
+                unit_filter = { x = '1-' .. width , y = '1-' .. height },
+                do_action = { retreat_injured = true, villages = true },
+                advance = {
+                    dawn =         { min_hp_ratio = 0.7, min_units = 0, min_hp_ratio_always = 4.0 },
+                    morning =      { min_hp_ratio = 0.7, min_units = 0, min_hp_ratio_always = 4.0 },
+                    afternoon =    { min_hp_ratio = 0.7, min_units = 0, min_hp_ratio_always = 4.0 },
+                    dusk =         { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 },
+                    first_watch =  { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 },
+                    second_watch = { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 }
+                },
+            }
+
             local cfg_leader_threat = {
                 zone_id = 'leader_threat',
                 zone_filter = { { 'filter', { canrecruit = 'yes', side = wesnoth.current.side } } },
@@ -162,7 +178,6 @@ return {
                 retreat_villages = { { 11, 9 }, { 8, 5 }, { 12, 5 }, { 12, 2 } }
             }
 
-            local width, height = wesnoth.get_map_size()
             local cfg_right = {
                 zone_id = 'right',
                 zone_filter = { x = '25-34', y = '11-24' },
@@ -181,6 +196,7 @@ return {
 
             -- This way it will be easy to change the priorities on the fly later:
             cfgs = {}
+            table.insert(cfgs, cfg_full_map)
             table.insert(cfgs, cfg_leader_threat)
             table.insert(cfgs, cfg_center)
             table.insert(cfgs, cfg_left)
@@ -1477,7 +1493,7 @@ return {
 
             -- During daytime, we retreat injured units toward villages
             -- (Seriously injured units are already dealt with previously)
-            if injured_units[1] then
+            if injured_units[1] and cfg.retreat_villages then
                 local tod = wesnoth.get_time_of_day()
                 if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
                     local action = grunt_rush_FLS1:eval_grab_villages(injured_units, cfg.retreat_villages, enemies, true)
@@ -1898,7 +1914,10 @@ return {
             if (not cfg.do_action) or cfg.do_action.retreat_injured then
                 if (not cfg.skip_action) or (not cfg.skip_action.retreat_injured)  then
                     local action = grunt_rush_FLS1:zone_action_retreat_injured(zone_units, cfg)
-                    if action then return action end
+                    if action then
+                        --print(action.action)
+                        return action
+                    end
                 end
             end
 
@@ -1906,7 +1925,10 @@ return {
             if (not cfg.do_action) or cfg.do_action.villages then
                 if (not cfg.skip_action) or (not cfg.skip_action.villages)  then
                     local action = grunt_rush_FLS1:zone_action_villages(zone_units, enemies, cfg)
-                    if action then return action end
+                    if action then
+                        --print(action.action)
+                        return action
+                    end
                 end
             end
 
@@ -1914,7 +1936,10 @@ return {
             if (not cfg.do_action) or cfg.do_action.attack then
                 if (not cfg.skip_action) or (not cfg.skip_action.attack)  then
                     local action = grunt_rush_FLS1:zone_action_attack(zone_units, enemies, zone, zone_map, advance_y, cfg)
-                    if action then return action end
+                    if action then
+                        --print(action.action)
+                        return action
+                    end
                 end
             end
 
@@ -1922,7 +1947,10 @@ return {
             if (not cfg.do_action) or cfg.do_action.hold then
                 if (not cfg.skip_action) or (not cfg.skip_action.hold)  then
                     local action = grunt_rush_FLS1:zone_action_hold(zone_units, zone_units_noMP, enemies, zone_map, advance_y, cfg)
-                    if action then return action end
+                    if action then
+                        --print(action.action)
+                        return action
+                    end
                 end
             end
 
