@@ -1902,18 +1902,18 @@ return {
                 end
             end
 
-            -- **** Attack evaluation ****
-            if (not cfg.do_action) or cfg.do_action.attack then
-                if (not cfg.skip_action) or (not cfg.skip_action.attack)  then
-                    local action = grunt_rush_FLS1:zone_action_attack(zone_units, enemies, zone, zone_map, advance_y, cfg)
-                    if action then return action end
-                end
-            end
-
             -- **** Villages evaluation ****
             if (not cfg.do_action) or cfg.do_action.villages then
                 if (not cfg.skip_action) or (not cfg.skip_action.villages)  then
                     local action = grunt_rush_FLS1:zone_action_villages(zone_units, enemies, cfg)
+                    if action then return action end
+                end
+            end
+
+            -- **** Attack evaluation ****
+            if (not cfg.do_action) or cfg.do_action.attack then
+                if (not cfg.skip_action) or (not cfg.skip_action.attack)  then
+                    local action = grunt_rush_FLS1:zone_action_attack(zone_units, enemies, zone, zone_map, advance_y, cfg)
                     if action then return action end
                 end
             end
