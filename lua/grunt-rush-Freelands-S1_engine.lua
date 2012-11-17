@@ -84,6 +84,8 @@ return {
             -- zone_id: ID for the zone; only needed for debug messages
             -- zone_filter: SLF describing the zone
             -- unit_filter: SUF of the units considered for moves for this zone
+            -- do_action: if given, evaluate only the listed actions for the zone
+            --   if not given, evaluate all actions (that should be the default)
             -- advance: table describing the advance conditions for each TOD
             --   - min_hp_ratio: don't advance to location where you don't have at least this HP ratio and ...
             --   - min_units: .. and if you don't have at least this many units to advance with
@@ -1890,21 +1892,30 @@ return {
 
             -- **** This ends the common initialization for all zone actions ****
 
-            local action = grunt_rush_FLS1:zone_action_retreat_injured(zone_units, cfg)
-            if action then return action end
+            -- **** Retreat severely injured units evaluation ****
+            if (not cfg.do_action) or cfg.do_action.retreat_injured then
+                local action = grunt_rush_FLS1:zone_action_retreat_injured(zone_units, cfg)
+                if action then return action end
+            end
 
             -- **** Attack evaluation ****
-            local action = grunt_rush_FLS1:zone_action_attack(zone_units, enemies, zone, zone_map, advance_y, cfg)
-            if action then return action end
+            if (not cfg.do_action) or cfg.do_action.attack then
+                local action = grunt_rush_FLS1:zone_action_attack(zone_units, enemies, zone, zone_map, advance_y, cfg)
+                if action then return action end
+            end
 
             -- **** Villages evaluation ****
-            local action = grunt_rush_FLS1:zone_action_villages(zone_units, enemies, cfg)
-            if action then return action end
+            if (not cfg.do_action) or cfg.do_action.villages then
+                local action = grunt_rush_FLS1:zone_action_villages(zone_units, enemies, cfg)
+                if action then return action end
+            end
 
             -- **** Hold position evaluation ****
-            if (not cfg.hold.skip) then
-                local action = grunt_rush_FLS1:zone_action_hold(zone_units, zone_units_noMP, enemies, zone_map, advance_y, cfg)
-                if action then return action end
+            if (not cfg.do_action) or cfg.do_action.hold then
+                if (not cfg.hold.skip) then
+                    local action = grunt_rush_FLS1:zone_action_hold(zone_units, zone_units_noMP, enemies, zone_map, advance_y, cfg)
+                    if action then return action end
+                end
             end
 
             return nil  -- This is technically unnecessary
