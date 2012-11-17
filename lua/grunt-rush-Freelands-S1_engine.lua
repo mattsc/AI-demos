@@ -1619,15 +1619,33 @@ return {
             return nil
         end
 
-        function grunt_rush_FLS1:zone_action_hold(units, units_noMP, zone_enemies, all_enemies, hold_y, cfg)
+        function grunt_rush_FLS1:zone_action_hold(units, units_noMP, enemies, zone_map, hold_y, cfg)
+            --print('hold', os.clock())
+
+            -- The leader does not participate in position holding (for now, at least)
+            local holders = {}
+            for i,u in ipairs(units) do
+                if (not u.canrecruit) then
+                    table.insert(holders, u)
+                end
+            end
+            if (not holders[1]) then return end
+
+            local zone_enemies = {}
+            for i,e in ipairs(enemies) do
+                if zone_map:get(e.x, e.y) then
+                    table.insert(zone_enemies, e)
+                end
+            end
+
             -- Only check for possible position holding if hold.hp_ratio is met
             -- or is conditions in cfg.secure are met
             -- If hold.hp_ratio does not exist, it's true by default
 
             local eval_hold = true
             if cfg.hold.hp_ratio then
-                local hp_ratio = grunt_rush_FLS1:hp_ratio(units, zone_enemies)
-                --print('hp_ratio, #units, #zone_enemies', hp_ratio, #units, #zone_enemies)
+                local hp_ratio = grunt_rush_FLS1:hp_ratio(holders, zone_enemies)
+                --print('hp_ratio, #holders, #zone_enemies', hp_ratio, #holders, #zone_enemies)
 
                 -- Don't evaluate for holding position if the hp_ratio in the zone is already high enough
                 if (hp_ratio >= cfg.hold.hp_ratio) then
@@ -1670,7 +1688,7 @@ return {
                 --print('goal:', goal.x, goal.y)
 
                 local action = { units = {}, dsts = {} }
-                action.units[1], action.dsts[1] = grunt_rush_FLS1:hold_zone(units, goal, cfg)
+                action.units[1], action.dsts[1] = grunt_rush_FLS1:hold_zone(holders, goal, cfg)
                 return action
             end
 
@@ -1690,7 +1708,7 @@ return {
                 if (number_units_noMP_noleader < cfg.secure.min_units) then
                     -- Check whether (cfg.secure.x,cfg.secure.y) is threatened
                     local enemy_threats = false
-                    for i,e in ipairs(all_enemies) do
+                    for i,e in ipairs(enemies) do
                         local path, cost = wesnoth.find_path(e, cfg.secure.x, cfg.secure.y)
                         if (cost <= e.max_moves * cfg.secure.moves_away) then
                            enemy_threats = true
@@ -1704,7 +1722,7 @@ return {
                         -- The best unit is simply the one that can get there first
                         -- If several can make it in the same number of moves, use the one with the most HP
                         local max_rating, best_unit = -9e99, {}
-                        for i,u in ipairs(units) do
+                        for i,u in ipairs(holders) do
                             local path, cost = wesnoth.find_path(u, cfg.secure.x, cfg.secure.y)
                             local rating = - math.ceil(cost / u.max_moves)
 
@@ -1818,7 +1836,7 @@ return {
             local action = grunt_rush_FLS1:zone_action_attack(zone_units, enemies, zone, zone_map, advance_y, cfg)
             if action then return action end
 
-            -- **** Villages evaluation ****
+            -- **** Villages evaluation **** xxxxxx
             --print('villages', os.clock())
 
             -- This should include both retreating to villages of injured units and village grabbing
@@ -1879,31 +1897,12 @@ return {
             end
 
             -- **** Hold position evaluation ****
-            --print('hold', os.clock())
 
-            -- If we got here, check for holding the zone
             if (not cfg.hold.skip) then
-                -- The leader does not participate in position holding (for now, at least)
-                local holders = {}
-                for i,u in ipairs(zone_units) do
-                    if (not u.canrecruit) then
-                        table.insert(holders, u)
-                    end
-                end
-
-                local enemies_hold_zone = {}
-                for i,e in ipairs(enemies) do
-                    if zone_map:get(e.x, e.y) then
-                        table.insert(enemies_hold_zone, e)
-                    end
-                end
-
-                if (holders[1]) then
-                    local action = grunt_rush_FLS1:zone_action_hold(holders, zone_units_noMP, enemies_hold_zone, enemies, advance_y, cfg)
-                    if action then
-                        action.action = cfg.zone_id .. ': ' .. 'hold position'
-                        return action
-                    end
+                local action = grunt_rush_FLS1:zone_action_hold(zone_units, zone_units_noMP, enemies, zone_map, advance_y, cfg)
+                if action then
+                    action.action = cfg.zone_id .. ': ' .. 'hold position'
+                    return action
                 end
             end
 
