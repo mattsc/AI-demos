@@ -1451,7 +1451,47 @@ return {
             end
         end
 
-        function grunt_rush_FLS1:get_zone_attack(attackers, targets)
+        function grunt_rush_FLS1:get_zone_attack(units, enemies, zone, zone_map, advance_y, cfg)
+
+            --print('attack', os.clock())
+
+            -- Attackers include the leader but only if he is on his
+            -- keep, in order to prevent him from wandering off
+            local attackers = {}
+            for i,u in ipairs(units) do
+                if u.canrecruit then
+                    if wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
+                        table.insert(attackers, u)
+                    end
+                else
+                    table.insert(attackers, u)
+                end
+            end
+
+            local targets = {}
+            -- If cfg.attack.use_enemies_in_reach is set, we use all enemies that
+            -- can get to the zone (Note: this should only be used for small zones,
+            -- such as that consisting only of the AI leader position) otherwise it
+            -- might be very slow!!!)
+            if cfg.attack and cfg.attack.use_enemies_in_reach then
+                for i,e in ipairs(enemies) do
+                    for j,hex in ipairs(zone) do
+                        local path, cost = wesnoth.find_path(e, hex[1], hex[2], { ignore_units = true })
+                        local movecost = wesnoth.unit_movement_cost(e, wesnoth.get_terrain(hex[1], hex[2]))
+                        if (cost <= e.max_moves + movecost) then
+                            table.insert(targets, e)
+                            break  -- so that the same unit does not get added several times
+                        end
+                    end
+                end
+            -- Otherwise use all units inside the zone
+            else
+                for i,e in ipairs(enemies) do
+                    if zone_map:get(e.x, e.y) and (e.y <= advance_y + 1) then
+                        table.insert(targets, e)
+                    end
+                end
+            end
 
             -- Also want an 'attackers' map, indexed by position (for speed reasons)
             local attacker_map = {}
@@ -1572,6 +1612,7 @@ return {
                 -- Only execute the first of these attacks
                 local action = { units = {}, dsts = {}, enemy = best_enemy }
                 action.units[1], action.dsts[1] = best_attackers[1], best_dsts[1]
+                action.action = cfg.zone_id .. ': ' .. 'attack'
                 return action
             end
 
@@ -1773,51 +1814,9 @@ return {
             if action then return action end
 
             -- **** Attack evaluation ****
-            --print('attack', os.clock())
 
-            -- Attackers include the leader but only if he is on his
-            -- keep, in order to prevent him from wandering off
-            local attackers = {}
-            for i,u in ipairs(zone_units) do
-                if u.canrecruit then
-                    if wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
-                        table.insert(attackers, u)
-                    end
-                else
-                    table.insert(attackers, u)
-                end
-            end
-
-            local targets = {}
-            -- If cfg.attack.use_enemies_in_reach is set, we use all enemies that
-            -- can get to the zone (Note: this should only be used for small zones,
-            -- such as that consisting only of the AI leader position) otherwise it
-            -- might be very slow!!!)
-            if cfg.attack and cfg.attack.use_enemies_in_reach then
-                for i,e in ipairs(enemies) do
-                    for j,hex in ipairs(zone) do
-                        local path, cost = wesnoth.find_path(e, hex[1], hex[2], { ignore_units = true })
-                        local movecost = wesnoth.unit_movement_cost(e, wesnoth.get_terrain(hex[1], hex[2]))
-                        if (cost <= e.max_moves + movecost) then
-                            table.insert(targets, e)
-                            break  -- so that the same unit does not get added several times
-                        end
-                    end
-                end
-            -- Otherwise use all units inside the zone
-            else
-                for i,e in ipairs(enemies) do
-                    if zone_map:get(e.x, e.y) and (e.y <= advance_y + 1) then
-                        table.insert(targets, e)
-                    end
-                end
-            end
-
-            local action = grunt_rush_FLS1:get_zone_attack(attackers, targets)
-            if action then
-                action.action = cfg.zone_id .. ': ' .. 'attack'
-                return action
-            end
+            local action = grunt_rush_FLS1:get_zone_attack(zone_units, enemies, zone, zone_map, advance_y, cfg)
+            if action then return action end
 
             -- **** Villages evaluation ****
             --print('villages', os.clock())
