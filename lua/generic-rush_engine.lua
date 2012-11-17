@@ -9,7 +9,6 @@ return {
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
         local LS = wesnoth.require "lua/location_set.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
-        local RFH = wesnoth.require "~/add-ons/AI-demos/lua/recruit_filter_helper.lua"
 
         ------ Stats at beginning of turn -----------
 
