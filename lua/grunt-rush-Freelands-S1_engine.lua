@@ -256,7 +256,7 @@ return {
             return grunt_rush_FLS1.data.zone_cfgs
         end
 
-        function grunt_rush_FLS1:best_trapping_attack_opposite(units_org, enemies_org)
+        function grunt_rush_FLS1:best_trapping_attack_opposite(units_org, enemies_org, cfg)
             -- Find best trapping attack on enemy by putting two units on opposite sides
             -- Inputs:
             -- - units: the units to be considered for doing the trapping
@@ -1348,6 +1348,10 @@ return {
                     end
                 end
             end
+
+            -- We first see if there's a trapping attack possible
+            local action = grunt_rush_FLS1:best_trapping_attack_opposite(attackers, targets, cfg)
+            if action then return action end
 
             -- Also want an 'attackers' map, indexed by position (for speed reasons)
             local attacker_map = {}
