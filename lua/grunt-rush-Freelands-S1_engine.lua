@@ -131,8 +131,8 @@ return {
             local cfg_leader_threat = {
                 zone_id = 'leader_threat',
                 zone_filter = { { 'filter', { canrecruit = 'yes', side = wesnoth.current.side } } },
-                unit_filter = { x = '1-16,17-37', y = '1-7,1-10' },
-                skip_action = { hold = true },
+                unit_filter = { x = '1-' .. width , y = '1-' .. height },
+                do_action = { attack = true },
                 advance = {
                     dawn =         { min_hp_ratio = 0.7, min_units = 0, min_hp_ratio_always = 4.0 },
                     morning =      { min_hp_ratio = 0.7, min_units = 0, min_hp_ratio_always = 4.0 },
@@ -141,8 +141,7 @@ return {
                     first_watch =  { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 },
                     second_watch = { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 }
                 },
-                attack = { use_enemies_in_reach = true },
-                retreat_villages = { { 22, 2 }, { 18, 9 }, { 24, 7 } }
+                attack = { use_enemies_in_reach = true }
             }
 
             local cfg_center = {
