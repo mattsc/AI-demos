@@ -442,7 +442,14 @@ return {
             --print('max_rating ', max_rating, os.clock())
 
             if (max_rating > -9e99) then
-                return best_attackers, best_dsts, best_enemy
+                local action = {
+                    units = best_attackers,
+                    dsts = best_dsts,
+                    enemy = best_enemy
+                }
+                action.units[1], action.dsts[1] = best_attackers[1], best_dsts[1]
+                action.action = cfg.zone_id .. ': ' .. 'trapping attack'
+                return action
             end
             return nil
         end
