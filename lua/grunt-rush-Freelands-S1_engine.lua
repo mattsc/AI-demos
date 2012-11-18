@@ -985,7 +985,7 @@ return {
         ------ Attack with high CTK -----------
 
         function grunt_rush_FLS1:attack_weak_enemy_eval()
-            local score = -465000
+            local score = 465000
             local start_time, ca_name = os.clock(), 'attack_weak_enemy'
             if AH.print_eval() then print('     - Evaluating attack_weak_enemy CA:', os.clock()) end
 
@@ -1022,20 +1022,7 @@ return {
 
             local max_rating, best_attack = -9e99, {}
             for i,a in ipairs(attacks) do
-                -- Check whether attack can result in kill with single hit
-                local one_strike_kill, hp_levels = true, 0
-                for i,c in pairs(a.def_stats.hp_chance) do
-                    if (c > 0) and (i > 0) then
-                        hp_levels = hp_levels + 1
-                        if (hp_levels > 1) then
-                            one_strike_kill = false
-                            break
-                        end
-                    end
-                end
-
-                if ( one_strike_kill
-                    or (a.target.x == enemy_leader.x) and (a.target.y == enemy_leader.y) and (a.def_stats.hp_chance[0] > 0) )
+                if ( (a.target.x == enemy_leader.x) and (a.target.y == enemy_leader.y) and (a.def_stats.hp_chance[0] > 0) )
                     or ( (a.def_stats.hp_chance[0] >= 0.40) and (a.att_stats.hp_chance[0] == 0) )
                 then
                     local attacker = wesnoth.get_unit(a.src.x, a.src.y)
