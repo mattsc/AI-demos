@@ -1240,6 +1240,7 @@ function ai_helper.get_attack_combos(units, enemy, cfg)
 
     -- Now eliminate all the 0s
     -- Also eliminate the combo that has no attacks on any hex (all zeros)
+    local i_empty = 0
     for i,att in ipairs(attack_array) do
         local count = 0
         for dst,src in pairs(att) do
@@ -1249,9 +1250,10 @@ function ai_helper.get_attack_combos(units, enemy, cfg)
                 count = count + 1
             end
         end
-        -- This last step eliminates the "empty attack combo" (the one with all zeros)
-        if (count == 0) then table.remove(attack_array, i) end
+        if (count == 0) then i_empty = i end
     end
+    -- This last step eliminates the "empty attack combo" (the one with all zeros)
+    table.remove(attack_array, i_empty)
     --print('#attack_array after:', #attack_array)
     --DBG.dbms(attack_array)
 
