@@ -934,7 +934,7 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg, cache)
     value_fraction = value_fraction + xp_bonus * xp_weight
     --print('  defender XP bonus:', xp_bonus, value_fraction)
 
-    -- In addition, potentially leveling up in this attack is a huge bonus,
+    -- In addition, the defender potentially leveling up in this attack is a huge penalty,
     -- proportional to the chance of it happening and the chance of not dying itself
     local defender_level_penalty = 0.
     local attacker_level = wesnoth.unit_types[attacker.type].level
@@ -945,7 +945,7 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg, cache)
             defender_level_penalty = (1. - def_stats.hp_chance[0]) * att_stats.hp_chance[0]
         end
     end
-    value_fraction = value_fraction + defender_level_penalty * defender_level_weight
+    value_fraction = value_fraction - defender_level_penalty * defender_level_weight
     --print('  defender level penalty:', defender_level_penalty, value_fraction)
 
     -- If defender is on a village, add a bonus rating (we want to get rid of those preferentially)

@@ -985,7 +985,7 @@ return {
         ------ Attack with high CTK -----------
 
         function grunt_rush_FLS1:attack_weak_enemy_eval()
-            local score = 465000
+            local score = -465000
             local start_time, ca_name = os.clock(), 'attack_weak_enemy'
             if AH.print_eval() then print('     - Evaluating attack_weak_enemy CA:', os.clock()) end
 
