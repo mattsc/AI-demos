@@ -1847,7 +1847,7 @@ return {
                 local enemy_in_zone = false
                 for j,e in ipairs(enemies) do
                     if (a.target.x == e.x) and (a.target.y == e.y) then
-                        not_in_zone = true
+                        enemy_in_zone = true
                         break
                     end
                 end
@@ -1918,6 +1918,7 @@ return {
                     end
                 end
             end
+            --print('max_rating', max_rating)
 
             if (max_rating > -9e99) then
                 local action = {
