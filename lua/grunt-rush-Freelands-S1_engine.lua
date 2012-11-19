@@ -446,7 +446,6 @@ return {
                     dsts = best_dsts,
                     enemy = best_enemy
                 }
-                action.units[1], action.dsts[1] = best_attackers[1], best_dsts[1]
                 action.action = cfg.zone_id .. ': ' .. 'trapping attack'
                 return action
             end
