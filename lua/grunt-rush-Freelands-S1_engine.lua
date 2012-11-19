@@ -2046,47 +2046,6 @@ return {
             return 0
         end
 
-        function grunt_rush_FLS1:spread_poison_exec()
-            if AH.print_exec() then print('   ' .. os.clock() .. ' Executing spread_poison CA') end
-            local attacker = wesnoth.get_unit(grunt_rush_FLS1.data.SP_attack.src.x, grunt_rush_FLS1.data.SP_attack.src.y)
-            local defender = wesnoth.get_unit(grunt_rush_FLS1.data.SP_attack.target.x, grunt_rush_FLS1.data.SP_attack.target.y)
-
-            -- Also need to get the supporter at this time, since it might be the unit that's move out of the way
-            local suporter = {}
-            if grunt_rush_FLS1.data.SP_support_attack then
-                supporter = wesnoth.get_unit(grunt_rush_FLS1.data.SP_support_attack.src.x, grunt_rush_FLS1.data.SP_support_attack.src.y)
-            end
-
-            if AH.show_messages() then W.message { speaker = attacker.id, message = "Poison attack" } end
-            AH.movefull_outofway_stopunit(ai, attacker, grunt_rush_FLS1.data.SP_attack.dst, { dx = 0., dy = 0. })
-            local def_hp = defender.hitpoints
-
-            -- Find the poison weapon
-            -- If several attacks have poison, this will always find the last one
-            local is_poisoner, poison_weapon = AH.has_weapon_special(attacker, "poison")
-
-            ai.attack(attacker, defender, poison_weapon)
-            grunt_rush_FLS1.data.SP_attack = nil
-
-            -- In case either attacker or defender died, don't do anything
-            if (not attacker.valid) then return end
-            if (not defender.valid) then return end
-
-            -- A little joke: if the assassin misses all 3 poison attacks, complain
-            if (not grunt_rush_FLS1.data.SP_complained_about_luck) and (defender.hitpoints == def_hp) then
-                grunt_rush_FLS1.data.SP_complained_about_luck = true
-                --W.delay { time = 1000 }
-                --W.message { speaker = attacker.id, message = "Oh, come on !" }
-            end
-
-            if grunt_rush_FLS1.data.SP_support_attack then
-                if AH.show_messages() then W.message { speaker = supporter.id, message = 'Supporting poisoner attack' } end
-                AH.movefull_outofway_stopunit(ai, supporter, grunt_rush_FLS1.data.SP_support_attack.dst)
-                if grunt_rush_FLS1.data.SP_also_attack then ai.attack(supporter, defender) end
-            end
-            grunt_rush_FLS1.data.SP_support_attack, grunt_rush_FLS1.data.SP_also_attack = nil, nil
-        end
-
         ----------Recruitment -----------------
 
         function grunt_rush_FLS1:recruit_orcs_eval()
