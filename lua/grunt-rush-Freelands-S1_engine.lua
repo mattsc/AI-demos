@@ -1960,84 +1960,18 @@ return {
                         end
                     end
 
-                    -- Otherwise, only go through with the attack, if we can back it up with another unit
-                    -- Or if only one enemy is in reach
-                    -- Or if the attack hex is already next to an AI unit with noMP left
-
-                    local max_support_rating, support_attack, support_also_attack = -9e99, {}, false
-                    if (enemies_in_reach > 1) and (rating > -9e99) then
-                        -- First check whether there's already one of our own units with no
-                        -- attacks left next to the attack hex (then we don't need the support unit)
-                        local support_no_attacks = false
-                        for j,una in ipairs(units_no_attacks) do
-                            --print('unit no attacks left: ', una.id)
-                            if (H.distance_between(una.x, una.y, a.target.x, a.target.y) == 1)
-                                and (H.distance_between(una.x, una.y, a.dst.x, a.dst.y) == 1)
-                            then
-                                --print('  can be support unit for this (no attacks left)')
-                                support_no_attacks = true
-                            end
-                        end
-                        --print('    support_no_attacks:', support_no_attacks)
-
-                        -- Don't need a support unit if there is already one (with no attacks left)
-                        -- or if the attack hex is a village
-                        if support_no_attacks or is_village then
-                            rating = rating + 0.01 -- very slightly prefer this version, everything else being equal
-                        else
-                            -- Check whether one of the other units can attack that same enemy, but from a different hex
-                            -- adjacent to poisoner
-                            for j,oa in ipairs(other_attacks) do
-                                if (oa.target.x == a.target.x) and (oa.target.y == a.target.y)
-                                    and (H.distance_between(oa.dst.x, oa.dst.y, a.dst.x, a.dst.y) == 1)
-                                then
-                                    -- Now rate those hexes
-                                    local supporter = wesnoth.get_unit(oa.src.x, oa.src.y)
-                                    local support_rating = 100 - wesnoth.unit_defense(supporter, wesnoth.get_terrain(oa.src.x, oa.src.y))
-                                    support_rating = support_rating + oa.att_stats.average_hp - oa.def_stats.average_hp
-                                    --print('  Supporting attack', oa.dst.x, oa.dst.y, support_rating)
-
-                                    -- Minor penalty if unit needs to be moved out of the way
-                                    if oa.attack_hex_occupied then support_rating = support_rating - 0.1 end
-
-                                    if (support_rating > max_support_rating) then
-                                        max_support_rating, support_attack = support_rating, oa
-
-                                        -- If we can do more damage than enemy, also attack, otherwise just move
-                                        if (supporter.hitpoints - oa.att_stats.average_hp) < (defender.hitpoints - oa.def_stats.average_hp) then
-                                            support_also_attack = true
-                                        end
-                                    end
-                                end
-                            end
-
-                            -- If no acceptable support was found, mark this attack as invalid
-                            if (max_support_rating == -9e99) then
-                                rating = -9e99
-                            else  -- otherwise small penalty as it ties up another unit
-                                rating = rating - 0.99
-                            end
-                        end
-                    end
-
-                    -- On a village, only attack if the support will also attack
-                    -- or the defender is hurt already
-                    if enemy_on_village and (not support_also_attack) and (defender.max_hitpoints - defender.hitpoints < 8) then rating = -9e99 end
+                    -- On a village, only attack if the defender is hurt already
+                    if enemy_on_village and (defender.max_hitpoints - defender.hitpoints < 8) then rating = -9e99 end
 
                     --print('  -> final poisoner rating', rating, attacker.id, a.dst.x, a.dst.y)
 
                     if rating > max_rating then
                         max_rating, best_attack = rating, a
-                        if (max_support_rating > -9e99) then
-                            best_support_attack, best_support_also_attack = support_attack, support_also_attack
-                        else
-                            best_support_attack, best_support_also_attack = nil, false
-                        end
                     end
                 end
             end
             if (max_rating > -9e99) then
-                grunt_rush_FLS1.data.SP_attack, grunt_rush_FLS1.data.SP_support_attack, grunt_rush_FLS1.data.SP_also_attack = best_attack, best_support_attack, best_support_also_attack
+                grunt_rush_FLS1.data.SP_attack = best_attack
                 AH.done_eval_messages(start_time, ca_name)
                 return score
             end
