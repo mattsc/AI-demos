@@ -1819,34 +1819,6 @@ return {
         -----------Spread poison ----------------
 
         function grunt_rush_FLS1:spread_poison_eval()
-            local score = 463000
-
-            -- As an experiment: reduce importance of spreading poison during night
-            -- This is supposed to help with the rush on the right, freeing up units for that
-            -- Don't know how well this is going to work...
-            local tod = wesnoth.get_time_of_day()
-            if (tod.id == 'dusk') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
-                score = 310000
-            end
-
-            local start_time, ca_name = os.clock(), 'spread_poison'
-            if AH.print_eval() then print('     - Evaluating spread_poison CA:', os.clock()) end
-
-            -- If a unit with a poisoned weapon can make an attack, we'll do that preferentially
-            -- (with some exceptions)
-
-            -- Keep this for reference how it's done, but don't use now
-            -- local poisoners = AH.get_live_units { side = wesnoth.current.side,
-            --    formula = '$this_unit.attacks_left > 0', canrecruit = 'no',
-            --    { "filter_wml", {
-            --        { "attack", {
-            --            { "specials", {
-            --                { "poison", { } }
-            --            } }
-            --        } }
-            --    } }
-            --}
-
             local attackers = AH.get_live_units { side = wesnoth.current.side,
                 formula = '$this_unit.attacks_left > 0', canrecruit = 'no' }
 
@@ -1972,12 +1944,10 @@ return {
             end
             if (max_rating > -9e99) then
                 grunt_rush_FLS1.data.SP_attack = best_attack
-                AH.done_eval_messages(start_time, ca_name)
                 return score
             end
 
-            AH.done_eval_messages(start_time, ca_name)
-            return 0
+            return
         end
 
         ----------Recruitment -----------------
