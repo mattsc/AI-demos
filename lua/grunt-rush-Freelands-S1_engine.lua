@@ -1352,6 +1352,21 @@ return {
             local action = grunt_rush_FLS1:best_trapping_attack_opposite(attackers, targets, cfg)
             if action then return action end
 
+            -- Then we check for poison attacks
+            local poisoners = {}
+            for i,a in ipairs(attackers) do
+                local is_poisoner = AH.has_weapon_special(a, 'poison')
+                if is_poisoner then
+                    table.insert(poisoners, a)
+                end
+            end
+            --print('#poisoners', #poisoners)
+
+            if (poisoners[1]) then
+                local action = grunt_rush_FLS1:spread_poison_eval(poisoners, enemies, cfg)
+                if action then return action end
+            end
+
             -- Also want an 'attackers' map, indexed by position (for speed reasons)
             local attacker_map = {}
             for i,u in ipairs(attackers) do attacker_map[u.x * 1000 + u.y] = u end
@@ -1818,52 +1833,25 @@ return {
 
         -----------Spread poison ----------------
 
-        function grunt_rush_FLS1:spread_poison_eval()
-            local attackers = AH.get_live_units { side = wesnoth.current.side,
-                formula = '$this_unit.attacks_left > 0', canrecruit = 'no' }
-
-            local poisoners, others = {}, {}
-            for i,a in ipairs(attackers) do
-                local is_poisoner = AH.has_weapon_special(a, 'poison')
-                if is_poisoner then
-                    table.insert(poisoners, a)
-                else
-                    table.insert(others, a)
-                end
-            end
-
-            --print('#poisoners, #others', #poisoners, #others)
-            if (not poisoners[1]) then
-                AH.done_eval_messages(start_time, ca_name)
-                return 0
-            end
-
+        function grunt_rush_FLS1:spread_poison_eval(poisoners, enemies, cfg)
             local attacks = AH.get_attacks(poisoners, { simulate_combat = true, include_occupied = true })
             --print('#attacks', #attacks)
-            if (not attacks[1]) then
-                AH.done_eval_messages(start_time, ca_name)
-                return 0
-            end
-
-            local units_no_attacks = AH.get_live_units { side = wesnoth.current.side,
-                formula = '$this_unit.attacks_left <= 0'
-            }
-
-            local other_attacks = AH.get_attacks(others, { simulate_combat = true, include_occupied = true })
-            --print('#other_attacks', #other_attacks)
-
-            -- For counter attack damage calculation:
-            local enemies = AH.get_live_units {
-                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
-            }
-            local enemy_attack_map = AH.get_attack_map(enemies)
-            --AH.put_labels(enemy_attack_map.units)
+            if (not attacks[1]) then return end
 
             -- Go through all possible attacks with poisoners
-            local max_rating, best_attack = -9e99, {}
+            local max_rating, best_attacker, best_dst, best_enemy = -9e99, {}
             for i,a in ipairs(attacks) do
                 local attacker = wesnoth.get_unit(a.src.x, a.src.y)
                 local defender = wesnoth.get_unit(a.target.x, a.target.y)
+
+                -- Don't attack an enemy that's not in the zone
+                local enemy_in_zone = false
+                for j,e in ipairs(enemies) do
+                    if (a.target.x == e.x) and (a.target.y == e.y) then
+                        not_in_zone = true
+                        break
+                    end
+                end
 
                 -- Don't try to poison a unit that cannot be poisoned
                 local cant_poison = defender.status.poisoned or defender.status.not_living
@@ -1871,7 +1859,7 @@ return {
                 -- Also, poisoning units that would level up through the attack or could level up immediately after is very bad
                 local about_to_level = (defender.max_experience - defender.experience) <= (wesnoth.unit_types[attacker.type].level * 2)
 
-                if (not cant_poison) and (not about_to_level) then
+                if enemy_in_zone and (not cant_poison) and (not about_to_level) then
                     -- Strongest enemy gets poisoned first
                     local rating = defender.hitpoints
 
@@ -1921,30 +1909,25 @@ return {
                     -- Minor penalty if unit needs to be moved out of the way
                     if a.attack_hex_occupied then rating = rating - 0.1 end
 
-                    -- From dawn to afternoon, only attack if not more than 2 enemy units are close
-                    local enemies_in_reach = enemy_attack_map.units:get(a.dst.x, a.dst.y)
-                    --print('  enemies_in_reach', enemies_in_reach)
-
-                    if (enemies_in_reach > 2) then
-                        local tod = wesnoth.get_time_of_day()
-                        if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
-                            rating = -9e99
-                        end
-                    end
-
-                    -- On a village, only attack if the defender is hurt already
+                    -- Enemy on village: only attack if the enemy is hurt already
                     if enemy_on_village and (defender.max_hitpoints - defender.hitpoints < 8) then rating = -9e99 end
 
                     --print('  -> final poisoner rating', rating, attacker.id, a.dst.x, a.dst.y)
 
                     if rating > max_rating then
-                        max_rating, best_attack = rating, a
+                        max_rating, best_attacker, best_dst, best_enemy = rating, attacker, { a.dst.x, a.dst.y }, defender
                     end
                 end
             end
+
             if (max_rating > -9e99) then
-                grunt_rush_FLS1.data.SP_attack = best_attack
-                return score
+                local action = {
+                    units = { best_attacker },
+                    dsts = { best_dst },
+                    enemy = best_enemy
+                }
+                action.action = cfg.zone_id .. ': ' .. 'poison attack'
+                return action
             end
 
             return
