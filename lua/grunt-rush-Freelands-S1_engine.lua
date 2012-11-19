@@ -1858,7 +1858,23 @@ return {
                 -- Also, poisoning units that would level up through the attack or could level up immediately after is very bad
                 local about_to_level = (defender.max_experience - defender.experience) <= (wesnoth.unit_types[attacker.type].level * 2)
 
-                if enemy_in_zone and (not cant_poison) and (not about_to_level) then
+                local poison_attack = true
+                if (not enemy_in_zone) or cant_poison or about_to_level then
+                    poison_attack = false
+                end
+
+                -- Before evaluating the poison attack, check whether it is too dangerous
+                if poison_attack then
+                    local counter_min_hp, counter_def_stats = grunt_rush_FLS1:calc_counter_attack(attacker, { a.dst.x, a.dst.y })
+                    --print('Poison counter attack:', attacker.id, a.dst.x, a.dst.y, counter_def_stats.hp_chance[0], counter_def_stats.average_hp)
+                    -- Use a condition when damage is too much to be worthwhile
+                    if (counter_def_stats.hp_chance[0] > 0.30) or (counter_def_stats.average_hp < 10) then
+                        --print('Poison attack too dangerous')
+                        poison_attack = false
+                    end
+                end
+
+                if poison_attack then
                     -- Strongest enemy gets poisoned first
                     local rating = defender.hitpoints
 
