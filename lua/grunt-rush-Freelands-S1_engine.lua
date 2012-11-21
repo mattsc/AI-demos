@@ -952,11 +952,12 @@ return {
                 return action
             end
 
-            -- No safe villages within 1 turn - try to move to closest reachable empty village within 4 turns
+            -- No safe villages within 1 turn - try to move to closest village within 4 turns
+            -- That is either unoccupied or occupied by a unit on the same side
 
             for i,v in ipairs(villages) do
                 local unit_in_way = wesnoth.get_unit(v[1], v[2])
-                if (not unit_in_way) then
+                if (not unit_in_way) or (unit_in_way.side == wesnoth.current.side) then
                     --print('Village available:', v[1], v[2])
                     for i,u in ipairs(healees) do
                         local path, cost = wesnoth.find_path(u, v[1], v[2])
