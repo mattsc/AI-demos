@@ -964,8 +964,8 @@ return {
                 end
 
                 local unit_in_way = wesnoth.get_unit(v[1], v[2])
-                if (not reserved_village) and (not unit_in_way) or (unit_in_way.side == wesnoth.current.side) then
-                    print('Village available:', v[1], v[2])
+                if (not reserved_village) and ((not unit_in_way) or (unit_in_way.side == wesnoth.current.side)) then
+                    --print('Village available:', v[1], v[2])
                     for i,u in ipairs(healees) do
                         local path, cost = wesnoth.find_path(u, v[1], v[2])
 
