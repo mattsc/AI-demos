@@ -156,7 +156,7 @@ return {
                     first_watch =  { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 },
                     second_watch = { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 }
                 },
-                hold = { x = 20, max_y = 15, hp_ratio = 0.67 },
+                hold = { x = 20, min_y = 9, max_y = 15, hp_ratio = 0.67 },
                 retreat_villages = { { 18, 9 }, { 24, 7 }, { 22, 2 } }
             }
 
@@ -172,7 +172,7 @@ return {
                     first_watch =  { min_hp_ratio = 0.7, min_units = 0, min_hp_ratio_always = 0.7 },
                     second_watch = { min_hp_ratio = 0.7, min_units = 0, min_hp_ratio_always = 0.7 }
                 },
-                hold = { x = 11, max_y = 15, hp_ratio = 1.0 },
+                hold = { x = 11, min_y = 5, max_y = 15, hp_ratio = 1.0 },
                 secure = { x = 11, y = 9, moves_away = 2, min_units = 1 },
                 retreat_villages = { { 11, 9 }, { 8, 5 }, { 12, 5 }, { 12, 2 } }
             }
@@ -189,7 +189,7 @@ return {
                     first_watch =  { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 },
                     second_watch = { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 }
                 },
-                hold = { x = 27, max_y = 22 },
+                hold = { x = 27, min_y = 11, max_y = 22 },
                 retreat_villages = { { 24, 7 }, { 28, 5 } }
             }
 
@@ -1685,8 +1685,12 @@ return {
 
             -- Start with the minimum for the zone
             local y_min = 9e99
-            for y,hp_y in pairs(hp_ratio_y) do
-                if (y < y_min) then y_min = y end
+            if cfg.hold and cfg.hold.min_y then
+                y_min = cfg.hold.min_y
+            else
+                for y,hp_y in pairs(hp_ratio_y) do
+                    if (y < y_min) then y_min = y end
+                end
             end
 
             local advance_y = y_min
