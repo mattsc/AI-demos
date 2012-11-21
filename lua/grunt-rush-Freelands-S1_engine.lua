@@ -918,7 +918,6 @@ return {
             local enemy_attack_map = AH.get_attack_map(enemies)
 
             local max_rating, best_village, best_unit = -9e99, {}, {}
-
             for i,v in ipairs(villages) do
                 local unit_in_way = wesnoth.get_unit(v[1], v[2])
                 if (not unit_in_way) or (unit_in_way.moves > 0) then
@@ -947,7 +946,7 @@ return {
             end
 
             if (max_rating > -9e99) then
-                local action = { units = {}, dsts = {}, type = 'village' }
+                local action = { units = {}, dsts = {}, type = 'village', reserve = best_village }
                 action.units[1], action.dsts[1] = best_unit, best_village
                 return action
             end
@@ -955,6 +954,7 @@ return {
             -- No safe villages within 1 turn - try to move to closest village within 4 turns
             -- That can be either unoccupied or occupied by a unit on the same side
 
+            local max_rating, best_hop, best_village, best_unit = -9e99, {}, {}
             for i,v in ipairs(villages) do
                 -- Check whether this villages is "reserved" for another unit already
                 local v_ind = v[1] * 1000 + v[2]
@@ -965,7 +965,7 @@ return {
 
                 local unit_in_way = wesnoth.get_unit(v[1], v[2])
                 if (not reserved_village) and (not unit_in_way) or (unit_in_way.side == wesnoth.current.side) then
-                    --print('Village available:', v[1], v[2])
+                    print('Village available:', v[1], v[2])
                     for i,u in ipairs(healees) do
                         local path, cost = wesnoth.find_path(u, v[1], v[2])
 
@@ -982,7 +982,7 @@ return {
 
                             if (rating > max_rating) and ((enemy_attack_map.units:get(v[1], v[2]) or 0) <= 1 ) then
                                 local next_hop = AH.next_hop(u, v[1], v[2])
-                                max_rating, best_village, best_unit = rating, next_hop, u
+                                max_rating, best_hop, best_village, best_unit = rating, next_hop, v, u
                             end
                         end
                     end
@@ -990,8 +990,8 @@ return {
             end
 
             if (max_rating > -9e99) then
-                local action = { units = {}, dsts = {}, type = 'village' }
-                action.units[1], action.dsts[1] = best_unit, best_village
+                local action = { units = {}, dsts = {}, type = 'village', reserve = best_village }
+                action.units[1], action.dsts[1] = best_unit, best_hop
                 return action
             end
 
@@ -1832,7 +1832,7 @@ return {
                     if (not grunt_rush_FLS1.data.reserved_villages) then
                         grunt_rush_FLS1.data.reserved_villages = {}
                     end
-                    local v_ind = dst[1] * 1000 + dst[2]
+                    local v_ind = grunt_rush_FLS1.data.zone_action.reserve[1] * 1000 + grunt_rush_FLS1.data.zone_action.reserve[2]
                     --print('Putting village on reserved_villages list', v_ind)
                     grunt_rush_FLS1.data.reserved_villages[v_ind] = true
                 end
