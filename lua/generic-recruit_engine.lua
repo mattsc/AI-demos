@@ -40,20 +40,20 @@ return {
                 -- TODO: find a more reliable method
                 local steadfast = false -- wesnoth.unit_ability(defender, "resistance")
 
-                for attack in helper.child_range(wesnoth.unit_types[attacker.type].__cfg, "attack") do
+                for attack in H.child_range(wesnoth.unit_types[attacker.type].__cfg, "attack") do
                     local defense = unit_defense
                     local poison = false
                     local damage_multiplier = 1
                     -- TODO: handle more abilities (charge, drain)
-                    for special in helper.child_range(attack, 'specials') do
+                    for special in H.child_range(attack, 'specials') do
                         local mod
-                        if helper.get_child(special, 'poison') and can_poison then
+                        if H.get_child(special, 'poison') and can_poison then
                             poison = true
                         end
 
                         -- Handle marksman and magical
                         -- TODO: Make this work properly for UMC chance_to_hit (does not account for all keys)
-                        mod = helper.get_child(special, 'chance_to_hit')
+                        mod = H.get_child(special, 'chance_to_hit')
                         if mod then
                             if mod.cumulative then
                                 if mod.value > defense then
@@ -65,7 +65,7 @@ return {
                         end
 
                         -- Handle backstab
-                        mod = helper.get_child(special, 'damage')
+                        mod = H.get_child(special, 'damage')
                         if mod then
                             if mod.backstab then
                                 -- Assume backstab happens on only 1/2 of attacks
@@ -77,10 +77,10 @@ return {
 
                     -- Handle drain for defender
                     local drain_recovery = 0
-                    for defender_attack in helper.child_range(defender.__cfg, 'attack') do
+                    for defender_attack in H.child_range(defender.__cfg, 'attack') do
                         if (defender_attack.range == attack.range) then
-                            for special in helper.child_range(defender_attack, 'specials') do
-                                if helper.get_child(special, 'drains') and living(attacker) then
+                            for special in H.child_range(defender_attack, 'specials') do
+                                if H.get_child(special, 'drains') and living(attacker) then
                                     -- TODO: handle chance to hit
                                     -- currently assumes 50% chance to hit using supplied constant
                                     local attacker_resistance = wesnoth.unit_resistance(attacker, defender_attack.type)
@@ -172,9 +172,9 @@ return {
         end
 
         function can_slow(unit)
-            for defender_attack in helper.child_range(unit.__cfg, 'attack') do
-                for special in helper.child_range(defender_attack, 'specials') do
-                    if helper.get_child(special, 'slow') then
+            for defender_attack in H.child_range(unit.__cfg, 'attack') do
+                for special in H.child_range(defender_attack, 'specials') do
+                    if H.get_child(special, 'slow') then
                         return true
                     end
                 end
