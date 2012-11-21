@@ -165,12 +165,12 @@ return {
                 zone_filter = { x = '4-14', y = '3-15' },
                 unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
                 advance = {
-                    dawn =         { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
-                    morning =      { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
-                    afternoon =    { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
-                    dusk =         { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 },
-                    first_watch =  { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 },
-                    second_watch = { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 }
+                    dawn =         { min_hp_ratio = 2.0, min_units = 0, min_hp_ratio_always = 2.0 },
+                    morning =      { min_hp_ratio = 2.0, min_units = 0, min_hp_ratio_always = 2.0 },
+                    afternoon =    { min_hp_ratio = 2.0, min_units = 0, min_hp_ratio_always = 2.0 },
+                    dusk =         { min_hp_ratio = 0.7, min_units = 0, min_hp_ratio_always = 0.7 },
+                    first_watch =  { min_hp_ratio = 0.7, min_units = 0, min_hp_ratio_always = 0.7 },
+                    second_watch = { min_hp_ratio = 0.7, min_units = 0, min_hp_ratio_always = 0.7 }
                 },
                 hold = { x = 11, max_y = 15, hp_ratio = 1.0 },
                 secure = { x = 11, y = 9, moves_away = 2, min_units = 1 },
