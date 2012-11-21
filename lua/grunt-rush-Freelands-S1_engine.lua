@@ -921,7 +921,7 @@ return {
 
             for i,v in ipairs(villages) do
                 local unit_in_way = wesnoth.get_unit(v[1], v[2])
-                if (not unit_in_way) then
+                if (not unit_in_way) or (unit_in_way.moves > 0) then
                     --print('Village available:', v[1], v[2])
                     for i,u in ipairs(healees) do
                         local next_hop = AH.next_hop(u, v[1], v[2])
@@ -931,6 +931,9 @@ return {
 
                             if u.status.poisoned then rating = rating + 8 end
                             if u.status.slowed then rating = rating + 4 end
+
+                            -- Minor penalty if a unit has to move out of the way
+                            if unit_in_way then rating = rating - 0.1 end
 
                             -- villages in the north are preferable (since they are supposedly away from the enemy)
                             rating = rating - v[2]
