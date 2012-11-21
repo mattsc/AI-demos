@@ -197,8 +197,8 @@ return {
             cfgs = {}
             table.insert(cfgs, cfg_full_map)
             table.insert(cfgs, cfg_leader_threat)
-            table.insert(cfgs, cfg_center)
             table.insert(cfgs, cfg_left)
+            table.insert(cfgs, cfg_center)
             table.insert(cfgs, cfg_right)
 
             -- The following is placeholder code for later, when we might want to
