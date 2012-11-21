@@ -146,7 +146,7 @@ return {
 
             local cfg_center = {
                 zone_id = 'center',
-                zone_filter = { x = '15-23', y = '9-16' },
+                zone_filter = { x = '15-24', y = '1-16' },
                 unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
                 advance = {
                     dawn =         { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
@@ -162,7 +162,7 @@ return {
 
             local cfg_left = {
                 zone_id = 'left',
-                zone_filter = { x = '4-14', y = '3-15' },
+                zone_filter = { x = '4-14', y = '1-15' },
                 unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
                 advance = {
                     dawn =         { min_hp_ratio = 2.0, min_units = 0, min_hp_ratio_always = 2.0 },
@@ -179,7 +179,7 @@ return {
 
             local cfg_right = {
                 zone_id = 'right',
-                zone_filter = { x = '25-34', y = '11-24' },
+                zone_filter = { x = '25-34', y = '1-24' },
                 unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
                 advance = {
                     dawn =         { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
