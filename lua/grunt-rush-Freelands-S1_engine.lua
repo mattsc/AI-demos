@@ -947,17 +947,24 @@ return {
             end
 
             if (max_rating > -9e99) then
-                local action = { units = {}, dsts = {} }
+                local action = { units = {}, dsts = {}, type = 'village' }
                 action.units[1], action.dsts[1] = best_unit, best_village
                 return action
             end
 
             -- No safe villages within 1 turn - try to move to closest village within 4 turns
-            -- That is either unoccupied or occupied by a unit on the same side
+            -- That can be either unoccupied or occupied by a unit on the same side
 
             for i,v in ipairs(villages) do
+                -- Check whether this villages is "reserved" for another unit already
+                local v_ind = v[1] * 1000 + v[2]
+                local reserved_village = false
+                if grunt_rush_FLS1.data.reserved_villages and grunt_rush_FLS1.data.reserved_villages[v_ind] then
+                    reserved_village = true
+                end
+
                 local unit_in_way = wesnoth.get_unit(v[1], v[2])
-                if (not unit_in_way) or (unit_in_way.side == wesnoth.current.side) then
+                if (not reserved_village) and (not unit_in_way) or (unit_in_way.side == wesnoth.current.side) then
                     --print('Village available:', v[1], v[2])
                     for i,u in ipairs(healees) do
                         local path, cost = wesnoth.find_path(u, v[1], v[2])
@@ -983,7 +990,7 @@ return {
             end
 
             if (max_rating > -9e99) then
-                local action = { units = {}, dsts = {} }
+                local action = { units = {}, dsts = {}, type = 'village' }
                 action.units[1], action.dsts[1] = best_unit, best_village
                 return action
             end
@@ -1814,6 +1821,17 @@ return {
                 if AH.show_messages() then W.message { speaker = unit.id, message = 'Zone action ' .. action } end
 
                 AH.movefull_outofway_stopunit(ai, unit, dst)
+
+                -- Also set parameters that need to last for the turn
+                -- If this is a retreat toward village, add it to the "reserved villages" list
+                if grunt_rush_FLS1.data.zone_action.type and (grunt_rush_FLS1.data.zone_action.type == 'village') then
+                    if (not grunt_rush_FLS1.data.reserved_villages) then
+                        grunt_rush_FLS1.data.reserved_villages = {}
+                    end
+                    local v_ind = dst[1] * 1000 + dst[2]
+                    --print('Putting village on reserved_villages list', v_ind)
+                    grunt_rush_FLS1.data.reserved_villages[v_ind] = true
+                end
 
                 -- Remove these from the table
                 table.remove(grunt_rush_FLS1.data.zone_action.units, 1)
