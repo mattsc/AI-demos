@@ -672,6 +672,7 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
     --  - att_weapon/def_weapon: attacker/defender weapon number
     --      if not given, get "best" weapon (Note: both must be given, or they will both be determined)
     --  - dst: { x, y }: the attack location; defaults to { attacker.x, attacker. y }
+    -- cache: to be passed on to other functions.  battle_outcome itself is not cached, too many factors enter
 
     cfg = cfg or {}
 
@@ -996,6 +997,7 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cach
     --   must be in same order as 'attackers'
     -- defender: the unit being attacked
     -- cache: the cache table to be passed through to other battle_calcs functions
+    --   attack_combo_stats itself is not cached, except for in cache_this_move below
     -- cache_this_move: an optional table of pre-calculated attack outcomes
     --   - This is different from the other cache tables used in this file
     --   - This table may only persist for this move (move, not turn !!!), as otherwise too many things change
