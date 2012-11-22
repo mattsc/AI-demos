@@ -507,7 +507,7 @@ return {
             local healer_count, healable_count = get_unit_counts_for_healing()
             local best_score = 0
             local recruit_type = nil
-            local offense_weight = 2.75
+            local offense_weight = 2.5
             local defense_weight = 1/hp_ratio^0.5
             local move_weight = math.max((distance_to_enemy/20)^2, 0.25)
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
@@ -520,7 +520,7 @@ return {
 
                 local bonus = 0
                 if scores["slows"] then
-                    bonus = bonus + 0.5
+                    bonus = bonus + 0.4
                 end
                 if scores["heals"] then
                     bonus = bonus + (healable_count/(healer_count+1))/20
