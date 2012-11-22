@@ -1409,7 +1409,7 @@ return {
                     local do_attack = true
                     for k,att_stats in ipairs(combo_att_stats) do
                         if (not sorted_atts[k].canrecruit) then
-                            if (att_stats.hp_chance[0] >= 0.5) then
+                            if (att_stats.hp_chance[0] > 0.3) then
                                 do_attack = false
                                 break
                             end
