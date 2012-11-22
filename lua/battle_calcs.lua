@@ -83,7 +83,6 @@ function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, 
     -- If def_weapon = 0, return 0 for defender damage
     -- This can be used for defenders that do not have the right kind of weapon, or if
     -- only the attacker damage is of interest
-    -- Note: this is the terrain independent strike damage - terrain time of day needs to be taken into account elsewhere
     --
     -- 'cache' can be given to cache strike damage and to pass through to battle_calcs.unit_attack_info()
 
