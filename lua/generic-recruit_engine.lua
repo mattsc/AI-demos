@@ -99,16 +99,20 @@ return {
                         end
                     end
                     local base_damage = attack.damage*resistance*damage_multiplier
-                    if (base_damage < 100) and (attack.damage > 0) then
+                    if (resistance > 100) then
+                        base_damage = base_damage-1
+                    end
+                    base_damage = math.floor(base_damage/100)
+                    if (base_damage < 1) and (attack.damage > 0) then
                         -- Damage is always at least 1
-                        base_damage = 100
+                        base_damage = 1
                     end
                     local attack_damage = base_damage*attack.number*defense-drain_recovery
 
                     local poison_damage = 0
                     if poison then
                         -- Add poison damage * probability of poisoning
-                        poison_damage = 800*(1-((1-defense)^attack.number))
+                        poison_damage = 8*(1-((1-defense)^attack.number))
                         attack_damage = attack_damage + poison_damage
                     end
 
