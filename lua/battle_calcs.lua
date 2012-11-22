@@ -92,7 +92,7 @@ function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, 
     -- the same id when the game is started from the command-line
     local cind = 'SD-' .. attacker.id .. attacker.max_hitpoints .. attacker.side
     cind = cind .. 'x' .. defender.id .. defender.max_hitpoints .. defender.side
-    cind = cind .. '-' .. att_weapon .. 'x' .. def_weapon
+    cind = cind .. '-' .. att_weapon .. 'x' .. def_weapon .. '-' .. wesnoth.get_time_of_day().id
     --print(cind)
 
     -- If cache for this unit exists, return it
