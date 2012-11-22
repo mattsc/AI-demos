@@ -184,8 +184,10 @@ function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, 
     return att_damage, def_damage, attacker_info.attacks[att_weapon], defender_info.attacks[def_weapon]
 end
 
-function battle_calcs.best_weapons(attacker, defender, cache)
+function battle_calcs.best_weapons(attacker, defender, dst, cache)
     -- Return the number of the best weapons for attacker and defender
+    -- dst: attack location, to take terrain time of day, illumination etc. into account
+    -- For the defender, the current location is assumed
     -- Ideally, we would do a full attack_rating here for all combinations,
     -- but that would take too long.  So we simply define the best weapons
     -- as those that has the biggest difference between
@@ -197,8 +199,13 @@ function battle_calcs.best_weapons(attacker, defender, cache)
     -- Set up a cache index.  We use id+max_hitpoints+side for each unit, since the
     -- unit can level up.  Side is added to avoid the problem of MP leaders sometimes having
     -- the same id when the game is started from the command-line
+    -- Also need to add the weapons and lawful_bonus values for each unit
+    local att_lawful_bonus = wesnoth.get_time_of_day({ dst[1], dst[2], true}).lawful_bonus
+    local def_lawful_bonus = wesnoth.get_time_of_day({ defender.x, defender.y, true}).lawful_bonus
+
     local cind = 'BW-' .. attacker.id .. attacker.max_hitpoints .. attacker.side
     cind = cind .. 'x' .. defender.id .. defender.max_hitpoints .. defender.side
+    cind = cind .. '-' .. att_lawful_bonus .. 'x' .. def_lawful_bonus
     --print(cind)
 
     -- If cache for this unit exists, return it
@@ -212,8 +219,7 @@ function battle_calcs.best_weapons(attacker, defender, cache)
     -- Best attacker weapon
     local max_rating, best_att_weapon, best_def_weapon = -9e99, 0, 0
     for i,att_weapon in ipairs(attacker_info.attacks) do
-        local att_damage = battle_calcs.strike_damage(attacker, defender, i, 0, { attacker.x, attacker.y }, cache)
-
+        local att_damage = battle_calcs.strike_damage(attacker, defender, i, 0, { dst[1], dst[2] }, cache)
         local max_def_rating, tmp_best_def_weapon = -9e99, 0
         for j,def_weapon in ipairs(defender_info.attacks) do
             if (def_weapon.range == att_weapon.range) then
@@ -673,7 +679,7 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
 
     local att_weapon, def_weapon = 0, 0
     if (not cfg.att_weapon) or (not cfg.def_weapon) then
-        att_weapon, def_weapon = battle_calcs.best_weapons(attacker, defender, cache)
+        att_weapon, def_weapon = battle_calcs.best_weapons(attacker, defender, dst, cache)
     else
         att_weapon, def_weapon = cfg.att_weapon, cfg.def_weapon
     end
