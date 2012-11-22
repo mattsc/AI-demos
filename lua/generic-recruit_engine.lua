@@ -499,6 +499,9 @@ return {
                 if wesnoth.match_unit(recruit_unit, { ability = "healing" }) then
                     unit_score["heals"] = true
                 end
+                if wesnoth.match_unit(recruit_unit, { ability = "skirmisher" }) then
+                    unit_score["skirmisher"] = true
+                end
                 recruitable_units[recruit_id] = recruit_unit
             end
             local healer_count, healable_count = get_unit_counts_for_healing()
@@ -521,6 +524,9 @@ return {
                 end
                 if scores["heals"] then
                     bonus = bonus + (healable_count/(healer_count+1))/20
+                end
+                if scores["skirmisher"] then
+                    bonus = bonus + 0.1
                 end
                 for attack_range, count in pairs(unit_attack_range_count[recruit_id]) do
                     bonus = bonus + 0.02 * most_common_range_count / (attack_range_count[attack_range]+1)
