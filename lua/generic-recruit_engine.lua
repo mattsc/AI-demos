@@ -102,7 +102,7 @@ return {
                     if (resistance > 100) then
                         base_damage = base_damage-1
                     end
-                    base_damage = math.floor(base_damage/100)
+                    base_damage = math.floor(base_damage/100 + 0.5)
                     if (base_damage < 1) and (attack.damage > 0) then
                         -- Damage is always at least 1
                         base_damage = 1
