@@ -174,7 +174,8 @@ return {
                 },
                 hold = { x = 11, min_y = 5, max_y = 15, hp_ratio = 1.0 },
                 secure = { x = 11, y = 9, moves_away = 2, min_units = 1 },
-                retreat_villages = { { 11, 9 }, { 8, 5 }, { 12, 5 }, { 12, 2 } }
+                retreat_villages = { { 11, 9 }, { 8, 5 }, { 12, 5 }, { 12, 2 } },
+                villages = { hold_threatened = true }
             }
 
             local cfg_right = {
@@ -1310,7 +1311,7 @@ return {
                 -- For this, we consider all villages, not just the retreat_villages
                 local villages = wesnoth.get_locations { terrain = '*^V*' }
                 local action = grunt_rush_FLS1:eval_grab_villages(village_grabbers, villages, enemies, false)
-                if action and (action.rating > 100) then
+                if action then
                     action.action = cfg.zone_id .. ': ' .. 'grab villages'
                     return action
                 end
@@ -1729,13 +1730,14 @@ return {
                 end
             end
 
-            -- **** Villages evaluation ****
+            -- **** Villages evaluation -- unowned and enemy-owned villages ****
+            local village_action = nil
             if (not cfg.do_action) or cfg.do_action.villages then
                 if (not cfg.skip_action) or (not cfg.skip_action.villages)  then
-                    local action = grunt_rush_FLS1:zone_action_villages(zone_units, enemies, cfg)
-                    if action then
-                        --print(action.action)
-                        return action
+                    village_action = grunt_rush_FLS1:zone_action_villages(zone_units, enemies, cfg)
+                    if village_action and (village_action.rating > 100) then
+                        --print(village_action.action)
+                        return village_action
                     end
                 end
             end
@@ -1748,6 +1750,15 @@ return {
                         --print(action.action)
                         return action
                     end
+                end
+            end
+
+            -- **** Grab threatened villages ****
+            if village_action then
+                if cfg.villages and cfg.villages.hold_threatened then
+                    village_action.action = village_action.action .. ' (threatened village)'
+                    --print(village_action.action)
+                    return village_action
                 end
             end
 
