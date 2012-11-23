@@ -119,8 +119,8 @@ def process_log_for_factions():
             all_maps = all_maps.union(losses[friendly_faction].maps)
         print "{0:40}\t{1}\t{2}\t{3}".format("Map","Wins","Losses","Win %")
         for map in all_maps:
-            map_wins = reduce(lambda x, y: x+ (y or 0), [wins[x].maps[map] for x in factions if x in wins and map in wins[x].maps])
-            map_losses = reduce(lambda x, y: x+ (y or 0), [losses[x].maps[map] for x in factions if x in losses and map in losses[x].maps])
+            map_wins = reduce(lambda x, y: x+ (y or 0), [wins[x].maps[map] for x in factions if x in wins and map in wins[x].maps], 0)
+            map_losses = reduce(lambda x, y: x+ (y or 0), [losses[x].maps[map] for x in factions if x in losses and map in losses[x].maps], 0)
             assert map_wins+map_losses > 0,"Programming Error:  Zero wins for sum of map wins and losses!"
             print "{0:40}\t{1}\t{2}\t{3:.1%}".format(map,map_wins,map_losses,float(map_wins)/(map_wins + map_losses))
 
