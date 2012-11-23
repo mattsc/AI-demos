@@ -924,7 +924,7 @@ return {
                 if (not unit_in_way) or (unit_in_way.moves > 0) then
                     --print('Village available:', v[1], v[2])
                     for i,u in ipairs(healees) do
-                        local next_hop = AH.next_hop(u, v[1], v[2])
+                        local next_hop = AH.next_hop(u, v[1], v[2], { ignore_own_units = true })
                         if next_hop and (next_hop[1] == v[1]) and (next_hop[2] == v[2]) then
                             --print('  can be reached by', u.id, u.x, u.y)
                             local rating = - u.hitpoints + u.max_hitpoints / 2.
