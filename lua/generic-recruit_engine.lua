@@ -137,13 +137,13 @@ return {
 
             local analysis = {}
 
-            local unit = wesnoth.create_unit { type = unit_type_id }
+            local unit = wesnoth.create_unit { type = unit_type_id, random_traits = false }
             local can_poison = living(unit) or wesnoth.unit_ability(unit, 'regenerate')
             local flat_defense = wesnoth.unit_defense(unit, "Gt")
             local best_defense = get_best_defense(unit)
 
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
-                local recruit = wesnoth.create_unit { type = recruit_id }
+                local recruit = wesnoth.create_unit { type = recruit_id, random_traits = false }
                 local can_poison_retaliation = living(recruit) or wesnoth.unit_ability(recruit, 'regenerate')
                 best_flat_attack, best_flat_damage, flat_poison = get_best_attack(recruit, unit, flat_defense, can_poison)
                 best_high_defense_attack, best_high_defense_damage, high_defense_poison = get_best_attack(recruit, unit, best_defense, can_poison)
@@ -165,7 +165,7 @@ return {
         function get_hp_efficiency()
             local efficiency = {}
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
-                local unit = wesnoth.create_unit { type = recruit_id }
+                local unit = wesnoth.create_unit { type = recruit_id, random_traits = false }
                 local flat_defense = (100-wesnoth.unit_defense(unit, "Gt"))
                 -- raw durability is a function of defense and hp
                 -- efficiency decreases faster than cost increases to avoid recruiting many expensive units
@@ -474,9 +474,9 @@ return {
                 -- Base distance on
                 local recruit_unit
                 if target_hex[1] then
-                    recruit_unit = wesnoth.create_unit { type = recruit_id, x = target_hex[1], y = target_hex[2] }
+                    recruit_unit = wesnoth.create_unit { type = recruit_id, x = target_hex[1], y = target_hex[2], random_traits = false }
                 else
-                    recruit_unit = wesnoth.create_unit { type = recruit_id, x = best_hex[1], y = best_hex[2] }
+                    recruit_unit = wesnoth.create_unit { type = recruit_id, x = best_hex[1], y = best_hex[2], random_traits = false }
                 end
                 local path, cost = wesnoth.find_path(recruit_unit, enemy_location.x, enemy_location.y, {ignore_units = true})
                 local move_score = wesnoth.unit_types[recruit_id].max_moves / (cost*wesnoth.unit_types[recruit_id].cost^0.5)
