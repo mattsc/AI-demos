@@ -84,7 +84,7 @@ return {
                                     -- TODO: handle chance to hit
                                     -- currently assumes 50% chance to hit using supplied constant
                                     local attacker_resistance = wesnoth.unit_resistance(attacker, defender_attack.type)
-                                    drain_recovery = defender_attack.damage*defender_attack.number*attacker_resistance*0.25
+                                    drain_recovery = (defender_attack.damage*defender_attack.number*attacker_resistance*0.25)/100
                                 end
                             end
                         end
