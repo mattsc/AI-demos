@@ -11,7 +11,7 @@ function ai_helper.show_messages()
     -- Returns true or false (hard-coded).  To be used to
     -- show messages if in debug mode
     -- Just edit the following line (easier than trying to set WML variable)
-    local show_messages_flag = false
+    local show_messages_flag = true
     if wesnoth.game_config.debug then return show_messages_flag end
     return false
 end
@@ -20,7 +20,7 @@ function ai_helper.print_exec()
     -- Returns true or false (hard-coded).  To be used to
     -- show which CA is being executed if in debug mode
     -- Just edit the following line (easier than trying to set WML variable)
-    local print_exec_flag = true
+    local print_exec_flag = false
     if wesnoth.game_config.debug then return print_exec_flag end
     return false
 end
@@ -629,7 +629,9 @@ function ai_helper.next_hop(unit, x, y, cfg)
     -- Finds the next "hop" of 'unit' on its way to (x,y)
     -- Returns coordinates of the endpoint of the hop, and movement cost to get there
     -- only unoccupied hexes are considered
-    -- cfg: extra options for wesnoth.find_path()
+    -- cfg: standard extra options for wesnoth.find_path()
+    --   plus:
+    --     ignore_own_units: if set to true, then own units that can move out of the way are ignored
 
     local path, cost = wesnoth.find_path(unit, x, y, cfg)
 
@@ -640,13 +642,23 @@ function ai_helper.next_hop(unit, x, y, cfg)
     local next_hop, nh_cost = {unit.x, unit.y}, 0
 
     -- Go through loop to find reachable, unoccupied hex along the path
-    for index, path_loc in ipairs(path) do
-        local sub_path, sub_cost = wesnoth.find_path( unit, path_loc[1], path_loc[2], cfg)
+    -- Start at second index, as first is just the unit position itself
+    for i = 2,#path do
+        local sub_path, sub_cost = wesnoth.find_path( unit, path[i][1], path[i][2], cfg)
 
         if sub_cost <= unit.moves then
-            local unit_in_way = wesnoth.get_unit(path_loc[1], path_loc[2])
+            local unit_in_way = wesnoth.get_unit(path[i][1], path[i][2])
+
+            -- If ignore_own_units is set, ignore own side units that can move out of the way
+            if cfg and cfg.ignore_own_units then
+                if unit_in_way and (unit_in_way.side == unit.side) then
+                    local reach = ai_helper.get_reachable_unocc(unit_in_way)
+                    if (reach:size() > 1) then unit_in_way = nil end
+                end
+            end
+
             if not unit_in_way then
-                next_hop, nh_cost = path_loc, sub_cost
+                next_hop, nh_cost = path[i], sub_cost
             end
         else
             break
