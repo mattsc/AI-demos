@@ -76,22 +76,29 @@ function battle_calcs.unit_attack_info(unit, cache)
     return unit_info
 end
 
-function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, cache)
+function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, dst, cache)
     -- Return the single strike damage of an attack by 'attacker' on 'defender' with 'weapon' for both combatants
     -- Also returns the other information about the attack (since we're accessing the information already anyway)
     -- Here, 'weapon' is the weapon number in Lua counts, i.e., counts start at 1
     -- If def_weapon = 0, return 0 for defender damage
     -- This can be used for defenders that do not have the right kind of weapon, or if
     -- only the attacker damage is of interest
+    -- dst: attack location, to take terrain time of day, illumination etc. into account
+    -- For the defender, the current location is assumed
     --
     -- 'cache' can be given to cache strike damage and to pass through to battle_calcs.unit_attack_info()
 
     -- Set up a cache index.  We use id+max_hitpoints+side for each unit, since the
     -- unit can level up.  Side is added to avoid the problem of MP leaders sometimes having
     -- the same id when the game is started from the command-line
+    -- Also need to add the weapons and lawful_bonus values for each unit
+    local att_lawful_bonus = wesnoth.get_time_of_day({ dst[1], dst[2], true}).lawful_bonus
+    local def_lawful_bonus = wesnoth.get_time_of_day({ defender.x, defender.y, true}).lawful_bonus
+
     local cind = 'SD-' .. attacker.id .. attacker.max_hitpoints .. attacker.side
     cind = cind .. 'x' .. defender.id .. defender.max_hitpoints .. defender.side
     cind = cind .. '-' .. att_weapon .. 'x' .. def_weapon
+    cind = cind .. '-' .. att_lawful_bonus .. 'x' .. def_lawful_bonus
     --print(cind)
 
     -- If cache for this unit exists, return it
@@ -111,12 +118,11 @@ function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, 
 
     -- TOD modifier
     if (attacker_info.alignment ~= 'neutral') then
-        local lawful_bonus = wesnoth.get_time_of_day().lawful_bonus
-        if (lawful_bonus ~= 0) then
+        if (att_lawful_bonus ~= 0) then
             if (attacker_info.alignment == 'lawful') then
-                att_multiplier = att_multiplier * (1 + lawful_bonus / 100.)
+                att_multiplier = att_multiplier * (1 + att_lawful_bonus / 100.)
             else
-                att_multiplier = att_multiplier * (1 - lawful_bonus / 100.)
+                att_multiplier = att_multiplier * (1 - att_lawful_bonus / 100.)
             end
         end
     end
@@ -132,12 +138,11 @@ function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, 
 
         -- TOD modifier
         if (defender_info.alignment ~= 'neutral') then
-            local lawful_bonus = wesnoth.get_time_of_day().lawful_bonus
-            if (lawful_bonus ~= 0) then
+            if (def_lawful_bonus ~= 0) then
                 if (defender_info.alignment == 'lawful') then
-                    def_multiplier = def_multiplier * (1 + lawful_bonus / 100.)
+                    def_multiplier = def_multiplier * (1 + def_lawful_bonus / 100.)
                 else
-                    def_multiplier = def_multiplier * (1 - lawful_bonus / 100.)
+                    def_multiplier = def_multiplier * (1 - def_lawful_bonus / 100.)
                 end
             end
         end
@@ -179,8 +184,10 @@ function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, 
     return att_damage, def_damage, attacker_info.attacks[att_weapon], defender_info.attacks[def_weapon]
 end
 
-function battle_calcs.best_weapons(attacker, defender, cache)
+function battle_calcs.best_weapons(attacker, defender, dst, cache)
     -- Return the number of the best weapons for attacker and defender
+    -- dst: attack location, to take terrain time of day, illumination etc. into account
+    -- For the defender, the current location is assumed
     -- Ideally, we would do a full attack_rating here for all combinations,
     -- but that would take too long.  So we simply define the best weapons
     -- as those that has the biggest difference between
@@ -192,8 +199,13 @@ function battle_calcs.best_weapons(attacker, defender, cache)
     -- Set up a cache index.  We use id+max_hitpoints+side for each unit, since the
     -- unit can level up.  Side is added to avoid the problem of MP leaders sometimes having
     -- the same id when the game is started from the command-line
+    -- Also need to add the weapons and lawful_bonus values for each unit
+    local att_lawful_bonus = wesnoth.get_time_of_day({ dst[1], dst[2], true}).lawful_bonus
+    local def_lawful_bonus = wesnoth.get_time_of_day({ defender.x, defender.y, true}).lawful_bonus
+
     local cind = 'BW-' .. attacker.id .. attacker.max_hitpoints .. attacker.side
     cind = cind .. 'x' .. defender.id .. defender.max_hitpoints .. defender.side
+    cind = cind .. '-' .. att_lawful_bonus .. 'x' .. def_lawful_bonus
     --print(cind)
 
     -- If cache for this unit exists, return it
@@ -207,12 +219,11 @@ function battle_calcs.best_weapons(attacker, defender, cache)
     -- Best attacker weapon
     local max_rating, best_att_weapon, best_def_weapon = -9e99, 0, 0
     for i,att_weapon in ipairs(attacker_info.attacks) do
-        local att_damage = battle_calcs.strike_damage(attacker, defender, i, 0, cache)
-
+        local att_damage = battle_calcs.strike_damage(attacker, defender, i, 0, { dst[1], dst[2] }, cache)
         local max_def_rating, tmp_best_def_weapon = -9e99, 0
         for j,def_weapon in ipairs(defender_info.attacks) do
             if (def_weapon.range == att_weapon.range) then
-                local def_damage = battle_calcs.strike_damage(defender, attacker, j, 0, cache)
+                local def_damage = battle_calcs.strike_damage(defender, attacker, j, 0, { defender.x, defender.y }, cache)
                 local def_rating = def_damage * def_weapon.number
                 if (def_rating > max_def_rating) then
                     max_def_rating, tmp_best_def_weapon = def_rating, j
@@ -661,6 +672,7 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
     --  - att_weapon/def_weapon: attacker/defender weapon number
     --      if not given, get "best" weapon (Note: both must be given, or they will both be determined)
     --  - dst: { x, y }: the attack location; defaults to { attacker.x, attacker. y }
+    -- cache: to be passed on to other functions.  battle_outcome itself is not cached, too many factors enter
 
     cfg = cfg or {}
 
@@ -668,7 +680,7 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
 
     local att_weapon, def_weapon = 0, 0
     if (not cfg.att_weapon) or (not cfg.def_weapon) then
-        att_weapon, def_weapon = battle_calcs.best_weapons(attacker, defender, cache)
+        att_weapon, def_weapon = battle_calcs.best_weapons(attacker, defender, dst, cache)
     else
         att_weapon, def_weapon = cfg.att_weapon, cfg.def_weapon
     end
@@ -677,7 +689,7 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
     -- Collect all the information needed for the calculation
     -- Strike damage and numbers
     local att_damage, def_damage, att_attack, def_attack =
-        battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, cache)
+        battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, { dst[1], dst[2] }, cache)
     --print(att_damage,def_damage)
 
     -- Take swarm into account
@@ -985,6 +997,7 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cach
     --   must be in same order as 'attackers'
     -- defender: the unit being attacked
     -- cache: the cache table to be passed through to other battle_calcs functions
+    --   attack_combo_stats itself is not cached, except for in cache_this_move below
     -- cache_this_move: an optional table of pre-calculated attack outcomes
     --   - This is different from the other cache tables used in this file
     --   - This table may only persist for this move (move, not turn !!!), as otherwise too many things change
