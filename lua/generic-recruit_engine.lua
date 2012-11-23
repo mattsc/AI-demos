@@ -531,7 +531,7 @@ return {
                 for attack_range, count in pairs(unit_attack_range_count[recruit_id]) do
                     bonus = bonus + 0.02 * most_common_range_count / (attack_range_count[attack_range]+1)
                 end
-                bonus = bonus + 0.05 * wesnoth.races[wesnoth.unit_types[recruit_id].__cfg.race].num_traits^2
+                bonus = bonus + 0.03 * wesnoth.races[wesnoth.unit_types[recruit_id].__cfg.race].num_traits^2
                 if target_hex[1] then
                     recruitable_units[recruit_id].x = best_hex[1]
                     recruitable_units[recruit_id].y = best_hex[2]
