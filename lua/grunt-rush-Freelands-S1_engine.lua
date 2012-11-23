@@ -900,6 +900,11 @@ return {
                 if (hp_eff < min_hp + 4) then
                     if u.status.slowed then hp_eff = hp_eff - 4 end
                 end
+
+                -- Also reduce effective HP of leader some more
+                -- to have AI leader retreat earlier
+                if u.canrecruit then hp_eff = hp_eff - 8 end
+
                 if (hp_eff < min_hp) then
                     table.insert(healees, u)
                 end
