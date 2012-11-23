@@ -10,8 +10,8 @@ each faction.
 
 In the below command, *.log represents the log files being analyzed, so the below command will work if you are
 in the directory with the log files being analyzed.
-Usage:  analyze_log.py [options] *.log 
-""" 
+Usage:  analyze_log.py [options] *.log
+"""
 parser = OptionParser(usage)
 parser.add_option("-d","--default_ai",dest="opposing_ai",default="default_ai_with_recruit_log",help="AI you are opposing.  Reports results for the AI that is *not* this AI.")
 parser.add_option("-m","--maps",dest="map_totals",default=False,action="store_true")
@@ -21,12 +21,12 @@ if len(args) < 1:
     parser.error("You must specify at least one .log file.  Run with --help for help.")
 
 ai_grand_totals = {}
-        
+
 class FactionData:
     def __init__(self):
         self.opponents = {}
         self.maps = {}
-        
+
 def process_log_for_factions():
     wins = {}
     losses = {}
@@ -82,23 +82,23 @@ def process_log_for_factions():
             win_or_loss = wins
         else:
             win_or_loss = losses
-        
+
         # print "faction being tested is", faction_being_tested
         if faction_being_tested not in wins:
             wins[faction_being_tested] = FactionData()
         if faction_being_tested not in losses:
             losses[faction_being_tested] = FactionData()
-            
+
         data = win_or_loss[faction_being_tested]
         if opponent in data.opponents:
             data.opponents[opponent] += 1
         else:
-            data.opponents[opponent] = 1  
+            data.opponents[opponent] = 1
         if game_map in data.maps:
             data.maps[game_map] += 1
         else:
             data.maps[game_map] = 1
-            
+
     factions = set(wins.keys())
     factions= factions.union(losses.keys())
     factions = [x for x in factions]
@@ -144,7 +144,7 @@ def process_log_for_factions():
             win_pct = float(wins_vs_opponent) / (wins_vs_opponent + losses_vs_opponent) if (wins_vs_opponent + losses_vs_opponent) != 0 else 0.0
             print "{0:33}\t{1:d}\t{2:d}\t{3:.1%}".format(friendly_faction + " vs " + opponent,wins_vs_opponent,losses_vs_opponent,win_pct)
         print "Total {0:27}\t{1:d}\t{2:d}\t{3:.1%}\n".format(friendly_faction,total_wins,total_losses,(float(total_wins)/(total_wins + total_losses)))
-        
+
         if options.map_totals:
             map_total_wins = 0
             map_total_losses = 0
@@ -157,12 +157,12 @@ def process_log_for_factions():
                 print "{0:58}\t{1:d}\t{2:d}\t{3:.1%}".format(friendly_faction + " on " + the_map,wins_on_map,losses_on_map,win_pct)
             print "{0:58}\t{1:d}\t{2:d}\t{3:.1%}\n".format("Total " + friendly_faction,map_total_wins,map_total_losses,(float(total_wins)/(total_wins + total_losses)))
             assert map_total_wins == total_wins and map_total_losses == total_losses, "Programming error!  Map totals should equal faction totals!"
-       
+
 
 
 process_log_for_factions()
 
 
 
-            
-    
+
+
