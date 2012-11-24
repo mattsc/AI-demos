@@ -2,6 +2,7 @@
 - Generic Rush
   - Much improved placement of recruited units
   - The leader now captures villages rather than moving to a new keep if it can't recruit any more in the current turn
+  - Replays no longer go OOS if the Generic Rush is playing a side
 - Freelands Side 1 Grunt Rush:
   - Switch to use of battle_calcs.lua instead of wesnoth.simulate_combat (not quite finished yet)
 - battle_calcs is now a complete library independent of wesnoth.simulate_combat, including:
@@ -9,6 +10,8 @@
   - Calculation of single-strike damage and best weapon
   - New gold-based attack rating system
   - Correct HP statistics and attack rating for battle combinations
+  - Use Ron's recruiter instead of custom one
+  - Fred can now play any faction
 - New lua test scenario:
   - Can be accessed by moving Grnk to snowy mountains at 9,1 in Switchboard scenario
 - Patrols:
