@@ -1883,7 +1883,7 @@ return {
                     for att in H.child_range(defender.__cfg, 'attack') do
                         if att.range == attack_range then
                             for special in H.child_range(att, 'specials') do
-                                local mod = helper.get_child(special, 'chance_to_hit')
+                                local mod = H.get_child(special, 'chance_to_hit')
                                 if mod and (mod.id == 'magical') then
                                    rating = rating - 500
                                 end
