@@ -1181,7 +1181,7 @@ return {
 
             -- First we retreat non-troll units w/ <8+4/level HP to villages.
             local min_hp = function(unit)
-                return 8 + 4*unit.__cfg.level
+                return 8 + 4*wesnoth.unit_types[unit.type].level
             end
             if non_trolls[1] then
                 local action = grunt_rush_FLS1:get_retreat_injured_units(non_trolls, "*^V*", min_hp)
@@ -1199,7 +1199,7 @@ return {
             -- We do NOT exclude mountain villages! Maybe we should?
             if trolls[1] then
                 min_hp = function(unit)
-                    return 10 + 6*unit.__cfg.level
+                    return 10 + 6*wesnoth.unit_types[unit.type].level
                 end
                 local action = grunt_rush_FLS1:get_retreat_injured_units(trolls, "!,*^X*,!,M*^*", min_hp)
                 if action then
