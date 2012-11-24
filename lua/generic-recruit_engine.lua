@@ -1,5 +1,15 @@
 return {
-    init = function(ai, ai_cas)
+    -- init parameters:
+    -- ai: a reference to the ai engine so recruit has access to ai functions
+    -- ai_cas: an object reference to store the CAs and associated data
+    --   the CA will use the function names ai_cas:recruit_rushers_eval/exec, so should be referenced by the object name used by the calling AI
+    -- score_function: a function that returns the CA score when recruit_rushers_eval wants to recruit
+    init = function(ai, ai_cas, score_function)
+        -- default score function if one not provided
+        if not score_function then
+            score_function = function() return 300000 end
+        end
+
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
@@ -243,7 +253,7 @@ return {
                 data.recruit = init_data(leader)
             end
             data.recruit.cheapest_unit_cost = cheapest_unit_cost
-            return 300000
+            return score_function()
         end
 
         function init_data(leader)
