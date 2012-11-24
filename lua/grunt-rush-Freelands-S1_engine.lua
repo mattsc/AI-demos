@@ -839,12 +839,8 @@ return {
             local healees = {}
             for i,u in ipairs(units) do
                 local hp_eff = u.hitpoints
-                if (hp_eff < min_hp + 8) then
-                    if u.status.poisoned then hp_eff = hp_eff - 8 end
-                end
-                if (hp_eff < min_hp + 4) then
-                    if u.status.slowed then hp_eff = hp_eff - 4 end
-                end
+                if u.status.poisoned then hp_eff = hp_eff - 8 end
+                if u.status.slowed then hp_eff = hp_eff - 4 end
 
                 -- Also reduce effective HP of leader some more
                 -- to have AI leader retreat earlier
