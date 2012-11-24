@@ -1,27 +1,39 @@
 0.12.0
-- Generic Rush
-  - Much improved placement of recruited units
-  - The leader now captures villages rather than moving to a new keep if it can't recruit any more in the current turn
-  - Replays no longer go OOS if the Generic Rush is playing a side
-- Freelands Side 1 Grunt Rush:
-  - Switch to use of battle_calcs.lua instead of wesnoth.simulate_combat (not quite finished yet)
-- battle_calcs is now a complete library independent of wesnoth.simulate_combat, including:
-  - Fast (and cached) battle-outcome calculations (still some work to be done for specials like drain and berserk)
-  - Calculation of single-strike damage and best weapon
-  - New gold-based attack rating system
-  - Correct HP statistics and attack rating for battle combinations
-  - Use Ron's recruiter instead of custom one
-  - Fred can now play any faction
-- New lua test scenario:
-  - Can be accessed by moving Grnk to snowy mountains at 9,1 in Switchboard scenario
-- Patrols:
-  - Turn Jabb AI into a BCA, in preparation for making it a Micro AI
 - New recruitment AIs
   - The AIs for the ML recruiter described at http://forums.wesnoth.org/viewtopic.php?f=10&t=36642 are now in AI-Demos.
   - This adds 3 new multiplayer AIs: The two from ML Recruiter 0.3 (Recommended and Less variety) and one that replaces Ron's current recruitment algorithm with the Recommended ML recruitment.
   - All these AIs require the ML Recruiter 0.4 patch from https://gna.org/patch/?3479 to be applied to Wesnoth before they will run
 - New test harness and analysis tools
   - ml_utils contains a set of scripts to run and analyze large numbers of AI vs. AI games
+- Generic Rush
+  - Much improved placement of recruited units
+  - The leader now captures villages rather than moving to a new keep if it can't recruit any more in the current turn
+  - Replays no longer go OOS if the Generic Rush is playing a side
+- Freelands Side 1 Grunt Rush:
+  - Use Ron's recruiter instead of custom one
+  - Fred can now play any faction
+  - Switch to use of battle_calcs.lua instead of wesnoth.simulate_combat
+  - zone_control:
+    - Lots of adjustments to zone_control behavior to improve performance (this is still work in progress)
+    - Move trapping and poison attacks into zone_control
+    - Units now move off villages to allow injured units to move there
+    - Add do_action and skip_action parameters
+    - More refactoring
+- battle_calcs is now a complete library independent of wesnoth.simulate_combat, including:
+  - Fast (and cached) battle-outcome calculations (still some work to be done for specials like drain and berserk)
+  - Calculation of single-strike damage and best weapon (includes terrain TOD and illumination)
+  - New gold-based attack rating system
+  - Correct HP statistics and attack rating for battle combinations
+- New lua test scenario:
+  - Can be accessed by moving Grnk to snowy mountains at 9,1 in Switchboard scenario
+- Patrols:
+  - Turn Jabb AI into a BCA, in preparation for making it a Micro AI
+  - Create a separate side for Jabb and move engine into separate file (same reason)
+- Protect Unit and The Elves Besieged:
+  - Disable parameter selection dialog
+- Micro AIs:
+  - Some cleaning up and creating of templates in preparation for Google Code-in projects
+- ai_helper.next_hop now has option to ignore own units that can move out of the way
 
 0.11.5, 4 Nov 2012
 - Bug fix: Units now use correct weapons to attack again in all scenarios
