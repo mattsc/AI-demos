@@ -846,7 +846,7 @@ return {
                 -- to have AI leader retreat earlier
                 if u.canrecruit then hp_eff = hp_eff - 8 end
 
-                if (hp_eff < min_hp) then
+                if (hp_eff < min_hp(u)) then
                     table.insert(healees, u)
                 end
             end
@@ -1179,23 +1179,29 @@ return {
             end
             --print('#trolls, #non_trolls', #trolls, #non_trolls)
 
-            -- First we retreat non-troll units w/ <12 HP to villages.
+            -- First we retreat non-troll units w/ <8+4/level HP to villages.
+            local min_hp = function(unit)
+                return 8 + 4*unit.__cfg.level
+            end
             if non_trolls[1] then
-                local action = grunt_rush_FLS1:get_retreat_injured_units(non_trolls, "*^V*", 12)
+                local action = grunt_rush_FLS1:get_retreat_injured_units(non_trolls, "*^V*", min_hp)
                 if action then
                     action.action = cfg.zone_id .. ': ' .. 'retreat severely injured units (non-trolls)'
                     return action
                 end
             end
 
-            -- Then we retreat troll units with <16 HP to mountains
+            -- Then we retreat troll units with <10+6/level HP to mountains
             -- We use a slightly higher min_hp b/c trolls generally have low defense.
             -- Also since trolls regen at start of turn, they only have <12 HP if poisoned
             -- or reduced to <4 HP on enemy's turn.
             -- We exclude impassable terrain to speed up evaluation.
             -- We do NOT exclude mountain villages! Maybe we should?
             if trolls[1] then
-                local action = grunt_rush_FLS1:get_retreat_injured_units(trolls, "!,*^X*,!,M*^*", 16)
+                min_hp = function(unit)
+                    return 10 + 6*unit.__cfg.level
+                end
+                local action = grunt_rush_FLS1:get_retreat_injured_units(trolls, "!,*^X*,!,M*^*", min_hp)
                 if action then
                     action.action = cfg.zone_id .. ': ' .. 'retreat severely injured units (trolls)'
                     return action
