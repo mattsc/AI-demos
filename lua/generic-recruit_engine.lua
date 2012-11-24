@@ -555,7 +555,8 @@ return {
                 if target_hex[1] then
                     recruitable_units[recruit_id].x = best_hex[1]
                     recruitable_units[recruit_id].y = best_hex[2]
-                    local path, cost = wesnoth.find_path(recruitable_units[recruit_id], target_hex[1], target_hex[2], {viewing_side=0, max_cost=wesnoth.unit_types[recruit_id].max_moves})
+                    local path, cost = wesnoth.find_path(recruitable_units[recruit_id], target_hex[1], target_hex[2], {viewing_side=0, max_cost=wesnoth.unit_types[recruit_id].max_moves+1})
+                    print( cost .. "?".. wesnoth.unit_types[recruit_id].max_moves)
                     if cost > wesnoth.unit_types[recruit_id].max_moves then
                         -- large penalty if the unit can't reach the target village
                         bonus = bonus - 1
@@ -660,7 +661,7 @@ return {
                     if c[1] > 0 and c[2] > 0 and c[1] <= width and c[2] <= height then
                         local distance = 0
                         for x,unit in ipairs(test_units) do
-                            local path, unit_distance = wesnoth.find_path(unit, c[1], c[2], {viewing_side=0, max_cost=fastest_unit_speed})
+                            local path, unit_distance = wesnoth.find_path(unit, c[1], c[2], {viewing_side=0, max_cost=fastest_unit_speed+1})
                             distance = distance + unit_distance
 
                             -- Village is only viable if at least one unit can reach it
