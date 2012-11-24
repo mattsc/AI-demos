@@ -392,6 +392,9 @@ return {
 
             if wesnoth.unit_types[recruit_type].cost <= wesnoth.sides[wesnoth.current.side].gold then
                 ai.recruit(recruit_type, self.data.recruit.best_hex[1], self.data.recruit.best_hex[2])
+                return true
+            else
+                return false
             end
         end
 
