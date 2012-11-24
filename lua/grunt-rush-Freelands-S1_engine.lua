@@ -795,24 +795,27 @@ return {
 
             local keeps = { { 18, 4 }, { 19, 4 } }  -- keep hexes in order of preference
 
+            for i,k in ipairs(keeps) do
+                if (leader.x == k[1]) or (leader.y == k[2]) then
+                    -- If the leader already is on a keep, don't consider lesser priority ones
+                    AH.done_eval_messages(start_time, ca_name)
+                    return 0
+                end
+            end
+
             -- We move the leader to the keep if
             -- 1. It's available
             -- 2. The leader can get there in one move
             for i,k in ipairs(keeps) do
-                if (leader.x ~= k[1]) or (leader.y ~= k[2]) then
-                    local unit_in_way = wesnoth.get_unit(k[1], k[2])
-                    if (not unit_in_way) then
-                        local next_hop = AH.next_hop(leader, k[1], k[2])
-                        if next_hop and (next_hop[1] == k[1]) and (next_hop[2] == k[2]) then
-                            grunt_rush_FLS1.data.MLK_leader = leader
-                            grunt_rush_FLS1.data.MLK_leader_move = { k[1], k[2] }
-                            AH.done_eval_messages(start_time, ca_name)
-                            return score
-                        end
+                local unit_in_way = wesnoth.get_unit(k[1], k[2])
+                if (not unit_in_way) then
+                    local next_hop = AH.next_hop(leader, k[1], k[2])
+                    if next_hop and (next_hop[1] == k[1]) and (next_hop[2] == k[2]) then
+                        grunt_rush_FLS1.data.MLK_leader = leader
+                        grunt_rush_FLS1.data.MLK_leader_move = { k[1], k[2] }
+                        AH.done_eval_messages(start_time, ca_name)
+                        return score
                     end
-                else -- If the leader already is on the keep, don't consider lesser priority ones
-                    AH.done_eval_messages(start_time, ca_name)
-                    return 0
                 end
             end
 
