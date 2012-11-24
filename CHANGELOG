@@ -16,6 +16,12 @@
   - Can be accessed by moving Grnk to snowy mountains at 9,1 in Switchboard scenario
 - Patrols:
   - Turn Jabb AI into a BCA, in preparation for making it a Micro AI
+- New recruitment AIs
+  - The AIs for the ML recruiter described at http://forums.wesnoth.org/viewtopic.php?f=10&t=36642 are now in AI-Demos.
+  - This adds 3 new multiplayer AIs: The two from ML Recruiter 0.3 (Recommended and Less variety) and one that replaces Ron's current recruitment algorithm with the Recommended ML recruitment.
+  - All these AIs require the ML Recruiter 0.4 patch from https://gna.org/patch/?3479 to be applied to Wesnoth before they will run
+- New test harness and analysis tools
+  - ml_utils contains a set of scripts to run and analyze large numbers of AI vs. AI games
 
 0.11.5, 4 Nov 2012
 - Bug fix: Units now use correct weapons to attack again in all scenarios
