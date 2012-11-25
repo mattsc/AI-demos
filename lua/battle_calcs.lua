@@ -1,5 +1,6 @@
 local H = wesnoth.require "lua/helper.lua"
 local AH = wesnoth.dofile "~/add-ons/AI-demos/lua/ai_helper.lua"
+local LS = wesnoth.require "lua/location_set.lua"
 local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
 local battle_calcs = {}
@@ -1182,6 +1183,73 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cach
     --print(rating, def_rating, att_rating, att_rating_av)
 
     return rating, attackers, dsts, att_stats, def_stats[#attackers], def_stats
+end
+
+function battle_calcs.get_attack_map_unit(unit, cfg)
+    -- Get all hexes that a unit can attack
+    -- Return value is a location set, where the values are tables, containing
+    --   - units: the number of units (always 1 for this function)
+    --   - hitpoints: the combined hitpoints of the units
+    --   - srcs: an array containing the positions of the units
+    -- cfg: table with config parameters
+    --  max_moves: if set use max_moves for units (this setting is always used for units on other sides)
+
+    cfg = cfg or {}
+
+    -- 'moves' can be either "current" or "max"
+    -- For unit on current side: use "current" by default, or override by cfg.moves
+    local max_moves = cfg.max_moves
+    -- For unit on any other side, only max_moves=true makes sense
+    if (unit.side ~= wesnoth.current.side) then max_moves = true end
+
+    local old_moves = unit.moves
+    if max_moves then unit.moves = unit.max_moves end
+
+    local reach = {}
+    reach.units = LS.create()
+    reach.hitpoints = LS.create()
+
+    local initial_reach = wesnoth.find_reach(unit, cfg)
+
+    for i,loc in ipairs(initial_reach) do
+        reach.units:insert(loc[1], loc[2], 1)
+        reach.hitpoints:insert(loc[1], loc[2], unit.hitpoints)
+        for x, y in H.adjacent_tiles(loc[1], loc[2]) do
+            reach.units:insert(x, y, 1)
+            reach.hitpoints:insert(x, y, unit.hitpoints)
+        end
+    end
+
+    -- Reset unit moves
+    if max_moves then unit.moves = old_moves end
+
+    return reach
+end
+
+function battle_calcs.get_attack_map(units, cfg)
+    -- Get all hexes that units can attack (this is really just a wrapper function for battle_calcs.get_attack_map_unit()
+    -- Return value is a location set, where the values are tables, containing
+    --   - units: the number of units (always 1 for this function)
+    --   - hitpoints: the combined hitpoints of the units
+    --   - srcs: an array containing the positions of the units
+    -- cfg: table with config parameters
+    --  max_moves: if set use max_moves for units (this setting is always used for units on other sides)
+
+    local attack_map1 = {}
+    attack_map1.units = LS.create()
+    attack_map1.hitpoints = LS.create()
+
+    for i,u in ipairs(units) do
+        local attack_map2 = battle_calcs.get_attack_map_unit(u, cfg)
+        attack_map1.units:union_merge(attack_map2.units, function(x, y, v1, v2)
+            return (v1 or 0) + v2
+        end)
+        attack_map1.hitpoints:union_merge(attack_map2.hitpoints, function(x, y, v1, v2)
+            return (v1 or 0) + v2
+        end)
+    end
+
+    return attack_map1
 end
 
 return battle_calcs

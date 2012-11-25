@@ -7,6 +7,7 @@ return {
         local W = H.set_wml_action_metatable {}
         local LS = wesnoth.require "lua/location_set.lua"
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
+        local BC = wesnoth.dofile "~/add-ons/AI-demos/lua/battle_calcs.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
         -----------------------------------------------------------------
@@ -132,7 +133,7 @@ return {
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
-            local enemy_attack_map = AH.get_attack_map(enemies)
+            local enemy_attack_map = BC.get_attack_map(enemies)
             --AH.put_labels(enemy_attack_map.units)
 
             -- Put units back out there

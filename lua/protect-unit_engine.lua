@@ -7,6 +7,7 @@ return {
         local W = H.set_wml_action_metatable {}
         local LS = wesnoth.require "lua/location_set.lua"
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
+        local BC = wesnoth.dofile "~/add-ons/AI-demos/lua/battle_calcs.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
         ----- The parameter selection dialog (for demo scenario only, delete for real use) ------------
@@ -216,12 +217,12 @@ return {
             }
 
             -- My attack map
-            local MAM = AH.get_attack_map(my_units).units  -- enemy attack map
+            local MAM = BC.get_attack_map(my_units).units  -- enemy attack map
             --AH.put_labels(MAM)
             --W.message {speaker="narrator", message="My attack map" }
 
             -- Enemy attack map
-            local EAM = AH.get_attack_map(enemy_units).units  -- enemy attack map
+            local EAM = BC.get_attack_map(enemy_units).units  -- enemy attack map
             --AH.put_labels(EAM)
             --W.message {speaker="narrator", message="Enemy attack map" }
 
@@ -346,7 +347,7 @@ return {
             -- Find all hexes enemies can attack on their next turn
             local enemy_attacks = {}
             for i,e in ipairs(enemies) do
-                local attack_map = AH.get_attack_map_unit(e).units
+                local attack_map = BC.get_attack_map_unit(e).units
                 table.insert(enemy_attacks, { enemy = e, attack_map = attack_map })
             end
 

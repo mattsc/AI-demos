@@ -51,8 +51,8 @@ return {
             --print('#my_units, #enemies', #my_units, #enemies)
             -- The following is a duplication and slow, but until I actually know whether it
             -- works, I'll not put in the effort to optimize it
-            local attack_map = AH.get_attack_map(my_units)
-            local enemy_attack_map = AH.get_attack_map(enemies)
+            local attack_map = BC.get_attack_map(my_units)
+            local enemy_attack_map = BC.get_attack_map(enemies)
             --AH.put_labels(enemy_attack_map)
 
             local hp_y, enemy_hp_y, hp_ratio, number_units_y = {}, {}, {}, {}
@@ -862,7 +862,7 @@ return {
             local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
-            local enemy_attack_map = AH.get_attack_map(enemies)
+            local enemy_attack_map = BC.get_attack_map(enemies)
 
             local max_rating, best_village, best_unit = -9e99, {}, {}
             for i,v in ipairs(villages) do
@@ -980,7 +980,7 @@ return {
             local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
-            local enemy_attack_map = AH.get_attack_map(enemies)
+            local enemy_attack_map = BC.get_attack_map(enemies)
             --AH.put_labels(enemy_attack_map.units)
 
             local max_rating, best_attack = -9e99, {}
