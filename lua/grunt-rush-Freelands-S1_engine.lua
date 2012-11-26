@@ -76,6 +76,27 @@ return {
             return hp_ratio, number_units_y
         end
 
+        function grunt_rush_FLS1:relative_damage_y(my_units, enemies, zone)
+            -- Relative damage as function of y coordinate
+
+            --print('#my_units, #enemies', #my_units, #enemies)
+            local rel_damage_map = BC.relative_damage_map(my_units, enemies, grunt_rush_FLS1.data.cache)
+            --AH.put_labels(rel_damage_map)
+
+            local rel_damage_y = {}
+            for i,hex in ipairs(zone) do
+                local x, y = hex[1], hex[2]  -- simply for ease of reading
+                if (not rel_damage_y[y]) then rel_damage_y[y] = -9e99 end
+                local rd = rel_damage_map:get(x, y) or -9e99
+                if (rd > rel_damage_y[y]) then rel_damage_y[y] = rd end
+            end
+            --wesnoth.clear_messages()
+            --DBG.dbms(rel_damage_y)
+            --W.message{ speaker = 'narrator', message = 'Relative damage map' }
+
+            return rel_damage_y
+        end
+
         function grunt_rush_FLS1:full_offensive()
             -- Returns true if the conditions to go on all-out offensive are met
             -- 1. If Turn >= 16 and HP ratio > 1.5
