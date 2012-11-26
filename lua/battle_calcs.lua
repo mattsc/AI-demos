@@ -1252,4 +1252,75 @@ function battle_calcs.get_attack_map(units, cfg)
     return attack_map1
 end
 
+function battle_calcs.relative_damage_map(units, enemies, cache)
+    -- Returns a location set map containing the relative damage of
+    -- units vs. enemies on the part of the map that the combined units
+    -- can reach.  The damage is calculated as the sum of defender_rating
+    -- from attack_rating(), and thus (roughly) in gold units.
+
+    -- Get the attack maps for each unit in 'units' and 'enemies'
+    my_attack_maps, enemy_attack_maps = {}, {}
+    for i,u in ipairs(units) do
+        my_attack_maps[i] = battle_calcs.get_attack_map_unit(u, cfg)
+    end
+    for i,e in ipairs(enemies) do
+        enemy_attack_maps[i] = battle_calcs.get_attack_map_unit(e, cfg)
+    end
+
+    -- Get the damage rating for each unit in 'units'.  It is the maximum
+    -- defender_rating (roughly the damage that it can do in units of gold)
+    -- against any of the enemy units
+    local unit_ratings = {}
+    for i,u in ipairs(units) do
+        local max_rating, best_enemy = -9e99, {}
+        for j,e in ipairs(enemies) do
+            local rating, defender_rating, attacker_rating, attacker_rating_av =
+                battle_calcs.attack_rating(u, e, { u.x, u.y }, {}, cache)
+            --print('my', u.id, e.id, rating, defender_rating, attacker_rating, attacker_rating_av)
+            local eff_rating = defender_rating
+            if (eff_rating > max_rating) then
+                max_rating = eff_rating
+                best_enemy = e
+            end
+        end
+        unit_ratings[i] = { rating = max_rating, unit_id = u.id, enemy_id = best_enemy.id }
+    end
+    --DBG.dbms(unit_ratings)
+
+    -- Then we want the same thing for all of the enemy units (for the counter attack on enemy turn)
+    local enemy_ratings = {}
+    for i,e in ipairs(enemies) do
+        local max_rating, best_unit = -9e99, {}
+        for j,u in ipairs(units) do
+            local rating, defender_rating, attacker_rating, attacker_rating_av =
+                battle_calcs.attack_rating(e, u, { e.x, e.y }, {}, cache)
+            --print('enemy', e.id, u.id, rating, defender_rating, attacker_rating, attacker_rating_av)
+            local eff_rating = defender_rating
+            if (eff_rating > max_rating) then
+                max_rating = eff_rating
+                best_unit = u
+            end
+        end
+        enemy_ratings[i] = { rating = max_rating, unit_id = best_unit.id, enemy_id = e.id }
+    end
+    --DBG.dbms(enemy_ratings)
+
+    -- The damage map is now the sum of these ratings for each unit that can attack a given hex,
+    -- counting own-unit ratings as positive, enemy ratings as negative
+    local damage_map = LS.create()
+    for i,u in ipairs(units) do
+        my_attack_maps[i].units:iter(function(x, y, v)
+            damage_map:insert(x, y, (damage_map:get(x, y) or 0) + unit_ratings[i].rating)
+        end)
+    end
+    for i,e in ipairs(enemies) do
+        enemy_attack_maps[i].units:iter(function(x, y, v)
+            damage_map:insert(x, y, (damage_map:get(x, y) or 0) - enemy_ratings[i].rating)
+        end)
+    end
+    --AH.put_labels(damage_map)
+
+    return damage_map
+end
+
 return battle_calcs
