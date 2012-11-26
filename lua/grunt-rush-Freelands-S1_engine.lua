@@ -1062,6 +1062,9 @@ return {
             -- This should include both retreating to villages of injured units and village grabbing
             -- The leader is only included if he is on the keep
 
+            -- First check for villages to retreat to
+            -- This means villages in cfg.retreat_villages that are on the safe side
+            -- (currently that still means north)
             local retreat_villages = {}
             for i,v in ipairs(cfg.retreat_villages or {}) do
                 if (v[2] <= advance_y) then
@@ -1071,6 +1074,9 @@ return {
             end
             --print('#retreat_villages', #retreat_villages)
 
+            -- If villages were found check for units to retreat to them
+            -- Consider units missing at least 8 HP during their weak time of day
+            -- Caveat: neutral units are not retreat by this action at the moment
             local injured_units = {}
             if retreat_villages[1] then
                 local tod = wesnoth.get_time_of_day()
@@ -1105,7 +1111,7 @@ return {
             end
             --print('#injured_units', #injured_units)
 
-            -- During daytime, we retreat injured units toward villages
+            -- If both villages and units were found, check for retreating moves
             -- (Seriously injured units are already dealt with previously)
             if injured_units[1] and retreat_villages[1] then
                 local action = grunt_rush_FLS1:eval_grab_villages(injured_units, retreat_villages, enemies, true)
