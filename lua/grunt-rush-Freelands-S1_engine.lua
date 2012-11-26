@@ -23,57 +23,6 @@ return {
         -- This is customized for Northerners on Freelands, playing Side 1
         --------------------------------------------------------------------
 
-        function grunt_rush_FLS1:hp_ratio(my_units, enemies)
-            -- Hitpoint ratio of own units / enemy units
-            -- If arguments are not given, use all units on the side
-            if (not my_units) then
-                my_units = AH.get_live_units { side = wesnoth.current.side }
-            end
-            if (not enemies) then
-                enemies = AH.get_live_units {
-                    { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
-                }
-            end
-
-            local my_hp, enemy_hp = 0, 0
-            for i,u in ipairs(my_units) do my_hp = my_hp + u.hitpoints end
-            for i,u in ipairs(enemies) do enemy_hp = enemy_hp + u.hitpoints end
-
-            --print('HP ratio:', my_hp / (enemy_hp + 1e-6)) -- to avoid div by 0
-            return my_hp / (enemy_hp + 1e-6), my_hp, enemy_hp
-        end
-
-        function grunt_rush_FLS1:relative_damage_y(my_units, enemies, zone)
-            -- Relative damage as function of y coordinate
-
-            --print('#my_units, #enemies', #my_units, #enemies)
-            local rel_damage_map = BC.relative_damage_map(my_units, enemies, grunt_rush_FLS1.data.cache)
-            --AH.put_labels(rel_damage_map)
-
-            local rel_damage_y = {}
-            for i,hex in ipairs(zone) do
-                local x, y = hex[1], hex[2]  -- simply for ease of reading
-                if (not rel_damage_y[y]) then rel_damage_y[y] = -9e99 end
-                local rd = rel_damage_map:get(x, y) or -9e99
-                if (rd > rel_damage_y[y]) then rel_damage_y[y] = rd end
-            end
-            --wesnoth.clear_messages()
-            --DBG.dbms(rel_damage_y)
-            --W.message{ speaker = 'narrator', message = 'Relative damage map' }
-
-            return rel_damage_y
-        end
-
-        function grunt_rush_FLS1:full_offensive()
-            -- Returns true if the conditions to go on all-out offensive are met
-            -- 1. If Turn >= 16 and HP ratio > 1.5
-            -- 2. IF HP ratio > 2 under all circumstance (well, starting from Turn 3, to avoid problems at beginning)
-
-            if (grunt_rush_FLS1:hp_ratio() > 1.5) and (wesnoth.current.turn >= 16) then return true end
-            if (grunt_rush_FLS1:hp_ratio() > 2.0) and (wesnoth.current.turn >= 3) then return true end
-            return false
-        end
-
         function grunt_rush_FLS1:get_zone_cfgs(recalc)
             -- Set up the config table for the different map zones
             -- zone_id: ID for the zone; only needed for debug messages
@@ -208,6 +157,57 @@ return {
             end
 
             return grunt_rush_FLS1.data.zone_cfgs
+        end
+
+        function grunt_rush_FLS1:hp_ratio(my_units, enemies)
+            -- Hitpoint ratio of own units / enemy units
+            -- If arguments are not given, use all units on the side
+            if (not my_units) then
+                my_units = AH.get_live_units { side = wesnoth.current.side }
+            end
+            if (not enemies) then
+                enemies = AH.get_live_units {
+                    { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+                }
+            end
+
+            local my_hp, enemy_hp = 0, 0
+            for i,u in ipairs(my_units) do my_hp = my_hp + u.hitpoints end
+            for i,u in ipairs(enemies) do enemy_hp = enemy_hp + u.hitpoints end
+
+            --print('HP ratio:', my_hp / (enemy_hp + 1e-6)) -- to avoid div by 0
+            return my_hp / (enemy_hp + 1e-6), my_hp, enemy_hp
+        end
+
+        function grunt_rush_FLS1:relative_damage_y(my_units, enemies, zone)
+            -- Relative damage as function of y coordinate
+
+            --print('#my_units, #enemies', #my_units, #enemies)
+            local rel_damage_map = BC.relative_damage_map(my_units, enemies, grunt_rush_FLS1.data.cache)
+            --AH.put_labels(rel_damage_map)
+
+            local rel_damage_y = {}
+            for i,hex in ipairs(zone) do
+                local x, y = hex[1], hex[2]  -- simply for ease of reading
+                if (not rel_damage_y[y]) then rel_damage_y[y] = -9e99 end
+                local rd = rel_damage_map:get(x, y) or -9e99
+                if (rd > rel_damage_y[y]) then rel_damage_y[y] = rd end
+            end
+            --wesnoth.clear_messages()
+            --DBG.dbms(rel_damage_y)
+            --W.message{ speaker = 'narrator', message = 'Relative damage map' }
+
+            return rel_damage_y
+        end
+
+        function grunt_rush_FLS1:full_offensive()
+            -- Returns true if the conditions to go on all-out offensive are met
+            -- 1. If Turn >= 16 and HP ratio > 1.5
+            -- 2. IF HP ratio > 2 under all circumstance (well, starting from Turn 3, to avoid problems at beginning)
+
+            if (grunt_rush_FLS1:hp_ratio() > 1.5) and (wesnoth.current.turn >= 16) then return true end
+            if (grunt_rush_FLS1:hp_ratio() > 2.0) and (wesnoth.current.turn >= 3) then return true end
+            return false
         end
 
         function grunt_rush_FLS1:best_trapping_attack_opposite(units_org, enemies_org, cfg)
