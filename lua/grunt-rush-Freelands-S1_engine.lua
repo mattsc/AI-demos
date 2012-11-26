@@ -1618,12 +1618,6 @@ return {
             -- Get HP ratio and number of units that can reach the zone as function of y coordinate
             local rel_damage_y = grunt_rush_FLS1:relative_damage_y(zone_units, enemies, zone)
 
-            local tod = wesnoth.get_time_of_day()
-            local min_hp_ratio = cfg.advance[tod.id].min_hp_ratio or 1.0
-            local min_units = cfg.advance[tod.id].min_units or 0
-            local min_hp_ratio_always = cfg.advance[tod.id].min_hp_ratio_always or 2.0
-            --print(min_hp_ratio, min_units, min_hp_ratio_always)
-
             -- Start with the minimum for the zone
             local y_min = 9e99
             if cfg.hold and cfg.hold.min_y then
