@@ -1649,7 +1649,7 @@ return {
             local zone_map = LS.of_pairs(zone)
 
             -- Get HP ratio and number of units that can reach the zone as function of y coordinate
-            local hp_ratio_y, number_units_y = grunt_rush_FLS1:hp_ratio_y(zone_units, enemies, zone)
+            local rel_damage_y = grunt_rush_FLS1:relative_damage_y(zone_units, enemies, zone)
 
             local tod = wesnoth.get_time_of_day()
             local min_hp_ratio = cfg.advance[tod.id].min_hp_ratio or 1.0
@@ -1662,18 +1662,15 @@ return {
             if cfg.hold and cfg.hold.min_y then
                 y_min = cfg.hold.min_y
             else
-                for y,hp_y in pairs(hp_ratio_y) do
+                for y,rd_y in pairs(rel_damage_y) do
                     if (y < y_min) then y_min = y end
                 end
             end
 
             local advance_y = y_min
-            for y,hp_y in pairs(hp_ratio_y) do
-                --print(y, hp_ratio_y[y], number_units_y[y])
-
+            for y,rd_y in pairs(rel_damage_y) do
                 if (y > advance_y) then
-                    if (hp_y >= min_hp_ratio) and (number_units_y[y] >= min_units) then advance_y = y end
-                    if (hp_y >= min_hp_ratio_always) then advance_y = y end
+                    if (rd_y >= 0) then advance_y = y end
                 end
             end
             --print('advance_y zone #' .. i_c, advance_y)
