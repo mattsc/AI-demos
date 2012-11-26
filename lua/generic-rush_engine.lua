@@ -326,8 +326,8 @@ return {
                 -- For now, we also simply don't poison units on villages (unless standard combat CA does it)
                 local on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(defender.x, defender.y)).village
 
-                -- Also, poisoning units that would level up through the attack is very bad
-                local about_to_level = defender.max_experience - defender.experience <= wesnoth.unit_types[attacker.type].level
+                -- Also, poisoning units that would level up through the attack or could level on their turn as a result is very bad
+                local about_to_level = defender.max_experience - defender.experience <= (wesnoth.unit_types[attacker.type].level * 2)
 
                 if (not cant_poison) and (not on_village) and (not about_to_level) then
                     -- Strongest enemy gets poisoned first
@@ -341,12 +341,16 @@ return {
 
                     -- More priority to enemies on strong terrain
                     local defender_defense = 100 - wesnoth.unit_defense(defender, wesnoth.get_terrain(defender.x, defender.y))
-                    rating = rating + defender_defense / 2.
+                    rating = rating + defender_defense / 4.
 
                     -- For the same attacker/defender pair, go to strongest terrain
                     local attack_defense = 100 - wesnoth.unit_defense(attacker, wesnoth.get_terrain(a.dst.x, a.dst.y))
-                    rating = rating + attack_defense / 100.
+                    rating = rating + attack_defense / 2.
                     --print('rating', rating)
+
+                    -- And from village everything else being equal
+                    local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(a.dst.x, a.dst.y)).village
+                    if is_village then rating = rating + 0.5 end
 
                     if rating > max_rating then
                         max_rating, best_attack = rating, a
