@@ -43,39 +43,6 @@ return {
             return my_hp / (enemy_hp + 1e-6), my_hp, enemy_hp
         end
 
-        function grunt_rush_FLS1:hp_ratio_y(my_units, enemies, zone)
-            -- HP ratio as function of y coordinate
-            -- This is the maximum of total HP of all units that can get to any hex with the given y
-            -- Also returns the same value for the number of units that can get to that y
-
-            --print('#my_units, #enemies', #my_units, #enemies)
-            -- The following is a duplication and slow, but until I actually know whether it
-            -- works, I'll not put in the effort to optimize it
-            local attack_map = BC.get_attack_map(my_units)
-            local enemy_attack_map = BC.get_attack_map(enemies)
-            --AH.put_labels(enemy_attack_map)
-
-            local hp_y, enemy_hp_y, hp_ratio, number_units_y = {}, {}, {}, {}
-
-            for i,hex in ipairs(zone) do
-                -- Initialize the arrays for the given y, if they don't exist yet
-                local x, y = hex[1], hex[2]  -- simply for ease of reading
-                if (not hp_y[y]) then
-                    hp_y[y], enemy_hp_y[y], number_units_y[y] = 0, 0, 0
-                end
-                local number_units = attack_map.units:get(x, y) or 0
-                if (number_units > number_units_y[y]) then number_units_y[y] = number_units end
-                local hp = attack_map.hitpoints:get(x, y) or 0
-                if (hp > hp_y[y]) then hp_y[y] = hp end
-                local enemy_hp = enemy_attack_map.hitpoints:get(x, y) or 0
-                if (enemy_hp > enemy_hp_y[y]) then enemy_hp_y[y] = enemy_hp end
-            end
-            for y,hp in pairs(hp_y) do  -- needs to be pairs, not ipairs !!!
-                hp_ratio[y] = hp / ((enemy_hp_y[y] + 1e-6) or 1e-6)
-            end
-            return hp_ratio, number_units_y
-        end
-
         function grunt_rush_FLS1:relative_damage_y(my_units, enemies, zone)
             -- Relative damage as function of y coordinate
 
