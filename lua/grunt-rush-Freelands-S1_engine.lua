@@ -84,6 +84,7 @@ return {
             -- skip_action: actions listed here will be skipped from evaluation, all
             --   others will be evaluation.
             --   !!! Obviously, only do_action _or_ skip_action should be given, not both !!!
+            -- min_relative_damage: the minimum acceptable relative damage for attacking/advancing
             -- attack: table describing the type of zone attack to be done
             --   - use_enemies_in_reach: if set, use enemies that can reach zone, otherwise use units inside the zone
             --       Note: only use with very small zones, otherwise it can be very slow
@@ -116,6 +117,7 @@ return {
                 zone_filter = { { 'filter', { canrecruit = 'yes', side = wesnoth.current.side } } },
                 unit_filter = { x = '1-' .. width , y = '1-' .. height },
                 do_action = { attack = true },
+                min_relative_damage = -5.,
                 attack = { use_enemies_in_reach = true }
             }
 
@@ -131,6 +133,7 @@ return {
                 zone_id = 'left',
                 zone_filter = { x = '4-14', y = '1-15' },
                 unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
+                min_relative_damage = -3.,
                 hold = { x = 11, min_y = 5, max_y = 15, hp_ratio = 1.0 },
                 secure = { x = 11, y = 9, moves_away = 2, min_units = 1 },
                 retreat_villages = { { 11, 9 }, { 8, 5 }, { 12, 5 }, { 12, 2 } },
@@ -1585,9 +1588,10 @@ return {
             end
 
             local advance_y = y_min
+            local min_relative_damage = cfg.min_relative_damage or 0.
             for y,rd_y in pairs(rel_damage_y) do
                 if (y > advance_y) then
-                    if (rd_y >= 0) then advance_y = y end
+                    if (rd_y >= min_relative_damage) then advance_y = y end
                 end
             end
             --print('advance_y zone #' .. i_c, advance_y)
