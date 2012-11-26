@@ -1113,7 +1113,7 @@ return {
 
             -- If both villages and units were found, check for retreating moves
             -- (Seriously injured units are already dealt with previously)
-            if injured_units[1] and retreat_villages[1] then
+            if injured_units[1] then
                 local action = grunt_rush_FLS1:eval_grab_villages(injured_units, retreat_villages, enemies, true)
                 if action then
                     action.action = cfg.zone_id .. ': ' .. 'retreat injured units (daytime)'
