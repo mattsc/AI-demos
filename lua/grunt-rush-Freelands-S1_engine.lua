@@ -1062,15 +1062,33 @@ return {
             -- This should include both retreating to villages of injured units and village grabbing
             -- The leader is only included if he is on the keep
 
+            local tod = wesnoth.get_time_of_day()
             local injured_units = {}
             for i,u in ipairs(units) do
                 if (u.hitpoints < u.max_hitpoints - 8) then
-                    if u.canrecruit then
-                        if wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
+                    local alignment = BC.unit_attack_info(u, grunt_rush_FLS1.data.cache).alignment
+
+                    local try_retreat = false
+                    if (alignment == 'chaotic') then
+                        if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
+                            try_retreat = true
+                        end
+                    end
+                    if (alignment == 'lawful') then
+                        if (tod.id == 'dusk') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
+                            try_retreat = true
+                        end
+                    end
+                    --print('retreat:', u.id, alignment, try_retreat)
+
+                    if try_rtreat then
+                        if u.canrecruit then
+                            if wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
+                                table.insert(injured_units, u)
+                            end
+                        else
                             table.insert(injured_units, u)
                         end
-                    else
-                        table.insert(injured_units, u)
                     end
                 end
             end
@@ -1079,13 +1097,10 @@ return {
             -- During daytime, we retreat injured units toward villages
             -- (Seriously injured units are already dealt with previously)
             if injured_units[1] and cfg.retreat_villages then
-                local tod = wesnoth.get_time_of_day()
-                if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
-                    local action = grunt_rush_FLS1:eval_grab_villages(injured_units, cfg.retreat_villages, enemies, true)
-                    if action then
-                        action.action = cfg.zone_id .. ': ' .. 'retreat injured units (daytime)'
-                        return action
-                    end
+                local action = grunt_rush_FLS1:eval_grab_villages(injured_units, cfg.retreat_villages, enemies, true)
+                if action then
+                    action.action = cfg.zone_id .. ': ' .. 'retreat injured units (daytime)'
+                    return action
                 end
             end
 
