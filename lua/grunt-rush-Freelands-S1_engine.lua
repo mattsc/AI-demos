@@ -84,10 +84,6 @@ return {
             -- skip_action: actions listed here will be skipped from evaluation, all
             --   others will be evaluation.
             --   !!! Obviously, only do_action _or_ skip_action should be given, not both !!!
-            -- advance: table describing the advance conditions for each TOD
-            --   - min_hp_ratio: don't advance to location where you don't have at least this HP ratio and ...
-            --   - min_units: .. and if you don't have at least this many units to advance with
-            --   - min_hp_ratio_always: same as min_hp_ratio, but do so independent of number of units available
             -- attack: table describing the type of zone attack to be done
             --   - use_enemies_in_reach: if set, use enemies that can reach zone, otherwise use units inside the zone
             --       Note: only use with very small zones, otherwise it can be very slow
@@ -113,14 +109,6 @@ return {
                 zone_filter = { x = '1-' .. width , y = '1-' .. height },
                 unit_filter = { x = '1-' .. width , y = '1-' .. height },
                 do_action = { retreat_injured = true, villages = true },
-                advance = {
-                    dawn =         { min_hp_ratio = 0.7, min_units = 0, min_hp_ratio_always = 4.0 },
-                    morning =      { min_hp_ratio = 0.7, min_units = 0, min_hp_ratio_always = 4.0 },
-                    afternoon =    { min_hp_ratio = 0.7, min_units = 0, min_hp_ratio_always = 4.0 },
-                    dusk =         { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 },
-                    first_watch =  { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 },
-                    second_watch = { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 }
-                },
             }
 
             local cfg_leader_threat = {
@@ -128,14 +116,6 @@ return {
                 zone_filter = { { 'filter', { canrecruit = 'yes', side = wesnoth.current.side } } },
                 unit_filter = { x = '1-' .. width , y = '1-' .. height },
                 do_action = { attack = true },
-                advance = {
-                    dawn =         { min_hp_ratio = 0.7, min_units = 0, min_hp_ratio_always = 4.0 },
-                    morning =      { min_hp_ratio = 0.7, min_units = 0, min_hp_ratio_always = 4.0 },
-                    afternoon =    { min_hp_ratio = 0.7, min_units = 0, min_hp_ratio_always = 4.0 },
-                    dusk =         { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 },
-                    first_watch =  { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 },
-                    second_watch = { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 }
-                },
                 attack = { use_enemies_in_reach = true }
             }
 
@@ -143,14 +123,6 @@ return {
                 zone_id = 'center',
                 zone_filter = { x = '15-24', y = '1-16' },
                 unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
-                advance = {
-                    dawn =         { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
-                    morning =      { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
-                    afternoon =    { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
-                    dusk =         { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 },
-                    first_watch =  { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 },
-                    second_watch = { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 }
-                },
                 hold = { x = 20, min_y = 9, max_y = 15, hp_ratio = 0.67 },
                 retreat_villages = { { 18, 9 }, { 24, 7 }, { 22, 2 } }
             }
@@ -159,14 +131,6 @@ return {
                 zone_id = 'left',
                 zone_filter = { x = '4-14', y = '1-15' },
                 unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
-                advance = {
-                    dawn =         { min_hp_ratio = 2.0, min_units = 0, min_hp_ratio_always = 2.0 },
-                    morning =      { min_hp_ratio = 2.0, min_units = 0, min_hp_ratio_always = 2.0 },
-                    afternoon =    { min_hp_ratio = 2.0, min_units = 0, min_hp_ratio_always = 2.0 },
-                    dusk =         { min_hp_ratio = 0.7, min_units = 0, min_hp_ratio_always = 0.7 },
-                    first_watch =  { min_hp_ratio = 0.7, min_units = 0, min_hp_ratio_always = 0.7 },
-                    second_watch = { min_hp_ratio = 0.7, min_units = 0, min_hp_ratio_always = 0.7 }
-                },
                 hold = { x = 11, min_y = 5, max_y = 15, hp_ratio = 1.0 },
                 secure = { x = 11, y = 9, moves_away = 2, min_units = 1 },
                 retreat_villages = { { 11, 9 }, { 8, 5 }, { 12, 5 }, { 12, 2 } },
@@ -177,14 +141,6 @@ return {
                 zone_id = 'right',
                 zone_filter = { x = '25-34', y = '1-24' },
                 unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
-                advance = {
-                    dawn =         { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
-                    morning =      { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
-                    afternoon =    { min_hp_ratio = 4.0, min_units = 0, min_hp_ratio_always = 4.0 },
-                    dusk =         { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 },
-                    first_watch =  { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 },
-                    second_watch = { min_hp_ratio = 0.7, min_units = 4, min_hp_ratio_always = 2.0 }
-                },
                 hold = { x = 27, min_y = 11, max_y = 22 },
                 retreat_villages = { { 24, 7 }, { 28, 5 } }
             }
