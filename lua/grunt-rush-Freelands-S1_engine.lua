@@ -1064,7 +1064,7 @@ return {
 
             local injured_units = {}
             for i,u in ipairs(units) do
-                if (u.hitpoints< u.max_hitpoints) then
+                if (u.hitpoints < u.max_hitpoints - 8) then
                     if u.canrecruit then
                         if wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
                             table.insert(injured_units, u)
