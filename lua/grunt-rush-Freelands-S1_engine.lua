@@ -1056,11 +1056,20 @@ return {
             end
         end
 
-        function grunt_rush_FLS1:zone_action_villages(units, enemies, cfg)
+        function grunt_rush_FLS1:zone_action_villages(units, enemies, advance_y, cfg)
             --print('villages', os.clock())
 
             -- This should include both retreating to villages of injured units and village grabbing
             -- The leader is only included if he is on the keep
+
+            local retreat_villages = {}
+            for i,v in ipairs(cfg.retreat_villages or {}) do
+                if (v[2] <= advance_y) then
+                    --print('Including retreat_village:', v[1], v[2])
+                    table.insert(retreat_villages, v)
+                end
+            end
+            --print('#retreat_villages', #retreat_villages)
 
             local tod = wesnoth.get_time_of_day()
             local injured_units = {}
@@ -1097,7 +1106,7 @@ return {
             -- During daytime, we retreat injured units toward villages
             -- (Seriously injured units are already dealt with previously)
             if injured_units[1] and cfg.retreat_villages then
-                local action = grunt_rush_FLS1:eval_grab_villages(injured_units, cfg.retreat_villages, enemies, true)
+                local action = grunt_rush_FLS1:eval_grab_villages(injured_units, retreat_villages, enemies, true)
                 if action then
                     action.action = cfg.zone_id .. ': ' .. 'retreat injured units (daytime)'
                     return action
@@ -1540,7 +1549,7 @@ return {
             local village_action = nil
             if (not cfg.do_action) or cfg.do_action.villages then
                 if (not cfg.skip_action) or (not cfg.skip_action.villages)  then
-                    village_action = grunt_rush_FLS1:zone_action_villages(zone_units, enemies, cfg)
+                    village_action = grunt_rush_FLS1:zone_action_villages(zone_units, enemies, advance_y, cfg)
                     if village_action and (village_action.rating > 100) then
                         --print(village_action.action)
                         return village_action
