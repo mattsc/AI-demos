@@ -1071,32 +1071,34 @@ return {
             end
             --print('#retreat_villages', #retreat_villages)
 
-            local tod = wesnoth.get_time_of_day()
             local injured_units = {}
-            for i,u in ipairs(units) do
-                if (u.hitpoints < u.max_hitpoints - 8) then
-                    local alignment = BC.unit_attack_info(u, grunt_rush_FLS1.data.cache).alignment
+            if retreat_villages[1] then
+                local tod = wesnoth.get_time_of_day()
+                for i,u in ipairs(units) do
+                    if (u.hitpoints < u.max_hitpoints - 8) then
+                        local alignment = BC.unit_attack_info(u, grunt_rush_FLS1.data.cache).alignment
 
-                    local try_retreat = false
-                    if (alignment == 'chaotic') then
-                        if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
-                            try_retreat = true
+                        local try_retreat = false
+                        if (alignment == 'chaotic') then
+                            if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
+                                try_retreat = true
+                            end
                         end
-                    end
-                    if (alignment == 'lawful') then
-                        if (tod.id == 'dusk') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
-                            try_retreat = true
+                        if (alignment == 'lawful') then
+                            if (tod.id == 'dusk') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
+                                try_retreat = true
+                            end
                         end
-                    end
-                    --print('retreat:', u.id, alignment, try_retreat)
+                        --print('retreat:', u.id, alignment, try_retreat)
 
-                    if try_rtreat then
-                        if u.canrecruit then
-                            if wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
+                        if try_rtreat then
+                            if u.canrecruit then
+                                if wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
+                                    table.insert(injured_units, u)
+                                end
+                            else
                                 table.insert(injured_units, u)
                             end
-                        else
-                            table.insert(injured_units, u)
                         end
                     end
                 end
@@ -1105,7 +1107,7 @@ return {
 
             -- During daytime, we retreat injured units toward villages
             -- (Seriously injured units are already dealt with previously)
-            if injured_units[1] and cfg.retreat_villages then
+            if injured_units[1] and retreat_villages[1] then
                 local action = grunt_rush_FLS1:eval_grab_villages(injured_units, retreat_villages, enemies, true)
                 if action then
                     action.action = cfg.zone_id .. ': ' .. 'retreat injured units (daytime)'
