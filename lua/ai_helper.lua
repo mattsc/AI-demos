@@ -240,9 +240,11 @@ function ai_helper.is_opposite_adjacent(hex1, hex2, center_hex)
     return false
 end
 
-function ai_helper.get_closest_location(hex, location_filter)
+function ai_helper.get_closest_location(hex, location_filter, unit)
     -- Get the location closest to 'hex' (in format { x, y })
     -- that matches 'location_filter' (in WML table format)
+    -- A unit can be passed as an optional third parameter, in which case the
+    -- terrain needs to be passable for that unit
     -- Returns nil if no terrain matching the filter was found
 
     -- Find the maximum distance from 'hex' that's possible on the map
@@ -275,7 +277,15 @@ function ai_helper.get_closest_location(hex, location_filter)
         --DBG.dbms(loc_filter)
 
         local locs = wesnoth.get_locations(loc_filter)
-        if locs[1] then return locs[1] end
+
+        if unit then
+            for i,l in ipairs(locs) do
+                local movecost = wesnoth.unit_movement_cost(unit, wesnoth.get_terrain(l[1], l[2]))
+                if (movecost < 99) then return l end
+            end
+        else
+            if locs[1] then return locs[1] end
+        end
 
         radius = radius + 1
     end
