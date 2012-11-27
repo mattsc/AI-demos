@@ -502,7 +502,9 @@ return {
 
                     -- If we cannot get into the zone, take direct path to goal hex
                     if (max_rating_unit == -9e99) then
-                        local next_hop = AH.next_hop(u, goal.x, goal.y)
+                        local moveto = AH.get_closest_location({ goal.x, goal.y }, {}, u)
+                        if (not moveto) then moveto = { u.x, u.y } end
+                        local next_hop = AH.next_hop(u, moveto[1], moveto[2])
                         if (not next_hop) then next_hop = { u.x, u.y } end
                         local dist = H.distance_between(next_hop[1], next_hop[2], goal.x, goal.y)
                         --print('cannot get there: ', u.id, dist, goal.x, goal.y)
