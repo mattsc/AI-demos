@@ -477,6 +477,7 @@ return {
                     local max_rating_unit, best_hex_unit = -9e99, {}
                     reach_map:iter( function(x, y, v)
                         -- If this is inside the zone
+                        local rating = -9e99
                         if rating_map:get(x, y) then
                             rating = rating_map:get(x, y)
 
@@ -489,26 +490,15 @@ return {
                             local terrain_weight = 0.51
                             local defense = 100 - wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))
                             rating = rating + defense * terrain_weight
-
-                            reach_map:insert(x, y, rating)
-
-                            if (rating > max_rating_unit) then
-                                max_rating_unit, best_hex_unit = rating, { x, y }
-                            end
                         else
-                            reach_map:remove(x, y)
+                            local dist = H.distance_between(x, y, goal.x, goal.y)
+                            rating = -1000 - dist
+                        end
+                        reach_map:insert(x, y, rating)
+                        if (rating > max_rating_unit) then
+                            max_rating_unit, best_hex_unit = rating, { x, y }
                         end
                     end)
-
-                    -- If we cannot get into the zone, take direct path to goal hex
-                    if (max_rating_unit == -9e99) then
-                        local next_hop = AH.next_hop(u, goal.x, goal.y)
-                        if (not next_hop) then next_hop = { u.x, u.y } end
-                        local dist = H.distance_between(next_hop[1], next_hop[2], goal.x, goal.y)
-                        --print('cannot get there: ', u.id, dist, goal.x, goal.y)
-                        max_rating_unit = -1000 - dist
-                        best_hex_unit = next_hop
-                    end
 
                     if (max_rating_unit > max_rating) then
                         max_rating, best_hex, best_unit = max_rating_unit, best_hex_unit, u
