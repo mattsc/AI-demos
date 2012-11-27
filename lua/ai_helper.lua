@@ -245,8 +245,21 @@ function ai_helper.get_closest_location(hex, location_filter)
     -- that matches 'location_filter' (in WML table format)
     -- Returns nil if no terrain matching the filter was found
 
+    -- Find the maximum distance from 'hex' that's possible on the map
+    local max_distance = 0
+    local width, height = wesnoth.get_map_size()
+    local to_top_left = H.distance_between(hex[1], hex[2], 0, 0)
+    if (to_top_left > max_distance) then max_distance = to_top_left end
+    local to_top_right = H.distance_between(hex[1], hex[2], width+1, 0)
+    if (to_top_right > max_distance) then max_distance = to_top_right end
+    local to_bottom_left = H.distance_between(hex[1], hex[2], 0, height+1)
+    if (to_bottom_left > max_distance) then max_distance = to_bottom_left end
+    local to_bottom_right = H.distance_between(hex[1], hex[2], width+1, height+1)
+    if (to_bottom_right > max_distance) then max_distance = to_bottom_right end
+    --print(max_distance)
+
     local radius = 0
-    while (radius <= 99) do
+    while (radius <= max_distance) do
         local loc_filter = {}
         if (radius == 0) then
             loc_filter = {
