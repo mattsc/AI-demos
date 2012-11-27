@@ -245,21 +245,29 @@ function ai_helper.get_closest_location(hex, location_filter)
     -- that matches 'location_filter' (in WML table format)
     -- Returns nil if no terrain matching the filter was found
 
-    local locs = wesnoth.get_locations(location_filter)
-
-    local max_rating, best_hex = -9e99, {}
-    for i,l in ipairs(locs) do
-        local rating = -H.distance_between(hex[1], hex[2], l[1], l[2])
-        if (rating > max_rating) then
-            max_rating, best_hex = rating, l
+    local radius = 0
+    while (radius <= 99) do
+        local loc_filter = {}
+        if (radius == 0) then
+            loc_filter = {
+                { "and", { x = hex[1], y = hex[2], radius = radius } },
+            }
+        else
+            loc_filter = {
+                { "and", { x = hex[1], y = hex[2], radius = radius } },
+                { "not", { x = hex[1], y = hex[2], radius = radius - 1 } },
+            }
         end
+        for k,v in pairs(location_filter) do loc_filter[k] = v end
+        --DBG.dbms(loc_filter)
+
+        local locs = wesnoth.get_locations(loc_filter)
+        if locs[1] then return locs[1] end
+
+        radius = radius + 1
     end
 
-    if (max_rating > -9e99) then
-        return best_hex, -max_rating
-    else
-        return nil, 9e99
-    end
+    return nil
 end
 
 function ai_helper.distance_map(units, map)
