@@ -27,7 +27,7 @@ return {
                 unit_x = '9-38'
                 unit_y = '4-19'
                 evaluation = "return (...):hunt_and_rest_eval('Rowck')",
-                execution = "(...):hunt_and_rest_exec('Rowck', '9-38', '4-19', {4}, {3}, {2})"
+                execution = "(...):hunt_and_rest_exec('Rowck', '9-38', '4-19', 4, 3, 2)"
             } }
         }
     end,
