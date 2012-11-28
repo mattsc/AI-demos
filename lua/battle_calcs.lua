@@ -1209,7 +1209,21 @@ function battle_calcs.get_attack_map_unit(unit, cfg)
     reach.units = LS.create()
     reach.hitpoints = LS.create()
 
+    -- Also for units on the other side, take all units on this side with
+    -- MP left off the map (for enemy pathfinding)
+    local units_MP = {}
+    if (unit.side ~= wesnoth.current.side) then
+        units_MP = wesnoth.get_units { side = wesnoth.current.side, formula = '$this_unit.moves > 0' }
+        for iu,uMP in ipairs(units_MP) do wesnoth.extract_unit(uMP) end
+    end
+
+    -- Find hexes the unit can reach
     local initial_reach = wesnoth.find_reach(unit, cfg)
+
+    -- Put the units back out there
+    if (unit.side ~= wesnoth.current.side) then
+        for iu,uMP in ipairs(units_MP) do wesnoth.put_unit(uMP.x, uMP.y, uMP) end
+    end
 
     for i,loc in ipairs(initial_reach) do
         reach.units:insert(loc[1], loc[2], 1)
