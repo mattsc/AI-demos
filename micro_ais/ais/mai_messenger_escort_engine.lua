@@ -127,16 +127,16 @@ return {
 
         -----------------------
 
-        function messenger_escort:attack_eval(id, goal_x, goal_y)
+        function messenger_escort:attack_eval(cfg)
             -- Attack units in the path of the messenger
             -- id: id of the messenger unit
             -- goal_x, goal_y: coordinates of the goal toward which the messenger moves
 
-            local messenger = wesnoth.get_units{ side = wesnoth.current.side, id = id }[1]
+            local messenger = wesnoth.get_units{ side = wesnoth.current.side, id = cfg.id }[1]
             if (not messenger) then return 0 end
 
             -- See if there's an enemy in the way that should be attacked
-            local attack = self:find_clearing_attack(messenger, goal_x, goal_y)
+            local attack = self:find_clearing_attack(messenger, cfg.goal_x, cfg.goal_y)
 
             if attack then
                 self.data.best_attack = attack
@@ -157,21 +157,21 @@ return {
 
         -----------------------
 
-        function messenger_escort:messenger_move_eval(id)
+        function messenger_escort:messenger_move_eval(cfg)
             -- Move the messenger (unit with passed id) toward goal, attack adjacent unit if possible
             -- without retaliation or little expected damage with high chance of killing the enemy
 
-            local messenger = wesnoth.get_units{ id = id, formula = '$this_unit.moves > 0' }[1]
+            local messenger = wesnoth.get_units{ id = cfg.id, formula = '$this_unit.moves > 0' }[1]
 
             if messenger then return 290000 end
             return 0
         end
 
-        function messenger_escort:messenger_move_exec(id, goal_x, goal_y)
-            local messenger = wesnoth.get_units{ id = id, formula = '$this_unit.moves > 0' }[1]
+        function messenger_escort:messenger_move_exec(cfg)
+            local messenger = wesnoth.get_units{ id = cfg.id, formula = '$this_unit.moves > 0' }[1]
 
             -- In case an enemy is on the goal hex:
-            local x, y = wesnoth.find_vacant_tile(goal_x, goal_y, messenger)
+            local x, y = wesnoth.find_vacant_tile(cfg.goal_x, cfg.goal_y, messenger)
             local next_hop = AH.next_hop(messenger, x, y)
 
             -- Compare this to the "ideal path"
@@ -225,9 +225,13 @@ return {
                     local rating = -9e99
                     -- This is an acceptable attack if:
                     -- 1. There is no counter attack
-                    -- 2. Probability of death is >=67% for enemy, 0% for attacker
+                    -- 2. Probability of death is >=67% for enemy, 0% for attacker (default values)
+                    
+                    local enemy_death_chance = cfg.enemy_death_chance or 0.67
+                    local messenger_death_chance = cfg.messenger_death_chance or 0
+                    
                     if (att_stats.hp_chance[messenger.hitpoints] == 1)
-                        or (def_stats.hp_chance[0] >= 0.67) and (att_stats.hp_chance[0] == 0)
+                        or (def_stats.hp_chance[0] >= tonumber(enemy_death_chance)) and (att_stats.hp_chance[0] <= tonumber(messenger_death_chance))
                     then
                         rating = t.max_hitpoints + def_stats.hp_chance[0]*100 + att_stats.average_hp - def_stats.average_hp
                     end
@@ -261,8 +265,8 @@ return {
             return 0
         end
 
-        function messenger_escort:other_move_exec(id)
-            local messenger = wesnoth.get_units{ id = id }[1]
+        function messenger_escort:other_move_exec(cfg)
+            local messenger = wesnoth.get_units{ id = cfg.id }[1]
             local my_units = wesnoth.get_units{ side = wesnoth.current.side, formula = '$this_unit.moves > 0' }
 
             -- Simply move units one at a time
