@@ -175,6 +175,18 @@ function wesnoth.wml_actions.micro_ai(cfg)
          -- Set up the cfg array
         local cfg_pu = {}
 
+        -- id for protect unit
+        if (not cfg.id) then
+            H.wml_error("Protect Unit Micro AI missing required id= attribute")
+        else
+            cfg_pu.id = cfg.id
+        end
+
+        -- Optional: disable_move_leader_to_keep for protect unit
+        if cfg.disable_move_leader_to_keep then
+            cfg_pu.disable_move_leader_to_keep = cfg.disable_move_leader_to_keep
+        end
+
        -- Add the CAs
         if (cfg.action == 'add') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/protect_unit_CAs.lua".activate(cfg.side, cfg_pu)
