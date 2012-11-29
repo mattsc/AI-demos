@@ -12,7 +12,7 @@ return {
         
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
-        local unit = wesnoth.get_units { id=id }[1]
+        local unit = wesnoth.get_units { id=cfg.unitID }[1]
         --print("Activating template for Side " .. side)
         W.modify_ai {
             side = side,
