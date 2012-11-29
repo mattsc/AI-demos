@@ -13,19 +13,19 @@ return {
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
 
-        print("Activating template for Side " .. side)
+        --print("Activating template for Side " .. side)
 
         W.modify_ai {
             side = side,
             action = "add",
             path = "stage[main_loop].candidate_action",
             { "candidate_action", {
-            name="bca_statguard_stationed1",
-            id="bca_statguard_stationed1",
+            name="bca_statguard_" .. cfg.unitID,
+            id="bca_statguard_" .. cfg.unitID,
             engine="lua",
             max_score=100010,
             sticky=1,
-            evaluation="return (...):stationed_guardian_eval('stationed1')",
+            evaluation="return (...):stationed_guardian_eval('"..cfg.unitID.."')",
             execution="(...):stationed_guardian_exec("..exec_arguments..")",
             } }
         }
