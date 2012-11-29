@@ -138,7 +138,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
         else
             cfg_me.goal_x, cfg_me.goal_y = cfg.goal_x, cfg.goal_y
         end
-        
+
         -- Optional: enemy_death_chance
         if cfg.enemy_death_chance then
             cfg_me.enemy_death_chance = cfg.enemy_death_chance
@@ -201,6 +201,37 @@ function wesnoth.wml_actions.micro_ai(cfg)
         -- Remove the CAs
         if (cfg.action == 'delete') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/protect_unit_CAs.lua".remove(cfg.side)
+        end
+
+        return
+    end
+
+    --------- Micro AI Station Guardian-----------------------------------
+    if (cfg.ai_type == 'stationed_guardian') then
+
+         -- Set up the cfg array
+        local cfg_template = {}
+        cfg_template.unitID = cfg.unitID
+        cfg_template.radius = cfg.radius
+        cfg_template.station_x = cfg.station_x
+        cfg_template.station_y = cfg.station_y
+        cfg_template.guard_x = cfg.guard_x
+        cfg_template.guard_y = cfg.guard_y
+
+       -- Add the CAs
+        if (cfg.action == 'add') then
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/stationed_guardian_CAs.lua".activate(cfg.side, cfg_template)
+        end
+
+        -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
+        if (cfg.action == 'change') then
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/stationed_guardian_CAs.lua".remove(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/stationed_guardian_CAs.lua".activate(cfg.side, cfg_template)
+        end
+
+        -- Remove the CAs
+        if (cfg.action == 'delete') then
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/stationed_guardian_CAs.lua".remove(cfg.side)
         end
 
         return
