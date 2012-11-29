@@ -216,7 +216,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
         cfg_guardian.station_x = cfg.station_x
         cfg_guardian.station_y = cfg.station_y
         cfg_guardian.guard_x = cfg.guard_x
-        cfg_template.guard_y = cfg.guard_y
+        cfg_guardian.guard_y = cfg.guard_y
 
        -- Add the CAs
         if (cfg.action == 'add') then
