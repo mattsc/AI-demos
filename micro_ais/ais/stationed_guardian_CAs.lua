@@ -12,9 +12,8 @@ return {
         
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
-
+        local unit = wesnoth.get_units { id=id }[1]
         --print("Activating template for Side " .. side)
-
         W.modify_ai {
             side = side,
             action = "add",
@@ -25,7 +24,9 @@ return {
             engine="lua",
             max_score=100010,
             sticky=1,
-            evaluation="return (...):stationed_guardian_eval('"..cfg.unitID.."')",
+            unit_x=unit.x,
+            unit_y=unit.y,
+            evaluation="return (...):stationed_guardian_eval('" .. cfg.unitID .. "')",
             execution="(...):stationed_guardian_exec("..exec_arguments..")",
             } }
         }
