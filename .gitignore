@@ -3,3 +3,4 @@ test_lua.lua
 _server.pbl
 .idea
 *.pyc
+*~
