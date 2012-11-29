@@ -42,7 +42,7 @@ return {
         W.modify_ai {
             side = side,
             action = "try_delete",
-            path = "stage[main_loop].candidate_action['Rowck']"
+            path = "stage[main_loop].candidate_action['bca_hunter']"
         }
     end
 }
