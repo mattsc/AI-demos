@@ -206,32 +206,52 @@ function wesnoth.wml_actions.micro_ai(cfg)
         return
     end
 
-    --------- Micro AI Station Guardian-----------------------------------
-    if (cfg.ai_type == 'stationed_guardian') then
+    --------- Micro AI Guardian-----------------------------------
+    if (cfg.ai_type == 'guardian') then
+        -- We handle all types of guardians here.  Confirm we have made a choice
+        if (not cfg.guardian_type) then H.wml_error("[micro_ai] missing required guardian_type= attribute") end
+        local guardian_type = cfg.guardian_type  
 
          -- Set up the cfg array
         local cfg_guardian = {}
-        cfg_guardian.unitID = cfg.unitID
-        cfg_guardian.radius = cfg.radius
-        cfg_guardian.station_x = cfg.station_x
-        cfg_guardian.station_y = cfg.station_y
-        cfg_guardian.guard_x = cfg.guard_x
-        cfg_guardian.guard_y = cfg.guard_y
+        local required_attributes = {}
+        local optional_attributes = {}
+        required_attributes["stationed_guardian"] = {"unitID", "radius", "station_x", "station_y", "guard_x", "guard_y"}
+        optional_attributes["stationed_guardian"] = {}
+        required_attributes["coward"] = {"unitID", "radius"}
+        optional_attributes["coward"] = {"seek_x", "seek_y","avoid_x","avoid_y"}
+
+        --Check that we know about this type of guardian
+        if (not required_attributes[guardian_type]) then H.wml_error("[micro_ai] unknown guardian type '" .. guardian_type .."'") end
+        
+        --Add in the required attributes
+        for j,i in pairs(required_attributes[guardian_type]) do
+          if (not cfg[i]) then H.wml_error("[micro_ai] ".. guardian_type .." missing required " .. i .. "= attribute") end
+          cfg_guardian[i] = cfg[i]
+        end
+        
+        --Add in the optional attributes
+        for j,i in pairs(optional_attributes[guardian_type]) do
+          cfg_guardian[i] = cfg[i] or "''"
+        end
+        
+        --Lastly, specify the type
+        cfg_guardian.guardian_type = guardian_type
 
        -- Add the CAs
         if (cfg.action == 'add') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/stationed_guardian_CAs.lua".activate(cfg.side, cfg_guardian)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".activate(cfg.side, cfg_guardian)
         end
 
         -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
         if (cfg.action == 'change') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/stationed_guardian_CAs.lua".remove(cfg.side)
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/stationed_guardian_CAs.lua".activate(cfg.side, cfg_guardian)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".remove(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".activate(cfg.side, cfg_guardian)
         end
 
         -- Remove the CAs
         if (cfg.action == 'delete') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/stationed_guardian_CAs.lua".remove(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".remove(cfg.side)
         end
 
         return
