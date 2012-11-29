@@ -175,11 +175,11 @@ function wesnoth.wml_actions.micro_ai(cfg)
          -- Set up the cfg array
         local cfg_pu = {}
 
-        -- id for protect unit
-        if (not cfg.id) then
-            H.wml_error("Protect Unit Micro AI missing required id= attribute")
+        -- units for protect unit
+        if (not cfg.units) then
+            H.wml_error("Protect Unit Micro AI missing required units= attribute")
         else
-            cfg_pu.id = cfg.id
+            cfg_pu.units = cfg.units
         end
 
         -- Optional: disable_move_leader_to_keep for protect unit
