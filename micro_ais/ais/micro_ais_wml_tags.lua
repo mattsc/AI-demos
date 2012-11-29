@@ -119,46 +119,21 @@ function wesnoth.wml_actions.micro_ai(cfg)
         return
     end
 
-   --------- Messenger Escort Micro AI ------------------------------------
+   --------- Micro AI Messenger Escort ------------------------------------
     if (cfg.ai_type == 'messenger_escort') then
 
          -- Set up the cfg array
-        local cfg_me = {}
-
-        -- id for messenger escort
-        if (not cfg.id) then
-            H.wml_error("Messenger Escort Micro AI missing required id= attribute")
-        else
-            cfg_me.id = cfg.id
-        end
-
-        -- goal_x,goal_y for messenger escort
-        if (not cfg.goal_x) or (not cfg.goal_y) then
-            H.wml_error("Messenger Escort Micro AI missing required goal_x= and/or goal_y= attribute")
-        else
-            cfg_me.goal_x, cfg_me.goal_y = cfg.goal_x, cfg.goal_y
-        end
-        
-        -- Optional: enemy_death_chance
-        if cfg.enemy_death_chance then
-            cfg_me.enemy_death_chance = cfg.enemy_death_chance
-        end
-
-        -- Optional: messenger_death_chance
-        if cfg.messenger_death_chance then
-            cfg_me.messenger_death_chance = cfg.messenger_death_chance
-        end
-
+        local cfg_messenger_escort = {}
 
        -- Add the CAs
         if (cfg.action == 'add') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/messenger_escort_CAs.lua".activate(cfg.side, cfg_me)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/messenger_escort_CAs.lua".activate(cfg.side, cfg_messenger_escort)
         end
 
         -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
         if (cfg.action == 'change') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/messenger_escort_CAs.lua".remove(cfg.side)
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/messenger_escort_CAs.lua".activate(cfg.side, cfg_me)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/messenger_escort_CAs.lua".activate(cfg.side, cfg_messenger_escort)
         end
 
         -- Remove the CAs
@@ -169,26 +144,26 @@ function wesnoth.wml_actions.micro_ai(cfg)
         return
     end
 
-    --------- Protect Unit Micro AI ------------------------------------
-    if (cfg.ai_type == 'protect_unit') then
+    --------- Micro AI Station Guardian-----------------------------------
+    if (cfg.ai_type == 'stationed_guardian') then
 
          -- Set up the cfg array
-        local cfg_pu = {}
+        local cfg_template = {}
 
        -- Add the CAs
         if (cfg.action == 'add') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/protect_unit_CAs.lua".activate(cfg.side, cfg_pu)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/stationed_guardian_CAs.lua".activate(cfg.side, cfg_template)
         end
 
         -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
         if (cfg.action == 'change') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/protect_unit_CAs.lua".remove(cfg.side)
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/protect_unit_CAs.lua".activate(cfg.side, cfg_pu)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/stationed_guardian_CAs.lua".remove(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/stationed_guardian_CAs.lua".activate(cfg.side, cfg_template)
         end
 
         -- Remove the CAs
         if (cfg.action == 'delete') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/protect_unit_CAs.lua".remove(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/stationed_guardian_CAs.lua".remove(cfg.side)
         end
 
         return
