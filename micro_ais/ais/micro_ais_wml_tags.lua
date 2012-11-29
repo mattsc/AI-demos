@@ -149,7 +149,12 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
          -- Set up the cfg array
         local cfg_template = {}
-
+        cfg_template.unitID = cfg.unitID
+        cfg_template.radius = cfg.radius
+        cfg_template.station_x = cfg.station_x
+        cfg_template.station_y = cfg.station_y
+        cfg_template.guard_x = cfg.guard_x
+        cfg_template.guard_y = cfg.guard_y
        -- Add the CAs
         if (cfg.action == 'add') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/stationed_guardian_CAs.lua".activate(cfg.side, cfg_template)
