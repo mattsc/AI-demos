@@ -262,6 +262,31 @@ function wesnoth.wml_actions.micro_ai(cfg)
         return
     end
 
+    --------- Micro AI Animals ------------------------------------
+    if (cfg.ai_type == 'animals') then
+
+         -- Set up the cfg array
+        local cfg_template = {}
+
+       -- Add the CAs
+        if (cfg.action == 'add') then
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/dragon_CAs.lua".activate(cfg.side, cfg_template)
+        end
+
+        -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
+        if (cfg.action == 'change') then
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/dragon_CAs.lua".remove(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/dragon_CAs.lua".activate(cfg.side, cfg_template)
+        end
+
+        -- Remove the CAs
+        if (cfg.action == 'delete') then
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/dragon_CAs.lua".remove(cfg.side)
+        end
+
+        return
+    end
+
     ----------------------------------------------------------------
     -- If we got here, none of the valid ai_types was specified
     H.wml_error("invalid ai_type= in [micro_ai]")
