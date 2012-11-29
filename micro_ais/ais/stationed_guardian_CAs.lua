@@ -8,7 +8,8 @@ return {
         -- Add the ??? keys (just an empty string for the template)
         -- Can b left like this at first.  Modify when adding parameters.
         local cfg_str = ''
-
+        local exec_arguments = "'" .. cfg.unitID .. "'," .. cfg.radius .. "," .. cfg.station_x .. "," .. cfg.station_y .. "," .. cfg.guard_x .. "," .. cfg.guard_y 
+        
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
 
@@ -19,12 +20,13 @@ return {
             action = "add",
             path = "stage[main_loop].candidate_action",
             { "candidate_action", {
-                engine = "lua",
-                id = "go_home",
-                name = "go_home",
-                max_score = 300000,
-                evaluation = "return (...):stationed_guardian_eval(" .. cfg_str .. ")",
-                execution = "(...):stationed_guardian_exec('stationed1',4,4,13,7,15)"
+            name="bca_statguard_stationed1",
+            id="bca_statguard_stationed1",
+            engine="lua",
+            max_score=100010,
+            sticky=1,
+            evaluation="return (...):stationed_guardian_eval('stationed1')",
+            execution="(...):stationed_guardian_exec("..exec_arguments..")",
             } }
         }
     end,
@@ -39,7 +41,7 @@ return {
         W.modify_ai {
             side = side,
             action = "try_delete",
-            path = "stage[main_loop].candidate_action[go_home]"
+            path = "stage[main_loop].candidate_action[stat_guard]"
         }
     end
 }
