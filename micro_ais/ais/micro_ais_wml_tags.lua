@@ -241,13 +241,13 @@ function wesnoth.wml_actions.micro_ai(cfg)
         local cfg_guardian = {}
         local required_attributes = {}
         local optional_attributes = {}
-        required_attributes["stationed_guardian"] = {"unitID", "radius", "station_x", "station_y", "guard_x", "guard_y"}
+        required_attributes["stationed_guardian"] = {"id", "radius", "station_x", "station_y", "guard_x", "guard_y"}
         optional_attributes["stationed_guardian"] = {}
 
-        required_attributes["coward"] = {"unitID", "radius"}
+        required_attributes["coward"] = {"id", "radius"}
         optional_attributes["coward"] = {"seek_x", "seek_y","avoid_x","avoid_y"}
 
-        required_attributes["return_guardian"] = {"unitID", "to_x", "to_y"}
+        required_attributes["return_guardian"] = {"id", "to_x", "to_y"}
         optional_attributes["return_guardian"] = {}
    
         --Check that we know about this type of guardian

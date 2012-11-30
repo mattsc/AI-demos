@@ -14,30 +14,30 @@ return {
         local eval_arguments = ''
 		
 		if (guardian_type=="stationed_guardian") then
-          exec_arguments = "'" .. cfg.unitID .. "'," .. cfg.radius .. "," .. cfg.station_x .. "," .. cfg.station_y .. "," .. cfg.guard_x .. "," .. cfg.guard_y 
-          eval_arguments = "'" .. cfg.unitID .. "'"
+          exec_arguments = "'" .. cfg.id .. "'," .. cfg.radius .. "," .. cfg.station_x .. "," .. cfg.station_y .. "," .. cfg.guard_x .. "," .. cfg.guard_y 
+          eval_arguments = "'" .. cfg.id .. "'"
         end
         if (guardian_type=="coward") then
-          exec_arguments = "'" .. cfg.unitID .. "'," .. cfg.radius .. "," .. cfg.seek_x .. "," .. cfg.seek_y .. "," .. cfg.avoid_x .. "," .. cfg.avoid_y 
-          eval_arguments = "'" .. cfg.unitID .. "'"
+          exec_arguments = "'" .. cfg.id .. "'," .. cfg.radius .. "," .. cfg.seek_x .. "," .. cfg.seek_y .. "," .. cfg.avoid_x .. "," .. cfg.avoid_y 
+          eval_arguments = "'" .. cfg.id .. "'"
         end
         if (guardian_type=="return_guardian") then
-          exec_arguments = "'" .. cfg.unitID .. "'," .. cfg.to_x .. "," .. cfg.to_y 
-          eval_arguments = "'" .. cfg.unitID .. "'," .. cfg.to_x .. "," .. cfg.to_y 
+          exec_arguments = "'" .. cfg.id .. "'," .. cfg.to_x .. "," .. cfg.to_y 
+          eval_arguments = "'" .. cfg.id .. "'," .. cfg.to_x .. "," .. cfg.to_y 
         end
         
         
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
-        local unit = wesnoth.get_units { id=cfg.unitID }[1]
+        local unit = wesnoth.get_units { id=cfg.id }[1]
         --print("Activating template for Side " .. side)
         W.modify_ai {
             side = side,
             action = "add",
             path = "stage[main_loop].candidate_action",
             { "candidate_action", {
-            name="bca_" .. guardian_type .. "_" .. cfg.unitID,
-            id="bca_" .. guardian_type .. "_" .. cfg.unitID,
+            name="bca_" .. guardian_type .. "_" .. cfg.id,
+            id="bca_" .. guardian_type .. "_" .. cfg.id,
             engine="lua",
             max_score=max_scores[guardian_type],
             sticky=1,
