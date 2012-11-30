@@ -354,3 +354,4 @@ function wesnoth.wml_actions.micro_ai(cfg)
     -- If we got here, none of the valid ai_types was specified
     H.wml_error("invalid ai_type= in [micro_ai]")
 end
+
