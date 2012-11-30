@@ -9,7 +9,7 @@ return {
 
         -- Is this somewhat clunky?
         local parse = {}
-        for value in cfg.id:gmatch("(%w+),?") do table.insert(parse, value) end
+        for value in cfg.units:gmatch("(%w+),?") do table.insert(parse, value) end
         local ids = ''
         local ids2 = ''
         for i = 1,#parse,3 do
