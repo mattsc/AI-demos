@@ -149,7 +149,6 @@ function wesnoth.wml_actions.micro_ai(cfg)
             cfg_me.messenger_death_chance = cfg.messenger_death_chance
         end
 
-
        -- Add the CAs
         if (cfg.action == 'add') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/messenger_escort_CAs.lua".activate(cfg.side, cfg_me)
@@ -168,14 +167,14 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
         return
     end
-    
+
         --------- Lurkers Micro AI ------------------------------------
     if (cfg.ai_type == 'lurkers') then
 
          -- Set up the cfg array
         local cfg_lurk = {}
 
-       -- Add the CAs
+        -- Add the CAs
         if (cfg.action == 'add') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/lurkers_CAs.lua".activate(cfg.side, cfg_lurk)
         end
@@ -212,7 +211,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
             cfg_pu.disable_move_leader_to_keep = cfg.disable_move_leader_to_keep
         end
 
-       -- Add the CAs
+        -- Add the CAs
         if (cfg.action == 'add') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/protect_unit_CAs.lua".activate(cfg.side, cfg_pu)
         end
@@ -235,7 +234,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
     if (cfg.ai_type == 'guardian') then
         -- We handle all types of guardians here.  Confirm we have made a choice
         if (not cfg.guardian_type) then H.wml_error("[micro_ai] missing required guardian_type= attribute") end
-        local guardian_type = cfg.guardian_type  
+        local guardian_type = cfg.guardian_type
 
          -- Set up the cfg array
         local cfg_guardian = {}
@@ -250,23 +249,24 @@ function wesnoth.wml_actions.micro_ai(cfg)
         required_attributes["return_guardian"] = {"id", "to_x", "to_y"}
         optional_attributes["return_guardian"] = {}
         if (cfg.action~='delete') then
-          --Check that we know about this type of guardian
-          if (not required_attributes[guardian_type]) then H.wml_error("[micro_ai] unknown guardian type '" .. guardian_type .."'") end
-        
-          --Add in the required attributes
-          for j,i in pairs(required_attributes[guardian_type]) do
-            if (not cfg[i]) then H.wml_error("[micro_ai] ".. guardian_type .." missing required " .. i .. "= attribute") end
-            cfg_guardian[i] = cfg[i]
-          end
-        
-          --Add in the optional attributes
-          for j,i in pairs(optional_attributes[guardian_type]) do
-            cfg_guardian[i] = cfg[i] or "''"
-          end
+            --Check that we know about this type of guardian
+            if (not required_attributes[guardian_type]) then H.wml_error("[micro_ai] unknown guardian type '" .. guardian_type .."'") end
+
+            --Add in the required attributes
+           for j,i in pairs(required_attributes[guardian_type]) do
+                if (not cfg[i]) then H.wml_error("[micro_ai] ".. guardian_type .." missing required " .. i .. "= attribute") end
+                cfg_guardian[i] = cfg[i]
+            end
+
+            --Add in the optional attributes
+            for j,i in pairs(optional_attributes[guardian_type]) do
+              cfg_guardian[i] = cfg[i] or "''"
+            end
         end
+
         --Lastly, specify the type
         cfg_guardian.guardian_type = guardian_type
-         
+
        -- Add the CAs
         if (cfg.action == 'add') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".activate(cfg.side, cfg_guardian)
@@ -292,7 +292,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
          -- Set up the cfg array
         local cfg_template = {}
 
-       -- Add the CAs
+        -- Add the CAs
         if (cfg.action == 'add') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/template_CAs.lua".activate(cfg.side, cfg_template)
         end

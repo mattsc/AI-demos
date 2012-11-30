@@ -21,7 +21,6 @@ return {
         ids = string.sub(ids,1,-2)
         ids2 = string.sub(ids2,1,-2)
 
-
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
         --print("Activating protect unit for Side " .. side)

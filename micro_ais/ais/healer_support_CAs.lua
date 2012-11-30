@@ -61,7 +61,6 @@ return {
                 execution = "(...): healers_can_attack_eval()"
             } }
         }
-
     end,
 
     remove = function(side)
@@ -88,6 +87,5 @@ return {
             action = "try_delete",
             path = "stage[main_loop].candidate_action[healers_can_attack]"
         }
-
     end
 }
