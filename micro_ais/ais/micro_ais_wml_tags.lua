@@ -168,6 +168,31 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
         return
     end
+    
+        --------- Lurkers Micro AI ------------------------------------
+    if (cfg.ai_type == 'lurkers') then
+
+         -- Set up the cfg array
+        local cfg_lurk = {}
+
+       -- Add the CAs
+        if (cfg.action == 'add') then
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/lurkers_CAs.lua".activate(cfg.side, cfg_lurk)
+        end
+
+        -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
+        if (cfg.action == 'change') then
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/lurkers_CAs.lua".remove(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/lurkers_CAs.lua".activate(cfg.side, cfg_lurk)
+        end
+
+        -- Remove the CAs
+        if (cfg.action == 'delete') then
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/lurkers_CAs.lua".remove(cfg.side)
+        end
+
+        return
+    end
 
     --------- Protect Unit Micro AI ------------------------------------
     if (cfg.ai_type == 'protect_unit') then
