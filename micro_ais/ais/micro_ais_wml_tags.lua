@@ -320,25 +320,30 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
         required_attributes["hunter"] = {"id", "hunt_x", "hunt_y", "home_x", "home_y", "rest_turns",}
 
-      for j,i in pairs(required_attributes["hunter"]) do
-          if (not cfg[i]) then H.wml_error("[micro_ai] ".. "hunter" .." missing required " .. i .. "= attribute") end
-          cfg_animals[i] = cfg[i]
-        end
+        if (not cfg[0]) then H.wml_error("[micro_ai] hunter missing required id= attribute")
+        else
 
-       -- Add the CAs
-        if (cfg.action == 'add') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/hunter_CAs.lua".activate(cfg.side, cfg_animals)
-        end
+            -- Remove the CAs
+            if (cfg.action == 'delete') then
+                wesnoth.require "~add-ons/AI-demos/micro_ais/ais/hunter_CAs.lua".remove(cfg.side, cfg.id)
+            else
 
-        -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
-        if (cfg.action == 'change') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/hunter_CAs.lua".remove(cfg.side, cfg.id)
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/hunter_CAs.lua".activate(cfg.side, cfg_animals)
-        end
+                for j,i in pairs(required_attributes["hunter"]) do
+                    if (not cfg[i]) then H.wml_error("[micro_ai] ".. "hunter" .." missing required " .. i .. "= attribute") end
+                        cfg_animals[i] = cfg[i]
+                    end
 
-        -- Remove the CAs
-        if (cfg.action == 'delete') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/hunter_CAs.lua".remove(cfg.side, cfg.id)
+                -- Add the CAs
+                if (cfg.action == 'add') then
+                    wesnoth.require "~add-ons/AI-demos/micro_ais/ais/hunter_CAs.lua".activate(cfg.side, cfg_animals)
+                end
+
+                -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
+                if (cfg.action == 'change') then
+                    wesnoth.require "~add-ons/AI-demos/micro_ais/ais/hunter_CAs.lua".remove(cfg.side, cfg.id)
+                    wesnoth.require "~add-ons/AI-demos/micro_ais/ais/hunter_CAs.lua".activate(cfg.side, cfg_animals)
+                end
+            end
         end
 
         return
