@@ -43,7 +43,7 @@ return {
         }
     end,
 
-    remove = function(id)
+    remove = function(side, id)
 
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
