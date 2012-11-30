@@ -2,7 +2,8 @@ return {
     activate = function(side, cfg)
         -- cfg contains extra options to be passed on to the CAs
         -- This needs to be set up as a string
-        local max_scores = {}
+
+		local max_scores = {}
         max_scores["stationed_guardian"] = 100010
         max_scores["coward"] = 300000
    
