@@ -17,7 +17,10 @@ return {
         if (guardian_type=="coward") then
           exec_arguments = "'" .. cfg.unitID .. "'," .. cfg.radius .. "," .. cfg.seek_x .. "," .. cfg.seek_y .. "," .. cfg.avoid_x .. "," .. cfg.avoid_y 
         end
-
+        if (guardian_type=="return_guardian") then
+          exec_arguments = "'" .. cfg.unitID .. "'," .. cfg.to_x .. "," .. cfg.to_y 
+        end
+        
         
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
