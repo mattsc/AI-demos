@@ -316,14 +316,14 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
          -- Set up the cfg array
         local cfg_animals = {}
-        cfg_animals.id = cfg.id
-        cfg_animals.x = cfg.x
-        cfg_animals.y = cfg.y
-        cfg_animals.hunt_x = cfg.hunt_x
-        cfg_animals.hunt_y = cfg.hunt_y
-        cfg_animals.home_x = cfg.home_x
-        cfg_animals.home_y = cfg.home_y
-        cfg_animals.rest_turns = cfg.rest_turns
+        local required_attributes = {}
+
+        required_attributes["hunter"] = {"id", "hunt_x", "hunt_y", "home_x", "home_y", "rest_turns",}
+
+      for j,i in pairs(required_attributes["hunter"]) do
+          if (not cfg[i]) then H.wml_error("[micro_ai] ".. "hunter" .." missing required " .. i .. "= attribute") end
+          cfg_animals[i] = cfg[i]
+        end
 
        -- Add the CAs
         if (cfg.action == 'add') then
