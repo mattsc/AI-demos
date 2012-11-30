@@ -18,7 +18,7 @@ return {
         end
 
         function guardians:coward_exec(id, radius, seek_x, seek_y, avoid_x, avoid_y)
-
+            print("Coward exec " .. id)
             local unit = wesnoth.get_units{ id = id }[1]
             local reach = wesnoth.find_reach(unit)
             -- enemy units within reach
@@ -134,21 +134,24 @@ return {
         function guardians:stationed_guardian_eval(id)
 
             local unit = wesnoth.get_units { id=id }[1]
-
-            if (unit.moves > 0) then
-                value = 100010
+            if (not unit) then
+               value=0
             else
-                value = 0
+              if (unit.moves > 0) then
+                  value = 100010
+              else
+                  value = 0
+              end
             end
 
-            --print("Eval:", value)
+            -- print("Eval:", value)
             return value
         end
 
         function guardians:stationed_guardian_exec(id, radius, s_x, s_y, g_x, g_y)
             -- (s_x,s_y): coordinates where unit is stationed; tries to move here if there is nobody to attack
             -- (g_x,g_y): location that the unit guards
-            print ("Exec",id)
+            --print ("Exec",id)
             local unit = wesnoth.get_units { id=id }[1]
 
             -- find if there are enemies within 'radius'
