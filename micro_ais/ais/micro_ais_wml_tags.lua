@@ -318,10 +318,12 @@ function wesnoth.wml_actions.micro_ai(cfg)
         local cfg_animals = {}
         local required_attributes = {}
 
-        required_attributes["hunter"] = {"id", "hunt_x", "hunt_y", "home_x", "home_y", "rest_turns",}
+        -- This list does not contain id because we check for that differently
+        required_attributes["hunter"] = {"hunt_x", "hunt_y", "home_x", "home_y", "rest_turns",}
 
-        if (not cfg[0]) then H.wml_error("[micro_ai] hunter missing required id= attribute")
+        if (not cfg["id"]) then H.wml_error("[micro_ai] hunter missing required id= attribute")
         else
+            cfg_animals["id"] = cfg["id"]
 
             -- Remove the CAs
             if (cfg.action == 'delete') then
