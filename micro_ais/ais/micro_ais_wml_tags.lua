@@ -243,9 +243,13 @@ function wesnoth.wml_actions.micro_ai(cfg)
         local optional_attributes = {}
         required_attributes["stationed_guardian"] = {"unitID", "radius", "station_x", "station_y", "guard_x", "guard_y"}
         optional_attributes["stationed_guardian"] = {}
+
         required_attributes["coward"] = {"unitID", "radius"}
         optional_attributes["coward"] = {"seek_x", "seek_y","avoid_x","avoid_y"}
 
+        required_attributes["return_guardian"] = {"unitID", "to_x", "to_y"}
+        optional_attributes["return_guardian"] = {}
+   
         --Check that we know about this type of guardian
         if (not required_attributes[guardian_type]) then H.wml_error("[micro_ai] unknown guardian type '" .. guardian_type .."'") end
         
