@@ -234,8 +234,16 @@ function wesnoth.wml_actions.micro_ai(cfg)
     --------- Micro AI Guardian-----------------------------------
     if (cfg.ai_type == 'guardian') then
         -- We handle all types of guardians here.  Confirm we have made a choice
-        if (not cfg.guardian_type) then H.wml_error("[micro_ai] missing required guardian_type= attribute") end
-        local guardian_type = cfg.guardian_type  
+        if (not cfg.guardian_type and cfg.action~='delete') then H.wml_error("[micro_ai] missing required guardian_type= attribute") end
+        
+		-- Remove the CAs (do this here before all the add specific variables (eg attributes)
+        if (cfg.action == 'delete') then
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".remove(cfg.side,cfg.id)
+			return
+        end
+        
+		
+		local guardian_type = cfg.guardian_type  
 
          -- Set up the cfg array
         local cfg_guardian = {}
@@ -275,14 +283,10 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
         -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
         if (cfg.action == 'change') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".remove(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".remove(cfg.side,cfg.id)
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".activate(cfg.side, cfg_guardian)
         end
 
-        -- Remove the CAs
-        if (cfg.action == 'delete') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".remove(cfg.side)
-        end
 
         return
     end
