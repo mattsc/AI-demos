@@ -56,7 +56,6 @@ return {
         local W = H.set_wml_action_metatable {}
 
         --print("Removing template for Side " .. side)
-
         W.modify_ai {
             side = side,
             action = "try_delete",

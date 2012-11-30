@@ -283,7 +283,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".activate(cfg.side, cfg_guardian)
         end
 
-		-- Remove the CAs (do this here before all the add specific variables (eg attributes)
+		-- Remove the CAs
         if (cfg.action == 'delete') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".remove(cfg.side,guardian_type,cfg.id)
 			return
