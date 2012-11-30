@@ -11,14 +11,19 @@ return {
 
         local cfg_str = ''
         local exec_arguments = ''
-        if (guardian_type=="stationed_guardian") then
+        local eval_arguments = ''
+		
+		if (guardian_type=="stationed_guardian") then
           exec_arguments = "'" .. cfg.unitID .. "'," .. cfg.radius .. "," .. cfg.station_x .. "," .. cfg.station_y .. "," .. cfg.guard_x .. "," .. cfg.guard_y 
+          eval_arguments = "'" .. cfg.unitID .. "'"
         end
         if (guardian_type=="coward") then
           exec_arguments = "'" .. cfg.unitID .. "'," .. cfg.radius .. "," .. cfg.seek_x .. "," .. cfg.seek_y .. "," .. cfg.avoid_x .. "," .. cfg.avoid_y 
+          eval_arguments = "'" .. cfg.unitID .. "'"
         end
         if (guardian_type=="return_guardian") then
           exec_arguments = "'" .. cfg.unitID .. "'," .. cfg.to_x .. "," .. cfg.to_y 
+          eval_arguments = "'" .. cfg.unitID .. "'," .. cfg.to_x .. "," .. cfg.to_y 
         end
         
         
@@ -38,7 +43,7 @@ return {
             sticky=1,
             unit_x=unit.x,
             unit_y=unit.y,
-            evaluation="return (...):" .. guardian_type .. "_eval('" .. cfg.unitID .. "')",
+            evaluation="return (...):" .. guardian_type .. "_eval(" .. eval_arguments .. ")",
             execution="(...):" .. guardian_type .. "_exec("..exec_arguments..")",
             } }
         }
