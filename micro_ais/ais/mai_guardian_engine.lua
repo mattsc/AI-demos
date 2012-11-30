@@ -9,7 +9,7 @@ return {
         function guardians:coward_eval(id)
 
             local unit = wesnoth.get_units{ id = id }[1]
-
+            if (not unit) then return 0 end
             if unit.moves > 0 then
                 return 300000
             else
@@ -18,7 +18,7 @@ return {
         end
 
         function guardians:coward_exec(id, radius, seek_x, seek_y, avoid_x, avoid_y)
-            print("Coward exec " .. id)
+            --print("Coward exec " .. id)
             local unit = wesnoth.get_units{ id = id }[1]
             local reach = wesnoth.find_reach(unit)
             -- enemy units within reach
