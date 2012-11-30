@@ -266,17 +266,25 @@ function wesnoth.wml_actions.micro_ai(cfg)
     if (cfg.ai_type == 'animals') then
 
          -- Set up the cfg array
-        local cfg_template = {}
+        local cfg_animals = {}
+        cfg_animals.id = cfg.id
+        cfg_animals.x = cfg.x
+        cfg_animals.y = cfg.y
+        cfg_animals.hunt_x = cfg.hunt_x
+        cfg_animals.hunt_y = cfg.hunt_y
+        cfg_animals.home_x = cfg.home_x
+        cfg_animals.home_y = cfg.home_y
+        cfg_animals.rest_turns = cfg.rest_turns
 
        -- Add the CAs
         if (cfg.action == 'add') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/hunter_CAs.lua".activate(cfg.side, cfg_template)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/hunter_CAs.lua".activate(cfg.side, cfg_animals)
         end
 
         -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
         if (cfg.action == 'change') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/hunter_CAs.lua".remove(cfg.side)
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/hunter_CAs.lua".activate(cfg.side, cfg_template)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/hunter_CAs.lua".activate(cfg.side, cfg_animals)
         end
 
         -- Remove the CAs
