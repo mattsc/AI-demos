@@ -37,8 +37,8 @@ return {
             action = "add",
             path = "stage[main_loop].candidate_action",
             { "candidate_action", {
-            name="bca_" .. cfg.id,
-            id="bca_" .. cfg.id,
+            name="bca_" .. guardian_type .."_"  .. cfg.id,
+            id="bca_" .. guardian_type .. "_" .. cfg.id,
             engine="lua",
             max_score=max_scores[guardian_type],
             sticky=1,
@@ -50,7 +50,7 @@ return {
         }
     end,
 
-    remove = function(side,id)
+    remove = function(side,guardian_type,id)
 
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
@@ -60,7 +60,7 @@ return {
         W.modify_ai {
             side = side,
             action = "try_delete",
-            path = "stage[main_loop].candidate_action[bca_" .. id .. "]"
+            path = "stage[main_loop].candidate_action[bca_" .. guardian_type .."_" .. id .. "]"
         }
     end
 }

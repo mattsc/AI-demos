@@ -234,13 +234,8 @@ function wesnoth.wml_actions.micro_ai(cfg)
     --------- Micro AI Guardian-----------------------------------
     if (cfg.ai_type == 'guardian') then
         -- We handle all types of guardians here.  Confirm we have made a choice
-        if (not cfg.guardian_type and cfg.action~='delete') then H.wml_error("[micro_ai] missing required guardian_type= attribute") end
+        if (not cfg.guardian_type) then H.wml_error("[micro_ai] missing required guardian_type= attribute") end
         
-		-- Remove the CAs (do this here before all the add specific variables (eg attributes)
-        if (cfg.action == 'delete') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".remove(cfg.side,cfg.id)
-			return
-        end
         
 		
 		local guardian_type = cfg.guardian_type  
@@ -259,20 +254,21 @@ function wesnoth.wml_actions.micro_ai(cfg)
         required_attributes["return_guardian"] = {"id", "to_x", "to_y"}
         optional_attributes["return_guardian"] = {}
    
-        --Check that we know about this type of guardian
-        if (not required_attributes[guardian_type]) then H.wml_error("[micro_ai] unknown guardian type '" .. guardian_type .."'") end
+        if (cfg.action~="delete") then
+  		--Check that we know about this type of guardian
+          if (not required_attributes[guardian_type]) then H.wml_error("[micro_ai] unknown guardian type '" .. guardian_type .."'") end
         
-        --Add in the required attributes
-        for j,i in pairs(required_attributes[guardian_type]) do
-          if (not cfg[i]) then H.wml_error("[micro_ai] ".. guardian_type .." missing required " .. i .. "= attribute") end
-          cfg_guardian[i] = cfg[i]
-        end
+          --Add in the required attributes
+          for j,i in pairs(required_attributes[guardian_type]) do
+            if (not cfg[i]) then H.wml_error("[micro_ai] ".. guardian_type .." missing required " .. i .. "= attribute") end
+            cfg_guardian[i] = cfg[i]
+          end
         
-        --Add in the optional attributes
-        for j,i in pairs(optional_attributes[guardian_type]) do
-          cfg_guardian[i] = cfg[i] or "''"
-        end
-        
+          --Add in the optional attributes
+          for j,i in pairs(optional_attributes[guardian_type]) do
+            cfg_guardian[i] = cfg[i] or "''"
+          end
+        end 
         --Lastly, specify the type
         cfg_guardian.guardian_type = guardian_type
 
@@ -283,10 +279,15 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
         -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
         if (cfg.action == 'change') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".remove(cfg.side,cfg.id)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".remove(cfg.side,guardian_type,cfg.id)
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".activate(cfg.side, cfg_guardian)
         end
 
+		-- Remove the CAs (do this here before all the add specific variables (eg attributes)
+        if (cfg.action == 'delete') then
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".remove(cfg.side,guardian_type,cfg.id)
+			return
+        end
 
         return
     end
