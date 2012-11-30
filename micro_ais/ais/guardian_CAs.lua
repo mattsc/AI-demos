@@ -55,7 +55,7 @@ return {
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
 
-        --print("Removing template for Side " .. side)
+        --print("Removing template for Side " .. side .. " unit " .. id .. " of type " .. guardian_type)
         W.modify_ai {
             side = side,
             action = "try_delete",
