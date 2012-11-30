@@ -168,6 +168,31 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
         return
     end
+    
+        --------- Lurkers Micro AI ------------------------------------
+    if (cfg.ai_type == 'lurkers') then
+
+         -- Set up the cfg array
+        local cfg_lurk = {}
+
+       -- Add the CAs
+        if (cfg.action == 'add') then
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/lurkers_CAs.lua".activate(cfg.side, cfg_lurk)
+        end
+
+        -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
+        if (cfg.action == 'change') then
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/lurkers_CAs.lua".remove(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/lurkers_CAs.lua".activate(cfg.side, cfg_lurk)
+        end
+
+        -- Remove the CAs
+        if (cfg.action == 'delete') then
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/lurkers_CAs.lua".remove(cfg.side)
+        end
+
+        return
+    end
 
     --------- Protect Unit Micro AI ------------------------------------
     if (cfg.ai_type == 'protect_unit') then
@@ -175,11 +200,11 @@ function wesnoth.wml_actions.micro_ai(cfg)
          -- Set up the cfg array
         local cfg_pu = {}
 
-        -- id for protect unit
-        if (not cfg.id) then
-            H.wml_error("Protect Unit Micro AI missing required id= attribute")
+        -- units for protect unit
+        if (not cfg.units) then
+            H.wml_error("Protect Unit Micro AI missing required units= attribute")
         else
-            cfg_pu.id = cfg.id
+            cfg_pu.units = cfg.units
         end
 
         -- Optional: disable_move_leader_to_keep for protect unit
@@ -290,18 +315,18 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
        -- Add the CAs
         if (cfg.action == 'add') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/dragon_CAs.lua".activate(cfg.side, cfg_template)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/hunter_CAs.lua".activate(cfg.side, cfg_template)
         end
 
         -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
         if (cfg.action == 'change') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/dragon_CAs.lua".remove(cfg.side)
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/dragon_CAs.lua".activate(cfg.side, cfg_template)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/hunter_CAs.lua".remove(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/hunter_CAs.lua".activate(cfg.side, cfg_template)
         end
 
         -- Remove the CAs
         if (cfg.action == 'delete') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/dragon_CAs.lua".remove(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/hunter_CAs.lua".remove(cfg.side)
         end
 
         return

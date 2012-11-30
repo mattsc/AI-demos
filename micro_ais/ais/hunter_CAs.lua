@@ -20,12 +20,12 @@ return {
             path = "stage[main_loop].candidate_action",
             { "candidate_action", {
                 engine = "lua",
-                id = ID,
-                name = ID,
+                id = "bca_hunter",
+                name = "bca_hunter",
                 max_score = 300000,
                 sticky = "yes",
-                unit_x = '9-38',
-                unit_y = '4-19',
+                unit_x = 4,
+                unit_y = 3,
                 evaluation = "return (...):hunt_and_rest_eval('Rowck')",
                 execution = "(...):hunt_and_rest_exec('Rowck', '9-38', '4-19', 4, 3, 2)"
             } }
@@ -42,7 +42,7 @@ return {
         W.modify_ai {
             side = side,
             action = "try_delete",
-            path = "stage[main_loop].candidate_action['Rowck']"
+            path = "stage[main_loop].candidate_action['bca_hunter']"
         }
     end
 }
