@@ -20,8 +20,8 @@ return {
             path = "stage[main_loop].candidate_action",
             { "candidate_action", {
                 engine = "lua",
-                name = "wolves_multipacks_attack_side" .. side,
-                id = "wolves_multipacks_attack_side" .. side,
+                name = "ca_wolves_multipacks_attack_side" .. side,
+                id = "ca_wolves_multipacks_attack_side" .. side,
                 max_score = 300000,
                 evaluation = "return (...):wolves_multipacks_attack_eval()",
                 execution = "(...):wolves_multipacks_attack_exec()"
@@ -34,8 +34,8 @@ return {
             path = "stage[main_loop].candidate_action",
             { "candidate_action", {
                 engine = "lua",
-                name = "wolves_multipacks_wander_side" .. side,
-                id = "wolves_multipacks_wander_side" .. side,
+                name = "ca_wolves_multipacks_wander_side" .. side,
+                id = "ca_wolves_multipacks_wander_side" .. side,
                 max_score = 290000,
                 evaluation = "return (...):wolves_multipacks_wander_eval()",
                 execution = "(...):wolves_multipacks_wander_exec()"
@@ -53,13 +53,13 @@ return {
         W.modify_ai {
             side = side,
             action = "try_delete",
-            path = "stage[main_loop].candidate_action[wolves_multipacks_attack_side" .. side .. "]"
+            path = "stage[main_loop].candidate_action[ca_wolves_multipacks_attack_side" .. side .. "]"
         }
 
         W.modify_ai {
             side = side,
             action = "try_delete",
-            path = "stage[main_loop].candidate_action[wolves_multipacks_wander_side" .. side .. "]"
+            path = "stage[main_loop].candidate_action[ca_wolves_multipacks_wander_side" .. side .. "]"
         }
     end
 }

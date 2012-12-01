@@ -381,8 +381,30 @@ function wesnoth.wml_actions.micro_ai(cfg)
 					end
 				end
 			end
-		end
+			
+			if (animal_type == "big_animals") then
+				if (not cfg["types"]) then H.wml_error("[micro_ai] big_animals missing required types= attribute")
+					else
+					-- Remove the CAs
+					if (cfg.action == 'delete') then
+						wesnoth.require "~add-ons/AI-demos/micro_ais/ais/big_animals_CAs.lua".remove(cfg.side)
+					else
 
+						-- Add the CAs
+						if (cfg.action == 'add') then
+							wesnoth.require "~add-ons/AI-demos/micro_ais/ais/big_animals_CAs.lua".activate(cfg.side, cfg.types)
+						end
+
+						-- Change the CAs (done by deleting, then adding again, so that parameters get reset)
+						if (cfg.action == 'change') then
+							wesnoth.require "~add-ons/AI-demos/micro_ais/ais/big_animals_CAs.lua".remove(cfg.side)
+							wesnoth.require "~add-ons/AI-demos/micro_ais/ais/big_animals_CAs.lua".activate(cfg.side, cfg.types)
+						end
+					end
+				end
+			end
+			
+		end
         return
     end
 
