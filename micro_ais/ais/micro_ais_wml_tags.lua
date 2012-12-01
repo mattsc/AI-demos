@@ -343,7 +343,6 @@ function wesnoth.wml_actions.micro_ai(cfg)
 			end
 			
 			if (animal_type == "wolves") then
-				cfg_animals["id"] = cfg["id"]
 				cfg_animals["to_avoid"] = cfg["to_avoid"]
 				
 				-- Remove the CAs
