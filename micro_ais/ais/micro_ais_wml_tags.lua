@@ -387,14 +387,17 @@ function wesnoth.wml_actions.micro_ai(cfg)
     end
 
     --------- Patrol Micro AI ------------------------------------
-    if (string.sub(cfg.ai_type,1,11) == 'bca_patrol_') then
+    if (cfg.ai_type == 'bca_patrol') then
 
          -- Set up the cfg array
         local cfg_p = {}
 
-
-        -- id for patrol (should be in the ai_type, so no check required)
-        cfg_p.id = string.sub(cfg.ai_type,12)
+        -- id for patrol
+        if (not cfg.id) then
+            H.wml_error("Patrol Micro AI missing required id= attribute")
+        else
+            cfg_p.id = cfg.id
+        end
 
         -- waypoints for patrol
         if (cfg.action ~= 'delete') then
