@@ -341,8 +341,8 @@ function wesnoth.wml_actions.micro_ai(cfg)
         end
         
         if (animal_type == "wolves") then
-			cfg_animals["id"] = cfg["id"]
-                        cfg_animals["to_avoid"] = cfg["to_avoid"]
+            cfg_animals["id"] = cfg["id"]
+            cfg_animals["to_avoid"] = cfg["to_avoid"]
 			
 			-- Remove the CAs
 			if (cfg.action == 'delete') then
@@ -363,6 +363,32 @@ function wesnoth.wml_actions.micro_ai(cfg)
 				if (cfg.action == 'change') then
 					wesnoth.require "~add-ons/AI-demos/micro_ais/ais/wolves_CAs.lua".remove(cfg.side)
 					wesnoth.require "~add-ons/AI-demos/micro_ais/ais/wolves_CAs.lua".activate(cfg.side, cfg_animals)
+				end
+			end
+		end
+		
+        if (animal_type == "wolves_multipacks") then
+	    cfg_animals["id"] = cfg["id"]
+			
+			-- Remove the CAs
+			if (cfg.action == 'delete') then
+				wesnoth.require "~add-ons/AI-demos/micro_ais/ais/wolves_multipacks_CAs.lua".remove(cfg.side)
+			else
+
+				--for j,i in pairs(required_attributes["wolves"]) do
+				--	if (not cfg[i]) then H.wml_error("[micro_ai] ".. "wolves" .." missing required " .. i .. "= attribute") end
+				--		cfg_animals[i] = cfg[i]
+				--	end
+
+				-- Add the CAs
+				if (cfg.action == 'add') then
+					wesnoth.require "~add-ons/AI-demos/micro_ais/ais/wolves_multipacks_CAs.lua".activate(cfg.side, cfg_animals)
+				end
+
+				-- Change the CAs (done by deleting, then adding again, so that parameters get reset)
+				if (cfg.action == 'change') then
+					wesnoth.require "~add-ons/AI-demos/micro_ais/ais/wolves_multipacks_CAs.lua".remove(cfg.side)
+					wesnoth.require "~add-ons/AI-demos/micro_ais/ais/wolves_multipacks_CAs.lua".activate(cfg.side, cfg_animals)
 				end
 			end
 		end
