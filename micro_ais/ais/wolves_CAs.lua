@@ -17,6 +17,22 @@ return {
         W.modify_ai {
             side = side,
             action = "add",
+            path = "aspect[attacks].facet",
+            { "facet", {
+                name = "testing_ai_default::aspect_attacks",
+                id = "dont_attack",
+                invalidate_on_gamestate_change = "yes",
+                { "filter_enemy", {
+                    { "not", {
+                        type=cfg.to_avoid
+                    } }
+                } }
+            } }
+        }
+
+        W.modify_ai {
+            side = side,
+            action = "add",
             path = "stage[main_loop].candidate_action",
             { "candidate_action", {
                 engine = "lua",
