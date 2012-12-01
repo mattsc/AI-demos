@@ -327,24 +327,23 @@ function wesnoth.wml_actions.micro_ai(cfg)
     end
 
     --------- Patrol Micro AI ------------------------------------
-    if (cfg.ai_type == 'bca_patrol') then
+    if (string.sub(cfg.ai_type,1,11) == 'bca_patrol_') then
 
          -- Set up the cfg array
         local cfg_p = {}
 
-        -- id for patrol
-        if (not cfg.id) then
-            H.wml_error("Patrol Micro AI missing required id= attribute")
-        else
-            cfg_p.id = cfg.id
-        end
+
+        -- id for patrol (should be in the ai_type, so no check required)
+        cfg_p.id = string.sub(cfg.ai_type,12)
 
         -- waypoints for patrol
-        if (not cfg.waypoint_x) or (not cfg.waypoint_y) then
-            H.wml_error("Patrol Micro AI missing required waypoint_x/waypoint_y= attribute")
-        else
-            cfg_p.waypoint_x = cfg.waypoint_x
-            cfg_p.waypoint_y = cfg.waypoint_y
+        if (cfg.action ~= 'delete') then
+            if (not cfg.waypoint_x) or (not cfg.waypoint_y) then
+                H.wml_error("Patrol Micro AI missing required waypoint_x/waypoint_y= attribute")
+            else
+                cfg_p.waypoint_x = cfg.waypoint_x
+                cfg_p.waypoint_y = cfg.waypoint_y
+            end
         end
 
         -- Optional: attack_all for patrol
@@ -370,7 +369,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
         -- Remove the CAs
         if (cfg.action == 'delete') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/patrol_CAs.lua".remove(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/patrol_CAs.lua".remove(cfg.side, cfg_p)
         end
 
         return

@@ -18,9 +18,7 @@ return {
 
         -- Optional key: attack_targets
         if cfg.attack_targets then
-            cfg_str = cfg_str .. ', attack_targets = {'
-            for value in cfg.attack_targets:gmatch("(%w+),?") do cfg_str = cfg_str .. '\'' .. value .. '\',' end
-            cfg_str = string.sub(cfg_str,1,-2) .. '}'
+            cfg_str = cfg_str .. ', attack_targets = "' .. cfg.attack_targets .. '"'
         end
 
         cfg_str = cfg_str .. ' }'
@@ -36,8 +34,8 @@ return {
             path = "stage[main_loop].candidate_action",
             { "candidate_action", {
                 engine = "lua",
-                id = "bca_patrol",
-                name = "bca_patrol",
+                id = "bca_patrol_" .. cfg.id,
+                name = "bca_patrol_" .. cfg.id,
                 max_score = 300000,
                 sticky = yes,
                 evaluation = "return (...):patrol_eval(" .. cfg_str .. ")",
@@ -46,7 +44,7 @@ return {
         }
     end,
 
-    remove = function(side)
+    remove = function(side, cfg)
 
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
@@ -56,7 +54,7 @@ return {
         W.modify_ai {
             side = side,
             action = "try_delete",
-            path = "stage[main_loop].candidate_action[bca_patrol]"
+            path = "stage[main_loop].candidate_action[bca_patrol_" .. cfg.id .. "]"
         }
     end
 }
