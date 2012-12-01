@@ -365,8 +365,6 @@ function wesnoth.wml_actions.micro_ai(cfg)
 			end
 			
 			if (animal_type == "wolves_multipacks") then
-			cfg_animals["id"] = cfg["id"]
-				
 				-- Remove the CAs
 				if (cfg.action == 'delete') then
 					wesnoth.require "~add-ons/AI-demos/micro_ais/ais/wolves_multipacks_CAs.lua".remove(cfg.side)
