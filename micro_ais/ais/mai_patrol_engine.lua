@@ -55,8 +55,8 @@ return {
                         end
                     end
                 end
-            elseif cfg.attack_target then
-                local enemy = wesnoth.get_units( { id = cfg.attack_target } )
+            elseif cfg.attack_targets then
+                local enemy = wesnoth.get_units( { id = cfg.attack_targets } )
                 if patrol and enemy then
                     for i,v in ipairs(enemy) do
                         if H.distance_between( patrol.x,patrol.y,v.x,v.y ) == 1 then --they're adjacent
