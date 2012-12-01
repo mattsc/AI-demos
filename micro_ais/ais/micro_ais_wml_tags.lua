@@ -332,6 +332,31 @@ function wesnoth.wml_actions.micro_ai(cfg)
          -- Set up the cfg array
         local cfg_p = {}
 
+        -- id for patrol
+        if (not cfg.id) then
+            H.wml_error("Patrol Micro AI missing required id= attribute")
+        else
+            cfg_p.id = cfg.id
+        end
+
+        -- waypoints for patrol
+        if (not cfg.waypoint_x) or (not cfg.waypoint_y) then
+            H.wml_error("Patrol Micro AI missing required waypoint_x/waypoint_y= attribute")
+        else
+            cfg_p.waypoint_x = cfg.waypoint_x
+            cfg_p.waypoint_y = cfg.waypoint_y
+        end
+
+        -- Optional: attack_all for patrol
+        if cfg.attack_all then
+            cfg_p.attack_all = cfg.attack_all
+        end
+
+        -- Optional: attack_targets for patrol
+        if cfg.attack_targets then
+            cfg_p.attack_targets = cfg.attack_targets
+        end
+
         -- Add the CAs
         if (cfg.action == 'add') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/patrol_CAs.lua".activate(cfg.side, cfg_p)
