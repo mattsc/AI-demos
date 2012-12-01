@@ -5,9 +5,7 @@ return {
 
         cfg = cfg or {}
 
-        -- Add the ??? keys (just an empty string for the lurkers)
-        -- Can b left like this at first.  Modify when adding parameters.
-        local cfg_str = ''
+        local cfg_str = '{ unit_type = "' .. cfg.unit_type .. '" , terrain = "' .. cfg.terrain .. '" }'
 
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
@@ -23,8 +21,8 @@ return {
                 id = "lurker_moves_lua",
                 name = "lurker_moves_lua",
                 max_score = 100010,
-                evaluation = "return (...):lurker_attack_eval()",
-                execution = "(...):lurker_attack_exec()"
+                evaluation = "return (...):lurker_attack_eval(" .. cfg_str .. ")",
+                execution = "(...):lurker_attack_exec(" .. cfg_str .. ")"
             } }
         }
     end,
