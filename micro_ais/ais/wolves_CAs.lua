@@ -20,7 +20,7 @@ return {
             path = "aspect[attacks].facet",
             { "facet", {
                 name = "testing_ai_default::aspect_attacks",
-                id = "dont_attack",
+                id = "dont_attack_used_on_side" .. side,
                 invalidate_on_gamestate_change = "yes",
                 { "filter_enemy", {
                     { "not", {
@@ -65,6 +65,12 @@ return {
         local W = H.set_wml_action_metatable {}
 
         --print("Removing template for Side " .. side)
+
+        W.modify_ai {
+            side = side,
+            action = "try_delete",
+            path = "aspect[attacks].facet[dont_attack_used_on_side" .. side .. "]"
+        }
 
         W.modify_ai {
             side = side,
