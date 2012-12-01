@@ -6,10 +6,10 @@ return {
         local LS = wesnoth.require "lua/location_set.lua"
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
 
-        function lurkers:lurker_attack_eval()
+        function lurkers:lurker_attack_eval(cfg)
 
             -- If any lurker has moves left, we return score just above standard combat CA
-            local units = wesnoth.get_units { side = wesnoth.current.side, type = 'Swamp Lurker', formula = '$this_unit.moves > 0' }
+            local units = wesnoth.get_units { side = wesnoth.current.side, type = cfg.unit_type, formula = '$this_unit.moves > 0' }
 
             local eval = 0
             if units[1] then eval = 100010 end
@@ -18,10 +18,10 @@ return {
             return eval
         end
 
-        function lurkers:lurker_attack_exec()
+        function lurkers:lurker_attack_exec(cfg)
 
             -- We simply pick the first of the lurkers, they have no strategy
-            local me = wesnoth.get_units { side = wesnoth.current.side, type = 'Swamp Lurker', formula = '$this_unit.moves > 0' }[1]
+            local me = wesnoth.get_units { side = wesnoth.current.side, type = cfg.unit_type, formula = '$this_unit.moves > 0' }[1]
             --print("me at:" .. me.x .. "," .. me.y)
 
             -- Potential targets
@@ -36,7 +36,7 @@ return {
             local reach = LS.of_pairs( wesnoth.find_reach(me.x, me.y) )
             -- all reachable swamp hexes
             local reachable_swamp =
-                 LS.of_pairs( wesnoth.get_locations { terrain = "S*",
+                 LS.of_pairs( wesnoth.get_locations { terrain = cfg.terrain,
                  { "and", { x = me.x, y = me.y, radius = me.moves } } } )
             reachable_swamp:inter(reach)
             --print("  reach: " .. reach:size() .. "    reach_swamp: " .. reachable_swamp:size())

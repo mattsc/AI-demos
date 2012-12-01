@@ -106,8 +106,8 @@ return {
             local healees, units_MP = {}, {}
             for i,u in ipairs(all_units) do
                 -- Potential healees are units with MP that don't already have a healer (also without MP) next to them
-                -- Also, they cannot be on a village
-                if (u.moves == 0) then
+                -- Also, they cannot be on a village or regenerate
+                if (u.moves == 0) and (not wesnoth.match_unit(u, {ability = "regenerates"})) then
                     local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).village
                     if (not is_village) then
                         local healee = true
