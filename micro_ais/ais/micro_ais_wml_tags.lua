@@ -404,22 +404,38 @@ function wesnoth.wml_actions.micro_ai(cfg)
 				end
 			end
 			
+			if (animal_type == "swarm") then
+				-- Remove the CAs
+				if (cfg.action == 'delete') then
+					wesnoth.require "~add-ons/AI-demos/micro_ais/ais/swarm_CAs.lua".remove(cfg.side)
+				else
+
+					-- Add the CAs
+					if (cfg.action == 'add') then
+						wesnoth.require "~add-ons/AI-demos/micro_ais/ais/swarm_CAs.lua".activate(cfg.side)
+					end
+						
+					-- Change the CAs (done by deleting, then adding again, so that parameters get reset)
+					if (cfg.action == 'change') then
+						wesnoth.require "~add-ons/AI-demos/micro_ais/ais/swarm_CAs.lua".remove(cfg.side)
+						wesnoth.require "~add-ons/AI-demos/micro_ais/ais/swarm_CAs.lua".activate(cfg.side)
+					end
+				end
+			end
+			
 		end
         return
     end
 
     --------- Patrol Micro AI ------------------------------------
-    if (cfg.ai_type == 'bca_patrol') then
+    if (string.sub(cfg.ai_type,1,11) == 'bca_patrol_') then
 
          -- Set up the cfg array
         local cfg_p = {}
 
-        -- id for patrol
-        if (not cfg.id) then
-            H.wml_error("Patrol Micro AI missing required id= attribute")
-        else
-            cfg_p.id = cfg.id
-        end
+
+        -- id for patrol (should be in the ai_type, so no check required)
+        cfg_p.id = string.sub(cfg.ai_type,12)
 
         -- waypoints for patrol
         if (cfg.action ~= 'delete') then

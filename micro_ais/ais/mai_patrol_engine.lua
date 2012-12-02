@@ -42,7 +42,6 @@ return {
             local x, y = wesnoth.find_vacant_tile(self.data.next_step_x, self.data.next_step_y, patrol)
             local nh = AH.next_hop(patrol, x, y)
             AH.movefull_stopunit(ai, patrol, nh)
-
             -- attack adjacent enemy (if specified)
             if cfg.attack_all then
                 local enemy = wesnoth.get_units {
@@ -67,7 +66,6 @@ return {
                     end
                 end
             end
-            ai.stopunit_attacks(patrol)
         end
 
         return patrol
