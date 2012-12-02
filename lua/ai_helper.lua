@@ -142,6 +142,31 @@ function ai_helper.array_merge(a1, a2)
     return merger
 end
 
+function ai_helper.serialize(input)
+    -- Convert 'input' to a string in a format corresponding to the type of the input
+    -- The string is all put into one line
+    local str = ''
+
+    if type(input) == "number" then
+        str = str .. input
+    elseif type(input) == "string" then
+        str = string.format("%q", input)
+    elseif type(input) == "table" then
+        str = str .. "{ "
+        for k,v in pairs(input) do
+            str = str .. "[" .. ai_helper.serialize(k)  .. "] = "
+            str = str .. ai_helper.serialize(v)
+            str = str .. ", "
+        end
+        str = str .. "}"
+    else
+        error("cannot serialize a " .. type(input))
+    end
+
+    return str
+end
+
+
 --------- Location set related helper functions ----------
 
 function ai_helper.get_LS_xy(index)
