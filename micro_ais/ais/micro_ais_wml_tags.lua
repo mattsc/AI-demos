@@ -100,15 +100,18 @@ function wesnoth.wml_actions.micro_ai(cfg)
             cfg_bd.active_side_leader = cfg.active_side_leader
         end
 
+        -- Convert to string to be transferred to the CAs
+        local cfg_str_bd = AH.serialize(cfg_bd)
+
         -- Add the CAs
         if (cfg.action == 'add') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".activate(cfg.side, cfg_bd)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".activate(cfg.side, cfg_str_bd)
         end
 
         -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
         if (cfg.action == 'change') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".remove(cfg.side)
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".activate(cfg.side, cfg_bd)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".activate(cfg.side, cfg_str_bd)
         end
 
         -- Remove the CAs
@@ -173,7 +176,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
          -- Set up the cfg array
         local cfg_lurk = {}
-        
+
         if (cfg.action ~= "delete") then
             if (not cfg.type) then
                 H.wml_error("Lurkers Micro AI missing required type= attribute")
@@ -186,14 +189,14 @@ function wesnoth.wml_actions.micro_ai(cfg)
             else
                 cfg_lurk.attack_terrain = cfg.attack_terrain
             end
-        
+
             if (not cfg.wander_terrain) then
                 H.wml_error("Lurkers Micro AI missing required wander_terrain= attribute")
             else
                 cfg_lurk.wander_terrain = cfg.wander_terrain
             end
         end
-        
+
         -- Add the CAs
         if (cfg.action == 'add') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/lurkers_CAs.lua".activate(cfg.side, cfg_lurk)
@@ -411,7 +414,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
                     end
                 end
             end
-            
+
             if (animal_type == "swarm") then
                 -- Remove the CAs
                 if (cfg.action == 'delete') then
@@ -422,7 +425,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
                     if (cfg.action == 'add') then
                         wesnoth.require "~add-ons/AI-demos/micro_ais/ais/swarm_CAs.lua".activate(cfg.side)
                     end
-                        
+
                     -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
                     if (cfg.action == 'change') then
                         wesnoth.require "~add-ons/AI-demos/micro_ais/ais/swarm_CAs.lua".remove(cfg.side)
@@ -441,7 +444,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
                     if (cfg.action == 'add') then
                         wesnoth.require "~add-ons/AI-demos/micro_ais/ais/sheep_CAs.lua".activate(cfg.side)
                     end
-                        
+
                     -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
                     if (cfg.action == 'change') then
                         wesnoth.require "~add-ons/AI-demos/micro_ais/ais/sheep_CAs.lua".remove(cfg.side)
@@ -449,7 +452,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
                     end
                 end
             end
-            
+
         end
         return
     end
