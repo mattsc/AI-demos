@@ -173,25 +173,27 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
          -- Set up the cfg array
         local cfg_lurk = {}
+        
+        if (cfg.action ~= "delete") then
+            if (not cfg.type) then
+                H.wml_error("Lurkers Micro AI missing required type= attribute")
+            else
+                cfg_lurk.type = cfg.type
+            end
 
-        if (not cfg.type) then
-            H.wml_error("Lurkers Micro AI missing required type= attribute")
-        else
-            cfg_lurk.type = cfg.type
-        end
-
-        if (not cfg.attack_terrain) then
-            H.wml_error("Lurkers Micro AI missing required attack_terrain= attribute")
-        else
-            cfg_lurk.attack_terrain = cfg.attack_terrain
+            if (not cfg.attack_terrain) then
+                H.wml_error("Lurkers Micro AI missing required attack_terrain= attribute")
+            else
+                cfg_lurk.attack_terrain = cfg.attack_terrain
+            end
+        
+            if (not cfg.wander_terrain) then
+                H.wml_error("Lurkers Micro AI missing required wander_terrain= attribute")
+            else
+                cfg_lurk.wander_terrain = cfg.wander_terrain
+            end
         end
         
-        if (not cfg.wander_terrain) then
-            H.wml_error("Lurkers Micro AI missing required wander_terrain= attribute")
-        else
-            cfg_lurk.wander_terrain = cfg.wander_terrain
-        end
-
         -- Add the CAs
         if (cfg.action == 'add') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/lurkers_CAs.lua".activate(cfg.side, cfg_lurk)
