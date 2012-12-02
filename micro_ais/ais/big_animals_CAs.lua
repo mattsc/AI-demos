@@ -1,5 +1,5 @@
 return {
-    activate = function(side, types)
+    activate = function(side, type)
         -- cfg contains extra options to be passed on to the CAs
         -- This needs to be set up as a string
 
@@ -17,8 +17,8 @@ return {
                     name = "ca_big_animal_side" .. side,
                     id = "ca_big_animal_side" .. side,
                     max_score = 300000,
-                    evaluation = "return (...):big_eval('" .. types .. "')",
-                    execution = "(...):big_exec('" .. types .. "')"
+                    evaluation = "return (...):big_eval('" .. type .. "')",
+                    execution = "(...):big_exec('" .. type .. "')"
             } }
         }
     end,

@@ -9,7 +9,7 @@ return {
         function lurkers:lurker_attack_eval(cfg)
 
             -- If any lurker has moves left, we return score just above standard combat CA
-            local units = wesnoth.get_units { side = wesnoth.current.side, type = cfg.unit_type, formula = '$this_unit.moves > 0' }
+            local units = wesnoth.get_units { side = wesnoth.current.side, type = cfg.type, formula = '$this_unit.moves > 0' }
 
             local eval = 0
             if units[1] then eval = 100010 end
@@ -21,7 +21,7 @@ return {
         function lurkers:lurker_attack_exec(cfg)
 
             -- We simply pick the first of the lurkers, they have no strategy
-            local me = wesnoth.get_units { side = wesnoth.current.side, type = cfg.unit_type, formula = '$this_unit.moves > 0' }[1]
+            local me = wesnoth.get_units { side = wesnoth.current.side, type = cfg.type, formula = '$this_unit.moves > 0' }[1]
             --print("me at:" .. me.x .. "," .. me.y)
 
             -- Potential targets
@@ -36,7 +36,7 @@ return {
             local reach = LS.of_pairs( wesnoth.find_reach(me.x, me.y) )
             -- all reachable swamp hexes
             local reachable_swamp =
-                 LS.of_pairs( wesnoth.get_locations { terrain = cfg.terrain,
+                 LS.of_pairs( wesnoth.get_locations { terrain = cfg.attack_terrain,
                  { "and", { x = me.x, y = me.y, radius = me.moves } } } )
             reachable_swamp:inter(reach)
             --print("  reach: " .. reach:size() .. "    reach_swamp: " .. reachable_swamp:size())
@@ -71,14 +71,19 @@ return {
                end
             end
 
-            -- If unit has moves left (that is, it didn't attack), go to random swamp hex
+            -- If unit has moves left (that is, it didn't attack), go to random wander terrain hex
             -- Check first that unit wasn't killed in the attack
             if (attacked == 0) then
+            
+                local reachable_wandert =
+                    LS.of_pairs( wesnoth.get_locations { terrain = cfg.wander_terrain,
+                    { "and", { x = me.x, y = me.y, radius = me.moves } } } )
+                reachable_wandert:inter(reach)
 
-                -- get one of the reachable swamp hexes randomly
-                local rand = AH.random(1, reachable_swamp:size())
-                --print("  reach_swamp no allies: " .. reachable_swamp:size() .. "  rand #: " ..  rand)
-                local dst = reachable_swamp:to_stable_pairs()
+                -- get one of the reachable wander terrain hexes randomly
+                local rand = AH.random(1, reachable_wandert:size())
+                --print("  reach_wander no allies: " .. reachable_wandert:size() .. "  rand #: " ..  rand)
+                local dst = reachable_wandert:to_stable_pairs()
                 AH.movefull_stopunit(ai, me, dst[rand])
             end
         end

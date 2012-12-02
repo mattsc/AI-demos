@@ -813,7 +813,7 @@ return {
                 end
             end
         end
-        
+
         function animals:yeti_terrain(set)
             -- Remove locations from LS that are not mountains or hills
             set:iter( function(x, y, v)
@@ -823,19 +823,19 @@ return {
             return set
         end
 
-        function animals:big_eval(types)
-            local units = wesnoth.get_units { side = wesnoth.current.side, type = types, formula = '$this_unit.moves > 0' }
+        function animals:big_eval(type)
+            local units = wesnoth.get_units { side = wesnoth.current.side, type = type, formula = '$this_unit.moves > 0' }
 
             if units[1] then return 300000 end
             return 0
         end
 
-        function animals:big_exec(types)
+        function animals:big_exec(type)
             -- Big animals just move toward goal that gets set occasionally
             -- Avoid the other big animals (bears, yetis, spiders) and the dogs, otherwise attack whatever is in their range
             -- The only difference in behavior is the area in which the units move
 
-            local units = wesnoth.get_units { side = wesnoth.current.side, type = types, formula = '$this_unit.moves > 0' }
+            local units = wesnoth.get_units { side = wesnoth.current.side, type = type, formula = '$this_unit.moves > 0' }
             local avoid = LS.of_pairs(wesnoth.get_locations { radius = 1,
                 { "filter", { type = 'Yeti,Giant Spider,Tarantula,Bear,Dog',
                     { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
@@ -848,28 +848,28 @@ return {
                 local r = AH.random(10)
                 if (not unit.variables.x) or (r == 1) then
                     local locs = {}
-                    if (types == 'Bear') then
+                    if (type == 'Bear') then
                         locs = wesnoth.get_locations { x = '1-40', y = '1-18',
                             { "not", { terrain = '*^X*,Wo' } },
                             { "not", { x = unit.x, y = unit.y, radius = 12 } }
                         }
                     end
-                    if (types == 'Giant Spider,Tarantula') then
+                    if (type == 'Giant Spider,Tarantula') then
                         locs = wesnoth.get_locations { terrain = 'H*' }
                     end
-                    if (types == 'Yeti') then
+                    if (type == 'Yeti') then
                         locs = wesnoth.get_locations { terrain = 'M*' }
                     end
                     local rand = AH.random(#locs)
-                    --print(types, ': #locs', #locs, rand)
+                    --print(type, ': #locs', #locs, rand)
                     unit.variables.x, unit.variables.y = locs[rand][1], locs[rand][2]
                 end
-                --print('Big animal goto: ', types, unit.variables.x, unit.variables.y, r)
+                --print('Big animal goto: ', type, unit.variables.x, unit.variables.y, r)
 
                 -- hexes the unit can reach
                 local reach_map = AH.get_reachable_unocc(unit)
                 -- If this is a yeti, we only keep mountain and hill terrain
-                if (types == 'Yeti') then self:yeti_terrain(reach_map) end
+                if (type == 'Yeti') then self:yeti_terrain(reach_map) end
 
                 -- Now find the one of these hexes that is closest to the goal
                 local max_rating = -9e99
