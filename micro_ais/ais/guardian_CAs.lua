@@ -1,5 +1,5 @@
 return {
-    activate = function(side, cfg)
+    add = function(side, cfg)
         -- cfg contains extra options to be passed on to the CAs
         -- This needs to be set up as a string
 
@@ -50,7 +50,7 @@ return {
         }
     end,
 
-    remove = function(side,guardian_type,id)
+    delete = function(side,guardian_type,id)
 
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}

@@ -32,23 +32,23 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
         -- Add the CAs
         if (cfg.action == 'add') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/healer_support_CAs.lua".activate(cfg.side, cfg_hs)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/healer_support_CAs.lua".add(cfg.side, cfg_hs)
         end
 
         -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
         if (cfg.action == 'change') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/healer_support_CAs.lua".remove(cfg.side)
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/healer_support_CAs.lua".activate(cfg.side, cfg_hs)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/healer_support_CAs.lua".delete(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/healer_support_CAs.lua".add(cfg.side, cfg_hs)
         end
 
-        -- Remove the CAs
+        -- Delete the CAs
         if (cfg.action == 'delete') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/healer_support_CAs.lua".remove(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/healer_support_CAs.lua".delete(cfg.side)
         end
 
         -- Configure the CAs
         if (cfg.action == 'add') or (cfg.action == 'change') then
-            -- Aggression (keep or remove the healers_can_attack CA)
+            -- Aggression (keep or delete the healers_can_attack CA)
             local aggression = cfg.aggression or 1.0
             if (aggression == 0) then
                 --print("[micro_ai] healer_support: Deleting the healers_can_attack CA of Side " .. cfg.side)
@@ -114,7 +114,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".add(cfg.side, cfg_str_bd)
         end
 
-        -- Remove the CAs
+        -- Delete the CAs
         if (cfg.action == 'delete') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".delete(cfg.side)
         end
@@ -154,18 +154,18 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
        -- Add the CAs
         if (cfg.action == 'add') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/messenger_escort_CAs.lua".activate(cfg.side, cfg_me)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/messenger_escort_CAs.lua".add(cfg.side, cfg_me)
         end
 
         -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
         if (cfg.action == 'change') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/messenger_escort_CAs.lua".remove(cfg.side)
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/messenger_escort_CAs.lua".activate(cfg.side, cfg_me)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/messenger_escort_CAs.lua".delete(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/messenger_escort_CAs.lua".add(cfg.side, cfg_me)
         end
 
-        -- Remove the CAs
+        -- Delete the CAs
         if (cfg.action == 'delete') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/messenger_escort_CAs.lua".remove(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/messenger_escort_CAs.lua".delete(cfg.side)
         end
 
         return
@@ -199,18 +199,18 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
         -- Add the CAs
         if (cfg.action == 'add') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/lurkers_CAs.lua".activate(cfg.side, cfg_lurk)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/lurkers_CAs.lua".add(cfg.side, cfg_lurk)
         end
 
         -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
         if (cfg.action == 'change') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/lurkers_CAs.lua".remove(cfg.side)
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/lurkers_CAs.lua".activate(cfg.side, cfg_lurk)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/lurkers_CAs.lua".delete(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/lurkers_CAs.lua".add(cfg.side, cfg_lurk)
         end
 
-        -- Remove the CAs
+        -- Delete the CAs
         if (cfg.action == 'delete') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/lurkers_CAs.lua".remove(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/lurkers_CAs.lua".delete(cfg.side)
         end
 
         return
@@ -236,18 +236,18 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
         -- Add the CAs
         if (cfg.action == 'add') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/protect_unit_CAs.lua".activate(cfg.side, cfg_pu)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/protect_unit_CAs.lua".add(cfg.side, cfg_pu)
         end
 
         -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
         if (cfg.action == 'change') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/protect_unit_CAs.lua".remove(cfg.side)
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/protect_unit_CAs.lua".activate(cfg.side, cfg_pu)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/protect_unit_CAs.lua".delete(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/protect_unit_CAs.lua".add(cfg.side, cfg_pu)
         end
 
-        -- Remove the CAs
+        -- Delete the CAs
         if (cfg.action == 'delete') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/protect_unit_CAs.lua".remove(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/protect_unit_CAs.lua".delete(cfg.side)
         end
 
         return
@@ -292,18 +292,18 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
        -- Add the CAs
         if (cfg.action == 'add') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".activate(cfg.side, cfg_guardian)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".add(cfg.side, cfg_guardian)
         end
 
         -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
         if (cfg.action == 'change') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".remove(cfg.side,guardian_type,cfg.id)
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".activate(cfg.side, cfg_guardian)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".delete(cfg.side,guardian_type,cfg.id)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".add(cfg.side, cfg_guardian)
         end
 
-        -- Remove the CAs
+        -- Delete the CAs
         if (cfg.action == 'delete') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".remove(cfg.side,guardian_type,cfg.id)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".delete(cfg.side,guardian_type,cfg.id)
         end
 
         return
@@ -329,9 +329,9 @@ function wesnoth.wml_actions.micro_ai(cfg)
                 else
                     cfg_animals["id"] = cfg["id"]
 
-                    -- Remove the CAs
+                    -- Delete the CAs
                     if (cfg.action == 'delete') then
-                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/hunter_CAs.lua".remove(cfg.side, cfg.id)
+                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/hunter_CAs.lua".delete(cfg.side, cfg.id)
                     else
 
                         for j,i in pairs(required_attributes["hunter"]) do
@@ -341,13 +341,13 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
                         -- Add the CAs
                         if (cfg.action == 'add') then
-                            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/hunter_CAs.lua".activate(cfg.side, cfg_animals)
+                            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/hunter_CAs.lua".add(cfg.side, cfg_animals)
                         end
 
                         -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
                         if (cfg.action == 'change') then
-                            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/hunter_CAs.lua".remove(cfg.side, cfg.id)
-                            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/hunter_CAs.lua".activate(cfg.side, cfg_animals)
+                            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/hunter_CAs.lua".delete(cfg.side, cfg.id)
+                            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/hunter_CAs.lua".add(cfg.side, cfg_animals)
                         end
                     end
                 end
@@ -356,39 +356,39 @@ function wesnoth.wml_actions.micro_ai(cfg)
             if (animal_type == "wolves") then
                 cfg_animals["to_avoid"] = cfg["to_avoid"]
 
-                -- Remove the CAs
+                -- Delete the CAs
                 if (cfg.action == 'delete') then
-                    wesnoth.require "~add-ons/AI-demos/micro_ais/ais/wolves_CAs.lua".remove(cfg.side)
+                    wesnoth.require "~add-ons/AI-demos/micro_ais/ais/wolves_CAs.lua".delete(cfg.side)
                 else
 
                     -- Add the CAs
                     if (cfg.action == 'add') then
-                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/wolves_CAs.lua".activate(cfg.side, cfg_animals)
+                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/wolves_CAs.lua".add(cfg.side, cfg_animals)
                     end
 
                     -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
                     if (cfg.action == 'change') then
-                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/wolves_CAs.lua".remove(cfg.side)
-                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/wolves_CAs.lua".activate(cfg.side, cfg_animals)
+                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/wolves_CAs.lua".delete(cfg.side)
+                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/wolves_CAs.lua".add(cfg.side, cfg_animals)
                     end
                 end
             end
 
             if (animal_type == "wolves_multipacks") then
-                -- Remove the CAs
+                -- Delete the CAs
                 if (cfg.action == 'delete') then
-                    wesnoth.require "~add-ons/AI-demos/micro_ais/ais/wolves_multipacks_CAs.lua".remove(cfg.side)
+                    wesnoth.require "~add-ons/AI-demos/micro_ais/ais/wolves_multipacks_CAs.lua".delete(cfg.side)
                 else
 
                     -- Add the CAs
                     if (cfg.action == 'add') then
-                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/wolves_multipacks_CAs.lua".activate(cfg.side, cfg_animals)
+                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/wolves_multipacks_CAs.lua".add(cfg.side, cfg_animals)
                     end
 
                     -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
                     if (cfg.action == 'change') then
-                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/wolves_multipacks_CAs.lua".remove(cfg.side)
-                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/wolves_multipacks_CAs.lua".activate(cfg.side, cfg_animals)
+                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/wolves_multipacks_CAs.lua".delete(cfg.side)
+                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/wolves_multipacks_CAs.lua".add(cfg.side, cfg_animals)
                     end
                 end
             end
@@ -396,59 +396,59 @@ function wesnoth.wml_actions.micro_ai(cfg)
             if (animal_type == "big_animals") then
                 if (not cfg["type"]) then H.wml_error("[micro_ai] big_animals missing required type= attribute")
                     else
-                    -- Remove the CAs
+                    -- Delete the CAs
                     if (cfg.action == 'delete') then
-                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/big_animals_CAs.lua".remove(cfg.side)
+                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/big_animals_CAs.lua".delete(cfg.side)
                     else
 
                         -- Add the CAs
                         if (cfg.action == 'add') then
-                            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/big_animals_CAs.lua".activate(cfg.side, cfg.type)
+                            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/big_animals_CAs.lua".add(cfg.side, cfg.type)
                         end
 
                         -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
                         if (cfg.action == 'change') then
-                            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/big_animals_CAs.lua".remove(cfg.side)
-                            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/big_animals_CAs.lua".activate(cfg.side, cfg.type)
+                            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/big_animals_CAs.lua".delete(cfg.side)
+                            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/big_animals_CAs.lua".add(cfg.side, cfg.type)
                         end
                     end
                 end
             end
 
             if (animal_type == "swarm") then
-                -- Remove the CAs
+                -- Delete the CAs
                 if (cfg.action == 'delete') then
-                    wesnoth.require "~add-ons/AI-demos/micro_ais/ais/swarm_CAs.lua".remove(cfg.side)
+                    wesnoth.require "~add-ons/AI-demos/micro_ais/ais/swarm_CAs.lua".delete(cfg.side)
                 else
 
                     -- Add the CAs
                     if (cfg.action == 'add') then
-                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/swarm_CAs.lua".activate(cfg.side)
+                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/swarm_CAs.lua".add(cfg.side)
                     end
 
                     -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
                     if (cfg.action == 'change') then
-                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/swarm_CAs.lua".remove(cfg.side)
-                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/swarm_CAs.lua".activate(cfg.side)
+                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/swarm_CAs.lua".delete(cfg.side)
+                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/swarm_CAs.lua".add(cfg.side)
                     end
                 end
             end
 
             if (animal_type == "sheep") then
-                -- Remove the CAs
+                -- Delete the CAs
                 if (cfg.action == 'delete') then
-                    wesnoth.require "~add-ons/AI-demos/micro_ais/ais/sheep_CAs.lua".remove(cfg.side)
+                    wesnoth.require "~add-ons/AI-demos/micro_ais/ais/sheep_CAs.lua".delete(cfg.side)
                 else
 
                     -- Add the CAs
                     if (cfg.action == 'add') then
-                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/sheep_CAs.lua".activate(cfg.side)
+                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/sheep_CAs.lua".add(cfg.side)
                     end
 
                     -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
                     if (cfg.action == 'change') then
-                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/sheep_CAs.lua".remove(cfg.side)
-                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/sheep_CAs.lua".activate(cfg.side)
+                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/sheep_CAs.lua".delete(cfg.side)
+                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/sheep_CAs.lua".add(cfg.side)
                     end
                 end
             end
@@ -492,18 +492,18 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
         -- Add the CAs
         if (cfg.action == 'add') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/patrol_CAs.lua".activate(cfg.side, cfg_p)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/patrol_CAs.lua".add(cfg.side, cfg_p)
         end
 
         -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
         if (cfg.action == 'change') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/patrol_CAs.lua".remove(cfg.side)
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/patrol_CAs.lua".activate(cfg.side, cfg_p)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/patrol_CAs.lua".delete(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/patrol_CAs.lua".add(cfg.side, cfg_p)
         end
 
-        -- Remove the CAs
+        -- Delete the CAs
         if (cfg.action == 'delete') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/patrol_CAs.lua".remove(cfg.side, cfg_p)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/patrol_CAs.lua".delete(cfg.side, cfg_p)
         end
 
         return
@@ -517,18 +517,18 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
         -- Add the CAs
         if (cfg.action == 'add') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/template_CAs.lua".activate(cfg.side, cfg_template)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/template_CAs.lua".add(cfg.side, cfg_template)
         end
 
         -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
         if (cfg.action == 'change') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/template_CAs.lua".remove(cfg.side)
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/template_CAs.lua".activate(cfg.side, cfg_template)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/template_CAs.lua".delete(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/template_CAs.lua".add(cfg.side, cfg_template)
         end
 
-        -- Remove the CAs
+        -- Delete the CAs
         if (cfg.action == 'delete') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/template_CAs.lua".remove(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/template_CAs.lua".delete(cfg.side)
         end
 
         return

@@ -1,5 +1,5 @@
 return {
-    activate = function(side)
+    add = function(side)
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
 
@@ -34,7 +34,7 @@ return {
         }
     end,
 
-    remove = function(side)
+    delete = function(side)
 
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}

@@ -1,5 +1,5 @@
 return {
-    activate = function(side, cfg)
+    add = function(side, cfg)
         -- cfg contains extra options to be passed on to the CAs
         -- This needs to be set up as a string
 
@@ -7,7 +7,7 @@ return {
 
         -- Add the id key
         local cfg_str = "'" .. cfg.id .. "', "
-        
+
         -- Add the hunt_x, hunt_y keys
         local cfg_str = cfg_str .. "'" .. cfg.hunt_x .. "', " .. "'" .. cfg.hunt_y .. "', "
 
@@ -19,7 +19,7 @@ return {
 
         -- Get the unit with the ID, so we don't have to ask for coordinates
         local unit = wesnoth.get_units { id=cfg.id }[1]
-        
+
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
 
@@ -43,7 +43,7 @@ return {
         }
     end,
 
-    remove = function(side, id)
+    delete = function(side, id)
 
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}

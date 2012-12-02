@@ -1,5 +1,5 @@
 return {
-    activate = function(side, cfg)
+    add = function(side, cfg)
         -- cfg contains extra options to be passed on to the CAs
         -- This needs to be set up as a string
 
@@ -7,7 +7,7 @@ return {
 
         -- Required key: id
         local cfg_str = '{ id = "' .. cfg.id .. '"'
-        
+
         -- Required keys: goal_x, goal_y
         local cfg_str = cfg_str .. ', goal_x = "' .. cfg.goal_x .. '", goal_y = "' .. cfg.goal_y .. '"'
 
@@ -69,7 +69,7 @@ return {
         }
     end,
 
-    remove = function(side)
+    delete = function(side)
 
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
