@@ -430,6 +430,25 @@ function wesnoth.wml_actions.micro_ai(cfg)
                     end
                 end
             end
+
+            if (animal_type == "sheep") then
+                -- Remove the CAs
+                if (cfg.action == 'delete') then
+                    wesnoth.require "~add-ons/AI-demos/micro_ais/ais/sheep_CAs.lua".remove(cfg.side)
+                else
+
+                    -- Add the CAs
+                    if (cfg.action == 'add') then
+                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/sheep_CAs.lua".activate(cfg.side)
+                    end
+                        
+                    -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
+                    if (cfg.action == 'change') then
+                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/sheep_CAs.lua".remove(cfg.side)
+                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/sheep_CAs.lua".activate(cfg.side)
+                    end
+                end
+            end
             
         end
         return
