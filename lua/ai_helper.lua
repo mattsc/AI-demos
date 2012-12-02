@@ -147,8 +147,8 @@ function ai_helper.serialize(input)
     -- The string is all put into one line
     local str = ''
 
-    if type(input) == "number" then
-        str = str .. input
+    if (type(input) == "number") or (type(input) == "boolean") then
+        str = tostring(input)
     elseif type(input) == "string" then
         str = string.format("%q", input)
     elseif type(input) == "table" then
