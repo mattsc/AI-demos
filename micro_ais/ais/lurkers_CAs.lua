@@ -5,7 +5,7 @@ return {
 
         cfg = cfg or {}
 
-        local cfg_str = '{ unit_type = "' .. cfg.unit_type .. '" , terrain = "' .. cfg.terrain .. '" }'
+        local cfg_str = '{ type = "' .. cfg.type .. '" , attack_terrain = "' .. cfg.attack_terrain .. '", wander_terrain = "' .. cfg.wander_terrain .. '" }'
 
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}

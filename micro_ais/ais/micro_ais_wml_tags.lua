@@ -174,16 +174,22 @@ function wesnoth.wml_actions.micro_ai(cfg)
          -- Set up the cfg array
         local cfg_lurk = {}
 
-        if (not cfg.unit_type) then
-            H.wml_error("Lurkers Micro AI missing required unit_type= attribute")
+        if (not cfg.type) then
+            H.wml_error("Lurkers Micro AI missing required type= attribute")
         else
-            cfg_lurk.unit_type = cfg.unit_type
+            cfg_lurk.type = cfg.type
         end
 
-        if (not cfg.terrain) then
-            H.wml_error("Lurkers Micro AI missing required terrain= attribute")
+        if (not cfg.attack_terrain) then
+            H.wml_error("Lurkers Micro AI missing required attack_terrain= attribute")
         else
-            cfg_lurk.terrain = cfg.terrain
+            cfg_lurk.attack_terrain = cfg.attack_terrain
+        end
+        
+        if (not cfg.wander_terrain) then
+            H.wml_error("Lurkers Micro AI missing required wander_terrain= attribute")
+        else
+            cfg_lurk.wander_terrain = cfg.wander_terrain
         end
 
         -- Add the CAs
