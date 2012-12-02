@@ -173,19 +173,19 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
          -- Set up the cfg array
         local cfg_lurk = {}
-        
+
         if (not cfg.unit_type) then
             H.wml_error("Lurkers Micro AI missing required unit_type= attribute")
         else
             cfg_lurk.unit_type = cfg.unit_type
         end
-        
+
         if (not cfg.terrain) then
             H.wml_error("Lurkers Micro AI missing required terrain= attribute")
         else
             cfg_lurk.terrain = cfg.terrain
         end
-        
+
         -- Add the CAs
         if (cfg.action == 'add') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/lurkers_CAs.lua".activate(cfg.side, cfg_lurk)
@@ -312,7 +312,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
 			-- This list does not contain id because we check for that differently
 			required_attributes["hunter"] = {"hunt_x", "hunt_y", "home_x", "home_y", "rest_turns"}
 			required_attributes["wolves"] = {}
-			
+
 			if (animal_type == "hunter") then
 				if (not cfg["id"]) then H.wml_error("[micro_ai] hunter missing required id= attribute")
 				else
@@ -341,10 +341,10 @@ function wesnoth.wml_actions.micro_ai(cfg)
 					end
 				end
 			end
-			
+
 			if (animal_type == "wolves") then
 				cfg_animals["to_avoid"] = cfg["to_avoid"]
-				
+
 				-- Remove the CAs
 				if (cfg.action == 'delete') then
 					wesnoth.require "~add-ons/AI-demos/micro_ais/ais/wolves_CAs.lua".remove(cfg.side)
@@ -362,7 +362,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
 					end
 				end
 			end
-			
+
 			if (animal_type == "wolves_multipacks") then
 				-- Remove the CAs
 				if (cfg.action == 'delete') then
@@ -381,9 +381,9 @@ function wesnoth.wml_actions.micro_ai(cfg)
 					end
 				end
 			end
-			
+
 			if (animal_type == "big_animals") then
-				if (not cfg["types"]) then H.wml_error("[micro_ai] big_animals missing required types= attribute")
+				if (not cfg["type"]) then H.wml_error("[micro_ai] big_animals missing required type= attribute")
 					else
 					-- Remove the CAs
 					if (cfg.action == 'delete') then
@@ -392,18 +392,18 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
 						-- Add the CAs
 						if (cfg.action == 'add') then
-							wesnoth.require "~add-ons/AI-demos/micro_ais/ais/big_animals_CAs.lua".activate(cfg.side, cfg.types)
+							wesnoth.require "~add-ons/AI-demos/micro_ais/ais/big_animals_CAs.lua".activate(cfg.side, cfg.type)
 						end
 
 						-- Change the CAs (done by deleting, then adding again, so that parameters get reset)
 						if (cfg.action == 'change') then
 							wesnoth.require "~add-ons/AI-demos/micro_ais/ais/big_animals_CAs.lua".remove(cfg.side)
-							wesnoth.require "~add-ons/AI-demos/micro_ais/ais/big_animals_CAs.lua".activate(cfg.side, cfg.types)
+							wesnoth.require "~add-ons/AI-demos/micro_ais/ais/big_animals_CAs.lua".activate(cfg.side, cfg.type)
 						end
 					end
 				end
 			end
-			
+
 		end
         return
     end
