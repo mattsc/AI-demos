@@ -65,56 +65,44 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
     --------- Bottleneck Defense Micro AI ------------------------------------
     if (cfg.ai_type == 'bottleneck_defense') then
-
-        -- Set up the cfg array
         local cfg_bd = {}
 
-        -- x,y for bottleneck defense
-        if (not cfg.x) or (not cfg.y) then
-            H.wml_error("Bottleneck Defense Micro AI missing required x= and/or y= attribute")
-        else
-            cfg_bd.x, cfg_bd.y = cfg.x, cfg.y
+        -- Required keys
+        if (cfg.action ~= 'delete') then
+            if (not cfg.x) or (not cfg.y) then
+                H.wml_error("Bottleneck Defense Micro AI missing required x= and/or y= attribute")
+            end
+            if (not cfg.enemy_x) or (not cfg.enemy_y) then
+                H.wml_error("Bottleneck Defense Micro AI missing required enemy_x= and/or enemy_y= attribute")
+            end
         end
+        cfg_bd.x, cfg_bd.y = cfg.x, cfg.y
+        cfg_bd.enemy_x, cfg_bd.enemy_y = cfg.enemy_x, cfg.enemy_y
 
-        -- enemy_x,enemy_y for bottleneck defense
-        if (not cfg.enemy_x) or (not cfg.enemy_y) then
-            H.wml_error("Bottleneck Defense Micro AI missing required enemy_x= and/or enemy_y= attribute")
-        else
-            cfg_bd.enemy_x, cfg_bd.enemy_y = cfg.enemy_x, cfg.enemy_y
-        end
-
-        -- Optional keys: healer_x, healer_y
+        -- Optional keys
         if cfg.healer_x and cfg.healer_y then
             cfg_bd.healer_x = cfg.healer_x
             cfg_bd.healer_y = cfg.healer_y
         end
-
-        -- Optional keys: leadership_x, leadership_y
         if cfg.leadership_x and cfg.leadership_y then
             cfg_bd.leadership_x = cfg.leadership_x
             cfg_bd.leadership_y = cfg.leadership_y
         end
-
-        -- Optional key: active_side_leader
         if cfg.active_side_leader then
             cfg_bd.active_side_leader = cfg.active_side_leader
         end
 
-        -- Convert to string to be transferred to the CAs
+        -- Convert to string to be passed to the CAs
         local cfg_str_bd = AH.serialize(cfg_bd)
 
-        -- Add the CAs
+        -- Now add, change or delete the CA
         if (cfg.action == 'add') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".add(cfg.side, cfg_str_bd)
         end
-
-        -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
         if (cfg.action == 'change') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".delete(cfg.side)
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".add(cfg.side, cfg_str_bd)
         end
-
-        -- Delete the CAs
         if (cfg.action == 'delete') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".delete(cfg.side)
         end
