@@ -23,30 +23,26 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
     --------- Healer Support Micro AI ------------------------------------
     if (cfg.ai_type == 'healer_support') then
-        -- If aggression = 0: Never let the healers participate in attacks
-        -- This is done by not deleting the attacks aspect
-
         local cfg_hs = {}
+
+        -- Optional keys
         if cfg.injured_units_only then cfg_hs.injured_units_only = true end
         if cfg.max_threats then cfg_hs.max_threats = cfg.max_threats end
 
-        -- Add the CAs
+        -- Now add, change or delete the CA
         if (cfg.action == 'add') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/healer_support_CAs.lua".add(cfg.side, cfg_hs)
         end
-
-        -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
         if (cfg.action == 'change') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/healer_support_CAs.lua".delete(cfg.side)
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/healer_support_CAs.lua".add(cfg.side, cfg_hs)
         end
-
-        -- Delete the CAs
         if (cfg.action == 'delete') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/healer_support_CAs.lua".delete(cfg.side)
         end
 
-        -- Configure the CAs
+        -- If aggression = 0: Never let the healers participate in attacks
+        -- This is done by deleting the respective CA (after it was added above)
         if (cfg.action == 'add') or (cfg.action == 'change') then
             -- Aggression (keep or delete the healers_can_attack CA)
             local aggression = cfg.aggression or 1.0
