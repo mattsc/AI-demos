@@ -402,6 +402,25 @@ function wesnoth.wml_actions.micro_ai(cfg)
                     end
                 end
             end
+            
+            if (animal_type == "forest_animals") then
+                -- Delete the CAs
+                if (cfg.action == 'delete') then
+                    wesnoth.require "~add-ons/AI-demos/micro_ais/ais/forest_animals_CAs.lua".delete(cfg.side)
+                else
+
+                    -- Add the CAs
+                    if (cfg.action == 'add') then
+                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/forest_animals_CAs.lua".add(cfg.side)
+                    end
+                    
+                    -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
+                    if (cfg.action == 'change') then
+                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/forest_animals_CAs.lua".delete(cfg.side)
+                        wesnoth.require "~add-ons/AI-demos/micro_ais/ais/forest_animals_CAs.lua".add(cfg.side)
+                    end
+                end
+            end
 
         end
         return
