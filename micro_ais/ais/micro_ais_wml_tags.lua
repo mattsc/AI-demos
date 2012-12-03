@@ -2,6 +2,54 @@ local H = wesnoth.require "lua/helper.lua"
 local W = H.set_wml_action_metatable {}
 local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
 
+function add_CAs(side, CA_parms)
+    -- Add the candidate actions defined in 'CA_parms' to the AI of 'side'
+    -- CA_parms is an array of tables, one for each CA to be added
+    --
+    -- Required keys for CA_parms:
+    --  - id: is used for both CA id and name
+    --  - eval_name: name of the evaluation function
+    --  - exec_name: name of the execution function
+    --
+    -- Optional keys for CA_parms:
+    --  - cfg_str: a configuration string (in form of a Lua WML table), to be passed to eval and exec functions
+    --      Note: we pass the same string to both functions, even if it contains unnecessary parameters for one or the other
+    --  - max_score: maximum score the CA can return
+
+    for i,parms in ipairs(CA_parms) do
+        cfg_str = parms.cfg_str or ''
+
+        W.modify_ai {
+            side = side,
+            action = "add",
+            path = "stage[main_loop].candidate_action",
+            { "candidate_action", {
+                engine = "lua",
+                id = parms.id,
+                name = parms.id,
+                max_score = parms.max_score,  -- This works even if parms.max_score is nil
+                evaluation = "return (...):" .. parms.eval_name .. "(" .. cfg_str .. ")",
+                execution = "(...):" .. parms.exec_name .. "(" .. cfg_str .. ")"
+            } }
+        }
+    end
+end
+
+function delete_CAs(side, CA_parms)
+    -- Add the candidate actions defined in 'CA_parms' to the AI of 'side'
+    -- CA_parms is an array of tables, one for each CA to be removed
+    -- We can simply pass the one used for add_CAs(), although only the
+    -- CA_parms.id field is required
+
+    for i,parms in ipairs(CA_parms) do
+        W.modify_ai {
+            side = side,
+            action = "try_delete",
+            path = "stage[main_loop].candidate_action[" .. parms.id .. "]"
+        }
+    end
+end
+
 function wesnoth.wml_actions.micro_ai(cfg)
     -- Set up the [micro_ai] tag functionality for each Micro AI
 
@@ -81,20 +129,25 @@ function wesnoth.wml_actions.micro_ai(cfg)
             cfg_bd.active_side_leader = cfg.active_side_leader
         end
 
-        -- Convert to string to be passed to the CAs
-        local cfg_str_bd = AH.serialize(cfg_bd)
+        -- Set up the CA add/delete parameters
+        local CA_parms = {
+            {
+                id = 'bottleneck_move', eval_name = 'bottleneck_move_eval', exec_name = 'bottleneck_move_exec',
+                max_score = 300000, cfg_str = AH.serialize(cfg_bd)
+            },
+            {
+                id = 'bottleneck_attack', eval_name = 'bottleneck_attack_eval', exec_name = 'bottleneck_attack_exec',
+                max_score = 290000, cfg_str = ''
+            }
+        }
 
         -- Add, change or delete the CA
-        if (cfg.action == 'add') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".add(cfg.side, cfg_str_bd)
-        end
+        if (cfg.action == 'add') then add_CAs(cfg.side, CA_parms) end
         if (cfg.action == 'change') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".delete(cfg.side)
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".add(cfg.side, cfg_str_bd)
+            delete_CAs(cfg.side, CA_parms)
+            add_CAs(cfg.side, CA_parms)
         end
-        if (cfg.action == 'delete') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".delete(cfg.side)
-        end
+        if (cfg.action == 'delete') then delete_CAs(cfg.side, CA_parms) end
 
         return
     end
