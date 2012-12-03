@@ -5,12 +5,9 @@ local LS = wesnoth.require "lua/location_set.lua"
 local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
 function wesnoth.wml_actions.micro_ai(cfg)
-    -- Set up the [micro_ai] tag
-    -- Configuration tag for the micro AIs
+    -- Set up the [micro_ai] tag functionality for each Micro AI
 
-    cfg = cfg or {}
-
-    -- Check that the required attributes are set correctly
+    -- Check that the required common keys are all present and set correctly
     if (not cfg.ai_type) then H.wml_error("[micro_ai] missing required ai_type= attribute") end
     if (not cfg.side) then H.wml_error("[micro_ai] missing required side= attribute") end
     if (not cfg.action) then H.wml_error("[micro_ai] missing required action= attribute") end
@@ -19,9 +16,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
         H.wml_error("invalid action= in [micro_ai].  Allowed values: add, delete or change")
     end
 
-    -- Now deal with each specific micro AI
-
-    --------- Healer Support Micro AI ------------------------------------
+    --------- Healer Support Micro AI - side-wide AI ------------------------------------
     if (cfg.ai_type == 'healer_support') then
         local cfg_hs = {}
 
@@ -29,7 +24,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
         if cfg.injured_units_only then cfg_hs.injured_units_only = true end
         if cfg.max_threats then cfg_hs.max_threats = cfg.max_threats end
 
-        -- Now add, change or delete the CA
+        -- Add, change or delete the CA
         if (cfg.action == 'add') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/healer_support_CAs.lua".add(cfg.side, cfg_hs)
         end
@@ -59,7 +54,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
         return
     end
 
-    --------- Bottleneck Defense Micro AI ------------------------------------
+    --------- Bottleneck Defense Micro AI - side-wide AI ------------------------------------
     if (cfg.ai_type == 'bottleneck_defense') then
         local cfg_bd = {}
 
@@ -71,9 +66,9 @@ function wesnoth.wml_actions.micro_ai(cfg)
             if (not cfg.enemy_x) or (not cfg.enemy_y) then
                 H.wml_error("Bottleneck Defense Micro AI missing required enemy_x= and/or enemy_y= attribute")
             end
+            cfg_bd.x, cfg_bd.y = cfg.x, cfg.y
+            cfg_bd.enemy_x, cfg_bd.enemy_y = cfg.enemy_x, cfg.enemy_y
         end
-        cfg_bd.x, cfg_bd.y = cfg.x, cfg.y
-        cfg_bd.enemy_x, cfg_bd.enemy_y = cfg.enemy_x, cfg.enemy_y
 
         -- Optional keys
         if cfg.healer_x and cfg.healer_y then
@@ -91,7 +86,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
         -- Convert to string to be passed to the CAs
         local cfg_str_bd = AH.serialize(cfg_bd)
 
-        -- Now add, change or delete the CA
+        -- Add, change or delete the CA
         if (cfg.action == 'add') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/bottleneck_defense_CAs.lua".add(cfg.side, cfg_str_bd)
         end
@@ -106,48 +101,38 @@ function wesnoth.wml_actions.micro_ai(cfg)
         return
     end
 
-   --------- Messenger Escort Micro AI ------------------------------------
+   --------- Messenger Escort Micro AI - side-wide AI ------------------------------------
     if (cfg.ai_type == 'messenger_escort') then
-
-         -- Set up the cfg array
         local cfg_me = {}
 
-        -- id for messenger escort
-        if (not cfg.id) then
-            H.wml_error("Messenger Escort Micro AI missing required id= attribute")
-        else
+        -- Required keys
+        if (cfg.action ~= 'delete') then
+            if (not cfg.id) then
+                H.wml_error("Messenger Escort Micro AI missing required id= attribute")
+            end
+            if (not cfg.goal_x) or (not cfg.goal_y) then
+                H.wml_error("Messenger Escort Micro AI missing required goal_x= and/or goal_y= attribute")
+            end
             cfg_me.id = cfg.id
-        end
-
-        -- goal_x,goal_y for messenger escort
-        if (not cfg.goal_x) or (not cfg.goal_y) then
-            H.wml_error("Messenger Escort Micro AI missing required goal_x= and/or goal_y= attribute")
-        else
             cfg_me.goal_x, cfg_me.goal_y = cfg.goal_x, cfg.goal_y
         end
 
-        -- Optional: enemy_death_chance
+        -- Optional keys
         if cfg.enemy_death_chance then
             cfg_me.enemy_death_chance = cfg.enemy_death_chance
         end
-
-        -- Optional: messenger_death_chance
         if cfg.messenger_death_chance then
             cfg_me.messenger_death_chance = cfg.messenger_death_chance
         end
 
-       -- Add the CAs
+        -- Add, change or delete the CA
         if (cfg.action == 'add') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/messenger_escort_CAs.lua".add(cfg.side, cfg_me)
         end
-
-        -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
         if (cfg.action == 'change') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/messenger_escort_CAs.lua".delete(cfg.side)
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/messenger_escort_CAs.lua".add(cfg.side, cfg_me)
         end
-
-        -- Delete the CAs
         if (cfg.action == 'delete') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/messenger_escort_CAs.lua".delete(cfg.side)
         end
@@ -155,44 +140,34 @@ function wesnoth.wml_actions.micro_ai(cfg)
         return
     end
 
-        --------- Lurkers Micro AI ------------------------------------
+        --------- Lurkers Micro AI - side-wide AI ------------------------------------
     if (cfg.ai_type == 'lurkers') then
-
-         -- Set up the cfg array
         local cfg_lurk = {}
 
+        -- Required keys
         if (cfg.action ~= "delete") then
             if (not cfg.type) then
                 H.wml_error("Lurkers Micro AI missing required type= attribute")
-            else
-                cfg_lurk.type = cfg.type
             end
-
             if (not cfg.attack_terrain) then
                 H.wml_error("Lurkers Micro AI missing required attack_terrain= attribute")
-            else
-                cfg_lurk.attack_terrain = cfg.attack_terrain
             end
-
             if (not cfg.wander_terrain) then
                 H.wml_error("Lurkers Micro AI missing required wander_terrain= attribute")
-            else
-                cfg_lurk.wander_terrain = cfg.wander_terrain
             end
+            cfg_lurk.type = cfg.type
+            cfg_lurk.attack_terrain = cfg.attack_terrain
+            cfg_lurk.wander_terrain = cfg.wander_terrain
         end
 
-        -- Add the CAs
+        -- Add, change or delete the CA
         if (cfg.action == 'add') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/lurkers_CAs.lua".add(cfg.side, cfg_lurk)
         end
-
-        -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
         if (cfg.action == 'change') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/lurkers_CAs.lua".delete(cfg.side)
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/lurkers_CAs.lua".add(cfg.side, cfg_lurk)
         end
-
-        -- Delete the CAs
         if (cfg.action == 'delete') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/lurkers_CAs.lua".delete(cfg.side)
         end
@@ -200,36 +175,31 @@ function wesnoth.wml_actions.micro_ai(cfg)
         return
     end
 
-    --------- Protect Unit Micro AI ------------------------------------
+    --------- Protect Unit Micro AI - side-wide AI ------------------------------------
     if (cfg.ai_type == 'protect_unit') then
-
-         -- Set up the cfg array
         local cfg_pu = {}
 
-        -- units for protect unit
-        if (not cfg.units) then
-            H.wml_error("Protect Unit Micro AI missing required units= attribute")
-        else
+        -- Required keys
+        if (cfg.action ~= 'delete') then
+            if (not cfg.units) then
+                H.wml_error("Protect Unit Micro AI missing required units= attribute")
+            end
             cfg_pu.units = cfg.units
         end
 
-        -- Optional: disable_move_leader_to_keep for protect unit
+        -- Optional keys
         if cfg.disable_move_leader_to_keep then
             cfg_pu.disable_move_leader_to_keep = cfg.disable_move_leader_to_keep
         end
 
-        -- Add the CAs
+        -- Add, change or delete the CA
         if (cfg.action == 'add') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/protect_unit_CAs.lua".add(cfg.side, cfg_pu)
         end
-
-        -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
         if (cfg.action == 'change') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/protect_unit_CAs.lua".delete(cfg.side)
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/protect_unit_CAs.lua".add(cfg.side, cfg_pu)
         end
-
-        -- Delete the CAs
         if (cfg.action == 'delete') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/protect_unit_CAs.lua".delete(cfg.side)
         end
@@ -237,7 +207,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
         return
     end
 
-    --------- Micro AI Guardian-----------------------------------
+    --------- Micro AI Guardian - BCA AIs -----------------------------------
     if (cfg.ai_type == 'guardian') then
         -- We handle all types of guardians here.  Confirm we have made a choice
         if (not cfg.guardian_type) then H.wml_error("[micro_ai] missing required guardian_type= attribute") end
@@ -274,18 +244,14 @@ function wesnoth.wml_actions.micro_ai(cfg)
         --Lastly, specify the type
         cfg_guardian.guardian_type = guardian_type
 
-       -- Add the CAs
+        -- Add, change or delete the CA
         if (cfg.action == 'add') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".add(cfg.side, cfg_guardian)
         end
-
-        -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
         if (cfg.action == 'change') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".delete(cfg.side,guardian_type,cfg.id)
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".add(cfg.side, cfg_guardian)
         end
-
-        -- Delete the CAs
         if (cfg.action == 'delete') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".delete(cfg.side,guardian_type,cfg.id)
         end
@@ -293,7 +259,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
         return
     end
 
-    --------- Micro AI Animals ------------------------------------
+    --------- Micro AI Animals  - side-wide and BCA AIs ------------------------------------
     if (cfg.ai_type == 'animals') then
 
          -- Set up the cfg array
@@ -441,51 +407,41 @@ function wesnoth.wml_actions.micro_ai(cfg)
         return
     end
 
-    --------- Patrol Micro AI ------------------------------------
+    --------- Patrol Micro AI - BCA AI ------------------------------------
     if (cfg.ai_type == 'bca_patrol') then
-
-         -- Set up the cfg array
         local cfg_p = {}
 
-        -- id for patrol
+        -- Required keys - for both add and delete actions
         if (not cfg.id) then
             H.wml_error("Patrol Micro AI missing required id= attribute")
-        else
-            cfg_p.id = cfg.id
         end
+        cfg_p.id = cfg.id
 
-        -- waypoints for patrol
+        -- Required keys - add action only
         if (cfg.action ~= 'delete') then
             if (not cfg.waypoint_x) or (not cfg.waypoint_y) then
                 H.wml_error("Patrol Micro AI missing required waypoint_x/waypoint_y= attribute")
-            else
-                cfg_p.waypoint_x = cfg.waypoint_x
-                cfg_p.waypoint_y = cfg.waypoint_y
             end
+            cfg_p.waypoint_x = cfg.waypoint_x
+            cfg_p.waypoint_y = cfg.waypoint_y
         end
 
-        -- Optional: attack_all for patrol
+        -- Optional keys
         if cfg.attack_all then
             cfg_p.attack_all = cfg.attack_all
         end
-
-        -- Optional: attack_targets for patrol
         if cfg.attack_targets then
             cfg_p.attack_targets = cfg.attack_targets
         end
 
-        -- Add the CAs
+        -- Add, change or delete the CA
         if (cfg.action == 'add') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/patrol_CAs.lua".add(cfg.side, cfg_p)
         end
-
-        -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
         if (cfg.action == 'change') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/patrol_CAs.lua".delete(cfg.side)
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/patrol_CAs.lua".add(cfg.side, cfg_p)
         end
-
-        -- Delete the CAs
         if (cfg.action == 'delete') then
             wesnoth.require "~add-ons/AI-demos/micro_ais/ais/patrol_CAs.lua".delete(cfg.side, cfg_p)
         end
