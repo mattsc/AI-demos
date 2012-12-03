@@ -1,9 +1,7 @@
 return {
     add = function(side, cfg)
-        -- cfg contains extra options to be passed on to the CAs
-        -- This needs to be set up as a string
+        local W = wesnoth.require "lua/helper.lua".set_wml_action_metatable {}
 
-        cfg = cfg or {}
         local cfg_str = '{ dummy = false' -- This is a dirty trick ...
         -- Only one option so far, so this is easy
         if cfg.injured_units_only then
@@ -14,11 +12,6 @@ return {
         end
         cfg_str = cfg_str .. ' }'
         --print('cfg_str', cfg_str)
-
-        local H = wesnoth.require "lua/helper.lua"
-        local W = H.set_wml_action_metatable {}
-
-        --print("Activating healer_support for Side " .. side)
 
         W.modify_ai {
             side = side,
@@ -64,11 +57,7 @@ return {
     end,
 
     delete = function(side)
-
-        local H = wesnoth.require "lua/helper.lua"
-        local W = H.set_wml_action_metatable {}
-
-        --print("Removing healer_support for Side " .. side)
+        local W = wesnoth.require "lua/helper.lua".set_wml_action_metatable {}
 
         W.modify_ai {
             side = side,

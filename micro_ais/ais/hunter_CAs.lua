@@ -1,9 +1,6 @@
 return {
     add = function(side, cfg)
-        -- cfg contains extra options to be passed on to the CAs
-        -- This needs to be set up as a string
-
-        cfg = cfg or {}
+        local W = wesnoth.require "lua/helper.lua".set_wml_action_metatable {}
 
         -- Add the id key
         local cfg_str = "'" .. cfg.id .. "', "
@@ -19,11 +16,6 @@ return {
 
         -- Get the unit with the ID, so we don't have to ask for coordinates
         local unit = wesnoth.get_units { id=cfg.id }[1]
-
-        local H = wesnoth.require "lua/helper.lua"
-        local W = H.set_wml_action_metatable {}
-
-        --print("Activating template for Side " .. side)
 
         W.modify_ai {
             side = side,
@@ -44,11 +36,7 @@ return {
     end,
 
     delete = function(side, id)
-
-        local H = wesnoth.require "lua/helper.lua"
-        local W = H.set_wml_action_metatable {}
-
-        --print("Removing template for Side " .. side)
+        local W = wesnoth.require "lua/helper.lua".set_wml_action_metatable {}
 
         W.modify_ai {
             side = side,

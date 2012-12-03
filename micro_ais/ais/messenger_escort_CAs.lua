@@ -1,9 +1,6 @@
 return {
     add = function(side, cfg)
-        -- cfg contains extra options to be passed on to the CAs
-        -- This needs to be set up as a string
-
-        cfg = cfg or {}
+        local W = wesnoth.require "lua/helper.lua".set_wml_action_metatable {}
 
         -- Required key: id
         local cfg_str = '{ id = "' .. cfg.id .. '"'
@@ -23,11 +20,6 @@ return {
 
         cfg_str = cfg_str .. ' }'
 
-        local H = wesnoth.require "lua/helper.lua"
-        local W = H.set_wml_action_metatable {}
-
-        --print("Activating messenger escort for Side " .. side)
-
         W.modify_ai {
             side = side,
             action = "add",
@@ -41,6 +33,7 @@ return {
                 execution = "(...):attack_exec()"
             } }
         }
+
         W.modify_ai {
             side = side,
             action = "add",
@@ -54,6 +47,7 @@ return {
                 execution = "(...):messenger_move_exec(" .. cfg_str .. ")"
             } }
         }
+
         W.modify_ai {
             side = side,
             action = "add",
@@ -70,22 +64,20 @@ return {
     end,
 
     delete = function(side)
-
-        local H = wesnoth.require "lua/helper.lua"
-        local W = H.set_wml_action_metatable {}
-
-        --print("Removing messenger escort for Side " .. side)
+        local W = wesnoth.require "lua/helper.lua".set_wml_action_metatable {}
 
         W.modify_ai {
             side = side,
             action = "try_delete",
             path = "stage[main_loop].candidate_action[attack]"
         }
+
         W.modify_ai {
             side = side,
             action = "try_delete",
             path = "stage[main_loop].candidate_action[messenger_move]"
         }
+
         W.modify_ai {
             side = side,
             action = "try_delete",

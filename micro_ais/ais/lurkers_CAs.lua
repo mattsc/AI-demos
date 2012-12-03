@@ -1,16 +1,8 @@
 return {
     add = function(side, cfg)
-        -- cfg contains extra options to be passed on to the CAs
-        -- This needs to be set up as a string
-
-        cfg = cfg or {}
+        local W = wesnoth.require "lua/helper.lua".set_wml_action_metatable {}
 
         local cfg_str = '{ type = "' .. cfg.type .. '" , attack_terrain = "' .. cfg.attack_terrain .. '", wander_terrain = "' .. cfg.wander_terrain .. '" }'
-
-        local H = wesnoth.require "lua/helper.lua"
-        local W = H.set_wml_action_metatable {}
-
-        --print("Activating lurkers for Side " .. side)
 
         W.modify_ai {
             side = side,
@@ -28,11 +20,7 @@ return {
     end,
 
     delete = function(side)
-
-        local H = wesnoth.require "lua/helper.lua"
-        local W = H.set_wml_action_metatable {}
-
-        --print("Removing lurkers for Side " .. side)
+        local W = wesnoth.require "lua/helper.lua".set_wml_action_metatable {}
 
         W.modify_ai {
             side = side,

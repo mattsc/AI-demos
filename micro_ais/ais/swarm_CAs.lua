@@ -1,9 +1,6 @@
 return {
-    add = function(side)
-        local H = wesnoth.require "lua/helper.lua"
-        local W = H.set_wml_action_metatable {}
-
-        --print("Activating template for Side " .. side)
+    add = function(side, cfg_str)
+        local W = wesnoth.require "lua/helper.lua".set_wml_action_metatable {}
 
         W.modify_ai {
             side = side,
@@ -35,11 +32,7 @@ return {
     end,
 
     delete = function(side)
-
-        local H = wesnoth.require "lua/helper.lua"
-        local W = H.set_wml_action_metatable {}
-
-        --print("Removing template for Side " .. side)
+        local W = wesnoth.require "lua/helper.lua".set_wml_action_metatable {}
 
         W.modify_ai {
             side = side,

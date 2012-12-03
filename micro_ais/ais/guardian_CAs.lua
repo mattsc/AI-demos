@@ -1,7 +1,6 @@
 return {
     add = function(side, cfg)
-        -- cfg contains extra options to be passed on to the CAs
-        -- This needs to be set up as a string
+        local W = wesnoth.require "lua/helper.lua".set_wml_action_metatable {}
 
 		local max_scores = {}
         max_scores["stationed_guardian"] = 100010
@@ -27,11 +26,6 @@ return {
             eval_arguments = "'" .. cfg.id .. "'," .. cfg.to_x .. "," .. cfg.to_y
         end
 
-
-        local H = wesnoth.require "lua/helper.lua"
-        local W = H.set_wml_action_metatable {}
-        local unit = wesnoth.get_units { id=cfg.id }[1]
-        --print("Activating template for Side " .. side)
         W.modify_ai {
             side = side,
             action = "add",
@@ -51,11 +45,8 @@ return {
     end,
 
     delete = function(side,guardian_type,id)
+        local W = wesnoth.require "lua/helper.lua".set_wml_action_metatable {}
 
-        local H = wesnoth.require "lua/helper.lua"
-        local W = H.set_wml_action_metatable {}
-
-        --print("Removing template for Side " .. side .. " unit " .. id .. " of type " .. guardian_type)
         W.modify_ai {
             side = side,
             action = "try_delete",

@@ -1,12 +1,8 @@
 return {
     add = function(side, cfg)
-        -- cfg contains extra options to be passed on to the CAs
-        -- This needs to be set up as a string
-
-        cfg = cfg or {}
+        local W = wesnoth.require "lua/helper.lua".set_wml_action_metatable {}
 
         local cfg_str = ''
-
         -- Is this somewhat clunky?
         local parse = {}
         for value in cfg.units:gmatch("(%w+),?") do table.insert(parse, value) end
@@ -21,9 +17,6 @@ return {
         ids = string.sub(ids,1,-2)
         ids2 = string.sub(ids2,1,-2)
 
-        local H = wesnoth.require "lua/helper.lua"
-        local W = H.set_wml_action_metatable {}
-        --print("Activating protect unit for Side " .. side)
         W.modify_ai {
             side = side,
             action = "add",
@@ -39,6 +32,7 @@ return {
                 } }
             } }
         }
+
         W.modify_ai {
             side = side,
             action = "add",
@@ -52,6 +46,7 @@ return {
                 execution = "(...):finish_exec()"
             } }
         }
+
         W.modify_ai {
             side = side,
             action = "add",
@@ -65,6 +60,7 @@ return {
                 execution = "(...):attack_exec()"
             } }
         }
+
         W.modify_ai {
             side = side,
             action = "add",
@@ -78,6 +74,7 @@ return {
                 execution = "(...):move_exec(" .. cfg_str .. ")"
             } }
         }
+
         if cfg.disable_move_leader_to_keep then
             W.modify_ai {
                 side = side,
@@ -88,27 +85,26 @@ return {
     end,
 
     delete = function(side)
-
-        local H = wesnoth.require "lua/helper.lua"
-        local W = H.set_wml_action_metatable {}
-
-        --print("Removing protect unit for Side " .. side)
+        local W = wesnoth.require "lua/helper.lua".set_wml_action_metatable {}
 
         W.modify_ai {
             side = side,
             action = "try_delete",
             path = "aspect[attacks].facet[dont_attack]"
         }
+
         W.modify_ai {
             side = side,
             action = "try_delete",
             path = "stage[main_loop].candidate_action[finish]"
         }
+
         W.modify_ai {
             side = side,
             action = "try_delete",
             path = "stage[main_loop].candidate_action[attack]"
         }
+
         W.modify_ai {
             side = side,
             action = "try_delete",

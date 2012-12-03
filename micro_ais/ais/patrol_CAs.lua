@@ -1,9 +1,6 @@
 return {
     add = function(side, cfg)
-        -- cfg contains extra options to be passed on to the CAs
-        -- This needs to be set up as a string
-
-        cfg = cfg or {}
+        local W = wesnoth.require "lua/helper.lua".set_wml_action_metatable {}
 
         -- Required key: id
         local cfg_str = '{ id = "' .. cfg.id .. '"'
@@ -23,11 +20,6 @@ return {
 
         cfg_str = cfg_str .. ' }'
 
-        local H = wesnoth.require "lua/helper.lua"
-        local W = H.set_wml_action_metatable {}
-
-        --print("Activating patrol for Side " .. side)
-
         W.modify_ai {
             side = side,
             action = "add",
@@ -45,11 +37,7 @@ return {
     end,
 
     delete = function(side, cfg)
-
-        local H = wesnoth.require "lua/helper.lua"
-        local W = H.set_wml_action_metatable {}
-
-        --print("Removing patrol for Side " .. side)
+        local W = wesnoth.require "lua/helper.lua".set_wml_action_metatable {}
 
         W.modify_ai {
             side = side,
