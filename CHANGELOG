@@ -1,4 +1,33 @@
-0.12.0
+0.12.1, 2 Dec 2012
+- Freelands Side 1 Grunt Rush (Fred):
+  - Adjusted time-of-day dependent cycles so that they work for any unit/faction
+    - They are now based on relative damage that AI and enemy units can do, rather than on the alignment per se
+    - This makes Fred better at playing lawful factions, but he's still not very good at it, at least not against Northerners
+  - A number of small adjustments to the attack/move evaluation functions
+    - Generally improves Fred's play, but still work in progress
+- Google Code-in 2012 student tasks:
+  - Conversion of lots of AIs to Micro AIs (including, in some cases, additional functionality):
+    - Messenger Escort
+    - Hunter (formerly Dragon)
+    - Swarm
+    - Wolves and Multi-pack Wolves
+    - Big Animals
+    - Forest Animals
+    - Sheep
+    - Patrol
+    - Guardians (return, stationed and coward)
+    - Protect unit
+    - Lurkers
+- Generic Rush (Ron)
+  - Copy some improvements from Fred's poisoning to Ron
+- Healer Support: exclude regenerating units from potential healees
+- ai_helper:
+  - get_closest_location: speed up function and add optional check for passability of terrain
+  - get_attack_map: now takes units with MP>0 off the map for enemy path finding
+  - New function serialize()
+- battle_calcs: new function relative_damage_map()
+
+0.12.0, 24 Nov 2012
 - New recruitment AIs
   - The AIs for the ML recruiter described at http://forums.wesnoth.org/viewtopic.php?f=10&t=36642 are now in AI-Demos.
   - This adds 3 new multiplayer AIs: The two from ML Recruiter 0.3 (Recommended and Less variety) and one that replaces Ron's current recruitment algorithm with the Recommended ML recruitment.
