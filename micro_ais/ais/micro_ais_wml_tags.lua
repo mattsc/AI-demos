@@ -1,8 +1,6 @@
 local H = wesnoth.require "lua/helper.lua"
 local W = H.set_wml_action_metatable {}
 local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
-local LS = wesnoth.require "lua/location_set.lua"
-local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
 function wesnoth.wml_actions.micro_ai(cfg)
     -- Set up the [micro_ai] tag functionality for each Micro AI
@@ -402,7 +400,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
                     end
                 end
             end
-            
+
             if (animal_type == "forest_animals") then
                 -- Delete the CAs
                 if (cfg.action == 'delete') then
@@ -413,7 +411,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
                     if (cfg.action == 'add') then
                         wesnoth.require "~add-ons/AI-demos/micro_ais/ais/forest_animals_CAs.lua".add(cfg.side)
                     end
-                    
+
                     -- Change the CAs (done by deleting, then adding again, so that parameters get reset)
                     if (cfg.action == 'change') then
                         wesnoth.require "~add-ons/AI-demos/micro_ais/ais/forest_animals_CAs.lua".delete(cfg.side)
