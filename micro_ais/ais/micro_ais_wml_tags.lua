@@ -66,35 +66,40 @@ function wesnoth.wml_actions.micro_ai(cfg)
     if (cfg.ai_type == 'healer_support') then
         local cfg_hs = {}
 
-        -- Optional keys
-        if cfg.injured_units_only then cfg_hs.injured_units_only = true end
-        if cfg.max_threats then cfg_hs.max_threats = cfg.max_threats end
-
-        -- Add, change or delete the CAs
-        if (cfg.action == 'add') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/healer_support_CAs.lua".add(cfg.side, cfg_hs)
-        end
-        if (cfg.action == 'delete') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/healer_support_CAs.lua".delete(cfg.side)
-        end
-        if (cfg.action == 'change') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/healer_support_CAs.lua".delete(cfg.side)
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/healer_support_CAs.lua".add(cfg.side, cfg_hs)
+        if (cfg.action ~= 'delete') then
+            -- Optional keys
+            cfg_hs.aggression = cfg.aggression or 1.0
+            cfg_hs.injured_units_only = cfg.injured_units_only
+            cfg_hs.max_threats = cfg.max_threats
         end
 
-        -- If aggression = 0: Never let the healers participate in attacks
-        -- This is done by deleting the respective CA (after it was added above)
-        if (cfg.action == 'add') or (cfg.action == 'change') then
-            -- Aggression (keep or delete the healers_can_attack CA)
-            local aggression = cfg.aggression or 1.0
-            if (aggression == 0) then
-                --print("[micro_ai] healer_support: Deleting the healers_can_attack CA of Side " .. cfg.side)
-                W.modify_ai {
-                    side = cfg.side,
-                    action = "try_delete",
-                    path = "stage[main_loop].candidate_action[healers_can_attack]"
+        -- Set up the CA add/delete parameters
+        local CA_parms = {
+            {
+                id = 'initialize_healer_support', eval_name = 'initialize_healer_support_eval', exec_name = 'initialize_healer_support_exec',
+                max_score = 999990, cfg_str = ''
+            },
+            {
+                id = 'healer_support', eval_name = 'healer_support_eval', exec_name = 'healer_support_exec',
+                max_score = 105000, cfg_str = AH.serialize(cfg_hs)
+            },
+        }
+        -- The healers_can_attack CA is only added if aggression ~= 0
+        if (cfg.aggression ~= 0) then
+            table.insert(CA_parms,
+                {
+                    id = 'healers_can_attack', eval_name = 'healers_can_attack_eval', exec_name = 'healers_can_attack_exec',
+                    max_score = 99990, cfg_str = ''
                 }
-            end
+            )
+        end
+
+        -- Add, delete and change the CAs
+        if (cfg.action == 'add') then add_CAs(cfg.side, CA_parms) end
+        if (cfg.action == 'delete') then delete_CAs(cfg.side, CA_parms) end
+        if (cfg.action == 'change') then
+            delete_CAs(cfg.side, CA_parms)
+            add_CAs(cfg.side, CA_parms)
         end
 
         return
