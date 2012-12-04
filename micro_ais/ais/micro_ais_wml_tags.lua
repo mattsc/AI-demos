@@ -104,8 +104,8 @@ function wesnoth.wml_actions.micro_ai(cfg)
     if (cfg.ai_type == 'bottleneck_defense') then
         local cfg_bd = {}
 
-        -- Required keys
         if (cfg.action ~= 'delete') then
+            -- Required keys
             if (not cfg.x) or (not cfg.y) then
                 H.wml_error("Bottleneck Defense Micro AI missing required x= and/or y= attribute")
             end
@@ -114,18 +114,12 @@ function wesnoth.wml_actions.micro_ai(cfg)
             end
             cfg_bd.x, cfg_bd.y = cfg.x, cfg.y
             cfg_bd.enemy_x, cfg_bd.enemy_y = cfg.enemy_x, cfg.enemy_y
-        end
 
-        -- Optional keys
-        if cfg.healer_x and cfg.healer_y then
+            -- Optional keys
             cfg_bd.healer_x = cfg.healer_x
             cfg_bd.healer_y = cfg.healer_y
-        end
-        if cfg.leadership_x and cfg.leadership_y then
             cfg_bd.leadership_x = cfg.leadership_x
             cfg_bd.leadership_y = cfg.leadership_y
-        end
-        if cfg.active_side_leader then
             cfg_bd.active_side_leader = cfg.active_side_leader
         end
 
