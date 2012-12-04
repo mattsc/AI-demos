@@ -74,7 +74,6 @@ function wesnoth.wml_actions.micro_ai(cfg)
     --------- Healer Support Micro AI - side-wide AI ------------------------------------
     if (cfg.ai_type == 'healer_support') then
         local cfg_hs = {}
-
         if (cfg.action ~= 'delete') then
             -- Optional keys
             cfg_hs.aggression = cfg.aggression or 1.0
@@ -93,6 +92,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
                 max_score = 105000, cfg_str = AH.serialize(cfg_hs)
             },
         }
+
         -- The healers_can_attack CA is only added if aggression ~= 0
         if (cfg.aggression ~= 0) then
             table.insert(CA_parms,
@@ -112,7 +112,6 @@ function wesnoth.wml_actions.micro_ai(cfg)
     --------- Bottleneck Defense Micro AI - side-wide AI ------------------------------------
     if (cfg.ai_type == 'bottleneck_defense') then
         local cfg_bd = {}
-
         if (cfg.action ~= 'delete') then
             -- Required keys
             if (not cfg.x) or (not cfg.y) then
