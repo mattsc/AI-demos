@@ -93,8 +93,9 @@ function wesnoth.wml_actions.micro_ai(cfg)
             },
         }
 
-        -- The healers_can_attack CA is only added if aggression ~= 0
-        if (cfg.aggression ~= 0) then
+        -- The healers_can_attack CA is only added to the table if aggression ~= 0
+        -- But: make sure we always try removal
+        if (cfg.action == 'delete') or (cfg.aggression ~= 0) then
             table.insert(CA_parms,
                 {
                     id = 'healers_can_attack', eval_name = 'healers_can_attack_eval', exec_name = 'healers_can_attack_exec',
