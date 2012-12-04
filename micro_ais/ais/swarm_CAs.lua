@@ -8,8 +8,8 @@ return {
             path = "stage[main_loop].candidate_action",
             { "candidate_action", {
                     engine = "lua",
-                    name = "ca_scatter_swarm_side" .. side,
-                    id = "ca_scatter_swarm_side" .. side,
+                    name = "scatter_swarm",
+                    id = "scatter_swarm",
                     max_score = 300000,
                     evaluation = "return (...):scatter_swarm_eval()",
                     execution = "(...):scatter_swarm_exec()"
@@ -22,8 +22,8 @@ return {
             path = "stage[main_loop].candidate_action",
             { "candidate_action", {
                     engine = "lua",
-                    name = "ca_move_swarm_side" .. side,
-                    id = "ca_move_swarm_side" .. side,
+                    name = "move_swarm",
+                    id = "move_swarm",
                     max_score = 290000,
                     evaluation = "return (...):move_swarm_eval()",
                     execution = "(...):move_swarm_exec()"
@@ -37,13 +37,13 @@ return {
         W.modify_ai {
             side = side,
             action = "try_delete",
-            path = "stage[main_loop].candidate_action[ca_scatter_swarm_side" .. side .. "]"
+            path = "stage[main_loop].candidate_action[scatter_swarm]"
         }
 
         W.modify_ai {
             side = side,
             action = "try_delete",
-            path = "stage[main_loop].candidate_action[ca_move_swarm_side" .. side .. "]"
+            path = "stage[main_loop].candidate_action[move_swarm]"
         }
     end
 }

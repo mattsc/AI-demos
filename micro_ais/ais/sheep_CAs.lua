@@ -8,8 +8,8 @@ return {
             path = "stage[main_loop].candidate_action",
             { "candidate_action", {
                 engine = "lua",
-                name = "ca_close_enemy_side" .. side,
-                id = "ca_close_enemy_side" .. side,
+                name = "close_enemy",
+                id = "close_enemy",
                 max_score = 300000,
                 evaluation = "return (...):close_enemy_eval()",
                 execution = "(...):close_enemy_exec()"
@@ -22,8 +22,8 @@ return {
             path = "stage[main_loop].candidate_action",
             { "candidate_action", {
                 engine = "lua",
-                name = "ca_sheep_runs_enemy_side" .. side,
-                id = "ca_sheep_runs_enemy_side" .. side,
+                name = "sheep_runs_enemy",
+                id = "sheep_runs_enemy",
                 max_score = 295000,
                 evaluation = "return (...):sheep_runs_enemy_eval()",
                 execution = "(...):sheep_runs_enemy_exec()"
@@ -36,8 +36,8 @@ return {
             path = "stage[main_loop].candidate_action",
             { "candidate_action", {
                 engine = "lua",
-                name = "ca_sheep_runs_dog_side" .. side,
-                id = "ca_sheep_runs_dog_side" .. side,
+                name = "sheep_runs_dog",
+                id = "sheep_runs_dog",
                 max_score = 290000,
                 evaluation = "return (...):sheep_runs_dog_eval()",
                 execution = "(...):sheep_runs_dog_exec()"
@@ -50,8 +50,8 @@ return {
             path = "stage[main_loop].candidate_action",
             { "candidate_action", {
                 engine = "lua",
-                name = "ca_herd_sheep_side" .. side,
-                id = "ca_herd_sheep_side" .. side,
+                name = "herd_sheep",
+                id = "herd_sheep",
                 max_score = 280000,
                 evaluation = "return (...):herd_sheep_eval()",
                 execution = "(...):herd_sheep_exec()"
@@ -64,8 +64,8 @@ return {
             path = "stage[main_loop].candidate_action",
             { "candidate_action", {
                 engine = "lua",
-                name = "ca_sheep_move_side" .. side,
-                id = "ca_sheep_move_side" .. side,
+                name = "sheep_move",
+                id = "sheep_move",
                 max_score = 270000,
                 evaluation = "return (...):sheep_move_eval()",
                 execution = "(...):sheep_move_exec()"
@@ -78,8 +78,8 @@ return {
             path = "stage[main_loop].candidate_action",
             { "candidate_action", {
                 engine = "lua",
-                name = "ca_dog_move_side" .. side,
-                id = "ca_dog_move_side" .. side,
+                name = "dog_move",
+                id = "dog_move",
                 max_score = 260000,
                 evaluation = "return (...):dog_move_eval()",
                 execution = "(...):dog_move_exec()"
@@ -93,37 +93,37 @@ return {
         W.modify_ai {
             side = side,
             action = "try_delete",
-            path = "stage[main_loop].candidate_action[ca_close_enemy_side" .. side .. "]"
+            path = "stage[main_loop].candidate_action[close_enemy]"
         }
 
         W.modify_ai {
             side = side,
             action = "try_delete",
-            path = "stage[main_loop].candidate_action[ca_sheep_runs_enemy_side" .. side .. "]"
+            path = "stage[main_loop].candidate_action[sheep_runs_enemy]"
         }
 
         W.modify_ai {
             side = side,
             action = "try_delete",
-            path = "stage[main_loop].candidate_action[ca_sheep_runs_dog_side" .. side .. "]"
+            path = "stage[main_loop].candidate_action[sheep_runs_dog]"
         }
 
         W.modify_ai {
             side = side,
             action = "try_delete",
-            path = "stage[main_loop].candidate_action[ca_herd_sheep_side" .. side .. "]"
+            path = "stage[main_loop].candidate_action[herd_sheep]"
         }
 
         W.modify_ai {
             side = side,
             action = "try_delete",
-            path = "stage[main_loop].candidate_action[ca_sheep_move_side" .. side .. "]"
+            path = "stage[main_loop].candidate_action[sheep_move]"
         }
 
         W.modify_ai {
             side = side,
             action = "try_delete",
-            path = "stage[main_loop].candidate_action[ca_dog_move_side" .. side .. "]"
+            path = "stage[main_loop].candidate_action[dog_move]"
         }
     end
 }

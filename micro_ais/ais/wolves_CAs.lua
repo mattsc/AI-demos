@@ -8,7 +8,7 @@ return {
             path = "aspect[attacks].facet",
             { "facet", {
                 name = "testing_ai_default::aspect_attacks",
-                id = "dont_attack_used_on_side" .. side,
+                id = "dont_attack",
                 invalidate_on_gamestate_change = "yes",
                 { "filter_enemy", {
                     { "not", {
@@ -24,8 +24,8 @@ return {
             path = "stage[main_loop].candidate_action",
             { "candidate_action", {
                 engine = "lua",
-                name = "ca_wolves_side" .. side,
-                id = "ca_wolves_side" .. side,
+                name = "wolves",
+                id = "wolves",
                 max_score = 95000,
                 evaluation = "return (...):wolves_eval('" .. cfg.to_avoid .. "')",
                 execution = "(...):wolves_exec('" .. cfg.to_avoid .. "')"
@@ -38,8 +38,8 @@ return {
             path = "stage[main_loop].candidate_action",
             { "candidate_action", {
                 engine = "lua",
-                name = "ca_wolves_wander_side" .. side,
-                id = "ca_wolves_wander_side" .. side,
+                name = "wolves_wander",
+                id = "wolves_wander",
                 max_score = 90000,
                 evaluation = "return (...):wolves_wander_eval('" .. cfg.to_avoid .. "')",
                 execution = "(...):wolves_wander_exec('" .. cfg.to_avoid .. "')"
@@ -53,19 +53,19 @@ return {
         W.modify_ai {
             side = side,
             action = "try_delete",
-            path = "aspect[attacks].facet[dont_attack_used_on_side" .. side .. "]"
+            path = "aspect[attacks].facet[dont_attack]"
         }
 
         W.modify_ai {
             side = side,
             action = "try_delete",
-            path = "stage[main_loop].candidate_action[ca_wolves_side" .. side .. "]"
+            path = "stage[main_loop].candidate_action[wolves]"
         }
 
         W.modify_ai {
             side = side,
             action = "try_delete",
-            path = "stage[main_loop].candidate_action[ca_wolves_wander_side" .. side .. "]"
+            path = "stage[main_loop].candidate_action[wolves_wander]"
         }
     end
 }
