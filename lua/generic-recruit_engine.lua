@@ -586,8 +586,6 @@ return {
                 local defense_score = (scores["defense"]/best_scores["defense"])^0.5
                 local move_score = (scores["move"]/best_scores["move"])^0.5
 
-                local score = offense_score*offense_weight + defense_score*defense_weight + move_score*move_weight
-
                 local bonus = 0
                 if scores["slows"] then
                     bonus = bonus + 0.4
@@ -611,7 +609,7 @@ return {
                         bonus = bonus - 1
                     end
                 end
-                score = score + bonus
+                local score = offense_score*offense_weight + defense_score*defense_weight + move_score*move_weight + bonus
 
                 if AH.print_eval() then
                     print(recruit_id .. " score: " .. offense_score*offense_weight .. " + " .. defense_score*defense_weight .. " + " .. move_score*move_weight  .. " + " .. bonus  .. " = " .. score)
