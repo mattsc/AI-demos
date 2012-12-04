@@ -261,6 +261,9 @@ function wesnoth.wml_actions.micro_ai(cfg)
         if (not cfg.guardian_type) then H.wml_error("[micro_ai] missing required guardian_type= attribute") end
         local guardian_type = cfg.guardian_type
 
+        -- Since this is a BCA, the unit id needs to be present even for removal
+        if (not cfg.id) then H.wml_error("[micro_ai] missing required id= attribute") end
+
          -- Set up the cfg array
         local cfg_guardian = {}
         local required_attributes, optional_attributes = {}, {}
