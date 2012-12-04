@@ -26,6 +26,8 @@ return {
             eval_arguments = "'" .. cfg.id .. "'," .. cfg.to_x .. "," .. cfg.to_y
         end
 
+        local unit = wesnoth.get_units { id=cfg.id }[1]
+
         W.modify_ai {
             side = side,
             action = "add",
