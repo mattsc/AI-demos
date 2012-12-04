@@ -63,9 +63,9 @@ function wesnoth.wml_actions.micro_ai(cfg)
     -- Set up the [micro_ai] tag functionality for each Micro AI
 
     -- Check that the required common keys are all present and set correctly
-    if (not cfg.ai_type) then H.wml_error("[micro_ai] missing required ai_type= attribute") end
-    if (not cfg.side) then H.wml_error("[micro_ai] missing required side= attribute") end
-    if (not cfg.action) then H.wml_error("[micro_ai] missing required action= attribute") end
+    if (not cfg.ai_type) then H.wml_error("[micro_ai] missing required ai_type= key") end
+    if (not cfg.side) then H.wml_error("[micro_ai] missing required side= key") end
+    if (not cfg.action) then H.wml_error("[micro_ai] missing required action= key") end
 
     if (cfg.action ~= 'add') and (cfg.action ~= 'delete') and (cfg.action ~= 'change') then
         H.wml_error("[micro_ai] invalid value for action=.  Allowed values: add, delete or change")
@@ -115,10 +115,10 @@ function wesnoth.wml_actions.micro_ai(cfg)
         if (cfg.action ~= 'delete') then
             -- Required keys
             if (not cfg.x) or (not cfg.y) then
-                H.wml_error("Bottleneck Defense Micro AI missing required x= and/or y= attribute")
+                H.wml_error("Bottleneck Defense Micro AI missing required x= and/or y= key")
             end
             if (not cfg.enemy_x) or (not cfg.enemy_y) then
-                H.wml_error("Bottleneck Defense Micro AI missing required enemy_x= and/or enemy_y= attribute")
+                H.wml_error("Bottleneck Defense Micro AI missing required enemy_x= and/or enemy_y= key")
             end
             cfg_bd.x, cfg_bd.y = cfg.x, cfg.y
             cfg_bd.enemy_x, cfg_bd.enemy_y = cfg.enemy_x, cfg.enemy_y
@@ -156,10 +156,10 @@ function wesnoth.wml_actions.micro_ai(cfg)
         -- Required keys
         if (cfg.action ~= 'delete') then
             if (not cfg.id) then
-                H.wml_error("Messenger Escort Micro AI missing required id= attribute")
+                H.wml_error("Messenger Escort Micro AI missing required id= key")
             end
             if (not cfg.goal_x) or (not cfg.goal_y) then
-                H.wml_error("Messenger Escort Micro AI missing required goal_x= and/or goal_y= attribute")
+                H.wml_error("Messenger Escort Micro AI missing required goal_x= and/or goal_y= key")
             end
             cfg_me.id = cfg.id
             cfg_me.goal_x, cfg_me.goal_y = cfg.goal_x, cfg.goal_y
@@ -195,13 +195,13 @@ function wesnoth.wml_actions.micro_ai(cfg)
         -- Required keys
         if (cfg.action ~= "delete") then
             if (not cfg.type) then
-                H.wml_error("Lurkers Micro AI missing required type= attribute")
+                H.wml_error("Lurkers Micro AI missing required type= key")
             end
             if (not cfg.attack_terrain) then
-                H.wml_error("Lurkers Micro AI missing required attack_terrain= attribute")
+                H.wml_error("Lurkers Micro AI missing required attack_terrain= key")
             end
             if (not cfg.wander_terrain) then
-                H.wml_error("Lurkers Micro AI missing required wander_terrain= attribute")
+                H.wml_error("Lurkers Micro AI missing required wander_terrain= key")
             end
             cfg_lurk.type = cfg.type
             cfg_lurk.attack_terrain = cfg.attack_terrain
@@ -230,7 +230,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
         -- Required keys
         if (cfg.action ~= 'delete') then
             if (not cfg.units) then
-                H.wml_error("Protect Unit Micro AI missing required units= attribute")
+                H.wml_error("Protect Unit Micro AI missing required units= key")
             end
             cfg_pu.units = cfg.units
         end
@@ -258,39 +258,39 @@ function wesnoth.wml_actions.micro_ai(cfg)
     --------- Micro AI Guardian - BCA AIs -----------------------------------
     if (cfg.ai_type == 'guardian') then
         -- We handle all types of guardians here.  Confirm we have made a choice
-        if (not cfg.guardian_type) then H.wml_error("[micro_ai] missing required guardian_type= attribute") end
+        if (not cfg.guardian_type) then H.wml_error("[micro_ai] missing required guardian_type= key") end
         local guardian_type = cfg.guardian_type
 
         -- Since this is a BCA, the unit id needs to be present even for removal
-        if (not cfg.id) then H.wml_error("[micro_ai] missing required id= attribute") end
+        if (not cfg.id) then H.wml_error("[micro_ai] missing required id= key") end
 
          -- Set up the cfg array
         local cfg_guardian = {}
-        local required_attributes, optional_attributes = {}, {}
+        local required_keys, optional_keys = {}, {}
 
-        required_attributes["stationed_guardian"] = {"id", "radius", "station_x", "station_y", "guard_x", "guard_y"}
-        optional_attributes["stationed_guardian"] = {}
+        required_keys["stationed_guardian"] = {"id", "radius", "station_x", "station_y", "guard_x", "guard_y"}
+        optional_keys["stationed_guardian"] = {}
 
-        required_attributes["coward"] = {"id", "radius"}
-        optional_attributes["coward"] = {"seek_x", "seek_y","avoid_x","avoid_y"}
+        required_keys["coward"] = {"id", "radius"}
+        optional_keys["coward"] = {"seek_x", "seek_y","avoid_x","avoid_y"}
 
-        required_attributes["return_guardian"] = {"id", "to_x", "to_y"}
-        optional_attributes["return_guardian"] = {}
+        required_keys["return_guardian"] = {"id", "to_x", "to_y"}
+        optional_keys["return_guardian"] = {}
 
         if (cfg.action~='delete') then
             --Check that we know about this type of guardian
-            if (not required_attributes[guardian_type]) then
-                H.wml_error("[micro_ai] unknown value for guardian_type='" .. guardian_type .."'")
+            if (not required_keys[guardian_type]) then
+                H.wml_error("[micro_ai] unknown value for guardian_type= key: '" .. guardian_type .."'")
             end
 
-            --Add in the required attributes
-           for k,v in pairs(required_attributes[guardian_type]) do
-                if (not cfg[v]) then H.wml_error("[micro_ai] ".. guardian_type .." missing required " .. v .. "= attribute") end
+            --Add in the required keys
+           for k,v in pairs(required_keys[guardian_type]) do
+                if (not cfg[v]) then H.wml_error("[micro_ai] ".. guardian_type .." missing required " .. v .. "= key") end
                 cfg_guardian[v] = cfg[v]
             end
 
-            --Add in the optional attributes
-            for k,v in pairs(optional_attributes[guardian_type]) do
+            --Add in the optional keys
+            for k,v in pairs(optional_keys[guardian_type]) do
               cfg_guardian[v] = cfg[v] or "''"
             end
         end
@@ -318,18 +318,18 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
          -- Set up the cfg array
         local cfg_animals = {}
-        local required_attributes = {}
+        local required_keys = {}
 
-        if (not cfg["animal_type"]) then H.wml_error("[micro_ai] animals missing required animal_type= attribute")
+        if (not cfg["animal_type"]) then H.wml_error("[micro_ai] animals missing required animal_type= key")
         else
             local animal_type = cfg["animal_type"]
 
             -- This list does not contain id because we check for that differently
-            required_attributes["hunter"] = {"hunt_x", "hunt_y", "home_x", "home_y", "rest_turns"}
-            required_attributes["wolves"] = {}
+            required_keys["hunter"] = {"hunt_x", "hunt_y", "home_x", "home_y", "rest_turns"}
+            required_keys["wolves"] = {}
 
             if (animal_type == "hunter") then
-                if (not cfg["id"]) then H.wml_error("[micro_ai] hunter missing required id= attribute")
+                if (not cfg["id"]) then H.wml_error("[micro_ai] hunter missing required id= key")
                 else
                     cfg_animals["id"] = cfg["id"]
 
@@ -338,8 +338,8 @@ function wesnoth.wml_actions.micro_ai(cfg)
                         wesnoth.require "~add-ons/AI-demos/micro_ais/ais/hunter_CAs.lua".delete(cfg.side, cfg.id)
                     else
 
-                        for j,i in pairs(required_attributes["hunter"]) do
-                            if (not cfg[i]) then H.wml_error("[micro_ai] ".. "hunter" .." missing required " .. i .. "= attribute") end
+                        for j,i in pairs(required_keys["hunter"]) do
+                            if (not cfg[i]) then H.wml_error("[micro_ai] ".. "hunter" .." missing required " .. i .. "= key") end
                                 cfg_animals[i] = cfg[i]
                             end
 
@@ -398,7 +398,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
             end
 
             if (animal_type == "big_animals") then
-                if (not cfg["type"]) then H.wml_error("[micro_ai] big_animals missing required type= attribute")
+                if (not cfg["type"]) then H.wml_error("[micro_ai] big_animals missing required type= key")
                     else
                     -- Delete the CAs
                     if (cfg.action == 'delete') then
@@ -486,14 +486,14 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
         -- Required keys - for both add and delete actions
         if (not cfg.id) then
-            H.wml_error("Patrol Micro AI missing required id= attribute")
+            H.wml_error("Patrol Micro AI missing required id= key")
         end
         cfg_p.id = cfg.id
 
         -- Required keys - add action only
         if (cfg.action ~= 'delete') then
             if (not cfg.waypoint_x) or (not cfg.waypoint_y) then
-                H.wml_error("Patrol Micro AI missing required waypoint_x/waypoint_y= attribute")
+                H.wml_error("Patrol Micro AI missing required waypoint_x/waypoint_y= key")
             end
             cfg_p.waypoint_x = cfg.waypoint_x
             cfg_p.waypoint_y = cfg.waypoint_y
