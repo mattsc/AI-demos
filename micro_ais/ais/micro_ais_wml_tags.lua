@@ -68,7 +68,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
     if (not cfg.action) then H.wml_error("[micro_ai] missing required action= attribute") end
 
     if (cfg.action ~= 'add') and (cfg.action ~= 'delete') and (cfg.action ~= 'change') then
-        H.wml_error("invalid action= in [micro_ai].  Allowed values: add, delete or change")
+        H.wml_error("[micro_ai] invalid value for action=.  Allowed values: add, delete or change")
     end
 
     --------- Healer Support Micro AI - side-wide AI ------------------------------------
@@ -263,8 +263,8 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
          -- Set up the cfg array
         local cfg_guardian = {}
-        local required_attributes = {}
-        local optional_attributes = {}
+        local required_attributes, optional_attributes = {}, {}
+
         required_attributes["stationed_guardian"] = {"id", "radius", "station_x", "station_y", "guard_x", "guard_y"}
         optional_attributes["stationed_guardian"] = {}
 
@@ -273,19 +273,22 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
         required_attributes["return_guardian"] = {"id", "to_x", "to_y"}
         optional_attributes["return_guardian"] = {}
+
         if (cfg.action~='delete') then
             --Check that we know about this type of guardian
-            if (not required_attributes[guardian_type]) then H.wml_error("[micro_ai] unknown guardian type '" .. guardian_type .."'") end
+            if (not required_attributes[guardian_type]) then
+                H.wml_error("[micro_ai] unknown value for guardian_type='" .. guardian_type .."'")
+            end
 
             --Add in the required attributes
-           for j,i in pairs(required_attributes[guardian_type]) do
-                if (not cfg[i]) then H.wml_error("[micro_ai] ".. guardian_type .." missing required " .. i .. "= attribute") end
-                cfg_guardian[i] = cfg[i]
+           for k,v in pairs(required_attributes[guardian_type]) do
+                if (not cfg[v]) then H.wml_error("[micro_ai] ".. guardian_type .." missing required " .. v .. "= attribute") end
+                cfg_guardian[v] = cfg[v]
             end
 
             --Add in the optional attributes
-            for j,i in pairs(optional_attributes[guardian_type]) do
-              cfg_guardian[i] = cfg[i] or "''"
+            for k,v in pairs(optional_attributes[guardian_type]) do
+              cfg_guardian[v] = cfg[v] or "''"
             end
         end
 
