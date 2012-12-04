@@ -23,8 +23,8 @@ return {
             path = "stage[main_loop].candidate_action",
             { "candidate_action", {
                 engine = "lua",
-                id = "bca_hunter_" .. cfg.id,
-                name = "bca_hunter_" .. cfg.id,
+                id = "hunter_unit_" .. cfg.id,
+                name = "hunter_unit_" .. cfg.id,
                 max_score = 300000,
                 sticky = "yes",
                 unit_x = unit.x,
@@ -41,7 +41,7 @@ return {
         W.modify_ai {
             side = side,
             action = "try_delete",
-            path = "stage[main_loop].candidate_action[bca_hunter_" .. id .. "]"
+            path = "stage[main_loop].candidate_action[hunter_unit_" .. id .. "]"
         }
     end
 }

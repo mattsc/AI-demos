@@ -313,13 +313,13 @@ function wesnoth.wml_actions.micro_ai(cfg)
     --------- Micro AI Animals  - side-wide and BCA AIs ------------------------------------
     if (cfg.ai_type == 'animals') then
         -- We handle these types of animal AIs here:
-        --    BCAs: hunter
+        --    BCAs: hunter_unit
         --    side-wide AIs: wolves, wolves_multipack, big_animals, forest_animals, swarm, sheep
         if (not cfg.animal_type) then H.wml_error("[micro_ai] missing required animal_type= key") end
         local animal_type = cfg.animal_type
 
         -- For the BCAs, the unit id needs to be present even for removal
-        if (animal_type == "hunter") then
+        if (animal_type == "hunter_unit") then
             if (not cfg.id) then H.wml_error("[micro_ai] missing required id= key") end
         end
 
@@ -328,8 +328,8 @@ function wesnoth.wml_actions.micro_ai(cfg)
         local required_keys, optional_keys = {}, {}
 
         -- This list does not contain id because we check for that differently
-        required_keys["hunter"] = { "id", "hunt_x", "hunt_y", "home_x", "home_y", "rest_turns" }
-        optional_keys["hunter"] = {}
+        required_keys["hunter_unit"] = { "id", "hunt_x", "hunt_y", "home_x", "home_y", "rest_turns" }
+        optional_keys["hunter_unit"] = {}
 
         required_keys["wolves"] = {}
         optional_keys["wolves"] = { "to_avoid" }
