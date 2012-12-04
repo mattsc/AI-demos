@@ -325,7 +325,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
          -- Set up the cfg array
         local cfg_animals = { animal_type = animal_type }
-        local required_keys, patrol_unit_optional_keys = {}, {}
+        local required_keys, optional_keys = {}, {}
 
         -- This list does not contain id because we check for that differently
         required_keys["hunter_unit"] = { "id", "hunt_x", "hunt_y", "home_x", "home_y", "rest_turns" }
