@@ -20,6 +20,9 @@ return {
 
         cfg_str = cfg_str .. ' }'
 
+        -- Get the unit with the ID, so we don't have to ask for coordinates
+        local unit = wesnoth.get_units { id=cfg.id }[1]
+
         W.modify_ai {
             side = side,
             action = "add",
@@ -30,6 +33,8 @@ return {
                 name = "patrol_unit_" .. cfg.id,
                 max_score = 300000,
                 sticky = yes,
+                unit_x = unit.x,
+                unit_y = unit.y,
                 evaluation = "return (...):patrol_eval(" .. cfg_str .. ")",
                 execution = "(...):patrol_exec(" .. cfg_str .. ")"
             } }
