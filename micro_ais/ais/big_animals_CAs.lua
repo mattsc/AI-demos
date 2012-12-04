@@ -1,5 +1,5 @@
 return {
-    add = function(side, type)
+    add = function(side, cfg)
         local W = wesnoth.require "lua/helper.lua".set_wml_action_metatable {}
 
         W.modify_ai {
@@ -11,8 +11,8 @@ return {
                     name = "ca_big_animal_side" .. side,
                     id = "ca_big_animal_side" .. side,
                     max_score = 300000,
-                    evaluation = "return (...):big_eval('" .. type .. "')",
-                    execution = "(...):big_exec('" .. type .. "')"
+                    evaluation = "return (...):big_eval('" .. cfg.type .. "')",
+                    execution = "(...):big_exec('" .. cfg.type .. "')"
             } }
         }
     end,
