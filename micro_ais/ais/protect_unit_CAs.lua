@@ -110,5 +110,22 @@ return {
             action = "try_delete",
             path = "stage[main_loop].candidate_action[move]"
         }
+
+        -- We also need to add the move_leader_to_keep CA back in
+        -- This works even if it was not removed, it simply overwrites the existing CA
+        W.modify_ai {
+            side = side,
+            action = "add",
+            path = "stage[main_loop].candidate_action",
+            { "candidate_action", {
+                id="move_leader_to_keep",
+                engine="cpp",
+                name="testing_ai_default::move_leader_to_keep_phase",
+                max_score=160000,
+                score=160000
+            } }
+        }
+
+
     end
 }
