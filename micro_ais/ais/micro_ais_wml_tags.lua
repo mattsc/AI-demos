@@ -256,7 +256,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
     end
 
     --------- Micro AI Guardian - BCA AIs -----------------------------------
-    if (cfg.ai_type == 'guardian') then
+    if (cfg.ai_type == 'guardian_unit') then
         -- We handle these types of guardians here: stationed, return, coward
         if (not cfg.guardian_type) then H.wml_error("[micro_ai] missing required guardian_type= key") end
         local guardian_type = cfg.guardian_type

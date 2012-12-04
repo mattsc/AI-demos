@@ -33,15 +33,15 @@ return {
             action = "add",
             path = "stage[main_loop].candidate_action",
             { "candidate_action", {
-            name="bca_" .. guardian_type .."_"  .. cfg.id,
-            id="bca_" .. guardian_type .. "_" .. cfg.id,
-            engine="lua",
-            max_score=max_scores[guardian_type],
-            sticky=1,
-            unit_x=unit.x,
-            unit_y=unit.y,
-            evaluation="return (...):" .. guardian_type .. "_eval(" .. eval_arguments .. ")",
-            execution="(...):" .. guardian_type .. "_exec("..exec_arguments..")",
+                name=guardian_type .."_"  .. cfg.id,
+                id=guardian_type .. "_" .. cfg.id,
+                engine="lua",
+                max_score=max_scores[guardian_type],
+                sticky=1,
+                unit_x=unit.x,
+                unit_y=unit.y,
+                evaluation="return (...):" .. guardian_type .. "_eval(" .. eval_arguments .. ")",
+                execution="(...):" .. guardian_type .. "_exec("..exec_arguments..")",
             } }
         }
     end,
@@ -52,7 +52,7 @@ return {
         W.modify_ai {
             side = side,
             action = "try_delete",
-            path = "stage[main_loop].candidate_action[bca_" .. guardian_type .."_" .. id .. "]"
+            path = "stage[main_loop].candidate_action[" .. guardian_type .."_" .. id .. "]"
         }
     end
 }
