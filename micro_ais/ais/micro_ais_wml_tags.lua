@@ -50,6 +50,15 @@ function delete_CAs(side, CA_parms)
     end
 end
 
+function CA_action(action, side, CA_parms)
+    if (action == 'add') then add_CAs(side, CA_parms) end
+    if (action == 'delete') then delete_CAs(side, CA_parms) end
+    if (action == 'change') then
+        delete_CAs(side, CA_parms)
+        add_CAs(side, CA_parms)
+    end
+end
+
 function wesnoth.wml_actions.micro_ai(cfg)
     -- Set up the [micro_ai] tag functionality for each Micro AI
 
@@ -94,13 +103,8 @@ function wesnoth.wml_actions.micro_ai(cfg)
             )
         end
 
-        -- Add, delete and change the CAs
-        if (cfg.action == 'add') then add_CAs(cfg.side, CA_parms) end
-        if (cfg.action == 'delete') then delete_CAs(cfg.side, CA_parms) end
-        if (cfg.action == 'change') then
-            delete_CAs(cfg.side, CA_parms)
-            add_CAs(cfg.side, CA_parms)
-        end
+        -- Add, delete or change the CAs
+        CA_action(cfg.action, cfg.side, CA_parms)
 
         return
     end
@@ -140,13 +144,8 @@ function wesnoth.wml_actions.micro_ai(cfg)
             }
         }
 
-        -- Add, delete and change the CAs
-        if (cfg.action == 'add') then add_CAs(cfg.side, CA_parms) end
-        if (cfg.action == 'delete') then delete_CAs(cfg.side, CA_parms) end
-        if (cfg.action == 'change') then
-            delete_CAs(cfg.side, CA_parms)
-            add_CAs(cfg.side, CA_parms)
-        end
+        -- Add, delete or change the CAs
+        CA_action(cfg.action, cfg.side, CA_parms)
 
         return
     end
