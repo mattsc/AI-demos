@@ -257,7 +257,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
     --------- Micro AI Guardian - BCA AIs -----------------------------------
     if (cfg.ai_type == 'guardian') then
-        -- We handle all types of guardians here.  Confirm we have made a choice
+        -- We handle these types of guardians here: stationed, return, coward
         if (not cfg.guardian_type) then H.wml_error("[micro_ai] missing required guardian_type= key") end
         local guardian_type = cfg.guardian_type
 
@@ -265,7 +265,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
         if (not cfg.id) then H.wml_error("[micro_ai] missing required id= key") end
 
          -- Set up the cfg array
-        local cfg_guardian = {}
+        local cfg_guardian = { guardian_type = guardian_type }
         local required_keys, optional_keys = {}, {}
 
         required_keys["stationed_guardian"] = {"id", "radius", "station_x", "station_y", "guard_x", "guard_y"}
@@ -294,9 +294,6 @@ function wesnoth.wml_actions.micro_ai(cfg)
               cfg_guardian[v] = cfg[v] or "''"
             end
         end
-
-        --Lastly, specify the type
-        cfg_guardian.guardian_type = guardian_type
 
         -- Add, delete and change the CAs
         if (cfg.action == 'add') then
