@@ -471,6 +471,26 @@ function wesnoth.wml_actions.micro_ai(cfg)
         return
     end
 
+    --------- Recruiting Micro AI - side-wide AI ------------------------------------
+    if (cfg.ai_type == 'recruit') then
+        local cfg_p = {}
+        -- Currently no parameters exist
+
+        -- Add, delete and change the CAs
+        if (cfg.action == 'add') then
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/recruit_CAs.lua".add(cfg.side, cfg_p)
+        end
+        if (cfg.action == 'delete') then
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/recruit_CAs.lua".delete(cfg.side, cfg_p)
+        end
+        if (cfg.action == 'change') then
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/recruit_CAs.lua".delete(cfg.side)
+            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/recruit_CAs.lua".add(cfg.side, cfg_p)
+        end
+
+        return
+    end
+
     ----------------------------------------------------------------
     -- If we got here, none of the valid ai_types was specified
     H.wml_error("invalid ai_type= in [micro_ai]")
