@@ -6,8 +6,9 @@ return {
     -- score_function: a function that returns the CA score when recruit_rushers_eval wants to recruit
     init = function(ai, ai_cas, score_function)
         -- default score function if one not provided
+        -- Use the same value for recruitment as the RCA AI
         if not score_function then
-            score_function = function() return 300000 end
+            score_function = function() return 180000 end
         end
 
         local H = wesnoth.require "lua/helper.lua"
