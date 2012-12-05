@@ -472,7 +472,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
     end
 
     --------- Recruiting Micro AI - side-wide AI ------------------------------------
-    if (cfg.ai_type == 'recruit') then
+    if (cfg.ai_type == 'recruiting') then
         local cfg_p = {}
         -- Currently no parameters exist
 
