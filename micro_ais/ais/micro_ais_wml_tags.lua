@@ -36,16 +36,31 @@ function add_CAs(side, CA_parms)
 end
 
 function delete_CAs(side, CA_parms)
-    -- Delete the candidate actions defined in 'CA_parms' to the AI of 'side'
+    -- Delete the candidate actions defined in 'CA_parms' from the AI of 'side'
     -- CA_parms is an array of tables, one for each CA to be removed
     -- We can simply pass the one used for add_CAs(), although only the
-    -- CA_parms.id field is required
+    -- CA_parms.id field is needed
 
     for i,parms in ipairs(CA_parms) do
         W.modify_ai {
             side = side,
             action = "try_delete",
             path = "stage[main_loop].candidate_action[" .. parms.id .. "]"
+        }
+    end
+end
+
+function delete_aspects(side, aspect_parms)
+    -- Delete the aspects defined in 'aspect_parms' from the AI of 'side'
+    -- aspect_parms is an array of tables, one for each CA to be removed
+    -- We can simply pass the one used for add_aspects(), although only the
+    -- aspect_parms.id field is needed
+
+    for i,parms in ipairs(aspect_parms) do
+        W.modify_ai {
+            side = side,
+            action = "try_delete",
+            path = "aspect[attacks].facet[" .. parms.id .. "]"
         }
     end
 end
