@@ -50,6 +50,37 @@ function delete_CAs(side, CA_parms)
     end
 end
 
+function add_aspects(side, aspect_parms)
+    -- Add the aspects defined in 'aspect_parms' to the AI of 'side'
+    -- aspect_parms is an array of tables, one for each aspect to be added
+    --
+    -- Required keys for aspect_parms:
+    --  - aspect: the aspect name (e.g. 'attacks' or 'aggression')
+    --  - facet: A table describing the facet to be added
+    --
+    -- Examples of facets:
+    -- 1. Simple aspect, e.g. aggression
+    -- { value = 0.99 }
+    --
+    -- 2. Composite aspect, e.g. attacks
+    --  {   name = "testing_ai_default::aspect_attacks",
+    --      id = "dont_attack",
+    --      invalidate_on_gamestate_change = "yes",
+    --      { "filter_own", {
+    --          type = "Dark Sorcerer"
+    --      } }
+    --  }
+
+    for i,parms in ipairs(aspect_parms) do
+        W.modify_ai {
+            side = side,
+            action = "add",
+            path = "aspect[" .. parms.aspect .. "].facet",
+            { "facet", parms.facet }
+        }
+    end
+end
+
 function delete_aspects(side, aspect_parms)
     -- Delete the aspects defined in 'aspect_parms' from the AI of 'side'
     -- aspect_parms is an array of tables, one for each CA to be removed
