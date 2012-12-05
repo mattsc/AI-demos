@@ -626,7 +626,8 @@ return {
         function get_unit_counts_for_healing()
             local healers = #AH.get_live_units {
                 side = wesnoth.current.side,
-                ability = "healing"
+                ability = "healing",
+                { "not", { canrecruit = "yes" }}
             }
             local healable = #AH.get_live_units {
                 side = wesnoth.current.side,
