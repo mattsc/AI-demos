@@ -933,13 +933,13 @@ return {
 
             end
         end
-        
+
         function animals:scatter_swarm_eval()
-            -- Any enemy within 1 hex of a unit will cause swarm to scatter
+            -- Any enemy within 3 hexes of a unit will cause swarm to scatter
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
                 { "filter_location",
-                    { radius = 1, { "filter", { side = wesnoth.current.side } } }
+                    { radius = 3, { "filter", { side = wesnoth.current.side } } }
                 }
             }
             -- Could do this with filter_adjacent, but want radius to be adjustable
@@ -1061,7 +1061,7 @@ return {
 
             AH.movefull_stopunit(ai, unit, best_hex)
         end
-        
+
         function animals:herding_area(center_x, center_y)
             -- Find the area that the sheep can occupy
             -- First, find all contiguous grass hexes around center hex
@@ -1439,7 +1439,7 @@ return {
             --print('Dog wandering')
             AH.movefull_stopunit(ai, dog, best_hex)
         end
-        
+
         function animals:new_rabbit_eval()
             -- If there are fewer than 4-6 rabbits out there, we get some more out of their holes
             -- I want this to happen only once, at the beginning of the turn, so
