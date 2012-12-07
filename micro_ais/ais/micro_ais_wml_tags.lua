@@ -479,132 +479,123 @@ function wesnoth.wml_actions.micro_ai(cfg)
         end
 
         local CA_parms = {}
-
-        local big_animals = {
-            {
-                id = "big_animal", eval_name = 'big_eval', exec_name = 'big_exec',
-                max_score = 300000, cfg_str = AH.serialize(cfg_animals)
-            }
-        }
-
-        local swarm = {
-            {
-                id = "scatter_swarm", eval_name = 'scatter_swarm_eval', exec_name = 'scatter_swarm_exec',
-                max_score = 300000
-            },
-            {
-                id = "move_swarm", eval_name = 'move_swarm_eval', exec_name = 'move_swarm_exec',
-                max_score = 290000
-            }
-        }
-
-        local sheep = {
-            {
-                id = "close_enemy", eval_name = 'close_enemy_eval', exec_name = 'close_enemy_exec',
-                max_score = 300000
-            },
-            {
-                id = "sheep_runs_enemy", eval_name = 'sheep_runs_enemy_eval', exec_name = 'sheep_runs_enemy_exec',
-                max_score = 295000
-            },
-            {
-                id = "sheep_runs_dog", eval_name = 'sheep_runs_dog_eval', exec_name = 'sheep_runs_dog_exec',
-                max_score = 290000
-            },
-            {
-                id = "herd_sheep", eval_name = 'herd_sheep_eval', exec_name = 'herd_sheep_exec',
-                max_score = 280000
-            },
-            {
-                id = "sheep_move", eval_name = 'sheep_move_eval', exec_name = 'sheep_move_exec',
-                max_score = 270000
-            },
-            {
-                id = "dog_move", eval_name = 'dog_move_eval', exec_name = 'dog_move_exec',
-                max_score = 260000
-            }
-        }
-
-        local forest_animals = {
-            {
-                id = "new_rabbit", eval_name = 'new_rabbit_eval', exec_name = 'new_rabbit_exec',
-                max_score = 310000
-            },
-            {
-                id = "tusker_attack", eval_name = 'tusker_attack_eval', exec_name = 'tusker_attack_exec',
-                max_score = 300000
-            },
-            {
-                id = "move", eval_name = 'move_eval', exec_name = 'move_exec',
-                max_score = 290000
-            },
-            {
-                id = "tusklet", eval_name = 'tusklet_eval', exec_name = 'tusklet_exec',
-                max_score = 280000
-            }
-        }
-
-        local wolves_multipacks = {
-            {
-                id = "wolves_multipacks_attack", eval_name = 'wolves_multipacks_attack_eval', exec_name = 'wolves_multipacks_attack_exec',
-                max_score = 300000
-            },
-            {
-                id = "wolves_multipacks_attack", eval_name = 'wolves_multipacks_wander_eval', exec_name = 'wolves_multipacks_wander_exec',
-                max_score = 290000
-            }
-        }
-
-        local wolves = {
-            {
-                id = "wolves", eval_name = 'wolves_eval', exec_name = 'wolves_exec',
-                max_score = 95000, cfg_str = AH.serialize(cfg_animals)
-            },
-            {
-                id = "wolves_wander", eval_name = 'wolves_wander_eval', exec_name = 'wolves_wander_exec',
-                max_score = 90000, cfg_str = AH.serialize(cfg_animals)
-            }
-        }
-
-        local wolves_aspects = {
-            {
-                aspect = "attacks",
-                facet = {
-                    name = "testing_ai_default::aspect_attacks",
-                    id = "dont_attack",
-                    invalidate_on_gamestate_change = "yes",
-                    { "filter_enemy", {
-                        { "not", {
-                            type=cfg_animals.to_avoid
-                        } }
-                    } }
+        if (cfg_animals.animal_type == 'big_animals') then
+            CA_parms = {
+                {
+                    id = "big_animal", eval_name = 'big_eval', exec_name = 'big_exec',
+                    max_score = 300000, cfg_str = AH.serialize(cfg_animals)
                 }
             }
-        }
-
-        if (cfg_animals.animal_type == 'big_animals') then
-            CA_parms = big_animals
         end
 
         if (cfg_animals.animal_type == 'wolves') then
-            add_aspects(cfg_animals.side, wolves_aspects)
-            CA_parms = wolves
+            CA_parms = {
+                {
+                    id = "wolves", eval_name = 'wolves_eval', exec_name = 'wolves_exec',
+                    max_score = 95000, cfg_str = AH.serialize(cfg_animals)
+                },
+                {
+                    id = "wolves_wander", eval_name = 'wolves_wander_eval', exec_name = 'wolves_wander_exec',
+                    max_score = 90000, cfg_str = AH.serialize(cfg_animals)
+                }
+            }
+
+           local wolves_aspects = {
+                {
+                    aspect = "attacks",
+                    facet = {
+                        name = "testing_ai_default::aspect_attacks",
+                        id = "dont_attack",
+                        invalidate_on_gamestate_change = "yes",
+                        { "filter_enemy", {
+                            { "not", {
+                                type=cfg_animals.to_avoid
+                            } }
+                        } }
+                    }
+                }
+            }
+            if (cfg.action == "delete") then
+                delete_aspects(cfg_animals.side, wolves_aspects)
+            else
+                add_aspects(cfg_animals.side, wolves_aspects)
+            end
         end
 
         if (cfg_animals.animal_type == 'sheep') then
-            CA_parms = sheep
+            CA_parms = {
+                {
+                    id = "close_enemy", eval_name = 'close_enemy_eval', exec_name = 'close_enemy_exec',
+                    max_score = 300000
+                },
+                {
+                    id = "sheep_runs_enemy", eval_name = 'sheep_runs_enemy_eval', exec_name = 'sheep_runs_enemy_exec',
+                    max_score = 295000
+                },
+                {
+                    id = "sheep_runs_dog", eval_name = 'sheep_runs_dog_eval', exec_name = 'sheep_runs_dog_exec',
+                    max_score = 290000
+                },
+                {
+                    id = "herd_sheep", eval_name = 'herd_sheep_eval', exec_name = 'herd_sheep_exec',
+                    max_score = 280000
+                },
+                {
+                    id = "sheep_move", eval_name = 'sheep_move_eval', exec_name = 'sheep_move_exec',
+                    max_score = 270000
+                },
+                {
+                    id = "dog_move", eval_name = 'dog_move_eval', exec_name = 'dog_move_exec',
+                    max_score = 260000
+                }
+            }
         end
 
         if (cfg_animals.animal_type == 'forest_animals') then
-            CA_parms = forest_animals
+            CA_parms = {
+                {
+                    id = "new_rabbit", eval_name = 'new_rabbit_eval', exec_name = 'new_rabbit_exec',
+                    max_score = 310000
+                },
+                {
+                    id = "tusker_attack", eval_name = 'tusker_attack_eval', exec_name = 'tusker_attack_exec',
+                    max_score = 300000
+                },
+                {
+                    id = "move", eval_name = 'move_eval', exec_name = 'move_exec',
+                    max_score = 290000
+                },
+                {
+                    id = "tusklet", eval_name = 'tusklet_eval', exec_name = 'tusklet_exec',
+                    max_score = 280000
+                }
+            }
         end
 
         if (cfg_animals.animal_type == 'swarm') then
-            CA_parms = swarm
+            CA_parms = {
+                {
+                    id = "scatter_swarm", eval_name = 'scatter_swarm_eval', exec_name = 'scatter_swarm_exec',
+                    max_score = 300000
+                },
+                {
+                    id = "move_swarm", eval_name = 'move_swarm_eval', exec_name = 'move_swarm_exec',
+                    max_score = 290000
+                }
+            }
         end
 
         if (cfg_animals.animal_type == 'wolves_multipacks') then
-            CA_parms = wolves_multipacks
+            CA_parms = {
+                {
+                    id = "wolves_multipacks_attack", eval_name = 'wolves_multipacks_attack_eval', exec_name = 'wolves_multipacks_attack_exec',
+                    max_score = 300000
+                },
+                {
+                    id = "wolves_multipacks_attack", eval_name = 'wolves_multipacks_wander_eval', exec_name = 'wolves_multipacks_wander_exec',
+                    max_score = 290000
+                }
+            }
         end
 
         if (cfg_animals.animal_type == 'hunter_unit') then
@@ -619,10 +610,6 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
         -- Add, delete or change the CAs
         CA_action(cfg.action, cfg.side, CA_parms)
-
-        if (cfg.action == "delete") and (cfg_animals.animal_type == 'wolves') then
-            delete_aspects(cfg_animals.side, wolves_aspects)
-        end
 
         return
     end
