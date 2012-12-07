@@ -18,8 +18,6 @@ return {
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
-        local recruit_data = {}
-
         local get_next_id = (function()
             local next_id = 0
             return function()
@@ -27,6 +25,44 @@ return {
                 return next_id
             end
         end)()
+
+        local recruit_data = {}
+
+        local get_hp_efficiency = function (table, recruit_id)
+            -- raw durability is a function of hp and the regenerates ability
+            -- efficiency decreases faster than cost increases to avoid recruiting many expensive units
+            -- there is a requirement for bodies in order to block movement
+
+            -- There is currently an assumption that opponents will average about 15 damage per strike
+            -- and that two units will attack per turn until the unit dies to estimate the number of hp
+            -- gained from regeneration
+            local effective_hp = wesnoth.unit_types[recruit_id].max_hitpoints
+
+            local unit = wesnoth.create_unit {
+                type = recruit_id,
+                random_traits = false,
+                name = "X",
+                id = recruit_id .. get_next_id(),
+                random_gender = false
+            }
+            -- Find the best regeneration ability and use it to estimate hp regained by regeneration
+            local abilities = H.get_child(unit.__cfg, "abilities")
+            local regen_amount = 0
+            if abilities then
+                for regen in H.child_range(abilities, "regenerate") do
+                    if regen.value > regen_amount then
+                        regen_amount = regen.value
+                    end
+                end
+                effective_hp = effective_hp + (regen_amount * effective_hp/30)
+            end
+            local efficiency = math.max(math.log(effective_hp/20),0.01)/(wesnoth.unit_types[recruit_id].cost^2)
+
+            table[recruit_id] = efficiency
+            return efficiency
+        end
+        local efficiency = {}
+        setmetatable(efficiency, { __index = get_hp_efficiency })
 
         function living(unit)
             return not unit.status.not_living
@@ -197,41 +233,6 @@ return {
             return analysis
         end
 
-        function get_hp_efficiency()
-            local efficiency = {}
-            for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
-                -- raw durability is a function of hp and the regenerates ability
-                -- efficiency decreases faster than cost increases to avoid recruiting many expensive units
-                -- there is a requirement for bodies in order to block movement
-
-                -- There is currently an assumption that opponents will average about 15 damage per strike
-                -- and that two units will attack per turn until the unit dies to estimate the number of hp
-                -- gained from regeneration
-                local effective_hp = wesnoth.unit_types[recruit_id].max_hitpoints
-
-                local unit = wesnoth.create_unit {
-                    type = recruit_id,
-                    random_traits = false,
-                    name = "X",
-                    id = recruit_id .. get_next_id(),
-                    random_gender = false
-                }
-                -- Find the best regeneration ability and use it to estimate hp regained by regeneration
-                local abilities = H.get_child(unit.__cfg, "abilities")
-                local regen_amount = 0
-                if abilities then
-                    for regen in H.child_range(abilities, "regenerate") do
-                        if regen.value > regen_amount then
-                            regen_amount = regen.value
-                        end
-                    end
-                    effective_hp = effective_hp + (regen_amount * effective_hp/30)
-                end
-                efficiency[recruit_id] = math.max(math.log(effective_hp/20),0.01)/(wesnoth.unit_types[recruit_id].cost^2)
-            end
-            return efficiency
-        end
-
         function can_slow(unit)
             for defender_attack in H.child_range(unit.__cfg, 'attack') do
                 for special in H.child_range(defender_attack, 'specials') do
@@ -305,7 +306,6 @@ return {
 
         function init_data(leader)
             local data = {}
-            data.hp_efficiency = get_hp_efficiency()
 
             -- Count enemies of each type
             local enemies = AH.get_live_units {
@@ -520,7 +520,6 @@ return {
             local best_scores = {offense = 0, defense = 0, move = 0}
             local best_hex = recruit_data.recruit.best_hex
             local target_hex = recruit_data.recruit.target_hex
-            local efficiency = recruit_data.recruit.hp_efficiency
             local distance_to_enemy, enemy_location
             if target_hex[1] then
                 distance_to_enemy, enemy_location = AH.get_closest_enemy(target_hex)
@@ -537,12 +536,6 @@ return {
             local recruitable_units = {}
 
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
-                if not efficiency[recruit_id] then
-                    -- Recruit list changed since last recruit, recalculate efficiency
-                    efficiency = get_hp_efficiency()
-                    recruit_data.recruit.hp_efficiency = efficiency
-                end
-
                 -- Count number of units with the same attack type. Used to avoid recruiting too many of the same unit
                 local attack_types = 0
                 local recruit_count = 0
