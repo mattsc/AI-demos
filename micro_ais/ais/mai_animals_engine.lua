@@ -44,21 +44,21 @@ return {
             return 'no_attack'
         end
 
-        function animals:hunt_and_rest_eval(id)
-            local unit = wesnoth.get_units { side = wesnoth.current.side, id = id,
+        function animals:hunt_and_rest_eval(cfg)
+            local unit = wesnoth.get_units { side = wesnoth.current.side, id = cfg.id,
                 formula = '$this_unit.moves > 0'
             }[1]
 
             if unit then return 300000 end
             return 0
         end
-
-        function animals:hunt_and_rest_exec(id, hunt_x, hunt_y, home_x, home_y, rest_turns)
+        -- id, hunt_x, hunt_y, home_x, home_y, rest_turns
+        function animals:hunt_and_rest_exec(cfg)
             -- Unit with the given ID goes on a hunt, doing a random wander in area given by
             -- hunt_x,hunt_y (ranges), then retreats to
             -- position given by 'home_x,home_y' for 'rest_turns' turns, or until fully healed
 
-            local unit = wesnoth.get_units { side = wesnoth.current.side, id = id,
+            local unit = wesnoth.get_units { side = wesnoth.current.side, id = cfg.id,
                 formula = '$this_unit.moves > 0'
             }[1]
             --print('Hunter: ', unit.id)
@@ -69,7 +69,7 @@ return {
                 local r = AH.random(10)
                 if (not unit.variables.x) or (r >= 1) then
                     -- 'locs' includes border hexes, but that does not matter here
-                    locs = wesnoth.get_locations { x = hunt_x, y = hunt_y }
+                    locs = wesnoth.get_locations { x = cfg.hunt_x, y = cfg.hunt_y }
                     local rand = AH.random(#locs)
                     --print('#locs', #locs, rand)
                     unit.variables.x, unit.variables.y = locs[rand][1], locs[rand][2]
@@ -136,7 +136,7 @@ return {
 
             -- If we got here, this means the unit is either returning, or resting
             if (unit.variables.hunting_status == 'return') then
-                goto_x, goto_y = wesnoth.find_vacant_tile(home_x, home_y)
+                goto_x, goto_y = wesnoth.find_vacant_tile(cfg.home_x, cfg.home_y)
                 --print('Go home:', home_x, home_y, goto_x, goto_y)
 
                 local next_hop = AH.next_hop(unit, goto_x, goto_y)
@@ -145,8 +145,8 @@ return {
                     AH.movefull_stopunit(ai, unit, next_hop)
 
                     -- If there's an enemy on the 'home' hex and we got right next to it, attack that enemy
-                    if (H.distance_between(home_x, home_y, next_hop[1], next_hop[2]) == 1) then
-                        local enemy = wesnoth.get_unit(home_x, home_y)
+                    if (H.distance_between(cfg.home_x, cfg.home_y, next_hop[1], next_hop[2]) == 1) then
+                        local enemy = wesnoth.get_unit(cfg.home_x, cfg.home_y)
                         if enemy and wesnoth.is_enemy(enemy.side, unit.side) then
                             W.message { speaker = unit.id, message = 'Get out of my pool!' }
                             ai.attack(unit, enemy)
@@ -158,9 +158,9 @@ return {
                 self:attack_weakest_adj_enemy(unit)
 
                 -- If the unit got home, start the resting counter
-                if unit.valid and (unit.x == home_x) and (unit.y == home_y) then
+                if unit.valid and (unit.x == tonumber(cfg.home_x)) and (unit.y == tonumber(cfg.home_y)) then
                     unit.variables.hunting_status = 'resting'
-                    unit.variables.resting_until = wesnoth.current.turn + rest_turns
+                    unit.variables.resting_until = wesnoth.current.turn + cfg.rest_turns
                     W.message { speaker = unit.id, message = 'I made it home - resting now until the end of Turn ' .. unit.variables.resting_until .. ' or until fully healed.' }
                 end
 
@@ -204,7 +204,7 @@ return {
             end
         end
 
-        function animals:wolves_exec(to_avoid)
+        function animals:wolves_exec(cfg)
 
             local wolves = wesnoth.get_units { side = wesnoth.current.side, type = 'Wolf', formula = '$this_unit.moves > 0' }
             -- Wolves hunt deer, but only close to the forest
@@ -215,7 +215,7 @@ return {
             --print('#wolves, prey', #wolves, #prey)
 
             -- When wandering (later) they avoid dogs, but not here
-            local avoid_units = wesnoth.get_units { type = to_avoid,
+            local avoid_units = wesnoth.get_units { type = cfg.to_avoid,
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
             --print('#avoid_units', #avoid_units)
@@ -321,7 +321,7 @@ return {
             end
         end
 
-        function animals:wolves_wander_exec(to_avoid)
+        function animals:wolves_wander_exec(cfg)
 
             local wolves = wesnoth.get_units { side = wesnoth.current.side, type = 'Wolf', formula = '$this_unit.moves > 0' }
 
@@ -334,7 +334,7 @@ return {
 
             -- Add a random rating; avoid big animals, tuskers
             -- On their wandering, they avoid the dogs (but not when attacking)
-            local avoid_units = wesnoth.get_units { type = to_avoid,
+            local avoid_units = wesnoth.get_units { type = cfg.to_avoid,
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
             --print('#avoid_units', #avoid_units)
@@ -823,19 +823,19 @@ return {
             return set
         end
 
-        function animals:big_eval(type)
-            local units = wesnoth.get_units { side = wesnoth.current.side, type = type, formula = '$this_unit.moves > 0' }
+        function animals:big_eval(cfg)
+            local units = wesnoth.get_units { side = wesnoth.current.side, type = cfg.type, formula = '$this_unit.moves > 0' }
 
             if units[1] then return 300000 end
             return 0
         end
 
-        function animals:big_exec(type)
+        function animals:big_exec(cfg)
             -- Big animals just move toward goal that gets set occasionally
             -- Avoid the other big animals (bears, yetis, spiders) and the dogs, otherwise attack whatever is in their range
             -- The only difference in behavior is the area in which the units move
 
-            local units = wesnoth.get_units { side = wesnoth.current.side, type = type, formula = '$this_unit.moves > 0' }
+            local units = wesnoth.get_units { side = wesnoth.current.side, type = cfg.type, formula = '$this_unit.moves > 0' }
             local avoid = LS.of_pairs(wesnoth.get_locations { radius = 1,
                 { "filter", { type = 'Yeti,Giant Spider,Tarantula,Bear,Dog',
                     { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
@@ -848,16 +848,16 @@ return {
                 local r = AH.random(10)
                 if (not unit.variables.x) or (r == 1) then
                     local locs = {}
-                    if (type == 'Bear') then
+                    if (cfg.type == 'Bear') then
                         locs = wesnoth.get_locations { x = '1-40', y = '1-18',
                             { "not", { terrain = '*^X*,Wo' } },
                             { "not", { x = unit.x, y = unit.y, radius = 12 } }
                         }
                     end
-                    if (type == 'Giant Spider,Tarantula') then
+                    if (cfg.type == 'Giant Spider,Tarantula') then
                         locs = wesnoth.get_locations { terrain = 'H*' }
                     end
-                    if (type == 'Yeti') then
+                    if (cfg.type == 'Yeti') then
                         locs = wesnoth.get_locations { terrain = 'M*' }
                     end
                     local rand = AH.random(#locs)
@@ -869,7 +869,7 @@ return {
                 -- hexes the unit can reach
                 local reach_map = AH.get_reachable_unocc(unit)
                 -- If this is a yeti, we only keep mountain and hill terrain
-                if (type == 'Yeti') then self:yeti_terrain(reach_map) end
+                if (cfg.type == 'Yeti') then self:yeti_terrain(reach_map) end
 
                 -- Now find the one of these hexes that is closest to the goal
                 local max_rating = -9e99
