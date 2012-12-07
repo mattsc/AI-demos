@@ -19,19 +19,27 @@ function add_CAs(side, CA_parms)
 
     for i,parms in ipairs(CA_parms) do
         cfg_str = parms.cfg_str or ''
+        
+        local CA = {
+            engine = "lua",
+            id = parms.id,
+            name = parms.id,
+            max_score = parms.max_score,  -- This works even if parms.max_score is nil
+            evaluation = "return (...):" .. parms.eval_name .. "(" .. cfg_str .. ")",
+            execution = "(...):" .. parms.exec_name .. "(" .. cfg_str .. ")"
+        }
+        
+        if parms.sticky then
+            CA.sticky = "yes"
+            CA.unit_x = parms.unit_x
+            CA.unit_y = parms.unit_y
+        end
 
         W.modify_ai {
             side = side,
             action = "add",
             path = "stage[main_loop].candidate_action",
-            { "candidate_action", {
-                engine = "lua",
-                id = parms.id,
-                name = parms.id,
-                max_score = parms.max_score,  -- This works even if parms.max_score is nil
-                evaluation = "return (...):" .. parms.eval_name .. "(" .. cfg_str .. ")",
-                execution = "(...):" .. parms.exec_name .. "(" .. cfg_str .. ")"
-            } }
+            { "candidate_action", CA }
         }
     end
 end
@@ -287,24 +295,22 @@ function wesnoth.wml_actions.micro_ai(cfg)
         end
         
         unit_ids = string.sub(unit_ids, 1, -2)
-        
         cfg_pu.unit_ids = unit_ids
-        cfg_pu.cfg_str = cfg.units
         
-        W.modify_ai {
-            side = side,
-            action = "add",
-            path = "aspect[attacks].facet",
-            { "facet", {
-                name = "testing_ai_default::aspect_attacks",
-                id = "dont_attack",
-                invalidate_on_gamestate_change = "yes",
-                { "filter_own", {
-                    { "not", {
-                        id = unit_ids
+        local aspect_parms = {
+            {
+                aspect = "attacks",
+                facet = {
+                    name = "testing_ai_default::aspect_attacks",
+                    id = "dont_attack",
+                    invalidate_on_gamestate_change = "yes",
+                    { "filter_own", {
+                        { "not", {
+                            id = unit_ids
+                        } }
                     } }
-                } }
-            } }
+                }
+            }
         }
         
         local CA_parms = {
@@ -322,6 +328,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
             }
         }
         
+        add_aspects(cfg.side, aspect_parms)
         -- Add, delete or change the CAs
         CA_action(cfg.action, cfg.side, CA_parms)
         
@@ -335,11 +342,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
         end
         
         if (cfg.action == "delete") then
-            W.modify_ai {
-                side = side,
-                action = "try_delete",
-                path = "aspect[attacks].facet[dont_attack]"
-            }
+            delete_aspects(cfg.side, aspect_parms)
             -- We also need to add the move_leader_to_keep CA back in
             -- This works even if it was not removed, it simply overwrites the existing CA
             W.modify_ai {
@@ -408,7 +411,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
         local CA_parms = {
             {
                 id = guardian_type .. '_' .. cfg.id, eval_name = guardian_type .. '_eval', exec_name = guardian_type .. '_exec',
-                max_score = max_scores[guardian_type], sticky = 1, unit_x = unit.x, unit_y = unit.y, cfg_str = AH.serialize(cfg_guardian)
+                max_score = max_scores[guardian_type], sticky = true, unit_x = unit.x, unit_y = unit.y, cfg_str = AH.serialize(cfg_guardian)
             },
         }
         
@@ -563,16 +566,10 @@ function wesnoth.wml_actions.micro_ai(cfg)
             }
         }
         
-        if (cfg_animals.animal_type == 'big_animals') then
-            CA_parms = big_animals
-        end
-        
-        if (cfg_animals.animal_type == 'wolves') then
-            W.modify_ai {
-                side = side,
-                action = "add",
-                path = "aspect[attacks].facet",
-                { "facet", {
+        local wolves_aspects = {
+            {
+                aspect = "attacks",
+                facet = {
                     name = "testing_ai_default::aspect_attacks",
                     id = "dont_attack",
                     invalidate_on_gamestate_change = "yes",
@@ -581,8 +578,16 @@ function wesnoth.wml_actions.micro_ai(cfg)
                             type=cfg_animals.to_avoid
                         } }
                     } }
-                } }
+                }
             }
+        }
+        
+        if (cfg_animals.animal_type == 'big_animals') then
+            CA_parms = big_animals
+        end
+        
+        if (cfg_animals.animal_type == 'wolves') then
+            add_aspects(cfg_animals.side, wolves_aspects)
             CA_parms = wolves
         end
         
@@ -607,7 +612,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
             CA_parms = {
                 {
                     id = "hunter_unit_" .. cfg_animals.id, eval_name = 'hunt_and_rest_eval', exec_name = 'hunt_and_rest_exec',
-                    max_score = 300000, sticky = "yes", unit_x = unit.x, unit_y = unit.y, cfg_str = AH.serialize(cfg_animals)
+                    max_score = 300000, sticky = true, unit_x = unit.x, unit_y = unit.y, cfg_str = AH.serialize(cfg_animals)
                 }
             }
         end
@@ -616,11 +621,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
         CA_action(cfg.action, cfg.side, CA_parms)
         
         if (cfg.action == "delete") and (cfg_animals.animal_type == 'wolves') then
-            W.modify_ai {
-                side = side,
-                action = "try_delete",
-                path = "aspect[attacks].facet[dont_attack]"
-            }
+            delete_aspects(cfg_animals.side, wolves_aspects)
         end
 
         return
@@ -653,7 +654,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
         local CA_parms = {
             {
                 id = "patrol_unit_" .. cfg_p.id, eval_name = 'patrol_eval', exec_name = 'patrol_exec',
-                max_score = 300000, sticky = yes, unit_x = unit.x, unit_y = unit.y, cfg_str = AH.serialize(cfg_p)
+                max_score = 300000, sticky = true, unit_x = unit.x, unit_y = unit.y, cfg_str = AH.serialize(cfg_p)
             },
         }
 

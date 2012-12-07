@@ -133,12 +133,12 @@ return {
 
         function protect_unit:finish_eval(cfg)
             -- If a unit can make it to the goal, this is the first thing that happens
-            cfg.cfg_str = AH.split(cfg.cfg_str, ",")
+            cfg.units = AH.split(cfg.units, ",")
 
             -- Also need the goals for each unit
             local goals = {}
-            for i = 1,#cfg.cfg_str,3 do
-                table.insert(goals, {tonumber(cfg.cfg_str[i+1]), tonumber(cfg.cfg_str[i+2])})
+            for i = 1,#cfg.units,3 do
+                table.insert(goals, {tonumber(cfg.units[i+1]), tonumber(cfg.units[i+2])})
             end
             --DBG.dbms(goals)
 
@@ -187,7 +187,7 @@ return {
         function protect_unit:move_exec(cfg)
             -- Find and execute best (safest) move toward goal
 
-            cfg.cfg_str = AH.split(cfg.cfg_str, ",")
+            cfg.units = AH.split(cfg.units, ",")
             -- Need to take the units off the map, as they don't count into the map scores
             -- (as long as they can still move)
             local units = wesnoth.get_units {id = cfg.unit_ids, formula = '$this_unit.moves > 0'}
@@ -229,8 +229,8 @@ return {
 
             -- Also need the goal for this unit
             local goal = {}
-            for i = 1,#cfg.cfg_str,3 do
-                if (unit.id == cfg.cfg_str[i]) then goal = {tonumber(cfg.cfg_str[i+1]), tonumber(cfg.cfg_str[i+2])} end
+            for i = 1,#cfg.units,3 do
+                if (unit.id == cfg.units[i]) then goal = {tonumber(cfg.units[i+1]), tonumber(cfg.units[i+2])} end
             end
             --print("Goal:",goal[1],goal[2])
 
