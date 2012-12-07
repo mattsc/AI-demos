@@ -19,7 +19,7 @@ function add_CAs(side, CA_parms)
 
     for i,parms in ipairs(CA_parms) do
         cfg_str = parms.cfg_str or ''
-        
+
         local CA = {
             engine = "lua",
             id = parms.id,
@@ -28,7 +28,7 @@ function add_CAs(side, CA_parms)
             evaluation = "return (...):" .. parms.eval_name .. "(" .. cfg_str .. ")",
             execution = "(...):" .. parms.exec_name .. "(" .. cfg_str .. ")"
         }
-        
+
         if parms.sticky then
             CA.sticky = "yes"
             CA.unit_x = parms.unit_x
@@ -218,12 +218,12 @@ function wesnoth.wml_actions.micro_ai(cfg)
             end
             cfg_me.id = cfg.id
             cfg_me.goal_x, cfg_me.goal_y = cfg.goal_x, cfg.goal_y
-            
+
             -- Optional keys
             cfg_me.enemy_death_chance = cfg.enemy_death_chance
             cfg_me.messenger_death_chance = cfg.messenger_death_chance
         end
-        
+
         local CA_parms = {
             {
                 id = 'attack', eval_name = 'attack_eval', exec_name = 'attack_exec',
@@ -241,7 +241,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
         -- Add, delete or change the CAs
         CA_action(cfg.action, cfg.side, CA_parms)
-        
+
         return
     end
 
@@ -263,7 +263,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
             cfg_lurk.attack_terrain = cfg.attack_terrain
             cfg_lurk.wander_terrain = cfg.wander_terrain
         end
-        
+
         local CA_parms = {
             {
                 id = 'lurker_moves_lua', eval_name = 'lurker_attack_eval', exec_name = 'lurker_attack_exec',
@@ -287,16 +287,16 @@ function wesnoth.wml_actions.micro_ai(cfg)
             end
             cfg_pu.units = cfg.units
         end
-        
+
         local unit_ids = ''
         local units = AH.split(cfg.units)
         for i = 1, #units, 3 do
             unit_ids = unit_ids .. units[i] .. ','
         end
-        
+
         unit_ids = string.sub(unit_ids, 1, -2)
         cfg_pu.unit_ids = unit_ids
-        
+
         local aspect_parms = {
             {
                 aspect = "attacks",
@@ -312,7 +312,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
                 }
             }
         }
-        
+
         local CA_parms = {
             {
                 id = 'finish', eval_name = 'finish_eval', exec_name = 'finish_exec',
@@ -327,11 +327,11 @@ function wesnoth.wml_actions.micro_ai(cfg)
                 max_score = 94000, cfg_str = AH.serialize(cfg_pu)
             }
         }
-        
+
         add_aspects(cfg.side, aspect_parms)
         -- Add, delete or change the CAs
         CA_action(cfg.action, cfg.side, CA_parms)
-        
+
         -- Optional key
         if cfg.disable_move_leader_to_keep then
             W.modify_ai {
@@ -340,7 +340,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
                 path = "stage[main_loop].candidate_action[move_leader_to_keep]"
             }
         end
-        
+
         if (cfg.action == "delete") then
             delete_aspects(cfg.side, aspect_parms)
             -- We also need to add the move_leader_to_keep CA back in
@@ -358,7 +358,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
                 } }
             }
         end
-        
+
         return
     end
 
@@ -401,20 +401,20 @@ function wesnoth.wml_actions.micro_ai(cfg)
               cfg_guardian[v] = cfg[v] or "''"
             end
         end
-        
+
         local max_scores = {}
         max_scores["stationed_guardian"] = 100010
         max_scores["coward"] = 300000
-        
+
         local unit = wesnoth.get_units { id=cfg.id }[1]
-        
+
         local CA_parms = {
             {
                 id = guardian_type .. '_' .. cfg.id, eval_name = guardian_type .. '_eval', exec_name = guardian_type .. '_exec',
                 max_score = max_scores[guardian_type], sticky = true, unit_x = unit.x, unit_y = unit.y, cfg_str = AH.serialize(cfg_guardian)
             },
         }
-        
+
         -- Add, delete or change the CAs
         CA_action(cfg.action, cfg.side, CA_parms)
 
@@ -479,14 +479,14 @@ function wesnoth.wml_actions.micro_ai(cfg)
         end
 
         local CA_parms = {}
-        
+
         local big_animals = {
             {
                 id = "big_animal", eval_name = 'big_eval', exec_name = 'big_exec',
                 max_score = 300000, cfg_str = AH.serialize(cfg_animals)
             }
         }
-        
+
         local swarm = {
             {
                 id = "scatter_swarm", eval_name = 'scatter_swarm_eval', exec_name = 'scatter_swarm_exec',
@@ -497,7 +497,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
                 max_score = 290000
             }
         }
-        
+
         local sheep = {
             {
                 id = "close_enemy", eval_name = 'close_enemy_eval', exec_name = 'close_enemy_exec',
@@ -524,7 +524,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
                 max_score = 260000
             }
         }
-        
+
         local forest_animals = {
             {
                 id = "new_rabbit", eval_name = 'new_rabbit_eval', exec_name = 'new_rabbit_exec',
@@ -543,7 +543,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
                 max_score = 280000
             }
         }
-        
+
         local wolves_multipacks = {
             {
                 id = "wolves_multipacks_attack", eval_name = 'wolves_multipacks_attack_eval', exec_name = 'wolves_multipacks_attack_exec',
@@ -554,7 +554,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
                 max_score = 290000
             }
         }
-        
+
         local wolves = {
             {
                 id = "wolves", eval_name = 'wolves_eval', exec_name = 'wolves_exec',
@@ -565,7 +565,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
                 max_score = 90000, cfg_str = AH.serialize(cfg_animals)
             }
         }
-        
+
         local wolves_aspects = {
             {
                 aspect = "attacks",
@@ -581,32 +581,32 @@ function wesnoth.wml_actions.micro_ai(cfg)
                 }
             }
         }
-        
+
         if (cfg_animals.animal_type == 'big_animals') then
             CA_parms = big_animals
         end
-        
+
         if (cfg_animals.animal_type == 'wolves') then
             add_aspects(cfg_animals.side, wolves_aspects)
             CA_parms = wolves
         end
-        
+
         if (cfg_animals.animal_type == 'sheep') then
             CA_parms = sheep
         end
-        
+
         if (cfg_animals.animal_type == 'forest_animals') then
             CA_parms = forest_animals
         end
-        
+
         if (cfg_animals.animal_type == 'swarm') then
             CA_parms = swarm
         end
-        
+
         if (cfg_animals.animal_type == 'wolves_multipacks') then
             CA_parms = wolves_multipacks
         end
-        
+
         if (cfg_animals.animal_type == 'hunter_unit') then
             local unit = wesnoth.get_units { id=cfg_animals.id }[1]
             CA_parms = {
@@ -616,10 +616,10 @@ function wesnoth.wml_actions.micro_ai(cfg)
                 }
             }
         end
-        
+
         -- Add, delete or change the CAs
         CA_action(cfg.action, cfg.side, CA_parms)
-        
+
         if (cfg.action == "delete") and (cfg_animals.animal_type == 'wolves') then
             delete_aspects(cfg_animals.side, wolves_aspects)
         end
@@ -636,7 +636,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
             H.wml_error("Patrol Micro AI missing required id= key")
         end
         cfg_p.id = cfg.id
-        
+
         if (cfg.action ~= 'delete') then
             -- Required keys - add action only
             if (not cfg.waypoint_x) or (not cfg.waypoint_y) then
@@ -644,12 +644,12 @@ function wesnoth.wml_actions.micro_ai(cfg)
             end
             cfg_p.waypoint_x = cfg.waypoint_x
             cfg_p.waypoint_y = cfg.waypoint_y
-            
+
             -- Optional keys
             cfg_p.attack_all = cfg.attack_all
             cfg_p.attack_targets = cfg.attack_targets
         end
-        
+
         local unit = wesnoth.get_units { id=cfg_p.id }[1]
         local CA_parms = {
             {
@@ -660,7 +660,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
         -- Add, delete or change the CAs
         CA_action(cfg.action, cfg.side, CA_parms)
-        
+
         return
     end
 
