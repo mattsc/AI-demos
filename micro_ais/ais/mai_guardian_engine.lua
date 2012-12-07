@@ -6,9 +6,9 @@ return {
         local H = wesnoth.require "lua/helper.lua"
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
 
-        function guardians:coward_eval(id)
+        function guardians:coward_eval(cfg)
 
-            local unit = wesnoth.get_units{ id = id }[1]
+            local unit = wesnoth.get_units{ id = cfg.id }[1]
             if (not unit) then return 0 end
             if unit.moves > 0 then
                 return 300000
@@ -16,15 +16,15 @@ return {
                 return 0
             end
         end
-
-        function guardians:coward_exec(id, radius, seek_x, seek_y, avoid_x, avoid_y)
+        -- id, radius, seek_x, seek_y, avoid_x, avoid_y
+        function guardians:coward_exec(cfg)
             --print("Coward exec " .. id)
-            local unit = wesnoth.get_units{ id = id }[1]
+            local unit = wesnoth.get_units{ id = cfg.id }[1]
             local reach = wesnoth.find_reach(unit)
             -- enemy units within reach
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
-                { "filter_location", {x = unit.x, y = unit.y, radius = radius} }
+                { "filter_location", {x = unit.x, y = unit.y, radius = cfg.radius} }
             }
 
             -- if no enemies are within reach: keep unit from doing anything and exit
@@ -63,8 +63,8 @@ return {
             for i,b in ipairs(best_pos) do
 
                 -- weighting based on distance from 'seek' and 'avoid'
-                local ds = AH.generalized_distance(b[1], b[2], tonumber(seek_x), tonumber(seek_y))
-                local da = AH.generalized_distance(b[1], b[2], tonumber(avoid_x), tonumber(avoid_y))
+                local ds = AH.generalized_distance(b[1], b[2], tonumber(cfg.seek_x), tonumber(cfg.seek_y))
+                local da = AH.generalized_distance(b[1], b[2], tonumber(cfg.avoid_x), tonumber(cfg.avoid_y))
                 --items.place_image(b[1], b[2], "items/ring-red.png")
                 local value = 1 / (ds+1) - 1 / (da+1)^2 * 0.75
 
@@ -106,11 +106,11 @@ return {
             if unit then ai.stopunit_all(unit) end
         end
 
-        function guardians:return_guardian_eval(id, to_x, to_y)
+        function guardians:return_guardian_eval(cfg)
 
-            local unit = wesnoth.get_units { id=id }[1]
+            local unit = wesnoth.get_units { id=cfg.id }[1]
 
-            if (unit.x~=to_x or unit.y~=to_y) then
+            if (unit.x~=cfg.to_x or unit.y~=cfg.to_y) then
                 value = 100010
             else
                 value = 99990
@@ -120,20 +120,20 @@ return {
             return value
         end
 
-        function guardians:return_guardian_exec(id, to_x, to_y)
+        function guardians:return_guardian_exec(cfg)
 
-            local unit = wesnoth.get_units { id=id }[1]
+            local unit = wesnoth.get_units { id=cfg.id }[1]
             --print("Exec guardian move",unit.id)
 
-            local nh = AH.next_hop(unit, to_x, to_y)
+            local nh = AH.next_hop(unit, cfg.to_x, cfg.to_y)
             if unit.moves~=0 then
                 AH.movefull_stopunit(ai, unit, nh)
             end
         end
 
-        function guardians:stationed_guardian_eval(id)
+        function guardians:stationed_guardian_eval(cfg)
 
-            local unit = wesnoth.get_units { id=id }[1]
+            local unit = wesnoth.get_units { id=cfg.id }[1]
             if (not unit) then
                value=0
             else
@@ -147,17 +147,17 @@ return {
             -- print("Eval:", value)
             return value
         end
-
-        function guardians:stationed_guardian_exec(id, radius, s_x, s_y, g_x, g_y)
+        -- id, radius, s_x, s_y, g_x, g_y
+        function guardians:stationed_guardian_exec(cfg)
             -- (s_x,s_y): coordinates where unit is stationed; tries to move here if there is nobody to attack
             -- (g_x,g_y): location that the unit guards
             --print ("Exec",id)
-            local unit = wesnoth.get_units { id=id }[1]
+            local unit = wesnoth.get_units { id=cfg.id }[1]
 
             -- find if there are enemies within 'radius'
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
-                { "filter_location", {x = unit.x, y = unit.y, radius = radius} }
+                { "filter_location", {x = unit.x, y = unit.y, radius = cfg.radius} }
             }
 
             -- if no enemies are within 'radius': keep unit from doing anything and exit
@@ -175,11 +175,11 @@ return {
             local target = {}
             local min_dist = 9999
             for i,e in ipairs(enemies) do
-                local ds = H.distance_between(s_x, s_y, e.x, e.y)
-                local dg = H.distance_between(g_x, g_y, e.x, e.y)
+                local ds = H.distance_between(cfg.station_x, cfg.station_y, e.x, e.y)
+                local dg = H.distance_between(cfg.guard_x, cfg.guard_y, e.x, e.y)
 
                 -- If valid target found, save the one with the shortest distance from (g_x,g_y)
-                if (ds <= radius) and (dg <= radius) and (dg < min_dist) then
+                if (ds <= cfg.radius) and (dg <= cfg.radius) and (dg < min_dist) then
                     --print("target:", e.id, ds, dg)
                     target = e
                     min_dist = dg
@@ -243,7 +243,7 @@ return {
             -- If no enemy within the target zone, move toward station position
             else
                 --print "Move toward station"
-                local nh = AH.next_hop(unit, s_x, s_y)
+                local nh = AH.next_hop(unit, cfg.station_x, cfg.station_y)
                 AH.movefull_stopunit(ai, unit, nh)
             end
 

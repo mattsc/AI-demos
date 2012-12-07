@@ -1,6 +1,7 @@
 local H = wesnoth.require "lua/helper.lua"
 local W = H.set_wml_action_metatable {}
 local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
+local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
 function add_CAs(side, CA_parms)
     -- Add the candidate actions defined in 'CA_parms' to the AI of 'side'
@@ -199,9 +200,8 @@ function wesnoth.wml_actions.micro_ai(cfg)
    --------- Messenger Escort Micro AI - side-wide AI ------------------------------------
     if (cfg.ai_type == 'messenger_escort') then
         local cfg_me = {}
-
-        -- Required keys
         if (cfg.action ~= 'delete') then
+            -- Required keys
             if (not cfg.id) then
                 H.wml_error("Messenger Escort Micro AI missing required id= key")
             end
@@ -210,37 +210,38 @@ function wesnoth.wml_actions.micro_ai(cfg)
             end
             cfg_me.id = cfg.id
             cfg_me.goal_x, cfg_me.goal_y = cfg.goal_x, cfg.goal_y
-        end
-
-        -- Optional keys
-        if cfg.enemy_death_chance then
+            
+            -- Optional keys
             cfg_me.enemy_death_chance = cfg.enemy_death_chance
-        end
-        if cfg.messenger_death_chance then
             cfg_me.messenger_death_chance = cfg.messenger_death_chance
         end
+        
+        local CA_parms = {
+            {
+                id = 'attack', eval_name = 'attack_eval', exec_name = 'attack_exec',
+                max_score = 300000, cfg_str = AH.serialize(cfg_me)
+            },
+            {
+                id = 'messenger_move', eval_name = 'messenger_move_eval', exec_name = 'messenger_move_exec',
+                max_score = 290000, cfg_str = AH.serialize(cfg_me)
+            },
+            {
+                id = 'other_move', eval_name = 'other_move_eval', exec_name = 'other_move_exec',
+                max_score = 280000, cfg_str = AH.serialize(cfg_me)
+            },
+        }
 
-        -- Add, delete and change the CAs
-        if (cfg.action == 'add') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/messenger_escort_CAs.lua".add(cfg.side, cfg_me)
-        end
-        if (cfg.action == 'delete') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/messenger_escort_CAs.lua".delete(cfg.side)
-        end
-        if (cfg.action == 'change') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/messenger_escort_CAs.lua".delete(cfg.side)
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/messenger_escort_CAs.lua".add(cfg.side, cfg_me)
-        end
-
+        -- Add, delete or change the CAs
+        CA_action(cfg.action, cfg.side, CA_parms)
+        
         return
     end
 
         --------- Lurkers Micro AI - side-wide AI ------------------------------------
     if (cfg.ai_type == 'lurkers') then
         local cfg_lurk = {}
-
-        -- Required keys
         if (cfg.action ~= "delete") then
+            -- Required keys
             if (not cfg.type) then
                 H.wml_error("Lurkers Micro AI missing required type= key")
             end
@@ -254,18 +255,16 @@ function wesnoth.wml_actions.micro_ai(cfg)
             cfg_lurk.attack_terrain = cfg.attack_terrain
             cfg_lurk.wander_terrain = cfg.wander_terrain
         end
+        
+        local CA_parms = {
+            {
+                id = 'lurker_moves_lua', eval_name = 'lurker_attack_eval', exec_name = 'lurker_attack_exec',
+                max_score = 100010, cfg_str = AH.serialize(cfg_lurk)
+            },
+        }
 
-        -- Add, delete and change the CAs
-        if (cfg.action == 'add') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/lurkers_CAs.lua".add(cfg.side, cfg_lurk)
-        end
-        if (cfg.action == 'delete') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/lurkers_CAs.lua".delete(cfg.side)
-        end
-        if (cfg.action == 'change') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/lurkers_CAs.lua".delete(cfg.side)
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/lurkers_CAs.lua".add(cfg.side, cfg_lurk)
-        end
+        -- Add, delete or change the CAs
+        CA_action(cfg.action, cfg.side, CA_parms)
 
         return
     end
@@ -273,32 +272,90 @@ function wesnoth.wml_actions.micro_ai(cfg)
     --------- Protect Unit Micro AI - side-wide AI ------------------------------------
     if (cfg.ai_type == 'protect_unit') then
         local cfg_pu = {}
-
-        -- Required keys
         if (cfg.action ~= 'delete') then
+            -- Required keys
             if (not cfg.units) then
                 H.wml_error("Protect Unit Micro AI missing required units= key")
             end
             cfg_pu.units = cfg.units
         end
-
-        -- Optional keys
+        
+        local unit_ids = ''
+        local units = AH.split(cfg.units)
+        for i = 1, #units, 3 do
+            unit_ids = unit_ids .. units[i] .. ','
+        end
+        
+        unit_ids = string.sub(unit_ids, 1, -2)
+        
+        cfg_pu.unit_ids = unit_ids
+        cfg_pu.cfg_str = cfg.units
+        
+        W.modify_ai {
+            side = side,
+            action = "add",
+            path = "aspect[attacks].facet",
+            { "facet", {
+                name = "testing_ai_default::aspect_attacks",
+                id = "dont_attack",
+                invalidate_on_gamestate_change = "yes",
+                { "filter_own", {
+                    { "not", {
+                        id = unit_ids
+                    } }
+                } }
+            } }
+        }
+        
+        local CA_parms = {
+            {
+                id = 'finish', eval_name = 'finish_eval', exec_name = 'finish_exec',
+                max_score = 300000, cfg_str = AH.serialize(cfg_pu)
+            },
+            {
+                id = 'attack', eval_name = 'attack_eval', exec_name = 'attack_exec',
+                max_score = 95000, cfg_str = AH.serialize(cfg_pu)
+            },
+            {
+                id = 'move', eval_name = 'move_eval', exec_name = 'move_exec',
+                max_score = 94000, cfg_str = AH.serialize(cfg_pu)
+            }
+        }
+        
+        -- Add, delete or change the CAs
+        CA_action(cfg.action, cfg.side, CA_parms)
+        
+        -- Optional key
         if cfg.disable_move_leader_to_keep then
-            cfg_pu.disable_move_leader_to_keep = cfg.disable_move_leader_to_keep
+            W.modify_ai {
+                side = side,
+                action = "try_delete",
+                path = "stage[main_loop].candidate_action[move_leader_to_keep]"
+            }
         end
-
-        -- Add, delete and change the CAs
-        if (cfg.action == 'add') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/protect_unit_CAs.lua".add(cfg.side, cfg_pu)
+        
+        if (cfg.action == "delete") then
+            W.modify_ai {
+                side = side,
+                action = "try_delete",
+                path = "aspect[attacks].facet[dont_attack]"
+            }
+            -- We also need to add the move_leader_to_keep CA back in
+            -- This works even if it was not removed, it simply overwrites the existing CA
+            W.modify_ai {
+                side = side,
+                action = "add",
+                path = "stage[main_loop].candidate_action",
+                { "candidate_action", {
+                    id="move_leader_to_keep",
+                    engine="cpp",
+                    name="testing_ai_default::move_leader_to_keep_phase",
+                    max_score=160000,
+                    score=160000
+                } }
+            }
         end
-        if (cfg.action == 'delete') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/protect_unit_CAs.lua".delete(cfg.side)
-        end
-        if (cfg.action == 'change') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/protect_unit_CAs.lua".delete(cfg.side)
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/protect_unit_CAs.lua".add(cfg.side, cfg_pu)
-        end
-
+        
         return
     end
 
@@ -311,7 +368,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
         -- Since this is a BCA, the unit id needs to be present even for removal
         if (not cfg.id) then H.wml_error("[micro_ai] missing required id= key") end
 
-         -- Set up the cfg array
+        -- Set up the cfg array
         local cfg_guardian = { guardian_type = guardian_type }
         local required_keys, optional_keys = {}, {}
 
@@ -341,18 +398,22 @@ function wesnoth.wml_actions.micro_ai(cfg)
               cfg_guardian[v] = cfg[v] or "''"
             end
         end
-
-        -- Add, delete and change the CAs
-        if (cfg.action == 'add') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".add(cfg.side, cfg_guardian)
-        end
-        if (cfg.action == 'delete') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".delete(cfg.side,guardian_type,cfg.id)
-        end
-        if (cfg.action == 'change') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".delete(cfg.side,guardian_type,cfg.id)
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/guardian_CAs.lua".add(cfg.side, cfg_guardian)
-        end
+        
+        local max_scores = {}
+        max_scores["stationed_guardian"] = 100010
+        max_scores["coward"] = 300000
+        
+        local unit = wesnoth.get_units { id=cfg.id }[1]
+        
+        local CA_parms = {
+            {
+                id = guardian_type .. '_' .. cfg.id, eval_name = guardian_type .. '_eval', exec_name = guardian_type .. '_exec',
+                max_score = max_scores[guardian_type], sticky = 1, unit_x = unit.x, unit_y = unit.y, cfg_str = AH.serialize(cfg_guardian)
+            },
+        }
+        
+        -- Add, delete or change the CAs
+        CA_action(cfg.action, cfg.side, CA_parms)
 
         return
     end
@@ -414,16 +475,152 @@ function wesnoth.wml_actions.micro_ai(cfg)
             end
         end
 
-        -- Add, delete and change the CAs
-        if (cfg.action == 'add') then
-            wesnoth.require("~add-ons/AI-demos/micro_ais/ais/" .. animal_type .. "_CAs.lua").add(cfg.side, cfg_animals)
+        local CA_parms = {}
+        
+        local big_animals = {
+            {
+                id = "big_animal", eval_name = 'big_eval', exec_name = 'big_exec',
+                max_score = 300000, cfg_str = AH.serialize(cfg_animals)
+            }
+        }
+        
+        local swarm = {
+            {
+                id = "scatter_swarm", eval_name = 'scatter_swarm_eval', exec_name = 'scatter_swarm_exec',
+                max_score = 300000
+            },
+            {
+                id = "move_swarm", eval_name = 'move_swarm_eval', exec_name = 'move_swarm_exec',
+                max_score = 290000
+            }
+        }
+        
+        local sheep = {
+            {
+                id = "close_enemy", eval_name = 'close_enemy_eval', exec_name = 'close_enemy_exec',
+                max_score = 300000
+            },
+            {
+                id = "sheep_runs_enemy", eval_name = 'sheep_runs_enemy_eval', exec_name = 'sheep_runs_enemy_exec',
+                max_score = 295000
+            },
+            {
+                id = "sheep_runs_dog", eval_name = 'sheep_runs_dog_eval', exec_name = 'sheep_runs_dog_exec',
+                max_score = 290000
+            },
+            {
+                id = "herd_sheep", eval_name = 'herd_sheep_eval', exec_name = 'herd_sheep_exec',
+                max_score = 280000
+            },
+            {
+                id = "sheep_move", eval_name = 'sheep_move_eval', exec_name = 'sheep_move_exec',
+                max_score = 270000
+            },
+            {
+                id = "dog_move", eval_name = 'dog_move_eval', exec_name = 'dog_move_exec',
+                max_score = 260000
+            }
+        }
+        
+        local forest_animals = {
+            {
+                id = "new_rabbit", eval_name = 'new_rabbit_eval', exec_name = 'new_rabbit_exec',
+                max_score = 310000
+            },
+            {
+                id = "tusker_attack", eval_name = 'tusker_attack_eval', exec_name = 'tusker_attack_exec',
+                max_score = 300000
+            },
+            {
+                id = "move", eval_name = 'move_eval', exec_name = 'move_exec',
+                max_score = 290000
+            },
+            {
+                id = "tusklet", eval_name = 'tusklet_eval', exec_name = 'tusklet_exec',
+                max_score = 280000
+            }
+        }
+        
+        local wolves_multipacks = {
+            {
+                id = "wolves_multipacks_attack", eval_name = 'wolves_multipacks_attack_eval', exec_name = 'wolves_multipacks_attack_exec',
+                max_score = 300000
+            },
+            {
+                id = "wolves_multipacks_attack", eval_name = 'wolves_multipacks_wander_eval', exec_name = 'wolves_multipacks_wander_exec',
+                max_score = 290000
+            }
+        }
+        
+        local wolves = {
+            {
+                id = "wolves", eval_name = 'wolves_eval', exec_name = 'wolves_exec',
+                max_score = 95000, cfg_str = AH.serialize(cfg_animals)
+            },
+            {
+                id = "wolves_wander", eval_name = 'wolves_wander_eval', exec_name = 'wolves_wander_exec',
+                max_score = 90000, cfg_str = AH.serialize(cfg_animals)
+            }
+        }
+        
+        if (cfg_animals.animal_type == 'big_animals') then
+            CA_parms = big_animals
         end
-        if (cfg.action == 'delete') then
-            wesnoth.require("~add-ons/AI-demos/micro_ais/ais/" .. animal_type .. "_CAs.lua").delete(cfg.side, cfg.id)
+        
+        if (cfg_animals.animal_type == 'wolves') then
+            W.modify_ai {
+                side = side,
+                action = "add",
+                path = "aspect[attacks].facet",
+                { "facet", {
+                    name = "testing_ai_default::aspect_attacks",
+                    id = "dont_attack",
+                    invalidate_on_gamestate_change = "yes",
+                    { "filter_enemy", {
+                        { "not", {
+                            type=cfg_animals.to_avoid
+                        } }
+                    } }
+                } }
+            }
+            CA_parms = wolves
         end
-        if (cfg.action == 'change') then
-            wesnoth.require("~add-ons/AI-demos/micro_ais/ais/" .. animal_type .. "_CAs.lua").delete(cfg.side, cfg.id)
-            wesnoth.require("~add-ons/AI-demos/micro_ais/ais/" .. animal_type .. "_CAs.lua").add(cfg.side, cfg_animals)
+        
+        if (cfg_animals.animal_type == 'sheep') then
+            CA_parms = sheep
+        end
+        
+        if (cfg_animals.animal_type == 'forest_animals') then
+            CA_parms = forest_animals
+        end
+        
+        if (cfg_animals.animal_type == 'swarm') then
+            CA_parms = swarm
+        end
+        
+        if (cfg_animals.animal_type == 'wolves_multipacks') then
+            CA_parms = wolves_multipacks
+        end
+        
+        if (cfg_animals.animal_type == 'hunter_unit') then
+            local unit = wesnoth.get_units { id=cfg_animals.id }[1]
+            CA_parms = {
+                {
+                    id = "hunter_unit_" .. cfg_animals.id, eval_name = 'hunt_and_rest_eval', exec_name = 'hunt_and_rest_exec',
+                    max_score = 300000, sticky = "yes", unit_x = unit.x, unit_y = unit.y, cfg_str = AH.serialize(cfg_animals)
+                }
+            }
+        end
+        
+        -- Add, delete or change the CAs
+        CA_action(cfg.action, cfg.side, CA_parms)
+        
+        if (cfg.action == "delete") and (cfg_animals.animal_type == 'wolves') then
+            W.modify_ai {
+                side = side,
+                action = "try_delete",
+                path = "aspect[attacks].facet[dont_attack]"
+            }
         end
 
         return
@@ -438,36 +635,31 @@ function wesnoth.wml_actions.micro_ai(cfg)
             H.wml_error("Patrol Micro AI missing required id= key")
         end
         cfg_p.id = cfg.id
-
-        -- Required keys - add action only
+        
         if (cfg.action ~= 'delete') then
+            -- Required keys - add action only
             if (not cfg.waypoint_x) or (not cfg.waypoint_y) then
                 H.wml_error("Patrol Micro AI missing required waypoint_x/waypoint_y= key")
             end
             cfg_p.waypoint_x = cfg.waypoint_x
             cfg_p.waypoint_y = cfg.waypoint_y
-        end
-
-        -- Optional keys
-        if cfg.attack_all then
+            
+            -- Optional keys
             cfg_p.attack_all = cfg.attack_all
-        end
-        if cfg.attack_targets then
             cfg_p.attack_targets = cfg.attack_targets
         end
+        
+        local unit = wesnoth.get_units { id=cfg_p.id }[1]
+        local CA_parms = {
+            {
+                id = "patrol_unit_" .. cfg_p.id, eval_name = 'patrol_eval', exec_name = 'patrol_exec',
+                max_score = 300000, sticky = yes, unit_x = unit.x, unit_y = unit.y, cfg_str = AH.serialize(cfg_p)
+            },
+        }
 
-        -- Add, delete and change the CAs
-        if (cfg.action == 'add') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/patrol_CAs.lua".add(cfg.side, cfg_p)
-        end
-        if (cfg.action == 'delete') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/patrol_CAs.lua".delete(cfg.side, cfg_p)
-        end
-        if (cfg.action == 'change') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/patrol_CAs.lua".delete(cfg.side)
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/patrol_CAs.lua".add(cfg.side, cfg_p)
-        end
-
+        -- Add, delete or change the CAs
+        CA_action(cfg.action, cfg.side, CA_parms)
+        
         return
     end
 

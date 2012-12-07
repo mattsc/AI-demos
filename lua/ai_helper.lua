@@ -166,6 +166,13 @@ function ai_helper.serialize(input)
     return str
 end
 
+function ai_helper.split(str, sep)
+    -- Split a string into a table using the delimiter
+    local sep, fields = sep or ",", {}
+    local pattern = string.format("([^%s]+)", sep)
+    string.gsub(str, pattern, function(c) fields[#fields+1] = c end)
+    return fields
+end
 
 --------- Location set related helper functions ----------
 
