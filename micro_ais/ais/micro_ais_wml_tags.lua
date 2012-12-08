@@ -653,19 +653,24 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
     --------- Recruiting Micro AI - side-wide AI ------------------------------------
     if (cfg.ai_type == 'recruiting') then
-        local cfg_p = {}
-        -- Currently no parameters exist
+        local cfg_recruiting = {}
+
+	if (not cfg.recruit_type) then H.wml_error("[micro_ai] missing required recruit_type= key") end
+	local recruit_type = cfg.recruit_type
+
+	if (not cfg.low_gold_recruit) and (cfg.recruit_type == 'random') then H.wml_error("[micro_ai] missing required low_gold_recruit= key") end
+	cfg_recruiting.low_gold_recruit = cfg.low_gold_recruit
 
         -- Add, delete and change the CAs
         if (cfg.action == 'add') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/recruit_CAs.lua".add(cfg.side, cfg_p)
+            wesnoth.require("~add-ons/AI-demos/micro_ais/ais/recruit_" .. recruit_type .. "_CAs.lua").add(cfg.side, cfg_recruiting)
         end
         if (cfg.action == 'delete') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/recruit_CAs.lua".delete(cfg.side, cfg_p)
+            wesnoth.require("~add-ons/AI-demos/micro_ais/ais/recruit_" .. recruit_type .. "_CAs.lua").delete(cfg.side, cfg_recruiting)
         end
         if (cfg.action == 'change') then
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/recruit_CAs.lua".delete(cfg.side)
-            wesnoth.require "~add-ons/AI-demos/micro_ais/ais/recruit_CAs.lua".add(cfg.side, cfg_p)
+            wesnoth.require("~add-ons/AI-demos/micro_ais/ais/recruit_" .. recruit_type .. "_CAs.lua").delete(cfg.side)
+            wesnoth.require("~add-ons/AI-demos/micro_ais/ais/recruit_" .. recruit_type .. "_CAs.lua").add(cfg.side, cfg_recruiting)
         end
 
         return
