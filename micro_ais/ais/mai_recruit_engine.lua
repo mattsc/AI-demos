@@ -16,7 +16,7 @@ return {
                 return 0
             end
 
-	    -- Check if there is no space left for recruiting (ALWAYS RETURNS 0!!!)
+	    -- Check if there is no space left for recruiting
 	    local width,height,border = wesnoth.get_map_size()
             local castle = {
                     locs = wesnoth.get_locations {
@@ -49,8 +49,11 @@ return {
 		    end
 	    end
 	    if low_gold_recruit == "affordable" then
-	    	while (possible_recruits) do
-			local i = math.random(#possible_recruits)
+	    	while #possible_recruits > 0 do
+			local i = 1
+			if #possible_recruits > 1 then
+				i = math.random(#possible_recruits)
+			end
 			recruit = possible_recruits[i]
 			table.remove(possible_recruits, i)
 			if wesnoth.unit_types[recruit].cost <= wesnoth.sides[wesnoth.current.side].gold then
