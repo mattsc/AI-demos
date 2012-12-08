@@ -658,7 +658,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
 	if (not cfg.recruit_type) then H.wml_error("[micro_ai] missing required recruit_type= key") end
 	local recruit_type = cfg.recruit_type
 
-	if (not cfg.low_gold_recruit) and (cfg.recruit_type == 'random') then H.wml_error("[micro_ai] missing required low_gold_recruit= key") end
+	if (not cfg.low_gold_recruit) and (cfg.recruit_type == 'random') and (cfg.action ~= 'delete') then H.wml_error("[micro_ai] missing required low_gold_recruit= key") end
 	cfg_recruiting.low_gold_recruit = cfg.low_gold_recruit
 
         -- Add, delete and change the CAs
