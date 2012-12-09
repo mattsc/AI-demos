@@ -21,12 +21,9 @@ return {
             cfg.waypoint_x = AH.split(cfg.waypoint_x, ",")
             cfg.waypoint_y = AH.split(cfg.waypoint_y, ",")
             
-            for i,v in ipairs(cfg.waypoint_x) do
-                cfg.waypoint_x[i] = tonumber(v)
-            end
-            
-            for i,v in ipairs(cfg.waypoint_y) do
-                cfg.waypoint_y[i] = tonumber(v)
+            for i = 1,#cfg.waypoint_x do
+                cfg.waypoint_x[i] = tonumber(cfg.waypoint_x[i])
+                cfg.waypoint_y[i] = tonumber(cfg.waypoint_y[i])
             end
             
             -- if not set, set next location (first move)
@@ -48,13 +45,33 @@ return {
                         self.data.next_step_y = cfg.waypoint_y[i+1]
                     end
                 end
+                -- ... if not...
+                if (self.data.next_step_x == cfg.waypoint_x[i] and self.data.next_step_y == cfg.waypoint_y[i]) then
+                    -- Check if the patrol is adjacent to a waypoint
+                    if H.distance_between( patrol.x,patrol.y,self.data.next_step_x,self.data.next_step_y ) == 1 then
+                        if cfg.attack_targets then
+                            -- Enemy on a waypoint?
+                            if not next(wesnoth.get_units{ id = cfg.attack_targets, x = self.data.next_step_x, y = self.data.next_step_y }, nil) then
+                                -- Check if we can reach the waypoint, if we can't then go to the next one.
+                                if not AH.can_reach(patrol, self.data.next_step_x, self.data.next_step_y) then
+                                    if i >= #cfg.waypoint_x then
+                                        self.data.next_step_x = cfg.waypoint_x[1]
+                                        self.data.next_step_y = cfg.waypoint_y[1]
+                                    else
+                                        self.data.next_step_x = cfg.waypoint_x[i+1]
+                                        self.data.next_step_y = cfg.waypoint_y[i+1]
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
             end
 
             -- perform the move
             local x, y = wesnoth.find_vacant_tile(self.data.next_step_x, self.data.next_step_y, patrol)
-            local nh = AH.next_hop(patrol, x, y)
-            AH.movefull_stopunit(ai, patrol, nh)
-
+            AH.movefull_stopunit(ai, patrol, x, y)
+            
             -- attack adjacent enemy (if specified)
             if cfg.attack_all then
                 local enemy = wesnoth.get_units {
