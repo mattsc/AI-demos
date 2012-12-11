@@ -15,10 +15,6 @@ return {
         if not params then
             params = {}
         end
-        -- default score function if one not provided
-        -- Use the same value for recruitment as the RCA AI
-        local score_function = params.score_function or (function() return 180000 end)
-        local randomness = params.randomness or 0.1
         math.randomseed(os.time())
 
         local H = wesnoth.require "lua/helper.lua"
@@ -308,7 +304,12 @@ return {
                 data.recruit = init_data(leader)
             end
             data.recruit.cheapest_unit_cost = cheapest_unit_cost
-            return score_function()
+
+            local score = 180000 -- default score if one not provided. Same as RCA AI
+            if params.score_function then
+                score = params.score_function()
+            end
+            return score
         end
 
         function init_data(leader)
@@ -611,6 +612,7 @@ return {
             local offense_weight = 2.5
             local defense_weight = 1/hp_ratio^0.5
             local move_weight = math.max((distance_to_enemy/20)^2, 0.25)
+            local randomness = params.randomness or 0.1
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
                 local scores = recruit_scores[recruit_id]
                 local offense_score = (scores["offense"]/best_scores["offense"])^0.5
