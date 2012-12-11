@@ -12,11 +12,9 @@ return {
 
         ----------Recruitment -----------------
 
-        local score_function = function ()
-            return 181000
-        end
+        local params = {score_function = function () return 181000 end}
 
-        wesnoth.require("~add-ons/AI-demos/lua/generic-recruit_engine.lua").init(ai, grunt_rush_FLS1, score_function)
+        wesnoth.require("~add-ons/AI-demos/lua/generic-recruit_engine.lua").init(ai, grunt_rush_FLS1, params)
 
         function grunt_rush_FLS1:get_zone_cfgs(recalc)
             -- Set up the config table for the different map zones

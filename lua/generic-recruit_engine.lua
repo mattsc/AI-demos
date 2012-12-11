@@ -5,13 +5,21 @@ return {
     --   the CA will use the function names ai_cas:recruit_rushers_eval/exec, so should be referenced by the object name used by the calling AI
     --   ai_cas also has the functions find_best_recruit, find_best_recruit_hex and analyze_enemy_unit added to it
     --     find_best_recruit, find_best_recruit_hex may be useful for writing recruitment code separately from the engine
-    -- score_function: a function that returns the CA score when recruit_rushers_eval wants to recruit
-    init = function(ai, ai_cas, score_function)
+    -- params: parameters to configure recruitment
+    --      score_function: function that returns the CA score when recruit_rushers_eval wants to recruit
+    --          (default returns the RCA recruitment score)
+    --      randomness: a measure of randomness in recruitment
+    --          higher absolute values increase randomness, with values above about 3 being close to completely random
+    --          (default = 0.1)
+    init = function(ai, ai_cas, params)
+        if not params then
+            params = {}
+        end
         -- default score function if one not provided
         -- Use the same value for recruitment as the RCA AI
-        if not score_function then
-            score_function = function() return 180000 end
-        end
+        local score_function = params.score_function or (function() return 180000 end)
+        local randomness = params.randomness or 0.1
+        math.randomseed(os.time())
 
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
@@ -609,7 +617,7 @@ return {
                 local defense_score = (scores["defense"]/best_scores["defense"])^0.5
                 local move_score = (scores["move"]/best_scores["move"])^0.5
 
-                local bonus = 0
+                local bonus = math.random()*randomness
                 if scores["slows"] then
                     bonus = bonus + 0.4
                 end
@@ -632,6 +640,7 @@ return {
                         bonus = bonus - 1.1
                     end
                 end
+
                 local score = offense_score*offense_weight + defense_score*defense_weight + move_score*move_weight + bonus
 
                 if AH.print_eval() then

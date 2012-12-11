@@ -36,8 +36,8 @@ return {
 
         ------- Recruit CA --------------
 
-        local score_function = function() return 300000 end
-        wesnoth.require("~add-ons/AI-demos/lua/generic-recruit_engine.lua").init(ai, generic_rush, score_function)
+        local params = { score_function = (function() return 300000 end) }
+        wesnoth.require("~add-ons/AI-demos/lua/generic-recruit_engine.lua").init(ai, generic_rush, params)
 
         -------- Castle Switch CA --------------
 
