@@ -629,7 +629,7 @@ return {
                     local path, cost = wesnoth.find_path(recruitable_units[recruit_id], target_hex[1], target_hex[2], {viewing_side=0, max_cost=wesnoth.unit_types[recruit_id].max_moves+1})
                     if cost > wesnoth.unit_types[recruit_id].max_moves then
                         -- large penalty if the unit can't reach the target village
-                        bonus = bonus - 1
+                        bonus = bonus - 1.1
                     end
                 end
                 local score = offense_score*offense_weight + defense_score*defense_weight + move_score*move_weight + bonus
