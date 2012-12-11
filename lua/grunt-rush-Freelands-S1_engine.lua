@@ -2,7 +2,6 @@ return {
     init = function(ai)
 
         local grunt_rush_FLS1 = {}
-        -- Specialized grunt rush for Freelands map, Side 1 only
 
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
@@ -18,10 +17,6 @@ return {
         end
 
         wesnoth.require("~add-ons/AI-demos/lua/generic-recruit_engine.lua").init(ai, grunt_rush_FLS1, score_function)
-
-        --------------------------------------------------------------------
-        -- This is customized for Northerners on Freelands, playing Side 1
-        --------------------------------------------------------------------
 
         function grunt_rush_FLS1:get_zone_cfgs(recalc)
             -- Set up the config table for the different map zones
