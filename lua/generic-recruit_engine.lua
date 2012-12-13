@@ -177,7 +177,6 @@ return {
                     if poison then
                         -- Add poison damage * probability of poisoning
                         poison_damage = 8*(1-((1-defense)^attack.number))
-                        attack_damage = attack_damage + poison_damage
                     end
 
                     if (not best_attack) or (attack_damage > best_damage) then
@@ -392,11 +391,15 @@ return {
                     local recruit_count = #(AH.get_live_units { side = wesnoth.current.side, type = recruit_id, canrecruit = 'no' })
 
                     if recruit_effectiveness[recruit_id] == nil then
-                        recruit_effectiveness[recruit_id] = 0
+                        recruit_effectiveness[recruit_id] = {damage = 0, poison_damage = 0}
                         recruit_vulnerability[recruit_id] = 0
                     end
 
-                    recruit_effectiveness[recruit_id] = recruit_effectiveness[recruit_id] + analysis.defense.damage * enemy_counts[unit_type]^2
+                    recruit_effectiveness[recruit_id].damage = recruit_effectiveness[recruit_id].damage + analysis.defense.damage * enemy_counts[unit_type]^2
+                    if analysis.defense.poison_damage then
+                        recruit_effectiveness[recruit_id].poison_damage = recruit_effectiveness[recruit_id].poison_damage +
+                            analysis.defense.poison_damage * enemy_counts[unit_type]^2
+                    end
                     recruit_vulnerability[recruit_id] = recruit_vulnerability[recruit_id] + (analysis.retaliation.damage * enemy_counts[unit_type])^3
 
                     local attack_type = analysis.defense.attack.type
@@ -425,11 +428,12 @@ return {
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
                 -- Ensure effectiveness and vulnerability are positive.
                 -- Negative values imply that drain is involved and the amount drained is very high
-                if recruit_effectiveness[recruit_id] <= 0 then
-                    recruit_effectiveness[recruit_id] = 0.01
+                if recruit_effectiveness[recruit_id].damage <= 0 then
+                    recruit_effectiveness[recruit_id].damage = 0.01
                 else
-                    recruit_effectiveness[recruit_id] = (recruit_effectiveness[recruit_id] / (num_enemies)^2)^0.5
+                    recruit_effectiveness[recruit_id].damage = (recruit_effectiveness[recruit_id].damage / (num_enemies)^2)^0.5
                 end
+                recruit_effectiveness[recruit_id].poison_damage = (recruit_effectiveness[recruit_id].poison_damage / (num_enemies)^2)^0.5
                 if recruit_vulnerability[recruit_id] <= 0 then
                     recruit_vulnerability[recruit_id] = 0.01
                 else
@@ -585,7 +589,9 @@ return {
                 local move_score = wesnoth.unit_types[recruit_id].max_moves / (cost*wesnoth.unit_types[recruit_id].cost^0.5)
 
                 -- Estimate effectiveness on offense and defense
-                local offense_score = recruit_effectiveness[recruit_id]/(wesnoth.unit_types[recruit_id].cost^0.3*recruit_modifier^4)
+                local offense_score =
+                    (recruit_effectiveness[recruit_id].damage+recruit_effectiveness[recruit_id].poison_damage)
+                    /(wesnoth.unit_types[recruit_id].cost^0.3*recruit_modifier^4)
                 local defense_score = efficiency[recruit_id]/recruit_vulnerability[recruit_id]
 
                 local unit_score = {offense = offense_score, defense = defense_score, move = move_score}
