@@ -589,13 +589,14 @@ return {
                 local time_to_enemy = cost / wesnoth.unit_types[recruit_id].max_moves
                 local move_score = 1 / (time_to_enemy * wesnoth.unit_types[recruit_id].cost^0.5)
 
-                local eta = wesnoth.current.turn + math.ceil(time_to_enemy)
+                local eta = math.ceil(time_to_enemy)
                 if target_hex[1] then
                     -- expect a 1 turn delay to reach village
                     eta = eta + 1
                 end
-                local damage_bonus = AH.get_unit_time_of_day_bonus(recruit_unit.__cfg.alignment, wesnoth.get_time_of_day(eta).lawful_bonus)
-                print(recruit_id .. ": eta " .. eta .. ", bonus " .. damage_bonus)
+                -- divide the lawful bonus by eta before running it through the function because the function converts from 0 centered to 1 centered
+                local lawful_bonus = wesnoth.get_time_of_day(wesnoth.current.turn + eta).lawful_bonus / eta^2
+                local damage_bonus = AH.get_unit_time_of_day_bonus(recruit_unit.__cfg.alignment, lawful_bonus)
                 -- Estimate effectiveness on offense and defense
                 local offense_score =
                     (recruit_effectiveness[recruit_id].damage*damage_bonus+recruit_effectiveness[recruit_id].poison_damage)
