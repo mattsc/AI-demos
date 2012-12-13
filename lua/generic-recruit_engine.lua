@@ -99,15 +99,16 @@ return {
                 -- In some cases (like poison), this approximation is preferred to the actual value.
                 local best_damage = 0
                 local best_attack = nil
-                -- This doesn't actually check for the ability steadfast, but gives correct answer in the default era
-                -- TODO: find a more reliable method
-                local steadfast = false -- wesnoth.unit_ability(defender, "resistance")
+                -- Steadfast is currently disabled because it biases the AI too much in favour of Guardsmen
+                -- Basically it sees the defender stats for damage and wrongfully concludes that the unit is amazing
+                -- This may be rectifiable by looking at retaliation damage as well.
+                local steadfast = false
 
                 for attack in H.child_range(wesnoth.unit_types[attacker.type].__cfg, "attack") do
                     local defense = unit_defense
                     local poison = false
                     local damage_multiplier = 1
-                    -- TODO: handle more abilities (charge, drain)
+                    -- TODO: handle more abilities (charge)
                     for special in H.child_range(attack, 'specials') do
                         local mod
                         if H.get_child(special, 'poison') and can_poison then
@@ -132,7 +133,7 @@ return {
                         if mod then
                             if mod.backstab then
                                 -- Assume backstab happens on only 1/2 of attacks
-                                -- TODO: find out what actual probability is
+                                -- TODO: find out what actual probability of getting to backstab is
                                 damage_multiplier = damage_multiplier*(mod.multiply*0.5 + 0.5)
                             end
                         end
