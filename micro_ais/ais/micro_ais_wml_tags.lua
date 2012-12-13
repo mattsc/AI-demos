@@ -1,7 +1,7 @@
 local H = wesnoth.require "lua/helper.lua"
 local W = H.set_wml_action_metatable {}
-local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
-local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
+local AH = wesnoth.require(mai_dir .. "/lua/ai_helper.lua")
+local DBG = wesnoth.require(mai_dir .. "/lua/debug.lua")
 
 function add_CAs(side, CA_parms)
     -- Add the candidate actions defined in 'CA_parms' to the AI of 'side'
@@ -668,14 +668,14 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
         -- Add, delete and change the CAs
         if (cfg.action == 'add') then
-            wesnoth.require("~add-ons/AI-demos/micro_ais/ais/recruit_" .. recruit_type .. "_CAs.lua").add(cfg.side, cfg_recruiting)
+            wesnoth.require(mai_dir .. "/micro_ais/ais/recruit_" .. recruit_type .. "_CAs.lua").add(cfg.side, cfg_recruiting)
         end
         if (cfg.action == 'delete') then
-            wesnoth.require("~add-ons/AI-demos/micro_ais/ais/recruit_" .. recruit_type .. "_CAs.lua").delete(cfg.side, cfg_recruiting)
+            wesnoth.require(mai_dir .. "/micro_ais/ais/recruit_" .. recruit_type .. "_CAs.lua").delete(cfg.side, cfg_recruiting)
         end
         if (cfg.action == 'change') then
-            wesnoth.require("~add-ons/AI-demos/micro_ais/ais/recruit_" .. recruit_type .. "_CAs.lua").delete(cfg.side)
-            wesnoth.require("~add-ons/AI-demos/micro_ais/ais/recruit_" .. recruit_type .. "_CAs.lua").add(cfg.side, cfg_recruiting)
+            wesnoth.require(mai_dir .. "/micro_ais/ais/recruit_" .. recruit_type .. "_CAs.lua").delete(cfg.side)
+            wesnoth.require(mai_dir .. "/micro_ais/ais/recruit_" .. recruit_type .. "_CAs.lua").add(cfg.side, cfg_recruiting)
         end
 
         return
