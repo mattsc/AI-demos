@@ -118,7 +118,7 @@ function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, 
     local att_multiplier = defender_info.resist_mod[attacker_info.attacks[att_weapon].type]
 
     -- TOD modifier
-    att_multiplier = att_multiplier * AH.get_unit_time_of_day_bonus(attacker_info, att_lawful_bonus)
+    att_multiplier = att_multiplier * AH.get_unit_time_of_day_bonus(attacker_info.alignment, att_lawful_bonus)
 
     -- Now do all this for the defender, if def_weapon ~= 0
     local def_damage, def_multiplier = 0, 1.
@@ -130,7 +130,7 @@ function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, 
         def_multiplier = attacker_info.resist_mod[defender_info.attacks[def_weapon].type]
 
         -- TOD modifier
-        def_multiplier = def_multiplier * AH.get_unit_time_of_day_bonus(defender_info, def_lawful_bonus)
+        def_multiplier = def_multiplier * AH.get_unit_time_of_day_bonus(defender_info.alignment, def_lawful_bonus)
     end
 
     -- Take 'charge' into account

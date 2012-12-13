@@ -586,11 +586,19 @@ return {
                     }
                 end
                 local path, cost = wesnoth.find_path(recruit_unit, enemy_location.x, enemy_location.y, {ignore_units = true})
-                local move_score = wesnoth.unit_types[recruit_id].max_moves / (cost*wesnoth.unit_types[recruit_id].cost^0.5)
+                local time_to_enemy = cost / wesnoth.unit_types[recruit_id].max_moves
+                local move_score = 1 / (time_to_enemy * wesnoth.unit_types[recruit_id].cost^0.5)
 
+                local eta = wesnoth.current.turn + math.ceil(time_to_enemy)
+                if target_hex[1] then
+                    -- expect a 1 turn delay to reach village
+                    eta = eta + 1
+                end
+                local damage_bonus = AH.get_unit_time_of_day_bonus(recruit_unit.__cfg.alignment, wesnoth.get_time_of_day(eta).lawful_bonus)
+                print(recruit_id .. ": eta " .. eta .. ", bonus " .. damage_bonus)
                 -- Estimate effectiveness on offense and defense
                 local offense_score =
-                    (recruit_effectiveness[recruit_id].damage+recruit_effectiveness[recruit_id].poison_damage)
+                    (recruit_effectiveness[recruit_id].damage*damage_bonus+recruit_effectiveness[recruit_id].poison_damage)
                     /(wesnoth.unit_types[recruit_id].cost^0.3*recruit_modifier^4)
                 local defense_score = efficiency[recruit_id]/recruit_vulnerability[recruit_id]
 
