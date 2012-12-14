@@ -634,8 +634,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
             cfg_p.waypoint_y = cfg.waypoint_y
 
             -- Optional keys
-            cfg_p.attack_all = cfg.attack_all
-            cfg_p.attack_targets = cfg.attack_targets
+            cfg_p.attack = cfg.attack
         end
 
         local unit = wesnoth.get_units { id=cfg_p.id }[1]
