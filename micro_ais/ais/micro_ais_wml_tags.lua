@@ -453,10 +453,10 @@ function wesnoth.wml_actions.micro_ai(cfg)
         optional_keys["big_animals"] = {}
 
         required_keys["forest_animals"] = {}
-        optional_keys["forest_animals"] = {}
+        optional_keys["forest_animals"] = { "rabbits_number", "radius", "rabbit_hole", "terrain", "units" }
 
         required_keys["swarm"] = {}
-        optional_keys["swarm"] = {}
+        optional_keys["swarm"] = { "radius", "vision_radius", "min_distance" }
 
         required_keys["sheep"] = {}
         optional_keys["sheep"] = {}
@@ -556,19 +556,19 @@ function wesnoth.wml_actions.micro_ai(cfg)
             CA_parms = {
                 {
                     id = "new_rabbit", eval_name = 'new_rabbit_eval', exec_name = 'new_rabbit_exec',
-                    max_score = 310000
+                    max_score = 310000, cfg_str = AH.serialize(cfg_animals)
                 },
                 {
                     id = "tusker_attack", eval_name = 'tusker_attack_eval', exec_name = 'tusker_attack_exec',
-                    max_score = 300000
+                    max_score = 300000, cfg_str = AH.serialize(cfg_animals)
                 },
                 {
                     id = "move", eval_name = 'move_eval', exec_name = 'move_exec',
-                    max_score = 290000
+                    max_score = 290000, cfg_str = AH.serialize(cfg_animals)
                 },
                 {
                     id = "tusklet", eval_name = 'tusklet_eval', exec_name = 'tusklet_exec',
-                    max_score = 280000
+                    max_score = 280000, cfg_str = AH.serialize(cfg_animals)
                 }
             }
         end
@@ -577,11 +577,11 @@ function wesnoth.wml_actions.micro_ai(cfg)
             CA_parms = {
                 {
                     id = "scatter_swarm", eval_name = 'scatter_swarm_eval', exec_name = 'scatter_swarm_exec',
-                    max_score = 300000
+                    max_score = 300000, cfg_str = AH.serialize(cfg_animals)
                 },
                 {
                     id = "move_swarm", eval_name = 'move_swarm_eval', exec_name = 'move_swarm_exec',
-                    max_score = 290000
+                    max_score = 290000, cfg_str = AH.serialize(cfg_animals)
                 }
             }
         end
@@ -634,8 +634,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
             cfg_p.waypoint_y = cfg.waypoint_y
 
             -- Optional keys
-            cfg_p.attack_all = cfg.attack_all
-            cfg_p.attack_targets = cfg.attack_targets
+            cfg_p.attack = cfg.attack
         end
 
         local unit = wesnoth.get_units { id=cfg_p.id }[1]

@@ -934,12 +934,18 @@ return {
             end
         end
 
-        function animals:scatter_swarm_eval()
-            -- Any enemy within 3 hexes of a unit will cause swarm to scatter
+        function animals:scatter_swarm_eval(cfg)
+            local _radius = 3
+            cfg.radius = tonumber(cfg.radius)
+            if (cfg.radius) then
+                _radius = cfg.radius
+            end
+            
+            -- Any enemy within "radius" hexes of a unit will cause swarm to scatter
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
                 { "filter_location",
-                    { radius = 3, { "filter", { side = wesnoth.current.side } } }
+                    { radius = _radius, { "filter", { side = wesnoth.current.side } } }
                 }
             }
             -- Could do this with filter_adjacent, but want radius to be adjustable
@@ -954,8 +960,19 @@ return {
             return 0
         end
 
-        function animals:scatter_swarm_exec()
-            -- Any enemy within 3 hexes of a unit will cause swarm to scatter
+        function animals:scatter_swarm_exec(cfg)
+            local _radius = 3
+            cfg.radius = tonumber(cfg.radius)
+            if (cfg.radius) then
+                _radius = cfg.radius
+            end
+            local vision_radius = 8
+            cfg.vision_radius = tonumber(cfg.vision_radius)
+            if (cfg.vision_radius) then
+                vision_radius = cfg.vision_radius
+            end
+            
+            -- Any enemy within "radius" hexes of a unit will cause swarm to scatter
             local units = wesnoth.get_units { side = wesnoth.current.side }
             for i = #units,1,-1 do
                 if (units[i].moves == 0) then table.remove(units, i) end
@@ -964,13 +981,12 @@ return {
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
                 { "filter_location",
-                    { radius = 3, { "filter", { side = wesnoth.current.side } } }
+                    { radius = _radius, { "filter", { side = wesnoth.current.side } } }
                 }
             }
 
             -- In this case we simply maximize the distance from all these close enemies
             -- but only for units that are within 'vision_radius' of one of those enemies
-            local vision_radius = 8
             for i,unit in ipairs(units) do
                 local unit_enemies = {}
                 for i,e in ipairs(enemies) do
@@ -993,7 +1009,7 @@ return {
             end
         end
 
-        function animals:move_swarm_eval()
+        function animals:move_swarm_eval(cfg)
             local units = wesnoth.get_units { side = wesnoth.current.side }
             for i,u in ipairs(units) do
                 if (u.moves > 0) then return 290000 end
@@ -1002,7 +1018,14 @@ return {
             return 0
         end
 
-        function animals:move_swarm_exec()
+        function animals:move_swarm_exec(cfg)
+            local min_dist = 5
+            cfg.min_distance = tonumber(cfg.min_distance)
+            if (cfg.min_distance) then
+                    min_dist = cfg.min_distance
+                    print("minimum dist: " .. min_dist .. "in cfg:" .. cfg.min_distance)
+            end
+        
             -- If no close enemies, swarm will move semi-randomly, staying close together, but away from enemies
             local all_units = wesnoth.get_units { side = wesnoth.current.side }
             local units, units_no_moves = {}, {}
@@ -1025,7 +1048,12 @@ return {
             table.remove(units, rand)
 
             -- Find best place for that unit to move to
-            local vision_radius = unit.moves + 1 -- otherwise swamrs may split up
+            local vision_radius = unit.moves + 1 -- otherwise swarms may split up
+            cfg.vision_radius = tonumber(cfg.vision_radius)
+            if (cfg.vision_radius) then
+                vision_radius = cfg.vision_radius
+                print("visrad: " .. vision_radius)
+            end
             local best_hex = AH.find_best_move(unit, function(x, y)
                 local rating = 0
 
@@ -1047,7 +1075,6 @@ return {
                 end
 
                 -- We also try to stay out of attack range of any enemy
-                local min_dist = 5
                 for i,e in ipairs(enemies) do
                     local dist = H.distance_between(x, y, e.x, e.y)
                     -- If enemy is within attack range, avoid those hexes
@@ -1440,14 +1467,25 @@ return {
             AH.movefull_stopunit(ai, dog, best_hex)
         end
 
-        function animals:new_rabbit_eval()
+        function animals:new_rabbit_eval(cfg)
             -- If there are fewer than 4-6 rabbits out there, we get some more out of their holes
             -- I want this to happen only once, at the beginning of the turn, so
             -- I'll let the CA blacklist itself
             return 310000
         end
 
-        function animals:new_rabbit_exec()
+        function animals:new_rabbit_exec(cfg)
+            local number = AH.random(4, 6)
+            cfg.rabbits_number = tonumber(cfg.rabbits_number)
+            if (cfg.rabbits_number) then
+                number = cfg.rabbits_number
+            end
+            local _radius = 3
+            cfg.radius = tonumber(cfg.radius)
+            if (cfg.radius) then
+                _radius = cfg.radius
+            end
+            
             -- Get the locations of all the rabbit holes
             W.store_items { variable = 'holes_wml' }
             local holes = H.get_variable_array('holes_wml')
@@ -1461,7 +1499,7 @@ return {
             for i = #holes,1,-1 do
                 local enemies = wesnoth.get_units {
                     { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
-                    { "filter_location", { x = holes[i].x, y = holes[i].y, radius = 3 } }
+                    { "filter_location", { x = holes[i].x, y = holes[i].y, radius = _radius } }
                 }
                 if enemies[1] then
                     table.remove(holes, i)
@@ -1475,7 +1513,6 @@ return {
 
             -- Number of rabbits to put out there
             local rabbits = wesnoth.get_units { side = wesnoth.current.side, type = 'Rabbit' }
-            local number = AH.random(4, 6)
             --print('total number:', number)
             number = number - #rabbits
             --print('to add number:', number)
@@ -1496,7 +1533,7 @@ return {
             end
         end
 
-        function animals:tusker_attack_eval()
+        function animals:tusker_attack_eval(cfg)
             -- Check whether there is an enemy next to a tusklet
             local tuskers = wesnoth.get_units { side = wesnoth.current.side, type = 'Tusker', formula = '$this_unit.moves > 0' }
             local adj_enemies = wesnoth.get_units {
@@ -1512,7 +1549,7 @@ return {
             end
         end
 
-        function animals:tusker_attack_exec()
+        function animals:tusker_attack_exec(cfg)
             local tuskers = wesnoth.get_units { side = wesnoth.current.side, type = 'Tusker', formula = '$this_unit.moves > 0' }
             local adj_enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
@@ -1558,7 +1595,7 @@ return {
             end
         end
 
-        function animals:move_eval()
+        function animals:move_eval(cfg)
             local units = wesnoth.get_units { side = wesnoth.current.side, type = 'Deer,Rabbit,Tusker', formula = '$this_unit.moves > 0' }
             local tusklets = wesnoth.get_units { side = wesnoth.current.side, type = 'Tusklet', formula = '$this_unit.moves > 0' }
             local all_tuskers = wesnoth.get_units { side = wesnoth.current.side, type = 'Tusker' }
@@ -1570,7 +1607,7 @@ return {
             return 0
         end
 
-        function animals:move_exec()
+        function animals:move_exec(cfg)
             -- I want the deer/rabbits to move first, tuskers later
             local units = wesnoth.get_units { side = wesnoth.current.side, type = 'Deer,Rabbit', formula = '$this_unit.moves > 0' }
             local tuskers = wesnoth.get_units { side = wesnoth.current.side, type = 'Tusker', formula = '$this_unit.moves > 0' }
@@ -1695,7 +1732,7 @@ return {
             end
         end
 
-        function animals:tusklet_eval()
+        function animals:tusklet_eval(cfg)
             local tusklets = wesnoth.get_units { side = wesnoth.current.side, type = 'Tusklet', formula = '$this_unit.moves > 0' }
             local tuskers = wesnoth.get_units { side = wesnoth.current.side, type = 'Tusker' }
 
@@ -1706,7 +1743,7 @@ return {
             end
         end
 
-        function animals:tusklet_exec()
+        function animals:tusklet_exec(cfg)
             -- Tusklets will simply move toward the closest tusker, without regard for anything else
             -- Except if no tuskers are left, in which case the previous CA takes over for random move
             local tusklets = wesnoth.get_units { side = wesnoth.current.side, type = 'Tusklet', formula = '$this_unit.moves > 0' }
