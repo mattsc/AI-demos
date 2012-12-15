@@ -937,7 +937,7 @@ return {
         function animals:scatter_swarm_eval(cfg)
             local _radius = 3
             cfg.radius = tonumber(cfg.radius)
-            if (cfg.radius) then
+            if cfg.radius then
                 _radius = cfg.radius
             end
             
@@ -963,12 +963,12 @@ return {
         function animals:scatter_swarm_exec(cfg)
             local _radius = 3
             cfg.radius = tonumber(cfg.radius)
-            if (cfg.radius) then
+            if cfg.radius then
                 _radius = cfg.radius
             end
             local vision_radius = 8
             cfg.vision_radius = tonumber(cfg.vision_radius)
-            if (cfg.vision_radius) then
+            if cfg.vision_radius then
                 vision_radius = cfg.vision_radius
             end
             
@@ -1477,14 +1477,15 @@ return {
         function animals:new_rabbit_exec(cfg)
             local number = AH.random(4, 6)
             cfg.rabbits_number = tonumber(cfg.rabbits_number)
-            if (cfg.rabbits_number) then
+            if cfg.rabbits_number then
                 number = cfg.rabbits_number
             end
             local _radius = 3
             cfg.radius = tonumber(cfg.radius)
-            if (cfg.radius) then
+            if cfg.radius then
                 _radius = cfg.radius
             end
+            cfg.rabbit_hole = tostring(cfg.rabbit_hole)
             
             -- Get the locations of all the rabbit holes
             W.store_items { variable = 'holes_wml' }
@@ -1504,7 +1505,15 @@ return {
                 if enemies[1] then
                     table.remove(holes, i)
                 else
-                    holes[i].random = AH.random(100)
+                    if cfg.rabbit_hole ~= "''" then -- When an optional argument is missing, we get "''" (a two characters long string) instead of "".
+                        if holes[i].image ~= cfg.rabbit_hole and holes[i].halo ~= cfg.rabbit_hole then
+                            table.remove(holes, i)
+                        else
+                            holes[i].random = AH.random(100)
+                        end
+                    else
+                        holes[i].random = AH.random(100)
+                    end
                 end
             end
             --print('after:', #holes)
