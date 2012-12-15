@@ -1755,8 +1755,10 @@ return {
         end
 
         function animals:tusklet_eval(cfg)
-            local tusklets = wesnoth.get_units { side = wesnoth.current.side, type = 'Tusklet', formula = '$this_unit.moves > 0' }
-            local tuskers = wesnoth.get_units { side = wesnoth.current.side, type = 'Tusker' }
+            if cfg.tusker_type == "''" then cfg.tusker_type = "Tusker" end
+            if cfg.tusklet_type == "''" then cfg.tusklet_type = "Tusklet" end
+            local tusklets = wesnoth.get_units { side = wesnoth.current.side, type = cfg.tusklet_type, formula = '$this_unit.moves > 0' }
+            local tuskers = wesnoth.get_units { side = wesnoth.current.side, type = cfg.tusker_type }
 
             if tusklets[1] and tuskers[1] then
                 return 280000
