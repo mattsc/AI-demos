@@ -1475,6 +1475,7 @@ return {
         end
 
         function animals:new_rabbit_exec(cfg)
+            if cfg.rabbit_type == "''" then cfg.rabbit_type = "Rabbit" end
             local number = AH.random(4, 6)
             cfg.rabbits_number = tonumber(cfg.rabbits_number)
             if cfg.rabbits_number then
@@ -1520,8 +1521,7 @@ return {
             table.sort(holes, function(a, b) return a.random > b.random end)
             --DBG.dbms(holes)
 
-            -- Number of rabbits to put out there
-            local rabbits = wesnoth.get_units { side = wesnoth.current.side, type = 'Rabbit' }
+            local rabbits = wesnoth.get_units { side = wesnoth.current.side, type = cfg.rabbit_type }
             --print('total number:', number)
             number = number - #rabbits
             --print('to add number:', number)
@@ -1538,16 +1538,18 @@ return {
                     x, y = wesnoth.find_vacant_tile(holes[i].x, holes[i].y)
                 end
                 wesnoth.scroll_to_tile(x, y)
-                wesnoth.put_unit(x, y, { side = wesnoth.current.side, type = 'Rabbit' } )
+                wesnoth.put_unit(x, y, { side = wesnoth.current.side, type = cfg.rabbit_type } )
             end
         end
 
         function animals:tusker_attack_eval(cfg)
             -- Check whether there is an enemy next to a tusklet
-            local tuskers = wesnoth.get_units { side = wesnoth.current.side, type = 'Tusker', formula = '$this_unit.moves > 0' }
+            if cfg.tusker_type == "''" then cfg.tusker_type = "Tusker" end
+            if cfg.tusklet_type == "''" then cfg.tusklet_type = "Tusklet" end
+            local tuskers = wesnoth.get_units { side = wesnoth.current.side, type = cfg.tusker_type, formula = '$this_unit.moves > 0' }
             local adj_enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
-                { "filter_adjacent", { side = wesnoth.current.side, type = 'Tusklet' } }
+                { "filter_adjacent", { side = wesnoth.current.side, type = cfg.tusklet_type } }
             }
             --print('#tuskers, #adj_enemies', #tuskers, #adj_enemies)
 
@@ -1559,10 +1561,12 @@ return {
         end
 
         function animals:tusker_attack_exec(cfg)
-            local tuskers = wesnoth.get_units { side = wesnoth.current.side, type = 'Tusker', formula = '$this_unit.moves > 0' }
+            if cfg.tusker_type == "''" then cfg.tusker_type = "Tusker" end
+            if cfg.tusklet_type == "''" then cfg.tusklet_type = "Tusklet" end
+            local tuskers = wesnoth.get_units { side = wesnoth.current.side, type = cfg.tusker_type, formula = '$this_unit.moves > 0' }
             local adj_enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
-                { "filter_adjacent", { side = wesnoth.current.side, type = 'Tusklet' } }
+                { "filter_adjacent", { side = wesnoth.current.side, type = cfg.tusklet_type } }
             }
 
             -- Find the closest enemy to any tusker
@@ -1580,7 +1584,7 @@ return {
 
             -- The tusker moves as close to enemy as possible
             -- Closeness to tusklets is secondary criterion
-            local adj_tusklets = wesnoth.get_units { side = wesnoth.current.side, type = 'Tusklet',
+            local adj_tusklets = wesnoth.get_units { side = wesnoth.current.side, type = cfg.tusklet_type,
                 { "filter_adjacent", { id = target.id } }
             }
 
@@ -1605,9 +1609,14 @@ return {
         end
 
         function animals:move_eval(cfg)
-            local units = wesnoth.get_units { side = wesnoth.current.side, type = 'Deer,Rabbit,Tusker', formula = '$this_unit.moves > 0' }
-            local tusklets = wesnoth.get_units { side = wesnoth.current.side, type = 'Tusklet', formula = '$this_unit.moves > 0' }
-            local all_tuskers = wesnoth.get_units { side = wesnoth.current.side, type = 'Tusker' }
+            if cfg.other_types == "''" then cfg.other_types = "Deer" end
+            if cfg.rabbit_type == "''" then cfg.rabbit_type = "Rabbit" end
+            if cfg.tusker_type == "''" then cfg.tusker_type = "Tusker" end
+            if cfg.tusklet_type == "''" then cfg.tusklet_type = "Tusklet" end
+            local units = wesnoth.get_units { side = wesnoth.current.side,
+                type = cfg.other_types .. ',' .. cfg.rabbit_type .. ',' .. cfg.tusker_type, formula = '$this_unit.moves > 0' }
+            local tusklets = wesnoth.get_units { side = wesnoth.current.side, type = cfg.tusklet_type, formula = '$this_unit.moves > 0' }
+            local all_tuskers = wesnoth.get_units { side = wesnoth.current.side, type = cfg.tusker_type }
 
             -- If there are deer, rabbits or tuskers with moves left -> good
             if units[1] then return 290000 end
@@ -1617,15 +1626,19 @@ return {
         end
 
         function animals:move_exec(cfg)
+            if cfg.other_types == "''" then cfg.other_types = "Deer" end
+            if cfg.rabbit_type == "''" then cfg.rabbit_type = "Rabbit" end
+            if cfg.tusker_type == "''" then cfg.tusker_type = "Tusker" end
+            if cfg.tusklet_type == "''" then cfg.tusklet_type = "Tusklet" end
             -- I want the deer/rabbits to move first, tuskers later
-            local units = wesnoth.get_units { side = wesnoth.current.side, type = 'Deer,Rabbit', formula = '$this_unit.moves > 0' }
-            local tuskers = wesnoth.get_units { side = wesnoth.current.side, type = 'Tusker', formula = '$this_unit.moves > 0' }
+            local units = wesnoth.get_units { side = wesnoth.current.side, type = cfg.other_types .. ',' .. cfg.rabbit_type, formula = '$this_unit.moves > 0' }
+            local tuskers = wesnoth.get_units { side = wesnoth.current.side, type = cfg.tusker_type, formula = '$this_unit.moves > 0' }
             for i,t in ipairs(tuskers) do table.insert(units, t) end
 
             -- Also add tusklets if there are no tuskers left
-            local all_tuskers = wesnoth.get_units { side = wesnoth.current.side, type = 'Tusker' }
+            local all_tuskers = wesnoth.get_units { side = wesnoth.current.side, type = cfg.tusker_type }
             if not all_tuskers[1] then
-                local tusklets = wesnoth.get_units { side = wesnoth.current.side, type = 'Tusklet', formula = '$this_unit.moves > 0' }
+                local tusklets = wesnoth.get_units { side = wesnoth.current.side, type = cfg.tusklet_type, formula = '$this_unit.moves > 0' }
                 for i,t in ipairs(tusklets) do table.insert(units, t) end
             end
 
@@ -1715,7 +1728,7 @@ return {
                             rating = rating - 1 / d^2
                         end
                         -- If this is a rabbit, try to go for holes
-                        if (unit.type == 'Rabbit') and hole_map:get(x, y) then
+                        if (unit.type == cfg.rabbit_type) and hole_map:get(x, y) then
                             rating = rating + 1000
                             -- but if possible, go to another hole
                             if (x == unit.x) and (y == unit.y) then rating = rating - 10 end
@@ -1729,7 +1742,7 @@ return {
                     -- so no check is necessary
                     AH.movefull_stopunit(ai, unit, farthest_hex)
                     -- If this is a rabbit ending on a hole -> disappears
-                    if (unit.type == 'Rabbit') and hole_map:get(farthest_hex[1], farthest_hex[2]) then
+                    if (unit.type == cfg.rabbit_type) and hole_map:get(farthest_hex[1], farthest_hex[2]) then
                         wesnoth.put_unit(farthest_hex[1], farthest_hex[2])
                     end
                 end
@@ -1753,10 +1766,12 @@ return {
         end
 
         function animals:tusklet_exec(cfg)
+            if cfg.tusker_type == "''" then cfg.tusker_type = "Tusker" end
+            if cfg.tusklet_type == "''" then cfg.tusklet_type = "Tusklet" end
             -- Tusklets will simply move toward the closest tusker, without regard for anything else
             -- Except if no tuskers are left, in which case the previous CA takes over for random move
-            local tusklets = wesnoth.get_units { side = wesnoth.current.side, type = 'Tusklet', formula = '$this_unit.moves > 0' }
-            local tuskers = wesnoth.get_units { side = wesnoth.current.side, type = 'Tusker' }
+            local tusklets = wesnoth.get_units { side = wesnoth.current.side, type = cfg.tusklet_type, formula = '$this_unit.moves > 0' }
+            local tuskers = wesnoth.get_units { side = wesnoth.current.side, type = cfg.tusker_type }
             --print('#tusklets, #tuskers', #tusklets, #tuskers)
 
             for i,tusklet in ipairs(tusklets) do
