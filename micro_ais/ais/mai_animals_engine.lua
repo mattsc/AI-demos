@@ -1627,12 +1627,15 @@ return {
         end
 
         function animals:move_exec(cfg)
-            local move_filter = {}
-            if cfg.move_filter then move_filter = cfg.move_filter end
+
+            local move_filter = H.get_child(cfg, "move_filter") or {}
+DBG.dbms(move_filter)
+
             if cfg.other_types == nil then cfg.other_types = "Deer" end
             if cfg.rabbit_type == nil then cfg.rabbit_type = "Rabbit" end
             if cfg.tusker_type == nil then cfg.tusker_type = "Tusker" end
             if cfg.tusklet_type == nil then cfg.tusklet_type = "Tusklet" end
+
             -- I want the deer/rabbits to move first, tuskers later
             local units = wesnoth.get_units { side = wesnoth.current.side, type = cfg.other_types .. ',' .. cfg.rabbit_type, formula = '$this_unit.moves > 0' }
             local tuskers = wesnoth.get_units { side = wesnoth.current.side, type = cfg.tusker_type, formula = '$this_unit.moves > 0' }
