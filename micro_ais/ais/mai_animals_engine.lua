@@ -158,7 +158,7 @@ return {
                 self:attack_weakest_adj_enemy(unit)
 
                 -- If the unit got home, start the resting counter
-                if unit.valid and (unit.x == tonumber(cfg.home_x)) and (unit.y == tonumber(cfg.home_y)) then
+                if unit.valid and (unit.x == cfg.home_x) and (unit.y == cfg.home_y) then
                     unit.variables.hunting_status = 'resting'
                     unit.variables.resting_until = wesnoth.current.turn + cfg.rest_turns
                     W.message { speaker = unit.id, message = 'I made it home - resting now until the end of Turn ' .. unit.variables.resting_until .. ' or until fully healed.' }
@@ -935,17 +935,13 @@ return {
         end
 
         function animals:scatter_swarm_eval(cfg)
-            local _radius = 3
-            cfg.radius = tonumber(cfg.radius)
-            if cfg.radius then
-                _radius = cfg.radius
-            end
+            local radius = cfg.radius or 3
 
             -- Any enemy within "radius" hexes of a unit will cause swarm to scatter
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
                 { "filter_location",
-                    { radius = _radius, { "filter", { side = wesnoth.current.side } } }
+                    { radius = radius, { "filter", { side = wesnoth.current.side } } }
                 }
             }
             -- Could do this with filter_adjacent, but want radius to be adjustable
@@ -961,16 +957,8 @@ return {
         end
 
         function animals:scatter_swarm_exec(cfg)
-            local _radius = 3
-            cfg.radius = tonumber(cfg.radius)
-            if cfg.radius then
-                _radius = cfg.radius
-            end
-            local vision_radius = 8
-            cfg.vision_radius = tonumber(cfg.vision_radius)
-            if cfg.vision_radius then
-                vision_radius = cfg.vision_radius
-            end
+            local radius = cfg.radius or 3
+            local vision_radius = cfg.vision_radius or 8
 
             -- Any enemy within "radius" hexes of a unit will cause swarm to scatter
             local units = wesnoth.get_units { side = wesnoth.current.side }
@@ -981,7 +969,7 @@ return {
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
                 { "filter_location",
-                    { radius = _radius, { "filter", { side = wesnoth.current.side } } }
+                    { radius = radius, { "filter", { side = wesnoth.current.side } } }
                 }
             }
 
@@ -1019,12 +1007,7 @@ return {
         end
 
         function animals:move_swarm_exec(cfg)
-            local min_dist = 5
-            cfg.min_distance = tonumber(cfg.min_distance)
-            if (cfg.min_distance) then
-                    min_dist = cfg.min_distance
-                    print("minimum dist: " .. min_dist .. "in cfg:" .. cfg.min_distance)
-            end
+            local min_dist = cfg.min_distance or 5
 
             -- If no close enemies, swarm will move semi-randomly, staying close together, but away from enemies
             local all_units = wesnoth.get_units { side = wesnoth.current.side }
@@ -1048,12 +1031,8 @@ return {
             table.remove(units, rand)
 
             -- Find best place for that unit to move to
-            local vision_radius = unit.moves + 1 -- otherwise swarms may split up
-            cfg.vision_radius = tonumber(cfg.vision_radius)
-            if (cfg.vision_radius) then
-                vision_radius = cfg.vision_radius
-                print("visrad: " .. vision_radius)
-            end
+            local vision_radius = cfg.vision_radius or (unit.moves + 1) -- otherwise swarms may split up
+
             local best_hex = AH.find_best_move(unit, function(x, y)
                 local rating = 0
 
@@ -1476,15 +1455,10 @@ return {
 
         function animals:new_rabbit_exec(cfg)
             if cfg.rabbit_type == nil then cfg.rabbit_type = "Rabbit" end
-            local number = AH.random(4, 6)
-            if cfg.rabbits_number then
-                number = tonumber(cfg.rabbits_number)
-            end
-            local _radius = 3
-            cfg.radius = tonumber(cfg.radius)
-            if cfg.radius then
-                _radius = cfg.radius
-            end
+
+            local number = cfg.rabbits_number or AH.random(4, 6)
+            local radius = cfg.radius or 3
+
             if cfg.rabbit_hole then
                 cfg.rabbit_hole = tostring(cfg.rabbit_hole)
             end
@@ -1502,7 +1476,7 @@ return {
             for i = #holes,1,-1 do
                 local enemies = wesnoth.get_units {
                     { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
-                    { "filter_location", { x = holes[i].x, y = holes[i].y, radius = _radius } }
+                    { "filter_location", { x = holes[i].x, y = holes[i].y, radius = radius } }
                 }
                 if enemies[1] then
                     table.remove(holes, i)
