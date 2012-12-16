@@ -468,15 +468,29 @@ function wesnoth.wml_actions.micro_ai(cfg)
                 H.wml_error("[micro_ai] unknown value for animal_type= key: '" .. animal_type .."'")
             end
 
-            --Add in the required keys
+            --Add in the required keys, which could be scalars or WML tag contents
            for k,v in pairs(required_keys[animal_type]) do
-                if (not cfg[v]) then H.wml_error("[micro_ai] ".. animal_type .." missing required " .. v .. "= key") end
+                local child, index = H.get_child(cfg, v)
+
+                if (not cfg[v]) and (not child) then
+                    H.wml_error("[micro_ai] ".. animal_type .." missing required " .. v .. "= key")
+                end
+
+                -- Insert scalar parameters
                 cfg_animals[v] = cfg[v]
+
+                -- Insert WML tags
+                if child then cfg_animals[index] = cfg.__parsed[index] end
             end
 
-            --Add in the optional keys
+            --Add in the optional keys, which could be scalars or WML tag contents
             for k,v in pairs(optional_keys[animal_type]) do
-              cfg_animals[v] = cfg[v]
+                -- Insert scalar parameters
+                cfg_animals[v] = cfg[v]
+
+                -- Insert WML tags
+                local child, index = H.get_child(cfg, v)
+                if child then cfg_animals[index] = cfg.__parsed[index] end
             end
         end
 
