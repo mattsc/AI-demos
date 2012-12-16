@@ -7,15 +7,17 @@ return {
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
 
         function guardians:coward_eval(cfg)
-
             local unit = wesnoth.get_units{ id = cfg.id }[1]
+
+            -- Don't need to check if unit exists as this is a sticky CA
             if unit.moves > 0 then
                 return 300000
             else
                 return 0
             end
         end
-        -- id, radius, seek_x, seek_y, avoid_x, avoid_y
+
+        -- cfg parameters: id, radius, seek_x, seek_y, avoid_x, avoid_y
         function guardians:coward_exec(cfg)
             --print("Coward exec " .. cfg.id)
             local unit = wesnoth.get_units{ id = cfg.id }[1]
@@ -106,9 +108,9 @@ return {
         end
 
         function guardians:return_guardian_eval(cfg)
-
             local unit = wesnoth.get_units { id=cfg.id }[1]
 
+            -- Don't need to check if unit exists as this is a sticky CA
             if (unit.x~=cfg.to_x or unit.y~=cfg.to_y) then
                 value = 100010
             else
@@ -120,7 +122,6 @@ return {
         end
 
         function guardians:return_guardian_exec(cfg)
-
             local unit = wesnoth.get_units { id=cfg.id }[1]
             --print("Exec guardian move",unit.id)
 
@@ -131,8 +132,9 @@ return {
         end
 
         function guardians:stationed_guardian_eval(cfg)
-
             local unit = wesnoth.get_units { id=cfg.id }[1]
+
+            -- Don't need to check if unit exists as this is a sticky CA
             if (unit.moves > 0) then
                 value = 100010
             else
@@ -142,7 +144,8 @@ return {
             -- print("Eval:", value)
             return value
         end
-        -- id, radius, s_x, s_y, g_x, g_y
+
+        -- cfg parameters: id, radius, s_x, s_y, g_x, g_y
         function guardians:stationed_guardian_exec(cfg)
             -- (s_x,s_y): coordinates where unit is stationed; tries to move here if there is nobody to attack
             -- (g_x,g_y): location that the unit guards
