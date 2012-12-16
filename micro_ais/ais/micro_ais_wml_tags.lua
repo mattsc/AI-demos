@@ -392,7 +392,8 @@ function wesnoth.wml_actions.micro_ai(cfg)
             end
 
             --Add in the required keys, which could be scalars or WML tag contents
-           for k,v in pairs(required_keys[guardian_type]) do
+            cfg = cfg.__parsed
+            for k,v in pairs(required_keys[guardian_type]) do
                 local child, index = H.get_child(cfg, v)
 
                 if (not cfg[v]) and (not child) then
@@ -403,7 +404,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
                 cfg_guardian[v] = cfg[v]
 
                 -- Insert WML tags
-                if child then cfg_guardian[index] = cfg.__parsed[index] end
+                if child then cfg_guardian[index] = cfg[index] end
             end
 
             --Add in the optional keys, which could be scalars or WML tag contents
@@ -413,7 +414,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
                 -- Insert WML tags
                 local child, index = H.get_child(cfg, v)
-                if child then cfg_guardian[index] = cfg.__parsed[index] end
+                if child then cfg_guardian[index] = cfg[index] end
             end
         end
 
@@ -483,7 +484,8 @@ function wesnoth.wml_actions.micro_ai(cfg)
             end
 
             --Add in the required keys, which could be scalars or WML tag contents
-           for k,v in pairs(required_keys[animal_type]) do
+            cfg = cfg.__parsed
+            for k,v in pairs(required_keys[animal_type]) do
                 local child, index = H.get_child(cfg, v)
 
                 if (not cfg[v]) and (not child) then
@@ -494,7 +496,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
                 cfg_animals[v] = cfg[v]
 
                 -- Insert WML tags
-                if child then cfg_animals[index] = cfg.__parsed[index] end
+                if child then cfg_animals[index] = cfg[index] end
             end
 
             --Add in the optional keys, which could be scalars or WML tag contents
@@ -504,7 +506,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
                 -- Insert WML tags
                 local child, index = H.get_child(cfg, v)
-                if child then cfg_animals[index] = cfg.__parsed[index] end
+                if child then cfg_animals[index] = cfg[index] end
             end
         end
 
