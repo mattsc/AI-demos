@@ -7,7 +7,7 @@ return {
         local W = H.set_wml_action_metatable {}
         local LS = wesnoth.require "lua/location_set.lua"
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
-        local BC = wesnoth.dofile "~/add-ons/AI-demos/lua/battle_calcs.lua"
+        local BC = wesnoth.require "~/add-ons/AI-demos/lua/battle_calcs.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
         function bottleneck_defense:is_my_territory(map, enemy_map)

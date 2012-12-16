@@ -5,7 +5,7 @@ return {
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
-        local BC = wesnoth.dofile "~/add-ons/AI-demos/lua/battle_calcs.lua"
+        local BC = wesnoth.require "~/add-ons/AI-demos/lua/battle_calcs.lua"
         local LS = wesnoth.require "lua/location_set.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
@@ -940,7 +940,7 @@ return {
             if cfg.radius then
                 _radius = cfg.radius
             end
-            
+
             -- Any enemy within "radius" hexes of a unit will cause swarm to scatter
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
@@ -971,7 +971,7 @@ return {
             if cfg.vision_radius then
                 vision_radius = cfg.vision_radius
             end
-            
+
             -- Any enemy within "radius" hexes of a unit will cause swarm to scatter
             local units = wesnoth.get_units { side = wesnoth.current.side }
             for i = #units,1,-1 do
@@ -1025,7 +1025,7 @@ return {
                     min_dist = cfg.min_distance
                     print("minimum dist: " .. min_dist .. "in cfg:" .. cfg.min_distance)
             end
-        
+
             -- If no close enemies, swarm will move semi-randomly, staying close together, but away from enemies
             local all_units = wesnoth.get_units { side = wesnoth.current.side }
             local units, units_no_moves = {}, {}
@@ -1487,7 +1487,7 @@ return {
                 _radius = cfg.radius
             end
             cfg.rabbit_hole = tostring(cfg.rabbit_hole)
-            
+
             -- Get the locations of all the rabbit holes
             W.store_items { variable = 'holes_wml' }
             local holes = H.get_variable_array('holes_wml')

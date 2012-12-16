@@ -1,5 +1,5 @@
 local H = wesnoth.require "lua/helper.lua"
-local AH = wesnoth.dofile "~/add-ons/AI-demos/lua/ai_helper.lua"
+local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
 local LS = wesnoth.require "lua/location_set.lua"
 local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
