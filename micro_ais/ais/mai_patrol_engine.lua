@@ -10,28 +10,29 @@ return {
         function patrol:patrol_eval(cfg)
             local patrol = wesnoth.get_units({ id = cfg.id })[1]
 
-            if patrol and (patrol.moves > 0) then return 300000 end
+            -- Don't need to check if unit exists as this is a sticky CA
+            if (patrol.moves > 0) then return 300000 end
             return 0
         end
 
         function patrol:patrol_exec(cfg)
             -- acquire patrol
             local patrol = wesnoth.get_units( { id = cfg.id } )[1]
-            
+
             cfg.waypoint_x = AH.split(cfg.waypoint_x, ",")
             cfg.waypoint_y = AH.split(cfg.waypoint_y, ",")
-            
+
             for i = 1,#cfg.waypoint_x do
                 cfg.waypoint_x[i] = tonumber(cfg.waypoint_x[i])
                 cfg.waypoint_y[i] = tonumber(cfg.waypoint_y[i])
             end
-            
+
             -- if not set, set next location (first move)
             if not self.data.next_step_x then
                 self.data.next_step_x = cfg.waypoint_x[1]
                 self.data.next_step_y = cfg.waypoint_y[1]
             end
-            
+
             while patrol.moves > 0 do
                 local enemies = wesnoth.get_units{ id = cfg.attack, { "filter_adjacent", { id = cfg.id } } }
                 if next(enemies) then break end
@@ -50,7 +51,7 @@ return {
                         end
                     end
                 end
-                
+
                 -- perform the move
                 local x, y = wesnoth.find_vacant_tile(self.data.next_step_x, self.data.next_step_y, patrol)
                 local nh = AH.next_hop(patrol, x, y)
@@ -60,7 +61,7 @@ return {
                     ai.stopunit_moves(patrol)
                 end
             end
-            
+
              -- attack adjacent enemy (if specified)
              local enemies = wesnoth.get_units{ id = cfg.attack, { "filter_adjacent", { id = cfg.id } } }
              if next(enemies) then
@@ -69,7 +70,7 @@ return {
                     break
                 end
             end
-            
+
             -- Check if patrol is not killed
             if (type(patrol) ~= "userdata") then
                 ai.stopunit_all(patrol)
