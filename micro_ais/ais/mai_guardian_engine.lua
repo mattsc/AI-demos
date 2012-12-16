@@ -18,7 +18,7 @@ return {
         end
         -- id, radius, seek_x, seek_y, avoid_x, avoid_y
         function guardians:coward_exec(cfg)
-            --print("Coward exec " .. id)
+            --print("Coward exec " .. cfg.id)
             local unit = wesnoth.get_units{ id = cfg.id }[1]
             local reach = wesnoth.find_reach(unit)
             -- enemy units within reach
@@ -102,7 +102,7 @@ return {
             end
 
             -- Get unit again, just in case it was killed by a moveto event
-            local unit = wesnoth.get_units{ id = id }[1]
+            local unit = wesnoth.get_units{ id = cfg.id }[1]
             if unit then ai.stopunit_all(unit) end
         end
 
