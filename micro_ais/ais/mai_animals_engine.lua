@@ -1627,6 +1627,8 @@ return {
         end
 
         function animals:move_exec(cfg)
+            local move_filter = {}
+            if cfg.move_filter then move_filter = cfg.move_filter end
             if cfg.other_types == nil then cfg.other_types = "Deer" end
             if cfg.rabbit_type == nil then cfg.rabbit_type = "Rabbit" end
             if cfg.tusker_type == nil then cfg.tusker_type = "Tusker" end
@@ -1672,13 +1674,15 @@ return {
                 if (not close_enemies[1]) then
                     -- All hexes the unit can reach that are unoccupied
                     local reach = AH.get_reachable_unocc(unit)
+                    local locs = wesnoth.get_locations(move_filter)
+                    local locs_map = LS.of_pairs(locs)
                     --print('  #all reachable', reach:size())
                     -- Select only those that are forest
                     local reachable_forest = {}
                     reach:iter( function(x, y, v)
                         local terrain = wesnoth.get_terrain(x,y)
                         --print(x, y, terrain)
-                        if string.find(terrain, 'F', 2) then  -- doesn't work with '^', so start search at char 2
+                        if locs_map:get(x,y) then  -- doesn't work with '^', so start search at char 2
                             table.insert(reachable_forest, {x, y})
                         end
                     end)
@@ -1692,7 +1696,7 @@ return {
                             ai.move(unit, reachable_forest[rand][1], reachable_forest[rand][2])
                         end
                     else  -- or if no close forest was found, move toward the closest
-                        locs = wesnoth.get_locations { terrain = '*^F*' }
+                        local locs = wesnoth.get_locations(move_filter)
                         local best_hex, min_dist = {}, 9e99
                         for j,l in ipairs(locs) do
                             local d = H.distance_between(l[1], l[2], unit.x, unit.y)

@@ -454,7 +454,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
         required_keys["forest_animals"] = {}
         optional_keys["forest_animals"] = { "rabbits_number", "radius", "rabbit_hole",
-            "terrain", "rabbit_type", "tusker_type", "tusklet_type", "other_types" }
+            "terrain", "rabbit_type", "tusker_type", "tusklet_type", "other_types", "move_filter" }
 
         required_keys["swarm"] = {}
         optional_keys["swarm"] = { "radius", "vision_radius", "min_distance" }
