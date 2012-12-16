@@ -399,7 +399,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
             --Add in the optional keys
             for k,v in pairs(optional_keys[guardian_type]) do
-              cfg_guardian[v] = cfg[v] or ""
+              cfg_guardian[v] = cfg[v]
             end
         end
 
@@ -476,7 +476,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
             --Add in the optional keys
             for k,v in pairs(optional_keys[animal_type]) do
-              cfg_animals[v] = cfg[v] or ""
+              cfg_animals[v] = cfg[v]
             end
         end
 
