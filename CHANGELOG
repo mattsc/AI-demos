@@ -1,3 +1,21 @@
+0.12.2
+- Micro AIs
+  - New Micro AIs:
+    - Ron's recruiting
+    - Random recruiting
+  - Additions to Micro AI behavior:
+    - Improve patrol behavior when the waypoints are occupied
+    - Add waypoints to Messenger AI
+    - Parametrize: swarm, forest animals
+  - Lots of cleaning up of the code, in order to get ready for mainlining the MAIs
+- General
+  - Updated scenario texts to represent changed behavior and that they are now Micro AIs
+  - Use constants for root directory as much as (easily) possible
+  - Switch to mainline maps and units as much as possible
+  - Eliminate most macros
+- Generic Rush (Ron)
+  - Improvements to the recruiting algorithm
+
 0.12.1, 2 Dec 2012
 - Freelands Side 1 Grunt Rush (Fred):
   - Adjusted time-of-day dependent cycles so that they work for any unit/faction
