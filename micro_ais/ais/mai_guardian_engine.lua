@@ -112,13 +112,10 @@ return {
 
             -- Don't need to check if unit exists as this is a sticky CA
             if (unit.x~=cfg.to_x or unit.y~=cfg.to_y) then
-                value = 100010
+                return 100010
             else
-                value = 99990
+                return 99990
             end
-
-            --print("Eval:", value)
-            return value
         end
 
         function guardians:return_guardian_exec(cfg)
@@ -136,13 +133,10 @@ return {
 
             -- Don't need to check if unit exists as this is a sticky CA
             if (unit.moves > 0) then
-                value = 100010
+                return 100010
             else
-                value = 0
+                return 0
             end
-
-            -- print("Eval:", value)
-            return value
         end
 
         -- cfg parameters: id, radius, s_x, s_y, g_x, g_y
