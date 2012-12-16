@@ -9,7 +9,6 @@ return {
         function guardians:coward_eval(cfg)
 
             local unit = wesnoth.get_units{ id = cfg.id }[1]
-            if (not unit) then return 0 end
             if unit.moves > 0 then
                 return 300000
             else
@@ -134,14 +133,10 @@ return {
         function guardians:stationed_guardian_eval(cfg)
 
             local unit = wesnoth.get_units { id=cfg.id }[1]
-            if (not unit) then
-               value=0
+            if (unit.moves > 0) then
+                value = 100010
             else
-              if (unit.moves > 0) then
-                  value = 100010
-              else
-                  value = 0
-              end
+                value = 0
             end
 
             -- print("Eval:", value)
