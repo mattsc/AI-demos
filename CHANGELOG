@@ -1,7 +1,7 @@
 0.12.2
 - Micro AIs
   - New Micro AIs:
-    - Ron's recruiting
+    - Rush recruiting
     - Random recruiting
   - Additions to Micro AI behavior:
     - Improve patrol behavior when the waypoints are occupied
@@ -14,7 +14,12 @@
   - Switch to mainline maps and units as much as possible
   - Eliminate most macros
 - Generic Rush (Ron)
-  - Improvements to the recruiting algorithm
+  - Honour passive_leader AI aspect if set
+- Rush Recruiting (algorithm used by Fred/Ron)
+  - Time of day awareness
+  - Account for regeneration
+  - Improve number of villages capturable by undead on turn 2
+  - Increase isolation from parent AIs to improve reusability
 
 0.12.1, 2 Dec 2012
 - Freelands Side 1 Grunt Rush (Fred):
