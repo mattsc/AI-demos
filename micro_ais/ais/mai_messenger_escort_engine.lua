@@ -146,12 +146,8 @@ return {
                 end
             end
             
-            local unit = wesnoth.get_unit(self.data.waypoints[1][1], self.data.waypoints[1][2])
             local near_wp = H.distance_between(messenger.x, messenger.y, self.data.waypoints[1][1], self.data.waypoints[1][2])
-            
-            if messenger.x == self.data.waypoints[1][1] and messenger.y == self.data.waypoints[1][2]
-                or near_wp <= 3 and unit
-            then
+            if near_wp <= 3 then
                 if 1 < #self.data.waypoints then
                     table.remove(self.data.waypoints, 1)
                 end
@@ -192,12 +188,8 @@ return {
         function messenger_escort:messenger_move_exec(cfg)
             local messenger = wesnoth.get_units{ id = cfg.id, formula = '$this_unit.moves > 0' }[1]
             
-            local unit = wesnoth.get_unit(self.data.waypoints[1][1], self.data.waypoints[1][2])
             local near_wp = H.distance_between(messenger.x, messenger.y, self.data.waypoints[1][1], self.data.waypoints[1][2])
-            
-            if messenger.x == self.data.waypoints[1][1] and messenger.y == self.data.waypoints[1][2]
-                or near_wp <= 3 and unit
-            then
+            if near_wp <= 3 then
                 if 1 < #self.data.waypoints then
                     table.remove(self.data.waypoints, 1)
                 end

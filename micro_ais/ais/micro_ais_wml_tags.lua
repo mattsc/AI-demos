@@ -218,7 +218,6 @@ function wesnoth.wml_actions.micro_ai(cfg)
             end
             cfg_me.id = cfg.id
             cfg_me.waypoint_x, cfg_me.waypoint_y = cfg.waypoint_x, cfg.waypoint_y
-            cfg_me.goal_x, cfg_me.goal_y = cfg.goal_x, cfg.goal_y
 
             -- Optional keys
             cfg_me.enemy_death_chance = cfg.enemy_death_chance
