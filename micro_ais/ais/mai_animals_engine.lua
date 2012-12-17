@@ -1464,8 +1464,7 @@ return {
             W.clear_variable { name = 'holes_wml' }
             --DBG.dbms(holes)
 
-            -- Eliminate all holes that have an enemy within 3 hexes
-            -- This is less than max_moves of rabbits, but real rabbits might do that too (they are dumb1)
+            -- Eliminate all holes that have an enemy within 'radius' hexes
             -- We also add a random number to it, for selection of the holes later
             --print('before:', #holes)
             for i = #holes,1,-1 do
@@ -1476,7 +1475,7 @@ return {
                 if enemies[1] then
                     table.remove(holes, i)
                 else
-                    if rabbit_hole  then
+                    if rabbit_hole then
                         if (holes[i].image ~= rabbit_hole) and (holes[i].halo ~= rabbit_hole) then
                             table.remove(holes, i)
                         else
@@ -1507,7 +1506,6 @@ return {
                 else
                     x, y = wesnoth.find_vacant_tile(holes[i].x, holes[i].y)
                 end
-                wesnoth.scroll_to_tile(x, y)
                 wesnoth.put_unit(x, y, { side = wesnoth.current.side, type = rabbit_type } )
             end
         end
@@ -1599,14 +1597,13 @@ return {
         end
 
         function animals:move_exec(cfg)
-
             local move_filter = H.get_child(cfg, "move_filter") or {}
             local other_types = cfg.other_types or "Deer"
             local rabbit_type = cfg.rabbit_type or "Rabbit"
             local tusker_type = cfg.tusker_type or "Tusker"
             local tusklet_type = cfg.tusklet_type or "Tusklet"
 
-            -- I want the deer/rabbits to move first, tuskers later
+            -- We want the deer/rabbits to move first, tuskers later
             local units = wesnoth.get_units { side = wesnoth.current.side, type = other_types .. ',' .. rabbit_type, formula = '$this_unit.moves > 0' }
             local tuskers = wesnoth.get_units { side = wesnoth.current.side, type = tusker_type, formula = '$this_unit.moves > 0' }
             for i,t in ipairs(tuskers) do table.insert(units, t) end
@@ -1661,7 +1658,7 @@ return {
                     end)
                     --print('  #reachable_forest', #reachable_forest)
 
-                    -- Choose one of the possible locations  at random
+                    -- Choose one of the possible locations at random
                     if reachable_forest[1] then
                         local rand = AH.random(#reachable_forest)
                         -- This is not a full move, as running away might happen next
