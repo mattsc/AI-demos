@@ -967,7 +967,7 @@ return {
 
         function animals:scatter_swarm_exec(cfg)
             local radius = cfg.radius or 3
-            local vision_radius = cfg.vision_radius or 8
+            local vision_radius = cfg.vision_radius or 12
 
             -- Any enemy within "radius" hexes of a unit will cause swarm to scatter
             local units = wesnoth.get_units { side = wesnoth.current.side }
@@ -1017,7 +1017,7 @@ return {
 
         function animals:move_swarm_exec(cfg)
             local min_dist = cfg.min_distance or 5
-            local vision_radius = cfg.vision_radius or 8
+            local vision_radius = cfg.vision_radius or 12
 
             -- If no close enemies, swarm will move semi-randomly, staying close together, but away from enemies
             local all_units = wesnoth.get_units { side = wesnoth.current.side }
