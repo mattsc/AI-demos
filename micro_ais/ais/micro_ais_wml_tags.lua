@@ -213,12 +213,12 @@ function wesnoth.wml_actions.micro_ai(cfg)
             if (not cfg.id) then
                 H.wml_error("Messenger Escort Micro AI missing required id= key")
             end
-            if (not cfg.goal_x) or (not cfg.goal_y) then
-                H.wml_error("Messenger Escort Micro AI missing required goal_x= and/or goal_y= key")
+            if (not cfg.waypoint_x) or (not cfg.waypoint_y) then
+                H.wml_error("Messenger Escort Micro AI missing required waypoint_x= and/or waypoint_y= key")
             end
             cfg_me.id = cfg.id
-            cfg_me.goal_x, cfg_me.goal_y = cfg.goal_x, cfg.goal_y
             cfg_me.waypoint_x, cfg_me.waypoint_y = cfg.waypoint_x, cfg.waypoint_y
+            cfg_me.goal_x, cfg_me.goal_y = cfg.goal_x, cfg.goal_y
 
             -- Optional keys
             cfg_me.enemy_death_chance = cfg.enemy_death_chance

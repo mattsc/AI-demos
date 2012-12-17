@@ -17,7 +17,7 @@ return {
             -- Returns proxy table for the first unit found, or nil if none was found
 
             local path, cost = wesnoth.find_path(unit, goal_x, goal_y, { ignore_units = true })
-
+            
             -- If unit cannot get there:
             if cost >= 42424242 then return end
 
@@ -125,7 +125,7 @@ return {
                 return
             end
         end
-
+        
         -----------------------
 
         function messenger_escort:attack_eval(cfg)
@@ -135,10 +135,31 @@ return {
 
             local messenger = wesnoth.get_units{ side = wesnoth.current.side, id = cfg.id }[1]
             if (not messenger) then return 0 end
-
+            
+            if not self.data.waypoints then
+                cfg.waypoint_x = AH.split(cfg.waypoint_x, ",")
+                cfg.waypoint_y = AH.split(cfg.waypoint_y, ",")
+                
+                self.data.waypoints = {}
+                for i = 1,#cfg.waypoint_x do
+                    self.data.waypoints[i] = { tonumber(cfg.waypoint_x[i]), tonumber(cfg.waypoint_y[i]) }
+                end
+            end
+            
+            local unit = wesnoth.get_unit(self.data.waypoints[1][1], self.data.waypoints[1][2])
+            local near_wp = H.distance_between(messenger.x, messenger.y, self.data.waypoints[1][1], self.data.waypoints[1][2])
+            
+            if messenger.x == self.data.waypoints[1][1] and messenger.y == self.data.waypoints[1][2]
+                or near_wp <= 3 and unit
+            then
+                if 1 < #self.data.waypoints then
+                    table.remove(self.data.waypoints, 1)
+                end
+            end
+            
             -- See if there's an enemy in the way that should be attacked
-            local attack = self:find_clearing_attack(messenger, cfg.goal_x, cfg.goal_y)
-
+            local attack = self:find_clearing_attack(messenger, self.data.waypoints[1][1], self.data.waypoints[1][2])
+            
             if attack then
                 self.data.best_attack = attack
                 return 300000
@@ -170,62 +191,63 @@ return {
 
         function messenger_escort:messenger_move_exec(cfg)
             local messenger = wesnoth.get_units{ id = cfg.id, formula = '$this_unit.moves > 0' }[1]
-
-            cfg.waypoint_x = AH.split(cfg.waypoint_x, ",")
-            cfg.waypoint_y = AH.split(cfg.waypoint_y, ",")
             
-            for i = 1,#cfg.waypoint_x do
-                cfg.waypoint_x[i] = tonumber(cfg.waypoint_x[i])
-                cfg.waypoint_y[i] = tonumber(cfg.waypoint_y[i])
-            end
+            local unit = wesnoth.get_unit(self.data.waypoints[1][1], self.data.waypoints[1][2])
+            local near_wp = H.distance_between(messenger.x, messenger.y, self.data.waypoints[1][1], self.data.waypoints[1][2])
             
-            -- if not set, set next location (first move)
-            if not self.data.next_step_x then
-                self.data.next_step_x = cfg.waypoint_x[1]
-                self.data.next_step_y = cfg.waypoint_y[1]
-            end
-
-            for i = 1,#cfg.waypoint_x do
-                -- if the messenger is on a waypoint...
-                if messenger.x==cfg.waypoint_x[i] and messenger.y==cfg.waypoint_y[i] then
-                    if i >= #cfg.waypoint_x then
-                        -- ... move him to the goal, if he's on the last waypoint...
-                        self.data.next_step_x = cfg.goal_x
-                        self.data.next_step_y = cfg.goal_y
-                    else
-                        -- ... else move him on the next waypoint
-                        self.data.next_step_x = cfg.waypoint_x[i+1]
-                        self.data.next_step_y = cfg.waypoint_y[i+1]
-                    end
+            if messenger.x == self.data.waypoints[1][1] and messenger.y == self.data.waypoints[1][2]
+                or near_wp <= 3 and unit
+            then
+                if 1 < #self.data.waypoints then
+                    table.remove(self.data.waypoints, 1)
                 end
-                -- ... if not...
-                if (self.data.next_step_x == cfg.waypoint_x[i] and self.data.next_step_y == cfg.waypoint_y[i]) then
-                    -- Check if the messenger is adjacent to a waypoint
-                    if H.distance_between( messenger.x,messenger.y,self.data.next_step_x,self.data.next_step_y ) == 1 then
-                        -- Check if we can reach the waypoint, if we can't then go to the next one.
-                        if not AH.can_reach(messenger, self.data.next_step_x, self.data.next_step_y) then
-                            if i >= #cfg.waypoint_x then
-                                self.data.next_step_x = cfg.goal_x
-                                self.data.next_step_y = cfg.goal_y
-                            else
-                                self.data.next_step_x = cfg.waypoint_x[i+1]
-                                self.data.next_step_y = cfg.waypoint_y[i+1]
-                            end
-                        end
+            end
+            
+            -- In case an enemy is on the waypoint hex:
+            local x, y = wesnoth.find_vacant_tile(self.data.waypoints[1][1], self.data.waypoints[1][2], messenger)
+            local next_hop = AH.next_hop(messenger, x, y)
+            -- Compare this to the "ideal path"
+            local path, cost = wesnoth.find_path(messenger, x, y, { ignore_units = 'yes' })
+            local opt_hop, opt_cost = {messenger.x, messenger.y}, 0
+            for i, p in ipairs(path) do
+                local sub_path, sub_cost = wesnoth.find_path(messenger, p[1], p[2])
+                    if sub_cost > messenger.moves then
+                    break
+                else
+                    local unit_in_way = wesnoth.get_unit(p[1], p[2])
+                    if not unit_in_way then
+                        opt_hop, nh_cost = p, sub_cost
                     end
                 end
             end
+            
+            --print(next_hop[1], next_hop[2], opt_hop[1], opt_hop[2])
+            -- Now compare how long it would take from the end of both of these options
+            local x1, y1 = messenger.x, messenger.y
+            wesnoth.put_unit(next_hop[1], next_hop[2], messenger)
+            local tmp, cost1 = wesnoth.find_path(messenger, x, y, {ignore_units = 'yes'})
+            wesnoth.put_unit(opt_hop[1], opt_hop[2], messenger)
+            local tmp, cost2 = wesnoth.find_path(messenger, x, y, {ignore_units = 'yes'})
+            wesnoth.put_unit(x1, y1, messenger)
+           --print(cost1, cost2)
 
-            -- perform the move
-            local x, y = wesnoth.find_vacant_tile(self.data.next_step_x, self.data.next_step_y, messenger)
-            AH.movefull_stopunit(ai, messenger, x, y)
-
+            -- If cost2 is significantly less, that means that the other path might overall be faster
+            -- even though it is currently blocked
+            if (cost2 + 4 < cost1) then next_hop = opt_hop end
+            --print(next_hop[1], next_hop[2])
+            
+            if next_hop and ((next_hop[1] ~= messenger.x) or (next_hop[2] ~= messenger.y)) then
+                ai.move(messenger, next_hop[1], next_hop[2])
+            else
+                ai.stopunit_moves(messenger)
+            end
+            
             -- We also test whether an attack without retaliation or with little damage is possible
             local targets = wesnoth.get_units {
                 { "filter_side", { {"enemy_of", {side = wesnoth.current.side} } } },
-                { "filter_adjacent", { id = id } }
+                { "filter_adjacent", { id = cfg.id } }
             }
-
+            
             local max_rating, best_tar, best_weapon = -9e99, {}, -1
             for i,t in ipairs(targets) do
                 local n_weapon = 0
@@ -253,22 +275,31 @@ return {
                     end
                 end
             end
-
+            
+            local target = wesnoth.get_units {
+                x = cfg.waypoint_x[#cfg.waypoint_x],
+                y = cfg.waypoint_y[#cfg.waypoint_y],
+                { "filter_side", { {"enemy_of", {side = wesnoth.current.side} } } },
+                { "filter_adjacent", { id = cfg.id } }
+            }[1]
+            
             if max_rating > -9e99 then
                 ai.attack(messenger, best_tar, best_weapon)
+            elseif target then
+                ai.attack(messenger, target)
             end
 
             -- Finally, make sure unit is really done after this
-            ai.stopunit_all(messenger)
+            ai.stopunit_attacks(messenger)
         end
 
         -----------------------
 
-        function messenger_escort:other_move_eval()
+        function messenger_escort:other_move_eval(cfg)
             -- Move other units close to messenger, and in between messenger and enemies
             -- The messenger has moved at this time, so we don't need to exclude him
             -- But we check that he exist (not for this scenario, but for others)
-            local messenger = wesnoth.get_units{ side = wesnoth.current.side, id = id }[1]
+            local messenger = wesnoth.get_units{ side = wesnoth.current.side, id = cfg.id }[1]
             if (not messenger) then return 0 end
 
             local my_units = wesnoth.get_units{ side = wesnoth.current.side, formula = '$this_unit.moves > 0' }

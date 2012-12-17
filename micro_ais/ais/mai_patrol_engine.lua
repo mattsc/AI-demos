@@ -36,10 +36,12 @@ return {
             while patrol.moves > 0 do
                 local enemies = wesnoth.get_units{ id = cfg.attack, { "filter_adjacent", { id = cfg.id } } }
                 if next(enemies) then break end
+                local ally = wesnoth.get_units{ x = self.data.next_step_x, y = self.data.next_step_y, { "filter_adjacent", { id = cfg.id } } }[1]
                 for i = 1,#cfg.waypoint_x do
-                    local ally = wesnoth.get_units{ x = self.data.next_step_x, y = self.data.next_step_y, { "filter_adjacent", { id = cfg.id } } }[1]
                     -- if the patrol is on a waypoint or adjacent to one that is occupied...
-                    if patrol.x == cfg.waypoint_x[i] and patrol.y == cfg.waypoint_y[i] or ally and (ally.x == cfg.waypoint_x[i] and ally.y == cfg.waypoint_y[i]) then
+                    if patrol.x == cfg.waypoint_x[i] and patrol.y == cfg.waypoint_y[i] 
+                        or ally and (ally.x == cfg.waypoint_x[i] and ally.y == cfg.waypoint_y[i])
+                    then
                         if i >= #cfg.waypoint_x then
                             -- ... move him to the first one, if he's on the last waypoint...
                             self.data.next_step_x = cfg.waypoint_x[1]
