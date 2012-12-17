@@ -382,13 +382,15 @@ return {
             local unit_attack_type_count = {} -- The attack types a unit will use
             local unit_attack_range_count = {} -- The ranges a unit will use
             local enemy_type_count = 0
+            local recruit_count = {}
+            for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
+                recruit_count[recruit_id] = #(AH.get_live_units { side = wesnoth.current.side, type = recruit_id, canrecruit = 'no' })
+            end
+
             for i, unit_type in ipairs(enemy_types) do
                 enemy_type_count = enemy_type_count + 1
                 for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
                     local analysis = analyze_enemy_unit(unit_type, recruit_id)
-
-                    -- This line should be moved out of the loop!
-                    local recruit_count = #(AH.get_live_units { side = wesnoth.current.side, type = recruit_id, canrecruit = 'no' })
 
                     if recruit_effectiveness[recruit_id] == nil then
                         recruit_effectiveness[recruit_id] = {damage = 0, poison_damage = 0}
@@ -406,13 +408,13 @@ return {
                     if attack_type_count[attack_type] == nil then
                         attack_type_count[attack_type] = 0
                     end
-                    attack_type_count[attack_type] = attack_type_count[attack_type] + recruit_count
+                    attack_type_count[attack_type] = attack_type_count[attack_type] + recruit_count[recruit_id]
 
                     local attack_range = analysis.defense.attack.range
                     if attack_range_count[attack_range] == nil then
                         attack_range_count[attack_range] = 0
                     end
-                    attack_range_count[attack_range] = attack_range_count[attack_range] + recruit_count
+                    attack_range_count[attack_range] = attack_range_count[attack_range] + recruit_count[recruit_id]
 
                     if unit_attack_type_count[recruit_id] == nil then
                         unit_attack_type_count[recruit_id] = {}
