@@ -99,7 +99,7 @@ return {
 
             -- (mx,my) is the position to move to
             if (mx ~= unit.x or my ~= unit.y) then
-                ai.move(unit, mx, my)
+                AH.movefull_stopunit(ai, unit, mx, my)
             end
 
             -- Get unit again, just in case it was killed by a moveto event
@@ -205,9 +205,9 @@ return {
                 -- If a valid hex was found: move there and attack
                 if (best_defense ~= -9999) then
                     --print("Attack at:",attack_loc[1],attack_loc[2],best_defense)
-                    ai.move(unit, attack_loc[1],attack_loc[2])
+                    AH.movefull_stopunit(ai, unit, attack_loc)
                     -- There should be an ai.check_attack_action() here in case something weird is
-                    -- done in a 'moveto' event.  Not implemented yet in Lua AI.
+                    -- done in a 'moveto' event.
                     ai.attack(unit, target)
                 else  -- otherwise move toward that enemy
                     --print("Cannot reach target, moving toward it")
