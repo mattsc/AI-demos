@@ -52,7 +52,8 @@ return {
             if unit then return 300000 end
             return 0
         end
-        -- id, hunt_x, hunt_y, home_x, home_y, rest_turns
+
+        -- cfg parameters: id, hunt_x, hunt_y, home_x, home_y, rest_turns, show_messages
         function animals:hunt_and_rest_exec(cfg)
             -- Unit with the given ID goes on a hunt, doing a random wander in area given by
             -- hunt_x,hunt_y (ranges), then retreats to
@@ -127,7 +128,9 @@ return {
                     unit.variables.x = nil
                     unit.variables.y = nil
                     unit.variables.hunting_status = 'return'
-                    W.message { speaker = unit.id, message = 'Now that I have eaten, I will go back home.' }
+                    if cfg.show_messages then
+                        W.message { speaker = unit.id, message = 'Now that I have eaten, I will go back home.' }
+                    end
                 end
 
                 -- At this point, issue a 'return', so that no other action takes place this turn
@@ -148,7 +151,9 @@ return {
                     if (H.distance_between(cfg.home_x, cfg.home_y, next_hop[1], next_hop[2]) == 1) then
                         local enemy = wesnoth.get_unit(cfg.home_x, cfg.home_y)
                         if enemy and wesnoth.is_enemy(enemy.side, unit.side) then
-                            W.message { speaker = unit.id, message = 'Get out of my pool!' }
+                            if cfg.show_messages then
+                                W.message { speaker = unit.id, message = 'Get out of my home!' }
+                            end
                             ai.attack(unit, enemy)
                         end
                     end
@@ -161,7 +166,9 @@ return {
                 if unit.valid and (unit.x == cfg.home_x) and (unit.y == cfg.home_y) then
                     unit.variables.hunting_status = 'resting'
                     unit.variables.resting_until = wesnoth.current.turn + cfg.rest_turns
-                    W.message { speaker = unit.id, message = 'I made it home - resting now until the end of Turn ' .. unit.variables.resting_until .. ' or until fully healed.' }
+                    if cfg.show_messages then
+                        W.message { speaker = unit.id, message = 'I made it home - resting now until the end of Turn ' .. unit.variables.resting_until .. ' or until fully healed.' }
+                    end
                 end
 
                 -- At this point, issue a 'return', so that no other action takes place this turn
@@ -180,7 +187,9 @@ return {
                 if unit.valid and (unit.hitpoints >= unit.max_hitpoints) and (unit.variables.resting_until <= wesnoth.current.turn) then
                     unit.variables.hunting_status = nil
                     unit.variables.resting_until = nil
-                    W.message { speaker = unit.id, message = 'I am done resting.  It is time to go hunting again next turn.' }
+                    if cfg.show_messages then
+                        W.message { speaker = unit.id, message = 'I am done resting.  It is time to go hunting again next turn.' }
+                    end
                 end
                 return
             end
