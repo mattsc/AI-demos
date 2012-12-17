@@ -286,6 +286,7 @@ return {
                 return 0
             end
 
+            -- Check for space to recruit a unit
             get_current_castle(leader, data)
             local no_space = true
             for i,c in ipairs(data.castle.locs) do
@@ -297,6 +298,13 @@ return {
             end
             if no_space then
                 return 0
+            end
+
+            -- Check for minimal recruit option
+            if wesnoth.current.turn == 1 and params.min_turn_1_recruit and params.min_turn_1_recruit() then
+                if not get_village_target(leader, data)[1] then
+                    return 0
+                end
             end
 
             if data.recruit == nil then
@@ -502,7 +510,10 @@ return {
             get_current_castle(leader, data)
 
             local best_hex, village = get_village_target(leader, data)
-            if not village[1] then
+            if village[1] then
+                table.insert(data.castle.assigned_villages_x, village[1])
+                table.insert(data.castle.assigned_villages_y, village[2])
+            else
                 -- no available village, look for hex closest to enemy leader
                 local max_rating = -1
                 for i,c in ipairs(data.castle.locs) do
@@ -787,8 +798,6 @@ return {
                 end
             end
 
-            table.insert(data.castle.assigned_villages_x, target[1])
-            table.insert(data.castle.assigned_villages_y, target[2])
             data.castle.loose_gold_limit = math.floor(wesnoth.sides[wesnoth.current.side].gold/village_count + 0.5)
 
             return hex, target

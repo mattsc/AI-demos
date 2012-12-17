@@ -36,7 +36,10 @@ return {
 
         ------- Recruit CA --------------
 
-        local params = { score_function = (function() return 300000 end) }
+        local params = {
+            score_function = (function() return 300000 end),
+            min_turn_1_recruit = (function() return generic_rush:castle_switch_eval() > 0 end)
+        }
         wesnoth.require("~add-ons/AI-demos/lua/generic-recruit_engine.lua").init(ai, generic_rush, params)
 
         -------- Castle Switch CA --------------
@@ -90,7 +93,7 @@ return {
             -- Look for the best keep
             local best_score, best_loc = 0, {}
             for i,loc in ipairs(keeps) do
-                -- Only consider keeps within 3 turns movement
+                -- Only consider keeps within 2 turns movement
                 local path, cost = wesnoth.find_path(leader, loc[1], loc[2])
                 local score = 0
                 -- Prefer closer keeps to enemy
