@@ -64,8 +64,8 @@ return {
             for i,b in ipairs(best_pos) do
 
                 -- weighting based on distance from 'seek' and 'avoid'
-                local ds = AH.generalized_distance(b[1], b[2], tonumber(cfg.seek_x), tonumber(cfg.seek_y))
-                local da = AH.generalized_distance(b[1], b[2], tonumber(cfg.avoid_x), tonumber(cfg.avoid_y))
+                local ds = AH.generalized_distance(b[1], b[2], cfg.seek_x, cfg.seek_y)
+                local da = AH.generalized_distance(b[1], b[2], cfg.avoid_x, cfg.avoid_y)
                 --items.place_image(b[1], b[2], "items/ring-red.png")
                 local value = 1 / (ds+1) - 1 / (da+1)^2 * 0.75
 
