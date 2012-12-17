@@ -237,6 +237,21 @@ return {
         end
 
         function get_hp_ratio_with_gold()
+            function sum_gold_for_sides(side_filter)
+                -- sum positive amounts of gold for a set of sides
+                -- positive only because it is used to estimate the number of enemy units that could appear
+                -- and negative numbers should't subtract from the number of units on the map
+                local gold = 0
+                local sides = wesnoth.get_sides(side_filter)
+                for i,s in ipairs(sides) do
+                    if s.gold > 0 then
+                        gold = gold + s.gold
+                    end
+                end
+
+                return gold
+            end
+
             -- Hitpoint ratio of own units / enemy units
             -- Also convert available gold to a hp estimate
             my_units = AH.get_live_units {
@@ -250,13 +265,8 @@ return {
             for i,u in ipairs(my_units) do my_hp = my_hp + u.hitpoints end
             for i,u in ipairs(enemies) do enemy_hp = enemy_hp + u.hitpoints end
 
-            my_hp = my_hp + wesnoth.sides[wesnoth.current.side].gold*2.3
-            local enemy_gold = 0
-            local enemies = wesnoth.get_sides {{"enemy_of", {side = wesnoth.current.side} }}
-            for i,s in ipairs(enemies) do
-                enemy_gold = enemy_gold + s.gold
-            end
-            enemy_hp = enemy_hp+enemy_gold*2.3
+            my_hp = my_hp + sum_gold_for_sides({{"allied_with", {side = wesnoth.current.side} }})*2.3
+            enemy_hp = enemy_hp+sum_gold_for_sides({{"enemy_of", {side = wesnoth.current.side} }})*2.3
             hp_ratio = my_hp/(enemy_hp + 1e-6)
 
             return hp_ratio
