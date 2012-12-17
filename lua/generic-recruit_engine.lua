@@ -22,14 +22,6 @@ return {
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
-        local get_next_id = (function()
-            local next_id = 0
-            return function()
-                next_id = next_id + 1
-                return next_id
-            end
-        end)()
-
         local recruit_data = {}
 
         local get_hp_efficiency = function (table, recruit_id)
@@ -46,7 +38,6 @@ return {
                 type = recruit_id,
                 random_traits = false,
                 name = "X",
-                id = recruit_id .. get_next_id(),
                 random_gender = false
             }
             -- Find the best regeneration ability and use it to estimate hp regained by regeneration
@@ -205,7 +196,6 @@ return {
                 type = enemy_type,
                 random_traits = false,
                 name = "X",
-                id = enemy_type .. get_next_id(),
                 random_gender = false
             }
             local can_poison = living(unit) or wesnoth.unit_ability(unit, 'regenerate')
@@ -216,7 +206,6 @@ return {
                 type = ally_type,
                 random_traits = false,
                 name = "X",
-                id = ally_type .. get_next_id(),
                 random_gender = false
             }
             local can_poison_retaliation = living(recruit) or wesnoth.unit_ability(recruit, 'regenerate')
@@ -573,7 +562,6 @@ return {
                         y = target_hex[2],
                         random_traits = false,
                         name = "X",
-                        id = recruit_id .. get_next_id(),
                         random_gender = false
                     }
                 else
@@ -583,7 +571,6 @@ return {
                         y = best_hex[2],
                         random_traits = false,
                         name = "X",
-                        id = recruit_id .. get_next_id(),
                         random_gender = false
                     }
                 end
@@ -816,7 +803,6 @@ return {
                         side = wesnoth.current.side,
                         random_traits = false,
                         name = "X",
-                        id = id .. get_next_id(),
                         random_gender = false
                     })
                 end
