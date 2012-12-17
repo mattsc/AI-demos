@@ -240,7 +240,7 @@ return {
             end
 
             -- Get unit again, just in case something was done to it in a 'moveto' or 'attack' event
-            local unit = wesnoth.get_units{ id = id }[1]
+            local unit = wesnoth.get_units{ id = cfg.id }[1]
             if unit then ai.stopunit_moves(unit) end
             -- If there are attacks left and unit ended up next to an enemy, we'll leave this to RCA AI
         end
