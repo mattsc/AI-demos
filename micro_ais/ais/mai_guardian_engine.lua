@@ -108,7 +108,7 @@ return {
         end
 
         function guardians:return_guardian_eval(cfg)
-            local unit = wesnoth.get_units { id=cfg.id }[1]
+            local unit = wesnoth.get_units { id = cfg.id }[1]
 
             -- Don't need to check if unit exists as this is a sticky CA
             if (unit.x~=cfg.to_x or unit.y~=cfg.to_y) then
@@ -119,7 +119,7 @@ return {
         end
 
         function guardians:return_guardian_exec(cfg)
-            local unit = wesnoth.get_units { id=cfg.id }[1]
+            local unit = wesnoth.get_units { id = cfg.id }[1]
             --print("Exec guardian move",unit.id)
 
             local nh = AH.next_hop(unit, cfg.to_x, cfg.to_y)
@@ -129,7 +129,7 @@ return {
         end
 
         function guardians:stationed_guardian_eval(cfg)
-            local unit = wesnoth.get_units { id=cfg.id }[1]
+            local unit = wesnoth.get_units { id = cfg.id }[1]
 
             -- Don't need to check if unit exists as this is a sticky CA
             if (unit.moves > 0) then
@@ -143,8 +143,8 @@ return {
         function guardians:stationed_guardian_exec(cfg)
             -- (s_x,s_y): coordinates where unit is stationed; tries to move here if there is nobody to attack
             -- (g_x,g_y): location that the unit guards
-            --print ("Exec",id)
-            local unit = wesnoth.get_units { id=cfg.id }[1]
+            --print ("Exec",cfg.id)
+            local unit = wesnoth.get_units { id = cfg.id }[1]
 
             -- find if there are enemies within 'radius'
             local enemies = wesnoth.get_units {
