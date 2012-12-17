@@ -177,7 +177,7 @@ return {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
 
-            local villages = wesnoth.get_locations { terrain = '*^V*' }
+            local villages = wesnoth.get_villages()
             -- Just in case:
             if (not villages[1]) then
                 AH.done_eval_messages(start_time, ca_name)

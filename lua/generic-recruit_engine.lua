@@ -705,8 +705,7 @@ return {
                 exclude_x = table.concat(data.castle.assigned_villages_x, ",")
                 exclude_y = table.concat(data.castle.assigned_villages_y, ",")
             end
-            local villages = wesnoth.get_locations {
-                terrain = '*^V*',
+            local villages = wesnoth.get_villages {
                 owner_side = 0,
                 { "and", {
                     radius = fastest_unit_speed,
