@@ -1674,11 +1674,13 @@ return {
                                 best_hex, min_dist = l,d
                             end
                         end
-                        local x, y = wesnoth.find_vacant_tile(best_hex[1], best_hex[2], unit)
-                        local next_hop = AH.next_hop(unit, x, y)
-                        --print(next_hop[1], next_hop[2])
-                        if (unit.x ~= next_hop[1]) or (unit.y ~= next_hop[2]) then
-                            ai.move(unit, next_hop[1], next_hop[2])
+                        if (best_hex[1]) then
+                            local x,y = wesnoth.find_vacant_tile(best_hex[1], best_hex[2], unit)
+                            local next_hop = AH.next_hop(unit, x, y)
+                            --print(next_hop[1], next_hop[2])
+                            if (unit.x ~= next_hop[1]) or (unit.y ~= next_hop[2]) then
+                                ai.move(unit, next_hop[1], next_hop[2])
+                            end
                         end
                     end
                 end
