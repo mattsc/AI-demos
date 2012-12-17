@@ -1008,6 +1008,7 @@ return {
 
         function animals:move_swarm_exec(cfg)
             local min_dist = cfg.min_distance or 5
+            local vision_radius = cfg.vision_radius or 8
 
             -- If no close enemies, swarm will move semi-randomly, staying close together, but away from enemies
             local all_units = wesnoth.get_units { side = wesnoth.current.side }
@@ -1031,8 +1032,6 @@ return {
             table.remove(units, rand)
 
             -- Find best place for that unit to move to
-            local vision_radius = cfg.vision_radius or (unit.moves + 1) -- otherwise swarms may split up
-
             local best_hex = AH.find_best_move(unit, function(x, y)
                 local rating = 0
 
