@@ -711,7 +711,7 @@ return {
             -- TODO get list of villages not owned by allies instead
             -- this may have false positives (villages that can't be reached due to difficult/impassible terrain)
             local exclude_x, exclude_y = "0", "0"
-            if data.castle.assigned_villages_x ~= nil then
+            if data.castle.assigned_villages_x ~= nil and data.castle.assigned_villages_x[1] then
                 exclude_x = table.concat(data.castle.assigned_villages_x, ",")
                 exclude_y = table.concat(data.castle.assigned_villages_y, ",")
             end
@@ -732,13 +732,17 @@ return {
             if not data.castle.assigned_villages_x then
                 data.castle.assigned_villages_x = {}
                 data.castle.assigned_villages_y = {}
-                for i,v in ipairs(villages) do
-                    local path, cost = wesnoth.find_path(leader, v[1], v[2])
-                    if cost <= leader.max_moves then
-                        table.insert(data.castle.assigned_villages_x, v[1])
-                        table.insert(data.castle.assigned_villages_y, v[2])
-                        table.remove(villages, i)
-                        break
+
+                if not params.leader_takes_village or params.leader_takes_village() then
+                    -- skip one village for the leader
+                    for i,v in ipairs(villages) do
+                        local path, cost = wesnoth.find_path(leader, v[1], v[2])
+                        if cost <= leader.max_moves then
+                            table.insert(data.castle.assigned_villages_x, v[1])
+                            table.insert(data.castle.assigned_villages_y, v[2])
+                            table.remove(villages, i)
+                            break
+                        end
                     end
                 end
             end
@@ -746,7 +750,7 @@ return {
             local village_count = #villages
             local test_units = get_test_units()
             local num_recruits = #test_units
-
+print(village_count)
             local width,height,border = wesnoth.get_map_size()
             for i,v in ipairs(villages) do
                 local close_castle_hexes = wesnoth.get_locations {
@@ -796,6 +800,7 @@ return {
                     table.insert(data.castle.assigned_villages_y, v[2])
                     village_count = village_count - 1
                 end
+
             end
 
             data.castle.loose_gold_limit = math.floor(wesnoth.sides[wesnoth.current.side].gold/village_count + 0.5)
