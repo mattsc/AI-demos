@@ -34,13 +34,17 @@ return {
             end
 
             while patrol.moves > 0 do
+                -- Check whether one of the enemies to be attacked is next to the patroller
+                -- If so, don't move, but attack that enemy
                 local enemies = wesnoth.get_units{ id = cfg.attack, { "filter_adjacent", { id = cfg.id } } }
                 if next(enemies) then break end
-                local ally = wesnoth.get_units{ x = self.data.next_step_x, y = self.data.next_step_y, { "filter_adjacent", { id = cfg.id } } }[1]
+
+                -- Also check whether we're next to any unit (enemy or ally) which is on the next waypoint
+                local unit_on_wp = wesnoth.get_units{ x = self.data.next_step_x, y = self.data.next_step_y, { "filter_adjacent", { id = cfg.id } } }[1]
                 for i = 1,#cfg.waypoint_x do
-                    -- if the patrol is on a waypoint or adjacent to one that is occupied...
-                    if patrol.x == cfg.waypoint_x[i] and patrol.y == cfg.waypoint_y[i] 
-                        or ally and (ally.x == cfg.waypoint_x[i] and ally.y == cfg.waypoint_y[i])
+                    -- If the patrol is on a waypoint or adjacent to one that is occupied by any unit
+                    if patrol.x == cfg.waypoint_x[i] and patrol.y == cfg.waypoint_y[i]
+                        or unit_on_wp and (unit_on_wp.x == cfg.waypoint_x[i] and unit_on_wp.y == cfg.waypoint_y[i])
                     then
                         if i >= #cfg.waypoint_x then
                             -- ... move him to the first one, if he's on the last waypoint...
@@ -54,7 +58,7 @@ return {
                     end
                 end
 
-                -- perform the move
+                -- Move toward the next waypoint
                 local x, y = wesnoth.find_vacant_tile(self.data.next_step_x, self.data.next_step_y, patrol)
                 local nh = AH.next_hop(patrol, x, y)
                 if nh and ((nh[1] ~= patrol.x) or (nh[2] ~= patrol.y)) then
