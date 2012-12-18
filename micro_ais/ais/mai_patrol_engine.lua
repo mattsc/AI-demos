@@ -50,13 +50,19 @@ return {
                 }[1]
                 for i = 1,#cfg.waypoint_x do
                     -- If the patrol is on a waypoint or adjacent to one that is occupied by any unit
-                    if patrol.x == cfg.waypoint_x[i] and patrol.y == cfg.waypoint_y[i]
-                        or unit_on_wp and (unit_on_wp.x == cfg.waypoint_x[i] and unit_on_wp.y == cfg.waypoint_y[i])
+                    if ((patrol.x == cfg.waypoint_x[i]) and (patrol.y == cfg.waypoint_y[i]))
+                        or (unit_on_wp and ((unit_on_wp.x == cfg.waypoint_x[i]) and (unit_on_wp.y == cfg.waypoint_y[i])))
                     then
                         if i >= #cfg.waypoint_x then
-                            -- ... move him to the first one, if he's on the last waypoint...
-                            self.data.next_step_x = cfg.waypoint_x[1]
-                            self.data.next_step_y = cfg.waypoint_y[1]
+                            -- Move him to the first one, if he's on the last waypoint
+                            -- Unless cfg.one_time_only is set
+                            if cfg.one_time_only then
+                                self.data.next_step_x = cfg.waypoint_x[#cfg.waypoint_x]
+                                self.data.next_step_y = cfg.waypoint_y[#cfg.waypoint_x]
+                            else
+                                self.data.next_step_x = cfg.waypoint_x[1]
+                                self.data.next_step_y = cfg.waypoint_y[1]
+                            end
                         else
                             -- ... else move him on the next waypoint
                             self.data.next_step_x = cfg.waypoint_x[i+1]
@@ -65,17 +71,23 @@ return {
                     end
                 end
 
-                -- Move toward the next waypoint
-                local x, y = wesnoth.find_vacant_tile(self.data.next_step_x, self.data.next_step_y, patrol)
-                local nh = AH.next_hop(patrol, x, y)
-                if nh and ((nh[1] ~= patrol.x) or (nh[2] ~= patrol.y)) then
-                    ai.move(patrol, nh[1], nh[2])
-                else
+                -- If we're on the last waypoint on one_time_only is set, stop here
+                if cfg.one_time_only and
+                   (patrol.x == cfg.waypoint_x[#cfg.waypoint_x]) and (patrol.y == cfg.waypoint_y[#cfg.waypoint_x])
+                then
                     ai.stopunit_moves(patrol)
+                else  -- otherwise move toward next WP
+                    local x, y = wesnoth.find_vacant_tile(self.data.next_step_x, self.data.next_step_y, patrol)
+                    local nh = AH.next_hop(patrol, x, y)
+                    if nh and ((nh[1] ~= patrol.x) or (nh[2] ~= patrol.y)) then
+                        ai.move(patrol, nh[1], nh[2])
+                    else
+                        ai.stopunit_moves(patrol)
+                    end
                 end
             end
 
-             -- attack adjacent enemy (if specified)
+             -- Attack adjacent enemy (if specified)
             local enemies = wesnoth.get_units{
                 id = cfg.attack,
                 { "filter_adjacent", { id = cfg.id } },
