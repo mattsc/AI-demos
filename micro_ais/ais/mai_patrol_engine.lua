@@ -66,14 +66,26 @@ return {
                         or (unit_on_wp and ((unit_on_wp.x == wp[1]) and (unit_on_wp.y == wp[2])))
                     then
                         if (i == n_wp) then
-                            -- Move him to the first one, if he's on the last waypoint
+                            -- Move him to the first one (or reverse route), if he's on the last waypoint
                             -- Unless cfg.one_time_only is set
                             if cfg.one_time_only then
                                 self.data[patrol.id..'_x'] = waypoints[n_wp][1]
                                 self.data[patrol.id..'_y'] = waypoints[n_wp][2]
                             else
-                                self.data[patrol.id..'_x'] = waypoints[1][1]
-                                self.data[patrol.id..'_y'] = waypoints[1][2]
+                                -- Go back to first WP or reverse direction
+                                if cfg.out_and_back then
+                                    self.data[patrol.id..'_x'] = waypoints[n_wp-1][1]
+                                    self.data[patrol.id..'_y'] = waypoints[n_wp-1][2]
+
+                                    -- We also need to reverse the waypoints right here, as this might not be the end of the move
+                                    self.data[patrol.id..'_reverse'] = not self.data[patrol.id..'_reverse']
+                                    local tmp_wp = {}
+                                    for i,wp in ipairs(waypoints) do tmp_wp[n_wp-i+1] = wp end
+                                    waypoints = tmp_wp
+                                else
+                                    self.data[patrol.id..'_x'] = waypoints[1][1]
+                                    self.data[patrol.id..'_y'] = waypoints[1][2]
+                                end
                             end
                         else
                             -- ... else move him on the next waypoint
@@ -93,17 +105,6 @@ return {
                     local nh = AH.next_hop(patrol, x, y)
                     if nh and ((nh[1] ~= patrol.x) or (nh[2] ~= patrol.y)) then
                         ai.move(patrol, nh[1], nh[2])
-
-                        -- If we get to the last waypoint, and cfg.out_and_back is set, reverse direction
-                        if cfg.out_and_back and
-                            (nh[1] == waypoints[n_wp][1]) and (nh[2] == waypoints[n_wp][2])
-                        then
-                            self.data[patrol.id..'_reverse'] = not self.data[patrol.id..'_reverse']
-                            -- We also need to reverse the waypoints right here, as this might not be the end of the move
-                            local tmp_wp = {}
-                            for i,wp in ipairs(waypoints) do tmp_wp[n_wp-i+1] = wp end
-                            waypoints = tmp_wp
-                        end
                     else
                         ai.stopunit_moves(patrol)
                     end
