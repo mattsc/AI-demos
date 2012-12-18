@@ -750,6 +750,14 @@ return {
             local village_count = #villages
             local test_units = get_test_units()
             local num_recruits = #test_units
+            local total_village_distance = {}
+            for j,c in ipairs(data.castle.locs) do
+                c_index = c[1] + c[2]*1000
+                total_village_distance[c_index] = 0
+                for i,v in ipairs(villages) do
+                    total_village_distance[c_index] = total_village_distance[c_index] + H.distance_between(c[1], c[2], v[1], v[2])
+                end
+            end
 
             local width,height,border = wesnoth.get_map_size()
             for i,v in ipairs(villages) do
@@ -782,7 +790,9 @@ return {
                         end
                         distance = distance / num_recruits
 
-                        if distance < village_shortest_distance then
+                        if distance < village_shortest_distance
+                        or (total_village_distance[c[1] + c[2]*1000] > total_village_distance[village_best_hex[1]+village_best_hex[2]*1000] and distance == village_shortest_distance)
+                        then
                             village_best_hex = c
                             village_shortest_distance = distance
                         end
