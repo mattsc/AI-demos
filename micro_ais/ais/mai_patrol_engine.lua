@@ -100,10 +100,8 @@ return {
                 end
             end
 
-            -- Check if patrol is not killed
-            if (type(patrol) ~= "userdata") then
-                ai.stopunit_all(patrol)
-            end
+            -- Check that patrol is not killed
+            if patrol and patrol.valid then ai.stopunit_all(patrol) end
         end
 
         return patrol
