@@ -805,6 +805,7 @@ return {
                     target = v
                     shortest_distance = village_shortest_distance
                 end
+
                 if not viable_village then
                     -- this village could not be reached by any unit
                     -- eliminate it from consideration
@@ -812,7 +813,6 @@ return {
                     table.insert(data.castle.assigned_villages_y, v[2])
                     village_count = village_count - 1
                 end
-
             end
 
             data.castle.loose_gold_limit = math.floor(wesnoth.sides[wesnoth.current.side].gold/village_count + 0.5)
@@ -828,7 +828,7 @@ return {
                 local movetype = wesnoth.unit_types[id].__cfg.movement_type
                 if custom_movement
                 or (not movetypes[movetype])
-                or (movetypes[movetype] > wesnoth.unit_types[id].max_moves)
+                or (movetypes[movetype] < wesnoth.unit_types[id].max_moves)
                 then
                     if not custom_movement then
                         movetypes[movetype] = wesnoth.unit_types[id].max_moves
