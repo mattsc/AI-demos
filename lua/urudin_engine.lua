@@ -11,7 +11,7 @@ return {
                 local mhp, hp = urudin.max_hitpoints, urudin.hitpoints
                 local turn = wesnoth.current.turn
                 if (turn >= 5) or (hp < mhp / 2) then
-                    AH.movefull_stopunit(ai, urudin, 35, 7)
+                    AH.movefull_stopunit(ai, urudin, 33, 8)
                 end
             end
         end
