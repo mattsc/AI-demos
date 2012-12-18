@@ -750,7 +750,7 @@ return {
             local village_count = #villages
             local test_units = get_test_units()
             local num_recruits = #test_units
-print(village_count)
+
             local width,height,border = wesnoth.get_map_size()
             for i,v in ipairs(villages) do
                 local close_castle_hexes = wesnoth.get_locations {
