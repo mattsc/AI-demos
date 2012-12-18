@@ -100,7 +100,7 @@ return {
 
             -- Otherwise attack adjacent enemy (if specified)
             if (not next(enemies)) then
-                local enemies = wesnoth.get_units{
+                enemies = wesnoth.get_units{
                     id = cfg.attack,
                     { "filter_adjacent", { id = cfg.id } },
                     { "filter_side", {{ "enemy_of", { side = wesnoth.current.side } }} }
