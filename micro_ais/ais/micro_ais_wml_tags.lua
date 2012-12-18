@@ -666,6 +666,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
             -- Optional keys
             cfg_p.attack = cfg.attack
             cfg_p.one_time_only = cfg.one_time_only
+            cfg_p.out_and_back = cfg.out_and_back
         end
 
         local unit = wesnoth.get_units { id=cfg_p.id }[1]

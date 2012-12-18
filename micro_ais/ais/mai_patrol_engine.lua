@@ -22,14 +22,18 @@ return {
             cfg.waypoint_x = AH.split(cfg.waypoint_x, ",")
             cfg.waypoint_y = AH.split(cfg.waypoint_y, ",")
 
-            local waypoints = {}
-            for i = 1,#cfg.waypoint_x do
-                waypoints[i] = { tonumber(cfg.waypoint_x[i]), tonumber(cfg.waypoint_y[i]) }
+            local n_wp = #cfg.waypoint_x  -- just for convenience
+
+            if (not self.data['waypoints_' .. patrol.id]) then
+                self.data['waypoints_' .. patrol.id] = {}
+                for i = 1,n_wp do
+                    self.data['waypoints_' .. patrol.id][i] = { tonumber(cfg.waypoint_x[i]), tonumber(cfg.waypoint_y[i]) }
+                end
             end
 
             -- if not set, set next location (first move)
-            if not self.data['next_step_' .. patrol.id] then
-                self.data['next_step_' .. patrol.id] = waypoints[1]
+            if (not self.data['next_step_' .. patrol.id]) then
+                self.data['next_step_' .. patrol.id] = self.data['waypoints_' .. patrol.id][1]
             end
 
             while patrol.moves > 0 do
@@ -49,29 +53,30 @@ return {
                     { "filter_adjacent", { id = cfg.id } }
                 }[1]
 
-                for i,wp in ipairs(waypoints) do
+                for i,wp in ipairs(self.data['waypoints_' .. patrol.id]) do
                     -- If the patrol is on a waypoint or adjacent to one that is occupied by any unit
                     if ((patrol.x == wp[1]) and (patrol.y == wp[2]))
                         or (unit_on_wp and ((unit_on_wp.x == wp[1]) and (unit_on_wp.y == wp[2])))
                     then
-                        if i >= #waypoints then
+                        if (i == n_wp) then
                             -- Move him to the first one, if he's on the last waypoint
                             -- Unless cfg.one_time_only is set
                             if cfg.one_time_only then
-                                self.data['next_step_' .. patrol.id] = waypoints[#waypoints]
+                                self.data['next_step_' .. patrol.id] = self.data['waypoints_' .. patrol.id][n_wp]
                             else
-                                self.data['next_step_' .. patrol.id] = waypoints[1]
+                                self.data['next_step_' .. patrol.id] = self.data['waypoints_' .. patrol.id][1]
                             end
                         else
                             -- ... else move him on the next waypoint
-                            self.data['next_step_' .. patrol.id] = waypoints[i+1]
+                            self.data['next_step_' .. patrol.id] = self.data['waypoints_' .. patrol.id][i+1]
                         end
                     end
                 end
 
                 -- If we're on the last waypoint on one_time_only is set, stop here
                 if cfg.one_time_only and
-                   (patrol.x == waypoints[#waypoints][1]) and (patrol.y == waypoints[#waypoints][2])
+                    (patrol.x == self.data['waypoints_' .. patrol.id][n_wp][1]) and
+                    (patrol.y == self.data['waypoints_' .. patrol.id][n_wp][2])
                 then
                     ai.stopunit_moves(patrol)
                 else  -- otherwise move toward next WP
@@ -79,6 +84,18 @@ return {
                     local nh = AH.next_hop(patrol, x, y)
                     if nh and ((nh[1] ~= patrol.x) or (nh[2] ~= patrol.y)) then
                         ai.move(patrol, nh[1], nh[2])
+
+                        -- If we get to the last waypoint, and cfg.out_and_back is set
+                        if cfg.out_and_back and
+                            (nh[1] == self.data['waypoints_' .. patrol.id][n_wp][1]) and
+                            (nh[2] == self.data['waypoints_' .. patrol.id][n_wp][2])
+                        then
+                            local tmp_wp = {}
+                            for i = 1,n_wp do
+                                tmp_wp[n_wp-i+1] = self.data['waypoints_' .. patrol.id][i]
+                            end
+                            self.data['waypoints_' .. patrol.id] = tmp_wp
+                        end
                     else
                         ai.stopunit_moves(patrol)
                     end
@@ -89,8 +106,8 @@ return {
             local enemies = {}
             if cfg.one_time_only then
                 enemies = wesnoth.get_units{
-                    x = waypoints[#waypoints][1],
-                    y = waypoints[#waypoints][2],
+                    x = self.data['waypoints_' .. patrol.id][n_wp][1],
+                    y = self.data['waypoints_' .. patrol.id][n_wp][2],
                     { "filter_adjacent", { id = cfg.id } },
                     { "filter_side", {{ "enemy_of", { side = wesnoth.current.side } }} }
                 }
