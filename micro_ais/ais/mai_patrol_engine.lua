@@ -28,7 +28,9 @@ return {
             end
 
             -- if not set, set next location (first move)
-            if not self.data.next_step then self.data.next_step = waypoints[1] end
+            if not self.data['next_step_' .. patrol.id] then
+                self.data['next_step_' .. patrol.id] = waypoints[1]
+            end
 
             while patrol.moves > 0 do
                 -- Check whether one of the enemies to be attacked is next to the patroller
@@ -42,7 +44,8 @@ return {
 
                 -- Also check whether we're next to any unit (enemy or ally) which is on the next waypoint
                 local unit_on_wp = wesnoth.get_units {
-                    x = self.data.next_step[1], y = self.data.next_step[2],
+                    x = self.data['next_step_' .. patrol.id][1],
+                    y = self.data['next_step_' .. patrol.id][2],
                     { "filter_adjacent", { id = cfg.id } }
                 }[1]
 
@@ -55,13 +58,13 @@ return {
                             -- Move him to the first one, if he's on the last waypoint
                             -- Unless cfg.one_time_only is set
                             if cfg.one_time_only then
-                                self.data.next_step = waypoints[#waypoints]
+                                self.data['next_step_' .. patrol.id] = waypoints[#waypoints]
                             else
-                                self.data.next_step = waypoints[1]
+                                self.data['next_step_' .. patrol.id] = waypoints[1]
                             end
                         else
                             -- ... else move him on the next waypoint
-                            self.data.next_step = waypoints[i+1]
+                            self.data['next_step_' .. patrol.id] = waypoints[i+1]
                         end
                     end
                 end
@@ -72,7 +75,7 @@ return {
                 then
                     ai.stopunit_moves(patrol)
                 else  -- otherwise move toward next WP
-                    local x, y = wesnoth.find_vacant_tile(self.data.next_step[1], self.data.next_step[2], patrol)
+                    local x, y = wesnoth.find_vacant_tile(self.data['next_step_' .. patrol.id][1], self.data['next_step_' .. patrol.id][2], patrol)
                     local nh = AH.next_hop(patrol, x, y)
                     if nh and ((nh[1] ~= patrol.x) or (nh[2] ~= patrol.y)) then
                         ai.move(patrol, nh[1], nh[2])
