@@ -36,11 +36,18 @@ return {
             while patrol.moves > 0 do
                 -- Check whether one of the enemies to be attacked is next to the patroller
                 -- If so, don't move, but attack that enemy
-                local enemies = wesnoth.get_units{ id = cfg.attack, { "filter_adjacent", { id = cfg.id } } }
+                local enemies = wesnoth.get_units {
+                    id = cfg.attack,
+                    { "filter_adjacent", { id = cfg.id } },
+                    { "filter_side", {{ "enemy_of", { side = wesnoth.current.side } }} }
+                }
                 if next(enemies) then break end
 
                 -- Also check whether we're next to any unit (enemy or ally) which is on the next waypoint
-                local unit_on_wp = wesnoth.get_units{ x = self.data.next_step_x, y = self.data.next_step_y, { "filter_adjacent", { id = cfg.id } } }[1]
+                local unit_on_wp = wesnoth.get_units {
+                    x = self.data.next_step_x, y = self.data.next_step_y,
+                    { "filter_adjacent", { id = cfg.id } }
+                }[1]
                 for i = 1,#cfg.waypoint_x do
                     -- If the patrol is on a waypoint or adjacent to one that is occupied by any unit
                     if patrol.x == cfg.waypoint_x[i] and patrol.y == cfg.waypoint_y[i]
@@ -69,9 +76,13 @@ return {
             end
 
              -- attack adjacent enemy (if specified)
-             local enemies = wesnoth.get_units{ id = cfg.attack, { "filter_adjacent", { id = cfg.id } } }
-             if next(enemies) then
-                 for i,v in ipairs(enemies) do
+            local enemies = wesnoth.get_units{
+                id = cfg.attack,
+                { "filter_adjacent", { id = cfg.id } },
+                { "filter_side", {{ "enemy_of", { side = wesnoth.current.side } }} }
+            }
+            if next(enemies) then
+                for i,v in ipairs(enemies) do
                     ai.attack(patrol, v)
                     break
                 end
