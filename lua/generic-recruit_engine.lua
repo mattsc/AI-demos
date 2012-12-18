@@ -91,6 +91,7 @@ return {
                 -- In some cases (like poison), this approximation is preferred to the actual value.
                 local best_damage = 0
                 local best_attack = nil
+                local poison_damage = 0
                 -- Steadfast is currently disabled because it biases the AI too much in favour of Guardsmen
                 -- Basically it sees the defender stats for damage and wrongfully concludes that the unit is amazing
                 -- This may be rectifiable by looking at retaliation damage as well.
@@ -165,7 +166,6 @@ return {
                     end
                     local attack_damage = base_damage*attack.number*defense-drain_recovery
 
-                    local poison_damage = 0
                     if poison then
                         -- Add poison damage * probability of poisoning
                         poison_damage = 8*(1-((1-defense)^attack.number))
