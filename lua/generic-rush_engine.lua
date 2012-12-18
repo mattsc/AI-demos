@@ -92,7 +92,10 @@ return {
                     x = leader.x, y = leader.y, terrain = "K*^*,*^Kov",
                     radius = 2,
                     { "filter_radius", { terrain = 'C*^*,K*^*,*^Kov,*^Cov' } }
-                }} -- That are not close and connected to a keep the leader is on
+                }}, -- That are not close and connected to a keep the leader is on
+                { "filter_adjacent_location", {
+                    terrain = 'C*^*,K*^*,*^Kov,*^Cov'
+                }} -- That are not one-hex keeps
             }
             if #keeps < 1 then
                 -- Skip if there aren't extra keeps to evaluate
