@@ -21,6 +21,7 @@ return {
         local W = H.set_wml_action_metatable {}
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
+        local LS = wesnoth.require "lua/location_set.lua"
 
         local recruit_data = {}
 
@@ -791,7 +792,8 @@ return {
                         distance = distance / num_recruits
 
                         if distance < village_shortest_distance
-                        or (total_village_distance[c[1] + c[2]*1000] > total_village_distance[village_best_hex[1]+village_best_hex[2]*1000] and distance == village_shortest_distance)
+                        or (distance == village_shortest_distance and distance < AH.no_path
+                            and total_village_distance[c[1] + c[2]*1000] > total_village_distance[village_best_hex[1]+village_best_hex[2]*1000])
                         then
                             village_best_hex = c
                             village_shortest_distance = distance
