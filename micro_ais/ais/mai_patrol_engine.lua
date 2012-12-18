@@ -87,12 +87,26 @@ return {
                 end
             end
 
-             -- Attack adjacent enemy (if specified)
-            local enemies = wesnoth.get_units{
-                id = cfg.attack,
-                { "filter_adjacent", { id = cfg.id } },
-                { "filter_side", {{ "enemy_of", { side = wesnoth.current.side } }} }
-            }
+            -- Attack unit on the last waypoint under all circumstances if cfg.one_time_only is set
+            local enemies = {}
+            if cfg.one_time_only then
+                enemies = wesnoth.get_units{
+                    x = cfg.waypoint_x[#cfg.waypoint_x],
+                    y = cfg.waypoint_y[#cfg.waypoint_x],
+                    { "filter_adjacent", { id = cfg.id } },
+                    { "filter_side", {{ "enemy_of", { side = wesnoth.current.side } }} }
+                }
+            end
+
+            -- Otherwise attack adjacent enemy (if specified)
+            if (not next(enemies)) then
+                local enemies = wesnoth.get_units{
+                    id = cfg.attack,
+                    { "filter_adjacent", { id = cfg.id } },
+                    { "filter_side", {{ "enemy_of", { side = wesnoth.current.side } }} }
+                }
+            end
+
             if next(enemies) then
                 for i,v in ipairs(enemies) do
                     ai.attack(patrol, v)
