@@ -823,15 +823,6 @@ return {
             end
         end
 
-        function animals:yeti_terrain(set)
-            -- Remove locations from LS that are not mountains or hills
-            set:iter( function(x, y, v)
-               local yeti_terr = wesnoth.match_location(x, y, { terrain = 'M*,M*^*,H*,H*^*' })
-               if (not yeti_terr) then set:remove(x, y) end
-            end)
-            return set
-        end
-
         function animals:big_eval(cfg)
             local units = wesnoth.get_units { side = wesnoth.current.side, type = cfg.type, formula = '$this_unit.moves > 0' }
 
@@ -846,7 +837,7 @@ return {
 
             local units = wesnoth.get_units { side = wesnoth.current.side, type = cfg.type, formula = '$this_unit.moves > 0' }
             local avoid = LS.of_pairs(wesnoth.get_locations { radius = 1,
-                { "filter", { type = 'Yeti,Giant Spider,Tarantula,Bear,Dog',
+                { "filter", { {"and", H.get_child(cfg, "avoid_type") },
                     { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
                 } }
             })
@@ -856,19 +847,7 @@ return {
                 -- Unit gets a new goal if none exist or on any move with 10% random chance
                 local r = AH.random(10)
                 if (not unit.variables.x) or (r == 1) then
-                    local locs = {}
-                    if (cfg.type == 'Bear') then
-                        locs = wesnoth.get_locations { x = '1-40', y = '1-18',
-                            { "not", { terrain = '*^X*,Wo' } },
-                            { "not", { x = unit.x, y = unit.y, radius = 12 } }
-                        }
-                    end
-                    if (cfg.type == 'Giant Spider,Tarantula') then
-                        locs = wesnoth.get_locations { terrain = 'H*' }
-                    end
-                    if (cfg.type == 'Yeti') then
-                        locs = wesnoth.get_locations { terrain = 'M*' }
-                    end
+                    local locs = wesnoth.get_locations(H.get_child(cfg, "goal_filter") )
                     local rand = AH.random(#locs)
                     --print(type, ': #locs', #locs, rand)
                     unit.variables.x, unit.variables.y = locs[rand][1], locs[rand][2]
@@ -877,9 +856,14 @@ return {
 
                 -- hexes the unit can reach
                 local reach_map = AH.get_reachable_unocc(unit)
-                -- If this is a yeti, we only keep mountain and hill terrain
-                if (cfg.type == 'Yeti') then self:yeti_terrain(reach_map) end
-
+                local wander_filter = H.get_child(cfg, "wander_filter")
+                reach_map:iter( function(x, y, v)
+                    -- Remove tiles that do not comform to the wander filter
+                    if (not wesnoth.match_location(x, y, wander_filter) ) then
+                        reach_map:remove(x, y) 
+                    end
+                end)
+                
                 -- Now find the one of these hexes that is closest to the goal
                 local max_rating = -9e99
                 local best_hex = {}
