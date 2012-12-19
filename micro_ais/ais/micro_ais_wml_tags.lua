@@ -253,11 +253,11 @@ function wesnoth.wml_actions.micro_ai(cfg)
             if (not cfg.type) then
                 H.wml_error("Lurkers Micro AI missing required type= key")
             end
-            if (not cfg.attack_terrain) then
-                H.wml_error("Lurkers Micro AI missing required attack_terrain= key")
+            if (not H.get_child(cfg, "attack_terrain")) then
+                H.wml_error("Lurkers Micro AI missing required attack_terrain filter")
             end
-            if (not cfg.wander_terrain) then
-                H.wml_error("Lurkers Micro AI missing required wander_terrain= key")
+            if (not H.get_child(cfg, "attack_terrain")) then
+                H.wml_error("Lurkers Micro AI missing required wander_terrain filter")
             end
             cfg_lurk.type = cfg.type
             cfg_lurk.attack_terrain = cfg.attack_terrain
