@@ -473,7 +473,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
         required_keys["swarm"] = {}
         optional_keys["swarm"] = { "radius", "vision_radius", "min_distance" }
 
-        required_keys["sheep"] = {}
+        required_keys["sheep"] = { "attention_radius", "attack_radius", "herding_area", "herder_area", "herding_filter", "herder_filter", "herding_x", "herding_y" }
         optional_keys["sheep"] = {}
 
         if (cfg.action~='delete') then
@@ -557,27 +557,27 @@ function wesnoth.wml_actions.micro_ai(cfg)
             CA_parms = {
                 {
                     id = "close_enemy", eval_name = 'close_enemy_eval', exec_name = 'close_enemy_exec',
-                    max_score = 300000
+                    max_score = 300000, cfg_str = AH.serialize(cfg_animals)
                 },
                 {
                     id = "sheep_runs_enemy", eval_name = 'sheep_runs_enemy_eval', exec_name = 'sheep_runs_enemy_exec',
-                    max_score = 295000
+                    max_score = 295000, cfg_str = AH.serialize(cfg_animals)
                 },
                 {
                     id = "sheep_runs_dog", eval_name = 'sheep_runs_dog_eval', exec_name = 'sheep_runs_dog_exec',
-                    max_score = 290000
+                    max_score = 290000, cfg_str = AH.serialize(cfg_animals)
                 },
                 {
                     id = "herd_sheep", eval_name = 'herd_sheep_eval', exec_name = 'herd_sheep_exec',
-                    max_score = 280000
+                    max_score = 280000, cfg_str = AH.serialize(cfg_animals)
                 },
                 {
                     id = "sheep_move", eval_name = 'sheep_move_eval', exec_name = 'sheep_move_exec',
-                    max_score = 270000
+                    max_score = 270000, cfg_str = AH.serialize(cfg_animals)
                 },
                 {
                     id = "dog_move", eval_name = 'dog_move_eval', exec_name = 'dog_move_exec',
-                    max_score = 260000
+                    max_score = 260000, cfg_str = AH.serialize(cfg_animals)
                 }
             }
         end
