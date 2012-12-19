@@ -8,7 +8,9 @@ return {
 
         local recruit
 
-        function recruit_cas:random_recruit_eval(low_gold_recruit)
+        function recruit_cas:random_recruit_eval(cfg)
+            local low_gold_recruit = cfg.low_gold_recruit
+
             -- Check if leader is on keep
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
 
@@ -43,11 +45,6 @@ return {
 
             local possible_recruits = wesnoth.sides[wesnoth.current.side].recruit
             recruit = possible_recruits[math.random(#possible_recruits)]
-            if low_gold_recruit == "random" then
-                if wesnoth.unit_types[recruit].cost <= wesnoth.sides[wesnoth.current.side].gold then
-                    return 180000
-                end
-            end
             if low_gold_recruit == "affordable" then
                 while #possible_recruits > 0 do
                     local i = 1
@@ -59,6 +56,11 @@ return {
                     if wesnoth.unit_types[recruit].cost <= wesnoth.sides[wesnoth.current.side].gold then
                         return 180000
                     end
+                end
+            else
+                -- Use random without regard to gold as default
+                if wesnoth.unit_types[recruit].cost <= wesnoth.sides[wesnoth.current.side].gold then
+                    return 180000
                 end
             end
 

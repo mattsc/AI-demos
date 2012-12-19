@@ -687,26 +687,48 @@ function wesnoth.wml_actions.micro_ai(cfg)
     if (cfg.ai_type == 'recruiting') then
         local cfg_recruiting = {}
 
-        if (not cfg.recruit_type) then
-            H.wml_error("[micro_ai] missing required recruit_type= key")
-        end
-        local recruit_type = cfg.recruit_type
-
-        if (not cfg.low_gold_recruit) and (cfg.recruit_type == 'random') and (cfg.action ~= 'delete') then
-            H.wml_error("[micro_ai] missing required low_gold_recruit= key")
-        end
         cfg_recruiting.low_gold_recruit = cfg.low_gold_recruit
 
-        -- Add, delete and change the CAs
-        if (cfg.action == 'add') then
-            wesnoth.require("~add-ons/AI-demos/micro_ais/ais/recruit_" .. recruit_type .. "_CAs.lua").add(cfg.side, cfg_recruiting)
+        local recruit_CA = {
+            id = "recruit", max_score = 180000, cfg_str = AH.serialize(cfg_recruiting)
+        }
+        if cfg.recruit_type then
+            if cfg.recruit_type == "rushers" then
+                recruit_CA.eval_name = 'recruit_rushers_eval'
+                recruit_CA.exec_name = 'recruit_rushers_exec'
+            elseif cfg.recruit_type == "random" then
+                recruit_CA.eval_name = 'random_recruit_eval'
+                recruit_CA.exec_name = 'random_recruit_exec'
+            else
+                H.wml_error("[micro_ai] unknown value for recruit_type= key")
+            end
+        elseif cfg.action ~= 'delete' then
+            H.wml_error("[micro_ai] missing required recruit_type= key")
         end
-        if (cfg.action == 'delete') then
-            wesnoth.require("~add-ons/AI-demos/micro_ais/ais/recruit_" .. recruit_type .. "_CAs.lua").delete(cfg.side, cfg_recruiting)
-        end
-        if (cfg.action == 'change') then
-            wesnoth.require("~add-ons/AI-demos/micro_ais/ais/recruit_" .. recruit_type .. "_CAs.lua").delete(cfg.side)
-            wesnoth.require("~add-ons/AI-demos/micro_ais/ais/recruit_" .. recruit_type .. "_CAs.lua").add(cfg.side, cfg_recruiting)
+
+        CA_action(cfg.action, cfg.side, {recruit_CA})
+
+        if cfg.action == 'add' then
+            W.modify_ai {
+                side = cfg.side,
+                action = "try_delete",
+                path = "stage[main_loop].candidate_action[recruitment]"
+            }
+        elseif cfg.action == 'delete' then
+            -- We need to add the recruitment CA back in
+            -- This works even if it was not removed, it simply overwrites the existing CA
+            W.modify_ai {
+                side = cfg.side,
+                action = "add",
+                path = "stage[main_loop].candidate_action",
+                { "candidate_action", {
+                    id="recruitment",
+                    engine="cpp",
+                    name="testing_ai_default::aspect_recruitment_phase",
+                    max_score=180000,
+                    score=180000
+                } }
+            }
         end
 
         return
