@@ -11,6 +11,10 @@ return {
     --      randomness: a measure of randomness in recruitment
     --          higher absolute values increase randomness, with values above about 3 being close to completely random
     --          (default = 0.1)
+    --      min_turn_1_recruit: function that returns true if only enough units to grab nearby villages should be recruited turn 1, false otherwise
+    --          (default always returns false)
+    --      leader_takes_village: function that returns true if and only if the leader is going to move to capture a village this turn
+    --          (default always returns true)
     init = function(ai, ai_cas, params)
         if not params then
             params = {}
