@@ -10,7 +10,9 @@ return {
         local BC = wesnoth.require "~/add-ons/AI-demos/lua/battle_calcs.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
-        ----- The parameter selection dialog (for demo scenario only, delete for real use) ------------
+        ----- The parameter selection dialog ------------
+        -- We are not using this here, but are keeping the code as a demonstration
+        -- how to set up an interactive parameter selection dialog
 
         local T = H.set_wml_tag_metatable {}
         local _ = wesnoth.textdomain "wesnoth"
@@ -164,7 +166,7 @@ return {
             -- Always 94000 if one of the units can still move
             local units = wesnoth.get_units{id = cfg.unit_ids, formula = '$this_unit.moves > 0'}
 
-            -- For the time being, we disable the dialog
+            ----- For the time being, we disable the dialog ----
             -- If AI parameters are not set, bring up the dialog
             -- For demo scenario only, delete for real use
             --if (not self.data.enemy_weight) then
