@@ -83,7 +83,7 @@ return {
         end
 
         function analyze_enemy_unit(enemy_type, ally_type)
-            local function get_best_attack(attacker, defender, unit_defense, can_poison)
+            local function get_best_attack(attacker, defender, defender_defense, attacker_defense, can_poison)
                 -- Try to find the average damage for each possible attack and return the one that deals the most damage.
                 -- Would be preferable to call simulate combat, but that requires the defender to be on the map according
                 -- to documentation and we are looking for hypothetical situations so would have to search for available
@@ -102,7 +102,7 @@ return {
                 local steadfast = false
 
                 for attack in H.child_range(wesnoth.unit_types[attacker.type].__cfg, "attack") do
-                    local defense = unit_defense
+                    local defense = defender_defense
                     local poison = false
                     local damage_multiplier = 1
                     -- TODO: handle more abilities (charge)
@@ -142,10 +142,10 @@ return {
                         if (defender_attack.range == attack.range) then
                             for special in H.child_range(defender_attack, 'specials') do
                                 if H.get_child(special, 'drains') and living(attacker) then
-                                    -- TODO: handle chance to hit
+                                    -- TODO: calculate chance to hit
                                     -- currently assumes 50% chance to hit using supplied constant
                                     local attacker_resistance = wesnoth.unit_resistance(attacker, defender_attack.type)
-                                    drain_recovery = (defender_attack.damage*defender_attack.number*attacker_resistance*0.25)/100
+                                    drain_recovery = (defender_attack.damage*defender_attack.number*attacker_resistance*attacker_defense/2)/10000
                                 end
                             end
                         end
@@ -213,10 +213,13 @@ return {
                 name = "X",
                 random_gender = false
             }
+            local recruit_flat_defense = wesnoth.unit_defense(recruit, "Gt")
+            local recruit_best_defense = get_best_defense(recruit)
+
             local can_poison_retaliation = living(recruit) or wesnoth.unit_ability(recruit, 'regenerate')
-            best_flat_attack, best_flat_damage, flat_poison = get_best_attack(recruit, unit, flat_defense, can_poison)
-            best_high_defense_attack, best_high_defense_damage, high_defense_poison = get_best_attack(recruit, unit, best_defense, can_poison)
-            best_retaliation, best_retaliation_damage, retaliation_poison = get_best_attack(unit, recruit, wesnoth.unit_defense(recruit, "Gt"), can_poison_retaliation)
+            best_flat_attack, best_flat_damage, flat_poison = get_best_attack(recruit, unit, flat_defense, recruit_best_defense, can_poison)
+            best_high_defense_attack, best_high_defense_damage, high_defense_poison = get_best_attack(recruit, unit, best_defense, recruit_flat_defense, can_poison)
+            best_retaliation, best_retaliation_damage, retaliation_poison = get_best_attack(unit, recruit, recruit_flat_defense, best_defense, can_poison_retaliation)
 
             local result = {
                 offense = { attack = best_flat_attack, damage = best_flat_damage, poison_damage = flat_poison },
