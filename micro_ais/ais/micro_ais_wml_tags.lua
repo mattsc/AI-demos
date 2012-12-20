@@ -253,12 +253,12 @@ function wesnoth.wml_actions.micro_ai(cfg)
             cfg = cfg.__parsed
             local required_keys = {"type", "wander_terrain", "attack_terrain"}
             for k, v in pairs(required_keys) do
-                local child, index = H.get_child(cfg, v)
+                local child = H.get_child(cfg, v)
                 if (not cfg[v]) and (not child) then
                     H.wml_error("Lurker AI missing required " .. v .. "= key")
                 end
                 cfg_lurk[v] = cfg[v]
-                if child then cfg_lurk[index] = cfg[index] end
+                if child then cfg_lurk[v] = child end
             end
         end
 

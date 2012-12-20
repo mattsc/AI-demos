@@ -19,8 +19,6 @@ return {
         end
 
         function lurkers:lurker_attack_exec(cfg)
-            local attack_filter = H.get_child(cfg, "attack_terrain")
-            local wander_filter = H.get_child(cfg, "wander_terrain")
             -- We simply pick the first of the lurkers, they have no strategy
             local me = wesnoth.get_units { side = wesnoth.current.side, type = cfg.type, formula = '$this_unit.moves > 0' }[1]
             --print("me at:" .. me.x .. "," .. me.y)
@@ -37,7 +35,7 @@ return {
             local reach = LS.of_pairs( wesnoth.find_reach(me.x, me.y) )
             -- all reachable swamp hexes
             local reachable_swamp =
-                 LS.of_pairs( wesnoth.get_locations  { {"and", {x = me.x, y = me.y, radius = me.moves} }, {"and", attack_filter} } )
+                 LS.of_pairs( wesnoth.get_locations  { {"and", {x = me.x, y = me.y, radius = me.moves} }, {"and", cfg.attack_terrain} } )
             reachable_swamp:inter(reach)
             --print("  reach: " .. reach:size() .. "    reach_swamp: " .. reachable_swamp:size())
 
@@ -76,7 +74,7 @@ return {
             if (attacked == 0) then
             
                 local reachable_wandert =
-                    LS.of_pairs( wesnoth.get_locations  { {"and", {x = me.x, y = me.y, radius = me.moves} }, {"and", wander_filter} } )
+                    LS.of_pairs( wesnoth.get_locations  { {"and", {x = me.x, y = me.y, radius = me.moves} }, {"and", cfg.wander_terrain} } )
                 reachable_wandert:inter(reach)
        
                 -- get one of the reachable wander terrain hexes randomly
