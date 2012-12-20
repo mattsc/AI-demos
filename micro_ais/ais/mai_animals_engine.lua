@@ -1606,7 +1606,7 @@ return {
         end
 
         function animals:move_exec(cfg)
-            local move_filter = H.get_child(cfg, "move_filter") or {}
+            local move_filter = cfg.move_filter or {}
             local other_types = cfg.other_types or "Deer"
             local rabbit_type = cfg.rabbit_type or "Rabbit"
             local tusker_type = cfg.tusker_type or "Tusker"

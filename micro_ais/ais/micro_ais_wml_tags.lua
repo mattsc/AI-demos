@@ -393,17 +393,15 @@ function wesnoth.wml_actions.micro_ai(cfg)
             --Add in the required keys, which could be scalars or WML tag contents
             cfg = cfg.__parsed
             for k,v in pairs(required_keys[guardian_type]) do
-                local child, index = H.get_child(cfg, v)
-
+                local child = H.get_child(cfg, v)
                 if (not cfg[v]) and (not child) then
                     H.wml_error("[micro_ai] ".. guardian_type .." missing required " .. v .. "= key")
                 end
 
                 -- Insert scalar parameters
                 cfg_guardian[v] = cfg[v]
-
                 -- Insert WML tags
-                if child then cfg_guardian[index] = cfg[index] end
+                if child then cfg_guardian[v] = child end
             end
 
             --Add in the optional keys, which could be scalars or WML tag contents
@@ -412,8 +410,8 @@ function wesnoth.wml_actions.micro_ai(cfg)
                 cfg_guardian[v] = cfg[v]
 
                 -- Insert WML tags
-                local child, index = H.get_child(cfg, v)
-                if child then cfg_guardian[index] = cfg[index] end
+                local child = H.get_child(cfg, v)
+                if child then cfg_guardian[v] = child end
             end
         end
 
@@ -485,17 +483,15 @@ function wesnoth.wml_actions.micro_ai(cfg)
             --Add in the required keys, which could be scalars or WML tag contents
             cfg = cfg.__parsed
             for k,v in pairs(required_keys[animal_type]) do
-                local child, index = H.get_child(cfg, v)
-
+                local child = H.get_child(cfg, v)
                 if (not cfg[v]) and (not child) then
                     H.wml_error("[micro_ai] ".. animal_type .." missing required " .. v .. "= key")
                 end
 
                 -- Insert scalar parameters
                 cfg_animals[v] = cfg[v]
-
                 -- Insert WML tags
-                if child then cfg_animals[index] = cfg[index] end
+                if child then cfg_animals[v] = child end
             end
 
             --Add in the optional keys, which could be scalars or WML tag contents
@@ -504,8 +500,8 @@ function wesnoth.wml_actions.micro_ai(cfg)
                 cfg_animals[v] = cfg[v]
 
                 -- Insert WML tags
-                local child, index = H.get_child(cfg, v)
-                if child then cfg_animals[index] = cfg[index] end
+                local child = H.get_child(cfg, v)
+                if child then cfg_animals[v] = child end
             end
         end
 
