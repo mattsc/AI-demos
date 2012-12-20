@@ -382,7 +382,11 @@ return {
 
         function animals:color_label(x, y, text)
             -- For displaying the wolf pack number in color underneath each wolf
-            text = "<span color='#a0a0a0'>" .. text .. "</span>"
+            if (wesnoth.current.side == 2) then
+                text = "<span color='#63B8FF'>" .. text .. "</span>"
+            else
+                text = "<span color='#98FB98'>" .. text .. "</span>"
+            end
             W.label{ x = x, y = y, text = text }
         end
 
