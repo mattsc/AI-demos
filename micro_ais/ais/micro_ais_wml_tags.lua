@@ -250,18 +250,16 @@ function wesnoth.wml_actions.micro_ai(cfg)
         local cfg_lurk = {}
         if (cfg.action ~= "delete") then
             -- Required keys
-            if (not cfg.type) then
-                H.wml_error("Lurkers Micro AI missing required type= key")
+            cfg = cfg.__parsed
+            local required_keys = {"type", "wander_terrain", "attack_terrain"}
+            for k, v in pairs(required_keys) do
+                local child, index = H.get_child(cfg, v)
+                if (not cfg[v]) and (not child) then
+                    H.wml_error("Lurker AI missing required " .. v .. "= key")
+                end
+                cfg_lurk[v] = cfg[v]
+                if child then cfg_lurk[index] = cfg[index] end
             end
-            if (not cfg.attack_terrain) then
-                H.wml_error("Lurkers Micro AI missing required attack_terrain= key")
-            end
-            if (not cfg.wander_terrain) then
-                H.wml_error("Lurkers Micro AI missing required wander_terrain= key")
-            end
-            cfg_lurk.type = cfg.type
-            cfg_lurk.attack_terrain = cfg.attack_terrain
-            cfg_lurk.wander_terrain = cfg.wander_terrain
         end
 
         local CA_parms = {
@@ -461,7 +459,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
         required_keys["wolves_multipacks"] = {}
         optional_keys["wolves_multipacks"] = { "type", "pack_size", "show_pack_number" }
 
-        required_keys["big_animals"] = { "type" }
+        required_keys["big_animals"] = { "type", "avoid_type", "goal_filter", "wander_filter" }
         optional_keys["big_animals"] = {}
 
         required_keys["forest_animals"] = {}
@@ -471,7 +469,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
         required_keys["swarm"] = {}
         optional_keys["swarm"] = { "radius", "vision_radius", "min_distance" }
 
-        required_keys["sheep"] = {}
+        required_keys["sheep"] = { "attention_radius", "attack_radius", "herding_area", "herder_area", "herding_filter", "herder_filter", "herding_x", "herding_y", "herding_radius" }
         optional_keys["sheep"] = {}
 
         if (cfg.action~='delete') then
@@ -553,27 +551,27 @@ function wesnoth.wml_actions.micro_ai(cfg)
             CA_parms = {
                 {
                     id = "close_enemy", eval_name = 'close_enemy_eval', exec_name = 'close_enemy_exec',
-                    max_score = 300000
+                    max_score = 300000, cfg_str = AH.serialize(cfg_animals)
                 },
                 {
                     id = "sheep_runs_enemy", eval_name = 'sheep_runs_enemy_eval', exec_name = 'sheep_runs_enemy_exec',
-                    max_score = 295000
+                    max_score = 295000, cfg_str = AH.serialize(cfg_animals)
                 },
                 {
                     id = "sheep_runs_dog", eval_name = 'sheep_runs_dog_eval', exec_name = 'sheep_runs_dog_exec',
-                    max_score = 290000
+                    max_score = 290000, cfg_str = AH.serialize(cfg_animals)
                 },
                 {
                     id = "herd_sheep", eval_name = 'herd_sheep_eval', exec_name = 'herd_sheep_exec',
-                    max_score = 280000
+                    max_score = 280000, cfg_str = AH.serialize(cfg_animals)
                 },
                 {
                     id = "sheep_move", eval_name = 'sheep_move_eval', exec_name = 'sheep_move_exec',
-                    max_score = 270000
+                    max_score = 270000, cfg_str = AH.serialize(cfg_animals)
                 },
                 {
                     id = "dog_move", eval_name = 'dog_move_eval', exec_name = 'dog_move_exec',
-                    max_score = 260000
+                    max_score = 260000, cfg_str = AH.serialize(cfg_animals)
                 }
             }
         end
