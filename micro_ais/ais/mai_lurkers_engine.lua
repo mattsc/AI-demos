@@ -8,7 +8,6 @@ return {
         local H = wesnoth.require "lua/helper.lua"
         
         function lurkers:lurker_attack_eval(cfg)
-            
             -- If any lurker has moves left, we return score just above standard combat CA
             local units = wesnoth.get_units { side = wesnoth.current.side, type = cfg.type, formula = '$this_unit.moves > 0' }
 
@@ -38,7 +37,7 @@ return {
             local reach = LS.of_pairs( wesnoth.find_reach(me.x, me.y) )
             -- all reachable swamp hexes
             local reachable_swamp =
-                 LS.of_pairs( wesnoth.get_locations  {x = me.x, y = me.y, radius = me.moves, {"and", attack_filter} } )
+                 LS.of_pairs( wesnoth.get_locations  { {"and", {x = me.x, y = me.y, radius = me.moves} }, {"and", attack_filter} } )
             reachable_swamp:inter(reach)
             --print("  reach: " .. reach:size() .. "    reach_swamp: " .. reachable_swamp:size())
 
@@ -77,9 +76,9 @@ return {
             if (attacked == 0) then
             
                 local reachable_wandert =
-                    LS.of_pairs( wesnoth.get_locations  {x = me.x, y = me.y, radius = me.moves, {"and", wander_filter} } )
+                    LS.of_pairs( wesnoth.get_locations  { {"and", {x = me.x, y = me.y, radius = me.moves} }, {"and", wander_filter} } )
                 reachable_wandert:inter(reach)
-
+       
                 -- get one of the reachable wander terrain hexes randomly
                 local rand = AH.random(1, reachable_wandert:size())
                 --print("  reach_wander no allies: " .. reachable_wandert:size() .. "  rand #: " ..  rand)

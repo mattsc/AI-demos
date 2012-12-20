@@ -250,18 +250,16 @@ function wesnoth.wml_actions.micro_ai(cfg)
         local cfg_lurk = {}
         if (cfg.action ~= "delete") then
             -- Required keys
-            if (not cfg.type) then
-                H.wml_error("Lurkers Micro AI missing required type= key")
+            cfg = cfg.__parsed
+            local required_keys = {"type", "wander_terrain", "attack_terrain"}
+            for k, v in pairs(required_keys) do
+                local child, index = H.get_child(cfg, v)
+                if (not cfg[v]) and (not child) then
+                    H.wml_error("Lurker AI missing required " .. v .. "= key")
+                end
+                cfg_lurk[v] = cfg[v]
+                if child then cfg_lurk[index] = cfg[index] end
             end
-            if (not H.get_child(cfg, "attack_terrain")) then
-                H.wml_error("Lurkers Micro AI missing required attack_terrain filter")
-            end
-            if (not H.get_child(cfg, "attack_terrain")) then
-                H.wml_error("Lurkers Micro AI missing required wander_terrain filter")
-            end
-            cfg_lurk.type = cfg.type
-            cfg_lurk.attack_terrain = cfg.attack_terrain
-            cfg_lurk.wander_terrain = cfg.wander_terrain
         end
 
         local CA_parms = {
