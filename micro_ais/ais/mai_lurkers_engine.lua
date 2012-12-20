@@ -6,7 +6,7 @@ return {
         local LS = wesnoth.require "lua/location_set.lua"
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
         local H = wesnoth.require "lua/helper.lua"
-        
+
         function lurkers:lurker_attack_eval(cfg)
             -- If any lurker has moves left, we return score just above standard combat CA
             local units = wesnoth.get_units { side = wesnoth.current.side, type = cfg.type, formula = '$this_unit.moves > 0' }
@@ -72,16 +72,21 @@ return {
             -- If unit has moves left (that is, it didn't attack), go to random wander terrain hex
             -- Check first that unit wasn't killed in the attack
             if (attacked == 0) then
-            
+
                 local reachable_wandert =
                     LS.of_pairs( wesnoth.get_locations  { {"and", {x = me.x, y = me.y, radius = me.moves} }, {"and", cfg.wander_terrain} } )
                 reachable_wandert:inter(reach)
-       
+
                 -- get one of the reachable wander terrain hexes randomly
                 local rand = AH.random(1, reachable_wandert:size())
                 --print("  reach_wander no allies: " .. reachable_wandert:size() .. "  rand #: " ..  rand)
                 local dst = reachable_wandert:to_stable_pairs()
-                AH.movefull_stopunit(ai, me, dst[rand])
+                if dst[1] then
+                    dst = dst[rand]
+                else
+                    dst = { me.x, me.y }
+                end
+                AH.movefull_stopunit(ai, me, dst)
             end
         end
 
