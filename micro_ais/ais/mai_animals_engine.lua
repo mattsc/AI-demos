@@ -831,15 +831,6 @@ return {
             end
         end
 
-        function animals:yeti_terrain(set)
-            -- Remove locations from LS that are not mountains or hills
-            set:iter( function(x, y, v)
-               local yeti_terr = wesnoth.match_location(x, y, { terrain = 'M*,M*^*,H*,H*^*' })
-               if (not yeti_terr) then set:remove(x, y) end
-            end)
-            return set
-        end
-
         function animals:big_eval(cfg)
             local units = wesnoth.get_units { side = wesnoth.current.side, type = cfg.type, formula = '$this_unit.moves > 0' }
 
@@ -854,7 +845,7 @@ return {
 
             local units = wesnoth.get_units { side = wesnoth.current.side, type = cfg.type, formula = '$this_unit.moves > 0' }
             local avoid = LS.of_pairs(wesnoth.get_locations { radius = 1,
-                { "filter", { type = 'Yeti,Giant Spider,Tarantula,Bear,Dog',
+                { "filter", { {"and", H.get_child(cfg, "avoid_type") },
                     { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
                 } }
             })
@@ -864,19 +855,7 @@ return {
                 -- Unit gets a new goal if none exist or on any move with 10% random chance
                 local r = AH.random(10)
                 if (not unit.variables.x) or (r == 1) then
-                    local locs = {}
-                    if (cfg.type == 'Bear') then
-                        locs = wesnoth.get_locations { x = '1-40', y = '1-18',
-                            { "not", { terrain = '*^X*,Wo' } },
-                            { "not", { x = unit.x, y = unit.y, radius = 12 } }
-                        }
-                    end
-                    if (cfg.type == 'Giant Spider,Tarantula') then
-                        locs = wesnoth.get_locations { terrain = 'H*' }
-                    end
-                    if (cfg.type == 'Yeti') then
-                        locs = wesnoth.get_locations { terrain = 'M*' }
-                    end
+                    local locs = wesnoth.get_locations(H.get_child(cfg, "goal_filter") )
                     local rand = AH.random(#locs)
                     --print(type, ': #locs', #locs, rand)
                     unit.variables.x, unit.variables.y = locs[rand][1], locs[rand][2]
@@ -885,9 +864,14 @@ return {
 
                 -- hexes the unit can reach
                 local reach_map = AH.get_reachable_unocc(unit)
-                -- If this is a yeti, we only keep mountain and hill terrain
-                if (cfg.type == 'Yeti') then self:yeti_terrain(reach_map) end
-
+                local wander_filter = H.get_child(cfg, "wander_filter")
+                reach_map:iter( function(x, y, v)
+                    -- Remove tiles that do not comform to the wander filter
+                    if (not wesnoth.match_location(x, y, wander_filter) ) then
+                        reach_map:remove(x, y) 
+                    end
+                end)
+                
                 -- Now find the one of these hexes that is closest to the goal
                 local max_rating = -9e99
                 local best_hex = {}
@@ -1084,17 +1068,16 @@ return {
             AH.movefull_stopunit(ai, unit, best_hex)
         end
 
-        function animals:herding_area(center_x, center_y)
+        function animals:herding_area(cfg)
             -- Find the area that the sheep can occupy
             -- First, find all contiguous grass hexes around center hex
-            local herding_area = LS.of_pairs(wesnoth.get_locations {
-                x = center_x, y = center_y, radius = 8,
-                { "filter_radius", { terrain = 'G*' } }
-            } )
+            local herder_area_filter = H.get_child(cfg, "herder_area")
+            
+            local herding_area = LS.of_pairs(wesnoth.get_locations {x = cfg.herding_x, y = cfg.herding_y, radius = cfg.herding_radius, {"filter_radius", H.get_child(cfg, "herding_filter") } } )
             -- Then, exclude those next to the path made by the dogs
             herding_area:iter( function(x, y, v)
                 for xa, ya in H.adjacent_tiles(x, y) do
-                    if (wesnoth.get_terrain(xa, ya) == 'Rb') then herding_area:remove(x, y) end
+                    if (wesnoth.match_location(xa, ya, herder_area_filter) ) then herding_area:remove(x, y) end
                 end
             end)
             --AH.put_labels(herding_area)
@@ -1102,33 +1085,38 @@ return {
             return herding_area
         end
 
-        function animals:close_enemy_eval()
+        function animals:close_enemy_eval(cfg)
+            local herder_filter = H.get_child(cfg, "herder_filter")
+            local herding_filter = H.get_child(cfg, "herding_filter")
             -- Any enemy within 8 hexes of a sheep will get attention by the dogs
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
                 { "filter_location",
-                    { radius = 8, { "filter", { side = wesnoth.current.side, type = 'Ram,Sheep' } } }
+                    { radius = cfg.attention_radius, { "filter", { side = wesnoth.current.side, {"and", herding_filter} } } }
                 }
             }
-            local dogs = wesnoth.get_units { side = wesnoth.current.side, type = 'Dog',
+            local dogs = wesnoth.get_units { side = wesnoth.current.side, {"and", herder_filter},
                 formula = '$this_unit.moves > 0'
             }
-            local sheep = wesnoth.get_units { side = wesnoth.current.side, type = 'Ram,Sheep' }
+            local sheep = wesnoth.get_units { side = wesnoth.current.side, {"and", herding_filter} }
 
             if enemies[1] and dogs[1] and sheep[1] then return 300000 end
             return 0
         end
 
-        function animals:close_enemy_exec()
-            local dogs = wesnoth.get_units { side = wesnoth.current.side, type = 'Dog',
+        function animals:close_enemy_exec(cfg)
+            local herder_filter = H.get_child(cfg, "herder_filter")
+            local herding_filter = H.get_child(cfg, "herding_filter")
+            
+            local dogs = wesnoth.get_units { side = wesnoth.current.side, {"and", herder_filter},
                 formula = '$this_unit.moves > 0' }
-            local sheep = wesnoth.get_units { side = wesnoth.current.side, type = 'Ram,Sheep' }
+            local sheep = wesnoth.get_units { side = wesnoth.current.side, {"and", herding_filter} }
 
             -- We start with enemies within 4 hexes, which will be attacked
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
                 { "filter_location",
-                    { radius = 4, { "filter", { side = wesnoth.current.side, type = 'Ram,Sheep' } } }
+                    { radius = cfg.attack_radius, { "filter", { side = wesnoth.current.side, {"and", herding_filter} } } }
                 }
             }
 
@@ -1174,7 +1162,7 @@ return {
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
                 { "filter_location",
-                    { radius = 8, { "filter", { side = wesnoth.current.side, type = 'Ram,Sheep' } } }
+                    { radius = cfg.attention_radius, { "filter", { side = wesnoth.current.side, {"and", herding_filter} } } }
                 }
             }
 
@@ -1219,15 +1207,16 @@ return {
             AH.movefull_stopunit(ai, best_dog, best_hex)
         end
 
-        function animals:sheep_runs_enemy_eval()
+        function animals:sheep_runs_enemy_eval(cfg)
+            local herding_filter = H.get_child(cfg, "herding_filter")
             -- Sheep runs from any enemy within 8 hexes (after the dogs have moved in)
-            local sheep = wesnoth.get_units { side = wesnoth.current.side, type = 'Ram,Sheep',
+            local sheep = wesnoth.get_units { side = wesnoth.current.side, {"and", herding_filter},
                 formula = '$this_unit.moves > 0',
                 { "filter_location",
                     {
                         { "filter", { { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} } }
                         },
-                        radius = 8
+                        radius = cfg.attention_radius
                     }
                 }
             }
@@ -1236,14 +1225,15 @@ return {
             return 0
         end
 
-        function animals:sheep_runs_enemy_exec()
-            local sheep = wesnoth.get_units { side = wesnoth.current.side, type = 'Ram,Sheep',
+        function animals:sheep_runs_enemy_exec(cfg)
+            local herding_filter = H.get_child(cfg, "herding_filter")
+            local sheep = wesnoth.get_units { side = wesnoth.current.side, {"and", herding_filter},
                 formula = '$this_unit.moves > 0',
                 { "filter_location",
                     {
                         { "filter", { { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} } }
                         },
-                        radius = 8
+                        radius = cfg.attention_radius
                     }
                 }
             }
@@ -1253,7 +1243,7 @@ return {
             -- And find the close enemies
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
-                { "filter_location", { x = sheep.x, y = sheep.y , radius = 8 } }
+                { "filter_location", { x = sheep.x, y = sheep.y , radius = cfg.attention_radius } }
             }
             --print('#enemies', #enemies)
 
@@ -1266,28 +1256,32 @@ return {
             AH.movefull_stopunit(ai, sheep, best_hex)
         end
 
-        function animals:sheep_runs_dog_eval()
+        function animals:sheep_runs_dog_eval(cfg)
+            local herder_filter = H.get_child(cfg, "herder_filter")
+            local herding_filter = H.get_child(cfg, "herding_filter")
             -- Any sheep with moves left next to a dog runs aways
-            local sheep = wesnoth.get_units { side = wesnoth.current.side, type = 'Ram,Sheep',
+            local sheep = wesnoth.get_units { side = wesnoth.current.side, {"and", herding_filter},
                 formula = '$this_unit.moves > 0',
-                { "filter_adjacent", { side = wesnoth.current.side, type = 'Dog' } }
+                { "filter_adjacent", { side = wesnoth.current.side, {"and", herder_filter} } }
             }
             if sheep[1] then return 290000 end
             return 0
         end
 
-        function animals:sheep_runs_dog_exec()
+        function animals:sheep_runs_dog_exec(cfg)
+            local herder_filter = H.get_child(cfg, "herder_filter")
+            local herding_filter = H.get_child(cfg, "herding_filter")
             -- simply get the first sheep
-            local sheep = wesnoth.get_units { side = wesnoth.current.side, type = 'Ram,Sheep',
+            local sheep = wesnoth.get_units { side = wesnoth.current.side, {"and", herding_filter},
                 formula = '$this_unit.moves > 0',
-                { "filter_adjacent", { side = wesnoth.current.side, type = 'Dog' } }
+                { "filter_adjacent", { side = wesnoth.current.side, {"and", herder_filter} } }
             }[1]
             -- and the first dog it is adjacent to
-            local dog = wesnoth.get_units { side = wesnoth.current.side, type = 'Dog',
+            local dog = wesnoth.get_units { side = wesnoth.current.side, {"and", herder_filter},
                 { "filter_adjacent", { x = sheep.x, y = sheep.y } }
             }[1]
 
-            local c_x, c_y = 32, 28
+            local c_x, c_y = cfg.herding_x, cfg.herding_y
             -- If dog is farther from center, sheep moves in, otherwise it moves out
             local sign = 1
             if (H.distance_between(dog.x, dog.y, c_x, c_y) >= H.distance_between(sheep.x, sheep.y, c_x, c_y)) then
@@ -1299,17 +1293,19 @@ return {
             AH.movefull_stopunit(ai, sheep, best_hex)
         end
 
-        function animals:herd_sheep_eval()
+        function animals:herd_sheep_eval(cfg)
+            local herder_filter = H.get_child(cfg, "herder_filter")
+            local herding_filter = H.get_child(cfg, "herding_filter")
             -- If dogs have moves left, and there is a sheep with moves left outside the
             -- herding area, chase it back
             -- We'll do a bunch of nested if's, to speed things up
-            local dogs = wesnoth.get_units { side = wesnoth.current.side, type = 'Dog', formula = '$this_unit.moves > 0' }
+            local dogs = wesnoth.get_units { side = wesnoth.current.side, {"and", herder_filter}, formula = '$this_unit.moves > 0' }
             if dogs[1] then
-                local sheep = wesnoth.get_units { side = wesnoth.current.side, type = 'Ram,Sheep',
-                    { "not", { { "filter_adjacent", { side = wesnoth.current.side, type = 'Dog' } } } }
+                local sheep = wesnoth.get_units { side = wesnoth.current.side, {"and", herding_filter},
+                    { "not", { { "filter_adjacent", { side = wesnoth.current.side, {"and", herder_filter} } } } }
                 }
                 if sheep[1] then
-                    local herding_area = self:herding_area(32, 28)
+                    local herding_area = self:herding_area(cfg)
                     for i,s in ipairs(sheep) do
                         -- If a sheep is found outside the herding area, we want to chase it back
                         if (not herding_area:get(s.x, s.y)) then return 280000 end
@@ -1321,12 +1317,15 @@ return {
             return 0
         end
 
-        function animals:herd_sheep_exec()
-            local dogs = wesnoth.get_units { side = wesnoth.current.side, type = 'Dog', formula = '$this_unit.moves > 0' }
-            local sheep = wesnoth.get_units { side = wesnoth.current.side, type = 'Ram,Sheep',
-                { "not", { { "filter_adjacent", { side = wesnoth.current.side, type = 'Dog' } } } }
+        function animals:herd_sheep_exec(cfg)
+            local herder_filter = H.get_child(cfg, "herder_filter")
+            local herding_filter = H.get_child(cfg, "herding_filter")
+            local dogs = wesnoth.get_units { side = wesnoth.current.side, {"and", herder_filter}, formula = '$this_unit.moves > 0' }
+            local sheep = wesnoth.get_units { side = wesnoth.current.side, {"and", herding_filter},
+                { "not", { { "filter_adjacent", { side = wesnoth.current.side, {"and", herder_filter} } } } }
             }
-            local herding_area = self:herding_area(32, 28)
+            local herder_area_filter = H.get_child(cfg, "herder_area")
+            local herding_area = self:herding_area(cfg)
             local sheep_to_herd = {}
             for i,s in ipairs(sheep) do
                 -- If a sheep is found outside the herding area, we want to chase it back
@@ -1336,16 +1335,16 @@ return {
             -- Find the farthest out sheep that the dogs can get to (and that has moves left)
 
             -- Find all sheep that have stepped out of bound
-            local sheep = wesnoth.get_units { side = wesnoth.current.side, type = 'Ram,Sheep' }
+            local sheep = wesnoth.get_units { side = wesnoth.current.side, {"and", herding_filter} }
             local max_rating, best_dog, best_hex = -9e99, {}, {}
-            local c_x, c_y = 32, 28
+            local c_x, c_y = cfg.herding_x, cfg.herding_y
             for i,s in ipairs(sheep_to_herd) do
                 -- This is the rating that depends only on the sheep's position
                 -- Farthest sheep goes first
                 local sheep_rating = H.distance_between(c_x, c_y, s.x, s.y) / 10.
                 -- Sheep with no movement left gets big hit
                 if (s.moves == 0) then sheep_rating = sheep_rating - 100. end
-
+                
                 for i,d in ipairs(dogs) do
                     local reach_map = AH.get_reachable_unocc(d)
                     reach_map:iter( function(x, y, v)
@@ -1358,7 +1357,7 @@ return {
                         -- And the closer dog goes first (so that it might be able to chase another sheep afterward)
                         rating = rating - H.distance_between(x, y, d.x, d.y) / 100.
                         -- Finally, prefer to stay on path, if possible
-                        if (wesnoth.get_terrain(x, y) == 'Rb') then rating = rating + 0.001 end
+                        if (wesnoth.match_location(x, y, herder_area_filter) ) then rating = rating + 0.001 end
 
                         reach_map:insert(x, y, rating)
 
@@ -1384,23 +1383,26 @@ return {
             end
         end
 
-        function animals:sheep_move_eval()
+        function animals:sheep_move_eval(cfg)
+            local herding_filter = H.get_child(cfg, "herding_filter")
             -- If nothing else is to be done, the sheep do a random move
-            local sheep = wesnoth.get_units { side = wesnoth.current.side, type = 'Ram,Sheep', formula = '$this_unit.moves > 0' }
+            local sheep = wesnoth.get_units { side = wesnoth.current.side, {"and", herding_filter}, formula = '$this_unit.moves > 0' }
             if sheep[1] then return 270000 end
             return 0
         end
 
-        function animals:sheep_move_exec()
+        function animals:sheep_move_exec(cfg)
+            local herder_filter = H.get_child(cfg, "herder_filter")
+            local herding_filter = H.get_child(cfg, "herding_filter")
             -- We simply move the first sheep first
-            local sheep = wesnoth.get_units { side = wesnoth.current.side, type = 'Ram,Sheep', formula = '$this_unit.moves > 0' }[1]
+            local sheep = wesnoth.get_units { side = wesnoth.current.side, {"and", herding_filter}, formula = '$this_unit.moves > 0' }[1]
 
             local reach_map = AH.get_reachable_unocc(sheep)
             -- Exclude those that are next to a dog, or more than 3 hexes away
             reach_map:iter( function(x, y, v)
                 for xa, ya in H.adjacent_tiles(x, y) do
                     local dog = wesnoth.get_unit(xa, ya)
-                    if dog and (dog.type == 'Dog') then
+                    if dog and (wesnoth.match_unit(dog, herder_filter)) then
                         reach_map:remove(x, y)
                     end
 
@@ -1420,8 +1422,8 @@ return {
 
             -- If this move remains within herding area or dogs have no moves left, or sheep doesn't move
             -- make it a full move, otherwise partial move
-            local herding_area = self:herding_area(32, 28)
-            local dogs = wesnoth.get_units { side = wesnoth.current.side, type = 'Dog', formula = '$this_unit.moves > 0' }
+            local herding_area = self:herding_area(cfg)
+            local dogs = wesnoth.get_units { side = wesnoth.current.side, {"and", herder_filter}, formula = '$this_unit.moves > 0' }
             if herding_area:get(x, y) or (not dogs[1]) or ((x == sheep.x) and (y == sheep.y)) then
                 AH.movefull_stopunit(ai, sheep, x, y)
             else
@@ -1429,30 +1431,35 @@ return {
             end
         end
 
-        function animals:dog_move_eval()
+        function animals:dog_move_eval(cfg)
+            local herder_filter = H.get_child(cfg, "herder_filter")
+            local herding_filter = H.get_child(cfg, "herding_filter")
             -- As a final step, any dog not adjacent to a sheep move along path
-            local dogs = wesnoth.get_units { side = wesnoth.current.side, type = 'Dog',
+            local dogs = wesnoth.get_units { side = wesnoth.current.side, {"and", herder_filter},
                 formula = '$this_unit.moves > 0',
-                { "not", { { "filter_adjacent", { side = wesnoth.current.side, type = 'Ram,Sheep' } } } }
+                { "not", { { "filter_adjacent", { side = wesnoth.current.side, {"and", herding_filter} } } } }
             }
             if dogs[1] then return 260000 end
             return 0
         end
 
-        function animals:dog_move_exec()
+        function animals:dog_move_exec(cfg)
+            local herder_filter = H.get_child(cfg, "herder_filter")
+            local herding_filter = H.get_child(cfg, "herding_filter")
             -- We simply move the first dog first
-            local dog = wesnoth.get_units { side = wesnoth.current.side, type = 'Dog',
+            local dog = wesnoth.get_units { side = wesnoth.current.side, {"and", herder_filter},
                 formula = '$this_unit.moves > 0',
-                { "not", { { "filter_adjacent", { side = wesnoth.current.side, type = 'Ram,Sheep' } } } }
+                { "not", { { "filter_adjacent", { side = wesnoth.current.side, {"and", herding_filter} } } } }
             }[1]
-
+            local herder_area_filter = H.get_child(cfg, "herder_area")
+            
             local best_hex = AH.find_best_move(dog, function(x, y)
                 -- Prefer hexes on road, otherwise at distance of 4 hexes from center
                 local rating = 0
-                if (wesnoth.get_terrain(x, y) == 'Rb') then
+                if (wesnoth.match_location(x, y, herder_area_filter) ) then
                     rating = rating + 1000 + AH.random(99) / 100.
                 else
-                    rating = rating - math.abs(H.distance_between(x, y, 32, 28) - 4)
+                    rating = rating - math.abs(H.distance_between(x, y, cfg.herding_x,cfg.herding_y) - 4)
                 end
 
                 return rating
