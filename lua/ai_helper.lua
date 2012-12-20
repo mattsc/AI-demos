@@ -174,18 +174,6 @@ function ai_helper.split(str, sep)
     return fields
 end
 
--- Get all permutations of m draws out of n samples, recursive version from rosettacode.org
-function ai_helper.perm_map(f, a, ...) if a then return f(a), ai_helper.perm_map(f, ...) end end
-function ai_helper.perm_incr(k) return function(a) return k > a and a or a+1 end end
-function ai_helper.permutations(m, n)
-    if m * n == 0 then return {{}} end
-    local ret, old = {}, ai_helper.permutations(m-1, n-1)
-    for i = 1, n do
-        for k, v in ipairs(old) do ret[#ret+1] = {i, ai_helper.perm_map(ai_helper.perm_incr(i), unpack(v))} end
-    end
-    return ret
-end
-
 --------- Location set related helper functions ----------
 
 function ai_helper.get_LS_xy(index)
