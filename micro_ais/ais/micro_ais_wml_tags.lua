@@ -617,7 +617,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
                     max_score = 300000, cfg_str = AH.serialize(cfg_animals)
                 },
                 {
-                    id = "wolves_multipacks_attack", eval_name = 'wolves_multipacks_wander_eval', exec_name = 'wolves_multipacks_wander_exec',
+                    id = "wolves_multipacks_wander_eval", eval_name = 'wolves_multipacks_wander_eval', exec_name = 'wolves_multipacks_wander_exec',
                     max_score = 290000, cfg_str = AH.serialize(cfg_animals)
                 }
             }
