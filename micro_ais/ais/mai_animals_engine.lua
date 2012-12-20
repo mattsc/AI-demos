@@ -1065,7 +1065,7 @@ return {
             -- First, find all contiguous grass hexes around center hex
             local herder_area_filter = H.get_child(cfg, "herder_area")
             
-            local herding_area = LS.of_pairs(wesnoth.get_locations {x = cfg.herding_x, y = cfg.herding_y, {"and", H.get_child(cfg, "herding_filter") } } )
+            local herding_area = LS.of_pairs(wesnoth.get_locations {x = cfg.herding_x, y = cfg.herding_y, radius = cfg.herding_radius, {"filter_radius", H.get_child(cfg, "herding_filter") } } )
             -- Then, exclude those next to the path made by the dogs
             herding_area:iter( function(x, y, v)
                 for xa, ya in H.adjacent_tiles(x, y) do
