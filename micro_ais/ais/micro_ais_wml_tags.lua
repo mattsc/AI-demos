@@ -459,7 +459,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
         optional_keys["wolves"] = { "to_avoid" }
 
         required_keys["wolves_multipacks"] = {}
-        optional_keys["wolves_multipacks"] = {}
+        optional_keys["wolves_multipacks"] = { "type", "pack_size", "show_pack_number" }
 
         required_keys["big_animals"] = { "type" }
         optional_keys["big_animals"] = {}
@@ -616,11 +616,11 @@ function wesnoth.wml_actions.micro_ai(cfg)
             CA_parms = {
                 {
                     id = "wolves_multipacks_attack", eval_name = 'wolves_multipacks_attack_eval', exec_name = 'wolves_multipacks_attack_exec',
-                    max_score = 300000
+                    max_score = 300000, cfg_str = AH.serialize(cfg_animals)
                 },
                 {
                     id = "wolves_multipacks_attack", eval_name = 'wolves_multipacks_wander_eval', exec_name = 'wolves_multipacks_wander_exec',
-                    max_score = 290000
+                    max_score = 290000, cfg_str = AH.serialize(cfg_animals)
                 }
             }
         end

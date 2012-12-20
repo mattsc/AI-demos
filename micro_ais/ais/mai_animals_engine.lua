@@ -378,6 +378,8 @@ return {
             end
         end
 
+        -- Wolves_multipacks micro ai begins here.
+
         function animals:color_label(x, y, text)
             -- For displaying the wolf pack number in color underneath each wolf
             if (wesnoth.current.side == 2) then
@@ -388,12 +390,16 @@ return {
             W.label{ x = x, y = y, text = text }
         end
 
-        function animals:assign_packs()
+        function animals:assign_packs(cfg)
+            if cfg.type == nil then cfg.type = "Wolf" end
+            if cfg.show_pack_number == nil then cfg.show_pack_number = "false" end
+            local pack_size = 3
+            if cfg.pack_size then pack_size = cfg.pack_size end
             -- Assign the pack numbers to each wolf.  Keeps numbers of existing packs
             -- (unless pack size is down to one).  Pack number is stored in wolf unit variables
             -- Also returns a table with the packs (locations and id's of each wolf in a pack)
 
-            local wolves = wesnoth.get_units { side = wesnoth.current.side, type = 'Wolf' }
+            local wolves = wesnoth.get_units { side = wesnoth.current.side, type = cfg.type }
             --print('#wolves:', #wolves)
 
             -- Array for holding the packs
@@ -432,9 +438,9 @@ return {
             --print('#nopack_wolves:', #nopack_wolves)
 
             -- Now assign the nopack wolves to packs
-            -- First, go through packs that have only 2 members
+            -- First, go through packs that have less than pack_size members
             for k,p in pairs(packs) do
-                if (#p == 2) then
+                if (#p < pack_size) then
                     local min_dist, best_wolf, best_ind = 9e99, {}, -1
                     for i,w in ipairs(nopack_wolves) do
                         local d1 = H.distance_between(w.x, w.y, p[1].x, p[1].y)
@@ -463,9 +469,9 @@ return {
                 while packs[new_pack] do new_pack = new_pack + 1 end
                 --print('Building pack', new_pack)
 
-                -- If there are <=3 wolves left, that's the pack (we also assign a single wolf to a 1-wolf pack here)
-                if (#nopack_wolves <= 3) then
-                    --print('<=3 nopack wolves left', #nopack_wolves)
+                -- If there are <=pack_size wolves left, that's the pack (we also assign a single wolf to a 1-wolf pack here)
+                if (#nopack_wolves <= pack_size) then
+                    --print('<=pack_size nopack wolves left', #nopack_wolves)
                     packs[new_pack] = {}
                     for i,w in ipairs(nopack_wolves) do
                         table.insert(packs[new_pack], { x = w.x, y = w.y, id = w.id })
@@ -474,36 +480,34 @@ return {
                     break
                 end
 
-                -- If more than 3 wolves left, find those that are closest together
+                -- If more than pack_size wolves left, find those that are closest together
                 -- They form the next pack
-                --print('More than 3 nopack wolves left', #nopack_wolves)
-                local min_dist = 9e99
-                local best_wolves, best_ind = {}, {}
-                for i,w1 in ipairs(nopack_wolves) do
-                    for j,w2 in ipairs(nopack_wolves) do
-                        for k,w3 in ipairs(nopack_wolves) do
-                            local d12 = H.distance_between(w1.x, w1.y, w2.x, w2.y)
-                            local d13 = H.distance_between(w1.x, w1.y, w3.x, w3.y)
-                            local d23 = H.distance_between(w2.x, w2.y, w3.x, w3.y)
-                            -- If it's the same wolf, that doesn't count
-                            if (d12 == 0) then d12 = 999 end
-                            if (d13 == 0) then d13 = 999 end
-                            if (d23 == 0) then d23 = 999 end
-                            if (d12 + d13 + d23 < min_dist) then
-                                min_dist = d12 + d13 + d23
-                                best_wolves = { w1, w2, w3 }
-                                best_ind = { i, j, k }
-                            end
+                --print('More than pack_size nopack wolves left', #nopack_wolves)
+                local best_wolves = {}
+                while #best_wolves < pack_size do
+                    local min_dist = 9999
+                    local best_wolf
+                    local best_wolf_i
+                    for i,tw in ipairs(nopack_wolves) do
+                        local dist = 0
+                        for j,sw in ipairs(best_wolves) do
+                            dist = dist + H.distance_between(tw.x, tw.y, sw.x, sw.y)
+                        end
+                        if dist < min_dist then
+                            min_dist = dist
+                            best_wolf = tw
+                            best_wolf_i = i
                         end
                     end
+                    table.insert(best_wolves, best_wolf)
+                    table.remove(nopack_wolves, best_wolf_i)
                 end
                 -- Now insert the best pack into that 'packs' array
                 packs[new_pack] = {}
                 -- Need to count down for table.remove to work correctly
-                for i = 3,1,-1 do
+                for i = pack_size,1,-1 do
                     table.insert(packs[new_pack], { x = best_wolves[i].x, y = best_wolves[i].y, id = best_wolves[i].id })
                     best_wolves[i].variables.pack = new_pack
-                    table.remove(nopack_wolves, best_ind[i])
                 end
             end
             --print('After grouping remaining single wolves')
@@ -511,29 +515,33 @@ return {
 
             --DBG.dbms(packs)
             -- Put labels out there for all wolves
-            for k,p in pairs(packs) do
-                for i,loc in ipairs(p) do
-                    self:color_label(loc.x, loc.y, k)
+            --print(cfg.show_pack_number)
+            if cfg.show_pack_number ~= "false" then
+                for k,p in pairs(packs) do
+                    for i,loc in ipairs(p) do
+                        self:color_label(loc.x, loc.y, k)
+                    end
                 end
             end
 
             return packs
         end
 
-        function animals:wolves_multipacks_attack_eval()
+        function animals:wolves_multipacks_attack_eval(cfg)
+            if cfg.type == nil then cfg.type = "Wolf" end
             -- If wolves have attacks left, call this CA
             -- It will generally be disabled by being black-listed, so as to avoid
             -- having to do the full attack evaluation for every single move
-            local wolves = wesnoth.get_units { side = wesnoth.current.side, type = 'Wolf', formula = '$this_unit.attacks_left > 0' }
+            local wolves = wesnoth.get_units { side = wesnoth.current.side, type = cfg.type, formula = '$this_unit.attacks_left > 0' }
 
             if wolves[1] then return 300000 end
             return 0
         end
 
-        function animals:wolves_multipacks_attack_exec()
-
+        function animals:wolves_multipacks_attack_exec(cfg)
+            if cfg.show_pack_number == nil then cfg.show_pack_number = "false" end
             -- First get all the packs
-            local packs = self:assign_packs()
+            local packs = self:assign_packs(cfg)
             --DBG.dbms(packs)
 
             -- Attacks are dealt with on a pack by pack basis
@@ -646,7 +654,9 @@ return {
                         local defender = wesnoth.get_unit(best_attack.target.x, best_attack.target.y)
                         W.label { x = attacker.x, y = attacker.y, text = "" }
                         AH.movefull_stopunit(ai, attacker, best_attack.dst.x, best_attack.dst.y)
-                        self:color_label(attacker.x, attacker.y, pack_number)
+                        if cfg.show_pack_number ~= "false" then
+                            self:color_label(attacker.x, attacker.y, pack_number)
+                        end
 
                         local a_x, a_y, d_x, d_y = attacker.x, attacker.y, defender.x, defender.y
                         ai.attack(attacker, defender)
@@ -691,7 +701,9 @@ return {
                             end)
                             W.label { x = w.x, y = w.y, text = "" }
                             AH.movefull_stopunit(ai, w, best_hex)
-                            self:color_label(w.x, w.y, pack_number)
+                            if cfg.show_pack_number ~= "false" then
+                                self:color_label(w.x, w.y, pack_number)
+                            end
                         end
                     end
                 end
@@ -700,19 +712,20 @@ return {
 
         end
 
-        function animals:wolves_multipacks_wander_eval()
+        function animals:wolves_multipacks_wander_eval(cfg)
+            if cfg.type == nil then cfg.type = "Wolf" end
             -- When there's nothing to attack, the wolves wander and regroup into their packs
-            local wolves = wesnoth.get_units { side = wesnoth.current.side, type = 'Wolf', formula = '$this_unit.moves > 0' }
+            local wolves = wesnoth.get_units { side = wesnoth.current.side, type = cfg.type, formula = '$this_unit.moves > 0' }
 
             if wolves[1] then return 290000 end
 
             return 0
         end
 
-        function animals:wolves_multipacks_wander_exec()
-
+        function animals:wolves_multipacks_wander_exec(cfg)
+            if cfg.show_pack_number == nil then cfg.show_pack_number = "false" end
             -- First get all the packs
-            local packs = self:assign_packs()
+            local packs = self:assign_packs(cfg)
             --DBG.dbms(packs)
 
             for k,pack in pairs(packs) do
@@ -818,7 +831,9 @@ return {
                     end)
                     W.label { x = w.x, y = w.y, text = "" }
                     AH.movefull_stopunit(ai, w, best_hex)
-                    self:color_label(w.x, w.y, k)
+                    if cfg.show_pack_number ~= "false" then
+                        self:color_label(w.x, w.y, k)
+                    end
                 end
             end
         end
