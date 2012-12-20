@@ -392,7 +392,7 @@ return {
 
         function animals:assign_packs(cfg)
             if cfg.type == nil then cfg.type = "Wolf" end
-            if cfg.show_pack_number == nil then cfg.show_pack_number = "false" end
+            if cfg.show_pack_number == nil then cfg.show_pack_number = false end
             local pack_size = 3
             if cfg.pack_size then pack_size = cfg.pack_size end
             -- Assign the pack numbers to each wolf.  Keeps numbers of existing packs
@@ -516,7 +516,7 @@ return {
             --DBG.dbms(packs)
             -- Put labels out there for all wolves
             --print(cfg.show_pack_number)
-            if cfg.show_pack_number ~= "false" then
+            if cfg.show_pack_number ~= false then
                 for k,p in pairs(packs) do
                     for i,loc in ipairs(p) do
                         self:color_label(loc.x, loc.y, k)
@@ -539,7 +539,7 @@ return {
         end
 
         function animals:wolves_multipacks_attack_exec(cfg)
-            if cfg.show_pack_number == nil then cfg.show_pack_number = "false" end
+            if cfg.show_pack_number == nil then cfg.show_pack_number = false end
             -- First get all the packs
             local packs = self:assign_packs(cfg)
             --DBG.dbms(packs)
@@ -654,7 +654,7 @@ return {
                         local defender = wesnoth.get_unit(best_attack.target.x, best_attack.target.y)
                         W.label { x = attacker.x, y = attacker.y, text = "" }
                         AH.movefull_stopunit(ai, attacker, best_attack.dst.x, best_attack.dst.y)
-                        if cfg.show_pack_number ~= "false" then
+                        if cfg.show_pack_number ~= false then
                             self:color_label(attacker.x, attacker.y, pack_number)
                         end
 
@@ -701,7 +701,7 @@ return {
                             end)
                             W.label { x = w.x, y = w.y, text = "" }
                             AH.movefull_stopunit(ai, w, best_hex)
-                            if cfg.show_pack_number ~= "false" then
+                            if cfg.show_pack_number ~= false then
                                 self:color_label(w.x, w.y, pack_number)
                             end
                         end
@@ -723,7 +723,7 @@ return {
         end
 
         function animals:wolves_multipacks_wander_exec(cfg)
-            if cfg.show_pack_number == nil then cfg.show_pack_number = "false" end
+            if cfg.show_pack_number == nil then cfg.show_pack_number = false end
             -- First get all the packs
             local packs = self:assign_packs(cfg)
             --DBG.dbms(packs)
@@ -831,7 +831,7 @@ return {
                     end)
                     W.label { x = w.x, y = w.y, text = "" }
                     AH.movefull_stopunit(ai, w, best_hex)
-                    if cfg.show_pack_number ~= "false" then
+                    if cfg.show_pack_number ~= false then
                         self:color_label(w.x, w.y, k)
                     end
                 end
