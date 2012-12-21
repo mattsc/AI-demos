@@ -198,10 +198,10 @@ return {
             unit.variables.hunting_status = nil
         end
 
-        function animals:wolves_eval()
-            local wolves = wesnoth.get_units { side = wesnoth.current.side, type = 'Wolf', formula = '$this_unit.moves > 0' }
+        function animals:wolves_eval(cfg)
+            local wolves = wesnoth.get_units { side = wesnoth.current.side, type = cfg.predators, formula = '$this_unit.moves > 0' }
             -- Wolves hunt deer, but only close to the forest
-            local prey = wesnoth.get_units { type = 'Deer',
+            local prey = wesnoth.get_units { type = cfg.prey,
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
                 { "filter_location", { terrain = '*^F*', radius = 3 } }
             }
@@ -278,7 +278,7 @@ return {
                     -- We want wolves to be 2 hexes from each other
                     for j = 1,i-1 do
                         local dst = H.distance_between(x, y, wolves[j].x, wolves[j].y)
-                        rating = rating + (-1 * (dst - 2.7 * j)^2)
+                        rating = rating + (-1 * (dst - 2.7 * j)^2 / j)
                     end
                     
                     -- Same distance from Wolf 1 and target for all the wolves
@@ -297,9 +297,9 @@ return {
             end
         end
 
-        function animals:wolves_wander_eval()
+        function animals:wolves_wander_eval(cfg)
             -- When there's no prey left, the wolves wander and regroup
-            local wolves = wesnoth.get_units { side = wesnoth.current.side, type = 'Wolf', formula = '$this_unit.moves > 0' }
+            local wolves = wesnoth.get_units { side = wesnoth.current.side, type = cfg.predators, formula = '$this_unit.moves > 0' }
             if wolves[1] then
                 return 90000
             else
@@ -309,7 +309,7 @@ return {
 
         function animals:wolves_wander_exec(cfg)
 
-            local wolves = wesnoth.get_units { side = wesnoth.current.side, type = 'Wolf', formula = '$this_unit.moves > 0' }
+            local wolves = wesnoth.get_units { side = wesnoth.current.side, type = cfg.predators, formula = '$this_unit.moves > 0' }
 
             -- Number of wolves that can reach each hex
             local reach_map = LS.create()
