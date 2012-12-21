@@ -5,6 +5,7 @@ return {
 
         local urudin = { }
 
+        -- This is taken almost literally from 'Ka'lian under Attack' in 'Legend of Wesmere'
         function urudin:retreat()
             local urudin = wesnoth.get_units({side = 3, id="Urudin"})[1]
             if urudin and urudin.valid then
