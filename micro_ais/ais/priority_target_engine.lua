@@ -10,7 +10,7 @@ return {
             -- Set 'attacks' aspect so that only unit with id=target_id
             -- is attacked if it can be reached, delete aspect otherwise
 
-            -- The following can be simplified significantly one 'attacks' variable is available
+            -- The following can be simplified significantly once the 'attacks' variable is available
             -- All units that have attacks left (but are not leaders)
             local attackers = wesnoth.get_units{side = wesnoth.current.side, canrecruit = "no", formula = "$this_unit.attacks_left > 0"}
             --print("\nAttackers:",#attackers)
