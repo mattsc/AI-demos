@@ -336,6 +336,7 @@ return {
             }
             local enemy_counts = {}
             local enemy_types = {}
+            local possible_enemy_recruit_count = 0
 
             local function add_unit_type(unit_type)
                 if enemy_counts[unit_type] == nil then
@@ -355,6 +356,7 @@ return {
                 { "enemy_of", {side = wesnoth.current.side} },
                 { "has_unit", { canrecruit = true }} })
             for i, side in ipairs(enemy_sides) do
+                possible_enemy_recruit_count = possible_enemy_recruit_count + #(wesnoth.sides[side.side].recruit)
                 for j, unit_type in ipairs(wesnoth.sides[side.side].recruit) do
                     add_unit_type(unit_type)
                 end
@@ -362,6 +364,7 @@ return {
             data.enemy_counts = enemy_counts
             data.enemy_types = enemy_types
             data.num_enemies = #enemies
+            data.possible_enemy_recruit_count = possible_enemy_recruit_count
 
             return data
         end
@@ -397,6 +400,8 @@ return {
             local unit_attack_type_count = {} -- The attack types a unit will use
             local unit_attack_range_count = {} -- The ranges a unit will use
             local enemy_type_count = 0
+            local poisoner_count = 0.1 -- Number of units with a poison attack (set to slightly > 0 because we divide by it later)
+            local poisonable_count = 0 -- Number of units that the opponents control that are hurt by poison
             local recruit_count = {}
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
                 recruit_count[recruit_id] = #(AH.get_live_units { side = wesnoth.current.side, type = recruit_id, canrecruit = 'no' })
@@ -404,6 +409,7 @@ return {
 
             for i, unit_type in ipairs(enemy_types) do
                 enemy_type_count = enemy_type_count + 1
+                local poison_vulnerable = false
                 for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
                     local analysis = analyze_enemy_unit(unit_type, recruit_id)
 
@@ -413,7 +419,8 @@ return {
                     end
 
                     recruit_effectiveness[recruit_id].damage = recruit_effectiveness[recruit_id].damage + analysis.defense.damage * enemy_counts[unit_type]^2
-                    if analysis.defense.poison_damage then
+                    if analysis.defense.poison_damage and analysis.defense.poison_damage > 0 then
+                        poison_vulnerable = true
                         recruit_effectiveness[recruit_id].poison_damage = recruit_effectiveness[recruit_id].poison_damage +
                             analysis.defense.poison_damage * enemy_counts[unit_type]^2
                     end
@@ -441,7 +448,21 @@ return {
                     end
                     unit_attack_range_count[recruit_id][attack_range] = true
                 end
+                if poison_vulnerable then
+                    poisonable_count = poisonable_count + enemy_counts[unit_type]
+                end
             end
+            for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
+                -- Count the number of units with the poison ability
+                -- This could be wrong if all the units on the enemy side are immune to poison, but since poison has no effect then anyway it doesn't matter
+                if recruit_effectiveness[recruit_id].poison_damage > 0 then
+                    poisoner_count = poisoner_count + recruit_count[recruit_id]
+                end
+            end
+            -- Subtract the number of possible recruits for the enemy from the list of poisonable units
+            -- This works perfectly unless some of the enemy recruits cannot be poisoned (e.g. not_living)
+            -- However, there is no problem with this since poison is generally less useful in such situations and subtracting them too discourages such recruiting
+            local poison_modifier = math.min(((poisonable_count-recruit_data.recruit.possible_enemy_recruit_count) / (poisoner_count*5)), 1)^2
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
                 -- Ensure effectiveness and vulnerability are positive.
                 -- Negative values imply that drain is involved and the amount drained is very high
@@ -450,7 +471,7 @@ return {
                 else
                     recruit_effectiveness[recruit_id].damage = (recruit_effectiveness[recruit_id].damage / (num_enemies)^2)^0.5
                 end
-                recruit_effectiveness[recruit_id].poison_damage = (recruit_effectiveness[recruit_id].poison_damage / (num_enemies)^2)^0.5
+                recruit_effectiveness[recruit_id].poison_damage = (recruit_effectiveness[recruit_id].poison_damage / (num_enemies)^2)^0.5 * poison_modifier
                 if recruit_vulnerability[recruit_id] <= 0 then
                     recruit_vulnerability[recruit_id] = 0.01
                 else
