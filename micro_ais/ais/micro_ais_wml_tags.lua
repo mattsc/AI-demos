@@ -463,7 +463,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
         required_keys["hunter_unit"] = { "id", "hunt_x", "hunt_y", "home_x", "home_y", "rest_turns" }
         optional_keys["hunter_unit"] = { "show_messages" }
 
-        required_keys["wolves"] = {}
+        required_keys["wolves"] = { "predators", "prey" }
         optional_keys["wolves"] = { "to_avoid" }
 
         required_keys["wolves_multipacks"] = {}

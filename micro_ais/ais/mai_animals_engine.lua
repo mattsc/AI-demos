@@ -215,9 +215,9 @@ return {
 
         function animals:wolves_exec(cfg)
 
-            local wolves = wesnoth.get_units { side = wesnoth.current.side, type = 'Wolf', formula = '$this_unit.moves > 0' }
+            local wolves = wesnoth.get_units { side = wesnoth.current.side, type = cfg.predators, formula = '$this_unit.moves > 0' }
             -- Wolves hunt deer, but only close to the forest
-            local prey = wesnoth.get_units { type = 'Deer',
+            local prey = wesnoth.get_units { type = cfg.prey,
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
                 { "filter_location", { terrain = '*^F*', radius = 3 } }
             }
@@ -260,7 +260,7 @@ return {
                 if y <= 5 then rating = rating - (6 - y) / 1.4 end
                 if (w - x) <= 5 then rating = rating - (6 - (w - x)) / 1.4 end
                 if (h - y) <= 5 then rating = rating - (6 - (h - y)) / 1.4 end
-
+                
                -- Hexes that enemy bears, yetis and spiders can reach get a massive negative hit
                -- meaning that they will only ever be chosen if there's no way around them
                if avoid:get(x, y) then rating = rating - 1000 end
@@ -270,53 +270,30 @@ return {
             --print('wolf 1 ->', wolves[1].x, wolves[1].y, wolf1[1], wolf1[2])
             --W.message { speaker = wolves[1].id, message = "Me first"}
             AH.movefull_stopunit(ai, wolves[1], wolf1)
-
-            -- Second wolf wants to be (in descending priority):
-            -- 1. Same distance from Wolf 1 and target
-            -- 2. 2 hexes from Wolf 1
-            -- 3. As close to target as possible
-            local wolf2 = {}  -- Needed also for wolf3 below, thus defined here
-            if wolves[2] then
-                local d_1t = H.distance_between(wolf1[1], wolf1[2], target.x, target.y)
-                wolf2 = AH.find_best_move(wolves[2], function(x, y)
-                    local d_2t = H.distance_between(x, y, target.x, target.y)
-                    local rating = -1 * (d_2t - d_1t) ^ 2.
-                    local d_12 = H.distance_between(x, y, wolf1[1], wolf1[2])
-                    rating = rating - (d_12 - 2.7) ^ 2
-                    rating = rating - d_2t / 3.
-
+            
+            for i = 2,#wolves do
+                move = AH.find_best_move(wolves[i], function(x,y)
+                    local rating = 0
+                    
+                    -- We want wolves to be 2 hexes from each other
+                    for j = 1,i-1 do
+                        local dst = H.distance_between(x, y, wolves[j].x, wolves[j].y)
+                        rating = rating + (-1 * (dst - 2.7 * j)^2)
+                    end
+                    
+                    -- Same distance from Wolf 1 and target for all the wolves
+                    local dst_t = H.distance_between(x, y, target.x, target.y)
+                    local dst_1t = H.distance_between(wolf1[1], wolf1[2], target.x, target.y)
+                    rating = rating + (-1 * (dst_t - dst_1t)^2)
+                    
                     -- Hexes that enemy bears, yetis and spiders can reach get a massive negative hit
                     -- meaning that they will only ever be chosen if there's no way around them
                     if avoid:get(x, y) then rating = rating - 1000 end
-
+                    
                     return rating
                 end)
-                --print('wolf 2 ->', wolves[2].x, wolves[2].y, wolf2[1], wolf2[2])
-                --W.message { speaker = wolves[2].id, message = "Me second"}
-                AH.movefull_stopunit(ai, wolves[2], wolf2)
-            end
-
-            -- Third wolf wants to be (in descending priority):
-            -- Same as Wolf 2, but also 4 hexes from wolf 2
-            if wolves[3] then
-                local d_1t = H.distance_between(wolf1[1], wolf1[2], target.x, target.y)
-                local wolf3 = AH.find_best_move(wolves[3], function(x, y)
-                    local d_3t = H.distance_between(x, y, target.x, target.y)
-                    local rating = -1 * (d_3t - d_1t) ^ 2.
-                    local d_13 = H.distance_between(x, y, wolf1[1], wolf1[2])
-                    local d_23 = H.distance_between(x, y, wolf2[1], wolf2[2])
-                    rating = rating - (d_13 - 2.7) ^ 2 - (d_23 - 5.4) ^ 2
-                    rating = rating - d_3t / 3.
-
-                    -- Hexes that enemy bears, yetis and spiders can reach get a massive negative hit
-                    -- meaning that they will only ever be chosen if there's no way around them
-                    if avoid:get(x, y) then rating = rating - 1000 end
-
-                    return rating
-                end)
-                --print('wolf 3 ->', wolves[3].x, wolves[3].y, wolf3[1], wolf3[2])
-                --W.message { speaker = wolves[3].id, message = "Me third"}
-                AH.movefull_stopunit(ai, wolves[3], wolf3)
+                
+                AH.movefull_stopunit(ai, wolves[i], move)
             end
         end
 
