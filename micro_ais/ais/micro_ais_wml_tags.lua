@@ -277,23 +277,33 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
     --------- Protect Unit Micro AI - side-wide AI ------------------------------------
     if (cfg.ai_type == 'protect_unit') then
-        local cfg_pu = {}
+        local cfg_pu = { id = {}, goal_x = {}, goal_y = {} }
         if (cfg.action ~= 'delete') then
             -- Required keys
-            if (not cfg.units) then
-                H.wml_error("Protect Unit Micro AI missing required units= key")
+            for u in H.child_range(cfg, "unit") do
+                if (not u.id) then
+                    H.wml_error("Protect Unit Micro AI [unit] tag missing required id= key")
+                end
+                if (not u.goal_x) then
+                    H.wml_error("Protect Unit Micro AI [unit] tag missing required goal_x= key")
+                end
+                if (not u.goal_y) then
+                    H.wml_error("Protect Unit Micro AI [unit] tag missing required goal_y= key")
+                end
+                table.insert(cfg_pu.id, u.id)
+                table.insert(cfg_pu.goal_x, u.goal_x)
+                table.insert(cfg_pu.goal_y, u.goal_y)
             end
-            cfg_pu.units = cfg.units
+
+            if (not cfg_pu.id[1]) then
+                H.wml_error("Protect Unit Micro AI missing required [unit] tag")
+            end
         end
 
-        local unit_ids = ''
-        local units = AH.split(cfg.units)
-        for i = 1, #units, 3 do
-            unit_ids = unit_ids .. units[i] .. ','
+        local unit_ids_str = 'dummy'
+        for i,id in ipairs(cfg_pu.id) do
+            unit_ids_str = unit_ids_str .. ',' .. id
         end
-
-        unit_ids = string.sub(unit_ids, 1, -2)
-        cfg_pu.unit_ids = unit_ids
 
         local aspect_parms = {
             {
@@ -304,7 +314,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
                     invalidate_on_gamestate_change = "yes",
                     { "filter_own", {
                         { "not", {
-                            id = unit_ids
+                            id = unit_ids_str
                         } }
                     } }
                 }

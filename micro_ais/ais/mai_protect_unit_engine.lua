@@ -135,22 +135,15 @@ return {
 
         function protect_unit:finish_eval(cfg)
             -- If a unit can make it to the goal, this is the first thing that happens
-            cfg.units = AH.split(cfg.units, ",")
-
-            -- Also need the goals for each unit
-            local goals = {}
-            for i = 1,#cfg.units,3 do
-                table.insert(goals, {tonumber(cfg.units[i+1]), tonumber(cfg.units[i+2])})
-            end
-            --DBG.dbms(goals)
-
-            local units = wesnoth.get_units{id = cfg.unit_ids, formula = '$this_unit.moves > 0'}
-            for i,u in ipairs(units) do
-                local path, cost = wesnoth.find_path(u, goals[i][1], goals[i][2])
-                if (cost <= u.moves) and ((u.x ~= goals[i][1]) or (u.y ~= goals[i][2])) then
-                    self.data.unit = u
-                    self.data.goal = goals[i]
-                    return 300000
+            for i,id in ipairs(cfg.id) do
+                local unit = wesnoth.get_units{ id = id, formula = '$this_unit.moves > 0' }[1]
+                if unit then
+                    local path, cost = wesnoth.find_path(unit, cfg.goal_x[i], cfg.goal_y[i])
+                    if (cost <= unit.moves) and ((unit.x ~= cfg.goal_x[i]) or (unit.y ~= cfg.goal_y[i])) then
+                        self.data.unit = unit
+                        self.data.goal = { cfg.goal_x[i], cfg.goal_y[i] }
+                        return 300000
+                    end
                 end
             end
             return 0
@@ -164,7 +157,10 @@ return {
 
         function protect_unit:move_eval(cfg)
             -- Always 94000 if one of the units can still move
-            local units = wesnoth.get_units{id = cfg.unit_ids, formula = '$this_unit.moves > 0'}
+            local units = {}
+            for i,id in ipairs(cfg.id) do
+                table.insert(units, wesnoth.get_units{ id = id, formula = '$this_unit.moves > 0' }[1])
+            end
 
             ----- For the time being, we disable the dialog ----
             -- If AI parameters are not set, bring up the dialog
@@ -188,11 +184,13 @@ return {
 
         function protect_unit:move_exec(cfg)
             -- Find and execute best (safest) move toward goal
+            local units = {}
+            for i,id in ipairs(cfg.id) do
+                table.insert(units, wesnoth.get_units{ id = id, formula = '$this_unit.moves > 0' }[1])
+            end
 
-            cfg.units = AH.split(cfg.units, ",")
             -- Need to take the units off the map, as they don't count into the map scores
             -- (as long as they can still move)
-            local units = wesnoth.get_units {id = cfg.unit_ids, formula = '$this_unit.moves > 0'}
             local extracted_units = {}
             for i,u in ipairs(units) do
                 --print('Extracting: ',u.id)
@@ -225,14 +223,13 @@ return {
             extracted_units = nil
 
             -- We move the weakest (fewest HP unit) first
-            local units = wesnoth.get_units {id = cfg.unit_ids, formula = '$this_unit.moves > 0'}
             local unit = AH.choose(units, function(tmp) return -tmp.hitpoints end)
             --print("Moving: ",unit.id)
 
             -- Also need the goal for this unit
             local goal = {}
-            for i = 1,#cfg.units,3 do
-                if (unit.id == cfg.units[i]) then goal = {tonumber(cfg.units[i+1]), tonumber(cfg.units[i+2])} end
+            for i,id in ipairs(cfg.id) do
+                if (unit.id == id) then goal = { cfg.goal_x[1], cfg.goal_y[i] } end
             end
             --print("Goal:",goal[1],goal[2])
 
@@ -320,7 +317,10 @@ return {
             -- This is set up very conservatively
             -- If unit can die in the worst case, it is not done, even if _really_ unlikely
 
-            local units = wesnoth.get_units{id = cfg.unit_ids, formula = '$this_unit.attacks_left > 0'}
+            local units = {}
+            for i,id in ipairs(cfg.id) do
+                table.insert(units, wesnoth.get_units{ id = id, formula = '$this_unit.attacks_left > 0' }[1])
+            end
             if (not units[1]) then return 0 end
 
             local attacks = AH.get_attacks(units, { simulate_combat = true })
