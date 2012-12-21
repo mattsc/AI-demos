@@ -8,7 +8,6 @@ return {
         local LS = wesnoth.require "lua/location_set.lua"
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
         local BC = wesnoth.require "~/add-ons/AI-demos/lua/battle_calcs.lua"
-        local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
         function bottleneck_defense:is_my_territory(map, enemy_map)
             -- Create map that contains 'true' for all hexes that are
@@ -82,7 +81,6 @@ return {
                 table.insert(coords[i], max_value + 10 - i * 10) -- the rating
                 i = i + 1
             end
-            --DBG.dbms(coords)
 
             return AH.LS_of_triples(coords)
         end
@@ -200,7 +198,6 @@ return {
            for i,u in ipairs(all_units) do
                occ_hexes:insert(u.x, u.y)
            end
-           --DBG.dbms(occ_hexes,false,"variable",false)
 
            -- find the closest unoccupied reachable hex in the east
            local best_reach, best_hex = -1, {}
@@ -561,7 +558,6 @@ return {
                         n_weapon = n_weapon + 1
 
                         local att_stats, def_stats = wesnoth.simulate_combat(a, n_weapon, t)
-                        --DBG.dbms(def_stats,false,"variable",false)
 
                         local rating = 0
                         -- This is an acceptable attack if:
