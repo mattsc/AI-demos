@@ -462,7 +462,7 @@ return {
             -- Subtract the number of possible recruits for the enemy from the list of poisonable units
             -- This works perfectly unless some of the enemy recruits cannot be poisoned (e.g. not_living)
             -- However, there is no problem with this since poison is generally less useful in such situations and subtracting them too discourages such recruiting
-            local poison_modifier = math.min(((poisonable_count-recruit_data.recruit.possible_enemy_recruit_count) / (poisoner_count*5)), 1)^2
+            local poison_modifier = math.max(0, math.min(((poisonable_count-recruit_data.recruit.possible_enemy_recruit_count) / (poisoner_count*5)), 1))^2
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
                 -- Ensure effectiveness and vulnerability are positive.
                 -- Negative values imply that drain is involved and the amount drained is very high
@@ -694,7 +694,7 @@ return {
                     local path, cost = wesnoth.find_path(recruitable_units[recruit_id], target_hex[1], target_hex[2], {viewing_side=0, max_cost=wesnoth.unit_types[recruit_id].max_moves+1})
                     if cost > wesnoth.unit_types[recruit_id].max_moves then
                         -- large penalty if the unit can't reach the target village
-                        bonus = bonus - 1.1
+                        bonus = bonus - 1
                     end
                 end
 
