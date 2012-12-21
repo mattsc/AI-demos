@@ -29,6 +29,10 @@ return {
 
         local recruit_data = {}
 
+        local no_village_cost = function(recruit_id)
+            return wesnoth.unit_types[recruit_id].cost+wesnoth.unit_types[recruit_id].level+wesnoth.sides[wesnoth.current.side].village_gold
+        end
+
         local get_hp_efficiency = function (table, recruit_id)
             -- raw durability is a function of hp and the regenerates ability
             -- efficiency decreases faster than cost increases to avoid recruiting many expensive units
@@ -56,10 +60,12 @@ return {
                 end
                 effective_hp = effective_hp + (regen_amount * effective_hp/30)
             end
-            local efficiency = math.max(math.log(effective_hp/20),0.01)/(wesnoth.unit_types[recruit_id].cost^2)
+            local hp_score = math.max(math.log(effective_hp/20),0.01)
+            local efficiency = hp_score/(wesnoth.unit_types[recruit_id].cost^2)
+            local no_village_efficiency = hp_score/(no_village_cost(recruit_id)^2)
 
-            table[recruit_id] = efficiency
-            return efficiency
+            table[recruit_id] = {efficiency, no_village_efficiency}
+            return {efficiency, no_village_efficiency}
         end
         local efficiency = {}
         setmetatable(efficiency, { __index = get_hp_efficiency })
@@ -183,7 +189,7 @@ return {
                     end
                 end
 
-                return best_attack, best_damage, poison_damage
+                return best_attack, best_damage, best_poison_damage
             end
 
             -- Use cached information when possible: this is expensive
@@ -603,32 +609,35 @@ return {
                 end
                 recruit_count = recruit_count / attack_types
                 local recruit_modifier = 1+recruit_count/50
+                local efficiency_index = 1
+                local unit_cost = wesnoth.unit_types[recruit_id].cost
 
                 -- Use time to enemy to encourage recruiting fast units when the opponent is far away (game is beginning or we're winning)
                 -- Base distance on
-                local recruit_unit
+                local recruit_unit = wesnoth.create_unit {
+                    type = recruit_id,
+                    x = best_hex[1],
+                    y = best_hex[2],
+                    random_traits = false,
+                    name = "X",
+                    random_gender = false
+                }
                 if target_hex[1] then
-                    recruit_unit = wesnoth.create_unit {
-                        type = recruit_id,
-                        x = target_hex[1],
-                        y = target_hex[2],
-                        random_traits = false,
-                        name = "X",
-                        random_gender = false
-                    }
-                else
-                    recruit_unit = wesnoth.create_unit {
-                        type = recruit_id,
-                        x = best_hex[1],
-                        y = best_hex[2],
-                        random_traits = false,
-                        name = "X",
-                        random_gender = false
-                    }
+                    local path, cost = wesnoth.find_path(recruit_unit, target_hex[1], target_hex[2], {viewing_side=0, max_cost=wesnoth.unit_types[recruit_id].max_moves+1})
+                    if cost > wesnoth.unit_types[recruit_id].max_moves then
+                        -- Unit cost is effectively higher if cannot reach the village
+                        efficiency_index = 2
+                        unit_cost = no_village_cost(recruit_id)
+                    end
+
+                    -- Later calculations are based on where the unit will be after initial move
+                    recruit_unit.x = target_hex[1]
+                    recruit_unit.y = target_hex[2]
                 end
+
                 local path, cost = wesnoth.find_path(recruit_unit, enemy_location.x, enemy_location.y, {ignore_units = true})
                 local time_to_enemy = cost / wesnoth.unit_types[recruit_id].max_moves
-                local move_score = 1 / (time_to_enemy * wesnoth.unit_types[recruit_id].cost^0.5)
+                local move_score = 1 / (time_to_enemy * unit_cost^0.5)
 
                 local eta = math.ceil(time_to_enemy)
                 if target_hex[1] then
@@ -642,7 +651,7 @@ return {
                 local offense_score =
                     (recruit_effectiveness[recruit_id].damage*damage_bonus+recruit_effectiveness[recruit_id].poison_damage)
                     /(wesnoth.unit_types[recruit_id].cost^0.3*recruit_modifier^4)
-                local defense_score = efficiency[recruit_id]/recruit_vulnerability[recruit_id]
+                local defense_score = efficiency[recruit_id][efficiency_index]/recruit_vulnerability[recruit_id]
 
                 local unit_score = {offense = offense_score, defense = defense_score, move = move_score}
                 recruit_scores[recruit_id] = unit_score
@@ -695,8 +704,8 @@ return {
                     recruitable_units[recruit_id].y = best_hex[2]
                     local path, cost = wesnoth.find_path(recruitable_units[recruit_id], target_hex[1], target_hex[2], {viewing_side=0, max_cost=wesnoth.unit_types[recruit_id].max_moves+1})
                     if cost > wesnoth.unit_types[recruit_id].max_moves then
-                        -- large penalty if the unit can't reach the target village
-                        bonus = bonus - 1
+                        -- penalty if the unit can't reach the target village
+                        bonus = bonus - 0.2
                     end
                 end
 
