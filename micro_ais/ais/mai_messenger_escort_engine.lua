@@ -17,7 +17,7 @@ return {
             -- Returns proxy table for the first unit found, or nil if none was found
 
             local path, cost = wesnoth.find_path(unit, goal_x, goal_y, { ignore_units = true })
-            
+
             -- If unit cannot get there:
             if cost >= 42424242 then return end
 
@@ -125,7 +125,7 @@ return {
                 return
             end
         end
-        
+
         -----------------------
 
         function messenger_escort:attack_eval(cfg)
@@ -135,27 +135,32 @@ return {
 
             local messenger = wesnoth.get_units{ side = wesnoth.current.side, id = cfg.id }[1]
             if (not messenger) then return 0 end
-            
-            if not self.data.waypoints then
-                cfg.waypoint_x = AH.split(cfg.waypoint_x, ",")
-                cfg.waypoint_y = AH.split(cfg.waypoint_y, ",")
-                
-                self.data.waypoints = {}
-                for i = 1,#cfg.waypoint_x do
-                    self.data.waypoints[i] = { tonumber(cfg.waypoint_x[i]), tonumber(cfg.waypoint_y[i]) }
-                end
+
+            -- Set up the waypoints
+            cfg.waypoint_x = AH.split(cfg.waypoint_x, ",")
+            cfg.waypoint_y = AH.split(cfg.waypoint_y, ",")
+            local waypoints = {}
+            for i = 1,#cfg.waypoint_x do
+                waypoints[i] = { tonumber(cfg.waypoint_x[i]), tonumber(cfg.waypoint_y[i]) }
             end
-            
-            local near_wp = H.distance_between(messenger.x, messenger.y, self.data.waypoints[1][1], self.data.waypoints[1][2])
-            if near_wp <= 3 then
-                if 1 < #self.data.waypoints then
-                    table.remove(self.data.waypoints, 1)
-                end
+
+            -- Variable to store which waypoint to go to next (persistent)
+            if (not self.data.next_waypoint) then self.data.next_waypoint = 1 end
+
+            -- If we're within 3 hexes of the next waypoint, we go on to the one after that
+            -- except if that one's the last one already
+            local dist_wp = H.distance_between(messenger.x, messenger.y,
+                waypoints[self.data.next_waypoint][1], waypoints[self.data.next_waypoint][2]
+            )
+            if (dist_wp <= 3) and (self.data.next_waypoint < #waypoints) then
+                self.data.next_waypoint = self.data.next_waypoint + 1
             end
-            
+
             -- See if there's an enemy in the way that should be attacked
-            local attack = self:find_clearing_attack(messenger, self.data.waypoints[1][1], self.data.waypoints[1][2])
-            
+            local attack = self:find_clearing_attack(messenger,
+                waypoints[self.data.next_waypoint][1], waypoints[self.data.next_waypoint][2]
+            )
+
             if attack then
                 self.data.best_attack = attack
                 return 300000
@@ -187,17 +192,33 @@ return {
 
         function messenger_escort:messenger_move_exec(cfg)
             local messenger = wesnoth.get_units{ id = cfg.id, formula = '$this_unit.moves > 0' }[1]
-            
-            local near_wp = H.distance_between(messenger.x, messenger.y, self.data.waypoints[1][1], self.data.waypoints[1][2])
-            if near_wp <= 3 then
-                if 1 < #self.data.waypoints then
-                    table.remove(self.data.waypoints, 1)
-                end
+
+            -- Set up the waypoints
+            cfg.waypoint_x = AH.split(cfg.waypoint_x, ",")
+            cfg.waypoint_y = AH.split(cfg.waypoint_y, ",")
+            local waypoints = {}
+            for i = 1,#cfg.waypoint_x do
+                waypoints[i] = { tonumber(cfg.waypoint_x[i]), tonumber(cfg.waypoint_y[i]) }
             end
-            
+
+            -- Variable to store which waypoint to go to next (persistent)
+            if (not self.data.next_waypoint) then self.data.next_waypoint = 1 end
+
+            -- If we're within 3 hexes of the next waypoint, we go on to the one after that
+            -- except if that one's the last one already
+            local dist_wp = H.distance_between(messenger.x, messenger.y,
+                waypoints[self.data.next_waypoint][1], waypoints[self.data.next_waypoint][2]
+            )
+            if (dist_wp <= 3) and (self.data.next_waypoint < #waypoints) then
+                self.data.next_waypoint = self.data.next_waypoint + 1
+            end
+
             -- In case an enemy is on the waypoint hex:
-            local x, y = wesnoth.find_vacant_tile(self.data.waypoints[1][1], self.data.waypoints[1][2], messenger)
+            local x, y = wesnoth.find_vacant_tile(
+                waypoints[self.data.next_waypoint][1], waypoints[self.data.next_waypoint][2], messenger
+            )
             local next_hop = AH.next_hop(messenger, x, y)
+
             -- Compare this to the "ideal path"
             local path, cost = wesnoth.find_path(messenger, x, y, { ignore_units = 'yes' })
             local opt_hop, opt_cost = {messenger.x, messenger.y}, 0
@@ -212,7 +233,7 @@ return {
                     end
                 end
             end
-            
+
             --print(next_hop[1], next_hop[2], opt_hop[1], opt_hop[2])
             -- Now compare how long it would take from the end of both of these options
             local x1, y1 = messenger.x, messenger.y
@@ -227,19 +248,19 @@ return {
             -- even though it is currently blocked
             if (cost2 + 4 < cost1) then next_hop = opt_hop end
             --print(next_hop[1], next_hop[2])
-            
+
             if next_hop and ((next_hop[1] ~= messenger.x) or (next_hop[2] ~= messenger.y)) then
                 ai.move(messenger, next_hop[1], next_hop[2])
             else
                 ai.stopunit_moves(messenger)
             end
-            
+
             -- We also test whether an attack without retaliation or with little damage is possible
             local targets = wesnoth.get_units {
                 { "filter_side", { {"enemy_of", {side = wesnoth.current.side} } } },
                 { "filter_adjacent", { id = cfg.id } }
             }
-            
+
             local max_rating, best_tar, best_weapon = -9e99, {}, -1
             for i,t in ipairs(targets) do
                 local n_weapon = 0
@@ -252,10 +273,10 @@ return {
                     -- This is an acceptable attack if:
                     -- 1. There is no counter attack
                     -- 2. Probability of death is >=67% for enemy, 0% for attacker (default values)
-                    
+
                     local enemy_death_chance = cfg.enemy_death_chance or 0.67
                     local messenger_death_chance = cfg.messenger_death_chance or 0
-                    
+
                     if (att_stats.hp_chance[messenger.hitpoints] == 1)
                         or (def_stats.hp_chance[0] >= tonumber(enemy_death_chance)) and (att_stats.hp_chance[0] <= tonumber(messenger_death_chance))
                     then
@@ -267,14 +288,14 @@ return {
                     end
                 end
             end
-            
+
             local target = wesnoth.get_units {
                 x = cfg.waypoint_x[#cfg.waypoint_x],
                 y = cfg.waypoint_y[#cfg.waypoint_y],
                 { "filter_side", { {"enemy_of", {side = wesnoth.current.side} } } },
                 { "filter_adjacent", { id = cfg.id } }
             }[1]
-            
+
             if max_rating > -9e99 then
                 ai.attack(messenger, best_tar, best_weapon)
             elseif target then
