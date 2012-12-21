@@ -191,12 +191,7 @@ return {
 
             -- Need to take the units off the map, as they don't count into the map scores
             -- (as long as they can still move)
-            local extracted_units = {}
-            for i,u in ipairs(units) do
-                --print('Extracting: ',u.id)
-                table.insert(extracted_units, wesnoth.copy_unit(u))
-                wesnoth.put_unit(u.x, u.y)
-            end
+            for i,u in ipairs(units) do wesnoth.extract_unit(u) end
 
             -- All the units on the map
             -- Counts all enemies, but only own units (not allies)
@@ -216,11 +211,7 @@ return {
             --W.message {speaker="narrator", message="Enemy attack map" }
 
             -- Now put the units back out there
-            for i,u in ipairs(extracted_units) do
-                --print('Restoring: ',u.id)
-                wesnoth.put_unit(u.x, u.y, u)
-            end
-            extracted_units = nil
+            for i,u in ipairs(units) do wesnoth.put_unit(u.x, u.y, u) end
 
             -- We move the weakest (fewest HP unit) first
             local unit = AH.choose(units, function(tmp) return -tmp.hitpoints end)
