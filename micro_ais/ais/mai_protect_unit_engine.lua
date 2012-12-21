@@ -252,7 +252,7 @@ return {
             --AH.put_labels(GDM)
             --W.message {speaker="narrator", message="Goal distance map" }
 
-            -- Configuration parameters
+            -- Configuration parameters -- can be set in the (currently disabled) dialog above
             local enemy_weight = self.data.enemy_weight or 100.
             local my_unit_weight = self.data.my_unit_weight or 1.
             local distance_weight = self.data.distance_weight or 3.
@@ -268,8 +268,7 @@ return {
                 terrain_weight = 0
             end
 
-            local max_rating = -1e99
-            local best_hex = 0
+            local max_rating, best_hex = -9e99, -1
             local rating_map = LS.create()  -- Also set up rating map, so that it can be displayed
 
             for ind,r in pairs(reach_map.values) do
@@ -290,8 +289,7 @@ return {
                 rating = rating + (EIDM.values[ind] or 0) / 10. * bearing
 
                 if (rating > max_rating) then
-                    max_rating = rating
-                    best_hex = ind
+                    max_rating, best_hex = rating, ind
                 end
 
                 rating_map.values[ind] = rating
@@ -336,10 +334,7 @@ return {
             -- Set up a retaliation table, as many pairs of attacks will be the same
             local retal_table = {}
 
-            local max_rating = -10000
-            local best_attack = -1
-
-            -- Now evaluate every attack
+            local max_rating, best_attack = -9e99, {}
             for i,a in pairs(attacks) do
 
                 --print(i,a.dst.x,a.dst.y)
@@ -410,8 +405,7 @@ return {
                         local rating = min_outcome + a.att_stats.average_hp - a.def_stats.average_hp
                         --print('  rating:',rating,'  min_outcome',min_outcome)
                         if (rating > max_rating) then
-                            max_rating = rating
-                            best_attack = a
+                            max_rating, best_attack = rating, a
                         end
                     end
 
@@ -419,7 +413,7 @@ return {
             end
             --print('Max_rating:', max_rating)
 
-            if (max_rating > -10000) then
+            if (max_rating > -9e99) then
                 self.data.best_attack = best_attack
                 return 95000
             else
