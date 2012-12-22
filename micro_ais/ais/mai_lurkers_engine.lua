@@ -71,7 +71,7 @@ return {
 
             -- If unit has moves left (that is, it didn't attack), go to random wander terrain hex
             -- Check first that unit wasn't killed in the attack
-            if (attacked == 0) then
+            if (attacked == 0) and (not cfg.stationary) then
 
                 local reachable_wandert =
                     LS.of_pairs( wesnoth.get_locations  { {"and", {x = me.x, y = me.y, radius = me.moves} }, {"and", cfg.wander_terrain} } )
@@ -88,6 +88,9 @@ return {
                 end
                 AH.movefull_stopunit(ai, me, dst)
             end
+
+            -- If the unit has moves or attacks left at this point, take them away
+            ai.stopunit_all(me)
         end
 
         return lurkers
