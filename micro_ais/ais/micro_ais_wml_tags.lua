@@ -645,7 +645,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
             local unit = wesnoth.get_units { id=cfg_animals.id }[1]
             CA_parms = {
                 {
-                    id = "hunter_unit_" .. cfg_animals.id, eval_name = 'hunt_and_rest_eval', exec_name = 'hunt_and_rest_exec',
+                    id = "hunter_unit_" .. cfg_animals.id, eval_name = 'hunter_unit_eval', exec_name = 'hunter_unit_exec',
                     max_score = 300000, sticky = true, unit_x = unit.x, unit_y = unit.y, cfg_str = AH.serialize(cfg_animals)
                 }
             }
