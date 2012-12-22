@@ -9,6 +9,7 @@ return {
         local LS = wesnoth.require "lua/location_set.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
+        ----- Beginning of Hunter AI -----
         function animals:attack_weakest_adj_enemy(unit)
             -- Attack the enemy with the fewest hitpoints adjacent to 'unit', if there is one
             -- Returns status of the attack:
@@ -198,6 +199,7 @@ return {
             unit.variables.hunting_status = nil
         end
 
+        ----- Beginning of Wolves AI -----
         function animals:wolves_eval(cfg)
             local wolves = wesnoth.get_units { side = wesnoth.current.side, formula = '$this_unit.moves > 0', { "and", cfg.predators } }
             -- Wolves hunt deer, but only close to the forest
@@ -262,7 +264,7 @@ return {
                 if y <= 5 then rating = rating - (6 - y) / 1.4 end
                 if (w - x) <= 5 then rating = rating - (6 - (w - x)) / 1.4 end
                 if (h - y) <= 5 then rating = rating - (6 - (h - y)) / 1.4 end
-                
+
                -- Hexes that enemy bears, yetis and spiders can reach get a massive negative hit
                -- meaning that they will only ever be chosen if there's no way around them
                if avoid:get(x, y) then rating = rating - 1000 end
@@ -272,29 +274,29 @@ return {
             --print('wolf 1 ->', wolves[1].x, wolves[1].y, wolf1[1], wolf1[2])
             --W.message { speaker = wolves[1].id, message = "Me first"}
             AH.movefull_stopunit(ai, wolves[1], wolf1)
-            
+
             for i = 2,#wolves do
                 move = AH.find_best_move(wolves[i], function(x,y)
                     local rating = 0
-                    
+
                     -- We want wolves to be 2 hexes from each other
                     for j = 1,i-1 do
                         local dst = H.distance_between(x, y, wolves[j].x, wolves[j].y)
                         rating = rating + (-1 * (dst - 2.7 * j)^2 / j)
                     end
-                    
+
                     -- Same distance from Wolf 1 and target for all the wolves
                     local dst_t = H.distance_between(x, y, target.x, target.y)
                     local dst_1t = H.distance_between(wolf1[1], wolf1[2], target.x, target.y)
                     rating = rating + (-1 * (dst_t - dst_1t)^2)
-                    
+
                     -- Hexes that enemy bears, yetis and spiders can reach get a massive negative hit
                     -- meaning that they will only ever be chosen if there's no way around them
                     if avoid:get(x, y) then rating = rating - 1000 end
-                    
+
                     return rating
                 end)
-                
+
                 AH.movefull_stopunit(ai, wolves[i], move)
             end
         end
@@ -357,8 +359,7 @@ return {
             end
         end
 
-        -- Wolves_multipacks micro ai begins here.
-
+        ----- Beginning of Wolves Multipack AI -----
         function animals:color_label(x, y, text)
             -- For displaying the wolf pack number in color underneath each wolf
             text = "<span color='#a0a0a0'>" .. text .. "</span>"
@@ -810,6 +811,7 @@ return {
             end
         end
 
+        ----- Beginning of Big Animals AI -----
         function animals:big_eval(cfg)
             local units = wesnoth.get_units { side = wesnoth.current.side, type = cfg.type, formula = '$this_unit.moves > 0' }
 
@@ -914,6 +916,7 @@ return {
             end
         end
 
+        ----- Beginning of Swarm AI -----
         function animals:scatter_swarm_eval(cfg)
             local radius = cfg.radius or 3
 
@@ -1047,6 +1050,7 @@ return {
             AH.movefull_stopunit(ai, unit, best_hex)
         end
 
+        ----- Beginning of Herding Animals AI -----
         function animals:herding_area(cfg)
             -- Find the area that the sheep can occupy
             -- First, find all contiguous grass hexes around center hex
@@ -1422,6 +1426,7 @@ return {
             AH.movefull_stopunit(ai, dog, best_hex)
         end
 
+        ----- Beginning of Forest Animals AI -----
         function animals:new_rabbit_eval(cfg)
             -- If there are fewer than 4-6 rabbits out there, we get some more out of their holes
             -- I want this to happen only once, at the beginning of the turn, so
