@@ -840,30 +840,29 @@ return {
             for i,unit in ipairs(units) do
                 -- Unit gets a new goal if none exist or on any move with 10% random chance
                 local r = AH.random(10)
-                if (not unit.variables.x) or (r == 1) then
+                if (not unit.variables.goal_x) or (r == 1) then
                     local locs = wesnoth.get_locations(cfg.goal_terrain or {})
                     local rand = AH.random(#locs)
                     --print(type, ': #locs', #locs, rand)
-                    unit.variables.x, unit.variables.y = locs[rand][1], locs[rand][2]
+                    unit.variables.goal_x, unit.variables.goal_y = locs[rand][1], locs[rand][2]
                 end
-                --print('Big animal goto: ', type, unit.variables.x, unit.variables.y, r)
+                --print('Big animal goto: ', type, unit.variables.goal_x, unit.variables.goal_y, r)
 
                 -- hexes the unit can reach
                 local reach_map = AH.get_reachable_unocc(unit)
                 local wander_terrain = cfg.wander_terrain or {}
                 reach_map:iter( function(x, y, v)
-                    -- Remove tiles that do not comform to the wander filter
+                    -- Remove tiles that do not comform to the wander terrain filter
                     if (not wesnoth.match_location(x, y, wander_terrain) ) then
                         reach_map:remove(x, y)
                     end
                 end)
 
                 -- Now find the one of these hexes that is closest to the goal
-                local max_rating = -9e99
-                local best_hex = {}
+                local max_rating, best_hex = -9e99, {}
                 reach_map:iter( function(x, y, v)
                     -- Distance from goal is first rating
-                    local rating = - H.distance_between(x, y, unit.variables.x, unit.variables.y)
+                    local rating = - H.distance_between(x, y, unit.variables.goal_x, unit.variables.goal_y)
 
                     -- Proximity to an enemy unit is a plus
                     local enemy_hp = 500
@@ -881,8 +880,7 @@ return {
 
                     reach_map:insert(x, y, rating)
                     if (rating > max_rating) then
-                        max_rating = rating
-                        best_hex = { x, y }
+                        max_rating, best_hex = rating, { x, y }
                     end
                 end)
                 --print('  best_hex: ', best_hex[1], best_hex[2])
@@ -892,25 +890,23 @@ return {
                     ai.move(unit, best_hex[1], best_hex[2])  -- partial move only
                 else  -- If animal did not move, we need to stop it (also delete the goal)
                     ai.stopunit_moves(unit)
-                    unit.variables.x = nil
-                    unit.variables.y = nil
+                    unit.variables.goal_x = nil
+                    unit.variables.goal_y = nil
                 end
 
                 -- Or if this gets the unit to the goal, we also delete the goal
-                if (unit.x == unit.variables.x) and (unit.y == unit.variables.y) then
-                    unit.variables.x = nil
-                    unit.variables.y = nil
+                if (unit.x == unit.variables.goal_x) and (unit.y == unit.variables.goal_y) then
+                    unit.variables.goal_x = nil
+                    unit.variables.goal_y = nil
                 end
 
                 -- Finally, if the unit ended up next to enemies, attack the weakest of those
-                local min_hp = 9e99
-                local target = {}
+                local min_hp, target = 9e99, {}
                 for x, y in H.adjacent_tiles(unit.x, unit.y) do
                     local enemy = wesnoth.get_unit(x, y)
                     if enemy and (enemy.side ~= wesnoth.current.side) then
                         if (enemy.hitpoints < min_hp) then
-                            min_hp = enemy.hitpoints
-                            target = enemy
+                            min_hp, target = enemy.hitpoints, enemy
                         end
                     end
                 end
