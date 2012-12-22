@@ -478,7 +478,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
         optional_keys["wolves_multipacks"] = { "type", "pack_size", "show_pack_number" }
 
         required_keys["big_animals"] = { "big_animals"}
-        optional_keys["big_animals"] = { "avoid_unit", "goal_filter", "wander_filter" }
+        optional_keys["big_animals"] = { "avoid_unit", "goal_terrain", "wander_terrain" }
 
         required_keys["forest_animals"] = {}
         optional_keys["forest_animals"] = { "rabbits_number", "radius", "rabbit_hole",
