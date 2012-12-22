@@ -841,7 +841,7 @@ return {
                 -- Unit gets a new goal if none exist or on any move with 10% random chance
                 local r = AH.random(10)
                 if (not unit.variables.x) or (r == 1) then
-                    local locs = wesnoth.get_locations(cfg.goal_filter)
+                    local locs = wesnoth.get_locations(cfg.goal_filter or {})
                     local rand = AH.random(#locs)
                     --print(type, ': #locs', #locs, rand)
                     unit.variables.x, unit.variables.y = locs[rand][1], locs[rand][2]
@@ -850,7 +850,7 @@ return {
 
                 -- hexes the unit can reach
                 local reach_map = AH.get_reachable_unocc(unit)
-                local wander_filter = cfg.wander_filter
+                local wander_filter = cfg.wander_filter or {}
                 reach_map:iter( function(x, y, v)
                     -- Remove tiles that do not comform to the wander filter
                     if (not wesnoth.match_location(x, y, wander_filter) ) then
