@@ -211,7 +211,7 @@ return {
                 name = "X",
                 random_gender = false
             }
-            local can_poison = living(unit) or wesnoth.unit_ability(unit, 'regenerate')
+            local can_poison = living(unit) and (not wesnoth.unit_ability(unit, 'regenerate'))
             local flat_defense = wesnoth.unit_defense(unit, "Gt")
             local best_defense = get_best_defense(unit)
 
