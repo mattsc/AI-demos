@@ -37,54 +37,60 @@ return {
 
             -- all reachable hexes
             local reach = LS.of_pairs( wesnoth.find_reach(me.x, me.y) )
-            -- all reachable swamp hexes
-            local reachable_swamp =
-                 LS.of_pairs( wesnoth.get_locations  { {"and", {x = me.x, y = me.y, radius = me.moves} }, {"and", cfg.attack_terrain} } )
-            reachable_swamp:inter(reach)
-            --print("  reach: " .. reach:size() .. "    reach_swamp: " .. reachable_swamp:size())
+            -- all reachable attack hexes
+            local reachable_attack_terrain =
+                 LS.of_pairs( wesnoth.get_locations  {
+                    {"and", {x = me.x, y = me.y, radius = me.moves} },
+                    {"and", cfg.attack_terrain}
+                } )
+            reachable_attack_terrain:inter(reach)
+            --print("  reach: " .. reach:size() .. "    reach_attack: " .. reachable_attack_terrain:size())
 
             -- need to restrict that to reachable and not occupied by an ally (except own position)
-            local reachable_swamp = reachable_swamp:filter(function(x, y, v)
-                local occ_hex = wesnoth.get_units { x=x, y=y, { "not", { id = me.id } } }[1]
+            local reachable_attack_terrain = reachable_attack_terrain:filter(function(x, y, v)
+                local occ_hex = wesnoth.get_units { x = x, y = y, { "not", { x = me.x, y = me.y } } }[1]
                 return not occ_hex
             end)
-            --print("  reach: " .. reach:size() .. "    reach_swamp no allies: " .. reachable_swamp:size())
+            --print("  reach: " .. reach:size() .. "    reach_attack no allies: " .. reachable_attack_terrain:size())
 
             -- Attack the weakest reachable enemy
-            local attacked = 0  -- Need this, because unit might die in attack
+            local attacked = false  -- Need this, because unit might die in attack
             for j, target in ipairs(targets) do
 
-                -- Get reachable swamp next to target unit
-                local rswamp_nt_target = LS.of_pairs(wesnoth.get_locations {  x=target.x, y=target.y, radius=1 } )
-                rswamp_nt_target:inter(reachable_swamp)
-                --print("  targets: " .. target.x .. "," .. target.y .. "  adjacent swamp: " .. rswamp_nt_target:size())
+                -- Get reachable attack terrain next to target unit
+                local rattack_nt_target = LS.of_pairs(wesnoth.get_locations {  x=target.x, y=target.y, radius=1 } )
+                rattack_nt_target:inter(reachable_attack_terrain)
+                --print("  targets: " .. target.x .. "," .. target.y .. "  adjacent attack terrain: " .. rattack_nt_target:size())
 
                 -- if we found a reachable enemy, attack it
                 -- since they are sorted by hitpoints, we can simply attack the first enemy found and break the loop
-                if rswamp_nt_target:size() > 0 then
+                if rattack_nt_target:size() > 0 then
 
                     -- Choose one of the possible attack locations  at random
-                    local rand = AH.random(1, rswamp_nt_target:size())
-                    local dst = rswamp_nt_target:to_stable_pairs()
+                    local rand = AH.random(1, rattack_nt_target:size())
+                    local dst = rattack_nt_target:to_stable_pairs()
                     AH.movefull_stopunit(ai, me, dst[rand])
                     ai.attack(dst[rand][1], dst[rand][2], target.x, target.y)
-                    attacked = 1
+                    attacked = true
                     break
                end
             end
 
             -- If unit has moves left (that is, it didn't attack), go to random wander terrain hex
             -- Check first that unit wasn't killed in the attack
-            if (attacked == 0) and (not cfg.stationary) then
+            if (not attacked) and (not cfg.stationary) then
 
-                local reachable_wandert =
-                    LS.of_pairs( wesnoth.get_locations  { {"and", {x = me.x, y = me.y, radius = me.moves} }, {"and", (cfg.wander_terrain or cfg.attack_terrain)} } )
-                reachable_wandert:inter(reach)
+                local reachable_wander_terrain =
+                    LS.of_pairs( wesnoth.get_locations  {
+                        {"and", {x = me.x, y = me.y, radius = me.moves} },
+                        {"and", (cfg.wander_terrain or cfg.attack_terrain)}
+                    } )
+                reachable_wander_terrain:inter(reach)
 
                 -- get one of the reachable wander terrain hexes randomly
-                local rand = AH.random(1, reachable_wandert:size())
-                --print("  reach_wander no allies: " .. reachable_wandert:size() .. "  rand #: " ..  rand)
-                local dst = reachable_wandert:to_stable_pairs()
+                local rand = AH.random(1, reachable_wander_terrain:size())
+                --print("  reach_wander no allies: " .. reachable_wander_terrain:size() .. "  rand #: " ..  rand)
+                local dst = reachable_wander_terrain:to_stable_pairs()
                 if dst[1] then
                     dst = dst[rand]
                 else
