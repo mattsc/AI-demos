@@ -940,7 +940,7 @@ return {
 
         function animals:scatter_swarm_exec(cfg)
             local scatter_distance = cfg.scatter_distance or 3
-            local vision_radius = cfg.vision_radius or 12
+            local vision_distance = cfg.vision_distance or 12
 
             -- Any enemy within "scatter_distance" hexes of a unit will cause swarm to scatter
             local units = wesnoth.get_units { side = wesnoth.current.side }
@@ -956,11 +956,11 @@ return {
             }
 
             -- In this case we simply maximize the distance from all these close enemies
-            -- but only for units that are within 'vision_radius' of one of those enemies
+            -- but only for units that are within 'vision_distance' of one of those enemies
             for i,unit in ipairs(units) do
                 local unit_enemies = {}
                 for i,e in ipairs(enemies) do
-                    if (H.distance_between(unit.x, unit.y, e.x, e.y) <= vision_radius) then
+                    if (H.distance_between(unit.x, unit.y, e.x, e.y) <= vision_distance) then
                         table.insert(unit_enemies, e)
                     end
                 end
@@ -990,7 +990,7 @@ return {
 
         function animals:move_swarm_exec(cfg)
             local enemy_distance = cfg.enemy_distance or 5
-            local vision_radius = cfg.vision_radius or 12
+            local vision_distance = cfg.vision_distance or 12
 
             -- If no close enemies, swarm will move semi-randomly, staying close together, but away from enemies
             local all_units = wesnoth.get_units { side = wesnoth.current.side }
@@ -1017,10 +1017,10 @@ return {
             local best_hex = AH.find_best_move(unit, function(x, y)
                 local rating = 0
 
-                -- Only units within 'vision_radius' count for rejoining
+                -- Only units within 'vision_distance' count for rejoining
                 local close_units_no_moves = {}
                 for i,u in ipairs(units_no_moves) do
-                    if (H.distance_between(unit.x, unit.y, u.x, u.y) <= vision_radius) then
+                    if (H.distance_between(unit.x, unit.y, u.x, u.y) <= vision_distance) then
                         table.insert(close_units_no_moves, u)
                     end
                 end
