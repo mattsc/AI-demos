@@ -198,12 +198,12 @@ return {
 
         ----- Beginning of Wolves AI -----
         function animals:wolves_eval(cfg)
-            local wolves = wesnoth.get_units { side = wesnoth.current.side, formula = '$this_unit.moves > 0', { "and", cfg.predators } }
-            -- Wolves hunt deer, but only close to the forest
+            local wolves = wesnoth.get_units { side = wesnoth.current.side,
+                formula = '$this_unit.moves > 0', { "and", cfg.predators }
+            }
             local prey = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
-                { "filter_location", { terrain = '*^F*', radius = 3 } },
-                { "and", cfg.prey },
+                { "and", cfg.prey }
             }
 
             if wolves[1] and prey[1] then
@@ -214,12 +214,11 @@ return {
         end
 
         function animals:wolves_exec(cfg)
-
-            local wolves = wesnoth.get_units { side = wesnoth.current.side, formula = '$this_unit.moves > 0', { "and", cfg.predators } }
-            -- Wolves hunt deer, but only close to the forest
+            local wolves = wesnoth.get_units { side = wesnoth.current.side,
+                formula = '$this_unit.moves > 0', { "and", cfg.predators }
+            }
             local prey = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
-                { "filter_location", { terrain = '*^F*', radius = 3 } },
                 { "and", cfg.prey }
             }
             --print('#wolves, prey', #wolves, #prey)
