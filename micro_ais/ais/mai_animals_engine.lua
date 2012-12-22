@@ -831,7 +831,7 @@ return {
                 formula = '$this_unit.moves > 0'
             }
             local avoid = LS.of_pairs(wesnoth.get_locations { radius = 1,
-                { "filter", { { "and", cfg.avoid_type },
+                { "filter", { { "and", cfg.avoid_unit },
                     { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
                 } }
             })
