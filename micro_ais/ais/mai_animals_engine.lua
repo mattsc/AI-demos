@@ -918,16 +918,15 @@ return {
 
         ----- Beginning of Swarm AI -----
         function animals:scatter_swarm_eval(cfg)
-            local radius = cfg.radius or 3
+            local scatter_distance = cfg.scatter_distance or 3
 
-            -- Any enemy within "radius" hexes of a unit will cause swarm to scatter
+            -- Any enemy within "scatter_distance" hexes of a unit will cause swarm to scatter
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
                 { "filter_location",
-                    { radius = radius, { "filter", { side = wesnoth.current.side } } }
+                    { radius = scatter_distance, { "filter", { side = wesnoth.current.side } } }
                 }
             }
-            -- Could do this with filter_adjacent, but want radius to be adjustable
 
             if enemies[1] then  -- don't use 'formula=' for moves, it's slow
                 local units = wesnoth.get_units { side = wesnoth.current.side }
@@ -940,10 +939,10 @@ return {
         end
 
         function animals:scatter_swarm_exec(cfg)
-            local radius = cfg.radius or 3
+            local scatter_distance = cfg.scatter_distance or 3
             local vision_radius = cfg.vision_radius or 12
 
-            -- Any enemy within "radius" hexes of a unit will cause swarm to scatter
+            -- Any enemy within "scatter_distance" hexes of a unit will cause swarm to scatter
             local units = wesnoth.get_units { side = wesnoth.current.side }
             for i = #units,1,-1 do
                 if (units[i].moves == 0) then table.remove(units, i) end
@@ -952,7 +951,7 @@ return {
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
                 { "filter_location",
-                    { radius = radius, { "filter", { side = wesnoth.current.side } } }
+                    { radius = scatter_distance, { "filter", { side = wesnoth.current.side } } }
                 }
             }
 
