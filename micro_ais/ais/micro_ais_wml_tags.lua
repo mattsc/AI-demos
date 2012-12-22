@@ -251,7 +251,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
         if (cfg.action ~= "delete") then
             -- Required keys
             cfg = cfg.__parsed
-            local required_keys = {"type", "wander_terrain", "attack_terrain"}
+            local required_keys = {"lurkers", "wander_terrain", "attack_terrain"}
             local optional_keys = {"stationary"}
 
             for k, v in pairs(required_keys) do

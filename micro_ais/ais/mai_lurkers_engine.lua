@@ -9,7 +9,9 @@ return {
 
         function lurkers:lurker_attack_eval(cfg)
             -- If any lurker has moves left, we return score just above standard combat CA
-            local units = wesnoth.get_units { side = wesnoth.current.side, type = cfg.type, formula = '$this_unit.moves > 0' }
+            local units = wesnoth.get_units { side = wesnoth.current.side,
+                { "and", cfg.lurkers }, formula = '$this_unit.moves > 0'
+            }
 
             local eval = 0
             if units[1] then eval = 100010 end
@@ -20,7 +22,9 @@ return {
 
         function lurkers:lurker_attack_exec(cfg)
             -- We simply pick the first of the lurkers, they have no strategy
-            local me = wesnoth.get_units { side = wesnoth.current.side, type = cfg.type, formula = '$this_unit.moves > 0' }[1]
+            local me = wesnoth.get_units { side = wesnoth.current.side,
+                { "and", cfg.lurkers }, formula = '$this_unit.moves > 0'
+            }[1]
             --print("me at:" .. me.x .. "," .. me.y)
 
             -- Potential targets
@@ -90,7 +94,7 @@ return {
             end
 
             -- If the unit has moves or attacks left at this point, take them away
-            ai.stopunit_all(me)
+            if me and me.valid then ai.stopunit_all(me) end
         end
 
         return lurkers
