@@ -810,7 +810,11 @@ return {
 
         ----- Beginning of Big Animals AI -----
         function animals:big_eval(cfg)
-            local units = wesnoth.get_units { side = wesnoth.current.side, type = cfg.type, formula = '$this_unit.moves > 0' }
+            local units = wesnoth.get_units {
+                side = wesnoth.current.side,
+                { "and" , cfg.big_animals },
+                formula = '$this_unit.moves > 0'
+            }
 
             if units[1] then return 300000 end
             return 0
@@ -821,9 +825,13 @@ return {
             -- Avoid the other big animals (bears, yetis, spiders) and the dogs, otherwise attack whatever is in their range
             -- The only difference in behavior is the area in which the units move
 
-            local units = wesnoth.get_units { side = wesnoth.current.side, type = cfg.type, formula = '$this_unit.moves > 0' }
+            local units = wesnoth.get_units {
+                side = wesnoth.current.side,
+                { "and" , cfg.big_animals },
+                formula = '$this_unit.moves > 0'
+            }
             local avoid = LS.of_pairs(wesnoth.get_locations { radius = 1,
-                { "filter", { {"and", cfg.avoid_type },
+                { "filter", { { "and", cfg.avoid_type },
                     { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
                 } }
             })
