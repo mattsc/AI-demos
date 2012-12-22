@@ -224,7 +224,7 @@ return {
             --print('#wolves, prey', #wolves, #prey)
 
             -- When wandering (later) they avoid dogs, but not here
-            local avoid_units = wesnoth.get_units { type = cfg.to_avoid,
+            local avoid_units = wesnoth.get_units { type = cfg.avoid_type,
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
             --print('#avoid_units', #avoid_units)
@@ -320,7 +320,7 @@ return {
 
             -- Add a random rating; avoid big animals, tuskers
             -- On their wandering, they avoid the dogs (but not when attacking)
-            local avoid_units = wesnoth.get_units { type = cfg.to_avoid,
+            local avoid_units = wesnoth.get_units { type = cfg.avoid_type,
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
             --print('#avoid_units', #avoid_units)

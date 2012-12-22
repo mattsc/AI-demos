@@ -472,7 +472,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
         optional_keys["hunter_unit"] = { "show_messages" }
 
         required_keys["wolves"] = { "predators", "prey" }
-        optional_keys["wolves"] = { "to_avoid" }
+        optional_keys["wolves"] = { "avoid_type" }
 
         required_keys["wolves_multipacks"] = {}
         optional_keys["wolves_multipacks"] = { "type", "pack_size", "show_pack_number" }
@@ -552,7 +552,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
                         invalidate_on_gamestate_change = "yes",
                         { "filter_enemy", {
                             { "not", {
-                                type=cfg_animals.to_avoid
+                                type=cfg_animals.avoid_type
                             } }
                         } }
                     }
