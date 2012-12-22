@@ -6,6 +6,7 @@ return {
         local H = wesnoth.require "lua/helper.lua"
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
 
+        ----- The coward guardian AI -----
         function guardians:coward_eval(cfg)
             local unit = wesnoth.get_units{ id = cfg.id }[1]
 
@@ -107,11 +108,12 @@ return {
             if unit then ai.stopunit_all(unit) end
         end
 
+        ----- The return guardian AI -----
         function guardians:return_guardian_eval(cfg)
             local unit = wesnoth.get_units { id = cfg.id }[1]
 
             -- Don't need to check if unit exists as this is a sticky CA
-            if (unit.x~=cfg.to_x or unit.y~=cfg.to_y) then
+            if (unit.x ~= cfg.return_x) or (unit.y ~= cfg.return_y) then
                 return 100010
             else
                 return 99990
@@ -122,12 +124,13 @@ return {
             local unit = wesnoth.get_units { id = cfg.id }[1]
             --print("Exec guardian move",unit.id)
 
-            local nh = AH.next_hop(unit, cfg.to_x, cfg.to_y)
+            local nh = AH.next_hop(unit, cfg.return_x, cfg.return_y)
             if unit.moves~=0 then
                 AH.movefull_stopunit(ai, unit, nh)
             end
         end
 
+        ----- The stationed guardian AI -----
         function guardians:stationed_guardian_eval(cfg)
             local unit = wesnoth.get_units { id = cfg.id }[1]
 

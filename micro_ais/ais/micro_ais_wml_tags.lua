@@ -389,7 +389,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
         required_keys["coward"] = { "id", "radius" }
         optional_keys["coward"] = { "seek_x", "seek_y","avoid_x","avoid_y" }
 
-        required_keys["return_guardian"] = { "id", "to_x", "to_y" }
+        required_keys["return_guardian"] = { "id", "return_x", "return_y" }
         optional_keys["return_guardian"] = {}
 
         if (cfg.action~='delete') then
