@@ -989,7 +989,7 @@ return {
         end
 
         function animals:move_swarm_exec(cfg)
-            local min_dist = cfg.min_distance or 5
+            local enemy_distance = cfg.enemy_distance or 5
             local vision_radius = cfg.vision_radius or 12
 
             -- If no close enemies, swarm will move semi-randomly, staying close together, but away from enemies
@@ -1038,8 +1038,8 @@ return {
                 for i,e in ipairs(enemies) do
                     local dist = H.distance_between(x, y, e.x, e.y)
                     -- If enemy is within attack range, avoid those hexes
-                    if (dist < min_dist) then
-                        rating = rating - (min_dist - dist) * 10.
+                    if (dist < enemy_distance) then
+                        rating = rating - (enemy_distance - dist) * 10.
                     end
                 end
 
