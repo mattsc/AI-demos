@@ -1,5 +1,5 @@
 fai 'lurker_moves.fai'
-# run_file('~add-ons/AItest/ai/lurker_moves.fai') #
+# run_file('~add-ons/AI-demos/micro_ais/ais/lurker_moves.fai') #
 
 def is_swamp(map, xx, yy)
     # Tests whether terrain at xx,yy is swamp_water #
