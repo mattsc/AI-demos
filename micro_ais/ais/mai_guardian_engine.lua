@@ -146,7 +146,7 @@ return {
         function guardians:stationed_guardian_exec(cfg)
             -- (s_x,s_y): coordinates where unit is stationed; tries to move here if there is nobody to attack
             -- (g_x,g_y): location that the unit guards
-            --print ("Exec",cfg.id)
+
             local unit = wesnoth.get_units { id = cfg.id }[1]
 
             -- find if there are enemies within 'radius'
@@ -164,7 +164,6 @@ return {
 
             -- Otherwise, unit will either attack or move toward station
             --print("Guardian unit waking up",unit.id)
-
             -- enemies must be within 'radius' of guard, (s_x,s_y) *and* (g_x,g_y)
             -- simultaneous for guard to attack
             local target = {}
@@ -187,8 +186,7 @@ return {
 
                 -- Find tiles adjacent to the target, and save the one that our unit
                 -- can reach with the highest defense rating
-                local best_defense = -9999
-                local attack_loc = 0
+                local best_defense, attack_loc = -9e99, {}
                 for x,y in H.adjacent_tiles(target.x, target.y) do
                     -- only consider unoccupied hexes
                     local occ_hex = wesnoth.get_units { x=x, y=y, { "not", { id = unit.id } } }[1]
@@ -199,14 +197,13 @@ return {
                         local nh = AH.next_hop(unit, x, y)
                         -- if this is best defense rating and unit can reach it, save this location
                         if (nh[1] == x) and (nh[2] == y) and (defense > best_defense) then
-                            attack_loc = {x, y}
-                            best_defense = defense
+                            best_defense, attack_loc = defense, {x, y}
                         end
                     end
                 end
 
                 -- If a valid hex was found: move there and attack
-                if (best_defense ~= -9999) then
+                if (best_defense ~= -9e99) then
                     --print("Attack at:",attack_loc[1],attack_loc[2],best_defense)
                     AH.movefull_stopunit(ai, unit, attack_loc)
                     -- There should be an ai.check_attack_action() here in case something weird is
