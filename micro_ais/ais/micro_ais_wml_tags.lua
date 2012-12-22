@@ -251,8 +251,8 @@ function wesnoth.wml_actions.micro_ai(cfg)
         if (cfg.action ~= "delete") then
             -- Required keys
             cfg = cfg.__parsed
-            local required_keys = {"lurkers", "wander_terrain", "attack_terrain"}
-            local optional_keys = {"stationary"}
+            local required_keys = {"lurkers", "attack_terrain"}
+            local optional_keys = {"stationary", "wander_terrain"}
 
             for k, v in pairs(required_keys) do
                 local child = H.get_child(cfg, v)

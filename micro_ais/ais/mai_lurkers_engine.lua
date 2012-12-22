@@ -78,7 +78,7 @@ return {
             if (attacked == 0) and (not cfg.stationary) then
 
                 local reachable_wandert =
-                    LS.of_pairs( wesnoth.get_locations  { {"and", {x = me.x, y = me.y, radius = me.moves} }, {"and", cfg.wander_terrain} } )
+                    LS.of_pairs( wesnoth.get_locations  { {"and", {x = me.x, y = me.y, radius = me.moves} }, {"and", (cfg.wander_terrain or cfg.attack_terrain)} } )
                 reachable_wandert:inter(reach)
 
                 -- get one of the reachable wander terrain hexes randomly
