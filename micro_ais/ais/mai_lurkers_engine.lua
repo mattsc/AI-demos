@@ -5,7 +5,6 @@ return {
 
         local LS = wesnoth.require "lua/location_set.lua"
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
-        local H = wesnoth.require "lua/helper.lua"
 
         function lurkers:lurker_attack_eval(cfg)
             -- If any lurker has moves left, we return score just above standard combat CA
