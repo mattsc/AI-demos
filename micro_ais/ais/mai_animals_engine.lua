@@ -390,7 +390,7 @@ return {
                 --print(' have pack:', k, ' #members:', #p)
                 if (#p == 1) then
                     local wolf = wesnoth.get_unit(p[1].x, p[1].y)
-                    wolf.variables.pack, wolf.variables.x, wolf.variables.y = nil, nil, nil
+                    wolf.variables.pack, wolf.variables.goal_x, wolf.variables.goal_y = nil, nil, nil
                     packs[k] = nil
                 end
             end
@@ -404,7 +404,7 @@ return {
                 if (not w.variables.pack) then
                     table.insert(nopack_wolves, w)
                     -- Also erase any goal one of these might have
-                    w.variables.pack, w.variables.x, w.variables.y = nil, nil, nil
+                    w.variables.pack, w.variables.goal_x, w.variables.goal_y = nil, nil, nil
                 end
             end
             --print('#nopack_wolves:', #nopack_wolves)
@@ -707,8 +707,8 @@ return {
                     --print(k, i, wolf.id)
                     table.insert(wolves, wolf)
                     -- If any of the wolves in the pack has a goal set, we use that one
-                    if wolf.variables.x then
-                        goal = { wolf.variables.x, wolf.variables.y }
+                    if wolf.variables.goal_x then
+                        goal = { wolf.variables.goal_x, wolf.variables.goal_y }
                     end
                 end
 
@@ -732,7 +732,7 @@ return {
 
                 -- This goal is saved with every wolf of the pack
                 for i,w in ipairs(wolves) do
-                    w.variables.x, w.variables.y = goal[1], goal[2]
+                    w.variables.goal_x, w.variables.goal_y = goal[1], goal[2]
                 end
 
                 -- The pack wanders with only 2 considerations
