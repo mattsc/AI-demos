@@ -1459,7 +1459,7 @@ return {
 
         ----- Beginning of Forest Animals AI -----
         function animals:new_rabbit_eval(cfg)
-            -- Put new rabbits out the if there are fewer than cfg.rabbits_number
+            -- Put new rabbits out the if there are fewer than cfg.rabbit_number
             -- but only if cfg.rabbit_type is set, otherwise do nothing
             -- If this gets executed, we'll let the CA black-list itself
 
@@ -1468,7 +1468,7 @@ return {
         end
 
         function animals:new_rabbit_exec(cfg)
-            local number = cfg.rabbits_number or AH.random(4, 6)
+            local number = cfg.rabbit_number or AH.random(4, 6)
             local radius = cfg.radius or 3
 
             -- Get the locations of all items on that map (which could be rabbit holes)
