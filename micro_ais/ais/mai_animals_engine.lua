@@ -1458,6 +1458,8 @@ return {
         end
 
         ----- Beginning of Forest Animals AI -----
+        -- While all these CAs have been generalized to be usable with different types of
+        -- units, we keep their original names in order to indicate their kind of behavior
         function animals:new_rabbit_eval(cfg)
             -- Put new rabbits out the if there are fewer than cfg.rabbit_number
             -- but only if cfg.rabbit_type is set, otherwise do nothing
