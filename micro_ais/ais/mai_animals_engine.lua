@@ -1089,7 +1089,7 @@ return {
                     { radius = cfg.attention_radius, { "filter", { side = wesnoth.current.side, {"and", cfg.herd} } } }
                 }
             }
-            local dogs = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herder_filter},
+            local dogs = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herders},
                 formula = '$this_unit.moves > 0'
             }
             local sheep = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herd} }
@@ -1099,7 +1099,7 @@ return {
         end
 
         function animals:herding_attack_close_enemy_exec(cfg)
-            local dogs = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herder_filter},
+            local dogs = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herders},
                 formula = '$this_unit.moves > 0' }
             local sheep = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herd} }
 
@@ -1249,7 +1249,7 @@ return {
             -- Any sheep with moves left next to a dog runs aways
             local sheep = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herd},
                 formula = '$this_unit.moves > 0',
-                { "filter_adjacent", { side = wesnoth.current.side, {"and", cfg.herder_filter} } }
+                { "filter_adjacent", { side = wesnoth.current.side, {"and", cfg.herders} } }
             }
             if sheep[1] then return 290000 end
             return 0
@@ -1259,10 +1259,10 @@ return {
             -- simply get the first sheep
             local sheep = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herd},
                 formula = '$this_unit.moves > 0',
-                { "filter_adjacent", { side = wesnoth.current.side, {"and", cfg.herder_filter} } }
+                { "filter_adjacent", { side = wesnoth.current.side, {"and", cfg.herders} } }
             }[1]
             -- and the first dog it is adjacent to
-            local dog = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herder_filter},
+            local dog = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herders},
                 { "filter_adjacent", { x = sheep.x, y = sheep.y } }
             }[1]
 
@@ -1282,10 +1282,10 @@ return {
             -- If dogs have moves left, and there is a sheep with moves left outside the
             -- herding area, chase it back
             -- We'll do a bunch of nested if's, to speed things up
-            local dogs = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herder_filter}, formula = '$this_unit.moves > 0' }
+            local dogs = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herders}, formula = '$this_unit.moves > 0' }
             if dogs[1] then
                 local sheep = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herd},
-                    { "not", { { "filter_adjacent", { side = wesnoth.current.side, {"and", cfg.herder_filter} } } } }
+                    { "not", { { "filter_adjacent", { side = wesnoth.current.side, {"and", cfg.herders} } } } }
                 }
                 if sheep[1] then
                     local herding_area = self:herding_area(cfg)
@@ -1301,9 +1301,9 @@ return {
         end
 
         function animals:herd_sheep_exec(cfg)
-            local dogs = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herder_filter}, formula = '$this_unit.moves > 0' }
+            local dogs = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herders}, formula = '$this_unit.moves > 0' }
             local sheep = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herd},
-                { "not", { { "filter_adjacent", { side = wesnoth.current.side, {"and", cfg.herder_filter} } } } }
+                { "not", { { "filter_adjacent", { side = wesnoth.current.side, {"and", cfg.herders} } } } }
             }
             local herding_area = self:herding_area(cfg)
             local sheep_to_herd = {}
@@ -1379,7 +1379,7 @@ return {
             reach_map:iter( function(x, y, v)
                 for xa, ya in H.adjacent_tiles(x, y) do
                     local dog = wesnoth.get_unit(xa, ya)
-                    if dog and (wesnoth.match_unit(dog, cfg.herder_filter)) then
+                    if dog and (wesnoth.match_unit(dog, cfg.herders)) then
                         reach_map:remove(x, y)
                     end
 
@@ -1400,7 +1400,7 @@ return {
             -- If this move remains within herding area or dogs have no moves left, or sheep doesn't move
             -- make it a full move, otherwise partial move
             local herding_area = self:herding_area(cfg)
-            local dogs = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herder_filter}, formula = '$this_unit.moves > 0' }
+            local dogs = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herders}, formula = '$this_unit.moves > 0' }
             if herding_area:get(x, y) or (not dogs[1]) or ((x == sheep.x) and (y == sheep.y)) then
                 AH.movefull_stopunit(ai, sheep, x, y)
             else
@@ -1410,7 +1410,7 @@ return {
 
         function animals:dog_move_eval(cfg)
             -- As a final step, any dog not adjacent to a sheep move along path
-            local dogs = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herder_filter},
+            local dogs = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herders},
                 formula = '$this_unit.moves > 0',
                 { "not", { { "filter_adjacent", { side = wesnoth.current.side, {"and", cfg.herd} } } } }
             }
@@ -1420,7 +1420,7 @@ return {
 
         function animals:dog_move_exec(cfg)
             -- We simply move the first dog first
-            local dog = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herder_filter},
+            local dog = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herders},
                 formula = '$this_unit.moves > 0',
                 { "not", { { "filter_adjacent", { side = wesnoth.current.side, {"and", cfg.herd} } } } }
             }[1]

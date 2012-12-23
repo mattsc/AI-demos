@@ -487,7 +487,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
         required_keys["swarm"] = {}
         optional_keys["swarm"] = { "scatter_distance", "vision_distance", "enemy_distance" }
 
-        required_keys["herding"] = { "attention_radius", "attack_radius", "herder_area", "herd", "herder_filter", "herding_x", "herding_y" }
+        required_keys["herding"] = { "attention_radius", "attack_radius", "herder_area", "herd", "herders", "herding_x", "herding_y" }
         optional_keys["herding"] = {}
 
         if (cfg.action~='delete') then
