@@ -722,11 +722,19 @@ return {
                 if (not goal[1]) or (r == 1) then
                     local w,h,b = wesnoth.get_map_size()
                     local locs = {}
-                    locs = wesnoth.get_locations { x = '1-'..w, y = '1-'..h,
-                        { "not", { terrain = '*^X*,Wo' } }
-                    }
-                    local rand = AH.random(#locs)
-                    goal = { locs[rand][1], locs[rand][2] }
+                    locs = wesnoth.get_locations { x = '1-'..w, y = '1-'..h }
+
+                    -- Need to find reachable terrain for this to be a viable goal
+                    -- We only check whether the first wolf can get there
+                    local unreachable = true
+                    while unreachable do
+                        local rand = AH.random(#locs)
+                        local next_hop = AH.next_hop(wolves[1], locs[rand][1], locs[rand][2])
+                        if next_hop then
+                            goal = { locs[rand][1], locs[rand][2] }
+                            unreachable = nil
+                        end
+                    end
                 end
                 --print('Pack goal: ', goal[1], goal[2])
 
