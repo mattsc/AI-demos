@@ -1469,7 +1469,7 @@ return {
 
         function animals:new_rabbit_exec(cfg)
             local number = cfg.rabbit_number or AH.random(4, 6)
-            local radius = cfg.radius or 3
+            local rabbit_enemy_distance = cfg.rabbit_enemy_distance or 3
 
             -- Get the locations of all items on that map (which could be rabbit holes)
             W.store_items { variable = 'holes_wml' }
@@ -1477,13 +1477,13 @@ return {
             W.clear_variable { name = 'holes_wml' }
             --DBG.dbms(holes)
 
-            -- Eliminate all holes that have an enemy within 'radius' hexes
+            -- Eliminate all holes that have an enemy within 'rabbit_enemy_distance' hexes
             -- We also add a random number to the ones we keep, for selection of the holes later
             --print('before:', #holes)
             for i = #holes,1,-1 do
                 local enemies = wesnoth.get_units {
                     { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
-                    { "filter_location", { x = holes[i].x, y = holes[i].y, radius = radius } }
+                    { "filter_location", { x = holes[i].x, y = holes[i].y, radius = rabbit_enemy_distance } }
                 }
                 if enemies[1] then
                     table.remove(holes, i)
