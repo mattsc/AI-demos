@@ -1066,7 +1066,7 @@ return {
             -- Find the area that the sheep can occupy
             -- First, find all contiguous hexes around center hex that are inside herder_area
             local herding_area = LS.of_pairs(wesnoth.get_locations {
-                x = cfg.herding_x, y = cfg.herding_y, radius = 999,
+                x = cfg.herd_x, y = cfg.herd_y, radius = 999,
                 {"filter_radius", { { "not", cfg.herder_area } } }
             } )
 
@@ -1266,7 +1266,7 @@ return {
                 { "filter_adjacent", { x = sheep.x, y = sheep.y } }
             }[1]
 
-            local c_x, c_y = cfg.herding_x, cfg.herding_y
+            local c_x, c_y = cfg.herd_x, cfg.herd_y
             -- If dog is farther from center, sheep moves in, otherwise it moves out
             local sign = 1
             if (H.distance_between(dog.x, dog.y, c_x, c_y) >= H.distance_between(sheep.x, sheep.y, c_x, c_y)) then
@@ -1317,7 +1317,7 @@ return {
             -- Find all sheep that have stepped out of bound
             local sheep = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herd} }
             local max_rating, best_dog, best_hex = -9e99, {}, {}
-            local c_x, c_y = cfg.herding_x, cfg.herding_y
+            local c_x, c_y = cfg.herd_x, cfg.herd_y
             for i,s in ipairs(sheep_to_herd) do
                 -- This is the rating that depends only on the sheep's position
                 -- Farthest sheep goes first
@@ -1431,7 +1431,7 @@ return {
                 if (wesnoth.match_location(x, y, cfg.herder_area) ) then
                     rating = rating + 1000 + AH.random(99) / 100.
                 else
-                    rating = rating - math.abs(H.distance_between(x, y, cfg.herding_x,cfg.herding_y) - 4)
+                    rating = rating - math.abs(H.distance_between(x, y, cfg.herd_x, cfg.herd_y) - 4)
                 end
 
                 return rating
