@@ -1083,6 +1083,7 @@ return {
 
         function animals:herding_attack_close_enemy_eval(cfg)
             -- Any enemy within attention_distance (default = 8) hexes of a sheep will get the dogs' attention
+            -- with enemies within attack_distance (default: 4) being attacked
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
                 { "filter_location",
@@ -1104,7 +1105,7 @@ return {
                 formula = '$this_unit.moves > 0' }
             local sheep = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herd} }
 
-            -- We start with enemies within 4 hexes, which will be attacked
+            -- We start with enemies within attack_distance (default: 4) hexes, which will be attacked
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
                 { "filter_location",
@@ -1141,17 +1142,17 @@ return {
 
             -- If we found a move, we do it, and attack if possible
             if max_rating > -9e99 then
-                    --print('Dog moving in to attack')
-                    AH.movefull_stopunit(ai, best_dog, best_hex)
-                    if H.distance_between(best_dog.x, best_dog.y, best_enemy.x, best_enemy.y) == 1 then
-                        ai.attack(best_dog, best_enemy)
-                    end
+                --print('Dog moving in to attack')
+                AH.movefull_stopunit(ai, best_dog, best_hex)
+                if H.distance_between(best_dog.x, best_dog.y, best_enemy.x, best_enemy.y) == 1 then
+                    ai.attack(best_dog, best_enemy)
+                end
                 return
             end
 
             -- If we got here, no enemies to attack where found, so we go on to block other enemies
             --print('Dogs: No enemies close enough to warrant attack')
-            -- Now we get all enemies within 8 hexes
+            -- Now we get all enemies within attention_distance hexes
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
                 { "filter_location",
@@ -1173,6 +1174,7 @@ return {
             end
             --print('Closest enemy, sheep:', closest_enemy.id, closest_sheep.id)
 
+            -- Move dogs in between enemies and sheep
             max_rating, best_dog, best_hex = -9e99, {}, {}
             for i,d in ipairs(dogs) do
                 local reach_map = AH.get_reachable_unocc(d)
@@ -1202,7 +1204,7 @@ return {
         end
 
         function animals:sheep_runs_enemy_eval(cfg)
-            -- Sheep runs from any enemy within 8 hexes (after the dogs have moved in)
+            -- Sheep runs from any enemy within attention_distance hexes (after the dogs have moved in)
             local sheep = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herd},
                 formula = '$this_unit.moves > 0',
                 { "filter_location",
@@ -1239,6 +1241,7 @@ return {
             }
             --print('#enemies', #enemies)
 
+            -- Maximize distance between sheep and enemies
             local best_hex = AH.find_best_move(sheep, function(x, y)
                 local rating = 0
                 for i,e in ipairs(enemies) do rating = rating + H.distance_between(x, y, e.x, e.y) end
@@ -1254,6 +1257,7 @@ return {
                 formula = '$this_unit.moves > 0',
                 { "filter_adjacent", { side = wesnoth.current.side, {"and", cfg.herders} } }
             }
+
             if sheep[1] then return 290000 end
             return 0
         end
@@ -1278,6 +1282,7 @@ return {
             local best_hex = AH.find_best_move(sheep, function(x, y)
                 return H.distance_between(x, y, c_x, c_y) * sign
             end)
+
             AH.movefull_stopunit(ai, sheep, best_hex)
         end
 
@@ -1314,11 +1319,11 @@ return {
                 -- If a sheep is found outside the herding area, we want to chase it back
                 if (not herding_area:get(s.x, s.y)) then table.insert(sheep_to_herd, s) end
             end
+            sheep = nil
 
             -- Find the farthest out sheep that the dogs can get to (and that has moves left)
 
             -- Find all sheep that have stepped out of bound
-            local sheep = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herd} }
             local max_rating, best_dog, best_hex = -9e99, {}, {}
             local c_x, c_y = cfg.herd_x, cfg.herd_y
             for i,s in ipairs(sheep_to_herd) do
@@ -1378,15 +1383,11 @@ return {
             local sheep = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herd}, formula = '$this_unit.moves > 0' }[1]
 
             local reach_map = AH.get_reachable_unocc(sheep)
-            -- Exclude those that are next to a dog, or more than 3 hexes away
+            -- Exclude those that are next to a dog
             reach_map:iter( function(x, y, v)
                 for xa, ya in H.adjacent_tiles(x, y) do
                     local dog = wesnoth.get_unit(xa, ya)
                     if dog and (wesnoth.match_unit(dog, cfg.herders)) then
-                        reach_map:remove(x, y)
-                    end
-
-                    if (H.distance_between(x, y, sheep.x, sheep.y) > 3) then
                         reach_map:remove(x, y)
                     end
                 end
@@ -1412,7 +1413,7 @@ return {
         end
 
         function animals:dog_move_eval(cfg)
-            -- As a final step, any dog not adjacent to a sheep move along path
+            -- As a final step, any dog not adjacent to a sheep moves within herder_area
             local dogs = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herders},
                 formula = '$this_unit.moves > 0',
                 { "not", { { "filter_adjacent", { side = wesnoth.current.side, {"and", cfg.herd} } } } }
@@ -1428,13 +1429,25 @@ return {
                 { "not", { { "filter_adjacent", { side = wesnoth.current.side, {"and", cfg.herd} } } } }
             }[1]
 
+            local herder_area = LS.of_pairs(wesnoth.get_locations(cfg.herder_area))
+            --AH.put_labels(herder_area)
+
+            -- Find average distance of herder_area from center
+            local av_dist = 0
+            herder_area:iter( function(x, y, v)
+                av_dist = av_dist + H.distance_between(x, y, cfg.herd_x, cfg.herd_y)
+            end)
+            av_dist = av_dist / herder_area:size()
+            --print('Average distance:', av_dist)
+
             local best_hex = AH.find_best_move(dog, function(x, y)
-                -- Prefer hexes on road, otherwise at distance of 4 hexes from center
+                -- Prefer hexes on herder_area, or close to it
+                -- Or, if dog cannot get there, prefer to be av_dist from the center
                 local rating = 0
-                if (wesnoth.match_location(x, y, cfg.herder_area) ) then
+                if herder_area:get(x, y) then
                     rating = rating + 1000 + AH.random(99) / 100.
                 else
-                    rating = rating - math.abs(H.distance_between(x, y, cfg.herd_x, cfg.herd_y) - 4)
+                    rating = rating - math.abs(H.distance_between(x, y, cfg.herd_x, cfg.herd_y) - av_dist) + AH.random(99) / 100.
                 end
 
                 return rating
