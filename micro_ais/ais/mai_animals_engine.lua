@@ -1459,26 +1459,26 @@ return {
 
         ----- Beginning of Forest Animals AI -----
         function animals:new_rabbit_eval(cfg)
-            -- If there are fewer than 4-6 rabbits out there, we get some more out of their holes
-            -- I want this to happen only once, at the beginning of the turn, so
-            -- We'll let the CA blacklist itself
+            -- Put new rabbits out the if there are fewer than cfg.rabbits_number
+            -- but only if cfg.rabbit_type is set, otherwise do nothing
+            -- If this gets executed, we'll let the CA black-list itself
+
+            if (not cfg.rabbit_type) then return 0 end
             return 310000
         end
 
         function animals:new_rabbit_exec(cfg)
-            local rabbit_type = cfg.rabbit_type or "Rabbit"
             local number = cfg.rabbits_number or AH.random(4, 6)
             local radius = cfg.radius or 3
-            local rabbit_hole = cfg.rabbit_hole  -- default is nil
 
-            -- Get the locations of all the rabbit holes
+            -- Get the locations of all items on that map (which could be rabbit holes)
             W.store_items { variable = 'holes_wml' }
             local holes = H.get_variable_array('holes_wml')
             W.clear_variable { name = 'holes_wml' }
             --DBG.dbms(holes)
 
             -- Eliminate all holes that have an enemy within 'radius' hexes
-            -- We also add a random number to it, for selection of the holes later
+            -- We also add a random number to the ones we keep, for selection of the holes later
             --print('before:', #holes)
             for i = #holes,1,-1 do
                 local enemies = wesnoth.get_units {
@@ -1488,8 +1488,9 @@ return {
                 if enemies[1] then
                     table.remove(holes, i)
                 else
-                    if rabbit_hole then
-                        if (holes[i].image ~= rabbit_hole) and (holes[i].halo ~= rabbit_hole) then
+                    -- If cfg.rabbit_hole is set, only items with that image or halo count as holes
+                    if cfg.rabbit_hole then
+                        if (holes[i].image ~= cfg.rabbit_hole) and (holes[i].halo ~= cfg.rabbit_hole) then
                             table.remove(holes, i)
                         else
                             holes[i].random = AH.random(100)
@@ -1503,7 +1504,7 @@ return {
             table.sort(holes, function(a, b) return a.random > b.random end)
             --DBG.dbms(holes)
 
-            local rabbits = wesnoth.get_units { side = wesnoth.current.side, type = rabbit_type }
+            local rabbits = wesnoth.get_units { side = wesnoth.current.side, type = cfg.rabbit_type }
             --print('total number:', number)
             number = number - #rabbits
             --print('to add number:', number)
@@ -1519,7 +1520,7 @@ return {
                 else
                     x, y = wesnoth.find_vacant_tile(holes[i].x, holes[i].y)
                 end
-                wesnoth.put_unit(x, y, { side = wesnoth.current.side, type = rabbit_type } )
+                wesnoth.put_unit(x, y, { side = wesnoth.current.side, type = cfg.rabbit_type } )
             end
         end
 
