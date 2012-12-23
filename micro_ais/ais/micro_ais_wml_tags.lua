@@ -454,7 +454,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
     if (cfg.ai_type == 'animals') then
         -- We handle these types of animal AIs here:
         --    BCAs: hunter_unit
-        --    side-wide AIs: wolves, wolves_multipack, big_animals, forest_animals, swarm, sheep
+        --    side-wide AIs: wolves, wolves_multipack, big_animals, forest_animals, swarm, herding
         if (not cfg.animal_type) then H.wml_error("[micro_ai] missing required animal_type= key") end
         local animal_type = cfg.animal_type
 
@@ -487,8 +487,8 @@ function wesnoth.wml_actions.micro_ai(cfg)
         required_keys["swarm"] = {}
         optional_keys["swarm"] = { "scatter_distance", "vision_distance", "enemy_distance" }
 
-        required_keys["sheep"] = { "attention_radius", "attack_radius", "herding_area", "herder_area", "herding_filter", "herder_filter", "herding_x", "herding_y", "herding_radius" }
-        optional_keys["sheep"] = {}
+        required_keys["herding"] = { "attention_radius", "attack_radius", "herding_area", "herder_area", "herding_filter", "herder_filter", "herding_x", "herding_y", "herding_radius" }
+        optional_keys["herding"] = {}
 
         if (cfg.action~='delete') then
             --Check that we know about this type of animal AI
@@ -565,10 +565,10 @@ function wesnoth.wml_actions.micro_ai(cfg)
             end
         end
 
-        if (cfg_animals.animal_type == 'sheep') then
+        if (cfg_animals.animal_type == 'herding') then
             CA_parms = {
                 {
-                    id = "close_enemy", eval_name = 'close_enemy_eval', exec_name = 'close_enemy_exec',
+                    id = "close_enemy", eval_name = 'herding_attack_close_enemy_eval', exec_name = 'herding_attack_close_enemy_exec',
                     max_score = 300000, cfg_str = AH.serialize(cfg_animals)
                 },
                 {

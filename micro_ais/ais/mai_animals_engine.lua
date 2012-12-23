@@ -1076,7 +1076,7 @@ return {
             return herding_area
         end
 
-        function animals:close_enemy_eval(cfg)
+        function animals:herding_attack_close_enemy_eval(cfg)
             -- Any enemy within 8 hexes of a sheep will get attention by the dogs
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
@@ -1093,7 +1093,7 @@ return {
             return 0
         end
 
-        function animals:close_enemy_exec(cfg)
+        function animals:herding_attack_close_enemy_exec(cfg)
             local dogs = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herder_filter},
                 formula = '$this_unit.moves > 0' }
             local sheep = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herding_filter} }
