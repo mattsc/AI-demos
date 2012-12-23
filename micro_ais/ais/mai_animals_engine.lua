@@ -481,7 +481,6 @@ return {
 
             --DBG.dbms(packs)
             -- Put labels out there for all wolves
-            --print(cfg.show_pack_number)
             if cfg.show_pack_number then
                 for k,p in pairs(packs) do
                     for i,loc in ipairs(p) do
@@ -618,8 +617,10 @@ return {
 
                         local attacker = wesnoth.get_unit(best_attack.src.x, best_attack.src.y)
                         local defender = wesnoth.get_unit(best_attack.target.x, best_attack.target.y)
+                        if cfg.show_pack_number then
                         W.label { x = attacker.x, y = attacker.y, text = "" }
-                        AH.movefull_stopunit(ai, attacker, best_attack.dst.x, best_attack.dst.y)
+                            AH.movefull_stopunit(ai, attacker, best_attack.dst.x, best_attack.dst.y)
+                        end
                         if cfg.show_pack_number then
                             self:color_label(attacker.x, attacker.y, pack_number)
                         end
@@ -627,8 +628,10 @@ return {
                         local a_x, a_y, d_x, d_y = attacker.x, attacker.y, defender.x, defender.y
                         ai.attack(attacker, defender)
                         -- Remove the labels, if one of the units died
-                        if (not attacker.valid) then W.label { x = a_x, y = a_y, text = "" } end
-                        if (not defender.valid) then W.label { x = d_x, y = d_y, text = "" } end
+                        if cfg.show_pack_number then
+                            if (not attacker.valid) then W.label { x = a_x, y = a_y, text = "" } end
+                            if (not defender.valid) then W.label { x = d_x, y = d_y, text = "" } end
+                        end
 
                         pack_attacked = true    -- This pack has done an attack
                     else
@@ -665,7 +668,9 @@ return {
                                 end
                                 return rating
                             end)
-                            W.label { x = w.x, y = w.y, text = "" }
+                            if cfg.show_pack_number then
+                                W.label { x = w.x, y = w.y, text = "" }
+                            end
                             AH.movefull_stopunit(ai, w, best_hex)
                             if cfg.show_pack_number then
                                 self:color_label(w.x, w.y, pack_number)
@@ -695,7 +700,6 @@ return {
             --DBG.dbms(packs)
 
             for k,pack in pairs(packs) do
-
                 -- If any of the wolves has a goal set, this is used for the entire pack
                 local wolves, goal = {}, {}
                 for i,loc in ipairs(pack) do
@@ -795,7 +799,9 @@ return {
                         rating = rating - H.distance_between(x, y, goal[1], goal[2]) / 100.
                         return rating
                     end)
-                    W.label { x = w.x, y = w.y, text = "" }
+                    if cfg.show_pack_number then
+                        W.label { x = w.x, y = w.y, text = "" }
+                    end
                     AH.movefull_stopunit(ai, w, best_hex)
                     if cfg.show_pack_number then
                         self:color_label(w.x, w.y, k)
