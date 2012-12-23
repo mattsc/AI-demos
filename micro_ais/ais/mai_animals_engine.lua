@@ -357,19 +357,19 @@ return {
         ----- Beginning of Wolves Multipack AI -----
         function animals:color_label(x, y, text)
             -- For displaying the wolf pack number in color underneath each wolf
-            text = "<span color='#a0a0a0'>" .. text .. "</span>"
+            -- only using gray for the time being
+            text = "<span color='#c0c0c0'>" .. text .. "</span>"
             W.label{ x = x, y = y, text = text }
         end
 
         function animals:assign_packs(cfg)
-            if cfg.type == nil then cfg.type = "Wolf" end
-            local pack_size = 3
-            if cfg.pack_size then pack_size = cfg.pack_size end
+            local unit_type = cfg.type or "Wolf"
+            local pack_size = cfg.pack_size or 3
+
             -- Assign the pack numbers to each wolf.  Keeps numbers of existing packs
             -- (unless pack size is down to one).  Pack number is stored in wolf unit variables
             -- Also returns a table with the packs (locations and id's of each wolf in a pack)
-
-            local wolves = wesnoth.get_units { side = wesnoth.current.side, type = cfg.type }
+            local wolves = wesnoth.get_units { side = wesnoth.current.side, type = unit_type }
             --print('#wolves:', #wolves)
 
             -- Array for holding the packs
@@ -498,11 +498,12 @@ return {
         end
 
         function animals:wolves_multipacks_attack_eval(cfg)
-            if cfg.type == nil then cfg.type = "Wolf" end
+            local unit_type = cfg.type or "Wolf"
+
             -- If wolves have attacks left, call this CA
             -- It will generally be disabled by being black-listed, so as to avoid
             -- having to do the full attack evaluation for every single move
-            local wolves = wesnoth.get_units { side = wesnoth.current.side, type = cfg.type, formula = '$this_unit.attacks_left > 0' }
+            local wolves = wesnoth.get_units { side = wesnoth.current.side, type = unit_type, formula = '$this_unit.attacks_left > 0' }
 
             if wolves[1] then return 300000 end
             return 0
@@ -682,9 +683,10 @@ return {
         end
 
         function animals:wolves_multipacks_wander_eval(cfg)
-            if cfg.type == nil then cfg.type = "Wolf" end
+            local unit_type = cfg.type or "Wolf"
+
             -- When there's nothing to attack, the wolves wander and regroup into their packs
-            local wolves = wesnoth.get_units { side = wesnoth.current.side, type = cfg.type, formula = '$this_unit.moves > 0' }
+            local wolves = wesnoth.get_units { side = wesnoth.current.side, type = unit_type, formula = '$this_unit.moves > 0' }
 
             if wolves[1] then return 290000 end
 
