@@ -1082,11 +1082,12 @@ return {
         end
 
         function animals:herding_attack_close_enemy_eval(cfg)
-            -- Any enemy within attention_radius hexes of a sheep will get the dogs' attention
+            -- Any enemy within attention_distance (default = 8) hexes of a sheep will get the dogs' attention
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
                 { "filter_location",
-                    { radius = cfg.attention_radius, { "filter", { side = wesnoth.current.side, {"and", cfg.herd} } } }
+                    { radius = (cfg.attention_distance or 8),
+                    { "filter", { side = wesnoth.current.side, {"and", cfg.herd} } } }
                 }
             }
             local dogs = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herders},
@@ -1107,7 +1108,8 @@ return {
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
                 { "filter_location",
-                    { radius = cfg.attack_radius, { "filter", { side = wesnoth.current.side, {"and", cfg.herd} } } }
+                    { radius = (cfg.attack_distance or 4),
+                    { "filter", { side = wesnoth.current.side, {"and", cfg.herd} } } }
                 }
             }
 
@@ -1153,7 +1155,8 @@ return {
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
                 { "filter_location",
-                    { radius = cfg.attention_radius, { "filter", { side = wesnoth.current.side, {"and", cfg.herd} } } }
+                    { radius = (cfg.attention_distance or 8),
+                    { "filter", { side = wesnoth.current.side, {"and", cfg.herd} } } }
                 }
             }
 
@@ -1206,7 +1209,7 @@ return {
                     {
                         { "filter", { { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} } }
                         },
-                        radius = cfg.attention_radius
+                        radius = (cfg.attention_distance or 8)
                     }
                 }
             }
@@ -1222,7 +1225,7 @@ return {
                     {
                         { "filter", { { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} } }
                         },
-                        radius = cfg.attention_radius
+                        radius = (cfg.attention_distance or 8)
                     }
                 }
             }
@@ -1232,7 +1235,7 @@ return {
             -- And find the close enemies
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
-                { "filter_location", { x = sheep.x, y = sheep.y , radius = cfg.attention_radius } }
+                { "filter_location", { x = sheep.x, y = sheep.y , radius = (cfg.attention_distance or 8) } }
             }
             --print('#enemies', #enemies)
 
