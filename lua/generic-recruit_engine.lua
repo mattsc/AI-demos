@@ -111,7 +111,7 @@ return {
                     local defense = defender_defense
                     local poison = false
                     local damage_multiplier = 1
-                    -- TODO: handle more abilities (charge)
+
                     for special in H.child_range(attack, 'specials') do
                         local mod
                         if H.get_child(special, 'poison') and can_poison then
@@ -131,13 +131,15 @@ return {
                             end
                         end
 
-                        -- Handle backstab
+                        -- Handle backstab, charge
                         mod = H.get_child(special, 'damage')
-                        if mod then
+                        if mod and mod.active_on ~= "defense" then
                             if mod.backstab then
                                 -- Assume backstab happens on only 1/2 of attacks
                                 -- TODO: find out what actual probability of getting to backstab is
                                 damage_multiplier = damage_multiplier*(mod.multiply*0.5 + 0.5)
+                            else
+                                damage_multiplier = damage_multiplier*mod.multiply
                             end
                         end
                     end
