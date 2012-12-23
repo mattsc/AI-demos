@@ -1061,11 +1061,16 @@ return {
         end
 
         ----- Beginning of Herding Animals AI -----
+        -- We'll keep a lot of things denoted as sheep/dogs, because herder/herded is too similar
         function animals:herding_area(cfg)
             -- Find the area that the sheep can occupy
-            -- First, find all contiguous grass hexes around center hex
-            local herding_area = LS.of_pairs(wesnoth.get_locations {x = cfg.herding_x, y = cfg.herding_y, radius = cfg.herding_radius, {"filter_radius", cfg.herding_area } } )
-            -- Then, exclude those next to the path made by the dogs
+            -- First, find all contiguous hexes around center hex that are inside herder_area
+            local herding_area = LS.of_pairs(wesnoth.get_locations {
+                x = cfg.herding_x, y = cfg.herding_y, radius = 999,
+                {"filter_radius", { { "not", cfg.herder_area } } }
+            } )
+
+            -- Then, also exclude hexes next to herder_area; some of the functions work better like that
             herding_area:iter( function(x, y, v)
                 for xa, ya in H.adjacent_tiles(x, y) do
                     if (wesnoth.match_location(xa, ya, cfg.herder_area) ) then herding_area:remove(x, y) end
