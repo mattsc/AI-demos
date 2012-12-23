@@ -455,18 +455,14 @@ return {
                 --print('More than pack_size nopack wolves left', #nopack_wolves)
                 local best_wolves = {}
                 while #best_wolves < pack_size do
-                    local min_dist = 9999
-                    local best_wolf
-                    local best_wolf_i
+                    local min_dist, best_wolf, best_wolf_i = 9999, {}, -1
                     for i,tw in ipairs(nopack_wolves) do
                         local dist = 0
                         for j,sw in ipairs(best_wolves) do
                             dist = dist + H.distance_between(tw.x, tw.y, sw.x, sw.y)
                         end
                         if dist < min_dist then
-                            min_dist = dist
-                            best_wolf = tw
-                            best_wolf_i = i
+                            min_dist, best_wolf, best_wolf_i = dist, tw, i
                         end
                     end
                     table.insert(best_wolves, best_wolf)
@@ -607,8 +603,8 @@ return {
                         --print('Best target:', best_target.id, best_target.x, best_target.y)
 
                         -- Now we know what the best target is, we need to attack now
-                        -- This is done on a wolf-by-wolf basis, the while loop taking care of the next wolf in the pack
-                        -- on subsequent iterations
+                        -- This is done on a wolf-by-wolf basis, the outside while loop taking care of
+                        -- the next wolf in the pack on subsequent iterations
                         local max_rating, best_attack = -9e99, {}
                         for i,a in ipairs(attacks) do
                             if (a.target.x == best_target.x) and (a.target.y == best_target.y) then
