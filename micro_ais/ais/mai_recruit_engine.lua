@@ -9,7 +9,7 @@ return {
         local recruit
 
         function recruit_cas:random_recruit_eval(cfg)
-            local low_gold_recruit = cfg.low_gold_recruit
+            -- Random recruiting from all the units the side has
 
             -- Check if leader is on keep
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
@@ -45,7 +45,7 @@ return {
 
             local possible_recruits = wesnoth.sides[wesnoth.current.side].recruit
             recruit = possible_recruits[math.random(#possible_recruits)]
-            if low_gold_recruit == "affordable" then
+            if (not cfg.skip_low_gold_recruit) then
                 while #possible_recruits > 0 do
                     local i = 1
                     if #possible_recruits > 1 then
