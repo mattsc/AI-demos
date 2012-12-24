@@ -1527,7 +1527,7 @@ return {
         end
 
         function animals:tusker_attack_eval(cfg)
-            -- Check whether there is an enemy next to a tusklet and attack it (protective parents AI)
+            -- Check whether there is an enemy next to a tusklet and attack it ("protective parents" AI)
 
             -- Both cfg.tusker_type and cfg.tusklet_type need to be set for this to kick in
             if (not cfg.tusker_type) or (not cfg.tusklet_type) then return 0 end
@@ -1559,8 +1559,7 @@ return {
                 for j,e in ipairs(adj_enemies) do
                     local dist = H.distance_between(t.x, t.y, e.x, e.y)
                     if (dist < min_dist) then
-                        min_dist = dist
-                        attacker, target = t, e
+                        min_dist, attacker, target = dist, t, e
                     end
                 end
             end
@@ -1747,7 +1746,7 @@ return {
 
         function animals:tusklet_eval(cfg)
             -- Tusklets will simply move toward the closest tusker, without regard for anything else
-            -- Except if no tuskers are left, in which case the previous CA takes and does a random move
+            -- Except if no tuskers are left, in which case the previous CA takes over and does a random move
 
             -- Both cfg.tusker_type and cfg.tusklet_type need to be set for this to kick in
             if (not cfg.tusker_type) or (not cfg.tusklet_type) then return 0 end
@@ -1769,13 +1768,11 @@ return {
 
             for i,tusklet in ipairs(tusklets) do
                 -- find closest tusker
-                local goto_tusker = {}
-                local min_dist = 9999
+                local goto_tusker, min_dist = {}, 9999
                 for i,t in ipairs(tuskers) do
                     local dist = H.distance_between(t.x, t.y, tusklet.x, tusklet.y)
                     if (dist < min_dist) then
-                        min_dist = dist
-                        goto_tusker = t
+                        min_dist, goto_tusker = dist, t
                     end
                 end
                 --print('closets tusker:', goto_tusker.x, goto_tusker.y, goto_tusker.id)
