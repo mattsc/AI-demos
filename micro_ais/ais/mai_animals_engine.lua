@@ -1614,7 +1614,7 @@ return {
             local rabbit_type = cfg.rabbit_type or "no_unit_of_this_type"
             local tusker_type = cfg.tusker_type or "no_unit_of_this_type"
             local tusklet_type = cfg.tusklet_type or "no_unit_of_this_type"
-            local move_filter = cfg.move_filter or {}
+            local wander_terrain = cfg.wander_terrain or {}
 
             -- We want the deer/rabbits to move first, tuskers later
             local units = wesnoth.get_units { side = wesnoth.current.side, type = fa_type .. ',' .. rabbit_type, formula = '$this_unit.moves > 0' }
@@ -1657,11 +1657,11 @@ return {
                 if (not close_enemies[1]) then
                     -- All hexes the unit can reach that are unoccupied
                     local reach = AH.get_reachable_unocc(unit)
-                    local locs = wesnoth.get_locations(move_filter)
+                    local locs = wesnoth.get_locations(wander_terrain)
                     local locs_map = LS.of_pairs(locs)
                     --print('  #all reachable', reach:size())
 
-                    -- Select only those that satisfy move_filter
+                    -- Select only those that satisfy wander_terrain
                     local reachable_terrain = {}
                     reach:iter( function(x, y, v)
                         local terrain = wesnoth.get_terrain(x,y)
@@ -1680,7 +1680,7 @@ return {
                             ai.move(unit, reachable_terrain[rand][1], reachable_terrain[rand][2])
                         end
                     else  -- or if no close reachable terrain was found, move toward the closest
-                        local locs = wesnoth.get_locations(move_filter)
+                        local locs = wesnoth.get_locations(wander_terrain)
                         local best_hex, min_dist = {}, 9e99
                         for j,l in ipairs(locs) do
                             local d = H.distance_between(l[1], l[2], unit.x, unit.y)
