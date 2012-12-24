@@ -76,7 +76,7 @@ return {
             end
 
             if self.data.leader_target then
-                return 290000
+                return self.data.leader_score
             end
 
             local width,height,border = wesnoth.get_map_size()
@@ -159,8 +159,34 @@ return {
                 end
 
                 self.data.leader_target = next_hop
+
+                -- if we're on a keep, wait until there are no movable units on the castle before moving off
+                self.data.leader_score = 290000
+                if wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep then
+                    local castle = wesnoth.get_locations {
+                        x = "1-"..width, y = "1-"..height,
+                        { "and", {
+                            x = leader.x, y = leader.y, radius = 200,
+                            { "filter_radius", { terrain = 'C*^*,K*^*,*^Kov,*^Cov' } }
+                        }}
+                    }
+                    local should_wait = false
+                    for i,loc in ipairs(castle) do
+                        local unit = wesnoth.get_unit(loc[1], loc[2])
+                        if not unit then
+                            should_wait = false
+                            break
+                        elseif unit.moves > 0 then
+                            should_wait = true
+                        end
+                    end
+                    if should_wait then
+                        self.data.leader_score = 15000
+                    end
+                end
+
                 AH.done_eval_messages(start_time, ca_name)
-                return 290000
+                return self.data.leader_score
             end
 
             AH.done_eval_messages(start_time, ca_name)
