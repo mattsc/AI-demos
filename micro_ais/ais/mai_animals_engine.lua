@@ -1637,6 +1637,14 @@ return {
             local holes = H.get_variable_array('holes_wml')
             W.clear_variable { name = 'holes_wml' }
             --DBG.dbms(holes)
+
+            -- If cfg.rabbit_hole_img is set, only items with that image or halo count as holes
+            if cfg.rabbit_hole_img then
+                if (holes[i].image ~= cfg.rabbit_hole_img) and (holes[i].halo ~= cfg.rabbit_hole_img) then
+                    table.remove(holes, i)
+                end
+            end
+
             local hole_map = LS.create()
             for i,h in ipairs(holes) do hole_map:insert(h.x, h.y, 1) end
             --AH.put_labels(hole_map)
