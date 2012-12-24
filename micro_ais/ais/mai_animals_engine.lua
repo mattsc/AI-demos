@@ -1592,13 +1592,13 @@ return {
         end
 
         function animals:forest_animals_move_eval(cfg)
-            local other_types = cfg.other_types or "Deer"
+            local fa_type = cfg.fa_type or "no_unit_of_this_type"
             local rabbit_type = cfg.rabbit_type or "no_unit_of_this_type"
             local tusker_type = cfg.tusker_type or "no_unit_of_this_type"
             local tusklet_type = cfg.tusklet_type or "no_unit_of_this_type"
 
             local units = wesnoth.get_units { side = wesnoth.current.side,
-                type = other_types .. ',' .. rabbit_type .. ',' .. tusker_type, formula = '$this_unit.moves > 0' }
+                type = fa_type .. ',' .. rabbit_type .. ',' .. tusker_type, formula = '$this_unit.moves > 0' }
             local tusklets = wesnoth.get_units { side = wesnoth.current.side, type = tusklet_type, formula = '$this_unit.moves > 0' }
             local all_tuskers = wesnoth.get_units { side = wesnoth.current.side, type = tusker_type }
 
@@ -1610,14 +1610,14 @@ return {
         end
 
         function animals:forest_animals_move_exec(cfg)
-            local move_filter = cfg.move_filter or {}
-            local other_types = cfg.other_types or "Deer"
+            local fa_type = cfg.fa_type or "no_unit_of_this_type"
             local rabbit_type = cfg.rabbit_type or "no_unit_of_this_type"
             local tusker_type = cfg.tusker_type or "no_unit_of_this_type"
             local tusklet_type = cfg.tusklet_type or "no_unit_of_this_type"
+            local move_filter = cfg.move_filter or {}
 
             -- We want the deer/rabbits to move first, tuskers later
-            local units = wesnoth.get_units { side = wesnoth.current.side, type = other_types .. ',' .. rabbit_type, formula = '$this_unit.moves > 0' }
+            local units = wesnoth.get_units { side = wesnoth.current.side, type = fa_type .. ',' .. rabbit_type, formula = '$this_unit.moves > 0' }
             local tuskers = wesnoth.get_units { side = wesnoth.current.side, type = tusker_type, formula = '$this_unit.moves > 0' }
             for i,t in ipairs(tuskers) do table.insert(units, t) end
 
