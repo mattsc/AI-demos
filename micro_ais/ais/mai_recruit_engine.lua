@@ -13,13 +13,12 @@ return {
 
             -- Check if leader is on keep
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
-
             if (not leader) or (not wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep) then
                 return 0
             end
 
-            -- Check if there is no space left for recruiting
-            local width,height,border = wesnoth.get_map_size()
+            -- Check if there is space left for recruiting
+            local width, height, border = wesnoth.get_map_size()
             local castle = {
                 locs = wesnoth.get_locations {
                     x = "1-"..width, y = "1-"..height,
@@ -27,9 +26,7 @@ return {
                         x = leader.x, y = leader.y, radius = 200,
                         { "filter_radius", { terrain = 'C*^*,K*^*,*^Kov,*^Cov' } }
                     }}
-                },
-                x = leader.x,
-                y = leader.y
+                }
             }
             local no_space = true
             for i,c in ipairs(castle.locs) do
@@ -39,12 +36,12 @@ return {
                     break
                 end
             end
-            if no_space then
-                return 0
-            end
+            if no_space then return 0 end
 
+            -- Get a random recruit
             local possible_recruits = wesnoth.sides[wesnoth.current.side].recruit
             recruit = possible_recruits[math.random(#possible_recruits)]
+
             if (not cfg.skip_low_gold_recruit) then
                 while #possible_recruits > 0 do
                     local i = 1
