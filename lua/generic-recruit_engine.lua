@@ -647,7 +647,12 @@ return {
                     eta = eta + 1
                 end
                 -- divide the lawful bonus by eta before running it through the function because the function converts from 0 centered to 1 centered
-                local lawful_bonus = wesnoth.get_time_of_day(wesnoth.current.turn + eta).lawful_bonus / eta^2
+
+                local lawful_bonus = 1
+                local eta_turn = wesnoth.current.turn + eta
+                if eta_turn <= wesnoth.game_config.last_turn then
+                    lawful_bonus = wesnoth.get_time_of_day(wesnoth.current.turn + eta).lawful_bonus / eta^2
+                end
                 local damage_bonus = AH.get_unit_time_of_day_bonus(recruit_unit.__cfg.alignment, lawful_bonus)
                 -- Estimate effectiveness on offense and defense
                 local offense_score =
