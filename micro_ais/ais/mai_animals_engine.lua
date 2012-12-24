@@ -1660,25 +1660,26 @@ return {
                     local locs = wesnoth.get_locations(move_filter)
                     local locs_map = LS.of_pairs(locs)
                     --print('  #all reachable', reach:size())
-                    -- Select only those that are forest
-                    local reachable_forest = {}
+
+                    -- Select only those that satisfy move_filter
+                    local reachable_terrain = {}
                     reach:iter( function(x, y, v)
                         local terrain = wesnoth.get_terrain(x,y)
                         --print(x, y, terrain)
                         if locs_map:get(x,y) then  -- doesn't work with '^', so start search at char 2
-                            table.insert(reachable_forest, {x, y})
+                            table.insert(reachable_terrain, {x, y})
                         end
                     end)
-                    --print('  #reachable_forest', #reachable_forest)
+                    --print('  #reachable_terrain', #reachable_terrain)
 
                     -- Choose one of the possible locations at random
-                    if reachable_forest[1] then
-                        local rand = AH.random(#reachable_forest)
+                    if reachable_terrain[1] then
+                        local rand = AH.random(#reachable_terrain)
                         -- This is not a full move, as running away might happen next
-                        if (unit.x ~= reachable_forest[rand][1]) or (unit.y ~= reachable_forest[rand][2]) then
-                            ai.move(unit, reachable_forest[rand][1], reachable_forest[rand][2])
+                        if (unit.x ~= reachable_terrain[rand][1]) or (unit.y ~= reachable_terrain[rand][2]) then
+                            ai.move(unit, reachable_terrain[rand][1], reachable_terrain[rand][2])
                         end
-                    else  -- or if no close forest was found, move toward the closest
+                    else  -- or if no close reachable terrain was found, move toward the closest
                         local locs = wesnoth.get_locations(move_filter)
                         local best_hex, min_dist = {}, 9e99
                         for j,l in ipairs(locs) do
