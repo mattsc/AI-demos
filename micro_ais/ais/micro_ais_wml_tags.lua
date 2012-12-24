@@ -605,7 +605,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
                     max_score = 300000, cfg_str = AH.serialize(cfg_animals)
                 },
                 {
-                    id = "move", eval_name = 'move_eval', exec_name = 'move_exec',
+                    id = "move", eval_name = 'forest_animals_move_eval', exec_name = 'forest_animals_move_exec',
                     max_score = 290000, cfg_str = AH.serialize(cfg_animals)
                 },
                 {

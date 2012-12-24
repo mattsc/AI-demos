@@ -1591,7 +1591,7 @@ return {
             end
         end
 
-        function animals:move_eval(cfg)
+        function animals:forest_animals_move_eval(cfg)
             local other_types = cfg.other_types or "Deer"
             local rabbit_type = cfg.rabbit_type or "no_unit_of_this_type"
             local tusker_type = cfg.tusker_type or "no_unit_of_this_type"
@@ -1609,7 +1609,7 @@ return {
             return 0
         end
 
-        function animals:move_exec(cfg)
+        function animals:forest_animals_move_exec(cfg)
             local move_filter = cfg.move_filter or {}
             local other_types = cfg.other_types or "Deer"
             local rabbit_type = cfg.rabbit_type or "no_unit_of_this_type"
