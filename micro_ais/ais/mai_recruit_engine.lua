@@ -1,6 +1,8 @@
 return {
     init = function(ai)
 
+        local AH = wesnoth.require("~add-ons/AI-demos/lua/ai_helper.lua")
+
         local recruit_cas = {}
         -- The following external engine creates the CA functions recruit_rushers_eval and recruit_rushers_exec
         -- It also exposes find_best_recruit and find_best_recruit_hex for use by other recruit engines
@@ -55,7 +57,7 @@ return {
             -- The point is that this will blacklist the CA if an unaffordable recruit was
             -- chosen -> no cheaper recruits will be selected in subsequent calls
             if possible_recruits[1] then
-                recruit = possible_recruits[math.random(#possible_recruits)]
+                recruit = possible_recruits[AH.random(#possible_recruits)]
             else
                 recruit = wesnoth.sides[wesnoth.current.side].recruit[1]
             end
