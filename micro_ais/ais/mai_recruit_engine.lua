@@ -40,24 +40,65 @@ return {
             end
             if no_space then return 0 end
 
-            -- Get a random recruit
-            local possible_recruits = wesnoth.sides[wesnoth.current.side].recruit
-            -- If cfg.skip_low_gold_recruiting is set, we take whatever recruit is selected,
-            -- even if we cannot afford is.  Otherwise, we eliminate the ones that
-            -- take more gold than the side has
-            if (not cfg.skip_low_gold_recruiting) then
-                for i = #possible_recruits,1,-1 do
-                    if wesnoth.unit_types[possible_recruits[i]].cost > wesnoth.sides[wesnoth.current.side].gold then
-                        table.remove(possible_recruits, i)
+            -- Set up the probability array
+            local probability, prob_sum  = {}, 0
+
+            -- Go through all the types listed in [probability] tags (which can be comma-separated lists)
+            for i,tmp in ipairs(cfg.type) do
+                tmp = AH.split(tmp, ",")
+                for j,t in ipairs(tmp) do
+                    -- If this type is in the recruit list, add it
+                    for k,r in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
+                        if (r == t) then
+                            probability[t] = { value = cfg.probability[i] }
+                            prob_sum = prob_sum + cfg.probability[i]
+                            break
+                        end
                     end
                 end
             end
 
+            -- Now we add in all the unit types not listed in [probability] tags
+            for i,r in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
+                if (not probability[r]) then
+                    probability[r] = { value = 1 }
+                    prob_sum =prob_sum + 1
+                end
+            end
+
+            -- Now eliminate all those that are too expensive (unless cfg.skip_low_gold_recruiting is set)
+            if cfg.skip_low_gold_recruiting then
+                for typ,prob in pairs(probability) do
+                    if (wesnoth.unit_types[typ].cost > wesnoth.sides[wesnoth.current.side].gold) then
+                        --print('Eliminating:', typ)
+                        prob_sum = prob_sum - prob.value
+                        probability[typ] = nil
+                    end
+                end
+            end
+
+            -- Now set up the min/max values for each type
+            -- This needs to be done manually as the order of pairs() is not guaranteed
+            local cum_prob, n_recruits = 0, 0
+            for typ,prob in pairs(probability) do
+                probability[typ].p_i = cum_prob
+                cum_prob = cum_prob + prob.value / prob_sum * 1e6
+                probability[typ].p_f = cum_prob
+                n_recruits = n_recruits + 1
+            end
+
+            -- Now we're ready to pick on of those
             -- We always call the exec function, no matter if the selected unit is affordable
             -- The point is that this will blacklist the CA if an unaffordable recruit was
             -- chosen -> no cheaper recruits will be selected in subsequent calls
-            if possible_recruits[1] then
-                recruit = possible_recruits[AH.random(#possible_recruits)]
+            if (n_recruits > 0) then
+                local rand_prob = AH.random(1e6)
+                for typ,prob in pairs(probability) do
+                    if (prob.p_i <= rand_prob) and (rand_prob < prob.p_f) then
+                        recruit = typ
+                        break
+                    end
+                end
             else
                 recruit = wesnoth.sides[wesnoth.current.side].recruit[1]
             end
