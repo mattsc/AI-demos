@@ -40,32 +40,34 @@ return {
 
             -- Get a random recruit
             local possible_recruits = wesnoth.sides[wesnoth.current.side].recruit
-            recruit = possible_recruits[math.random(#possible_recruits)]
-
+            -- If cfg.skip_low_gold_recruit is set, we take whatever recruit is selected,
+            -- even if we cannot afford is.  Otherwise, we eliminate the ones that
+            -- take more gold than the side has
             if (not cfg.skip_low_gold_recruit) then
-                while #possible_recruits > 0 do
-                    local i = 1
-                    if #possible_recruits > 1 then
-                        i = math.random(#possible_recruits)
+                for i = #possible_recruits,1,-1 do
+                    if wesnoth.unit_types[possible_recruits[i]].cost > wesnoth.sides[wesnoth.current.side].gold then
+                        table.remove(possible_recruits, i)
                     end
-                    recruit = possible_recruits[i]
-                    table.remove(possible_recruits, i)
-                    if wesnoth.unit_types[recruit].cost <= wesnoth.sides[wesnoth.current.side].gold then
-                        return 180000
-                    end
-                end
-            else
-                -- Use random without regard to gold as default
-                if wesnoth.unit_types[recruit].cost <= wesnoth.sides[wesnoth.current.side].gold then
-                    return 180000
                 end
             end
 
-            return 0
+            -- We always call the exec function, no matter if the selected unit is affordable
+            -- The point is that this will blacklist the CA if an unaffordable recruit was
+            -- chosen -> no cheaper recruits will be selected in subsequent calls
+            if possible_recruits[1] then
+                recruit = possible_recruits[math.random(#possible_recruits)]
+            else
+                recruit = wesnoth.sides[wesnoth.current.side].recruit[1]
+            end
+
+            return 180000
         end
 
         function recruit_cas:random_recruit_exec()
-            ai.recruit(recruit)
+            -- Let this function blacklist itself if the chosen recruit is too expensive
+            if wesnoth.unit_types[recruit].cost <= wesnoth.sides[wesnoth.current.side].gold then
+                ai.recruit(recruit)
+            end
         end
 
         return recruit_cas

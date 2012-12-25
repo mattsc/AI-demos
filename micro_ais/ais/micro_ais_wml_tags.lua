@@ -700,7 +700,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
     if (cfg.ai_type == 'recruiting') then
         local cfg_recruiting = {}
 
-        cfg_recruiting.low_gold_recruit = cfg.low_gold_recruit
+        cfg_recruiting.skip_low_gold_recruit = cfg.skip_low_gold_recruit
 
         local recruit_CA = {
             id = "recruit", max_score = 180000, cfg_str = AH.serialize(cfg_recruiting)
