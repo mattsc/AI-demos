@@ -711,6 +711,19 @@ function wesnoth.wml_actions.micro_ai(cfg)
                 recruit_CA.exec_name = 'random_recruit_exec'
 
                 cfg_recruiting.skip_low_gold_recruiting = cfg.skip_low_gold_recruiting
+
+                -- Add the 'probability' tags
+                cfg_recruiting.type, cfg_recruiting.probability = {}, {}
+                for p in H.child_range(cfg, "probability") do
+                    if (not p.type) then
+                        H.wml_error("Random Recruiting Micro AI [probability] tag missing required type= key")
+                    end
+                    if (not p.probability) then
+                        H.wml_error("Random Recruiting Micro AI [probability] tag missing required probability= key")
+                    end
+                    table.insert(cfg_recruiting.type, p.type)
+                    table.insert(cfg_recruiting.probability, p.probability)
+                end
             else
                 H.wml_error("[micro_ai] unknown value for recruit_type= key")
             end
