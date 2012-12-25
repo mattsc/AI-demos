@@ -700,11 +700,8 @@ function wesnoth.wml_actions.micro_ai(cfg)
     if (cfg.ai_type == 'recruiting') then
         local cfg_recruiting = {}
 
-        cfg_recruiting.skip_low_gold_recruiting = cfg.skip_low_gold_recruiting
+        local recruit_CA = { id = "recruit", max_score = 180000 }
 
-        local recruit_CA = {
-            id = "recruit", max_score = 180000, cfg_str = AH.serialize(cfg_recruiting)
-        }
         if cfg.recruit_type then
             if cfg.recruit_type == "rushers" then
                 recruit_CA.eval_name = 'recruit_rushers_eval'
@@ -712,12 +709,16 @@ function wesnoth.wml_actions.micro_ai(cfg)
             elseif cfg.recruit_type == "random" then
                 recruit_CA.eval_name = 'random_recruit_eval'
                 recruit_CA.exec_name = 'random_recruit_exec'
+
+                cfg_recruiting.skip_low_gold_recruiting = cfg.skip_low_gold_recruiting
             else
                 H.wml_error("[micro_ai] unknown value for recruit_type= key")
             end
         elseif cfg.action ~= 'delete' then
             H.wml_error("[micro_ai] missing required recruit_type= key")
         end
+
+        recruit_CA.cfg_str = AH.serialize(cfg_recruiting)
 
         CA_action(cfg.action, cfg.side, {recruit_CA})
 
