@@ -42,10 +42,10 @@ return {
 
             -- Get a random recruit
             local possible_recruits = wesnoth.sides[wesnoth.current.side].recruit
-            -- If cfg.skip_low_gold_recruit is set, we take whatever recruit is selected,
+            -- If cfg.skip_low_gold_recruiting is set, we take whatever recruit is selected,
             -- even if we cannot afford is.  Otherwise, we eliminate the ones that
             -- take more gold than the side has
-            if (not cfg.skip_low_gold_recruit) then
+            if (not cfg.skip_low_gold_recruiting) then
                 for i = #possible_recruits,1,-1 do
                     if wesnoth.unit_types[possible_recruits[i]].cost > wesnoth.sides[wesnoth.current.side].gold then
                         table.remove(possible_recruits, i)
