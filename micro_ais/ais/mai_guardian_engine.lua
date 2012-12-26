@@ -18,7 +18,7 @@ return {
             end
         end
 
-        -- cfg parameters: id, radius, seek_x, seek_y, avoid_x, avoid_y
+        -- cfg parameters: id, distance, seek_x, seek_y, avoid_x, avoid_y
         function guardians:coward_exec(cfg)
             --print("Coward exec " .. cfg.id)
             local unit = wesnoth.get_units{ id = cfg.id }[1]
@@ -26,7 +26,7 @@ return {
             -- enemy units within reach
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
-                { "filter_location", {x = unit.x, y = unit.y, radius = cfg.radius} }
+                { "filter_location", {x = unit.x, y = unit.y, radius = cfg.distance} }
             }
 
             -- if no enemies are within reach: keep unit from doing anything and exit
@@ -41,7 +41,7 @@ return {
                 -- only consider unoccupied hexes
                 local occ_hex = wesnoth.get_units { x=r[1], y=r[2], { "not", { id = unit.id } } }[1]
                 if not occ_hex then
-                    -- Find combined distance weighting of all enemy units within radius
+                    -- Find combined distance weighting of all enemy units within distance
                     local value = 0
                     for j,e in ipairs(enemies) do
                         local d = H.distance_between(r[1], r[2], e.x, e.y)
