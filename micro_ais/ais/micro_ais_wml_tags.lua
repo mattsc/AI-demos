@@ -702,11 +702,11 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
         local recruit_CA = { id = "recruit", max_score = 180000 }
 
-        if cfg.recruit_type then
-            if cfg.recruit_type == "rushers" then
+        if cfg.recruiting_type then
+            if cfg.recruiting_type == "rushers" then
                 recruit_CA.eval_name = 'recruit_rushers_eval'
                 recruit_CA.exec_name = 'recruit_rushers_exec'
-            elseif cfg.recruit_type == "random" then
+            elseif cfg.recruiting_type == "random" then
                 recruit_CA.eval_name = 'random_recruit_eval'
                 recruit_CA.exec_name = 'random_recruit_exec'
 
@@ -725,10 +725,10 @@ function wesnoth.wml_actions.micro_ai(cfg)
                     table.insert(cfg_recruiting.probability, p.probability)
                 end
             else
-                H.wml_error("[micro_ai] unknown value for recruit_type= key")
+                H.wml_error("[micro_ai] unknown value for recruiting_type= key")
             end
         elseif cfg.action ~= 'delete' then
-            H.wml_error("[micro_ai] missing required recruit_type= key")
+            H.wml_error("[micro_ai] missing required recruiting_type= key")
         end
 
         recruit_CA.cfg_str = AH.serialize(cfg_recruiting)
