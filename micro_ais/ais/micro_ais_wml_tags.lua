@@ -391,7 +391,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
         local cfg_guardian = { guardian_type = guardian_type }
         local required_keys, optional_keys = {}, {}
 
-        required_keys["stationed_guardian"] = { "id", "radius", "station_x", "station_y", "guard_x", "guard_y" }
+        required_keys["stationed_guardian"] = { "id", "distance", "station_x", "station_y", "guard_x", "guard_y" }
         optional_keys["stationed_guardian"] = {}
 
         required_keys["coward"] = { "id", "radius" }

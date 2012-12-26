@@ -142,20 +142,20 @@ return {
             end
         end
 
-        -- cfg parameters: id, radius, s_x, s_y, g_x, g_y
+        -- cfg parameters: id, distance, s_x, s_y, g_x, g_y
         function guardians:stationed_guardian_exec(cfg)
             -- (s_x,s_y): coordinates where unit is stationed; tries to move here if there is nobody to attack
             -- (g_x,g_y): location that the unit guards
 
             local unit = wesnoth.get_units { id = cfg.id }[1]
 
-            -- find if there are enemies within 'radius'
+            -- find if there are enemies within 'distance'
             local enemies = wesnoth.get_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
-                { "filter_location", {x = unit.x, y = unit.y, radius = cfg.radius} }
+                { "filter_location", {x = unit.x, y = unit.y, radius = cfg.distance} }
             }
 
-            -- if no enemies are within 'radius': keep unit from doing anything and exit
+            -- if no enemies are within 'distance': keep unit from doing anything and exit
             if not enemies[1] then
                 --print("No enemies close -> sleeping:",unit.id)
                 ai.stopunit_moves(unit)
@@ -164,7 +164,7 @@ return {
 
             -- Otherwise, unit will either attack or move toward station
             --print("Guardian unit waking up",unit.id)
-            -- enemies must be within 'radius' of guard, (s_x,s_y) *and* (g_x,g_y)
+            -- enemies must be within 'distance' of guard, (s_x,s_y) *and* (g_x,g_y)
             -- simultaneous for guard to attack
             local target = {}
             local min_dist = 9999
@@ -173,7 +173,7 @@ return {
                 local dg = H.distance_between(cfg.guard_x, cfg.guard_y, e.x, e.y)
 
                 -- If valid target found, save the one with the shortest distance from (g_x,g_y)
-                if (ds <= cfg.radius) and (dg <= cfg.radius) and (dg < min_dist) then
+                if (ds <= cfg.distance) and (dg <= cfg.distance) and (dg < min_dist) then
                     --print("target:", e.id, ds, dg)
                     target = e
                     min_dist = dg
