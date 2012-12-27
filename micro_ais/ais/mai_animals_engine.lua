@@ -1467,7 +1467,7 @@ return {
         end
 
         function animals:new_rabbit_exec(cfg)
-            local number = cfg.rabbit_number or AH.random(4, 6)
+            local number = cfg.rabbit_number or 6
             local rabbit_enemy_distance = cfg.rabbit_enemy_distance or 3
 
             -- Get the locations of all items on that map (which could be rabbit holes)
