@@ -468,8 +468,8 @@ function wesnoth.wml_actions.micro_ai(cfg)
         local required_keys, optional_keys = {}, {}
 
         -- This list does not contain id because we check for that differently
-        required_keys["hunter_unit"] = { "id", "hunt_x", "hunt_y", "home_x", "home_y", "rest_turns" }
-        optional_keys["hunter_unit"] = { "show_messages" }
+        required_keys["hunter_unit"] = { "id", "home_x", "home_y", "rest_turns" }
+        optional_keys["hunter_unit"] = { "hunting_ground", "show_messages" }
 
         required_keys["wolves"] = { "predators", "prey" }
         optional_keys["wolves"] = { "avoid_type" }

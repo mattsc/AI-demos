@@ -53,10 +53,10 @@ return {
             return 0
         end
 
-        -- cfg parameters: id, hunt_x, hunt_y, home_x, home_y, rest_turns, show_messages
+        -- cfg parameters: id, hunting_ground, home_x, home_y, rest_turns, show_messages
         function animals:hunter_unit_exec(cfg)
             -- Unit with the given ID goes on a hunt, doing a random wander in area given by
-            -- hunt_x,hunt_y (ranges), then retreats to
+            -- hunting_ground, then retreats to
             -- position given by 'home_x,home_y' for 'rest_turns' turns, or until fully healed
 
             local unit = wesnoth.get_units { side = wesnoth.current.side, id = cfg.id,
@@ -70,9 +70,9 @@ return {
                 local r = AH.random(10)
                 if (not unit.variables.hunt_x) or (r <= 1) then
                     -- 'locs' includes border hexes, but that does not matter here
-                    locs = wesnoth.get_locations { x = cfg.hunt_x, y = cfg.hunt_y }
+                    locs = wesnoth.get_locations(cfg.hunting_ground or {})
                     local rand = AH.random(#locs)
-                    --print('#locs', #locs, rand)
+                    print('#locs', #locs, rand)
                     unit.variables.hunt_x, unit.variables.hunt_y = locs[rand][1], locs[rand][2]
                 end
                 --print('Hunter goto: ', unit.variables.hunt_x, unit.variables.hunt_y, r)
