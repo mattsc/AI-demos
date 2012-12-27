@@ -328,6 +328,8 @@ end
 function ai_helper.get_passable_locations(location_filter, unit)
     -- Finds all locations matching 'location_filter' that are passable for
     -- 'unit'.  This also excludes hexes on the map border.
+    -- 'unit' is optional: if omitted, all hexes matching the filter, but
+    -- excluding border hexes are returned
 
     -- All hexes that are not on the map border
     local width, height = wesnoth.get_map_size()
@@ -337,15 +339,19 @@ function ai_helper.get_passable_locations(location_filter, unit)
         { "and", location_filter }
     }
 
-    -- Exclude impassable terrain
+    -- If 'unit' is provided, exclude terrain that's impassable for the unit
     -- table.delete() can be slow for large arrays -> build a new table
-    local locs = {}
-    for i,l in ipairs(all_locs) do
-        local movecost = wesnoth.unit_movement_cost(unit, wesnoth.get_terrain(l[1], l[2]))
-        if (movecost < 99) then table.insert(locs, l) end
+
+    if unit then
+        local locs = {}
+        for i,l in ipairs(all_locs) do
+            local movecost = wesnoth.unit_movement_cost(unit, wesnoth.get_terrain(l[1], l[2]))
+            if (movecost < 99) then table.insert(locs, l) end
+        end
+        return locs
     end
 
-    return locs
+    return all_locs
 end
 
 function ai_helper.distance_map(units, map)
