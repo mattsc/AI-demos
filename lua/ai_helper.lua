@@ -325,6 +325,29 @@ function ai_helper.get_closest_location(hex, location_filter, unit)
     return nil
 end
 
+function ai_helper.get_passable_locations(location_filter, unit)
+    -- Finds all locations matching 'location_filter' that are passable for
+    -- 'unit'.  This also excludes hexes on the map border.
+
+    -- All hexes that are not on the map border
+    local width, height = wesnoth.get_map_size()
+    local all_locs = wesnoth.get_locations{
+        x = '1-' .. width,
+        y = '1-' .. height,
+        { "and", location_filter }
+    }
+
+    -- Exclude impassable terrain
+    -- table.delete() can be slow for large arrays -> build a new table
+    local locs = {}
+    for i,l in ipairs(all_locs) do
+        local movecost = wesnoth.unit_movement_cost(unit, wesnoth.get_terrain(l[1], l[2]))
+        if (movecost < 99) then table.insert(locs, l) end
+    end
+
+    return locs
+end
+
 function ai_helper.distance_map(units, map)
     -- Get the distance map for all units in 'units' (as a location set)
     -- DM = sum ( distance_from_unit )
