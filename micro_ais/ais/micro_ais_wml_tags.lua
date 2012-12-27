@@ -704,8 +704,10 @@ function wesnoth.wml_actions.micro_ai(cfg)
 
         if cfg.recruiting_type then
             if cfg.recruiting_type == "rushers" then
-                recruit_CA.eval_name = 'recruit_rushers_eval'
-                recruit_CA.exec_name = 'recruit_rushers_exec'
+                recruit_CA.eval_name = 'rusher_recruit_eval'
+                recruit_CA.exec_name = 'rusher_recruit_exec'
+
+                cfg_recruiting.randomness = cfg.randomness
             elseif cfg.recruiting_type == "random" then
                 recruit_CA.eval_name = 'random_recruit_eval'
                 recruit_CA.exec_name = 'random_recruit_exec'

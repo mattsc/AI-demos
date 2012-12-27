@@ -4,9 +4,20 @@ return {
         local AH = wesnoth.require("~add-ons/AI-demos/lua/ai_helper.lua")
 
         local recruit_cas = {}
+        local internal_recruit_cas = {}
+        local internal_params = {}
         -- The following external engine creates the CA functions recruit_rushers_eval and recruit_rushers_exec
         -- It also exposes find_best_recruit and find_best_recruit_hex for use by other recruit engines
-        wesnoth.require("~add-ons/AI-demos/lua/generic-recruit_engine.lua").init(ai, recruit_cas)
+        wesnoth.require("~add-ons/AI-demos/lua/generic-recruit_engine.lua").init(ai, internal_recruit_cas, internal_params)
+
+        function recruit_cas:rusher_recruit_eval(cfg)
+            internal_params.randomness = cfg.randomness
+            return internal_recruit_cas:recruit_rushers_eval()
+        end
+
+        function recruit_cas:rusher_recruit_exec(cfg)
+            return internal_recruit_cas:recruit_rushers_exec()
+        end
 
         local recruit
 
