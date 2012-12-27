@@ -70,9 +70,9 @@ return {
                 local r = AH.random(10)
                 if (not unit.variables.goal_x) or (r <= 1) then
                     -- 'locs' includes border hexes, but that does not matter here
-                    locs = wesnoth.get_locations(cfg.hunting_ground or {})
+                    locs = AH.get_passable_locations((cfg.hunting_ground or {}), unit)
                     local rand = AH.random(#locs)
-                    print('#locs', #locs, rand)
+                    --print('#locs', #locs, rand)
                     unit.variables.goal_x, unit.variables.goal_y = locs[rand][1], locs[rand][2]
                 end
                 --print('Hunter goto: ', unit.variables.goal_x, unit.variables.goal_y, r)
