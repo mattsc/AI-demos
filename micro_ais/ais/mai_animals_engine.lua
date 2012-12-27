@@ -160,7 +160,7 @@ return {
                 -- If the unit got home, start the resting counter
                 if unit.valid and (unit.x == cfg.home_x) and (unit.y == cfg.home_y) then
                     unit.variables.hunting_status = 'resting'
-                    unit.variables.resting_until = wesnoth.current.turn + cfg.rest_turns
+                    unit.variables.resting_until = wesnoth.current.turn + (cfg.rest_turns or 3)
                     if cfg.show_messages then
                         W.message { speaker = unit.id, message = 'I made it home - resting now until the end of Turn ' .. unit.variables.resting_until .. ' or until fully healed.' }
                     end
