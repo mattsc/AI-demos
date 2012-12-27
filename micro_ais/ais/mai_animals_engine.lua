@@ -68,14 +68,14 @@ return {
             if (not unit.variables.hunting_status) then
                 -- Unit gets a new goal if none exist or on any move with 10% random chance
                 local r = AH.random(10)
-                if (not unit.variables.hunt_x) or (r <= 1) then
+                if (not unit.variables.goal_x) or (r <= 1) then
                     -- 'locs' includes border hexes, but that does not matter here
                     locs = wesnoth.get_locations(cfg.hunting_ground or {})
                     local rand = AH.random(#locs)
                     print('#locs', #locs, rand)
-                    unit.variables.hunt_x, unit.variables.hunt_y = locs[rand][1], locs[rand][2]
+                    unit.variables.goal_x, unit.variables.goal_y = locs[rand][1], locs[rand][2]
                 end
-                --print('Hunter goto: ', unit.variables.hunt_x, unit.variables.hunt_y, r)
+                --print('Hunter goto: ', unit.variables.goal_x, unit.variables.goal_y, r)
 
                 -- Hexes the unit can reach
                 local reach_map = AH.get_reachable_unocc(unit)
@@ -84,7 +84,7 @@ return {
                 local max_rating, best_hex = -9e99, {}
                 reach_map:iter( function(x, y, v)
                     -- Distance from goal is first rating
-                    local rating = - H.distance_between(x, y, unit.variables.hunt_x, unit.variables.hunt_y)
+                    local rating = - H.distance_between(x, y, unit.variables.goal_x, unit.variables.goal_y)
 
                     -- Proximity to an enemy unit is a plus
                     local enemy_hp = 500
@@ -108,14 +108,12 @@ return {
                     ai.move(unit, best_hex[1], best_hex[2])  -- partial move only
                 else  -- If hunter did not move, we need to stop it (also delete the goal)
                     ai.stopunit_moves(unit)
-                    unit.variables.hunt_x = nil
-                    unit.variables.hunt_y = nil
+                    unit.variables.goal_x, unit.variables.goal_y = nil, nil
                 end
 
                 -- Or if this gets the unit to the goal, we also delete the goal
-                if (unit.x == unit.variables.hunt_x) and (unit.y == unit.variables.hunt_y) then
-                    unit.variables.hunt_x = nil
-                    unit.variables.hunt_y = nil
+                if (unit.x == unit.variables.goal_x) and (unit.y == unit.variables.goal_y) then
+                    unit.variables.goal_x, unit.variables.goal_y = nil, nil
                 end
 
                 -- Finally, if the unit ended up next to enemies, attack the weakest of those
@@ -123,8 +121,7 @@ return {
 
                 -- If the enemy was killed, hunter returns home
                 if unit.valid and (attack_status == 'killed') then
-                    unit.variables.hunt_x = nil
-                    unit.variables.hunt_y = nil
+                    unit.variables.goal_x, unit.variables.goal_y = nil, nil
                     unit.variables.hunting_status = 'return'
                     if cfg.show_messages then
                         W.message { speaker = unit.id, message = 'Now that I have eaten, I will go back home.' }
