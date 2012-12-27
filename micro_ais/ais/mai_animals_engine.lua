@@ -68,7 +68,7 @@ return {
             if (not unit.variables.hunting_status) then
                 -- Unit gets a new goal if none exist or on any move with 10% random chance
                 local r = AH.random(10)
-                if (not unit.variables.hunt_x) or (r >= 1) then
+                if (not unit.variables.hunt_x) or (r <= 1) then
                     -- 'locs' includes border hexes, but that does not matter here
                     locs = wesnoth.get_locations { x = cfg.hunt_x, y = cfg.hunt_y }
                     local rand = AH.random(#locs)
