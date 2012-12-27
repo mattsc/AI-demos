@@ -1061,16 +1061,16 @@ return {
         -- We'll keep a lot of things denoted as sheep/dogs, because herder/herded is too similar
         function animals:herding_area(cfg)
             -- Find the area that the sheep can occupy
-            -- First, find all contiguous hexes around center hex that are inside herder_area
+            -- First, find all contiguous hexes around center hex that are inside herding_perimeter
             local herding_area = LS.of_pairs(wesnoth.get_locations {
                 x = cfg.herd_x, y = cfg.herd_y, radius = 999,
-                {"filter_radius", { { "not", cfg.herder_area } } }
+                {"filter_radius", { { "not", cfg.herding_perimeter } } }
             } )
 
-            -- Then, also exclude hexes next to herder_area; some of the functions work better like that
+            -- Then, also exclude hexes next to herding_perimeter; some of the functions work better like that
             herding_area:iter( function(x, y, v)
                 for xa, ya in H.adjacent_tiles(x, y) do
-                    if (wesnoth.match_location(xa, ya, cfg.herder_area) ) then herding_area:remove(x, y) end
+                    if (wesnoth.match_location(xa, ya, cfg.herding_perimeter) ) then herding_area:remove(x, y) end
                 end
             end)
             --AH.put_labels(herding_area)
@@ -1342,7 +1342,7 @@ return {
                         -- And the closer dog goes first (so that it might be able to chase another sheep afterward)
                         rating = rating - H.distance_between(x, y, d.x, d.y) / 100.
                         -- Finally, prefer to stay on path, if possible
-                        if (wesnoth.match_location(x, y, cfg.herder_area) ) then rating = rating + 0.001 end
+                        if (wesnoth.match_location(x, y, cfg.herding_perimeter) ) then rating = rating + 0.001 end
 
                         reach_map:insert(x, y, rating)
 
@@ -1410,7 +1410,7 @@ return {
         end
 
         function animals:dog_move_eval(cfg)
-            -- As a final step, any dog not adjacent to a sheep moves within herder_area
+            -- As a final step, any dog not adjacent to a sheep moves within herding_perimeter
             local dogs = wesnoth.get_units { side = wesnoth.current.side, {"and", cfg.herders},
                 formula = '$this_unit.moves > 0',
                 { "not", { { "filter_adjacent", { side = wesnoth.current.side, {"and", cfg.herd} } } } }
@@ -1426,22 +1426,22 @@ return {
                 { "not", { { "filter_adjacent", { side = wesnoth.current.side, {"and", cfg.herd} } } } }
             }[1]
 
-            local herder_area = LS.of_pairs(wesnoth.get_locations(cfg.herder_area))
-            --AH.put_labels(herder_area)
+            local herding_perimeter = LS.of_pairs(wesnoth.get_locations(cfg.herding_perimeter))
+            --AH.put_labels(herding_perimeter)
 
-            -- Find average distance of herder_area from center
+            -- Find average distance of herding_perimeter from center
             local av_dist = 0
-            herder_area:iter( function(x, y, v)
+            herding_perimeter:iter( function(x, y, v)
                 av_dist = av_dist + H.distance_between(x, y, cfg.herd_x, cfg.herd_y)
             end)
-            av_dist = av_dist / herder_area:size()
+            av_dist = av_dist / herding_perimeter:size()
             --print('Average distance:', av_dist)
 
             local best_hex = AH.find_best_move(dog, function(x, y)
-                -- Prefer hexes on herder_area, or close to it
+                -- Prefer hexes on herding_perimeter, or close to it
                 -- Or, if dog cannot get there, prefer to be av_dist from the center
                 local rating = 0
-                if herder_area:get(x, y) then
+                if herding_perimeter:get(x, y) then
                     rating = rating + 1000 + AH.random(99) / 100.
                 else
                     rating = rating - math.abs(H.distance_between(x, y, cfg.herd_x, cfg.herd_y) - av_dist) + AH.random(99) / 100.
