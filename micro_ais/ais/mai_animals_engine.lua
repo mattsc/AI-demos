@@ -840,7 +840,7 @@ return {
                 -- Unit gets a new goal if none exist or on any move with 10% random chance
                 local r = AH.random(10)
                 if (not unit.variables.goal_x) or (r == 1) then
-                    local locs = wesnoth.get_locations(cfg.goal_terrain or {})
+                    local locs = AH.get_passable_locations(cfg.goal_terrain or {})
                     local rand = AH.random(#locs)
                     --print(type, ': #locs', #locs, rand)
                     unit.variables.goal_x, unit.variables.goal_y = locs[rand][1], locs[rand][2]
