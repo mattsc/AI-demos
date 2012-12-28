@@ -16,10 +16,10 @@
 - Generic Rush (Ron)
   - Honour passive_leader AI aspect if set
   - Recruit minimum amount to capture all nearby villages turn 1 if there is a castle closer to the enemy that we will recruit from soon
+  - Do not move to a new keep if unclaimed villages exist and the new keep isn't much better
 - Rush Recruiting (algorithm used by Fred/Ron)
   - Time of day awareness
   - Account for regeneration
-  - Improve number of villages capturable by undead on turn 2
   - Increase isolation from parent AIs to improve reusability
   - Increase chance that all nearby villages are reachable by recruit
 - ai_helper: new function get_passable_locations()
