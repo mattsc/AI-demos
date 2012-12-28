@@ -90,7 +90,7 @@ return {
                 }} }}, -- That are not too close to an enemy leader
                 { "not", {
                     x = leader.x, y = leader.y, terrain = "K*^*,*^Kov",
-                    radius = 2,
+                    radius = 3,
                     { "filter_radius", { terrain = 'C*^*,K*^*,*^Kov,*^Cov' } }
                 }}, -- That are not close and connected to a keep the leader is on
                 { "filter_adjacent_location", {
@@ -126,6 +126,30 @@ return {
                         best_score = score
                         best_loc = loc
                         best_turns = turns
+                    end
+                end
+            end
+
+            -- If we're on a keep,
+            -- don't move to another keep unless it's much better when uncaptured villages are present
+            if best_score > 0 and wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep then
+                local close_unowned_village = (wesnoth.get_villages {
+                    { "and", {
+                    x = leader.x,
+                    y = leader.y,
+                    radius = leader.max_moves
+                    }},
+                    owner_side = 0
+                })[1]
+                if close_unowned_village then
+                    local score = 1/best_turns
+                    for j,e in ipairs(enemy_leaders) do
+                        -- count all distances as three less than they actually are
+                        score = score + 1 / (H.distance_between(leader.x, leader.y, e.x, e.y) - 3)
+                    end
+
+                    if score > best_score then
+                        best_score = 0
                     end
                 end
             end
