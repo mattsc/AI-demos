@@ -8,7 +8,6 @@ return {
         local H = wesnoth.require "lua/helper.lua"
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
         local LS = wesnoth.require "lua/location_set.lua"
-        local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
         function messenger_escort:find_enemies_in_way(unit, goal_x, goal_y)
             -- Returns the first unit on or next to the path of the messenger

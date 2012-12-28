@@ -7,7 +7,6 @@ return {
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
         local BC = wesnoth.require "~/add-ons/AI-demos/lua/battle_calcs.lua"
         local LS = wesnoth.require "lua/location_set.lua"
-        local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
         ----- Beginning of Hunter AI -----
         function animals:attack_weakest_adj_enemy(unit)
@@ -391,7 +390,6 @@ return {
             end
             --print('After removing packs of 1')
             --for k,p in pairs(packs) do print(' have pack:', k, ' #members:', #p) end
-            --DBG.dbms(packs)
 
             -- Wolves that are not in a pack (new ones or those removed above)
             local nopack_wolves = {}
@@ -476,7 +474,6 @@ return {
             --print('After grouping remaining single wolves')
             --for k,p in pairs(packs) do print(' have pack:', k, ' #members:', #p) end
 
-            --DBG.dbms(packs)
             -- Put labels out there for all wolves
             if cfg.show_pack_number then
                 for k,p in pairs(packs) do
@@ -504,7 +501,6 @@ return {
         function animals:wolves_multipacks_attack_exec(cfg)
             -- First get all the packs
             local packs = self:assign_packs(cfg)
-            --DBG.dbms(packs)
 
             -- Attacks are dealt with on a pack by pack basis
             -- and I want all wolves in a pack to move first, before going on to the next pack
@@ -530,7 +526,6 @@ return {
                     local attacks = {}
                     if wolves[1] then attacks = AH.get_attacks(wolves, { simulate_combat = true }) end
                     --print('pack, wolves, attacks:', pack_number, #wolves, #attacks)
-                    --DBG.dbms(attacks)
 
                     -- Eliminate targets that would split up the wolves by more than 3 hexes
                     -- This also takes care of wolves joining as a pack rather than attacking individually
@@ -565,8 +560,6 @@ return {
                             if (not diff_hexes[def_xy]) then diff_hexes[def_xy] = {} end
                             diff_hexes[def_xy][a.dst.x + a.dst.y * 1000] = 1
                         end
-                        --DBG.dbms(diff_wolves)
-                        --DBG.dbms(diff_hexes)
 
                         -- Find which target can be attacked by the most units, from the most hexes; and rate by fewest HP if equal
                         local max_rating, best_target = -9e99, {}
@@ -694,7 +687,6 @@ return {
         function animals:wolves_multipacks_wander_exec(cfg)
             -- First get all the packs
             local packs = self:assign_packs(cfg)
-            --DBG.dbms(packs)
 
             for k,pack in pairs(packs) do
                 -- If any of the wolves has a goal set, this is used for the entire pack
@@ -1474,7 +1466,6 @@ return {
             W.store_items { variable = 'holes_wml' }
             local holes = H.get_variable_array('holes_wml')
             W.clear_variable { name = 'holes_wml' }
-            --DBG.dbms(holes)
 
             -- Eliminate all holes that have an enemy within 'rabbit_enemy_distance' hexes
             -- We also add a random number to the ones we keep, for selection of the holes later
@@ -1501,7 +1492,6 @@ return {
             end
             --print('after:', #holes)
             table.sort(holes, function(a, b) return a.random > b.random end)
-            --DBG.dbms(holes)
 
             local rabbits = wesnoth.get_units { side = wesnoth.current.side, type = cfg.rabbit_type }
             --print('total number:', number)
@@ -1633,7 +1623,6 @@ return {
             W.store_items { variable = 'holes_wml' }
             local holes = H.get_variable_array('holes_wml')
             W.clear_variable { name = 'holes_wml' }
-            --DBG.dbms(holes)
 
             -- If cfg.rabbit_hole_img is set, only items with that image or halo count as holes
             if cfg.rabbit_hole_img then

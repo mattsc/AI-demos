@@ -5,7 +5,6 @@ return {
 
         local H = wesnoth.require "lua/helper.lua"
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
-        local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
         function patrol:patrol_eval(cfg)
             local patrol = wesnoth.get_units({ id = cfg.id })[1]
