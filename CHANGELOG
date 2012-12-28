@@ -6,12 +6,12 @@
   - Additions to Micro AI behavior:
     - Improve patrol behavior when the waypoints are occupied
     - Add waypoints to Messenger AI
-    - Parametrize: swarm, forest animals
+    - Wolves AIs aren't restricted to a pack size of three any more
+    - All Micro AIs are now parametrized
   - Lots of cleaning up of the code, in order to get ready for mainlining the MAIs
 - General
   - Updated scenario texts to represent changed behavior and that they are now Micro AIs
-  - Use constants for root directory as much as (easily) possible
-  - Switch to mainline maps and units as much as possible
+  - Switch to mainline maps and units as much as possible, some significant changes of scenario setups
   - Eliminate most macros
 - Generic Rush (Ron)
   - Honour passive_leader AI aspect if set
@@ -22,6 +22,7 @@
   - Improve number of villages capturable by undead on turn 2
   - Increase isolation from parent AIs to improve reusability
   - Increase chance that all nearby villages are reachable by recruit
+- ai_helper: new function get_passable_locations()
 
 0.12.1, 2 Dec 2012
 - Freelands Side 1 Grunt Rush (Fred):
