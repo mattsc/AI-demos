@@ -70,7 +70,8 @@ return {
                     formula = '($this_unit.moves = $this_unit.max_moves) and ($this_unit.hitpoints = $this_unit.max_hitpoints)'
                 }[1]
             if not leader then
-                -- CA is irrelevant if no leader
+                -- CA is irrelevant if no leader or the leader may have moved from another CA
+                self.data.leader_target = nil
                 AH.done_eval_messages(start_time, ca_name)
                 return 0
             end
