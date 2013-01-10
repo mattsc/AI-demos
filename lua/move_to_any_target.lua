@@ -12,20 +12,28 @@ return {
             }
 
             if (not units[1]) then
+                -- No units with moves left
                 return 0
             end
 
-            local unit = units[1]
+            local unit, destination
+            -- Find a unit that has a path to an space close to an enemy
+            for i,u in ipairs(units) do
+                local distance, target = AH.get_closest_enemy({u.x, u.y})
+                if target.x then
+                    unit = u
 
-            local distance, target = AH.get_closest_enemy({unit.x, unit.y})
-            if (not target.x) then
-                return 0
+                    local x, y = wesnoth.find_vacant_tile(target.x, target.y)
+                    destination = AH.next_hop(unit, x, y)
+
+                    if destination then
+                        break
+                    end
+                end
             end
-
-            local x, y = wesnoth.find_vacant_tile(target.x, target.y)
-            local destination = AH.next_hop(unit, x, y)
 
             if (not destination) then
+                -- No path was found
                 return 0
             end
 
