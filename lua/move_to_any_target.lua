@@ -5,20 +5,25 @@ return {
         local move_to_any_target = {}
 
         function move_to_any_target:move_to_enemy_eval()
-            local unit = (wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'no',
+            local units = wesnoth.get_units {
+                side = wesnoth.current.side,
+                canrecruit = 'no',
                 formula = '$this_unit.moves > 0'
-            })[1]
+            }
 
-            if (not unit) then
+            if (not units[1]) then
                 return 0
             end
 
-            local distance, target = get_closest_enemy({unit.x, unit.y})
-            if (not target[1]) then
+            local unit = units[1]
+
+            local distance, target = AH.get_closest_enemy({unit.x, unit.y})
+            if (not target.x) then
                 return 0
             end
 
-            local destination = AH.next_hop(unit, target[1], target[2])
+            local x, y = wesnoth.find_vacant_tile(target.x, target.y)
+            local destination = AH.next_hop(unit, x, y)
 
             if (not destination) then
                 return 0
