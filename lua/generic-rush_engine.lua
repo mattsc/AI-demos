@@ -12,6 +12,7 @@ return {
         local BC = wesnoth.require "~/add-ons/AI-demos/lua/battle_calcs.lua"
         local LS = wesnoth.require "lua/location_set.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
+        local HS = wesnoth.require("~/add-ons/AI-demos/micro_ais/ais/mai_healer_support_engine.lua").init(ai)
 
         ------ Stats at beginning of turn -----------
 
@@ -468,6 +469,17 @@ return {
 
             self.data.attack = nil
         end
+
+        generic_rush.healer_support_eval = HS.healer_support_eval
+
+        function generic_rush:place_healers_eval()
+            if generic_rush:healer_support_eval() > 0 then
+                return 95000
+            end
+            return 0
+        end
+
+        generic_rush.place_healers_exec = HS.healer_support_exec
 
         return generic_rush
     end
