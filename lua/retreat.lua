@@ -88,16 +88,25 @@ function retreat_functions.get_retreat_injured_units(healees, healing_terrain_on
         base_rating = base_rating * 1000
 
         for j,loc in ipairs(possible_locations) do
-            local rating = base_rating
+            local unit_in_way = wesnoth.get_unit(loc[1], loc[2])
+            if (not unit_in_way) or (unit_in_way.moves > 0) then
+                local rating = base_rating
 
-            -- Penalty for each enemy that can reach location
-            rating = rating - (enemy_attack_map.units:get(loc[1], loc[2]) or 0) * 10
+                -- Penalty for each enemy that can reach location
+                rating = rating - (enemy_attack_map.units:get(loc[1], loc[2]) or 0) * 10
 
-            -- Penalty based on terrain defense for unit
-            rating = rating - wesnoth.unit_defense(u, wesnoth.get_terrain(loc[1], loc[2]))/10
+                -- Penalty based on terrain defense for unit
+                rating = rating - wesnoth.unit_defense(u, wesnoth.get_terrain(loc[1], loc[2]))/10
 
-            if (rating > max_rating) then
-                max_rating, best_loc, best_unit = rating, loc, u
+                -- Penalty if a unit has to move out of the way
+                -- (based on hp of moving unit)
+                if unit_in_way then
+                    rating = rating + unit_in_way.hitpoints - unit_in_way.max_hitpoints
+                end
+
+                if (rating > max_rating) then
+                    max_rating, best_loc, best_unit = rating, loc, u
+                end
             end
         end
     end
