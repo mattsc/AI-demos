@@ -98,9 +98,12 @@ function retreat_functions.get_retreat_injured_units(healees, healing_terrain_on
                 -- Penalty based on terrain defense for unit
                 rating = rating - wesnoth.unit_defense(u, wesnoth.get_terrain(loc[1], loc[2]))/10
 
-                -- Penalty if a unit has to move out of the way
-                -- (based on hp of moving unit)
-                if unit_in_way then
+                if (loc[1] == u.x) and (loc[2] == u.y) then
+                    -- Bonus if we don't have to move (might get to rest heal)
+                    rating = rating + 2
+                elseif unit_in_way then
+                    -- Penalty if a unit has to move out of the way
+                    -- (based on hp of moving unit)
                     rating = rating + unit_in_way.hitpoints - unit_in_way.max_hitpoints
                 end
 
