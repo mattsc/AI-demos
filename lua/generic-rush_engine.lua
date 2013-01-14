@@ -13,6 +13,7 @@ return {
         local LS = wesnoth.require "lua/location_set.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
         local HS = wesnoth.require("~/add-ons/AI-demos/micro_ais/ais/mai_healer_support_engine.lua").init(ai)
+        local R = wesnoth.require "~/add-ons/AI-demos/lua/retreat.lua"
 
         ------ Stats at beginning of turn -----------
 
@@ -482,6 +483,28 @@ return {
         end
 
         generic_rush.place_healers_exec = HS.healer_support_exec
+
+        ------- Retreat CA --------------
+
+        function generic_rush:retreat_injured_units_eval()
+            local units = wesnoth.get_units {
+                side = wesnoth.current.side,
+                formula = '$this_unit.moves > 0'
+            }
+            local unit, loc = R.retreat_injured_units(units)
+            if unit then
+                self.data.retreat_unit = unit
+                self.data.retreat_loc = loc
+                return 205000
+            end
+            return 0
+        end
+
+        function generic_rush:retreat_injured_units_exec()
+            AH.movefull_outofway_stopunit(ai, self.data.retreat_unit, self.data.retreat_loc)
+            self.data.retreat_unit = nil
+            self.data.retreat_loc = nil
+        end
 
         return generic_rush
     end
