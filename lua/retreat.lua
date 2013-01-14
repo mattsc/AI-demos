@@ -89,7 +89,7 @@ function retreat_functions.get_retreat_injured_units(healees, healing_terrain_on
 
         for j,loc in ipairs(possible_locations) do
             local unit_in_way = wesnoth.get_unit(loc[1], loc[2])
-            if (not unit_in_way) or (unit_in_way.moves > 0) then
+            if (not unit_in_way) or ((unit_in_way.moves > 0) and (unit_in_way.side == wesnoth.current.side)) then
                 local rating = base_rating
 
                 -- Penalty for each enemy that can reach location
