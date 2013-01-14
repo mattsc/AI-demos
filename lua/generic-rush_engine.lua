@@ -470,6 +470,8 @@ return {
             self.data.attack = nil
         end
 
+        ------- Place Healers CA --------------
+
         generic_rush.healer_support_eval = HS.healer_support_eval
 
         function generic_rush:place_healers_eval()
