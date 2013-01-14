@@ -9,6 +9,7 @@ return {
         local BC = wesnoth.require "~/add-ons/AI-demos/lua/battle_calcs.lua"
         local LS = wesnoth.require "lua/location_set.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
+        local R = wesnoth.require "~/add-ons/AI-demos/lua/retreat.lua"
 
         ----------Recruitment -----------------
 
@@ -773,120 +774,6 @@ return {
             grunt_rush_FLS1.data.MLK_leader, grunt_rush_FLS1.data.MLK_leader_move = nil, nil
         end
 
-        ------ Retreat injured units (not a separate CA any more) -----------
-
-        function grunt_rush_FLS1:get_retreat_injured_units(units, terrain_filter, min_hp)
-            -- Pick units that have less than min_hp HP
-            -- with poisoning counting as -8 HP and slowed as -4
-            local healees = {}
-            for i,u in ipairs(units) do
-                local hp_eff = u.hitpoints
-                if u.status.poisoned then hp_eff = hp_eff - 8 end
-                if u.status.slowed then hp_eff = hp_eff - 4 end
-
-                -- Also reduce effective HP of leader some more
-                -- to have AI leader retreat earlier
-                if u.canrecruit then hp_eff = hp_eff - 8 end
-
-                if (hp_eff < min_hp(u)) then
-                    table.insert(healees, u)
-                end
-            end
-            --print('#healees', #healees)
-            if (not healees[1]) then
-                return nil
-            end
-
-            local villages = wesnoth.get_locations { terrain = terrain_filter }
-            --print('#villages', #villages)
-
-            -- Only retreat to safe villages
-            local enemies = AH.get_live_units {
-                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
-            }
-            local enemy_attack_map = BC.get_attack_map(enemies)
-
-            local max_rating, best_village, best_unit = -9e99, {}, {}
-            for i,v in ipairs(villages) do
-                local unit_in_way = wesnoth.get_unit(v[1], v[2])
-                if (not unit_in_way) or (unit_in_way.moves > 0) then
-                    --print('Village available:', v[1], v[2])
-                    for i,u in ipairs(healees) do
-                        local next_hop = AH.next_hop(u, v[1], v[2], { ignore_own_units = true })
-                        if next_hop and (next_hop[1] == v[1]) and (next_hop[2] == v[2]) then
-                            --print('  can be reached by', u.id, u.x, u.y)
-                            local rating = - u.hitpoints + u.max_hitpoints / 2.
-
-                            if u.status.poisoned then rating = rating + 8 end
-                            if u.status.slowed then rating = rating + 4 end
-
-                            -- Minor penalty if a unit has to move out of the way
-                            if unit_in_way then rating = rating - 0.1 end
-
-                            -- villages in the north are preferable (since they are supposedly away from the enemy)
-                            rating = rating - v[2]
-
-                            if (rating > max_rating) and ((enemy_attack_map.units:get(v[1], v[2]) or 0) <= 1 ) then
-                                max_rating, best_village, best_unit = rating, v, u
-                            end
-                        end
-                    end
-                end
-            end
-
-            if (max_rating > -9e99) then
-                local action = { units = {}, dsts = {}, type = 'village', reserve = best_village }
-                action.units[1], action.dsts[1] = best_unit, best_village
-                return action
-            end
-
-            -- No safe villages within 1 turn - try to move to closest village within 4 turns
-            -- That can be either unoccupied or occupied by a unit on the same side
-
-            local max_rating, best_hop, best_village, best_unit = -9e99, {}, {}
-            for i,v in ipairs(villages) do
-                -- Check whether this villages is "reserved" for another unit already
-                local v_ind = v[1] * 1000 + v[2]
-                local reserved_village = false
-                if grunt_rush_FLS1.data.reserved_villages and grunt_rush_FLS1.data.reserved_villages[v_ind] then
-                    reserved_village = true
-                end
-
-                local unit_in_way = wesnoth.get_unit(v[1], v[2])
-                if (not reserved_village) and ((not unit_in_way) or (unit_in_way.side == wesnoth.current.side)) then
-                    --print('Village available:', v[1], v[2])
-                    for i,u in ipairs(healees) do
-                        local path, cost = wesnoth.find_path(u, v[1], v[2])
-
-                        if cost <= u.max_moves * 4 then
-                            local rating = - u.hitpoints + u.max_hitpoints / 2.
-
-                            rating = rating - cost
-
-                            if u.status.poisoned then rating = rating + 8 end
-                            if u.status.slowed then rating = rating + 4 end
-
-                            -- villages in the north are preferable (since they are supposedly away from the enemy)
-                            rating = rating - (v[2] * 1.5)
-
-                            if (rating > max_rating) and ((enemy_attack_map.units:get(v[1], v[2]) or 0) <= 1 ) then
-                                local next_hop = AH.next_hop(u, v[1], v[2])
-                                max_rating, best_hop, best_village, best_unit = rating, next_hop, v, u
-                            end
-                        end
-                    end
-                end
-            end
-
-            if (max_rating > -9e99) then
-                local action = { units = {}, dsts = {}, type = 'village', reserve = best_village }
-                action.units[1], action.dsts[1] = best_unit, best_hop
-                return action
-            end
-
-            return nil
-        end
-
         ----------Grab villages -----------
 
         function grunt_rush_FLS1:eval_grab_villages(units, villages, enemies, retreat_injured_units)
@@ -1007,47 +894,11 @@ return {
         function grunt_rush_FLS1:zone_action_retreat_injured(units, cfg)
             -- **** Retreat seriously injured units
             --print('retreat', os.clock())
-
-            -- Note: while severely injured units are dealt with on a zone-by-zone basis,
-            -- they can retreat to hexes outside the zones
-            -- This includes the leader even if he is not on his keep
-            local trolls, non_trolls = {}, {}
-            for i,u in ipairs(units) do
-                if (u.__cfg.race == 'troll') then
-                    table.insert(trolls, u)
-                else
-                    table.insert(non_trolls, u)
-                end
-            end
-            --print('#trolls, #non_trolls', #trolls, #non_trolls)
-
-            -- First we retreat non-troll units w/ <8+4/level HP to villages.
-            local min_hp = function(unit)
-                return 8 + 4*wesnoth.unit_types[unit.type].level
-            end
-            if non_trolls[1] then
-                local action = grunt_rush_FLS1:get_retreat_injured_units(non_trolls, "*^V*", min_hp)
-                if action then
-                    action.action = cfg.zone_id .. ': ' .. 'retreat severely injured units (non-trolls)'
-                    return action
-                end
-            end
-
-            -- Then we retreat troll units with <10+6/level HP to mountains
-            -- We use a slightly higher min_hp b/c trolls generally have low defense.
-            -- Also since trolls regen at start of turn, they only have <12 HP if poisoned
-            -- or reduced to <4 HP on enemy's turn.
-            -- We exclude impassable terrain to speed up evaluation.
-            -- We do NOT exclude mountain villages! Maybe we should?
-            if trolls[1] then
-                min_hp = function(unit)
-                    return 10 + 6*wesnoth.unit_types[unit.type].level
-                end
-                local action = grunt_rush_FLS1:get_retreat_injured_units(trolls, "!,*^X*,!,M*^*", min_hp)
-                if action then
-                    action.action = cfg.zone_id .. ': ' .. 'retreat severely injured units (trolls)'
-                    return action
-                end
+            local unit, dest = R.retreat_injured_units(units)
+            if unit then
+                local action = { units = {unit}, dsts = {dest}, type = 'village', reserve = dest }
+                action.action = cfg.zone_id .. ': ' .. 'retreat severely injured units'
+                return action
             end
         end
 
