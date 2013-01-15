@@ -495,6 +495,15 @@ return {
             if unit then
                 self.data.retreat_unit = unit
                 self.data.retreat_loc = loc
+
+                -- First check if attacks are possible for any unit
+                -- If one with > 50% chance of kill is possible, set return_value to lower than combat CA
+                local attacks = ai.get_attacks()
+                for i,a in ipairs(attacks) do
+                    if (#a.movements == 1) and (a.chance_to_kill > 0.5) then
+                        return 95000
+                    end
+                end
                 return 205000
             end
             return 0
