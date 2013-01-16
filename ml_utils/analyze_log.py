@@ -15,6 +15,7 @@ Usage:  analyze_log.py [options] *.log
 parser = OptionParser(usage)
 parser.add_option("-d","--default_ai",dest="opposing_ai",default="default_ai_with_recruit_log",help="AI you are opposing.  Reports results for the AI that is *not* this AI.")
 parser.add_option("-m","--maps",dest="map_totals",default=False,action="store_true")
+parser.add_option("-s","--sides",dest="side_totals",default=False,action="store_true")
 (options, args) = parser.parse_args()
 
 if len(args) < 1:
@@ -26,6 +27,7 @@ class FactionData:
     def __init__(self):
         self.opponents = {}
         self.maps = {}
+        self.sides = {}
 
 def process_log_for_factions():
     wins = {}
@@ -70,9 +72,11 @@ def process_log_for_factions():
         if (ais[0] == options.opposing_ai):
             faction_being_tested = factions[1]
             opponent = factions[0]
+            side = 2
         else:
             faction_being_tested = factions[0]
             opponent = factions[1]
+            side = 1
         winner_ai = ais[winning_side]
         if winner_ai not in ai_grand_totals:
             ai_grand_totals[winner_ai] = 0
@@ -98,6 +102,10 @@ def process_log_for_factions():
             data.maps[game_map] += 1
         else:
             data.maps[game_map] = 1
+        if side in data.sides:
+            data.sides[side] += 1
+        else:
+            data.sides[side] = 1
 
     factions = set(wins.keys())
     factions= factions.union(losses.keys())
@@ -109,10 +117,10 @@ def process_log_for_factions():
     for ai in ai_grand_totals:
         print "{0:30}\t{1}\t{2:.1%}".format(ai,ai_grand_totals[ai],float(ai_grand_totals[ai])/sum(ai_grand_totals.values()))
     total_games = sum(ai_grand_totals.values())
-    print "{0:30}\t{1}\n".format("Totals:",total_games)
+    print "{0:30}\t{1}".format("Totals:",total_games)
 
     if options.map_totals:
-        print "Overall Map Totals:"
+        print "\nOverall Map Totals:"
         all_maps = set()
         for friendly_faction in factions:
             all_maps = all_maps.union(wins[friendly_faction].maps)
@@ -124,6 +132,13 @@ def process_log_for_factions():
             assert map_wins+map_losses > 0,"Programming Error:  Zero wins for sum of map wins and losses!"
             print "{0:40}\t{1}\t{2}\t{3:.1%}".format(map,map_wins,map_losses,float(map_wins)/(map_wins + map_losses))
 
+    if options.side_totals:
+        print "\nOverall Side Totals:"
+        for side in [1,2]:
+            side_wins = reduce(lambda x, y: x+ (y or 0), [wins[x].sides[side] for x in factions if x in wins and side in wins[x].sides], 0)
+            side_losses = reduce(lambda x, y: x+ (y or 0), [losses[x].sides[side] for x in factions if x in losses and side in losses[x].sides], 0)
+            assert side_wins+side_losses > 0,"Programming Error:  Zero wins for sum of side wins and losses!"
+            print "{0:5}\t{1}\t{2}\t{3:.1%}".format(side,side_wins,side_losses,float(side_wins)/(side_wins + side_losses))
 
     print "\nGames Timed out:  {0}\tGames ending in errors or draws: {1}\n".format(total_timeouts,total_not_success)
     print "Time per game (in seconds, including errors/timeouts): {0:.1f}".format(total_time/float(total_games + total_timeouts + total_not_success))
@@ -157,6 +172,19 @@ def process_log_for_factions():
                 print "{0:58}\t{1:d}\t{2:d}\t{3:.1%}".format(friendly_faction + " on " + the_map,wins_on_map,losses_on_map,win_pct)
             print "{0:58}\t{1:d}\t{2:d}\t{3:.1%}\n".format("Total " + friendly_faction,map_total_wins,map_total_losses,(float(total_wins)/(total_wins + total_losses)))
             assert map_total_wins == total_wins and map_total_losses == total_losses, "Programming error!  Map totals should equal faction totals!"
+
+        if options.side_totals:
+            side_total_wins = 0
+            side_total_losses = 0
+            for the_side in set(faction_wins.sides).union(faction_losses.sides):
+                side_total_wins += faction_wins.sides[the_side] if (the_side in faction_wins.sides) else 0
+                side_total_losses += faction_losses.sides[the_side] if (the_side in faction_losses.sides) else 0
+                wins_on_side = faction_wins.sides[the_side] if (the_side in faction_wins.sides) else 0
+                losses_on_side = faction_losses.sides[the_side] if (the_side in faction_losses.sides) else 0
+                win_pct = float(wins_on_side) / (wins_on_side + losses_on_side) if (wins_on_side + losses_on_side) != 0 else 0.0
+                print "{0:58}\t{1:d}\t{2:d}\t{3:.1%}".format(friendly_faction + " as Side " + str(the_side),wins_on_side,losses_on_side,win_pct)
+            print "{0:58}\t{1:d}\t{2:d}\t{3:.1%}\n".format("Total " + friendly_faction,side_total_wins,side_total_losses,(float(total_wins)/(total_wins + total_losses)))
+            assert side_total_wins == total_wins and side_total_losses == total_losses, "Programming error!  Side totals should equal faction totals!"
 
 
 
