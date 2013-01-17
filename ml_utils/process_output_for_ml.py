@@ -85,7 +85,7 @@ class OutputProcessor:
                 feat_strings = line.split(',')
                 feat_strings = [x.strip() for x in feat_strings]
                 feat_strings = feat_strings[1:len(feat_strings)]  # Drop the "PRERECRUIT" thing at beginning of line
-                for feat in feat_strings: 
+                for feat in feat_strings:
                     if not feat:
                         continue
                     mypair = feat.split(':')
@@ -259,13 +259,13 @@ class OutputProcessor:
                 game_result.ai_ident2 = s.strip()
                 continue
 
-            n,s = self.do_filter(str,'info ai/testing: FACTION1:')
+            n,s = self.do_filter(str,'info mp/connect: FACTION1:')
             if (n>-1):
                 #print 'AND THE FACTION1 IS: '+s
                 game_result.faction1 = s
                 continue
 
-            n,s = self.do_filter(str,'info ai/testing: FACTION2:')
+            n,s = self.do_filter(str,'info mp/connect: FACTION2:')
             if (n>-1):
                 #print 'AND THE FACTION2 IS: '+s
                 game_result.faction2 = s
