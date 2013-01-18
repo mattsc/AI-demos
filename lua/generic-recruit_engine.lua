@@ -650,7 +650,7 @@ return {
                 end
                 -- divide the lawful bonus by eta before running it through the function because the function converts from 0 centered to 1 centered
 
-                local lawful_bonus = 1
+                local lawful_bonus = 0
                 local eta_turn = wesnoth.current.turn + eta
                 if eta_turn <= wesnoth.game_config.last_turn then
                     lawful_bonus = wesnoth.get_time_of_day(wesnoth.current.turn + eta).lawful_bonus / eta^2
