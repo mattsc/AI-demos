@@ -717,13 +717,16 @@ return {
                         bonus = bonus - 0.2
                     end
                 end
+                if wesnoth.unit_types[recruit_id].cost > gold_limit then
+                    bonus = bonus - 0.5
+                end
 
                 local score = offense_score*offense_weight + defense_score*defense_weight + move_score*move_weight + bonus
 
                 if AH.print_eval() then
                     print(recruit_id .. " score: " .. offense_score*offense_weight .. " + " .. defense_score*defense_weight .. " + " .. move_score*move_weight  .. " + " .. bonus  .. " = " .. score)
                 end
-                if score > best_score and wesnoth.unit_types[recruit_id].cost <= gold_limit then
+                if score > best_score then
                     best_score = score
                     recruit_type = recruit_id
                 end
