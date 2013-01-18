@@ -541,11 +541,6 @@ return {
             -- Find the best recruit hex
             -- First choice: a hex that can reach an unowned village
             -- Second choice: a hex close to the enemy
-            local enemy_leaders = AH.get_live_units { canrecruit = 'yes',
-	            { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
-            }
-            local closest_enemy_distance, closest_enemy_location = AH.get_closest_enemy()
-
             get_current_castle(leader, data)
 
             local best_hex, village = get_village_target(leader, data)
@@ -554,7 +549,14 @@ return {
                 table.insert(data.castle.assigned_villages_y, village[2])
             else
                 -- no available village, look for hex closest to enemy leader
+                -- and also the closest enemy
                 local max_rating = -1
+
+                local enemy_leaders = AH.get_live_units { canrecruit = 'yes',
+                    { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
+                }
+                local closest_enemy_distance, closest_enemy_location = AH.get_closest_enemy()
+
                 for i,c in ipairs(data.castle.locs) do
                     local rating = 0
                     local unit = wesnoth.get_unit(c[1], c[2])
