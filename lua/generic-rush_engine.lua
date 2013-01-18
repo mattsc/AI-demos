@@ -58,6 +58,20 @@ return {
         wesnoth.require("~add-ons/AI-demos/lua/generic-recruit_engine.lua").init(ai, generic_rush, params)
 
         -------- Castle Switch CA --------------
+        local function get_reachable_enemy_leaders(unit)
+            local potential_enemy_leaders = AH.get_live_units { canrecruit = 'yes',
+	            { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
+            }
+            local enemy_leaders = {}
+            for j,e in ipairs(enemy_leaders) do
+                local path, cost = wesnoth.find_path(unit, e.x, e.y, { ignore_units = true, viewing_side = 0 })
+                if cost < AH.no_path then
+                    table.insert(enemy_leaders, e)
+                end
+            end
+
+            return enemy_leaders
+        end
 
         function generic_rush:castle_switch_eval()
             local start_time, ca_name = os.clock(), 'castle_switch'
@@ -114,9 +128,7 @@ return {
                 return 0
             end
 
-            local enemy_leaders = AH.get_live_units { canrecruit = 'yes',
-	            { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
-            }
+            local enemy_leaders = get_reachable_enemy_leaders(leader)
 
             -- Look for the best keep
             local best_score, best_loc, best_turns = 0, {}, 3
