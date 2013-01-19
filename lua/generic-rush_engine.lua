@@ -63,7 +63,7 @@ return {
 	            { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
             }
             local enemy_leaders = {}
-            for j,e in ipairs(enemy_leaders) do
+            for j,e in ipairs(potential_enemy_leaders) do
                 local path, cost = wesnoth.find_path(unit, e.x, e.y, { ignore_units = true, viewing_side = 0 })
                 if cost < AH.no_path then
                     table.insert(enemy_leaders, e)
