@@ -1,8 +1,14 @@
+[[--
+Functions to support the retreat of injured units
+--]]
+
 local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
 local BC = wesnoth.require "~/add-ons/AI-demos/lua/battle_calcs.lua"
 
 local retreat_functions = {}
 
+-- Given a set of units, return one from the set that should retreat and the location to retreat to
+-- Return nil if no unit needs to retreat
 function retreat_functions.retreat_injured_units(units)
     local min_hp = function(unit)
         -- The minimum hp to retreat is a function of level and terrain defense
