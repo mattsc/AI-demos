@@ -1,6 +1,6 @@
-[[--
+--[=[
 Functions to support the retreat of injured units
---]]
+]=]
 
 local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
 local BC = wesnoth.require "~/add-ons/AI-demos/lua/battle_calcs.lua"
