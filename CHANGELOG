@@ -1,3 +1,17 @@
+0.12.3, ???
+- Generic Rush (Ron)
+  - Improve village grabbing by leader when lacking gold to recruit
+  - New Retreat CA based on ideas from Fred
+    - Covers all regenerating units
+    - Moves to any healing terrain (like oases)
+    - Accounts for unit defense (so aquatic villages are not taken when alternatives exist for land units)
+    - Does not cover multi-turn movement to healing
+  - New Move to Enemy CA if enemy has no visible leader and we already have all villages
+  - New Village Hunt CA to prioritize villages when AI doesn't have an advantage in villages
+  - Use healer support micro AI to improve healer placement
+- Freelands Side 1 Grunt Rush:
+  - Changed retreat logic to match that of the generic rush
+
 0.12.2, 28 Dec 2012
 - Micro AIs
   - New Micro AIs:
