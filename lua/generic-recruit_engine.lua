@@ -150,8 +150,6 @@ return {
                         if (defender_attack.range == attack.range) then
                             for special in H.child_range(defender_attack, 'specials') do
                                 if H.get_child(special, 'drains') and living(attacker) then
-                                    -- TODO: calculate chance to hit
-                                    -- currently assumes 50% chance to hit using supplied constant
                                     local attacker_resistance = wesnoth.unit_resistance(attacker, defender_attack.type)
                                     drain_recovery = (defender_attack.damage*defender_attack.number*attacker_resistance*attacker_defense/2)/10000
                                 end
