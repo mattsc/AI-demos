@@ -316,7 +316,7 @@ return {
                 end
 
                 -- Now we go on to the unit-dependent rating
-                local best_unit_rating = 0
+                local best_unit_rating = -9e99
                 local reachable = false
                 for i,u in ipairs(units) do
                     -- Skip villages that have units other than 'u' itself on them
@@ -337,8 +337,13 @@ return {
                                 reachable = true
                                 --print('Can reach:', u.id, v[1], v[2], cost)
                                 local rating = 0
-                                -- Finally, since these can be reached by the enemy, want the strongest unit to go first
-                                rating = rating + u.hitpoints / 100.
+
+                                -- Prefer strong units if enemies can reach the village, injured units otherwise
+                                if enemy_attack_map:get(v[1], v[2]) then
+                                    rating = rating + u.hitpoints / 100.
+                                else
+                                    rating = rating + (u.max_hitpoints - u.hitpoints) / 100.
+                                end
 
                                 if (rating > best_unit_rating) then
                                     best_unit_rating, best_unit = rating, u
