@@ -340,9 +340,9 @@ return {
 
                                 -- Prefer strong units if enemies can reach the village, injured units otherwise
                                 if enemy_attack_map:get(v[1], v[2]) then
-                                    rating = rating + u.hitpoints / 100.
+                                    rating = rating + u.hitpoints
                                 else
-                                    rating = rating + (u.max_hitpoints - u.hitpoints) / 100.
+                                    rating = rating + u.max_hitpoints - u.hitpoints
                                 end
 
                                 if (rating > best_unit_rating) then
