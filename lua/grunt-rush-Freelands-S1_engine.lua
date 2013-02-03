@@ -1354,7 +1354,8 @@ return {
             local zone_map = LS.of_pairs(zone)
 
             -- Get HP ratio and number of units that can reach the zone as function of y coordinate
-            local rel_damage_y = grunt_rush_FLS1:relative_damage_y(zone_units, enemies, zone)
+            local rel_damage_y, rel_damage_map, own_damage_map, enemy_damage_map =
+                grunt_rush_FLS1:relative_damage_y(zone_units, enemies, zone)
 
             -- Start with the minimum for the zone
             local y_min = 9e99
@@ -1386,6 +1387,16 @@ return {
                 grunt_rush_FLS1.data.zone_parms[i_c].advance_y = advance_y
             end
             --print('advance_y zone ' .. cfg.zone_id, advance_y)
+
+            -- Set up a map of all locations where the damage is acceptable
+            local acceptable_damage_map = LS.create()
+            rel_damage_map:iter(function(x, y, v)
+                if (v >= min_relative_damage) then
+                    acceptable_damage_map:insert(x, y, v)
+                end
+            end)
+            --AH.put_labels(acceptable_damage_map)
+            --W.message { speaker = 'narrator', message = 'acceptable_damage_map' }
 
             -- **** This ends the common initialization for all zone actions ****
 
