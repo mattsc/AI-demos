@@ -903,7 +903,7 @@ return {
             end
         end
 
-        function grunt_rush_FLS1:zone_action_villages(units, enemies, advance_y, cfg)
+        function grunt_rush_FLS1:zone_action_villages(units, enemies, acceptable_damage_map, cfg)
             --print('villages', os.clock())
 
             -- This should include both retreating to villages of injured units and village grabbing
@@ -914,7 +914,7 @@ return {
             -- (currently that still means north)
             local retreat_villages = {}
             for i,v in ipairs(cfg.retreat_villages or {}) do
-                if (v[2] <= advance_y) then
+                if acceptable_damage_map:get(v[1], v[2]) then
                     --print('Including retreat_village:', v[1], v[2])
                     table.insert(retreat_villages, v)
                 end
@@ -1415,7 +1415,7 @@ return {
             local village_action = nil
             if (not cfg.do_action) or cfg.do_action.villages then
                 if (not cfg.skip_action) or (not cfg.skip_action.villages)  then
-                    village_action = grunt_rush_FLS1:zone_action_villages(zone_units, enemies, advance_y, cfg)
+                    village_action = grunt_rush_FLS1:zone_action_villages(zone_units, enemies, acceptable_damage_map, cfg)
                     if village_action and (village_action.rating > 100) then
                         --print(village_action.action)
                         return village_action
