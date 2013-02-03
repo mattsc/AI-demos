@@ -911,7 +911,6 @@ return {
 
             -- First check for villages to retreat to
             -- This means villages in cfg.retreat_villages that are on the safe side
-            -- (currently that still means north)
             local retreat_villages = {}
             for i,v in ipairs(cfg.retreat_villages or {}) do
                 if acceptable_damage_map:get(v[1], v[2]) then
@@ -923,7 +922,7 @@ return {
 
             -- If villages were found check for units to retreat to them
             -- Consider units missing at least 8 HP during their weak time of day
-            -- Caveat: neutral units are not retreat by this action at the moment
+            -- Caveat: neutral units are not retreated by this action at the moment
             local injured_units = {}
             if retreat_villages[1] then
                 local tod = wesnoth.get_time_of_day()
