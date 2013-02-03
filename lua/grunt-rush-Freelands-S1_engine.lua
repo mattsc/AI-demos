@@ -177,7 +177,8 @@ return {
             -- Relative damage as function of y coordinate
 
             --print('#my_units, #enemies', #my_units, #enemies)
-            local rel_damage_map = BC.relative_damage_map(my_units, enemies, grunt_rush_FLS1.data.cache)
+            local rel_damage_map, own_damage_map, enemy_damage_map =
+                BC.relative_damage_map(my_units, enemies, grunt_rush_FLS1.data.cache)
             --AH.put_labels(rel_damage_map)
 
             local rel_damage_y = {}
@@ -191,7 +192,7 @@ return {
             --DBG.dbms(rel_damage_y)
             --W.message{ speaker = 'narrator', message = 'Relative damage map' }
 
-            return rel_damage_y
+            return rel_damage_y, rel_damage_map, own_damage_map, enemy_damage_map
         end
 
         function grunt_rush_FLS1:full_offensive()
