@@ -995,7 +995,7 @@ return {
             end
         end
 
-        function grunt_rush_FLS1:zone_action_attack(units, enemies, zone, zone_map, advance_y, cfg)
+        function grunt_rush_FLS1:zone_action_attack(units, enemies, zone, zone_map, acceptable_damage_map, cfg)
             --print('attack', os.clock())
 
             -- Attackers include the leader but only if he is on his
@@ -1030,7 +1030,15 @@ return {
             -- Otherwise use all units inside the zone
             else
                 for i,e in ipairs(enemies) do
-                    if zone_map:get(e.x, e.y) and (e.y <= advance_y + 1) then
+                    local valid_target = false
+                    for x,y in H.adjacent_tiles(e.x, e.y) do
+                        if acceptable_damage_map:get(x,y) then
+                            valid_target = true
+                            break
+                        end
+                    end
+
+                    if zone_map:get(e.x, e.y) and valid_target then
                         table.insert(targets, e)
                     end
                 end
@@ -1425,7 +1433,7 @@ return {
             -- **** Attack evaluation ****
             if (not cfg.do_action) or cfg.do_action.attack then
                 if (not cfg.skip_action) or (not cfg.skip_action.attack)  then
-                    local action = grunt_rush_FLS1:zone_action_attack(zone_units, enemies, zone, zone_map, advance_y, cfg)
+                    local action = grunt_rush_FLS1:zone_action_attack(zone_units, enemies, zone, zone_map, acceptable_damage_map, cfg)
                     if action then
                         --print(action.action)
                         return action
