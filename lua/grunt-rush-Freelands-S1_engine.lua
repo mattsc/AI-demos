@@ -438,11 +438,7 @@ return {
                         local rating = 0
 
                         rating = rating - math.abs(adv_dist)
-
                         rating = rating - math.abs(perp_dist) / 2.
-
-                        -- In particular, do not like positions too far south -> additional penalty
-                        if (adv_dist > 1) then rating = rating - adv_dist * 10 end
 
                         -- Small bonus if this is on a village
                         -- Village will also get bonus from defense rating below
