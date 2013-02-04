@@ -68,7 +68,7 @@ return {
                 zone_id = 'center',
                 zone_filter = { x = '15-24', y = '1-16' },
                 unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
-                hold = { x = 20, min_y = 9, max_y = 15, hp_ratio = 0.67 },
+                hold = { x = 20, min_y = 9, max_y = 15, dx = 0, dy = 1, hp_ratio = 0.67 },
                 retreat_villages = { { 18, 9 }, { 24, 7 }, { 22, 2 } }
             }
 
@@ -77,7 +77,7 @@ return {
                 zone_filter = { x = '4-14', y = '1-15' },
                 unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
                 min_relative_damage = -3.,
-                hold = { x = 11, min_y = 5, max_y = 15, hp_ratio = 1.0 },
+                hold = { x = 11, min_y = 5, max_y = 15, dx = 0, dy = 1, hp_ratio = 1.0 },
                 secure = { x = 11, y = 9, moves_away = 2, min_units = 1 },
                 retreat_villages = { { 11, 9 }, { 8, 5 }, { 12, 5 }, { 12, 2 } },
                 villages = { hold_threatened = true }
@@ -87,7 +87,7 @@ return {
                 zone_id = 'right',
                 zone_filter = { x = '25-34', y = '1-24' },
                 unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
-                hold = { x = 27, min_y = 11, max_y = 22 },
+                hold = { x = 27, min_y = 11, max_y = 22, dx = 0, dy = 1 },
                 retreat_villages = { { 24, 7 }, { 28, 5 } }
             }
 
@@ -419,23 +419,30 @@ return {
                 -- Put the units back out there
                 for iu,uMP in ipairs(units_MP) do wesnoth.put_unit(uMP.x, uMP.y, uMP) end
 
+                -- Normalized direction "vector"
+                local dx, dy = cfg.hold.dx, cfg.hold.dy
+                local r = math.sqrt(dx*dx + dy*dy)
+                dx, dy = dx / r, dy / r
+
                 -- First calculate a unit independent rating map
                 local zone = wesnoth.get_locations(cfg.zone_filter)
                 rating_map = LS.create()
                 for i,hex in ipairs(zone) do
                     local x, y = hex[1], hex[2]
 
-                    if (y >= goal.y-2) and (y <= goal.y+1) then
+                    -- Distance in direction of (dx, dy) and perpendicular to it
+                    local adv_dist = (x - goal.x) * dx + (y - goal.y) * dy
+                    local perp_dist = (x - goal.x) * dy + (y - goal.y) * dx
+
+                    if (adv_dist >= -2) and (adv_dist <= 1) then
                         local rating = 0
 
-                        local y_dist = math.abs(y - goal.y)
-                        --y_dist = math.floor(y_dist / 2) * 2.
-                        rating = rating - y_dist
+                        rating = rating - math.abs(adv_dist)
 
-                        rating = rating - math.abs(x - goal.x) / 2.
+                        rating = rating - math.abs(perp_dist) / 2.
 
                         -- In particular, do not like positions too far south -> additional penalty
-                        if (y > goal.y + 1) then rating = rating - (y - goal.y) * 10 end
+                        if (adv_dist > 1) then rating = rating - adv_dist * 10 end
 
                         -- Small bonus if this is on a village
                         -- Village will also get bonus from defense rating below
