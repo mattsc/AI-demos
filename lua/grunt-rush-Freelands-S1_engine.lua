@@ -24,18 +24,18 @@ return {
             -- unit_filter: SUF of the units considered for moves for this zone
             -- do_action: if given, evaluate only the listed actions for the zone
             --   if not given, evaluate all actions (that should be the default)
-            -- skip_action: actions listed here will be skipped from evaluation, all
-            --   others will be evaluation.
+            -- skip_action: actions listed here will be skipped when evaluating, all
+            --   other actions will be evaluated.
             --   !!! Obviously, only do_action _or_ skip_action should be given, not both !!!
             -- min_relative_damage: the minimum acceptable relative damage for attacking/advancing
             -- attack: table describing the type of zone attack to be done
             --   - use_enemies_in_reach: if set, use enemies that can reach zone, otherwise use units inside the zone
             --       Note: only use with very small zones, otherwise it can be very slow
             -- hold: table describing where to hold a position
-            --   - x: the central x coordinate of the hold
+            --   - x: the central x coordinate of the position to hold
             --   - max_y: the maximum y coordinate where to hold
             --   - hp_ratio: the minimum HP ratio required to hold at this position
-            -- retreat_villages: array of villages to which to retreat injured units
+            -- retreat_villages: array of villages to which injured units should retreat
 
             -- The 'cfgs' table is stored in 'grunt_rush_FLS1.data.zone_cfgs' and retrieved from there if it already exists
             -- This is automatically deleted at the beginning of each turn, so a recalculation is forced then
@@ -255,7 +255,7 @@ return {
             if (not enemies[1]) then return nil end
 
             local max_rating, best_attackers, best_dsts, best_enemy = -9e99, {}, {}, {}
-            local counter_table = {}  -- Counter attacks are very expensive, store to avoid duplication
+            local counter_table = {}  -- Counter-attacks are very expensive, store to avoid duplication
             local cache_this_move = {}  -- same reason
             for i,e in ipairs(enemies) do
                 --print(i, e.id, os.clock())
@@ -334,11 +334,11 @@ return {
                             local dst_ind = x * 1000 + y
                             if (not counter_table[att_ind]) then counter_table[att_ind] = {} end
                             if (not counter_table[att_ind][dst_ind]) then
-                                --print('Calculating new counter attack combination')
+                                --print('Calculating new counter-attack combination')
                                 local counter_min_hp, counter_def_stats = grunt_rush_FLS1:calc_counter_attack(a, { x, y })
                                 counter_table[att_ind][dst_ind] = { min_hp = counter_min_hp, counter_def_stats = counter_def_stats }
                             else
-                                --print('Counter attack combo already calculated.  Re-using.')
+                                --print('Counter-attack combo already calculated.  Re-using.')
                             end
                             local counter_min_hp = counter_table[att_ind][dst_ind].min_hp
                             local counter_def_stats = counter_table[att_ind][dst_ind].counter_def_stats
@@ -516,7 +516,7 @@ return {
         end
 
         function grunt_rush_FLS1:calc_counter_attack(unit, hex)
-            -- Get counter attack results a unit might experience next turn if it moved to 'hex'
+            -- Get counter-attack results a unit might experience next turn if it moved to 'hex'
             -- Return worst case scenario HP and def_stats
             -- This uses real counter_attack combinations
 
@@ -537,7 +537,7 @@ return {
             end
 
             -- Now we put our unit into the position of interest
-            -- (and remove any unit that might be there)
+            -- (and remove any unit that might already be there)
             local org_hex = { unit.x, unit.y }
             local unit_in_way = {}
             if (org_hex[1] ~= hex[1]) or (org_hex[2] ~= hex[2]) then
@@ -582,8 +582,8 @@ return {
             all_attack_combos = nil
             --print('#attack_combos', #attack_combos, os.clock())
 
-            -- For the counter attack calculation, we keep only unique combinations of units
-            -- This is because counter attacks are, almost by definition, a very expensive calculation
+            -- For the counter-attack calculation, we keep only unique combinations of units
+            -- This is because counter-attacks are, almost by definition, a very expensive calculation
             local unique_combos = {}
             for i,combo in ipairs(attack_combos) do
                 -- To find unique combos, we mark all units involved in the combo by their
@@ -614,7 +614,7 @@ return {
             local enemies_map = {}
             for i,u in ipairs(enemies) do enemies_map[u.x * 1000 + u.y] = u end
 
-            -- Now find the worst-case counter attack
+            -- Now find the worst-case counter-attack
             local max_rating, worst_hp, worst_def_stats = -9e99, 0, {}
             local cache_this_move = {}  -- To avoid unnecessary duplication of calculations
             for i,combo in ipairs(attack_combos) do
@@ -637,7 +637,7 @@ return {
                     end
                 end
 
-                -- Rating, for the purpose of counter attack evaluation, is simply
+                -- Rating, for the purpose of counter-attack evaluation, is simply
                 -- minimum hitpoints and chance to die combination
                 local rating = -min_hp + combo_def_stats.hp_chance[0] * 100
                 --print(i, #atts, min_hp, combo_def_stats.hp_chance[0], ' -->', rating)
@@ -851,7 +851,7 @@ return {
                                 rating = rating + u.hitpoints / 100.
                             end
 
-                            -- If this is the leader, calculate counter attack damage
+                            -- If this is the leader, calculate counter-attack damage
                             -- Make him the preferred village taker unless he's likely to die
                             -- but only if he's on the keep
                             if u.canrecruit then
@@ -901,7 +901,7 @@ return {
         function grunt_rush_FLS1:zone_action_villages(units, enemies, acceptable_damage_map, cfg)
             --print('villages', os.clock())
 
-            -- This should include both retreating to villages of injured units and village grabbing
+            -- This should include both retreating injured units to villages and village grabbing
             -- The leader is only included if he is on the keep
 
             -- First check for villages to retreat to
@@ -1063,7 +1063,7 @@ return {
             for i,u in ipairs(attackers) do attacker_map[u.x * 1000 + u.y] = u end
 
             local max_rating, best_attackers, best_dsts, best_enemy = -9e99, {}, {}, {}
-            local counter_table = {}  -- Counter attacks are very expensive, store to avoid duplication
+            local counter_table = {}  -- Counter-attacks are very expensive, store to avoid duplication
             local cache_this_move = {}  -- same reason
             for i,e in ipairs(targets) do
                 --print('\n', i, e.id, os.clock())
@@ -1085,8 +1085,8 @@ return {
                     local rating, sorted_atts, sorted_dsts, combo_att_stats, combo_def_stats = BC.attack_combo_stats(atts, dsts, e, grunt_rush_FLS1.data.cache, cache_this_move)
                     --DBG.dbms(combo_def_stats)
 
-                    -- Don't attack if CTD is too high for any of the attackers
-                    -- which means 50% CDT for normal units and 0% for leader
+                    -- Don't attack if CTD (chance to die) is too high for any of the attackers
+                    -- which means 50% CTD for normal units and 0% for leader
                     local do_attack = true
                     for k,att_stats in ipairs(combo_att_stats) do
                         if (not sorted_atts[k].canrecruit) then
@@ -1102,7 +1102,7 @@ return {
                         end
                     end
 
-                    -- If the leader is involved, make sure it leaves him in a save spot
+                    -- If the leader is involved, make sure it leaves him in a safe spot
                     if do_attack then
                         for k,a in ipairs(sorted_atts) do
                             if a.canrecruit then
@@ -1111,11 +1111,11 @@ return {
                                 local dst_ind = x * 1000 + y
                                 if (not counter_table[att_ind]) then counter_table[att_ind] = {} end
                                 if (not counter_table[att_ind][dst_ind]) then
-                                    --print('Calculating new counter attack combination')
+                                    --print('Calculating new counter-attack combination')
                                     local counter_min_hp, counter_def_stats = grunt_rush_FLS1:calc_counter_attack(a, { x, y })
                                     counter_table[att_ind][dst_ind] = { min_hp = counter_min_hp, counter_def_stats = counter_def_stats }
                                 else
-                                    --print('Counter attack combo already calculated.  Re-using.')
+                                    --print('Counter-attack combo already calculated.  Re-using.')
                                 end
                                 local counter_min_hp = counter_table[att_ind][dst_ind].min_hp
                                 local counter_def_stats = counter_table[att_ind][dst_ind].counter_def_stats
@@ -1126,7 +1126,7 @@ return {
                                     break
                                 end
 
-                                -- Add max damages from this turn and counter attack
+                                -- Add max damages from this turn and counter-attack
                                 local min_hp = 0
                                 for hp = 0,a.hitpoints do
                                     if combo_att_stats[k].hp_chance[hp] and (combo_att_stats[k].hp_chance[hp] > 0) then
@@ -1258,7 +1258,7 @@ return {
                 return action
             end
 
-            -- If we got here, check whether there are instruction to secure the zone
+            -- If we got here, check whether there are instructions to secure the zone
             -- That is, whether units are not in the zone, but are threatening a key location in it
             -- The parameters for this are set in cfg.secure
             if cfg.secure then
@@ -1582,7 +1582,7 @@ return {
                 -- Before evaluating the poison attack, check whether it is too dangerous
                 if poison_attack then
                     local counter_min_hp, counter_def_stats = grunt_rush_FLS1:calc_counter_attack(attacker, { a.dst.x, a.dst.y })
-                    --print('Poison counter attack:', attacker.id, a.dst.x, a.dst.y, counter_def_stats.hp_chance[0], counter_def_stats.average_hp)
+                    --print('Poison counter-attack:', attacker.id, a.dst.x, a.dst.y, counter_def_stats.hp_chance[0], counter_def_stats.average_hp)
                     -- Use a condition when damage is too much to be worthwhile
                     if (counter_def_stats.hp_chance[0] > 0.30) or (counter_def_stats.average_hp < 10) then
                         --print('Poison attack too dangerous')
