@@ -256,7 +256,7 @@ return {
             function sum_gold_for_sides(side_filter)
                 -- sum positive amounts of gold for a set of sides
                 -- positive only because it is used to estimate the number of enemy units that could appear
-                -- and negative numbers should't subtract from the number of units on the map
+                -- and negative numbers shouldn't subtract from the number of units on the map
                 local gold = 0
                 local sides = wesnoth.get_sides(side_filter)
                 for i,s in ipairs(sides) do
