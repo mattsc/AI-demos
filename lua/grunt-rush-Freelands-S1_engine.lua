@@ -1393,27 +1393,6 @@ return {
                 end
             end
 
-            local advance_y = y_min
-            local min_relative_damage = cfg.min_relative_damage or 0.
-            for y,rd_y in pairs(rel_damage_y) do
-                if (y > advance_y) then
-                    if (rd_y >= min_relative_damage) then advance_y = y end
-                end
-            end
-            --print('advance_y zone #' .. i_c, advance_y)
-
-            -- advance_y can never be less than what has been used during this move already
-            if grunt_rush_FLS1.data.zone_parms[i_c].advance_y then
-                if (grunt_rush_FLS1.data.zone_parms[i_c].advance_y > advance_y) then
-                    advance_y = grunt_rush_FLS1.data.zone_parms[i_c].advance_y
-                else
-                    grunt_rush_FLS1.data.zone_parms[i_c].advance_y = advance_y
-                end
-            else
-                grunt_rush_FLS1.data.zone_parms[i_c].advance_y = advance_y
-            end
-            --print('advance_y zone ' .. cfg.zone_id, advance_y)
-
             -- Set up a map of all locations where the damage is acceptable
             local acceptable_damage_map = LS.create()
             local unacceptable_damage_map = LS.create()
