@@ -1383,16 +1383,6 @@ return {
             local rel_damage_y, rel_damage_map, own_damage_map, enemy_damage_map =
                 grunt_rush_FLS1:relative_damage_y(zone_units, enemies, zone)
 
-            -- Start with the minimum for the zone
-            local y_min = 9e99
-            if cfg.hold and cfg.hold.min_y then
-                y_min = cfg.hold.min_y
-            else
-                for y,rd_y in pairs(rel_damage_y) do
-                    if (y < y_min) then y_min = y end
-                end
-            end
-
             -- Set up a map of all locations where the damage is acceptable
             local min_relative_damage = cfg.min_relative_damage or 0.
             local acceptable_damage_map = LS.create()
