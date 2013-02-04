@@ -1394,6 +1394,7 @@ return {
             end
 
             -- Set up a map of all locations where the damage is acceptable
+            local min_relative_damage = cfg.min_relative_damage or 0.
             local acceptable_damage_map = LS.create()
             local unacceptable_damage_map = LS.create()
             rel_damage_map:iter(function(x, y, v)
