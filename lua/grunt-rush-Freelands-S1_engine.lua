@@ -68,7 +68,7 @@ return {
                 zone_id = 'center',
                 zone_filter = { x = '15-24', y = '1-16' },
                 unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
-                hold = { x = 20, min_y = 9, max_y = 15, dx = 0, dy = 1, hp_ratio = 0.67 },
+                hold = { x = 20, y = 9, dx = 0, dy = 1, hp_ratio = 0.67 },
                 retreat_villages = { { 18, 9 }, { 24, 7 }, { 22, 2 } }
             }
 
@@ -77,7 +77,7 @@ return {
                 zone_filter = { x = '4-14', y = '1-15' },
                 unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
                 min_relative_damage = -3.,
-                hold = { x = 11, min_y = 5, max_y = 15, dx = 0, dy = 1, hp_ratio = 1.0 },
+                hold = { x = 11, y = 9, dx = 0, dy = 1, hp_ratio = 1.0 },
                 secure = { x = 11, y = 9, moves_away = 2, min_units = 1 },
                 retreat_villages = { { 11, 9 }, { 8, 5 }, { 12, 5 }, { 12, 2 } },
                 villages = { hold_threatened = true }
@@ -85,9 +85,9 @@ return {
 
             local cfg_right = {
                 zone_id = 'right',
-                zone_filter = { x = '25-34', y = '1-24' },
+                zone_filter = { x = '25-34', y = '1-17' },
                 unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
-                hold = { x = 27, min_y = 11, max_y = 22, dx = 0, dy = 1 },
+                hold = { x = 27, y = 11, dx = 0, dy = 1 },
                 retreat_villages = { { 24, 7 }, { 28, 5 } }
             }
 
@@ -402,7 +402,7 @@ return {
             return nil
         end
 
-        function grunt_rush_FLS1:hold_zone(holders, goal, cfg)
+        function grunt_rush_FLS1:hold_zone(holders, unacceptable_damage_map, cfg)
             local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", { side = wesnoth.current.side } }} }
             }
@@ -424,8 +424,46 @@ return {
                 local r = math.sqrt(dx*dx + dy*dy)
                 dx, dy = dx / r, dy / r
 
-                -- First calculate a unit independent rating map
+                -- Determine where to set up the line for holding the zone
                 local zone = wesnoth.get_locations(cfg.zone_filter)
+                rating_map = LS.create()
+                local goal, max_rating = {}, -9e99
+                for i,hex in ipairs(zone) do
+                    local x, y = hex[1], hex[2]
+                    if (not unacceptable_damage_map:get(x,y)) then
+                        -- Distance in direction of (dx, dy) and perpendicular to it
+                        local adv_dist = (x - cfg.hold.x) * dx + (y - cfg.hold.y) * dy
+                        local perp_dist = (x - cfg.hold.x) * dy + (y - cfg.hold.y) * dx
+
+                        local rating = adv_dist
+
+                        if (math.abs(perp_dist) <= 2) then
+                            rating = rating - math.abs(perp_dist) / 10.
+                        else
+                            rating = -9.9e99
+                        end
+
+                        local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
+                        if is_village then
+                            rating = rating + 1.11
+                        end
+
+                        if (rating > max_rating) then
+                            max_rating, goal = rating, { x = x, y = y }
+                        end
+
+                        rating_map:insert(x, y, rating)
+                    end
+                end
+                --AH.put_labels(rating_map)
+                --W.message { speaker = 'narrator', message = 'Hold zone: goal rating map' }
+
+                -- If no acceptable goal was found, we don't do anything
+                if (max_rating == -9e99) then return end
+                --print('goal:', goal.x, goal.y)
+
+                local action = { units = {}, dsts = {} }
+                -- First calculate a unit independent rating map
                 rating_map = LS.create()
                 for i,hex in ipairs(zone) do
                     local x, y = hex[1], hex[2]
@@ -457,7 +495,7 @@ return {
                         if (min_dist == 3) then rating = rating + 6 end
                         if (min_dist == 2) then rating = rating + 4 end
 
-                       rating_map:insert(x, y, rating)
+                        rating_map:insert(x, y, rating)
                     end
                 end
                 --AH.put_labels(rating_map)
@@ -1185,7 +1223,7 @@ return {
             return nil
         end
 
-        function grunt_rush_FLS1:zone_action_hold(units, units_noMP, enemies, zone_map, hold_y, cfg)
+        function grunt_rush_FLS1:zone_action_hold(units, units_noMP, enemies, zone_map, unacceptable_damage_map, cfg)
             --print('hold', os.clock())
 
             -- The leader does not participate in position holding (for now, at least)
@@ -1234,28 +1272,13 @@ return {
             end
 
             if eval_hold then
-                local hold_x = cfg.hold.x
-                local hold_max_y = cfg.hold.max_y
+                local unit, dst = grunt_rush_FLS1:hold_zone(holders, unacceptable_damage_map, cfg)
 
-                if (hold_y > hold_max_y) then hold_y = hold_max_y end
-                local goal = { x = hold_x, y = hold_y }
-                local zone = wesnoth.get_locations(cfg.zone_filter)
-                for i,hex in ipairs(zone) do
-                    local x, y = hex[1], hex[2]
-                    if (y >= hold_y - 1) and (y <= hold_y + 1) then
-                        --print(x,y)
-                        local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
-                        if is_village then
-                            goal = { x = x, y = y }
-                            break
-                        end
-                    end
+                local action = nil
+                if unit then
+                    action = { units = { unit }, dsts = { dst } }
+                    action.action = cfg.zone_id .. ': ' .. 'hold position'
                 end
-                --print('goal:', goal.x, goal.y)
-
-                local action = { units = {}, dsts = {} }
-                action.units[1], action.dsts[1] = grunt_rush_FLS1:hold_zone(holders, goal, cfg)
-                action.action = cfg.zone_id .. ': ' .. 'hold position'
                 return action
             end
 
@@ -1393,9 +1416,12 @@ return {
 
             -- Set up a map of all locations where the damage is acceptable
             local acceptable_damage_map = LS.create()
+            local unacceptable_damage_map = LS.create()
             rel_damage_map:iter(function(x, y, v)
                 if (v >= min_relative_damage) then
                     acceptable_damage_map:insert(x, y, v)
+                else
+                    unacceptable_damage_map:insert(x, y, v)
                 end
             end)
             --AH.put_labels(acceptable_damage_map)
@@ -1449,7 +1475,7 @@ return {
             -- **** Hold position evaluation ****
             if (not cfg.do_action) or cfg.do_action.hold then
                 if (not cfg.skip_action) or (not cfg.skip_action.hold)  then
-                    local action = grunt_rush_FLS1:zone_action_hold(zone_units, zone_units_noMP, enemies, zone_map, advance_y, cfg)
+                    local action = grunt_rush_FLS1:zone_action_hold(zone_units, zone_units_noMP, enemies, zone_map, unacceptable_damage_map, cfg)
                     if action then
                         --print(action.action)
                         return action
