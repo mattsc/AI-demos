@@ -407,11 +407,6 @@ return {
                 { "filter_side", {{"enemy_of", { side = wesnoth.current.side } }} }
             }
 
-            local injured_locs = injured_locs or {}
-            for i,l in ipairs(injured_locs) do
-                if (goal.y < l[2] + 1) then goal.y = l[2] + 1 end
-            end
-
             -- Now move units into holding positions
             while holders[1] do
                 -- First, find where the enemy can attack
