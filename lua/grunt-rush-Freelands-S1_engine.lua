@@ -473,10 +473,8 @@ return {
                         if rating_map:get(x, y) then
                             rating = rating_map:get(x, y)
 
-                            -- Take southern and eastern units first
-                            -- We might want to change this later to using strong units first,
-                            -- then retreating weaker units behind them
-                            rating = rating + u.y + u.x / 2.
+                            -- Take strongest units first
+                            rating = rating + u.hitpoints / 5.
 
                             -- Rating for the terrain
                             local terrain_weight = 0.51
