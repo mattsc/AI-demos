@@ -405,7 +405,7 @@ return {
                 -- Determine where to set up the line for holding the zone
                 local zone = wesnoth.get_locations(cfg.zone_filter)
                 rating_map = LS.create()
-                local goal, max_rating = {}, -9e99
+                local hold_dist, max_rating = {}, -9e99
                 for i,hex in ipairs(zone) do
                     local x, y = hex[1], hex[2]
                     if (not unacceptable_damage_map:get(x,y)) then
@@ -427,18 +427,18 @@ return {
                         end
 
                         if (rating > max_rating) then
-                            max_rating, goal = rating, { x = x, y = y }
+                            max_rating, hold_dist = rating, adv_dist
                         end
 
                         rating_map:insert(x, y, rating)
                     end
                 end
                 --AH.put_labels(rating_map)
-                --W.message { speaker = 'narrator', message = 'Hold zone: goal rating map' }
+                --W.message { speaker = 'narrator', message = 'Hold zone: hold_dist rating map' }
 
-                -- If no acceptable goal was found, we don't do anything
+                -- If no acceptable hold_dist was found, we don't do anything
                 if (max_rating == -9e99) then return end
-                --print('goal:', goal.x, goal.y)
+                --print('hold_dist:', hold_dist)
 
                 local action = { units = {}, dsts = {} }
                 -- First calculate a unit independent rating map
@@ -447,8 +447,8 @@ return {
                     local x, y = hex[1], hex[2]
 
                     -- Distance in direction of (dx, dy) and perpendicular to it
-                    local adv_dist = (x - goal.x) * dx + (y - goal.y) * dy
-                    local perp_dist = (x - goal.x) * dy + (y - goal.y) * dx
+                    local adv_dist = (x - cfg.hold.x) * dx + (y - cfg.hold.y) * dy - hold_dist
+                    local perp_dist = (x - cfg.hold.x) * dy + (y - cfg.hold.y) * dx
 
                     if (adv_dist >= -2) and (adv_dist <= 1) then
                         local rating = 0
@@ -509,6 +509,11 @@ return {
 
                     -- If we cannot get into the zone, take direct path to goal hex
                     if (max_rating_unit == -9e99) then
+                        local x = cfg.hold.x + hold_dist * dx
+                        local y = cfg.hold.y + hold_dist * dy
+                        local goal = { x = H.round(x), y = H.round(y) }
+                        --print("goal: ", goal.x, goal.y)
+
                         local moveto = AH.get_closest_location({ goal.x, goal.y }, {}, u)
                         if (not moveto) then moveto = { u.x, u.y } end
                         local next_hop = AH.next_hop(u, moveto[1], moveto[2])
