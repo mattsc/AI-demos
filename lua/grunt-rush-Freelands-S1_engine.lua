@@ -404,6 +404,7 @@ return {
 
                 -- Minimum distance from reference hex for zone holding
                 local min_dist = cfg.hold.min_dist or 0
+                local max_perp_dist = cfg.hold.max_perp_dist or 2
 
                 -- Determine where to set up the line for holding the zone
                 local zone = wesnoth.get_locations(cfg.zone_filter)
@@ -420,22 +421,20 @@ return {
 
                             local rating = adv_dist
 
-                            if (math.abs(perp_dist) <= 2) then
+                            if (math.abs(perp_dist) <= max_perp_dist) then
                                 rating = rating - math.abs(perp_dist) / 10.
-                            else
-                                rating = -9.9e99
-                            end
 
-                            local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
-                            if is_village then
-                                rating = rating + 1.11
-                            end
+                                local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
+                                if is_village then
+                                    rating = rating + 1.11
+                                end
 
-                            if (rating > max_rating) then
-                                max_rating, hold_dist = rating, adv_dist
-                            end
+                                if (rating > max_rating) then
+                                    max_rating, hold_dist = rating, adv_dist
+                                end
 
-                            rating_map:insert(x, y, rating)
+                                rating_map:insert(x, y, rating)
+                            end
                         end
                     end
                 end
