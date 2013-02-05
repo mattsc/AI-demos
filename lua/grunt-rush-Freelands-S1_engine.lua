@@ -69,7 +69,8 @@ return {
                 zone_filter = { x = '15-24', y = '1-16' },
                 unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
                 hold = { x = 20, y = 9, dx = 0, dy = 1, hp_ratio = 0.67 },
-                retreat_villages = { { 18, 9 }, { 24, 7 }, { 22, 2 } }
+                retreat_villages = { { 18, 9 }, { 24, 7 }, { 22, 2 } },
+                villages = { units_per_village = 0 }
             }
 
             local cfg_left = {
@@ -1323,8 +1324,13 @@ return {
 
             -- If there are unoccupied or enemy-occupied villages in the hold zone, send units there
             -- if we do not have enough units that have moved already are in the zone
+            local units_per_village = 0.5
+            if cfg.villages and cfg.villages.units_per_village then
+                units_per_village = cfg.villages.units_per_village
+            end
+
             if (not eval_hold) then
-                if (#units_noMP < #cfg.retreat_villages/2) then
+                if (#units_noMP < #cfg.retreat_villages * units_per_village) then
                     for i,v in ipairs(cfg.retreat_villages) do
                         local owner = wesnoth.get_village_owner(v[1], v[2])
                         if (not owner) or wesnoth.is_enemy(owner, wesnoth.current.side) then
