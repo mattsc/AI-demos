@@ -881,6 +881,16 @@ return {
                 end
                 --print('village is close village:', v[1], v[2], close_village)
 
+                local dx, dy
+                if cfg.hold then dx, dy = cfg.hold.dx, cfg.hold.dy end
+                if (dx and dy) then
+                    local r = math.sqrt(dx*dx + dy*dy)
+                    dx, dy = dx / r, dy / r
+                else
+                    dx = nil  -- just in case dx exists and dy does not
+                    -- existence of dx is used as criterion below
+                end
+
                 for i,u in ipairs(units) do
                     local path, cost = wesnoth.find_path(u, v[1], v[2])
 
@@ -933,6 +943,16 @@ return {
                             else
                                 rating = rating + u.hitpoints / 100.
                             end
+
+                            -- We also want to move the "farthest back" unit first
+                            local adv_dist
+                            if dx then
+                                 -- Distance in direction of (dx, dy) and perpendicular to it
+                                adv_dist = u.x * dx + u.y * dy
+                            else
+                                adv_dist = - H.distance_between(u.x, u.y, enemy_leaders[1].x, enemy_leaders[1].y)
+                            end
+                            rating = rating - adv_dist / 10.
 
                             -- If this is the leader, calculate counter-attack damage
                             -- Make him the preferred village taker unless he's likely to die
