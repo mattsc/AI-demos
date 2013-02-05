@@ -445,7 +445,6 @@ return {
                 if (max_rating == -9e99) then return end
                 --print('hold_dist:', hold_dist)
 
-                local action = { units = {}, dsts = {} }
                 -- First calculate a unit independent rating map
                 rating_map = LS.create()
                 for i,hex in ipairs(zone) do
