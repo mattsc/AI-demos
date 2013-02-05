@@ -496,10 +496,10 @@ return {
                         perp_dist = 0
                     end
 
-                    if (adv_dist >= -2) and (adv_dist <= 1) then
+                    if ((adv_dist >= -2) and (adv_dist <= 1)) or (not dx) then
                         local rating = 0
 
-                        rating = rating - math.abs(adv_dist)
+                        rating = rating - math.abs(adv_dist) * 3
                         rating = rating - math.abs(perp_dist) / 2.
 
                         -- Small bonus if this is on a village
@@ -516,8 +516,15 @@ return {
                             local dist = H.distance_between(x, y, m.x, m.y)
                             if (dist < min_dist) then min_dist = dist end
                         end
-                        if (min_dist == 3) then rating = rating + 6 end
-                        if (min_dist == 2) then rating = rating + 4 end
+
+                        if dx then
+                            if (min_dist == 3) then rating = rating + 6 end
+                            if (min_dist == 2) then rating = rating + 4 end
+                        else
+                            if unacceptable_damage_map:get(x,y) then
+                                rating = -9.9e99
+                            end
+                        end
 
                         rating_map:insert(x, y, rating)
                     end
