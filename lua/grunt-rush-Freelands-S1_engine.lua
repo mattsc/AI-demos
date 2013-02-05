@@ -855,7 +855,7 @@ return {
 
         ----------Grab villages -----------
 
-        function grunt_rush_FLS1:eval_grab_villages(units, villages, enemies, retreat_injured_units)
+        function grunt_rush_FLS1:eval_grab_villages(units, villages, enemies, retreat_injured_units, cfg)
             --print('#units, #enemies', #units, #enemies)
 
             -- Check if a unit can get to a village
@@ -1038,7 +1038,7 @@ return {
             -- If both villages and units were found, check for retreating moves
             -- (Seriously injured units are already dealt with previously)
             if injured_units[1] then
-                local action = grunt_rush_FLS1:eval_grab_villages(injured_units, retreat_villages, enemies, true)
+                local action = grunt_rush_FLS1:eval_grab_villages(injured_units, retreat_villages, enemies, true, cfg)
                 if action then
                     action.action = cfg.zone_id .. ': ' .. 'retreat injured units (daytime)'
                     return action
@@ -1065,7 +1065,7 @@ return {
             if village_grabbers[1] then
                 -- For this, we consider all villages, not just the retreat_villages
                 local villages = wesnoth.get_locations { terrain = '*^V*' }
-                local action = grunt_rush_FLS1:eval_grab_villages(village_grabbers, villages, enemies, false)
+                local action = grunt_rush_FLS1:eval_grab_villages(village_grabbers, villages, enemies, false, cfg)
                 if action then
                     action.action = cfg.zone_id .. ': ' .. 'grab villages'
                     return action
