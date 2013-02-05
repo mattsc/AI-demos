@@ -942,17 +942,17 @@ return {
                                 rating = rating + (u.max_hitpoints - u.hitpoints) / 100.
                             else
                                 rating = rating + u.hitpoints / 100.
-                            end
 
-                            -- We also want to move the "farthest back" unit first
-                            local adv_dist
-                            if dx then
-                                 -- Distance in direction of (dx, dy) and perpendicular to it
-                                adv_dist = u.x * dx + u.y * dy
-                            else
-                                adv_dist = - H.distance_between(u.x, u.y, enemy_leaders[1].x, enemy_leaders[1].y)
+                                -- We also want to move the "farthest back" unit first
+                                local adv_dist
+                                if dx then
+                                     -- Distance in direction of (dx, dy) and perpendicular to it
+                                    adv_dist = u.x * dx + u.y * dy
+                                else
+                                    adv_dist = - H.distance_between(u.x, u.y, enemy_leaders[1].x, enemy_leaders[1].y)
+                                end
+                                rating = rating - adv_dist / 10.
                             end
-                            rating = rating - adv_dist / 10.
 
                             -- If this is the leader, calculate counter-attack damage
                             -- Make him the preferred village taker unless he's likely to die
