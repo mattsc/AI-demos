@@ -385,6 +385,14 @@ return {
                 { "filter_side", {{"enemy_of", { side = wesnoth.current.side } }} }
             }
 
+            local enemy_leader
+            for i,e in ipairs(enemies) do
+                if e.canrecruit then
+                    enemy_leader = e
+                    break
+                end
+            end
+
             -- Now move units into holding positions
             while holders[1] do
                 -- First, find where the enemy can attack
@@ -399,12 +407,21 @@ return {
 
                 -- Normalized direction "vector"
                 local dx, dy = cfg.hold.dx, cfg.hold.dy
-                local r = math.sqrt(dx*dx + dy*dy)
-                dx, dy = dx / r, dy / r
+                if (dx and dy) then
+                    local r = math.sqrt(dx*dx + dy*dy)
+                    dx, dy = dx / r, dy / r
+                else
+                    dx = nil  -- just in case dx exists and dy does not
+                    -- existence of dx is used as criterion below
+                end
 
                 -- Minimum distance from reference hex for zone holding
                 local min_dist = cfg.hold.min_dist or 0
                 local max_perp_dist = cfg.hold.max_perp_dist or 2
+
+                if (not dx) then
+                    min_dist, max_perp_dist = -9e99, 9e99
+                end
 
                 -- Determine where to set up the line for holding the zone
                 local zone = wesnoth.get_locations(cfg.zone_filter)
@@ -413,11 +430,22 @@ return {
                 for i,hex in ipairs(zone) do
                     local x, y = hex[1], hex[2]
                     if (not unacceptable_damage_map:get(x,y)) then
-                        -- Distance in direction of (dx, dy) and perpendicular to it
-                        local adv_dist = (x - cfg.hold.x) * dx + (y - cfg.hold.y) * dy
+
+                        local adv_dist
+                        if dx then
+                             -- Distance in direction of (dx, dy) and perpendicular to it
+                            adv_dist = (x - cfg.hold.x) * dx + (y - cfg.hold.y) * dy
+                        else
+                            adv_dist = - H.distance_between(x, y, enemy_leader.x, enemy_leader.y)
+                        end
 
                         if (adv_dist >= min_dist) then
-                            local perp_dist = (x - cfg.hold.x) * dy + (y - cfg.hold.y) * dx
+                            local perp_dist
+                            if dx then
+                                perp_dist = (x - cfg.hold.x) * dy + (y - cfg.hold.y) * dx
+                            else
+                                perp_dist = 0
+                            end
 
                             local rating = adv_dist
 
@@ -451,8 +479,14 @@ return {
                     local x, y = hex[1], hex[2]
 
                     -- Distance in direction of (dx, dy) and perpendicular to it
-                    local adv_dist = (x - cfg.hold.x) * dx + (y - cfg.hold.y) * dy - hold_dist
-                    local perp_dist = (x - cfg.hold.x) * dy + (y - cfg.hold.y) * dx
+                    local adv_dist, perp_dist
+                    if dx then
+                        adv_dist = (x - cfg.hold.x) * dx + (y - cfg.hold.y) * dy - hold_dist
+                        perp_dist = (x - cfg.hold.x) * dy + (y - cfg.hold.y) * dx
+                    else
+                        adv_dist = - H.distance_between(x, y, enemy_leader.x, enemy_leader.y)
+                        perp_dist = 0
+                    end
 
                     if (adv_dist >= -2) and (adv_dist <= 1) then
                         local rating = 0
@@ -513,8 +547,14 @@ return {
 
                     -- If we cannot get into the zone, take direct path to goal hex
                     if (max_rating_unit == -9e99) then
-                        local x = cfg.hold.x + hold_dist * dx
-                        local y = cfg.hold.y + hold_dist * dy
+                        local x, y
+                        if dx then
+                            x = cfg.hold.x + hold_dist * dx
+                            y = cfg.hold.y + hold_dist * dy
+                        else
+                            x, y = enemy_leader.x, enemy_leader.y
+                        end
+
                         local goal = { x = H.round(x), y = H.round(y) }
                         --print("goal: ", goal.x, goal.y)
 
