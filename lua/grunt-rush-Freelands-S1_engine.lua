@@ -402,6 +402,9 @@ return {
                 local r = math.sqrt(dx*dx + dy*dy)
                 dx, dy = dx / r, dy / r
 
+                -- Minimum distance from reference hex for zone holding
+                local min_dist = cfg.hold.min_dist or 0
+
                 -- Determine where to set up the line for holding the zone
                 local zone = wesnoth.get_locations(cfg.zone_filter)
                 rating_map = LS.create()
@@ -411,26 +414,29 @@ return {
                     if (not unacceptable_damage_map:get(x,y)) then
                         -- Distance in direction of (dx, dy) and perpendicular to it
                         local adv_dist = (x - cfg.hold.x) * dx + (y - cfg.hold.y) * dy
-                        local perp_dist = (x - cfg.hold.x) * dy + (y - cfg.hold.y) * dx
 
-                        local rating = adv_dist
+                        if (adv_dist >= min_dist) then
+                            local perp_dist = (x - cfg.hold.x) * dy + (y - cfg.hold.y) * dx
 
-                        if (math.abs(perp_dist) <= 2) then
-                            rating = rating - math.abs(perp_dist) / 10.
-                        else
-                            rating = -9.9e99
+                            local rating = adv_dist
+
+                            if (math.abs(perp_dist) <= 2) then
+                                rating = rating - math.abs(perp_dist) / 10.
+                            else
+                                rating = -9.9e99
+                            end
+
+                            local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
+                            if is_village then
+                                rating = rating + 1.11
+                            end
+
+                            if (rating > max_rating) then
+                                max_rating, hold_dist = rating, adv_dist
+                            end
+
+                            rating_map:insert(x, y, rating)
                         end
-
-                        local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
-                        if is_village then
-                            rating = rating + 1.11
-                        end
-
-                        if (rating > max_rating) then
-                            max_rating, hold_dist = rating, adv_dist
-                        end
-
-                        rating_map:insert(x, y, rating)
                     end
                 end
                 --AH.put_labels(rating_map)
