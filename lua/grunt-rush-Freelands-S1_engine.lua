@@ -91,6 +91,13 @@ return {
                 retreat_villages = { { 24, 7 }, { 28, 5 } }
             }
 
+            local cfg_enemy_leader = {
+                zone_id = 'enemy_leader',
+                zone_filter = { x = '1-' .. width , y = '1-' .. height },
+                unit_filter = { x = '1-' .. width , y = '1-' .. height },
+                hold = { },
+            }
+
             -- This way it will be easy to change the priorities on the fly later:
             cfgs = {}
             table.insert(cfgs, cfg_full_map)
@@ -98,6 +105,7 @@ return {
             table.insert(cfgs, cfg_left)
             table.insert(cfgs, cfg_center)
             table.insert(cfgs, cfg_right)
+            table.insert(cfgs, cfg_enemy_leader)
 
             -- The following is placeholder code for later, when we might want to
             -- set up the priority of the zones dynamically
