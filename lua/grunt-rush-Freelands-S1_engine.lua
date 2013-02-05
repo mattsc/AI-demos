@@ -475,7 +475,7 @@ return {
                     end
                 end
                 --AH.put_labels(rating_map)
-                --W.message { speaker = 'narrator', message = 'Hold zone: hold_dist rating map' }
+                --W.message { speaker = 'narrator', message = 'Hold zone ' .. cfg.zone_id .. ': hold_dist rating map' }
 
                 -- If no acceptable hold_dist was found, we don't do anything
                 if (max_rating == -9e99) then return end
@@ -568,7 +568,9 @@ return {
 
                         local moveto = AH.get_closest_location({ goal.x, goal.y }, {}, u)
                         if (not moveto) then moveto = { u.x, u.y } end
-                        local next_hop = AH.next_hop(u, moveto[1], moveto[2])
+
+                        local vx, vy = wesnoth.find_vacant_tile(moveto[1], moveto[2], u)
+                        local next_hop = AH.next_hop(u, vx, vy)
                         if (not next_hop) then next_hop = { u.x, u.y } end
                         local dist = H.distance_between(next_hop[1], next_hop[2], goal.x, goal.y)
                         --print('cannot get there: ', u.id, dist, goal.x, goal.y)
