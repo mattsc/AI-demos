@@ -1322,8 +1322,8 @@ return {
                 end
             end
 
-            -- If there are unoccupied or enemy-occupied villages in the hold zone, send units there
-            -- if we do not have enough units that have moved already are in the zone
+            -- If there are unoccupied or enemy-occupied villages in the hold zone, send units there,
+            -- if we do not have enough units that have moved already in the zone
             local units_per_village = 0.5
             if cfg.villages and cfg.villages.units_per_village then
                 units_per_village = cfg.villages.units_per_village
