@@ -456,13 +456,24 @@ return {
                         end
                     end
                 end
-                AH.put_labels(rating_map)
-                W.message { speaker = 'narrator', message = 'Hold zone ' .. cfg.zone_id .. ': hold_dist rating map' }
+                --AH.put_labels(rating_map)
+                --W.message { speaker = 'narrator', message = 'Hold zone ' .. cfg.zone_id .. ': hold_dist rating map' }
 
-                -- If no acceptable hold_dist was found, we don't do anything
+                -- hold_dist can never get smaller during a turn
                 --print('hold_dist orig :', cfg.zone_id, hold_dist)
-
-                if (max_rating == -9e99) then return end
+                if grunt_rush_FLS1.data[cfg.zone_id] and grunt_rush_FLS1.data[cfg.zone_id].hold_dist then
+                    if (hold_dist < grunt_rush_FLS1.data[cfg.zone_id].hold_dist) then
+                        hold_dist = grunt_rush_FLS1.data[cfg.zone_id].hold_dist
+                    else
+                        grunt_rush_FLS1.data[cfg.zone_id].hold_dist = hold_dist
+                    end
+                else
+                    if (not grunt_rush_FLS1.data[cfg.zone_id]) then
+                        grunt_rush_FLS1.data[cfg.zone_id] = {}
+                    end
+                    grunt_rush_FLS1.data[cfg.zone_id].hold_dist = hold_dist
+                end
+                --print('hold_dist new  :', cfg.zone_id, hold_dist)
 
                 -- First calculate a unit independent rating map
                 rating_map = LS.create()
