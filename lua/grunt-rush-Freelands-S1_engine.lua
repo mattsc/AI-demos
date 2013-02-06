@@ -1391,12 +1391,11 @@ return {
             return nil
         end
 
-        function grunt_rush_FLS1:get_zone_action(cfg, i_c)
+        function grunt_rush_FLS1:get_zone_action(cfg)
             -- Find the best action to do in the zone described in 'cfg'
             -- This is all done together in one function, rather than in separate CAs so that
             --  1. Zones get done one at a time (rather than one CA at a time)
             --  2. Relative scoring of different types of moves is possible
-            -- i_c: the index for the global 'parms' array, so that parameters can be set for the correct zone
 
             cfg = cfg or {}
 
@@ -1529,7 +1528,7 @@ return {
 
             for i_c,cfg in ipairs(cfgs) do
                 --print('zone_control: ', cfg.zone_id, os.clock())
-                local zone_action = grunt_rush_FLS1:get_zone_action(cfg, i_c)
+                local zone_action = grunt_rush_FLS1:get_zone_action(cfg)
 
                 if zone_action then
                     grunt_rush_FLS1.data.zone_action = zone_action
