@@ -396,6 +396,7 @@ return {
             enemy_leader = enemy_leader[1]
 
             -- Now move units into holding positions
+            -- The while loop doesn't do anything for now, placeholder for later
             while holders[1] do
                 -- First, find where the units that have already moved are
                 -- This needs to be done after every move
