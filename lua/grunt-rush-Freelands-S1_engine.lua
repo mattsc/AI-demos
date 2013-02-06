@@ -152,13 +152,6 @@ return {
             -- Now set this up as global variable
             grunt_rush_FLS1.data.zone_cfgs = cfgs
 
-            -- We also need an zone_parms global variable
-            -- This might be set/reset independently of zone_cfgs -> separate variable
-            grunt_rush_FLS1.data.zone_parms = {}
-            for i_c,c in ipairs(cfgs) do
-                grunt_rush_FLS1.data.zone_parms[i_c] = {}
-            end
-
             return grunt_rush_FLS1.data.zone_cfgs
         end
 
