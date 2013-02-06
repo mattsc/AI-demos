@@ -397,15 +397,9 @@ return {
 
             -- Now move units into holding positions
             while holders[1] do
-                -- First, find where the enemy can attack
+                -- First, find where the units that have already moved are
                 -- This needs to be done after every move
-                -- And units with MP left need to be taken off the map
-                local units_MP = wesnoth.get_units { side = wesnoth.current.side, formula = '$this_unit.moves > 0' }
                 local units_noMP = wesnoth.get_units { side = wesnoth.current.side, formula = '$this_unit.moves = 0' }
-                for iu,uMP in ipairs(units_MP) do wesnoth.extract_unit(uMP) end
-
-                -- Put the units back out there
-                for iu,uMP in ipairs(units_MP) do wesnoth.put_unit(uMP.x, uMP.y, uMP) end
 
                 -- Normalized direction "vector"
                 local dx, dy = cfg.hold.dx, cfg.hold.dy
