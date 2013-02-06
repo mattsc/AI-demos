@@ -423,7 +423,7 @@ return {
                 -- Determine where to set up the line for holding the zone
                 local zone = wesnoth.get_locations(cfg.zone_filter)
                 rating_map = LS.create()
-                local hold_dist, max_rating = {}, -9e99
+                local hold_dist, max_rating = -9e99, -9e99
                 for i,hex in ipairs(zone) do
                     local x, y = hex[1], hex[2]
                     if (not unacceptable_damage_map:get(x,y)) then
@@ -467,7 +467,8 @@ return {
                 W.message { speaker = 'narrator', message = 'Hold zone ' .. cfg.zone_id .. ': hold_dist rating map' }
 
                 -- If no acceptable hold_dist was found, we don't do anything
-                --print('hold_dist:', hold_dist)
+                --print('hold_dist orig :', cfg.zone_id, hold_dist)
+
                 if (max_rating == -9e99) then return end
 
                 -- First calculate a unit independent rating map
