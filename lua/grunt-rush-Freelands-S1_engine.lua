@@ -390,17 +390,10 @@ return {
         end
 
         function grunt_rush_FLS1:hold_zone(holders, unacceptable_damage_map, cfg)
-            local enemies = AH.get_live_units {
+            local enemy_leader = AH.get_live_units { canrecruit = "yes",
                 { "filter_side", {{"enemy_of", { side = wesnoth.current.side } }} }
             }
-
-            local enemy_leader
-            for i,e in ipairs(enemies) do
-                if e.canrecruit then
-                    enemy_leader = e
-                    break
-                end
-            end
+            enemy_leader = enemy_leader[1]
 
             -- Now move units into holding positions
             while holders[1] do
@@ -475,12 +468,12 @@ return {
                         end
                     end
                 end
-                --AH.put_labels(rating_map)
-                --W.message { speaker = 'narrator', message = 'Hold zone ' .. cfg.zone_id .. ': hold_dist rating map' }
+                AH.put_labels(rating_map)
+                W.message { speaker = 'narrator', message = 'Hold zone ' .. cfg.zone_id .. ': hold_dist rating map' }
 
                 -- If no acceptable hold_dist was found, we don't do anything
-                if (max_rating == -9e99) then return end
                 --print('hold_dist:', hold_dist)
+                if (max_rating == -9e99) then return end
 
                 -- First calculate a unit independent rating map
                 rating_map = LS.create()
@@ -1452,6 +1445,12 @@ return {
             -- Get HP ratio and number of units that can reach the zone as function of y coordinate
             local rel_damage_map, own_damage_map, enemy_damage_map =
                 BC.relative_damage_map(zone_units, enemies, grunt_rush_FLS1.data.cache)
+            --AH.put_labels(own_damage_map)
+            --W.message { speaker = 'narrator', message = cfg.zone_id .. ': own_damage_map' }
+            --AH.put_labels(enemy_damage_map)
+            --W.message { speaker = 'narrator', message = cfg.zone_id .. ': enemy_damage_map' }
+            --AH.put_labels(rel_damage_map)
+            --W.message { speaker = 'narrator', message = cfg.zone_id .. ': rel_damage_map' }
 
             -- Set up a map of all locations where the damage is acceptable
             local min_relative_damage = cfg.min_relative_damage or 0.
@@ -1465,7 +1464,7 @@ return {
                 end
             end)
             --AH.put_labels(acceptable_damage_map)
-            --W.message { speaker = 'narrator', message = 'acceptable_damage_map' }
+            --W.message { speaker = 'narrator', message = cfg.zone_id .. ': acceptable_damage_map' }
 
             -- **** This ends the common initialization for all zone actions ****
 
