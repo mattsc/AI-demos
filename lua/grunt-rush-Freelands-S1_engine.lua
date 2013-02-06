@@ -475,6 +475,9 @@ return {
                 end
                 --print('hold_dist new  :', cfg.zone_id, hold_dist)
 
+                -- If not valid hold position was found
+                if (hold_dist == -9e99) then return end
+
                 -- First calculate a unit independent rating map
                 rating_map = LS.create()
                 for i,hex in ipairs(zone) do
