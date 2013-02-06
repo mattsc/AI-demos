@@ -517,10 +517,10 @@ return {
                         if dx then
                             if (min_dist == 3) then rating = rating + 6 end
                             if (min_dist == 2) then rating = rating + 4 end
-                        else
-                            if unacceptable_damage_map:get(x,y) then
-                                rating = -9.9e99
-                            end
+                        end
+
+                        if unacceptable_damage_map:get(x,y) then
+                            rating = rating - 1000
                         end
 
                         rating_map:insert(x, y, rating)
