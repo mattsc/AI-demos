@@ -382,7 +382,7 @@ return {
             return nil
         end
 
-        function grunt_rush_FLS1:hold_zone(holders, unacceptable_damage_map, cfg)
+        function grunt_rush_FLS1:hold_zone(holders, unacceptable_damage_map, enemy_damage_map, cfg)
             local enemy_leader = AH.get_live_units { canrecruit = "yes",
                 { "filter_side", {{"enemy_of", { side = wesnoth.current.side } }} }
             }
@@ -546,6 +546,14 @@ return {
                             local terrain_weight = 0.51
                             local defense = 100 - wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))
                             rating = rating + defense * terrain_weight
+
+                            local cost = wesnoth.unit_types[u.type].cost
+                            local worth = cost * u.hitpoints / u.max_hitpoints
+                            local damage = enemy_damage_map:get(x,y) or 0
+                            --print("id, cost, worth, damage:", u.id, cost, worth, damage)
+                            if (damage > worth) then
+                                rating = rating - 1000
+                            end
 
                             reach_map:insert(x, y, rating)
 
@@ -1284,7 +1292,7 @@ return {
             return nil
         end
 
-        function grunt_rush_FLS1:zone_action_hold(units, units_noMP, enemies, zone_map, unacceptable_damage_map, cfg)
+        function grunt_rush_FLS1:zone_action_hold(units, units_noMP, enemies, zone_map, unacceptable_damage_map, enemy_damage_map, cfg)
             --print('hold', os.clock())
 
             -- The leader does not participate in position holding (for now, at least)
@@ -1338,7 +1346,7 @@ return {
             end
 
             if eval_hold then
-                local unit, dst = grunt_rush_FLS1:hold_zone(holders, unacceptable_damage_map, cfg)
+                local unit, dst = grunt_rush_FLS1:hold_zone(holders, unacceptable_damage_map, enemy_damage_map, cfg)
 
                 local action = nil
                 if unit then
@@ -1516,7 +1524,7 @@ return {
             -- **** Hold position evaluation ****
             if (not cfg.do_action) or cfg.do_action.hold then
                 if (not cfg.skip_action) or (not cfg.skip_action.hold)  then
-                    local action = grunt_rush_FLS1:zone_action_hold(zone_units, zone_units_noMP, enemies, zone_map, unacceptable_damage_map, cfg)
+                    local action = grunt_rush_FLS1:zone_action_hold(zone_units, zone_units_noMP, enemies, zone_map, unacceptable_damage_map, enemy_damage_map, cfg)
                     if action then
                         --print(action.action)
                         return action
