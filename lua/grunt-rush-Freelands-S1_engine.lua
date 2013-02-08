@@ -907,81 +907,93 @@ return {
                     -- Rate all villages that can be reached and are unoccupied by other units
                     if (cost <= u.moves) and (not unit_in_way) then
                         --print('Can reach:', u.id, v[1], v[2], cost)
-                        local rating = 0
 
-                        -- If an enemy can get onto the village, we want to hold it
-                        -- Need to take the unit itself off the map, as it might be sitting on the village itself (which then is not reachable by enemies)
-                        -- This will also prefer close villages over far ones, everything else being equal
-                        wesnoth.extract_unit(u)
-                        for k,e in ipairs(enemies) do
-                            local path_e, cost_e = wesnoth.find_path(e,v[1], v[2])
-                            if (cost_e <= e.max_moves) then
-                                --print('  within enemy reach', e.id)
-                                -- Prefer close villages that are in reach of many enemies,
-                                -- The opposite for far villages
-                                if close_village then
-                                    rating = rating + 10
-                                else
-                                    rating = rating - 10
+                        local min_hp, counter_stats = grunt_rush_FLS1:calc_counter_attack(u, { v[1], v[2] })
+                        --print('    min_hp:', u.id, min_hp)
+                        --DBG.dbms(counter_stats)
+
+                        if (not counter_stats.hp_chance)
+                            or (u.canrecruit and (counter_stats.hp_chance[0] == 0))
+                            or ((not u.canrecruit) and (counter_stats.hp_chance[0] < 0.5))
+                        then
+
+                            local rating = 0
+
+                            -- If an enemy can get onto the village, we want to hold it
+                            -- Need to take the unit itself off the map, as it might be sitting on the village itself (which then is not reachable by enemies)
+                            -- This will also prefer close villages over far ones, everything else being equal
+                            wesnoth.extract_unit(u)
+                            for k,e in ipairs(enemies) do
+                                local path_e, cost_e = wesnoth.find_path(e,v[1], v[2])
+                                if (cost_e <= e.max_moves) then
+                                    --print('  within enemy reach', e.id)
+                                    -- Prefer close villages that are in reach of many enemies,
+                                    -- The opposite for far villages
+                                    if close_village then
+                                        rating = rating + 10
+                                    else
+                                        rating = rating - 10
+                                    end
                                 end
                             end
-                        end
-                        wesnoth.put_unit(u.x, u.y, u)
+                            wesnoth.put_unit(u.x, u.y, u)
 
-                        -- Unowned and enemy-owned villages get a large bonus
-                        -- but we do not seek them out specifically, as the standard CA does that
-                        -- That means, we only do the rest for villages that can be reached by an enemy
-                        local owner = wesnoth.get_village_owner(v[1], v[2])
-                        if (not owner) then
-                            rating = rating + 1000
-                        else
-                            if wesnoth.is_enemy(owner, wesnoth.current.side) then rating = rating + 2000 end
-                        end
-
-                        -- It is impossible for these numbers to add up to zero, so we do the
-                        -- detail rating only for those
-                        if (rating ~= 0) or retreat_injured_units then
-                            -- Finally, since these can be reached by the enemy, want the strongest unit to go first
-                            -- except when we're retreating injured units, then it's the most injured unit first
-                            if retreat_injured_units then
-                                rating = rating + (u.max_hitpoints - u.hitpoints) / 100.
+                            -- Unowned and enemy-owned villages get a large bonus
+                            -- but we do not seek them out specifically, as the standard CA does that
+                            -- That means, we only do the rest for villages that can be reached by an enemy
+                            local owner = wesnoth.get_village_owner(v[1], v[2])
+                            if (not owner) then
+                                rating = rating + 1000
                             else
-                                rating = rating + u.hitpoints / 100.
-
-                                -- We also want to move the "farthest back" unit first
-                                local adv_dist
-                                if dx then
-                                     -- Distance in direction of (dx, dy) and perpendicular to it
-                                    adv_dist = u.x * dx + u.y * dy
-                                else
-                                    adv_dist = - H.distance_between(u.x, u.y, enemy_leaders[1].x, enemy_leaders[1].y)
-                                end
-                                rating = rating - adv_dist / 10.
+                                if wesnoth.is_enemy(owner, wesnoth.current.side) then rating = rating + 2000 end
                             end
 
-                            -- If this is the leader, calculate counter-attack damage
-                            -- Make him the preferred village taker unless he's likely to die
-                            -- but only if he's on the keep
-                            if u.canrecruit then
-                                -- These are usually individual calls, so while expensive, this is fine
-                                local min_hp, counter_def_stats = grunt_rush_FLS1:calc_counter_attack(u, { v[1], v[2] })
-                                --print('    min_hp:', u.id, min_hp)
-                                if (min_hp > 0) and wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
-                                    --print('      -> take village with leader')
-                                    rating = rating + 2
+                            -- It is impossible for these numbers to add up to zero, so we do the
+                            -- detail rating only for those
+                            if (rating ~= 0) or retreat_injured_units then
+                                -- Finally, since these can be reached by the enemy, want the strongest unit to go first
+                                -- except when we're retreating injured units, then it's the most injured unit first
+                                if retreat_injured_units then
+                                    rating = rating + (u.max_hitpoints - u.hitpoints) / 100.
                                 else
-                                    rating = -9e99
-                                end
-                            end
+                                    rating = rating + u.hitpoints / 100.
 
-                            if (rating > max_rating) then
-                                max_rating, best_village, best_unit = rating, v, u
+                                    -- We also want to move the "farthest back" unit first
+                                    local adv_dist
+                                    if dx then
+                                         -- Distance in direction of (dx, dy) and perpendicular to it
+                                        adv_dist = u.x * dx + u.y * dy
+                                    else
+                                        adv_dist = - H.distance_between(u.x, u.y, enemy_leaders[1].x, enemy_leaders[1].y)
+                                    end
+                                    rating = rating - adv_dist / 10.
+                                end
+
+                                -- If this is the leader, calculate counter-attack damage
+                                -- Make him the preferred village taker unless he's likely to die
+                                -- but only if he's on the keep
+                                if u.canrecruit then
+                                    -- These are usually individual calls, so while expensive, this is fine
+                                    local min_hp, counter_def_stats = grunt_rush_FLS1:calc_counter_attack(u, { v[1], v[2] })
+                                    --print('    min_hp:', u.id, min_hp)
+                                    if (min_hp > 0) and wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
+                                        --print('      -> take village with leader')
+                                        rating = rating + 2
+                                    else
+                                        rating = -9e99
+                                    end
+                                end
+                                --print(u.id, v[1], v[2], ' ---> ', rating)
+
+                                if (rating > max_rating) then
+                                    max_rating, best_village, best_unit = rating, v, u
+                                end
                             end
                         end
                     end
                 end
             end
-            --print('max_rating', max_rating)
+            --print('max_rating', max_rating, best_village[1], best_village[2])
 
             if (max_rating > -9e99) then
                 local action = { units = {}, dsts = {} }
