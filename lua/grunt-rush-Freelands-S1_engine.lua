@@ -503,7 +503,7 @@ return {
                         -- Village will also get bonus from defense rating below
                         local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
                         if is_village then
-                            rating = rating + 5
+                            rating = rating + 7
                         end
 
                         -- We also, ideally, want to be 3 hexes from the closest unit that has
