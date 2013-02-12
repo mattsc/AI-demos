@@ -1450,6 +1450,10 @@ return {
 
             if (not zone_units[1]) then return end
 
+            local all_zone_units = {}
+            for i,u in ipairs(zone_units) do table.insert(all_zone_units, u) end
+            for i,u in ipairs(zone_units_noMP) do table.insert(all_zone_units, u) end
+
             -- Then get all the enemies (this needs to be all of them, to get the HP ratio)
             local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
@@ -1462,7 +1466,7 @@ return {
 
             -- Get HP ratio and number of units that can reach the zone as function of y coordinate
             local rel_damage_map, own_damage_map, enemy_damage_map =
-                BC.relative_damage_map(zone_units, enemies, grunt_rush_FLS1.data.cache)
+                BC.relative_damage_map(all_zone_units, enemies, grunt_rush_FLS1.data.cache)
             --AH.put_labels(own_damage_map)
             --W.message { speaker = 'narrator', message = cfg.zone_id .. ': own_damage_map' }
             --AH.put_labels(enemy_damage_map)
