@@ -382,11 +382,13 @@ return {
             return nil
         end
 
-        function grunt_rush_FLS1:hold_zone(holders, unacceptable_damage_map, enemy_damage_map, cfg)
+        function grunt_rush_FLS1:hold_zone(holders, unacceptable_damage_map, enemy_damage_map, enemy_defense_map, cfg)
             local enemy_leader = AH.get_live_units { canrecruit = "yes",
                 { "filter_side", {{"enemy_of", { side = wesnoth.current.side } }} }
             }
             enemy_leader = enemy_leader[1]
+
+            local terrain_weight = 0.51
 
             -- Now move units into holding positions
             -- The while loop doesn't do anything for now, placeholder for later
@@ -519,6 +521,27 @@ return {
                             if (min_dist == 2) then rating = rating + 4 end
                         end
 
+                        -- Take terrain defense for enemies into account
+                        local adj_defense = {}
+                        for xa, ya in H.adjacent_tiles(x, y) do
+                            local d_adv
+                            if dx then
+                                d_adv = (xa - x) * dx + (ya - y) * dy
+                            else
+                                d_adv = - H.distance_between(xa, ya, enemy_leader.x, enemy_leader.y)
+                            end
+                            table.insert(adj_defense, { d_adv, (enemy_defense_map:get(xa, ya) or 0) })
+                        end
+                        table.sort(adj_defense, function(a, b) return a[1] > b[1] end)
+
+                        local total_enemy_defense = 0
+                        for i = 1,3 do
+                            if adj_defense[i] then
+                                total_enemy_defense = total_enemy_defense + adj_defense[i][2]
+                            end
+                        end
+                        local rating = rating - total_enemy_defense / 3. / 2. * terrain_weight
+
                         if unacceptable_damage_map:get(x,y) and (adv_dist + hold_dist > min_dist + 1) then
                             rating = rating - 1000
                         end
@@ -543,7 +566,6 @@ return {
                             rating = rating + u.hitpoints / 5.
 
                             -- Rating for the terrain
-                            local terrain_weight = 0.51
                             local defense = 100 - wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))
                             rating = rating + defense * terrain_weight
 
@@ -595,8 +617,8 @@ return {
                     end
                     --print('max_rating:', max_rating)
 
-                    AH.put_labels(reach_map)
-                    W.message { speaker = u.id, message = 'Hold zone: unit-specific rating map' }
+                    --AH.put_labels(reach_map)
+                    --W.message { speaker = u.id, message = 'Hold zone: unit-specific rating map' }
                 end
 
                 return best_unit, best_hex
@@ -1300,7 +1322,7 @@ return {
             return nil
         end
 
-        function grunt_rush_FLS1:zone_action_hold(units, units_noMP, enemies, zone_map, unacceptable_damage_map, enemy_damage_map, cfg)
+        function grunt_rush_FLS1:zone_action_hold(units, units_noMP, enemies, zone_map, unacceptable_damage_map, enemy_damage_map, enemy_defense_map, cfg)
             --print('hold', os.clock())
 
             -- The leader does not participate in position holding (for now, at least)
@@ -1354,7 +1376,7 @@ return {
             end
 
             if eval_hold then
-                local unit, dst = grunt_rush_FLS1:hold_zone(holders, unacceptable_damage_map, enemy_damage_map, cfg)
+                local unit, dst = grunt_rush_FLS1:hold_zone(holders, unacceptable_damage_map, enemy_damage_map, enemy_defense_map, cfg)
 
                 local action = nil
                 if unit then
@@ -1474,6 +1496,9 @@ return {
             --AH.put_labels(rel_damage_map)
             --W.message { speaker = 'narrator', message = cfg.zone_id .. ': rel_damage_map' }
 
+            -- Also get the defense map for the enemies
+            local enemy_defense_map = BC.best_defense_map(enemies)
+
             -- Set up a map of all locations where the damage is acceptable
             local min_relative_damage = cfg.min_relative_damage or 0.
             local acceptable_damage_map = LS.create()
@@ -1536,7 +1561,7 @@ return {
             -- **** Hold position evaluation ****
             if (not cfg.do_action) or cfg.do_action.hold then
                 if (not cfg.skip_action) or (not cfg.skip_action.hold)  then
-                    local action = grunt_rush_FLS1:zone_action_hold(zone_units, zone_units_noMP, enemies, zone_map, unacceptable_damage_map, enemy_damage_map, cfg)
+                    local action = grunt_rush_FLS1:zone_action_hold(zone_units, zone_units_noMP, enemies, zone_map, unacceptable_damage_map, enemy_damage_map, enemy_defense_map, cfg)
                     if action then
                         --print(action.action)
                         return action
