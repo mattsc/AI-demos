@@ -1325,4 +1325,36 @@ function battle_calcs.relative_damage_map(units, enemies, cache)
     return damage_map, own_damage_map, enemy_damage_map
 end
 
+function battle_calcs.best_defense_map(units, cfg)
+    -- Get a defense rating map of all hexes all units in 'units' can reach
+    -- For each hex, the value is the maximum of any of the units that can reach that hex
+    -- cfg: table with config parameters
+    --  max_moves: if set use max_moves for units (this setting is always used for units on other sides)
+
+    cfg = cfg or {}
+
+    local defense_map = LS.create()
+
+    for i,u in ipairs(units) do
+        -- Set max_moves according to the cfg value
+        local max_moves = cfg.max_moves
+        -- For unit on other than current side, only max_moves=true makes sense
+        if (u.side ~= wesnoth.current.side) then max_moves = true end
+        local old_moves = u.moves
+        if max_moves then u.moves = u.max_moves end
+        local reach = wesnoth.find_reach(u, cfg)
+        if max_moves then u.moves = old_moves end
+
+        for j,r in ipairs(reach) do
+            local defense = 100 - wesnoth.unit_defense(u, wesnoth.get_terrain(r[1], r[2]))
+
+            if (defense > (defense_map:get(r[1], r[2]) or -9e99)) then
+                defense_map:insert(r[1], r[2], defense)
+            end
+        end
+    end
+
+    return defense_map
+end
+
 return battle_calcs
