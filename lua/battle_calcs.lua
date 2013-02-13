@@ -1259,7 +1259,7 @@ function battle_calcs.relative_damage_map(units, enemies, cache)
     --  overall damage map it is subtracted)
 
     -- Get the attack maps for each unit in 'units' and 'enemies'
-    my_attack_maps, enemy_attack_maps = {}, {}
+    local my_attack_maps, enemy_attack_maps = {}, {}
     for i,u in ipairs(units) do
         my_attack_maps[i] = battle_calcs.get_attack_map_unit(u, cfg)
     end
