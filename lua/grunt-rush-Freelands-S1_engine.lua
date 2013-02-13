@@ -456,8 +456,6 @@ return {
                         end
                     end
                 end
-                --AH.put_labels(rating_map)
-                --W.message { speaker = 'narrator', message = 'Hold zone ' .. cfg.zone_id .. ': hold_dist rating map' }
 
                 -- hold_dist can never get smaller during a turn
                 --print('hold_dist orig :', cfg.zone_id, hold_dist)
@@ -474,6 +472,8 @@ return {
                     grunt_rush_FLS1.data[cfg.zone_id].hold_dist = hold_dist
                 end
                 --print('hold_dist new  :', cfg.zone_id, hold_dist)
+                --AH.put_labels(rating_map)
+                --W.message { speaker = 'narrator', message = 'Hold zone ' .. cfg.zone_id .. ': hold_dist rating map' }
 
                 -- If not valid hold position was found
                 if (hold_dist == -9e99) then return end
@@ -493,7 +493,7 @@ return {
                         perp_dist = 0
                     end
 
-                    if (adv_dist <= 1) or (not dx) then
+                    if ((adv_dist <= 1) and (adv_dist + hold_dist > min_dist - 1)) or (not dx) then
                         local rating = 0
 
                         rating = rating - math.abs(adv_dist) ^ 2.
@@ -519,7 +519,7 @@ return {
                             if (min_dist == 2) then rating = rating + 4 end
                         end
 
-                        if unacceptable_damage_map:get(x,y) then
+                        if unacceptable_damage_map:get(x,y) and (adv_dist + hold_dist > min_dist + 1) then
                             rating = rating - 1000
                         end
 
@@ -595,8 +595,8 @@ return {
                     end
                     --print('max_rating:', max_rating)
 
-                    --AH.put_labels(reach_map)
-                    --W.message { speaker = u.id, message = 'Hold zone: unit-specific rating map' }
+                    AH.put_labels(reach_map)
+                    W.message { speaker = u.id, message = 'Hold zone: unit-specific rating map' }
                 end
 
                 return best_unit, best_hex
