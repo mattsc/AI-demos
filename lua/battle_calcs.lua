@@ -799,9 +799,9 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg, cache)
     local xp_weight = cfg.xp_weight or 0.25
     local level_weight = cfg.level_weight or 1.0
     local defender_level_weight = cfg.defender_level_weight or 1.0
-    local distance_leader_weight = cfg.distance_leader_weight or 0.02
+    local distance_leader_weight = cfg.distance_leader_weight or 0.002
     local defense_weight = cfg.defense_weight or 0.5
-    local occupied_hex_penalty = cfg.occupied_hex_penalty or -0.01
+    local occupied_hex_penalty = cfg.occupied_hex_penalty or -0.001
     local own_value_weight = cfg.own_value_weight or 1.0
 
     -- Get att_stats, def_stats
