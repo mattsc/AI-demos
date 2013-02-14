@@ -926,7 +926,7 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg, cache)
         value_fraction = value_fraction * enemy_leader_weight
     end
 
-    -- And prefer to attack already damage enemies
+    -- And prefer to attack already damaged enemies
     local defender_starting_damage_fraction = (defender.max_hitpoints - defender.hitpoints) / defender.max_hitpoints
     value_fraction = value_fraction + defender_starting_damage_fraction * defender_starting_damage_weight
     --print('  defender_starting_damage_fraction:', defender_starting_damage_fraction, value_fraction)
