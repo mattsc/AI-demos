@@ -897,6 +897,14 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg, cache)
     local attacker_defense = - wesnoth.unit_defense(attacker, wesnoth.get_terrain(dst[1], dst[2])) / 100.
     attacker_defense = attacker_defense * defense_weight
     local attacker_rating_av = attacker_defense * wesnoth.unit_types[attacker.type].cost
+
+    -- And a small bonus for good terrain defense of the _defender_ on the _attack_ hex
+    -- This is in order to take good terrain away from defender on next move
+    -- but it really is an attacker rating
+    local defender_defense = - wesnoth.unit_defense(defender, wesnoth.get_terrain(dst[1], dst[2])) / 100.
+    defender_defense = defender_defense * defense_weight / 5.
+    local attacker_rating_av = defender_defense * wesnoth.unit_types[defender.type].cost
+
     --print('-> attacker rating for averaging:', attacker_rating_av)
 
     ------ Now (most of) the same for the defender ------
