@@ -246,6 +246,14 @@ return {
                 local enemy_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(e.x, e.y)).village
                 local enemy_cost = wesnoth.unit_types[e.type].cost
 
+                -- Villages adjacent to enemy
+                local adjacent_villages = {}
+                for x, y in H.adjacent_tiles(e.x, e.y) do
+                    if wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village then
+                        table.insert(adjacent_villages, { x = x, y = y })
+                    end
+                end
+
                 for j,combo in ipairs(attack_combos) do
                     -- Only keep combos that include exactly 2 attackers
                     -- Need to count them, as they are not in order
@@ -280,6 +288,16 @@ return {
                             trapping_attack = true
                         end
                         --print('  trapping_attack: ', trapping_attack)
+                    end
+
+                    -- Don't trap if it lets the enemy reach a village next turn anyway
+                    if trapping_attack and adjacent_villages[1] then
+                        for i_v,v in ipairs(adjacent_villages) do
+                            if (not combo[v.x * 1000 + v.y]) then
+                                trapping_attack = false
+                                print('Trapping attack leaves village open: ', v.x, v.y)
+                            end
+                        end
                     end
 
                     -- Now we need to calculate the attack combo stats
