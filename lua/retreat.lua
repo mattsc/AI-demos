@@ -98,8 +98,9 @@ function retreat_functions.get_retreat_injured_units(healees, healing_terrain_on
             if (not unit_in_way) or ((unit_in_way.moves > 0) and (unit_in_way.side == wesnoth.current.side)) then
                 local rating = base_rating
 
-                -- Penalty for each enemy that can reach location
-                rating = rating - (enemy_attack_map.units:get(loc[1], loc[2]) or 0) * 10
+                -- Huge penalty for each enemy that can reach location,
+                -- this is the single most important point (and non-linear)
+                rating = rating - (enemy_attack_map.units:get(loc[1], loc[2]) or 0)^2 * 100000
 
                 -- Penalty based on terrain defense for unit
                 rating = rating - wesnoth.unit_defense(u, wesnoth.get_terrain(loc[1], loc[2]))/10
