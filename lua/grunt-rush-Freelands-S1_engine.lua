@@ -295,7 +295,7 @@ return {
                         for i_v,v in ipairs(adjacent_villages) do
                             if (not combo[v.x * 1000 + v.y]) then
                                 trapping_attack = false
-                                print('Trapping attack leaves village open: ', v.x, v.y)
+                                --print('Trapping attack leaves village open: ', v.x, v.y)
                             end
                         end
                     end
