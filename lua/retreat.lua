@@ -46,17 +46,17 @@ function retreat_functions.retreat_injured_units(units)
 
     -- First we retreat non-regenerating units to healing terrain
     if non_regen[1] then
-        local unit, loc = retreat_functions.get_retreat_injured_units(non_regen, true)
+        local unit, loc, threat = retreat_functions.get_retreat_injured_units(non_regen, true)
         if unit then
-            return unit, loc
+            return unit, loc, threat
         end
     end
 
     -- Then we retreat regenerating units to terrain with high defense
     if regen[1] then
-        local unit, loc = retreat_functions.get_retreat_injured_units(regen, false)
+        local unit, loc, threat = retreat_functions.get_retreat_injured_units(regen, false)
         if unit then
-            return unit, loc
+            return unit, loc, threat
         end
     end
 end
@@ -121,7 +121,7 @@ function retreat_functions.get_retreat_injured_units(healees, healing_terrain_on
         end
     end
 
-    return best_unit, best_loc
+    return best_unit, best_loc, enemy_attack_map.units:get(best_loc[1], best_loc[2]) or 0
 end
 
 return retreat_functions

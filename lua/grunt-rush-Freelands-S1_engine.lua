@@ -1046,11 +1046,14 @@ return {
         function grunt_rush_FLS1:zone_action_retreat_injured(units, cfg)
             -- **** Retreat seriously injured units
             --print('retreat', os.clock())
-            local unit, dest = R.retreat_injured_units(units)
+            local unit, dest, enemy_threat = R.retreat_injured_units(units)
             if unit then
-                local action = { units = {unit}, dsts = {dest}, type = 'village', reserve = dest }
-                action.action = cfg.zone_id .. ': ' .. 'retreat severely injured units'
-                return action
+                local allowable_retreat_threat = cfg.allowable_retreat_threat or 0
+                if (enemy_threat <= allowable_retreat_threat) then
+                    local action = { units = {unit}, dsts = {dest}, type = 'village', reserve = dest }
+                    action.action = cfg.zone_id .. ': ' .. 'retreat severely injured units'
+                    return action
+                end
             end
         end
 
