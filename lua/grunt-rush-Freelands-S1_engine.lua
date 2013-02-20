@@ -1184,17 +1184,17 @@ return {
             -- Otherwise use all units inside the zone
             else
                 for i,e in ipairs(enemies) do
-                    local valid_target = false
-                    for x,y in H.adjacent_tiles(e.x, e.y) do
-                        if acceptable_damage_map:get(x,y) then
-                            valid_target = true
-                            break
-                        end
-                    end
+                    --local valid_target = false
+                    --for x,y in H.adjacent_tiles(e.x, e.y) do
+                    --    if acceptable_damage_map:get(x,y) then
+                    --        valid_target = true
+                    --        break
+                    --    end
+                    --end
 
-                    if zone_map:get(e.x, e.y) and valid_target then
+                    --if zone_map:get(e.x, e.y) and valid_target then
                         table.insert(targets, e)
-                    end
+                    --end
                 end
             end
 
