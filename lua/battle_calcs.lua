@@ -655,7 +655,7 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
     -- cfg: optional input parameters
     --  - att_weapon/def_weapon: attacker/defender weapon number
     --      if not given, get "best" weapon (Note: both must be given, or they will both be determined)
-    --  - dst: { x, y }: the attack location; defaults to { attacker.x, attacker. y }
+    --  - dst: { x, y }: the attack location; defaults to { attacker.x, attacker.y }
     -- cache: to be passed on to other functions.  battle_outcome itself is not cached, too many factors enter
 
     cfg = cfg or {}
