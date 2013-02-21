@@ -643,10 +643,18 @@ return {
             end
         end
 
-        function grunt_rush_FLS1:calc_counter_attack(unit, hex)
+        function grunt_rush_FLS1:calc_counter_attack(unit, hex, cfg)
             -- Get counter-attack results a unit might experience next turn if it moved to 'hex'
-            -- Return worst case scenario HP and def_stats
-            -- This uses real counter_attack combinations
+            -- Optional input cfg: config table with following optional fields:
+            --   - approx (boolean): if set, use the approximate method instead of full calculation
+            --
+            -- Return either:
+            --   1. worst case scenario HP and def_stats (full calculation)
+            --   2. average HP (approximation)
+            -- Note: I am aware that it is not great to have the same function return
+            -- qualitatively different results, will fix that later (assuming this turns out to be useful)
+
+            cfg = cfg or {}
 
             -- All enemy units
             local enemies = AH.get_live_units {
@@ -750,37 +758,68 @@ return {
             local cache_this_move = {}  -- To avoid unnecessary duplication of calculations
             for i,combo in ipairs(attack_combos) do
                 -- attackers and dsts arrays for stats calculation
-                local atts, dsts = {}, {}
-                for dst,src in pairs(combo) do
-                    table.insert(atts, enemies_map[src])
-                    table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
-                end
 
                 -- Get the attack combo outcome.  We're really only interested in combo_def_stats
-                local default_rating, sorted_atts, sorted_dsts, combo_att_stats, combo_def_stats = BC.attack_combo_stats(atts, dsts, unit_copy, grunt_rush_FLS1.data.cache, cache_this_move)
+                if cfg.approx then  -- Approximate method for average HP
 
-                -- Minimum hitpoints for the unit after this attack combo
-                local min_hp = 0
-                for hp = 0,unit.hitpoints do
-                    if combo_def_stats.hp_chance[hp] and (combo_def_stats.hp_chance[hp] > 0) then
-                        min_hp = hp
-                        break
+                    local total_damage = 0
+                    for dst,src in pairs(combo) do
+                        local dst = { math.floor(dst / 1000), dst % 1000 }
+                        local att_stats, def_stats =
+                            BC.battle_outcome(enemies_map[src], unit_copy, { dst = dst }, grunt_rush_FLS1.data.cache)
+
+                        total_damage = total_damage + unit.hitpoints - def_stats.average_hp
+                    end
+                    --print("total_damage", total_damage)
+
+                    -- Rating is simply the (negative) average hitpoint outcome
+                    local av_hp = unit.hitpoints - total_damage
+                    if (av_hp < 0) then av_hp = 0 end
+
+                    local rating = - av_hp
+                    --print(i, av_hp, ' -->', rating)
+
+                    if (rating > max_rating) then
+                        max_rating = rating
+                        worst_hp = av_hp -- Intentional misnomer for convenience
+                        -- ^ this is really the average HP in this case
+                    end
+
+                else  -- Full calculation of combo counter attack stats
+
+                    local atts, dsts = {}, {}
+                    for dst,src in pairs(combo) do
+                        table.insert(atts, enemies_map[src])
+                        table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
+                    end
+
+                    local default_rating, sorted_atts, sorted_dsts, combo_att_stats, combo_def_stats =
+                        BC.attack_combo_stats(atts, dsts, unit_copy, grunt_rush_FLS1.data.cache, cache_this_move)
+
+                    -- Minimum hitpoints for the unit after this attack combo
+                    local min_hp = 0
+                    for hp = 0,unit.hitpoints do
+                        if combo_def_stats.hp_chance[hp] and (combo_def_stats.hp_chance[hp] > 0) then
+                            min_hp = hp
+                            break
+                        end
+                    end
+
+                    -- Rating, for the purpose of counter-attack evaluation, is simply
+                    -- minimum hitpoints and chance to die combination
+                    local rating = -min_hp + combo_def_stats.hp_chance[0] * 100
+                    --print(i, #atts, min_hp, combo_def_stats.hp_chance[0], ' -->', rating)
+
+                    if (rating > max_rating) then
+                        max_rating = rating
+                        worst_hp, worst_def_stats = min_hp, combo_def_stats
                     end
                 end
-
-                -- Rating, for the purpose of counter-attack evaluation, is simply
-                -- minimum hitpoints and chance to die combination
-                local rating = -min_hp + combo_def_stats.hp_chance[0] * 100
-                --print(i, #atts, min_hp, combo_def_stats.hp_chance[0], ' -->', rating)
-
-                if (rating > max_rating) then
-                    max_rating = rating
-                    worst_hp, worst_def_stats = min_hp, combo_def_stats
-                end
             end
-            unit_copy=nil
             --print(max_rating, worst_def_stats.average_hp, worst_hp, os.clock())
             --DBG.dbms(worst_def_stats)
+
+            unit_copy = nil
 
             return worst_hp, worst_def_stats
         end
