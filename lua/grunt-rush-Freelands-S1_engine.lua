@@ -743,6 +743,9 @@ return {
             for i,u in ipairs(enemies) do enemies_map[u.x * 1000 + u.y] = u end
 
             -- Now find the worst-case counter-attack
+            local unit_copy = wesnoth.copy_unit(unit)
+            unit_copy.x, unit_copy.y = hex[1], hex[2]
+
             local max_rating, worst_hp, worst_def_stats = -9e99, 0, {}
             local cache_this_move = {}  -- To avoid unnecessary duplication of calculations
             for i,combo in ipairs(attack_combos) do
@@ -754,7 +757,7 @@ return {
                 end
 
                 -- Get the attack combo outcome.  We're really only interested in combo_def_stats
-                local default_rating, sorted_atts, sorted_dsts, combo_att_stats, combo_def_stats = BC.attack_combo_stats(atts, dsts, unit, grunt_rush_FLS1.data.cache, cache_this_move)
+                local default_rating, sorted_atts, sorted_dsts, combo_att_stats, combo_def_stats = BC.attack_combo_stats(atts, dsts, unit_copy, grunt_rush_FLS1.data.cache, cache_this_move)
 
                 -- Minimum hitpoints for the unit after this attack combo
                 local min_hp = 0
@@ -775,6 +778,7 @@ return {
                     worst_hp, worst_def_stats = min_hp, combo_def_stats
                 end
             end
+            unit_copy=nil
             --print(max_rating, worst_def_stats.average_hp, worst_hp, os.clock())
             --DBG.dbms(worst_def_stats)
 
