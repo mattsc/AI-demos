@@ -652,7 +652,7 @@ return {
             local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", { side = unit.side } }} }
             }
-            --print('#enemies', #enemies)
+            --print('#enemies', #enemies, os.clock())
 
             -- Need to take units with MP off the map for enemy path finding
             local units_MP = wesnoth.get_units { side = unit.side, formula = '$this_unit.moves > 0' }
@@ -708,7 +708,7 @@ return {
                 end
             end
             all_attack_combos = nil
-            --print('#attack_combos', #attack_combos, os.clock())
+            --print('#attack_combos with max. attackers', #attack_combos, os.clock())
 
             -- For the counter-attack calculation, we keep only unique combinations of units
             -- This is because counter-attacks are, almost by definition, a very expensive calculation
@@ -736,7 +736,7 @@ return {
             attack_combos = {}
             for k,combo in pairs(unique_combos) do table.insert(attack_combos, combo) end
             unique_combos = nil
-            --print('#attack_combos', #attack_combos, os.clock())
+            --print('#attack_combos unique combos', #attack_combos, os.clock())
 
             -- Want an 'enemies' map, indexed by position (for speed reasons)
             local enemies_map = {}
@@ -775,7 +775,7 @@ return {
                     worst_hp, worst_def_stats = min_hp, combo_def_stats
                 end
             end
-            --print(max_rating, worst_hp)
+            --print(max_rating, worst_def_stats.average_hp, worst_hp, os.clock())
             --DBG.dbms(worst_def_stats)
 
             return worst_hp, worst_def_stats
