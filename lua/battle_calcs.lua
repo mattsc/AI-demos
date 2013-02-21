@@ -93,8 +93,8 @@ function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, 
     -- unit can level up.  Side is added to avoid the problem of MP leaders sometimes having
     -- the same id when the game is started from the command-line
     -- Also need to add the weapons and lawful_bonus values for each unit
-    local att_lawful_bonus = wesnoth.get_time_of_day({ dst[1], dst[2], true}).lawful_bonus
-    local def_lawful_bonus = wesnoth.get_time_of_day({ defender.x, defender.y, true}).lawful_bonus
+    local att_lawful_bonus = wesnoth.get_time_of_day({ dst[1], dst[2], true }).lawful_bonus
+    local def_lawful_bonus = wesnoth.get_time_of_day({ defender.x, defender.y, true }).lawful_bonus
 
     local cind = 'SD-' .. attacker.id .. attacker.max_hitpoints .. attacker.side
     cind = cind .. 'x' .. defender.id .. defender.max_hitpoints .. defender.side
@@ -184,8 +184,8 @@ function battle_calcs.best_weapons(attacker, defender, dst, cache)
     -- unit can level up.  Side is added to avoid the problem of MP leaders sometimes having
     -- the same id when the game is started from the command-line
     -- Also need to add the weapons and lawful_bonus values for each unit
-    local att_lawful_bonus = wesnoth.get_time_of_day({ dst[1], dst[2], true}).lawful_bonus
-    local def_lawful_bonus = wesnoth.get_time_of_day({ defender.x, defender.y, true}).lawful_bonus
+    local att_lawful_bonus = wesnoth.get_time_of_day({ dst[1], dst[2], true }).lawful_bonus
+    local def_lawful_bonus = wesnoth.get_time_of_day({ defender.x, defender.y, true }).lawful_bonus
 
     local cind = 'BW-' .. attacker.id .. attacker.max_hitpoints .. attacker.side
     cind = cind .. 'x' .. defender.id .. defender.max_hitpoints .. defender.side
@@ -380,7 +380,7 @@ function battle_calcs.battle_outcome_coefficients(cfg, cache)
     for am,v1 in pairs(counts) do  -- attacker miss count
         for ah,v2 in pairs(v1) do  -- attacker hit count
             -- Set up the exponent coefficients for attacker hits/misses
-        local exp = { }  -- Array for an individual set of coefficients
+        local exp = {}  -- Array for an individual set of coefficients
             -- Only populate those indices that have exponents > 0
             if (am > 0) then exp.am = am end
         if (ah > 0) then exp.ah = ah end
@@ -445,7 +445,7 @@ function battle_calcs.battle_outcome_coefficients(cfg, cache)
     for dm,v1 in pairs(counts) do  -- defender miss count
         for dh,v2 in pairs(v1) do  -- defender hit count
             -- Set up the exponent coefficients for attacker hits/misses
-            local exp = { }  -- Array for an individual set of coefficients
+            local exp = {}  -- Array for an individual set of coefficients
             -- Only populate those indices that have exponents > 0
             if (dm > 0) then exp.dm = dm end
             if (dh > 0) then exp.dh = dh end
@@ -750,7 +750,7 @@ end
 
 function battle_calcs.simulate_combat_loc(attacker, dst, defender, weapon)
     -- Get simulate_combat results for unit 'attacker' attacking unit at 'defender'
-    -- when on terrain of same type as that at 'dst', which is of form {x,y}
+    -- when on terrain of same type as that at 'dst', which is of form { x, y }
     -- If 'weapon' is set (to number of attack), use that weapon (starting at 1), otherwise use best weapon
 
     local attacker_dst = wesnoth.copy_unit(attacker)
@@ -985,7 +985,7 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cach
     -- tmp_attackers: array of attacker units (this is done so that
     --   the units need not be found here, as likely doing it in the
     --   calling function is more efficient (because of repetition)
-    -- tmp_dsts: array of the hexes (format {x, y}) from which the attackers attack
+    -- tmp_dsts: array of the hexes (format { x, y }) from which the attackers attack
     --   must be in same order as 'attackers'
     -- defender: the unit being attacked
     -- cache: the cache table to be passed through to other battle_calcs functions

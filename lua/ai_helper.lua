@@ -646,7 +646,7 @@ function ai_helper.get_dst_src_units(units, cfg)
         end
         for j,r in ipairs(reach) do
             local tmp = dstsrc:get(r[1], r[2]) or {}
-            table.insert(tmp, {x = u.x, y = u.y})
+            table.insert(tmp, { x = u.x, y = u.y })
             dstsrc:insert(r[1], r[2], tmp)
         end
     end
@@ -671,10 +671,10 @@ function ai_helper.get_enemy_dst_src()
     -- Produces the same output as ai.get_enemy_dst_src()   (available in 1.11.0)
 
     local enemies = wesnoth.get_units {
-        { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+        { "filter_side", { { "enemy_of", { side = wesnoth.current.side} } } }
     }
 
-    return ai_helper.get_dst_src_units(enemies, {moves = 'max'})
+    return ai_helper.get_dst_src_units(enemies, { moves = 'max' })
 end
 
 function ai_helper.my_moves()
@@ -731,7 +731,7 @@ function ai_helper.next_hop(unit, x, y, cfg)
     if cost >= ai_helper.no_path then return nil, cost end
 
     -- If none of the hexes are unoccupied, use current position as default
-    local next_hop, nh_cost = {unit.x, unit.y}, 0
+    local next_hop, nh_cost = { unit.x, unit.y }, 0
 
     -- Go through loop to find reachable, unoccupied hex along the path
     -- Start at second index, as first is just the unit position itself
@@ -810,8 +810,8 @@ end
 function ai_helper.get_reachable_unocc(unit, cfg)
     -- Get all reachable hexes for unit that are unoccupied (incl. by allied units)
     -- Returned array is a location set, with value = 1 for each reachable hex
-    -- cfg: parameters to wesnoth.find_reach, such as {additional_turns = 1}
-    -- additional, {moves = 'max'} can be set inside cfg, which sets unit MP to max_moves before calculation
+    -- cfg: parameters to wesnoth.find_reach, such as { additional_turns = 1 }
+    -- additional, { moves = 'max' } can be set inside cfg, which sets unit MP to max_moves before calculation
 
     local old_moves = unit.moves
     if cfg then
