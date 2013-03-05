@@ -1209,29 +1209,49 @@ function ai_helper.get_attack_combos(units, enemy, cfg)
     --   1. Attack combinations in form { dst = src }
     --   2. All the attacks indexed by [dst][src]
 
-    local attacks = ai_helper.get_attacks(units, cfg)
-    --print('# all attacks', #attacks, os.clock())
+    -- We don't need the full attacks here, just the coordinates,
+    -- so for speed reasons, we do not use ai_helper.get_attacks()
 
-    --Eliminate those that are not on 'enemy'
-    for i = #attacks,1,-1 do
-        if (attacks[i].target.x ~= enemy.x) or (attacks[i].target.y ~= enemy.y) then
-            table.remove(attacks, i)
+    local old_moves = {}
+    -- For sides other than the current, we always use max_moves,
+    -- for the current side we always use current moves
+    for i,u in ipairs(units) do
+        if (u.side ~= wesnoth.current.side) then
+            old_moves[i] = u.moves
+            u.moves = u.max_moves
         end
     end
-    --print('# enemy attacks', #attacks)
 
-    if (not attacks[1]) then return {}, {} end
-
-    -- Find all hexes adjacent to enemy that can be reached by any attacker
-    -- Put this into an array that has dst as key,
-    -- and array of all units (src) that can get there as value (in from x*1000+y)
+    -- Find which units in 'units' can get to hexes next to the enemy
     local attacks_dst_src = {}
-    for i,a in ipairs(attacks) do
-        local xy = a.dst.x * 1000 + a.dst.y
-        if (not attacks_dst_src[xy]) then attacks_dst_src[xy] = { 0 } end  -- for attack by no unit on this hex
-        table.insert(attacks_dst_src[xy], a.src.x * 1000 + a.src.y )
+    local found_attacks = false
+    for x, y in H.adjacent_tiles(enemy.x, enemy.y) do
+        local dst = x * 1000 + y
+
+        for i,u in ipairs(units) do
+            local path, cost = wesnoth.find_path(u, x, y)
+            if (cost <= u.moves) then
+                -- for attack by no unit on this hex
+                if (not attacks_dst_src[dst]) then
+                    attacks_dst_src[dst] = { 0, u.x * 1000 + u.y }
+                    found_attacks = true  -- since attacks_dst_src is not a simple array, this is easier
+                else
+                    table.insert(attacks_dst_src[dst], u.x * 1000 + u.y )
+                end
+            end
+        end
     end
     --DBG.dbms(attacks_dst_src)
+
+    -- Restet moves for all units
+    for i,u in ipairs(units) do
+        if (u.side ~= wesnoth.current.side) then
+            u.moves = old_moves[i]
+        end
+    end
+
+    --print('Attacks selected', found_attacks, os.clock())
+    if (not found_attacks) then return {}, {} end
 
     -- Now we set up an array of all attack combinations
     -- at this time, this includes all the 'no unit attacks this hex' elements
@@ -1273,7 +1293,7 @@ function ai_helper.get_attack_combos(units, enemy, cfg)
         end
     end
     --DBG.dbms(attack_array)
-    --print('#attack_array before:', #attack_array)
+    --print('#attack_array before:', #attack_array, os.clock())
 
     -- Now eliminate all the 0s
     -- Also eliminate the combo that has no attacks on any hex (all zeros)
@@ -1291,7 +1311,7 @@ function ai_helper.get_attack_combos(units, enemy, cfg)
     end
     -- This last step eliminates the "empty attack combo" (the one with all zeros)
     table.remove(attack_array, i_empty)
-    --print('#attack_array after:', #attack_array)
+    --print('#attack_array after:', #attack_array, os.clock())
     --DBG.dbms(attack_array)
 
     return attack_array
