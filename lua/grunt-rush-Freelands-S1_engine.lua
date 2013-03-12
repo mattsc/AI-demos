@@ -401,10 +401,20 @@ return {
         end
 
         function grunt_rush_FLS1:hold_zone(holders, unacceptable_damage_map, enemy_damage_map, enemy_defense_map, cfg)
-            local enemy_leader = AH.get_live_units { canrecruit = "yes",
+
+            -- Find all enemies, the enemy leader, and the enemy attack map
+            local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", { side = wesnoth.current.side } }} }
             }
-            enemy_leader = enemy_leader[1]
+
+            local enemy_leader
+            local enemy_attack_maps = {}
+            for i,e in ipairs(enemies) do
+                if e.canrecruit then enemy_leader = e end
+
+                local attack_map = BC.get_attack_map_unit(e)
+                table.insert(enemy_attack_maps, attack_map)
+            end
 
             local terrain_weight = 0.51
 
