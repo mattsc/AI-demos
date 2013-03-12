@@ -1216,7 +1216,7 @@ function ai_helper.get_attack_combos(units, enemy, cfg)
     -- there isn't a unit in the way that cannot move any more
     -- TODO: generalize it so that it works not only for units with moves=0, but blocked units etc.
     local blocked_hexes = LS.create()
-    if (units[1].side == wesnoth.current.side) then
+    if units[1] and (units[1].side == wesnoth.current.side) then
         local all_units = wesnoth.get_units { side = wesnoth.current.side }
         for i,u in ipairs(all_units) do
             if (u.moves == 0) then
