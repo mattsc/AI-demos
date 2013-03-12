@@ -647,6 +647,8 @@ return {
             -- Get counter-attack results a unit might experience next turn if it moved to 'hex'
             -- Optional input cfg: config table with following optional fields:
             --   - approx (boolean): if set, use the approximate method instead of full calculation
+            --   - enemies (unit table): use these enemies (instead of all enemies)
+            --          to calculate counter attack damage
             --
             -- Return:
             --   1. Average HP
@@ -655,11 +657,18 @@ return {
 
             cfg = cfg or {}
 
-            -- All enemy units
-            local enemies = AH.get_live_units {
-                { "filter_side", {{"enemy_of", { side = unit.side } }} }
-            }
-            --print('#enemies', #enemies, os.clock())
+            -- Get enemy units
+            local enemies
+            -- Use only transferred enemies, if cfg.enemies is set
+            if cfg.enemies then
+                enemies = cfg.enemies
+                --print('using transferred enemies', #enemies)
+            else  -- otherwise use all enemy units
+                enemies = AH.get_live_units {
+                    { "filter_side", {{"enemy_of", { side = unit.side } }} }
+                }
+                --print('finding all enemies', #enemies)
+            end
 
             -- Need to take units with MP off the map for enemy path finding
             local units_MP = wesnoth.get_units { side = unit.side, formula = '$this_unit.moves > 0' }
