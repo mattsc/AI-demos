@@ -1212,6 +1212,20 @@ function ai_helper.get_attack_combos(units, enemy, cfg)
     -- We don't need the full attacks here, just the coordinates,
     -- so for speed reasons, we do not use ai_helper.get_attacks()
 
+    -- For units on the current side, we need to make sure that
+    -- there isn't a unit in the way that cannot move any more
+    -- TODO: generalize it so that it works not only for units with moves=0, but blocked units etc.
+    local blocked_hexes = LS.create()
+    if (units[1].side == wesnoth.current.side) then
+        local all_units = wesnoth.get_units { side = wesnoth.current.side }
+        for i,u in ipairs(all_units) do
+            if (u.moves == 0) then
+                blocked_hexes:insert(u.x, u.y)
+            end
+        end
+    end
+    --print('blocked_hexes:size()', blocked_hexes:size())
+
     local old_moves = {}
     -- For sides other than the current, we always use max_moves,
     -- for the current side we always use current moves
@@ -1226,24 +1240,29 @@ function ai_helper.get_attack_combos(units, enemy, cfg)
     local attacks_dst_src = {}
     local found_attacks = false
     for x, y in H.adjacent_tiles(enemy.x, enemy.y) do
-        local dst = x * 1000 + y
 
-        for i,u in ipairs(units) do
-            local path, cost = wesnoth.find_path(u, x, y)
-            if (cost <= u.moves) then
-                -- for attack by no unit on this hex
-                if (not attacks_dst_src[dst]) then
-                    attacks_dst_src[dst] = { 0, u.x * 1000 + u.y }
-                    found_attacks = true  -- since attacks_dst_src is not a simple array, this is easier
-                else
-                    table.insert(attacks_dst_src[dst], u.x * 1000 + u.y )
+        -- Make sure the hex is not occupied by unit that cannot move out of the way
+        if (not blocked_hexes:get(x, y)) then
+
+            local dst = x * 1000 + y
+
+            for i,u in ipairs(units) do
+                local path, cost = wesnoth.find_path(u, x, y)
+                if (cost <= u.moves) then
+                    -- for attack by no unit on this hex
+                    if (not attacks_dst_src[dst]) then
+                        attacks_dst_src[dst] = { 0, u.x * 1000 + u.y }
+                        found_attacks = true  -- since attacks_dst_src is not a simple array, this is easier
+                    else
+                        table.insert(attacks_dst_src[dst], u.x * 1000 + u.y )
+                    end
                 end
             end
         end
     end
     --DBG.dbms(attacks_dst_src)
 
-    -- Restet moves for all units
+    -- Reset moves for all units
     for i,u in ipairs(units) do
         if (u.side ~= wesnoth.current.side) then
             u.moves = old_moves[i]
