@@ -570,15 +570,15 @@ return {
                         end
                         local rating = rating - total_enemy_defense / 3. / 2. * terrain_weight
 
-                        --if unacceptable_damage_map:get(x,y) and (adv_dist + hold_dist > min_dist + 1) then
-                        --    rating = rating - 1000
-                        --end
+                        if unacceptable_damage_map:get(x,y) and (adv_dist + hold_dist > min_dist + 1) then
+                            rating = rating - 1000
+                        end
 
                         rating_map:insert(x, y, rating)
                     end
                 end
-                AH.put_labels(rating_map)
-                W.message { speaker = 'narrator', message = 'Hold zone: unit-independent rating map' }
+                --AH.put_labels(rating_map)
+                --W.message { speaker = 'narrator', message = 'Hold zone: unit-independent rating map' }
 
                 -- Now we go on to the unit-dependent rating part
                 local max_rating, best_hex, best_unit = -9e99, {}, {}
@@ -598,28 +598,12 @@ return {
                             rating = rating + defense * terrain_weight
 
                             local cost = wesnoth.unit_types[u.type].cost
-                            --local worth = cost * u.hitpoints / u.max_hitpoints
-                            --local damage = enemy_damage_map:get(x,y) or 0
+                            local worth = cost * u.hitpoints / u.max_hitpoints
+                            local damage = enemy_damage_map:get(x,y) or 0
                             --print("id, cost, worth, damage:", u.id, cost, worth, damage)
-                            --if (damage > worth) then
-                            --    rating = rating - 1000
-                            --end
-
-                            -- Only include enemies that can reach this hex
-                            local tmp_enemies = {}
-                            for i,m in ipairs(enemy_attack_maps) do
-                                if m.units:get(x,y) then
-                                    table.insert(tmp_enemies, enemies[i])
-                                end
+                            if (damage > worth) then
+                                rating = rating - 1000
                             end
-                            -- und calculate approximate counter attack outcome
-                            local av_hp = u.hitpoints
-                            if tmp_enemies[1] then
-                                av_hp = grunt_rush_FLS1:calc_counter_attack(u, { x, y }, { approx = true, enemies = tmp_enemies })
-                            end
-                            print(cfg.zone_id, u.id, x, y, av_hp, os.clock())
-                            --rating = rating + av_hp
-                            rating = rating - 20. / ( av_hp + 0.01 )
 
                             reach_map:insert(x, y, rating)
 
@@ -661,8 +645,8 @@ return {
                     end
                     --print('max_rating:', max_rating)
 
-                    AH.put_labels(reach_map)
-                    W.message { speaker = u.id, message = 'Hold zone: unit-specific rating map' }
+                    --AH.put_labels(reach_map)
+                    --W.message { speaker = u.id, message = 'Hold zone: unit-specific rating map' }
                 end
 
                 return best_unit, best_hex
