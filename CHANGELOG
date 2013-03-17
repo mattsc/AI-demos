@@ -11,6 +11,16 @@
   - Use healer support micro AI to improve healer placement
 - Freelands Side 1 Grunt Rush:
   - Changed retreat logic to match that of the generic rush
+  - Remove north-south dependence of various CAs -> in principle Fred is now able to play any map
+  - Add an "enemy_leader" zone that takes care of any unit not moved in one of the other zones
+  - Add approximate method for counter attack calculation (much faster than exact method)
+  - Take exposure to counter attacks into account for units other than side leader
+  - Lots of adjusting and fine-tuning of rating functions throughout the CAs
+- ai_helper:
+  - get_attack_combos: Use much more efficient method to find list of possible attacks
+- General:
+  - Run wmllint, fix problems found and add exceptions, where necessary
+  - Clean up textdomain definition and bindings
 
 0.12.2, 28 Dec 2012
 - Micro AIs
