@@ -1263,7 +1263,9 @@ return {
             -- Otherwise use all units inside the zone
             else
                 for i,e in ipairs(enemies) do
+                    if zone_map:get(e.x, e.y) and valid_target then
                         table.insert(targets, e)
+                    end
                 end
             end
 
