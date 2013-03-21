@@ -1349,12 +1349,13 @@ return {
                                 local dst_ind = x * 1000 + y
                                 if (not counter_table[att_ind]) then counter_table[att_ind] = {} end
                                 if (not counter_table[att_ind][dst_ind]) then
-                                    --print('Calculating new counter-attack combination')
+                                    --print('Calculating new counter-attack combination', os.clock())
                                     local av_hp, counter_min_hp, counter_def_stats = grunt_rush_FLS1:calc_counter_attack(a, { x, y })
                                     counter_table[att_ind][dst_ind] = { min_hp = counter_min_hp, counter_def_stats = counter_def_stats }
                                 else
-                                    --print('Counter-attack combo already calculated.  Re-using.')
+                                    --print('Counter-attack combo already calculated.  Re-using.', os.clock())
                                 end
+                                --print('  done', os.clock())
                                 local counter_min_hp = counter_table[att_ind][dst_ind].min_hp
                                 local counter_def_stats = counter_table[att_ind][dst_ind].counter_def_stats
 
@@ -1580,7 +1581,7 @@ return {
             local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
-            --print('#zone_units, #enemies', #zone_units, #enemies)
+            --print('#zone_units, #enemies', #zone_units, #enemies, os.clock())
 
             -- Get all the hexes in the zone
             local zone = wesnoth.get_locations(cfg.zone_filter)
@@ -1616,6 +1617,7 @@ return {
             -- **** This ends the common initialization for all zone actions ****
 
             -- **** Retreat severely injured units evaluation ****
+            --print('  ' .. cfg.zone_id .. ': retreat_injured eval', os.clock())
             if (not cfg.do_action) or cfg.do_action.retreat_injured then
                 if (not cfg.skip_action) or (not cfg.skip_action.retreat_injured)  then
                     local action = grunt_rush_FLS1:zone_action_retreat_injured(zone_units, cfg)
@@ -1627,6 +1629,7 @@ return {
             end
 
             -- **** Villages evaluation -- unowned and enemy-owned villages ****
+            --print('  ' .. cfg.zone_id .. ': villages eval', os.clock())
             local village_action = nil
             if (not cfg.do_action) or cfg.do_action.villages then
                 if (not cfg.skip_action) or (not cfg.skip_action.villages)  then
@@ -1639,6 +1642,7 @@ return {
             end
 
             -- **** Attack evaluation ****
+            --print('  ' .. cfg.zone_id .. ': attack eval', os.clock())
             if (not cfg.do_action) or cfg.do_action.attack then
                 if (not cfg.skip_action) or (not cfg.skip_action.attack)  then
                     local action = grunt_rush_FLS1:zone_action_attack(zone_units, enemies, zone, zone_map, acceptable_damage_map, cfg)
@@ -1659,6 +1663,7 @@ return {
             --end
 
             -- **** Hold position evaluation ****
+            --print('  ' .. cfg.zone_id .. ': hold eval', os.clock())
             if (not cfg.do_action) or cfg.do_action.hold then
                 if (not cfg.skip_action) or (not cfg.skip_action.hold)  then
                     local action = grunt_rush_FLS1:zone_action_hold(zone_units, zone_units_noMP, enemies, zone_map, unacceptable_damage_map, enemy_damage_map, enemy_defense_map, cfg)
