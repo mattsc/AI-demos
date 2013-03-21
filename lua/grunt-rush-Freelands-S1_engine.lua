@@ -241,7 +241,7 @@ return {
                 --print(i, e.id, os.clock())
                 local attack_combos = AH.get_attack_combos(units, e, { include_occupied = true })
                 --DBG.dbms(attack_combos)
-                --print('#attack_combos', #attack_combos, os.clock())
+                --print('    #attack_combos', #attack_combos, os.clock())
 
                 local enemy_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(e.x, e.y)).village
                 local enemy_cost = wesnoth.unit_types[e.type].cost
@@ -1268,10 +1268,12 @@ return {
             end
 
             -- We first see if there's a trapping attack possible
+            --print('    trapping attack eval', os.clock())
             local action = grunt_rush_FLS1:best_trapping_attack_opposite(attackers, targets, cfg)
             if action then return action end
 
             -- Then we check for poison attacks
+            --print('    poison attack eval', os.clock())
             local poisoners = {}
             for i,a in ipairs(attackers) do
                 local is_poisoner = AH.has_weapon_special(a, 'poison')
@@ -1287,6 +1289,7 @@ return {
             end
 
             -- Also want an 'attackers' map, indexed by position (for speed reasons)
+            --print('    standard attack eval', os.clock())
             local attacker_map = {}
             for i,u in ipairs(attackers) do attacker_map[u.x * 1000 + u.y] = u end
 
