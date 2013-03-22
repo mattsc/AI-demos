@@ -681,6 +681,7 @@ return {
             --   2. worst case scenario HP and (full calculation only)
             --   3. def_stats (full calculation only)
 
+            --print('Start calc_counter_attack', os.clock())
             cfg = cfg or {}
 
             -- Get enemy units
@@ -717,6 +718,7 @@ return {
             end
 
             -- Get all possible attack combination
+            --print('get_attack_combos', os.clock())
             local all_attack_combos = AH.get_attack_combos(enemies, unit, { include_occupied = true })  -- Don't need moves='max'
             --DBG.dbms(all_attack_combos)
             --print('#all_attack_combos', #all_attack_combos, os.clock())
