@@ -1224,7 +1224,7 @@ function ai_helper.get_attack_combos(units, enemy, cfg)
             end
         end
     end
-    --print('blocked_hexes:size()', blocked_hexes:size())
+    --print('blocked_hexes:size()', blocked_hexes:size(), os.clock())
 
     local old_moves = {}
     -- For sides other than the current, we always use max_moves,
@@ -1247,7 +1247,17 @@ function ai_helper.get_attack_combos(units, enemy, cfg)
             local dst = x * 1000 + y
 
             for i,u in ipairs(units) do
-                local path, cost = wesnoth.find_path(u, x, y)
+                -- helper.distance_between() is much faster than wesnoth.find_path()
+                --> pre-filter using the former
+                local cost = H.distance_between(u.x, u.y, x, y)
+
+                -- If the distance is <= the unit's MP, then see if it can actually get there
+                -- This also means that only short paths have to be evaluated (in most situations)
+                if (cost <= u.moves) then
+                    local path  -- since cost is already defined outside this block
+                    path, cost = wesnoth.find_path(u, x, y)
+                end
+
                 if (cost <= u.moves) then
                     -- for attack by no unit on this hex
                     if (not attacks_dst_src[dst]) then
