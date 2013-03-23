@@ -159,7 +159,7 @@ function retreat_functions.get_retreat_injured_units(healees, regenerates)
                 else
                     if u.status.poisoned then
                         if loc[4] > 0 then
-                            heal_score = heal_score + math.min(8, u.hitpoints - 1)
+                            heal_score = math.min(8, u.hitpoints - 1)
                             if loc[4] == 2 then
                                 -- This value is arbitrary, it just represents the ability to heal on the turn after
                                 heal_score = heal_score + 1
