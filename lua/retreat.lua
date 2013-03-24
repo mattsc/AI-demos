@@ -125,7 +125,7 @@ function retreat_functions.get_retreat_injured_units(healees, regenerates)
             -- Unit cannot self heal, make the terrain do it for us if possible
             local location_subset = {}
             for j,loc in ipairs(possible_locations) do
-                local heal_amount = wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).healing
+                local heal_amount = wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).healing or 0
                 if heal_amount == true then
                     -- handle deprecated syntax
                     -- TODO: remove this when removed from game
