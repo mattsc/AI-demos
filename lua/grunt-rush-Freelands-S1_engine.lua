@@ -682,7 +682,7 @@ return {
             -- Returns a table similar to def_stats from wesnoth.simulate_combat,
             -- but with added and/or missing fields, depending on the parameters
             --  - hp_chance, slowed and poisoned are not included for approximate method
-            --  - min_hp field added  (TODO: not yet implemented for approx. method)
+            --  - min_hp field added
             --  - TODO: flags to be added in some situations
 
             --print('Start calc_counter_attack', os.clock())
@@ -813,15 +813,24 @@ return {
                 -- Get the attack combo outcome.  We're really only interested in combo_def_stats
                 if cfg.approx then  -- Approximate method for average HP
 
-                    local total_damage = 0
+                    local total_damage, max_damage = 0, 0
                     for dst,src in pairs(combo) do
                         local dst = { math.floor(dst / 1000), dst % 1000 }
                         local att_stats, def_stats =
                             BC.battle_outcome(enemies_map[src], unit_copy, { dst = dst }, grunt_rush_FLS1.data.cache)
 
                         total_damage = total_damage + unit.hitpoints - def_stats.average_hp
+
+                        -- Also get the maximum damage possible
+                        local min_hp = unit.hitpoints
+                        for hp, perc in pairs(def_stats.hp_chance) do
+                            if (perc > 0) and (hp < min_hp) then min_hp = hp end
+                        end
+                        --print("min_hp", min_hp)
+                        max_damage = max_damage + unit.hitpoints - min_hp
                     end
                     --print("total_damage", total_damage)
+                    --print("max_damage", max_damage)
 
                     -- Rating is simply the (negative) average hitpoint outcome
                     local av_hp = unit.hitpoints - total_damage
@@ -833,6 +842,11 @@ return {
                     if (rating > max_rating) then
                         max_rating = rating
                         worst_def_stats.average_hp = av_hp
+
+                        -- Also add the minimum possible HP outcome to the table
+                        local min_hp = unit.hitpoints - max_damage
+                        if (min_hp < 0) then min_hp = 0 end
+                        worst_def_stats.min_hp = min_hp
 
                         -- In the approximate method, once the av_hp are down to 0,
                         -- it cannot get any worse
@@ -870,6 +884,9 @@ return {
                         -- Also do the following separately, even though it is, in principle, unnecessary
                         -- This is for consistency of return parameters with the approximate method
                         average_hp = worst_def_stats.average_hp
+
+                        -- Add min_hp field to worst_def_stats
+                        worst_def_stats.min_hp = worst_hp
                     end
                 end
             end
@@ -877,9 +894,6 @@ return {
             --DBG.dbms(worst_def_stats)
 
             unit_copy = nil
-
-            -- Add min_hp field to worst_def_stats
-            worst_def_stats.min_hp = worst_hp
 
             return worst_def_stats
         end
