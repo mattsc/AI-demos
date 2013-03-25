@@ -405,7 +405,7 @@ function battle_calcs.battle_outcome_coefficients(cfg, cache)
             if (not coeffs_def[ah]) then coeffs_def[ah] = {} end
 
             -- If sum1 and sum2 are equal, that means all the defender probs added up to 1, or
-        -- multiple thereof, which means the can all be combine in the calculation
+            -- multiple thereof, which means the can all be combine in the calculation
             if (math.abs(sum1 - sum2) < 1e-9) then
                 exp.num = sum1
             table.insert(coeffs_def[ah], exp)
@@ -455,7 +455,7 @@ function battle_calcs.battle_outcome_coefficients(cfg, cache)
             -- This will only happen is the coefficients add up to multiples of 1
             local sum1, sum2 = 0,0
             local hp1, hp2 = 0.6, 0.137
-        for am,v3 in pairs(v2) do  -- attacker miss count
+            for am,v3 in pairs(v2) do  -- attacker miss count
                 for ah,num in pairs(v3) do  -- attacker hit count
                     --print(am, ah, dm, dh, num)
                 sum1 = sum1 + num * hp1^ah * (1-hp1)^am
