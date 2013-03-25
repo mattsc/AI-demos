@@ -833,6 +833,10 @@ return {
                     if (rating > max_rating) then
                         max_rating = rating
                         worst_def_stats.average_hp = av_hp
+
+                        -- In the approximate method, once the av_hp are down to 0,
+                        -- it cannot get any worse
+                        if (av_hp == 0) then break end
                     end
 
                 else  -- Full calculation of combo counter attack stats
@@ -858,7 +862,7 @@ return {
                     -- Rating, for the purpose of counter-attack evaluation, is simply
                     -- minimum hitpoints and chance to die combination
                     local rating = -min_hp + combo_def_stats.hp_chance[0] * 100
-                    --print(i, #atts, min_hp, combo_def_stats.hp_chance[0], ' -->', rating)
+                    --print(i, #atts, min_hp, combo_def_stats.hp_chance[0], combo_def_stats.average_hp, ' -->', rating)
 
                     if (rating > max_rating) then
                         max_rating = rating
