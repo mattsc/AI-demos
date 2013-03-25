@@ -333,17 +333,18 @@ return {
                             if (not counter_table[att_ind]) then counter_table[att_ind] = {} end
                             if (not counter_table[att_ind][dst_ind]) then
                                 --print('Calculating new counter-attack combination')
-                                local av_hp, counter_min_hp, counter_def_stats = grunt_rush_FLS1:calc_counter_attack(a, { x, y })
-                                counter_table[att_ind][dst_ind] = { min_hp = counter_min_hp, counter_def_stats = counter_def_stats }
+                                local counter_stats = grunt_rush_FLS1:calc_counter_attack(a, { x, y })
+                                counter_table[att_ind][dst_ind] =
+                                    { min_hp = counter_stats.min_hp, counter_stats = counter_stats }
                             else
                                 --print('Counter-attack combo already calculated.  Re-using.')
                             end
                             local counter_min_hp = counter_table[att_ind][dst_ind].min_hp
-                            local counter_def_stats = counter_table[att_ind][dst_ind].counter_def_stats
+                            local counter_stats = counter_table[att_ind][dst_ind].counter_stats
 
-                            --print(a.id, dsts[i_a][1], dsts[i_a][2], counter_def_stats.hp_chance[0], counter_def_stats.average_hp)
+                            --print(a.id, dsts[i_a][1], dsts[i_a][2], counter_stats.hp_chance[0], counter_stats.average_hp)
                             -- Use a condition when damage is too much to be worthwhile
-                            if (counter_def_stats.hp_chance[0] > 0.30) or (counter_def_stats.average_hp < 10) then
+                            if (counter_stats.hp_chance[0] > 0.30) or (counter_stats.average_hp < 10) then
                                 --print('Trapping attack too dangerous')
                                 trapping_attack = false
                             end
@@ -615,7 +616,9 @@ return {
                             -- und calculate approximate counter attack outcome
                             local av_hp = u.hitpoints
                             if tmp_enemies[1] then
-                                av_hp = grunt_rush_FLS1:calc_counter_attack(u, { x, y }, { approx = true, enemies = tmp_enemies })
+                                av_hp = grunt_rush_FLS1:calc_counter_attack(u,
+                                    { x, y }, { approx = true, enemies = tmp_enemies }
+                                ).average_hp
                             end
                             --print(cfg.zone_id, u.id, x, y, av_hp, os.clock())
                             --rating = rating + av_hp
@@ -676,10 +679,11 @@ return {
             --   - enemies (unit table): use these enemies (instead of all enemies)
             --          to calculate counter attack damage
             --
-            -- Return:
-            --   1. Average HP
-            --   2. worst case scenario HP and (full calculation only)
-            --   3. def_stats (full calculation only)
+            -- Returns a table similar to def_stats from wesnoth.simulate_combat,
+            -- but with added and/or missing fields, depending on the parameters
+            --  - hp_chance, slowed and poisoned are not included for approximate method
+            --  - min_hp field added  (TODO: not yet implemented for approx. method)
+            --  - TODO: flags to be added in some situations
 
             --print('Start calc_counter_attack', os.clock())
             cfg = cfg or {}
@@ -734,8 +738,19 @@ return {
                 end
             end
 
-            -- If no attacks are found, we're done; return full HP and empty table
-            if (not all_attack_combos[1]) then return unit.hitpoints, unit.hitpoints, {} end
+            -- If no attacks are found, we're done; return stats of unit as is
+            if (not all_attack_combos[1]) then
+                local hp_chance = {}
+                hp_chance[unit.hitpoints] = 1
+                hp_chance[0] = 0  -- hp_chance[0] is always assumed to be included, even when 0
+                return {
+                    average_hp = unit.hitpoints,
+                    min_hp = unit.hitpoints,
+                    hp_chance = hp_chance,
+                    slowed = 0,
+                    poisoned = 0
+                }
+            end
 
             -- Find the maximum number of attackers in a single combo
             -- and keep only those that have this number of attacks
@@ -790,7 +805,7 @@ return {
             local unit_copy = wesnoth.copy_unit(unit)
             unit_copy.x, unit_copy.y = hex[1], hex[2]
 
-            local max_rating, average_hp, worst_hp, worst_def_stats = -9e99, 0, 0, {}
+            local max_rating, worst_def_stats = -9e99, {}
             local cache_this_move = {}  -- To avoid unnecessary duplication of calculations
             for i,combo in ipairs(attack_combos) do
                 -- attackers and dsts arrays for stats calculation
@@ -817,7 +832,7 @@ return {
 
                     if (rating > max_rating) then
                         max_rating = rating
-                        average_hp = av_hp
+                        worst_def_stats.average_hp = av_hp
                     end
 
                 else  -- Full calculation of combo counter attack stats
@@ -859,7 +874,10 @@ return {
 
             unit_copy = nil
 
-            return average_hp, worst_hp, worst_def_stats
+            -- Add min_hp field to worst_def_stats
+            worst_def_stats.min_hp = worst_hp
+
+            return worst_def_stats
         end
 
         ------ Stats at beginning of turn -----------
@@ -1029,8 +1047,7 @@ return {
                     if (cost <= u.moves) and (not unit_in_way) then
                         --print('Can reach:', u.id, v[1], v[2], cost)
 
-                        local av_hp, min_hp, counter_stats = grunt_rush_FLS1:calc_counter_attack(u, { v[1], v[2] })
-                        --print('    min_hp:', u.id, min_hp)
+                        local counter_stats = grunt_rush_FLS1:calc_counter_attack(u, { v[1], v[2] })
                         --DBG.dbms(counter_stats)
 
                         if (not counter_stats.hp_chance)
@@ -1347,17 +1364,18 @@ return {
                                 if (not counter_table[att_ind]) then counter_table[att_ind] = {} end
                                 if (not counter_table[att_ind][dst_ind]) then
                                     --print('Calculating new counter-attack combination', os.clock())
-                                    local av_hp, counter_min_hp, counter_def_stats = grunt_rush_FLS1:calc_counter_attack(a, { x, y })
-                                    counter_table[att_ind][dst_ind] = { min_hp = counter_min_hp, counter_def_stats = counter_def_stats }
+                                    local counter_stats = grunt_rush_FLS1:calc_counter_attack(a, { x, y })
+                                    counter_table[att_ind][dst_ind] =
+                                        { min_hp = counter_stats.min_hp, counter_stats = counter_stats }
                                 else
                                     --print('Counter-attack combo already calculated.  Re-using.', os.clock())
                                 end
                                 --print('  done', os.clock())
                                 local counter_min_hp = counter_table[att_ind][dst_ind].min_hp
-                                local counter_def_stats = counter_table[att_ind][dst_ind].counter_def_stats
+                                local counter_stats = counter_table[att_ind][dst_ind].counter_stats
 
                                 -- If there's a chance to be poisoned or slowed, don't do it
-                                if (counter_def_stats.slowed > 0.0) or (counter_def_stats.poisoned > 0.0) then
+                                if (counter_stats.slowed > 0.0) or (counter_stats.poisoned > 0.0) then
                                     do_attack = false
                                     break
                                 end
@@ -1796,10 +1814,10 @@ return {
 
                 -- Before evaluating the poison attack, check whether it is too dangerous
                 if poison_attack then
-                    local av_hp, counter_min_hp, counter_def_stats = grunt_rush_FLS1:calc_counter_attack(attacker, { a.dst.x, a.dst.y })
-                    --print('Poison counter-attack:', attacker.id, a.dst.x, a.dst.y, counter_def_stats.hp_chance[0], counter_def_stats.average_hp)
+                    local counter_stats = grunt_rush_FLS1:calc_counter_attack(attacker, { a.dst.x, a.dst.y })
+                    --print('Poison counter-attack:', attacker.id, a.dst.x, a.dst.y, counter_stats.hp_chance[0], counter_stats.average_hp)
                     -- Use a condition when damage is too much to be worthwhile
-                    if (counter_def_stats.hp_chance[0] > 0.30) or (counter_def_stats.average_hp < 10) then
+                    if (counter_stats.hp_chance[0] > 0.30) or (counter_stats.average_hp < 10) then
                         --print('Poison attack too dangerous')
                         poison_attack = false
                     end
