@@ -73,7 +73,7 @@ return {
                     action = "add",
                     path = "aspect[attacks].facet",
                     { "facet", {
-                       name = "testing_ai_default::aspect_attacks",
+                       name = "ai_default_rca::aspect_attacks",
                        id = "limited_attack",
                        invalidate_on_gamestate_change = "yes",
                        { "filter_enemy", { id = target_id } }

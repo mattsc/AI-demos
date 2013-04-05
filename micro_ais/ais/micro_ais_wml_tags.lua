@@ -71,7 +71,7 @@ function add_aspects(side, aspect_parms)
     -- { value = 0.99 }
     --
     -- 2. Composite aspect, e.g. attacks
-    --  {   name = "testing_ai_default::aspect_attacks",
+    --  {   name = "ai_default_rca::aspect_attacks",
     --      id = "dont_attack",
     --      invalidate_on_gamestate_change = "yes",
     --      { "filter_own", {
@@ -316,7 +316,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
             {
                 aspect = "attacks",
                 facet = {
-                    name = "testing_ai_default::aspect_attacks",
+                    name = "ai_default_rca::aspect_attacks",
                     id = "dont_attack",
                     invalidate_on_gamestate_change = "yes",
                     { "filter_own", {
@@ -367,7 +367,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
                 { "candidate_action", {
                     id="move_leader_to_keep",
                     engine="cpp",
-                    name="testing_ai_default::move_leader_to_keep_phase",
+                    name="ai_default_rca::move_leader_to_keep_phase",
                     max_score=160000,
                     score=160000
                 } }
@@ -547,7 +547,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
                 {
                     aspect = "attacks",
                     facet = {
-                        name = "testing_ai_default::aspect_attacks",
+                        name = "ai_default_rca::aspect_attacks",
                         id = "dont_attack",
                         invalidate_on_gamestate_change = "yes",
                         { "filter_enemy", {
@@ -752,7 +752,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
                 { "candidate_action", {
                     id="recruitment",
                     engine="cpp",
-                    name="testing_ai_default::aspect_recruitment_phase",
+                    name="ai_default_rca::aspect_recruitment_phase",
                     max_score=180000,
                     score=180000
                 } }
