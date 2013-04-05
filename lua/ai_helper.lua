@@ -72,6 +72,16 @@ function ai_helper.put_labels(map, factor)
     end)
 end
 
+function ai_helper.print_ts(...)
+    -- Print arguments preceded by a time stamp in seconds
+    -- Also returns that time_stamp
+
+    local ts = wesnoth.get_time_stamp() / 1000.
+    print(ts, ...)
+
+    return ts
+end
+
 ----- General functionality and maths helper functions ------
 
 function ai_helper.got_1_11()
