@@ -1387,11 +1387,13 @@ function battle_calcs.get_attack_combos_subset(units, enemy, cfg)
     --       hexes, but in different attack order (default: false)
     --   - max_combos: stop adding attack combos if this number of combos has been reached
     --       default: assemble all possible combinations
-    --   - max_time: stop adding attack combos if this much CPU time (in seconds) has passed
+    --   - max_time: stop adding attack combos if this much time (in seconds) has passed
     --       default: assemble all possible combinations
     --       note: this counts the time from the first call to add_attack(), not to
     --         get_attack_combos_cfg(), so there's a bit of extra overhead in here.
     --         This is done to prevent the return of no combos at all
+    --         Note 2: there is some overhead involved in reading the time from the system,
+    --           so don't use this unless it's needed
     --   - skip_presort: by default, the units are presorted in order of the unit with
     --       the highest rating first.  This has the advantage of likely finding the best
     --       (or at least close to the best) attack combination earlier, but it add overhead,
@@ -1409,11 +1411,9 @@ function battle_calcs.get_attack_combos_subset(units, enemy, cfg)
     -- and adding the current combo to the overall attack_combos array
     local function add_attack(attacks, reachable_hexes, n_reach, attack_combos, combos_str, current_combo, hexes_used, cfg)
 
-        -- The test for time expired is slow, so do it only every 1000 new combos
-        if (#attack_combos % 1000 == 0) then
-            if cfg.max_time and (os.clock() - cfg.start_time >= cfg.max_time) then
-                cfg.time_up = true
-            end
+        local time_up = false
+        if cfg.max_time and (wesnoth.get_time_stamp() / 1000. - cfg.start_time >= cfg.max_time) then
+            time_up = true
         end
 
         -- Go through all the units
@@ -1423,7 +1423,7 @@ function battle_calcs.get_attack_combos_subset(units, enemy, cfg)
             for j,l in ipairs(a) do
                 -- But only if this hex is not used yet and
                 -- the cutoff criteria are not met
-                if (not hexes_used[l.dst]) and (not cfg.time_up) and (#attack_combos < cfg.max_combos) then
+                if (not hexes_used[l.dst]) and (not time_up) and (#attack_combos < cfg.max_combos) then
 
                     -- Mark this hex as used by this unit
                     hexes_used[l.dst] = a.src
@@ -1620,8 +1620,7 @@ function battle_calcs.get_attack_combos_subset(units, enemy, cfg)
     -- If cfg.max_time is set, record the start time
     -- For convenience, we store this in cfg
     if cfg.max_time then
-        cfg.start_time = os.clock()
-        cfg.time_up = false  -- Also needed in 'cfg', as it is not checked on every iteration
+        cfg.start_time = wesnoth.get_time_stamp() / 1000.
     end
 
 
@@ -1635,7 +1634,7 @@ function battle_calcs.get_attack_combos_subset(units, enemy, cfg)
     --DBG.dbms(attack_combos)
 
     -- Minor cleanup
-    cfg.start_time, cfg.time_up = nil, nil
+    cfg.start_time = nil
 
     return attack_combos
 end
