@@ -79,7 +79,7 @@ function ai_helper.print_ts(...)
     local ts = wesnoth.get_time_stamp() / 1000.
 
     local arg = {...}
-    arg[#arg+1] = string.format('%.3f', ts)
+    arg[#arg+1] = string.format('[ t = %.3f ]', ts)
 
     print(table.unpack(arg))
 
@@ -97,8 +97,7 @@ function ai_helper.print_ts_delta(start_time, ...)
     local delta = ts - start_time
 
     local arg = {...}
-    arg[#arg+1] = string.format('%.3f', ts)
-    arg[#arg+1] = string.format('%.3f', delta)
+    arg[#arg+1] = string.format('[ t = %.3f, dt = %.3f ]', ts, delta)
 
     print(table.unpack(arg))
 
