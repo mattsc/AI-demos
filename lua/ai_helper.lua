@@ -74,12 +74,23 @@ end
 
 function ai_helper.print_ts(...)
     -- Print arguments preceded by a time stamp in seconds
-    -- Also returns that time_stamp
+    -- Also returns that time stamp
 
     local ts = wesnoth.get_time_stamp() / 1000.
     print(ts, ...)
 
     return ts
+end
+
+function ai_helper.print_ts_delta(start_time, ...)
+    -- start_time: time stamp in seconds as returned by wesnoth.get_time_stamp / 1000.
+
+    -- Same as ai_helper.print_ts(), but also adds time elapsed since
+    -- the time given in the first argument (in seconds)
+    -- Returns time stamp as well as time elapsed
+
+    local delta = wesnoth.get_time_stamp() / 1000. - start_time
+    return ai_helper.print_ts(delta, ...), delta
 end
 
 ----- General functionality and maths helper functions ------
