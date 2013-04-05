@@ -908,7 +908,7 @@ return {
 
         function grunt_rush_FLS1:stats_exec()
             local tod = wesnoth.get_time_of_day()
-            print(' Beginning of Turn ' .. wesnoth.current.turn .. ' (' .. tod.name ..') stats (CPU time ' .. os.clock() .. ')')
+            AH.print_ts(' Beginning of Turn ' .. wesnoth.current.turn .. ' (' .. tod.name ..') stats')
 
             for i,s in ipairs(wesnoth.sides) do
                 local total_hp = 0
