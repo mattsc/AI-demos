@@ -1,7 +1,7 @@
 local H = wesnoth.require "lua/helper.lua"
 local W = H.set_wml_action_metatable {}
 local LS = wesnoth.require "lua/location_set.lua"
---local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
+local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
 local ai_helper = {}
 
@@ -77,7 +77,11 @@ function ai_helper.print_ts(...)
     -- Also returns that time stamp
 
     local ts = wesnoth.get_time_stamp() / 1000.
-    print(ts, ...)
+
+    local arg = {...}
+    arg[#arg+1] = string.format('%.3f', ts)
+
+    print(table.unpack(arg))
 
     return ts
 end
@@ -89,8 +93,16 @@ function ai_helper.print_ts_delta(start_time, ...)
     -- the time given in the first argument (in seconds)
     -- Returns time stamp as well as time elapsed
 
-    local delta = wesnoth.get_time_stamp() / 1000. - start_time
-    return ai_helper.print_ts(delta, ...), delta
+    local ts = wesnoth.get_time_stamp() / 1000.
+    local delta = ts - start_time
+
+    local arg = {...}
+    arg[#arg+1] = string.format('%.3f', ts)
+    arg[#arg+1] = string.format('%.3f', delta)
+
+    print(table.unpack(arg))
+
+    return ts, delta
 end
 
 ----- General functionality and maths helper functions ------
