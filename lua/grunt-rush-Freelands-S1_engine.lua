@@ -17,6 +17,14 @@ return {
 
         wesnoth.require("~add-ons/AI-demos/lua/generic-recruit_engine.lua").init(ai, grunt_rush_FLS1, params)
 
+        function grunt_rush_FLS1:print_time(...)
+            if grunt_rush_FLS1.data.turn_start_time then
+                AH.print_ts_delta(grunt_rush_FLS1.data.turn_start_time, ...)
+            else
+                AH.print_ts(...)
+            end
+        end
+
         function grunt_rush_FLS1:get_zone_cfgs(recalc)
             -- Set up the config table for the different map zones
             -- zone_id: ID for the zone; only needed for debug messages
