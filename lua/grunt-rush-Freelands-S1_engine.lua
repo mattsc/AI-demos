@@ -957,6 +957,8 @@ return {
                 enemy_is_undead = (enemy_leader.__cfg.race == "undead") or (enemy_leader.type == "Dark Sorcerer")
             end
             grunt_rush_FLS1.data.enemy_is_undead = enemy_is_undead
+
+            grunt_rush_FLS1.data.turn_start_time = wesnoth.get_time_stamp() / 1000.
         end
 
         ------ Move leader to keep -----------
