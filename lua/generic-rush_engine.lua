@@ -74,7 +74,7 @@ return {
         end
 
         function generic_rush:castle_switch_eval()
-            local start_time, ca_name = os.clock(), 'castle_switch'
+            local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'castle_switch'
             if AH.print_eval() then print('     - Evaluating castle_switch CA:', os.clock()) end
 
             if ai.get_passive_leader() then
@@ -253,7 +253,7 @@ return {
         ------- Grab Villages CA --------------
 
         function generic_rush:grab_villages_eval()
-            local start_time, ca_name = os.clock(), 'grab_villages'
+            local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'grab_villages'
             if AH.print_eval() then print('     - Evaluating grab_villages CA:', os.clock()) end
 
             -- Check if there are units with moves left
@@ -394,7 +394,7 @@ return {
         ------- Spread Poison CA --------------
 
         function generic_rush:spread_poison_eval()
-            local start_time, ca_name = os.clock(), 'spread_poison'
+            local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'spread_poison'
             if AH.print_eval() then print('     - Evaluating spread_poison CA:', os.clock()) end
 
             -- If a unit with a poisoned weapon can make an attack, we'll do that preferentially

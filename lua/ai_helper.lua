@@ -36,8 +36,11 @@ end
 
 function ai_helper.done_eval_messages(start_time, ca_name)
     ca_name = ca_name or 'unknown'
-    local dt = os.clock() - start_time
-    if ai_helper.print_eval() then print('       - Done evaluating ' .. ca_name .. ':', os.clock(), ' ---------------> ', dt) end
+    local dt = wesnoth.get_time_stamp() /1000. - start_time
+    if ai_helper.print_eval() then
+        ai_helper.print_ts_delta(start_time, '       - Done evaluating ' .. ca_name .. ':')
+    end
+
     if (dt >= 10) then
         W.message{
             speaker = 'narrator',

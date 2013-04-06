@@ -973,7 +973,7 @@ return {
 
         function grunt_rush_FLS1:move_leader_to_keep_eval()
             local score = 480000
-            local start_time, ca_name = os.clock(), 'move_leader_to_keep'
+            local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'move_leader_to_keep'
             if AH.print_eval() then print_time('     - Evaluating move_leader_to_keep CA:') end
 
             -- Move of leader to keep is done by hand here
@@ -1722,7 +1722,7 @@ return {
 
         function grunt_rush_FLS1:zone_control_eval()
             local score_zone_control = 350000
-            local start_time, ca_name = os.clock(), 'zone_control'
+            local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
             if AH.print_eval() then print_time('     - Evaluating zone_control CA:') end
 
             -- Skip this if AI is much stronger than enemy
