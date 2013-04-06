@@ -1018,7 +1018,7 @@ return {
         end
 
         function grunt_rush_FLS1:move_leader_to_keep_exec()
-            if AH.print_exec() then print('   ' .. os.clock() .. ' Executing move_leader_to_keep CA') end
+            if AH.print_exec() then grunt_rush_FLS1:print_time('   Executing move_leader_to_keep CA') end
             if AH.show_messages() then W.message { speaker = grunt_rush_FLS1.data.MLK_leader.id, message = 'Moving back to keep' } end
             -- This has to be a partial move !!
             ai.move(grunt_rush_FLS1.data.MLK_leader, grunt_rush_FLS1.data.MLK_leader_move[1], grunt_rush_FLS1.data.MLK_leader_move[2])
@@ -1772,7 +1772,7 @@ return {
                     end
                 end
 
-                if AH.print_exec() then print('   ' .. os.clock() .. ' Executing zone_control CA ' .. action) end
+                if AH.print_exec() then grunt_rush_FLS1:print_time('   Executing zone_control CA ' .. action) end
                 if AH.show_messages() then W.message { speaker = unit.id, message = 'Zone action ' .. action } end
 
                 AH.movefull_outofway_stopunit(ai, unit, dst)
