@@ -1740,9 +1740,6 @@ return {
                 if zone_action then
                     grunt_rush_FLS1.data.zone_action = zone_action
                     AH.done_eval_messages(start_time, ca_name)
-                    if (os.clock() - start_time > 10) then
-                        W.message{ speaker = 'narrator', message = 'This took a really long time (which it should not).  If you can, would you mind sending us a screen grab of this situation?  Thanks!' }
-                    end
                     return score_zone_control
                 end
             end
