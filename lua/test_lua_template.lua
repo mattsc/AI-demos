@@ -30,11 +30,11 @@ local test_CA, exec_also = false, false
 if test_CA then  -- Test a specific CA ...
     my_ai.data = {}
     if (wesnoth.current.side == 1) then
-        local start_time = os.clock()
+        local start_time = wesnoth.get_time_stamp() / 1000.
         wesnoth.message('Start time:', start_time)
         local eval = my_ai:zone_control_eval()
         wesnoth.message('Eval score:', eval)
-        wesnoth.message('Time after eval:', os.clock(), os.clock() - start_time)
+        wesnoth.message('Time after eval:', wesnoth.get_time_stamp() / 1000., wesnoth.get_time_stamp() / 1000. - start_time)
         if (exec_also) and (eval > 0) then
             my_ai:zone_control_exec()
         end
@@ -51,7 +51,7 @@ else  -- ... or do manual testing
 
     local dst = { 20, 8 }
 
-    local start_time = os.clock()
+    local start_time = wesnoth.get_time_stamp() / 1000.
     wesnoth.message('Start time:', start_time)
 
     local cache={}
@@ -62,12 +62,12 @@ else  -- ... or do manual testing
     end
     DBG.dbms(att_stats)
     DBG.dbms(def_stats)
-    wesnoth.message('Time after loop:', os.clock() .. '  ' .. tostring(os.clock() - start_time))
+    wesnoth.message('Time after loop:', wesnoth.get_time_stamp() / 1000. .. '  ' .. tostring(wesnoth.get_time_stamp() / 1000. - start_time))
 
     local r = BC.attack_rating(attacker, defender, dst, { att_weapon = 1, def_weapon = 1 })
     print('Rating weapon #1:', r)
     local r = BC.attack_rating(attacker, defender, dst)
     print('Rating best weapon',r)
 
-    wesnoth.message('Finish time:', os.clock() .. '  ' .. tostring(os.clock() - start_time))
+    wesnoth.message('Finish time:', wesnoth.get_time_stamp() / 1000. .. '  ' .. tostring(wesnoth.get_time_stamp() / 1000. - start_time))
 end
