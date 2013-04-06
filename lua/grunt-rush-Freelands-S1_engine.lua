@@ -17,7 +17,7 @@ return {
 
         wesnoth.require("~add-ons/AI-demos/lua/generic-recruit_engine.lua").init(ai, grunt_rush_FLS1, params)
 
-        function print_time(...)
+        local function print_time(...)
             if grunt_rush_FLS1.data.turn_start_time then
                 AH.print_ts_delta(grunt_rush_FLS1.data.turn_start_time, ...)
             else

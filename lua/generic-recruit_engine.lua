@@ -27,6 +27,14 @@ return {
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
         local LS = wesnoth.require "lua/location_set.lua"
 
+        local function print_time(...)
+            if turn_start_time then
+                AH.print_ts_delta(turn_start_time, ...)
+            else
+                AH.print_ts(...)
+            end
+        end
+
         local recruit_data = {}
 
         local no_village_cost = function(recruit_id)
@@ -379,7 +387,7 @@ return {
 
         function ai_cas:recruit_rushers_eval()
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'recruit_rushers'
-            if AH.print_eval() then print('     - Evaluating recruit_rushers CA:', os.clock()) end
+            if AH.print_eval() then print_time('     - Evaluating recruit_rushers CA:') end
 
             local score = do_recruit_eval(recruit_data)
             if score == 0 then
@@ -392,7 +400,7 @@ return {
         end
 
         function ai_cas:recruit_rushers_exec()
-            if AH.print_exec() then print('   ' .. os.clock() .. ' Executing recruit_rushers CA') end
+            if AH.print_exec() then print_time('   Executing recruit_rushers CA') end
             if AH.show_messages() then W.message { speaker = 'narrator', message = 'Recruiting' } end
 
             local enemy_counts = recruit_data.recruit.enemy_counts
