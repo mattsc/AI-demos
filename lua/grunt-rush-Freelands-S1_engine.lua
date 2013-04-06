@@ -246,10 +246,10 @@ return {
             local counter_table = {}  -- Counter-attacks are very expensive, store to avoid duplication
             local cache_this_move = {}  -- same reason
             for i,e in ipairs(enemies) do
-                --print(i, e.id, os.clock())
+                --print_time(i, e.id)
                 local attack_combos = AH.get_attack_combos(units, e, { include_occupied = true })
                 --DBG.dbms(attack_combos)
-                --print('    #attack_combos', #attack_combos, os.clock())
+                --print_time('    #attack_combos', #attack_combos)
 
                 local enemy_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(e.x, e.y)).village
                 local enemy_cost = wesnoth.unit_types[e.type].cost
@@ -388,14 +388,14 @@ return {
                             end
                         end
 
-                        --print(' -----------------------> zoc attack rating', rating, os.clock())
+                        --print_time(' -----------------------> zoc attack rating', rating)
                         if (rating > max_rating) then
                             max_rating, best_attackers, best_dsts, best_enemy = rating, attackers, dsts, e
                         end
                     end
                 end
             end
-            --print('max_rating ', max_rating, os.clock())
+            --print_time('max_rating ', max_rating)
 
             if (max_rating > -9e99) then
                 local action = {
@@ -628,7 +628,7 @@ return {
                                     { x, y }, { approx = true, enemies = tmp_enemies }
                                 ).average_hp
                             end
-                            --print(cfg.zone_id, u.id, x, y, av_hp, os.clock())
+                            --print_time(cfg.zone_id, u.id, x, y, av_hp)
                             --rating = rating + av_hp
                             rating = rating - 20. / ( av_hp + 0.01 )
 
@@ -693,7 +693,7 @@ return {
             --  - min_hp field added
             --  - TODO: flags to be added in some situations
 
-            --print('Start calc_counter_attack', os.clock())
+            --print_time('Start calc_counter_attack')
             cfg = cfg or {}
 
             -- Get enemy units
@@ -730,10 +730,10 @@ return {
             end
 
             -- Get all possible attack combination
-            --print('get_attack_combos', os.clock())
+            --print_time('get_attack_combos')
             local all_attack_combos = AH.get_attack_combos(enemies, unit, { include_occupied = true })  -- Don't need moves='max'
             --DBG.dbms(all_attack_combos)
-            --print('#all_attack_combos', #all_attack_combos, os.clock())
+            --print_time('#all_attack_combos', #all_attack_combos)
 
             -- Put units back to where they were
             if (org_hex[1] ~= hex[1]) or (org_hex[2] ~= hex[2]) then
@@ -775,7 +775,7 @@ return {
                 end
             end
             all_attack_combos = nil
-            --print('#attack_combos with max. attackers', #attack_combos, os.clock())
+            --print_time('#attack_combos with max. attackers', #attack_combos)
 
             -- For the counter-attack calculation, we keep only unique combinations of units
             -- This is because counter-attacks are, almost by definition, a very expensive calculation
@@ -803,7 +803,7 @@ return {
             attack_combos = {}
             for k,combo in pairs(unique_combos) do table.insert(attack_combos, combo) end
             unique_combos = nil
-            --print('#attack_combos unique combos', #attack_combos, os.clock())
+            --print_time('#attack_combos unique combos', #attack_combos)
 
             -- Want an 'enemies' map, indexed by position (for speed reasons)
             local enemies_map = {}
@@ -898,7 +898,7 @@ return {
                     end
                 end
             end
-            --print(max_rating, worst_def_stats.average_hp, worst_hp, os.clock())
+            --print_time(max_rating, worst_def_stats.average_hp, worst_hp)
             --DBG.dbms(worst_def_stats)
 
             unit_copy = nil
@@ -974,7 +974,7 @@ return {
         function grunt_rush_FLS1:move_leader_to_keep_eval()
             local score = 480000
             local start_time, ca_name = os.clock(), 'move_leader_to_keep'
-            if AH.print_eval() then print('     - Evaluating move_leader_to_keep CA:', os.clock()) end
+            if AH.print_eval() then print_time('     - Evaluating move_leader_to_keep CA:') end
 
             -- Move of leader to keep is done by hand here
             -- as we want him to go preferentially to (18,4) not (19.4)
@@ -1171,7 +1171,7 @@ return {
 
         function grunt_rush_FLS1:zone_action_retreat_injured(units, cfg)
             -- **** Retreat seriously injured units
-            --print('retreat', os.clock())
+            --print_time('retreat')
             local unit, dest, enemy_threat = R.retreat_injured_units(units)
             if unit then
                 local allowable_retreat_threat = cfg.allowable_retreat_threat or 0
@@ -1184,7 +1184,7 @@ return {
         end
 
         function grunt_rush_FLS1:zone_action_villages(units, enemies, acceptable_damage_map, cfg)
-            --print('villages', os.clock())
+            --print_time('villages')
 
             -- This should include both retreating injured units to villages and village grabbing
             -- The leader is only included if he is on the keep
@@ -1276,7 +1276,7 @@ return {
         end
 
         function grunt_rush_FLS1:zone_action_attack(units, enemies, zone, zone_map, cfg)
-            --print('attack', os.clock())
+            --print_time('attack')
 
             -- Attackers include the leader but only if he is on his
             -- keep, in order to prevent him from wandering off
@@ -1317,12 +1317,12 @@ return {
             end
 
             -- We first see if there's a trapping attack possible
-            --print('    trapping attack eval', os.clock())
+            --print_time('    trapping attack eval')
             local action = grunt_rush_FLS1:best_trapping_attack_opposite(attackers, targets, cfg)
             if action then return action end
 
             -- Then we check for poison attacks
-            --print('    poison attack eval', os.clock())
+            --print_time('    poison attack eval')
             local poisoners = {}
             for i,a in ipairs(attackers) do
                 local is_poisoner = AH.has_weapon_special(a, 'poison')
@@ -1338,7 +1338,7 @@ return {
             end
 
             -- Also want an 'attackers' map, indexed by position (for speed reasons)
-            --print('    standard attack eval', os.clock())
+            --print_time('    standard attack eval')
             local attacker_map = {}
             for i,u in ipairs(attackers) do attacker_map[u.x * 1000 + u.y] = u end
 
@@ -1346,7 +1346,7 @@ return {
             local counter_table = {}  -- Counter-attacks are very expensive, store to avoid duplication
             local cache_this_move = {}  -- same reason
             for i,e in ipairs(targets) do
-                --print('\n', i, e.id, os.clock())
+                --print_time('\n', i, e.id)
                 local attack_combos = AH.get_attack_combos(attackers, e, { include_occupied = true })
                 --DBG.dbms(attack_combos)
                 --print('#attack_combos', #attack_combos)
@@ -1355,7 +1355,7 @@ return {
                 local enemy_cost = wesnoth.unit_types[e.type].cost
 
                 for j,combo in ipairs(attack_combos) do
-                    --print('combo ' .. j, os.clock())
+                    --print_time('combo ' .. j)
                     -- attackers and dsts arrays for stats calculation
                     local atts, dsts = {}, {}
                     for dst,src in pairs(combo) do
@@ -1391,14 +1391,14 @@ return {
                                 local dst_ind = x * 1000 + y
                                 if (not counter_table[att_ind]) then counter_table[att_ind] = {} end
                                 if (not counter_table[att_ind][dst_ind]) then
-                                    --print('Calculating new counter-attack combination', os.clock())
+                                    --print_time('Calculating new counter-attack combination')
                                     local counter_stats = grunt_rush_FLS1:calc_counter_attack(a, { x, y })
                                     counter_table[att_ind][dst_ind] =
                                         { min_hp = counter_stats.min_hp, counter_stats = counter_stats }
                                 else
-                                    --print('Counter-attack combo already calculated.  Re-using.', os.clock())
+                                    --print_time('Counter-attack combo already calculated.  Re-using.')
                                 end
-                                --print('  done', os.clock())
+                                --print_time('  done')
                                 local counter_min_hp = counter_table[att_ind][dst_ind].min_hp
                                 local counter_stats = counter_table[att_ind][dst_ind].counter_stats
 
@@ -1446,14 +1446,14 @@ return {
                     end
 
                     if do_attack then
-                        --print(' -----------------------> rating', rating, os.clock())
+                        --print_time(' -----------------------> rating', rating)
                         if (rating > max_rating) then
                             max_rating, best_attackers, best_dsts, best_enemy = rating, sorted_atts, sorted_dsts, e
                         end
                     end
                 end
             end
-            --print('max_rating ', max_rating, os.clock())
+            --print_time('max_rating ', max_rating)
 
             if (max_rating > -9e99) then
                 -- Only execute the first of these attacks
@@ -1467,7 +1467,7 @@ return {
         end
 
         function grunt_rush_FLS1:zone_action_hold(units, units_noMP, enemies, zone_map, unacceptable_damage_map, enemy_damage_map, enemy_defense_map, cfg)
-            --print('hold', os.clock())
+            --print_time('hold')
 
             -- The leader does not participate in position holding (for now, at least)
             local holders = {}
@@ -1624,7 +1624,7 @@ return {
             local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
-            --print('#zone_units, #enemies', #zone_units, #enemies, os.clock())
+            --print_time('#zone_units, #enemies', #zone_units, #enemies)
 
             -- Get all the hexes in the zone
             local zone = wesnoth.get_locations(cfg.zone_filter)
@@ -1660,7 +1660,7 @@ return {
             -- **** This ends the common initialization for all zone actions ****
 
             -- **** Retreat severely injured units evaluation ****
-            --print('  ' .. cfg.zone_id .. ': retreat_injured eval', os.clock())
+            --print_time('  ' .. cfg.zone_id .. ': retreat_injured eval')
             if (not cfg.do_action) or cfg.do_action.retreat_injured then
                 if (not cfg.skip_action) or (not cfg.skip_action.retreat_injured)  then
                     local action = grunt_rush_FLS1:zone_action_retreat_injured(zone_units, cfg)
@@ -1672,7 +1672,7 @@ return {
             end
 
             -- **** Villages evaluation -- unowned and enemy-owned villages ****
-            --print('  ' .. cfg.zone_id .. ': villages eval', os.clock())
+            --print_time('  ' .. cfg.zone_id .. ': villages eval')
             local village_action = nil
             if (not cfg.do_action) or cfg.do_action.villages then
                 if (not cfg.skip_action) or (not cfg.skip_action.villages)  then
@@ -1685,7 +1685,7 @@ return {
             end
 
             -- **** Attack evaluation ****
-            --print('  ' .. cfg.zone_id .. ': attack eval', os.clock())
+            --print_time('  ' .. cfg.zone_id .. ': attack eval')
             if (not cfg.do_action) or cfg.do_action.attack then
                 if (not cfg.skip_action) or (not cfg.skip_action.attack)  then
                     local action = grunt_rush_FLS1:zone_action_attack(zone_units, enemies, zone, zone_map, cfg)
@@ -1706,7 +1706,7 @@ return {
             --end
 
             -- **** Hold position evaluation ****
-            --print('  ' .. cfg.zone_id .. ': hold eval', os.clock())
+            --print_time('  ' .. cfg.zone_id .. ': hold eval')
             if (not cfg.do_action) or cfg.do_action.hold then
                 if (not cfg.skip_action) or (not cfg.skip_action.hold)  then
                     local action = grunt_rush_FLS1:zone_action_hold(zone_units, zone_units_noMP, enemies, zone_map, unacceptable_damage_map, enemy_damage_map, enemy_defense_map, cfg)
@@ -1723,7 +1723,7 @@ return {
         function grunt_rush_FLS1:zone_control_eval()
             local score_zone_control = 350000
             local start_time, ca_name = os.clock(), 'zone_control'
-            if AH.print_eval() then print('     - Evaluating zone_control CA:', os.clock()) end
+            if AH.print_eval() then print_time('     - Evaluating zone_control CA:') end
 
             -- Skip this if AI is much stronger than enemy
             if grunt_rush_FLS1:full_offensive() then
@@ -1734,7 +1734,7 @@ return {
             local cfgs = grunt_rush_FLS1:get_zone_cfgs()
 
             for i_c,cfg in ipairs(cfgs) do
-                --print('zone_control: ', cfg.zone_id, os.clock())
+                --print_time('zone_control: ', cfg.zone_id)
                 local zone_action = grunt_rush_FLS1:get_zone_action(cfg)
 
                 if zone_action then
