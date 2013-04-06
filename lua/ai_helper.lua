@@ -1259,7 +1259,7 @@ function ai_helper.get_attack_combos(units, enemy, cfg)
             end
         end
     end
-    --print('blocked_hexes:size()', blocked_hexes:size(), os.clock())
+    --ai_helper.print_ts('blocked_hexes:size()', blocked_hexes:size())
 
     local old_moves = {}
     -- For sides other than the current, we always use max_moves,
@@ -1314,7 +1314,7 @@ function ai_helper.get_attack_combos(units, enemy, cfg)
         end
     end
 
-    --print('Attacks selected', found_attacks, os.clock())
+    --ai_helper.print_ts('Attacks selected', found_attacks)
     if (not found_attacks) then return {}, {} end
 
     -- Now we set up an array of all attack combinations
@@ -1357,7 +1357,7 @@ function ai_helper.get_attack_combos(units, enemy, cfg)
         end
     end
     --DBG.dbms(attack_array)
-    --print('#attack_array before:', #attack_array, os.clock())
+    --ai_helper.print_ts('#attack_array before:', #attack_array)
 
     -- Now eliminate all the 0s
     -- Also eliminate the combo that has no attacks on any hex (all zeros)
@@ -1375,7 +1375,7 @@ function ai_helper.get_attack_combos(units, enemy, cfg)
     end
     -- This last step eliminates the "empty attack combo" (the one with all zeros)
     table.remove(attack_array, i_empty)
-    --print('#attack_array after:', #attack_array, os.clock())
+    --ai_helper.print_ts('#attack_array after:', #attack_array)
     --DBG.dbms(attack_array)
 
     return attack_array
