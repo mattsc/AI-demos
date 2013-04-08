@@ -730,8 +730,10 @@ return {
             end
 
             -- Get all possible attack combination
+            -- Restrict to a maximum of 1000 combos for now
+            -- TODO: optimize this number, possibly make it variable depending on the situation
             --print_time('get_attack_combos')
-            local all_attack_combos = BC.get_attack_combos_subset(enemies, unit)
+            local all_attack_combos = BC.get_attack_combos_subset(enemies, unit, { max_combos = 1000 })
             --DBG.dbms(all_attack_combos)
             --print_time('#all_attack_combos', #all_attack_combos)
 
