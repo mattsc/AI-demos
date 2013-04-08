@@ -731,7 +731,7 @@ return {
 
             -- Get all possible attack combination
             --print_time('get_attack_combos')
-            local all_attack_combos = AH.get_attack_combos(enemies, unit, { include_occupied = true })  -- Don't need moves='max'
+            local all_attack_combos = BC.get_attack_combos_subset(enemies, unit)
             --DBG.dbms(all_attack_combos)
             --print_time('#all_attack_combos', #all_attack_combos)
 
@@ -764,17 +764,16 @@ return {
             -- and keep only those that have this number of attacks
             local max_attacks, attack_combos = 0, {}
             for i,combo in ipairs(all_attack_combos) do
-                local number = 0
-                for dst,src in pairs(combo) do number = number + 1 end
-                if (number > max_attacks) then
-                    max_attacks = number
+                if (#combo > max_attacks) then
+                    max_attacks = #combo
                     attack_combos = {}
                 end
-                if (number == max_attacks) then
+                if (#combo == max_attacks) then
                     table.insert(attack_combos, combo)
                 end
             end
             all_attack_combos = nil
+            --DBG.dbms(attack_combos)
             --print_time('#attack_combos with max. attackers', #attack_combos)
 
             -- For the counter-attack calculation, we keep only unique combinations of units
@@ -783,15 +782,12 @@ return {
             for i,combo in ipairs(attack_combos) do
                 -- To find unique combos, we mark all units involved in the combo by their
                 -- positions (src), combined in a string.  For that, the positions need to
-                -- be sorted.  Unfortunately, sorting only works on arrays, not general table
-                local tmp_arr, ind, str = {}, {}, ''
-                -- Set up the array, and sort
-                for dst,src in pairs(combo) do table.insert(tmp_arr, src) end
-                table.sort(tmp_arr, function(a, b) return a > b end)
+                -- be sorted.
+                table.sort(combo, function(a, b) return a.src > b.src end)
 
                 -- Then construct the index string
-                for j,src in ipairs(tmp_arr) do str = str .. src end
-
+                local str = ''
+                for j,att in ipairs(combo) do str = str .. att.src end
                 -- Now insert this combination, if it does not exist yet
                 -- For now, we simply use the first attack of this unit combination
                 -- Later, this will be replaced by the "best" attack
@@ -803,6 +799,7 @@ return {
             attack_combos = {}
             for k,combo in pairs(unique_combos) do table.insert(attack_combos, combo) end
             unique_combos = nil
+            --DBG.dbms(attack_combos)
             --print_time('#attack_combos unique combos', #attack_combos)
 
             -- Want an 'enemies' map, indexed by position (for speed reasons)
@@ -822,10 +819,10 @@ return {
                 if cfg.approx then  -- Approximate method for average HP
 
                     local total_damage, max_damage = 0, 0
-                    for dst,src in pairs(combo) do
-                        local dst = { math.floor(dst / 1000), dst % 1000 }
+                    for j,att in ipairs(combo) do
+                        local dst = { math.floor(att.dst / 1000), att.dst % 1000 }
                         local att_stats, def_stats =
-                            BC.battle_outcome(enemies_map[src], unit_copy, { dst = dst }, grunt_rush_FLS1.data.cache)
+                            BC.battle_outcome(enemies_map[att.src], unit_copy, { dst = dst }, grunt_rush_FLS1.data.cache)
 
                         total_damage = total_damage + unit.hitpoints - def_stats.average_hp
 
@@ -864,9 +861,9 @@ return {
                 else  -- Full calculation of combo counter attack stats
 
                     local atts, dsts = {}, {}
-                    for dst,src in pairs(combo) do
-                        table.insert(atts, enemies_map[src])
-                        table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
+                    for j,att in ipairs(combo) do
+                        table.insert(atts, enemies_map[att.src])
+                        table.insert(dsts, { math.floor(att.dst / 1000), att.dst % 1000 } )
                     end
 
                     local default_rating, sorted_atts, sorted_dsts, combo_att_stats, combo_def_stats =
