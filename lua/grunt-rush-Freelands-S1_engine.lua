@@ -887,17 +887,13 @@ return {
 
                     if (rating > max_rating) then
                         max_rating = rating
-                        worst_hp, worst_def_stats = min_hp, combo_def_stats
-                        -- Also do the following separately, even though it is, in principle, unnecessary
-                        -- This is for consistency of return parameters with the approximate method
-                        average_hp = worst_def_stats.average_hp
-
+                        worst_def_stats = combo_def_stats
                         -- Add min_hp field to worst_def_stats
-                        worst_def_stats.min_hp = worst_hp
+                        worst_def_stats.min_hp = min_hp
                     end
                 end
             end
-            --print_time(max_rating, worst_def_stats.average_hp, worst_hp)
+            --print_time(max_rating, worst_def_stats.average_hp, worst_def_stats.min_hp)
             --DBG.dbms(worst_def_stats)
 
             unit_copy = nil
