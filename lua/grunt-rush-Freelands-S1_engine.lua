@@ -686,6 +686,10 @@ return {
             --   - approx (boolean): if set, use the approximate method instead of full calculation
             --   - enemies (unit table): use these enemies (instead of all enemies)
             --          to calculate counter attack damage
+            --   - stop_eval_average_hp=0 (number): stop evaluating other attack combinations
+            --       when average HP <= this values has been found.  This is "bad enough".
+            --   - stop_eval_min_hp=-1 (number): stop evaluating other attack combinations
+            --       when minimum HP <= this values has been found.  This is "bad enough".
             --
             -- Returns a table similar to def_stats from wesnoth.simulate_combat,
             -- but with added and/or missing fields, depending on the parameters
@@ -695,6 +699,11 @@ return {
 
             --print_time('Start calc_counter_attack')
             cfg = cfg or {}
+
+            -- The evaluation loop cutoff criteria
+            -- Note: it's *not* a typo that one is 0 and the other -1
+            cfg.stop_eval_average_hp = cfg.stop_eval_average_hp or 0
+            cfg.stop_eval_min_hp = cfg.stop_eval_min_hp or -1
 
             -- Get enemy units
             local enemies
@@ -892,6 +901,10 @@ return {
                         worst_def_stats.min_hp = min_hp
                     end
                 end
+
+                -- Check whether we can stop evaluating other attack combos
+                if (worst_def_stats.average_hp <= cfg.stop_eval_average_hp) then break end
+                if (worst_def_stats.min_hp <= cfg.stop_eval_min_hp) then break end
             end
             --print_time(max_rating, worst_def_stats.average_hp, worst_def_stats.min_hp)
             --DBG.dbms(worst_def_stats)
