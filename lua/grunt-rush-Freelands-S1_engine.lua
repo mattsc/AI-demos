@@ -863,10 +863,6 @@ return {
                         local min_hp = unit.hitpoints - max_damage
                         if (min_hp < 0) then min_hp = 0 end
                         worst_def_stats.min_hp = min_hp
-
-                        -- In the approximate method, once the av_hp are down to 0,
-                        -- it cannot get any worse
-                        if (av_hp == 0) then break end
                     end
 
                 else  -- Full calculation of combo counter attack stats
