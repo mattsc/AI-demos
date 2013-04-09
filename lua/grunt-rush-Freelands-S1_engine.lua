@@ -687,9 +687,12 @@ return {
             --   - enemies (unit table): use these enemies (instead of all enemies)
             --          to calculate counter attack damage
             --   - stop_eval_average_hp=0 (non-negative number): stop evaluating other attack combinations
-            --       when average HP <= this values has been found.  This is "bad enough".
+            --       when average HP <= this value has been found.  This is "bad enough".
             --   - stop_eval_min_hp=-1 (number): stop evaluating other attack combinations
-            --       when minimum HP <= this values has been found.  This is "bad enough".
+            --       when minimum HP <= this value has been found.  This is "bad enough".
+            --       The default is -1 because not all min_hp == 0 cases are the same (the CTK can
+            --       be different).  So we don't want to stop checking other attack combos, but since
+            --       min_hp >= 0, any negative number will do as default (doesn't have to be -inf)
             --
             -- Returns a table similar to def_stats from wesnoth.simulate_combat,
             -- but with added and/or missing fields, depending on the parameters
