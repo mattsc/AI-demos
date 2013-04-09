@@ -686,7 +686,7 @@ return {
             --   - approx (boolean): if set, use the approximate method instead of full calculation
             --   - enemies (unit table): use these enemies (instead of all enemies)
             --          to calculate counter attack damage
-            --   - stop_eval_average_hp=0 (number): stop evaluating other attack combinations
+            --   - stop_eval_average_hp=0 (non-negative number): stop evaluating other attack combinations
             --       when average HP <= this values has been found.  This is "bad enough".
             --   - stop_eval_min_hp=-1 (number): stop evaluating other attack combinations
             --       when minimum HP <= this values has been found.  This is "bad enough".
@@ -704,6 +704,10 @@ return {
             -- Note: it's *not* a typo that one is 0 and the other -1
             cfg.stop_eval_average_hp = cfg.stop_eval_average_hp or 0
             cfg.stop_eval_min_hp = cfg.stop_eval_min_hp or -1
+
+            -- Just in case a negative number gets passed for stop_eval_average_hp
+            -- By contrast, stop_eval_min_hp may be negative (to allow for it to be 0 and continue)
+            if (cfg.stop_eval_average_hp < 0) then cfg.stop_eval_average_hp = 0 end
 
             -- Get enemy units
             local enemies
