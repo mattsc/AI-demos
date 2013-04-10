@@ -1422,6 +1422,17 @@ return {
                     if do_attack then
                         for k,a in ipairs(sorted_atts) do
                             if a.canrecruit then
+                                -- Add max damages from this turn and counter-attack
+                                local min_hp = 0
+                                for hp = 0,a.hitpoints do
+                                    if combo_att_stats[k].hp_chance[hp] and (combo_att_stats[k].hp_chance[hp] > 0) then
+                                        min_hp = hp
+                                        break
+                                    end
+                                end
+
+                                local max_damage = a.hitpoints - min_hp
+
                                 local x, y = sorted_dsts[k][1], sorted_dsts[k][2]
                                 local att_ind = sorted_atts[k].x * 1000 + sorted_atts[k].y
                                 local dst_ind = x * 1000 + y
@@ -1444,16 +1455,7 @@ return {
                                     break
                                 end
 
-                                -- Add max damages from this turn and counter-attack
-                                local min_hp = 0
-                                for hp = 0,a.hitpoints do
-                                    if combo_att_stats[k].hp_chance[hp] and (combo_att_stats[k].hp_chance[hp] > 0) then
-                                        min_hp = hp
-                                        break
-                                    end
-                                end
-
-                                local max_damage = a.hitpoints - min_hp
+                                -- Add damage from attack and counter attack
                                 local min_outcome = counter_min_hp - max_damage
                                 --print('min_outcome, counter_min_hp, max_damage', min_outcome, counter_min_hp, max_damage)
 
