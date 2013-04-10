@@ -635,7 +635,7 @@ return {
                             local av_hp = u.hitpoints
                             if tmp_enemies[1] then
                                 av_hp = grunt_rush_FLS1:calc_counter_attack(u,
-                                    { x, y }, { approx = true, enemies = tmp_enemies }
+                                    { x, y }, { approx = true, enemies = tmp_enemies, stop_eval_average_hp = 5 }
                                 ).average_hp
                             end
                             --print_time(cfg.zone_id, u.id, x, y, av_hp)
