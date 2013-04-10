@@ -339,9 +339,17 @@ return {
                             local att_ind = a.x * 1000 + a.y
                             local dst_ind = x * 1000 + y
                             if (not counter_table[att_ind]) then counter_table[att_ind] = {} end
+
+                            local min_average_hp = 10
+                            local max_hp_chance_zero = 0.3
                             if (not counter_table[att_ind][dst_ind]) then
                                 --print('Calculating new counter-attack combination')
-                                local counter_stats = grunt_rush_FLS1:calc_counter_attack(a, { x, y })
+                                local counter_stats = grunt_rush_FLS1:calc_counter_attack(a, { x, y },
+                                    {
+                                        stop_eval_average_hp = min_average_hp,
+                                        stop_eval_hp_chance_zero = max_hp_chance_zero
+                                    }
+                                )
                                 counter_table[att_ind][dst_ind] =
                                     { min_hp = counter_stats.min_hp, counter_stats = counter_stats }
                             else
@@ -352,7 +360,9 @@ return {
 
                             --print(a.id, dsts[i_a][1], dsts[i_a][2], counter_stats.hp_chance[0], counter_stats.average_hp)
                             -- Use a condition when damage is too much to be worthwhile
-                            if (counter_stats.hp_chance[0] > 0.30) or (counter_stats.average_hp < 10) then
+                            if (counter_stats.hp_chance[0] >= max_hp_chance_zero)
+                                or (counter_stats.average_hp <= min_average_hp)
+                            then
                                 --print('Trapping attack too dangerous')
                                 trapping_attack = false
                             end
