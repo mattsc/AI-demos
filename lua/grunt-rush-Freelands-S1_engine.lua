@@ -35,7 +35,6 @@ return {
             -- skip_action: actions listed here will be skipped when evaluating, all
             --   other actions will be evaluated.
             --   !!! Obviously, only do_action _or_ skip_action should be given, not both !!!
-            -- min_relative_damage: the minimum acceptable relative damage for attacking/advancing
             -- attack: table describing the type of zone attack to be done
             --   - use_enemies_in_reach: if set, use enemies that can reach zone, otherwise use units inside the zone
             --       Note: only use with very small zones, otherwise it can be very slow
@@ -68,7 +67,6 @@ return {
                 zone_filter = { { 'filter', { canrecruit = 'yes', side = wesnoth.current.side } } },
                 unit_filter = { x = '1-' .. width , y = '1-' .. height },
                 do_action = { attack = true },
-                min_relative_damage = -5.,
                 attack = { use_enemies_in_reach = true }
             }
 
@@ -85,7 +83,6 @@ return {
                 zone_id = 'left',
                 zone_filter = { x = '4-14', y = '1-15' },
                 unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
-                min_relative_damage = -3.,
                 hold = { x = 11, y = 9, dx = 0, dy = 1, hp_ratio = 1.0 },
                 secure = { x = 11, y = 9, moves_away = 2, min_units = 1 },
                 retreat_villages = { { 11, 9 }, { 8, 5 }, { 12, 5 }, { 12, 2 } },
@@ -419,7 +416,7 @@ return {
             return nil
         end
 
-        function grunt_rush_FLS1:hold_zone(holders, unacceptable_damage_map, enemy_damage_map, enemy_defense_map, cfg)
+        function grunt_rush_FLS1:hold_zone(holders, enemy_defense_map, cfg)
 
             -- Find all enemies, the enemy leader, and the enemy attack map
             local enemies = AH.get_live_units {
@@ -468,40 +465,38 @@ return {
                 local hold_dist, max_rating = -9e99, -9e99
                 for i,hex in ipairs(zone) do
                     local x, y = hex[1], hex[2]
-                    if (not unacceptable_damage_map:get(x,y)) then
 
-                        local adv_dist
+                    local adv_dist
+                    if dx then
+                         -- Distance in direction of (dx, dy) and perpendicular to it
+                        adv_dist = (x - cfg.hold.x) * dx + (y - cfg.hold.y) * dy
+                    else
+                        adv_dist = - H.distance_between(x, y, enemy_leader.x, enemy_leader.y)
+                    end
+
+                    if (adv_dist >= min_dist) then
+                        local perp_dist
                         if dx then
-                             -- Distance in direction of (dx, dy) and perpendicular to it
-                            adv_dist = (x - cfg.hold.x) * dx + (y - cfg.hold.y) * dy
+                            perp_dist = (x - cfg.hold.x) * dy + (y - cfg.hold.y) * dx
                         else
-                            adv_dist = - H.distance_between(x, y, enemy_leader.x, enemy_leader.y)
+                            perp_dist = 0
                         end
 
-                        if (adv_dist >= min_dist) then
-                            local perp_dist
-                            if dx then
-                                perp_dist = (x - cfg.hold.x) * dy + (y - cfg.hold.y) * dx
-                            else
-                                perp_dist = 0
+                        local rating = adv_dist
+
+                        if (math.abs(perp_dist) <= max_perp_dist) then
+                            rating = rating - math.abs(perp_dist) / 10.
+
+                            local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
+                            if is_village then
+                                rating = rating + 1.11
                             end
 
-                            local rating = adv_dist
-
-                            if (math.abs(perp_dist) <= max_perp_dist) then
-                                rating = rating - math.abs(perp_dist) / 10.
-
-                                local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
-                                if is_village then
-                                    rating = rating + 1.11
-                                end
-
-                                if (rating > max_rating) then
-                                    max_rating, hold_dist = rating, adv_dist
-                                end
-
-                                rating_map:insert(x, y, rating)
+                            if (rating > max_rating) then
+                                max_rating, hold_dist = rating, adv_dist
                             end
+
+                            rating_map:insert(x, y, rating)
                         end
                     end
                 end
@@ -589,10 +584,6 @@ return {
                         end
                         local rating = rating - total_enemy_defense / 3. / 2. * terrain_weight
 
-                        --if unacceptable_damage_map:get(x,y) and (adv_dist + hold_dist > min_dist + 1) then
-                        --    rating = rating - 1000
-                        --end
-
                         rating_map:insert(x, y, rating)
                     end
                 end
@@ -618,7 +609,7 @@ return {
 
                             local cost = wesnoth.unit_types[u.type].cost
                             --local worth = cost * u.hitpoints / u.max_hitpoints
-                            --local damage = enemy_damage_map:get(x,y) or 0
+                            --local damage = ---- TODO ? ----
                             --print("id, cost, worth, damage:", u.id, cost, worth, damage)
                             --if (damage > worth) then
                             --    rating = rating - 1000
@@ -1219,7 +1210,7 @@ return {
             end
         end
 
-        function grunt_rush_FLS1:zone_action_villages(units, enemies, acceptable_damage_map, cfg)
+        function grunt_rush_FLS1:zone_action_villages(units, enemies, cfg)
             --print_time('villages')
 
             -- This should include both retreating injured units to villages and village grabbing
@@ -1229,10 +1220,7 @@ return {
             -- This means villages in cfg.retreat_villages that are on the safe side
             local retreat_villages = {}
             for i,v in ipairs(cfg.retreat_villages or {}) do
-                if acceptable_damage_map:get(v[1], v[2]) then
-                    --print('Including retreat_village:', v[1], v[2])
-                    table.insert(retreat_villages, v)
-                end
+                table.insert(retreat_villages, v)
             end
             --print('#retreat_villages', #retreat_villages)
 
@@ -1509,7 +1497,7 @@ return {
             return nil
         end
 
-        function grunt_rush_FLS1:zone_action_hold(units, units_noMP, enemies, zone_map, unacceptable_damage_map, enemy_damage_map, enemy_defense_map, cfg)
+        function grunt_rush_FLS1:zone_action_hold(units, units_noMP, enemies, zone_map, enemy_defense_map, cfg)
             --print_time('hold')
 
             -- The leader does not participate in position holding (for now, at least)
@@ -1563,7 +1551,7 @@ return {
             end
 
             if eval_hold then
-                local unit, dst = grunt_rush_FLS1:hold_zone(holders, unacceptable_damage_map, enemy_damage_map, enemy_defense_map, cfg)
+                local unit, dst = grunt_rush_FLS1:hold_zone(holders, enemy_defense_map, cfg)
 
                 local action = nil
                 if unit then
@@ -1673,32 +1661,8 @@ return {
             local zone = wesnoth.get_locations(cfg.zone_filter)
             local zone_map = LS.of_pairs(zone)
 
-            -- Get HP ratio and number of units that can reach the zone as function of y coordinate
-            local rel_damage_map, own_damage_map, enemy_damage_map =
-                BC.relative_damage_map(all_zone_units, enemies, grunt_rush_FLS1.data.cache)
-            --AH.put_labels(own_damage_map)
-            --W.message { speaker = 'narrator', message = cfg.zone_id .. ': own_damage_map' }
-            --AH.put_labels(enemy_damage_map)
-            --W.message { speaker = 'narrator', message = cfg.zone_id .. ': enemy_damage_map' }
-            --AH.put_labels(rel_damage_map)
-            --W.message { speaker = 'narrator', message = cfg.zone_id .. ': rel_damage_map' }
-
             -- Also get the defense map for the enemies
             local enemy_defense_map = BC.best_defense_map(enemies)
-
-            -- Set up a map of all locations where the damage is acceptable
-            local min_relative_damage = cfg.min_relative_damage or 0.
-            local acceptable_damage_map = LS.create()
-            local unacceptable_damage_map = LS.create()
-            rel_damage_map:iter(function(x, y, v)
-                if (v >= min_relative_damage) then
-                    acceptable_damage_map:insert(x, y, v)
-                else
-                    unacceptable_damage_map:insert(x, y, v)
-                end
-            end)
-            --AH.put_labels(acceptable_damage_map)
-            --W.message { speaker = 'narrator', message = cfg.zone_id .. ': acceptable_damage_map' }
 
             -- **** This ends the common initialization for all zone actions ****
 
@@ -1719,7 +1683,7 @@ return {
             local village_action = nil
             if (not cfg.do_action) or cfg.do_action.villages then
                 if (not cfg.skip_action) or (not cfg.skip_action.villages)  then
-                    village_action = grunt_rush_FLS1:zone_action_villages(zone_units, enemies, acceptable_damage_map, cfg)
+                    village_action = grunt_rush_FLS1:zone_action_villages(zone_units, enemies, cfg)
                     if village_action and (village_action.rating > 100) then
                         --print(village_action.action)
                         return village_action
@@ -1752,7 +1716,7 @@ return {
             --print_time('  ' .. cfg.zone_id .. ': hold eval')
             if (not cfg.do_action) or cfg.do_action.hold then
                 if (not cfg.skip_action) or (not cfg.skip_action.hold)  then
-                    local action = grunt_rush_FLS1:zone_action_hold(zone_units, zone_units_noMP, enemies, zone_map, unacceptable_damage_map, enemy_damage_map, enemy_defense_map, cfg)
+                    local action = grunt_rush_FLS1:zone_action_hold(zone_units, zone_units_noMP, enemies, zone_map, enemy_defense_map, cfg)
                     if action then
                         --print(action.action)
                         return action
