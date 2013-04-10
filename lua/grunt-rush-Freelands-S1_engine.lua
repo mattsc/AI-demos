@@ -1108,12 +1108,15 @@ return {
                     if (cost <= u.moves) and (not unit_in_way) then
                         --print('Can reach:', u.id, v[1], v[2], cost)
 
-                        local counter_stats = grunt_rush_FLS1:calc_counter_attack(u, { v[1], v[2] })
+                        local max_hp_chance_zero = 0.5
+                        local counter_stats = grunt_rush_FLS1:calc_counter_attack(u, { v[1], v[2] },
+                            { stop_eval_hp_chance_zero = max_hp_chance_zero }
+                        )
                         --DBG.dbms(counter_stats)
 
                         if (not counter_stats.hp_chance)
                             or (u.canrecruit and (counter_stats.hp_chance[0] == 0))
-                            or ((not u.canrecruit) and (counter_stats.hp_chance[0] < 0.5))
+                            or ((not u.canrecruit) and (counter_stats.hp_chance[0] <= max_hp_chance_zero))
                         then
 
                             local rating = 0
