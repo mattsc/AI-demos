@@ -1439,7 +1439,12 @@ return {
                                 if (not counter_table[att_ind]) then counter_table[att_ind] = {} end
                                 if (not counter_table[att_ind][dst_ind]) then
                                     --print_time('Calculating new counter-attack combination')
-                                    local counter_stats = grunt_rush_FLS1:calc_counter_attack(a, { x, y })
+                                    -- We can cut off the counter attack calculation when its minimum HP
+                                    -- reach max_damage defined above, as the total possible damage will
+                                    -- then be able to kill the leader
+                                    local counter_stats = grunt_rush_FLS1:calc_counter_attack(a, { x, y },
+                                        { stop_eval_min_hp = max_damage }
+                                    )
                                     counter_table[att_ind][dst_ind] =
                                         { min_hp = counter_stats.min_hp, counter_stats = counter_stats }
                                 else
