@@ -1875,10 +1875,19 @@ return {
 
                 -- Before evaluating the poison attack, check whether it is too dangerous
                 if poison_attack then
-                    local counter_stats = grunt_rush_FLS1:calc_counter_attack(attacker, { a.dst.x, a.dst.y })
+                    local min_average_hp = 10
+                    local max_hp_chance_zero = 0.3
+                    local counter_stats = grunt_rush_FLS1:calc_counter_attack(attacker, { a.dst.x, a.dst.y },
+                        {
+                            stop_eval_average_hp = min_average_hp,
+                            stop_eval_hp_chance_zero = max_hp_chance_zero
+                        }
+                    )
                     --print('Poison counter-attack:', attacker.id, a.dst.x, a.dst.y, counter_stats.hp_chance[0], counter_stats.average_hp)
                     -- Use a condition when damage is too much to be worthwhile
-                    if (counter_stats.hp_chance[0] > 0.30) or (counter_stats.average_hp < 10) then
+                    if (counter_stats.hp_chance[0] >= max_hp_chance_zero)
+                        or (counter_stats.average_hp <= min_average_hp)
+                    then
                         --print('Poison attack too dangerous')
                         poison_attack = false
                     end
