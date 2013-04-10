@@ -693,6 +693,8 @@ return {
             --       The default is -1 because not all min_hp == 0 cases are the same (the CTK can
             --       be different).  So we don't want to stop checking other attack combos, but since
             --       min_hp >= 0, any negative number will do as default (doesn't have to be -inf)
+            --   - stop_eval_hp_chance_zero=1 (number <= 1): stop evaluating other attack combinations
+            --       when hp_chance[0] >= this value has been found.  This is "bad enough".
             --
             -- Returns a table similar to def_stats from wesnoth.simulate_combat,
             -- but with added and/or missing fields, depending on the parameters
@@ -707,10 +709,14 @@ return {
             -- Note: it's *not* a typo that one is 0 and the other -1
             cfg.stop_eval_average_hp = cfg.stop_eval_average_hp or 0
             cfg.stop_eval_min_hp = cfg.stop_eval_min_hp or -1
+            cfg.stop_eval_hp_chance_zero = cfg.stop_eval_hp_chance_zero or 1
 
             -- Just in case a negative number gets passed for stop_eval_average_hp
             -- By contrast, stop_eval_min_hp may be negative (to allow for it to be 0 and continue)
             if (cfg.stop_eval_average_hp < 0) then cfg.stop_eval_average_hp = 0 end
+
+            -- Also, the maximum sensible value against which to check stop_eval_hp_chance_zero is 1
+            if (cfg.stop_eval_hp_chance_zero > 1) then cfg.stop_eval_hp_chance_zero = 1 end
 
             -- Get enemy units
             local enemies
@@ -904,10 +910,16 @@ return {
                         worst_def_stats.min_hp = min_hp
                     end
                 end
+                --print(i, worst_def_stats.average_hp, worst_def_stats.min_hp)
 
                 -- Check whether we can stop evaluating other attack combos
+                -- Lower limits:
                 if (worst_def_stats.average_hp <= cfg.stop_eval_average_hp) then break end
                 if (worst_def_stats.min_hp <= cfg.stop_eval_min_hp) then break end
+                -- Upper limits:
+                if worst_def_stats.hp_chance
+                    and (worst_def_stats.hp_chance[0] >= cfg.stop_eval_hp_chance_zero)
+                then break end
             end
             --print_time(max_rating, worst_def_stats.average_hp, worst_def_stats.min_hp)
             --DBG.dbms(worst_def_stats)
