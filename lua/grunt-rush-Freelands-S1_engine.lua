@@ -799,7 +799,7 @@ return {
             end
             all_attack_combos = nil
             --DBG.dbms(attack_combos)
-            --print_time('#attack_combos with max. attackers', #attack_combos)
+            --print_time('#attack_combos with max. attackers', #attack_combos, '(' .. max_attacks ..' attackers)')
 
             -- For the counter-attack calculation, we keep only unique combinations of units
             -- This is because counter-attacks are, almost by definition, a very expensive calculation
@@ -1389,6 +1389,7 @@ return {
                     end
                     local rating, sorted_atts, sorted_dsts, combo_att_stats, combo_def_stats = BC.attack_combo_stats(atts, dsts, e, grunt_rush_FLS1.data.cache, cache_this_move)
                     --DBG.dbms(combo_def_stats)
+                    --print_time('   ' .. #sorted_atts .. ' attackers')
 
                     -- Don't attack if CTD (chance to die) is too high for any of the attackers
                     -- which means 30% CTD for normal units and 0% for leader
@@ -1409,6 +1410,40 @@ return {
 
                     -- Check potential counter attack outcome
                     if do_attack then
+
+                        -- We first need to move all units into place, as the counter attack threat
+                        -- should be calculated for that formation as a whole
+                        -- For this to work in all situations, it needs to be done in stages,
+                        -- as there might be units in the way, which
+                        -- could be the attackers themselves, but on different hexes
+                        local tmp_data = {}
+
+                        -- First, extract attacker units from the map
+                        for k,a in ipairs(sorted_atts) do
+                            -- Take MP away from unit, as the counter attack calculation
+                            -- takes all units with MP left off the map
+                            tmp_data[k] = { old_moves = a.moves }
+                            a.moves = 0
+
+                            -- Then save its current position and extract it from the map
+                            tmp_data[k].org_hex = { a.x, a.y }
+                            wesnoth.extract_unit(a)
+                        end
+
+                        -- Second, take any remaining units in the way off the map
+                        -- and put the attacker units into the position
+                        for k,a in ipairs(sorted_atts) do
+                            -- Coordinates of hex from which unit #k would attack
+                            local x, y = sorted_dsts[k][1], sorted_dsts[k][2]
+
+                            tmp_data[k].unit_in_way = wesnoth.get_unit(x, y)
+                            if tmp_data[k].unit_in_way then
+                                wesnoth.extract_unit(tmp_data[k].unit_in_way)
+                            end
+
+                            wesnoth.put_unit(x, y, a)
+                        end
+
                         for k,a in ipairs(sorted_atts) do
                             -- Add max damages from this turn and counter-attack
                             local min_hp = 0
@@ -1458,6 +1493,7 @@ return {
                             local counter_min_hp = counter_table[att_ind][dst_ind].min_hp
                             local counter_stats = counter_table[att_ind][dst_ind].counter_stats
                             local counter_average_hp = counter_stats.average_hp
+                            --print_time('counter_average_hp, counter_min_hp', counter_average_hp, counter_min_hp)
 
                             -- If there's a chance of the leader getting poisoned or slowed, don't do it
                             -- Also, if the stats would go too low
@@ -1469,7 +1505,7 @@ return {
 
                                 -- Add damage from attack and counter attack
                                 local min_outcome = counter_min_hp - max_damage
-                                --print('min_outcome, counter_min_hp, max_damage', min_outcome, counter_min_hp, max_damage)
+                                --print('Leader: min_outcome, counter_min_hp, max_damage', min_outcome, counter_min_hp, max_damage)
 
                                 if (min_outcome <= 0) then
                                     do_attack = false
@@ -1479,13 +1515,35 @@ return {
                             else  -- Or for normal units, use the somewhat looser criteria
                                 -- Add damage from attack and counter attack
                                 local av_outcome =  counter_average_hp - average_damage
-                                --print('av_outcome, counter_average_hp, average_damage', av_outcome, counter_average_hp, average_damage)
+                                --print('Non-leader: av_outcome, counter_average_hp, average_damage', av_outcome, counter_average_hp, average_damage)
 
                                 if (av_outcome <= 5) or (counter_stats.hp_chance[0] >= max_hp_chance_zero) then
                                     do_attack = false
                                     break
                                 end
                             end
+                        end
+
+                        -- Now put the units back out there
+                        -- We first need to extract the attacker units again, then
+                        -- put both units in way and attackers back out there
+
+                        --DBG.dbms(tmp_data)
+                        for k,a in ipairs(sorted_atts) do
+                            wesnoth.extract_unit(a)
+                        end
+
+                        for k,a in ipairs(sorted_atts) do
+                            -- Coordinates of hex from which unit #k would attack
+                            local x, y = sorted_dsts[k][1], sorted_dsts[k][2]
+
+                            if tmp_data[k].unit_in_way then
+                                wesnoth.put_unit(x, y, tmp_data[k].unit_in_way)
+                            end
+
+                            wesnoth.put_unit(tmp_data[k].org_hex[1], tmp_data[k].org_hex[2], a)
+
+                            a.moves = tmp_data[k].old_moves
                         end
                     end
 
