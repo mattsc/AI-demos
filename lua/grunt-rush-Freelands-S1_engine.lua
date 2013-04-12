@@ -1428,8 +1428,8 @@ return {
 
                             -- By contrast, for the side leader, the chance to die must be zero
                             -- meaning minimum outcome > 0
+                            local max_damage = a.hitpoints - min_hp
                             if a.canrecruit then
-                                local max_damage = a.hitpoints - min_hp
                                 min_min_hp = max_damage
                                 max_hp_chance_zero = 0.0
                             end
