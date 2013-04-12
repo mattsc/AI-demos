@@ -1391,7 +1391,7 @@ return {
                     --DBG.dbms(combo_def_stats)
 
                     -- Don't attack if CTD (chance to die) is too high for any of the attackers
-                    -- which means 50% CTD for normal units and 0% for leader
+                    -- which means 30% CTD for normal units and 0% for leader
                     local do_attack = true
                     for k,att_stats in ipairs(combo_att_stats) do
                         if (not sorted_atts[k].canrecruit) then
@@ -1419,8 +1419,22 @@ return {
                                 end
                             end
 
-                            local max_damage = a.hitpoints - min_hp
+                            -- For normal units, we want a 50% chance to survive the counter attack
+                            -- and an average HP outcome of >= 5
+                            local average_damage = a.hitpoints - combo_att_stats[k].average_hp
+                            local min_average_hp = average_damage
+                            local min_min_hp = -1
+                            local max_hp_chance_zero = 0.5
 
+                            -- By contrast, for the side leader, the chance to die must be zero
+                            -- meaning minimum outcome > 0
+                            if a.canrecruit then
+                                local max_damage = a.hitpoints - min_hp
+                                min_min_hp = max_damage
+                                max_hp_chance_zero = 0.0
+                            end
+
+                            -- Now calculate the counter attack outcome
                             local x, y = sorted_dsts[k][1], sorted_dsts[k][2]
                             local att_ind = sorted_atts[k].x * 1000 + sorted_atts[k].y
                             local dst_ind = x * 1000 + y
@@ -1431,8 +1445,10 @@ return {
                                 -- reach max_damage defined above, as the total possible damage will
                                 -- then be able to kill the leader
                                 local counter_stats = grunt_rush_FLS1:calc_counter_attack(a, { x, y },
-                                    { stop_eval_min_hp = max_damage }
-                                )
+                                    { stop_eval_average_hp = min_average_hp,
+                                      stop_eval_min_hp = min_min_hp,
+                                      stop_eval_hp_chance_zero = max_hp_chance_zero
+                                    })
                                 counter_table[att_ind][dst_ind] =
                                     { min_hp = counter_stats.min_hp, counter_stats = counter_stats }
                             else
@@ -1441,20 +1457,34 @@ return {
                             --print_time('  done')
                             local counter_min_hp = counter_table[att_ind][dst_ind].min_hp
                             local counter_stats = counter_table[att_ind][dst_ind].counter_stats
+                            local counter_average_hp = counter_stats.average_hp
 
-                            -- If there's a chance to be poisoned or slowed, don't do it
-                            if (counter_stats.slowed > 0.0) or (counter_stats.poisoned > 0.0) then
-                                do_attack = false
-                                break
-                            end
+                            -- If there's a chance of the leader getting poisoned or slowed, don't do it
+                            -- Also, if the stats would go too low
+                            if a.canrecruit then
+                                if (counter_stats.slowed > 0.0) or (counter_stats.poisoned > 0.0) then
+                                    do_attack = false
+                                    break
+                                end
 
-                            -- Add damage from attack and counter attack
-                            local min_outcome = counter_min_hp - max_damage
-                            --print('min_outcome, counter_min_hp, max_damage', min_outcome, counter_min_hp, max_damage)
+                                -- Add damage from attack and counter attack
+                                local min_outcome = counter_min_hp - max_damage
+                                --print('min_outcome, counter_min_hp, max_damage', min_outcome, counter_min_hp, max_damage)
 
-                            if (min_outcome <= 0) then
-                                do_attack = false
-                                break
+                                if (min_outcome <= 0) then
+                                    do_attack = false
+                                    break
+                                end
+                            -- Or for normal units, use the somewhat looser criteria
+                            else  -- Or for normal units, use the somewhat looser criteria
+                                -- Add damage from attack and counter attack
+                                local av_outcome =  counter_average_hp - average_damage
+                                --print('av_outcome, counter_average_hp, average_damage', av_outcome, counter_average_hp, average_damage)
+
+                                if (av_outcome <= 5) or (counter_stats.hp_chance[0] >= max_hp_chance_zero) then
+                                    do_attack = false
+                                    break
+                                end
                             end
                         end
                     end
