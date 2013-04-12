@@ -1339,6 +1339,7 @@ return {
                     end
                 end
             end
+            --print_time('#enemies, #targets', #enemies, #targets)
 
             -- We first see if there's a trapping attack possible
             --print_time('    trapping attack eval')
@@ -1406,56 +1407,54 @@ return {
                         end
                     end
 
-                    -- If the leader is involved, make sure it leaves him in a safe spot
+                    -- Check potential counter attack outcome
                     if do_attack then
                         for k,a in ipairs(sorted_atts) do
-                            if a.canrecruit then
-                                -- Add max damages from this turn and counter-attack
-                                local min_hp = 0
-                                for hp = 0,a.hitpoints do
-                                    if combo_att_stats[k].hp_chance[hp] and (combo_att_stats[k].hp_chance[hp] > 0) then
-                                        min_hp = hp
-                                        break
-                                    end
-                                end
-
-                                local max_damage = a.hitpoints - min_hp
-
-                                local x, y = sorted_dsts[k][1], sorted_dsts[k][2]
-                                local att_ind = sorted_atts[k].x * 1000 + sorted_atts[k].y
-                                local dst_ind = x * 1000 + y
-                                if (not counter_table[att_ind]) then counter_table[att_ind] = {} end
-                                if (not counter_table[att_ind][dst_ind]) then
-                                    --print_time('Calculating new counter-attack combination')
-                                    -- We can cut off the counter attack calculation when its minimum HP
-                                    -- reach max_damage defined above, as the total possible damage will
-                                    -- then be able to kill the leader
-                                    local counter_stats = grunt_rush_FLS1:calc_counter_attack(a, { x, y },
-                                        { stop_eval_min_hp = max_damage }
-                                    )
-                                    counter_table[att_ind][dst_ind] =
-                                        { min_hp = counter_stats.min_hp, counter_stats = counter_stats }
-                                else
-                                    --print_time('Counter-attack combo already calculated.  Re-using.')
-                                end
-                                --print_time('  done')
-                                local counter_min_hp = counter_table[att_ind][dst_ind].min_hp
-                                local counter_stats = counter_table[att_ind][dst_ind].counter_stats
-
-                                -- If there's a chance to be poisoned or slowed, don't do it
-                                if (counter_stats.slowed > 0.0) or (counter_stats.poisoned > 0.0) then
-                                    do_attack = false
+                            -- Add max damages from this turn and counter-attack
+                            local min_hp = 0
+                            for hp = 0,a.hitpoints do
+                                if combo_att_stats[k].hp_chance[hp] and (combo_att_stats[k].hp_chance[hp] > 0) then
+                                    min_hp = hp
                                     break
                                 end
+                            end
 
-                                -- Add damage from attack and counter attack
-                                local min_outcome = counter_min_hp - max_damage
-                                --print('min_outcome, counter_min_hp, max_damage', min_outcome, counter_min_hp, max_damage)
+                            local max_damage = a.hitpoints - min_hp
 
-                                if (min_outcome <= 0) then
-                                    do_attack = false
-                                    break
-                                end
+                            local x, y = sorted_dsts[k][1], sorted_dsts[k][2]
+                            local att_ind = sorted_atts[k].x * 1000 + sorted_atts[k].y
+                            local dst_ind = x * 1000 + y
+                            if (not counter_table[att_ind]) then counter_table[att_ind] = {} end
+                            if (not counter_table[att_ind][dst_ind]) then
+                                --print_time('Calculating new counter-attack combination')
+                                -- We can cut off the counter attack calculation when its minimum HP
+                                -- reach max_damage defined above, as the total possible damage will
+                                -- then be able to kill the leader
+                                local counter_stats = grunt_rush_FLS1:calc_counter_attack(a, { x, y },
+                                    { stop_eval_min_hp = max_damage }
+                                )
+                                counter_table[att_ind][dst_ind] =
+                                    { min_hp = counter_stats.min_hp, counter_stats = counter_stats }
+                            else
+                                --print_time('Counter-attack combo already calculated.  Re-using.')
+                            end
+                            --print_time('  done')
+                            local counter_min_hp = counter_table[att_ind][dst_ind].min_hp
+                            local counter_stats = counter_table[att_ind][dst_ind].counter_stats
+
+                            -- If there's a chance to be poisoned or slowed, don't do it
+                            if (counter_stats.slowed > 0.0) or (counter_stats.poisoned > 0.0) then
+                                do_attack = false
+                                break
+                            end
+
+                            -- Add damage from attack and counter attack
+                            local min_outcome = counter_min_hp - max_damage
+                            --print('min_outcome, counter_min_hp, max_damage', min_outcome, counter_min_hp, max_damage)
+
+                            if (min_outcome <= 0) then
+                                do_attack = false
+                                break
                             end
                         end
                     end
