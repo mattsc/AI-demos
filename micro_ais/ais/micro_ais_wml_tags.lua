@@ -765,6 +765,53 @@ function wesnoth.wml_actions.micro_ai(cfg)
         return
     end
 
+    --------- Goto Micro AI - side-wide AI ------------------------------------
+    if (cfg.ai_type == 'goto') then
+        local cfg_go = {}
+
+        local required_keys = { "goto_units", "goto_goals" }
+        local optional_keys = {}
+
+        if (cfg.action~='delete') then
+            --Add in the required keys, which could be scalars or WML tag contents
+            cfg = cfg.__parsed
+            for k,v in pairs(required_keys) do
+                local child = H.get_child(cfg, v)
+                if (not cfg[v]) and (not child) then
+                    H.wml_error("Goto Micro AI missing required " .. v .. "= key")
+                end
+
+                -- Insert scalar parameters
+                cfg_go[v] = cfg[v]
+                -- Insert WML tags
+                if child then cfg_go[v] = child end
+            end
+
+            --Add in the optional keys, which could be scalars or WML tag contents
+            for k,v in pairs(optional_keys) do
+                -- Insert scalar parameters
+                cfg_go[v] = cfg[v]
+
+                -- Insert WML tags
+                local child = H.get_child(cfg, v)
+                if child then cfg_go[v] = child end
+            end
+        end
+
+        -- Set up the CA add/delete parameters
+        local CA_parms = {
+            {  -- Note: do not define max_score
+                id = 'goto', eval_name = 'goto_eval', exec_name = 'goto_exec',
+                cfg_str = AH.serialize(cfg_go)
+            }
+        }
+
+        -- Add, delete or change the CAs
+        CA_action(cfg.action, cfg.side, CA_parms)
+
+        return
+    end
+
     ----------------------------------------------------------------
     -- If we got here, none of the valid ai_types was specified
     H.wml_error("invalid ai_type= in [micro_ai]")
