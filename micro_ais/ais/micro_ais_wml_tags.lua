@@ -798,10 +798,14 @@ function wesnoth.wml_actions.micro_ai(cfg)
             end
         end
 
+        -- Deal with the "ca_id=" key separately, because it doesn't influence the AI behavior
+        local ca_id = 'goto'
+        if cfg.ca_id then ca_id = ca_id .. '_' .. cfg.ca_id end
+
         -- Set up the CA add/delete parameters
         local CA_parms = {
             {  -- Note: do not define max_score
-                id = 'goto', eval_name = 'goto_eval', exec_name = 'goto_exec',
+                id = ca_id, eval_name = 'goto_eval', exec_name = 'goto_exec',
                 cfg_str = AH.serialize(cfg_go)
             }
         }
