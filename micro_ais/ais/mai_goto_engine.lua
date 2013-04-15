@@ -35,13 +35,26 @@ return {
             local closest_hex, best_unit, max_rating = {}, {}, -9e99
             for i,u in ipairs(units) do
                 for i,l in ipairs(locs) do
-                    local path, cost = wesnoth.find_path(u, l[1], l[2])
 
-                    local rating = - cost / u.max_moves
+                    -- If use_straight_line is set, we simply find the closest
+                    -- hex to the goal that the unit can get to
+                    if cfg.use_straight_line then
+                        local hex, unit, rating = AH.find_best_move(u, function(x, y)
+                            return -H.distance_between(x, y, l[1], l[2])
+                        end)
 
-                    if (rating > max_rating) then
-                        max_rating = rating
-                        closest_hex, best_unit = l, u
+                        if (rating > max_rating) then
+                            max_rating = rating
+                            closest_hex, best_unit = hex, u
+                        end
+                    else  -- Otherwise find the best path to take
+                        local path, cost = wesnoth.find_path(u, l[1], l[2])
+                        rating = - cost / u.max_moves
+
+                        if (rating > max_rating) then
+                            max_rating = rating
+                            closest_hex, best_unit = l, u
+                        end
                     end
                 end
             end
