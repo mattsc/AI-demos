@@ -13,7 +13,9 @@ return {
                 { "and", cfg.goto_units }, formula = '$this_unit.moves > 0'
             }
 
-            if units[1] then return 220000 end
+            local score = cfg.ca_score or 210000
+
+            if units[1] then return score end
             return 0
         end
 

@@ -770,7 +770,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
         local cfg_go = {}
 
         local required_keys = { "goto_units", "goto_goals" }
-        local optional_keys = { "use_straight_line" }
+        local optional_keys = { "ca_score", "use_straight_line" }
 
         if (cfg.action~='delete') then
             --Add in the required keys, which could be scalars or WML tag contents
