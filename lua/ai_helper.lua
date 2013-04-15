@@ -884,6 +884,7 @@ function ai_helper.find_best_move(units, rating_function, cfg)
     -- OUTPUTS:
     --  best_hex: format { x, y }
     --  best_unit: unit for which this rating function produced the maximum value
+    --  max_rating: the rating found for this hex/unit combination
     -- If no valid moves were found, best_unit and best_hex are empty arrays
 
     -- If 'cfg' is not set, we need it as an empty array
@@ -912,7 +913,7 @@ function ai_helper.find_best_move(units, rating_function, cfg)
         if cfg.labels then ai_helper.put_labels(reach_map) end
     end
 
-    return best_hex, best_unit
+    return best_hex, best_unit, max_rating
 end
 
 function ai_helper.move_unit_out_of_way(ai, unit, cfg)
