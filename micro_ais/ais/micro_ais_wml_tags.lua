@@ -19,10 +19,32 @@ function add_CAs(side, CA_parms)
     for i,parms in ipairs(CA_parms) do
         cfg_str = parms.cfg_str or ''
 
+        -- Make sure the id/name of each CA are unique.
+        -- We do this by seeing if a CA by that name exists already.
+        -- If yes, we use the passed id in parms.id
+        -- If not, we add a number to the end of parms.id until we find an id that does not exist yet
+        local ca_id, id_found = parms.id, true
+        local n = 1
+        while id_found do -- This is really just a precaution
+            id_found = false
+
+            for ai_tag in H.child_range(wesnoth.sides[side].__cfg, 'ai') do
+                for stage in H.child_range(ai_tag, 'stage') do
+                    for ca in H.child_range(stage, 'candidate_action') do
+                        if (ca.name == ca_id) then id_found = true end
+                        --print('---> found CA:', ca.name, id_found)
+                    end
+                end
+            end
+
+            if (id_found) then ca_id = parms.id .. n end
+            n = n+1
+        end
+
         local CA = {
             engine = "lua",
-            id = parms.id,
-            name = parms.id,
+            id = ca_id,
+            name = ca_id,
             max_score = parms.max_score,  -- This works even if parms.max_score is nil
             evaluation = "return (...):" .. parms.eval_name .. "(" .. cfg_str .. ")",
             execution = "(...):" .. parms.exec_name .. "(" .. cfg_str .. ")"
