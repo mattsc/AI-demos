@@ -55,7 +55,18 @@ return {
                         end
                     else  -- Otherwise find the best path to take
                         local path, cost = wesnoth.find_path(u, l[1], l[2])
-                        rating = - cost / u.max_moves
+
+                        -- Make all hexes within the unit's current MP equaivalent
+                        if (cost <= u.moves) then cost = 0 end
+
+                        rating = - cost
+
+                        -- Add a small penalty for occupied hexes
+                        -- (this mean occupied by an allied unit, as enemies make the hex unreachable)
+                        local unit_in_way = wesnoth.get_unit(l[1], l[2])
+                        if unit_in_way and ((unit_in_way.x ~= u.x) or (unit_in_way.y ~= u.y)) then
+                            rating = rating - 0.01
+                        end
 
                         if (rating > max_rating) then
                             max_rating = rating
