@@ -8,6 +8,17 @@ return {
         --local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
         function goto_engine:goto_eval(cfg)
+
+            -- If cfg.release_all_units_at_goal is set, check
+            -- whether the goal has already been reached, in
+            -- which case we do not do anything
+            if cfg.release_all_units_at_goal then
+                local str = cfg.ca_id .. '-release-all'
+                if self.data[str] then
+                    return 0
+                end
+            end
+
             -- Find the goto units
             local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = "no",
                 { "and", cfg.goto_units }, formula = '$this_unit.moves > 0'
@@ -116,6 +127,12 @@ return {
                     if cfg.release_unit_at_goal then
                         local str = cfg.ca_id .. '-release-' .. best_unit.id
                         --print("Made it to goal: ", best_unit.id, str)
+                        self.data[str] = true
+                    end
+
+                    if cfg.release_all_units_at_goal then
+                        local str = cfg.ca_id .. '-release-all'
+                        --print("Releasing all units")
                         self.data[str] = true
                     end
                 end
