@@ -42,8 +42,12 @@ return {
                     -- hex to the goal that the unit can get to
                     if cfg.use_straight_line then
                         local hex, unit, rating = AH.find_best_move(u, function(x, y)
-                            return -H.distance_between(x, y, l[1], l[2])
-                        end)
+                            local r = - H.distance_between(x, y, l[1], l[2])
+                            -- Also add distance from unit as very small rating component
+                            -- This is mostly here to keep unit in place when no better hexes are available
+                            r = r - H.distance_between(x, y, u.x, u.y) / 1000.
+                            return r
+                        end, { no_random = true })
 
                         if (rating > max_rating) then
                             max_rating = rating
@@ -60,7 +64,7 @@ return {
                     end
                 end
             end
-            --print(best_unit.id, closest_hex[1], closest_hex[2], max_rating)
+            --print(best_unit.id, best_unit.x, best_unit.y, closest_hex[1], closest_hex[2], max_rating)
 
             AH.movefull_stopunit(ai, best_unit, closest_hex[1], closest_hex[2])
         end
