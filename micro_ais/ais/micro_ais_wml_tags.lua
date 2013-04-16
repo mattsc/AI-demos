@@ -41,6 +41,9 @@ function add_CAs(side, CA_parms)
             n = n+1
         end
 
+        -- If parameter pass_ca_id is set, pass the CA id to the eval/exec functions
+        if parms.pass_ca_id then cfg_table.ca_id = ca_id end
+
         local CA = {
             engine = "lua",
             id = ca_id,
@@ -829,7 +832,8 @@ function wesnoth.wml_actions.micro_ai(cfg)
         local CA_parms = {
             {  -- Note: do not define max_score
                 id = ca_id, eval_name = 'goto_eval', exec_name = 'goto_exec',
-                cfg_table = cfg_go
+                cfg_table = cfg_go,
+                pass_ca_id = true
             }
         }
 
