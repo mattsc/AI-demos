@@ -96,7 +96,7 @@ return {
             end
             --print(best_unit.id, best_unit.x, best_unit.y, closest_hex[1], closest_hex[2], max_rating)
 
-            AH.movefull_stopunit(ai, best_unit, closest_hex[1], closest_hex[2])
+            AH.movefull_outofway_stopunit(ai, best_unit, closest_hex[1], closest_hex[2])
 
             -- If release_unit_at_goal= or release_all_units_at_goal= key is set:
             -- Check if the unit made it to one of the goal hexes
