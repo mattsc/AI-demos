@@ -3,6 +3,8 @@ Wesnoth-AI-Demos
 
 Wesnoth AI Modification Demonstration Scenarios
 
+NOTE: Compatible only with Wesnoth 1.11.2 and later!
+
 Home of the formidable Freelands Side 1 Grunt Rush AI, "Fred", and his little brother, the generic rushing AI "Ron"!
 
 Many other wondrous AIs can also be found within this add-on!
