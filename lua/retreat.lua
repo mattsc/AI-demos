@@ -164,6 +164,8 @@ function retreat_functions.get_retreat_injured_units(healees, regenerates)
                                 -- This value is arbitrary, it just represents the ability to heal on the turn after
                                 heal_score = heal_score + 1
                             end
+                        else
+                            heal_score = math.min(8, u.hitpoints - 1)
                         end
                     else
                         heal_score = math.min(loc[3], u.max_hitpoints - u.hitpoints)
