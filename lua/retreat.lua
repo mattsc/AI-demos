@@ -153,7 +153,7 @@ function retreat_functions.get_retreat_injured_units(healees, regenerates)
             local unit_in_way = wesnoth.get_unit(loc[1], loc[2])
             if (not unit_in_way) or ((unit_in_way.moves > 0) and (unit_in_way.side == wesnoth.current.side)) then
                 local rating = base_rating
-                local heal_score
+                local heal_score = 0
                 if regenerates then
                     heal_score = math.min(8, u.max_hitpoints - u.hitpoints)
                 else
@@ -164,8 +164,6 @@ function retreat_functions.get_retreat_injured_units(healees, regenerates)
                                 -- This value is arbitrary, it just represents the ability to heal on the turn after
                                 heal_score = heal_score + 1
                             end
-                        else
-                            heal_score = 0
                         end
                     else
                         heal_score = math.min(loc[3], u.max_hitpoints - u.hitpoints)
