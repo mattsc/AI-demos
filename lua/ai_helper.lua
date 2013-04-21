@@ -754,7 +754,8 @@ end
 
 function ai_helper.next_hop(unit, x, y, cfg)
     -- Finds the next "hop" of 'unit' on its way to (x,y)
-    -- Returns coordinates of the endpoint of the hop, and movement cost to get there
+    -- Returns coordinates of the endpoint of the hop (or nil if no path to
+    -- (x,y) is found for the unit), and movement cost to get there
     -- only unoccupied hexes are considered
     -- cfg: standard extra options for wesnoth.find_path()
     --   plus:
