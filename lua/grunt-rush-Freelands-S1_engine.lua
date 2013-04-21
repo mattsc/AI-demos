@@ -1014,7 +1014,7 @@ return {
             local keeps = { { 18, 4 }, { 19, 4 } }  -- keep hexes in order of preference
 
             for i,k in ipairs(keeps) do
-                if (leader.x == k[1]) or (leader.y == k[2]) then
+                if (leader.x == k[1]) and (leader.y == k[2]) then
                     -- If the leader already is on a keep, don't consider lesser priority ones
                     AH.done_eval_messages(start_time, ca_name)
                     return 0
