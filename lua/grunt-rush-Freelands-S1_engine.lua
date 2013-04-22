@@ -461,66 +461,67 @@ return {
 
                 -- Determine where to set up the line for holding the zone
                 local zone = wesnoth.get_locations(cfg.zone_filter)
-                rating_map = LS.create()
-                local hold_dist, max_rating = -9e99, -9e99
-                for i,hex in ipairs(zone) do
-                    local x, y = hex[1], hex[2]
 
-                    local adv_dist
-                    if dx then
-                         -- Distance in direction of (dx, dy) and perpendicular to it
-                        adv_dist = (x - cfg.hold.x) * dx + (y - cfg.hold.y) * dy
-                    else
-                        adv_dist = - H.distance_between(x, y, enemy_leader.x, enemy_leader.y)
-                    end
+                --rating_map = LS.create()
+                --local hold_dist, max_rating = -9e99, -9e99
+                --for i,hex in ipairs(zone) do
+                --    local x, y = hex[1], hex[2]
 
-                    if (adv_dist >= min_dist) then
-                        local perp_dist
-                        if dx then
-                            perp_dist = (x - cfg.hold.x) * dy + (y - cfg.hold.y) * dx
-                        else
-                            perp_dist = 0
-                        end
+                --    local adv_dist
+                --    if dx then
+                --         -- Distance in direction of (dx, dy) and perpendicular to it
+                --        adv_dist = (x - cfg.hold.x) * dx + (y - cfg.hold.y) * dy
+                --    else
+                --        adv_dist = - H.distance_between(x, y, enemy_leader.x, enemy_leader.y)
+                --    end
 
-                        local rating = adv_dist
+                --    if (adv_dist >= min_dist) then
+                --        local perp_dist
+                --        if dx then
+                --            perp_dist = (x - cfg.hold.x) * dy + (y - cfg.hold.y) * dx
+                --        else
+                --            perp_dist = 0
+                --        end
 
-                        if (math.abs(perp_dist) <= max_perp_dist) then
-                            rating = rating - math.abs(perp_dist) / 10.
+                --        local rating = adv_dist
 
-                            local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
-                            if is_village then
-                                rating = rating + 1.11
-                            end
+                --        if (math.abs(perp_dist) <= max_perp_dist) then
+                --            rating = rating - math.abs(perp_dist) / 10.
 
-                            if (rating > max_rating) then
-                                max_rating, hold_dist = rating, adv_dist
-                            end
+                --            local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
+                --            if is_village then
+                --                rating = rating + 1.11
+                --            end
 
-                            rating_map:insert(x, y, rating)
-                        end
-                    end
-                end
+                --            if (rating > max_rating) then
+                --                max_rating, hold_dist = rating, adv_dist
+                --            end
+
+                --            rating_map:insert(x, y, rating)
+                --        end
+                --    end
+                --end
 
                 -- hold_dist can never get smaller during a turn
                 --print('hold_dist orig :', cfg.zone_id, hold_dist)
-                if grunt_rush_FLS1.data[cfg.zone_id] and grunt_rush_FLS1.data[cfg.zone_id].hold_dist then
-                    if (hold_dist < grunt_rush_FLS1.data[cfg.zone_id].hold_dist) then
-                        hold_dist = grunt_rush_FLS1.data[cfg.zone_id].hold_dist
-                    else
-                        grunt_rush_FLS1.data[cfg.zone_id].hold_dist = hold_dist
-                    end
-                else
-                    if (not grunt_rush_FLS1.data[cfg.zone_id]) then
-                        grunt_rush_FLS1.data[cfg.zone_id] = {}
-                    end
-                    grunt_rush_FLS1.data[cfg.zone_id].hold_dist = hold_dist
-                end
+                --if grunt_rush_FLS1.data[cfg.zone_id] and grunt_rush_FLS1.data[cfg.zone_id].hold_dist then
+                --    if (hold_dist < grunt_rush_FLS1.data[cfg.zone_id].hold_dist) then
+                --        hold_dist = grunt_rush_FLS1.data[cfg.zone_id].hold_dist
+                --    else
+                --        grunt_rush_FLS1.data[cfg.zone_id].hold_dist = hold_dist
+                --    end
+                --else
+                --    if (not grunt_rush_FLS1.data[cfg.zone_id]) then
+                --        grunt_rush_FLS1.data[cfg.zone_id] = {}
+                --    end
+                --    grunt_rush_FLS1.data[cfg.zone_id].hold_dist = hold_dist
+                --end
                 --print('hold_dist new  :', cfg.zone_id, hold_dist)
                 --AH.put_labels(rating_map)
                 --W.message { speaker = 'narrator', message = 'Hold zone ' .. cfg.zone_id .. ': hold_dist rating map' }
 
                 -- If not valid hold position was found
-                if (hold_dist == -9e99) then return end
+                --if (hold_dist == -9e99) then return end
 
                 -- First calculate a unit independent rating map
                 rating_map = LS.create()
@@ -530,14 +531,14 @@ return {
                     -- Distance in direction of (dx, dy) and perpendicular to it
                     local adv_dist, perp_dist
                     if dx then
-                        adv_dist = (x - cfg.hold.x) * dx + (y - cfg.hold.y) * dy - hold_dist
+                        adv_dist = (x - cfg.hold.x) * dx + (y - cfg.hold.y) * dy
                         perp_dist = (x - cfg.hold.x) * dy + (y - cfg.hold.y) * dx
                     else
                         adv_dist = - H.distance_between(x, y, enemy_leader.x, enemy_leader.y)
                         perp_dist = 0
                     end
 
-                    if ((adv_dist <= 1) and (adv_dist + hold_dist > min_dist - 1)) or (not dx) then
+                    if ((adv_dist <= 1) and (adv_dist > min_dist - 1)) or (not dx) then
                         local rating = 0
 
                         rating = rating - math.abs(adv_dist) ^ 2.
@@ -647,8 +648,8 @@ return {
                     if (max_rating_unit == -9e99) then
                         local x, y
                         if dx then
-                            x = cfg.hold.x + hold_dist * dx
-                            y = cfg.hold.y + hold_dist * dy
+                            x = cfg.hold.x
+                            y = cfg.hold.y
                         else
                             x, y = enemy_leader.x, enemy_leader.y
                         end
