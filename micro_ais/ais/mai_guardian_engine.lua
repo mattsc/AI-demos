@@ -146,9 +146,7 @@ return {
             -- Don't need to check if unit exists as this is a sticky CA
             if (unit.moves > 0) then
                 return 100010
-            else
-                return 99990
-            end
+			end
         end
 
         -- Moves the guardian randomly in the "zone_goals".
@@ -159,16 +157,9 @@ return {
                 y = '1-' .. height,
                 { "and", cfg.zone_goals }
             }
-            local old_rand_val = 0
-            local newpos
-            for i,l in ipairs(locs) do
-                local randVal = math.random(100)
-                if randVal > old_rand_val then
-                    newpos = i
-                    old_rand_val = randVal
-                end
-            end
 
+            local old_rand_val = 0
+            local newpos = math.random(#locs)
             local nh = AH.next_hop(unit, locs[newpos][1], locs[newpos][2])
             if nh then
                 AH.movefull_stopunit(ai, unit, nh)
@@ -185,12 +176,12 @@ return {
             if (cfg.zone_enemy) then
                 enemies = wesnoth.get_units {
                     { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
-                    { "and", cfg.zone_enemy }
+                    {"filter_location", cfg.zone_enemy}
                 }
             else
                 enemies = wesnoth.get_units {
                     { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
-                    { "and", cfg.zone_goals }
+                    {"filter_location", cfg.zone_goals}
                 }
             end
 
