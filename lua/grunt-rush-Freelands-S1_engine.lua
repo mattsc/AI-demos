@@ -182,9 +182,6 @@ return {
 
         function grunt_rush_FLS1:full_offensive()
             -- Returns true if the conditions to go on all-out offensive are met
-            -- 1. If Turn >= 16 and HP ratio > 1.5
-            -- 2. IF HP ratio > 2 under all circumstance (well, starting from Turn 3, to avoid problems at beginning)
-
             if (grunt_rush_FLS1:hp_ratio() > 1.5) and (wesnoth.current.turn >= 16) then return true end
             if (grunt_rush_FLS1:hp_ratio() > 2.0) and (wesnoth.current.turn >= 3) then return true end
             return false
@@ -753,7 +750,7 @@ return {
                 wesnoth.put_unit(hex[1], hex[2], unit)
             end
 
-            -- Get all possible attack combination
+            -- Get all possible attack combinations
             -- Restrict to a maximum of 1000 combos for now
             -- TODO: optimize this number, possibly make it variable depending on the situation
             --print_time('get_attack_combos')
@@ -1319,7 +1316,7 @@ return {
             local targets = {}
             -- If cfg.attack.use_enemies_in_reach is set, we use all enemies that
             -- can get to the zone (Note: this should only be used for small zones,
-            -- such as that consisting only of the AI leader position) otherwise it
+            -- such as that consisting only of the AI leader position, otherwise it
             -- might be very slow!!!)
             if cfg.attack and cfg.attack.use_enemies_in_reach then
                 for i,e in ipairs(enemies) do
