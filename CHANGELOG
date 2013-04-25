@@ -1,4 +1,4 @@
-0.12.3, ???
+0.13.0, ???
 - Generic Rush (Ron)
   - Improve village grabbing by leader when lacking gold to recruit
   - New Retreat CA based on ideas from Fred
@@ -9,16 +9,32 @@
   - New Move to Enemy CA if enemy has no visible leader and we already have all villages
   - New Village Hunt CA to prioritize villages when AI doesn't have an advantage in villages
   - Use healer support micro AI to improve healer placement
-- Freelands Side 1 Grunt Rush:
+- Freelands Side 1 Grunt Rush (Fred)
   - Changed retreat logic to match that of the generic rush
   - Remove north-south dependence of various CAs -> in principle Fred is now able to play any map
   - Add an "enemy_leader" zone that takes care of any unit not moved in one of the other zones
-  - Add approximate method for counter attack calculation (much faster than exact method)
-  - Take exposure to counter attacks into account for units other than side leader
-  - Lots of adjusting and fine-tuning of rating functions throughout the CAs
+  - Add approximate method for counter attack calculation (much faster than exact method)    
+  - Take exposure to counter attacks into account for units other than side leader for most possible moves
+  - Lots of adjusting, fine-tuning and bug fixes of rating functions throughout the CAs
+  - Add stop_unit CA that takes MP and attacks away from units at end of custom (non_RCA) CAs, so that the 
+    RCA AI doesn't do something we don't want with them.
 - ai_helper:
   - get_attack_combos: Use much more efficient method to find list of possible attacks
+  - get_attack_combos_subset: new method for finding attack combinations (it selects fewer combos and is 
+    configurable with a number of cutoff criteria)
+  - New functions print_ts() and print_ts_delta()
+- Healer Support MAI: add optional SUF for healers
+- New Goto and Zone Guardian Micro AIs
+- Test scenario:
+  - Can now be started from commandline with 'wesnoth -t aid_test'
+  - Add test engine and candidate action
 - General:
+  - Add tags for all releases
+  - Change to new 1.11.2 syntax and functionality:
+    - AI_CA_LEADER_SHARES_KEEP macro
+    - leader_shares_keep CA
+    - ai_default_rca for RCA AI
+    - wesnoth.get_time_stamp()
   - Run wmllint, fix problems found and add exceptions, where necessary
   - Clean up textdomain definition and bindings
 
