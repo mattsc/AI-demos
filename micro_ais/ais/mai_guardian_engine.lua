@@ -168,7 +168,7 @@ return {
 
         --Check if an enemy is detected in the zone_enemy (or zone_goals) and attack it or start the "move" randomly function
         function guardians:zone_guardian_exec(cfg)
-            local unit = wesnoth.get_units{ id = cfg.id }[1]
+            local unit = wesnoth.get_units { id = cfg.id }[1]
             local reach = wesnoth.find_reach(unit)
             -- enemy units within reach
 
@@ -176,12 +176,12 @@ return {
             if (cfg.zone_enemy) then
                 enemies = wesnoth.get_units {
                     { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
-                    {"filter_location", cfg.zone_enemy}
+                    { "filter_location", cfg.zone_enemy }
                 }
             else
                 enemies = wesnoth.get_units {
                     { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
-                    {"filter_location", cfg.zone_goals}
+                    { "filter_location", cfg.zone_goals }
                 }
             end
 
