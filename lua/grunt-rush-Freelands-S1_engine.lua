@@ -535,11 +535,10 @@ return {
                         perp_dist = 0
                     end
 
-
                     if (adv_dist >= min_dist - 1) or (not dx) then
                         local rating = 0
 
-                        rating = rating - math.abs(adv_dist) ^ 2.
+                        rating = rating + math.abs(adv_dist)
                         rating = rating - math.abs(perp_dist) / 2.
 
                         -- Small bonus if this is on a village
@@ -575,6 +574,7 @@ return {
                         end
 
                         -- Take terrain defense for enemies into account
+                        -- This also prefers hexes that cannot be reached by the enemy
                         local adj_defense = {}
                         for xa, ya in H.adjacent_tiles(x, y) do
                             local d_adv
@@ -593,7 +593,9 @@ return {
                                 total_enemy_defense = total_enemy_defense + adj_defense[i][2]
                             end
                         end
-                        local rating = rating - total_enemy_defense / 3. / 2. * terrain_weight
+                        -- Disable for the time being, as it really needs to be weighted by
+                        -- number of enemies that can get there
+                        --rating = rating - total_enemy_defense / 3. / 2. * terrain_weight
 
                         rating_map:insert(x, y, rating)
                     end
@@ -618,7 +620,7 @@ return {
                             local defense = 100 - wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))
                             rating = rating + defense * terrain_weight
 
-                            local cost = wesnoth.unit_types[u.type].cost
+                            --local cost = wesnoth.unit_types[u.type].cost
                             --local worth = cost * u.hitpoints / u.max_hitpoints
                             --local damage = ---- TODO ? ----
                             --print("id, cost, worth, damage:", u.id, cost, worth, damage)
