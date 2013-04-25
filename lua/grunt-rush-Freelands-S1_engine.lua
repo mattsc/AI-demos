@@ -538,7 +538,7 @@ return {
                     if (adv_dist >= min_dist - 1) or (not dx) then
                         local rating = 0
 
-                        rating = rating + math.abs(adv_dist)
+                        rating = rating - math.abs(adv_dist)
                         rating = rating - math.abs(perp_dist) / 2.
 
                         -- Small bonus if this is on a village
