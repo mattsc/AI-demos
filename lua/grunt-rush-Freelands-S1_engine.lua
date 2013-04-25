@@ -549,6 +549,18 @@ return {
                             rating = rating + 7
                         end
 
+                        -- Add penalty if this is a location next to an unoccupied village
+                        -- TODO: probably should only add this penalty if the village can be reached by enemies
+                        for xa, ya in H.adjacent_tiles(x, y) do
+                            local is_adj_village = wesnoth.get_terrain_info(wesnoth.get_terrain(xa, ya)).village
+                            if is_adj_village then
+                                local unit_on_village = wesnoth.get_unit(xa, ya)
+                                if (not unit_on_village) or (unit_on_village.moves > 0) then
+                                    rating = rating - 7
+                                end
+                            end
+                        end
+
                         -- We also, ideally, want to be 3 hexes from the closest unit that has
                         -- already moved, so as to ZOC the zone
                         local min_dist = 9999
