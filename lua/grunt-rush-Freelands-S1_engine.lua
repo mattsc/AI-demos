@@ -535,7 +535,8 @@ return {
                         perp_dist = 0
                     end
 
-                    if ((adv_dist <= 1) and (adv_dist > min_dist - 1)) or (not dx) then
+
+                    if (adv_dist >= min_dist - 1) or (not dx) then
                         local rating = 0
 
                         rating = rating - math.abs(adv_dist) ^ 2.
