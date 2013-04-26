@@ -544,15 +544,15 @@ return {
                         -- Small bonus if this is on a village
                         -- Village will also get bonus from defense rating below
                         local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
-                        if is_village then
+                        if is_village and enemy_defense_map:get(x, y) then
                             rating = rating + 7
                         end
 
                         -- Add penalty if this is a location next to an unoccupied village
-                        -- TODO: probably should only add this penalty if the village can be reached by enemies
                         for xa, ya in H.adjacent_tiles(x, y) do
                             local is_adj_village = wesnoth.get_terrain_info(wesnoth.get_terrain(xa, ya)).village
-                            if is_adj_village then
+                            -- If there is an adjacent village and the enemy can get to that village
+                            if is_adj_village and enemy_defense_map:get(xa, ya) then
                                 local unit_on_village = wesnoth.get_unit(xa, ya)
                                 if (not unit_on_village) or (unit_on_village.moves > 0) then
                                     rating = rating - 7
