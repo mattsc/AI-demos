@@ -563,17 +563,27 @@ return {
                         end
 
                         -- We also, ideally, want to be 3 hexes from the closest unit that has
-                        -- already moved, so as to ZOC the zone
+                        -- already moved, so as to ZOC the zone,
+                        -- but only (approximately) perpendicular to the advance direction
                         local min_dist = 9999
                         for j,m in ipairs(units_noMP) do
-                            local dist = H.distance_between(x, y, m.x, m.y)
-                            if (dist < min_dist) then min_dist = dist end
+                            local ldx, ldy
+                            if dx then
+                                ldx, ldy = dx, dy
+                            else
+                                ldx, ldy = enemy_leader.x - x, enemy_leader.y - y
+                                local r = math.sqrt(ldx*ldx + ldy*ldy)
+                                ldx, ldy = ldx / r, ldy / r
+                            end
+                            local parl = math.abs((x - m.x) * ldx + (y - m.y) * ldy)
+                            --local perp = math.abs((x - m.x) * ldy + (y - m.y) * ldx)
+                            if (parl < 2) then
+                                local dist = H.distance_between(x, y, m.x, m.y)
+                                if (dist < min_dist) then min_dist = dist end
+                            end
                         end
-
-                        if dx then
-                            if (min_dist == 3) then rating = rating + 2.5 end
-                            if (min_dist == 2) then rating = rating + 1.5 end
-                        end
+                        if (min_dist == 3) then rating = rating + 1.9 end
+                        if (min_dist == 2) then rating = rating + 0.9 end
 
                         -- Take terrain defense for enemies into account
                         -- This also prefers hexes that cannot be reached by the enemy
