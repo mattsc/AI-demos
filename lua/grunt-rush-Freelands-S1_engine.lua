@@ -450,10 +450,9 @@ return {
 
                 -- Minimum distance from reference hex for zone holding
                 local min_dist = cfg.hold.min_dist or 0
-                local max_perp_dist = cfg.hold.max_perp_dist or 2
 
                 if (not dx) then
-                    min_dist, max_perp_dist = -9e99, 9e99
+                    min_dist = -9e99
                 end
 
                 -- Determine where to set up the line for holding the zone
