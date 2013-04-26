@@ -660,7 +660,7 @@ return {
                             local hp_left_fraction = av_hp / u.hitpoints
                             local hp_loss_rating = 1. / (hp_left_fraction + 0.001) - 0.999
                             --print(u.hitpoints, av_hp, 20. / ( av_hp + 0.01 ), hp_left_fraction, hp_loss_rating)
-                            rating = rating - hp_loss_rating * 2.
+                            rating = rating - hp_loss_rating * 1.5
 
                             reach_map:insert(x, y, rating)
 
