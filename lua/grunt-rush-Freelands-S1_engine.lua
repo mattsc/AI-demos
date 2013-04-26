@@ -429,7 +429,7 @@ return {
                 table.insert(enemy_attack_maps, attack_map)
             end
 
-            local terrain_weight = 0.51
+            local terrain_weight = 0.15
 
             -- Now move units into holding positions
             -- The while loop doesn't do anything for now, placeholder for later
@@ -538,14 +538,17 @@ return {
                     if (adv_dist >= min_dist - 1) or (not dx) then
                         local rating = 0
 
+                        -- A hex forward is worth one "point"
+                        -- This is the base rating that everything else is compared with
                         rating = rating - math.abs(adv_dist)
-                        rating = rating - math.abs(perp_dist) / 2.
+                        -- Also want to be close to center of zone, but much less importantly
+                        rating = rating - (math.abs(perp_dist) / 4.) ^ 2.
 
                         -- Small bonus if this is on a village
                         -- Village will also get bonus from defense rating below
                         local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
                         if is_village and enemy_defense_map:get(x, y) then
-                            rating = rating + 7
+                            rating = rating + 1.9
                         end
 
                         -- Add penalty if this is a location next to an unoccupied village
@@ -555,7 +558,7 @@ return {
                             if is_adj_village and enemy_defense_map:get(xa, ya) then
                                 local unit_on_village = wesnoth.get_unit(xa, ya)
                                 if (not unit_on_village) or (unit_on_village.moves > 0) then
-                                    rating = rating - 7
+                                    rating = rating - 1.9
                                 end
                             end
                         end
@@ -569,8 +572,8 @@ return {
                         end
 
                         if dx then
-                            if (min_dist == 3) then rating = rating + 6 end
-                            if (min_dist == 2) then rating = rating + 4 end
+                            if (min_dist == 3) then rating = rating + 2.5 end
+                            if (min_dist == 2) then rating = rating + 1.5 end
                         end
 
                         -- Take terrain defense for enemies into account
@@ -644,7 +647,11 @@ return {
                             end
                             --print_time(cfg.zone_id, u.id, x, y, av_hp)
                             --rating = rating + av_hp
-                            rating = rating - 20. / ( av_hp + 0.01 )
+
+                            local hp_left_fraction = av_hp / u.hitpoints
+                            local hp_loss_rating = 1. / (hp_left_fraction + 0.001) - 0.999
+                            --print(u.hitpoints, av_hp, 20. / ( av_hp + 0.01 ), hp_left_fraction, hp_loss_rating)
+                            rating = rating - hp_loss_rating * 2.
 
                             reach_map:insert(x, y, rating)
 
