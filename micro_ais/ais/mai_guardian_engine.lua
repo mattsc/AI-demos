@@ -149,42 +149,17 @@ return {
 			end
         end
 
-        -- Moves the guardian randomly in the "zone_goals".
-        function guardians:zone_guardian_move_randomly(cfg, unit, ai)
-            local width, height = wesnoth.get_map_size()
-            local locs = wesnoth.get_locations {
-                x = '1-' .. width,
-                y = '1-' .. height,
-                { "and", cfg.zone_goals }
-            }
-
-            local old_rand_val = 0
-            local newpos = math.random(#locs)
-            local nh = AH.next_hop(unit, locs[newpos][1], locs[newpos][2])
-            if nh then
-                AH.movefull_stopunit(ai, unit, nh)
-            end
-        end
-
         --Check if an enemy is detected in the zone_enemy (or zone_goals) and attack it or start the "move" randomly function
         function guardians:zone_guardian_exec(cfg)
             local unit = wesnoth.get_units { id = cfg.id }[1]
             local reach = wesnoth.find_reach(unit)
+            local zone_enemy = cfg.zone_enemy or cfg.zone_goals
             -- enemy units within reach
 
-            local enemies
-            if (cfg.zone_enemy) then
-                enemies = wesnoth.get_units {
+            local enemies = wesnoth.get_units {
                     { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
-                    { "filter_location", cfg.zone_enemy }
+                    { "filter_location", zone_enemy }
                 }
-            else
-                enemies = wesnoth.get_units {
-                    { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
-                    { "filter_location", cfg.zone_goals }
-                }
-            end
-
             if enemies[1] then
 
                 local target = {}
@@ -256,7 +231,17 @@ return {
             -- If no enemy around or within the zone, move toward "random" position which are mainy the borders
             else
                 --print "Move toward newpos"
-                guardians:zone_guardian_move_randomly(cfg, unit, ai)
+                local width, height = wesnoth.get_map_size()
+                local locs = wesnoth.get_locations {
+                    x = '1-' .. width,
+                    y = '1-' .. height,
+                    { "and", cfg.zone_goals }
+                }
+                local newpos = math.random(#locs)
+                local nh = AH.next_hop(unit, locs[newpos][1], locs[newpos][2])
+                if nh then
+                    AH.movefull_stopunit(ai, unit, nh)
+                end
             end
 
             -- Get unit again, just in case something was done to it in a 'moveto' or 'attack' event
