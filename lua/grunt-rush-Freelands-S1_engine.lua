@@ -1549,7 +1549,7 @@ return {
                             -- Or for normal units, use the somewhat looser criteria
                             else  -- Or for normal units, use the somewhat looser criteria
                                 -- Add damage from attack and counter attack
-                                --local av_outcome =  counter_average_hp - average_damage
+                                local av_outcome =  counter_average_hp - average_damage
                                 --print('Non-leader: av_outcome, counter_average_hp, average_damage', av_outcome, counter_average_hp, average_damage)
                                 --print('   damage_cost_a, damage_cost_e:', damage_cost_a, damage_cost_e)
 
