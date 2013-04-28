@@ -1522,7 +1522,13 @@ return {
                             local counter_min_hp = counter_table[att_ind][dst_ind].min_hp
                             local counter_stats = counter_table[att_ind][dst_ind].counter_stats
                             local counter_average_hp = counter_stats.average_hp
-                            --print_time('counter_average_hp, counter_min_hp', counter_average_hp, counter_min_hp)
+                            --print_time('counter_average_hp, counter_min_hp, counter_CTD', counter_average_hp, counter_min_hp, counter_stats.hp_chance[0])
+
+                            -- Damage cost" for attacker and enemy.  This is the likelihood to die
+                            -- multiplied by the cost of the unit
+                            local damage_cost_e = combo_def_stats.hp_chance[0] * wesnoth.unit_types[e.type].cost
+                            local damage_cost_a = counter_stats.hp_chance[0] * wesnoth.unit_types[a.type].cost
+                            --print_time('  --> damage cost attacker vs. enemy', damage_cost_a, damage_cost_e)
 
                             -- If there's a chance of the leader getting poisoned or slowed, don't do it
                             -- Also, if the stats would go too low
@@ -1543,10 +1549,13 @@ return {
                             -- Or for normal units, use the somewhat looser criteria
                             else  -- Or for normal units, use the somewhat looser criteria
                                 -- Add damage from attack and counter attack
-                                local av_outcome =  counter_average_hp - average_damage
+                                --local av_outcome =  counter_average_hp - average_damage
                                 --print('Non-leader: av_outcome, counter_average_hp, average_damage', av_outcome, counter_average_hp, average_damage)
 
-                                if (av_outcome <= 5) or (counter_stats.hp_chance[0] >= max_hp_chance_zero) then
+                                --if (av_outcome <= 5) or (counter_stats.hp_chance[0] >= max_hp_chance_zero) then
+                                -- Use the "damage cost"
+                                -- This is still experimental for now, so I'll leave the rest of the code here, commented out
+                                if (damage_cost_a > damage_cost_e) then
                                     do_attack = false
                                     break
                                 end
