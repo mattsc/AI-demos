@@ -1400,7 +1400,11 @@ return {
             local counter_table = {}  -- Counter-attacks are very expensive, store to avoid duplication
             local cache_this_move = {}  -- same reason
             for i,e in ipairs(targets) do
-                --print_time('\n', i, e.id)
+                -- How much more valuable do we consider the enemy units than out own
+                local enemy_worth = cfg.enemy_worth or 1
+                if e.canrecruit then enemy_worth = enemy_worth * 5 end
+
+                --print_time('\n', i, e.id, enemy_worth)
                 local attack_combos = AH.get_attack_combos(attackers, e, { include_occupied = true })
                 --DBG.dbms(attack_combos)
                 --print('#attack_combos', #attack_combos)
@@ -1557,7 +1561,7 @@ return {
                                 if (av_outcome <= 5) or (counter_stats.hp_chance[0] >= max_hp_chance_zero) then
                                     -- Use the "damage cost"
                                     -- This is still experimental for now, so I'll leave the rest of the code here, commented out
-                                    if (damage_cost_a > damage_cost_e) then
+                                    if (damage_cost_a > damage_cost_e * enemy_worth ) then
                                         do_attack = false
                                         break
                                     end
