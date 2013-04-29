@@ -1535,6 +1535,9 @@ return {
                             -- multiplied by the cost of the unit
                             local damage_cost_e = combo_def_stats.hp_chance[0] * wesnoth.unit_types[e.type].cost
                             local damage_cost_a = counter_stats.hp_chance[0] * wesnoth.unit_types[a.type].cost
+                            -- Add XP rating
+                            damage_cost_e = damage_cost_e * ( 1 + e.experience / e.max_experience)
+                            damage_cost_a = damage_cost_a * ( 1 + a.experience / a.max_experience)
                             --print_time('  --> damage cost attacker vs. enemy', damage_cost_a, damage_cost_e)
 
                             -- If there's a chance of the leader getting poisoned or slowed, don't do it
