@@ -1279,11 +1279,12 @@ function ai_helper.get_attack_combos(units, enemy, cfg)
     for x, y in H.adjacent_tiles(enemy.x, enemy.y) do
 
         -- Make sure the hex is not occupied by unit that cannot move out of the way
-        if (not blocked_hexes:get(x, y)) then
 
-            local dst = x * 1000 + y
+        local dst = x * 1000 + y
 
-            for i,u in ipairs(units) do
+        for i,u in ipairs(units) do
+            if ((u.x == x) and (u.y == y)) or (not blocked_hexes:get(x, y)) then
+
                 -- helper.distance_between() is much faster than wesnoth.find_path()
                 --> pre-filter using the former
                 local cost = H.distance_between(u.x, u.y, x, y)
