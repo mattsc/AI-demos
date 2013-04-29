@@ -1430,6 +1430,7 @@ return {
                     -- Don't attack if CTD (chance to die) is too high for any of the attackers
                     -- which means 30% CTD for normal units and 0% for leader
                     local do_attack = true
+                    local MP_left = false
                     for k,att_stats in ipairs(combo_att_stats) do
                         if (not sorted_atts[k].canrecruit) then
                             if (att_stats.hp_chance[0] > 0.3) then
@@ -1442,10 +1443,15 @@ return {
                                 break
                             end
                         end
+                        -- Checking for counter attacks (below) only makes sense
+                        -- if at least one of the units can move away
+                        -- TODO: there are some exceptions from this rule - add that in later
+                        if (sorted_atts[k].moves > 0) then MP_left = true end
                     end
 
                     -- Check potential counter attack outcome
-                    if do_attack then
+                    if do_attack and MP_left then
+                        --print_time('\nChecking counter attack on', i, e.id, enemy_worth)
 
                         -- We first need to move all units into place, as the counter attack threat
                         -- should be calculated for that formation as a whole
