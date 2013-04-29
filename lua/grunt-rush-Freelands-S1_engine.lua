@@ -1774,16 +1774,19 @@ return {
             end
             --DBG.dbms(unit_filter)
             local all_units = AH.get_live_units(unit_filter)
-            local zone_units, zone_units_noMP = {}, {}
+            local zone_units, zone_units_noMP, zone_units_attacks = {}, {}, {}
             for i,u in ipairs(all_units) do
                 if (u.moves > 0) then
                     table.insert(zone_units, u)
                 else
                     table.insert(zone_units_noMP, u)
                 end
+                if (u.attacks_left > 0) then
+                    table.insert(zone_units_attacks, u)
+                end
             end
 
-            if (not zone_units[1]) then return end
+            if (not zone_units[1]) and (not zone_units_attacks[1]) then return end
 
             local all_zone_units = {}
             for i,u in ipairs(zone_units) do table.insert(all_zone_units, u) end
@@ -1833,7 +1836,7 @@ return {
             --print_time('  ' .. cfg.zone_id .. ': attack eval')
             if (not cfg.do_action) or cfg.do_action.attack then
                 if (not cfg.skip_action) or (not cfg.skip_action.attack)  then
-                    local action = grunt_rush_FLS1:zone_action_attack(zone_units, enemies, zone, zone_map, cfg)
+                    local action = grunt_rush_FLS1:zone_action_attack(zone_units_attacks, enemies, zone, zone_map, cfg)
                     if action then
                         --print(action.action)
                         return action
