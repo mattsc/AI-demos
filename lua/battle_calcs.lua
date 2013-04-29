@@ -847,7 +847,7 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg, cache)
     --print('  value_fraction damage + CTD:', value_fraction)
 
     -- Being closer to leveling is good (this makes AI prefer units with lots of XP)
-    local xp_bonus = 1. - (attacker.max_experience - attacker.experience) / attacker.max_experience
+    local xp_bonus = attacker.experience / attacker.max_experience
     value_fraction = value_fraction + xp_bonus * xp_weight
     --print('  XP bonus:', xp_bonus, value_fraction)
 
@@ -940,7 +940,7 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg, cache)
     --print('  defender_starting_damage_fraction:', defender_starting_damage_fraction, value_fraction)
 
     -- Being closer to leveling is good, we want to get rid of those enemies first
-    local xp_bonus = 1. - (defender.max_experience - defender.experience) / defender.max_experience
+    local xp_bonus = defender.experience / defender.max_experience
     value_fraction = value_fraction + xp_bonus * xp_weight
     --print('  defender XP bonus:', xp_bonus, value_fraction)
 
