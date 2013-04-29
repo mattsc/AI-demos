@@ -67,7 +67,7 @@ return {
                 zone_filter = { { 'filter', { canrecruit = 'yes', side = wesnoth.current.side } } },
                 unit_filter = { x = '1-' .. width , y = '1-' .. height },
                 do_action = { attack = true },
-                attack = { use_enemies_in_reach = true }
+                attack = { use_enemies_in_reach = true, enemy_worth = 2. }
             }
 
             local cfg_center = {
@@ -1401,7 +1401,10 @@ return {
             local cache_this_move = {}  -- same reason
             for i,e in ipairs(targets) do
                 -- How much more valuable do we consider the enemy units than out own
-                local enemy_worth = cfg.enemy_worth or 1
+                local enemy_worth = 1
+                if cfg.attack and cfg.attack.enemy_worth then
+                    enemy_worth = cfg.attack.enemy_worth
+                end
                 if e.canrecruit then enemy_worth = enemy_worth * 5 end
 
                 --print_time('\n', i, e.id, enemy_worth)
