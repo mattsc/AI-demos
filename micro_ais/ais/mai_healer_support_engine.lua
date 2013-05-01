@@ -93,13 +93,13 @@ return {
             cfg = cfg or {}
 
             local healers = wesnoth.get_units { side = wesnoth.current.side, ability = "healing",
-                formula = '$this_unit.moves > 0', { "and", cfg.healers }
+                formula = '$this_unit.moves > 0', { "and", cfg.filter }
             }
 
             if (not healers[1]) then return 0 end
 
             local healers_noMP = wesnoth.get_units { side = wesnoth.current.side, ability = "healing",
-                formula = '$this_unit.moves = 0', { "and", cfg.healers }
+                formula = '$this_unit.moves = 0', { "and", cfg.filter }
             }
 
             local all_units = wesnoth.get_units{ side = wesnoth.current.side }

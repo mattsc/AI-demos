@@ -160,7 +160,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
             cfg_hs.injured_units_only = cfg.injured_units_only
             cfg_hs.max_threats = cfg.max_threats
 
-            cfg_hs.healers = H.get_child(cfg, "healers")
+            cfg_hs.filter = H.get_child(cfg, "filter")
         end
 
         -- Set up the CA add/delete parameters
