@@ -133,11 +133,11 @@ return {
 
 
         ----- The zone guardian AI -----
-        -- Required params : id, zone_goals (SFL)
-        -- Optional params : zone_enemy (SLF)
+        -- Required params : id, filter_location (SFL)
+        -- Optional params : filter_location_enemy (SLF)
 
-        -- The zone guardian randomly moves accross the specified zone_goals until
-        -- it "detects" an enemy in zone_enemy (if specified) or in the zone_goals (otherwise).
+        -- The zone guardian randomly moves accross the specified filter_location until
+        -- it "detects" an enemy in filter_location_enemy (if specified) or in the filter_location (otherwise).
         -- It then attacks this enemy until it goes out of the "attack zone"
 
         function guardians:zone_guardian_eval(cfg)
@@ -149,11 +149,11 @@ return {
 			end
         end
 
-        --Check if an enemy is detected in the zone_enemy (or zone_goals) and attack it or start the "move" randomly function
+        --Check if an enemy is detected in filter_location_enemy (or filter_location) and attack it or start the "move" randomly function
         function guardians:zone_guardian_exec(cfg)
             local unit = wesnoth.get_units { id = cfg.id }[1]
             local reach = wesnoth.find_reach(unit)
-            local zone_enemy = cfg.zone_enemy or cfg.zone_goals
+            local zone_enemy = cfg.filter_location_enemy or cfg.filter_location
             -- enemy units within reach
 
             local enemies = wesnoth.get_units {
@@ -235,7 +235,7 @@ return {
                 local locs = wesnoth.get_locations {
                     x = '1-' .. width,
                     y = '1-' .. height,
-                    { "and", cfg.zone_goals }
+                    { "and", cfg.filter_location }
                 }
                 local newpos = math.random(#locs)
                 local nh = AH.next_hop(unit, locs[newpos][1], locs[newpos][2])
