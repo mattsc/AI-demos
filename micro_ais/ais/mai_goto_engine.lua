@@ -5,6 +5,7 @@ return {
 
         local H = wesnoth.require "lua/helper.lua"
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
+        local LS = wesnoth.require "lua/location_set.lua"
         --local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
         function goto_engine:goto_eval(cfg)
@@ -18,6 +19,34 @@ return {
                     return 0
                 end
             end
+
+            -- For convenience, we check for locations here, and just pass that to the exec function
+            -- This is mostly to make the unique_goals option easier
+            local width, height = wesnoth.get_map_size()
+            local locs = wesnoth.get_locations {
+                x = '1-' .. width,
+                y = '1-' .. height,
+                { "and", cfg.goto_goals }
+            }
+            --print('#locs org', #locs)
+            if (#locs == 0) then return 0 end
+
+            -- If 'unique_goals' is set, check whether there are locations left to go to
+            if cfg.unique_goals then
+                -- First, some cleanup of previous turn data
+                local str = 'goals_taken-' .. (wesnoth.current.turn - 1)
+                self.data[str] = nil
+
+                -- Now on to the current turn
+                local str = 'goals_taken-' .. wesnoth.current.turn
+                for i = #locs,1,-1 do
+                    if self.data[str] and self.data[str]:get(locs[i][1], locs[i][2]) then
+                        table.remove(locs, i)
+                    end
+                end
+            end
+            --print('#locs mod', #locs)
+            if (not locs[1]) then return 0 end
 
             -- Find the goto units
             local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = "no",
@@ -33,36 +62,16 @@ return {
                     end
                 end
             end
+            if (not units[1]) then return 0 end
 
-            local score = cfg.ca_score or 210000
-            if units[1] then return score end
-            return 0
+            -- Now store units and locs in self.data, so that we don't need to duplicate this in the exec function
+            self.data.units, self.data.locs = units, locs
+
+            return cfg.ca_score or 210000
         end
 
         function goto_engine:goto_exec(cfg)
-            local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = "no",
-                { "and", cfg.goto_units }, formula = '$this_unit.moves > 0'
-            }
-
-            -- Exclude released units
-            if cfg.release_unit_at_goal then
-                for i=#units,1,-1 do
-                    local str = cfg.ca_id .. '-release-' .. units[i].id
-                    if self.data[str] then
-                        table.remove(units, i)
-                    end
-                end
-            end
-            --print('#units', #units)
-
-            -- Find all locations matching [goto_goals], excluding border hexes
-            local width, height = wesnoth.get_map_size()
-            local locs = wesnoth.get_locations {
-                x = '1-' .. width,
-                y = '1-' .. height,
-                { "and", cfg.goto_goals }
-            }
-            --print('#locs', #locs)
+            local units, locs = self.data.units, self.data.locs  -- simply for convenience
 
             local closest_hex, best_unit, max_rating = {}, {}, -9e99
             for i,u in ipairs(units) do
@@ -109,6 +118,13 @@ return {
 
             AH.movefull_outofway_stopunit(ai, best_unit, closest_hex[1], closest_hex[2])
 
+            -- If 'unique_goals' is set, mark this location as being taken
+            if cfg.unique_goals then
+                local str = 'goals_taken-' .. wesnoth.current.turn
+                if (not self.data[str]) then self.data[str] = LS.create() end
+                self.data[str]:insert(closest_hex[1], closest_hex[2])
+            end
+
             -- If release_unit_at_goal= or release_all_units_at_goal= key is set:
             -- Check if the unit made it to one of the goal hexes
             -- This needs to be done for the original goal hexes, not checking the SLF again,
@@ -137,6 +153,9 @@ return {
                     end
                 end
             end
+
+            -- And some cleanup
+            self.data.units, self.data.locs = nil, nil
         end
 
         return goto_engine
