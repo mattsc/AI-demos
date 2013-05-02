@@ -798,7 +798,7 @@ function wesnoth.wml_actions.micro_ai(cfg)
     if (cfg.ai_type == 'goto') then
         local cfg_go = {}
 
-        local required_keys = { "goto_units", "goto_goals" }
+        local required_keys = { "filter", "filter_location" }
         local optional_keys = { "ca_score", "release_all_units_at_goal", "release_unit_at_goal", "unique_goals", "use_straight_line" }
 
         if (cfg.action~='delete') then

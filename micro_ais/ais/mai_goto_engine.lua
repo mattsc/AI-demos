@@ -26,7 +26,7 @@ return {
             local locs = wesnoth.get_locations {
                 x = '1-' .. width,
                 y = '1-' .. height,
-                { "and", cfg.goto_goals }
+                { "and", cfg.filter_location }
             }
             --print('#locs org', #locs)
             if (#locs == 0) then return 0 end
@@ -50,7 +50,7 @@ return {
 
             -- Find the goto units
             local units = wesnoth.get_units { side = wesnoth.current.side, canrecruit = "no",
-                { "and", cfg.goto_units }, formula = '$this_unit.moves > 0'
+                { "and", cfg.filter }, formula = '$this_unit.moves > 0'
             }
 
             -- Exclude released units
