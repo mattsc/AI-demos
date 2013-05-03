@@ -1526,7 +1526,6 @@ function battle_calcs.get_attack_combos_subset(units, enemy, cfg)
         end
     end
 
-
     -- Now set up an array containing the attack locations for each unit
     local attacks = {}
     -- We also need a numbered array of the possible attack hex coordinates
