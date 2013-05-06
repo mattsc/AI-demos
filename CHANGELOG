@@ -23,11 +23,20 @@
   - get_attack_combos_subset: new method for finding attack combinations (it selects fewer combos and is 
     configurable with a number of cutoff criteria)
   - New functions print_ts() and print_ts_delta()
+- Micro AIs
+  - Remove code that is now also in mainline and use mainline functionality instead
+  - Switch syntax for SUFs/SLFs to [filter]/[filter_location] and variants thereof
 - Healer Support MAI: add optional SUF for healers
 - New Goto and Zone Guardian Micro AIs
+- New scenarios:
+  - Liberty - The Raid: test scenario for mainline scenario with new AI for wolf rider side
+  - Simple Lua AI Demo: meant as template for people to use for Lua AI development
 - Test scenario:
   - Can now be started from commandline with 'wesnoth -t aid_test'
   - Add test engine and candidate action
+- Switchboard scenario
+  - Indicate which AIs are in mainline and which are not
+  - Add signpost and right-click options for new scenarios/AIs
 - General:
   - Add tags for all releases
   - Change to new 1.11.2 syntax and functionality:
