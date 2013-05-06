@@ -59,7 +59,7 @@ return {
                 zone_id = 'full_map',
                 zone_filter = { x = '1-' .. width , y = '1-' .. height },
                 unit_filter = { x = '1-' .. width , y = '1-' .. height },
-                do_action = { retreat_injured = true, villages = true },
+                do_action = { retreat_injured_safe = true, retreat_injured_unsafe = false, villages = true },
             }
 
             local cfg_leader_threat = {
@@ -1232,9 +1232,12 @@ return {
             if unit then
                 local allowable_retreat_threat = cfg.allowable_retreat_threat or 0
                 if (enemy_threat <= allowable_retreat_threat) then
+                    -- Is this a healing location?
+                    local healloc = false
+                    if (dest[3] > 2) then healloc = true end
                     local action = { units = {unit}, dsts = {dest}, type = 'village', reserve = dest }
                     action.action = cfg.zone_id .. ': ' .. 'retreat severely injured units'
-                    return action
+                    return action, healloc
                 end
             end
         end
@@ -1815,12 +1818,15 @@ return {
 
             -- **** Retreat severely injured units evaluation ****
             --print_time('  ' .. cfg.zone_id .. ': retreat_injured eval')
-            if (not cfg.do_action) or cfg.do_action.retreat_injured then
+            local retreat_action
+            if (not cfg.do_action) or cfg.do_action.retreat_injured_safe then
                 if (not cfg.skip_action) or (not cfg.skip_action.retreat_injured)  then
-                    local action = grunt_rush_FLS1:zone_action_retreat_injured(zone_units, cfg)
-                    if action then
+                    local healloc  -- boolean indicating whether the destination is a healing location
+                    retreat_action, healloc = grunt_rush_FLS1:zone_action_retreat_injured(zone_units, cfg)
+                    -- Only retreat to healing locations at this time, other locations later
+                    if retreat_action and healloc then
                         --print(action.action)
-                        return action
+                        return retreat_action
                     end
                 end
             end
@@ -1868,6 +1874,14 @@ return {
                         --print(action.action)
                         return action
                     end
+                end
+            end
+
+            -- Now we retreat injured units to other locations
+            if (not cfg.do_action) or cfg.do_action.retreat_injured_unsafe then
+                if retreat_action then
+                    --print(action.action)
+                    return retreat_action
                 end
             end
 
