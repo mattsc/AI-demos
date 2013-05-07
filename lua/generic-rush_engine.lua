@@ -12,7 +12,7 @@ return {
         local BC = wesnoth.require "~/add-ons/AI-demos/lua/battle_calcs.lua"
         local LS = wesnoth.require "lua/location_set.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
-        local HS = wesnoth.require("~/add-ons/AI-demos/micro_ais/ais/mai_healer_support_engine.lua").init(ai)
+        local HS = wesnoth.require("ai/micro_ais/ais/mai_healer_support_engine.lua").init(ai)
         local R = wesnoth.require "~/add-ons/AI-demos/lua/retreat.lua"
 
         local function print_time(...)
