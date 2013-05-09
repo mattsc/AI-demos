@@ -1651,9 +1651,10 @@ return {
             --print_time('hold')
 
             -- The leader does not participate in position holding (for now, at least)
+            -- We also exclude severely injured units
             local holders = {}
             for i,u in ipairs(units) do
-                if (not u.canrecruit) then
+                if (not u.canrecruit) and (u.hitpoints >= R.min_hp(u)) then
                     table.insert(holders, u)
                 end
             end
