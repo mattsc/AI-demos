@@ -59,7 +59,7 @@ return {
                 zone_id = 'full_map',
                 zone_filter = { x = '1-' .. width , y = '1-' .. height },
                 unit_filter = { x = '1-' .. width , y = '1-' .. height },
-                do_action = { retreat_injured_safe = true, retreat_injured_unsafe = false, villages = true },
+                do_action = { retreat_injured_safe = true, villages = true },
             }
 
             local cfg_leader_threat = {
@@ -74,6 +74,7 @@ return {
                 zone_id = 'center',
                 zone_filter = { x = '15-24', y = '1-16' },
                 unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
+                skip_action = { retreat_injured_unsafe = true },
                 hold = { x = 20, y = 9, dx = 0, dy = 1, hp_ratio = 0.67 },
                 retreat_villages = { { 18, 9 }, { 24, 7 }, { 22, 2 } },
                 villages = { units_per_village = 0 }
@@ -83,6 +84,7 @@ return {
                 zone_id = 'left',
                 zone_filter = { x = '4-14', y = '1-15' },
                 unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
+                skip_action = { retreat_injured_unsafe = true },
                 hold = { x = 11, y = 9, dx = 0, dy = 1, hp_ratio = 1.0 },
                 secure = { x = 11, y = 9, moves_away = 2, min_units = 1 },
                 retreat_villages = { { 11, 9 }, { 8, 5 }, { 12, 5 }, { 12, 2 } },
@@ -93,6 +95,7 @@ return {
                 zone_id = 'right',
                 zone_filter = { x = '25-34', y = '1-17' },
                 unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
+                skip_action = { retreat_injured_unsafe = true },
                 hold = { x = 27, y = 11, dx = 0, dy = 1 },
                 retreat_villages = { { 24, 7 }, { 28, 5 } }
             }
@@ -1820,7 +1823,7 @@ return {
             --print_time('  ' .. cfg.zone_id .. ': retreat_injured eval')
             local retreat_action
             if (not cfg.do_action) or cfg.do_action.retreat_injured_safe then
-                if (not cfg.skip_action) or (not cfg.skip_action.retreat_injured)  then
+                if (not cfg.skip_action) or (not cfg.skip_action.retreat_injured) then
                     local healloc  -- boolean indicating whether the destination is a healing location
                     retreat_action, healloc = grunt_rush_FLS1:zone_action_retreat_injured(zone_units, cfg)
                     -- Only retreat to healing locations at this time, other locations later
@@ -1835,7 +1838,7 @@ return {
             --print_time('  ' .. cfg.zone_id .. ': villages eval')
             local village_action = nil
             if (not cfg.do_action) or cfg.do_action.villages then
-                if (not cfg.skip_action) or (not cfg.skip_action.villages)  then
+                if (not cfg.skip_action) or (not cfg.skip_action.villages) then
                     village_action = grunt_rush_FLS1:zone_action_villages(zone_units, enemies, cfg)
                     if village_action and (village_action.rating > 100) then
                         --print(village_action.action)
@@ -1847,7 +1850,7 @@ return {
             -- **** Attack evaluation ****
             --print_time('  ' .. cfg.zone_id .. ': attack eval')
             if (not cfg.do_action) or cfg.do_action.attack then
-                if (not cfg.skip_action) or (not cfg.skip_action.attack)  then
+                if (not cfg.skip_action) or (not cfg.skip_action.attack) then
                     local action = grunt_rush_FLS1:zone_action_attack(zone_units_attacks, enemies, zone, zone_map, cfg)
                     if action then
                         --print(action.action)
@@ -1868,7 +1871,7 @@ return {
             -- **** Hold position evaluation ****
             --print_time('  ' .. cfg.zone_id .. ': hold eval')
             if (not cfg.do_action) or cfg.do_action.hold then
-                if (not cfg.skip_action) or (not cfg.skip_action.hold)  then
+                if (not cfg.skip_action) or (not cfg.skip_action.hold) then
                     local action = grunt_rush_FLS1:zone_action_hold(zone_units, zone_units_noMP, enemies, zone_map, enemy_defense_map, cfg)
                     if action then
                         --print(action.action)
@@ -1877,11 +1880,13 @@ return {
                 end
             end
 
-            -- Now we retreat injured units to other locations
+            -- Now we retreat injured units to other (unsafe) locations
             if (not cfg.do_action) or cfg.do_action.retreat_injured_unsafe then
-                if retreat_action then
-                    --print(action.action)
-                    return retreat_action
+                if (not cfg.skip_action) or (not cfg.skip_action.retreat_injured_unsafe) then
+                    if retreat_action then
+                        --print(action.action)
+                        return retreat_action
+                    end
                 end
             end
 
