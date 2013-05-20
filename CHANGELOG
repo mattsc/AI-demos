@@ -15,6 +15,7 @@
   - Add an "enemy_leader" zone that takes care of any unit not moved in one of the other zones
   - Add approximate method for counter attack calculation (much faster than exact method)    
   - Take exposure to counter attacks into account for units other than side leader for most possible moves
+  - Don't retreat injured units at beginning of zone moves, unless they can retreat to a safe healing location (village)
   - Lots of adjusting, fine-tuning and bug fixes of rating functions throughout the CAs
   - Add stop_unit CA that takes MP and attacks away from units at end of custom (non_RCA) CAs, so that the 
     RCA AI doesn't do something we don't want with them.
