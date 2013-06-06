@@ -1,3 +1,7 @@
+0.12.4, ???
+- Test scenario
+  - Use new wesnoth.debug_ai functionality (requires BfW 1.11.5)
+
 0.12.3, 6 June 2013
 - Generic Rush (Ron)
   - Improve village grabbing by leader when lacking gold to recruit
