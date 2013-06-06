@@ -1,4 +1,4 @@
-0.13.0, ???
+0.12.3, 6 June 2013
 - Generic Rush (Ron)
   - Improve village grabbing by leader when lacking gold to recruit
   - New Retreat CA based on ideas from Fred
@@ -26,7 +26,7 @@
   - New functions print_ts() and print_ts_delta()
 - Micro AIs
   - Remove code that is now also in mainline and use mainline functionality instead
-  - Switch syntax for SUFs/SLFs to [filter]/[filter_location] and variants thereof
+  - Switch syntax for SUFs/SLFs to [filter]/[filter_location] and variants thereof (requires BfW 1.11.4)
 - Healer Support MAI: add optional SUF for healers
 - New Goto and Zone Guardian Micro AIs
 - New scenarios:
@@ -40,7 +40,7 @@
   - Add signpost and right-click options for new scenarios/AIs
 - General:
   - Add tags for all releases
-  - Change to new 1.11.2 syntax and functionality:
+  - Change to new 1.11.2 and later syntax and functionality:
     - AI_CA_LEADER_SHARES_KEEP macro
     - leader_shares_keep CA
     - ai_default_rca for RCA AI
