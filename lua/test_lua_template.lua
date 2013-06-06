@@ -10,13 +10,20 @@ local H = wesnoth.require "lua/helper.lua"
 local W = H.set_wml_action_metatable {}
 local AH = wesnoth.dofile "~/add-ons/AI-demos/lua/ai_helper.lua"
 local BC = wesnoth.dofile "~/add-ons/AI-demos/lua/battle_calcs.lua"
-local LS = wesnoth.require "lua/location_set.lua"
-local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
+local LS = wesnoth.dofile "lua/location_set.lua"
+local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
+H.set_wml_var_metatable(_G)
 
 -- Load the custom AI into array 'my_ai'
 fn = "~add-ons/AI-demos/lua/grunt-rush-Freelands-S1_engine.lua"
+--fn = "ai/micro_ais/ais/mai_goto_engine.lua"
 local my_ai = wesnoth.dofile(fn).init(ai)
+my_ai.data = {}
 --DBG.dbms(my_ai)
+
+-- Add shortcut to debug ai table
+local ai = wesnoth.debug_ai(wesnoth.current.side).ai
+DBG.dbms(ai)
 
 -- Clean up the screen
 wesnoth.clear_messages()
@@ -28,7 +35,7 @@ print('\n---- Side ', wesnoth.current.side, '------------')
 local test_CA, exec_also = false, false
 
 if test_CA then  -- Test a specific CA ...
-    my_ai.data = {}
+
     if (wesnoth.current.side == 1) then
         local start_time = wesnoth.get_time_stamp() / 1000.
         wesnoth.message('Start time:', start_time)
@@ -37,12 +44,14 @@ if test_CA then  -- Test a specific CA ...
         wesnoth.message('Time after eval:', wesnoth.get_time_stamp() / 1000., wesnoth.get_time_stamp() / 1000. - start_time)
         if (exec_also) and (eval > 0) then
             my_ai:zone_control_exec()
+            wesnoth.message('Time after exec:', wesnoth.get_time_stamp() / 1000., wesnoth.get_time_stamp() / 1000. - start_time)
         end
     else
         wesnoth.message("This only works when you're in control of Side 1")
     end
 
 else  -- ... or do manual testing
+
     local units = wesnoth.get_units{ side = 1, canrecruit = 'no' }
     local enemies = wesnoth.get_units{ side = 2, canrecruit = 'no' }
     --print(#units,#enemies)
@@ -62,6 +71,7 @@ else  -- ... or do manual testing
     end
     DBG.dbms(att_stats)
     DBG.dbms(def_stats)
+
     wesnoth.message('Time after loop:', wesnoth.get_time_stamp() / 1000. .. '  ' .. tostring(wesnoth.get_time_stamp() / 1000. - start_time))
 
     local r = BC.attack_rating(attacker, defender, dst, { att_weapon = 1, def_weapon = 1 })
