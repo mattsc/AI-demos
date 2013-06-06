@@ -14,6 +14,17 @@ local LS = wesnoth.dofile "lua/location_set.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 H.set_wml_var_metatable(_G)
 
+-- Clean up the screen
+wesnoth.clear_messages()
+AH.clear_labels()
+print('\n---- Side ', wesnoth.current.side, '------------')
+
+-- Check for debug mode and quit if it is not activated
+if (not wesnoth.game_config.debug) then
+    wesnoth.message("***** This option requires debug mode.  Activate by typing ':debug' *****")
+    return
+end
+
 -- Load the custom AI into array 'my_ai'
 fn = "~add-ons/AI-demos/lua/grunt-rush-Freelands-S1_engine.lua"
 --fn = "ai/micro_ais/ais/mai_goto_engine.lua"
@@ -23,12 +34,7 @@ my_ai.data = {}
 
 -- Add shortcut to debug ai table
 local ai = wesnoth.debug_ai(wesnoth.current.side).ai
-DBG.dbms(ai)
-
--- Clean up the screen
-wesnoth.clear_messages()
-AH.clear_labels()
-print('\n---- Side ', wesnoth.current.side, '------------')
+--DBG.dbms(ai)
 
 -----------------------------------------------------------------
 
