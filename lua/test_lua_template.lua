@@ -25,16 +25,16 @@ if (not wesnoth.game_config.debug) then
     return
 end
 
+-- Add shortcut to debug ai table
+local ai = wesnoth.debug_ai(wesnoth.current.side).ai
+--DBG.dbms(ai)
+
 -- Load the custom AI into array 'my_ai'
 fn = "~add-ons/AI-demos/lua/grunt-rush-Freelands-S1_engine.lua"
 --fn = "ai/micro_ais/ais/mai_goto_engine.lua"
 local my_ai = wesnoth.dofile(fn).init(ai)
 my_ai.data = {}
 --DBG.dbms(my_ai)
-
--- Add shortcut to debug ai table
-local ai = wesnoth.debug_ai(wesnoth.current.side).ai
---DBG.dbms(ai)
 
 -----------------------------------------------------------------
 
