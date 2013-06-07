@@ -1126,7 +1126,7 @@ return {
         function prune_cart:defensive_formation_exec(ids)
 
             -- !!!! There's some duplication here between find_between_hexes() and
-            -- get_best_formation().  Set up this way to be more versatile
+            -- get_best_formation(). Set up this way to be more versatile
             -- Need to evaluate for speed later
 
             if self.data.ids then
@@ -1276,7 +1276,7 @@ return {
                 end
 
                 if (not best_target.valid) then
-                    --print('Enemy was killed.  Reevaluating formations.')
+                    --print('Enemy was killed. Reevaluating formations.')
                     return
                 else
                     --print('Continuing with formation')
@@ -1393,7 +1393,7 @@ return {
                             ai.attack(best_unit, best_target, best_weapon)
 
                             if (not best_target.valid) then
-                                --print('Enemy was killed.  Reevaluating formations.')
+                                --print('Enemy was killed. Reevaluating formations.')
                                 return
                             else
                                 --print('Continuing with formation')

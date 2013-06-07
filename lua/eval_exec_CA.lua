@@ -280,7 +280,7 @@ return {
                 W.message {
                     speaker = 'narrator',
                     caption = "No more CAs with positive scores to execute",
-                    image = 'wesnoth-icon.png', message = "Note that the RCA AI might still take over some moves at this point.  That cannot be simulated here."
+                    image = 'wesnoth-icon.png', message = "Note that the RCA AI might still take over some moves at this point. That cannot be simulated here."
                 }
                 break
             end

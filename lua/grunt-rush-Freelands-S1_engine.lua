@@ -350,7 +350,7 @@ return {
                                 counter_table[att_ind][dst_ind] =
                                     { min_hp = counter_stats.min_hp, counter_stats = counter_stats }
                             else
-                                --print('Counter-attack combo already calculated.  Re-using.')
+                                --print('Counter-attack combo already calculated. Re-using.')
                             end
                             local counter_min_hp = counter_table[att_ind][dst_ind].min_hp
                             local counter_stats = counter_table[att_ind][dst_ind].counter_stats
@@ -720,14 +720,14 @@ return {
             --   - enemies (unit table): use these enemies (instead of all enemies)
             --          to calculate counter attack damage
             --   - stop_eval_average_hp=0 (non-negative number): stop evaluating other attack combinations
-            --       when average HP <= this value has been found.  This is "bad enough".
+            --       when average HP <= this value has been found. This is "bad enough".
             --   - stop_eval_min_hp=-1 (number): stop evaluating other attack combinations
-            --       when minimum HP <= this value has been found.  This is "bad enough".
+            --       when minimum HP <= this value has been found. This is "bad enough".
             --       The default is -1 because not all min_hp == 0 cases are the same (the CTK can
-            --       be different).  So we don't want to stop checking other attack combos, but since
+            --       be different). So we don't want to stop checking other attack combos, but since
             --       min_hp >= 0, any negative number will do as default (doesn't have to be -inf)
             --   - stop_eval_hp_chance_zero=1 (number <= 1): stop evaluating other attack combinations
-            --       when hp_chance[0] >= this value has been found.  This is "bad enough".
+            --       when hp_chance[0] >= this value has been found. This is "bad enough".
             --
             -- Returns a table similar to def_stats from wesnoth.simulate_combat,
             -- but with added and/or missing fields, depending on the parameters
@@ -838,7 +838,7 @@ return {
             local unique_combos = {}
             for i,combo in ipairs(attack_combos) do
                 -- To find unique combos, we mark all units involved in the combo by their
-                -- positions (src), combined in a string.  For that, the positions need to
+                -- positions (src), combined in a string. For that, the positions need to
                 -- be sorted.
                 table.sort(combo, function(a, b) return a.src > b.src end)
 
@@ -872,7 +872,7 @@ return {
             for i,combo in ipairs(attack_combos) do
                 -- attackers and dsts arrays for stats calculation
 
-                -- Get the attack combo outcome.  We're really only interested in combo_def_stats
+                -- Get the attack combo outcome. We're really only interested in combo_def_stats
                 if cfg.approx then  -- Approximate method for average HP
 
                     local total_damage, max_damage = 0, 0
@@ -1535,7 +1535,7 @@ return {
                                 counter_table[att_ind][dst_ind] =
                                     { min_hp = counter_stats.min_hp, counter_stats = counter_stats }
                             else
-                                --print_time('Counter-attack combo already calculated.  Re-using.')
+                                --print_time('Counter-attack combo already calculated. Re-using.')
                             end
                             --print_time('  done')
                             local counter_min_hp = counter_table[att_ind][dst_ind].min_hp
@@ -1543,7 +1543,7 @@ return {
                             local counter_average_hp = counter_stats.average_hp
                             --print_time('counter_average_hp, counter_min_hp, counter_CTD', counter_average_hp, counter_min_hp, counter_stats.hp_chance[0])
 
-                            -- Damage cost" for attacker and enemy.  This is the likelihood to die
+                            -- Damage cost" for attacker and enemy. This is the likelihood to die
                             -- multiplied by the cost of the unit
                             local damage_cost_e = combo_def_stats.hp_chance[0] * wesnoth.unit_types[e.type].cost
                             local damage_cost_a = counter_stats.hp_chance[0] * wesnoth.unit_types[a.type].cost
@@ -1780,7 +1780,7 @@ return {
             -- First, set up the general filters and tables, to be used by all actions
 
             -- Unit filter:
-            -- This includes the leader.  Needs to be excluded specifically if he shouldn't take part in an action
+            -- This includes the leader. Needs to be excluded specifically if he shouldn't take part in an action
             local unit_filter = { side = wesnoth.current.side }
             if cfg.unit_filter then
                 for k,v in pairs(cfg.unit_filter) do unit_filter[k] = v end
@@ -1933,8 +1933,8 @@ return {
                 -- If this is the leader, recruit first
                 -- We're doing that by running a mini CA eval/exec loop
                 if unit.canrecruit then
-                    --print('-------------------->  This is the leader.  Recruit first.')
-                    if AH.show_messages() then W.message { speaker = unit.id, message = 'The leader is about to move.  Need to recruit first.' } end
+                    --print('-------------------->  This is the leader. Recruit first.')
+                    if AH.show_messages() then W.message { speaker = unit.id, message = 'The leader is about to move. Need to recruit first.' } end
 
                     while grunt_rush_FLS1:recruit_rushers_eval() > 0 do
                         if not grunt_rush_FLS1:recruit_rushers_exec() then

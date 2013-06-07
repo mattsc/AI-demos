@@ -21,7 +21,7 @@ print('\n---- Side ', wesnoth.current.side, '------------')
 
 -- Check for debug mode and quit if it is not activated
 if (not wesnoth.game_config.debug) then
-    wesnoth.message("***** This option requires debug mode.  Activate by typing ':debug' *****")
+    wesnoth.message("***** This option requires debug mode. Activate by typing ':debug' *****")
     return
 end
 

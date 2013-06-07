@@ -63,7 +63,7 @@ def process_log_for_factions():
         game_map = fields[9]
 
         number_of_opposing_ais = sum([x == options.opposing_ai for x in ais])
-        assert number_of_opposing_ais == 1,"opposing_ai not set properly.  Only one of the following two AI's should be the opposing AI: " +  \
+        assert number_of_opposing_ais == 1,"opposing_ai not set properly.  Only one of the following two AIs should be the opposing AI: " +  \
                 ais[0] + " " + ais[1]
         # print "winning side is", winning_side
         # print "ais is", ais

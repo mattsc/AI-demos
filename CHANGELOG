@@ -266,7 +266,7 @@
   - Replaced the generic grunt and elvish fighter rushes by a single version that can deal with all factions
     - Notes:
       - The functionality/behavior has not been updated, it's only been generalized
-      - We will continue to call the new version Ron.  Ed has been retired (for now)
+      - We will continue to call the new version Ron. Ed has been retired (for now)
   - Fixed a bug that hung Wesnoth on maps with petrified units (see below)
 - Freelands Side 1 Grunt Rush:
   - Added check for faction, side and map to Fred (stops game if one of them is wrong)
@@ -288,7 +288,7 @@
   - Small change to recruiting: archers have somewhat higher priority now
   - Removed two unused CA dinosaurs
 - All grunt rushes:
-  - Added the AI's names (Fred, Ron, Ed) to the pop-up menu descriptions :D
+  - Added the AIs' names (Fred, Ron, Ed) to the pop-up menu descriptions :D
   - Added a WML variable containing the AI-Demos version number for debugging
 - ai_helper:
   - New function ai_helper.print_eval() to help with debugging
@@ -483,7 +483,7 @@
   - 2 different recruitment CA's can be used
 
 0.9.6-a, 28 June 2012
-- Added MP era code provided by FAAB.  MP games with grunt-rush AI can now be launched directly in MP mode
+- Added MP era code provided by FAAB. MP games with grunt-rush AI can now be launched directly in MP mode
 
 0.9.6, 28 June 2012
 - Grunt rush MP AI:
@@ -557,7 +557,7 @@
 
 0.6.7b, 30 May 2012
 - Prune Cart:
-  - Removed warning message that this currently does not work in 1.11.0-svn because of a bug in ai.attacks().  Fixed as of r54340
+  - Removed warning message that this currently does not work in 1.11.0-svn because of a bug in ai.attacks(). Fixed as of r54340
 
 0.6.7a, 8 May 2012
 - Prune Cart:
@@ -637,7 +637,7 @@
 
 0.4.10, 23 Mar 2012
 - Maintenance update
-  - Changed all occurrences of my own map index code to the built-in location sets.  This mostly �affects 'Pass Defense' and ai_helper.cfg
+  - Changed all occurrences of my own map index code to the built-in location sets. This mostly �affects 'Pass Defense' and ai_helper.cfg
   - Functions with _LS in file name have now been made the default (and the _LS has been deleted)
   - A couple minor fixes to the text in 'Switchboard' and 'Protect the Wizard'
 
@@ -657,7 +657,7 @@
 
 0.4.8, 19 Mar 2012
 - The Elves Besieged
-  - Adapted the algorithm from "Protect the Wizard" to first scenario from HttT.  Works right out of the box!
+  - Adapted the algorithm from "Protect the Wizard" to first scenario from HttT. Works right out of the box!
 
 0.4.7, 19 Mar 2012
 - Protect the Wizard
@@ -681,7 +681,7 @@
 
 0.4.4a, 22 Feb 2012
 - Patrols:
-  - Minor changes to Konrad and Jabb code in order to get rid of 'next_step ' WML variable.  Use data.self.next_step instead.
+  - Minor changes to Konrad and Jabb code in order to get rid of 'next_step ' WML variable. Use data.self.next_step instead.
 
 0.4.4, 21 Feb 2012
 - Patrols:
@@ -691,7 +691,7 @@
 
 0.4.3, 20 Feb 2012
 - Maintenance update
-  - Pulled all the Lua AI engine code out of the scenario files into separate engine files.  This requires some changes to local vs. global variables, and adjustments if more than one engine is present in a scenario
+  - Pulled all the Lua AI engine code out of the scenario files into separate engine files. This requires some changes to local vs. global variables, and adjustments if more than one engine is present in a scenario
   - Pulled common functions out of Lua engines and put into ai_helper.lua
   - Some other minor changes based on wmllint and wmlindent output
 - Patrols:
