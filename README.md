@@ -23,7 +23,7 @@ Many other wondrous AIs can also be found within this add-on!
 * Prune Cart
 * and more!
 
-For a complete and current list of the AIs, see: http://wiki.wesnoth.org/Micro_AIs
+For a complete and current list of the AIs, see: http://wiki.wesnoth.org/Micro\_AIs
 
 and a few that haven't been been formalized as MicroAIs at: https://github.com/mattsc/Wesnoth-AI-Demos/tree/master/scenarios
 
