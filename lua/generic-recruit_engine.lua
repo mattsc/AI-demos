@@ -806,7 +806,7 @@ return {
                 if not params.leader_takes_village or params.leader_takes_village() then
                     -- skip one village for the leader
                     for i,v in ipairs(villages) do
-                        local path, cost = wesnoth.find_path(leader, v[1], v[2])
+                        local path, cost = wesnoth.find_path(leader, v[1], v[2], {max_cost = leader.max_moves+1})
                         if cost <= leader.max_moves then
                             table.insert(data.castle.assigned_villages_x, v[1])
                             table.insert(data.castle.assigned_villages_y, v[2])
