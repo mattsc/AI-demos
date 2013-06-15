@@ -533,6 +533,21 @@ return {
 
             if wesnoth.unit_types[recruit_type].cost <= wesnoth.sides[wesnoth.current.side].gold then
                 ai.recruit(recruit_type, recruit_data.recruit.best_hex[1], recruit_data.recruit.best_hex[2])
+
+                -- If the recruited unit cannot reach the target hex, return it to the pool of targets
+                if recruit_data.recruit.target_hex ~= nil and recruit_data.recruit.target_hex[1] ~= nil then
+                    local unit = wesnoth.get_unit(recruit_data.recruit.best_hex[1], recruit_data.recruit.best_hex[2])
+                    local path, cost = wesnoth.find_path(unit, recruit_data.recruit.target_hex[1], recruit_data.recruit.target_hex[2], {viewing_side=0, max_cost=unit.max_moves+1})
+                    if cost > unit.max_moves then
+                        -- The last village added to the list should be the one we tried to aim for, check anyway
+                        local last = #recruit_data.castle.assigned_villages_x
+                        if (recruit_data.castle.assigned_villages_x[last] == recruit_data.recruit.target_hex[1]) and (recruit_data.castle.assigned_villages_y[last] == recruit_data.recruit.target_hex[2]) then
+                            table.remove(recruit_data.castle.assigned_villages_x)
+                            table.remove(recruit_data.castle.assigned_villages_y)
+                        end
+                    end
+                end
+
                 return true
             else
                 return false
