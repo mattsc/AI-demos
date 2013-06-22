@@ -214,7 +214,7 @@ return {
                             resistance = 50
                         end
                     end
-                    local base_damage = weapon_damage*resistance*damage_multiplier
+                    local base_damage = (weapon_damage+damage_bonus)*resistance*damage_multiplier
                     if (resistance > 100) then
                         base_damage = base_damage-1
                     end
