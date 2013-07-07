@@ -1,8 +1,17 @@
 0.12.4, ???
 - Test scenario
   - Use new wesnoth.debug_ai functionality (requires BfW 1.11.5)
-- General:
+- MP AIs:
   - Add an AI-Demos [modification], so you an use the MP AIs in other eras
+- Micro AIs:
+  - New Hang Out MAI and test scenario (already moved to mainline as well)
+  - Patrol MAI scenario: add a zone guardian to the scenario (demonstrates using multiple MAIs on the same side)
+  - Goto MAI scenario: add ghost side demonstrating avoid_enemies= parameter
+- ai_helper:
+  - put_labels: add optional show_coords parameter
+- General:
+  - Some changes to internal syntax to keep up with mainline development (requires BfW 1.11.6)
+
 
 0.12.3, 6 June 2013
 - Generic Rush (Ron)
