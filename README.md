@@ -3,7 +3,9 @@ Wesnoth-AI-Demos
 
 Wesnoth AI Modification Demonstration Scenarios
 
-NOTE: Compatible only with Wesnoth 1.11.5 and later and needs to be installed into ~add-ons/AI-demos/
+NOTES:
+* The MP AIs work with Wesnoth 1.11.2 and later, but some of the Micro AI test scenarios are only compatible with current trunk (or 1.11.6)
+* The add-on needs to be installed into ~add-ons/AI-demos/
 
 Home of the formidable Freelands Side 1 Grunt Rush AI, "Fred", and his little brother, the generic rushing AI "Ron"!
 
