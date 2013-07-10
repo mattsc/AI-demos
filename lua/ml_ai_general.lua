@@ -28,7 +28,7 @@ return {
             if #sides_with_leaders == 2 and wesnoth.is_enemy(sides_with_leaders[1],sides_with_leaders[2]) then
                 ai.ml_debug_message("hello world, at beginning of ml_ai_general right now")
                 ml_ai = wesnoth.require('~add-ons/AI-demos/lua/ml_ai_features.lua').init(ai)
-                wesnoth.require("~add-ons/AI-demos/lua/generic-recruit_engine.lua").init(ai, ron_recruit)
+                wesnoth.require("~add-ons/AI-demos/lua/generic_recruit_engine.lua").init(ai, ron_recruit)
                 wesnoth.require('~add-ons/AI-demos/lua/class.lua')
                 ai.ml_debug_message("hello world, finished initializing ml_ai_general right now")
                 ai.ml_debug_message(string.format("Power to raise metric to: %.1f\tModel being used:%s\tUse a single, non-faction-specific model:%s\tmodel directory:%s\tCA Score:%d",
@@ -140,7 +140,7 @@ return {
         RandomRecruiter = class(Recruiter,function(c,allowed_recruits)
             Recruiter.init(c,allowed_recruits)
             end)
-            
+
         function RandomRecruiter:recruit(recruits)
             local my_recruits = self:get_allowed_recruits(recruits)
             local recruit =  my_recruits[random(#my_recruits)]
@@ -231,7 +231,7 @@ return {
             local highest_metric = -10000000
             local best_unit = nil
             for unit,weighted_metric in pairs(weighted_unit_metric_dictionary) do
-                assert(weighted_metric >= 0,"Negative metrics are not supported") 
+                assert(weighted_metric >= 0,"Negative metrics are not supported")
                 if weighted_metric > highest_metric then
                     highest_metric = weighted_metric
                     best_unit = unit
@@ -279,7 +279,7 @@ return {
             end)
 
         function MLRecruiter:recruit(recruits)
-            -- This logic assumes that we are dealing with unit-specific metrics.  
+            -- This logic assumes that we are dealing with unit-specific metrics.
             -- The metric describes the unit, so we need to fill in the unit that we recruited in the dictionary
             -- Consequently, we test each unit that's available to recruit, one-by-one
             assert(self.unit_metric_decider ~= nil and self.model_file_path ~= nil,"MLRecruiter hasn't been properly initialized")
@@ -309,7 +309,7 @@ return {
             c.prob_to_recruiter[0] = nil -- We should never reference 0
             local total_percent = 0
             local current_percent = 0
-            for _,recruiter_percent in ipairs(recruiter_probability_dictionary) do 
+            for _,recruiter_percent in ipairs(recruiter_probability_dictionary) do
                 local recruiter,percent = recruiter_percent[1],recruiter_percent[2]
                 total_percent = total_percent + percent
                 assert(percent <= 100 and percent >= 0,"Percent must be between 0 and 100")
@@ -321,7 +321,7 @@ return {
             end
             assert(total_percent == 100,"Total percentage of all recruiters in a HybridRecruiter must be 100!")
             end)
-            
+
         function HybridRecruiter:recruit(recruits)
             --Choose which recruiter to call then hand off to that recruiter
             local prob = random(1,100)
@@ -349,7 +349,7 @@ return {
                 return default_command_line_parms.recruit_CA_score
             end
         end
-            
+
 
         function recruit_ai:recruit_execution()
             if default_command_line_parms.use_RCA_AI_recruit_location then
