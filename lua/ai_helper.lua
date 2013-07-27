@@ -391,7 +391,6 @@ function ai_helper.get_passable_locations(location_filter, unit)
 
     -- If 'unit' is provided, exclude terrain that's impassable for the unit
     -- table.delete() can be slow for large arrays -> build a new table
-
     if unit then
         local locs = {}
         for i,l in ipairs(all_locs) do
