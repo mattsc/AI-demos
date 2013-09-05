@@ -1673,14 +1673,15 @@ return {
 
             local eval_hold = true
             if cfg.hold.hp_ratio then
-                local hp_ratio = grunt_rush_FLS1:hp_ratio(holders, zone_enemies)
-                --print('hp_ratio, #holders, #zone_enemies', hp_ratio, #holders, #zone_enemies)
+                local hp_ratio = grunt_rush_FLS1:hp_ratio(units_noMP, zone_enemies)
+                --print('hp_ratio, #units_noMP, #zone_enemies', hp_ratio, #units_noMP, #zone_enemies)
 
                 -- Don't evaluate for holding position if the hp_ratio in the zone is already high enough
                 if (hp_ratio >= cfg.hold.hp_ratio) then
                     eval_hold = false
                 end
             end
+            --print('eval_hold 1', eval_hold)
 
             -- If there are unoccupied or enemy-occupied villages in the hold zone, send units there,
             -- if we do not have enough units that have moved already in the zone
@@ -1700,6 +1701,7 @@ return {
                 end
                 --print('#units_noMP, #cfg.retreat_villages', #units_noMP, #cfg.retreat_villages)
             end
+            --print('eval_hold 2', eval_hold)
 
             if eval_hold then
                 local unit, dst = grunt_rush_FLS1:hold_zone(holders, enemy_defense_map, cfg)
