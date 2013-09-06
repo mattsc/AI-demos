@@ -93,10 +93,10 @@ return {
 
             local cfg_right = {
                 zone_id = 'right',
-                zone_filter = { x = '25-34', y = '1-17' },
+                zone_filter = { x = '24-34', y = '1-17' },
                 unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
                 skip_action = { retreat_injured_unsafe = true },
-                hold = { x = 27, y = 11, dx = 0, dy = 1 },
+                hold = { x = 27, y = 11, dx = 0, dy = 1, min_dist = -4 },
                 retreat_villages = { { 24, 7 }, { 28, 5 } }
             }
 
@@ -542,7 +542,7 @@ return {
 
                         -- A hex forward is worth one "point"
                         -- This is the base rating that everything else is compared with
-                        rating = rating - math.abs(adv_dist)
+                        rating = rating - math.abs(adv_dist) / 2.
                         -- Also want to be close to center of zone, but much less importantly
                         rating = rating - (math.abs(perp_dist) / 4.) ^ 2.
 
@@ -585,8 +585,8 @@ return {
                                 if (dist < min_dist) then min_dist = dist end
                             end
                         end
-                        if (min_dist == 3) then rating = rating + 1.9 end
-                        if (min_dist == 2) then rating = rating + 0.9 end
+                        --if (min_dist == 3) then rating = rating + 1.9 end
+                        --if (min_dist == 2) then rating = rating + 0.9 end
 
                         -- Take terrain defense for enemies into account
                         -- This also prefers hexes that cannot be reached by the enemy
@@ -661,7 +661,7 @@ return {
                             --rating = rating + av_hp
 
                             local hp_left_fraction = av_hp / u.hitpoints
-                            local hp_loss_rating = 1. / (hp_left_fraction + 0.001) - 0.999
+                            local hp_loss_rating = 1.2 / (hp_left_fraction + 0.2) - 0.999
                             --print(u.hitpoints, av_hp, 20. / ( av_hp + 0.01 ), hp_left_fraction, hp_loss_rating)
                             rating = rating - hp_loss_rating * 1.5
 
