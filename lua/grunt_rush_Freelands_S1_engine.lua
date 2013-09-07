@@ -1390,7 +1390,7 @@ return {
                     table.insert(poisoners, a)
                 end
             end
-            --print('#poisoners', #poisoners)
+            --print_time('#poisoners', #poisoners)
 
             if (poisoners[1]) then
                 local action = grunt_rush_FLS1:spread_poison_eval(poisoners, enemies, cfg)
@@ -1414,9 +1414,25 @@ return {
                 if e.canrecruit then enemy_worth = enemy_worth * 5 end
 
                 --print_time('\n', i, e.id, enemy_worth)
-                local attack_combos = AH.get_attack_combos(attackers, e, { include_occupied = true })
-                --DBG.dbms(attack_combos)
-                --print('#attack_combos', #attack_combos)
+                local tmp_attack_combos = AH.get_attack_combos(attackers, e, { include_occupied = true })
+                --DBG.dbms(tmp_attack_combos)
+                --print_time('#tmp_attack_combos', #tmp_attack_combos)
+
+                -- Keep only attack combos with the maximum number of attacks
+                local max_atts, counts = 0, {}
+                for j,combo in ipairs(tmp_attack_combos) do
+                    local count = 0
+                    for dst,src in pairs(combo) do count = count + 1 end
+                    counts[j] = count
+                    if (count > max_atts) then max_atts = count end
+                end
+                local attack_combos = {}
+                for j,count in ipairs(counts) do
+                    if (count == max_atts) then
+                        table.insert(attack_combos, tmp_attack_combos[j])
+                    end
+                end
+                --print_time('#attack_combos', #attack_combos)
 
                 local enemy_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(e.x, e.y)).village
                 local enemy_cost = wesnoth.unit_types[e.type].cost
