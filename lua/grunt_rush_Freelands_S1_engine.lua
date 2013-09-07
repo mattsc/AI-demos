@@ -1689,7 +1689,10 @@ return {
 
             local eval_hold = true
             if cfg.hold.hp_ratio then
-                local hp_ratio = grunt_rush_FLS1:hp_ratio(units_noMP, zone_enemies)
+                local hp_ratio = 1e99
+                if (#zone_enemies > 0) then
+                    hp_ratio = grunt_rush_FLS1:hp_ratio(units_noMP, zone_enemies)
+                end
                 --print('hp_ratio, #units_noMP, #zone_enemies', hp_ratio, #units_noMP, #zone_enemies)
 
                 -- Don't evaluate for holding position if the hp_ratio in the zone is already high enough
