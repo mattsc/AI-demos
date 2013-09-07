@@ -632,8 +632,8 @@ return {
                             rating = rating + u.hitpoints / 5.
 
                             -- Rating for the terrain
-                            local defense = 100 - wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))
-                            rating = rating + defense * terrain_weight
+                            --local defense = 100 - wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))
+                            --rating = rating + defense * terrain_weight
 
                             --local cost = wesnoth.unit_types[u.type].cost
                             --local worth = cost * u.hitpoints / u.max_hitpoints
