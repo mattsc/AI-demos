@@ -1340,8 +1340,10 @@ return {
             -- Attackers include the leader but only if he is on his
             -- keep, in order to prevent him from wandering off
             local attackers = {}
+            local leader_map = {}
             for i,u in ipairs(units) do
                 if u.canrecruit then
+                    leader_map[u.x * 1000 + u.y] = true
                     if wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
                         table.insert(attackers, u)
                     end
@@ -1419,16 +1421,20 @@ return {
                 --print_time('#tmp_attack_combos', #tmp_attack_combos)
 
                 -- Keep only attack combos with the maximum number of attacks
+                -- of non-leader units (or more)
                 local max_atts, counts = 0, {}
                 for j,combo in ipairs(tmp_attack_combos) do
-                    local count = 0
-                    for dst,src in pairs(combo) do count = count + 1 end
+                    local count, uses_leader = 0, false
+                    for dst,src in pairs(combo) do
+                        if leader_map[src] then uses_leader = true end
+                        count = count + 1
+                    end
                     counts[j] = count
-                    if (count > max_atts) then max_atts = count end
+                    if (not uses_leader) and (count > max_atts) then max_atts = count end
                 end
                 local attack_combos = {}
                 for j,count in ipairs(counts) do
-                    if (count == max_atts) then
+                    if (count >= max_atts) then
                         table.insert(attack_combos, tmp_attack_combos[j])
                     end
                 end
