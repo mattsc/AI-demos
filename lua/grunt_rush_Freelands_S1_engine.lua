@@ -1407,7 +1407,7 @@ return {
             local cache_this_move = {}  -- same reason
             for i,e in ipairs(targets) do
                 -- How much more valuable do we consider the enemy units than out own
-                local enemy_worth = 1
+                local enemy_worth = 1.1
                 if cfg.attack and cfg.attack.enemy_worth then
                     enemy_worth = cfg.attack.enemy_worth
                 end
@@ -1559,19 +1559,54 @@ return {
                             local counter_average_hp = counter_stats.average_hp
                             --print_time('counter_average_hp, counter_min_hp, counter_CTD', counter_average_hp, counter_min_hp, counter_stats.hp_chance[0])
 
-                            -- Damage cost" for attacker and enemy. This is the likelihood to die
-                            -- multiplied by the cost of the unit
-                            local damage_cost_e = combo_def_stats.hp_chance[0] * wesnoth.unit_types[e.type].cost
-                            local damage_cost_a = counter_stats.hp_chance[0] * wesnoth.unit_types[a.type].cost
-                            -- Add XP rating
-                            damage_cost_e = damage_cost_e * ( 1 + e.experience / e.max_experience)
-                            damage_cost_a = damage_cost_a * ( 1 + a.experience / a.max_experience)
+                            -- "Damage cost" for attacker
+                            local damage = a.hitpoints - counter_stats.average_hp
+                            -- Count poisoned as additional 8 HP damage times probability of being poisoned
+                            if (counter_stats.poisoned ~= 0) then
+                                damage = damage + 8 * (counter_stats.poisoned - counter_stats.hp_chance[0])
+                            end
+                            -- Count slowed as additional 6 HP damage times probability of being slowed
+                            if (counter_stats.slowed ~= 0) then
+                                damage = damage + 6 * (counter_stats.slowed - counter_stats.hp_chance[0])
+                            end
+
+                            -- Fraction damage (= fractional value of the unit)
+                            local value_fraction = damage / a.max_hitpoints
+                            -- Additionally, add the chance to die and experience
+                            value_fraction = value_fraction + counter_stats.hp_chance[0]
+                            value_fraction = value_fraction + a.experience / a.max_experience
+
+                            -- Convert this into a cost in gold
+                            local damage_cost_a = value_fraction * wesnoth.unit_types[a.type].cost
+
+                            -- "Damage cost" for enemy
+
+                            local damage = e.hitpoints - combo_def_stats.average_hp
+                            -- Count poisoned as additional 8 HP damage times probability of being poisoned
+                            if (combo_def_stats.poisoned ~= 0) then
+                                damage = damage + 8 * (combo_def_stats.poisoned - combo_def_stats.hp_chance[0])
+                            end
+                            -- Count slowed as additional 6 HP damage times probability of being slowed
+                            if (combo_def_stats.slowed ~= 0) then
+                                damage = damage + 6 * (combo_def_stats.slowed - combo_def_stats.hp_chance[0])
+                            end
+
+                            -- Fraction damage (= fractional value of the unit)
+                            local value_fraction = damage / e.max_hitpoints
+
+                            -- Additionally, add the chance to die and experience
+                            value_fraction = value_fraction + combo_def_stats.hp_chance[0]
+                            value_fraction = value_fraction + e.experience / e.max_experience
+
+                            -- Convert this into a cost in gold
+                            local damage_cost_e = value_fraction * wesnoth.unit_types[e.type].cost
                             --print_time('  --> damage cost attacker vs. enemy', damage_cost_a, damage_cost_e)
 
                             -- If there's a chance of the leader getting poisoned or slowed, don't do it
                             -- Also, if the stats would go too low
                             if a.canrecruit then
                                 if (counter_stats.slowed > 0.0) or (counter_stats.poisoned > 0.0) then
+                                    --print('Leader slowed or poisoned', counter_stats.slowed, counter_stats.poisoned)
                                     do_attack = false
                                     break
                                 end
@@ -1590,7 +1625,6 @@ return {
                                 local av_outcome =  counter_average_hp - average_damage
                                 --print('Non-leader: av_outcome, counter_average_hp, average_damage', av_outcome, counter_average_hp, average_damage)
                                 --print('   damage_cost_a, damage_cost_e:', damage_cost_a, damage_cost_e)
-
 
                                 if (av_outcome <= 5) or (counter_stats.hp_chance[0] >= max_hp_chance_zero) then
                                     -- Use the "damage cost"
