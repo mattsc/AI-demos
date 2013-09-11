@@ -1409,7 +1409,7 @@ return {
             local cache_this_move = {}  -- same reason
             for i,e in ipairs(targets) do
                 -- How much more valuable do we consider the enemy units than out own
-                local enemy_worth = 1.1
+                local enemy_worth = 1.0
                 if cfg.attack and cfg.attack.enemy_worth then
                     enemy_worth = cfg.attack.enemy_worth
                 end
@@ -1452,7 +1452,7 @@ return {
                         table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
                     end
                     local rating, sorted_atts, sorted_dsts, combo_att_stats, combo_def_stats = BC.attack_combo_stats(atts, dsts, e, grunt_rush_FLS1.data.cache, cache_this_move)
-                    --DBG.dbms(combo_def_stats)
+                    --DBG.dbms(combo_att_stats)
                     --print_time('   ' .. #sorted_atts .. ' attackers')
 
                     -- Don't attack if CTD (chance to die) is too high for any of the attackers
@@ -1563,10 +1563,13 @@ return {
                             local counter_min_hp = counter_table[att_ind][dst_ind].min_hp
                             local counter_stats = counter_table[att_ind][dst_ind].counter_stats
                             local counter_average_hp = counter_stats.average_hp
+                            --DBG.dbms(counter_stats)
                             --print_time('counter_average_hp, counter_min_hp, counter_CTD', counter_average_hp, counter_min_hp, counter_stats.hp_chance[0])
 
                             -- "Damage cost" for attacker
-                            local damage = a.hitpoints - counter_stats.average_hp
+                            -- This should include the damage from the current attack
+                            -- (only done approximately for speed reasons)
+                            local damage = a.hitpoints - counter_stats.average_hp + average_damage
                             -- Count poisoned as additional 8 HP damage times probability of being poisoned
                             if (counter_stats.poisoned ~= 0) then
                                 damage = damage + 8 * (counter_stats.poisoned - counter_stats.hp_chance[0])
@@ -1579,7 +1582,12 @@ return {
                             -- Fraction damage (= fractional value of the unit)
                             local value_fraction = damage / a.max_hitpoints
                             -- Additionally, add the chance to die and experience
-                            value_fraction = value_fraction + counter_stats.hp_chance[0]
+                            --local ctd = counter_stats.hp_chance[0]
+                            local ctd = 0
+                            for hp,prob in pairs(counter_stats.hp_chance) do
+                                if (hp <= average_damage) then ctd = ctd + prob end
+                            end
+                            value_fraction = value_fraction + ctd
                             value_fraction = value_fraction + a.experience / a.max_experience
 
                             -- Convert this into a cost in gold
