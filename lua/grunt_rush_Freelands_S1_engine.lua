@@ -1234,14 +1234,13 @@ return {
             local unit, dest, enemy_threat = R.retreat_injured_units(units)
             if unit then
                 local allowable_retreat_threat = cfg.allowable_retreat_threat or 0
-                if (enemy_threat <= allowable_retreat_threat) then
-                    -- Is this a healing location?
-                    local healloc = false
-                    if (dest[3] > 2) then healloc = true end
-                    local action = { units = {unit}, dsts = {dest}, type = 'village', reserve = dest }
-                    action.action = cfg.zone_id .. ': ' .. 'retreat severely injured units'
-                    return action, healloc
-                end
+                --print_time('Found unit to retreat:', unit.id, enemy_threat, allowable_retreat_threat)
+                -- Is this a healing location?
+                local healloc = false
+                if (dest[3] > 2) then healloc = true end
+                local action = { units = {unit}, dsts = {dest}, type = 'village', reserve = dest }
+                action.action = cfg.zone_id .. ': ' .. 'retreat severely injured units'
+                return action, healloc, (enemy_threat <= allowable_retreat_threat)
             end
         end
 
@@ -1894,10 +1893,10 @@ return {
             local retreat_action
             if (not cfg.do_action) or cfg.do_action.retreat_injured_safe then
                 if (not cfg.skip_action) or (not cfg.skip_action.retreat_injured) then
-                    local healloc  -- boolean indicating whether the destination is a healing location
-                    retreat_action, healloc = grunt_rush_FLS1:zone_action_retreat_injured(zone_units, cfg)
+                    local healloc, safeloc  -- boolean indicating whether the destination is a healing location
+                    retreat_action, healloc, safeloc = grunt_rush_FLS1:zone_action_retreat_injured(zone_units, cfg)
                     -- Only retreat to healing locations at this time, other locations later
-                    if retreat_action and healloc then
+                    if retreat_action and healloc and safeloc then
                         --print(action.action)
                         return retreat_action
                     end
