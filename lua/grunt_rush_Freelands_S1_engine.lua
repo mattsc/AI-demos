@@ -67,7 +67,7 @@ return {
                 zone_filter = { { 'filter', { canrecruit = 'yes', side = wesnoth.current.side } } },
                 unit_filter = { x = '1-' .. width , y = '1-' .. height },
                 do_action = { attack = true },
-                attack = { use_enemies_in_reach = true, enemy_worth = 2. }
+                attack = { use_enemies_in_reach = true, enemy_worth = 1.5 }
             }
 
             local cfg_center = {
