@@ -1928,15 +1928,6 @@ return {
                 end
             end
 
-            -- **** Grab threatened villages ****
-            --if village_action then
-            --    if cfg.villages and cfg.villages.hold_threatened then
-            --        village_action.action = village_action.action .. ' (threatened village)'
-            --        --print(village_action.action)
-            --        return village_action
-            --    end
-            --end
-
             -- **** Hold position evaluation ****
             --print_time('  ' .. cfg.zone_id .. ': hold eval')
             if (not cfg.do_action) or cfg.do_action.hold then
@@ -1945,6 +1936,17 @@ return {
                     if action then
                         --print(action.action)
                         return action
+                    end
+                end
+            end
+
+            -- **** Grab threatened villages ****
+            if village_action then
+                if (not cfg.do_action) or cfg.do_action.hold_threatened then
+                    if (not cfg.skip_action) or (not cfg.skip_action.hold_threatened) then
+                        village_action.action = village_action.action .. ' (threatened village)'
+                        --print(village_action.action)
+                        return village_action
                     end
                 end
             end
