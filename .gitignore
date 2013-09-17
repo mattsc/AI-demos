@@ -5,3 +5,4 @@ _server.pbl
 *.pyc
 *~
 ml_utils/stats__release_*.log
+*/.DS_Store
