@@ -1884,7 +1884,7 @@ return {
             local zone_map = LS.of_pairs(zone)
 
             -- Also get the defense map for the enemies
-            local enemy_defense_map = BC.best_defense_map(enemies)
+            local enemy_defense_map = BC.best_defense_map(enemies, { ignore_these_units = zone_units })
 
             -- **** This ends the common initialization for all zone actions ****
 
