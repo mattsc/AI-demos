@@ -2083,7 +2083,7 @@ return {
 
                 -- Before evaluating the poison attack, check whether it is too dangerous
                 if poison_attack then
-                    local min_average_hp = 10
+                    local min_average_hp = 5
                     local max_hp_chance_zero = 0.3
                     local counter_stats = grunt_rush_FLS1:calc_counter_attack(attacker, { a.dst.x, a.dst.y },
                         {
@@ -2138,18 +2138,21 @@ return {
                     -- More priority to enemies on strong terrain
                     local defender_defense = 100 - wesnoth.unit_defense(defender, wesnoth.get_terrain(defender.x, defender.y))
                     rating = rating + defender_defense / 4.
+                    --print('rating 1', rating, attacker.id, a.dst.x, a.dst.y)
 
                     -- Also want to attack from the strongest possible terrain
                     local attack_defense = 100 - wesnoth.unit_defense(attacker, wesnoth.get_terrain(a.dst.x, a.dst.y))
                     rating = rating + attack_defense / 2.
-                    --print('rating', rating, attacker.id, a.dst.x, a.dst.y)
+                    --print('rating terrain', rating, attacker.id, a.dst.x, a.dst.y)
 
                     -- And from village everything else being equal
                     local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(a.dst.x, a.dst.y)).village
                     if is_village then rating = rating + 0.5 end
+                    --print('rating village', rating, attacker.id, a.dst.x, a.dst.y)
 
                     -- Minor penalty if unit needs to be moved out of the way
                     if a.attack_hex_occupied then rating = rating - 0.1 end
+                    --print('rating occupied', rating, attacker.id, a.dst.x, a.dst.y)
 
                     -- Enemy on village: only attack if the enemy is hurt already
                     if enemy_on_village and (defender.max_hitpoints - defender.hitpoints < 8) then rating = -9e99 end
