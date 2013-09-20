@@ -1433,9 +1433,9 @@ return {
                 end
                 local attack_combos = {}
                 for j,count in ipairs(counts) do
-                    if (count >= max_atts) then
+                    --if (count >= max_atts) then
                         table.insert(attack_combos, tmp_attack_combos[j])
-                    end
+                    --end
                 end
                 --print_time('#attack_combos', #attack_combos)
 
