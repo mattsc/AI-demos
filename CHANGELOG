@@ -9,6 +9,7 @@
   - Goto MAI scenario: add ghost side demonstrating avoid_enemies= parameter
 - ai_helper:
   - put_labels: add optional show_coords parameter
+- Remove scenario Liberty::The_Raid: the MAI is in mainline now and not needed here any more
 - General:
   - Some changes to internal syntax to keep up with mainline development (requires BfW 1.11.6)
 
