@@ -3,16 +3,25 @@
   - Use new wesnoth.debug_ai functionality (requires BfW 1.11.5)
 - MP AIs:
   - Add an AI-Demos [modification], so you an use the MP AIs in other eras
+- Freelands Side 1 Grunt Rush (Fred)
+  - Lots of adjusting of attack, zone holding and village grabbing parameters and tweaks of behavior
 - Micro AIs:
-  - New Hang Out MAI and test scenario (already moved to mainline as well)
+  - New Simple Attack MAI and test scenario (already moved to mainline)
+  - New Hang Out MAI and test scenario (already moved to mainline)
   - Patrol MAI scenario: add a zone guardian to the scenario (demonstrates using multiple MAIs on the same side)
   - Goto MAI scenario: add ghost side demonstrating avoid_enemies= parameter
+  - Remove [AID_micro_ai] tag
 - ai_helper:
-  - put_labels: add optional show_coords parameter
+  - get_attacks: internal rewrite; this version is much faster than the previous
+  - put_labels: add optional show_coords= and keys= parameters
+  - remove unused function get_1_11()
+- battle_calcs:
+  - best_defense_map: add optional ignore_these_units= parameter
 - Remove scenario Liberty::The_Raid: the MAI is in mainline now and not needed here any more
 - General:
+  - Ensure that AI-demos loads in Wesnoth 1.11.6, not just 1.11.6+dev
   - Some changes to internal syntax to keep up with mainline development (requires BfW 1.11.6)
-
+  - Remove Liberty - The Raid scenario: has been moved to mainline
 
 0.12.3, 6 June 2013
 - Generic Rush (Ron)
@@ -29,15 +38,15 @@
   - Changed retreat logic to match that of the generic rush
   - Remove north-south dependence of various CAs -> in principle Fred is now able to play any map
   - Add an "enemy_leader" zone that takes care of any unit not moved in one of the other zones
-  - Add approximate method for counter attack calculation (much faster than exact method)    
+  - Add approximate method for counter attack calculation (much faster than exact method)
   - Take exposure to counter attacks into account for units other than side leader for most possible moves
   - Don't retreat injured units at beginning of zone moves, unless they can retreat to a safe healing location (village)
   - Lots of adjusting, fine-tuning and bug fixes of rating functions throughout the CAs
-  - Add stop_unit CA that takes MP and attacks away from units at end of custom (non_RCA) CAs, so that the 
+  - Add stop_unit CA that takes MP and attacks away from units at end of custom (non_RCA) CAs, so that the
     RCA AI doesn't do something we don't want with them.
 - ai_helper:
   - get_attack_combos: Use much more efficient method to find list of possible attacks
-  - get_attack_combos_subset: new method for finding attack combinations (it selects fewer combos and is 
+  - get_attack_combos_subset: new method for finding attack combinations (it selects fewer combos and is
     configurable with a number of cutoff criteria)
   - New functions print_ts() and print_ts_delta()
 - Micro AIs
