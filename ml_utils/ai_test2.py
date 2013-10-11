@@ -171,8 +171,8 @@ def write_compressed(cfg,stdout,stderr,i,):
 if len(sys.argv) != 2:
     print "ai_test2.py"
     print "Test harness for running and logging Battle for Wesnoth in nogui mode.  Run as follows:"
-    print "ai_test2.py my_file.cfg"
-    print "For an example .cfg file see wesnoth/utils/ai_test/ai_test2.cfg"
+    print "ai_test2.py my_file.config"
+    print "For an example .config file see wesnoth/utils/ai_test/ai_test2.config"
 else:
     cfg = ConfigParser.ConfigParser()
     cfg.read(sys.argv[1])

@@ -10,8 +10,8 @@ from time import sleep
 
 usage = "Runs a model on n processors and then builds a new model.  Finally it deploys the model in the deployment\n " + \
     "directory, giving the model a name derived from the model_directory.  \n\n" +\
-    "usage: %prog [options] your_ai_test2.cfg model_directory deployment_directory \n\n" +\
-    "Example usage:  %prog ai_test2.cfg ~/mymodels/model7/ ~/wesnoth/data/ai/models/ -c  ~/mymodels/model6/model6.csv\n\n " + \
+    "usage: %prog [options] your_ai_test2.config model_directory deployment_directory \n\n" +\
+    "Example usage:  %prog ai_test2.config ~/mymodels/model7/ ~/wesnoth/data/ai/models/ -c  ~/mymodels/model6/model6.csv\n\n " + \
     "This will result in an appropriate model7.json file being created in ~/wesnoth/data/ai/models/Drakes/, ~/wesnoth/data/ai/models/Rebels/, etc. \n" +\
     "Also, a copy of these models will be created in each of these directories called 'default_gold_yield_2vc.json'"
 parser = OptionParser(usage)
