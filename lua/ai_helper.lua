@@ -351,7 +351,6 @@ function ai_helper.get_closest_location(hex, location_filter, unit)
             }
         end
         for k,v in pairs(location_filter) do loc_filter[k] = v end
-        --DBG.dbms(loc_filter)
 
         local locs = wesnoth.get_locations(loc_filter)
 
@@ -1305,7 +1304,6 @@ function ai_helper.get_attack_combos(units, enemy, cfg)
             end
         end
     end
-    --DBG.dbms(attacks_dst_src)
 
     -- Reset moves for all units
     for i,u in ipairs(units) do
@@ -1356,7 +1354,6 @@ function ai_helper.get_attack_combos(units, enemy, cfg)
             end
         end
     end
-    --DBG.dbms(attack_array)
     --ai_helper.print_ts('#attack_array before:', #attack_array)
 
     -- Now eliminate all the 0s
@@ -1376,7 +1373,6 @@ function ai_helper.get_attack_combos(units, enemy, cfg)
     -- This last step eliminates the "empty attack combo" (the one with all zeros)
     table.remove(attack_array, i_empty)
     --ai_helper.print_ts('#attack_array after:', #attack_array)
-    --DBG.dbms(attack_array)
 
     return attack_array
 end

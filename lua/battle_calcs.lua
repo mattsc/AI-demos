@@ -353,7 +353,6 @@ function battle_calcs.battle_outcome_coefficients(cfg, cache)
     -- Get the hit/miss counts for the battle
     local hit_miss_counts = {}
     battle_calcs.add_next_strike(cfg, hit_miss_counts)
-    --DBG.dbms(hit_miss_counts)
 
     -- We first calculate the coefficients for the defender HP distribution
     -- so this is sorted by the number of hits the attacker lands
@@ -374,7 +373,6 @@ function battle_calcs.battle_outcome_coefficients(cfg, cache)
         if not counts[i1][i2][i3] then counts[i1][i2][i3] = {} end
         counts[i1][i2][i3][i4] = (counts[i1][i2][i3][i4] or 0) + 1
     end
-    --DBG.dbms(counts)
 
     local coeffs_def = {}
     for am,v1 in pairs(counts) do  -- attacker miss count
@@ -424,7 +422,6 @@ function battle_calcs.battle_outcome_coefficients(cfg, cache)
             end
         end
     end
-    --DBG.dbms(coeffs_def)
 
     -- Now we do the same for the HP distribution of the attacker,
     -- which means everything needs to be sorted by defender hits
@@ -439,7 +436,6 @@ function battle_calcs.battle_outcome_coefficients(cfg, cache)
         if not counts[i1][i2][i3] then counts[i1][i2][i3] = {} end
         counts[i1][i2][i3][i4] = (counts[i1][i2][i3][i4] or 0) + 1
     end
-    --DBG.dbms(counts)
 
     local coeffs_att = {}
     for dm,v1 in pairs(counts) do  -- defender miss count
@@ -511,7 +507,6 @@ function battle_calcs.battle_outcome_coefficients(cfg, cache)
         end
     end
     coeffs_def[biggest_equation].skip = true
-    --DBG.dbms(coeffs_def)
 
     -- If we're caching, add this to 'cache'
     if cache then cache[cind] = { coeffs_att = coeffs_att, coeffs_def = coeffs_def } end
@@ -725,8 +720,6 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
     -- Note that att_hit_prob, def_hit_prob need to be in that order for both calls
     local att_stats = battle_calcs.hp_distribution(att_coeffs, att_hit_prob, def_hit_prob, attacker.hitpoints, def_damage, def_attack)
     local def_stats = battle_calcs.hp_distribution(def_coeffs, att_hit_prob, def_hit_prob, defender.hitpoints, att_damage, att_attack)
-    --DBG.dbms(att_stats)
-    --DBG.dbms(def_stats)
 
     return att_stats, def_stats
 end
@@ -1029,7 +1022,6 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cach
             tmp_attacker_ratings[i] = att_rating
             tmp_att_stats[i], tmp_def_stats[i] = att_stats, def_stats
             --print('rating:', base_rating, def_rating, att_rating, att_rating_av)
-            --DBG.dbms(att_stats)
 
             -- But for combos, also want units with highest attack outcome uncertainties to go early
             -- So that we can change our mind in case of unfavorable outcome
@@ -1099,9 +1091,6 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cach
     -- Just making sure that everything worked:
     --print(#attackers, #dsts, #att_stats, #def_stats)
     --for i,a in ipairs(attackers) do print(i, a.id) end
-    --DBG.dbms(dsts)
-    --DBG.dbms(att_stats)
-    --DBG.dbms(def_stats)
 
     -- Then we go through all the other attacks and calculate the outcomes
     -- based on all the possible outcomes of the previous attacks
@@ -1148,8 +1137,6 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cach
         for hp,p in pairs(def_stats[i].hp_chance) do av_hp = av_hp + hp*p end
         def_stats[i].average_hp = av_hp
     end
-    --DBG.dbms(att_stats)
-    --DBG.dbms(def_stats)
     --print('Defender CTK:', def_stats[#attackers].hp_chance[0])
 
     -- Get the total rating for this attack combo:
@@ -1293,7 +1280,6 @@ function battle_calcs.relative_damage_map(units, enemies, cache)
         end
         unit_ratings[i] = { rating = max_rating, unit_id = u.id, enemy_id = best_enemy.id }
     end
-    --DBG.dbms(unit_ratings)
 
     -- Then we want the same thing for all of the enemy units (for the counter attack on enemy turn)
     local enemy_ratings = {}
@@ -1311,7 +1297,6 @@ function battle_calcs.relative_damage_map(units, enemies, cache)
         end
         enemy_ratings[i] = { rating = max_rating, unit_id = best_unit.id, enemy_id = e.id }
     end
-    --DBG.dbms(enemy_ratings)
 
     -- The damage map is now the sum of these ratings for each unit that can attack a given hex,
     -- counting own-unit ratings as positive, enemy ratings as negative
@@ -1523,7 +1508,6 @@ function battle_calcs.get_attack_combos_subset(units, enemy, cfg)
             end
         end
     end
-    --DBG.dbms(blocked_hexes)
 
     -- For sides other than the current, we always use max_moves,
     -- for the current side we always use current moves
@@ -1590,7 +1574,6 @@ function battle_calcs.get_attack_combos_subset(units, enemy, cfg)
         end
 
     end
-    --DBG.dbms(attacks)
 
     -- Reset moves for all units
     for i,u in ipairs(units) do
@@ -1611,7 +1594,6 @@ function battle_calcs.get_attack_combos_subset(units, enemy, cfg)
             a.rating = battle_calcs.attack_rating(units[a.unit_i], enemy, { x, y })
         end
         table.sort(attacks, function(a,b) return a.rating > b.rating end)
-        --DBG.dbms(attacks)
     end
 
     -- To simplify and speed things up in the following, the field values
@@ -1623,7 +1605,6 @@ function battle_calcs.get_attack_combos_subset(units, enemy, cfg)
         n_reach = n_reach + 1
         reachable_hexes[k] = n_reach
     end
-    --DBG.dbms(reachable_hexes)
 
     -- If cfg.max_time is set, record the start time
     -- For convenience, we store this in cfg
@@ -1639,7 +1620,6 @@ function battle_calcs.get_attack_combos_subset(units, enemy, cfg)
     local combos_str, current_combo, hexes_used  = {}, {}, {}
 
     add_attack(attacks, reachable_hexes, n_reach, attack_combos, combos_str, current_combo, hexes_used, cfg)
-    --DBG.dbms(attack_combos)
 
     -- Minor cleanup
     cfg.start_time = nil
