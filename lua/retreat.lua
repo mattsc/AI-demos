@@ -51,6 +51,7 @@ function retreat_functions.retreat_injured_units(units)
     if non_regen[1] then
         unit_nr, loc_nr, threat_nr = retreat_functions.get_retreat_injured_units(non_regen, false)
         if unit_nr and (threat_nr == 0) then
+            --print('Retreat non-regenerating units to safe healing terrain', unit_nr.id)
             return unit_nr, loc_nr, threat_nr
         end
     end
@@ -60,15 +61,18 @@ function retreat_functions.retreat_injured_units(units)
     if regen[1] then
         unit_r, loc_r, threat_r = retreat_functions.get_retreat_injured_units(regen, true)
         if unit_r and (threat_r == 0) then
+            --print('Retreat regenerating units to safe terrain', unit_r.id)
             return unit_r, loc_r, threat_r
         end
     end
 
     -- The we retreat those that cannot get to a safe location (non-regenerating units first again)
     if unit_nr then
+        --print('Retreat non-regenerating units to unsafe terrain', unit_nr.id)
         return unit_nr, loc_nr, threat_nr
     end
     if unit_r then
+        --print('Retreat regenerating units to unsafe terrain', unit_r.id)
         return unit_r, loc_r, threat_r
     end
 end
@@ -178,7 +182,7 @@ function retreat_functions.get_retreat_injured_units(healees, regenerates)
                 -- Penalty based on terrain defense for unit
                 rating = rating - wesnoth.unit_defense(u, wesnoth.get_terrain(loc[1], loc[2]))/10
 
-                if (loc[1] == u.x) and (loc[2] == u.y) then
+                if (loc[1] == u.x) and (loc[2] == u.y) and (not u.status.poisoned) then
                     if enemy_count == 0 then
                         -- Bonus if we can rest heal
                         -- TODO: Always apply bonus if unit has healthy trait
