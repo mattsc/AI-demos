@@ -651,7 +651,7 @@ return {
                         --rating = rating - (math.abs(perp_dist) / 4.) ^ 2.
 
                         rating = rating + (corridor_map:get(x,y) or 0)
-                        rating = rating + (path_map:get(x,y) or 0) / 4.
+                        rating = rating + (path_map:get(x,y) or 0) / 2.
 
                         -- Small bonus if this is on a village
                         -- Village will also get bonus from defense rating below
