@@ -701,7 +701,6 @@ return {
                                 zoc_rating = zoc_rating * (3 - forw_dist) / 3.
                                 if (zoc_rating < 0) then zoc_rating = 0 end
                             end
-
                         end
                         --if (min_dist == 3) then rating = rating + 1.9 end
                         --if (min_dist == 2) then rating = rating + 0.9 end
@@ -743,14 +742,16 @@ return {
                 for i,u in ipairs(holders) do
                     local reach_map = AH.get_reachable_unocc(u)
                     local max_rating_unit, best_hex_unit = -9e99, {}
+                    local reach_hexes_threatened = false
                     reach_map:iter( function(x, y, v)
                         -- If this is inside the zone
                         if rating_map:get(x, y) then
+                            if enemy_defense_map:get(x, y) then reach_hexes_threatened = true end
+
                             rating = rating_map:get(x, y)
 
                             -- Rating for the terrain
                             local defense = (100 - wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))) / 100.
-                            if (not enemy_defense_map:get(x, y)) then defense = 0.1 end
                             rating = rating * defense  --* terrain_weight
 
                             -- Take strongest units first
@@ -795,6 +796,8 @@ return {
                             reach_map:remove(x, y)
                         end
                     end)
+
+                    if (not reach_hexes_threatened) then max_rating_unit = -9e99 end
 
                     -- If we cannot get into the zone, take direct path to goal hex
                     if (max_rating_unit == -9e99) then
