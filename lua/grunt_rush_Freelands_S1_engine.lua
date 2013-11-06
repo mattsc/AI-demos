@@ -452,11 +452,21 @@ return {
                 local all_units = wesnoth.get_units { side = wesnoth.current.side }
                 local units_MP, units_noMP = {}, {}
                 for i,u in ipairs(all_units) do
+                    local unit_can_move_away = false
                     if (u.moves > 0) then
+                        local reach_map = AH.get_reachable_unocc(u)
+                        if (reach_map:size() > 1) then unit_can_move_away = true end
+                    end
+                    if unit_can_move_away then
                         table.insert(units_MP, u)
                     else
                         table.insert(units_noMP, u)
                     end
+                end
+
+                local units_noMP_map = LS.create()
+                for i,u in ipairs(units_noMP) do
+                    units_noMP_map:insert(u.x, u.y, true)
                 end
 
                 -- Normalized direction "vector"
@@ -740,7 +750,14 @@ return {
                 -- Now we go on to the unit-dependent rating part
                 local max_rating, best_hex, best_unit = -9e99, {}, {}
                 for i,u in ipairs(holders) do
-                    local reach_map = AH.get_reachable_unocc(u)
+                    local reach = wesnoth.find_reach(u)
+                    local reach_map = LS.create()
+                    for i,r in ipairs(reach) do
+                        if (not units_noMP_map:get(r[1], r[2])) then
+                            reach_map:insert(r[1], r[2])
+                        end
+                    end
+
                     local max_rating_unit, best_hex_unit = -9e99, {}
                     local reach_hexes_threatened = false
                     reach_map:iter( function(x, y, v)
