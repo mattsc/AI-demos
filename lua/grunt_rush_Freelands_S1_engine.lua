@@ -751,8 +751,8 @@ return {
                             rating = rating_map:get(x, y)
 
                             -- Rating for the terrain
-                            local defense = (100 - wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))) / 100.
-                            rating = rating * defense  --* terrain_weight
+                            local defense = 100 - wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))
+                            rating = rating + defense * 0.15
 
                             -- Take strongest units first
                             rating = rating + u.hitpoints / 5.
