@@ -95,6 +95,7 @@ return {
                 zone_id = 'right',
                 zone_filter = { x = '24-34', y = '1-17' },
                 unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
+                enemy_filter = { x = '24-34', y = '1-23' },
                 skip_action = { retreat_injured_unsafe = true },
                 hold = { x = 27, y = 11, dx = 0, dy = 1, min_dist = -4 },
                 retreat_villages = { { 24, 7 }, { 28, 5 } }
@@ -423,6 +424,15 @@ return {
                 { "filter_side", {{"enemy_of", { side = wesnoth.current.side } }} }
             }
 
+            local corridor_enemies = enemies
+            if cfg.enemy_filter then
+                --print(cfg.zone_id, ' - getting only enemies in filter')
+                corridor_enemies = AH.get_live_units { { "and", cfg.enemy_filter },
+                    { "filter_side", {{"enemy_of", { side = wesnoth.current.side } }} }
+                }
+            end
+            --print('#enemies, #corridor_enemies', #enemies, #corridor_enemies)
+
             local enemy_leader
             local enemy_attack_maps = {}
             for i,e in ipairs(enemies) do
@@ -439,7 +449,15 @@ return {
             while holders[1] do
                 -- First, find where the units that have already moved are
                 -- This needs to be done after every move
-                local units_noMP = wesnoth.get_units { side = wesnoth.current.side, formula = '$this_unit.moves = 0' }
+                local all_units = wesnoth.get_units { side = wesnoth.current.side }
+                local units_MP, units_noMP = {}, {}
+                for i,u in ipairs(all_units) do
+                    if (u.moves > 0) then
+                        table.insert(units_MP, u)
+                    else
+                        table.insert(units_noMP, u)
+                    end
+                end
 
                 -- Normalized direction "vector"
                 local dx, dy = cfg.hold.dx, cfg.hold.dy
@@ -522,29 +540,118 @@ return {
                 -- If not valid hold position was found
                 --if (hold_dist == -9e99) then return end
 
+                -- Calculate enemy "corridors" toward AI leader
+                local leader = wesnoth.get_units{ side = 1, canrecruit = 'yes' }[1]
+
+                -- Take leader and units with MP off the map
+                -- Leader needs to be taken off whether he has MP or not, so done spearately
+                for i,u in ipairs(units_MP) do
+                    if (not u.canrecruit) then wesnoth.extract_unit(u) end
+                end
+                wesnoth.extract_unit(leader)
+
+                corridor_map = LS.create()
+                path_map = LS.create()
+
+                local factor_path = 0.
+
+                for i,e in ipairs(corridor_enemies) do
+                    local e_copy = wesnoth.copy_unit(e)
+
+                    local path, cost = wesnoth.find_path(e_copy, leader.x, leader.y, { ignore_units = false } )
+                    local movecost_current = wesnoth.unit_movement_cost(e_copy, wesnoth.get_terrain(e.x, e.y))
+                    local multiplier = 1. / math.floor( cost / e.max_moves)
+
+                    factor_path = factor_path + multiplier
+
+                    for i,hex in ipairs(zone) do
+                        local x, y = hex[1], hex[2]
+
+                        e_copy.x, e_copy.y = x, y
+
+                        local p1nzoc, c1nzoc = wesnoth.find_path(e_copy, leader.x, leader.y, { ignore_units = true } )
+                        --local p2nzoc, c2nzoc = wesnoth.find_path(e_copy, e.x, e.y, { ignore_units = true } )
+                        local p1, c1 = wesnoth.find_path(e_copy, leader.x, leader.y, { ignore_units = false } )
+                        local p2, c2 = wesnoth.find_path(e_copy, e.x, e.y, { ignore_units = false } )
+
+                        local movecost = wesnoth.unit_movement_cost(e_copy, wesnoth.get_terrain(x,y))
+
+                        local value = c1 + c2 - cost + movecost - 1 - (movecost_current - 1)
+
+                        if (value <= 2) then
+                            corridor_map:insert(x, y, (corridor_map:get(x,y) or 0) + 1 * multiplier)
+                        else
+                            corridor_map:insert(x, y, (corridor_map:get(x,y) or 0) + 1. / value^2 * multiplier)
+                        end
+
+                        path_map:insert(x, y, (path_map:get(x, y) or 0) + c1nzoc * multiplier)
+
+                    end
+                    e_copy = nil
+                end
+
+                wesnoth.put_unit(leader, leader.x, leader.y)
+                for i,u in ipairs(units_MP) do
+                    if (not u.canrecruit) then wesnoth.put_unit(u, u.x, u.y) end
+                end
+
+                -- Normalize the rating map so that maximum is 10  (arbitrary value)
+                local max_rating = -9e99
+                corridor_map:iter( function (x, y, v)
+                    if (v > max_rating) then max_rating = v end
+                end)
+                local factor = 10. / max_rating
+                --print("factor", factor, factor_path)
+                corridor_map:iter( function (x, y, v)
+                    corridor_map:insert(x, y, v * factor)
+                end)
+
+                -- Normalize so that "step size" along the main corridor is approximately 1
+                factor_path = 1. / factor_path  -- just for consistency
+                path_map:iter( function (x, y, v)
+                    path_map:insert(x, y, v * factor_path)
+                end)
+
+                -- In case there are no enemies in the zone yet:
+                if (#corridor_enemies == 0) then
+                    for i,hex in ipairs(zone) do
+                        local x, y = hex[1], hex[2]
+                        corridor_map:insert(x, y, 10 - math.sqrt(math.abs(x - cfg.hold.x)))
+                        path_map:insert(x, y, y)
+                    end
+                end
+
+                --AH.put_labels(corridor_map)
+                --W.message{ speaker = 'narrator', message = cfg.zone_id .. ': corridor_map' }
+                --AH.put_labels(path_map)
+                --W.message{ speaker = 'narrator', message = cfg.zone_id .. ': path_map' }
+
                 -- First calculate a unit independent rating map
                 rating_map = LS.create()
                 for i,hex in ipairs(zone) do
                     local x, y = hex[1], hex[2]
 
                     -- Distance in direction of (dx, dy) and perpendicular to it
-                    local adv_dist, perp_dist
-                    if dx then
-                        adv_dist = (x - cfg.hold.x) * dx + (y - cfg.hold.y) * dy
-                        perp_dist = (x - cfg.hold.x) * dy + (y - cfg.hold.y) * dx
-                    else
-                        adv_dist = - H.distance_between(x, y, enemy_leader.x, enemy_leader.y)
-                        perp_dist = 0
-                    end
+                    --local adv_dist, perp_dist
+                    --if dx then
+                    --    adv_dist = (x - cfg.hold.x) * dx + (y - cfg.hold.y) * dy
+                    --    perp_dist = (x - cfg.hold.x) * dy + (y - cfg.hold.y) * dx
+                    --else
+                    --    adv_dist = - H.distance_between(x, y, enemy_leader.x, enemy_leader.y)
+                    --    perp_dist = 0
+                    --end
 
-                    if (adv_dist >= min_dist - 1) or (not dx) then
+                    --if (adv_dist >= min_dist - 1) or (not dx) then
                         local rating = 0
 
                         -- A hex forward is worth one "point"
                         -- This is the base rating that everything else is compared with
-                        rating = rating - math.abs(adv_dist) / 2.
+                        --rating = rating - math.abs(adv_dist) / 2.
                         -- Also want to be close to center of zone, but much less importantly
-                        rating = rating - (math.abs(perp_dist) / 4.) ^ 2.
+                        --rating = rating - (math.abs(perp_dist) / 4.) ^ 2.
+
+                        rating = rating + (corridor_map:get(x,y) or 0)
+                        rating = rating + (path_map:get(x,y) or 0) / 4.
 
                         -- Small bonus if this is on a village
                         -- Village will also get bonus from defense rating below
@@ -567,26 +674,39 @@ return {
 
                         -- We also, ideally, want to be 3 hexes from the closest unit that has
                         -- already moved, so as to ZOC the zone,
-                        -- but only (approximately) perpendicular to the advance direction
+                        -- but only (approximately) perpendicular to the corridor direction
                         local min_dist = 9999
+                        local zoc_rating = 0
                         for j,m in ipairs(units_noMP) do
-                            local ldx, ldy
-                            if dx then
-                                ldx, ldy = dx, dy
-                            else
-                                ldx, ldy = enemy_leader.x - x, enemy_leader.y - y
-                                local r = math.sqrt(ldx*ldx + ldy*ldy)
-                                ldx, ldy = ldx / r, ldy / r
-                            end
-                            local parl = math.abs((x - m.x) * ldx + (y - m.y) * ldy)
+                            --local ldx, ldy
+                            --if dx then
+                            --    ldx, ldy = dx, dy
+                            --else
+                            --    ldx, ldy = enemy_leader.x - x, enemy_leader.y - y
+                            --    local r = math.sqrt(ldx*ldx + ldy*ldy)
+                            --    ldx, ldy = ldx / r, ldy / r
+                            --end
+                            --local parl = math.abs((x - m.x) * ldx + (y - m.y) * ldy)
                             --local perp = math.abs((x - m.x) * ldy + (y - m.y) * ldx)
-                            if (parl < 2) then
-                                local dist = H.distance_between(x, y, m.x, m.y)
-                                if (dist < min_dist) then min_dist = dist end
+                            --if (parl < 2) then
+                            --    local dist = H.distance_between(x, y, m.x, m.y)
+                            --    if (dist < min_dist) then min_dist = dist end
+                            --end
+                            local dist = H.distance_between(x, y, m.x, m.y)
+                            if (dist < min_dist) then
+                                min_dist = dist
+                                local forw_dist = math.abs((path_map:get(x, y) or 2000) - (path_map:get(m.x, m.y) or 1000))
+                                zoc_rating = -1 * math.abs(min_dist - 2.5) + 2.5
+                                if (zoc_rating < 0) then zoc_rating = 0 end
+                                zoc_rating = zoc_rating * (3 - forw_dist) / 3.
+                                if (zoc_rating < 0) then zoc_rating = 0 end
                             end
+
                         end
                         --if (min_dist == 3) then rating = rating + 1.9 end
                         --if (min_dist == 2) then rating = rating + 0.9 end
+                        --rating = rating + 3. / min_dist
+                        rating = rating + zoc_rating
 
                         -- Take terrain defense for enemies into account
                         -- This also prefers hexes that cannot be reached by the enemy
@@ -613,7 +733,7 @@ return {
                         --rating = rating - total_enemy_defense / 3. / 2. * terrain_weight
 
                         rating_map:insert(x, y, rating)
-                    end
+                    --end
                 end
                 --AH.put_labels(rating_map)
                 --W.message { speaker = 'narrator', message = 'Hold zone: unit-independent rating map' }
@@ -628,12 +748,13 @@ return {
                         if rating_map:get(x, y) then
                             rating = rating_map:get(x, y)
 
+                            -- Rating for the terrain
+                            local defense = (100 - wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))) / 100.
+                            if (not enemy_defense_map:get(x, y)) then defense = 0.1 end
+                            rating = rating * defense  --* terrain_weight
+
                             -- Take strongest units first
                             rating = rating + u.hitpoints / 5.
-
-                            -- Rating for the terrain
-                            --local defense = 100 - wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))
-                            --rating = rating + defense * terrain_weight
 
                             --local cost = wesnoth.unit_types[u.type].cost
                             --local worth = cost * u.hitpoints / u.max_hitpoints
@@ -663,7 +784,7 @@ return {
                             local hp_left_fraction = av_hp / u.hitpoints
                             local hp_loss_rating = 1.2 / (hp_left_fraction + 0.2) - 0.999
                             --print(u.hitpoints, av_hp, 20. / ( av_hp + 0.01 ), hp_left_fraction, hp_loss_rating)
-                            rating = rating - hp_loss_rating * 1.5
+                            rating = rating - hp_loss_rating * 0.5
 
                             reach_map:insert(x, y, rating)
 
@@ -1637,7 +1758,7 @@ return {
                                 -- Add damage from attack and counter attack
                                 local av_outcome =  counter_average_hp - average_damage
                                 --print('Non-leader: av_outcome, counter_average_hp, average_damage', av_outcome, counter_average_hp, average_damage)
-                                --print('   damage_cost_a, damage_cost_e:', damage_cost_a, damage_cost_e)
+                                --print('   damage_cost_a, damage_cost_e:', damage_cost_a, damage_cost_e, counter_stats.hp_chance[0])
 
                                 if (av_outcome <= 5) or (counter_stats.hp_chance[0] >= max_hp_chance_zero) then
                                     -- Use the "damage cost"
