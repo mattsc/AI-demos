@@ -725,31 +725,21 @@ return {
 
                         -- Take terrain defense for enemies into account
                         -- This also prefers hexes that cannot be reached by the enemy
-                        local adj_defense = {}
+                        local enemy_defense, count = 0, 0
                         for xa, ya in H.adjacent_tiles(x, y) do
-                            local d_adv
-                            if dx then
-                                d_adv = (xa - x) * dx + (ya - y) * dy
-                            else
-                                d_adv = - H.distance_between(xa, ya, enemy_leader.x, enemy_leader.y)
-                            end
-                            table.insert(adj_defense, { d_adv, (enemy_defense_map:get(xa, ya) or 0) })
-                        end
-                        table.sort(adj_defense, function(a, b) return a[1] > b[1] end)
-
-                        local total_enemy_defense = 0
-                        for i = 1,3 do
-                            if adj_defense[i] then
-                                total_enemy_defense = total_enemy_defense + adj_defense[i][2]
+                            if (path_map:get(x,y) < (path_map:get(xa, ya) or 0)) then
+                                enemy_defense = enemy_defense + (enemy_defense_map:get(xa, ya) or 0)
+                                count = count + 1
                             end
                         end
-                        -- Disable for the time being, as it really needs to be weighted by
-                        -- number of enemies that can get there
-                        --rating = rating - total_enemy_defense / 3. / 2. * terrain_weight
+                        if (count > 0) then enemy_defense = enemy_defense / count end
+                        rating = rating - enemy_defense * 0.2
 
                         rating_map:insert(x, y, rating)
                     --end
                 end
+                --AH.put_labels(enemy_defense_map)
+                --W.message { speaker = 'narrator', message = 'enemy_defense_map' }
                 --AH.put_labels(rating_map)
                 --W.message { speaker = 'narrator', message = 'Hold zone: unit-independent rating map' }
 
