@@ -191,7 +191,7 @@ return {
 
     show_vars = function()
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
-        DBG.dbms(self_data_table, true, 'self.data', true)
+        DBG.dbms(self_data_table, true, 'self.data')
         wesnoth.clear_messages()
     end,
 
