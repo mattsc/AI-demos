@@ -717,6 +717,12 @@ return {
                         --rating = rating + 3. / min_dist
                         rating = rating + zoc_rating
 
+                        -- Add penalty for being too far behind the goal hex
+                        -- TODO: generalize from north-south dependence
+                        if cfg.hold and cfg.hold.y and (y < cfg.hold.y - 2) then
+                            rating = rating - (cfg.hold.y - y) / 2.
+                        end
+
                         -- Take terrain defense for enemies into account
                         -- This also prefers hexes that cannot be reached by the enemy
                         local adj_defense = {}
