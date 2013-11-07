@@ -214,10 +214,12 @@ return {
         -- The result is stored in WML variable 'debug_CA_name'
         if wrong_side(1) then return end
 
+        local H = wesnoth.require "lua/helper.lua"
+
         local cas = get_all_CA_names()
 
         -- Let user choose one of the CAs
-        local choice = helper.get_user_choice(
+        local choice = H.get_user_choice(
             {
                 speaker = "narrator",
                 image = "wesnoth-icon.png",
