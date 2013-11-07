@@ -637,7 +637,7 @@ return {
                 --W.message{ speaker = 'narrator', message = cfg.zone_id .. ': path_map' }
 
                 -- First calculate a unit independent rating map
-                rating_map = LS.create()
+                rating_map, defense_rating_map = LS.create(), LS.create()
                 for i,hex in ipairs(zone) do
                     local x, y = hex[1], hex[2]
 
@@ -663,88 +663,96 @@ return {
                         rating = rating + (corridor_map:get(x,y) or 0)
                         rating = rating + (path_map:get(x,y) or 0) / 2.
 
-                        -- Small bonus if this is on a village
-                        -- Village will also get bonus from defense rating below
-                        local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
-                        if is_village and enemy_defense_map:get(x, y) then
-                            rating = rating + 1.9
-                        end
+                        rating_map:insert(x, y, rating)
 
-                        -- Add penalty if this is a location next to an unoccupied village
-                        for xa, ya in H.adjacent_tiles(x, y) do
-                            local is_adj_village = wesnoth.get_terrain_info(wesnoth.get_terrain(xa, ya)).village
-                            -- If there is an adjacent village and the enemy can get to that village
-                            if is_adj_village and enemy_defense_map:get(xa, ya) then
-                                local unit_on_village = wesnoth.get_unit(xa, ya)
-                                if (not unit_on_village) or (unit_on_village.moves > 0) then
-                                    rating = rating - 1.9
+                        -- All the rest only matters if the enemy can get to the hex
+                        if enemy_defense_map:get(x, y) then
+                            local defense_rating = 0
+
+                            -- Small bonus if this is on a village
+                            -- Village will also get bonus from defense rating below
+                            local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
+                            if is_village then
+                                defense_rating = defense_rating + 1.9
+                            end
+
+                            -- Add penalty if this is a location next to an unoccupied village
+                            for xa, ya in H.adjacent_tiles(x, y) do
+                                local is_adj_village = wesnoth.get_terrain_info(wesnoth.get_terrain(xa, ya)).village
+                                -- If there is an adjacent village and the enemy can get to that village
+                                if is_adj_village then
+                                    local unit_on_village = wesnoth.get_unit(xa, ya)
+                                    if (not unit_on_village) or (unit_on_village.moves > 0) then
+                                        defense_rating = defense_rating - 1.9
+                                    end
                                 end
                             end
-                        end
 
-                        -- We also, ideally, want to be 3 hexes from the closest unit that has
-                        -- already moved, so as to ZOC the zone,
-                        -- but only (approximately) perpendicular to the corridor direction
-                        local min_dist = 9999
-                        local zoc_rating = 0
-                        for j,m in ipairs(units_noMP) do
-                            --local ldx, ldy
-                            --if dx then
-                            --    ldx, ldy = dx, dy
-                            --else
-                            --    ldx, ldy = enemy_leader.x - x, enemy_leader.y - y
-                            --    local r = math.sqrt(ldx*ldx + ldy*ldy)
-                            --    ldx, ldy = ldx / r, ldy / r
-                            --end
-                            --local parl = math.abs((x - m.x) * ldx + (y - m.y) * ldy)
-                            --local perp = math.abs((x - m.x) * ldy + (y - m.y) * ldx)
-                            --if (parl < 2) then
-                            --    local dist = H.distance_between(x, y, m.x, m.y)
-                            --    if (dist < min_dist) then min_dist = dist end
-                            --end
-                            local dist = H.distance_between(x, y, m.x, m.y)
-                            if (dist < min_dist) then
-                                min_dist = dist
-                                local forw_dist = math.abs((path_map:get(x, y) or 2000) - (path_map:get(m.x, m.y) or 1000))
-                                zoc_rating = -1 * math.abs(min_dist - 2.5) + 2.5
-                                if (zoc_rating < 0) then zoc_rating = 0 end
-                                zoc_rating = zoc_rating * (3 - forw_dist) / 3.
-                                if (zoc_rating < 0) then zoc_rating = 0 end
+                            -- We also, ideally, want to be 3 hexes from the closest unit that has
+                            -- already moved, so as to ZOC the zone,
+                            -- but only (approximately) perpendicular to the corridor direction
+                            local min_dist = 9999
+                            local zoc_rating = 0
+                            for j,m in ipairs(units_noMP) do
+                                --local ldx, ldy
+                                --if dx then
+                                --    ldx, ldy = dx, dy
+                                --else
+                                --    ldx, ldy = enemy_leader.x - x, enemy_leader.y - y
+                                --    local r = math.sqrt(ldx*ldx + ldy*ldy)
+                                --    ldx, ldy = ldx / r, ldy / r
+                                --end
+                                --local parl = math.abs((x - m.x) * ldx + (y - m.y) * ldy)
+                                --local perp = math.abs((x - m.x) * ldy + (y - m.y) * ldx)
+                                --if (parl < 2) then
+                                --    local dist = H.distance_between(x, y, m.x, m.y)
+                                --    if (dist < min_dist) then min_dist = dist end
+                                --end
+                                local dist = H.distance_between(x, y, m.x, m.y)
+                                if (dist < min_dist) then
+                                    min_dist = dist
+                                    local forw_dist = math.abs((path_map:get(x, y) or 2000) - (path_map:get(m.x, m.y) or 1000))
+                                    zoc_rating = -1 * math.abs(min_dist - 2.5) + 2.5
+                                    if (zoc_rating < 0) then zoc_rating = 0 end
+                                    zoc_rating = zoc_rating * (3 - forw_dist) / 3.
+                                    if (zoc_rating < 0) then zoc_rating = 0 end
+                                end
                             end
-                        end
-                        --if (min_dist == 3) then rating = rating + 1.9 end
-                        --if (min_dist == 2) then rating = rating + 0.9 end
-                        --rating = rating + 3. / min_dist
-                        rating = rating + zoc_rating
+                            --if (min_dist == 3) then defense_rating = defense_rating + 1.9 end
+                            --if (min_dist == 2) then defense_rating = defense_rating + 0.9 end
+                            --defense_rating = defense_rating + 3. / min_dist
+                            defense_rating = defense_rating + zoc_rating
 
-                        -- Add penalty for being too far behind the goal hex
-                        -- TODO: generalize from north-south dependence
-                        if cfg.hold and cfg.hold.y and (y < cfg.hold.y - 2) then
-                            rating = rating - (cfg.hold.y - y) / 2.
-                        end
-
-                        -- Take terrain defense for enemies into account
-                        -- This also prefers hexes that cannot be reached by the enemy
-                        local enemy_defense, count = 0, 0
-                        for xa, ya in H.adjacent_tiles(x, y) do
-                            if (path_map:get(x,y) < (path_map:get(xa, ya) or 0)) then
-                                enemy_defense = enemy_defense + (enemy_defense_map:get(xa, ya) or 0)
-                                count = count + 1
+                            -- Add penalty for being too far behind the goal hex
+                            -- TODO: generalize from north-south dependence
+                            if cfg.hold and cfg.hold.y and (y < cfg.hold.y - 2) then
+                                defense_rating = defense_rating - (cfg.hold.y - y) / 2.
                             end
-                        end
-                        if (count > 0) then enemy_defense = enemy_defense / count end
-                        rating = rating - enemy_defense * 0.2
 
-                        rating_map:insert(x, y, rating)
+                            -- Take terrain defense for enemies into account
+                            -- This also prefers hexes that cannot be reached by the enemy
+                            local enemy_defense, count = 0, 0
+                            for xa, ya in H.adjacent_tiles(x, y) do
+                                if (path_map:get(x,y) < (path_map:get(xa, ya) or 0)) then
+                                    enemy_defense = enemy_defense + (enemy_defense_map:get(xa, ya) or 0)
+                                    count = count + 1
+                                end
+                            end
+                            if (count > 0) then enemy_defense = enemy_defense / count end
+                            defense_rating = defense_rating - enemy_defense * 0.2
+
+                            defense_rating_map:insert(x, y, defense_rating)
+                        end
                     --end
                 end
-                --AH.put_labels(enemy_defense_map)
-                --W.message { speaker = 'narrator', message = 'enemy_defense_map' }
                 --AH.put_labels(rating_map)
                 --W.message { speaker = 'narrator', message = 'Hold zone: unit-independent rating map' }
+                --AH.put_labels(defense_rating_map)
+                --W.message { speaker = 'narrator', message = 'Hold zone: unit-independent defense_rating map' }
 
                 -- Now we go on to the unit-dependent rating part
                 local max_rating, best_hex, best_unit = -9e99, {}, {}
+                local max_defense_rating, best_defense_hex, best_defense_unit = -9e99, {}, {}
                 for i,u in ipairs(holders) do
                     local reach = wesnoth.find_reach(u)
                     local reach_map = LS.create()
@@ -755,17 +763,13 @@ return {
                     end
 
                     local max_rating_unit, best_hex_unit = -9e99, {}
-                    local reach_hexes_threatened = false
+                    local max_defense_rating_unit, best_defense_hex_unit = -9e99, {}
+                    local defense_reach_map = LS.create()
+
                     reach_map:iter( function(x, y, v)
                         -- If this is inside the zone
                         if rating_map:get(x, y) then
-                            if enemy_defense_map:get(x, y) then reach_hexes_threatened = true end
-
-                            rating = rating_map:get(x, y)
-
-                            -- Rating for the terrain
-                            local defense = 100 - wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))
-                            rating = rating + defense * 0.15
+                            local rating = rating_map:get(x, y)
 
                             -- Take strongest units first
                             rating = rating + u.hitpoints / 5.
@@ -777,6 +781,21 @@ return {
                             --if (damage > worth) then
                             --    rating = rating - 1000
                             --end
+                            reach_map:insert(x, y, rating)
+
+                            if (rating > max_rating_unit) then
+                                max_rating_unit, best_hex_unit = rating, { x, y }
+                            end
+                        else
+                            reach_map:remove(x, y)
+                        end
+
+                        if defense_rating_map:get(x, y) then
+                            local defense_rating = reach_map:get(x,y) + defense_rating_map:get(x, y)
+
+                            -- Rating for the terrain
+                            local defense = 100 - wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))
+                            defense_rating = defense_rating + defense * 0.15
 
                             -- Only include enemies that can reach this hex
                             local tmp_enemies = {}
@@ -793,27 +812,23 @@ return {
                                 ).average_hp
                             end
                             --print_time(cfg.zone_id, u.id, x, y, av_hp)
-                            --rating = rating + av_hp
+                            --defense_rating = defense_rating + av_hp
 
                             local hp_left_fraction = av_hp / u.hitpoints
                             local hp_loss_rating = 1.2 / (hp_left_fraction + 0.2) - 0.999
                             --print(u.hitpoints, av_hp, 20. / ( av_hp + 0.01 ), hp_left_fraction, hp_loss_rating)
-                            rating = rating - hp_loss_rating * 0.5
+                            defense_rating = defense_rating - hp_loss_rating * 0.5
 
-                            reach_map:insert(x, y, rating)
+                            defense_reach_map:insert(x, y, defense_rating)
 
-                            if (rating > max_rating_unit) then
-                                max_rating_unit, best_hex_unit = rating, { x, y }
+                            if (defense_rating > max_defense_rating_unit) then
+                                max_defense_rating_unit, best_defense_hex_unit = defense_rating, { x, y }
                             end
-                        else
-                            reach_map:remove(x, y)
                         end
                     end)
 
-                    if (not reach_hexes_threatened) then max_rating_unit = -9e99 end
-
-                    -- If we cannot get into the zone, take direct path to goal hex
-                    if (max_rating_unit == -9e99) then
+                    -- If we cannot get into the zone, or none of the hexes is threatened, take direct path to goal hex
+                    if (max_rating_unit == -9e99) or (defense_reach_map:size() == 0) then
                         local x, y
                         if dx then
                             x = cfg.hold.x
@@ -842,11 +857,22 @@ return {
                     end
                     --print('max_rating:', max_rating)
 
+                    if (max_defense_rating_unit > max_defense_rating) then
+                        max_defense_rating, best_defense_hex, best_defense_unit = max_defense_rating_unit, best_defense_hex_unit, u
+                    end
+                    --print('max_defense_rating:', max_defense_rating)
+
                     --AH.put_labels(reach_map)
                     --W.message { speaker = u.id, message = 'Hold zone: unit-specific rating map' }
+                    --AH.put_labels(defense_reach_map)
+                    --W.message { speaker = u.id, message = 'Hold zone: unit-specific defense_rating map' }
                 end
 
-                return best_unit, best_hex
+                if max_defense_rating > -9e99 then
+                    return best_defense_unit, best_defense_hex
+                else
+                    return best_unit, best_hex
+                end
             end
         end
 
