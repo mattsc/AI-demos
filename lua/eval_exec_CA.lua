@@ -23,7 +23,7 @@ local function CA_name()
     -- otherwise it defaults to 'recruit_orcs'
 
     local name = wesnoth.get_variable('debug_CA_name')
-    return name or 'recruit_orcs'
+    return name or 'zone_control'
 end
 
 local function set_menus()
