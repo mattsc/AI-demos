@@ -66,7 +66,7 @@ local function get_all_CA_names()
         local pos = string.find(k, '_eval')
         if pos and (pos == string.len(k) - 4) then
             local name = string.sub(k, 1, pos-1)
-            if (name ~= 'stats') and (name ~= 'reset_vars') then
+            if (name ~= 'stats') and (name ~= 'reset_vars') and (name ~= 'spread_poison') and (name ~= 'recruit_rushers') then
                 table.insert(cas, name)
             end
         end
