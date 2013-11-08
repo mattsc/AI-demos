@@ -869,8 +869,12 @@ return {
                 end
 
                 if max_defense_rating > -9e99 then
+                    --wesnoth.message('Best unit: ' .. best_defense_unit.id .. ' at ' .. best_defense_unit.x .. ',' .. best_defense_unit.y .. ' --> ' .. best_defense_hex[1] .. ',' .. best_defense_hex[2])
+                    --wesnoth.select_hex(best_defense_hex[1], best_defense_hex[2])
                     return best_defense_unit, best_defense_hex
                 else
+                    --wesnoth.message('Best unit: ' .. best_unit.id .. ' at ' .. best_unit.x .. ',' .. best_unit.y .. ' --> ' .. best_hex[1] .. ',' .. best_hex[2])
+                    --wesnoth.select_hex(best_hex[1], best_hex[2])
                     return best_unit, best_hex
                 end
             end
