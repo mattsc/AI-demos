@@ -744,7 +744,7 @@ return {
                                 end
                             end
                             if (count > 0) then enemy_defense = enemy_defense / count end
-                            defense_rating = defense_rating - enemy_defense * 0.2
+                            defense_rating = defense_rating - enemy_defense * 0.05
 
                             defense_rating_map:insert(x, y, defense_rating)
                         end
