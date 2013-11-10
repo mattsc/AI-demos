@@ -435,11 +435,13 @@ return {
 
             local enemy_leader
             local enemy_attack_maps = {}
+            local enemy_attack_map = LS.create()
             for i,e in ipairs(enemies) do
                 if e.canrecruit then enemy_leader = e end
 
                 local attack_map = BC.get_attack_map_unit(e)
                 table.insert(enemy_attack_maps, attack_map)
+                enemy_attack_map:union_merge(attack_map.units, function(x, y, v1, v2) return (v1 or 0) + v2 end)
             end
 
             local terrain_weight = 0.15
@@ -631,7 +633,7 @@ return {
                     end
                 end
 
-                local show_debug = true
+                local show_debug = false
                 if show_debug then
                     AH.put_labels(corridor_map)
                     W.message{ speaker = 'narrator', message = cfg.zone_id .. ': corridor_map' }
@@ -668,8 +670,8 @@ return {
 
                         rating_map:insert(x, y, rating)
 
-                        -- All the rest only matters if the enemy can get to the hex
-                        if enemy_defense_map:get(x, y) then
+                        -- All the rest only matters if the enemy can attack the hex
+                        if enemy_attack_map:get(x, y) then
                             local defense_rating = 0
 
                             -- Small bonus if this is on a village
