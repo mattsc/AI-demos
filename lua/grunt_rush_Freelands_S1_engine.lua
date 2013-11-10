@@ -579,25 +579,30 @@ return {
                     for i,hex in ipairs(zone) do
                         local x, y = hex[1], hex[2]
 
-                        e_copy.x, e_copy.y = x, y
+                        local movecost = wesnoth.unit_movement_cost(e, wesnoth.get_terrain(x, y))
+                        if (movecost <= e.max_moves) then
+                            e_copy.x, e_copy.y = x, y
 
-                        local p1nzoc, c1nzoc = wesnoth.find_path(e_copy, leader.x, leader.y, { ignore_units = true } )
-                        --local p2nzoc, c2nzoc = wesnoth.find_path(e_copy, e.x, e.y, { ignore_units = true } )
-                        local p1, c1 = wesnoth.find_path(e_copy, leader.x, leader.y, { ignore_units = false } )
-                        local p2, c2 = wesnoth.find_path(e_copy, e.x, e.y, { ignore_units = false } )
+                            local p1nzoc, c1nzoc = wesnoth.find_path(e_copy, leader.x, leader.y, { ignore_units = true } )
+                            --local p2nzoc, c2nzoc = wesnoth.find_path(e_copy, e.x, e.y, { ignore_units = true } )
+                            local p1, c1 = wesnoth.find_path(e_copy, leader.x, leader.y, { ignore_units = false } )
+                            local p2, c2 = wesnoth.find_path(e_copy, e.x, e.y, { ignore_units = false } )
 
-                        local movecost = wesnoth.unit_movement_cost(e_copy, wesnoth.get_terrain(x,y))
+                            local movecost = wesnoth.unit_movement_cost(e_copy, wesnoth.get_terrain(x,y))
 
-                        local value = c1 + c2 - cost + movecost - 1 - (movecost_current - 1)
+                            local value = c1 + c2 - cost + movecost - 1 - (movecost_current - 1)
 
-                        if (value <= 2) then
-                            corridor_map:insert(x, y, (corridor_map:get(x,y) or 0) + 1 * multiplier)
+                            if (value <= 2) then
+                                corridor_map:insert(x, y, (corridor_map:get(x,y) or 0) + 1 * multiplier)
+                            else
+                                corridor_map:insert(x, y, (corridor_map:get(x,y) or 0) + 1. / value^2 * multiplier)
+                            end
+
+                            path_map:insert(x, y, (path_map:get(x, y) or 0) + c1nzoc * multiplier)
                         else
-                            corridor_map:insert(x, y, (corridor_map:get(x,y) or 0) + 1. / value^2 * multiplier)
+                            corridor_map:insert(x, y, (corridor_map:get(x, y) or 0))
+                            path_map:insert(x, y, (path_map:get(x, y) or 0))
                         end
-
-                        path_map:insert(x, y, (path_map:get(x, y) or 0) + c1nzoc * multiplier)
-
                     end
                     e_copy = nil
                 end
