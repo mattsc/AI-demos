@@ -631,10 +631,13 @@ return {
                     end
                 end
 
-                --AH.put_labels(corridor_map)
-                --W.message{ speaker = 'narrator', message = cfg.zone_id .. ': corridor_map' }
-                --AH.put_labels(path_map)
-                --W.message{ speaker = 'narrator', message = cfg.zone_id .. ': path_map' }
+                local show_debug = true
+                if show_debug then
+                    AH.put_labels(corridor_map)
+                    W.message{ speaker = 'narrator', message = cfg.zone_id .. ': corridor_map' }
+                    AH.put_labels(path_map)
+                    W.message{ speaker = 'narrator', message = cfg.zone_id .. ': path_map' }
+                end
 
                 -- First calculate a unit independent rating map
                 rating_map, defense_rating_map = LS.create(), LS.create()
@@ -745,10 +748,13 @@ return {
                         end
                     --end
                 end
-                --AH.put_labels(rating_map)
-                --W.message { speaker = 'narrator', message = 'Hold zone: unit-independent rating map' }
-                --AH.put_labels(defense_rating_map)
-                --W.message { speaker = 'narrator', message = 'Hold zone: unit-independent defense_rating map' }
+
+                if show_debug then
+                    AH.put_labels(rating_map)
+                    W.message { speaker = 'narrator', message = 'Hold zone: unit-independent rating map' }
+                    AH.put_labels(defense_rating_map)
+                    W.message { speaker = 'narrator', message = 'Hold zone: unit-independent defense_rating map' }
+                end
 
                 -- Now we go on to the unit-dependent rating part
                 local max_rating, best_hex, best_unit = -9e99, {}, {}
@@ -862,19 +868,25 @@ return {
                     end
                     --print('max_defense_rating:', max_defense_rating)
 
-                    --AH.put_labels(reach_map)
-                    --W.message { speaker = u.id, message = 'Hold zone: unit-specific rating map' }
-                    --AH.put_labels(defense_reach_map)
-                    --W.message { speaker = u.id, message = 'Hold zone: unit-specific defense_rating map' }
+                    if show_debug then
+                        AH.put_labels(reach_map)
+                        W.message { speaker = u.id, message = 'Hold zone: unit-specific rating map' }
+                        AH.put_labels(defense_reach_map)
+                        W.message { speaker = u.id, message = 'Hold zone: unit-specific defense_rating map' }
+                    end
                 end
 
                 if max_defense_rating > -9e99 then
-                    --wesnoth.message('Best unit: ' .. best_defense_unit.id .. ' at ' .. best_defense_unit.x .. ',' .. best_defense_unit.y .. ' --> ' .. best_defense_hex[1] .. ',' .. best_defense_hex[2])
-                    --wesnoth.select_hex(best_defense_hex[1], best_defense_hex[2])
+                    if show_debug then
+                        wesnoth.message('Best unit: ' .. best_defense_unit.id .. ' at ' .. best_defense_unit.x .. ',' .. best_defense_unit.y .. ' --> ' .. best_defense_hex[1] .. ',' .. best_defense_hex[2])
+                        wesnoth.select_hex(best_defense_hex[1], best_defense_hex[2])
+                    end
                     return best_defense_unit, best_defense_hex
                 else
-                    --wesnoth.message('Best unit: ' .. best_unit.id .. ' at ' .. best_unit.x .. ',' .. best_unit.y .. ' --> ' .. best_hex[1] .. ',' .. best_hex[2])
-                    --wesnoth.select_hex(best_hex[1], best_hex[2])
+                    if show_debug then
+                        wesnoth.message('Best unit: ' .. best_unit.id .. ' at ' .. best_unit.x .. ',' .. best_unit.y .. ' --> ' .. best_hex[1] .. ',' .. best_hex[2])
+                        wesnoth.select_hex(best_hex[1], best_hex[2])
+                    end
                     return best_unit, best_hex
                 end
             end
