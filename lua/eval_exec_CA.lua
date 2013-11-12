@@ -78,7 +78,7 @@ local function get_all_CA_names()
     return cas
 end
 
-local function eval_CA(no_messages)
+local function eval_CA(ai, no_messages)
     -- Evaluates the CA with name returned by CA_name()
 
     local eval_name = CA_name() .. '_eval'
@@ -146,13 +146,13 @@ local function exec_CA(ai, no_messages)
     end
 end
 
-local function highest_score_CA()
+local function highest_score_CA(ai)
     local cas = get_all_CA_names()
 
     local best_ca, max_score = '', 0
     for i,c in ipairs(cas) do
         wesnoth.set_variable('debug_CA_name', c)
-        local score = eval_CA(true)
+        local score = eval_CA(ai, true)
         --wesnoth.message(c .. ': ' .. score)
 
         if (score > max_score) then
@@ -197,17 +197,17 @@ return {
         wesnoth.clear_messages()
     end,
 
-    eval_CA = function()
+    eval_CA = function(ai)
         -- This simply calls the function of the same name
         -- Done so that it is available from several functions inside this table
         if wrong_side(1) then return end
-        eval_CA()
+        eval_CA(ai)
     end,
 
     eval_exec_CA = function(ai)
         -- This calls eval_CA(), then exec(CA) if the score is >0
         if wrong_side(1) then return end
-        local score = eval_CA()
+        local score = eval_CA(ai)
         if (score > 0) then exec_CA(ai) end
     end,
 
@@ -238,11 +238,11 @@ return {
         set_menus()
     end,
 
-    highest_score_CA = function()
+    highest_score_CA = function(ai)
         -- Finds and displays the name of the highest-scoring CA
         if wrong_side(1) then return end
 
-        local ca, score = highest_score_CA()
+        local ca, score = highest_score_CA(ai)
 
         if (score > 0) then
             wesnoth.message('Highest scoring CA: ' .. ca .. ': ' .. score)
@@ -267,7 +267,7 @@ return {
         exec_CA({})
 
         while 1 do
-            local ca, score = highest_score_CA()
+            local ca, score = highest_score_CA(ai)
 
             if (score > 0) then
                 W.message {
@@ -278,7 +278,7 @@ return {
 
                 -- Need to evaluate the CA again first, so that 'self.data' gets set up
                 wesnoth.set_variable('debug_CA_name', ca)
-                eval_CA(true)
+                eval_CA(ai, true)
                 exec_CA(ai, true)
             else
                 W.message {
