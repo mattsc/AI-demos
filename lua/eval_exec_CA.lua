@@ -35,7 +35,7 @@ local function set_menus()
 
     W.set_menu_item {
         id = 'm01_eval',
-        description = 'v: Evaluate Single Candidate Action: ' .. CA_name(),
+        description = 'Evaluate Single Candidate Action: ' .. CA_name(),
         image = 'items/ring-red.png~CROP(26,26,20,20)',
         { 'command',
             { { 'fire_event', { name = 'eval_CA' } } }
@@ -45,7 +45,7 @@ local function set_menus()
 
     W.set_menu_item {
         id = 'm02_exec',
-        description = 'x: Evaluate and Execute Single Candidate Action: ' .. CA_name(),
+        description = 'Evaluate and Execute Single Candidate Action: ' .. CA_name(),
         image = 'items/ring-gold.png~CROP(26,26,20,20)',
         { 'command',
             { { 'fire_event', { name = 'exec_CA' } } }
