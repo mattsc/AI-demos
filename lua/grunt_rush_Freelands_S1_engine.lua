@@ -607,9 +607,9 @@ return {
                     e_copy = nil
                 end
 
-                wesnoth.put_unit(leader, leader.x, leader.y)
+                wesnoth.put_unit(leader)
                 for i,u in ipairs(units_MP) do
-                    if (not u.canrecruit) then wesnoth.put_unit(u, u.x, u.y) end
+                    if (not u.canrecruit) then wesnoth.put_unit(u) end
                 end
 
                 -- Normalize the rating map so that maximum is 10  (arbitrary value)
@@ -985,7 +985,7 @@ return {
             end
             for i,u in ipairs(units_MP) do
                 if (u.x ~= unit.x) or (u.y ~= unit.y) then
-                    wesnoth.put_unit(u.x, u.y, u)
+                    wesnoth.put_unit(u)
                 end
             end
 
@@ -1347,7 +1347,7 @@ return {
                                     end
                                 end
                             end
-                            wesnoth.put_unit(u.x, u.y, u)
+                            wesnoth.put_unit(u)
 
                             -- Unowned and enemy-owned villages get a large bonus
                             -- but we do not seek them out specifically, as the standard CA does that
