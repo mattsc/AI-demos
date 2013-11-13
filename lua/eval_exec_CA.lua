@@ -4,6 +4,9 @@
 -- See the github wiki page for a detailed description of how to use them:
 -- https://github.com/mattsc/Wesnoth-AI-Demos/wiki/CA-debugging
 
+local H = wesnoth.require "lua/helper.lua"
+local W = H.set_wml_action_metatable {}
+
 local function debug_CA()
     -- Edit manually whether you want debug_CA mode or not
     return false
@@ -29,9 +32,6 @@ end
 local function set_menus()
     -- Set the two menu items that have the selecetd CA name in them
     -- They need to be reset when that is changed, that's why this is done here
-
-    local H = wesnoth.require "lua/helper.lua"
-    local W = H.set_wml_action_metatable {}
 
     W.set_menu_item {
         id = 'm01_eval',
@@ -170,6 +170,13 @@ return {
         local debug_CA_mode = debug_CA()
         if debug_CA_mode and wesnoth.game_config.debug then
             wesnoth.fire_event("debug_CA")
+        else
+            W.clear_menu_item { id = 'm01_eval' }
+            W.clear_menu_item { id = 'm02_exec' }
+            W.clear_menu_item { id = 'm03_choose_ca' }
+            W.clear_menu_item { id = 'm04_highest_score_CA' }
+            W.clear_menu_item { id = 'm05_play_turn' }
+            W.clear_menu_item { id = 'm06_reset_vars' }
         end
     end,
 
@@ -258,9 +265,6 @@ return {
     play_turn = function(ai)
         -- Play through an entire AI turn
         if wrong_side(1) then return end
-
-        local H = wesnoth.require "lua/helper.lua"
-        local W = H.set_wml_action_metatable {}
 
         -- First reset all the variables
         wesnoth.set_variable('debug_CA_name', 'reset_vars')
