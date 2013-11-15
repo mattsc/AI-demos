@@ -1,4 +1,5 @@
 0.12.4, ???
+- *** This version requires Wesnoth 1.11.7 ***
 - MP AIs:
   - Add an AI-Demos [modification], so you can use the MP AIs in other eras
   - Add 'Generic Recruit' and 'Default + Move to Enemy' MP AIs to computer player selection menu
@@ -7,23 +8,29 @@
     and can maintain them again)
 - Freelands Side 1 Grunt Rush (Fred)
   - Lots of adjusting of attack, zone holding and village grabbing parameters and tweaks of behavior
+  - Zone holding system switched to use corridor/path maps and two-tier rating system
+    (Note: *** this is not fully balanced yet in this release ***)
 - Test scenario
-  - Use new wesnoth.debug_ai functionality (requires BfW 1.11.5)
+  - Use new wesnoth.debug_ai functionality
 - Switch some of the AIs to using external CAs (which are now fully usable)
   - Ron and Fred are not going to be switched until they are in a more stable state
 - Remove all the Micro AI demo scenarios:
   - They have now been in mainline for quite some time and can be called from there.
   - This also includes removing all the animal units
+- Switchboard scenario: only show the story screen the first time
 - Remove Liberty - The Raid scenario: has been moved to mainline
 - ai_helper:
   - get_attacks: internal rewrite; this version is much faster than the previous
   - put_labels: add optional show_coords= and keys= parameters
+  - get_enemy_dst_src: add optional parameter 'enemies'
   - remove unused function get_1_11()
 - battle_calcs:
   - best_defense_map: add optional ignore_these_units= parameter
+- CA debug mode:
+  - Fixed and functional again for Fred
+  - Add hotkeys for the right-click menu options
 - General:
-  - Ensure that AI-demos loads in Wesnoth 1.11.6, not just 1.11.6+dev
-  - Some changes to internal syntax to keep up with mainline development (requires BfW 1.11.6)
+  - Some changes to internal syntax to keep up with mainline development
 
 0.12.3, 6 June 2013
 - Generic Rush (Ron)
