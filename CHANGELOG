@@ -1,5 +1,6 @@
-0.12.4, ???
-- *** This version requires Wesnoth 1.11.7 ***
+0.12.4-1.11.6, 16 November 2013
+- *** This is a special release set up to work with Wesnoth 1.11.6 ***
+  - Wesnoth 1.11.7 will be required immediately following this
 - MP AIs:
   - Add an AI-Demos [modification], so you can use the MP AIs in other eras
   - Add 'Generic Recruit' and 'Default + Move to Enemy' MP AIs to computer player selection menu
