@@ -12,12 +12,7 @@ return {
         local BC = wesnoth.require "~/add-ons/AI-demos/lua/battle_calcs.lua"
         local LS = wesnoth.require "lua/location_set.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
-        local HS
-        if wesnoth.compare_versions(wesnoth.game_config.version, "==", '1.11.6') then
-            HS = wesnoth.require("ai/micro_ais/ais/mai_healer_support_engine.lua").init(ai)
-        else
-            HS = wesnoth.require "ai/micro_ais/cas/ca_healer_move.lua"
-        end
+        local HS = wesnoth.require "ai/micro_ais/cas/ca_healer_move.lua"
         local R = wesnoth.require "~/add-ons/AI-demos/lua/retreat.lua"
 
         local function print_time(...)
@@ -511,27 +506,15 @@ return {
 
         ------- Place Healers CA --------------
 
-        if wesnoth.compare_versions(wesnoth.game_config.version, "==", '1.11.6') then
-            generic_rush.mai_healer_move_eval = HS.mai_healer_move_eval
-            function generic_rush:place_healers_eval()
-                if generic_rush:mai_healer_move_eval() > 0 then
-                    return 95000
-                end
-                return 0
+        function generic_rush:place_healers_eval()
+            if HS:evaluation(ai, nil, self) > 0 then
+                return 95000
             end
+            return 0
+        end
 
-            generic_rush.place_healers_exec = HS.mai_healer_move_exec
-        else
-            function generic_rush:place_healers_eval()
-                if HS:evaluation(ai, nil, self) > 0 then
-                    return 95000
-                end
-                return 0
-            end
-
-            function generic_rush:place_healers_exec()
-                HS:execution(ai, nil, self)
-            end
+        function generic_rush:place_healers_exec()
+            HS:execution(ai, nil, self)
         end
 
         ------- Retreat CA --------------
