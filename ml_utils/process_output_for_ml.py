@@ -259,14 +259,16 @@ class OutputProcessor:
                 game_result.ai_ident2 = s.strip()
                 continue
 
-            n,s = self.do_filter(str,'info mp/connect: FACTION1:')
+            n,s = self.do_filter(str,'info mp/connect/engine: side 1: faction=')
             if (n>-1):
+                s = s.split(',')[0]
                 #print 'AND THE FACTION1 IS: '+s
                 game_result.faction1 = s
                 continue
 
-            n,s = self.do_filter(str,'info mp/connect: FACTION2:')
+            n,s = self.do_filter(str,'info mp/connect/engine: side 2: faction=')
             if (n>-1):
+                s = s.split(',')[0]
                 #print 'AND THE FACTION2 IS: '+s
                 game_result.faction2 = s
                 continue
