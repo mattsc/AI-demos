@@ -4,7 +4,7 @@ Wesnoth-AI-Demos
 Wesnoth AI Modification Demonstration Scenarios
 
 NOTES:
-* This add-on requires the most recent Wesnoth development release version (1.11.6+dev)
+* This add-on requires the most recent Wesnoth development version (1.11.7)
 * The add-on needs to be installed into ~add-ons/AI-demos/
 
 Home of the formidable Freelands Side 1 Grunt Rush AI, "Fred", and his little brother, the generic rushing AI "Ron"!

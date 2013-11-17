@@ -1,27 +1,44 @@
-0.12.4, ???
-- Test scenario
-  - Use new wesnoth.debug_ai functionality (requires BfW 1.11.5)
+0.12.4+dev, ???
+
+0.12.4, 16 November 2013
+- This is the real release of Version 0.12.4 (for the add-ons server)
+  - Dropped support for Wesnoth 1.11.6
+  - *** This version now requires Wesnoth 1.11.7 ***
+
+0.12.4-1.11.6, 16 November 2013
+- *** This is a special release set up to work with Wesnoth 1.11.6 ***
+  - Wesnoth 1.11.7 will be required immediately following this
 - MP AIs:
-  - Add an AI-Demos [modification], so you an use the MP AIs in other eras
+  - Add an AI-Demos [modification], so you can use the MP AIs in other eras
+  - Add 'Generic Recruit' and 'Default + Move to Enemy' MP AIs to computer player selection menu
+  - Change descriptions of the MP AIs to indicate that they are part of AI-demos
+  - Hide machine-learning MP AIs in the computer player selection menu (until Seattledad is back
+    and can maintain them again)
 - Freelands Side 1 Grunt Rush (Fred)
   - Lots of adjusting of attack, zone holding and village grabbing parameters and tweaks of behavior
-- Micro AIs:
-  - New Simple Attack MAI and test scenario (already moved to mainline)
-  - New Hang Out MAI and test scenario (already moved to mainline)
-  - Patrol MAI scenario: add a zone guardian to the scenario (demonstrates using multiple MAIs on the same side)
-  - Goto MAI scenario: add ghost side demonstrating avoid_enemies= parameter
-  - Remove [AID_micro_ai] tag
+  - Zone holding system switched to use corridor/path maps and two-tier rating system
+    (Note: *** this is not fully balanced yet in this release ***)
+- Test scenario
+  - Use new wesnoth.debug_ai functionality
+- Switch some of the AIs to using external CAs (which are now fully usable)
+  - Ron and Fred are not going to be switched until they are in a more stable state
+- Remove all the Micro AI demo scenarios:
+  - They have now been in mainline for quite some time and can be called from there.
+  - This also includes removing all the animal units
+- Switchboard scenario: only show the story screen the first time
+- Remove Liberty - The Raid scenario: has been moved to mainline
 - ai_helper:
   - get_attacks: internal rewrite; this version is much faster than the previous
   - put_labels: add optional show_coords= and keys= parameters
+  - get_enemy_dst_src: add optional parameter 'enemies'
   - remove unused function get_1_11()
 - battle_calcs:
   - best_defense_map: add optional ignore_these_units= parameter
-- Remove scenario Liberty::The_Raid: the MAI is in mainline now and not needed here any more
+- CA debug mode:
+  - Fixed and functional again for Fred
+  - Add hotkeys for the right-click menu options
 - General:
-  - Ensure that AI-demos loads in Wesnoth 1.11.6, not just 1.11.6+dev
-  - Some changes to internal syntax to keep up with mainline development (requires BfW 1.11.6)
-  - Remove Liberty - The Raid scenario: has been moved to mainline
+  - Some changes to internal syntax to keep up with mainline development
 
 0.12.3, 6 June 2013
 - Generic Rush (Ron)

@@ -155,16 +155,17 @@ function debug_utils.dbms(lua_var, clear, name, onscreen, wrap, only_return)
 
         if clear and wesnoth then wesnoth.clear_messages() end
         if not only_return then
-                if wesnoth and ((not clear) or (clear and (clear ~= -1))) then wesnoth.message("dbms", result) end;
                 print(result)
+                if wesnoth and ((not clear) or (clear and (clear ~= -1))) then wesnoth.message("dbms", result) end;
         end
         local continue = true
         if onscreen and wesnoth and not only_return then
+                local wrap = true
                 if wrap then wesnoth.wml_actions.message({ speaker = "narrator", image = "wesnoth-icon.png", message = result })
-                else
-                        local wlp_utils = wesnoth.require "~add-ons/Wesnoth_Lua_Pack/wlp_utils.lua"
-                        local result = wlp_utils.message({ caption = "dbms", message = result })
-                        if result == -2 then continue = false end
+                --else
+                --        local wlp_utils = wesnoth.require "~add-ons/Wesnoth_Lua_Pack/wlp_utils.lua"
+                --        local result = wlp_utils.message({ caption = "dbms", message = result })
+                --        if result == -2 then continue = false end
                 end
         end
         if metatable and continue then

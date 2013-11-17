@@ -4,6 +4,9 @@
 -- See the github wiki page for a detailed description of how to use them:
 -- https://github.com/mattsc/Wesnoth-AI-Demos/wiki/CA-debugging
 
+local H = wesnoth.require "lua/helper.lua"
+local W = H.set_wml_action_metatable {}
+
 local function debug_CA()
     -- Edit manually whether you want debug_CA mode or not
     return false
@@ -23,15 +26,12 @@ local function CA_name()
     -- otherwise it defaults to 'recruit_orcs'
 
     local name = wesnoth.get_variable('debug_CA_name')
-    return name or 'recruit_orcs'
+    return name or 'zone_control'
 end
 
 local function set_menus()
     -- Set the two menu items that have the selecetd CA name in them
     -- They need to be reset when that is changed, that's why this is done here
-
-    local H = wesnoth.require "lua/helper.lua"
-    local W = H.set_wml_action_metatable {}
 
     W.set_menu_item {
         id = 'm01_eval',
@@ -39,7 +39,8 @@ local function set_menus()
         image = 'items/ring-red.png~CROP(26,26,20,20)',
         { 'command',
             { { 'fire_event', { name = 'eval_CA' } } }
-        }
+        },
+        { 'default_hotkey', { key = 'v' } }
     }
 
     W.set_menu_item {
@@ -48,7 +49,8 @@ local function set_menus()
         image = 'items/ring-gold.png~CROP(26,26,20,20)',
         { 'command',
             { { 'fire_event', { name = 'exec_CA' } } }
-        }
+        },
+        { 'default_hotkey', { key = 'x' } }
     }
 end
 
@@ -64,7 +66,7 @@ local function get_all_CA_names()
         local pos = string.find(k, '_eval')
         if pos and (pos == string.len(k) - 4) then
             local name = string.sub(k, 1, pos-1)
-            if (name ~= 'stats') and (name ~= 'reset_vars') then
+            if (name ~= 'stats') and (name ~= 'reset_vars') and (name ~= 'spread_poison') and (name ~= 'recruit_rushers') then
                 table.insert(cas, name)
             end
         end
@@ -76,7 +78,7 @@ local function get_all_CA_names()
     return cas
 end
 
-local function eval_CA(no_messages)
+local function eval_CA(ai, no_messages)
     -- Evaluates the CA with name returned by CA_name()
 
     local eval_name = CA_name() .. '_eval'
@@ -144,13 +146,13 @@ local function exec_CA(ai, no_messages)
     end
 end
 
-local function highest_score_CA()
+local function highest_score_CA(ai)
     local cas = get_all_CA_names()
 
     local best_ca, max_score = '', 0
     for i,c in ipairs(cas) do
         wesnoth.set_variable('debug_CA_name', c)
-        local score = eval_CA(true)
+        local score = eval_CA(ai, true)
         --wesnoth.message(c .. ': ' .. score)
 
         if (score > max_score) then
@@ -168,6 +170,13 @@ return {
         local debug_CA_mode = debug_CA()
         if debug_CA_mode and wesnoth.game_config.debug then
             wesnoth.fire_event("debug_CA")
+        else
+            W.clear_menu_item { id = 'm01_eval' }
+            W.clear_menu_item { id = 'm02_exec' }
+            W.clear_menu_item { id = 'm03_choose_ca' }
+            W.clear_menu_item { id = 'm04_highest_score_CA' }
+            W.clear_menu_item { id = 'm05_play_turn' }
+            W.clear_menu_item { id = 'm06_reset_vars' }
         end
     end,
 
@@ -191,21 +200,21 @@ return {
 
     show_vars = function()
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
-        DBG.dbms(self_data_table, true, 'self.data', true)
+        DBG.dbms(self_data_table, true, 'self.data')
         wesnoth.clear_messages()
     end,
 
-    eval_CA = function()
+    eval_CA = function(ai)
         -- This simply calls the function of the same name
         -- Done so that it is available from several functions inside this table
         if wrong_side(1) then return end
-        eval_CA()
+        eval_CA(ai)
     end,
 
     eval_exec_CA = function(ai)
         -- This calls eval_CA(), then exec(CA) if the score is >0
         if wrong_side(1) then return end
-        local score = eval_CA()
+        local score = eval_CA(ai)
         if (score > 0) then exec_CA(ai) end
     end,
 
@@ -214,10 +223,12 @@ return {
         -- The result is stored in WML variable 'debug_CA_name'
         if wrong_side(1) then return end
 
+        local H = wesnoth.require "lua/helper.lua"
+
         local cas = get_all_CA_names()
 
         -- Let user choose one of the CAs
-        local choice = helper.get_user_choice(
+        local choice = H.get_user_choice(
             {
                 speaker = "narrator",
                 image = "wesnoth-icon.png",
@@ -234,11 +245,11 @@ return {
         set_menus()
     end,
 
-    highest_score_CA = function()
+    highest_score_CA = function(ai)
         -- Finds and displays the name of the highest-scoring CA
         if wrong_side(1) then return end
 
-        local ca, score = highest_score_CA()
+        local ca, score = highest_score_CA(ai)
 
         if (score > 0) then
             wesnoth.message('Highest scoring CA: ' .. ca .. ': ' .. score)
@@ -255,15 +266,12 @@ return {
         -- Play through an entire AI turn
         if wrong_side(1) then return end
 
-        local H = wesnoth.require "lua/helper.lua"
-        local W = H.set_wml_action_metatable {}
-
         -- First reset all the variables
         wesnoth.set_variable('debug_CA_name', 'reset_vars')
         exec_CA({})
 
         while 1 do
-            local ca, score = highest_score_CA()
+            local ca, score = highest_score_CA(ai)
 
             if (score > 0) then
                 W.message {
@@ -274,7 +282,7 @@ return {
 
                 -- Need to evaluate the CA again first, so that 'self.data' gets set up
                 wesnoth.set_variable('debug_CA_name', ca)
-                eval_CA(true)
+                eval_CA(ai, true)
                 exec_CA(ai, true)
             else
                 W.message {

@@ -357,7 +357,7 @@ function ai_helper.get_closest_location(hex, location_filter, unit)
         if unit then
             for i,l in ipairs(locs) do
                 local movecost = wesnoth.unit_movement_cost(unit, wesnoth.get_terrain(l[1], l[2]))
-                if (movecost < 99) then return l end
+                if (movecost <= unit.max_moves) then return l end
             end
         else
             if locs[1] then return locs[1] end
@@ -389,7 +389,7 @@ function ai_helper.get_passable_locations(location_filter, unit)
         local locs = {}
         for i,l in ipairs(all_locs) do
             local movecost = wesnoth.unit_movement_cost(unit, wesnoth.get_terrain(l[1], l[2]))
-            if (movecost < 99) then table.insert(locs, l) end
+            if (movecost <= unit.max_moves) then table.insert(locs, l) end
         end
         return locs
     end
@@ -697,25 +697,23 @@ function ai_helper.get_dst_src_units(units, cfg)
 end
 
 function ai_helper.get_dst_src(units)
-    -- Produces the same output as ai.get_dst_src()   (available in 1.11.0)
-    -- If units is given, use them, otherwise do it for all units on the current side
+    -- If 'units' table is given, use it, otherwise use all units on the current side
 
-    local my_units = {}
-    if units then
-        my_units = units
-    else
-        my_units = wesnoth.get_units { side = wesnoth.current.side }
+    if (not units) then
+        units = wesnoth.get_units { side = wesnoth.current.side }
     end
 
-    return ai_helper.get_dst_src_units(my_units)
+    return ai_helper.get_dst_src_units(units)
 end
 
-function ai_helper.get_enemy_dst_src()
-    -- Produces the same output as ai.get_enemy_dst_src()   (available in 1.11.0)
+function ai_helper.get_enemy_dst_src(enemies)
+    -- If 'enemies' table is given, use it, otherwise use all enemy units
 
-    local enemies = wesnoth.get_units {
-        { "filter_side", { { "enemy_of", { side = wesnoth.current.side} } } }
-    }
+    if (not enemies) then
+        enemies = wesnoth.get_units {
+            { "filter_side", { { "enemy_of", { side = wesnoth.current.side} } } }
+        }
+    end
 
     return ai_helper.get_dst_src_units(enemies, { moves = 'max' })
 end

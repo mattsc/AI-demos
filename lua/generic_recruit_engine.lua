@@ -1,6 +1,7 @@
 return {
     -- init parameters:
     -- ai: a reference to the ai engine so recruit has access to ai functions
+    --   It is also possible to pass an ai table directly to the execution function, which will then override the value passed here
     -- ai_cas: an object reference to store the CAs and associated data
     --   the CA will use the function names ai_cas:recruit_rushers_eval/exec, so should be referenced by the object name used by the calling AI
     --   ai_cas also has the functions find_best_recruit, find_best_recruit_hex and analyze_enemy_unit added to it
@@ -436,12 +437,13 @@ return {
                 recruit_data.recruit = nil
             end
 
-            AH.done_eval_messages(start_time, ca_name)
+            if AH.print_eval() then AH.done_eval_messages(start_time, ca_name) end
             return score
         end
 
-        function ai_cas:recruit_rushers_exec()
-            if AH.print_exec() then print_time('   Executing recruit_rushers CA') end
+        function ai_cas:recruit_rushers_exec(ai_local)
+            if ai_local then ai = ai_local end
+
             if AH.show_messages() then W.message { speaker = 'narrator', message = 'Recruiting' } end
 
             local enemy_counts = recruit_data.recruit.enemy_counts

@@ -385,7 +385,7 @@ return {
             -- Get an enemy_reach_map taking only AI units that cannot move into account
             local enemy_dstsrc = AH.get_enemy_dst_src()
             -- Put units back out there
-            for i,u in ipairs(units_MP) do wesnoth.put_unit(u.x, u.y, u) end
+            for i,u in ipairs(units_MP) do wesnoth.put_unit(u) end
 
             local rating_map = LS.create()
             local max_rating = -9999
@@ -502,7 +502,7 @@ return {
             -- Get an enemy_reach_map taking only AI units that cannot move into account
             local enemy_reach_map = AH.get_enemy_dst_src()
             -- Put units back out there
-            for i,u in ipairs(units_MP) do wesnoth.put_unit(u.x, u.y, u) end
+            for i,u in ipairs(units_MP) do wesnoth.put_unit(u) end
 
             -- Also need a number of maps (this is for speed reasons, mostly)
             local MP_map = AH.get_dst_src(form_units)
@@ -1030,9 +1030,9 @@ return {
             --AH.put_labels(between)
 
             -- Put units back out there
-            for i,u in ipairs(MP_units) do wesnoth.put_unit(u.x, u.y, u) end
-            for i,u in ipairs(units) do wesnoth.put_unit(u.x, u.y, u) end
-            for i,u in ipairs(tmp_units) do wesnoth.put_unit(u.x, u.y, u) end
+            for i,u in ipairs(MP_units) do wesnoth.put_unit(u) end
+            for i,u in ipairs(units) do wesnoth.put_unit(u) end
+            for i,u in ipairs(tmp_units) do wesnoth.put_unit(u) end
 
             ----------------------------------------------
             -- We also define distance_map (larger toward units, smaller toward enemy)
@@ -1153,7 +1153,7 @@ return {
                 -- Get an enemy_reach_map taking only AI units that cannot move into account
                 local enemy_dstsrc = AH.get_enemy_dst_src()
                 -- Put units back out there
-                for i,u in ipairs(units_MP) do wesnoth.put_unit(u.x, u.y, u) end
+                for i,u in ipairs(units_MP) do wesnoth.put_unit(u) end
 
                 for i,u in ipairs(my_units_noMP) do
                     local rating = 0
@@ -1487,7 +1487,7 @@ return {
             -- Get an enemy_reach_map taking only AI units that cannot move into account
             local enemy_dstsrc = AH.get_enemy_dst_src()
             -- Put units back out there
-            for i,u in ipairs(units_MP) do wesnoth.put_unit(u.x, u.y, u) end
+            for i,u in ipairs(units_MP) do wesnoth.put_unit(u) end
 
             local special = LS.create()
             for i,u in ipairs(my_units_noMP) do
@@ -1615,7 +1615,7 @@ return {
             -- Get an enemy_reach_map taking only AI units that cannot move into account
             local enemy_dstsrc = AH.get_enemy_dst_src()
             -- Put units back out there
-            for i,u in ipairs(units_MP) do wesnoth.put_unit(u.x, u.y, u) end
+            for i,u in ipairs(units_MP) do wesnoth.put_unit(u) end
 
             local special = LS.create()
             for i,u in ipairs(my_units_noMP) do
@@ -1700,7 +1700,7 @@ return {
             -- Get an enemy_reach_map taking only AI units that cannot move into account
             local enemy_dstsrc = AH.get_enemy_dst_src()
             -- Put units back out there
-            for i,u in ipairs(units_MP) do wesnoth.put_unit(u.x, u.y, u) end
+            for i,u in ipairs(units_MP) do wesnoth.put_unit(u) end
 
             local ids = ''
             for i,u in ipairs(units_to_protect) do
