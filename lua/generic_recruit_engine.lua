@@ -602,7 +602,10 @@ return {
                         { "and", {
                             x = leader.x, y = leader.y, radius = 200,
                             { "filter_radius", { terrain = 'C*,K*,C*^*,K*^*,*^K*,*^C*' } }
-                        }}
+                        } },
+                        { "not", { -- exclude hex leader is on
+                            x = leader.x, y = leader.y
+                        } }
                     },
                     x = leader.x,
                     y = leader.y
