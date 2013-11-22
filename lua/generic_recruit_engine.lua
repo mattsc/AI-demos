@@ -374,7 +374,7 @@ return {
             end
 
             if data.recruit == nil then
-                data.recruit = init_data(leader)
+                data.recruit = init_data()
             end
             data.recruit.cheapest_unit_cost = cheapest_unit_cost
 
@@ -385,7 +385,7 @@ return {
             return score
         end
 
-        function init_data(leader)
+        function init_data()
             local data = {}
 
             -- Count enemies of each type
