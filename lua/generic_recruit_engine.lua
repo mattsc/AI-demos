@@ -442,7 +442,7 @@ return {
         end
 
         -- Select a unit and hex to recruit to.
-        function select_recruit()
+        function select_recruit(leader)
             local enemy_counts = recruit_data.recruit.enemy_counts
             local enemy_types = recruit_data.recruit.enemy_types
             local num_enemies =  recruit_data.recruit.num_enemies
@@ -550,7 +550,7 @@ return {
             end
 
             local recruit_type = nil
-            local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+
             repeat
                 recruit_data.recruit.best_hex, recruit_data.recruit.target_hex = ai_cas:find_best_recruit_hex(leader, recruit_data)
                 recruit_type = ai_cas:find_best_recruit(attack_type_count, unit_attack_type_count, recruit_effectiveness, recruit_vulnerability, attack_range_count, unit_attack_range_count, most_common_range_count)
@@ -565,7 +565,8 @@ return {
 
             if AH.show_messages() then W.message { speaker = 'narrator', message = 'Recruiting' } end
 
-            local recruit_type = select_recruit()
+            local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+            local recruit_type = select_recruit(leader)
 
             if wesnoth.unit_types[recruit_type].cost <= wesnoth.sides[wesnoth.current.side].gold then
                 ai.recruit(recruit_type, recruit_data.recruit.best_hex[1], recruit_data.recruit.best_hex[2])
