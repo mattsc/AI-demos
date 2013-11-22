@@ -376,7 +376,6 @@ return {
             if data.recruit == nil then
                 data.recruit = init_data()
             end
-            data.recruit.cheapest_unit_cost = cheapest_unit_cost
 
             local score = 180000 -- default score if one not provided. Same as RCA AI
             if params.score_function then
@@ -423,6 +422,9 @@ return {
             data.enemy_types = enemy_types
             data.num_enemies = #enemies
             data.possible_enemy_recruit_count = possible_enemy_recruit_count
+            data.cheapest_unit_cost = AH.get_cheapest_recruit_cost()
+
+            data.prerecruit = { total_cost = 0 }
 
             return data
         end
@@ -559,6 +561,32 @@ return {
             return recruit_type
         end
 
+        -- Consider recruiting as many units as possible at a location where the leader currently isn't
+        -- These units will eventually be considered already recruited when trying to recruit at the current location
+        -- Recruit will also recruit these units first once the leader moves to that location
+        -- NOT READY, do not call
+        function ai_cas:prerecruit_units(from_loc, data)
+            if data.recruit == nil then
+                data.recruit = init_data()
+            end
+
+            local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+            leader.x, leader.y = from_loc[1], from_loc[2]
+            local recruit_type = select_recruit(leader)
+            local unit_cost = wesnoth.unit_types[recruit_type].cost
+            if unit_cost <= wesnoth.sides[wesnoth.current.side].gold - recruit_data.recruit.prerecruit.total_cost then
+                local queued_recruit = {
+                    recruit_type = recruit_type,
+                    recruit_hex = recruit_data.recruit.best_hex,
+                    target_hex = recruit_data.recruit.target_hex
+                }
+                -- TODO: add queued recruit to a list of units to recruit
+                -- TODO: remove recruit hex from list of hexes to consider recruiting on this turn
+                -- TODO: consider unit recruited for later analysis (to prevent endless copies of the same unit from being recruited)
+                recruit_data.recruit.prerecruit.total_cost = recruit_data.recruit.prerecruit.total_cost + unit_cost
+            end
+        end
+
         -- recruit a unit
         function ai_cas:recruit_rushers_exec(ai_local)
             if ai_local then ai = ai_local end
@@ -566,9 +594,17 @@ return {
             if AH.show_messages() then W.message { speaker = 'narrator', message = 'Recruiting' } end
 
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+            -- TODO: if leader location == prerecruit location, recruit units from prerecruit list instead of trying locally
             local recruit_type = select_recruit(leader)
 
-            if wesnoth.unit_types[recruit_type].cost <= wesnoth.sides[wesnoth.current.side].gold then
+            -- Consider prerecruited units to already be recruited if there is no target hex
+            -- Targeted hexes won't be available at the prerecruit location and we don't want to miss getting the associated villages
+            local max_cost = wesnoth.sides[wesnoth.current.side].gold
+            if recruit_data.recruit.target_hex == nil or recruit_data.recruit.target_hex[1] == nil then
+                max_cost = max_cost - recruit_data.recruit.prerecruit.total_cost
+            end
+
+            if wesnoth.unit_types[recruit_type].cost <= max_cost then
                 ai.recruit(recruit_type, recruit_data.recruit.best_hex[1], recruit_data.recruit.best_hex[2])
 
                 -- If the recruited unit cannot reach the target hex, return it to the pool of targets
