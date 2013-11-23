@@ -342,14 +342,28 @@ return {
             -- Check if leader is on keep
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
 
-            if (not leader) or (not wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep) then
+            if not leader then
                 return 0
+            end
+
+            if data.recruit == nil then
+                data.recruit = init_data()
+            end
+            if data.recruit.prerecruit.total_cost > 0 then
+                cant_recruit_at_location_score = 1
+
+            if not wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep then
+                return cant_recruit_at_location_score
             end
 
             -- Check if there is enough gold to recruit a unit
             local cheapest_unit_cost = AH.get_cheapest_recruit_cost()
-            if cheapest_unit_cost > wesnoth.sides[wesnoth.current.side].gold then
+            local current_gold = wesnoth.sides[wesnoth.current.side].gold
+            if cheapest_unit_cost > current_gold then
                 return 0
+            end
+            if cheapest_unit_cost > current_gold - data.recruit.prerecruit.total_cost then
+                return 1
             end
 
             -- Check for space to recruit a unit
@@ -363,18 +377,14 @@ return {
                 end
             end
             if no_space then
-                return 0
+                return cant_recruit_at_location_score
             end
 
             -- Check for minimal recruit option
             if wesnoth.current.turn == 1 and params.min_turn_1_recruit and params.min_turn_1_recruit() then
                 if not get_village_target(leader, data)[1] then
-                    return 0
+                    return cant_recruit_at_location_score
                 end
-            end
-
-            if data.recruit == nil then
-                data.recruit = init_data()
             end
 
             local score = 180000 -- default score if one not provided. Same as RCA AI
