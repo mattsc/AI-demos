@@ -339,16 +339,36 @@ return {
         end
 
         function do_recruit_eval(data)
-            -- Check if leader is on keep
+            -- Check if leader exists
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
-
             if not leader then
                 return 0
             end
 
+            -- Check if there is enough gold to recruit a unit
+            local cheapest_unit_cost = AH.get_cheapest_recruit_cost()
+            local current_gold = wesnoth.sides[wesnoth.current.side].gold
+            if cheapest_unit_cost > current_gold then
+                return 0
+            end
+
+            -- Minimum requirements satisfied, init recruit data if needed for more complex evaluations
             if data.recruit == nil then
                 data.recruit = init_data()
             end
+            get_current_castle(leader, data)
+
+            -- Do not recruit now if we want to recruit elsewhere unless
+            -- a) there is a nearby village recruiting would let us capture, or
+            -- b) we have enough gold to recruit at both locations
+            -- c) we are now at the other location
+            local village_target_available = get_village_target(leader, data)[1]
+            if (not village_target_available) and
+               (cheapest_unit_cost > current_gold - data.recruit.prerecruit.total_cost) and
+               (leader.x ~= data.recruit.prerecruit.loc[1] or leader.y ~= data.recruit.prerecruit.loc[2]) then
+                return 1
+            end
+
             local cant_recruit_at_location_score = 0
             if data.recruit.prerecruit.total_cost > 0 then
                 cant_recruit_at_location_score = 1
@@ -358,18 +378,7 @@ return {
                 return cant_recruit_at_location_score
             end
 
-            -- Check if there is enough gold to recruit a unit
-            local cheapest_unit_cost = AH.get_cheapest_recruit_cost()
-            local current_gold = wesnoth.sides[wesnoth.current.side].gold
-            if cheapest_unit_cost > current_gold then
-                return 0
-            end
-            if cheapest_unit_cost > current_gold - data.recruit.prerecruit.total_cost then
-                return 1
-            end
-
             -- Check for space to recruit a unit
-            get_current_castle(leader, data)
             local no_space = true
             for i,c in ipairs(data.castle.locs) do
                 local unit = wesnoth.get_unit(c[1], c[2])
@@ -384,7 +393,7 @@ return {
 
             -- Check for minimal recruit option
             if wesnoth.current.turn == 1 and params.min_turn_1_recruit and params.min_turn_1_recruit() then
-                if not get_village_target(leader, data)[1] then
+                if not village_target_available then
                     return cant_recruit_at_location_score
                 end
             end
@@ -588,6 +597,17 @@ return {
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
             leader.x, leader.y = from_loc[1], from_loc[2]
 
+            -- only track one prerecruit location at a time
+            if from_loc[1] ~= recruit_data.recruit.precruit.loc[1] or
+               from_loc[1] ~= recruit_data.recruit.precruit.loc[1] then
+                recruit_data.recruit.precruit = {
+                    loc = from_loc,
+                    total_cost = 0,
+                    units = {}
+                }
+            end
+
+            -- recruit as many units as possible at that location
             while #recruit_data.castle.locs > 0 do
                 local recruit_type = select_recruit(leader)
                 local unit_cost = wesnoth.unit_types[recruit_type].cost
@@ -613,27 +633,43 @@ return {
             if AH.show_messages() then W.message { speaker = 'narrator', message = 'Recruiting' } end
 
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
-            -- TODO: if leader location == prerecruit location, recruit units from prerecruit list instead of trying locally
-            local recruit_type = select_recruit(leader)
-
-            -- Consider prerecruited units to already be recruited if there is no target hex
-            -- Targeted hexes won't be available at the prerecruit location and we don't want to miss getting the associated villages
+            -- If leader location == prerecruit location, recruit units from prerecruit list instead of trying locally
+            local recruit_type
             local max_cost = wesnoth.sides[wesnoth.current.side].gold
-            if recruit_data.recruit.target_hex == nil or recruit_data.recruit.target_hex[1] == nil then
-                max_cost = max_cost - recruit_data.recruit.prerecruit.total_cost
+            if recruit_data.recruit.prerecruit.loc ~= nil and
+               leader.x == recruit_data.recruit.prerecruit.loc[1] and leader.y == recruit_data.recruit.prerecruit.loc[2] and
+               #recruit_data.recruit.prerecruit.units > 0 then
+                recruit_data = table.remove(recruit_data.recruit.prerecruit.units, 1)
+                recruit_hex = recruit_data.recruit_hex
+                target_hex = recruit_data.target_hex
+                recruit_type = recruit_data.recruit_type
+                if target_hex ~= nil and target_hex[1] ~= nil then
+                    table.insert(recruit_data.castle.assigned_villages_x, target_hex[1])
+                    table.insert(recruit_data.castle.assigned_villages_y, target_hex[2])
+                end
+            else
+                recruit_type = select_recruit(leader)
+                recruit_hex = recruit_data.recruit.best_hex
+                target_hex = recruit_data.recruit.target_hex
+
+                -- Consider prerecruited units to already be recruited if there is no target hex
+                -- Targeted hexes won't be available at the prerecruit location and we don't want to miss getting the associated villages
+                if recruit_data.recruit.target_hex == nil or recruit_data.recruit.target_hex[1] == nil then
+                    max_cost = max_cost - recruit_data.recruit.prerecruit.total_cost
+                end
             end
 
             if wesnoth.unit_types[recruit_type].cost <= max_cost then
-                ai.recruit(recruit_type, recruit_data.recruit.best_hex[1], recruit_data.recruit.best_hex[2])
+                ai.recruit(recruit_type, recruit_hex[1], recruit_hex[2])
 
                 -- If the recruited unit cannot reach the target hex, return it to the pool of targets
-                if recruit_data.recruit.target_hex ~= nil and recruit_data.recruit.target_hex[1] ~= nil then
-                    local unit = wesnoth.get_unit(recruit_data.recruit.best_hex[1], recruit_data.recruit.best_hex[2])
-                    local path, cost = wesnoth.find_path(unit, recruit_data.recruit.target_hex[1], recruit_data.recruit.target_hex[2], {viewing_side=0, max_cost=unit.max_moves+1})
+                if target_hex ~= nil and target_hex[1] ~= nil then
+                    local unit = wesnoth.get_unit(recruit_hex[1], recruit_hex[2])
+                    local path, cost = wesnoth.find_path(unit, target_hex[1], target_hex[2], {viewing_side=0, max_cost=unit.max_moves+1})
                     if cost > unit.max_moves then
                         -- The last village added to the list should be the one we tried to aim for, check anyway
                         local last = #recruit_data.castle.assigned_villages_x
-                        if (recruit_data.castle.assigned_villages_x[last] == recruit_data.recruit.target_hex[1]) and (recruit_data.castle.assigned_villages_y[last] == recruit_data.recruit.target_hex[2]) then
+                        if (recruit_data.castle.assigned_villages_x[last] == target_hex[1]) and (recruit_data.castle.assigned_villages_y[last] == target_hex[2]) then
                             table.remove(recruit_data.castle.assigned_villages_x)
                             table.remove(recruit_data.castle.assigned_villages_y)
                         end
