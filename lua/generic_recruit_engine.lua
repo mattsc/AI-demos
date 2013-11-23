@@ -349,8 +349,10 @@ return {
             if data.recruit == nil then
                 data.recruit = init_data()
             end
+            local cant_recruit_at_location_score = 0
             if data.recruit.prerecruit.total_cost > 0 then
                 cant_recruit_at_location_score = 1
+            end
 
             if not wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep then
                 return cant_recruit_at_location_score
@@ -434,7 +436,10 @@ return {
             data.possible_enemy_recruit_count = possible_enemy_recruit_count
             data.cheapest_unit_cost = AH.get_cheapest_recruit_cost()
 
-            data.prerecruit = { total_cost = 0 }
+            data.prerecruit = {
+                total_cost = 0,
+                units = {}
+            }
 
             return data
         end
@@ -575,23 +580,27 @@ return {
         -- These units will eventually be considered already recruited when trying to recruit at the current location
         -- Recruit will also recruit these units first once the leader moves to that location
         -- NOT READY, do not call
-        function ai_cas:prerecruit_units(from_loc, data)
-            if data.recruit == nil then
-                data.recruit = init_data()
+        function ai_cas:prerecruit_units(from_loc)
+            if recruit_data.recruit == nil then
+                recruit_data.recruit = init_data()
             end
 
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
             leader.x, leader.y = from_loc[1], from_loc[2]
-            local recruit_type = select_recruit(leader)
-            local unit_cost = wesnoth.unit_types[recruit_type].cost
-            if unit_cost <= wesnoth.sides[wesnoth.current.side].gold - recruit_data.recruit.prerecruit.total_cost then
+
+            while #recruit_data.castle.locs > 0 do
+                local recruit_type = select_recruit(leader)
+                local unit_cost = wesnoth.unit_types[recruit_type].cost
+                if unit_cost > wesnoth.sides[wesnoth.current.side].gold - recruit_data.recruit.prerecruit.total_cost then
+                    break
+                end
                 local queued_recruit = {
                     recruit_type = recruit_type,
                     recruit_hex = recruit_data.recruit.best_hex,
                     target_hex = recruit_data.recruit.target_hex
                 }
-                -- TODO: add queued recruit to a list of units to recruit
-                -- TODO: remove recruit hex from list of hexes to consider recruiting on this turn
+                table.insert(recruit_data.recruit.prerecruit.units, queued_recruit)
+                remove_hex_from_castle(castle, queued_recruit.recruit_hex)
                 -- TODO: consider unit recruited for later analysis (to prevent endless copies of the same unit from being recruited)
                 recruit_data.recruit.prerecruit.total_cost = recruit_data.recruit.prerecruit.total_cost + unit_cost
             end
@@ -656,6 +665,15 @@ return {
                     x = leader.x,
                     y = leader.y
                 }
+            end
+        end
+
+        function remove_hex_from_castle(castle, hex)
+            for i,c in ipairs(castle.locs) do
+                if c[1] == hex[1] and c[2] == hex[2] then
+                    table.remove(castle.locs, i)
+                    break
+                end
             end
         end
 
