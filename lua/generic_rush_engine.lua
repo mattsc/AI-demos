@@ -167,7 +167,7 @@ return {
             end
 
             local on_keep = wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep
-            local current_keep_score = 0
+            local current_keep_score = 1/best_turns
 
             -- If we're on a keep,
             -- don't move to another keep unless it's much better when uncaptured villages are present
