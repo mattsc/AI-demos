@@ -168,9 +168,9 @@ return {
             if best_score > 0 and wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep then
                 local close_unowned_village = (wesnoth.get_villages {
                     { "and", {
-                    x = leader.x,
-                    y = leader.y,
-                    radius = leader.max_moves
+                        x = leader.x,
+                        y = leader.y,
+                        radius = leader.max_moves
                     }},
                     owner_side = 0
                 })[1]
