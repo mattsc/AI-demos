@@ -630,8 +630,8 @@ return {
                 recruit_data.recruit.prerecruit.total_cost = recruit_data.recruit.prerecruit.total_cost + unit_cost
             end
 
-            -- Provide the list of units to the caller
-            return recruit_data.recruit.prerecruit.units
+            -- Provide the prerecruit data to the caller
+            return recruit_data.recruit.prerecruit
         end
 
         -- recruit a unit
