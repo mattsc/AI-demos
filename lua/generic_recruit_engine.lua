@@ -4,7 +4,7 @@ return {
     --   It is also possible to pass an ai table directly to the execution function, which will then override the value passed here
     -- ai_cas: an object reference to store the CAs and associated data
     --   the CA will use the function names ai_cas:recruit_rushers_eval/exec, so should be referenced by the object name used by the calling AI
-    --   ai_cas also has the functions find_best_recruit, find_best_recruit_hex and analyze_enemy_unit added to it
+    --   ai_cas also has the functions find_best_recruit, find_best_recruit_hex, prerecruit_units and analyze_enemy_unit added to it
     --     find_best_recruit, find_best_recruit_hex may be useful for writing recruitment code separately from the engine
     -- params: parameters to configure recruitment
     --      score_function: function that returns the CA score when recruit_rushers_eval wants to recruit
@@ -592,7 +592,6 @@ return {
         -- Consider recruiting as many units as possible at a location where the leader currently isn't
         -- These units will eventually be considered already recruited when trying to recruit at the current location
         -- Recruit will also recruit these units first once the leader moves to that location
-        -- NOT READY, do not call
         function ai_cas:prerecruit_units(from_loc)
             if recruit_data.recruit == nil then
                 recruit_data.recruit = init_data()
