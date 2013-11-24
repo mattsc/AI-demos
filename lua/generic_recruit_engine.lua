@@ -583,6 +583,9 @@ return {
 
             repeat
                 recruit_data.recruit.best_hex, recruit_data.recruit.target_hex = ai_cas:find_best_recruit_hex(leader, recruit_data)
+                if recruit_data.recruit.best_hex == nil or recruit_data.recruit.best_hex[1] == nil then
+                    return nil
+                end
                 recruit_type = ai_cas:find_best_recruit(attack_type_count, unit_attack_type_count, recruit_effectiveness, recruit_vulnerability, attack_range_count, unit_attack_range_count, most_common_range_count)
             until recruit_type ~= nil
 
@@ -618,6 +621,9 @@ return {
             -- recruit as many units as possible at that location
             while #recruit_data.castle.locs > 0 do
                 local recruit_type = select_recruit(leader)
+                if recruit_type == nil then
+                    break
+                end
                 local unit_cost = wesnoth.unit_types[recruit_type].cost
                 if unit_cost > wesnoth.sides[wesnoth.current.side].gold - recruit_data.recruit.prerecruit.total_cost then
                     break
@@ -660,6 +666,9 @@ return {
                 recruit_data.recruit.prerecruit.total_cost = recruit_data.recruit.prerecruit.total_cost - wesnoth.unit_types[recruit_type].cost
             else
                 recruit_type = select_recruit(leader)
+                if recruit_type == nil then
+                    return false
+                end
                 recruit_hex = recruit_data.recruit.best_hex
                 target_hex = recruit_data.recruit.target_hex
 
