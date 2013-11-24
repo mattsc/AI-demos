@@ -23,7 +23,7 @@ return {
             end
         end
 
-        ------ Stats at beginning of turn -----------
+        ------ Stats and initialization at beginning of turn -----------
 
         -- This will be blacklisted after first execution each turn
         function generic_rush:stats_eval()
@@ -45,6 +45,9 @@ return {
                     print('   Player ' .. s.side .. ' (' .. leader.type .. '): ' .. #units .. ' Units with total HP: ' .. total_hp)
                 end
             end
+
+            -- Clear prerecruit data at turn start
+            self.data.prerecruit = nil
         end
 
         ------- Recruit CA --------------
@@ -163,9 +166,12 @@ return {
                 end
             end
 
+            local on_keep = wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep
+            local current_keep_score = 0
+
             -- If we're on a keep,
             -- don't move to another keep unless it's much better when uncaptured villages are present
-            if best_score > 0 and wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep then
+            if best_score > 0 and on_keep then
                 local close_unowned_village = (wesnoth.get_villages {
                     { "and", {
                         x = leader.x,
@@ -174,16 +180,17 @@ return {
                     }},
                     owner_side = 0
                 })[1]
-                if close_unowned_village then
-                    local score = 1/best_turns
-                    for j,e in ipairs(enemy_leaders) do
-                        -- count all distances as three less than they actually are
-                        score = score + 1 / (H.distance_between(leader.x, leader.y, e.x, e.y) - 3)
-                    end
 
-                    if score > best_score then
-                        best_score = 0
-                    end
+                local score = 1/best_turns
+                for j,e in ipairs(enemy_leaders) do
+                    -- count all distances as three less than they actually are
+                    local distance = H.distance_between(leader.x, leader.y, e.x, e.y)
+                    score = score + 1 / (distance - 3)
+                    current_keep_score = current_keep_score + 1 / distance
+                end
+
+                if close_unowned_village and score > best_score then
+                    best_score = 0
                 end
             end
 
@@ -216,28 +223,41 @@ return {
 
                 self.data.leader_target = next_hop
 
-                -- if we're on a keep, wait until there are no movable units on the castle before moving off
-                self.data.leader_score = 290000
-                if wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep then
-                    local castle = wesnoth.get_locations {
-                        x = "1-"..width, y = "1-"..height,
-                        { "and", {
-                            x = leader.x, y = leader.y, radius = 200,
-                            { "filter_radius", { terrain = 'C*,K*,C*^*,K*^*,*^K*,*^C*' } }
-                        }}
-                    }
-                    local should_wait = false
-                    for i,loc in ipairs(castle) do
-                        local unit = wesnoth.get_unit(loc[1], loc[2])
-                        if not unit then
-                            should_wait = false
-                            break
-                        elseif unit.moves > 0 then
-                            should_wait = true
+                self.data.leader_score = 310000
+
+                -- If we're on a keep and moving directly to another keep, consider recruiting at the other keep instead of this one
+                if on_keep and self.data.prerecruit == nil
+                and wesnoth.get_terrain_info(wesnoth.get_terrain(next_hop[1], next_hop[2])).keep
+                and current_keep_score < best_score then
+                    self.data.prerecruit = generic_rush:prerecruit_units(next_hop)
+                end
+                -- If we still have enough gold to recruit at the current location, do that first
+                if self.data.prerecruit == nil
+                or cheapest_unit_cost <= wesnoth.sides[wesnoth.current.side].gold - self.data.prerecruit.total_cost then
+                    self.data.leader_score = 290000
+
+                    -- if we're on a keep, wait until there are no movable units on the castle before moving off
+                    if on_keep then
+                        local castle = wesnoth.get_locations {
+                            x = "1-"..width, y = "1-"..height,
+                            { "and", {
+                                x = leader.x, y = leader.y, radius = 200,
+                                { "filter_radius", { terrain = 'C*,K*,C*^*,K*^*,*^K*,*^C*' } }
+                            }}
+                        }
+                        local should_wait = false
+                        for i,loc in ipairs(castle) do
+                            local unit = wesnoth.get_unit(loc[1], loc[2])
+                            if not unit then
+                                should_wait = false
+                                break
+                            elseif unit.moves > 0 then
+                                should_wait = true
+                            end
                         end
-                    end
-                    if should_wait then
-                        self.data.leader_score = 15000
+                        if should_wait then
+                            self.data.leader_score = 15000
+                        end
                     end
                 end
 
