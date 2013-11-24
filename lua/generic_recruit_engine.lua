@@ -627,6 +627,9 @@ return {
                 remove_hex_from_castle(castle, queued_recruit.recruit_hex)
                 recruit_data.recruit.prerecruit.total_cost = recruit_data.recruit.prerecruit.total_cost + unit_cost
             end
+
+            -- Provide the list of units to the caller
+            return recruit_data.recruit.prerecruit.units
         end
 
         -- recruit a unit
