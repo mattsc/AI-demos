@@ -488,6 +488,10 @@ return {
             for i, recruit_id in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
                 recruit_count[recruit_id] = #(AH.get_live_units { side = wesnoth.current.side, type = recruit_id, canrecruit = 'no' })
             end
+            -- Count prerecruited units as recruited
+            for i, prerecruited in ipairs(recruit_data.recruit.prerecruit.units) do
+                recruit_count[prerecruited.recruit_type] = recruit_count[prerecruited.recruit_type] + 1
+            end
 
             for i, unit_type in ipairs(enemy_types) do
                 enemy_type_count = enemy_type_count + 1
@@ -621,7 +625,6 @@ return {
                 }
                 table.insert(recruit_data.recruit.prerecruit.units, queued_recruit)
                 remove_hex_from_castle(castle, queued_recruit.recruit_hex)
-                -- TODO: consider unit recruited for later analysis (to prevent endless copies of the same unit from being recruited)
                 recruit_data.recruit.prerecruit.total_cost = recruit_data.recruit.prerecruit.total_cost + unit_cost
             end
         end
