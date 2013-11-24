@@ -601,9 +601,9 @@ return {
             leader.x, leader.y = from_loc[1], from_loc[2]
 
             -- only track one prerecruit location at a time
-            if from_loc[1] ~= recruit_data.recruit.precruit.loc[1] or
-               from_loc[1] ~= recruit_data.recruit.precruit.loc[1] then
-                recruit_data.recruit.precruit = {
+            if from_loc[1] ~= recruit_data.recruit.prerecruit.loc[1] or
+               from_loc[1] ~= recruit_data.recruit.prerecruit.loc[1] then
+                recruit_data.recruit.prerecruit = {
                     loc = from_loc,
                     total_cost = 0,
                     units = {}
