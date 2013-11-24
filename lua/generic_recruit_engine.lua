@@ -598,6 +598,9 @@ return {
             end
 
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+            if leader == nil then
+                return nil
+            end
             leader.x, leader.y = from_loc[1], from_loc[2]
 
             -- only track one prerecruit location at a time
