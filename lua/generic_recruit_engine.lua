@@ -628,7 +628,7 @@ return {
                     target_hex = recruit_data.recruit.target_hex
                 }
                 table.insert(recruit_data.recruit.prerecruit.units, queued_recruit)
-                remove_hex_from_castle(castle, queued_recruit.recruit_hex)
+                remove_hex_from_castle(recruit_data.castle, queued_recruit.recruit_hex)
                 recruit_data.recruit.prerecruit.total_cost = recruit_data.recruit.prerecruit.total_cost + unit_cost
             end
 
