@@ -649,10 +649,10 @@ return {
             if recruit_data.recruit.prerecruit.loc ~= nil and
                leader.x == recruit_data.recruit.prerecruit.loc[1] and leader.y == recruit_data.recruit.prerecruit.loc[2] and
                #recruit_data.recruit.prerecruit.units > 0 then
-                recruit_data = table.remove(recruit_data.recruit.prerecruit.units, 1)
-                recruit_hex = recruit_data.recruit_hex
-                target_hex = recruit_data.target_hex
-                recruit_type = recruit_data.recruit_type
+                local recruit_unit_data = table.remove(recruit_data.recruit.prerecruit.units, 1)
+                recruit_hex = recruit_unit_data.recruit_hex
+                target_hex = recruit_unit_data.target_hex
+                recruit_type = recruit_unit_data.recruit_type
                 if target_hex ~= nil and target_hex[1] ~= nil then
                     table.insert(recruit_data.castle.assigned_villages_x, target_hex[1])
                     table.insert(recruit_data.castle.assigned_villages_y, target_hex[2])
