@@ -650,6 +650,7 @@ return {
                     table.insert(recruit_data.castle.assigned_villages_x, target_hex[1])
                     table.insert(recruit_data.castle.assigned_villages_y, target_hex[2])
                 end
+                recruit_data.recruit.prerecruit.total_cost = recruit_data.recruit.prerecruit.total_cost - wesnoth.unit_types[recruit_type].cost
             else
                 recruit_type = select_recruit(leader)
                 recruit_hex = recruit_data.recruit.best_hex
