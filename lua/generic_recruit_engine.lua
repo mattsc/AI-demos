@@ -618,6 +618,8 @@ return {
                 }
             end
 
+            get_current_castle(leader, recruit_data)
+
             -- recruit as many units as possible at that location
             while #recruit_data.castle.locs > 0 do
                 local recruit_type = select_recruit(leader)
@@ -652,9 +654,9 @@ return {
             -- If leader location == prerecruit location, recruit units from prerecruit list instead of trying locally
             local recruit_type
             local max_cost = wesnoth.sides[wesnoth.current.side].gold
-            if recruit_data.recruit.prerecruit.loc ~= nil and
-               leader.x == recruit_data.recruit.prerecruit.loc[1] and leader.y == recruit_data.recruit.prerecruit.loc[2] and
-               #recruit_data.recruit.prerecruit.units > 0 then
+            if recruit_data.recruit.prerecruit.loc ~= nil
+            and leader.x == recruit_data.recruit.prerecruit.loc[1] and leader.y == recruit_data.recruit.prerecruit.loc[2]
+            and #recruit_data.recruit.prerecruit.units > 0 then
                 local recruit_unit_data = table.remove(recruit_data.recruit.prerecruit.units, 1)
                 recruit_hex = recruit_unit_data.recruit_hex
                 target_hex = recruit_unit_data.target_hex
