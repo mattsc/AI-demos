@@ -275,7 +275,7 @@ function ai_helper.cartesian_coords(x, y)
     -- Converts coordinates from hex geometry to cartesian coordinates,
     -- meaning that y coordinates are offset by 0.5 every other hex
     -- Example: (1,1) stays (1,1) and (3,1) remains (3,1), but (2,1) -> (2,1.5) etc.
-    return x, (y * 2 - (x % 2)) / 2. + 0.5
+    return x, y + ((x + 1) % 2) / 2.
 end
 
 function ai_helper.get_angle(from_hex, to_hex)
