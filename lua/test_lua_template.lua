@@ -31,9 +31,8 @@ local ai = wesnoth.debug_ai(wesnoth.current.side).ai
 
 -- Load the custom AI into array 'my_ai'
 fn = "~add-ons/AI-demos/lua/grunt_rush_Freelands_S1_engine.lua"
-local my_ai = wesnoth.dofile(fn).init(ai)
-my_ai.data = {}
---DBG.dbms(my_ai)
+fn = "campaigns/The_Rise_Of_Wesnoth/ai/ca_retreat_or_attack.lua"
+local self = { data = {} }
 
 -----------------------------------------------------------------
 
@@ -44,11 +43,11 @@ if test_CA then  -- Test a specific CA ...
     if (wesnoth.current.side == 1) then
         local start_time = wesnoth.get_time_stamp() / 1000.
         wesnoth.message('Start time:', start_time)
-        local eval = my_ai:zone_control_eval()
+        local eval = wesnoth.dofile(fn):evaluation(ai, cfg, self)
         wesnoth.message('Eval score:', eval)
         wesnoth.message('Time after eval:', wesnoth.get_time_stamp() / 1000., wesnoth.get_time_stamp() / 1000. - start_time)
         if (exec_also) and (eval > 0) then
-            my_ai:zone_control_exec()
+            wesnoth.dofile(fn):execution(ai, cfg, self)
             wesnoth.message('Time after exec:', wesnoth.get_time_stamp() / 1000., wesnoth.get_time_stamp() / 1000. - start_time)
         end
     else
@@ -57,32 +56,16 @@ if test_CA then  -- Test a specific CA ...
 
 else  -- ... or do manual testing
 
+    local leader = wesnoth.get_units{ side = 1, canrecruit = 'yes' }[1]
     local units = wesnoth.get_units{ side = 1, canrecruit = 'no' }
     local enemies = wesnoth.get_units{ side = 2, canrecruit = 'no' }
-    --print(#units,#enemies)
-    local attacker = units[1]
-    local defender = enemies[1]
-
-    local dst = { 20, 8 }
+    print(#units, #enemies)
+    local unit = units[1]
 
     local start_time = wesnoth.get_time_stamp() / 1000.
     wesnoth.message('Start time:', start_time)
 
-    local cache={}
-    local cfg = {att_weapon = 2, def_weapon = 2, dst = dst}
-
-    for i=1,1 do
-        att_stats,def_stats = BC.battle_outcome(attacker, defender, cfg, cache)
-    end
-    DBG.dbms(att_stats)
-    DBG.dbms(def_stats)
-
-    wesnoth.message('Time after loop:', wesnoth.get_time_stamp() / 1000. .. '  ' .. tostring(wesnoth.get_time_stamp() / 1000. - start_time))
-
-    local r = BC.attack_rating(attacker, defender, dst, { att_weapon = 1, def_weapon = 1 })
-    print('Rating weapon #1:', r)
-    local r = BC.attack_rating(attacker, defender, dst)
-    print('Rating best weapon',r)
+    ------- Do something with the units here -------
 
     wesnoth.message('Finish time:', wesnoth.get_time_stamp() / 1000. .. '  ' .. tostring(wesnoth.get_time_stamp() / 1000. - start_time))
 end
