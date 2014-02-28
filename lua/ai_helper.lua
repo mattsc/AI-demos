@@ -1098,7 +1098,7 @@ function ai_helper.move_unit_out_of_way(ai, unit, cfg)
 
     if (max_rating > -9e99) then
         --W.message { speaker = unit.id, message = 'Moving out of way' }
-        ai.move(unit, best_hex[1], best_hex[2])
+        ai_helper.checked_move(ai, unit, best_hex[1], best_hex[2])
     end
 end
 
@@ -1116,9 +1116,9 @@ function ai_helper.movefull_stopunit(ai, unit, x, y)
 
     local next_hop = ai_helper.next_hop(unit, x, y)
     if next_hop and ((next_hop[1] ~= unit.x) or (next_hop[2] ~= unit.y)) then
-        ai.move_full(unit, next_hop[1], next_hop[2])
+        ai_helper.checked_move_full(ai, unit, next_hop[1], next_hop[2])
     else
-        ai.stopunit_moves(unit)
+        ai_helper.checked_stopunit_moves(ai, unit)
     end
 end
 
@@ -1145,9 +1145,9 @@ function ai_helper.movefull_outofway_stopunit(ai, unit, x, y, cfg)
 
     local next_hop = ai_helper.next_hop(unit, x, y)
     if next_hop and ((next_hop[1] ~= unit.x) or (next_hop[2] ~= unit.y)) then
-        ai.move_full(unit, next_hop[1], next_hop[2])
+        ai_helper.checked_move_full(ai, unit, next_hop[1], next_hop[2])
     else
-        ai.stopunit_moves(unit)
+        ai_helper.checked_stopunit_moves(ai, unit)
     end
 end
 
