@@ -1,3 +1,4 @@
+local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
 local H = wesnoth.require "lua/helper.lua"
 
 local ca_move_unittype = {}
@@ -45,7 +46,7 @@ function ca_move_unittype:execution(ai, cfg)
     end
 
     --print('Moving:', unit.id, '-->', next_hop[1], next_hop[2])
-    ai.move_full(unit, next_hop[1], next_hop[2])
+    AH.checked_move_full(ai, unit, next_hop[1], next_hop[2])
 end
 
 return ca_move_unittype
