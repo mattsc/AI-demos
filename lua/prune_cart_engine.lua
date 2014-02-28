@@ -276,7 +276,7 @@ return {
                     AH.movefull_stopunit(ai, attacker, attack.dst.x, attack.dst.y)
                     --print('Attacking',attacker.id, defender.id, attack.dst.x, attack.dst.y)
                     local def_id = defender.id -- This is in case the defender dies on this attack
-                    ai.attack(attacker, defender)
+                    AH.checked_attack(ai, attacker, defender)
 
                     -- And set up for reevaluation, and increment counter for this threat, and which units participated
                     deal_with_threats = true
@@ -437,11 +437,11 @@ return {
             local unit_in_way = wesnoth.get_unit(best_hex[1], best_hex[2])
             if unit_in_way and (unit_in_way.id ~= unit.id) then
                 local move_away = self:find_move_out_of_way(unit_in_way, unit.id, dist_cart)
-                ai.move(unit_in_way, move_away[1], move_away[2])  -- this is not a full move!
+                AH.checked_move(ai, unit_in_way, move_away[1], move_away[2])  -- this is not a full move!
             end
 
             if (max_rating > -9999) then AH.movefull_stopunit(ai, unit, best_hex) end
-            ai.stopunit_moves(unit)  -- in case unit was there already, or something went wrong
+            AH.checked_stopunit_moves(ai, unit)  -- in case unit was there already, or something went wrong
         end
 
         function prune_cart:three_different_units(list1, list2, list3)
@@ -1092,12 +1092,12 @@ return {
                 if (next_hop[1] ~= cart.x) or (next_hop[2] ~= cart.y) then
                     local moving_cart = wesnoth.get_variable("moving_cart")
                     if moving_cart then
-                        ai.move_full(cart, next_hop[1], next_hop[2])
+                        AH.checked_move_full(ai, cart, next_hop[1], next_hop[2])
                     end
                 end
             end
             -- Make sure unit is really done after this
-            ai.stopunit_all(cart)
+            AH.checked_stopunit_all(ai, cart)
 
             -- Finally, we find enemies that are close to the cart
             self:deal_with_threats(cart, 'close_enemies', goal_x, goal_y, threats_dealt_with)
@@ -1260,9 +1260,9 @@ return {
                     local dist_units = AH.distance_map(units)  -- if  ids == '' this will return zeros everywhere
                     local move_away = self:find_move_out_of_way(unit_in_way, best_attacker.id, dist_units, best_formation)
                     if move_away then
-                        ai.move(unit_in_way, move_away[1], move_away[2])  -- this is not a full move!
+                        AH.checked_move(ai, unit_in_way, move_away[1], move_away[2])  -- this is not a full move!
                     else
-                        ai.stopunit_moves(unit_in_way)  -- this is change of gamestate
+                        AH.checked_stopunit_moves(ai, unit_in_way)  -- this is change of gamestate
                     end
                 end
                 -- check again that hex is available now
@@ -1272,7 +1272,7 @@ return {
                 end
                 if (not unit_in_way) then
                     AH.movefull_stopunit(ai, best_attacker, best_loc)
-                    ai.attack(best_attacker, best_target, best_weapon)
+                    AH.checked_attack(ai, best_attacker, best_target, best_weapon)
                 end
 
                 if (not best_target.valid) then
@@ -1332,15 +1332,15 @@ return {
                         if (f[3] > 80) then sign = -1 end
                         if (unit_in_way.hitpoints + sign * unit_in_way.experience / 5.+ 5
                             >= best_unit.hitpoints + sign * best_unit.experience / 5.) then
-                            ai.stopunit_moves(unit_in_way)  -- this is change of gamestate
+                            AH.checked_stopunit_moves(ai, unit_in_way)  -- this is change of gamestate
                         else
                             local units = wesnoth.get_units{ id = ids }
                             local dist_units = AH.distance_map(units)  -- if  ids == '' this will return zeros everywhere
                             local move_away = self:find_move_out_of_way(unit_in_way, best_unit.id, dist_units, best_formation)
                             if move_away then
-                                ai.move(unit_in_way, move_away[1], move_away[2])  -- this is not a full move!
+                                AH.checked_move(ai, unit_in_way, move_away[1], move_away[2])  -- this is not a full move!
                             else
-                                ai.stopunit_moves(unit_in_way)  -- this is change of gamestate
+                                AH.checked_stopunit_moves(ai, unit_in_way)  -- this is change of gamestate
                             end
                         end
                     end
@@ -1390,7 +1390,7 @@ return {
                         end
 
                         if (max_rating > -9999) then
-                            ai.attack(best_unit, best_target, best_weapon)
+                            AH.checked_attack(ai, best_unit, best_target, best_weapon)
 
                             if (not best_target.valid) then
                                 --print('Enemy was killed. Reevaluating formations.')
@@ -1409,7 +1409,7 @@ return {
             for i = #best_formation, 1, -1 do
                 local unit = wesnoth.get_unit(best_formation[i][1], best_formation[i][2])
                 if unit then
-                    ai.stopunit_moves(unit)
+                    AH.checked_stopunit_moves(ai, unit)
                     table.remove(best_formation, i)
                 end
             end
@@ -1598,7 +1598,7 @@ return {
             -- !!!!!!!!!!!! I need to change this, use more accurate condition !!!!!!!!!!!!!
             if (wesnoth.sides[wesnoth.current.side].gold >= 15) then
                 --print('Still gold left, stopunit_moves(leader)')
-                ai.stopunit_moves(leader)
+                AH.checked_stopunit_moves(ai, leader)
                 return
             end
 
