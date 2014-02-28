@@ -275,7 +275,7 @@ return {
             if AH.print_exec() then print_time('   Executing castle_switch CA') end
             if AH.show_messages() then W.message { speaker = leader.id, message = 'Switching castles' } end
 
-            ai.move(leader, self.data.leader_target[1], self.data.leader_target[2])
+            AH.checked_move(ai, leader, self.data.leader_target[1], self.data.leader_target[2])
             self.data.leader_target = nil
         end
 
@@ -519,7 +519,7 @@ return {
             -- If several attacks have poison, this will always find the last one
             local is_poisoner, poison_weapon = AH.has_weapon_special(attacker, "poison")
 
-            ai.attack(attacker, defender, poison_weapon)
+            AH.checked_attack(ai, attacker, defender, poison_weapon)
 
             self.data.attack = nil
         end
@@ -625,7 +625,7 @@ return {
             if target then
                 local x, y = wesnoth.find_vacant_tile(target[1], target[2], unit)
                 local dest = AH.next_hop(unit, x, y)
-                ai.move(unit, dest[1], dest[2])
+                AH.checked_move(ai, unit, dest[1], dest[2])
             end
         end
 

@@ -682,7 +682,7 @@ return {
             end
 
             if wesnoth.unit_types[recruit_type].cost <= max_cost then
-                ai.recruit(recruit_type, recruit_hex[1], recruit_hex[2])
+                AH.checked_recruit(ai, recruit_type, recruit_hex[1], recruit_hex[2])
 
                 -- If the recruited unit cannot reach the target hex, return it to the pool of targets
                 if target_hex ~= nil and target_hex[1] ~= nil then
