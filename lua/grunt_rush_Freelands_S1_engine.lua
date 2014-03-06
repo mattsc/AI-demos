@@ -1263,7 +1263,7 @@ return {
             if AH.print_exec() then print_time('   Executing move_leader_to_keep CA') end
             if AH.show_messages() then W.message { speaker = grunt_rush_FLS1.data.MLK_leader.id, message = 'Moving back to keep' } end
             -- This has to be a partial move !!
-            ai.move(grunt_rush_FLS1.data.MLK_leader, grunt_rush_FLS1.data.MLK_leader_move[1], grunt_rush_FLS1.data.MLK_leader_move[2])
+            AH.checked_move(ai, grunt_rush_FLS1.data.MLK_leader, grunt_rush_FLS1.data.MLK_leader_move[1], grunt_rush_FLS1.data.MLK_leader_move[2])
             grunt_rush_FLS1.data.MLK_leader, grunt_rush_FLS1.data.MLK_leader_move = nil, nil
         end
 
@@ -2221,7 +2221,7 @@ return {
 
                 -- Then do the attack, if there is one to do
                 if grunt_rush_FLS1.data.zone_action.enemy then
-                    ai.attack(unit, grunt_rush_FLS1.data.zone_action.enemy)
+                    AH.checked_attack(ai, unit, grunt_rush_FLS1.data.zone_action.enemy)
 
                     -- If enemy got killed, we need to stop here
                     if (not grunt_rush_FLS1.data.zone_action.enemy.valid) then
@@ -2397,7 +2397,7 @@ return {
                 formula = '$this_unit.attacks_left > 0'
             }
             for i,u in ipairs(units_with_attacks) do
-                ai.stopunit_all(u)
+                AH.checked_stopunit_all(ai, u)
                 --print('Attacks left:', u.id)
             end
 
@@ -2406,7 +2406,7 @@ return {
             }
             for i,u in ipairs(units_with_moves) do
                 --print('Moves left:', u.id)
-                ai.stopunit_all(u)
+                AH.checked_stopunit_all(ai, u)
             end
         end
 
