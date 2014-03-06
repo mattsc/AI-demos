@@ -474,366 +474,359 @@ return {
             end
 
             -- Now move units into holding positions
-            -- The while loop doesn't do anything for now, placeholder for later
-            while holders[1] do
-                -- First, find where the units that have already moved are
-                -- This needs to be done after every move
-                local all_units = wesnoth.get_units { side = wesnoth.current.side }
-                local units_MP, units_noMP = {}, {}
-                for i,u in ipairs(all_units) do
-                    local unit_can_move_away = false
-                    if (u.moves > 0) then
-                        local reach_map = AH.get_reachable_unocc(u)
-                        if (reach_map:size() > 1) then unit_can_move_away = true end
-                    end
-                    if unit_can_move_away then
-                        table.insert(units_MP, u)
-                    else
-                        table.insert(units_noMP, u)
-                    end
+            local all_units = wesnoth.get_units { side = wesnoth.current.side }
+            local units_MP, units_noMP = {}, {}
+            for i,u in ipairs(all_units) do
+                local unit_can_move_away = false
+                if (u.moves > 0) then
+                    local reach_map = AH.get_reachable_unocc(u)
+                    if (reach_map:size() > 1) then unit_can_move_away = true end
                 end
-
-                -- Normalized direction "vector"
-                local dx, dy = cfg.hold.dx, cfg.hold.dy
-                if (dx and dy) then
-                    local r = math.sqrt(dx*dx + dy*dy)
-                    dx, dy = dx / r, dy / r
+                if unit_can_move_away then
+                    table.insert(units_MP, u)
                 else
-                    dx = nil  -- just in case dx exists and dy does not
-                    -- existence of dx is used as criterion below
+                    table.insert(units_noMP, u)
+                end
+            end
+
+            -- Normalized direction "vector"
+            local dx, dy = cfg.hold.dx, cfg.hold.dy
+            if (dx and dy) then
+                local r = math.sqrt(dx*dx + dy*dy)
+                dx, dy = dx / r, dy / r
+            else
+                dx = nil  -- just in case dx exists and dy does not
+                -- existence of dx is used as criterion below
+            end
+
+            local zone = wesnoth.get_locations(cfg.zone_filter)
+            local leader = wesnoth.get_units{ side = 1, canrecruit = 'yes' }[1]
+
+            -- Take leader and units with MP off the map
+            -- Leader needs to be taken off whether he has MP or not, so done spearately
+            for i,u in ipairs(units_MP) do
+                if (not u.canrecruit) then wesnoth.extract_unit(u) end
+            end
+            wesnoth.extract_unit(leader)
+
+            local enemy_cost_maps, enemy_turn_maps, enemy_defense_maps = {}, {}, {}
+            local enemy_alignments = {}
+            for i,e in ipairs(corridor_enemies) do
+                local cost_map, turn_map, def_map = LS.create(), LS.create(), LS.create()
+
+                local reach = wesnoth.find_reach(e, { additional_turns = 1 })
+                for _,r in ipairs(reach) do
+                    cost_map:insert(r[1], r[2], e.max_moves * 2 - r[3])
                 end
 
-                local zone = wesnoth.get_locations(cfg.zone_filter)
-                local leader = wesnoth.get_units{ side = 1, canrecruit = 'yes' }[1]
+                cost_map:iter(function(x, y, v)
+                    local turns = math.ceil(v / e.max_moves)
+                    if (turns == 0) then turns = 1 end
+                    turn_map:insert(x, y, turns)
 
-                -- Take leader and units with MP off the map
-                -- Leader needs to be taken off whether he has MP or not, so done spearately
-                for i,u in ipairs(units_MP) do
-                    if (not u.canrecruit) then wesnoth.extract_unit(u) end
-                end
-                wesnoth.extract_unit(leader)
+                    def_map:insert(x, y, wesnoth.unit_defense(e, wesnoth.get_terrain(x, y)))
+                end)
 
-                local enemy_cost_maps, enemy_turn_maps, enemy_defense_maps = {}, {}, {}
-                local enemy_alignments = {}
-                for i,e in ipairs(corridor_enemies) do
-                    local cost_map, turn_map, def_map = LS.create(), LS.create(), LS.create()
+                --AH.put_labels(cost_map)
+                --W.message{ speaker = e.id, message = cfg.zone_id .. ': my enemy_cost_map' }
+                --AH.put_labels(turn_map)
+                --W.message{ speaker = e.id, message = cfg.zone_id .. ': my enemy_turn_map' }
+                --AH.put_labels(def_map)
+                --W.message{ speaker = e.id, message = cfg.zone_id .. ': my enemy_defense_map' }
 
-                    local reach = wesnoth.find_reach(e, { additional_turns = 1 })
-                    for _,r in ipairs(reach) do
-                        cost_map:insert(r[1], r[2], e.max_moves * 2 - r[3])
+                table.insert(enemy_cost_maps, cost_map)
+                table.insert(enemy_turn_maps, turn_map)
+                table.insert(enemy_defense_maps, def_map)
+
+                table.insert(enemy_alignments, e.__cfg.alignment)
+            end
+
+            -- Create enemy defense rating map
+            local enemy_def_rating_map = LS.create()
+            local weighting_map = LS.create()
+
+            for i_h,hex in ipairs(zone) do
+                local x, y = hex[1], hex[2]
+
+                local hex_rating, count = 0, 0
+
+                for i_d,etm in ipairs(enemy_turn_maps) do
+                    local turns = etm:get(x,y)
+                    if turns then
+                        local rating = enemy_defense_maps[i_d]:get(x,y)^2 / turns
+
+                        -- Apply factor for ToD
+                        local lawful_bonus = wesnoth.get_time_of_day({ x, y, true }).lawful_bonus
+                        local tod_penalty = AH.get_unit_time_of_day_bonus(enemy_alignments[i_d], lawful_bonus)
+                        --print(x,y,lawful_bonus, tod_penalty)
+
+                        rating = rating / tod_penalty^2
+
+                        hex_rating = hex_rating + rating
+                        count = count + 1. / turns
                     end
-
-                    cost_map:iter(function(x, y, v)
-                        local turns = math.ceil(v / e.max_moves)
-                        if (turns == 0) then turns = 1 end
-                        turn_map:insert(x, y, turns)
-
-                        def_map:insert(x, y, wesnoth.unit_defense(e, wesnoth.get_terrain(x, y)))
-                    end)
-
-                    --AH.put_labels(cost_map)
-                    --W.message{ speaker = e.id, message = cfg.zone_id .. ': my enemy_cost_map' }
-                    --AH.put_labels(turn_map)
-                    --W.message{ speaker = e.id, message = cfg.zone_id .. ': my enemy_turn_map' }
-                    --AH.put_labels(def_map)
-                    --W.message{ speaker = e.id, message = cfg.zone_id .. ': my enemy_defense_map' }
-
-                    table.insert(enemy_cost_maps, cost_map)
-                    table.insert(enemy_turn_maps, turn_map)
-                    table.insert(enemy_defense_maps, def_map)
-
-                    table.insert(enemy_alignments, e.__cfg.alignment)
                 end
 
-                -- Create enemy defense rating map
-                local enemy_def_rating_map = LS.create()
-                local weighting_map = LS.create()
+                if (count > 0) then
+                    hex_rating = hex_rating / count
+                    enemy_def_rating_map:insert(x, y, hex_rating)
+                end
 
-                for i_h,hex in ipairs(zone) do
+            end
+
+            --AH.put_labels(enemy_def_rating_map)
+            --W.message{ speaker = 'narrator', message = cfg.zone_id .. ': enemy_def_rating_map' }
+
+            -- This isn't 100% right, but close enough
+            local path_map = LS.create()
+            local corridor_map = LS.create()
+            local unit_count = LS.create()
+            for i,e in ipairs(corridor_enemies) do
+                local e_copy = wesnoth.copy_unit(e)
+
+                local total_MP = 100
+                e_copy.moves = total_MP
+
+                local reach_enemy = wesnoth.find_reach(e_copy, { ignore_units = false } )
+                local reach_enemy_map = LS.create()
+                for i,r in ipairs(reach_enemy) do
+                    reach_enemy_map:insert(r[1], r[2], total_MP - r[3])
+                end
+
+                --AH.put_labels(reach_enemy_map)
+                --W.message{ speaker = 'narrator', message = cfg.zone_id .. ': reach_enemy_map' }
+
+                e_copy.x, e_copy.y = leader.x, leader.y
+
+                local reach = wesnoth.find_reach(e_copy, { ignore_units = true } )
+
+                local path, cost = wesnoth.find_path(e, leader.x, leader.y, { ignore_units = false } )
+
+                local reach_leader = wesnoth.find_reach(e_copy, { ignore_units = false } )
+                local reach_leader_map = LS.create()
+                for i,r in ipairs(reach) do
+                    reach_leader_map:insert(r[1], r[2], total_MP - r[3])
+                end
+
+                --AH.put_labels(reach_leader_map)
+                --W.message{ speaker = 'narrator', message = cfg.zone_id .. ': reach_leader_map' }
+
+                for i,r in ipairs(reach) do
+                    local movecost = wesnoth.unit_movement_cost(e_copy, wesnoth.get_terrain(r[1], r[2]))
+
+                    if (movecost <= e.max_moves) then
+                        local path_rating = (path_map:get(r[1], r[2]) or 0) + total_MP - r[3]
+
+                        -- add minor straight distance rating
+                        -- farther away from the unit is farther along the path ...
+                        path_rating = path_rating - H.distance_between(r[1], r[2], e.x, e.y) / 100.
+                        unit_count:insert(r[1], r[2], (unit_count:get(r[1], r[2]) or 0) + 1)
+
+                        path_map:insert(r[1], r[2], path_rating)
+
+                        local value = (reach_leader_map:get(r[1], r[2]) or 42424242)
+                        value = value + (reach_enemy_map:get(r[1], r[2]) or 42424242)
+                        value = value - cost  --  + movecost - 1 - (movecost_current - 1)
+
+                        if (value <= 2) then
+                            corridor_map:insert(r[1], r[2], (corridor_map:get(r[1], r[2]) or 0) + 1)
+                        else
+                            corridor_map:insert(r[1], r[2], (corridor_map:get(r[1], r[2]) or 0) + 1. / value^2)
+                        end
+                    end
+                end
+            end
+
+            path_map:iter( function(x, y, v)
+                path_map:insert(x, y, v / unit_count:get(x, y))
+            end)
+            corridor_map:iter( function(x, y, v)
+                corridor_map:insert(x, y, v / unit_count:get(x, y))
+            end)
+
+            -- In case there are no enemies in the zone yet:
+            if (#corridor_enemies == 0) then
+                for i,hex in ipairs(zone) do
                     local x, y = hex[1], hex[2]
+                    corridor_map:insert(x, y, 10 - math.sqrt(math.abs(x - cfg.hold.x)))
+                end
+            end
 
-                    local hex_rating, count = 0, 0
+            -- Put units back on the map
+            wesnoth.put_unit(leader)
+            for i,u in ipairs(units_MP) do
+                if (not u.canrecruit) then wesnoth.put_unit(u) end
+            end
 
-                    for i_d,etm in ipairs(enemy_turn_maps) do
-                        local turns = etm:get(x,y)
-                        if turns then
-                            local rating = enemy_defense_maps[i_d]:get(x,y)^2 / turns
+            local show_debug = false
+            if show_debug then
+                AH.put_labels(corridor_map)
+                W.message{ speaker = 'narrator', message = cfg.zone_id .. ': corridor_map' }
+                AH.put_labels(path_map)
+                W.message{ speaker = 'narrator', message = cfg.zone_id .. ': path_map' }
+            end
 
-                            -- Apply factor for ToD
-                            local lawful_bonus = wesnoth.get_time_of_day({ x, y, true }).lawful_bonus
-                            local tod_penalty = AH.get_unit_time_of_day_bonus(enemy_alignments[i_d], lawful_bonus)
-                            --print(x,y,lawful_bonus, tod_penalty)
 
-                            rating = rating / tod_penalty^2
+            -- First calculate a unit independent rating map
+            rating_map, defense_rating_map = LS.create(), LS.create()
+            for i,hex in ipairs(zone) do
+                local x, y = hex[1], hex[2]
 
-                            hex_rating = hex_rating + rating
-                            count = count + 1. / turns
+                local def_rating_center = enemy_def_rating_map:get(x, y)
+
+                if def_rating_center then
+                    local rating = 0
+                    local count = 0
+
+                    for xa,ya in H.adjacent_tiles(x, y) do
+                        if ((path_map:get(xa, ya) or 0) >= (path_map:get(x, y) or 0)) then
+                            local def_rating = enemy_def_rating_map:get(xa,ya)
+
+                            if def_rating then
+                                rating = rating + def_rating
+                                count = count + 1
+                            end
                         end
                     end
 
                     if (count > 0) then
-                        hex_rating = hex_rating / count
-                        enemy_def_rating_map:insert(x, y, hex_rating)
-                    end
+                        rating = rating / count
 
+                        rating = rating - def_rating_center
+
+                        -- zone specific rating
+                        rating = rating + grunt_rush_FLS1:zone_loc_rating(cfg.zone_id, x, y)
+
+                        -- Bonus if this is on a village
+                        local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
+                        if is_village then
+                            rating = rating + 500
+                        end
+
+                        -- Add stiff penalty if this is a location next to an unoccupied village
+                        for xa, ya in H.adjacent_tiles(x, y) do
+                            local is_adj_village = wesnoth.get_terrain_info(wesnoth.get_terrain(xa, ya)).village
+                            -- If there is an adjacent village and the enemy can get to that village
+                            if is_adj_village then
+                                local unit_on_village = wesnoth.get_unit(xa, ya)
+                                if (not unit_on_village) or (unit_on_village.moves > 0) then
+                                    rating = rating - 2000
+                                end
+                            end
+                        end
+
+                        rating_map:insert(x, y, rating)
+                    end
+                end
+            end
+
+            local show_debug = false
+            if show_debug then
+                AH.put_labels(rating_map)
+                W.message { speaker = 'narrator', message = 'Hold zone ' .. cfg.zone_id .. ': unit-independent rating map' }
+            end
+
+            -- Now we go on to the unit-dependent rating part
+            local max_rating, best_hex, best_unit = -9e99, {}, {}
+
+            for i,u in ipairs(holders) do
+                local unit_alignment = u.__cfg.alignment
+
+                local max_rating_unit, best_hex_unit = -9e99, {}
+
+                local reach = wesnoth.find_reach(u)
+                local unit_rating_map = LS.create()
+                for i,r in ipairs(reach) do
+                    if rating_map:get(r[1], r[2]) then
+                        unit_rating_map:insert(r[1], r[2], rating_map:get(r[1], r[2]))
+                    end
                 end
 
-                --AH.put_labels(enemy_def_rating_map)
-                --W.message{ speaker = 'narrator', message = cfg.zone_id .. ': enemy_def_rating_map' }
+                unit_rating_map:iter( function(x, y, indep_rating)
 
-                -- This isn't 100% right, but close enough
-                local path_map = LS.create()
-                local corridor_map = LS.create()
-                local unit_count = LS.create()
-                for i,e in ipairs(corridor_enemies) do
-                    local e_copy = wesnoth.copy_unit(e)
+                    local unit_rating = 0
 
-                    local total_MP = 100
-                    e_copy.moves = total_MP
+                    local defense = wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))
+                    unit_rating = unit_rating - defense ^ 2
 
-                    local reach_enemy = wesnoth.find_reach(e_copy, { ignore_units = false } )
-                    local reach_enemy_map = LS.create()
-                    for i,r in ipairs(reach_enemy) do
-                        reach_enemy_map:insert(r[1], r[2], total_MP - r[3])
-                    end
+                    -- Factor for ToD (for center hex only)
+                    local lawful_bonus = wesnoth.get_time_of_day({ x, y, true }).lawful_bonus
+                    local tod_penalty = AH.get_unit_time_of_day_bonus(unit_alignment, lawful_bonus)
+                    --print(x,y,lawful_bonus, tod_penalty)
 
-                    --AH.put_labels(reach_enemy_map)
-                    --W.message{ speaker = 'narrator', message = cfg.zone_id .. ': reach_enemy_map' }
+                    local adj_rating, count = 0, 0
+                    for xa,ya in H.adjacent_tiles(x, y) do
+                        if ((path_map:get(xa, ya) or 0) >= (path_map:get(x, y) or 0)) then
 
-                    e_copy.x, e_copy.y = leader.x, leader.y
-
-                    local reach = wesnoth.find_reach(e_copy, { ignore_units = true } )
-
-                    local path, cost = wesnoth.find_path(e, leader.x, leader.y, { ignore_units = false } )
-
-                    local reach_leader = wesnoth.find_reach(e_copy, { ignore_units = false } )
-                    local reach_leader_map = LS.create()
-                    for i,r in ipairs(reach) do
-                        reach_leader_map:insert(r[1], r[2], total_MP - r[3])
-                    end
-
-                    --AH.put_labels(reach_leader_map)
-                    --W.message{ speaker = 'narrator', message = cfg.zone_id .. ': reach_leader_map' }
-
-                    for i,r in ipairs(reach) do
-                        local movecost = wesnoth.unit_movement_cost(e_copy, wesnoth.get_terrain(r[1], r[2]))
-
-                        if (movecost <= e.max_moves) then
-                            local path_rating = (path_map:get(r[1], r[2]) or 0) + total_MP - r[3]
-
-                            -- add minor straight distance rating
-                            -- farther away from the unit is farther along the path ...
-                            path_rating = path_rating - H.distance_between(r[1], r[2], e.x, e.y) / 100.
-                            unit_count:insert(r[1], r[2], (unit_count:get(r[1], r[2]) or 0) + 1)
-
-                            path_map:insert(r[1], r[2], path_rating)
-
-                            local value = (reach_leader_map:get(r[1], r[2]) or 42424242)
-                            value = value + (reach_enemy_map:get(r[1], r[2]) or 42424242)
-                            value = value - cost  --  + movecost - 1 - (movecost_current - 1)
-
-                            if (value <= 2) then
-                                corridor_map:insert(r[1], r[2], (corridor_map:get(r[1], r[2]) or 0) + 1)
-                            else
-                                corridor_map:insert(r[1], r[2], (corridor_map:get(r[1], r[2]) or 0) + 1. / value^2)
+                            local defense = wesnoth.unit_defense(u, wesnoth.get_terrain(xa, ya))
+                            local movecost = wesnoth.unit_movement_cost(u, wesnoth.get_terrain(xa, ya))
+                            if (movecost <= u.max_moves) then
+                                adj_rating = adj_rating + defense^2
+                                count = count + 1
                             end
                         end
                     end
-                end
 
-                path_map:iter( function(x, y, v)
-                    path_map:insert(x, y, v / unit_count:get(x, y))
+                    if (count > 0) then
+                        unit_rating = unit_rating + adj_rating / count
+
+                        unit_rating = unit_rating / tod_penalty^2
+                    end
+
+                    -- Make it more important to have enemy on bad terrain than being on good terrain
+                    local total_rating = indep_rating + unit_rating
+
+                    unit_rating_map:insert(x, y, total_rating)
+
+                    if (total_rating > max_rating_unit) then
+                        max_rating_unit = total_rating
+                        best_hex_unit = { x, y }
+                    end
                 end)
-                corridor_map:iter( function(x, y, v)
-                    corridor_map:insert(x, y, v / unit_count:get(x, y))
-                end)
+                --print('max_rating_unit:', max_rating_unit)
 
-                -- In case there are no enemies in the zone yet:
-                if (#corridor_enemies == 0) then
-                    for i,hex in ipairs(zone) do
-                        local x, y = hex[1], hex[2]
-                        corridor_map:insert(x, y, 10 - math.sqrt(math.abs(x - cfg.hold.x)))
+                -- If we cannot get there
+                if (max_rating_unit == -9e99) then
+                    local x, y
+                    if dx then
+                        x = cfg.hold.x
+                        y = cfg.hold.y
+                    else
+                        x, y = enemy_leader.x, enemy_leader.y
                     end
+
+                    local goal = { x = H.round(x), y = H.round(y) }
+                    --print("goal: ", goal.x, goal.y)
+
+                    local moveto = AH.get_closest_location({ goal.x, goal.y }, {}, u)
+                    if (not moveto) then moveto = { u.x, u.y } end
+
+                    local vx, vy = wesnoth.find_vacant_tile(moveto[1], moveto[2], u)
+                    local next_hop = AH.next_hop(u, vx, vy)
+                    if (not next_hop) then next_hop = { u.x, u.y } end
+                    local dist = H.distance_between(next_hop[1], next_hop[2], goal.x, goal.y)
+                    --print('cannot get there: ', u.id, dist, goal.x, goal.y)
+                    max_rating_unit = -10000 - dist
+                    best_hex_unit = next_hop
                 end
 
-                -- Put units back on the map
-                wesnoth.put_unit(leader)
-                for i,u in ipairs(units_MP) do
-                    if (not u.canrecruit) then wesnoth.put_unit(u) end
+                if (max_rating_unit > max_rating) then
+                    max_rating, best_hex, best_unit = max_rating_unit, best_hex_unit, u
                 end
+                --print('max_rating:', max_rating)
 
-                local show_debug = false
                 if show_debug then
-                    AH.put_labels(corridor_map)
-                    W.message{ speaker = 'narrator', message = cfg.zone_id .. ': corridor_map' }
-                    AH.put_labels(path_map)
-                    W.message{ speaker = 'narrator', message = cfg.zone_id .. ': path_map' }
+                    AH.put_labels(unit_rating_map)
+                    W.message { speaker = u.id, message = 'Hold zone: unit-specific rating map' }
                 end
+            end
 
-
-                -- First calculate a unit independent rating map
-                rating_map, defense_rating_map = LS.create(), LS.create()
-                for i,hex in ipairs(zone) do
-                    local x, y = hex[1], hex[2]
-
-                    local def_rating_center = enemy_def_rating_map:get(x, y)
-
-                    if def_rating_center then
-                        local rating = 0
-                        local count = 0
-
-                        for xa,ya in H.adjacent_tiles(x, y) do
-                            if ((path_map:get(xa, ya) or 0) >= (path_map:get(x, y) or 0)) then
-                                local def_rating = enemy_def_rating_map:get(xa,ya)
-
-                                if def_rating then
-                                    rating = rating + def_rating
-                                    count = count + 1
-                                end
-                            end
-                        end
-
-                        if (count > 0) then
-                            rating = rating / count
-
-                            rating = rating - def_rating_center
-
-                            -- zone specific rating
-                            rating = rating + grunt_rush_FLS1:zone_loc_rating(cfg.zone_id, x, y)
-
-                            -- Bonus if this is on a village
-                            local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
-                            if is_village then
-                                rating = rating + 500
-                            end
-
-                            -- Add stiff penalty if this is a location next to an unoccupied village
-                            for xa, ya in H.adjacent_tiles(x, y) do
-                                local is_adj_village = wesnoth.get_terrain_info(wesnoth.get_terrain(xa, ya)).village
-                                -- If there is an adjacent village and the enemy can get to that village
-                                if is_adj_village then
-                                    local unit_on_village = wesnoth.get_unit(xa, ya)
-                                    if (not unit_on_village) or (unit_on_village.moves > 0) then
-                                        rating = rating - 2000
-                                    end
-                                end
-                            end
-
-                            rating_map:insert(x, y, rating)
-                        end
-                    end
-                end
-
-                local show_debug = false
+            if max_rating > -9e99 then
                 if show_debug then
-                    AH.put_labels(rating_map)
-                    W.message { speaker = 'narrator', message = 'Hold zone ' .. cfg.zone_id .. ': unit-independent rating map' }
+                    wesnoth.message('Best unit: ' .. best_unit.id .. ' at ' .. best_unit.x .. ',' .. best_unit.y .. ' --> ' .. best_hex[1] .. ',' .. best_hex[2] .. '  (rating=' .. max_rating .. ')')
+                    wesnoth.select_hex(best_hex[1], best_hex[2])
                 end
-
-                -- Now we go on to the unit-dependent rating part
-                local max_rating, best_hex, best_unit = -9e99, {}, {}
-
-                for i,u in ipairs(holders) do
-                    local unit_alignment = u.__cfg.alignment
-
-                    local max_rating_unit, best_hex_unit = -9e99, {}
-
-                    local reach = wesnoth.find_reach(u)
-                    local unit_rating_map = LS.create()
-                    for i,r in ipairs(reach) do
-                        if rating_map:get(r[1], r[2]) then
-                            unit_rating_map:insert(r[1], r[2], rating_map:get(r[1], r[2]))
-                        end
-                    end
-
-                    unit_rating_map:iter( function(x, y, indep_rating)
-
-                        local unit_rating = 0
-
-                        local defense = wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))
-                        unit_rating = unit_rating - defense ^ 2
-
-                        -- Factor for ToD (for center hex only)
-                        local lawful_bonus = wesnoth.get_time_of_day({ x, y, true }).lawful_bonus
-                        local tod_penalty = AH.get_unit_time_of_day_bonus(unit_alignment, lawful_bonus)
-                        --print(x,y,lawful_bonus, tod_penalty)
-
-                        local adj_rating, count = 0, 0
-                        for xa,ya in H.adjacent_tiles(x, y) do
-                            if ((path_map:get(xa, ya) or 0) >= (path_map:get(x, y) or 0)) then
-
-                                local defense = wesnoth.unit_defense(u, wesnoth.get_terrain(xa, ya))
-                                local movecost = wesnoth.unit_movement_cost(u, wesnoth.get_terrain(xa, ya))
-                                if (movecost <= u.max_moves) then
-                                    adj_rating = adj_rating + defense^2
-                                    count = count + 1
-                                end
-                            end
-                        end
-
-                        if (count > 0) then
-                            unit_rating = unit_rating + adj_rating / count
-
-                            unit_rating = unit_rating / tod_penalty^2
-                        end
-
-                        -- Make it more important to have enemy on bad terrain than being on good terrain
-                        local total_rating = indep_rating + unit_rating
-
-                        unit_rating_map:insert(x, y, total_rating)
-
-                        if (total_rating > max_rating_unit) then
-                            max_rating_unit = total_rating
-                            best_hex_unit = { x, y }
-                        end
-                    end)
-                    --print('max_rating_unit:', max_rating_unit)
-
-                    -- If we cannot get there
-                    if (max_rating_unit == -9e99) then
-                        local x, y
-                        if dx then
-                            x = cfg.hold.x
-                            y = cfg.hold.y
-                        else
-                            x, y = enemy_leader.x, enemy_leader.y
-                        end
-
-                        local goal = { x = H.round(x), y = H.round(y) }
-                        --print("goal: ", goal.x, goal.y)
-
-                        local moveto = AH.get_closest_location({ goal.x, goal.y }, {}, u)
-                        if (not moveto) then moveto = { u.x, u.y } end
-
-                        local vx, vy = wesnoth.find_vacant_tile(moveto[1], moveto[2], u)
-                        local next_hop = AH.next_hop(u, vx, vy)
-                        if (not next_hop) then next_hop = { u.x, u.y } end
-                        local dist = H.distance_between(next_hop[1], next_hop[2], goal.x, goal.y)
-                        --print('cannot get there: ', u.id, dist, goal.x, goal.y)
-                        max_rating_unit = -10000 - dist
-                        best_hex_unit = next_hop
-                    end
-
-                    if (max_rating_unit > max_rating) then
-                        max_rating, best_hex, best_unit = max_rating_unit, best_hex_unit, u
-                    end
-                    --print('max_rating:', max_rating)
-
-                    if show_debug then
-                        AH.put_labels(unit_rating_map)
-                        W.message { speaker = u.id, message = 'Hold zone: unit-specific rating map' }
-                    end
-                end
-
-                if max_rating > -9e99 then
-                    if show_debug then
-                        wesnoth.message('Best unit: ' .. best_unit.id .. ' at ' .. best_unit.x .. ',' .. best_unit.y .. ' --> ' .. best_hex[1] .. ',' .. best_hex[2] .. '  (rating=' .. max_rating .. ')')
-                        wesnoth.select_hex(best_hex[1], best_hex[2])
-                    end
-                    return best_unit, best_hex
-                else
-                    return
-                end
+                return best_unit, best_hex
             end
         end
 
