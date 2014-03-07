@@ -643,8 +643,6 @@ return {
             --W.message{ speaker = 'narrator', message = cfg.zone_id .. ': enemy_def_rating_map' }
 
             -- This isn't 100% right, but close enough
-            local path_map = LS.create()
-            local corridor_map = LS.create()
             local unit_count = LS.create()
             for i,e in ipairs(corridor_enemies) do
                 local e_copy = wesnoth.copy_unit(e)
@@ -676,45 +674,6 @@ return {
                 --AH.put_labels(reach_leader_map)
                 --W.message{ speaker = 'narrator', message = cfg.zone_id .. ': reach_leader_map' }
 
-                for i,r in ipairs(reach) do
-                    local movecost = wesnoth.unit_movement_cost(e_copy, wesnoth.get_terrain(r[1], r[2]))
-
-                    if (movecost <= e.max_moves) then
-                        local path_rating = (path_map:get(r[1], r[2]) or 0) + total_MP - r[3]
-
-                        -- add minor straight distance rating
-                        -- farther away from the unit is farther along the path ...
-                        path_rating = path_rating - H.distance_between(r[1], r[2], e.x, e.y) / 100.
-                        unit_count:insert(r[1], r[2], (unit_count:get(r[1], r[2]) or 0) + 1)
-
-                        path_map:insert(r[1], r[2], path_rating)
-
-                        local value = (reach_leader_map:get(r[1], r[2]) or 42424242)
-                        value = value + (reach_enemy_map:get(r[1], r[2]) or 42424242)
-                        value = value - cost  --  + movecost - 1 - (movecost_current - 1)
-
-                        if (value <= 2) then
-                            corridor_map:insert(r[1], r[2], (corridor_map:get(r[1], r[2]) or 0) + 1)
-                        else
-                            corridor_map:insert(r[1], r[2], (corridor_map:get(r[1], r[2]) or 0) + 1. / value^2)
-                        end
-                    end
-                end
-            end
-
-            path_map:iter( function(x, y, v)
-                path_map:insert(x, y, v / unit_count:get(x, y))
-            end)
-            corridor_map:iter( function(x, y, v)
-                corridor_map:insert(x, y, v / unit_count:get(x, y))
-            end)
-
-            -- In case there are no enemies in the zone yet:
-            if (#corridor_enemies == 0) then
-                for i,hex in ipairs(zone) do
-                    local x, y = hex[1], hex[2]
-                    corridor_map:insert(x, y, 10 - math.sqrt(math.abs(x - cfg.hold.x)))
-                end
             end
 
             -- Put units back on the map
@@ -743,12 +702,9 @@ return {
 
             local show_debug = false
             if show_debug then
-                AH.put_labels(corridor_map)
-                W.message{ speaker = 'narrator', message = cfg.zone_id .. ': corridor_map' }
                 AH.put_labels(leader_distance_map)
                 W.message{ speaker = 'narrator', message = cfg.zone_id .. ': leader_distance_map' }
             end
-
 
             -- First calculate a unit independent rating map
             rating_map, defense_rating_map = LS.create(), LS.create()
