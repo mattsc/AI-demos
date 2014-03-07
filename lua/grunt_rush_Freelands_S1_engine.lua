@@ -850,29 +850,26 @@ return {
                 end)
                 --print('max_rating_unit:', max_rating_unit)
 
-                -- If we cannot get there
+                -- If we cannot get there, advance as far as possible
+                -- This needs to be separate from and in addition to the step below (unthreatened hexes)
                 if (max_rating_unit == -9e99) then
-                    local x, y
-                    if dx then
-                        x = cfg.hold.x
-                        y = cfg.hold.y
-                    else
-                        x, y = enemy_leader.x, enemy_leader.y
+                    print(cfg.zone_id, ': cannot get to zone -> move toward it', best_unit.id, best_unit.x, best_unit.y)
+
+                    local reach = wesnoth.find_reach(u)
+
+                    for i,r in ipairs(reach) do
+                        local unit_in_way = wesnoth.get_unit(r[1], r[2])
+                        if (not unit_in_way) or (unit_in_way == best_unit) then
+                            local rating = -10000 + grunt_rush_FLS1:zone_advance_rating(cfg.zone_id, r[1], r[2], enemy_leader)
+
+                            unit_rating_map:insert(r[1], r[2], rating)
+
+                            if (rating > max_rating_unit) then
+                                max_rating_unit = rating
+                                best_hex_unit = { r[1], r[2] }
+                            end
+                        end
                     end
-
-                    local goal = { x = H.round(x), y = H.round(y) }
-                    --print("goal: ", goal.x, goal.y)
-
-                    local moveto = AH.get_closest_location({ goal.x, goal.y }, {}, u)
-                    if (not moveto) then moveto = { u.x, u.y } end
-
-                    local vx, vy = wesnoth.find_vacant_tile(moveto[1], moveto[2], u)
-                    local next_hop = AH.next_hop(u, vx, vy)
-                    if (not next_hop) then next_hop = { u.x, u.y } end
-                    local dist = H.distance_between(next_hop[1], next_hop[2], goal.x, goal.y)
-                    --print('cannot get there: ', u.id, dist, goal.x, goal.y)
-                    max_rating_unit = -10000 - dist
-                    best_hex_unit = next_hop
                 end
 
                 if (max_rating_unit > max_rating) then
