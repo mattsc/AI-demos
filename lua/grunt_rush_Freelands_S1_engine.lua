@@ -723,12 +723,30 @@ return {
                 if (not u.canrecruit) then wesnoth.put_unit(u) end
             end
 
+            local leader_distance_map = LS.create()
+
+            local leader_cx, leader_cy = AH.cartesian_coords(leader.x, leader.y)
+            local enemy_leader_cx, enemy_leader_cy = AH.cartesian_coords(enemy_leader.x, enemy_leader.y)
+            local dist_btw_leaders = math.sqrt( (enemy_leader_cx - leader_cx)^2 + (enemy_leader_cy - leader_cy)^2 )
+
+            local width, height = wesnoth.get_map_size()
+            for x = 1,width do
+                for y = 1,width do
+                    local cx, cy = AH.cartesian_coords(x, y)
+                    local enemy_dist = math.sqrt( (enemy_leader_cx - cx)^2 + (enemy_leader_cy - cy)^2 )
+                    --if (enemy_dist < dist_btw_leaders) then
+                        local dist = math.sqrt( (leader_cx - cx)^2 + (leader_cy - cy)^2 )
+                        leader_distance_map:insert(x,y, dist - enemy_dist)
+                    --end
+                end
+            end
+
             local show_debug = false
             if show_debug then
                 AH.put_labels(corridor_map)
                 W.message{ speaker = 'narrator', message = cfg.zone_id .. ': corridor_map' }
-                AH.put_labels(path_map)
-                W.message{ speaker = 'narrator', message = cfg.zone_id .. ': path_map' }
+                AH.put_labels(leader_distance_map)
+                W.message{ speaker = 'narrator', message = cfg.zone_id .. ': leader_distance_map' }
             end
 
 
@@ -744,7 +762,7 @@ return {
                     local count = 0
 
                     for xa,ya in H.adjacent_tiles(x, y) do
-                        if ((path_map:get(xa, ya) or 0) >= (path_map:get(x, y) or 0)) then
+                        if leader_distance_map:get(xa, ya) >= leader_distance_map:get(x, y) then
                             local def_rating = enemy_def_rating_map:get(xa,ya)
 
                             if def_rating then
@@ -821,7 +839,7 @@ return {
 
                     local adj_rating, count = 0, 0
                     for xa,ya in H.adjacent_tiles(x, y) do
-                        if ((path_map:get(xa, ya) or 0) >= (path_map:get(x, y) or 0)) then
+                        if leader_distance_map:get(xa, ya) >= leader_distance_map:get(x, y) then
 
                             local defense = wesnoth.unit_defense(u, wesnoth.get_terrain(xa, ya))
                             local movecost = wesnoth.unit_movement_cost(u, wesnoth.get_terrain(xa, ya))
