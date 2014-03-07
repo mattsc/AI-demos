@@ -187,7 +187,6 @@ return {
                 zone_id = 'right',
                 zone_filter = { x = '24-34', y = '1-17' },
                 unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
-                enemy_filter = { x = '24-34', y = '1-23' },
                 skip_action = { retreat_injured_unsafe = true },
                 hold = { x = 27, y = 11, dx = 0, dy = 1, min_dist = -4 },
                 retreat_villages = { { 24, 7 }, { 28, 5 } }
@@ -515,15 +514,7 @@ return {
             local enemies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", { side = wesnoth.current.side } }} }
             }
-
-            local corridor_enemies = enemies
-            if cfg.enemy_filter then
-                --print(cfg.zone_id, ' - getting only enemies in filter')
-                corridor_enemies = AH.get_live_units { { "and", cfg.enemy_filter },
-                    { "filter_side", {{"enemy_of", { side = wesnoth.current.side } }} }
-                }
-            end
-            --print(cfg.zone_id, '#enemies, #corridor_enemies', #enemies, #corridor_enemies)
+            --print(cfg.zone_id, '#enemies', #enemies)
 
             -- ***** This code is still a mess, WIP. Will be cleaned up eventually *****
 
@@ -576,7 +567,7 @@ return {
 
             local enemy_cost_maps, enemy_turn_maps, enemy_defense_maps = {}, {}, {}
             local enemy_alignments = {}
-            for i,e in ipairs(corridor_enemies) do
+            for i,e in ipairs(enemies) do
                 local cost_map, turn_map, def_map = LS.create(), LS.create(), LS.create()
 
                 local moves = e.moves
@@ -647,7 +638,7 @@ return {
 
             -- This isn't 100% right, but close enough
             local unit_count = LS.create()
-            for i,e in ipairs(corridor_enemies) do
+            for i,e in ipairs(enemies) do
                 local e_copy = wesnoth.copy_unit(e)
 
                 local total_MP = 100
