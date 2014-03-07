@@ -25,6 +25,71 @@ return {
             end
         end
 
+        function grunt_rush_FLS1:zone_advance_rating(zone_id, x, y, enemy_leader)
+            local rating = 0
+
+            if (zone_id == 'left') then
+                rating = rating + y / 10.
+
+                local x0 = 11
+                local goal_x, goal_y = 12, 18
+                if (y < 7)  then
+                    x0 = -1.0 * (y - 2) + 18
+                    goal_x, goal_y = 8, 8
+                elseif (y > 15) then
+                    x0 = 2.0 * (y - 15) + 13
+                    goal_x, goal_y = 22, 22
+                end
+
+                local dx = math.abs(x - x0)
+                if (dx > 2) then
+                    rating = rating - dx
+                end
+
+                rating = rating - H.distance_between(x, y, goal_x, goal_y) / 1000.
+            end
+
+            if (zone_id == 'center') then
+                rating = rating + y / 10.
+
+                local x0 = 19
+                local dx = math.abs(x - x0)
+
+                if (dx > 2) then
+                    rating = rating - dx
+                end
+
+                rating = rating - H.distance_between(x, y, 19, 21) / 1000.
+            end
+
+            if (zone_id == 'right') then
+                rating = rating + y / 10.
+
+                local x0 = 27
+                local goal_x, goal_y = 25, 19
+                if (y < 11)  then
+                    x0 = 1.0 * (y - 2) + 18
+                    goal_x, goal_y = 31, 10
+                elseif (y > 16) then
+                    x0 =  -2.0 * (y - 17) + 27
+                    goal_x, goal_y = 16, 22
+                end
+
+                local dx = math.abs(x - x0)
+                if (dx > 2) then
+                    rating = rating - dx
+                end
+
+                rating = rating - H.distance_between(x, y, goal_x, goal_y) / 1000.
+            end
+
+            if (zone_id == 'enemy_leader') then
+                rating = - H.distance_between(x, y, enemy_leader.x, enemy_leader.y)
+            end
+
+            return rating
+        end
+
         function grunt_rush_FLS1:zone_loc_rating(zone_id, x, y)
             local rating = 0
 
