@@ -1936,12 +1936,22 @@ return {
             end
             if (not holders[1]) then return end
 
-            local zone_enemies = {}
-            for i,e in ipairs(enemies) do
-                if zone_map:get(e.x, e.y) then
-                    table.insert(zone_enemies, e)
+            if cfg.hold and cfg.hold.x and cfg.hold.y then
+                zone_enemies = {}
+                for i,e in ipairs(enemies) do
+                    local moves = e.moves
+                    e.moves = e.max_moves
+                    local path, cost = wesnoth.find_path(e, cfg.hold.x, cfg.hold.y, { ignore_units = true })
+                    --print(cfg.zone_id, e.id, e.x, e.y, cfg.hold.x, cfg.hold.y, cost)
+                    e.moves = moves
+
+                    if (cost <= e.max_moves * 2) then
+                        --print(cfg.zone_id, 'inserting enemy:', e.id, e.x, e.y)
+                        table.insert(zone_enemies, e)
+                    end
                 end
             end
+
 
             -- Only check for possible position holding if hold.hp_ratio is met
             -- or is conditions in cfg.secure are met
