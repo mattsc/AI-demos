@@ -523,7 +523,7 @@ return {
                     { "filter_side", {{"enemy_of", { side = wesnoth.current.side } }} }
                 }
             end
-            --print('#enemies, #corridor_enemies', #enemies, #corridor_enemies)
+            --print(cfg.zone_id, '#enemies, #corridor_enemies', #enemies, #corridor_enemies)
 
             -- ***** This code is still a mess, WIP. Will be cleaned up eventually *****
 
@@ -1937,7 +1937,7 @@ return {
                 if (#zone_enemies > 0) then
                     hp_ratio = grunt_rush_FLS1:hp_ratio(units_noMP, zone_enemies)
                 end
-                --print('hp_ratio, #units_noMP, #zone_enemies', hp_ratio, #units_noMP, #zone_enemies)
+                --print(cfg.zone_id, 'hp_ratio, #units_noMP, #zone_enemies', hp_ratio, #units_noMP, #zone_enemies)
 
                 -- Don't evaluate for holding position if the hp_ratio in the zone is already high enough
                 if (hp_ratio >= cfg.hold.hp_ratio) then
