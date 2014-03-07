@@ -886,7 +886,38 @@ return {
                 end
             end
 
-            if max_rating > -9e99 then
+            if (max_rating > -9e99) then
+                -- If the best hex is unthreatened, check whether another unthreatened hex farther advanced in the zone
+                -- This needs to be separate from and in addition to the step above (if unit cannot get into zone)
+                if (not enemy_attack_map:get(best_hex[1], best_hex[2])) then
+                    print(cfg.zone_id, ': reconsidering best hex', best_unit.id, best_unit.x, best_unit.y, '->', best_hex[1], best_hex[2])
+
+                    local reach = wesnoth.find_reach(best_unit)
+
+                    local new_rating_map = LS.create()
+                    max_rating = -9e99
+                    for i,r in ipairs(reach) do
+                        if (not enemy_attack_map:get(r[1], r[2])) then
+                            local unit_in_way = wesnoth.get_unit(r[1], r[2])
+                            if (not unit_in_way) or (unit_in_way == best_unit) then
+                                local rating = grunt_rush_FLS1:zone_advance_rating(cfg.zone_id, r[1], r[2], enemy_leader)
+
+                                new_rating_map:insert(r[1], r[2], rating)
+
+                                if (rating > max_rating) then
+                                    max_rating = rating
+                                    best_hex = { r[1], r[2] }
+                                end
+                            end
+                        end
+                    end
+
+                    if show_debug then
+                        AH.put_labels(new_rating_map)
+                        W.message { speaker = 'narrator', message = 'new_rating_map' }
+                    end
+                end
+
                 if show_debug then
                     wesnoth.message('Best unit: ' .. best_unit.id .. ' at ' .. best_unit.x .. ',' .. best_unit.y .. ' --> ' .. best_hex[1] .. ',' .. best_hex[2] .. '  (rating=' .. max_rating .. ')')
                     wesnoth.select_hex(best_hex[1], best_hex[2])
