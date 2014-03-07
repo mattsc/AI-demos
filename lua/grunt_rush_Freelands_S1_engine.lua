@@ -579,7 +579,10 @@ return {
             for i,e in ipairs(corridor_enemies) do
                 local cost_map, turn_map, def_map = LS.create(), LS.create(), LS.create()
 
+                local moves = e.moves
+                e.moves = e.max_moves
                 local reach = wesnoth.find_reach(e, { additional_turns = 1 })
+                e.moves = moves
                 for _,r in ipairs(reach) do
                     cost_map:insert(r[1], r[2], e.max_moves * 2 - r[3])
                 end
