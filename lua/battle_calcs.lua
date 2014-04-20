@@ -884,6 +884,14 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg, cache)
     end
     --print('  value_fraction after village bonus:', value_fraction)
 
+    -- If attack is adjacent to an unoccupied village, that's bad
+    for xa,ya in H.adjacent_tiles(dst[1], dst[2]) do
+        local is_adjacent_village = wesnoth.get_terrain_info(wesnoth.get_terrain(xa, ya)).village
+        if is_adjacent_village and (not wesnoth.get_unit(xa, ya)) then
+            value_fraction = value_fraction + 10 / attacker.max_hitpoints
+        end
+    end
+
     -- Now convert this into gold-equivalent value
     local attacker_rating = value_fraction * wesnoth.unit_types[attacker.type].cost
     --print('-> attacker rating:', attacker_rating)
