@@ -1879,7 +1879,8 @@ return {
             if (max_rating > -9e99) then
                 -- Only execute the first of these attacks
                 local action = { units = {}, dsts = {}, enemy = best_enemy }
-                action.units[1], action.dsts[1] = best_attackers[1], best_dsts[1]
+                --action.units[1], action.dsts[1] = best_attackers[1], best_dsts[1]
+                action.units, action.dsts = best_attackers, best_dsts
                 action.action = cfg.zone_id .. ': ' .. 'attack'
                 return action
             end
