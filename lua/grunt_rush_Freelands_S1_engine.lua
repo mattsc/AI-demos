@@ -820,7 +820,7 @@ return {
                 -- If we cannot get there, advance as far as possible
                 -- This needs to be separate from and in addition to the step below (unthreatened hexes)
                 if (max_rating_unit == -9e99) then
-                    print(cfg.zone_id, ': cannot get to zone -> move toward it', best_unit.id, best_unit.x, best_unit.y)
+                    --print(cfg.zone_id, ': cannot get to zone -> move toward it', best_unit.id, best_unit.x, best_unit.y)
 
                     local reach = wesnoth.find_reach(u)
 
@@ -854,7 +854,7 @@ return {
                 -- If the best hex is unthreatened, check whether another unthreatened hex farther advanced in the zone
                 -- This needs to be separate from and in addition to the step above (if unit cannot get into zone)
                 if (not enemy_attack_map:get(best_hex[1], best_hex[2])) then
-                    print(cfg.zone_id, ': reconsidering best hex', best_unit.id, best_unit.x, best_unit.y, '->', best_hex[1], best_hex[2])
+                    --print(cfg.zone_id, ': reconsidering best hex', best_unit.id, best_unit.x, best_unit.y, '->', best_hex[1], best_hex[2])
 
                     local reach = wesnoth.find_reach(best_unit)
 
@@ -1156,7 +1156,7 @@ return {
                 local units = AH.get_live_units { side = s.side }
                 for i,u in ipairs(units) do total_hp = total_hp + u.hitpoints end
                 local leader = wesnoth.get_units { side = s.side, canrecruit = 'yes' }[1]
-                print('   Player ' .. s.side .. ' (' .. leader.type .. '): ' .. #units .. ' Units with total HP: ' .. total_hp)
+                --print('   Player ' .. s.side .. ' (' .. leader.type .. '): ' .. #units .. ' Units with total HP: ' .. total_hp)
             end
             if grunt_rush_FLS1:full_offensive() then print(' Full offensive mode (mostly done by RCA AI)') end
         end
@@ -1511,7 +1511,7 @@ return {
         end
 
         function grunt_rush_FLS1:zone_action_attack(units, enemies, zone, zone_map, cfg)
-            --print_time('attack')
+            --print_time(cfg.zone_id, 'attack')
 
             -- Attackers include the leader but only if he is on his
             -- keep, in order to prevent him from wandering off
@@ -1527,6 +1527,7 @@ return {
                     table.insert(attackers, u)
                 end
             end
+            --print(#attackers)
 
             local targets = {}
             -- If cfg.attack.use_enemies_in_reach is set, we use all enemies that
@@ -1767,6 +1768,7 @@ return {
                             value_fraction = value_fraction + a.experience / a.max_experience
 
                             -- Convert this into a cost in gold
+                            --print('damage, ctd, value_fraction', damage, ctd, value_fraction)
                             local damage_cost_a = value_fraction * wesnoth.unit_types[a.type].cost
 
                             -- "Damage cost" for enemy
