@@ -177,7 +177,7 @@ return {
                 zone_filter = { x = '4-14', y = '1-15' },
                 unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
                 skip_action = { retreat_injured_unsafe = true },
-                hold = { x = 11, y = 9, dx = 0, dy = 1, hp_ratio = 1.0 },
+                hold = { x = 11, y = 9, dx = 0, dy = 1, hp_ratio = 0.66, unit_ratio = 1.1 },
                 secure = { x = 11, y = 9, moves_away = 1, min_units = 1 },
                 retreat_villages = { { 11, 9 }, { 8, 5 }, { 12, 5 }, { 12, 2 } },
                 villages = { hold_threatened = true }
@@ -1935,6 +1935,15 @@ return {
                 -- Don't evaluate for holding position if the hp_ratio in the zone is already high enough
                 if (hp_ratio >= cfg.hold.hp_ratio) then
                     eval_hold = false
+                end
+
+                -- Also, if a unit ratio is set, check for this as well
+                if cfg.hold.unit_ratio then
+                    local unit_ratio = #units_noMP / #zone_enemies
+                    print(cfg.zone_id, 'unit_ratio', unit_ratio)
+                    if (unit_ratio >= cfg.hold.unit_ratio) then
+                        eval_hold = false
+                    end
                 end
             end
             --print('eval_hold 1', eval_hold)
