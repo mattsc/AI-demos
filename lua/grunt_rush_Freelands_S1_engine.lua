@@ -1572,7 +1572,7 @@ return {
             --print_time('#poisoners', #poisoners)
 
             if (poisoners[1]) then
-                local action = grunt_rush_FLS1:spread_poison_eval(poisoners, targets, cfg)
+                --local action = grunt_rush_FLS1:spread_poison_eval(poisoners, targets, cfg)
                 if action then return action end
             end
 
