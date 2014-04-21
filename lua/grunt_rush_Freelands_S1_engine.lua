@@ -178,7 +178,7 @@ return {
                 unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
                 skip_action = { retreat_injured_unsafe = true },
                 hold = { x = 11, y = 9, dx = 0, dy = 1, hp_ratio = 1.0 },
-                secure = { x = 11, y = 9, moves_away = 2, min_units = 1 },
+                secure = { x = 11, y = 9, moves_away = 1, min_units = 1 },
                 retreat_villages = { { 11, 9 }, { 8, 5 }, { 12, 5 }, { 12, 2 } },
                 villages = { hold_threatened = true }
             }
