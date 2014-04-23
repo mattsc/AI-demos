@@ -1361,14 +1361,17 @@ return {
                                     rating = rating + u.hitpoints / 100.
 
                                     -- We also want to move the "farthest back" unit first
-                                    local adv_dist
+                                    -- and take villages from the back first
+                                    local adv_dist, vill_dist
                                     if dx then
                                          -- Distance in direction of (dx, dy) and perpendicular to it
                                         adv_dist = u.x * dx + u.y * dy
+                                        vill_dsit = v[1] * dx + v[2] * dy
                                     else
                                         adv_dist = - H.distance_between(u.x, u.y, enemy_leaders[1].x, enemy_leaders[1].y)
+                                        vill_dist = H.distance_between(v[1], v[2], enemy_leaders[1].x, enemy_leaders[1].y)
                                     end
-                                    rating = rating - adv_dist / 10.
+                                    rating = rating - adv_dist / 10. + vill_dist / 1000.
                                 end
 
                                 -- If this is the leader, make him the preferred village taker
