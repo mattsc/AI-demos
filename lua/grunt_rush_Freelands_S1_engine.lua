@@ -1156,7 +1156,7 @@ return {
                 local units = AH.get_live_units { side = s.side }
                 for i,u in ipairs(units) do total_hp = total_hp + u.hitpoints end
                 local leader = wesnoth.get_units { side = s.side, canrecruit = 'yes' }[1]
-                --print('   Player ' .. s.side .. ' (' .. leader.type .. '): ' .. #units .. ' Units with total HP: ' .. total_hp)
+                print('   Player ' .. s.side .. ' (' .. leader.type .. '): ' .. #units .. ' Units with total HP: ' .. total_hp)
             end
             if grunt_rush_FLS1:full_offensive() then print(' Full offensive mode (mostly done by RCA AI)') end
         end
@@ -1366,7 +1366,7 @@ return {
                                     if dx then
                                          -- Distance in direction of (dx, dy) and perpendicular to it
                                         adv_dist = u.x * dx + u.y * dy
-                                        vill_dsit = v[1] * dx + v[2] * dy
+                                        vill_dist = v[1] * dx + v[2] * dy
                                     else
                                         adv_dist = - H.distance_between(u.x, u.y, enemy_leaders[1].x, enemy_leaders[1].y)
                                         vill_dist = H.distance_between(v[1], v[2], enemy_leaders[1].x, enemy_leaders[1].y)
