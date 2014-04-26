@@ -142,9 +142,10 @@ return {
             -- Optional parameter:
             -- recalc: if set to 'true', force recalculation of cfgs even if 'grunt_rush_FLS1.data.zone_cfgs' exists
 
-            if (not recalc) and grunt_rush_FLS1.data.zone_cfgs then
-                return grunt_rush_FLS1.data.zone_cfgs
-            end
+            -- Comment out for now, maybe reinstate later
+            --if (not recalc) and grunt_rush_FLS1.data.zone_cfgs then
+            --    return grunt_rush_FLS1.data.zone_cfgs
+            --end
 
             local width, height = wesnoth.get_map_size()
             local cfg_full_map = {
@@ -188,6 +189,15 @@ return {
                 zone_filter = { x = '24-34', y = '1-17' },
                 unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
                 skip_action = { retreat_injured_unsafe = true },
+                hold = { x = 27, y = 11, dx = 0, dy = 1, hp_ratio = 0.75 },
+                retreat_villages = { { 24, 7 }, { 28, 5 } }
+            }
+
+            local cfg_rush_right = {
+                zone_id = 'right',
+                zone_filter = { x = '24-34', y = '1-17' },
+                unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
+                skip_action = { retreat_injured_unsafe = true },
                 hold = { x = 27, y = 11, dx = 0, dy = 1, min_dist = -4 },
                 retreat_villages = { { 24, 7 }, { 28, 5 } }
             }
@@ -200,54 +210,77 @@ return {
             }
 
             -- This way it will be easy to change the priorities on the fly later:
-            cfgs = {}
-            table.insert(cfgs, cfg_full_map)
-            table.insert(cfgs, cfg_leader_threat)
-            table.insert(cfgs, cfg_left)
-            table.insert(cfgs, cfg_center)
-            table.insert(cfgs, cfg_right)
-            table.insert(cfgs, cfg_enemy_leader)
+
+            local sorted_cfgs = {}
+            table.insert(sorted_cfgs, cfg_center)
+            table.insert(sorted_cfgs, cfg_left)
+            table.insert(sorted_cfgs, cfg_right)
+
 
             -- The following is placeholder code for later, when we might want to
             -- set up the priority of the zones dynamically
             -- Now find how many enemies can get to each zone
-            --local my_units = AH.get_live_units { side = wesnoth.current.side }
-            --local enemies = AH.get_live_units {
-            --    { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
-            --}
-            --local attack_map = AH.attack_map(my_units)
-            --local attack_map_hp = AH.attack_map(my_units, { return_value = 'hitpoints' })
-            --local enemy_attack_map = AH.attack_map(enemies, { moves = "max" })
-            --local enemy_attack_map_hp = AH.attack_map(enemies, { moves = "max", return_value = 'hitpoints' })
+            local my_units = AH.get_live_units { side = wesnoth.current.side }
+            local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' } [1]
+            local enemies = AH.get_live_units {
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+            }
+            local attack_map = BC.get_attack_map(my_units)
+            local attack_map_hp = BC.get_attack_map(my_units, { return_value = 'hitpoints' })
+            local enemy_attack_map = BC.get_attack_map(enemies, { moves = "max" })
+            local enemy_attack_map_hp = BC.get_attack_map(enemies, { moves = "max", return_value = 'hitpoints' })
 
-            -- Find how many enemies threaten each of the hold zones
-            --local enemy_num, enemy_hp = {}, {}
-            --for i_c,c in ipairs(cfgs) do
-            --    enemy_num[i_c], enemy_hp[i_c] = 0, 0
-            --    for x = c.zone.x_min,c.zone.x_max do
-            --        for y = c.zone.y_min,c.zone.y_max do
-            --            local en = enemy_attack_map:get(x, y) or 0
-            --            if (en > enemy_num[i_c]) then enemy_num[i_c] = en end
-            --            local hp = enemy_attack_map_hp:get(x, y) or 0
-            --            if (hp > enemy_hp[i_c]) then enemy_hp[i_c] = hp end
-            --        end
-            --    end
-            --    --print('enemy threat:', i_c, enemy_num[i_c], enemy_hp[i_c])
-            --end
+            for _,cfg in ipairs(sorted_cfgs) do
+                --print('Checking priority of zone: ', cfg.zone_id)
 
-            -- Also find how many enemies are already present in zone
-            --local present_enemies = {}
-            --for i_c,c in ipairs(cfgs) do
-            --    present_enemies[i_c] = 0
-            --    for j,e in ipairs(enemies) do
-            --        if (e.x >= c.zone.x_min) and (e.x <= c.zone.x_max) and
-            --            (e.y >= c.zone.y_min) and (e.y <= c.zone.y_max)
-            --        then
-            --            present_enemies[i_c] = present_enemies[i_c] + 1
-            --        end
-            --    end
-            --    --print('present enemies:', i_c, present_enemies[i_c])
-            --end
+                local x, y
+                if cfg.hold and cfg.hold.x and cfg.hold.y then
+                    x, y = cfg.hold.x, cfg.hold.y
+                else
+                    x, y = leader.x, leader.y
+                end
+                --print('    hex:', x, y)
+
+                local moves_away = 0
+                for _,enemy in ipairs(enemies) do
+                    local _,cost = wesnoth.find_path(enemy, x, y, { moves = 'max', ignore_units = true })
+                    cost = math.ceil(cost / enemy.max_moves)
+                    if (cost == 0) then cost = 1 end
+                    --print('      ', enemy.id, enemy.x, enemy.y, cost)
+
+                    if (cost <= 2) then
+                        moves_away = moves_away + enemy.hitpoints / cost
+                    end
+                end
+                --print('    moves away:', moves_away)
+
+                -- Any unit that can attack this hex directly counts extra
+                local direct_attack = enemy_attack_map_hp.hitpoints:get(x, y) or 0
+                --print('    direct attack:', direct_attack)
+
+                local total_threat = moves_away + direct_attack
+                --print('    total_threat:', total_threat)
+
+                cfg.score = total_threat
+            end
+
+            table.sort(sorted_cfgs, function(a, b) return a.score > b.score end)
+
+            local cfgs = {}
+            table.insert(cfgs, cfg_full_map)
+            table.insert(cfgs, cfg_leader_threat)
+
+            for _,cfg in ipairs(sorted_cfgs) do
+                --print('Inserting zone: ', cfg.zone_id, cfg.score)
+                table.insert(cfgs, cfg)
+            end
+            table.insert(cfgs, cfg_rush_right)
+            table.insert(cfgs, cfg_enemy_leader)
+
+            --print()
+            --print('Zone order:')
+            --for _,cfg in ipairs(cfgs) do print('  ', cfg.zone_id, cfg.score) end
+
 
             -- Now set this up as global variable
             grunt_rush_FLS1.data.zone_cfgs = cfgs
