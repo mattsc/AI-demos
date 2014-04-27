@@ -2424,7 +2424,7 @@ return {
             end
 
             -- Otherwise, if any units has attacks or moves left, take them away
-            local units_with_attacks = AH.get_units_with_attack { side = wesnoth.current.side }
+            local units_with_attacks = AH.get_units_with_attacks { side = wesnoth.current.side }
             if units_with_attacks[1] then return score_stop_unit end
 
             local units_with_moves = AH.get_units_with_moves { side = wesnoth.current.side }
@@ -2436,7 +2436,7 @@ return {
         function grunt_rush_FLS1:stop_unit_exec()
             if AH.print_exec() then print_time('   Executing stop_unit CA') end
 
-            local units_with_attacks = AH.get_units_with_attack { side = wesnoth.current.side }
+            local units_with_attacks = AH.get_units_with_attacks { side = wesnoth.current.side }
             for i,u in ipairs(units_with_attacks) do
                 AH.checked_stopunit_all(ai, u)
                 --print('Attacks left:', u.id)
