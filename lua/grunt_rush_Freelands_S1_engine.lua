@@ -1596,11 +1596,12 @@ return {
 
             -- Then we check for poison attacks
             --print_time('    poison attack eval')
-            local poisoners = {}
+            local poisoners, poisoner_map = {}, LS.create()
             for i,a in ipairs(attackers) do
                 local is_poisoner = AH.has_weapon_special(a, 'poison')
                 if is_poisoner then
                     table.insert(poisoners, a)
+                    poisoner_map:insert(a.x, a.y, true)
                 end
             end
             --print_time('#poisoners', #poisoners)
@@ -1891,8 +1892,7 @@ return {
                         if (combo_def_stats.hp_chance[0] > 0) then
                             local number_poisoners = 0
                             for i,a in ipairs(sorted_atts) do
-                                local is_poisoner = AH.has_weapon_special(a, 'poison')
-                                if is_poisoner then
+                                if poisoner_map:get(a.x, a.y) then
                                     number_poisoners = number_poisoners + 1
                                     rating = rating - 100
                                 end
