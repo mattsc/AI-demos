@@ -1937,8 +1937,8 @@ return {
             end
             if (not holders[1]) then return end
 
+            local zone_enemies = {}
             if cfg.hold and cfg.hold.x and cfg.hold.y then
-                zone_enemies = {}
                 for i,e in ipairs(enemies) do
                     local moves = e.moves
                     e.moves = e.max_moves
