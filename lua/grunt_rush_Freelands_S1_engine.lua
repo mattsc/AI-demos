@@ -975,7 +975,7 @@ return {
             end
 
             -- Need to take units with MP off the map for enemy path finding
-            local units_MP = wesnoth.get_units { side = unit.side, formula = '$this_unit.moves > 0' }
+            local units_MP = AH.get_units_with_moves { side = unit.side }
 
             -- Take all units with MP left off the map, except the unit under investigation itself
             for i,u in ipairs(units_MP) do
@@ -1245,9 +1245,7 @@ return {
             -- Move of leader to keep is done by hand here
             -- as we want him to go preferentially to (18,4) not (19.4)
 
-            local leader = wesnoth.get_units{ side = wesnoth.current.side, canrecruit = 'yes',
-                formula = '$this_unit.attacks_left > 0'
-            }[1]
+            local leader = AH.get_units_with_attacks { side = wesnoth.current.side, canrecruit = 'yes' }[1]
             if (not leader) then
                 AH.done_eval_messages(start_time, ca_name)
                 return 0
@@ -2426,14 +2424,10 @@ return {
             end
 
             -- Otherwise, if any units has attacks or moves left, take them away
-            local units_with_attacks = wesnoth.get_units{ side = wesnoth.current.side,
-                formula = '$this_unit.attacks_left > 0'
-            }
+            local units_with_attacks = AH.get_units_with_attack { side = wesnoth.current.side }
             if units_with_attacks[1] then return score_stop_unit end
 
-            local units_with_moves = wesnoth.get_units { side = wesnoth.current.side,
-                formula = '$this_unit.moves > 0'
-            }
+            local units_with_moves = AH.get_units_with_moves { side = wesnoth.current.side }
             if units_with_moves[1] then return score_stop_unit end
 
             return 0
@@ -2442,17 +2436,13 @@ return {
         function grunt_rush_FLS1:stop_unit_exec()
             if AH.print_exec() then print_time('   Executing stop_unit CA') end
 
-            local units_with_attacks = wesnoth.get_units{ side = wesnoth.current.side,
-                formula = '$this_unit.attacks_left > 0'
-            }
+            local units_with_attacks = AH.get_units_with_attack { side = wesnoth.current.side }
             for i,u in ipairs(units_with_attacks) do
                 AH.checked_stopunit_all(ai, u)
                 --print('Attacks left:', u.id)
             end
 
-            local units_with_moves = wesnoth.get_units { side = wesnoth.current.side,
-                formula = '$this_unit.moves > 0'
-            }
+            local units_with_moves = AH.get_units_with_moves { side = wesnoth.current.side }
             for i,u in ipairs(units_with_moves) do
                 --print('Moves left:', u.id)
                 AH.checked_stopunit_all(ai, u)
