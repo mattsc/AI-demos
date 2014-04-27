@@ -1752,7 +1752,7 @@ return {
 
                             -- Now calculate the counter attack outcome
                             local x, y = sorted_dsts[k][1], sorted_dsts[k][2]
-                            local att_ind = sorted_atts[k].x * 1000 + sorted_atts[k].y
+                            local att_ind = tmp_data[k].org_hex[1], tmp_data[k].org_hex[2]
                             local dst_ind = x * 1000 + y
                             if (not counter_table[att_ind]) then counter_table[att_ind] = {} end
                             if (not counter_table[att_ind][dst_ind]) then
