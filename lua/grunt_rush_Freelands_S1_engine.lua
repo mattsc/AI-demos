@@ -2273,11 +2273,17 @@ return {
                     --print('-------------------->  This is the leader. Recruit first.')
                     if AH.show_messages() then W.message { speaker = unit.id, message = 'The leader is about to move. Need to recruit first.' } end
 
+                    local have_recruited
                     while grunt_rush_FLS1:recruit_rushers_eval() > 0 do
                         if not grunt_rush_FLS1:recruit_rushers_exec() then
                             break
+                        else
+                            have_recruited = true
                         end
                     end
+
+                    -- Then we stop the outside loop to reevaluate
+                    if have_recruited then break end
                 end
 
                 if AH.print_exec() then print_time('   Executing zone_control CA ' .. action) end
