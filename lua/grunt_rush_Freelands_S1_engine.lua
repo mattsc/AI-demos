@@ -2294,6 +2294,16 @@ return {
                 if AH.print_exec() then print_time('   Executing zone_control CA ' .. action) end
                 if AH.show_messages() then W.message { speaker = unit.id, message = 'Zone action ' .. action } end
 
+                -- It's possible that one of the units got moved out of the way
+                -- by a move of a previous unit and that it cannot reach the dst
+                -- hex any more.  In that case we stop and reevaluate.
+                -- TODO: make sure up front that move combination is possible
+                local _,cost = wesnoth.find_path(unit, dst[1], dst[2])
+                if (cost > unit.moves) then
+                    grunt_rush_FLS1.data.zone_action = nil
+                    return
+                end
+
                 AH.movefull_outofway_stopunit(ai, unit, dst)
 
                 -- Also set parameters that need to last for the turn
