@@ -310,7 +310,7 @@ return {
 
         function grunt_rush_FLS1:full_offensive()
             -- Returns true if the conditions to go on all-out offensive are met
-            if (grunt_rush_FLS1:hp_ratio() > 2.0) and (wesnoth.current.turn >= 9) then return true end
+            if (grunt_rush_FLS1:hp_ratio() > 2.0) and (wesnoth.current.turn >= 5) then return true end
             return false
         end
 
