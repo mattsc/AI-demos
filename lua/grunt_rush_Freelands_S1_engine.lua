@@ -2070,6 +2070,39 @@ return {
             return nil
         end
 
+        function grunt_rush_FLS1:high_priority_attack(unit, cfg)
+            local attacks = AH.get_attacks({unit})
+            if (not attacks[1]) then return end
+
+            local enemies = AH.get_live_units {
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+            }
+            local enemy_attack_map = BC.get_attack_map(enemies)
+
+            local max_rating, best_target, best_hex = -9e99
+            for _,attack in ipairs(attacks) do
+                if ((enemy_attack_map.units:get(attack.dst.x, attack.dst.y) or 0) <= 1) then
+                    local target = wesnoth.get_unit(attack.target.x, attack.target.y)
+                    --print('Evaluating attack at: ', attack.dst.x, attack.dst.y, target.id)
+
+                    local rating, _, _, att_stats, def_stats =
+                        BC.attack_rating(unit, target, { attack.dst.x, attack.dst.y }, {}, grunt_rush_FLS1.data.cache)
+                    --print(rating)
+
+                    if (rating > 0) and (rating > max_rating) and (def_stats.hp_chance[0] > 0.67) then
+                        max_rating = rating
+                        best_target, best_hex = target, { attack.dst.x, attack.dst.y }
+                    end
+                end
+            end
+
+            if best_target then
+                local action = { units = { unit }, dsts = { best_hex }, enemy = best_target }
+                action.action = cfg.zone_id .. ': ' .. 'high priority attack'
+                return action
+            end
+        end
+
         function grunt_rush_FLS1:get_zone_action(cfg)
             -- Find the best action to do in the zone described in 'cfg'
             -- This is all done together in one function, rather than in separate CAs so that
@@ -2144,7 +2177,8 @@ return {
                     village_action = grunt_rush_FLS1:zone_action_villages(zone_units, enemies, cfg)
                     if village_action and (village_action.rating > 100) then
                         --print(village_action.action)
-                        return village_action
+                        local attack_action = grunt_rush_FLS1:high_priority_attack(village_action.units[1], cfg)
+                        return attack_action or village_action
                     end
                 end
             end
