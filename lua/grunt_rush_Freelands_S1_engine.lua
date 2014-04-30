@@ -2271,11 +2271,16 @@ return {
                 -- We're doing that by running a mini CA eval/exec loop
                 if unit.canrecruit then
                     --print('-------------------->  This is the leader. Recruit first.')
+                    local avoid_map = LS.create()
+                    for _,loc in ipairs(grunt_rush_FLS1.data.zone_action.dsts) do
+                        avoid_map:insert(dst[1], dst[2])
+                    end
+
                     if AH.show_messages() then W.message { speaker = unit.id, message = 'The leader is about to move. Need to recruit first.' } end
 
                     local have_recruited
                     while grunt_rush_FLS1:recruit_rushers_eval() > 0 do
-                        if not grunt_rush_FLS1:recruit_rushers_exec() then
+                        if not grunt_rush_FLS1:recruit_rushers_exec(nil, avoid_map) then
                             break
                         else
                             have_recruited = true
