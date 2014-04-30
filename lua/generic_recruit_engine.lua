@@ -468,7 +468,7 @@ return {
         end
 
         -- Select a unit and hex to recruit to.
-        function select_recruit(leader)
+        function select_recruit(leader, avoid_map)
             local enemy_counts = recruit_data.recruit.enemy_counts
             local enemy_types = recruit_data.recruit.enemy_types
             local num_enemies =  recruit_data.recruit.num_enemies
@@ -582,7 +582,7 @@ return {
             local recruit_type = nil
 
             repeat
-                recruit_data.recruit.best_hex, recruit_data.recruit.target_hex = ai_cas:find_best_recruit_hex(leader, recruit_data)
+                recruit_data.recruit.best_hex, recruit_data.recruit.target_hex = ai_cas:find_best_recruit_hex(leader, recruit_data, avoid_map)
                 if recruit_data.recruit.best_hex == nil or recruit_data.recruit.best_hex[1] == nil then
                     return nil
                 end
@@ -645,7 +645,7 @@ return {
         end
 
         -- recruit a unit
-        function ai_cas:recruit_rushers_exec(ai_local)
+        function ai_cas:recruit_rushers_exec(ai_local, avoid_map)
             if ai_local then ai = ai_local end
 
             if AH.show_messages() then W.message { speaker = 'narrator', message = 'Recruiting' } end
@@ -667,7 +667,7 @@ return {
                 end
                 recruit_data.recruit.prerecruit.total_cost = recruit_data.recruit.prerecruit.total_cost - wesnoth.unit_types[recruit_type].cost
             else
-                recruit_type = select_recruit(leader)
+                recruit_type = select_recruit(leader, avoid_map)
                 if recruit_type == nil then
                     return false
                 end
@@ -735,10 +735,12 @@ return {
             end
         end
 
-        function ai_cas:find_best_recruit_hex(leader, data)
+        function ai_cas:find_best_recruit_hex(leader, data, avoid_map)
             -- Find the best recruit hex
             -- First choice: a hex that can reach an unowned village
             -- Second choice: a hex close to the enemy
+            -- @avoid_map: optional location set listing hexes on which we should
+            --   not recruit, unless no other hexes are available
             get_current_castle(leader, data)
 
             local best_hex, village = get_village_target(leader, data)
@@ -748,7 +750,7 @@ return {
             else
                 -- no available village, look for hex closest to enemy leader
                 -- and also the closest enemy
-                local max_rating = -1
+                local max_rating = -9e99
 
                 local enemy_leaders = AH.get_live_units { canrecruit = 'yes',
                     { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
@@ -763,6 +765,10 @@ return {
                             rating = rating + 1 / H.distance_between(c[1], c[2], e.x, e.y) ^ 2.
                         end
                         rating = rating + 1 / H.distance_between(c[1], c[2], closest_enemy_location.x, closest_enemy_location.y) ^ 2.
+                        if avoid_map and avoid_map:get(c[1], c[2]) then
+                            --print('Avoid hex for recruiting:', c[1], c[2])
+                            rating = rating - 1000.
+                        end
                         if (rating > max_rating) then
                             max_rating, best_hex = rating, { c[1], c[2] }
                         end
