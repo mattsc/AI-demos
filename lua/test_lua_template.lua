@@ -9,6 +9,9 @@
 local H = wesnoth.require "lua/helper.lua"
 local W = H.set_wml_action_metatable {}
 local AH = wesnoth.dofile "~/add-ons/AI-demos/lua/ai_helper.lua"
+local MAIH = wesnoth.dofile "ai/micro_ais/micro_ai_helper.lua"
+local MAIUV = wesnoth.dofile "ai/micro_ais/micro_ai_unit_variables.lua"
+local MAISD = wesnoth.dofile "ai/micro_ais/micro_ai_self_data.lua"
 local BC = wesnoth.dofile "~/add-ons/AI-demos/lua/battle_calcs.lua"
 local LS = wesnoth.dofile "lua/location_set.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
@@ -31,7 +34,7 @@ local ai = wesnoth.debug_ai(wesnoth.current.side).ai
 
 -- Load the custom AI into array 'my_ai'
 fn = "~add-ons/AI-demos/lua/grunt_rush_Freelands_S1_engine.lua"
-fn = "campaigns/The_Rise_Of_Wesnoth/ai/ca_retreat_or_attack.lua"
+fn = "ai/micro_ais/cas/ca_fast_move.lua"
 local self = { data = {} }
 
 -----------------------------------------------------------------
@@ -39,6 +42,7 @@ local self = { data = {} }
 local test_CA, exec_also = false, false
 
 if test_CA then  -- Test a specific CA ...
+    cfg = {}
 
     if (wesnoth.current.side == 1) then
         local start_time = wesnoth.get_time_stamp() / 1000.
@@ -55,12 +59,16 @@ if test_CA then  -- Test a specific CA ...
     end
 
 else  -- ... or do manual testing
+    -- To initialize "old-style" AIs that do not use external CAs yet
+    --local fred = wesnoth.dofile(fn).init()
+    --DBG.dbms(fred)
 
     local leader = wesnoth.get_units{ side = 1, canrecruit = 'yes' }[1]
     local units = wesnoth.get_units{ side = 1, canrecruit = 'no' }
     local enemies = wesnoth.get_units{ side = 2, canrecruit = 'no' }
     print(#units, #enemies)
     local unit = units[1]
+    local enemy = enemies[1]
 
     local start_time = wesnoth.get_time_stamp() / 1000.
     wesnoth.message('Start time:', start_time)
