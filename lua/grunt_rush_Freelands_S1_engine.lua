@@ -1339,7 +1339,7 @@ return {
                 if (dist_enemy_keep < dist_my_keep) then
                     close_village = false
                 end
-                --print('village is close village:', v[1], v[2], close_village)
+                --print_time('village is close village:', v[1], v[2], close_village)
 
                 local dx, dy
                 if cfg.hold then dx, dy = cfg.hold.dx, cfg.hold.dy end
@@ -1528,7 +1528,7 @@ return {
                     end
                 end
             end
-            --print('#injured_units', #injured_units)
+            --print_time('#injured_units', #injured_units)
 
             -- If both villages and units were found, check for retreating moves
             -- (Seriously injured units are already dealt with previously)
@@ -1555,7 +1555,7 @@ return {
                     table.insert(village_grabbers, u)
                 end
             end
-            --print('#village_grabbers', #village_grabbers)
+            --print_time('#village_grabbers', #village_grabbers)
 
             if village_grabbers[1] then
                 -- For this, we consider all villages, not just the retreat_villages
@@ -2200,7 +2200,7 @@ return {
                 if (not cfg.skip_action) or (not cfg.skip_action.villages) then
                     village_action = grunt_rush_FLS1:zone_action_villages(zone_units, enemies, cfg)
                     if village_action and (village_action.rating > 100) then
-                        --print(village_action.action)
+                        --print_time(village_action.action)
                         local attack_action = grunt_rush_FLS1:high_priority_attack(village_action.units[1], cfg)
                         return attack_action or village_action
                     end
