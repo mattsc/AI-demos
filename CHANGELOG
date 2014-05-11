@@ -1,4 +1,24 @@
 0.12.4+dev, ???
+- *** This is an abbreviated changelog since it has been so long since the last release ***
+  - Only major changes are listed, smaller changes are only summarized
+  - Check out the AI-demos github site for all the details
+- Freelands Side 1 Grunt Rush (Fred)
+  - Fred has been generally overhauled.  Many significant changes to pretty much all parts
+    of Fred’s code have been made, to improve both behavior and speed
+  - This includes significant changes to some of the helper functions, such as battle_calcs.attack_rating()
+  - New Fred test scenario
+  - In honor of the “new Fred”, the minor version number of this release is changed to 13
+- ai_helper:
+  - New functions get_units_with_moves(), get_units_with_attacks(), checked_attack(), checked_move_full(),
+    checked_move(), checked_recruit(), checked_stopunit_all(), checked_stopunit_attacks(),
+    checked_stopunit_moves(), get_direction_index(), get_cardinal_directions(), 
+    get_intercardinal_directions(), get_hex_facing()
+  - Removed ai_helper.random()
+- Generic recruit engine:
+  - Add option to evaluate prerecruiting at another castle reachable on the current turn
+- All AIs and helper functions:
+  - Many bug fixes, code cleanup changes and efficiency/speed improvements
+- Switch to external CAs for most AIs (but not yet for the MP AIs (Fred, Ron, …)
 
 0.12.4, 16 November 2013
 - This is the real release of Version 0.12.4 (for the add-ons server)
