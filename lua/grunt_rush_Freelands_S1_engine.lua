@@ -165,6 +165,7 @@ return {
 
             local cfg_center = {
                 zone_id = 'center',
+                key_hexes = { { 18, 9 }, { 22, 10 } },
                 zone_filter = { x = '15-24', y = '1-16' },
                 unit_filter = { x = '1-' .. width , y = '1-' .. height },
                 --unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
@@ -176,6 +177,7 @@ return {
 
             local cfg_left = {
                 zone_id = 'left',
+                key_hexes = { { 11, 9 } },
                 zone_filter = { x = '4-14', y = '1-15' },
                 unit_filter = { x = '1-' .. width , y = '1-' .. height },
                 --unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
@@ -188,6 +190,7 @@ return {
 
             local cfg_right = {
                 zone_id = 'right',
+                key_hexes = { { 27, 11 } },
                 zone_filter = { x = '24-34', y = '1-17' },
                 unit_filter = { x = '1-' .. width , y = '1-' .. height },
                 --unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
@@ -236,29 +239,31 @@ return {
             for _,cfg in ipairs(sorted_cfgs) do
                 --print('Checking priority of zone: ', cfg.zone_id)
 
-                local x, y
-                if cfg.hold and cfg.hold.x and cfg.hold.y then
-                    x, y = cfg.hold.x, cfg.hold.y
-                else
-                    x, y = leader.x, leader.y
-                end
-                --print('    hex:', x, y)
-
                 local moves_away = 0
                 for _,enemy in ipairs(enemies) do
-                    local _,cost = wesnoth.find_path(enemy, x, y, { moves = 'max', ignore_units = true })
-                    cost = math.ceil(cost / enemy.max_moves)
-                    if (cost == 0) then cost = 1 end
-                    --print('      ', enemy.id, enemy.x, enemy.y, cost)
+                    local min_cost = 9e99
+                    for _,hex in ipairs(cfg.key_hexes) do
+                        local _,cost = wesnoth.find_path(enemy, hex[1], hex[2], { moves = 'max' })
+                        cost = math.ceil(cost / enemy.max_moves)
 
-                    if (cost <= 2) then
-                        moves_away = moves_away + enemy.hitpoints / cost
+                        if (cost < min_cost) then min_cost = cost end
+                    end
+
+                    if (min_cost < 1) then min_cost = 1 end
+                    --print('      ', enemy.id, enemy.x, enemy.y, min_cost)
+
+                    if (min_cost <= 2) then
+                        moves_away = moves_away + enemy.hitpoints / min_cost
                     end
                 end
                 --print('    moves away:', moves_away)
 
                 -- Any unit that can attack this hex directly counts extra
-                local direct_attack = enemy_attack_map_hp.hitpoints:get(x, y) or 0
+                local direct_attack = 0
+                for _,hex in ipairs(cfg.key_hexes) do
+                    local hp = enemy_attack_map_hp.hitpoints:get(hex[1], hex[2]) or 0
+                    if (hp > direct_attack) then direct_attack = hp end
+                end
                 --print('    direct attack:', direct_attack)
 
                 local total_threat = moves_away + direct_attack
