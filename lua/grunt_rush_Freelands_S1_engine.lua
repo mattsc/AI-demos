@@ -290,14 +290,13 @@ return {
             --print('Zone order:')
             --for _,cfg in ipairs(cfgs) do print('  ', cfg.zone_id, cfg.score) end
 
-
             -- Now set this up as global variable
             grunt_rush_FLS1.data.zone_cfgs = cfgs
 
             return grunt_rush_FLS1.data.zone_cfgs
         end
 
-        function grunt_rush_FLS1:hp_ratio(my_units, enemies)
+        function grunt_rush_FLS1:hp_ratio(my_units, enemies, weights)
             -- Hitpoint ratio of own units / enemy units
             -- If arguments are not given, use all units on the side
             if (not my_units) then
@@ -311,7 +310,11 @@ return {
 
             local my_hp, enemy_hp = 0, 0
             for i,u in ipairs(my_units) do my_hp = my_hp + u.hitpoints end
-            for i,u in ipairs(enemies) do enemy_hp = enemy_hp + u.hitpoints end
+            for i,u in ipairs(enemies) do
+                local hp = u.hitpoints
+                if weights then hp = hp * weights[i] end
+                enemy_hp = enemy_hp + hp
+            end
 
             --print('HP ratio:', my_hp / (enemy_hp + 1e-6)) -- to avoid div by 0
             return my_hp / (enemy_hp + 1e-6), my_hp, enemy_hp
