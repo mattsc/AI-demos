@@ -165,6 +165,7 @@ return {
 
             local cfg_center = {
                 zone_id = 'center',
+                priority = 1.5,
                 key_hexes = { { 18, 9 }, { 22, 10 } },
                 zone_filter = { x = '15-24', y = '1-16' },
                 unit_filter = { x = '1-' .. width , y = '1-' .. height },
@@ -269,7 +270,7 @@ return {
                 local total_threat = moves_away + direct_attack
                 --print('    total_threat:', total_threat)
 
-                cfg.score = total_threat
+                cfg.score = total_threat * (cfg.priority or 1.)
             end
 
             table.sort(sorted_cfgs, function(a, b) return a.score > b.score end)
