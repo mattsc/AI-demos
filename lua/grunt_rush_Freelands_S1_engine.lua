@@ -62,7 +62,7 @@ return {
                 rating = rating - H.distance_between(x, y, 19, 21) / 1000.
             end
 
-            if (zone_id == 'right') then
+            if (zone_id == 'right') or (zone_id == 'rush_right') then
                 rating = rating + y / 10.
 
                 local x0 = 27
@@ -108,7 +108,7 @@ return {
                 end
             end
 
-            if (zone_id == 'right') then
+            if (zone_id == 'right') or (zone_id == 'rush_right') then
                 if (y < 9) then
                     rating = (y - 9) * 200 - 2000
                 end
@@ -194,7 +194,7 @@ return {
             }
 
             local cfg_rush_right = {
-                zone_id = 'right',
+                zone_id = 'rush_right',
                 zone_filter = { x = '24-34', y = '1-17' },
                 unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
                 skip_action = { retreat_injured_unsafe = true },
