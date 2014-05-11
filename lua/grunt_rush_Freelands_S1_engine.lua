@@ -1961,7 +1961,7 @@ return {
             end
             if (not holders[1]) then return end
 
-            local zone_enemies = {}
+            local zone_enemies, enemy_weights = {}, {}
             if cfg.hold and cfg.hold.x and cfg.hold.y then
                 for i,e in ipairs(enemies) do
                     local moves = e.moves
@@ -1973,6 +1973,9 @@ return {
                     if (cost <= e.max_moves * 2) then
                         --print(cfg.zone_id, 'inserting enemy:', e.id, e.x, e.y)
                         table.insert(zone_enemies, e)
+                        local weight = 1. / math.ceil(cost / e.max_moves)
+                        if (weight == 0) then weight = 1 end
+                        table.insert(enemy_weights, weight)
                     end
                 end
             end
@@ -1986,7 +1989,7 @@ return {
             if cfg.hold.hp_ratio then
                 local hp_ratio = 1e99
                 if (#zone_enemies > 0) then
-                    hp_ratio = grunt_rush_FLS1:hp_ratio(units_noMP, zone_enemies)
+                    hp_ratio = grunt_rush_FLS1:hp_ratio(units_noMP, zone_enemies, enemy_weights)
                 end
                 --print(cfg.zone_id, 'hp_ratio, #units_noMP, #zone_enemies', hp_ratio, #units_noMP, #zone_enemies)
 
@@ -1997,8 +2000,12 @@ return {
 
                 -- Also, if a unit ratio is set, check for this as well
                 if cfg.hold.unit_ratio then
-                    local unit_ratio = #units_noMP / #zone_enemies
-                    print(cfg.zone_id, 'unit_ratio', unit_ratio)
+                    local sum_enemy_weights = 0
+                    for _,weight in ipairs(enemy_weights) do
+                        sum_enemy_weights = sum_enemy_weights + weight
+                    end
+                    local unit_ratio = #units_noMP / sum_enemy_weights
+                    --print(cfg.zone_id, 'unit_ratio', unit_ratio)
                     if (unit_ratio >= cfg.hold.unit_ratio) then
                         eval_hold = false
                     end
