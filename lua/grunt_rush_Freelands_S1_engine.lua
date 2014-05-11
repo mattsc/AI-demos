@@ -1306,26 +1306,38 @@ return {
         function grunt_rush_FLS1:eval_grab_villages(units, villages, enemies, retreat_injured_units, cfg)
             --print('#units, #enemies', #units, #enemies)
 
+            -- Get my and enemy keeps
+            local my_leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+            local enemy_leader = AH.get_live_units { canrecruit = 'yes',
+                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+            }[1]
+            local keeps = wesnoth.get_locations { terrain = 'K*' }
+
+            local min_dist, my_keep = 9e99
+            for _,keep in ipairs(keeps) do
+                local dist = H.distance_between(my_leader.x, my_leader.y, keep[1], keep[2])
+                if (dist < min_dist) then
+                    min_dist, my_keep = dist, keep
+                end
+            end
+
+            local min_dist, enemy_keep = 9e99
+            for _,keep in ipairs(keeps) do
+                local dist = H.distance_between(enemy_leader.x, enemy_leader.y, keep[1], keep[2])
+                if (dist < min_dist) then
+                    min_dist, enemy_keep = dist, keep
+                end
+            end
+
             -- Check if a unit can get to a village
             local max_rating, best_village, best_unit = -9e99, {}, {}
             for j,v in ipairs(villages) do
                 local close_village = true -- a "close" village is one that is closer to theAI keep than to the closest enemy keep
 
-                local my_leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
-                local my_keep = AH.get_closest_location({my_leader.x, my_leader.y}, { terrain = 'K*' })
-
                 local dist_my_keep = H.distance_between(v[1], v[2], my_keep[1], my_keep[2])
-
-                local enemy_leaders = AH.get_live_units { canrecruit = 'yes',
-                    { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
-                }
-                for i,e in ipairs(enemy_leaders) do
-                    local enemy_keep = AH.get_closest_location({e.x, e.y}, { terrain = 'K*' })
-                    local dist_enemy_keep = H.distance_between(v[1], v[2], enemy_keep[1], enemy_keep[2])
-                    if (dist_enemy_keep < dist_my_keep) then
-                        close_village = false
-                        break
-                    end
+                local dist_enemy_keep = H.distance_between(v[1], v[2], enemy_keep[1], enemy_keep[2])
+                if (dist_enemy_keep < dist_my_keep) then
+                    close_village = false
                 end
                 --print('village is close village:', v[1], v[2], close_village)
 
@@ -1411,8 +1423,8 @@ return {
                                         adv_dist = u.x * dx + u.y * dy
                                         vill_dist = v[1] * dx + v[2] * dy
                                     else
-                                        adv_dist = - H.distance_between(u.x, u.y, enemy_leaders[1].x, enemy_leaders[1].y)
-                                        vill_dist = H.distance_between(v[1], v[2], enemy_leaders[1].x, enemy_leaders[1].y)
+                                        adv_dist = - H.distance_between(u.x, u.y, enemy_leader.x, enemy_leader.y)
+                                        vill_dist = H.distance_between(v[1], v[2], enemy_leader.x, enemy_leader.y)
                                     end
                                     rating = rating - adv_dist / 10. + vill_dist / 1000.
                                 end
