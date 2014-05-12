@@ -1303,7 +1303,7 @@ return {
 
         ----------Grab villages -----------
 
-        function grunt_rush_FLS1:eval_grab_villages(units, villages, enemies, retreat_injured_units, cfg)
+        function grunt_rush_FLS1:eval_grab_villages(units, villages, enemies, cfg)
             --print('#units, #enemies', #units, #enemies)
 
             -- Get my and enemy keeps
@@ -1407,27 +1407,23 @@ return {
 
                             -- It is impossible for these numbers to add up to zero, so we do the
                             -- detail rating only for those
-                            if (rating ~= 0) or retreat_injured_units then
-                                -- Finally, since these can be reached by the enemy, want the strongest unit to go first
-                                -- except when we're retreating injured units, then it's the most injured unit first
-                                if retreat_injured_units then
-                                    rating = rating + (u.max_hitpoints - u.hitpoints) / 100.
-                                else
-                                    rating = rating + u.hitpoints / 100.
+                            if (rating ~= 0) then
+                                -- Take the most injured unit preferentially
+                                -- It was checked above that chance to die is less than 50%
+                                rating = rating + (u.max_hitpoints - u.hitpoints) / 100.
 
-                                    -- We also want to move the "farthest back" unit first
-                                    -- and take villages from the back first
-                                    local adv_dist, vill_dist
-                                    if dx then
-                                         -- Distance in direction of (dx, dy) and perpendicular to it
-                                        adv_dist = u.x * dx + u.y * dy
-                                        vill_dist = v[1] * dx + v[2] * dy
-                                    else
-                                        adv_dist = - H.distance_between(u.x, u.y, enemy_leader.x, enemy_leader.y)
-                                        vill_dist = H.distance_between(v[1], v[2], enemy_leader.x, enemy_leader.y)
-                                    end
-                                    rating = rating - adv_dist / 10. + vill_dist / 1000.
+                                -- We also want to move the "farthest back" unit first
+                                -- and take villages from the back first
+                                local adv_dist, vill_dist
+                                if dx then
+                                     -- Distance in direction of (dx, dy) and perpendicular to it
+                                    adv_dist = u.x * dx + u.y * dy
+                                    vill_dist = v[1] * dx + v[2] * dy
+                                else
+                                    adv_dist = - H.distance_between(u.x, u.y, enemy_leader.x, enemy_leader.y)
+                                    vill_dist = H.distance_between(v[1], v[2], enemy_leader.x, enemy_leader.y)
                                 end
+                                rating = rating - adv_dist / 10. + vill_dist / 1000.
 
                                 -- If this is the leader, make him the preferred village taker
                                 -- but only if he's on the keep
@@ -1480,66 +1476,6 @@ return {
         end
 
         function grunt_rush_FLS1:zone_action_villages(units, enemies, cfg)
-            --print_time('villages')
-
-            -- This should include both retreating injured units to villages and village grabbing
-            -- The leader is only included if he is on the keep
-
-            -- First check for villages to retreat to
-            -- This means villages in cfg.retreat_villages that are on the safe side
-            local retreat_villages = {}
-            for i,v in ipairs(cfg.retreat_villages or {}) do
-                table.insert(retreat_villages, v)
-            end
-            --print('#retreat_villages', #retreat_villages)
-
-            -- If villages were found check for units to retreat to them
-            -- Consider units missing at least 8 HP during their weak time of day
-            -- Caveat: neutral units are not retreated by this action at the moment
-            local injured_units = {}
-            if retreat_villages[1] then
-                local tod = wesnoth.get_time_of_day()
-                for i,u in ipairs(units) do
-                    if (u.hitpoints < u.max_hitpoints - 8) then
-                        local alignment = BC.unit_attack_info(u, grunt_rush_FLS1.data.cache).alignment
-
-                        local try_retreat = false
-                        if (alignment == 'chaotic') then
-                            if (tod.id == 'dawn') or (tod.id == 'morning') or (tod.id == 'afternoon') then
-                                try_retreat = true
-                            end
-                        end
-                        if (alignment == 'lawful') then
-                            if (tod.id == 'dusk') or (tod.id == 'first_watch') or (tod.id == 'second_watch') then
-                                try_retreat = true
-                            end
-                        end
-                        --print('retreat:', u.id, alignment, try_retreat)
-
-                        if try_rtreat then
-                            if u.canrecruit then
-                                if wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
-                                    table.insert(injured_units, u)
-                                end
-                            else
-                                table.insert(injured_units, u)
-                            end
-                        end
-                    end
-                end
-            end
-            --print_time('#injured_units', #injured_units)
-
-            -- If both villages and units were found, check for retreating moves
-            -- (Seriously injured units are already dealt with previously)
-            if injured_units[1] then
-                local action = grunt_rush_FLS1:eval_grab_villages(injured_units, retreat_villages, enemies, true, cfg)
-                if action then
-                    action.action = cfg.zone_id .. ': ' .. 'retreat injured units (daytime)'
-                    return action
-                end
-            end
-
             -- Otherwise we go for unowned and enemy-owned villages
             -- This needs to happen for all units, not just not-injured ones
             -- Also includes the leader, if he's on his keep
@@ -1560,7 +1496,7 @@ return {
             if village_grabbers[1] then
                 -- For this, we consider all villages, not just the retreat_villages
                 local villages = wesnoth.get_locations { terrain = '*^V*' }
-                local action = grunt_rush_FLS1:eval_grab_villages(village_grabbers, villages, enemies, false, cfg)
+                local action = grunt_rush_FLS1:eval_grab_villages(village_grabbers, villages, enemies, cfg)
                 if action then
                     action.action = cfg.zone_id .. ': ' .. 'grab villages'
                     return action
