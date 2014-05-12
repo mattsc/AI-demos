@@ -2445,18 +2445,97 @@ return {
                 return 0
             end
 
-            -- Otherwise, if any units has attacks or moves left, take them away
+            -- Retreat any injured units to villages, if possible
+            local units_with_moves = AH.get_units_with_moves { side = wesnoth.current.side }
+
+            local injured_units = {}
+            for _,unit in ipairs(units_with_moves) do
+                if (unit.hitpoints < unit.max_hitpoints) or unit.status.poisoned then
+                    table.insert(injured_units, unit)
+                end
+            end
+
+            local max_rating, best_unit, best_hex = -9e99
+            for _,unit in ipairs(injured_units) do
+                local reach = wesnoth.find_reach(unit)
+
+                for i,r in ipairs(reach) do
+                    local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(r[1], r[2])).village
+
+                    if is_village then
+                        local unit_in_way = wesnoth.get_unit(r[1], r[2])
+
+                        if (unit_in_way == unit) then unit_in_way = nil end
+
+                        if unit_in_way and (unit_in_way.moves > 0) then
+                            local reach_map = AH.get_reachable_unocc(unit_in_way)
+                            if (reach_map:size() > 1) then unit_in_way = nil end
+                        end
+
+                        if (not unit_in_way) then
+                            local max_hp_chance_zero = 0.5
+                            local counter_stats = grunt_rush_FLS1:calc_counter_attack(unit, { r[1], r[2] },
+                                { stop_eval_hp_chance_zero = max_hp_chance_zero }
+                            )
+
+                            if (not counter_stats.hp_chance)
+                                or (unit.canrecruit and (counter_stats.hp_chance[0] == 0))
+                                or ((not unit.canrecruit) and (counter_stats.hp_chance[0] <= max_hp_chance_zero))
+                            then
+                                -- Most injured unit first
+                                local rating = unit.max_hitpoints - unit.hitpoints
+
+                                if unit.status.poisoned then
+                                    rating = rating + 12  -- yes, intentionally more than 8
+                                end
+
+                                -- Chance to die is bad
+                                if counter_stats.hp_chance then
+                                    rating = rating - counter_stats.hp_chance[0] * 100
+                                end
+
+                                -- Retreat leader first, unless other unit is much more injured
+                                if unit.canrecruit then
+                                    rating = rating + 12
+                                end
+
+                                if (rating > max_rating) then
+                                    max_rating = rating
+                                    best_unit, best_hex = unit, { r[1], r[2] }
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+
+            if best_unit then
+                grunt_rush_FLS1.data.finish_unit = best_unit
+                grunt_rush_FLS1.data.finish_hex = best_hex
+
+                return score_stop_unit
+            end
+
+            -- Otherwise, if any units have attacks or moves left, take them away
+            if units_with_moves[1] then return score_stop_unit end
+
             local units_with_attacks = AH.get_units_with_attacks { side = wesnoth.current.side }
             if units_with_attacks[1] then return score_stop_unit end
-
-            local units_with_moves = AH.get_units_with_moves { side = wesnoth.current.side }
-            if units_with_moves[1] then return score_stop_unit end
 
             return 0
         end
 
         function grunt_rush_FLS1:stop_unit_exec()
             if AH.print_exec() then print_time('   Executing stop_unit CA') end
+
+            if grunt_rush_FLS1.data.finish_unit then
+                AH.movefull_outofway_stopunit(ai, grunt_rush_FLS1.data.finish_unit, grunt_rush_FLS1.data.finish_hex)
+
+                grunt_rush_FLS1.data.finish_unit = nil
+                grunt_rush_FLS1.data.finish_hex = nil
+
+                return
+            end
 
             local units_with_attacks = AH.get_units_with_attacks { side = wesnoth.current.side }
             for i,u in ipairs(units_with_attacks) do
