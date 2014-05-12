@@ -2434,10 +2434,10 @@ return {
             return
         end
 
-        function grunt_rush_FLS1:stop_unit_eval()
-            local score_stop_unit = 170000
-            local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'stop_unit'
-            if AH.print_eval() then print_time('     - Evaluating stop_unit CA:') end
+        function grunt_rush_FLS1:finish_turn_eval()
+            local score_finish_turn = 170000
+            local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'finish_turn'
+            if AH.print_eval() then print_time('     - Evaluating finish_turn CA:') end
 
             -- Skip this if AI is much stronger than enemy
             if grunt_rush_FLS1:full_offensive() then
@@ -2513,20 +2513,20 @@ return {
                 grunt_rush_FLS1.data.finish_unit = best_unit
                 grunt_rush_FLS1.data.finish_hex = best_hex
 
-                return score_stop_unit
+                return score_finish_turn
             end
 
             -- Otherwise, if any units have attacks or moves left, take them away
-            if units_with_moves[1] then return score_stop_unit end
+            if units_with_moves[1] then return score_finish_turn end
 
             local units_with_attacks = AH.get_units_with_attacks { side = wesnoth.current.side }
-            if units_with_attacks[1] then return score_stop_unit end
+            if units_with_attacks[1] then return score_finish_turn end
 
             return 0
         end
 
-        function grunt_rush_FLS1:stop_unit_exec()
-            if AH.print_exec() then print_time('   Executing stop_unit CA') end
+        function grunt_rush_FLS1:finish_turn_exec()
+            if AH.print_exec() then print_time('   Executing finish_turn CA') end
 
             if grunt_rush_FLS1.data.finish_unit then
                 AH.movefull_outofway_stopunit(ai, grunt_rush_FLS1.data.finish_unit, grunt_rush_FLS1.data.finish_hex)
