@@ -1827,15 +1827,14 @@ return {
                                 local av_outcome =  counter_average_hp - average_damage
                                 --print('Non-leader: av_outcome, counter_average_hp, average_damage', av_outcome, counter_average_hp, average_damage)
                                 --print('   damage_cost_a, damage_cost_e:', damage_cost_a, damage_cost_e, counter_stats.hp_chance[0])
-
-                                if (av_outcome <= 5) or (counter_stats.hp_chance[0] >= max_hp_chance_zero) then
+                                --if (av_outcome <= 5) or (counter_stats.hp_chance[0] >= max_hp_chance_zero) then
                                     -- Use the "damage cost"
                                     -- This is still experimental for now, so I'll leave the rest of the code here, commented out
                                     if (damage_cost_a > damage_cost_e * enemy_worth ) then
                                         do_attack = false
                                         break
                                     end
-                                end
+                                --end
                             end
                         end
 
