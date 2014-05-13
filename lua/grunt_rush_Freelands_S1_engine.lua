@@ -627,11 +627,11 @@ return {
                 end)
 
                 --AH.put_labels(cost_map)
-                --W.message{ speaker = e.id, message = cfg.zone_id .. ': my enemy_cost_map' }
+                --W.message{ speaker = e.id, message = cfg.zone_id .. ': enemy_cost_map' }
                 --AH.put_labels(turn_map)
-                --W.message{ speaker = e.id, message = cfg.zone_id .. ': my enemy_turn_map' }
+                --W.message{ speaker = e.id, message = cfg.zone_id .. ': enemy_turn_map' }
                 --AH.put_labels(def_map)
-                --W.message{ speaker = e.id, message = cfg.zone_id .. ': my enemy_defense_map' }
+                --W.message{ speaker = e.id, message = cfg.zone_id .. ': enemy_defense_map' }
 
                 table.insert(enemy_cost_maps, cost_map)
                 table.insert(enemy_turn_maps, turn_map)
@@ -883,7 +883,7 @@ return {
                 if (max_rating_unit > max_rating) then
                     max_rating, best_hex, best_unit = max_rating_unit, best_hex_unit, u
                 end
-                --print('max_rating:', max_rating)
+                --print('max_rating:', max_rating, best_hex_unit[1], best_hex_unit[2])
 
                 if show_debug then
                     AH.put_labels(unit_rating_map)
@@ -894,6 +894,7 @@ return {
             if (max_rating > -9e99) then
                 -- If the best hex is unthreatened, check whether another unthreatened hex farther advanced in the zone
                 -- This needs to be separate from and in addition to the step above (if unit cannot get into zone)
+
                 if (not enemy_attack_map:get(best_hex[1], best_hex[2])) then
                     --print(cfg.zone_id, ': reconsidering best hex', best_unit.id, best_unit.x, best_unit.y, '->', best_hex[1], best_hex[2])
 
