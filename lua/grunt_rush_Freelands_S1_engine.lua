@@ -892,10 +892,17 @@ return {
             end
 
             if (max_rating > -9e99) then
-                -- If the best hex is unthreatened, check whether another unthreatened hex farther advanced in the zone
+                -- If the best hex is unthreatened
+                -- has by itself, check whether another hex mostly unthreatened hex farther
+                -- advanced in the zone can be gotten to.
                 -- This needs to be separate from and in addition to the step above (if unit cannot get into zone)
 
-                if (not enemy_attack_map:get(best_hex[1], best_hex[2])) then
+                -- For Northerners, to force some aggressiveness:
+                local hp_factor = 1.25
+
+                local enemy_hp = enemy_attack_map:get(best_hex[1], best_hex[2]) or 0
+
+                if (enemy_hp == 0) then
                     --print(cfg.zone_id, ': reconsidering best hex', best_unit.id, best_unit.x, best_unit.y, '->', best_hex[1], best_hex[2])
 
                     local reach = wesnoth.find_reach(best_unit)
@@ -903,7 +910,11 @@ return {
                     local new_rating_map = LS.create()
                     max_rating = -9e99
                     for i,r in ipairs(reach) do
-                        if (not enemy_attack_map:get(r[1], r[2])) then
+                        -- ... or if it is threatened by less HP than the unit moving there has itself
+                        -- This is only approximate, of course, potentially to be changed later
+                        local enemy_hp = enemy_attack_map:get(r[1], r[2]) or 0
+
+                        if (enemy_hp < best_unit.hitpoints * hp_factor) then
                             local unit_in_way = wesnoth.get_unit(r[1], r[2])
                             if (not unit_in_way) or (unit_in_way == best_unit) then
                                 local rating = grunt_rush_FLS1:zone_advance_rating(cfg.zone_id, r[1], r[2], enemy_leader)
