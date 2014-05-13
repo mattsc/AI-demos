@@ -919,6 +919,15 @@ return {
                             if (not unit_in_way) or (unit_in_way == best_unit) then
                                 local rating = grunt_rush_FLS1:zone_advance_rating(cfg.zone_id, r[1], r[2], enemy_leader)
 
+                                -- If the unit is injured and does not regenerate,
+                                -- then we very strongly prefer villages
+                                if (best_unit.hitpoints < best_unit.max_hitpoints)
+                                    and (not wesnoth.unit_ability(best_unit, 'regenerate'))
+                                then
+                                    local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(r[1], r[2])).village
+                                    if is_village then rating = rating + 1000 end
+                                end
+
                                 new_rating_map:insert(r[1], r[2], rating)
 
                                 if (rating > max_rating) then
