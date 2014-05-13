@@ -1481,7 +1481,7 @@ return {
             end
         end
 
-        function grunt_rush_FLS1:zone_action_villages(units, enemies, cfg)
+        function grunt_rush_FLS1:zone_action_villages(units, enemies, zone_map, cfg)
             -- Otherwise we go for unowned and enemy-owned villages
             -- This needs to happen for all units, not just not-injured ones
             -- Also includes the leader, if he's on his keep
@@ -1500,8 +1500,17 @@ return {
             --print_time('#village_grabbers', #village_grabbers)
 
             if village_grabbers[1] then
-                -- For this, we consider all villages, not just the retreat_villages
-                local villages = wesnoth.get_locations { terrain = '*^V*' }
+                -- For this, we consider all villages, not just the retreat_villages,
+                -- but restrict it to villages inside the zone
+                local all_villages = wesnoth.get_locations { terrain = '*^V*' }
+
+                local villages = {}
+                for _,village in ipairs(all_villages) do
+                    if zone_map:get(village[1], village[2]) then
+                        table.insert(villages, village)
+                    end
+                end
+
                 local action = grunt_rush_FLS1:eval_grab_villages(village_grabbers, villages, enemies, cfg)
                 if action then
                     action.action = cfg.zone_id .. ': ' .. 'grab villages'
@@ -2162,7 +2171,7 @@ return {
             local village_action = nil
             if (not cfg.do_action) or cfg.do_action.villages then
                 if (not cfg.skip_action) or (not cfg.skip_action.villages) then
-                    village_action = grunt_rush_FLS1:zone_action_villages(zone_units, enemies, cfg)
+                    village_action = grunt_rush_FLS1:zone_action_villages(zone_units, enemies, zone_map, cfg)
                     if village_action and (village_action.rating > 100) then
                         --print_time(village_action.action)
                         local attack_action = grunt_rush_FLS1:high_priority_attack(village_action.units[1], cfg)
