@@ -618,7 +618,8 @@ return {
                 end
 
                 cost_map:iter(function(x, y, v)
-                    local turns = math.ceil(v / e.max_moves)
+                    --local turns = math.ceil(v / e.max_moves)
+                    local turns = v / e.max_moves
                     if (turns == 0) then turns = 1 end
                     turn_map:insert(x, y, turns)
 
