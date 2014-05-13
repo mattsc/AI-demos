@@ -1596,11 +1596,11 @@ return {
             local cache_this_move = {}  -- same reason
             for i,e in ipairs(targets) do
                 -- How much more valuable do we consider the enemy units than out own
-                local enemy_worth = 1.0
+                local enemy_worth = 1.33 -- we are Northerners, after all
                 if cfg.attack and cfg.attack.enemy_worth then
                     enemy_worth = cfg.attack.enemy_worth
                 end
-                if e.canrecruit then enemy_worth = enemy_worth * 5 end
+                if e.canrecruit then enemy_worth = enemy_worth * 2 end
 
                 --print_time('\n', i, e.id, enemy_worth)
                 local tmp_attack_combos = AH.get_attack_combos(attackers, e, { include_occupied = true })
