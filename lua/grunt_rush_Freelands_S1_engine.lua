@@ -595,7 +595,7 @@ return {
             end
 
             local zone = wesnoth.get_locations(cfg.zone_filter)
-            local leader = wesnoth.get_units{ side = 1, canrecruit = 'yes' }[1]
+            local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
 
             -- Take leader and units with MP off the map
             -- Leader needs to be taken off whether he has MP or not, so done spearately
