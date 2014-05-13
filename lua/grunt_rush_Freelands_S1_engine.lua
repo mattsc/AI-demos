@@ -59,7 +59,11 @@ return {
                     rating = rating - dx
                 end
 
-                rating = rating - H.distance_between(x, y, 19, 21) / 1000.
+                if (x < 15) and (y < 14) then
+                    rating = rating - H.distance_between(x, y, 19, 4) - 100.
+                else
+                    rating = rating - H.distance_between(x, y, 19, 21) / 1000.
+                end
             end
 
             if (zone_id == 'right') or (zone_id == 'rush_right') then
