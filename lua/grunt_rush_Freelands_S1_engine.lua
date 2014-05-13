@@ -1193,12 +1193,21 @@ return {
             local tod = wesnoth.get_time_of_day()
             AH.print_ts(' Beginning of Turn ' .. wesnoth.current.turn .. ' (' .. tod.name ..') stats')
 
+            local villages = wesnoth.get_locations { terrain = '*^V*' }
+
             for i,s in ipairs(wesnoth.sides) do
                 local total_hp = 0
                 local units = AH.get_live_units { side = s.side }
                 for i,u in ipairs(units) do total_hp = total_hp + u.hitpoints end
                 local leader = wesnoth.get_units { side = s.side, canrecruit = 'yes' }[1]
                 print('   Player ' .. s.side .. ' (' .. leader.type .. '): ' .. #units .. ' Units with total HP: ' .. total_hp)
+
+                local owned_villages = 0
+                for _,v in ipairs(villages) do
+                    local owner = wesnoth.get_village_owner(v[1], v[2])
+                    if (owner == s.side) then owned_villages = owned_villages + 1 end
+                end
+                print('     ' .. owned_villages .. '/' .. #villages .. ' villages')
             end
             if grunt_rush_FLS1:full_offensive() then print(' Full offensive mode (mostly done by RCA AI)') end
         end
