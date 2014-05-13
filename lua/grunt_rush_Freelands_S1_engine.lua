@@ -2279,9 +2279,62 @@ return {
 
             local action = grunt_rush_FLS1.data.zone_action.action
             while grunt_rush_FLS1.data.zone_action.units and (table.maxn(grunt_rush_FLS1.data.zone_action.units) > 0) do
+                local next_unit_ind = 1
 
-                local unit = grunt_rush_FLS1.data.zone_action.units[1]
-                local dst = grunt_rush_FLS1.data.zone_action.dsts[1]
+                -- If this is an attack combo, reorder units to give maximum XP to unit closest to advancing
+                if grunt_rush_FLS1.data.zone_action.enemy and grunt_rush_FLS1.data.zone_action.units[2] then
+                    -- Only do this if CTK for overall attack combo is > 0
+                    local _, _, _, _, combo_def_stats = BC.attack_combo_stats(
+                        grunt_rush_FLS1.data.zone_action.units,
+                        grunt_rush_FLS1.data.zone_action.dsts,
+                        grunt_rush_FLS1.data.zone_action.enemy,
+                        grunt_rush_FLS1.data.cache
+                    )
+
+                    if (combo_def_stats.hp_chance[0] > 0) then
+                        --print_time('Reordering units for attack to maximize XP gain')
+
+                        local min_XP_diff, best_ind = 9e99
+                        for ind,unit in ipairs(grunt_rush_FLS1.data.zone_action.units) do
+                            local XP_diff = unit.max_experience - unit.experience
+                            -- Add HP as minor rating
+                            XP_diff = XP_diff + unit.hitpoints / 100.
+
+                            if (XP_diff < min_XP_diff) then
+                                min_XP_diff, best_ind = XP_diff, ind
+                            end
+                        end
+
+                        local unit = grunt_rush_FLS1.data.zone_action.units[best_ind]
+                        --print_time('Most advanced unit:', unit.id, unit.experience, best_ind)
+
+                        local att_stats, def_stats = BC.battle_outcome(
+                            unit,
+                            grunt_rush_FLS1.data.zone_action.enemy,
+                            { dst = grunt_rush_FLS1.data.zone_action.dsts[best_ind] },
+                            grunt_rush_FLS1.data.cache
+                        )
+
+                        local kill_rating = def_stats.hp_chance[0] - att_stats.hp_chance[0]
+                        --print_time('kill_rating:', kill_rating)
+
+                        if (kill_rating >= 0.5) then
+                            --print_time('Pulling unit to front')
+                            next_unit_ind = best_ind
+                        elseif (best_ind == 1) then
+                            --print_time('Moving unit back')
+                            next_unit_ind = 2
+                        end
+
+
+                    end
+
+
+                end
+                --print_time('next_unit_ind', next_unit_ind)
+
+                local unit = grunt_rush_FLS1.data.zone_action.units[next_unit_ind]
+                local dst = grunt_rush_FLS1.data.zone_action.dsts[next_unit_ind]
 
                 -- If this is the leader, recruit first
                 -- We're doing that by running a mini CA eval/exec loop
@@ -2334,8 +2387,8 @@ return {
                 end
 
                 -- Remove these from the table
-                table.remove(grunt_rush_FLS1.data.zone_action.units, 1)
-                table.remove(grunt_rush_FLS1.data.zone_action.dsts, 1)
+                table.remove(grunt_rush_FLS1.data.zone_action.units, next_unit_ind)
+                table.remove(grunt_rush_FLS1.data.zone_action.dsts, next_unit_ind)
 
                 -- Then do the attack, if there is one to do
                 if grunt_rush_FLS1.data.zone_action.enemy then
@@ -2346,7 +2399,6 @@ return {
                         grunt_rush_FLS1.data.zone_action.units = nil
                     end
                 end
-
             end
 
             grunt_rush_FLS1.data.zone_action = nil
