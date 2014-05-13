@@ -594,16 +594,6 @@ return {
                 end
             end
 
-            -- Normalized direction "vector"
-            local dx, dy = cfg.hold.dx, cfg.hold.dy
-            if (dx and dy) then
-                local r = math.sqrt(dx*dx + dy*dy)
-                dx, dy = dx / r, dy / r
-            else
-                dx = nil  -- just in case dx exists and dy does not
-                -- existence of dx is used as criterion below
-            end
-
             local zone = wesnoth.get_locations(cfg.zone_filter)
             local leader = wesnoth.get_units{ side = 1, canrecruit = 'yes' }[1]
 
