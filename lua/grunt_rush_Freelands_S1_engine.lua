@@ -207,6 +207,7 @@ return {
             local cfg_rush_right = {
                 zone_id = 'rush_right',
                 zone_filter = { x = '24-34', y = '1-17' },
+                only_zone_units = true,
                 unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
                 skip_action = { retreat_injured_unsafe = true },
                 hold = { x = 27, y = 11, dx = 0, dy = 1, min_dist = -4 },
@@ -2091,18 +2092,33 @@ return {
                 for k,v in pairs(cfg.unit_filter) do unit_filter[k] = v end
             end
             --DBG.dbms(unit_filter)
-            local all_units = AH.get_live_units(unit_filter)
-            local zone_units, zone_units_noMP, zone_units_attacks = {}, {}, {}
+            local all_units
+            if cfg.only_zone_units then
+                all_units = AH.get_live_units(unit_filter)
+            else
+                all_units = AH.get_live_units { side = wesnoth.current.side }
+            end
+
+            local zone_units, zone_units_attacks = {}, {}
             for i,u in ipairs(all_units) do
                 if (u.moves > 0) then
                     table.insert(zone_units, u)
-                else
-                    table.insert(zone_units_noMP, u)
                 end
                 if (u.attacks_left > 0) then
                     table.insert(zone_units_attacks, u)
                 end
             end
+            all_units = nil
+
+            local all_zone_units = AH.get_live_units(unit_filter)
+            local zone_units_noMP = {}
+            for i,u in ipairs(all_zone_units) do
+                if (u.moves <= 0) then
+                    table.insert(zone_units_noMP, u)
+                end
+            end
+
+
 
             if (not zone_units[1]) and (not zone_units_attacks[1]) then return end
 
