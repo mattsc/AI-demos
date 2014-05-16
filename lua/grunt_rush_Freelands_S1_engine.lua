@@ -791,10 +791,10 @@ return {
                         rating = rating + grunt_rush_FLS1:zone_loc_rating(cfg.zone_id, x, y)
 
                         -- Bonus if this is on a village
-                        local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
-                        if is_village then
-                            rating = rating + 500
-                        end
+                        --local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
+                        --if is_village then
+                        --    rating = rating + 500
+                        --end
 
                         -- Add stiff penalty if this is a location next to an unoccupied village
                         for xa, ya in H.adjacent_tiles(x, y) do
@@ -840,6 +840,14 @@ return {
                     local unit_rating = 0
 
                     local defense = wesnoth.unit_defense(u, wesnoth.get_terrain(x, y))
+
+                    -- Significant bonus if this is on a village
+                    local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
+                    if is_village then
+                        defense = defense - 15
+                        if (defense < 10) then defense = 10 end
+                    end
+
                     unit_rating = unit_rating - defense ^ 2
 
                     -- Factor for ToD (for center hex only)
