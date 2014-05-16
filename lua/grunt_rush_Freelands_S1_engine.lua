@@ -2348,7 +2348,13 @@ return {
                     return
                 end
 
-                AH.movefull_outofway_stopunit(ai, unit, dst)
+                -- Move out of way in direction of own leader
+                local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+                local dx, dy  = leader.x - dst[1], leader.y - dst[2]
+                local r = math.sqrt(dx * dx + dy * dy)
+                if (r ~= 0) then dx, dy = dx / r, dy / r end
+
+                AH.movefull_outofway_stopunit(ai, unit, dst[1], dst[2], { dx = dx, dy = dy })
 
                 -- Also set parameters that need to last for the turn
                 -- If this is a retreat toward village, add it to the "reserved villages" list
