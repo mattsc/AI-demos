@@ -1634,10 +1634,10 @@ return {
                     local MP_left = false
                     for k,att_stats in ipairs(combo_att_stats) do
                         if (not sorted_atts[k].canrecruit) then
-                            if (att_stats.hp_chance[0] > 0.3) then
-                                do_attack = false
-                                break
-                            end
+                            --if (att_stats.hp_chance[0] > 0.3) then
+                            --    do_attack = false
+                            --    break
+                            --end
                         else
                             if (att_stats.hp_chance[0] > 0.0) or (att_stats.slowed > 0.0) or (att_stats.poisoned > 0.0) then
                                 do_attack = false
