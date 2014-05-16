@@ -1683,4 +1683,131 @@ function battle_calcs.get_attack_combos_subset(units, enemy, cfg, cache, cache_t
     return attack_combos
 end
 
+function battle_calcs.approx_best_attack_combo(attackers, defender, cache, cache_this_move)
+    -- Goes through all attack combinations of @attackers on @defender and
+    -- makes an estimate of which one of those is the best (largest sum of individual
+    -- attack ratings).  This is mostly set up to be fast.
+    --
+    -- Optional inputs: @cache and @cache_this_move as used by battle_calcs.attack_rating()
+
+    -- For units on the current side, we need to make sure that
+    -- there isn't a unit in the way that cannot move any more
+    -- TODO: generalize it so that it works not only for units with moves=0, but blocked units etc.
+    local blocked_hexes = LS.create()
+    if (attackers[1].side == wesnoth.current.side) then
+        local all_units = wesnoth.get_units { side = wesnoth.current.side }
+        for _,unit in ipairs(all_units) do
+            if (unit.moves == 0) then
+                blocked_hexes:insert(unit.x, unit.y)
+            end
+        end
+    end
+
+    -- For sides other than the current, we always use max_moves.
+    -- For the current side we always use current moves
+    local old_moves = {}
+    if (attackers[1].side ~= wesnoth.current.side) then
+        for i,attacker in ipairs(attackers) do
+            old_moves[i] = attacker.moves
+            attacker.moves = attacker.max_moves
+        end
+    end
+
+    -- Find which units in @attackers can get to hexes next to @defender
+    local tmp_attacks_dst_src = {}
+
+    -- Yes, this is a triple loop, but it's faster than direct path finding in many cases (I tried!)
+    for _,attacker in ipairs(attackers) do
+        local reach = wesnoth.find_reach(attacker)
+
+        for xa,ya in H.adjacent_tiles(defender.x, defender.y) do
+            if (not blocked_hexes:get(xa,ya)) or ((xa == attacker.x) and (ya == attacker.y)) then
+                local dst = xa * 1000 + ya
+
+                for _,r in ipairs(reach) do
+                    if (r[1] == xa) and (r[2] == ya) then
+                        -- As rating we use the "standard" attack rating, but the defender rating part only,
+                        -- that is, the damage done by the attackers only
+                        local _,rating = battle_calcs.attack_rating(attacker, defender, { xa, ya }, {}, cache, cache_this_move)
+
+                        if (not tmp_attacks_dst_src[dst]) then
+                            tmp_attacks_dst_src[dst] = {
+                                { src = attacker.x * 1000 + attacker.y, rating = rating },
+                                dst = dst
+                            }
+                        else
+                            table.insert(tmp_attacks_dst_src[dst], { src = attacker.x * 1000 + attacker.y, rating = rating })
+                        end
+                        break
+                    end
+                end
+            end
+        end
+    end
+
+    if (attackers[1].side ~= wesnoth.current.side) then
+        for i,attacker in ipairs(attackers) do
+            attacker.moves = old_moves[i]
+        end
+    end
+
+    if (not next(tmp_attacks_dst_src)) then return {} end
+
+    -- Because of the way how the recursive function below works, we want this to
+    -- be an array, not a table with dsts as keys
+    local attacks_dst_src = {}
+    for _,dst in pairs(tmp_attacks_dst_src) do
+        table.insert(attacks_dst_src, dst)
+    end
+
+    -- Now go through all the attack combinations
+    local combo, best_combo = {}, {}
+    local num_hexes = #attacks_dst_src
+    local max_rating, rating, hex = -9e99, 0, 0
+
+    -- This is the recursive function adding units to each hex
+    -- It is defined here so that we can use the variables above by closure
+    local function add_attacks()
+        hex = hex + 1  -- The hex counter
+
+        for _,attack in ipairs(attacks_dst_src[hex]) do  -- Go through all the attacks (src and rating) for each hex
+            if (not combo[attack.src]) then  -- If that unit has not been used yet, add it
+                combo[attack.src] = attacks_dst_src[hex].dst
+
+                rating = rating + attack.rating  -- Rating is simply the sum of the individual ratings
+
+                if (hex < num_hexes) then
+                    add_attacks()
+                else
+                    if (rating > max_rating) then
+                        max_rating = rating
+                        best_combo = {}
+                        for k,v in pairs(combo) do best_combo[k] = v end
+                    end
+                end
+
+                rating = rating - attack.rating
+                combo[attack.src] = nil
+            end
+        end
+
+        -- We need to call this once more, to account for the "no unit on this hex" case
+        -- Yes, this is a code duplication (done so for simplicity and speed reasons)
+        if (hex < num_hexes) then
+            add_attacks()
+        else
+            if (rating > max_rating) then
+                max_rating = rating
+                best_combo = {}
+                for k,v in pairs(combo) do best_combo[k] = v end
+            end
+        end
+        hex = hex - 1
+    end
+
+    add_attacks()
+
+    return best_combo
+end
+
 return battle_calcs
