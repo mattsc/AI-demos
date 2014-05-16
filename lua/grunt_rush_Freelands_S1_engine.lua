@@ -1561,10 +1561,10 @@ return {
             end
             --print_time('#poisoners', #poisoners)
 
-            if (poisoners[1]) then
-                --local action = grunt_rush_FLS1:spread_poison_eval(poisoners, targets, cfg)
-                if action then return action end
-            end
+            --if (poisoners[1]) then
+            --    local action = grunt_rush_FLS1:spread_poison_eval(poisoners, targets, cfg)
+            --    if action then return action end
+            --end
 
             -- Also want an 'attackers' map, indexed by position (for speed reasons)
             --print_time('    standard attack eval')
