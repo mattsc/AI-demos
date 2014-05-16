@@ -23,7 +23,7 @@ function battle_calcs.unit_attack_info(unit, cache)
     -- Set up a cache index. We use id+max_hitpoints+side, since the
     -- unit can level up. Side is added to avoid the problem of MP leaders sometimes having
     -- the same id when the game is started from the command-line
-    local cind = 'UI-' .. unit.id .. unit.max_hitpoints .. unit.side
+    local cind = 'UI-' .. unit.id .. unit.max_hitpoints
 
     -- If cache for this unit exists, return it
     if cache and cache[cind] then
@@ -98,8 +98,8 @@ function battle_calcs.strike_damage(attacker, defender, att_weapon, def_weapon, 
     local att_lawful_bonus = wesnoth.get_time_of_day({ dst[1], dst[2], true }).lawful_bonus
     local def_lawful_bonus = wesnoth.get_time_of_day({ defender.x, defender.y, true }).lawful_bonus
 
-    local cind = 'SD-' .. attacker.id .. attacker.max_hitpoints .. attacker.side
-    cind = cind .. 'x' .. defender.id .. defender.max_hitpoints .. defender.side
+    local cind = 'SD-' .. attacker.id .. attacker.max_hitpoints
+    cind = cind .. 'x' .. defender.id .. defender.max_hitpoints
     cind = cind .. '-' .. att_weapon .. 'x' .. def_weapon
     cind = cind .. '-' .. att_lawful_bonus .. 'x' .. def_lawful_bonus
 
@@ -185,8 +185,8 @@ function battle_calcs.best_weapons(attacker, defender, dst, cache)
     local att_lawful_bonus = wesnoth.get_time_of_day({ dst[1], dst[2], true }).lawful_bonus
     local def_lawful_bonus = wesnoth.get_time_of_day({ defender.x, defender.y, true }).lawful_bonus
 
-    local cind = 'BW-' .. attacker.id .. attacker.max_hitpoints .. attacker.side
-    cind = cind .. 'x' .. defender.id .. defender.max_hitpoints .. defender.side
+    local cind = 'BW-' .. attacker.id .. attacker.max_hitpoints
+    cind = cind .. 'x' .. defender.id .. defender.max_hitpoints
     cind = cind .. '-' .. att_lawful_bonus .. 'x' .. def_lawful_bonus
 
     -- If cache for this unit exists, return it
@@ -632,17 +632,39 @@ function battle_calcs.hp_distribution(coeffs, att_hit_prob, def_hit_prob, starti
     return stats
 end
 
-function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
+function battle_calcs.battle_outcome(attacker, defender, cfg, cache, cache_this_move)
     -- Calculate the stats of a combat by @attacker vs. @defender
     -- @cfg: optional input parameters
     --  - att_weapon/def_weapon: attacker/defender weapon number
     --      if not given, get "best" weapon (Note: both must be given, or they will both be determined)
     --  - dst: { x, y }: the attack location; defaults to { attacker.x, attacker.y }
-    -- @cache: to be passed on to other functions. battle_outcome itself is not cached, too many factors enter
+    -- @cache: to be passed on to other functions.
+    --    It depends on only on the units involved in the attack itself, but also in positions of other units etc.
+    -- @cache_this_move: an optional table of pre-calculated attack outcomes
+    --   - !!!!!!!!!!!!!!!!!!!!!!!! Read this carefully, there are all kinds of caveats !!!!!!!!!!!!!!!!!!!!!
+    --   - 1. This is different from the other cache tables used in this file
+    --   -    This table may only persist for this move (move, not turn !!!), as otherwise too many things change
+    --   - 2. The starting HP of the units are part of the cache index and do not have to be saved
+    --   - 3. Caching is done by the defense of the terrain, not the location itself.  As a result:
+    --   - 4. Things like leadership, illumination by other units etc. may or may not be considered correctly
 
     cfg = cfg or {}
 
+    cache_this_move = cache_this_move or {}
+
     local dst = cfg.dst or { attacker.x, attacker.y }
+
+    -- Initialize or use the 'cache_this_move' table
+    -- Need to save both the unit ids+HP and their locations, as the AI code moves units around
+    local defender_defense = wesnoth.unit_defense(defender, wesnoth.get_terrain(defender.x, defender.y))
+    local cind = 'BO-' .. defender.id .. defender.hitpoints .. '-' .. defender_defense
+
+    local attacker_defense = wesnoth.unit_defense(attacker, wesnoth.get_terrain(dst[1], dst[2]))
+    cind = cind .. 'x' .. attacker.id .. attacker.hitpoints .. '-' .. attacker_defense
+
+    if cache_this_move[cind] then
+        return cache_this_move[cind].att_stats, cache_this_move[cind].def_stats
+    end
 
     local att_weapon, def_weapon = 0, 0
     if (not cfg.att_weapon) or (not cfg.def_weapon) then
@@ -703,6 +725,8 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache)
     local att_stats = battle_calcs.hp_distribution(att_coeffs, att_hit_prob, def_hit_prob, attacker.hitpoints, def_damage, def_attack)
     local def_stats = battle_calcs.hp_distribution(def_coeffs, att_hit_prob, def_hit_prob, defender.hitpoints, att_damage, att_attack)
 
+    cache_this_move[cind] = { att_stats = att_stats, def_stats = def_stats }
+
     return att_stats, def_stats
 end
 
@@ -737,7 +761,7 @@ function battle_calcs.simulate_combat_loc(attacker, dst, defender, weapon)
     end
 end
 
-function battle_calcs.attack_rating(attacker, defender, dst, cfg, cache)
+function battle_calcs.attack_rating(attacker, defender, dst, cfg, cache, cache_this_move)
     -- Returns a common (but configurable) rating for attacks
     -- Inputs:
     -- @attacker: attacker unit
@@ -752,6 +776,14 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg, cache)
     --        Defaults to weapon that does most damage to the opponent
     --        Note: as with the stats, they either both need to be passed or both be omitted
     -- @cache: cache table to be passed to battle_calcs.battle_outcome
+    -- @cache_this_move: an optional table of pre-calculated attack ratings
+    --   - !!!!!!!!!!!!!!!!!!!!!!!! Read this carefully, there are all kinds of caveats !!!!!!!!!!!!!!!!!!!!!
+    --   - 1. This is different from the other cache tables used in this file
+    --   -    This table may only persist for this move (move, not turn !!!), as otherwise too many things change
+    --   - 2. The starting HP of the units are part of the cache index and do not have to be saved
+    --   - 3. Caching is done by the defense of the terrain, not the location itself.  As a result:
+    --   - 4. Things like leadership, illumination by other units etc. may or may not be considered correctly
+    --   - 5. This does not work correctly if parameters in @cfg are set differently between calls
     --
     -- Returns:
     --   - Overall rating for the attack or attack combo
@@ -764,6 +796,24 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg, cache)
     --   - att_stats, def_stats: useful if they were calculated here, rather than passed down
 
     cfg = cfg or {}
+
+    cache_this_move = cache_this_move or {}
+
+    -- Initialize or use the 'cache_this_move' table
+    -- Need to save both the unit ids+HP and their locations, as the AI code moves units around
+    local defender_defense = wesnoth.unit_defense(defender, wesnoth.get_terrain(defender.x, defender.y))
+    local cind = 'AR-' .. defender.id .. defender.hitpoints .. '-' .. defender_defense
+
+    local attacker_defense = wesnoth.unit_defense(attacker, wesnoth.get_terrain(dst[1], dst[2]))
+    cind = cind .. 'x' .. attacker.id .. attacker.hitpoints .. '-' .. attacker_defense
+
+    if cache_this_move[cind] then
+        return cache_this_move[cind].rating,
+            cache_this_move[cind].defender_rating,
+            cache_this_move[cind].attacker_rating,
+            cache_this_move[cind].att_stats,
+            cache_this_move[cind].def_stats
+    end
 
     -- Set up the config parameters for the rating
     local enemy_leader_weight = cfg.enemy_leader_weight or 5.
@@ -783,7 +833,7 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg, cache)
         -- If cfg specifies the weapons use those, otherwise use "best" weapons
         -- In the latter case, cfg.???_weapon will be nil, which will be passed on
         local battle_cfg = { att_weapon = cfg.att_weapon, def_weapon = cfg.def_weapon, dst = dst }
-        att_stats,def_stats = battle_calcs.battle_outcome(attacker, defender, battle_cfg, cache)
+        att_stats,def_stats = battle_calcs.battle_outcome(attacker, defender, battle_cfg, cache, cache_this_move)
     else
         att_stats, def_stats = cfg.att_stats, cfg.def_stats
     end
@@ -955,6 +1005,14 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg, cache)
 
     local rating = defender_rating + attacker_rating
 
+    cache_this_move[cind] = {
+        rating = rating,
+        defender_rating = defender_rating,
+        attacker_rating = attacker_rating,
+        att_stats = att_stats,
+        def_stats = def_stats
+    }
+
     return rating, defender_rating, attacker_rating, att_stats, def_stats
 end
 
@@ -969,8 +1027,12 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cach
     -- @cache: the cache table to be passed through to other battle_calcs functions
     --   attack_combo_stats itself is not cached, except for in cache_this_move below
     -- @cache_this_move: an optional table of pre-calculated attack outcomes
-    --   - This is different from the other cache tables used in this file
-    --   - This table may only persist for this move (move, not turn !!!), as otherwise too many things change
+    --   - !!!!!!!!!!!!!!!!!!!!!!!! Read this carefully, there are all kinds of caveats !!!!!!!!!!!!!!!!!!!!!
+    --   - 1. This is different from the other cache tables used in this file
+    --   -    This table may only persist for this move (move, not turn !!!), as otherwise too many things change
+    --   - 2. The starting HP of the units are part of the cache index and do not have to be saved
+    --   - 3. Caching is done by the defense of the terrain, not the location itself.  As a result:
+    --   - 4. Things like leadership, illumination by other units etc. may or may not be considered correctly
     --
     -- Return values:
     --   - The rating for this attack combination calculated from battle_calcs.attack_rating() results
@@ -984,18 +1046,21 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cach
     -- We first simulate and rate the individual attacks
     local ratings, tmp_attacker_ratings = {}, {}
     local tmp_att_stats, tmp_def_stats = {}, {}
-    local defender_ind = defender.x * 1000 + defender.y
-    for i,attacker in ipairs(tmp_attackers) do
-        -- Initialize or use the 'cache_this_move' table
-        local att_ind = attacker.x * 1000 + attacker.y
-        local dst_ind = tmp_dsts[i][1] * 1000 + tmp_dsts[i][2]
-        if (not cache_this_move[defender_ind]) then cache_this_move[defender_ind] = {} end
-        if (not cache_this_move[defender_ind][att_ind]) then cache_this_move[defender_ind][att_ind] = {} end
 
-        if (not cache_this_move[defender_ind][att_ind][dst_ind]) then
+    -- Initialize or use the 'cache_this_move' table
+    -- Need to save both the unit ids+HP and their locations, as the AI code moves units around
+    local defender_defense = wesnoth.unit_defense(defender, wesnoth.get_terrain(defender.x, defender.y))
+    local cind_base = 'ACS-' .. defender.id .. defender.hitpoints .. '-' .. defender_defense
+
+    for i,attacker in ipairs(tmp_attackers) do
+        -- Terrain defense at the location of the attack (not the where the attacker currently is)
+        local attacker_defense = wesnoth.unit_defense(attacker, wesnoth.get_terrain(tmp_dsts[i][1], tmp_dsts[i][2]))
+        local cind = cind_base .. 'x' .. attacker.id .. attacker.hitpoints .. '-' .. attacker_defense
+
+        if (not cache_this_move[cind]) then
             -- Get the base rating
             local base_rating, def_rating, att_rating, att_stats, def_stats =
-                battle_calcs.attack_rating(attacker, defender, tmp_dsts[i], {}, cache )
+                battle_calcs.attack_rating(attacker, defender, tmp_dsts[i], {}, cache, cache_this_move)
             tmp_attacker_ratings[i] = att_rating
             tmp_att_stats[i], tmp_def_stats[i] = att_stats, def_stats
 
@@ -1032,19 +1097,19 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cach
             ratings[i] = { i, rating, base_rating, def_rating, att_rating }
 
             -- Now add this attack to the cache_this_move table, so that next time around, we don't have to do this again
-            cache_this_move[defender_ind][att_ind][dst_ind] = {
+            cache_this_move[cind] = {
                 rating = { -1, rating, base_rating, def_rating, att_rating },  -- Cannot use { i, rating, ... } here, as 'i' might be different next time
                 attacker_ratings = tmp_attacker_ratings[i],
                 att_stats = tmp_att_stats[i],
                 def_stats = tmp_def_stats[i]
             }
         else
-            local tmp_rating = cache_this_move[defender_ind][att_ind][dst_ind].rating
+            local tmp_rating = cache_this_move[cind].rating
             tmp_rating[1] = i
             ratings[i] = tmp_rating
-            tmp_attacker_ratings[i] = cache_this_move[defender_ind][att_ind][dst_ind].attacker_ratings
-            tmp_att_stats[i] = cache_this_move[defender_ind][att_ind][dst_ind].att_stats
-            tmp_def_stats[i] = cache_this_move[defender_ind][att_ind][dst_ind].def_stats
+            tmp_attacker_ratings[i] = cache_this_move[cind].attacker_ratings
+            tmp_att_stats[i] = cache_this_move[cind].att_stats
+            tmp_def_stats[i] = cache_this_move[cind].def_stats
         end
     end
 
@@ -1068,7 +1133,10 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cach
     for i = 2,#attackers do
         att_stats[i] = { hp_chance = {} }
         def_stats[i] = { hp_chance = {} }
-        local dst_ind = dsts[i][1] * 1000 + dsts[i][2]
+
+        -- Terrain defense at the location of the attack (not the where the attacker currently is)
+        local attacker_defense = wesnoth.unit_defense(attackers[i], wesnoth.get_terrain(dsts[i][1], dsts[i][2]))
+        local cind = cind_base .. 'x' .. attackers[i].id .. attackers[i].hitpoints .. '-' .. attacker_defense
 
         for hp1,prob1 in pairs(def_stats[i-1].hp_chance) do -- Note: need pairs(), not ipairs() !!
             if (hp1 == 0) then
@@ -1079,14 +1147,13 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cach
                 local org_hp = defender.hitpoints
                 defender.hitpoints = hp1
                 local ast, dst
-                local att_ind_i = attackers[i].x * 1000 + attackers[i].y
 
-                if (not cache_this_move[defender_ind][att_ind_i][dst_ind][hp1]) then
-                    ast, dst = battle_calcs.battle_outcome(attackers[i], defender, { dst = dsts[i] } , cache)
-                    cache_this_move[defender_ind][att_ind_i][dst_ind][hp1] = { ast = ast, dst = dst }
+                if (not cache_this_move[cind][hp1]) then
+                    ast, dst = battle_calcs.battle_outcome(attackers[i], defender, { dst = dsts[i] }, cache, cache_this_move)
+                    cache_this_move[cind][hp1] = { ast = ast, dst = dst }
                 else
-                    ast = cache_this_move[defender_ind][att_ind_i][dst_ind][hp1].ast
-                    dst = cache_this_move[defender_ind][att_ind_i][dst_ind][hp1].dst
+                    ast = cache_this_move[cind][hp1].ast
+                    dst = cache_this_move[cind][hp1].dst
                 end
 
                 defender.hitpoints = org_hp
@@ -1126,7 +1193,7 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cach
     -- The others need to be calculated with the new stats
     for i = 2,#attackers do
         local cfg = { att_stats = att_stats[i], def_stats = def_stats[i] }
-        local r, dr, ar = battle_calcs.attack_rating(attackers[i], defender, dsts[i], cfg, cache)
+        local r, dr, ar = battle_calcs.attack_rating(attackers[i], defender, dsts[i], cfg, cache, cache_this_move)
 
         def_rating = dr
         att_rating = att_rating + ar
@@ -1223,7 +1290,7 @@ function battle_calcs.get_attack_map(units, cfg)
     return attack_map1
 end
 
-function battle_calcs.relative_damage_map(units, enemies, cache)
+function battle_calcs.relative_damage_map(units, enemies, cache, cache_this_move)
     -- Returns a location set map containing the relative damage of
     -- @units vs. @enemies on the part of the map that the combined units
     -- can reach. The damage is calculated as the sum of defender_rating
@@ -1249,7 +1316,7 @@ function battle_calcs.relative_damage_map(units, enemies, cache)
         local max_rating, best_enemy = -9e99, {}
         for _,enemy in ipairs(enemies) do
             local rating, defender_rating, attacker_rating =
-                battle_calcs.attack_rating(unit, enemy, { unit.x, unit.y }, { enemy_leader_weight = 1 }, cache)
+                battle_calcs.attack_rating(unit, enemy, { unit.x, unit.y }, { enemy_leader_weight = 1 }, cache) -- Don't use cache_this_move!
 
             local eff_rating = defender_rating
             if (eff_rating > max_rating) then
@@ -1266,7 +1333,7 @@ function battle_calcs.relative_damage_map(units, enemies, cache)
         local max_rating, best_unit = -9e99, {}
         for _,unit in ipairs(units) do
             local rating, defender_rating, attacker_rating =
-                battle_calcs.attack_rating(enemy, unit, { enemy.x, enemy.y }, { enemy_leader_weight = 1 }, cache)
+                battle_calcs.attack_rating(enemy, unit, { enemy.x, enemy.y }, { enemy_leader_weight = 1 }, cache) -- Don't use cache_this_move!
 
             local eff_rating = defender_rating
             if (eff_rating > max_rating) then
@@ -1337,7 +1404,7 @@ function battle_calcs.best_defense_map(units, cfg)
     return defense_map
 end
 
-function battle_calcs.get_attack_combos_subset(units, enemy, cfg)
+function battle_calcs.get_attack_combos_subset(units, enemy, cfg, cache, cache_this_move)
     -- Calculate combinations of attacks by @units on @enemy
     -- This method does *not* produce all possible attack combinations, but is
     -- meant to have a good chance to find either the best combination,
@@ -1567,9 +1634,10 @@ function battle_calcs.get_attack_combos_subset(units, enemy, cfg)
     -- least a good combo) even when not all attack combinations are collected.
     if (#attacks > cfg.skip_presort) then
         for _,attack in ipairs(attacks) do
+
             local dst = attack[1].dst
             local x, y = math.floor(dst / 1000), dst % 1000
-            attack.rating = battle_calcs.attack_rating(units[attack.unit_i], enemy, { x, y })
+            attack.rating = battle_calcs.attack_rating(units[attack.unit_i], enemy, { x, y }, {}, cache, cache_this_move)
         end
         table.sort(attacks, function(a, b) return a.rating > b.rating end)
     end
