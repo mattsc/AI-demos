@@ -505,7 +505,8 @@ return {
                                     {
                                         stop_eval_average_hp = min_average_hp,
                                         stop_eval_hp_chance_zero = max_hp_chance_zero
-                                    }
+                                    },
+                                    cache_this_move
                                 )
                                 counter_table[att_ind][dst_ind] =
                                     { min_hp = counter_stats.min_hp, counter_stats = counter_stats }
@@ -2263,6 +2264,7 @@ return {
                 -- If this is an attack combo, reorder units to give maximum XP to unit closest to advancing
                 if grunt_rush_FLS1.data.zone_action.enemy and grunt_rush_FLS1.data.zone_action.units[2] then
                     -- Only do this if CTK for overall attack combo is > 0
+                    -- Cannot use cache_this_move here !!!  (because HP change)
                     local _, combo_def_stats = BC.attack_combo_stats(
                         grunt_rush_FLS1.data.zone_action.units,
                         grunt_rush_FLS1.data.zone_action.dsts,
