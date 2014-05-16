@@ -172,7 +172,6 @@ return {
                 priority = 1.5,
                 key_hexes = { { 18, 9 }, { 22, 10 } },
                 zone_filter = { x = '15-24', y = '1-16' },
-                --unit_filter = { x = '1-' .. width , y = '1-' .. height },
                 unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
                 skip_action = { retreat_injured_unsafe = true },
                 hold = { x = 18, y = 9, dx = 0, dy = 1, hp_ratio = 0.75 },
@@ -487,7 +486,7 @@ return {
                         --print(i_a, a_stats.hp_chance[0])
                         if (a_stats.hp_chance[0] >= 0.5) then trapping_attack = false end
                     end
-                    --print('  trapping_attack after elim: ', trapping_attack)
+                    --print_time('  trapping_attack after elim: ', trapping_attack)
 
                     -- 2. If the 'exposure' at the attack location is too high, don't do it either
                     if trapping_attack then
@@ -1002,7 +1001,7 @@ return {
             --  - min_hp field added
             --  - TODO: flags to be added in some situations
 
-            --print_time('Start calc_counter_attack')
+            --print_time('Start calc_counter_attack', unit.id, hex[1], hex[2])
             cfg = cfg or {}
 
             -- The evaluation loop cutoff criteria
@@ -1652,7 +1651,7 @@ return {
 
                     -- Check potential counter attack outcome
                     if do_attack and MP_left then
-                        --print_time('\nChecking counter attack on', i, e.id, enemy_worth)
+                        --print_time('Checking counter attack for attack on', i, e.id, enemy_worth)
 
                         -- We first need to move all units into place, as the counter attack threat
                         -- should be calculated for that formation as a whole
@@ -1688,6 +1687,7 @@ return {
                         end
 
                         for k,a in ipairs(sorted_atts) do
+                            --print_time('  by', a.id, sorted_dsts[k][1], sorted_dsts[k][2])
                             -- Add max damages from this turn and counter-attack
                             local min_hp = 0
                             for hp = 0,a.hitpoints do
