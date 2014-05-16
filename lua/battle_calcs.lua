@@ -1045,11 +1045,12 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cach
     --   - 3. Caching is done by the defense of the terrain, not the location itself.  As a result:
     --   - 4. Things like leadership, illumination by other units etc. may or may not be considered correctly
     --
-    -- Return values:
-    --   - The rating for this attack combination calculated from battle_calcs.attack_rating() results
-    --   - The sorted attackers and dsts arrays
+    -- Return values ( in this order):
     --   - att_stats: an array of stats for each attacker, in the same order as 'attackers'
     --   - defender combo stats: one set of stats containing the defender stats after the attack combination
+    --   - The sorted attackers and dsts arrays
+    --   - The rating for this attack combination calculated from battle_calcs.attack_rating() results
+    --   - The attacker and defender rating separately
     --   - def_stats: an array of defender stats for each individual attack, in the same order as 'attackers'
 
     cache_this_move = cache_this_move or {}
@@ -1212,7 +1213,7 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cach
 
     local rating = def_rating + att_rating
 
-    return rating, attackers, dsts, att_stats, def_stats[#attackers], def_stats
+    return att_stats, def_stats[#attackers], attackers, dsts, rating, def_rating, att_rating, def_stats
 end
 
 function battle_calcs.get_attack_map_unit(unit, cfg)

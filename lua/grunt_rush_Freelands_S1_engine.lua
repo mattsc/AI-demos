@@ -476,7 +476,7 @@ return {
                             table.insert(attackers, att)
                             table.insert(dsts, { math.floor(dst / 1000), dst % 1000 })
                         end
-                        rating, attackers, dsts, combo_att_stats, combo_def_stats = BC.attack_combo_stats(attackers, dsts, e, grunt_rush_FLS1.data.cache, cache_this_move)
+                        combo_att_stats, combo_def_stats, attackers, dsts, rating = BC.attack_combo_stats(attackers, dsts, e, grunt_rush_FLS1.data.cache, cache_this_move)
                     end
 
                     -- Don't attack under certain circumstances:
@@ -1619,9 +1619,14 @@ return {
                         table.insert(atts, attacker_map[src])
                         table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
                     end
-                    local rating, sorted_atts, sorted_dsts, combo_att_stats, combo_def_stats = BC.attack_combo_stats(atts, dsts, e, grunt_rush_FLS1.data.cache, cache_this_move)
-                    --DBG.dbms(combo_att_stats)
-                    --print_time('   ' .. #sorted_atts .. ' attackers')
+
+                    local combo_att_stats, combo_def_stats, sorted_atts, sorted_dsts, rating, def_rating, att_rating =
+                        BC.attack_combo_stats(atts, dsts, e, grunt_rush_FLS1.data.cache, cache_this_move)
+                    --DBG.dbms(combo_def_stats)
+                    print_time('   ratings:', rating, def_rating, att_rating)
+
+                    -- Here, def_rating is the "gold amount" of the combined damage done to enemy (positive number)
+                    -- att_rating is the combined damage received in return (negative number)
 
                     -- Don't attack if CTD (chance to die) is too high for any of the attackers
                     -- which means 30% CTD for normal units and 0% for leader
@@ -1718,20 +1723,30 @@ return {
                                 -- reach max_damage defined above, as the total possible damage will
                                 -- then be able to kill the leader
                                 local counter_stats = grunt_rush_FLS1:calc_counter_attack(a, { x, y },
-                                    { stop_eval_average_hp = min_average_hp,
-                                      stop_eval_min_hp = min_min_hp,
-                                      stop_eval_hp_chance_zero = max_hp_chance_zero
-                                    })
-                                counter_table[att_ind][dst_ind] =
-                                    { min_hp = counter_stats.min_hp, counter_stats = counter_stats }
+                                    --{ stop_eval_average_hp = min_average_hp,
+                                    --  stop_eval_min_hp = min_min_hp,
+                                    --  stop_eval_hp_chance_zero = max_hp_chance_zero
+                                    --},
+                                    {},
+                                    cache_this_move
+                                )
+                                counter_table[att_ind][dst_ind] = {
+                                    min_hp = counter_stats.min_hp,
+                                    counter_stats = counter_stats,
+                                    rating = counter_stats.rating,
+                                    def_rating = counter_stats.def_rating,
+                                    att_rating = counter_stats.att_rating,
+                                }
                             else
                                 --print_time('Counter-attack combo already calculated. Re-using.')
                             end
+
+                            --print('counter attack rating', counter_table[att_ind][dst_ind].rating, counter_table[att_ind][dst_ind].def_rating, counter_table[att_ind][dst_ind].att_rating)
                             --print_time('  done')
                             local counter_min_hp = counter_table[att_ind][dst_ind].min_hp
                             local counter_stats = counter_table[att_ind][dst_ind].counter_stats
                             local counter_average_hp = counter_stats.average_hp
-                            --DBG.dbms(counter_stats)
+                            --DBG.dbms(counter_table[att_ind][dst_ind])
                             --print_time('counter_average_hp, counter_min_hp, counter_CTD', counter_average_hp, counter_min_hp, counter_stats.hp_chance[0])
 
                             -- "Damage cost" for attacker
@@ -2248,7 +2263,7 @@ return {
                 -- If this is an attack combo, reorder units to give maximum XP to unit closest to advancing
                 if grunt_rush_FLS1.data.zone_action.enemy and grunt_rush_FLS1.data.zone_action.units[2] then
                     -- Only do this if CTK for overall attack combo is > 0
-                    local _, _, _, _, combo_def_stats = BC.attack_combo_stats(
+                    local _, combo_def_stats = BC.attack_combo_stats(
                         grunt_rush_FLS1.data.zone_action.units,
                         grunt_rush_FLS1.data.zone_action.dsts,
                         grunt_rush_FLS1.data.zone_action.enemy,
