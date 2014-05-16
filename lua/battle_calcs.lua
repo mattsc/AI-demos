@@ -862,6 +862,9 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg, cache, cache_t
     local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(dst[1], dst[2])).village
     if is_village then
         damage = damage - 10.
+    -- Otherwise, if unit can regenerate this is an 8 HP bonus
+    elseif wesnoth.unit_ability(attacker, 'regenerate') then
+        damage = damage - 8.
     end
 
     -- If attack is adjacent to an unoccupied village, that's bad
@@ -915,10 +918,18 @@ function battle_calcs.attack_rating(attacker, defender, dst, cfg, cache, cache_t
         damage = damage + 6 * (def_stats.slowed - def_stats.hp_chance[0])
     end
 
+    -- If unit can regenerate, this is an 8 HP bonus
+    if wesnoth.unit_ability(attacker, 'regenerate') then
+        damage = damage - 8.
+    end
+
     -- If defender is on a village, we count that as a 10 HP bonus
     local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(defender.x, defender.y)).village
     if is_village then
         damage = damage - 10.
+    -- Otherwise, if unit can regenerate this is an 8 HP bonus
+    elseif wesnoth.unit_ability(defender, 'regenerate') then
+        damage = damage - 8.
     end
 
     if (damage < 0) then damage = 0. end
