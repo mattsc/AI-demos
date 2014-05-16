@@ -28,7 +28,7 @@ return {
         function grunt_rush_FLS1:zone_advance_rating(zone_id, x, y, enemy_leader)
             local rating = 0
 
-            if (zone_id == 'left') then
+            if (zone_id == 'left') or (zone_id == 'rush_left') then
                 rating = rating + y / 10.
 
                 local x0 = 11
@@ -49,7 +49,7 @@ return {
                 rating = rating - H.distance_between(x, y, goal_x, goal_y) / 1000.
             end
 
-            if (zone_id == 'center') then
+            if (zone_id == 'center') or (zone_id == 'rush_center') then
                 rating = rating + y / 10.
 
                 local x0 = 19
@@ -97,13 +97,13 @@ return {
         function grunt_rush_FLS1:zone_loc_rating(zone_id, x, y)
             local rating = 0
 
-            if (zone_id == 'left') then
+            if (zone_id == 'left') or (zone_id == 'rush_left') then
                 if (y < 13) then
                     rating = (y - 13) * 200
                 end
             end
 
-            if (zone_id == 'center') then
+            if (zone_id == 'center') or (zone_id == 'rush_center') then
                 if (y < 8) then
                     rating = (y - 8) * 200 - 2000
                 end
@@ -180,11 +180,19 @@ return {
                 villages = { units_per_village = 0 }
             }
 
+            local cfg_rush_center = {
+                zone_id = 'rush_center',
+                zone_filter = { x = '15-24', y = '1-16' },
+                unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
+                skip_action = { retreat_injured_unsafe = true },
+                hold = { x = 18, y = 9, dx = 0, dy = 1 },
+                retreat_villages = { { 18, 9 }, { 24, 7 }, { 22, 2 } },
+            }
+
             local cfg_left = {
                 zone_id = 'left',
                 key_hexes = { { 11, 9 } },
                 zone_filter = { x = '4-14', y = '1-15' },
-                --unit_filter = { x = '1-' .. width , y = '1-' .. height },
                 unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
                 skip_action = { retreat_injured_unsafe = true },
                 hold = { x = 11, y = 9, dx = 0, dy = 1, hp_ratio = 0.66, unit_ratio = 1.1 },
@@ -193,15 +201,25 @@ return {
                 villages = { hold_threatened = true }
             }
 
+            local cfg_rush_left = {
+                zone_id = 'rush_left',
+                zone_filter = { x = '4-14', y = '1-15' },
+                unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
+                skip_action = { retreat_injured_unsafe = true },
+                hold = { x = 11, y = 9, dx = 0, dy = 1 },
+                retreat_villages = { { 11, 9 }, { 8, 5 }, { 12, 5 }, { 12, 2 } },
+            }
+
             local cfg_right = {
                 zone_id = 'right',
                 key_hexes = { { 27, 11 } },
                 zone_filter = { x = '24-34', y = '1-17' },
-                --unit_filter = { x = '1-' .. width , y = '1-' .. height },
                 unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
                 skip_action = { retreat_injured_unsafe = true },
-                hold = { x = 27, y = 11, dx = 0, dy = 1, hp_ratio = 0.75 },
-                retreat_villages = { { 24, 7 }, { 28, 5 } }
+                hold = { x = 27, y = 11, dx = 0, dy = 1, hp_ratio = 0.66, unit_ratio = 1.1 },
+                secure = { x = 27, y = 11, moves_away = 1, min_units = 1.1 },
+                retreat_villages = { { 24, 7 }, { 28, 5 } },
+                villages = { hold_threatened = true }
             }
 
             local cfg_rush_right = {
@@ -210,7 +228,7 @@ return {
                 only_zone_units = true,
                 unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
                 skip_action = { retreat_injured_unsafe = true },
-                hold = { x = 27, y = 11, dx = 0, dy = 1, min_dist = -4 },
+                hold = { x = 27, y = 11, dx = 0, dy = 1 },
                 retreat_villages = { { 24, 7 }, { 28, 5 } }
             }
 
@@ -289,6 +307,9 @@ return {
                 table.insert(cfgs, cfg)
             end
             table.insert(cfgs, cfg_rush_right)
+            --table.insert(cfgs, cfg_rush_left)
+            --table.insert(cfgs, cfg_rush_center)
+
             table.insert(cfgs, cfg_enemy_leader)
 
             --print()
