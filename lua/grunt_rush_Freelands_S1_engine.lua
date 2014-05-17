@@ -475,7 +475,8 @@ return {
                             table.insert(attackers, att)
                             table.insert(dsts, { math.floor(dst / 1000), dst % 1000 })
                         end
-                        combo_att_stats, combo_def_stats, attackers, dsts, rating = BC.attack_combo_stats(attackers, dsts, e, grunt_rush_FLS1.data.cache, cache_this_move)
+                        combo_att_stats, combo_def_stats, attackers, dsts, rating =
+                            BC.attack_combo_eval(attackers, dsts, e, grunt_rush_FLS1.data.cache, cache_this_move)
                     end
 
                     -- Don't attack under certain circumstances:
@@ -1095,7 +1096,7 @@ return {
                 for j,att in ipairs(combo) do
                     local dst = { math.floor(att.dst / 1000), att.dst % 1000 }
                     local att_stats, def_stats =
-                        BC.battle_outcome(enemies_map[att.src], unit, { dst = dst }, grunt_rush_FLS1.data.cache, cache_this_move)
+                        BC.battle_outcome(enemies_map[att.src], unit, dst, {}, grunt_rush_FLS1.data.cache, cache_this_move)
 
                     total_damage = total_damage + unit.hitpoints - def_stats.average_hp
 
@@ -1133,8 +1134,8 @@ return {
                     table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
                 end
 
-                local combo_att_stats, combo_def_stats, sorted_atts, sorted_dsts, rating, def_rating, att_rating =
-                    BC.attack_combo_stats(atts, dsts, unit, grunt_rush_FLS1.data.cache, cache_this_move)
+                local combo_att_stats, combo_def_stats, sorted_atts, sorted_dsts, rating, att_rating, def_rating =
+                    BC.attack_combo_eval(atts, dsts, unit, grunt_rush_FLS1.data.cache, cache_this_move)
                 def_stats = combo_def_stats
                 combo_def_stats.rating = rating
                 combo_def_stats.def_rating = def_rating
@@ -1620,8 +1621,8 @@ return {
                         table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
                     end
 
-                    local combo_att_stats, combo_def_stats, sorted_atts, sorted_dsts, rating, def_rating, att_rating =
-                        BC.attack_combo_stats(atts, dsts, e, grunt_rush_FLS1.data.cache, cache_this_move)
+                    local combo_att_stats, combo_def_stats, sorted_atts, sorted_dsts, rating, att_rating, def_rating =
+                        BC.attack_combo_eval(atts, dsts, e, grunt_rush_FLS1.data.cache, cache_this_move)
                     --DBG.dbms(combo_def_stats)
                     print_time('   ratings:', rating, def_rating, att_rating)
 
@@ -2063,8 +2064,9 @@ return {
                     local target = wesnoth.get_unit(attack.target.x, attack.target.y)
                     --print('Evaluating attack at: ', attack.dst.x, attack.dst.y, target.id)
 
-                    local rating, _, _, att_stats, def_stats =
-                        BC.attack_rating(unit, target, { attack.dst.x, attack.dst.y }, {}, grunt_rush_FLS1.data.cache, cache_this_move)
+                    local dst = { attack.dst.x, attack.dst.y }
+                    local att_stats, def_stats = BC.battle_outcome(attacker, defender, dst, {}, grunt_rush_FLS1.data.cache, cache_this_move)
+                    local rating = BC.attack_rating(unit, target, dst, att_stats, def_stats)
                     --print(rating)
 
                     if (rating > 0) and (rating > max_rating) and (def_stats.hp_chance[0] > 0.67) then
@@ -2265,7 +2267,7 @@ return {
                 if grunt_rush_FLS1.data.zone_action.enemy and grunt_rush_FLS1.data.zone_action.units[2] then
                     -- Only do this if CTK for overall attack combo is > 0
                     -- Cannot use cache_this_move here !!!  (because HP change)
-                    local _, combo_def_stats = BC.attack_combo_stats(
+                    local _, combo_def_stats = BC.attack_combo_eval(
                         grunt_rush_FLS1.data.zone_action.units,
                         grunt_rush_FLS1.data.zone_action.dsts,
                         grunt_rush_FLS1.data.zone_action.enemy,
@@ -2292,7 +2294,8 @@ return {
                         local att_stats, def_stats = BC.battle_outcome(
                             unit,
                             grunt_rush_FLS1.data.zone_action.enemy,
-                            { dst = grunt_rush_FLS1.data.zone_action.dsts[best_ind] },
+                            grunt_rush_FLS1.data.zone_action.dsts[best_ind],
+                            {},
                             grunt_rush_FLS1.data.cache
                         )
 

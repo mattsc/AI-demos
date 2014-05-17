@@ -632,12 +632,12 @@ function battle_calcs.hp_distribution(coeffs, att_hit_prob, def_hit_prob, starti
     return stats
 end
 
-function battle_calcs.battle_outcome(attacker, defender, cfg, cache, cache_this_move)
+function battle_calcs.battle_outcome(attacker, defender, dst, cfg, cache, cache_this_move)
     -- Calculate the stats of a combat by @attacker vs. @defender
+    -- for @attacker at @dst (and defender on its current location)
     -- @cfg: optional input parameters
     --  - att_weapon/def_weapon: attacker/defender weapon number
     --      if not given, get "best" weapon (Note: both must be given, or they will both be determined)
-    --  - dst: { x, y }: the attack location; defaults to { attacker.x, attacker.y }
     -- @cache: to be passed on to other functions.
     --    It depends on only on the units involved in the attack itself, but also in positions of other units etc.
     -- @cache_this_move: an optional table of pre-calculated attack outcomes
@@ -649,10 +649,7 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache, cache_this_
     --   - 4. Things like leadership, illumination by other units etc. may or may not be considered correctly
 
     cfg = cfg or {}
-
     cache_this_move = cache_this_move or {}
-
-    local dst = cfg.dst or { attacker.x, attacker.y }
 
     -- Initialize or use the 'cache_this_move' table
     -- Need to save both the unit ids+HP and their locations, as the AI code moves units around
@@ -714,11 +711,11 @@ function battle_calcs.battle_outcome(attacker, defender, cfg, cache, cache_this_
     local def_firstrike = false
     if def_attack and def_attack.firststrike then def_firstrike = true end
 
-    local cfg = {
+    local coeff_cfg = {
         att = { strikes = att_strikes, max_hits = att_max_hits, firststrike = att_attack.firststrike },
         def = { strikes = def_strikes, max_hits = def_max_hits, firststrike = def_firstrike }
     }
-    local att_coeffs, def_coeffs = battle_calcs.battle_outcome_coefficients(cfg, cache)
+    local att_coeffs, def_coeffs = battle_calcs.battle_outcome_coefficients(coeff_cfg, cache)
 
     -- And multiply out the factors
     -- Note that att_hit_prob, def_hit_prob need to be in that order for both calls
@@ -761,273 +758,202 @@ function battle_calcs.simulate_combat_loc(attacker, dst, defender, weapon)
     end
 end
 
-function battle_calcs.attack_rating(attacker, defender, dst, cfg, cache, cache_this_move)
-    -- Returns a common (but configurable) rating for attacks
-    -- Inputs:
-    -- @attacker: attacker unit
-    -- @defender: defender unit
-    -- @dst: the attack location in form { x, y }
-    -- @cfg: table of optional inputs and configurable rating parameters
-    --  Optional inputs:
-    --    - att_stats, def_stats: if given, use these stats, otherwise calculate them here
-    --        Note: these are calculated in combination, that is they either both need to be passed or both be omitted
-    --    - att_weapon/def_weapon: the attacker/defender weapon to be used if calculating battle stats here
-    --        This parameter is meaningless (unused) if att_stats/def_stats are passed
-    --        Defaults to weapon that does most damage to the opponent
-    --        Note: as with the stats, they either both need to be passed or both be omitted
-    -- @cache: cache table to be passed to battle_calcs.battle_outcome
-    -- @cache_this_move: an optional table of pre-calculated attack ratings
-    --   - !!!!!!!!!!!!!!!!!!!!!!!! Read this carefully, there are all kinds of caveats !!!!!!!!!!!!!!!!!!!!!
-    --   - 1. This is different from the other cache tables used in this file
-    --   -    This table may only persist for this move (move, not turn !!!), as otherwise too many things change
-    --   - 2. The starting HP of the units are part of the cache index and do not have to be saved
-    --   - 3. Caching is done by the defense of the terrain, not the location itself.  As a result:
-    --   - 4. Things like leadership, illumination by other units etc. may or may not be considered correctly
-    --   - 5. This does not work correctly if parameters in @cfg are set differently between calls
-    --
-    -- Returns:
-    --   - Overall rating for the attack or attack combo
-    --   - Defender rating: not additive for attack combos; needs to be calculated for the
-    --     defender stats of the last attack in a combo (that works for everything except
-    --     the rating whether the defender is about to level in the attack combo)
-    --   - Attacker rating: this one is split up into two terms:
-    --     - a term that is additive for individual attacks in a combo
-    --     - a term that needs to be average for the individual attacks in a combo
-    --   - att_stats, def_stats: useful if they were calculated here, rather than passed down
-
-    cfg = cfg or {}
-
-    cache_this_move = cache_this_move or {}
-
-    -- Initialize or use the 'cache_this_move' table
-    -- Need to save both the unit ids+HP and their locations, as the AI code moves units around
-    local defender_defense = wesnoth.unit_defense(defender, wesnoth.get_terrain(defender.x, defender.y))
-    local cind = 'AR-' .. defender.id .. defender.hitpoints .. '-' .. defender_defense
-
-    local attacker_defense = wesnoth.unit_defense(attacker, wesnoth.get_terrain(dst[1], dst[2]))
-    cind = cind .. 'x' .. attacker.id .. attacker.hitpoints .. '-' .. attacker_defense
-
-    if cache_this_move[cind] then
-        return cache_this_move[cind].rating,
-            cache_this_move[cind].defender_rating,
-            cache_this_move[cind].attacker_rating,
-            cache_this_move[cind].att_stats,
-            cache_this_move[cind].def_stats
-    end
+function battle_calcs.damage_rating_unit(unit, enemy, dst, stats, enemy_stats, cfg)
+    -- Calculate the rating for the damage received by @unit on @dst when facing @enemy.
+    -- The attack stats both for the unit and the enemy need to be precalculated.
+    -- Optional parameters:
+    --    @cfg: The different weights listed below
 
     -- Set up the config parameters for the rating
-    local enemy_leader_weight = cfg.enemy_leader_weight or 5.
-    local defender_starting_damage_weight = cfg.defender_starting_damage_weight or 0.33
-    local xp_weight = cfg.xp_weight or 0.25
-    local level_weight = cfg.level_weight or 1.0
-    local defender_level_weight = cfg.defender_level_weight or 1.0
-    local distance_leader_weight = cfg.distance_leader_weight or 0.002
-    local defense_weight = cfg.defense_weight or 0.1
-    local occupied_hex_penalty = cfg.occupied_hex_penalty or -0.001
-    local own_value_weight = cfg.own_value_weight or 1.0
+    cfg = cfg or {}
+    local enemy_leader_weight = cfg.enemy_leader_weight or 3.
+    local xp_weight = cfg.xp_weight or 1.
+    local level_weight = cfg.level_weight or 1.
 
-    -- Get att_stats, def_stats
-    -- If they are passed in cfg, use those
-    local att_stats, def_stats = {}, {}
-    if (not cfg.att_stats) or (not cfg.def_stats) then
-        -- If cfg specifies the weapons use those, otherwise use "best" weapons
-        -- In the latter case, cfg.???_weapon will be nil, which will be passed on
-        local battle_cfg = { att_weapon = cfg.att_weapon, def_weapon = cfg.def_weapon, dst = dst }
-        att_stats,def_stats = battle_calcs.battle_outcome(attacker, defender, battle_cfg, cache, cache_this_move)
-    else
-        att_stats, def_stats = cfg.att_stats, cfg.def_stats
-    end
+    -- Note: damage is damage TO the unit, not damage done BY the unit
+    local damage = unit.hitpoints - stats.average_hp
 
-    -- We also need the leader (well, the location at least)
-    -- because if there's no other difference, prefer location _between_ the leader and the defender
-    local leader = wesnoth.get_units { side = attacker.side, canrecruit = 'yes' }[1]
-
-    ------ All the attacker contributions: ------
-    -- Add up rating for the attacking unit
-    -- We add this up in units of fraction of max_hitpoints
-    -- It is multiplied by unit cost later, to get a gold equivalent value
-
-    -- Average damage to unit is negative rating
-    local damage = attacker.hitpoints - att_stats.average_hp
     -- Count poisoned as additional 8 HP damage times probability of being poisoned
-    if (att_stats.poisoned ~= 0) then
-        damage = damage + 8 * (att_stats.poisoned - att_stats.hp_chance[0])
+    if (stats.poisoned ~= 0) then
+        damage = damage + 8 * (stats.poisoned - stats.hp_chance[0])
     end
-    -- Count slowed as additional 6 HP damage times probability of being slowed
-    if (att_stats.slowed ~= 0) then
-        damage = damage + 6 * (att_stats.slowed - att_stats.hp_chance[0])
+    -- Count slowed as additional 4 HP damage times probability of being slowed
+    if (stats.slowed ~= 0) then
+        damage = damage + 4 * (stats.slowed - stats.hp_chance[0])
     end
 
-    -- If attack is from a village, we count that as a 10 HP bonus
+    -- If attack is from a village, we count that as an 8 HP bonus
     local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(dst[1], dst[2])).village
     if is_village then
-        damage = damage - 10.
-    -- Otherwise, if unit can regenerate this is an 8 HP bonus
-    elseif wesnoth.unit_ability(attacker, 'regenerate') then
         damage = damage - 8.
-    end
-
-    -- If attack is adjacent to an unoccupied village, that's bad
-    for xa,ya in H.adjacent_tiles(dst[1], dst[2]) do
-        local is_adjacent_village = wesnoth.get_terrain_info(wesnoth.get_terrain(xa, ya)).village
-        if is_adjacent_village and (not wesnoth.get_unit(xa, ya)) then
-            damage = damage + 10
-        end
+    -- Otherwise, if unit can regenerate this is an 8 HP bonus
+    elseif wesnoth.unit_ability(unit, 'regenerate') then
+        damage = damage - 8.
     end
 
     if (damage < 0) then damage = 0 end
 
     -- Fraction damage (= fractional value of the unit)
-    local value_fraction = - damage / attacker.max_hitpoints
+    local fractional_damage = damage / unit.max_hitpoints
 
-    -- Additional, subtract the chance to die, in order to (de)emphasize units that might die
-    value_fraction = value_fraction - att_stats.hp_chance[0]
+    -- Additionally, subtract the chance to die, in order to (de)emphasize units that might die
+    fractional_damage = fractional_damage + stats.hp_chance[0]
 
-    -- In addition, potentially leveling up in this attack is a huge bonus,
-    -- proportional to the chance of it happening and the chance of not dying itself
+    -- In addition, potentially leveling up in this attack is a huge bonus.
+    -- we reduce the fractions damage by the chance of it happening multiplied
+    -- by the chance of not dying itself.
+    -- Note: this can make the fractional damage negative (as it should)
+    local enemy_level = wesnoth.unit_types[enemy.type].level
+    if (enemy_level == 0) then enemy_level = 0.5 end  -- L0 units
+
     local level_bonus = 0.
-    local defender_level = wesnoth.unit_types[defender.type].level
-    if (attacker.max_experience - attacker.experience <= defender_level) then
-        level_bonus = 1. - att_stats.hp_chance[0]
-    else
-        if (attacker.max_experience - attacker.experience <= defender_level * 8) then
-            level_bonus = (1. - att_stats.hp_chance[0]) * def_stats.hp_chance[0]
-        end
+    if (unit.max_experience - unit.experience <= enemy_level) then
+        level_bonus = 1. - stats.hp_chance[0]
+    elseif (unit.max_experience - unit.experience <= enemy_level * 8) then
+        level_bonus = (1. - stats.hp_chance[0]) * enemy_stats.hp_chance[0]
     end
-    value_fraction = value_fraction + level_bonus * level_weight
 
+    fractional_damage = fractional_damage - level_bonus * level_weight
 
     -- Now convert this into gold-equivalent value
-    local attacker_value = wesnoth.unit_types[attacker.type].cost
+    local value = wesnoth.unit_types[unit.type].cost
 
-    -- Being closer to leveling is good (this makes AI prefer units with lots of XP)
-    local xp_bonus = attacker.experience / attacker.max_experience
-    attacker_value = attacker_value * (1. + xp_bonus * xp_weight)
-
-    local attacker_rating = value_fraction * attacker_value
-
-    ------ Now (most of) the same for the defender ------
-    -- Average damage to defender is positive rating
-    local damage = defender.hitpoints - def_stats.average_hp
-    -- Count poisoned as additional 8 HP damage times probability of being poisoned
-    if (def_stats.poisoned ~= 0) then
-        damage = damage + 8 * (def_stats.poisoned - def_stats.hp_chance[0])
-    end
-    -- Count slowed as additional 6 HP damage times probability of being slowed
-    if (def_stats.slowed ~= 0) then
-        damage = damage + 6 * (def_stats.slowed - def_stats.hp_chance[0])
+    -- If this is the side leader, make damage to it much more important
+    if unit.canrecruit then
+        value = value * enemy_leader_weight
     end
 
-    -- If unit can regenerate, this is an 8 HP bonus
-    if wesnoth.unit_ability(attacker, 'regenerate') then
-        damage = damage - 8.
-    end
+    -- Being closer to leveling makes the unit more valuable
+    -- TODO: consider using a more precise measure here
+    local xp_bonus = unit.experience / unit.max_experience
+    value = value * (1. + xp_bonus * xp_weight)
 
-    -- If defender is on a village, we count that as a 10 HP bonus
-    local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(defender.x, defender.y)).village
-    if is_village then
-        damage = damage - 10.
-    -- Otherwise, if unit can regenerate this is an 8 HP bonus
-    elseif wesnoth.unit_ability(defender, 'regenerate') then
-        damage = damage - 8.
-    end
+    local rating = fractional_damage * value
+    --print('damage, fractional_damage, value, rating', unit.id, damage, fractional_damage, value, rating)
 
-    if (damage < 0) then damage = 0. end
+    return rating
+end
 
-    -- Fraction damage (= fractional value of the unit)
-    local value_fraction = damage / defender.max_hitpoints
+function battle_calcs.attack_rating(attackers_in, defender, dsts_in, att_stats_in, def_stats, cfg)
+    -- Returns a common (but configurable) rating for attacks
+    -- Inputs:
+    -- @attackers_in: input array of attacker units (can be a single unit)
+    -- @defender: defender unit
+    -- @dst_in: array of attack locations in form { x, y } (can be a single location but must match @attackers_in)
+    -- @att_stats_in: array of the attack stats of the attack combo(!) of @attackers_in in @defender
+    --   (can be a single table but must match @attackers_in)
+    -- @def_stats: the combat stats of @defender after facing the combination of @attackers_in
+    --  Optional inputs:
+    --    @cfg: The different weights listed below
+    --
+    -- Returns:
+    --   - Overall rating for the attack or attack combo
+    --   - Attacker rating: the sum of all the attacker damage ratings
+    --   - Defender rating: the combined defender damage rating
+    --   - Extra rating: additional ratings that do not directly describe damage
+    --       This should be used to help decide which attack to pick,
+    --       but not for, e.g., evaluating counter attacks (which should be entirely damage based)
+    --   Note: rating = defender_rating - attacker_rating * own_value_weight + extra_rating
 
-    -- Additional, add the chance to kill, in order to emphasize enemies we might be able to kill
-    value_fraction = value_fraction + def_stats.hp_chance[0]
-
-    -- In addition, the defender potentially leveling up in this attack is a huge penalty,
-    -- proportional to the chance of it happening and the chance of not dying itself
-    local defender_level_penalty = 0.
-    local attacker_level = wesnoth.unit_types[attacker.type].level
-    if (defender.max_experience - defender.experience <= attacker_level) then
-        defender_level_penalty = 1. - def_stats.hp_chance[0]
+    -- If a single attacker/dst/att_stats is given, turn those into one-element arrays
+    local attackers, dsts, att_stats
+    if attackers_in.x then
+        attackers, dsts, att_stats = { attackers_in }, { dsts_in }, { att_stats_in }
     else
-        if (defender.max_experience - defender.experience <= attacker_level * 8) then
-            defender_level_penalty = (1. - def_stats.hp_chance[0]) * att_stats.hp_chance[0]
-        end
-    end
-    value_fraction = value_fraction - defender_level_penalty * defender_level_weight
-
-    -- Now convert this into gold-equivalent value
-    local defender_value = wesnoth.unit_types[defender.type].cost
-
-    -- If this is the enemy leader, make damage to it much more important
-    if defender.canrecruit then
-        defender_value = defender_value * enemy_leader_weight
+        attackers, dsts, att_stats = attackers_in, dsts_in, att_stats_in
     end
 
-    -- And prefer to attack already damaged enemies
-    local defender_starting_damage_fraction = (defender.max_hitpoints - defender.hitpoints) / defender.max_hitpoints
-    defender_value = defender_value * (1. + defender_starting_damage_fraction * defender_starting_damage_weight)
+    -- Set up the config parameters for the rating
+    cfg = cfg or {}
+    local defender_starting_damage_weight = cfg.defender_starting_damage_weight or 0.33
+    local defense_weight = cfg.defense_weight or 0.1
+    local distance_leader_weight = cfg.distance_leader_weight or 0.002
+    local occupied_hex_penalty = cfg.occupied_hex_penalty or 0.001
+    local own_value_weight = cfg.own_value_weight or 1.0
 
-    -- Being closer to leveling is good, we want to get rid of those enemies first
-    local xp_bonus = defender.experience / defender.max_experience
-    defender_value = defender_value * (1. + xp_bonus * xp_weight)
+    -- We also need the leader (well, the location at least)
+    -- because if there's no other difference, prefer location _between_ the leader and the defender
+    local leader = wesnoth.get_units { side = attackers[1].side, canrecruit = 'yes' }[1]
+
+    local attacker_rating = 0
+    for i,attacker in ipairs(attackers) do
+        attacker_rating = attacker_rating + battle_calcs.damage_rating_unit(
+            attacker, defender, dsts[i], att_stats[i], def_stats, cfg
+        )
+    end
+
+    local defender_rating = battle_calcs.damage_rating_unit(
+            defender, attackers[1],  { defender.x, defender.y }, def_stats, att_stats[1], cfg
+        )
+
+    -- Now we add some extra ratings.  They are positive for attacks that should be preferred
+    -- and expressed in fraction of the defender maximum hitpoints
+    -- They should be used to help decide which attack to pick,
+    -- but not for, e.g., evaluating counter attacks (which should be entirely damage based)
+    local extra_rating = 0.
+
+    -- Prefer to attack already damaged enemies
+    local defender_starting_damage_fraction = defender.max_hitpoints - defender.hitpoints
+    extra_rating = extra_rating + defender_starting_damage_fraction * defender_starting_damage_weight
 
     -- If defender is on a village, add a bonus rating (we want to get rid of those preferentially)
-    -- So yes, this is positive, even though it's a plus for the defender
-    -- Defenders on villages also got a negative damage rating above (these don't exactly cancel each other though)
     local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(defender.x, defender.y)).village
     if is_village then
-        defender_value = defender_value * (1. + 10. / attacker.max_hitpoints)
+        extra_rating = extra_rating + 10.
     end
 
-    -- We also add a few contributions that are not directly attack/damage dependent
-    -- These are added to the defender rating for two reasons:
-    --   1. Defender rating is positive (and thus contributions can be made positive)
-    --   2. It is then independent of value of aggression (cfg.own_value_weight)
-    --
-    -- These are kept small though, so they mostly only serve as tie breakers
-    -- And yes, they might bring the overall rating from slightly negative to slightly positive
-    -- or vice versa, but as that is only approximate anyway, we keep it this way for simplicity
+    -- Normalize so that it is in fraction of defender max_hitpoints
+    extra_rating = extra_rating / defender.max_hitpoints
 
     -- We don't need a bonus for good terrain for the attacker, as that is covered in the damage calculation
-    -- However, we add a small bonus for good terrain defense of the _defender_ on the _attack_ hex
+    -- However, we add a small bonus for good terrain defense of the _defender_ on the _attack_ hexes
     -- This is in order to take good terrain away from defender on next move, all else being equal
-    local defender_defense = - wesnoth.unit_defense(defender, wesnoth.get_terrain(dst[1], dst[2])) / 100.
-    defender_value = defender_value + defender_defense * defense_weight
+    local defense_rating = 0.
+    for _,dst in ipairs(dsts) do
+        local defender_defense = 100. - wesnoth.unit_defense(defender, wesnoth.get_terrain(dst[1], dst[2]))
+        defense_rating = defense_rating + defender_defense
+    end
+    defense_rating = defense_rating / 100. / #dsts * defense_weight
+    --print(defense_rating)
+
+    extra_rating = extra_rating + defense_rating
 
     -- Get a very small bonus for hexes in between defender and AI leader
     -- 'relative_distances' is larger for attack hexes closer to the side leader (possible values: -1 .. 1)
     if leader then
-        local relative_distances =
-            H.distance_between(defender.x, defender.y, leader.x, leader.y)
-            - H.distance_between(dst[1], dst[2], leader.x, leader.y)
-        defender_value = defender_value + relative_distances * distance_leader_weight
+        local rel_dist_rating = 0.
+
+        for _,dst in ipairs(dsts) do
+            local relative_distance =
+                H.distance_between(defender.x, defender.y, leader.x, leader.y)
+                - H.distance_between(dst[1], dst[2], leader.x, leader.y)
+            rel_dist_rating = rel_dist_rating + relative_distance
+        end
+        rel_dist_rating = rel_dist_rating / #dsts * distance_leader_weight
+
+        extra_rating = extra_rating + rel_dist_rating
     end
 
     -- Add a very small penalty for attack hexes occupied by other units
     -- Note: it must be checked previously that the unit on the hex can move away
-    if (dst[1] ~= attacker.x) or (dst[2] ~= attacker.y) then
-        if wesnoth.get_unit(dst[1], dst[2]) then
-            defender_value = defender_value + occupied_hex_penalty
+    for i,dst in ipairs(dsts) do
+        if (dst[1] ~= attackers[i].x) or (dst[2] ~= attackers[i].y) then
+            if wesnoth.get_unit(dst[1], dst[2]) then
+                extra_rating = extra_rating - occupied_hex_penalty
+            end
         end
     end
 
-    local defender_rating = value_fraction * defender_value
+    -- Finally add up and apply factor of own unit weight to defender unit weight
+    -- This is a number equivalent to 'aggression' in the default AI (but applied differently)
+    local rating = defender_rating - attacker_rating * own_value_weight + extra_rating
 
-    -- Finally apply factor of own unit weight to defender unit weight
-    attacker_rating = attacker_rating * own_value_weight
+    --print('rating, attacker_rating, defender_rating, extra_rating:', rating, attacker_rating, defender_rating, extra_rating)
 
-    local rating = defender_rating + attacker_rating
-
-    cache_this_move[cind] = {
-        rating = rating,
-        defender_rating = defender_rating,
-        attacker_rating = attacker_rating,
-        att_stats = att_stats,
-        def_stats = def_stats
-    }
-
-    return rating, defender_rating, attacker_rating, att_stats, def_stats
+    return rating, attacker_rating, defender_rating, extra_rating
 end
 
-function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cache, cache_this_move)
+function battle_calcs.attack_combo_eval(tmp_attackers, tmp_dsts, defender, cache, cache_this_move)
     -- Calculate attack combination outcomes using
     -- @tmp_attackers: array of attacker units (this is done so that
     --   the units need not be found here, as likely doing it in the
@@ -1044,85 +970,34 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cach
     --   - 2. The starting HP of the units are part of the cache index and do not have to be saved
     --   - 3. Caching is done by the defense of the terrain, not the location itself.  As a result:
     --   - 4. Things like leadership, illumination by other units etc. may or may not be considered correctly
+    --   - 5. Only the attack combo stats are cached here.  The single attack stats needed at the
+    --        beginning are left to be cached by battle_outcome()
     --
+    return att_stats, def_stats[#attackers], attackers, dsts, rating, attacker_rating, defender_rating, extra_rating
     -- Return values ( in this order):
     --   - att_stats: an array of stats for each attacker, in the same order as 'attackers'
     --   - defender combo stats: one set of stats containing the defender stats after the attack combination
     --   - The sorted attackers and dsts arrays
     --   - The rating for this attack combination calculated from battle_calcs.attack_rating() results
-    --   - The attacker and defender rating separately
-    --   - def_stats: an array of defender stats for each individual attack, in the same order as 'attackers'
-
-    cache_this_move = cache_this_move or {}
+    --   - The (summed up) attacker and (combined) defender rating, as well as the extra rating separately
 
     -- We first simulate and rate the individual attacks
-    local ratings, tmp_attacker_ratings = {}, {}
-    local tmp_att_stats, tmp_def_stats = {}, {}
-
-    -- Initialize or use the 'cache_this_move' table
-    -- Need to save both the unit ids+HP and their locations, as the AI code moves units around
-    local defender_defense = wesnoth.unit_defense(defender, wesnoth.get_terrain(defender.x, defender.y))
-    local cind_base = 'ACS-' .. defender.id .. defender.hitpoints .. '-' .. defender_defense
-
+    local ratings, tmp_att_stats, tmp_def_stats = {}, {}, {}
     for i,attacker in ipairs(tmp_attackers) do
-        -- Terrain defense at the location of the attack (not the where the attacker currently is)
-        local attacker_defense = wesnoth.unit_defense(attacker, wesnoth.get_terrain(tmp_dsts[i][1], tmp_dsts[i][2]))
-        local cind = cind_base .. 'x' .. attacker.id .. attacker.hitpoints .. '-' .. attacker_defense
+        tmp_att_stats[i], tmp_def_stats[i] =
+            battle_calcs.battle_outcome(attacker, defender, tmp_dsts[i], {}, cache, cache_this_move)
 
-        if (not cache_this_move[cind]) then
-            -- Get the base rating
-            local base_rating, def_rating, att_rating, att_stats, def_stats =
-                battle_calcs.attack_rating(attacker, defender, tmp_dsts[i], {}, cache, cache_this_move)
-            tmp_attacker_ratings[i] = att_rating
-            tmp_att_stats[i], tmp_def_stats[i] = att_stats, def_stats
+        local rating =
+            battle_calcs.attack_rating(attacker, defender, tmp_dsts[i], tmp_att_stats[i], tmp_def_stats[i])
 
-            -- But for combos, also want units with highest attack outcome uncertainties to go early
-            -- So that we can change our mind in case of unfavorable outcome
-            --local outcome_variance = 0
-            --local av = tmp_def_stats[i].average_hp
-            --local n_outcomes = 0
-
-            --for hp,p in pairs(tmp_def_stats[i].hp_chance) do
-            --    if (p > 0) then
-            --        local dhp_norm = (hp - av) / defender.max_hitpoints * wesnoth.unit_types[defender.type].cost
-            --        local dvar = p * dhp_norm^2
-                    --print(hp,p,av, dvar)
-            --        outcome_variance = outcome_variance + dvar
-            --        n_outcomes = n_outcomes + 1
-            --    end
-            --end
-            --outcome_variance = outcome_variance / n_outcomes
-            --print('outcome_variance', outcome_variance)
-
-            -- Note that this is a variance, not a standard deviations (as in, it's squared),
-            -- so it does not matter much for low-variance attacks, but takes on large values for
-            -- high variance attacks. I think that is what we want.
-            local rating = base_rating --+ outcome_variance
-
-            -- If attacker has attack with 'slow' special, it should always go first
-            -- Almost, bonus should not be quite as high as a really high CTK
-            -- This isn't quite true in reality, but can be refined later
-            if AH.has_weapon_special(attacker, "slow") then
-                rating = rating + wesnoth.unit_types[defender.type].cost / 2.
-            end
-
-            ratings[i] = { i, rating, base_rating, def_rating, att_rating }
-
-            -- Now add this attack to the cache_this_move table, so that next time around, we don't have to do this again
-            cache_this_move[cind] = {
-                rating = { -1, rating, base_rating, def_rating, att_rating },  -- Cannot use { i, rating, ... } here, as 'i' might be different next time
-                attacker_ratings = tmp_attacker_ratings[i],
-                att_stats = tmp_att_stats[i],
-                def_stats = tmp_def_stats[i]
-            }
-        else
-            local tmp_rating = cache_this_move[cind].rating
-            tmp_rating[1] = i
-            ratings[i] = tmp_rating
-            tmp_attacker_ratings[i] = cache_this_move[cind].attacker_ratings
-            tmp_att_stats[i] = cache_this_move[cind].att_stats
-            tmp_def_stats[i] = cache_this_move[cind].def_stats
+        -- If attacker has attack with 'slow' special, it should always go first
+        -- Almost, bonus should not be quite as high as a really high CTK
+        -- This isn't quite true in reality, but can be refined later
+        if AH.has_weapon_special(attacker, "slow") then
+            rating = rating + wesnoth.unit_types[defender.type].cost / 3.
         end
+
+        ratings[i] = { i, rating }  -- Need the i here in order to specify the order of attackers, dsts
     end
 
     -- Now sort all the arrays based on this rating
@@ -1130,15 +1005,22 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cach
     table.sort(ratings, function(a, b) return a[2] > b[2] end)
 
     -- Reorder attackers, dsts in this order
-    local attackers, dsts, att_stats, def_stats, attacker_ratings = {}, {}, {}, {}, {}
+    local attackers, dsts = {}, {}
     for i,rating in ipairs(ratings) do
         attackers[i], dsts[i] = tmp_attackers[rating[1]], tmp_dsts[rating[1]]
     end
-    -- Only keep the stats/ratings for the first attacker, the rest needs to be recalculated
-    att_stats[1], def_stats[1] = tmp_att_stats[ratings[1][1]], tmp_def_stats[ratings[1][1]]
-    attacker_ratings[1] = tmp_attacker_ratings[ratings[1][1]]
 
-    tmp_attackers, tmp_dsts, tmp_att_stats, tmp_def_stats, tmp_attacker_ratings = nil, nil, nil, nil, nil
+    -- Only keep the stats/ratings for the first attacker, the rest needs to be recalculated
+    local att_stats, def_stats = {}, {}
+    att_stats[1], def_stats[1] = tmp_att_stats[ratings[1][1]], tmp_def_stats[ratings[1][1]]
+
+    tmp_att_stats, tmp_def_stats, ratings = nil, nil, nil
+
+    -- Initialize or use the 'cache_this_move' table here
+    -- Need to save both the unit ids+HP and their locations, as the AI code moves units around
+    cache_this_move = cache_this_move or {}
+    local defender_defense = wesnoth.unit_defense(defender, wesnoth.get_terrain(defender.x, defender.y))
+    local cind_base = 'ACS-' .. defender.id .. defender.hitpoints .. '-' .. defender_defense
 
     -- Then we go through all the other attacks and calculate the outcomes
     -- based on all the possible outcomes of the previous attacks
@@ -1149,6 +1031,8 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cach
         -- Terrain defense at the location of the attack (not the where the attacker currently is)
         local attacker_defense = wesnoth.unit_defense(attackers[i], wesnoth.get_terrain(dsts[i][1], dsts[i][2]))
         local cind = cind_base .. 'x' .. attackers[i].id .. attackers[i].hitpoints .. '-' .. attacker_defense
+
+        if (not cache_this_move[cind]) then cache_this_move[cind] = {} end
 
         for hp1,prob1 in pairs(def_stats[i-1].hp_chance) do -- Note: need pairs(), not ipairs() !!
             if (hp1 == 0) then
@@ -1161,7 +1045,7 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cach
                 local ast, dst
 
                 if (not cache_this_move[cind][hp1]) then
-                    ast, dst = battle_calcs.battle_outcome(attackers[i], defender, { dst = dsts[i] }, cache, cache_this_move)
+                    ast, dst = battle_calcs.battle_outcome(attackers[i], defender, dsts[i], {}, cache, cache_this_move)
                     cache_this_move[cind][hp1] = { ast = ast, dst = dst }
                 else
                     ast = cache_this_move[cind][hp1].ast
@@ -1196,24 +1080,10 @@ function battle_calcs.attack_combo_stats(tmp_attackers, tmp_dsts, defender, cach
         def_stats[i].average_hp = av_hp
     end
 
-    -- Get the total rating for this attack combo:
-    --   = sum of all the attacker ratings and the defender rating with the final def_stats
-    -- Rating for first attack exists already
-    local def_rating = ratings[1][4]
-    local att_rating = ratings[1][5]
+    local rating, attacker_rating, defender_rating, extra_rating =
+        battle_calcs.attack_rating(attackers, defender, dsts, att_stats, def_stats[#attackers])
 
-    -- The others need to be calculated with the new stats
-    for i = 2,#attackers do
-        local cfg = { att_stats = att_stats[i], def_stats = def_stats[i] }
-        local r, dr, ar = battle_calcs.attack_rating(attackers[i], defender, dsts[i], cfg, cache, cache_this_move)
-
-        def_rating = dr
-        att_rating = att_rating + ar
-    end
-
-    local rating = def_rating + att_rating
-
-    return att_stats, def_stats[#attackers], attackers, dsts, rating, def_rating, att_rating, def_stats
+    return att_stats, def_stats[#attackers], attackers, dsts, rating, attacker_rating, defender_rating, extra_rating
 end
 
 function battle_calcs.get_attack_map_unit(unit, cfg)
@@ -1327,8 +1197,11 @@ function battle_calcs.relative_damage_map(units, enemies, cache, cache_this_move
     for i,unit in ipairs(units) do
         local max_rating, best_enemy = -9e99, {}
         for _,enemy in ipairs(enemies) do
-            local rating, defender_rating, attacker_rating =
-                battle_calcs.attack_rating(unit, enemy, { unit.x, unit.y }, { enemy_leader_weight = 1 }, cache) -- Don't use cache_this_move!
+            local dst = { unit.x, unit.y }
+            local att_stats, def_stats = battle_calcs.battle_outcome(unit, enemy, dst, {}, cache) -- Don't use cache_this_move!
+
+            local rating, attacker_rating, defender_rating =
+                battle_calcs.attack_rating(unit, enemy, dst, att_stats, def_stats, { enemy_leader_weight = 1 })
 
             local eff_rating = defender_rating
             if (eff_rating > max_rating) then
@@ -1344,8 +1217,11 @@ function battle_calcs.relative_damage_map(units, enemies, cache, cache_this_move
     for i,enemy in ipairs(enemies) do
         local max_rating, best_unit = -9e99, {}
         for _,unit in ipairs(units) do
+            local dst = { enemy.x, enemy.y }
+            local att_stats, def_stats = battle_calcs.battle_outcome(enemy, unit, dst, {}, cache) -- Don't use cache_this_move!
+
             local rating, defender_rating, attacker_rating =
-                battle_calcs.attack_rating(enemy, unit, { enemy.x, enemy.y }, { enemy_leader_weight = 1 }, cache) -- Don't use cache_this_move!
+                battle_calcs.attack_rating(enemy, unit, dst, att_stats, def_stats, { enemy_leader_weight = 1 })
 
             local eff_rating = defender_rating
             if (eff_rating > max_rating) then
@@ -1649,7 +1525,10 @@ function battle_calcs.get_attack_combos_subset(units, enemy, cfg, cache, cache_t
 
             local dst = attack[1].dst
             local x, y = math.floor(dst / 1000), dst % 1000
-            attack.rating = battle_calcs.attack_rating(units[attack.unit_i], enemy, { x, y }, {}, cache, cache_this_move)
+
+            local dst = { x, y }
+            local att_stats, def_stats = battle_calcs.battle_outcome(units[attack.unit_i], enemy, dst, {}, cache, cache_this_move)
+            attack.rating = battle_calcs.attack_rating(units[attack.unit_i], enemy, dst, att_stats, def_stats)
         end
         table.sort(attacks, function(a, b) return a.rating > b.rating end)
     end
@@ -1729,7 +1608,8 @@ function battle_calcs.approx_best_attack_combo(attackers, defender, cache, cache
                     if (r[1] == xa) and (r[2] == ya) then
                         -- As rating we use the "standard" attack rating, but the defender rating part only,
                         -- that is, the damage done by the attackers only
-                        local _,rating = battle_calcs.attack_rating(attacker, defender, { xa, ya }, {}, cache, cache_this_move)
+                        local att_stats, def_stats = battle_calcs.battle_outcome(attacker, defender, { xa, ya }, {}, cache, cache_this_move)
+                        local _,_,rating = battle_calcs.attack_rating(attacker, defender, { xa, ya }, att_stats, def_stats)
 
                         if (not tmp_attacks_dst_src[dst]) then
                             tmp_attacks_dst_src[dst] = {
