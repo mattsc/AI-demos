@@ -973,7 +973,7 @@ function battle_calcs.attack_combo_eval(tmp_attackers, tmp_dsts, defender, cache
     --   - 5. Only the attack combo stats are cached here.  The single attack stats needed at the
     --        beginning are left to be cached by battle_outcome()
     --
-    return att_stats, def_stats[#attackers], attackers, dsts, rating, attacker_rating, defender_rating, extra_rating
+
     -- Return values ( in this order):
     --   - att_stats: an array of stats for each attacker, in the same order as 'attackers'
     --   - defender combo stats: one set of stats containing the defender stats after the attack combination
