@@ -1582,35 +1582,15 @@ return {
             for i,e in ipairs(targets) do
 
                 -- How much more valuable do we consider the enemy units than out own
-                local enemy_worth = 1.33 -- we are Northerners, after all
+                local enemy_worth = 1.2 -- we are Northerners, after all
                 if cfg.attack and cfg.attack.enemy_worth then
                     enemy_worth = cfg.attack.enemy_worth
                 end
-                if e.canrecruit then enemy_worth = enemy_worth * 2 end
-
+                if e.canrecruit then enemy_worth = enemy_worth * 3 end
                 --print_time('\n', i, e.id, enemy_worth)
-                local tmp_attack_combos = AH.get_attack_combos(attackers, e, { include_occupied = true })
-                --DBG.dbms(tmp_attack_combos)
-                --print_time('#tmp_attack_combos', #tmp_attack_combos)
 
-                -- Keep only attack combos with the maximum number of attacks
-                -- of non-leader units (or more)
-                local max_atts, counts = 0, {}
-                for j,combo in ipairs(tmp_attack_combos) do
-                    local count, uses_leader = 0, false
-                    for dst,src in pairs(combo) do
-                        if leader_map[src] then uses_leader = true end
-                        count = count + 1
-                    end
-                    counts[j] = count
-                    if (not uses_leader) and (count > max_atts) then max_atts = count end
-                end
-                local attack_combos = {}
-                for j,count in ipairs(counts) do
-                    --if (count >= max_atts) then
-                        table.insert(attack_combos, tmp_attack_combos[j])
-                    --end
-                end
+                local attack_combos = AH.get_attack_combos(attackers, e, { include_occupied = true })
+                --DBG.dbms(attack_combos)
                 --print_time('#attack_combos', #attack_combos)
 
                 local enemy_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(e.x, e.y)).village
@@ -1625,25 +1605,17 @@ return {
                         table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
                     end
 
-                    local combo_att_stats, combo_def_stats, sorted_atts, sorted_dsts, rating, att_rating, def_rating =
+                    local combo_att_stats, combo_def_stats, sorted_atts, sorted_dsts,
+                        combo_rating, combo_att_rating, combo_def_rating =
                         BC.attack_combo_eval(atts, dsts, e, grunt_rush_FLS1.data.cache, cache_this_move)
                     --DBG.dbms(combo_def_stats)
                     print_time('   ratings:', rating, def_rating, att_rating)
 
-                    -- Here, def_rating is the "gold amount" of the combined damage done to enemy (positive number)
-                    -- att_rating is the combined damage received in return (negative number)
-
-                    -- Don't attack if CTD (chance to die) is too high for any of the attackers
-                    -- which means 30% CTD for normal units and 0% for leader
+                    -- Don't attack if the leader is involved and has chance to die > 0
                     local do_attack = true
                     local MP_left = false
                     for k,att_stats in ipairs(combo_att_stats) do
-                        if (not sorted_atts[k].canrecruit) then
-                            --if (att_stats.hp_chance[0] > 0.3) then
-                            --    do_attack = false
-                            --    break
-                            --end
-                        else
+                        if (sorted_atts[k].canrecruit) then
                             if (att_stats.hp_chance[0] > 0.0) or (att_stats.slowed > 0.0) or (att_stats.poisoned > 0.0) then
                                 do_attack = false
                                 break
@@ -1703,20 +1675,7 @@ return {
                                 end
                             end
 
-                            -- For normal units, we want a 50% chance to survive the counter attack
-                            -- and an average HP outcome of >= 5
-                            local average_damage = a.hitpoints - combo_att_stats[k].average_hp
-                            local min_average_hp = average_damage
-                            local min_min_hp = -1
-                            local max_hp_chance_zero = 0.5
-
-                            -- By contrast, for the side leader, the chance to die must be zero
-                            -- meaning minimum outcome > 0
                             local max_damage = a.hitpoints - min_hp
-                            if a.canrecruit then
-                                min_min_hp = max_damage
-                                max_hp_chance_zero = 0.0
-                            end
 
                             -- Now calculate the counter attack outcome
                             local x, y = sorted_dsts[k][1], sorted_dsts[k][2]
@@ -1736,75 +1695,23 @@ return {
                                     {},
                                     cache_this_move
                                 )
-                                counter_table[att_ind][dst_ind] = {
-                                    min_hp = counter_stats.min_hp,
-                                    counter_stats = counter_stats,
-                                    rating = counter_stats.rating,
-                                    def_rating = counter_stats.def_rating,
-                                    att_rating = counter_stats.att_rating,
-                                }
+                                counter_table[att_ind][dst_ind] = { counter_stats = counter_stats }
                             else
                                 --print_time('Counter-attack combo already calculated. Re-using.')
                             end
 
-                            --print('counter attack rating', counter_table[att_ind][dst_ind].rating, counter_table[att_ind][dst_ind].def_rating, counter_table[att_ind][dst_ind].att_rating)
-                            --print_time('  done')
-                            local counter_min_hp = counter_table[att_ind][dst_ind].min_hp
+                            local counter_rating = counter_table[att_ind][dst_ind].counter_stats.rating
+                            local counter_att_rating = counter_table[att_ind][dst_ind].counter_stats.att_rating
+                            local counter_def_rating = counter_table[att_ind][dst_ind].counter_stats.def_rating
+                            --print('   counter ratings:', counter_rating, counter_att_rating, counter_def_rating)
+
+                            local damage_done = combo_def_rating + counter_att_rating
+                            local damage_taken = combo_att_rating + counter_def_rating
+                            local damage_ratio = damage_taken / damage_done
+                            --print('     damage done, taken, taken/done:', damage_done, damage_taken, ' --->', damage_ratio)
+
                             local counter_stats = counter_table[att_ind][dst_ind].counter_stats
-                            local counter_average_hp = counter_stats.average_hp
-                            --DBG.dbms(counter_table[att_ind][dst_ind])
-                            --print_time('counter_average_hp, counter_min_hp, counter_CTD', counter_average_hp, counter_min_hp, counter_stats.hp_chance[0])
-
-                            -- "Damage cost" for attacker
-                            -- This should include the damage from the current attack
-                            -- (only done approximately for speed reasons)
-                            local damage = a.hitpoints - counter_stats.average_hp + average_damage
-                            -- Count poisoned as additional 8 HP damage times probability of being poisoned
-                            if (counter_stats.poisoned ~= 0) then
-                                damage = damage + 8 * (counter_stats.poisoned - counter_stats.hp_chance[0])
-                            end
-                            -- Count slowed as additional 6 HP damage times probability of being slowed
-                            if (counter_stats.slowed ~= 0) then
-                                damage = damage + 6 * (counter_stats.slowed - counter_stats.hp_chance[0])
-                            end
-
-                            -- Fraction damage (= fractional value of the unit)
-                            local value_fraction = damage / a.max_hitpoints
-                            -- Additionally, add the chance to die and experience
-                            --local ctd = counter_stats.hp_chance[0]
-                            local ctd = 0
-                            for hp,prob in pairs(counter_stats.hp_chance) do
-                                if (hp <= average_damage) then ctd = ctd + prob end
-                            end
-                            value_fraction = value_fraction + ctd
-                            value_fraction = value_fraction + a.experience / a.max_experience
-
-                            -- Convert this into a cost in gold
-                            --print('damage, ctd, value_fraction', damage, ctd, value_fraction)
-                            local damage_cost_a = value_fraction * wesnoth.unit_types[a.type].cost
-
-                            -- "Damage cost" for enemy
-
-                            local damage = e.hitpoints - combo_def_stats.average_hp
-                            -- Count poisoned as additional 8 HP damage times probability of being poisoned
-                            if (combo_def_stats.poisoned ~= 0) then
-                                damage = damage + 8 * (combo_def_stats.poisoned - combo_def_stats.hp_chance[0])
-                            end
-                            -- Count slowed as additional 6 HP damage times probability of being slowed
-                            if (combo_def_stats.slowed ~= 0) then
-                                damage = damage + 6 * (combo_def_stats.slowed - combo_def_stats.hp_chance[0])
-                            end
-
-                            -- Fraction damage (= fractional value of the unit)
-                            local value_fraction = damage / e.max_hitpoints
-
-                            -- Additionally, add the chance to die and experience
-                            value_fraction = value_fraction + combo_def_stats.hp_chance[0]
-                            value_fraction = value_fraction + e.experience / e.max_experience
-
-                            -- Convert this into a cost in gold
-                            local damage_cost_e = value_fraction * wesnoth.unit_types[e.type].cost
-                            --print_time('  --> damage cost attacker vs. enemy', damage_cost_a, damage_cost_e)
+                            local counter_min_hp = counter_stats.min_hp
 
                             -- If there's a chance of the leader getting poisoned or slowed, don't do it
                             -- Also, if the stats would go too low
@@ -1825,20 +1732,19 @@ return {
                                 end
                             -- Or for normal units, use the somewhat looser criteria
                             else  -- Or for normal units, use the somewhat looser criteria
-                                -- Add damage from attack and counter attack
-                                local av_outcome =  counter_average_hp - average_damage
-                                --print('Non-leader: av_outcome, counter_average_hp, average_damage', av_outcome, counter_average_hp, average_damage)
-                                --print('   damage_cost_a, damage_cost_e:', damage_cost_a, damage_cost_e, counter_stats.hp_chance[0])
-                                --if (av_outcome <= 5) or (counter_stats.hp_chance[0] >= max_hp_chance_zero) then
-                                    -- Use the "damage cost"
-                                    -- This is still experimental for now, so I'll leave the rest of the code here, commented out
-                                    if (damage_cost_a > damage_cost_e * enemy_worth ) then
-                                        do_attack = false
-                                        break
+                                --print('Non-leader damage_ratio', damage_ratio)
+                                if (damage_ratio > enemy_worth ) then
+                                    do_attack = false
+                                    break
+                                end
+                            end
+
+                        end
                                     end
                                 --end
                             end
                         end
+
 
                         -- Now put the units back out there
                         -- We first need to extract the attacker units again, then
@@ -1879,9 +1785,9 @@ return {
                     end
 
                     if do_attack then
-                        --print_time(' -----------------------> rating', rating)
-                        if (rating > max_rating) then
-                            max_rating, best_attackers, best_dsts, best_enemy = rating, sorted_atts, sorted_dsts, e
+                        --print_time(' -----------------------> rating', combo_rating)
+                        if (combo_rating > max_rating) then
+                            max_rating, best_attackers, best_dsts, best_enemy = combo_rating, sorted_atts, sorted_dsts, e
                         end
                     end
                 end
