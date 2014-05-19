@@ -2069,7 +2069,7 @@ return {
                     --print('Evaluating attack at: ', attack.dst.x, attack.dst.y, target.id)
 
                     local dst = { attack.dst.x, attack.dst.y }
-                    local att_stats, def_stats = BC.battle_outcome(attacker, defender, dst, {}, grunt_rush_FLS1.data.cache, cache_this_move)
+                    local att_stats, def_stats = BC.battle_outcome(unit, target, dst, {}, grunt_rush_FLS1.data.cache, cache_this_move)
                     local rating = BC.attack_rating(unit, target, dst, att_stats, def_stats)
                     --print(rating)
 
