@@ -174,7 +174,7 @@ return {
                 zone_filter = { x = '15-24', y = '1-16' },
                 unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
                 skip_action = { retreat_injured_unsafe = true },
-                hold = { x = 18, y = 9, dx = 0, dy = 1, hp_ratio = 0.75 },
+                hold = { x = 18, y = 9, dx = 0, dy = 1, hp_ratio = 1.0 },
                 retreat_villages = { { 18, 9 }, { 24, 7 }, { 22, 2 } },
                 villages = { units_per_village = 0 }
             }
@@ -194,7 +194,7 @@ return {
                 zone_filter = { x = '4-14', y = '1-15' },
                 unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
                 skip_action = { retreat_injured_unsafe = true },
-                hold = { x = 11, y = 9, dx = 0, dy = 1, hp_ratio = 0.66, unit_ratio = 1.1 },
+                hold = { x = 11, y = 9, dx = 0, dy = 1, hp_ratio = 1.0, unit_ratio = 1.1 },
                 secure = { x = 11, y = 9, moves_away = 1, min_units = 1.1 },
                 retreat_villages = { { 11, 9 }, { 8, 5 }, { 12, 5 }, { 12, 2 } },
                 villages = { hold_threatened = true }
@@ -215,7 +215,7 @@ return {
                 zone_filter = { x = '24-34', y = '1-17' },
                 unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
                 skip_action = { retreat_injured_unsafe = true },
-                hold = { x = 27, y = 11, dx = 0, dy = 1, hp_ratio = 0.66, unit_ratio = 1.1 },
+                hold = { x = 27, y = 11, dx = 0, dy = 1, hp_ratio = 1.0, unit_ratio = 1.1 },
                 secure = { x = 27, y = 11, moves_away = 1, min_units = 1.1 },
                 retreat_villages = { { 24, 7 }, { 28, 5 } },
                 villages = { hold_threatened = true }
