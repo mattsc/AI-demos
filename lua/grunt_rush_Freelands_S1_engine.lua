@@ -845,7 +845,11 @@ return {
                     -- Significant bonus if this is on a village
                     local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).village
                     if is_village then
-                        defense = defense - 15
+                        if wesnoth.unit_ability(u, 'regenerate') then
+                            defense = defense - 10
+                        else
+                            defense = defense - 15
+                        end
                         if (defense < 10) then defense = 10 end
                     end
 
