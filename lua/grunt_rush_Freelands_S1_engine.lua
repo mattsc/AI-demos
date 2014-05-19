@@ -954,7 +954,7 @@ return {
 
                                 -- If the unit is injured and does not regenerate,
                                 -- then we very strongly prefer villages
-                                if (best_unit.hitpoints < best_unit.max_hitpoints)
+                                if (best_unit.hitpoints < best_unit.max_hitpoints - 12.)
                                     and (not wesnoth.unit_ability(best_unit, 'regenerate'))
                                 then
                                     local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(r[1], r[2])).village
