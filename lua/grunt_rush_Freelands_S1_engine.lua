@@ -1769,18 +1769,18 @@ return {
                         end
                     end
 
-                    -- Discourage use of poisoners in attacks that may result in kill
                     if do_attack then
+                        -- Discourage use of poisoners in attacks that may result in kill
                         if (combo_def_stats.hp_chance[0] > 0) then
                             local number_poisoners = 0
                             for i,a in ipairs(sorted_atts) do
                                 if poisoner_map:get(a.x, a.y) then
                                     number_poisoners = number_poisoners + 1
-                                    rating = rating - 100
+                                    combo_rating = combo_rating - 5  -- TODO: don't choose arbitrary number here
                                 end
                             end
                             -- Really discourage the use of several poisoners
-                            if (number_poisoners > 1) then rating = rating - 1000 end
+                            if (number_poisoners > 1) then combo_rating = combo_rating - 100 end
                         end
                     end
 
