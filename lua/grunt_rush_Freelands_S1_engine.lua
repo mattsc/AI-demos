@@ -1277,8 +1277,8 @@ return {
             end
         end
 
-            --print_time(cfg.zone_id, 'attack')
         function grunt_rush_FLS1:zone_action_attack(units, enemies, zone, zone_map, cfg, cache_this_move)
+            --print_time(cfg.zone_id, 'attack')
 
             -- Attackers include the leader but only if he is on his
             -- keep, in order to prevent him from wandering off
@@ -1294,7 +1294,7 @@ return {
                     table.insert(attackers, u)
                 end
             end
-            --print(#attackers)
+            --print_time('#attackers', #attackers)
 
             local targets = {}
             -- If cfg.attack.use_enemies_in_reach is set, we use all enemies that
@@ -1384,7 +1384,7 @@ return {
                         combo_rating, combo_att_rating, combo_def_rating =
                         BC.attack_combo_eval(atts, dsts, e, grunt_rush_FLS1.data.cache, cache_this_move)
                     --DBG.dbms(combo_def_stats)
-                    print_time('   ratings:', rating, def_rating, att_rating)
+                    --print('   combo ratings:  ', combo_rating, combo_att_rating, combo_def_rating)
 
                     -- Don't attack if the leader is involved and has chance to die > 0
                     local do_attack = true
@@ -1491,6 +1491,7 @@ return {
                             -- If there's a chance of the leader getting poisoned or slowed, don't do it
                             -- Also, if the stats would go too low
                             if a.canrecruit then
+                                --print('Leader: slowed, poisoned %', counter_stats.slowed, counter_stats.poisoned)
                                 if (counter_stats.slowed > 0.0) or (counter_stats.poisoned > 0.0) then
                                     --print('Leader slowed or poisoned', counter_stats.slowed, counter_stats.poisoned)
                                     do_attack = false
