@@ -594,7 +594,7 @@ return {
             end
 
             -- Now we go on to the unit-dependent rating part
-            local max_rating, best_hex, best_unit = -9e99, {}, {}
+            local max_rating, best_hex, best_unit, best_unit_rating_map = -9e99, {}, {}
 
             for i,u in ipairs(holders) do
                 local unit_alignment = u.__cfg.alignment
@@ -687,7 +687,7 @@ return {
                 end
 
                 if (max_rating_unit > max_rating) then
-                    max_rating, best_hex, best_unit = max_rating_unit, best_hex_unit, u
+                    max_rating, best_hex, best_unit, best_unit_rating_map = max_rating_unit, best_hex_unit, u, unit_rating_map
                 end
                 --print('max_rating:', max_rating, best_hex_unit[1], best_hex_unit[2])
 
@@ -704,7 +704,7 @@ return {
                 -- This needs to be separate from and in addition to the step above (if unit cannot get into zone)
 
                 -- For Northerners, to force some aggressiveness:
-                local hp_factor = 1.25
+                local hp_factor = 1.2
 
                 local enemy_hp = enemy_attack_map:get(best_hex[1], best_hex[2]) or 0
 
@@ -720,7 +720,11 @@ return {
                         -- This is only approximate, of course, potentially to be changed later
                         local enemy_hp = enemy_attack_map:get(r[1], r[2]) or 0
 
-                        if (enemy_hp < best_unit.hitpoints * hp_factor) then
+                        if (enemy_hp == 0) or
+                            ( (enemy_hp < best_unit.hitpoints * hp_factor)
+                                and ((best_unit_rating_map:get(r[1], r[2]) or 1) > 0)
+                            )
+                        then
                             local unit_in_way = wesnoth.get_unit(r[1], r[2])
                             if (not unit_in_way) or (unit_in_way == best_unit) then
                                 local rating = grunt_rush_FLS1:zone_advance_rating(cfg.zone_id, r[1], r[2], enemy_leader)
