@@ -1739,6 +1739,17 @@ return {
                                 end
                             end
 
+                            if do_attack then
+                                -- Discourage attacks from hexes adjacent to unoccupied villages
+                                -- Needs to be done with the attackers in attack position
+                                for xa,ya in H.adjacent_tiles(x, y) do
+                                    local is_adjacent_village = wesnoth.get_terrain_info(wesnoth.get_terrain(xa, ya)).village
+                                    if is_adjacent_village and (not wesnoth.get_unit(xa, ya)) then
+                                        combo_rating = combo_rating - 10  -- TODO: don't choose arbitrary number here
+                                    end
+                                end
+
+                            end
                         end
                                     end
                                 --end
