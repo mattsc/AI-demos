@@ -210,4 +210,219 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     return rating, attacker_rating, defender_rating, extra_rating
 end
 
+function fred_attack_utils.battle_outcome(attacker_copy, defender, dst, attacker_info, defender_info, mapstate, defense_map, move_cache)
+    -- Calculate the stats of a combat by @attacker_copy vs. @defender at location @dst
+    -- We use wesnoth.simulate_combat for this, but cache results when possible
+    -- Inputs:
+    --  @attackers_copy: private unit copy of the attacker proxy table (this _must_ be a copy, not the proxy itself)
+    --  @defender: defender proxy table (this _must_ be a unit proxy table on the map, not a copy)
+    --  @dst: location from which the attacker will attack in form { x, y }
+    -- @attacker_info, @defender_info: unit info for the two units (needed in addition to the units
+    --   themselves in order to speed things up)
+    --  @mapstate: table with the map state as produced by fred_gamestate_utils.mapstate_reachmaps()
+    --  @defense_map: table of unit terrain defense values as produced by fred_gamestate_utils_incremental.get_unit_defense()
+    --  @move_cache: for caching data *for this move only*, needs to be cleared after a gamestate change
+    -- Note: for speed reasons @mapstate, @defense_map and @move_cache are _not_ optional
+
+    local defender_defense = FGUI.get_unit_defense(
+        defender_info.id,
+        mapstate.unit_locs[defender_info.id],
+        mapstate.unit_locs[defender_info.id][1], mapstate.unit_locs[defender_info.id][2],
+        defense_map
+    )
+    local attacker_defense = FGUI.get_unit_defense(
+        attacker_info.id,
+        mapstate.unit_locs[attacker_info.id],
+        dst[1], dst[2],
+        defense_map
+    )
+
+    if move_cache[attacker_info.id]
+        and move_cache[attacker_info.id][defender_info.id]
+        and move_cache[attacker_info.id][defender_info.id][attacker_defense]
+        and move_cache[attacker_info.id][defender_info.id][attacker_defense][defender_defense]
+        and move_cache[attacker_info.id][defender_info.id][attacker_defense][defender_defense][attacker_info.hitpoints]
+        and move_cache[attacker_info.id][defender_info.id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints]
+    then
+        return move_cache[attacker_info.id][defender_info.id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints].att_stats,
+            move_cache[attacker_info.id][defender_info.id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints].def_stats
+    end
+
+    local old_x, old_y = attacker_copy.x, attacker_copy.y
+    attacker_copy.x, attacker_copy.y = dst[1], dst[2]
+    local tmp_att_stats, tmp_def_stats = wesnoth.simulate_combat(attacker_copy, defender)
+    attacker_copy.x, attacker_copy.y = old_x, old_y
+
+    -- Extract only those hp_chances that are non-zero (except for hp_chance[0]
+    -- which is always needed).  This slows down this step a little, but significantly speeds
+    -- up attack combination calculations
+
+    local att_stats = {
+        hp_chance = {},
+        average_hp = tmp_att_stats.average_hp,
+        poisoned = tmp_att_stats.poisoned,
+        slowed = tmp_att_stats.slowed
+    }
+
+    att_stats.hp_chance[0] = tmp_att_stats.hp_chance[0]
+    for i = 1,#tmp_att_stats.hp_chance do
+        if (tmp_att_stats.hp_chance[i] ~= 0) then
+            att_stats.hp_chance[i] = tmp_att_stats.hp_chance[i]
+        end
+    end
+
+    local def_stats = {
+        hp_chance = {},
+        average_hp = tmp_def_stats.average_hp,
+        poisoned = tmp_def_stats.poisoned,
+        slowed = tmp_def_stats.slowed
+    }
+
+    def_stats.hp_chance[0] = tmp_def_stats.hp_chance[0]
+    for i = 1,#tmp_def_stats.hp_chance do
+        if (tmp_def_stats.hp_chance[i] ~= 0) then
+            def_stats.hp_chance[i] = tmp_def_stats.hp_chance[i]
+        end
+    end
+
+    if (not move_cache[attacker_info.id]) then
+        move_cache[attacker_info.id] = {}
+    end
+    if (not move_cache[attacker_info.id][defender_info.id]) then
+        move_cache[attacker_info.id][defender_info.id] = {}
+    end
+    if (not move_cache[attacker_info.id][defender_info.id][attacker_defense]) then
+        move_cache[attacker_info.id][defender_info.id][attacker_defense] = {}
+    end
+    if (not move_cache[attacker_info.id][defender_info.id][attacker_defense][defender_defense]) then
+        move_cache[attacker_info.id][defender_info.id][attacker_defense][defender_defense] = {}
+    end
+    if (not move_cache[attacker_info.id][defender_info.id][attacker_defense][defender_defense][attacker_info.hitpoints]) then
+        move_cache[attacker_info.id][defender_info.id][attacker_defense][defender_defense][attacker_info.hitpoints] = {}
+    end
+
+    move_cache[attacker_info.id][defender_info.id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints]
+        = { att_stats = att_stats, def_stats = def_stats }
+
+    return att_stats, def_stats
+end
+
+function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender, tmp_dsts, tmp_attacker_infos, defender_info, mapstate, defense_map, move_cache)
+    -- Calculate attack combination outcomes using
+    -- @tmp_attacker_copies: array of attacker unit copiess (must be copies, not the proxy tables themselves)
+    -- @defender: the unit being attacked (must be the unit proxy table on the map, not a unit copy)
+    -- @tmp_dsts: array of the hexes (format { x, y }) from which the attackers attack
+    --   must be in same order as @attackers
+    -- @tmp_attacker_infos, @defender_info: unit info for the attackers and defenders (needed in addition to the units
+    --   themselves in order to speed things up)
+    -- @mapstate, @defense_map, @move_cache: only needed to pass to the functions being called
+    --    see fred_attack_utils.battle_outcome() for descriptions
+    --
+    -- Return values (in this order):
+    --   - att_stats: an array of stats for each attacker, in the order found for the "best attack",
+    --       which is generally different from the order of @tmp_attacker_copies
+    --   - defender combo stats: one set of stats containing the defender stats after the attack combination
+    --   - The sorted attacker_infos and dsts arrays
+    --   - The rating for this attack combination calculated from fred_attack_utils.attack_rating() results
+    --   - The (summed up) attacker and (combined) defender rating, as well as the extra rating separately
+
+    -- We first simulate and rate the individual attacks
+    local ratings, tmp_att_stats, tmp_def_stats = {}, {}, {}
+    for i,attacker_copy in ipairs(tmp_attacker_copies) do
+        tmp_att_stats[i], tmp_def_stats[i] =
+            fred_attack_utils.battle_outcome(
+                attacker_copy, defender, tmp_dsts[i],
+                tmp_attacker_infos[i], defender_info,
+                mapstate, defense_map, move_cache
+            )
+
+        local rating =
+            fred_attack_utils.attack_rating(
+                { tmp_attacker_infos[i] }, defender_info, { tmp_dsts[1] },
+                { tmp_att_stats[i] }, tmp_def_stats[i], mapstate, defense_map
+            )
+
+        ratings[i] = { i, rating }  -- Need the i here in order to specify the order of attackers, dsts
+    end
+
+    -- Sort all the arrays based on this rating
+    -- This will give the order in which the individual attacks are executed
+    -- That's an approximation of the best order, everything else is too expensive
+    table.sort(ratings, function(a, b) return a[2] > b[2] end)
+
+    -- Reorder attackers, dsts in this order
+    local attacker_copies, attacker_infos, dsts = {}, {}, {}
+    for i,rating in ipairs(ratings) do
+        attacker_copies[i] = tmp_attacker_copies[rating[1]]
+        dsts[i] = tmp_dsts[rating[1]]
+        attacker_infos[i] = tmp_attacker_infos[rating[1]]
+    end
+
+    -- Only keep the stats/ratings for the first attacker, the rest needs to be recalculated
+    local att_stats, def_stats = {}, {}
+    att_stats[1], def_stats[1] = tmp_att_stats[ratings[1][1]], tmp_def_stats[ratings[1][1]]
+
+    tmp_att_stats, tmp_def_stats, ratings = nil, nil, nil
+
+    -- Then we go through all the other attacks and calculate the outcomes
+    -- based on all the possible outcomes of the previous attacks
+    for i = 2,#attacker_infos do
+        att_stats[i] = { hp_chance = {} }
+        def_stats[i] = { hp_chance = {} }
+
+        for hp1,prob1 in pairs(def_stats[i-1].hp_chance) do -- Note: need pairs(), not ipairs() !!
+            if (hp1 == 0) then
+                att_stats[i].hp_chance[attacker_infos[i].hitpoints] =
+                    (att_stats[i].hp_chance[attacker_infos[i].hitpoints] or 0) + prob1
+                def_stats[i].hp_chance[0] = (def_stats[i].hp_chance[0] or 0) + prob1
+            else
+                local org_hp = defender_info.hitpoints
+                defender.hitpoints = hp1  -- Yes, we need both here.  It speeds up other parts.
+                defender_info.hitpoints = hp1
+
+                local ast, dst = fred_attack_utils.battle_outcome(
+                    attacker_copies[i], defender, dsts[i],
+                    attacker_infos[i], defender_info,
+                    mapstate, defense_map, move_cache
+                )
+
+                defender.hitpoints = org_hp
+                defender_info.hitpoints = org_hp
+
+                for hp2,prob2 in pairs(ast.hp_chance) do
+                    att_stats[i].hp_chance[hp2] = (att_stats[i].hp_chance[hp2] or 0) + prob1 * prob2
+                end
+                for hp2,prob2 in pairs(dst.hp_chance) do
+                    def_stats[i].hp_chance[hp2] = (def_stats[i].hp_chance[hp2] or 0) + prob1 * prob2
+                end
+
+                -- Also do poisoned, slowed
+                if (not att_stats[i].poisoned) then
+                    att_stats[i].poisoned = ast.poisoned
+                    att_stats[i].slowed = ast.slowed
+                    def_stats[i].poisoned = 1. - (1. - dst.poisoned) * (1. - def_stats[i-1].poisoned)
+                    def_stats[i].slowed = 1. - (1. - dst.slowed) * (1. - def_stats[i-1].slowed)
+                end
+            end
+        end
+
+        -- Get the average HP
+        local av_hp = 0
+        for hp,prob in pairs(att_stats[i].hp_chance) do av_hp = av_hp + hp * prob end
+        att_stats[i].average_hp = av_hp
+
+        local av_hp = 0
+        for hp,prob in pairs(def_stats[i].hp_chance) do av_hp = av_hp + hp * prob end
+        def_stats[i].average_hp = av_hp
+    end
+
+    local rating, attacker_rating, defender_rating, extra_rating =
+        fred_attack_utils.attack_rating(
+            attacker_infos, defender_info, dsts,
+            att_stats, def_stats[#attacker_infos], mapstate, defense_map
+        )
+
+    return att_stats, def_stats[#attacker_infos], attacker_infos, dsts, rating, attacker_rating, defender_rating, extra_rating
+end
+
 return fred_attack_utils
