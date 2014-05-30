@@ -762,7 +762,7 @@ return {
             end
         end
 
-        function grunt_rush_FLS1:calc_counter_attack(unit, hex, cfg, cache_this_move)
+        function grunt_rush_FLS1:calc_counter_attack(unit, hex, cfg, move_cache)
             -- Get counter-attack results a unit might experience next turn if it moved to 'hex'
             -- Optional input cfg: config table with following optional fields:
             --   - approx (boolean): if set, use the approximate method instead of full calculation
@@ -838,7 +838,7 @@ return {
             -- TODO: optimize this number, possibly make it variable depending on the situation
             --print_time('get_attack_combos')
 
-            local counter_attack = BC.approx_best_attack_combo(enemies, unit, grunt_rush_FLS1.data.cache, cache_this_move)
+            local counter_attack = BC.approx_best_attack_combo(enemies, unit, grunt_rush_FLS1.data.cache, move_cache)
 
             -- Put units back to where they were
             if (org_hex[1] ~= hex[1]) or (org_hex[2] ~= hex[2]) then
@@ -877,7 +877,7 @@ return {
                 for j,att in ipairs(combo) do
                     local dst = { math.floor(att.dst / 1000), att.dst % 1000 }
                     local att_stats, def_stats =
-                        BC.battle_outcome(enemies_map[att.src], unit, dst, {}, grunt_rush_FLS1.data.cache, cache_this_move)
+                        BC.battle_outcome(enemies_map[att.src], unit, dst, {}, grunt_rush_FLS1.data.cache, move_cache)
 
                     total_damage = total_damage + unit.hitpoints - def_stats.average_hp
 
@@ -916,7 +916,7 @@ return {
                 end
 
                 local combo_att_stats, combo_def_stats, sorted_atts, sorted_dsts, rating, att_rating, def_rating =
-                    BC.attack_combo_eval(atts, dsts, unit, grunt_rush_FLS1.data.cache, cache_this_move)
+                    BC.attack_combo_eval(atts, dsts, unit, grunt_rush_FLS1.data.cache, move_cache)
                 def_stats = combo_def_stats
                 combo_def_stats.rating = rating
                 combo_def_stats.def_rating = def_rating
@@ -1070,7 +1070,7 @@ return {
 
         ----------Grab villages -----------
 
-        function grunt_rush_FLS1:eval_grab_villages(units, villages, enemies, cfg, cache_this_move)
+        function grunt_rush_FLS1:eval_grab_villages(units, villages, enemies, cfg, move_cache)
             --print('#units, #enemies', #units, #enemies)
 
             -- Get my and enemy keeps
@@ -1133,7 +1133,7 @@ return {
                         local max_hp_chance_zero = 0.5
                         local counter_stats = grunt_rush_FLS1:calc_counter_attack(u, { v[1], v[2] },
                             { stop_eval_hp_chance_zero = max_hp_chance_zero },
-                            cache_this_move
+                            move_cache
                         )
                         --DBG.dbms(counter_stats)
 
@@ -1243,7 +1243,7 @@ return {
             end
         end
 
-        function grunt_rush_FLS1:zone_action_villages(units, enemies, zone_map, cfg, cache_this_move)
+        function grunt_rush_FLS1:zone_action_villages(units, enemies, zone_map, cfg, move_cache)
             -- Otherwise we go for unowned and enemy-owned villages
             -- This needs to happen for all units, not just not-injured ones
             -- Also includes the leader, if he's on his keep
@@ -1273,7 +1273,7 @@ return {
                     end
                 end
 
-                local action = grunt_rush_FLS1:eval_grab_villages(village_grabbers, villages, enemies, cfg, cache_this_move)
+                local action = grunt_rush_FLS1:eval_grab_villages(village_grabbers, villages, enemies, cfg, move_cache)
                 if action then
                     action.action = cfg.zone_id .. ': ' .. 'grab villages'
                     return action
@@ -1281,7 +1281,7 @@ return {
             end
         end
 
-        function grunt_rush_FLS1:zone_action_attack(units, enemies, zone, zone_map, cfg, cache_this_move)
+        function grunt_rush_FLS1:zone_action_attack(units, enemies, zone, zone_map, cfg, move_cache)
             --print_time(cfg.zone_id, 'attack')
 
             -- Attackers include the leader but only if he is on his
@@ -1386,7 +1386,7 @@ return {
 
                     local combo_att_stats, combo_def_stats, sorted_atts, sorted_dsts,
                         combo_rating, combo_att_rating, combo_def_rating =
-                        BC.attack_combo_eval(atts, dsts, e, grunt_rush_FLS1.data.cache, cache_this_move)
+                        BC.attack_combo_eval(atts, dsts, e, grunt_rush_FLS1.data.cache, move_cache)
                     --DBG.dbms(combo_def_stats)
                     --print('   combo ratings:  ', combo_rating, combo_att_rating, combo_def_rating)
 
@@ -1472,7 +1472,7 @@ return {
                                     --  stop_eval_hp_chance_zero = max_hp_chance_zero
                                     --},
                                     {},
-                                    cache_this_move
+                                    move_cache
                                 )
                                 counter_table[att_ind][dst_ind] = { counter_stats = counter_stats }
                             else
@@ -1769,7 +1769,7 @@ return {
             return nil
         end
 
-        function grunt_rush_FLS1:high_priority_attack(unit, cfg, cache_this_move)
+        function grunt_rush_FLS1:high_priority_attack(unit, cfg, move_cache)
             local attacks = AH.get_attacks({unit})
             if (not attacks[1]) then return end
 
@@ -1785,7 +1785,7 @@ return {
                     --print('Evaluating attack at: ', attack.dst.x, attack.dst.y, target.id)
 
                     local dst = { attack.dst.x, attack.dst.y }
-                    local att_stats, def_stats = BC.battle_outcome(unit, target, dst, {}, grunt_rush_FLS1.data.cache, cache_this_move)
+                    local att_stats, def_stats = BC.battle_outcome(unit, target, dst, {}, grunt_rush_FLS1.data.cache, move_cache)
                     local rating = BC.attack_rating(unit, target, dst, att_stats, def_stats)
                     --print(rating)
 
@@ -1803,7 +1803,7 @@ return {
             end
         end
 
-        function grunt_rush_FLS1:get_zone_action(cfg, cache_this_move)
+        function grunt_rush_FLS1:get_zone_action(cfg, move_cache)
             -- Find the best action to do in the zone described in 'cfg'
             -- This is all done together in one function, rather than in separate CAs so that
             --  1. Zones get done one at a time (rather than one CA at a time)
@@ -1889,10 +1889,10 @@ return {
             local village_action = nil
             if (not cfg.do_action) or cfg.do_action.villages then
                 if (not cfg.skip_action) or (not cfg.skip_action.villages) then
-                    village_action = grunt_rush_FLS1:zone_action_villages(zone_units, enemies, zone_map, cfg, cache_this_move)
+                    village_action = grunt_rush_FLS1:zone_action_villages(zone_units, enemies, zone_map, cfg, move_cache)
                     if village_action and (village_action.rating > 100) then
                         --print_time(village_action.action)
-                        local attack_action = grunt_rush_FLS1:high_priority_attack(village_action.units[1], cfg, cache_this_move)
+                        local attack_action = grunt_rush_FLS1:high_priority_attack(village_action.units[1], cfg, move_cache)
                         return attack_action or village_action
                     end
                 end
@@ -1902,7 +1902,7 @@ return {
             --print_time('  ' .. cfg.zone_id .. ': attack eval')
             if (not cfg.do_action) or cfg.do_action.attack then
                 if (not cfg.skip_action) or (not cfg.skip_action.attack) then
-                    local action = grunt_rush_FLS1:zone_action_attack(zone_units_attacks, enemies, zone, zone_map, cfg, cache_this_move)
+                    local action = grunt_rush_FLS1:zone_action_attack(zone_units_attacks, enemies, zone, zone_map, cfg, move_cache)
                     if action then
                         --print(action.action)
                         return action
@@ -1953,7 +1953,7 @@ return {
 
             -- Unlike self.data.cache, this is a local variable that
             -- gets reset (and needs to be reset) after each move
-            local cache_this_move = {}
+            local move_cache = {}
 
             -- Skip this if AI is much stronger than enemy
             if grunt_rush_FLS1:full_offensive() then
@@ -1965,7 +1965,7 @@ return {
 
             for i_c,cfg in ipairs(cfgs) do
                 --print_time('zone_control: ', cfg.zone_id)
-                local zone_action = grunt_rush_FLS1:get_zone_action(cfg, cache_this_move)
+                local zone_action = grunt_rush_FLS1:get_zone_action(cfg, move_cache)
 
                 if zone_action then
                     grunt_rush_FLS1.data.zone_action = zone_action
@@ -1986,7 +1986,7 @@ return {
                 -- If this is an attack combo, reorder units to give maximum XP to unit closest to advancing
                 if grunt_rush_FLS1.data.zone_action.enemy and grunt_rush_FLS1.data.zone_action.units[2] then
                     -- Only do this if CTK for overall attack combo is > 0
-                    -- Cannot use cache_this_move here !!!  (because HP change)
+                    -- Cannot use move_cache here !!!  (because HP change)
                     local _, combo_def_stats = BC.attack_combo_eval(
                         grunt_rush_FLS1.data.zone_action.units,
                         grunt_rush_FLS1.data.zone_action.dsts,
@@ -2117,7 +2117,7 @@ return {
             --print('#attacks', #attacks)
             if (not attacks[1]) then return end
 
-            cache_this_move = {}
+            move_cache = {}
 
             -- Go through all possible attacks with poisoners
             local max_rating, best_attacker, best_dst, best_enemy = -9e99, {}
@@ -2154,7 +2154,7 @@ return {
                             stop_eval_average_hp = min_average_hp,
                             stop_eval_hp_chance_zero = max_hp_chance_zero
                         },
-                        cache_this_move
+                        move_cache
                     )
                     --print('Poison counter-attack:', attacker.id, a.dst.x, a.dst.y, counter_stats.hp_chance[0], counter_stats.average_hp)
                     -- Use a condition when damage is too much to be worthwhile
@@ -2255,7 +2255,7 @@ return {
                 return 0
             end
 
-            local cache_this_move = {}
+            local move_cache = {}
 
             -- Retreat any injured units to villages, if possible
             local units_with_moves = AH.get_units_with_moves { side = wesnoth.current.side }
@@ -2288,7 +2288,7 @@ return {
                             local max_hp_chance_zero = 0.5
                             local counter_stats = grunt_rush_FLS1:calc_counter_attack(unit, { r[1], r[2] },
                                 { stop_eval_hp_chance_zero = max_hp_chance_zero },
-                                cache_this_move
+                                move_cache
                             )
 
                             if (not counter_stats.hp_chance)
