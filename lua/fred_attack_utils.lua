@@ -18,8 +18,8 @@ function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_
     -- Input parameters:
     --  @attacker_info, @defender_info: unit_info tables produced by fred_gamestate_utils.single_unit_info()
     --  @att_stats, @def_stats: attack statistics for the two units
-    --  is_village: whether the attack location (for the attacker) is a village
-    --    Set to nil or false if not, to anything is yes (does not have to be a boolean)
+    --  @is_village: whether the hex from which the attacker attacks is a village
+    --    Set to nil or false if not, to anything if it is a village (does not have to be a boolean)
     --
     -- Optional parameters:
     --  @cfg: the optional different weights listed right below
