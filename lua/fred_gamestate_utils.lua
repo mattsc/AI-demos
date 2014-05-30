@@ -131,8 +131,8 @@ function fred_gamestate_utils.unit_info()
     return unit_info
 end
 
-function fred_gamestate_utils.mapstate_reachmaps()
     -- Returns the state of villages and units on the map and reach maps for all the AI's units
+function fred_gamestate_utils.get_gamestate()
     -- These are done together (to save calculation time) because we need to
     -- calculate the unit reaches anyway in order to determine whether they can move away.
     -- There is some redundant information here, in order to increase speed when
