@@ -131,8 +131,12 @@ function fred_gamestate_utils.unit_info()
     return unit_info
 end
 
-    -- Returns the state of villages and units on the map and reach maps for all the AI's units
 function fred_gamestate_utils.get_gamestate()
+    -- Returns:
+    --   - State of villages and units on the map
+    --   - Reach maps for all the AI's units
+    --   - Copies of all the unit proxy tables (needed for attack calculations)
+    --
     -- These are done together (to save calculation time) because we need to
     -- calculate the unit reaches anyway in order to determine whether they can move away.
     -- There is some redundant information here, in order to increase speed when
@@ -148,6 +152,9 @@ function fred_gamestate_utils.get_gamestate()
     --
     -- Sample content of reachmaps:
     --   reachmaps['Vanak'][23][2] = 2                -- map of hexes reachable by unit, returning MP left after getting there
+    --
+    -- Sample content of unit_tables:
+    --   unit_copies['Vanak'] = proxy_table
 
     local mapstate, reachmaps = {}, {}
 
@@ -159,9 +166,11 @@ function fred_gamestate_utils.get_gamestate()
     end
     mapstate.village_map = village_map
 
-    -- Unit locations
+    -- Unit locations and copies
     local unit_locs, leader_locs = {}, {}
     local unit_map_MP, unit_map_noMP, enemy_map = {}, {}, {}
+    local unit_copies = {}
+
     for _,unit in ipairs(wesnoth.get_units()) do
         unit_locs[unit.id] = { unit.x, unit.y }
 
@@ -189,6 +198,8 @@ function fred_gamestate_utils.get_gamestate()
             if (not enemy_map[unit.x]) then enemy_map[unit.x] = {} end
             enemy_map[unit.x][unit.y] = { id = unit.id }
         end
+
+        unit_copies[unit.id] = wesnoth.copy_unit(unit)
     end
 
     mapstate.unit_locs = unit_locs
