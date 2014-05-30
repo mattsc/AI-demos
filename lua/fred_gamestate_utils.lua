@@ -1,3 +1,4 @@
+local AH = wesnoth.dofile "~/add-ons/AI-demos/lua/ai_helper.lua"
 local H = wesnoth.require "lua/helper.lua"
 
 -- Collection of functions to get information about units and the gamestate and
@@ -50,6 +51,7 @@ function fred_gamestate_utils.single_unit_info(unit)
     --                  },
     --    level = 1,
     --    alignment = "chaotic",
+    --    tod_bonus = 0.75,
     --    side = 2
     -- }
 
@@ -66,6 +68,7 @@ function fred_gamestate_utils.single_unit_info(unit)
         max_experience = unit.max_experience,
 
         alignment = unit_cfg.alignment,
+        tod_bonus = AH.get_unit_time_of_day_bonus(unit_cfg.alignment, wesnoth.get_time_of_day().lawful_bonus),
         cost = unit_cfg.cost,
         level = unit_cfg.level
     }
@@ -208,7 +211,7 @@ function fred_gamestate_utils.get_gamestate()
     mapstate.enemy_map = enemy_map
     mapstate.leader_locs = leader_locs
 
-    return mapstate, reachmaps
+    return mapstate, reachmaps, unit_copies
 end
 
 return fred_gamestate_utils
