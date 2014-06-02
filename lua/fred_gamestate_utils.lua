@@ -297,4 +297,18 @@ function fred_gamestate_utils.get_gamestate()
     return mapstate, reachmaps, unit_copies
 end
 
+function fred_gamestate_utils.get_gamedata()
+
+    local mapstate, reachmaps, unit_copies = fred_gamestate_utils.get_gamestate()
+    local gamedata = {
+        unit_info = fred_gamestate_utils.unit_info(),
+        mapstate = mapstate,
+        reachmaps = reachmaps,
+        unit_copies = unit_copies,
+        defense_map = {}
+    }
+
+    return gamedata
+end
+
 return fred_gamestate_utils
