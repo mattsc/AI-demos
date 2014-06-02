@@ -240,6 +240,60 @@ function fred_gamestate_utils.get_gamestate()
     mapstate.enemies = enemies
     mapstate.leaders = leaders
 
+    -- Get enemy attack and reach maps
+    -- These are for max MP of enemy units, and with taking all AI units with MP off the map
+    local enemy_attack_map = {}
+
+    -- Take all own units with MP left off the map (for enemy pathfinding)
+    local extracted_units = {}
+    for _,unit in ipairs(wesnoth.get_units { side = wesnoth.current.side }) do
+        if mapstate.my_units_MP[unit.id] then
+            wesnoth.extract_unit(unit)
+            table.insert(extracted_units, unit)
+        end
+    end
+
+    for enemy_id,loc in pairs(mapstate.enemies) do
+        local attack_range = {}
+
+        local old_moves = unit_copies[enemy_id].moves
+        unit_copies[enemy_id].moves = unit_copies[enemy_id].max_moves
+        local reach = wesnoth.find_reach(unit_copies[enemy_id])
+        unit_copies[enemy_id].moves = old_moves
+
+        reachmaps[enemy_id] = {}
+
+        for _,loc in ipairs(reach) do
+            if (not reachmaps[enemy_id][loc[1]]) then reachmaps[enemy_id][loc[1]] = {} end
+            reachmaps[enemy_id][loc[1]][loc[2]] = loc[3]
+
+            if (not attack_range[loc[1]]) then attack_range[loc[1]] = {} end
+            attack_range[loc[1]][loc[2]] = unit_copies[enemy_id].hitpoints
+
+            for xa,ya in H.adjacent_tiles(loc[1], loc[2]) do
+                if (not attack_range[xa]) then attack_range[xa] = {} end
+                attack_range[xa][ya] = unit_copies[enemy_id].hitpoints
+            end
+        end
+
+        for x,arr in pairs(attack_range) do
+            for y,hitpoints in pairs(arr) do
+                if (not enemy_attack_map[x]) then enemy_attack_map[x] = {} end
+                if (not enemy_attack_map[x][y]) then enemy_attack_map[x][y] = {} end
+
+                enemy_attack_map[x][y].units = (enemy_attack_map[x][y].units or 0) + 1
+                enemy_attack_map[x][y].hitpoints = (enemy_attack_map[x][y].hitpoints or 0) + hitpoints
+                enemy_attack_map[x][y][enemy_id] = true
+            end
+        end
+
+    end
+
+    -- Put the own units with MP back out there
+    for _,unit in ipairs(extracted_units) do wesnoth.put_unit(unit) end
+
+    mapstate.enemy_attack_map = enemy_attack_map
+
     return mapstate, reachmaps, unit_copies
 end
 
