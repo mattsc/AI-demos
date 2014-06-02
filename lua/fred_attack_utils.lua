@@ -132,7 +132,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
         )
     end
 
-    local defender_x, defender_y = mapstate.unit_locs[defender_info.id][1], mapstate.unit_locs[defender_info.id][2]
+    local defender_x, defender_y = mapstate.units[defender_info.id][1], mapstate.units[defender_info.id][2]
     local defender_on_village = mapstate.village_map[defender_x] and mapstate.village_map[defender_x][defender_y]
     local defender_rating = fred_attack_utils.damage_rating_unit(
         defender_info, attacker_infos[1], def_stat, att_stats[1], defender_on_village, cfg
@@ -164,7 +164,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     for _,dst in ipairs(dsts) do
         defense_rating = defense_rating + FGUI.get_unit_defense(
             defender_info.id,
-            mapstate.unit_locs[defender_info.id],
+            mapstate.units[defender_info.id],
             dst[1], dst[2],
             defense_map
         )
@@ -175,8 +175,8 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
 
     -- Get a very small bonus for hexes in between defender and AI leader
     -- 'relative_distances' is larger for attack hexes closer to the side leader (possible values: -1 .. 1)
-    if mapstate.leader_locs[attacker_infos[1].side] then
-        local leader_x, leader_y = mapstate.leader_locs[attacker_infos[1].side][1], mapstate.leader_locs[attacker_infos[1].side][2]
+    if mapstate.leaders[attacker_infos[1].side] then
+        local leader_x, leader_y = mapstate.leaders[attacker_infos[1].side][1], mapstate.leaders[attacker_infos[1].side][2]
 
         local rel_dist_rating = 0.
         for _,dst in ipairs(dsts) do
@@ -192,10 +192,10 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
 
     -- Add a very small penalty for attack hexes occupied by other own units that can move out of the way
     -- Note: it must be checked previously that the unit on the hex can move away,
-    --    that is we only check mapstate.unit_map_MP here
+    --    that is we only check mapstate.my_unit_map_MP here
     for i,dst in ipairs(dsts) do
-        if mapstate.unit_map_MP[dst[1]] and mapstate.unit_map_MP[dst[1]][dst[2]] then
-            if (mapstate.unit_map_MP[dst[1]][dst[2]].id ~= attacker_infos[i].id) then
+        if mapstate.my_unit_map_MP[dst[1]] and mapstate.my_unit_map_MP[dst[1]][dst[2]] then
+            if (mapstate.my_unit_map_MP[dst[1]][dst[2]].id ~= attacker_infos[i].id) then
                 extra_rating = extra_rating - occupied_hex_penalty
             end
         end
@@ -226,13 +226,13 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender, dst, attacker
 
     local defender_defense = FGUI.get_unit_defense(
         defender_info.id,
-        mapstate.unit_locs[defender_info.id],
-        mapstate.unit_locs[defender_info.id][1], mapstate.unit_locs[defender_info.id][2],
+        mapstate.units[defender_info.id],
+        mapstate.units[defender_info.id][1], mapstate.units[defender_info.id][2],
         defense_map
     )
     local attacker_defense = FGUI.get_unit_defense(
         attacker_info.id,
-        mapstate.unit_locs[attacker_info.id],
+        mapstate.units[attacker_info.id],
         dst[1], dst[2],
         defense_map
     )
