@@ -24,35 +24,36 @@ function fred_gamestate_utils.single_unit_info(unit)
     --
     -- Sample output:
     -- {
-    --    canrecruit = false,
-    --    cost = 12,
-    --    id = "Orcish Grunt-30",
-    --    max_hitpoints = 44,
-    --    max_experience = 42,
-    --    hitpoints = 44,
-    --    experience = 0,
-    --    resistances = {
-    --                          blade = 1,
-    --                          arcane = 1,
-    --                          pierce = 1,
-    --                          fire = 1,
-    --                          impact = 1,
-    --                          cold = 1
-    --                      },
-    --    attacks = {
-    --                      [1] = {
-    --                                    number = 2,
-    --                                    type = "blade",
-    --                                    name = "sword",
-    --                                    icon = "attacks/sword-orcish.png",
-    --                                    range = "melee",
-    --                                    damage = 10
-    --                                }
-    --                  },
-    --    level = 1,
-    --    alignment = "chaotic",
-    --    tod_bonus = 0.75,
-    --    side = 2
+    --     canrecruit = false,
+    --     tod_bonus = 1,
+    --     id = "Great Troll-11",
+    --     max_hitpoints = 87,
+    --     max_experience = 150,
+    --     regenerate = true,
+    --     hitpoints = 87,
+    --     attacks = {
+    --                       [1] = {
+    --                                     number = 3,
+    --                                     type = "impact",
+    --                                     name = "hammer",
+    --                                     icon = "attacks/hammer-troll.png",
+    --                                     range = "melee",
+    --                                     damage = 18
+    --                                 }
+    --                   },
+    --     experience = 0,
+    --     resistances = {
+    --                           blade = 0.8,
+    --                           arcane = 1.1,
+    --                           pierce = 0.8,
+    --                           fire = 1,
+    --                           impact = 1,
+    --                           cold = 1
+    --                       },
+    --     cost = 48,
+    --     level = 3,
+    --     alignment = "chaotic",
+    --     side = 1
     -- }
 
     local unit_cfg = unit.__cfg
@@ -73,8 +74,12 @@ function fred_gamestate_utils.single_unit_info(unit)
         level = unit_cfg.level
     }
 
-    if wesnoth.unit_ability(unit, 'regenerate') then
-        single_unit_info.regenerate = true
+    local abilities = H.get_child(unit.__cfg, "abilities")
+
+    if abilities then
+        for _,ability in ipairs(abilities) do
+            single_unit_info[ability[1]] = true
+        end
     end
 
     single_unit_info.attacks = {}
