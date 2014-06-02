@@ -425,4 +425,195 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender, tmp_
     return att_stats, def_stats[#attacker_infos], attacker_infos, dsts, rating, attacker_rating, defender_rating, extra_rating
 end
 
+function fred_attack_utils.get_attack_combos(attackers, defender, reachmaps, get_strongest_attack, gamedata, move_cache)
+    -- Get all attack combinations of @attackers on @defender
+    -- OR: get what is considered the strongest of those attacks (approximately)
+    -- The former is in order to get all attack combos (but order of individual attacks doesn't matter),
+    -- the latter is for a quick-and-dirty search for, for example, the strongest counter attack,
+    -- when a full attack combination evaluation is too expensive.  The strongest attack is defined
+    -- as the one which has the largest sum of damage done to the defender
+    --
+    -- Required inputs:
+    -- @attackers: array of attacker ids and locations: { id1 = { x1 , y1 }, id2 = ... }
+    -- @defender: defender id and location: { id = { x, y } }
+    --
+    -- Optional inputs:
+    -- @reachmaps: reachmaps for the attackers in the form as returned by fred_gamestate_utils.get_gamestate()
+    --   - This is _much_ faster if reachmaps is given; should be done for all attack combos for the side
+    --     Only when the result depends on the new map situation (such as for counter attacks) should
+    --     it be calculated here.  If reachmaps are not given, @gamedata must be provided
+    --   - Important: for units on the AI side, reachmaps must NOT included hexes with units that
+    --     cannot move out of the way
+    -- @get_strongest_attack (boolean): if set to 'true', don't return all attacks, but only the
+    --   one deemed strongest as described above.  If this is set, @gamedata and @move_cache nust be provided
+    --
+    -- Return value: attack combinations (either a single one or an array) of form { src = dst } :
+    -- {
+    --     [21007] = 19006,
+    --     [19003] = 19007
+    -- }
+
+    -- If reachmaps is not given, we need to calculate them
+    if (not reachmaps) then
+        reachmaps = {}
+
+        for attacker_id,_ in pairs(attackers) do
+            -- For sides other than the current, we always use max_moves.
+            -- For the current side, we always use current moves.
+            local old_moves
+            if (gamedata.unit_info[attacker_id].side ~= wesnoth.current.side) then
+                old_moves = gamedata.unit_copies[attacker_id].moves
+                gamedata.unit_copies[attacker_id].moves = gamedata.unit_copies[attacker_id].max_moves
+            end
+
+            local reach = wesnoth.find_reach(gamedata.unit_copies[attacker_id])
+
+            reachmaps[attacker_id] = {}
+            for _,r in ipairs(reach) do
+                if (not reachmaps[attacker_id][r[1]]) then reachmaps[attacker_id][r[1]] = {} end
+                reachmaps[attacker_id][r[1]][r[2]] = r[3]
+            end
+
+            if (gamedata.unit_info[attacker_id].side ~= wesnoth.current.side) then
+                gamedata.unit_copies[attacker_id].moves = old_moves
+            end
+        end
+
+        -- Eliminate hexes with other units that cannot move out of the way
+        for id,reachmap in pairs(reachmaps) do
+            for id_noMP,loc in pairs(gamedata.mapstate.my_units_noMP) do
+                if (id ~= id_noMP) then
+                    if reachmap[loc[1]] then reachmap[loc[1]][loc[2]] = nil end
+                end
+            end
+        end
+    end
+
+    ----- First, find which units in @attackers can get to hexes next to @defender -----
+    local defender_id = next(defender)
+    local defender_loc = defender[defender_id]
+
+    local defender_proxy  -- If attack rating is needed, we need the defender proxy unit, not just the unit copy
+    if get_strongest_attack then
+        defender_proxy = wesnoth.get_unit(defender_loc[1], defender_loc[2])
+    end
+
+    local tmp_attacks_dst_src = {}
+
+    for xa,ya in H.adjacent_tiles(defender_loc[1], defender_loc[2]) do
+        local dst = xa * 1000 + ya
+
+        for attacker_id,attacker_loc in pairs(attackers) do
+            if reachmaps[attacker_id][xa] and reachmaps[attacker_id][xa][ya] then
+                local _, rating
+                if get_strongest_attack then
+                    local att_stats, def_stats = fred_attack_utils.battle_outcome(
+                        gamedata.unit_copies[attacker_id], defender_proxy, { xa, ya },
+                        gamedata.unit_info[attacker_id], gamedata.unit_info[defender_id],
+                        gamedata.mapstate, gamedata.defense_map, move_cache
+                    )
+
+                    _,_,rating = fred_attack_utils.attack_rating(
+                        { gamedata.unit_info[attacker_id] }, gamedata.unit_info[defender_id], { { xa, ya } },
+                        { att_stats }, def_stats,
+                        gamedata.mapstate, gamedata.defense_map
+                    )
+                end
+
+                if (not tmp_attacks_dst_src[dst]) then
+                    tmp_attacks_dst_src[dst] = {
+                        { src = attacker_loc[1] * 1000 + attacker_loc[2], rating = rating },
+                        dst = dst
+                    }
+                else
+                    table.insert(tmp_attacks_dst_src[dst], { src = attacker_loc[1] * 1000 + attacker_loc[2], rating = rating })
+                end
+            end
+        end
+    end
+
+    -- If no attacks are found, return empty table
+    if (not next(tmp_attacks_dst_src)) then return {} end
+
+    -- Because of the way how the recursive function below works, we want this to
+    -- be an array, not a table with dsts as keys
+    local attacks_dst_src = {}
+    for _,dst in pairs(tmp_attacks_dst_src) do
+        table.insert(attacks_dst_src, dst)
+    end
+
+    ----- Now go through all the attack combinations -----
+    -- and either collect them all or find the "strongest" attack
+    local all_combos, combo, best_combo = {}, {}
+    local num_hexes = #attacks_dst_src
+    local max_rating, rating, hex = -9e99, 0, 0
+
+    -- This is the recursive function adding units to each hex
+    -- It is defined here so that we can use the variables above by closure
+    local function add_attacks()
+        hex = hex + 1  -- The hex counter
+
+        for _,attack in ipairs(attacks_dst_src[hex]) do  -- Go through all the attacks (src and rating) for each hex
+            if (not combo[attack.src]) then  -- If that unit has not been used yet, add it
+                combo[attack.src] = attacks_dst_src[hex].dst
+
+                if get_strongest_attack then
+                    rating = rating + attack.rating  -- Rating is simply the sum of the individual ratings
+                end
+
+                if (hex < num_hexes) then
+                    add_attacks()
+                else
+                    if get_strongest_attack then
+                        if (rating > max_rating) then
+                            max_rating = rating
+                            best_combo = {}
+                            for k,v in pairs(combo) do best_combo[k] = v end
+                        end
+                    else
+                        local new_combo = {}
+                        for k,v in pairs(combo) do new_combo[k] = v end
+                        table.insert(all_combos, new_combo)
+                    end
+                end
+
+                if get_strongest_attack then
+                    rating = rating - attack.rating
+                end
+
+                combo[attack.src] = nil
+            end
+        end
+
+        -- We need to call this once more, to account for the "no unit on this hex" case
+        -- Yes, this is a code duplication (done so for simplicity and speed reasons)
+        if (hex < num_hexes) then
+            add_attacks()
+        else
+            if get_strongest_attack then
+                if (rating > max_rating) then
+                    max_rating = rating
+                    best_combo = {}
+                    for k,v in pairs(combo) do best_combo[k] = v end
+                end
+            else
+                local new_combo = {}
+                for k,v in pairs(combo) do new_combo[k] = v end
+                table.insert(all_combos, new_combo)
+            end
+        end
+        hex = hex - 1
+    end
+
+    add_attacks()
+
+    if get_strongest_attack then
+        return best_combo
+    else
+        -- The last combo is always the empty combo -> remove it
+        all_combos[#all_combos] = nil
+        return all_combos
+    end
+end
+
 return fred_attack_utils
