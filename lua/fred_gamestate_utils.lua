@@ -153,10 +153,10 @@ function fred_gamestate_utils.get_gamestate()
     -- Sample content of mapstate:
     --   village_map[12][2].owner = 1                 -- map of all villages, returning owner side (nil for unowned)
     --   enemy_map[19][21].id = "Bad Orc"             -- map of all enemy units, returning id
-    --   unit_map_MP[19][4].id = "Vanak"              -- map of all own units that can move away (not just have MP left)
-    --   unit_map_noMP[24][7].id = "Orcish Grunt-27"  -- map of all own units that cannot move away any more
-    --   leader_locs[1] = { 19, 4 }                   -- locations of leaders of all sides indexed by side number
-    --   unit_locs['Orcish Grunt-30'] = { 21, 9 }     -- locations of all units indexed by unit id
+    --   my_unit_map_MP[19][4].id = "Vanak"              -- map of all own units that can move away (not just have MP left)
+    --   my_unit_map_noMP[24][7].id = "Orcish Grunt-27"  -- map of all own units that cannot move away any more
+    --   leaders[1] = { 19, 4 }                   -- locations of leaders of all sides indexed by side number
+    --   units['Orcish Grunt-30'] = { 21, 9 }     -- locations of all units indexed by unit id
     --
     -- Sample content of reachmaps:
     --   reachmaps['Vanak'][23][2] = 2                -- map of hexes reachable by unit, returning MP left after getting there
@@ -175,18 +175,23 @@ function fred_gamestate_utils.get_gamestate()
     mapstate.village_map = village_map
 
     -- Unit locations and copies
-    local unit_locs, leader_locs = {}, {}
-    local unit_map_MP, unit_map_noMP, enemy_map = {}, {}, {}
+    local units, leaders = {}, {}
+    local my_unit_map, my_unit_map_MP, my_unit_map_noMP, enemy_map = {}, {}, {}, {}
+    local my_units, my_units_MP, my_units_noMP, enemies = {}, {}, {}, {}
     local unit_copies = {}
 
     for _,unit in ipairs(wesnoth.get_units()) do
-        unit_locs[unit.id] = { unit.x, unit.y }
+        units[unit.id] = { unit.x, unit.y }
 
         if unit.canrecruit then
-            leader_locs[unit.side] = { unit.x, unit.y }
+            leaders[unit.side] = { unit.x, unit.y }
         end
 
         if (unit.side == wesnoth.current.side) then
+            if (not my_unit_map[unit.x]) then my_unit_map[unit.x] = {} end
+            my_unit_map[unit.x][unit.y] = { id = unit.id }
+            my_units[unit.id] = { unit.x, unit.y }
+
             local reach = wesnoth.find_reach(unit)
 
             reachmaps[unit.id] = {}
@@ -196,25 +201,44 @@ function fred_gamestate_utils.get_gamestate()
             end
 
             if (#reach > 1) then
-                if (not unit_map_MP[unit.x]) then unit_map_MP[unit.x] = {} end
-                unit_map_MP[unit.x][unit.y] = { id = unit.id }
+                if (not my_unit_map_MP[unit.x]) then my_unit_map_MP[unit.x] = {} end
+                my_unit_map_MP[unit.x][unit.y] = { id = unit.id }
+                my_units_MP[unit.id] = { unit.x, unit.y }
             else
-                if (not unit_map_noMP[unit.x]) then unit_map_noMP[unit.x] = {} end
-                unit_map_noMP[unit.x][unit.y] = { id = unit.id }
+                if (not my_unit_map_noMP[unit.x]) then my_unit_map_noMP[unit.x] = {} end
+                my_unit_map_noMP[unit.x][unit.y] = { id = unit.id }
+                my_units_noMP[unit.id] = { unit.x, unit.y }
             end
         else
-            if (not enemy_map[unit.x]) then enemy_map[unit.x] = {} end
-            enemy_map[unit.x][unit.y] = { id = unit.id }
+            if wesnoth.is_enemy(unit.side, wesnoth.current.side) then
+                if (not enemy_map[unit.x]) then enemy_map[unit.x] = {} end
+                enemy_map[unit.x][unit.y] = { id = unit.id }
+                enemies[unit.id] = { unit.x, unit.y }
+            end
         end
 
         unit_copies[unit.id] = wesnoth.copy_unit(unit)
     end
 
-    mapstate.unit_locs = unit_locs
-    mapstate.unit_map_MP = unit_map_MP
-    mapstate.unit_map_noMP = unit_map_noMP
+    -- reachmaps: eliminate hexes with other units that cannot move out of the way
+    for id,reachmap in pairs(reachmaps) do
+        for id_noMP,loc in pairs(my_units_noMP) do
+            if (id ~= id_noMP) then
+                if reachmap[loc[1]] then reachmap[loc[1]][loc[2]] = nil end
+            end
+        end
+    end
+
+    mapstate.units = units
+    mapstate.my_unit_map = my_unit_map
+    mapstate.my_unit_map_MP = my_unit_map_MP
+    mapstate.my_unit_map_noMP = my_unit_map_noMP
     mapstate.enemy_map = enemy_map
-    mapstate.leader_locs = leader_locs
+    mapstate.my_units = my_units
+    mapstate.my_units_MP = my_units_MP
+    mapstate.my_units_noMP = my_units_noMP
+    mapstate.enemies = enemies
+    mapstate.leaders = leaders
 
     return mapstate, reachmaps, unit_copies
 end
