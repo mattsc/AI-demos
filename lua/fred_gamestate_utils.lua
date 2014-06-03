@@ -246,11 +246,10 @@ function fred_gamestate_utils.get_gamestate()
 
     -- Take all own units with MP left off the map (for enemy pathfinding)
     local extracted_units = {}
-    for _,unit in ipairs(wesnoth.get_units { side = wesnoth.current.side }) do
-        if mapstate.my_units_MP[unit.id] then
-            wesnoth.extract_unit(unit)
-            table.insert(extracted_units, unit)
-        end
+    for id,loc in pairs(mapstate.my_units_MP) do
+        local unit = wesnoth.get_unit(loc[1], loc[2])
+        wesnoth.extract_unit(unit)
+        table.insert(extracted_units, unit)
     end
 
     for enemy_id,loc in pairs(mapstate.enemies) do
