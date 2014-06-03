@@ -7,6 +7,8 @@ return {
         local W = H.set_wml_action_metatable {}
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
         local BC = wesnoth.require "~/add-ons/AI-demos/lua/battle_calcs.lua"
+        local FGU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils.lua"
+        local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
         local LS = wesnoth.require "lua/location_set.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
         local R = wesnoth.require "~/add-ons/AI-demos/lua/retreat.lua"
@@ -238,16 +240,11 @@ return {
                 hold = { },
             }
 
-            -- This way it will be easy to change the priorities on the fly later:
-
             local sorted_cfgs = {}
             table.insert(sorted_cfgs, cfg_center)
             table.insert(sorted_cfgs, cfg_left)
             table.insert(sorted_cfgs, cfg_right)
 
-
-            -- The following is placeholder code for later, when we might want to
-            -- set up the priority of the zones dynamically
             -- Now find how many enemies can get to each zone
             local my_units = AH.get_live_units { side = wesnoth.current.side }
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' } [1]
@@ -762,94 +759,23 @@ return {
             end
         end
 
-        function grunt_rush_FLS1:calc_counter_attack(unit, hex, cfg, move_cache)
+        function grunt_rush_FLS1:calc_counter_attack(target, gamedata, move_cache)
             -- Get counter-attack results a unit might experience next turn if it moved to 'hex'
-            -- Optional input cfg: config table with following optional fields:
-            --   - approx (boolean): if set, use the approximate method instead of full calculation
-            --   - enemies (unit table): use these enemies (instead of all enemies)
-            --          to calculate counter attack damage
-            --   - stop_eval_average_hp=0 (non-negative number): stop evaluating other attack combinations
-            --       when average HP <= this value has been found. This is "bad enough".
-            --   - stop_eval_min_hp=-1 (number): stop evaluating other attack combinations
-            --       when minimum HP <= this value has been found. This is "bad enough".
-            --       The default is -1 because not all min_hp == 0 cases are the same (the CTK can
-            --       be different). So we don't want to stop checking other attack combos, but since
-            --       min_hp >= 0, any negative number will do as default (doesn't have to be -inf)
-            --   - stop_eval_hp_chance_zero=1 (number <= 1): stop evaluating other attack combinations
-            --       when hp_chance[0] >= this value has been found. This is "bad enough".
-            --
-            -- Returns a table similar to def_stats from wesnoth.simulate_combat,
-            -- but with added and/or missing fields, depending on the parameters
-            --  - hp_chance, slowed and poisoned are not included for approximate method
-            --  - min_hp field added
-            --  - TODO: flags to be added in some situations
 
-            --print_time('Start calc_counter_attack', unit.id, hex[1], hex[2])
-            cfg = cfg or {}
+            local target_id, target_loc = next(target)
+            local target_proxy = wesnoth.get_unit(target_loc[1], target_loc[2])
 
-            -- The evaluation loop cutoff criteria
-            -- Note: it's *not* a typo that one is 0 and the other -1
-            cfg.stop_eval_average_hp = cfg.stop_eval_average_hp or 0
-            cfg.stop_eval_min_hp = cfg.stop_eval_min_hp or -1
-            cfg.stop_eval_hp_chance_zero = cfg.stop_eval_hp_chance_zero or 1
+            --print_time('Start calc_counter_attack on:', next(target))
 
-            -- Just in case a negative number gets passed for stop_eval_average_hp
-            -- By contrast, stop_eval_min_hp may be negative (to allow for it to be 0 and continue)
-            if (cfg.stop_eval_average_hp < 0) then cfg.stop_eval_average_hp = 0 end
+            -- The target here is the AI unit.  It might not be in its original location,
+            -- but it is on the map and the information passed in target is where to calculate the attack.
+            -- The attackers are the enemies.  They have not been moved.
 
-            -- Also, the maximum sensible value against which to check stop_eval_hp_chance_zero is 1
-            if (cfg.stop_eval_hp_chance_zero > 1) then cfg.stop_eval_hp_chance_zero = 1 end
 
-            -- Get enemy units
-            local enemies
-            -- Use only transferred enemies, if cfg.enemies is set
-            if cfg.enemies then
-                enemies = cfg.enemies
-                --print('using transferred enemies', #enemies)
-            else  -- otherwise use all enemy units
-                enemies = AH.get_live_units {
-                    { "filter_side", {{"enemy_of", { side = unit.side } }} }
-                }
-                --print('finding all enemies', #enemies)
-            end
-
-            -- Need to take units with MP off the map for enemy path finding
-            local units_MP = AH.get_units_with_moves { side = unit.side }
-
-            -- Take all units with MP left off the map, except the unit under investigation itself
-            for i,u in ipairs(units_MP) do
-                if (u.x ~= unit.x) or (u.y ~= unit.y) then
-                    wesnoth.extract_unit(u)
-                end
-            end
-
-            -- Now we put our unit into the position of interest
-            -- (and remove any unit that might already be there)
-            local org_hex = { unit.x, unit.y }
-            local unit_in_way = {}
-            if (org_hex[1] ~= hex[1]) or (org_hex[2] ~= hex[2]) then
-                unit_in_way = wesnoth.get_unit(hex[1], hex[2])
-                if unit_in_way then wesnoth.extract_unit(unit_in_way) end
-                wesnoth.put_unit(hex[1], hex[2], unit)
-            end
-
-            -- Get all possible attack combinations
-            -- Restrict to a maximum of 1000 combos for now
-            -- TODO: optimize this number, possibly make it variable depending on the situation
-            --print_time('get_attack_combos')
-
-            local counter_attack = BC.approx_best_attack_combo(enemies, unit, grunt_rush_FLS1.data.cache, move_cache)
-
-            -- Put units back to where they were
-            if (org_hex[1] ~= hex[1]) or (org_hex[2] ~= hex[2]) then
-                wesnoth.put_unit(org_hex[1], org_hex[2], unit)
-                if unit_in_way then wesnoth.put_unit(hex[1], hex[2], unit_in_way) end
-            end
-            for i,u in ipairs(units_MP) do
-                if (u.x ~= unit.x) or (u.y ~= unit.y) then
-                    wesnoth.put_unit(u)
-                end
-            end
+            local counter_attack = FAU.get_attack_combos(
+                gamedata.mapstate.enemies, target,
+                nil, true, gamedata, move_cache
+            )
 
             -- If no attacks are found, we're done; return stats of unit as is
             if (not next(counter_attack)) then
@@ -857,89 +783,57 @@ return {
                 hp_chance[unit.hitpoints] = 1
                 hp_chance[0] = 0  -- hp_chance[0] is always assumed to be included, even when 0
                 return {
-                    average_hp = unit.hitpoints,
-                    min_hp = unit.hitpoints,
+                    average_hp = target_proxy.hitpoints,
+                    min_hp = target_proxy.hitpoints,
                     hp_chance = hp_chance,
                     slowed = 0,
-                    poisoned = 0
+                    poisoned = 0,
+                    rating = 0,
+                    att_rating = 0,
+                    def_rating = 0
                 }
             end
 
-            local old_x, old_y = unit.x, unit.y
-            wesnoth.extract_unit(unit)
-            unit.x, unit.y = hex[1], hex[2]
-
-            local def_stats
-
-            -- Get the attack combo outcome. We're really only interested in combo_def_stats
-            if cfg.approx then  -- Approximate method for average HP
-                local total_damage, max_damage = 0, 0
-                for j,att in ipairs(combo) do
-                    local dst = { math.floor(att.dst / 1000), att.dst % 1000 }
-                    local att_stats, def_stats =
-                        BC.battle_outcome(enemies_map[att.src], unit, dst, {}, grunt_rush_FLS1.data.cache, move_cache)
-
-                    total_damage = total_damage + unit.hitpoints - def_stats.average_hp
-
-                    -- Also get the maximum damage possible
-                    local min_hp = unit.hitpoints
-                    for hp, perc in pairs(def_stats.hp_chance) do
-                        if (perc > 0) and (hp < min_hp) then min_hp = hp end
-                    end
-                    --print("min_hp", min_hp)
-                    max_damage = max_damage + unit.hitpoints - min_hp
-                end
-                --print("total_damage", total_damage)
-                --print("max_damage", max_damage)
-
-                -- Rating is simply the (negative) average hitpoint outcome
-                local av_hp = unit.hitpoints - total_damage
-                if (av_hp < 0) then av_hp = 0 end
-
-                local rating = - av_hp
-                --print(i, av_hp, ' -->', rating)
-
-                if (rating > max_rating) then
-                    max_rating = rating
-                    def_stats.average_hp = av_hp
-
-                    -- Also add the minimum possible HP outcome to the table
-                    local min_hp = unit.hitpoints - max_damage
-                    if (min_hp < 0) then min_hp = 0 end
-                    def_stats.min_hp = min_hp
-                end
-            else  -- Full calculation of combo counter attack stats
-                local atts, dsts = {}, {}
-                for src,dst in pairs(counter_attack) do
-                    table.insert(atts, wesnoth.get_unit(math.floor(src / 1000), src % 1000))
-                    table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
-                end
-
-                local combo_att_stats, combo_def_stats, sorted_atts, sorted_dsts, rating, att_rating, def_rating =
-                    BC.attack_combo_eval(atts, dsts, unit, grunt_rush_FLS1.data.cache, move_cache)
-                def_stats = combo_def_stats
-                combo_def_stats.rating = rating
-                combo_def_stats.def_rating = def_rating
-                combo_def_stats.att_rating = att_rating
-
-                -- Add min_hp field to worst_def_stats
-                local min_hp = 0
-                for hp = 0,unit.hitpoints do
-                    if combo_def_stats.hp_chance[hp] and (combo_def_stats.hp_chance[hp] > 0) then
-                        min_hp = hp
-                        break
-                    end
-                end
-
-                def_stats.min_hp = min_hp
+            local enemy_map = {}
+            for id,loc in pairs(gamedata.mapstate.enemies) do
+                enemy_map[loc[1] * 1000 + loc[2]] = id
             end
 
-            unit.x, unit.y = old_x, old_y
-            wesnoth.put_unit(unit)
 
-            --print_time('  End calc_counter_attack', unit.id, hex[1], hex[2])
+            local attacker_copies, dsts, attacker_infos = {}, {}, {}
+            for src,dst in pairs(counter_attack) do
+                table.insert(attacker_copies, gamedata.unit_copies[enemy_map[src]])
+                table.insert(attacker_infos, gamedata.unit_info[enemy_map[src]])
+                table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
+            end
 
-            return def_stats
+            local combo_att_stats, combo_def_stats, sorted_atts, sorted_dsts, rating, att_rating, def_rating =
+                FAU.attack_combo_eval(
+                    attacker_copies, target_proxy, dsts,
+                    attacker_infos, gamedata.unit_info[target_id],
+                    gamedata.mapstate, gamedata.unit_copies, gamedata.defense_map, move_cache
+                )
+
+            combo_def_stats.rating = rating
+            combo_def_stats.def_rating = def_rating
+            combo_def_stats.att_rating = att_rating
+
+            -- Add min_hp field
+            local min_hp = 0
+            for hp = 0,target_proxy.hitpoints do
+                if combo_def_stats.hp_chance[hp] and (combo_def_stats.hp_chance[hp] > 0) then
+                    min_hp = hp
+                    break
+                end
+            end
+            combo_def_stats.min_hp = min_hp
+
+            --DBG.dbms(combo_def_stats)
+            --print('   combo ratings:  ', rating, att_rating, def_rating)
+
+            --print_time('  End calc_counter_attack', next(target))
+
+            return combo_def_stats
         end
 
         ------ Stats at beginning of turn -----------
@@ -1127,7 +1021,7 @@ return {
                     end
 
                     -- Rate all villages that can be reached and are unoccupied by other units
-                    if (cost <= u.moves) and (not unit_in_way) then
+                    if xxxxxxxxxxxxxxx and (cost <= u.moves) and (not unit_in_way) then
                         --print('Can reach:', u.id, v[1], v[2], cost)
 
                         local max_hp_chance_zero = 0.5
@@ -1281,96 +1175,72 @@ return {
             end
         end
 
-        function grunt_rush_FLS1:zone_action_attack(units, enemies, zone, zone_map, cfg, move_cache)
-            --print_time(cfg.zone_id, 'attack')
-
-            -- Attackers include the leader but only if he is on his
-            -- keep, in order to prevent him from wandering off
-            local attackers = {}
-            local leader_map = {}
-            for i,u in ipairs(units) do
-                if u.canrecruit then
-                    leader_map[u.x * 1000 + u.y] = true
-                    if wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
-                        table.insert(attackers, u)
-                    end
-                else
-                    table.insert(attackers, u)
-                end
-            end
-            --print_time('#attackers', #attackers)
+        function grunt_rush_FLS1:zone_action_attack(zonedata, gamedata, move_cache)
+            --print_time(zonedata.cfg.zone_id, 'attack')
 
             local targets = {}
             -- If cfg.attack.use_enemies_in_reach is set, we use all enemies that
             -- can get to the zone (Note: this should only be used for small zones,
             -- such as that consisting only of the AI leader position, otherwise it
             -- might be very slow!!!)
-            if cfg.attack and cfg.attack.use_enemies_in_reach then
-                for i,e in ipairs(enemies) do
-                    for j,hex in ipairs(zone) do
-                        local path, cost = wesnoth.find_path(e, hex[1], hex[2], { ignore_units = true })
-                        local movecost = wesnoth.unit_movement_cost(e, wesnoth.get_terrain(hex[1], hex[2]))
-                        if (cost <= e.max_moves + movecost) then
-                            table.insert(targets, e)
-                            break  -- so that the same unit does not get added several times
+            if zonedata.cfg.attack and zonedata.cfg.attack.use_enemies_in_reach then
+                for id,loc in pairs(gamedata.mapstate.enemies) do
+                    for j,hex in ipairs(zonedata.zone) do
+                        if gamedata.mapstate.enemy_attack_map[hex[1]]
+                            and gamedata.mapstate.enemy_attack_map[hex[1]][hex[2]]
+                            and gamedata.mapstate.enemy_attack_map[hex[1]][hex[2]][id]
+                        then
+                            local target = {}
+                            target[id] = loc
+                            table.insert(targets, target)
+                            break
                         end
                     end
                 end
             -- Otherwise use all units inside the zone
             else
-                for i,e in ipairs(enemies) do
-                    if zone_map:get(e.x, e.y) then
-                        table.insert(targets, e)
+                for id,loc in pairs(gamedata.mapstate.enemies) do
+                    if wesnoth.match_unit(gamedata.unit_copies[id], zonedata.cfg.unit_filter) then
+                        local target = {}
+                        target[id] = loc
+                        table.insert(targets, target)
                     end
                 end
             end
-            --print_time('#enemies, #targets', #enemies, #targets)
 
-            -- Then we check for poison attacks
-            --print_time('    poison attack eval')
-            local poisoners, poisoner_map = {}, LS.create()
-            for i,a in ipairs(attackers) do
-                local is_poisoner = AH.has_weapon_special(a, 'poison')
-                if is_poisoner then
-                    table.insert(poisoners, a)
-                    poisoner_map:insert(a.x, a.y, true)
-                end
-            end
-            --print_time('#poisoners', #poisoners)
-
-            --if (poisoners[1]) then
-            --    local action = grunt_rush_FLS1:spread_poison_eval(poisoners, targets, cfg)
-            --    if action then return action end
-            --end
-
-            -- Also want an 'attackers' map, indexed by position (for speed reasons)
-            --print_time('    standard attack eval')
             local attacker_map = {}
-            for i,u in ipairs(attackers) do attacker_map[u.x * 1000 + u.y] = u end
+            for id,loc in pairs(zonedata.zone_units_attacks) do
+                attacker_map[loc[1] * 1000 + loc[2]] = id
+            end
 
-            local max_rating, best_attackers, best_dsts, best_enemy = -9e99, {}, {}, {}
-            local counter_table = {}  -- Counter-attacks are very expensive, store to avoid duplication
+            local combo_ratings = {}
+            for _,target in pairs(targets) do
+                local target_id,target_loc = next(target)
+                local target_proxy = wesnoth.get_unit(target_loc[1], target_loc[2])
 
-            for i,e in ipairs(targets) do
                 local is_trappable_enemy = true
-                if wesnoth.unit_ability(e, 'skirmisher') then
+                if gamedata.unit_info[target_id].skirmisher then
                     is_trappable_enemy = false
                 end
+                --print(target_id, '  trappable:', is_trappable_enemy)
 
                 -- How much more valuable do we consider the enemy units than out own
-                local enemy_worth = 1.2 -- we are Northerners, after all
-                if cfg.attack and cfg.attack.enemy_worth then
-                    enemy_worth = cfg.attack.enemy_worth
+                local enemy_worth = 1.2 -- We are Northerners, after all
+                if zonedata.cfg.attack and zonedata.cfg.attack.enemy_worth then
+                    enemy_worth = zonedata.cfg.attack.enemy_worth
                 end
-                if e.canrecruit then enemy_worth = enemy_worth * 3 end
-                --print_time('\n', i, e.id, enemy_worth)
+                if gamedata.unit_info[target_id].canrecruit then enemy_worth = enemy_worth * 3 end
+                --print_time('\n', target_id, enemy_worth)
 
-                local attack_combos = AH.get_attack_combos(attackers, e, { include_occupied = true })
-                --DBG.dbms(attack_combos)
+                local attack_combos = FAU.get_attack_combos(
+                    zonedata.zone_units_attacks, target, gamedata.reachmaps
+                )
                 --print_time('#attack_combos', #attack_combos)
 
-                local enemy_on_village = wesnoth.get_terrain_info(wesnoth.get_terrain(e.x, e.y)).village
-                local enemy_cost = wesnoth.unit_types[e.type].cost
+                local enemy_on_village = gamedata.mapstate.village_map[target_loc[1]]
+                    and gamedata.mapstate.village_map[target_loc[1]][target_loc[2]]
+                local enemy_cost = gamedata.unit_info[target_id].cost
+                --print('enemy_cost, enemy_on_village', enemy_cost, enemy_on_village)
 
                 for j,combo in ipairs(attack_combos) do
                     --print_time('combo ' .. j)
@@ -1378,242 +1248,288 @@ return {
 
                     local attempt_trapping = is_trappable_enemy
 
-                    local atts, dsts = {}, {}
-                    for dst,src in pairs(combo) do
-                        table.insert(atts, attacker_map[src])
+                    local attacker_copies, dsts, attacker_infos = {}, {}, {}
+                    for src,dst in pairs(combo) do
+                        table.insert(attacker_copies, gamedata.unit_copies[attacker_map[src]])
+                        table.insert(attacker_infos, gamedata.unit_info[attacker_map[src]])
                         table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
                     end
 
+
                     local combo_att_stats, combo_def_stats, sorted_atts, sorted_dsts,
                         combo_rating, combo_att_rating, combo_def_rating =
-                        BC.attack_combo_eval(atts, dsts, e, grunt_rush_FLS1.data.cache, move_cache)
+                        FAU.attack_combo_eval(
+                            attacker_copies, target_proxy, dsts,
+                            attacker_infos, gamedata.unit_info[target_id],
+                            gamedata.mapstate, gamedata.unit_copies, gamedata.defense_map, move_cache
+                    )
                     --DBG.dbms(combo_def_stats)
                     --print('   combo ratings:  ', combo_rating, combo_att_rating, combo_def_rating)
 
                     -- Don't attack if the leader is involved and has chance to die > 0
                     local do_attack = true
-                    local MP_left = false
-                    for k,att_stats in ipairs(combo_att_stats) do
-                        if (sorted_atts[k].canrecruit) then
-                            if (att_stats.hp_chance[0] > 0.0) or (att_stats.slowed > 0.0) or (att_stats.poisoned > 0.0) then
-                                do_attack = false
-                                break
-                            end
-                        end
-                        -- Checking for counter attacks (below) only makes sense
-                        -- if at least one of the units can move away
-                        -- TODO: there are some exceptions from this rule - add that in later
-                        if (sorted_atts[k].moves > 0) then MP_left = true end
+
+                    -- Ratio of damage taken / done
+                    local damage_ratio = combo_att_rating / combo_def_rating
+                    --print('     damage done, taken, taken/done:', combo_def_rating, combo_att_rating, ' --->', damage_ratio)
+
+                    if (damage_ratio > enemy_worth ) then
+                        do_attack = false
                     end
 
-                    -- Check potential counter attack outcome
-                    if do_attack and MP_left then
-                        --print_time('Checking counter attack for attack on', i, e.id, enemy_worth)
-
-                        -- We first need to move all units into place, as the counter attack threat
-                        -- should be calculated for that formation as a whole
-                        -- For this to work in all situations, it needs to be done in stages,
-                        -- as there might be units in the way, which
-                        -- could be the attackers themselves, but on different hexes
-                        local tmp_data = {}
-
-                        -- First, extract attacker units from the map
-                        for k,a in ipairs(sorted_atts) do
-                            -- Take MP away from unit, as the counter attack calculation
-                            -- takes all units with MP left off the map
-                            tmp_data[k] = { old_moves = a.moves }
-                            a.moves = 0
-
-                            -- Then save its current position and extract it from the map
-                            tmp_data[k].org_hex = { a.x, a.y }
-                            wesnoth.extract_unit(a)
-                        end
-
-                        -- Second, take any remaining units in the way off the map
-                        -- and put the attacker units into the position
-                        for k,a in ipairs(sorted_atts) do
-                            -- Coordinates of hex from which unit #k would attack
-                            local x, y = sorted_dsts[k][1], sorted_dsts[k][2]
-
-                            tmp_data[k].unit_in_way = wesnoth.get_unit(x, y)
-                            if tmp_data[k].unit_in_way then
-                                wesnoth.extract_unit(tmp_data[k].unit_in_way)
-                            end
-
-                            wesnoth.put_unit(x, y, a)
-                        end
-
-                        for k,a in ipairs(sorted_atts) do
-                            --print_time('  by', a.id, sorted_dsts[k][1], sorted_dsts[k][2])
-                            -- Add max damages from this turn and counter-attack
-                            local min_hp = 0
-                            for hp = 0,a.hitpoints do
-                                if combo_att_stats[k].hp_chance[hp] and (combo_att_stats[k].hp_chance[hp] > 0) then
-                                    min_hp = hp
-                                    break
-                                end
-                            end
-
-                            local max_damage = a.hitpoints - min_hp
-
-                            -- Now calculate the counter attack outcome
-                            local x, y = sorted_dsts[k][1], sorted_dsts[k][2]
-                            local att_ind = tmp_data[k].org_hex[1], tmp_data[k].org_hex[2]
-                            local dst_ind = x * 1000 + y
-                            if (not counter_table[att_ind]) then counter_table[att_ind] = {} end
-                            if (not counter_table[att_ind][dst_ind]) then
-                                --print_time('Calculating new counter-attack combination')
-                                -- We can cut off the counter attack calculation when its minimum HP
-                                -- reach max_damage defined above, as the total possible damage will
-                                -- then be able to kill the leader
-                                local counter_stats = grunt_rush_FLS1:calc_counter_attack(a, { x, y },
-                                    --{ stop_eval_average_hp = min_average_hp,
-                                    --  stop_eval_min_hp = min_min_hp,
-                                    --  stop_eval_hp_chance_zero = max_hp_chance_zero
-                                    --},
-                                    {},
-                                    move_cache
-                                )
-                                counter_table[att_ind][dst_ind] = { counter_stats = counter_stats }
-                            else
-                                --print_time('Counter-attack combo already calculated. Re-using.')
-                            end
-
-                            local counter_rating = counter_table[att_ind][dst_ind].counter_stats.rating
-                            local counter_att_rating = counter_table[att_ind][dst_ind].counter_stats.att_rating
-                            local counter_def_rating = counter_table[att_ind][dst_ind].counter_stats.def_rating
-                            --print('   counter ratings:', counter_rating, counter_att_rating, counter_def_rating)
-
-                            local damage_done = combo_def_rating + counter_att_rating
-                            local damage_taken = combo_att_rating + counter_def_rating
-                            local damage_ratio = damage_taken / damage_done
-                            --print('     damage done, taken, taken/done:', damage_done, damage_taken, ' --->', damage_ratio)
-
-                            local counter_stats = counter_table[att_ind][dst_ind].counter_stats
-                            local counter_min_hp = counter_stats.min_hp
-
-                            -- If there's a chance of the leader getting poisoned or slowed, don't do it
-                            -- Also, if the stats would go too low
-                            if a.canrecruit then
-                                --print('Leader: slowed, poisoned %', counter_stats.slowed, counter_stats.poisoned)
-                                if (counter_stats.slowed > 0.0) or (counter_stats.poisoned > 0.0) then
-                                    --print('Leader slowed or poisoned', counter_stats.slowed, counter_stats.poisoned)
-                                    do_attack = false
-                                    break
-                                end
-
-                                -- Add damage from attack and counter attack
-                                local min_outcome = counter_min_hp - max_damage
-                                --print('Leader: min_outcome, counter_min_hp, max_damage', min_outcome, counter_min_hp, max_damage)
-
-                                if (min_outcome <= 0) then
-                                    do_attack = false
-                                    break
-                                end
-                            -- Or for normal units, use the somewhat looser criteria
-                            else  -- Or for normal units, use the somewhat looser criteria
-                                --print('Non-leader damage_ratio', damage_ratio)
-                                if (damage_ratio > enemy_worth ) then
+                    -- Don't do this attack if the leader has a chance to get killed, poisoned or slowed
+                    if do_attack then
+                        for k,att_stats in ipairs(combo_att_stats) do
+                            if (sorted_atts[k].canrecruit) then
+                                if (att_stats.hp_chance[0] > 0.0) or (att_stats.slowed > 0.0) or (att_stats.poisoned > 0.0) then
                                     do_attack = false
                                     break
                                 end
                             end
+                        end
+                    end
 
-                            if do_attack then
-                                -- Discourage attacks from hexes adjacent to unoccupied villages
-                                -- Needs to be done with the attackers in attack position
-                                for xa,ya in H.adjacent_tiles(x, y) do
-                                    local is_adjacent_village = wesnoth.get_terrain_info(wesnoth.get_terrain(xa, ya)).village
-                                    if is_adjacent_village and (not wesnoth.get_unit(xa, ya)) then
-                                        combo_rating = combo_rating - 10  -- TODO: don't choose arbitrary number here
+                    if do_attack then
+                        -- Discourage attacks from hexes adjacent to villages that are
+                        -- unoccupied by an AI unit without MP or one of the attackers,
+                        -- except if it's the hex the target is on, of course
 
-                                        -- In that case, also don't give the trapping bonus
-                                        attempt_trapping = false
-                                    end
+                        local adj_villages_map = {}
+                        for _,dst in ipairs(sorted_dsts) do
+                            for xa,ya in H.adjacent_tiles(dst[1], dst[2]) do
+                                if gamedata.mapstate.village_map[xa] and gamedata.mapstate.village_map[xa][ya]
+                                   and ((xa ~= target_loc[1]) or (ya ~= target_loc[2]))
+                                then
+                                    --print('next to village:')
+                                    if (not adj_villages_map[xa]) then adj_villages_map[xa] = {} end
+                                    adj_villages_map[xa][ya] = true
+                                    adj_unocc_village = true
                                 end
-
                             end
                         end
 
-                        if do_attack then
-                            -- Give a bonus to attacks that trap the enemy
-                            -- TODO: Consider other cases than just two units on each side as well
-                            if attempt_trapping then
-                                for xa,ya in H.adjacent_tiles(e.x, e.y) do
-                                    local trapper = wesnoth.get_unit(xa, ya)
-                                    if trapper and (trapper.moves == 0) and (wesnoth.unit_types[trapper.type].level ~= 0) then
-                                        local opp_hex = AH.find_opposite_hex({ xa, ya }, { e.x, e.y })
-
-                                        local trapper2 = wesnoth.get_unit(opp_hex[1], opp_hex[2])
-                                        if trapper2 and (trapper2.moves == 0) and (wesnoth.unit_types[trapper2.type].level ~= 0) then
-                                            --print('  Found trapping attack:', trapper.x, trapper.y, trapper2.x, trapper2.y)
-                                            combo_rating = combo_rating + 8  -- TODO: don't choose arbitrary number here
-                                            break
+                        -- Now check how many of those villages are occupied or used in the attack
+                        local adj_unocc_village = 0
+                        for x,map in pairs(adj_villages_map) do
+                            for y,_ in pairs(map) do
+                                adj_unocc_village = adj_unocc_village + 1
+                                if gamedata.mapstate.my_unit_map_noMP[x] and gamedata.mapstate.my_unit_map_noMP[x][y] then
+                                    --print('Village is occupied')
+                                    adj_unocc_village = adj_unocc_village - 1
+                                else
+                                    for _,dst in ipairs(sorted_dsts) do
+                                        if (dst[1] == x) and (dst[2] == y) then
+                                            --print('Village is used in attack')
+                                            adj_unocc_village = adj_unocc_village - 1
                                         end
                                     end
                                 end
+
                             end
                         end
 
+                        -- For each such village found, we give a penalty eqivalent to 10 HP of the target
+                        if (adj_unocc_village > 0) then
+                            local penalty = 10. / gamedata.unit_info[target_id].max_hitpoints
+                            penalty = penalty * gamedata.unit_info[target_id].cost * adj_unocc_village
+                            --print('Applying village penalty', combo_rating, penalty)
+                            combo_rating = combo_rating - penalty
 
-                        -- Now put the units back out there
-                        -- We first need to extract the attacker units again, then
-                        -- put both units in way and attackers back out there
-
-                        --DBG.dbms(tmp_data)
-                        for k,a in ipairs(sorted_atts) do
-                            wesnoth.extract_unit(a)
+                            -- In that case, also don't give the trapping bonus
+                            attempt_trapping = false
                         end
 
-                        for k,a in ipairs(sorted_atts) do
-                            -- Coordinates of hex from which unit #k would attack
-                            local x, y = sorted_dsts[k][1], sorted_dsts[k][2]
-
-                            if tmp_data[k].unit_in_way then
-                                wesnoth.put_unit(x, y, tmp_data[k].unit_in_way)
+                        -- Give a bonus to attacks that trap the enemy
+                        -- TODO: Consider other cases than just two units on each side as well
+                        if attempt_trapping then
+                            -- Set up a map containing all adjacent hexes that are either occupied
+                            -- or used in the attack
+                            local adj_occ_hex_map = {}
+                            local count = 0
+                            for _,dst in ipairs(sorted_dsts) do
+                                if (not adj_occ_hex_map[dst[1]]) then adj_occ_hex_map[dst[1]] = {} end
+                                adj_occ_hex_map[dst[1]][dst[2]] = true
+                                count = count + 1
                             end
 
-                            wesnoth.put_unit(tmp_data[k].org_hex[1], tmp_data[k].org_hex[2], a)
+                            for xa,ya in H.adjacent_tiles(target_loc[1], target_loc[2]) do
+                                if (not adj_occ_hex_map[xa]) or (not adj_occ_hex_map[xa][ya]) then
+                                    -- Only units without MP on the AI side are on the map here
+                                    if gamedata.mapstate.my_unit_map_noMP[xa] and gamedata.mapstate.my_unit_map_noMP[xa][ya] then
+                                        if (not adj_occ_hex_map[xa]) then adj_occ_hex_map[xa] = {} end
+                                        adj_occ_hex_map[xa][ya] = true
+                                        count = count + 1
+                                    end
+                                end
+                            end
 
-                            a.moves = tmp_data[k].old_moves
+                            -- Now check if any of this would result in trapping
+                            local trapping_bonus = false
+                            if (count > 1) then
+                                for x,map in pairs(adj_occ_hex_map) do
+                                    for y,_ in pairs(map) do
+                                        local opp_hex = AH.find_opposite_hex_adjacent({ x, y }, target_loc)
+                                        if adj_occ_hex_map[opp_hex[1]] and adj_occ_hex_map[opp_hex[1]][opp_hex[2]] then
+                                            trapping_bonus = true
+                                            break
+                                        end
+                                    end
+                                    if trapping_bonus then break end
+                                end
+                            end
+
+                            -- For each such village found, we give a bonus eqivalent to 8 HP of the target
+                            if trapping_bonus then
+                                local bonus = 8. / gamedata.unit_info[target_id].max_hitpoints
+                                bonus = bonus * gamedata.unit_info[target_id].cost
+                                --print('Applying trapping bonus', combo_rating, bonus)
+                                combo_rating = combo_rating + bonus
+                            end
                         end
-                    end
 
-                    if do_attack then
                         -- Discourage use of poisoners in attacks that may result in kill
                         if (combo_def_stats.hp_chance[0] > 0) then
                             local number_poisoners = 0
-                            for i,a in ipairs(sorted_atts) do
-                                if poisoner_map:get(a.x, a.y) then
-                                    number_poisoners = number_poisoners + 1
-                                    combo_rating = combo_rating - 5  -- TODO: don't choose arbitrary number here
+                            for i_a,attacker in ipairs(sorted_atts) do
+                                local is_poisoner = false
+                                for _,weapon in ipairs(attacker.attacks) do
+                                    if weapon.poison then
+                                        number_poisoners = number_poisoners + 1
+                                        break
+                                    end
                                 end
                             end
-                            -- Really discourage the use of several poisoners
-                            if (number_poisoners > 1) then combo_rating = combo_rating - 100 end
+                            -- For each poisoner in such an attack, we give a penalty eqivalent to 8 HP of the target
+                            if (number_poisoners > 0) then
+                                local penalty = 8. / gamedata.unit_info[target_id].max_hitpoints
+                                penalty = penalty * gamedata.unit_info[target_id].cost * number_poisoners
+                                --print('Applying poisoner penalty', combo_rating, penalty)
+                                combo_rating = combo_rating - penalty
+                            end
                         end
-                    end
 
-                    if do_attack then
                         --print_time(' -----------------------> rating', combo_rating)
-                        if (combo_rating > max_rating) then
-                            max_rating, best_attackers, best_dsts, best_enemy = combo_rating, sorted_atts, sorted_dsts, e
-                        end
+
+                        table.insert(combo_ratings, {
+                            rating = combo_rating,
+                            attackers = sorted_atts,
+                            dsts = sorted_dsts,
+                            target = target,
+                            att_stats = combo_att_stats,
+                            att_rating = combo_att_rating,
+                            def_rating = combo_def_rating,
+                            enemy_worth = enemy_worth
+                        })
                     end
                 end
             end
-            --print_time('max_rating ', max_rating)
 
-            if (max_rating > -9e99) then
-                -- Only execute the first of these attacks
-                local action = { units = {}, dsts = {}, enemy = best_enemy }
-                --action.units[1], action.dsts[1] = best_attackers[1], best_dsts[1]
-                action.units, action.dsts = best_attackers, best_dsts
-                action.action = cfg.zone_id .. ': ' .. 'attack'
-                return action
+            table.sort(combo_ratings, function(a, b) return a.rating > b.rating end)
+            --DBG.dbms(combo_ratings)
+
+            -- Now check whether counter attacks are acceptable
+            for _,combo in ipairs(combo_ratings) do
+                --print_time('Checking counter attack for attack on', target_id, enemy_worth)
+
+                -- We first need to move all units into place, as the counter attack threat
+                -- should be calculated for that formation as a whole
+                -- All units with MP left have already been extracted, so we only need to
+                -- put the attackers into the right position and don't have to worry about any other unit
+                for i_a,attacker in pairs(combo.attackers) do
+                    if gamedata.mapstate.my_units_MP[attacker.id] then
+                        --print('  has been extracted')
+                        wesnoth.put_unit(combo.dsts[i_a][1], combo.dsts[i_a][2], gamedata.unit_copies[attacker.id])
+                    end
+                end
+
+                local acceptable_counter = true
+
+                for i_a,attacker in ipairs(combo.attackers) do
+                    --print_time('  by', attacker.id, combo.dsts[i_a][1], combo.dsts[i_a][2])
+                    -- Add max damages from this turn and counter-attack
+                    local min_hp = 0
+                    for hp = 0,attacker.hitpoints do
+                        if combo.att_stats[i_a].hp_chance[hp] and (combo.att_stats[i_a].hp_chance[hp] > 0) then
+                            min_hp = hp
+                            break
+                        end
+                    end
+
+                    local max_damage = attacker.hitpoints - min_hp
+                    --print('max_damage, attacker.hitpoints, min_hp', max_damage, attacker.hitpoints, min_hp)
+
+                    -- Now calculate the counter attack outcome
+                    local x, y = combo.dsts[i_a][1], combo.dsts[i_a][2]
+
+                    local attacker_moved = {}
+                    attacker_moved[attacker.id] = { combo.dsts[i_a][1], combo.dsts[i_a][2] }
+
+                    local counter_stats = grunt_rush_FLS1:calc_counter_attack(
+                        attacker_moved, gamedata, move_cache
+                    )
+
+                    local counter_rating = counter_stats.rating
+                    local counter_att_rating = counter_stats.att_rating
+                    local counter_def_rating = counter_stats.def_rating
+                    --print('   counter ratings:', counter_rating, counter_att_rating, counter_def_rating)
+
+                    local damage_done = combo.def_rating + counter_att_rating
+                    local damage_taken = combo.att_rating + counter_def_rating
+                    local damage_ratio = damage_taken / damage_done
+                    --print('     damage done, taken, taken/done:', damage_done, damage_taken, ' --->', damage_ratio)
+
+                    local counter_min_hp = counter_stats.min_hp
+
+                    -- If there's a chance of the leader getting poisoned, slowed or killed, don't do it
+                    if attacker.canrecruit then
+                        --print('Leader: slowed, poisoned %', counter_stats.slowed, counter_stats.poisoned)
+                        if (counter_stats.slowed > 0.0) or (counter_stats.poisoned > 0.0) then
+                            --print('Leader slowed or poisoned', counter_stats.slowed, counter_stats.poisoned)
+                            acceptable_counter = false
+                            break
+                        end
+
+                        -- Add damage from attack and counter attack
+                        local min_outcome = counter_min_hp - max_damage
+                        --print('Leader: min_outcome, counter_min_hp, max_damage', min_outcome, counter_min_hp, max_damage)
+
+                        if (min_outcome <= 0) then
+                            acceptable_counter = false
+                            break
+                        end
+                    -- Or for normal units, use the somewhat looser criteria
+                    else  -- Or for normal units, use the somewhat looser criteria
+                        --print('Non-leader damage_ratio, enemy_worth', damage_ratio, combo.enemy_worth)
+                        if (damage_ratio > combo.enemy_worth ) then
+                            acceptable_counter = false
+                            break
+                        end
+                    end
+                end
+
+                -- Now put the units back out there
+                -- We first need to extract the attacker units again, then
+                -- put both units in way and attackers back out there
+
+                for i_a,attacker in ipairs(combo.attackers) do
+                    --print(attacker.id)
+
+                    if gamedata.mapstate.my_units_MP[attacker.id] then
+                        wesnoth.extract_unit(gamedata.unit_copies[attacker.id])
+                    end
+                end
+
+                --print_time('acceptable_counter', acceptable_counter)
+                if acceptable_counter then
+                    -- Only execute the first of these attacks
+                    local action = { units = {}, dsts = {}, enemy = combo.target }
+                    action.units, action.dsts = combo.attackers, combo.dsts
+                    action.action = zonedata.cfg.zone_id .. ': ' .. 'attack'
+                    return action
+                end
             end
 
-            return nil
+            return nil  -- Unnecessary, just to point out what's going on if no acceptable attack was found
         end
 
         function grunt_rush_FLS1:zone_action_hold(units, units_noMP, enemies, zone_map, enemy_defense_map, cfg)
@@ -1803,7 +1719,7 @@ return {
             end
         end
 
-        function grunt_rush_FLS1:get_zone_action(cfg, move_cache)
+        function grunt_rush_FLS1:get_zone_action(cfg, gamedata, move_cache)
             -- Find the best action to do in the zone described in 'cfg'
             -- This is all done together in one function, rather than in separate CAs so that
             --  1. Zones get done one at a time (rather than one CA at a time)
@@ -1815,6 +1731,41 @@ return {
 
             -- Unit filter:
             -- This includes the leader. Needs to be excluded specifically if he shouldn't take part in an action
+
+            local zonedata = {
+                zone_units = {},
+                zone_units_MP = {},
+                zone_units_attacks = {},
+                zone_units_noMP = {},
+                cfg = cfg
+            }
+
+            for id,loc in pairs(gamedata.mapstate.my_units) do
+                if wesnoth.match_unit(gamedata.unit_copies[id], cfg.unit_filter) then
+                    zonedata.zone_units[id] = loc
+
+                    if gamedata.mapstate.my_units_MP[id] then
+                        zonedata.zone_units_MP[id] = loc
+                    else
+                        zonedata.zone_units_noMP[id] = loc
+                    end
+
+                    if (gamedata.unit_copies[id].attacks_left > 0) then
+                        -- The leader counts as one of the attackers, but only if he's on his keep
+                        if gamedata.unit_copies[id].canrecruit then
+                            if wesnoth.get_terrain_info(wesnoth.get_terrain(
+                                gamedata.unit_copies[id].x, gamedata.unit_copies[id].y)
+                            ).keep then
+                                zonedata.zone_units_attacks[id] = loc
+                            end
+                        else
+                            zonedata.zone_units_attacks[id] = loc
+                        end
+                    end
+                end
+            end
+
+            -- xxxxxxxxxxxxxxxxxxxxxxxxxxxx
             local unit_filter = { side = wesnoth.current.side }
             if cfg.unit_filter then
                 for k,v in pairs(cfg.unit_filter) do unit_filter[k] = v end
@@ -1845,14 +1796,9 @@ return {
                     table.insert(zone_units_noMP, u)
                 end
             end
+            -- xxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
-
-
-            if (not zone_units[1]) and (not zone_units_attacks[1]) then return end
-
-            local all_zone_units = {}
-            for i,u in ipairs(zone_units) do table.insert(all_zone_units, u) end
-            for i,u in ipairs(zone_units_noMP) do table.insert(all_zone_units, u) end
+            if (not next(zonedata.zone_units_MP)) and (not next(zonedata.zone_units_attacks)) then return end
 
             -- Then get all the enemies (this needs to be all of them, to get the HP ratio)
             local enemies = AH.get_live_units {
@@ -1863,6 +1809,9 @@ return {
             -- Get all the hexes in the zone
             local zone = wesnoth.get_locations(cfg.zone_filter)
             local zone_map = LS.of_pairs(zone)
+
+            zonedata.zone = wesnoth.get_locations(cfg.zone_filter)
+            zonedata.zone_map = LS.of_pairs(zone)
 
             -- Also get the defense map for the enemies
             local enemy_defense_map = BC.best_defense_map(enemies, { ignore_these_units = zone_units })
@@ -1898,17 +1847,38 @@ return {
                 end
             end
 
+            -- ***********************************
+            -- Take all units with MP off the map.
+            -- !!!! This eventually needs to be done for all actions
+
+            local extracted_units = {}
+            for id,loc in pairs(gamedata.mapstate.my_units_MP) do
+                local unit = wesnoth.get_unit(loc[1], loc[2])
+                wesnoth.extract_unit(unit)
+                table.insert(extracted_units, unit)
+            end
+
             -- **** Attack evaluation ****
             --print_time('  ' .. cfg.zone_id .. ': attack eval')
             if (not cfg.do_action) or cfg.do_action.attack then
                 if (not cfg.skip_action) or (not cfg.skip_action.attack) then
-                    local action = grunt_rush_FLS1:zone_action_attack(zone_units_attacks, enemies, zone, zone_map, cfg, move_cache)
+                    local action = grunt_rush_FLS1:zone_action_attack(zonedata, gamedata, move_cache)
                     if action then
                         --print(action.action)
+
+                        -- Put the own units with MP back out there
+                        -- !!!! This eventually needs to be done for all actions
+                        for _,unit in ipairs(extracted_units) do wesnoth.put_unit(unit) end
                         return action
                     end
                 end
             end
+
+            -- Put the own units with MP back out there
+            -- !!!! This eventually needs to be done for all actions
+            for _,unit in ipairs(extracted_units) do wesnoth.put_unit(unit) end
+
+
 
             -- **** Hold position evaluation ****
             --print_time('  ' .. cfg.zone_id .. ': hold eval')
@@ -1951,21 +1921,21 @@ return {
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
             if AH.print_eval() then print_time('     - Evaluating zone_control CA:') end
 
-            -- Unlike self.data.cache, this is a local variable that
-            -- gets reset (and needs to be reset) after each move
-            local move_cache = {}
-
             -- Skip this if AI is much stronger than enemy
             if grunt_rush_FLS1:full_offensive() then
                 AH.done_eval_messages(start_time, ca_name)
                 return 0
             end
 
-            local cfgs = grunt_rush_FLS1:get_zone_cfgs()
+            -- Set up the different tables for the turn
+            local gamedata = FGU.get_gamedata()
+            local move_cache = {}
 
+            local cfgs = grunt_rush_FLS1:get_zone_cfgs()
             for i_c,cfg in ipairs(cfgs) do
                 --print_time('zone_control: ', cfg.zone_id)
-                local zone_action = grunt_rush_FLS1:get_zone_action(cfg, move_cache)
+
+                local zone_action = grunt_rush_FLS1:get_zone_action(cfg, gamedata, move_cache)
 
                 if zone_action then
                     grunt_rush_FLS1.data.zone_action = zone_action
@@ -1980,6 +1950,17 @@ return {
 
         function grunt_rush_FLS1:zone_control_exec()
             local action = grunt_rush_FLS1.data.zone_action.action
+
+            for i,unit in ipairs(grunt_rush_FLS1.data.zone_action.units) do
+                local unit_proxy = wesnoth.get_units { id = unit.id }[1]
+                grunt_rush_FLS1.data.zone_action.units[i] = unit_proxy
+            end
+
+            if grunt_rush_FLS1.data.zone_action.enemy then
+                local enemy_proxy = wesnoth.get_units { id = next(grunt_rush_FLS1.data.zone_action.enemy) }[1]
+                grunt_rush_FLS1.data.zone_action.enemy = enemy_proxy
+            end
+
             while grunt_rush_FLS1.data.zone_action.units and (table.maxn(grunt_rush_FLS1.data.zone_action.units) > 0) do
                 local next_unit_ind = 1
 
@@ -2146,7 +2127,7 @@ return {
                 end
 
                 -- Before evaluating the poison attack, check whether it is too dangerous
-                if poison_attack then
+                if poison_attack_xxxxxxxxxx then
                     local min_average_hp = 5
                     local max_hp_chance_zero = 0.3
                     local counter_stats = grunt_rush_FLS1:calc_counter_attack(attacker, { a.dst.x, a.dst.y },
