@@ -442,6 +442,10 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reachmaps, get
     --   - This is _much_ faster if reachmaps is given; should be done for all attack combos for the side
     --     Only when the result depends on the new map situation (such as for counter attacks) should
     --     it be calculated here.  If reachmaps are not given, @gamedata must be provided
+    --   - Even if @reachmap is no given, gamedata still needs  to contain the "original" reachmaps for the attackers.
+    --     This is used to speed up the calculation.  If the attacker (enemy) cannot get to a hex originally
+    --     (remember that this is done with AI units with MP taken off the map), then it can also
+    --     not get there after moving AI units into place.
     --   - Important: for units on the AI side, reachmaps must NOT included hexes with units that
     --     cannot move out of the way
     -- @get_strongest_attack (boolean): if set to 'true', don't return all attacks, but only the
@@ -453,29 +457,44 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reachmaps, get
     --     [19003] = 19007
     -- }
 
+    local defender_id, defender_loc = next(defender)
+
     -- If reachmaps is not given, we need to calculate them
     if (not reachmaps) then
         reachmaps = {}
 
         for attacker_id,_ in pairs(attackers) do
-            -- For sides other than the current, we always use max_moves.
-            -- For the current side, we always use current moves.
-            local old_moves
-            if (gamedata.unit_info[attacker_id].side ~= wesnoth.current.side) then
-                old_moves = gamedata.unit_copies[attacker_id].moves
-                gamedata.unit_copies[attacker_id].moves = gamedata.unit_copies[attacker_id].max_moves
-            end
-
-            local reach = wesnoth.find_reach(gamedata.unit_copies[attacker_id])
-
             reachmaps[attacker_id] = {}
-            for _,r in ipairs(reach) do
-                if (not reachmaps[attacker_id][r[1]]) then reachmaps[attacker_id][r[1]] = {} end
-                reachmaps[attacker_id][r[1]][r[2]] = r[3]
+
+            -- Only calculate reach if the attacker could get there using its
+            -- original reach.  It cannot have gotten any better than this.
+            local can_reach = false
+            for xa,ya in H.adjacent_tiles(defender_loc[1], defender_loc[2]) do
+                if gamedata.reachmaps[attacker_id][xa] and gamedata.reachmaps[attacker_id][xa][ya] then
+                    can_reach = true
+                    break
+                end
             end
 
-            if (gamedata.unit_info[attacker_id].side ~= wesnoth.current.side) then
-                gamedata.unit_copies[attacker_id].moves = old_moves
+            if can_reach then
+                -- For sides other than the current, we always use max_moves.
+                -- For the current side, we always use current moves.
+                local old_moves
+                if (gamedata.unit_info[attacker_id].side ~= wesnoth.current.side) then
+                    old_moves = gamedata.unit_copies[attacker_id].moves
+                    gamedata.unit_copies[attacker_id].moves = gamedata.unit_copies[attacker_id].max_moves
+                end
+
+                local reach = wesnoth.find_reach(gamedata.unit_copies[attacker_id])
+
+                for _,r in ipairs(reach) do
+                    if (not reachmaps[attacker_id][r[1]]) then reachmaps[attacker_id][r[1]] = {} end
+                    reachmaps[attacker_id][r[1]][r[2]] = r[3]
+                end
+
+                if (gamedata.unit_info[attacker_id].side ~= wesnoth.current.side) then
+                    gamedata.unit_copies[attacker_id].moves = old_moves
+                end
             end
         end
 
@@ -490,8 +509,6 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reachmaps, get
     end
 
     ----- First, find which units in @attackers can get to hexes next to @defender -----
-    local defender_id = next(defender)
-    local defender_loc = defender[defender_id]
 
     local defender_proxy  -- If attack rating is needed, we need the defender proxy unit, not just the unit copy
     if get_strongest_attack then
