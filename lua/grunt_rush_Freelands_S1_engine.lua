@@ -780,7 +780,7 @@ return {
             -- If no attacks are found, we're done; return stats of unit as is
             if (not next(counter_attack)) then
                 local hp_chance = {}
-                hp_chance[unit.hitpoints] = 1
+                hp_chance[target_proxy.hitpoints] = 1
                 hp_chance[0] = 0  -- hp_chance[0] is always assumed to be included, even when 0
                 return {
                     average_hp = target_proxy.hitpoints,
@@ -964,7 +964,7 @@ return {
 
         ----------Grab villages -----------
 
-        function grunt_rush_FLS1:eval_grab_villages(units, villages, enemies, cfg, move_cache)
+        function grunt_rush_FLS1:eval_grab_villages(units, villages, enemies, cfg, gamedata, move_cache)
             --print('#units, #enemies', #units, #enemies)
 
             -- Get my and enemy keeps
@@ -1021,14 +1021,14 @@ return {
                     end
 
                     -- Rate all villages that can be reached and are unoccupied by other units
-                    if xxxxxxxxxxxxxxx and (cost <= u.moves) and (not unit_in_way) then
+                    if (cost <= u.moves) and (not unit_in_way) then
                         --print('Can reach:', u.id, v[1], v[2], cost)
 
+                        local unit_loc = {}
+                        unit_loc[u.id] = { u.x, u.y }
+
                         local max_hp_chance_zero = 0.5
-                        local counter_stats = grunt_rush_FLS1:calc_counter_attack(u, { v[1], v[2] },
-                            { stop_eval_hp_chance_zero = max_hp_chance_zero },
-                            move_cache
-                        )
+                        local counter_stats = grunt_rush_FLS1:calc_counter_attack(unit_loc, gamedata, move_cache)
                         --DBG.dbms(counter_stats)
 
                         if (not counter_stats.hp_chance)
@@ -1137,7 +1137,7 @@ return {
             end
         end
 
-        function grunt_rush_FLS1:zone_action_villages(units, enemies, zone_map, cfg, move_cache)
+        function grunt_rush_FLS1:zone_action_villages(units, enemies, zone_map, cfg, gamedata, move_cache)
             -- Otherwise we go for unowned and enemy-owned villages
             -- This needs to happen for all units, not just not-injured ones
             -- Also includes the leader, if he's on his keep
@@ -1167,7 +1167,7 @@ return {
                     end
                 end
 
-                local action = grunt_rush_FLS1:eval_grab_villages(village_grabbers, villages, enemies, cfg, move_cache)
+                local action = grunt_rush_FLS1:eval_grab_villages(village_grabbers, villages, enemies, cfg, gamedata, move_cache)
                 if action then
                     action.action = cfg.zone_id .. ': ' .. 'grab villages'
                     return action
@@ -1838,7 +1838,7 @@ return {
             local village_action = nil
             if (not cfg.do_action) or cfg.do_action.villages then
                 if (not cfg.skip_action) or (not cfg.skip_action.villages) then
-                    village_action = grunt_rush_FLS1:zone_action_villages(zone_units, enemies, zone_map, cfg, move_cache)
+                    village_action = grunt_rush_FLS1:zone_action_villages(zone_units, enemies, zone_map, cfg, gamedata, move_cache)
                     if village_action and (village_action.rating > 100) then
                         --print_time(village_action.action)
                         local attack_action = grunt_rush_FLS1:high_priority_attack(village_action.units[1], cfg, move_cache)
