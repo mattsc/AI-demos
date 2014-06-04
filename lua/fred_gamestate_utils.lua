@@ -298,14 +298,12 @@ end
 
 function fred_gamestate_utils.get_gamedata()
 
-    local mapstate, reach_maps, unit_copies = fred_gamestate_utils.get_gamestate()
-    local gamedata = {
-        unit_infos = fred_gamestate_utils.unit_infos(),
-        mapstate = mapstate,
-        reach_maps = reach_maps,
-        unit_copies = unit_copies,
-        defense_maps = {}
-    }
+    local gamedata, reach_maps, unit_copies = fred_gamestate_utils.get_gamestate()
+
+    gamedata.reach_maps = reach_maps
+    gamedata.unit_copies = unit_copies
+    gamedata.unit_infos = fred_gamestate_utils.unit_infos()
+    gamedata.defense_maps = {}
 
     return gamedata
 end

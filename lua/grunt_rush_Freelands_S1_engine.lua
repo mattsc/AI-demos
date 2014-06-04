@@ -773,7 +773,7 @@ return {
 
 
             local counter_attack = FAU.get_attack_combos(
-                gamedata.mapstate.enemies, target,
+                gamedata.enemies, target,
                 nil, true, gamedata, move_cache
             )
 
@@ -795,7 +795,7 @@ return {
             end
 
             local enemy_map = {}
-            for id,loc in pairs(gamedata.mapstate.enemies) do
+            for id,loc in pairs(gamedata.enemies) do
                 enemy_map[loc[1] * 1000 + loc[2]] = id
             end
 
@@ -811,7 +811,7 @@ return {
                 FAU.attack_combo_eval(
                     attacker_copies, target_proxy, dsts,
                     attacker_infos, gamedata.unit_infos[target_id],
-                    gamedata.mapstate, gamedata.unit_copies, gamedata.defense_maps, move_cache
+                    gamedata, gamedata.unit_copies, gamedata.defense_maps, move_cache
                 )
 
             combo_def_stats.rating = rating
@@ -1184,11 +1184,11 @@ return {
             -- such as that consisting only of the AI leader position, otherwise it
             -- might be very slow!!!)
             if zonedata.cfg.attack and zonedata.cfg.attack.use_enemies_in_reach then
-                for id,loc in pairs(gamedata.mapstate.enemies) do
+                for id,loc in pairs(gamedata.enemies) do
                     for j,hex in ipairs(zonedata.zone) do
-                        if gamedata.mapstate.enemy_attack_map[hex[1]]
-                            and gamedata.mapstate.enemy_attack_map[hex[1]][hex[2]]
-                            and gamedata.mapstate.enemy_attack_map[hex[1]][hex[2]][id]
+                        if gamedata.enemy_attack_map[hex[1]]
+                            and gamedata.enemy_attack_map[hex[1]][hex[2]]
+                            and gamedata.enemy_attack_map[hex[1]][hex[2]][id]
                         then
                             local target = {}
                             target[id] = loc
@@ -1199,7 +1199,7 @@ return {
                 end
             -- Otherwise use all units inside the zone
             else
-                for id,loc in pairs(gamedata.mapstate.enemies) do
+                for id,loc in pairs(gamedata.enemies) do
                     if wesnoth.match_unit(gamedata.unit_copies[id], zonedata.cfg.unit_filter) then
                         local target = {}
                         target[id] = loc
@@ -1237,8 +1237,8 @@ return {
                 )
                 --print_time('#attack_combos', #attack_combos)
 
-                local enemy_on_village = gamedata.mapstate.village_map[target_loc[1]]
-                    and gamedata.mapstate.village_map[target_loc[1]][target_loc[2]]
+                local enemy_on_village = gamedata.village_map[target_loc[1]]
+                    and gamedata.village_map[target_loc[1]][target_loc[2]]
                 local enemy_cost = gamedata.unit_infos[target_id].cost
                 --print('enemy_cost, enemy_on_village', enemy_cost, enemy_on_village)
 
@@ -1261,7 +1261,7 @@ return {
                         FAU.attack_combo_eval(
                             attacker_copies, target_proxy, dsts,
                             attacker_infos, gamedata.unit_infos[target_id],
-                            gamedata.mapstate, gamedata.unit_copies, gamedata.defense_maps, move_cache
+                            gamedata, gamedata.unit_copies, gamedata.defense_maps, move_cache
                     )
                     --DBG.dbms(combo_def_stats)
                     --print('   combo ratings:  ', combo_rating, combo_att_rating, combo_def_rating)
@@ -1297,7 +1297,7 @@ return {
                         local adj_villages_map = {}
                         for _,dst in ipairs(sorted_dsts) do
                             for xa,ya in H.adjacent_tiles(dst[1], dst[2]) do
-                                if gamedata.mapstate.village_map[xa] and gamedata.mapstate.village_map[xa][ya]
+                                if gamedata.village_map[xa] and gamedata.village_map[xa][ya]
                                    and ((xa ~= target_loc[1]) or (ya ~= target_loc[2]))
                                 then
                                     --print('next to village:')
@@ -1313,7 +1313,7 @@ return {
                         for x,map in pairs(adj_villages_map) do
                             for y,_ in pairs(map) do
                                 adj_unocc_village = adj_unocc_village + 1
-                                if gamedata.mapstate.my_unit_map_noMP[x] and gamedata.mapstate.my_unit_map_noMP[x][y] then
+                                if gamedata.my_unit_map_noMP[x] and gamedata.my_unit_map_noMP[x][y] then
                                     --print('Village is occupied')
                                     adj_unocc_village = adj_unocc_village - 1
                                 else
@@ -1355,7 +1355,7 @@ return {
                             for xa,ya in H.adjacent_tiles(target_loc[1], target_loc[2]) do
                                 if (not adj_occ_hex_map[xa]) or (not adj_occ_hex_map[xa][ya]) then
                                     -- Only units without MP on the AI side are on the map here
-                                    if gamedata.mapstate.my_unit_map_noMP[xa] and gamedata.mapstate.my_unit_map_noMP[xa][ya] then
+                                    if gamedata.my_unit_map_noMP[xa] and gamedata.my_unit_map_noMP[xa][ya] then
                                         if (not adj_occ_hex_map[xa]) then adj_occ_hex_map[xa] = {} end
                                         adj_occ_hex_map[xa][ya] = true
                                         count = count + 1
@@ -1436,7 +1436,7 @@ return {
                 -- All units with MP left have already been extracted, so we only need to
                 -- put the attackers into the right position and don't have to worry about any other unit
                 for i_a,attacker in pairs(combo.attackers) do
-                    if gamedata.mapstate.my_units_MP[attacker.id] then
+                    if gamedata.my_units_MP[attacker.id] then
                         --print('  has been extracted')
                         wesnoth.put_unit(combo.dsts[i_a][1], combo.dsts[i_a][2], gamedata.unit_copies[attacker.id])
                     end
@@ -1514,7 +1514,7 @@ return {
                 for i_a,attacker in ipairs(combo.attackers) do
                     --print(attacker.id)
 
-                    if gamedata.mapstate.my_units_MP[attacker.id] then
+                    if gamedata.my_units_MP[attacker.id] then
                         wesnoth.extract_unit(gamedata.unit_copies[attacker.id])
                     end
                 end
@@ -1740,11 +1740,11 @@ return {
                 cfg = cfg
             }
 
-            for id,loc in pairs(gamedata.mapstate.my_units) do
+            for id,loc in pairs(gamedata.my_units) do
                 if wesnoth.match_unit(gamedata.unit_copies[id], cfg.unit_filter) then
                     zonedata.zone_units[id] = loc
 
-                    if gamedata.mapstate.my_units_MP[id] then
+                    if gamedata.my_units_MP[id] then
                         zonedata.zone_units_MP[id] = loc
                     else
                         zonedata.zone_units_noMP[id] = loc
@@ -1852,7 +1852,7 @@ return {
             -- !!!! This eventually needs to be done for all actions
 
             local extracted_units = {}
-            for id,loc in pairs(gamedata.mapstate.my_units_MP) do
+            for id,loc in pairs(gamedata.my_units_MP) do
                 local unit = wesnoth.get_unit(loc[1], loc[2])
                 wesnoth.extract_unit(unit)
                 table.insert(extracted_units, unit)

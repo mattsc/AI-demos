@@ -489,7 +489,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
 
         -- Eliminate hexes with other units that cannot move out of the way
         for id,reach_map in pairs(reach_maps) do
-            for id_noMP,loc in pairs(gamedata.mapstate.my_units_noMP) do
+            for id_noMP,loc in pairs(gamedata.my_units_noMP) do
                 if (id ~= id_noMP) then
                     if reach_map[loc[1]] then reach_map[loc[1]][loc[2]] = nil end
                 end
@@ -516,13 +516,13 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
                     local att_stats, def_stats = fred_attack_utils.battle_outcome(
                         gamedata.unit_copies[attacker_id], defender_proxy, { xa, ya },
                         gamedata.unit_infos[attacker_id], gamedata.unit_infos[defender_id],
-                        gamedata.mapstate, gamedata.defense_maps, move_cache
+                        gamedata, gamedata.defense_maps, move_cache
                     )
 
                     _,_,rating = fred_attack_utils.attack_rating(
                         { gamedata.unit_infos[attacker_id] }, gamedata.unit_infos[defender_id], { { xa, ya } },
                         { att_stats }, def_stats,
-                        gamedata.mapstate, gamedata.unit_copies, gamedata.defense_maps
+                        gamedata, gamedata.unit_copies, gamedata.defense_maps
                     )
                 end
 
