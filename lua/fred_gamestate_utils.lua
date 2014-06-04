@@ -230,15 +230,15 @@ function fred_gamestate_utils.get_gamestate()
     end
 
     mapstate.units = units
-    mapstate.my_unit_map = my_unit_map
-    mapstate.my_unit_map_MP = my_unit_map_MP
-    mapstate.my_unit_map_noMP = my_unit_map_noMP
-    mapstate.enemy_map = enemy_map
     mapstate.my_units = my_units
     mapstate.my_units_MP = my_units_MP
     mapstate.my_units_noMP = my_units_noMP
     mapstate.enemies = enemies
     mapstate.leaders = leaders
+    mapstate.my_unit_map = my_unit_map
+    mapstate.my_unit_map_MP = my_unit_map_MP
+    mapstate.my_unit_map_noMP = my_unit_map_noMP
+    mapstate.enemy_map = enemy_map
 
     -- Get enemy attack and reach maps
     -- These are for max MP of enemy units, and with taking all AI units with MP off the map
