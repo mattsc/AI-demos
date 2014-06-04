@@ -7,66 +7,134 @@ local H = wesnoth.require "lua/helper.lua"
 --
 -- Unlike fred_gamestate_utils_incremental.lua, these functions are called once
 -- and assemble information about all units/villages at once, as likely most of
--- this information will be needed during the move evaluation
+-- this information will be needed during the move evaluation, or is needed to
+-- collect some of the other information anyway.
+--
+-- Variable use and naming conventions:
+--  - Singular vs. plural: here, a plural variable name means it is of the same form as
+--    the singular variable, but one such variable exists for each unit.  Indexed by id.
+--    The exception are units, where even the single unit contains the id index.
+--    Only the singular variable types are described here.
+--    Note: in the main code, plural variables might also be indexed by number or other means
+--
+--  - Units:
+--    - 'unit', 'enemy' etc.: identify units of form:  unit = { id = { x, y } }
+--    - 'unit_info': various information about a unit, for faster access than through wesnoth.*() functions
+--        Note: this does NOT include the unit location
+--    - 'unit_copy': private copy of a unit proxy table for when full unit information is needed.
+--    - 'unit_proxy': Use of unit proxy tables should be avoided as much as possible, because they are slow to access.
+--    Note: these functions cannot deal correctly with allied sides at this time
+--
+--  - Maps:
+--  - *_map: location indexed map: map[x][y] = { key1 = value, ... }
+--
+---------- Part of both mapstate and gamedata ----------
+--
+------ Unit tables ------
+--
+-- These are all of form { id = loc }, with loc = { x, y }, e.g:
+-- units = { Orcish Assassin-785 = { [1] = 24, [2] = 7 }
+--
+-- units             -- all units on the map
+-- my_units          -- all AI units
+-- my_units_MP       -- all AI units that can move (with MP _and_ not blocked)
+-- my_units_noMP     -- all AI units that cannot move (MP=0 or blocked)
+-- enemies           -- all enemy units
+--
+--The leader table is slightly different in that it is indexed by side number and contains the id as an additional parameter
+--
+-- leaders = { [1] = { [1] = 19, [2] = 4, id = 'Fred' }
+--
+------ Unit maps ------
+--
+-- my_unit_map          -- all AI units
+-- my_unit_map_MP       -- all AI units that can move (with MP _and_ not blocked)
+-- my_unit_map_noMP     -- all AI units that cannot move (MP=0 or blocked)
+-- enemy_map            -- all enemy units
+--   Note: there is currently no map for all units, will be created is needed
+--
+------ Other maps ------
+--
+-- village_map[x][y] = { owner = 1 }            -- owner= is missing (nil) if village is unowned
+-- enemy_attack_map[x][y] = {
+--              hitpoints = 88,                 -- combined hitpoints
+--              Elvish Archer-11 = true,        -- ids of units that can get there
+--              Elvish Avenger-13 = true,
+--              units = 2                       -- number of units that can attack that hex
+--          },
+--
+---------- Separate from mapstate, but part of gamedata ----------
+--
+-- defense_maps[id][x][y] = { defense = 0.4 }         -- defense (fraction) on the terrain; e.g. 0.4 for Grunt on flat
+-- reach_maps[id][x][y] = { moves_left = 3 }          -- moves left after moving to this hex
+--    - Note: unlike wesnoth.find_reach etc., this map does NOT include hexes occupied by
+--      own units that cannot move out of the way
+--
+-- unit_copies[id] = { private copy of the proxy table  }
+--
+-- unit_infos[id] = { ...}   -- Easily accessible list of unit information
+--   Example: (note 'hides = true' and 'charge = true' for ability and weapon special)
+--
+--    Chocobone-17 = {
+--        hides = true,
+--        canrecruit = false,
+--        tod_bonus = 1,
+--        id = "Chocobone-17",
+--        max_hitpoints = 45,
+--        max_experience = 100,
+--        hitpoints = 45,
+--        attacks = {
+--            [1] = {
+--                number = 2,
+--                type = "pierce",
+--                name = "spear",
+--                charge = true,
+--                range = "melee",
+--                damage = 11
+--            }
+--        },
+--        experience = 0,
+--        resistances = {
+--            blade = 0.8,
+--            arcane = 1.5,
+--            pierce = 0.7,
+--            fire = 1.2,
+--            impact = 1.1,
+--            cold = 0.4
+--        },
+--        cost = 38,
+--        level = 2,
+--        alignment = "chaotic",
+--        side = 1
+--    },
 
 local fred_gamestate_utils = {}
 
-function fred_gamestate_utils.single_unit_info(unit)
-    -- Collects unit information from proxy unit table @unit into a Lua table
+function fred_gamestate_utils.single_unit_info(unit_proxy)
+    -- Collects unit information from proxy unit table @unit_proxy into a Lua table
     -- so that it is accessible faster.
     -- Note: Even accessing the directly readable fields of a unit proxy table
-    -- is slower than reading from a Lua table; not even talking about unit.__cfg.
+    -- is slower than reading from a Lua table; not even talking about unit_proxy.__cfg.
     --
-    -- Important: this is slow, so it should only be called once at the
-    --   beginning of each move, but it does need to be redone after each move
+    -- Important: this is slow, so it should only be called once at the  beginning
+    -- of each move, but it does need to be redone after each move, as it contains
+    -- information like HP and XP (or the unit might have level up or been changed
+    -- in an event).
     --
-    -- The following fields are added to the table:
-    --
-    -- Sample output:
-    -- {
-    --     canrecruit = false,
-    --     tod_bonus = 1,
-    --     id = "Great Troll-11",
-    --     max_hitpoints = 87,
-    --     max_experience = 150,
-    --     regenerate = true,
-    --     hitpoints = 87,
-    --     attacks = {
-    --                       [1] = {
-    --                                     number = 3,
-    --                                     type = "impact",
-    --                                     name = "hammer",
-    --                                     icon = "attacks/hammer-troll.png",
-    --                                     range = "melee",
-    --                                     damage = 18
-    --                                 }
-    --                   },
-    --     experience = 0,
-    --     resistances = {
-    --                           blade = 0.8,
-    --                           arcane = 1.1,
-    --                           pierce = 0.8,
-    --                           fire = 1,
-    --                           impact = 1,
-    --                           cold = 1
-    --                       },
-    --     cost = 48,
-    --     level = 3,
-    --     alignment = "chaotic",
-    --     side = 1
-    -- }
+    -- Note: unit location information is NOT included
+    -- See above for the format and type of information included.
 
-    local unit_cfg = unit.__cfg
+    local unit_cfg = unit_proxy.__cfg
 
     local single_unit_info = {
-        id = unit.id,
-        canrecruit = unit.canrecruit,
-        side = unit.side,
+        id = unit_proxy.id,
+        canrecruit = unit_proxy.canrecruit,
+        side = unit_proxy.side,
 
-        hitpoints = unit.hitpoints,
-        max_hitpoints = unit.max_hitpoints,
-        experience = unit.experience,
-        max_experience = unit.max_experience,
+        hitpoints = unit_proxy.hitpoints,
+        max_hitpoints = unit_proxy.max_hitpoints,
+        experience = unit_proxy.experience,
+        max_experience = unit_proxy.max_experience,
 
         alignment = unit_cfg.alignment,
         tod_bonus = AH.get_unit_time_of_day_bonus(unit_cfg.alignment, wesnoth.get_time_of_day().lawful_bonus),
@@ -74,14 +142,16 @@ function fred_gamestate_utils.single_unit_info(unit)
         level = unit_cfg.level
     }
 
-    local abilities = H.get_child(unit.__cfg, "abilities")
-
+    -- Include the ability type, such as: hides, heals, regenerate, skirmisher (set up as 'hides = true')
+    local abilities = H.get_child(unit_proxy.__cfg, "abilities")
     if abilities then
         for _,ability in ipairs(abilities) do
             single_unit_info[ability[1]] = true
         end
     end
 
+    -- Information about the attacks indexed by weapon number,
+    -- including specials (e.g. 'poison = true')
     single_unit_info.attacks = {}
     for attack in H.child_range(unit_cfg, 'attack') do
         -- Extract information for specials; we do this first because some
@@ -116,10 +186,11 @@ function fred_gamestate_utils.single_unit_info(unit)
         table.insert(single_unit_info.attacks, a)
     end
 
+    -- Resistances to the 6 default attack types
     local attack_types = { "arcane", "blade", "cold", "fire", "impact", "pierce" }
     single_unit_info.resistances = {}
     for _,attack_type in ipairs(attack_types) do
-        single_unit_info.resistances[attack_type] = wesnoth.unit_resistance(unit, attack_type) / 100.
+        single_unit_info.resistances[attack_type] = wesnoth.unit_resistance(unit_proxy, attack_type) / 100.
     end
 
     return single_unit_info
@@ -129,11 +200,11 @@ function fred_gamestate_utils.unit_infos()
     -- Wrapper function to fred_gamestate_utils.single_unit_info()
     -- Assembles information for all units on the map, indexed by unit id
 
-    local units = wesnoth.get_units()
+    local unit_proxies = wesnoth.get_units()
 
     local unit_infos = {}
-    for _,unit in ipairs(units) do
-        unit_infos[unit.id] = fred_gamestate_utils.single_unit_info(unit)
+    for _,unit_proxy in ipairs(unit_proxies) do
+        unit_infos[unit_proxy.id] = fred_gamestate_utils.single_unit_info(unit_proxy)
     end
 
     return unit_infos
@@ -141,28 +212,13 @@ end
 
 function fred_gamestate_utils.get_gamestate()
     -- Returns:
-    --   - State of villages and units on the map
-    --   - Reach maps for all the AI's units
-    --   - Copies of all the unit proxy tables (needed for attack calculations)
+    --   - State of villages and units on the map (all in one variable: gamestate)
+    --   - Reach maps for all the AI's units (in separate variable: reach_maps)
+    --   - Private unit copies (in separate variable: unit_copies)
+    -- These are returned separately in case only part of it is needed.
+    -- They can also be retrieved all in one table using get_gamedata()
     --
-    -- These are done together (to save calculation time) because we need to
-    -- calculate the unit reaches anyway in order to determine whether they can move away.
-    -- There is some redundant information here, in order to increase speed when
-    -- different types of information are needed
-    --
-    -- Sample content of mapstate:
-    --   village_map[12][2].owner = 1                 -- map of all villages, returning owner side (nil for unowned)
-    --   enemy_map[19][21].id = "Bad Orc"             -- map of all enemy units, returning id
-    --   my_unit_map_MP[19][4].id = "Vanak"              -- map of all own units that can move away (not just have MP left)
-    --   my_unit_map_noMP[24][7].id = "Orcish Grunt-27"  -- map of all own units that cannot move away any more
-    --   leaders[1] = { 19, 4 }                   -- locations of leaders of all sides indexed by side number
-    --   units['Orcish Grunt-30'] = { 21, 9 }     -- locations of all units indexed by unit id
-    --
-    -- Sample content of reach_maps:
-    --   reach_maps['Vanak'][23][2] = { moves_left = 2 }               -- map of hexes reachable by unit, returning MP left after getting there
-    --
-    -- Sample content of unit_tables:
-    --   unit_copies['Vanak'] = proxy_table
+    -- See above for the information returned
 
     local mapstate, reach_maps = {}, {}
 
@@ -176,48 +232,53 @@ function fred_gamestate_utils.get_gamestate()
 
     -- Unit locations and copies
     local units, leaders = {}, {}
-    local my_unit_map, my_unit_map_MP, my_unit_map_noMP, enemy_map = {}, {}, {}, {}
     local my_units, my_units_MP, my_units_noMP, enemies = {}, {}, {}, {}
+    local my_unit_map, my_unit_map_MP, my_unit_map_noMP, enemy_map = {}, {}, {}, {}
     local unit_copies = {}
 
-    for _,unit in ipairs(wesnoth.get_units()) do
-        units[unit.id] = { unit.x, unit.y }
+    for _,unit_proxy in ipairs(wesnoth.get_units()) do
+        local unit_copy = wesnoth.copy_unit(unit_proxy)
+        unit_copies[unit_copy.id] = unit_copy
 
-        if unit.canrecruit then
-            leaders[unit.side] = { unit.x, unit.y, id = unit.id }
+        units[unit_copy.id] = { unit_copy.x, unit_copy.y }
+
+        if unit_copy.canrecruit then
+            leaders[unit_copy.side] = { unit_copy.x, unit_copy.y, id = unit_copy.id }
         end
 
-        if (unit.side == wesnoth.current.side) then
-            if (not my_unit_map[unit.x]) then my_unit_map[unit.x] = {} end
-            my_unit_map[unit.x][unit.y] = { id = unit.id }
-            my_units[unit.id] = { unit.x, unit.y }
+        if (unit_copy.side == wesnoth.current.side) then
+            if (not my_unit_map[unit_copy.x]) then my_unit_map[unit_copy.x] = {} end
+            my_unit_map[unit_copy.x][unit_copy.y] = { id = unit_copy.id }
 
-            local reach = wesnoth.find_reach(unit)
+            my_units[unit_copy.id] = { unit_copy.x, unit_copy.y }
 
-            reach_maps[unit.id] = {}
-            for _,r in ipairs(reach) do
-                if (not reach_maps[unit.id][r[1]]) then reach_maps[unit.id][r[1]] = {} end
-                reach_maps[unit.id][r[1]][r[2]] = { moves_left = r[3] }
+            local reach = wesnoth.find_reach(unit_copy)
+
+            reach_maps[unit_copy.id] = {}
+            for _,loc in ipairs(reach) do
+                if (not reach_maps[unit_copy.id][loc[1]]) then reach_maps[unit_copy.id][loc[1]] = {} end
+                reach_maps[unit_copy.id][loc[1]][loc[2]] = { moves_left = loc[3] }
             end
 
             if (#reach > 1) then
-                if (not my_unit_map_MP[unit.x]) then my_unit_map_MP[unit.x] = {} end
-                my_unit_map_MP[unit.x][unit.y] = { id = unit.id }
-                my_units_MP[unit.id] = { unit.x, unit.y }
+                if (not my_unit_map_MP[unit_copy.x]) then my_unit_map_MP[unit_copy.x] = {} end
+                my_unit_map_MP[unit_copy.x][unit_copy.y] = { id = unit_copy.id }
+
+                my_units_MP[unit_copy.id] = { unit_copy.x, unit_copy.y }
             else
-                if (not my_unit_map_noMP[unit.x]) then my_unit_map_noMP[unit.x] = {} end
-                my_unit_map_noMP[unit.x][unit.y] = { id = unit.id }
-                my_units_noMP[unit.id] = { unit.x, unit.y }
+                if (not my_unit_map_noMP[unit_copy.x]) then my_unit_map_noMP[unit_copy.x] = {} end
+                my_unit_map_noMP[unit_copy.x][unit_copy.y] = { id = unit_copy.id }
+
+                my_units_noMP[unit_copy.id] = { unit_copy.x, unit_copy.y }
             end
         else
-            if wesnoth.is_enemy(unit.side, wesnoth.current.side) then
-                if (not enemy_map[unit.x]) then enemy_map[unit.x] = {} end
-                enemy_map[unit.x][unit.y] = { id = unit.id }
-                enemies[unit.id] = { unit.x, unit.y }
+            if wesnoth.is_enemy(unit_copy.side, wesnoth.current.side) then
+                if (not enemy_map[unit_copy.x]) then enemy_map[unit_copy.x] = {} end
+                enemy_map[unit_copy.x][unit_copy.y] = { id = unit_copy.id }
+
+                enemies[unit_copy.id] = { unit_copy.x, unit_copy.y }
             end
         end
-
-        unit_copies[unit.id] = wesnoth.copy_unit(unit)
     end
 
     -- reach_maps: eliminate hexes with other units that cannot move out of the way
@@ -235,33 +296,34 @@ function fred_gamestate_utils.get_gamestate()
     mapstate.my_units_noMP = my_units_noMP
     mapstate.enemies = enemies
     mapstate.leaders = leaders
+
     mapstate.my_unit_map = my_unit_map
     mapstate.my_unit_map_MP = my_unit_map_MP
     mapstate.my_unit_map_noMP = my_unit_map_noMP
     mapstate.enemy_map = enemy_map
 
     -- Get enemy attack and reach maps
-    -- These are for max MP of enemy units, and with taking all AI units with MP off the map
+    -- These are for max MP of enemy units, and after taking all AI units with MP off the map
     local enemy_attack_map = {}
 
     -- Take all own units with MP left off the map (for enemy pathfinding)
     local extracted_units = {}
     for id,loc in pairs(mapstate.my_units_MP) do
-        local unit = wesnoth.get_unit(loc[1], loc[2])
-        wesnoth.extract_unit(unit)
-        table.insert(extracted_units, unit)
+        local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
+        wesnoth.extract_unit(unit_proxy)
+        table.insert(extracted_units, unit_proxy)
     end
 
-    for enemy_id,loc in pairs(mapstate.enemies) do
-        local attack_range = {}
-
+    for enemy_id,_ in pairs(mapstate.enemies) do
         local old_moves = unit_copies[enemy_id].moves
         unit_copies[enemy_id].moves = unit_copies[enemy_id].max_moves
+
         local reach = wesnoth.find_reach(unit_copies[enemy_id])
+
         unit_copies[enemy_id].moves = old_moves
 
         reach_maps[enemy_id] = {}
-
+        local attack_range = {}
         for _,loc in ipairs(reach) do
             if (not reach_maps[enemy_id][loc[1]]) then reach_maps[enemy_id][loc[1]] = {} end
             reach_maps[enemy_id][loc[1]][loc[2]] = { moves_left = loc[3] }
@@ -285,11 +347,10 @@ function fred_gamestate_utils.get_gamestate()
                 enemy_attack_map[x][y][enemy_id] = true
             end
         end
-
     end
 
     -- Put the own units with MP back out there
-    for _,unit in ipairs(extracted_units) do wesnoth.put_unit(unit) end
+    for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
 
     mapstate.enemy_attack_map = enemy_attack_map
 
@@ -297,6 +358,8 @@ function fred_gamestate_utils.get_gamestate()
 end
 
 function fred_gamestate_utils.get_gamedata()
+    -- Combine all the game data tables into one wrapper table
+    -- See above for the information included
 
     local gamedata, reach_maps, unit_copies = fred_gamestate_utils.get_gamestate()
 
