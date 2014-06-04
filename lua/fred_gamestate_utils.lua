@@ -224,7 +224,7 @@ function fred_gamestate_utils.get_gamestate()
     for id,reachmap in pairs(reach_maps) do
         for id_noMP,loc in pairs(my_units_noMP) do
             if (id ~= id_noMP) then
-                if reachmap[loc[1]] then reachmap[loc[1]][loc[2]] = nil end
+                if reach_map[loc[1]] then reach_map[loc[1]][loc[2]] = nil end
             end
         end
     end

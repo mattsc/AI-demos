@@ -218,7 +218,7 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender, dst, attacker
     --  @dst: location from which the attacker will attack in form { x, y }
     -- @attacker_info, @defender_info: unit info for the two units (needed in addition to the units
     --   themselves in order to speed things up)
-    --  @mapstate: table with the map state as produced by fred_gamestate_utils.mapstate_reach_maps()
+    --  @mapstate: table with the map state as produced by fred_gamestate_utils.mapstate()
     --  @defense_maps: table of unit terrain defense values as produced by fred_gamestate_utils_incremental.get_unit_defense()
     --  @move_cache: for caching data *for this move only*, needs to be cleared after a gamestate change
     -- Note: for speed reasons @mapstate, @defense_maps and @move_cache are _not_ optional
@@ -431,7 +431,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
     --   - This is _much_ faster if reach_maps is given; should be done for all attack combos for the side
     --     Only when the result depends on the new map situation (such as for counter attacks) should
     --     it be calculated here.  If reach_maps are not given, @gamedata must be provided
-    --   - Even if @reachmap is no given, gamedata still needs  to contain the "original" reach_maps for the attackers.
+    --   - Even if @reach_maps is no given, gamedata still needs  to contain the "original" reach_maps for the attackers.
     --     This is used to speed up the calculation.  If the attacker (enemy) cannot get to a hex originally
     --     (remember that this is done with AI units with MP taken off the map), then it can also
     --     not get there after moving AI units into place.
@@ -488,10 +488,10 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
         end
 
         -- Eliminate hexes with other units that cannot move out of the way
-        for id,reachmap in pairs(reach_maps) do
+        for id,reach_map in pairs(reach_maps) do
             for id_noMP,loc in pairs(gamedata.mapstate.my_units_noMP) do
                 if (id ~= id_noMP) then
-                    if reachmap[loc[1]] then reachmap[loc[1]][loc[2]] = nil end
+                    if reach_map[loc[1]] then reach_map[loc[1]][loc[2]] = nil end
                 end
             end
         end
