@@ -962,9 +962,56 @@ return {
             grunt_rush_FLS1.data.MLK_leader, grunt_rush_FLS1.data.MLK_leader_move = nil, nil
         end
 
-        ----------Grab villages -----------
+        --------- zone_control CA ------------
 
-        function grunt_rush_FLS1:eval_grab_villages(units, villages, enemies, cfg, gamedata, move_cache)
+        function grunt_rush_FLS1:zone_action_retreat_injured(units, cfg)
+            -- **** Retreat seriously injured units
+            --print_time('retreat')
+            local unit, dest, enemy_threat = R.retreat_injured_units(units)
+            if unit then
+                local allowable_retreat_threat = cfg.allowable_retreat_threat or 0
+                --print_time('Found unit to retreat:', unit.id, enemy_threat, allowable_retreat_threat)
+                -- Is this a healing location?
+                local healloc = false
+                if (dest[3] > 2) then healloc = true end
+                local action = { units = {unit}, dsts = {dest}, type = 'village', reserve = dest }
+                action.action = cfg.zone_id .. ': ' .. 'retreat severely injured units'
+                return action, healloc, (enemy_threat <= allowable_retreat_threat)
+            end
+        end
+
+        function grunt_rush_FLS1:zone_action_villages(units, enemies, zone_map, cfg, gamedata, move_cache)
+            -- Otherwise we go for unowned and enemy-owned villages
+            -- This needs to happen for all units, not just not-injured ones
+            -- Also includes the leader, if he's on his keep
+            -- The rating>100 part is to exclude threatened but already owned villages
+
+            local village_grabbers = {}
+            for i,u in ipairs(units) do
+                if u.canrecruit then
+                    if wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
+                        table.insert(village_grabbers, u)
+                    end
+                else
+                    table.insert(village_grabbers, u)
+                end
+            end
+            --print_time('#village_grabbers', #village_grabbers)
+
+            if (not village_grabbers[1]) then return end
+
+            -- For this, we consider all villages, not just the retreat_villages,
+            -- but restrict it to villages inside the zone
+            local all_villages = wesnoth.get_locations { terrain = '*^V*' }
+
+            local villages = {}
+            for _,village in ipairs(all_villages) do
+                if zone_map:get(village[1], village[2]) then
+                    table.insert(villages, village)
+                end
+            end
+
+            local units = village_grabbers
             --print('#units, #enemies', #units, #enemies)
 
             -- Get my and enemy keeps
@@ -1113,65 +1160,8 @@ return {
                 local action = { units = {}, dsts = {} }
                 action.units[1], action.dsts[1] = best_unit, best_village
                 action.rating = max_rating
+                action.action = cfg.zone_id .. ': ' .. 'grab villages'
                 return action
-            end
-
-            return nil
-        end
-
-        --------- zone_control CA ------------
-
-        function grunt_rush_FLS1:zone_action_retreat_injured(units, cfg)
-            -- **** Retreat seriously injured units
-            --print_time('retreat')
-            local unit, dest, enemy_threat = R.retreat_injured_units(units)
-            if unit then
-                local allowable_retreat_threat = cfg.allowable_retreat_threat or 0
-                --print_time('Found unit to retreat:', unit.id, enemy_threat, allowable_retreat_threat)
-                -- Is this a healing location?
-                local healloc = false
-                if (dest[3] > 2) then healloc = true end
-                local action = { units = {unit}, dsts = {dest}, type = 'village', reserve = dest }
-                action.action = cfg.zone_id .. ': ' .. 'retreat severely injured units'
-                return action, healloc, (enemy_threat <= allowable_retreat_threat)
-            end
-        end
-
-        function grunt_rush_FLS1:zone_action_villages(units, enemies, zone_map, cfg, gamedata, move_cache)
-            -- Otherwise we go for unowned and enemy-owned villages
-            -- This needs to happen for all units, not just not-injured ones
-            -- Also includes the leader, if he's on his keep
-            -- The rating>100 part is to exclude threatened but already owned villages
-
-            local village_grabbers = {}
-            for i,u in ipairs(units) do
-                if u.canrecruit then
-                    if wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
-                        table.insert(village_grabbers, u)
-                    end
-                else
-                    table.insert(village_grabbers, u)
-                end
-            end
-            --print_time('#village_grabbers', #village_grabbers)
-
-            if village_grabbers[1] then
-                -- For this, we consider all villages, not just the retreat_villages,
-                -- but restrict it to villages inside the zone
-                local all_villages = wesnoth.get_locations { terrain = '*^V*' }
-
-                local villages = {}
-                for _,village in ipairs(all_villages) do
-                    if zone_map:get(village[1], village[2]) then
-                        table.insert(villages, village)
-                    end
-                end
-
-                local action = grunt_rush_FLS1:eval_grab_villages(village_grabbers, villages, enemies, cfg, gamedata, move_cache)
-                if action then
-                    action.action = cfg.zone_id .. ': ' .. 'grab villages'
-                    return action
-                end
             end
         end
 
