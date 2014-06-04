@@ -1215,7 +1215,7 @@ return {
 
             local combo_ratings = {}
             for _,target in pairs(targets) do
-                local target_id,target_loc = next(target)
+                local target_id, target_loc = next(target)
                 local target_proxy = wesnoth.get_unit(target_loc[1], target_loc[2])
 
                 local is_trappable_enemy = true
