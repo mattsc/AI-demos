@@ -1,11 +1,12 @@
 local H = wesnoth.require "lua/helper.lua"
 local FGUI = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 
--- Function to perform fast evaluation of attacks and attack combinations.
+-- Functions to perform fast evaluation of attacks and attack combinations.
 -- The emphasis with all of this is on speed, not elegance.
--- This might result in redundant information being produced/passed and similar.
+-- This might result in redundant information being produced/passed and similar
+-- or the format of cache tables being somewhat tedious, etc.
 -- Note to self: working with Lua tables is generally much faster than with unit proxy tables.
--- Also, creating tables takes time, indexing by number is faster than by sting, etc.
+-- Also, creating tables takes time, indexing by number is faster than by string, etc.
 
 local fred_attack_utils = {}
 
@@ -14,10 +15,11 @@ function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_
     -- The attack att_stat both for the attacker and the defender need to be precalculated for this.
     -- Unit information is passed in unit_infos format, rather than as unit proxy tables for speed reasons.
     -- Note: this is _only_ the damage rating for the attacker, not both units
+    -- Note: damage is damage TO the attacker, not damage done BY the attacker
     --
     -- Input parameters:
     --  @attacker_info, @defender_info: unit_info tables produced by fred_gamestate_utils.single_unit_info()
-    --  @att_stats, @def_stats: attack statistics for the two units
+    --  @att_stat, @def_stat: attack statistics for the two units
     --  @is_village: whether the hex from which the attacker attacks is a village
     --    Set to nil or false if not, to anything if it is a village (does not have to be a boolean)
     --
@@ -28,7 +30,6 @@ function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_
     local xp_weight = (cfg and cfg.xp_weight) or 1.
     local level_weight = (cfg and cfg.level_weight) or 1.
 
-    -- Note: damage is damage TO the attacker, not damage done BY the attacker
     local damage = attacker_info.hitpoints - att_stat.average_hp
 
     -- Count poisoned as additional 8 HP damage times probability of being poisoned
@@ -50,7 +51,7 @@ function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_
 
     if (damage < 0) then damage = 0 end
 
-    -- Fraction damage (= fractional value of the attacker)
+    -- Fractional damage (= fractional value of the attacker)
     local fractional_damage = damage / attacker_info.max_hitpoints
 
     -- Additionally, subtract the chance to die, in order to (de)emphasize units that might die
@@ -101,9 +102,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     --  @att_stats: array of the attack stats of the attack combination(!) of the attackers
     --    (must be an array even for single unit attacks)
     --  @def_stat: the combat stats of the defender after facing the combination of the attackers
-    --  @mapstate: table with the map state as produced by fred_gamestate_utils.mapstate()
-    --  @defense_maps: table of unit terrain defense values as produced by fred_gamestate_utils_incremental.get_unit_defense()
-    -- Note: for speed reasons @mapstate and @defense_maps are _not_ optional
+    --  @gamedata: table with the game state as produced by fred_gamestate_utils.gamedata()
     --
     --  Optional inputs:
     --   @cfg: the different weights listed right below
@@ -132,6 +131,8 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
         )
     end
 
+    -- attacker_info is passed only to figure out whether the attacker might level up
+    -- TODO: This is only works for the first attacker in a combo at the moment
     local defender_x, defender_y = gamedata.units[defender_info.id][1], gamedata.units[defender_info.id][2]
     local defender_on_village = gamedata.village_map[defender_x] and gamedata.village_map[defender_x][defender_y]
     local defender_rating = fred_attack_utils.damage_rating_unit(
@@ -140,7 +141,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
 
     -- Now we add some extra ratings.  They are positive for attacks that should be preferred
     -- and expressed in fraction of the defender maximum hitpoints
-    -- They should be used to help decide which attack to pick,
+    -- They should be used to help decide which attack to pick all else being equal,
     -- but not for, e.g., evaluating counter attacks (which should be entirely damage based)
     local extra_rating = 0.
 
@@ -159,7 +160,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
 
     -- We don't need a bonus for good terrain for the attacker, as that is covered in the damage calculation
     -- However, we add a small bonus for good terrain defense of the _defender_ on the _attack_ hexes
-    -- This is in order to take good terrain away from defender on next move, all else being equal
+    -- This is in order to take good terrain away from defender on its next move
     local defense_rating = 0.
     for _,dst in ipairs(dsts) do
         defense_rating = defense_rating + FGUI.get_unit_defense(
@@ -201,7 +202,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     end
 
     -- Finally add up and apply factor of own unit weight to defender unit weight
-    -- This is a number equivalent to 'aggression' in the default AI (but applied differently)
+    -- This is a number equivalent to 'aggression' in the default AI (but not numerically equal)
     local rating = defender_rating - attacker_rating * own_value_weight + extra_rating
 
     --print('rating, attacker_rating, defender_rating, extra_rating:', rating, attacker_rating, defender_rating, extra_rating)
@@ -209,21 +210,19 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     return rating, attacker_rating, defender_rating, extra_rating
 end
 
-function fred_attack_utils.battle_outcome(attacker_copy, defender, dst, attacker_info, defender_info, gamedata, move_cache)
-    -- Calculate the stats of a combat by @attacker_copy vs. @defender at location @dst
+function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, attacker_info, defender_info, gamedata, move_cache)
+    -- Calculate the stats of a combat by @attacker_copy vs. @defender_proxy at location @dst
     -- We use wesnoth.simulate_combat for this, but cache results when possible
     -- Inputs:
-    --  @attackers_copy: private unit copy of the attacker proxy table (this _must_ be a copy, not the proxy itself)
-    --  @defender: defender proxy table (this _must_ be a unit proxy table on the map, not a copy)
-    --  @dst: location from which the attacker will attack in form { x, y }
+    -- @attacker_copy: private unit copy of the attacker (must be a copy, does not work with the proxy table)
+    -- @defender_proxy: defender proxy table (must be a unit proxy table on the map, does not work with a copy)
+    -- @dst: location from which the attacker will attack in form { x, y }
     -- @attacker_info, @defender_info: unit info for the two units (needed in addition to the units
     --   themselves in order to speed things up)
-    --  @mapstate: table with the map state as produced by fred_gamestate_utils.mapstate()
-    --  @defense_maps: table of unit terrain defense values as produced by fred_gamestate_utils_incremental.get_unit_defense()
+    --  @gamedata: table with the game state as produced by fred_gamestate_utils.gamedata()
     --  @move_cache: for caching data *for this move only*, needs to be cleared after a gamestate change
-    -- Note: for speed reasons @mapstate, @defense_maps and @move_cache are _not_ optional
 
-    local defender_defense = FGUI.get_unit_defense(defender, defender.x, defender.y, gamedata.defense_maps)
+    local defender_defense = FGUI.get_unit_defense(defender_proxy, defender_proxy.x, defender_proxy.y, gamedata.defense_maps)
     local attacker_defense = FGUI.get_unit_defense(attacker_copy, dst[1], dst[2], gamedata.defense_maps)
 
     if move_cache[attacker_info.id]
@@ -239,13 +238,12 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender, dst, attacker
 
     local old_x, old_y = attacker_copy.x, attacker_copy.y
     attacker_copy.x, attacker_copy.y = dst[1], dst[2]
-    local tmp_att_stats, tmp_def_stats = wesnoth.simulate_combat(attacker_copy, defender)
+    local tmp_att_stats, tmp_def_stats = wesnoth.simulate_combat(attacker_copy, defender_proxy)
     attacker_copy.x, attacker_copy.y = old_x, old_y
 
     -- Extract only those hp_chances that are non-zero (except for hp_chance[0]
     -- which is always needed).  This slows down this step a little, but significantly speeds
     -- up attack combination calculations
-
     local att_stats = {
         hp_chance = {},
         average_hp = tmp_att_stats.average_hp,
@@ -296,22 +294,22 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender, dst, attacker
     return att_stats, def_stats
 end
 
-function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender, tmp_dsts, tmp_attacker_infos, defender_info, gamedata, move_cache)
+function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy, tmp_dsts, tmp_attacker_infos, defender_info, gamedata, move_cache)
     -- Calculate attack combination outcomes using
-    -- @tmp_attacker_copies: array of attacker unit copiess (must be copies, not the proxy tables themselves)
-    -- @defender: the unit being attacked (must be the unit proxy table on the map, not a unit copy)
+    -- @tmp_attacker_copies: array of attacker unit copies (must be copies, does not work with the proxy table)
+    -- @defender_proxy: the unit being attacked (must be a unit proxy table on the map, does not work with a copy)
     -- @tmp_dsts: array of the hexes (format { x, y }) from which the attackers attack
     --   must be in same order as @attackers
     -- @tmp_attacker_infos, @defender_info: unit info for the attackers and defenders (needed in addition to the units
     --   themselves in order to speed things up)
-    -- @mapstate, @defense_maps, @move_cache: only needed to pass to the functions being called
+    -- @gamedata, @move_cache: only needed to pass to the functions being called
     --    see fred_attack_utils.battle_outcome() for descriptions
     --
     -- Return values (in this order):
     --   - att_stats: an array of stats for each attacker, in the order found for the "best attack",
     --       which is generally different from the order of @tmp_attacker_copies
     --   - defender combo stats: one set of stats containing the defender stats after the attack combination
-    --   - The sorted attacker_infos and dsts arrays
+    --   - The attacker_infos and dsts arrays, sorted in order of the individual attacks
     --   - The rating for this attack combination calculated from fred_attack_utils.attack_rating() results
     --   - The (summed up) attacker and (combined) defender rating, as well as the extra rating separately
 
@@ -320,7 +318,7 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender, tmp_
     for i,attacker_copy in ipairs(tmp_attacker_copies) do
         tmp_att_stats[i], tmp_def_stats[i] =
             fred_attack_utils.battle_outcome(
-                attacker_copy, defender, tmp_dsts[i],
+                attacker_copy, defender_proxy, tmp_dsts[i],
                 tmp_attacker_infos[i], defender_info,
                 gamedata, move_cache
             )
@@ -331,7 +329,7 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender, tmp_
                 { tmp_att_stats[i] }, tmp_def_stats[i], gamedata
             )
 
-        ratings[i] = { i, rating }  -- Need the i here in order to specify the order of attackers, dsts
+        ratings[i] = { i, rating }  -- Need the i here in order to specify the order of attackers, dsts below
     end
 
     -- Sort all the arrays based on this rating
@@ -366,16 +364,16 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender, tmp_
                 def_stats[i].hp_chance[0] = (def_stats[i].hp_chance[0] or 0) + prob1
             else
                 local org_hp = defender_info.hitpoints
-                defender.hitpoints = hp1  -- Yes, we need both here.  It speeds up other parts.
+                defender_proxy.hitpoints = hp1  -- Yes, we need both here.  It speeds up other parts.
                 defender_info.hitpoints = hp1
 
                 local ast, dst = fred_attack_utils.battle_outcome(
-                    attacker_copies[i], defender, dsts[i],
+                    attacker_copies[i], defender_proxy, dsts[i],
                     attacker_infos[i], defender_info,
                     gamedata, move_cache
                 )
 
-                defender.hitpoints = org_hp
+                defender_proxy.hitpoints = org_hp
                 defender_info.hitpoints = org_hp
 
                 for hp2,prob2 in pairs(ast.hp_chance) do
@@ -420,16 +418,16 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
     -- The former is in order to get all attack combos (but order of individual attacks doesn't matter),
     -- the latter is for a quick-and-dirty search for, for example, the strongest counter attack,
     -- when a full attack combination evaluation is too expensive.  The strongest attack is defined
-    -- as the one which has the largest sum of damage done to the defender
+    -- here as the one which has the maximum sum of damage done to the defender
     --
     -- Required inputs:
     -- @attackers: array of attacker ids and locations: { id1 = { x1 , y1 }, id2 = ... }
     -- @defender: defender id and location: { id = { x, y } }
     --
     -- Optional inputs:
-    -- @reach_maps: reach_maps for the attackers in the form as returned by fred_gamestate_utils.get_gamestate()
+    -- @reach_maps: reach_maps for the attackers in the form as returned by fred_gamestate_utils.get_mapstate()
     --   - This is _much_ faster if reach_maps is given; should be done for all attack combos for the side
-    --     Only when the result depends on the new map situation (such as for counter attacks) should
+    --     Only when the result depends on a hypothetical map situation (such as for counter attacks) should
     --     it be calculated here.  If reach_maps are not given, @gamedata must be provided
     --   - Even if @reach_maps is no given, gamedata still needs  to contain the "original" reach_maps for the attackers.
     --     This is used to speed up the calculation.  If the attacker (enemy) cannot get to a hex originally
@@ -519,6 +517,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
                         gamedata, move_cache
                     )
 
+                    -- Defender rating
                     _,_,rating = fred_attack_utils.attack_rating(
                         { gamedata.unit_infos[attacker_id] }, gamedata.unit_infos[defender_id], { { xa, ya } },
                         { att_stats }, def_stats,
@@ -548,7 +547,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
         table.insert(attacks_dst_src, dst)
     end
 
-    ----- Now go through all the attack combinations -----
+    -- Now go through all the attack combinations
     -- and either collect them all or find the "strongest" attack
     local all_combos, combo, best_combo = {}, {}
     local num_hexes = #attacks_dst_src
