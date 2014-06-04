@@ -9,9 +9,9 @@
 
 local fred_gamestate_utils_incremental = {}
 
-function fred_gamestate_utils_incremental.get_unit_defense(unit_copy, x, y, defense_map)
+function fred_gamestate_utils_incremental.get_unit_defense(unit_copy, x, y, defense_maps)
     -- Get the terrain defense of a unit as a factor (that is, e.g. 0.40 rather than 40)
-    -- The result is stored (and accessed if it exists) in defense_map
+    -- The result is stored (and accessed if it exists) in @defense_maps
     --
     -- Inputs:
     -- @unit_id: id of the unit
@@ -19,21 +19,21 @@ function fred_gamestate_utils_incremental.get_unit_defense(unit_copy, x, y, defe
     --    found using the id alone, we do it this way because wesnoth.get_unit(x, y) is
     --    much faster than wesnoth.get_units { id = }
     -- @x, @y: the location for which to calculate the unit's terrain defense
-    -- @defense_map: table in which to cache the results.  Note: this is NOT an optional input
+    -- @defense_maps: table in which to cache the results.  Note: this is NOT an optional input
     --
-    -- Sample structure of defense_map:
-    --   defense_map['Vanak'][19][4] = 0.6
+    -- Sample structure of defense_maps:
+    --   defense_maps['Vanak'][19][4] = 0.6
 
-    if (not defense_map[unit_copy.id]) then defense_map[unit_copy.id] = {} end
-    if (not defense_map[unit_copy.id][x]) then defense_map[unit_copy.id][x] = {} end
+    if (not defense_maps[unit_copy.id]) then defense_maps[unit_copy.id] = {} end
+    if (not defense_maps[unit_copy.id][x]) then defense_maps[unit_copy.id][x] = {} end
 
-    if (not defense_map[unit_copy.id][x][y]) then
+    if (not defense_maps[unit_copy.id][x][y]) then
         local defense = (100. - wesnoth.unit_defense(unit_copy, wesnoth.get_terrain(x, y))) / 100.
 
-        defense_map[unit_copy.id][x][y] = defense
+        defense_maps[unit_copy.id][x][y] = defense
         return defense
     else
-        return defense_map[unit_copy.id][x][y]
+        return defense_maps[unit_copy.id][x][y]
     end
 end
 

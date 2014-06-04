@@ -91,7 +91,7 @@ function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_
     return rating
 end
 
-function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, att_stats, def_stat, mapstate, unit_copies, defense_map, cfg)
+function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, att_stats, def_stat, mapstate, unit_copies, defense_maps, cfg)
     -- Returns a common (but configurable) rating for attacks of one or several attackers against one defender
     --
     -- Inputs:
@@ -102,8 +102,8 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     --    (must be an array even for single unit attacks)
     --  @def_stat: the combat stats of the defender after facing the combination of the attackers
     --  @mapstate: table with the map state as produced by fred_gamestate_utils.mapstate_reachmaps()
-    --  @defense_map: table of unit terrain defense values as produced by fred_gamestate_utils_incremental.get_unit_defense()
-    -- Note: for speed reasons @mapstate and @defense_map are _not_ optional
+    --  @defense_maps: table of unit terrain defense values as produced by fred_gamestate_utils_incremental.get_unit_defense()
+    -- Note: for speed reasons @mapstate and @defense_maps are _not_ optional
     --
     --  Optional inputs:
     --   @cfg: the different weights listed right below
@@ -165,7 +165,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
         defense_rating = defense_rating + FGUI.get_unit_defense(
             unit_copies[defender_info.id],
             dst[1], dst[2],
-            defense_map
+            defense_maps
         )
     end
     defense_rating = defense_rating / #dsts * defense_weight
@@ -209,7 +209,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     return rating, attacker_rating, defender_rating, extra_rating
 end
 
-function fred_attack_utils.battle_outcome(attacker_copy, defender, dst, attacker_info, defender_info, mapstate, defense_map, move_cache)
+function fred_attack_utils.battle_outcome(attacker_copy, defender, dst, attacker_info, defender_info, mapstate, defense_maps, move_cache)
     -- Calculate the stats of a combat by @attacker_copy vs. @defender at location @dst
     -- We use wesnoth.simulate_combat for this, but cache results when possible
     -- Inputs:
@@ -219,12 +219,12 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender, dst, attacker
     -- @attacker_info, @defender_info: unit info for the two units (needed in addition to the units
     --   themselves in order to speed things up)
     --  @mapstate: table with the map state as produced by fred_gamestate_utils.mapstate_reachmaps()
-    --  @defense_map: table of unit terrain defense values as produced by fred_gamestate_utils_incremental.get_unit_defense()
+    --  @defense_maps: table of unit terrain defense values as produced by fred_gamestate_utils_incremental.get_unit_defense()
     --  @move_cache: for caching data *for this move only*, needs to be cleared after a gamestate change
-    -- Note: for speed reasons @mapstate, @defense_map and @move_cache are _not_ optional
+    -- Note: for speed reasons @mapstate, @defense_maps and @move_cache are _not_ optional
 
-    local defender_defense = FGUI.get_unit_defense(defender, defender.x, defender.y, defense_map)
-    local attacker_defense = FGUI.get_unit_defense(attacker_copy, dst[1], dst[2], defense_map)
+    local defender_defense = FGUI.get_unit_defense(defender, defender.x, defender.y, defense_maps)
+    local attacker_defense = FGUI.get_unit_defense(attacker_copy, dst[1], dst[2], defense_maps)
 
     if move_cache[attacker_info.id]
         and move_cache[attacker_info.id][defender_info.id]
@@ -296,7 +296,7 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender, dst, attacker
     return att_stats, def_stats
 end
 
-function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender, tmp_dsts, tmp_attacker_infos, defender_info, mapstate, unit_copies, defense_map, move_cache)
+function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender, tmp_dsts, tmp_attacker_infos, defender_info, mapstate, unit_copies, defense_maps, move_cache)
     -- Calculate attack combination outcomes using
     -- @tmp_attacker_copies: array of attacker unit copiess (must be copies, not the proxy tables themselves)
     -- @defender: the unit being attacked (must be the unit proxy table on the map, not a unit copy)
@@ -304,7 +304,7 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender, tmp_
     --   must be in same order as @attackers
     -- @tmp_attacker_infos, @defender_info: unit info for the attackers and defenders (needed in addition to the units
     --   themselves in order to speed things up)
-    -- @mapstate, @defense_map, @move_cache: only needed to pass to the functions being called
+    -- @mapstate, @defense_maps, @move_cache: only needed to pass to the functions being called
     --    see fred_attack_utils.battle_outcome() for descriptions
     --
     -- Return values (in this order):
@@ -322,13 +322,13 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender, tmp_
             fred_attack_utils.battle_outcome(
                 attacker_copy, defender, tmp_dsts[i],
                 tmp_attacker_infos[i], defender_info,
-                mapstate, defense_map, move_cache
+                mapstate, defense_maps, move_cache
             )
 
         local rating =
             fred_attack_utils.attack_rating(
                 { tmp_attacker_infos[i] }, defender_info, { tmp_dsts[1] },
-                { tmp_att_stats[i] }, tmp_def_stats[i], mapstate, unit_copies, defense_map
+                { tmp_att_stats[i] }, tmp_def_stats[i], mapstate, unit_copies, defense_maps
             )
 
         ratings[i] = { i, rating }  -- Need the i here in order to specify the order of attackers, dsts
@@ -372,7 +372,7 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender, tmp_
                 local ast, dst = fred_attack_utils.battle_outcome(
                     attacker_copies[i], defender, dsts[i],
                     attacker_infos[i], defender_info,
-                    mapstate, defense_map, move_cache
+                    mapstate, defense_maps, move_cache
                 )
 
                 defender.hitpoints = org_hp
@@ -408,7 +408,7 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender, tmp_
     local rating, attacker_rating, defender_rating, extra_rating =
         fred_attack_utils.attack_rating(
             attacker_infos, defender_info, dsts,
-            att_stats, def_stats[#attacker_infos], mapstate, unit_copies, defense_map
+            att_stats, def_stats[#attacker_infos], mapstate, unit_copies, defense_maps
         )
 
     return att_stats, def_stats[#attacker_infos], attacker_infos, dsts, rating, attacker_rating, defender_rating, extra_rating
@@ -516,13 +516,13 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reachmaps, get
                     local att_stats, def_stats = fred_attack_utils.battle_outcome(
                         gamedata.unit_copies[attacker_id], defender_proxy, { xa, ya },
                         gamedata.unit_info[attacker_id], gamedata.unit_info[defender_id],
-                        gamedata.mapstate, gamedata.defense_map, move_cache
+                        gamedata.mapstate, gamedata.defense_maps, move_cache
                     )
 
                     _,_,rating = fred_attack_utils.attack_rating(
                         { gamedata.unit_info[attacker_id] }, gamedata.unit_info[defender_id], { { xa, ya } },
                         { att_stats }, def_stats,
-                        gamedata.mapstate, gamedata.unit_copies, gamedata.defense_map
+                        gamedata.mapstate, gamedata.unit_copies, gamedata.defense_maps
                     )
                 end
 

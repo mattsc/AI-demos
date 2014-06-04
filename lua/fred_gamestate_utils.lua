@@ -304,7 +304,7 @@ function fred_gamestate_utils.get_gamedata()
         mapstate = mapstate,
         reachmaps = reachmaps,
         unit_copies = unit_copies,
-        defense_map = {}
+        defense_maps = {}
     }
 
     return gamedata

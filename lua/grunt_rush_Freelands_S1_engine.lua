@@ -811,7 +811,7 @@ return {
                 FAU.attack_combo_eval(
                     attacker_copies, target_proxy, dsts,
                     attacker_infos, gamedata.unit_info[target_id],
-                    gamedata.mapstate, gamedata.unit_copies, gamedata.defense_map, move_cache
+                    gamedata.mapstate, gamedata.unit_copies, gamedata.defense_maps, move_cache
                 )
 
             combo_def_stats.rating = rating
@@ -1261,7 +1261,7 @@ return {
                         FAU.attack_combo_eval(
                             attacker_copies, target_proxy, dsts,
                             attacker_infos, gamedata.unit_info[target_id],
-                            gamedata.mapstate, gamedata.unit_copies, gamedata.defense_map, move_cache
+                            gamedata.mapstate, gamedata.unit_copies, gamedata.defense_maps, move_cache
                     )
                     --DBG.dbms(combo_def_stats)
                     --print('   combo ratings:  ', combo_rating, combo_att_rating, combo_def_rating)
