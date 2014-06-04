@@ -30,10 +30,10 @@ function fred_gamestate_utils_incremental.get_unit_defense(unit_copy, x, y, defe
     if (not defense_maps[unit_copy.id][x][y]) then
         local defense = (100. - wesnoth.unit_defense(unit_copy, wesnoth.get_terrain(x, y))) / 100.
 
-        defense_maps[unit_copy.id][x][y] = defense
+        defense_maps[unit_copy.id][x][y] = { defense = defense }
         return defense
     else
-        return defense_maps[unit_copy.id][x][y]
+        return defense_maps[unit_copy.id][x][y].defense
     end
 end
 
