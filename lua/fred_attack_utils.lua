@@ -327,7 +327,7 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender, tmp_
 
         local rating =
             fred_attack_utils.attack_rating(
-                { tmp_attacker_infos[i] }, defender_info, { tmp_dsts[1] },
+                { tmp_attacker_infos[i] }, defender_info, { tmp_dsts[i] },
                 { tmp_att_stats[i] }, tmp_def_stats[i], gamedata
             )
 
