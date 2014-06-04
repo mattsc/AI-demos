@@ -91,7 +91,7 @@ function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_
     return rating
 end
 
-function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, att_stats, def_stat, mapstate, unit_copies, defense_maps, cfg)
+function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, att_stats, def_stat, gamedata, cfg)
     -- Returns a common (but configurable) rating for attacks of one or several attackers against one defender
     --
     -- Inputs:
@@ -126,14 +126,14 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
 
     local attacker_rating = 0
     for i,attacker_info in ipairs(attacker_infos) do
-        local attacker_on_village = mapstate.village_map[dsts[i][1]] and mapstate.village_map[dsts[i][1]][dsts[i][2]]
+        local attacker_on_village = gamedata.village_map[dsts[i][1]] and gamedata.village_map[dsts[i][1]][dsts[i][2]]
         attacker_rating = attacker_rating + fred_attack_utils.damage_rating_unit(
             attacker_info, defender_info, att_stats[i], def_stat, attacker_on_village, cfg
         )
     end
 
-    local defender_x, defender_y = mapstate.units[defender_info.id][1], mapstate.units[defender_info.id][2]
-    local defender_on_village = mapstate.village_map[defender_x] and mapstate.village_map[defender_x][defender_y]
+    local defender_x, defender_y = gamedata.units[defender_info.id][1], gamedata.units[defender_info.id][2]
+    local defender_on_village = gamedata.village_map[defender_x] and gamedata.village_map[defender_x][defender_y]
     local defender_rating = fred_attack_utils.damage_rating_unit(
         defender_info, attacker_infos[1], def_stat, att_stats[1], defender_on_village, cfg
     )
@@ -163,9 +163,9 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     local defense_rating = 0.
     for _,dst in ipairs(dsts) do
         defense_rating = defense_rating + FGUI.get_unit_defense(
-            unit_copies[defender_info.id],
+            gamedata.unit_copies[defender_info.id],
             dst[1], dst[2],
-            defense_maps
+            gamedata.defense_maps
         )
     end
     defense_rating = defense_rating / #dsts * defense_weight
@@ -174,8 +174,8 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
 
     -- Get a very small bonus for hexes in between defender and AI leader
     -- 'relative_distances' is larger for attack hexes closer to the side leader (possible values: -1 .. 1)
-    if mapstate.leaders[attacker_infos[1].side] then
-        local leader_x, leader_y = mapstate.leaders[attacker_infos[1].side][1], mapstate.leaders[attacker_infos[1].side][2]
+    if gamedata.leaders[attacker_infos[1].side] then
+        local leader_x, leader_y = gamedata.leaders[attacker_infos[1].side][1], gamedata.leaders[attacker_infos[1].side][2]
 
         local rel_dist_rating = 0.
         for _,dst in ipairs(dsts) do
@@ -191,10 +191,10 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
 
     -- Add a very small penalty for attack hexes occupied by other own units that can move out of the way
     -- Note: it must be checked previously that the unit on the hex can move away,
-    --    that is we only check mapstate.my_unit_map_MP here
+    --    that is we only check gamedata.my_unit_map_MP here
     for i,dst in ipairs(dsts) do
-        if mapstate.my_unit_map_MP[dst[1]] and mapstate.my_unit_map_MP[dst[1]][dst[2]] then
-            if (mapstate.my_unit_map_MP[dst[1]][dst[2]].id ~= attacker_infos[i].id) then
+        if gamedata.my_unit_map_MP[dst[1]] and gamedata.my_unit_map_MP[dst[1]][dst[2]] then
+            if (gamedata.my_unit_map_MP[dst[1]][dst[2]].id ~= attacker_infos[i].id) then
                 extra_rating = extra_rating - occupied_hex_penalty
             end
         end
@@ -209,7 +209,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     return rating, attacker_rating, defender_rating, extra_rating
 end
 
-function fred_attack_utils.battle_outcome(attacker_copy, defender, dst, attacker_info, defender_info, mapstate, defense_maps, move_cache)
+function fred_attack_utils.battle_outcome(attacker_copy, defender, dst, attacker_info, defender_info, gamedata, move_cache)
     -- Calculate the stats of a combat by @attacker_copy vs. @defender at location @dst
     -- We use wesnoth.simulate_combat for this, but cache results when possible
     -- Inputs:
@@ -223,8 +223,8 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender, dst, attacker
     --  @move_cache: for caching data *for this move only*, needs to be cleared after a gamestate change
     -- Note: for speed reasons @mapstate, @defense_maps and @move_cache are _not_ optional
 
-    local defender_defense = FGUI.get_unit_defense(defender, defender.x, defender.y, defense_maps)
-    local attacker_defense = FGUI.get_unit_defense(attacker_copy, dst[1], dst[2], defense_maps)
+    local defender_defense = FGUI.get_unit_defense(defender, defender.x, defender.y, gamedata.defense_maps)
+    local attacker_defense = FGUI.get_unit_defense(attacker_copy, dst[1], dst[2], gamedata.defense_maps)
 
     if move_cache[attacker_info.id]
         and move_cache[attacker_info.id][defender_info.id]
@@ -296,7 +296,7 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender, dst, attacker
     return att_stats, def_stats
 end
 
-function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender, tmp_dsts, tmp_attacker_infos, defender_info, mapstate, unit_copies, defense_maps, move_cache)
+function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender, tmp_dsts, tmp_attacker_infos, defender_info, gamedata, move_cache)
     -- Calculate attack combination outcomes using
     -- @tmp_attacker_copies: array of attacker unit copiess (must be copies, not the proxy tables themselves)
     -- @defender: the unit being attacked (must be the unit proxy table on the map, not a unit copy)
@@ -322,13 +322,13 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender, tmp_
             fred_attack_utils.battle_outcome(
                 attacker_copy, defender, tmp_dsts[i],
                 tmp_attacker_infos[i], defender_info,
-                mapstate, defense_maps, move_cache
+                gamedata, move_cache
             )
 
         local rating =
             fred_attack_utils.attack_rating(
                 { tmp_attacker_infos[i] }, defender_info, { tmp_dsts[1] },
-                { tmp_att_stats[i] }, tmp_def_stats[i], mapstate, unit_copies, defense_maps
+                { tmp_att_stats[i] }, tmp_def_stats[i], gamedata
             )
 
         ratings[i] = { i, rating }  -- Need the i here in order to specify the order of attackers, dsts
@@ -372,7 +372,7 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender, tmp_
                 local ast, dst = fred_attack_utils.battle_outcome(
                     attacker_copies[i], defender, dsts[i],
                     attacker_infos[i], defender_info,
-                    mapstate, defense_maps, move_cache
+                    gamedata, move_cache
                 )
 
                 defender.hitpoints = org_hp
@@ -408,7 +408,7 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender, tmp_
     local rating, attacker_rating, defender_rating, extra_rating =
         fred_attack_utils.attack_rating(
             attacker_infos, defender_info, dsts,
-            att_stats, def_stats[#attacker_infos], mapstate, unit_copies, defense_maps
+            att_stats, def_stats[#attacker_infos], gamedata
         )
 
     return att_stats, def_stats[#attacker_infos], attacker_infos, dsts, rating, attacker_rating, defender_rating, extra_rating
@@ -516,13 +516,13 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
                     local att_stats, def_stats = fred_attack_utils.battle_outcome(
                         gamedata.unit_copies[attacker_id], defender_proxy, { xa, ya },
                         gamedata.unit_infos[attacker_id], gamedata.unit_infos[defender_id],
-                        gamedata, gamedata.defense_maps, move_cache
+                        gamedata, move_cache
                     )
 
                     _,_,rating = fred_attack_utils.attack_rating(
                         { gamedata.unit_infos[attacker_id] }, gamedata.unit_infos[defender_id], { { xa, ya } },
                         { att_stats }, def_stats,
-                        gamedata, gamedata.unit_copies, gamedata.defense_maps
+                        gamedata
                     )
                 end
 
