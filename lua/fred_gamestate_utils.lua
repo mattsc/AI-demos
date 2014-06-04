@@ -159,7 +159,7 @@ function fred_gamestate_utils.get_gamestate()
     --   units['Orcish Grunt-30'] = { 21, 9 }     -- locations of all units indexed by unit id
     --
     -- Sample content of reach_maps:
-    --   reach_maps['Vanak'][23][2] = 2                -- map of hexes reachable by unit, returning MP left after getting there
+    --   reach_maps['Vanak'][23][2] = { moves_left = 2 }               -- map of hexes reachable by unit, returning MP left after getting there
     --
     -- Sample content of unit_tables:
     --   unit_copies['Vanak'] = proxy_table
@@ -197,7 +197,7 @@ function fred_gamestate_utils.get_gamestate()
             reach_maps[unit.id] = {}
             for _,r in ipairs(reach) do
                 if (not reach_maps[unit.id][r[1]]) then reach_maps[unit.id][r[1]] = {} end
-                reach_maps[unit.id][r[1]][r[2]] = r[3]
+                reach_maps[unit.id][r[1]][r[2]] = { moves_left = r[3] }
             end
 
             if (#reach > 1) then
@@ -221,7 +221,7 @@ function fred_gamestate_utils.get_gamestate()
     end
 
     -- reach_maps: eliminate hexes with other units that cannot move out of the way
-    for id,reachmap in pairs(reach_maps) do
+    for id,reach_map in pairs(reach_maps) do
         for id_noMP,loc in pairs(my_units_noMP) do
             if (id ~= id_noMP) then
                 if reach_map[loc[1]] then reach_map[loc[1]][loc[2]] = nil end
@@ -264,7 +264,7 @@ function fred_gamestate_utils.get_gamestate()
 
         for _,loc in ipairs(reach) do
             if (not reach_maps[enemy_id][loc[1]]) then reach_maps[enemy_id][loc[1]] = {} end
-            reach_maps[enemy_id][loc[1]][loc[2]] = loc[3]
+            reach_maps[enemy_id][loc[1]][loc[2]] = { moves_left = loc[3] }
 
             if (not attack_range[loc[1]]) then attack_range[loc[1]] = {} end
             attack_range[loc[1]][loc[2]] = unit_copies[enemy_id].hitpoints

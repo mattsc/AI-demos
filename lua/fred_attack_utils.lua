@@ -478,7 +478,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
 
                 for _,r in ipairs(reach) do
                     if (not reach_maps[attacker_id][r[1]]) then reach_maps[attacker_id][r[1]] = {} end
-                    reach_maps[attacker_id][r[1]][r[2]] = r[3]
+                    reach_maps[attacker_id][r[1]][r[2]] = { moves_left = r[3] }
                 end
 
                 if (gamedata.unit_info[attacker_id].side ~= wesnoth.current.side) then
