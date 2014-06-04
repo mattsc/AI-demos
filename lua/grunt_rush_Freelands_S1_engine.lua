@@ -803,14 +803,14 @@ return {
             local attacker_copies, dsts, attacker_infos = {}, {}, {}
             for src,dst in pairs(counter_attack) do
                 table.insert(attacker_copies, gamedata.unit_copies[enemy_map[src]])
-                table.insert(attacker_infos, gamedata.unit_info[enemy_map[src]])
+                table.insert(attacker_infos, gamedata.unit_infos[enemy_map[src]])
                 table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
             end
 
             local combo_att_stats, combo_def_stats, sorted_atts, sorted_dsts, rating, att_rating, def_rating =
                 FAU.attack_combo_eval(
                     attacker_copies, target_proxy, dsts,
-                    attacker_infos, gamedata.unit_info[target_id],
+                    attacker_infos, gamedata.unit_infos[target_id],
                     gamedata.mapstate, gamedata.unit_copies, gamedata.defense_maps, move_cache
                 )
 
@@ -1219,7 +1219,7 @@ return {
                 local target_proxy = wesnoth.get_unit(target_loc[1], target_loc[2])
 
                 local is_trappable_enemy = true
-                if gamedata.unit_info[target_id].skirmisher then
+                if gamedata.unit_infos[target_id].skirmisher then
                     is_trappable_enemy = false
                 end
                 --print(target_id, '  trappable:', is_trappable_enemy)
@@ -1229,7 +1229,7 @@ return {
                 if zonedata.cfg.attack and zonedata.cfg.attack.enemy_worth then
                     enemy_worth = zonedata.cfg.attack.enemy_worth
                 end
-                if gamedata.unit_info[target_id].canrecruit then enemy_worth = enemy_worth * 3 end
+                if gamedata.unit_infos[target_id].canrecruit then enemy_worth = enemy_worth * 3 end
                 --print_time('\n', target_id, enemy_worth)
 
                 local attack_combos = FAU.get_attack_combos(
@@ -1239,7 +1239,7 @@ return {
 
                 local enemy_on_village = gamedata.mapstate.village_map[target_loc[1]]
                     and gamedata.mapstate.village_map[target_loc[1]][target_loc[2]]
-                local enemy_cost = gamedata.unit_info[target_id].cost
+                local enemy_cost = gamedata.unit_infos[target_id].cost
                 --print('enemy_cost, enemy_on_village', enemy_cost, enemy_on_village)
 
                 for j,combo in ipairs(attack_combos) do
@@ -1251,7 +1251,7 @@ return {
                     local attacker_copies, dsts, attacker_infos = {}, {}, {}
                     for src,dst in pairs(combo) do
                         table.insert(attacker_copies, gamedata.unit_copies[attacker_map[src]])
-                        table.insert(attacker_infos, gamedata.unit_info[attacker_map[src]])
+                        table.insert(attacker_infos, gamedata.unit_infos[attacker_map[src]])
                         table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
                     end
 
@@ -1260,7 +1260,7 @@ return {
                         combo_rating, combo_att_rating, combo_def_rating =
                         FAU.attack_combo_eval(
                             attacker_copies, target_proxy, dsts,
-                            attacker_infos, gamedata.unit_info[target_id],
+                            attacker_infos, gamedata.unit_infos[target_id],
                             gamedata.mapstate, gamedata.unit_copies, gamedata.defense_maps, move_cache
                     )
                     --DBG.dbms(combo_def_stats)
@@ -1330,8 +1330,8 @@ return {
 
                         -- For each such village found, we give a penalty eqivalent to 10 HP of the target
                         if (adj_unocc_village > 0) then
-                            local penalty = 10. / gamedata.unit_info[target_id].max_hitpoints
-                            penalty = penalty * gamedata.unit_info[target_id].cost * adj_unocc_village
+                            local penalty = 10. / gamedata.unit_infos[target_id].max_hitpoints
+                            penalty = penalty * gamedata.unit_infos[target_id].cost * adj_unocc_village
                             --print('Applying village penalty', combo_rating, penalty)
                             combo_rating = combo_rating - penalty
 
@@ -1380,8 +1380,8 @@ return {
 
                             -- For each such village found, we give a bonus eqivalent to 8 HP of the target
                             if trapping_bonus then
-                                local bonus = 8. / gamedata.unit_info[target_id].max_hitpoints
-                                bonus = bonus * gamedata.unit_info[target_id].cost
+                                local bonus = 8. / gamedata.unit_infos[target_id].max_hitpoints
+                                bonus = bonus * gamedata.unit_infos[target_id].cost
                                 --print('Applying trapping bonus', combo_rating, bonus)
                                 combo_rating = combo_rating + bonus
                             end
@@ -1401,8 +1401,8 @@ return {
                             end
                             -- For each poisoner in such an attack, we give a penalty eqivalent to 8 HP of the target
                             if (number_poisoners > 0) then
-                                local penalty = 8. / gamedata.unit_info[target_id].max_hitpoints
-                                penalty = penalty * gamedata.unit_info[target_id].cost * number_poisoners
+                                local penalty = 8. / gamedata.unit_infos[target_id].max_hitpoints
+                                penalty = penalty * gamedata.unit_infos[target_id].cost * number_poisoners
                                 --print('Applying poisoner penalty', combo_rating, penalty)
                                 combo_rating = combo_rating - penalty
                             end

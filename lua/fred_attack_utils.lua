@@ -12,7 +12,7 @@ local fred_attack_utils = {}
 function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_stat, def_stat, is_village, cfg)
     -- Calculate the rating for the damage received by a single attacker on a defender.
     -- The attack att_stat both for the attacker and the defender need to be precalculated for this.
-    -- Unit information is passed in unit_info format, rather than as unit proxy tables for speed reasons.
+    -- Unit information is passed in unit_infos format, rather than as unit proxy tables for speed reasons.
     -- Note: this is _only_ the damage rating for the attacker, not both units
     --
     -- Input parameters:
@@ -469,7 +469,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
                 -- For sides other than the current, we always use max_moves.
                 -- For the current side, we always use current moves.
                 local old_moves
-                if (gamedata.unit_info[attacker_id].side ~= wesnoth.current.side) then
+                if (gamedata.unit_infos[attacker_id].side ~= wesnoth.current.side) then
                     old_moves = gamedata.unit_copies[attacker_id].moves
                     gamedata.unit_copies[attacker_id].moves = gamedata.unit_copies[attacker_id].max_moves
                 end
@@ -481,7 +481,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
                     reach_maps[attacker_id][r[1]][r[2]] = { moves_left = r[3] }
                 end
 
-                if (gamedata.unit_info[attacker_id].side ~= wesnoth.current.side) then
+                if (gamedata.unit_infos[attacker_id].side ~= wesnoth.current.side) then
                     gamedata.unit_copies[attacker_id].moves = old_moves
                 end
             end
@@ -515,12 +515,12 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
                 if get_strongest_attack then
                     local att_stats, def_stats = fred_attack_utils.battle_outcome(
                         gamedata.unit_copies[attacker_id], defender_proxy, { xa, ya },
-                        gamedata.unit_info[attacker_id], gamedata.unit_info[defender_id],
+                        gamedata.unit_infos[attacker_id], gamedata.unit_infos[defender_id],
                         gamedata.mapstate, gamedata.defense_maps, move_cache
                     )
 
                     _,_,rating = fred_attack_utils.attack_rating(
-                        { gamedata.unit_info[attacker_id] }, gamedata.unit_info[defender_id], { { xa, ya } },
+                        { gamedata.unit_infos[attacker_id] }, gamedata.unit_infos[defender_id], { { xa, ya } },
                         { att_stats }, def_stats,
                         gamedata.mapstate, gamedata.unit_copies, gamedata.defense_maps
                     )

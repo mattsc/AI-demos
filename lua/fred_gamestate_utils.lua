@@ -125,18 +125,18 @@ function fred_gamestate_utils.single_unit_info(unit)
     return single_unit_info
 end
 
-function fred_gamestate_utils.unit_info()
+function fred_gamestate_utils.unit_infos()
     -- Wrapper function to fred_gamestate_utils.single_unit_info()
     -- Assembles information for all units on the map, indexed by unit id
 
     local units = wesnoth.get_units()
 
-    local unit_info = {}
+    local unit_infos = {}
     for _,unit in ipairs(units) do
-        unit_info[unit.id] = fred_gamestate_utils.single_unit_info(unit)
+        unit_infos[unit.id] = fred_gamestate_utils.single_unit_info(unit)
     end
 
-    return unit_info
+    return unit_infos
 end
 
 function fred_gamestate_utils.get_gamestate()
@@ -300,7 +300,7 @@ function fred_gamestate_utils.get_gamedata()
 
     local mapstate, reach_maps, unit_copies = fred_gamestate_utils.get_gamestate()
     local gamedata = {
-        unit_info = fred_gamestate_utils.unit_info(),
+        unit_infos = fred_gamestate_utils.unit_infos(),
         mapstate = mapstate,
         reach_maps = reach_maps,
         unit_copies = unit_copies,
