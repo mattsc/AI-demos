@@ -158,13 +158,13 @@ function fred_gamestate_utils.get_gamestate()
     --   leaders[1] = { 19, 4 }                   -- locations of leaders of all sides indexed by side number
     --   units['Orcish Grunt-30'] = { 21, 9 }     -- locations of all units indexed by unit id
     --
-    -- Sample content of reachmaps:
-    --   reachmaps['Vanak'][23][2] = 2                -- map of hexes reachable by unit, returning MP left after getting there
+    -- Sample content of reach_maps:
+    --   reach_maps['Vanak'][23][2] = 2                -- map of hexes reachable by unit, returning MP left after getting there
     --
     -- Sample content of unit_tables:
     --   unit_copies['Vanak'] = proxy_table
 
-    local mapstate, reachmaps = {}, {}
+    local mapstate, reach_maps = {}, {}
 
     -- Villages
     local village_map = {}
@@ -194,10 +194,10 @@ function fred_gamestate_utils.get_gamestate()
 
             local reach = wesnoth.find_reach(unit)
 
-            reachmaps[unit.id] = {}
+            reach_maps[unit.id] = {}
             for _,r in ipairs(reach) do
-                if (not reachmaps[unit.id][r[1]]) then reachmaps[unit.id][r[1]] = {} end
-                reachmaps[unit.id][r[1]][r[2]] = r[3]
+                if (not reach_maps[unit.id][r[1]]) then reach_maps[unit.id][r[1]] = {} end
+                reach_maps[unit.id][r[1]][r[2]] = r[3]
             end
 
             if (#reach > 1) then
@@ -220,8 +220,8 @@ function fred_gamestate_utils.get_gamestate()
         unit_copies[unit.id] = wesnoth.copy_unit(unit)
     end
 
-    -- reachmaps: eliminate hexes with other units that cannot move out of the way
-    for id,reachmap in pairs(reachmaps) do
+    -- reach_maps: eliminate hexes with other units that cannot move out of the way
+    for id,reachmap in pairs(reach_maps) do
         for id_noMP,loc in pairs(my_units_noMP) do
             if (id ~= id_noMP) then
                 if reachmap[loc[1]] then reachmap[loc[1]][loc[2]] = nil end
@@ -260,11 +260,11 @@ function fred_gamestate_utils.get_gamestate()
         local reach = wesnoth.find_reach(unit_copies[enemy_id])
         unit_copies[enemy_id].moves = old_moves
 
-        reachmaps[enemy_id] = {}
+        reach_maps[enemy_id] = {}
 
         for _,loc in ipairs(reach) do
-            if (not reachmaps[enemy_id][loc[1]]) then reachmaps[enemy_id][loc[1]] = {} end
-            reachmaps[enemy_id][loc[1]][loc[2]] = loc[3]
+            if (not reach_maps[enemy_id][loc[1]]) then reach_maps[enemy_id][loc[1]] = {} end
+            reach_maps[enemy_id][loc[1]][loc[2]] = loc[3]
 
             if (not attack_range[loc[1]]) then attack_range[loc[1]] = {} end
             attack_range[loc[1]][loc[2]] = unit_copies[enemy_id].hitpoints
@@ -293,16 +293,16 @@ function fred_gamestate_utils.get_gamestate()
 
     mapstate.enemy_attack_map = enemy_attack_map
 
-    return mapstate, reachmaps, unit_copies
+    return mapstate, reach_maps, unit_copies
 end
 
 function fred_gamestate_utils.get_gamedata()
 
-    local mapstate, reachmaps, unit_copies = fred_gamestate_utils.get_gamestate()
+    local mapstate, reach_maps, unit_copies = fred_gamestate_utils.get_gamestate()
     local gamedata = {
         unit_info = fred_gamestate_utils.unit_info(),
         mapstate = mapstate,
-        reachmaps = reachmaps,
+        reach_maps = reach_maps,
         unit_copies = unit_copies,
         defense_maps = {}
     }

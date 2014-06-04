@@ -101,7 +101,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     --  @att_stats: array of the attack stats of the attack combination(!) of the attackers
     --    (must be an array even for single unit attacks)
     --  @def_stat: the combat stats of the defender after facing the combination of the attackers
-    --  @mapstate: table with the map state as produced by fred_gamestate_utils.mapstate_reachmaps()
+    --  @mapstate: table with the map state as produced by fred_gamestate_utils.mapstate()
     --  @defense_maps: table of unit terrain defense values as produced by fred_gamestate_utils_incremental.get_unit_defense()
     -- Note: for speed reasons @mapstate and @defense_maps are _not_ optional
     --
@@ -218,7 +218,7 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender, dst, attacker
     --  @dst: location from which the attacker will attack in form { x, y }
     -- @attacker_info, @defender_info: unit info for the two units (needed in addition to the units
     --   themselves in order to speed things up)
-    --  @mapstate: table with the map state as produced by fred_gamestate_utils.mapstate_reachmaps()
+    --  @mapstate: table with the map state as produced by fred_gamestate_utils.mapstate_reach_maps()
     --  @defense_maps: table of unit terrain defense values as produced by fred_gamestate_utils_incremental.get_unit_defense()
     --  @move_cache: for caching data *for this move only*, needs to be cleared after a gamestate change
     -- Note: for speed reasons @mapstate, @defense_maps and @move_cache are _not_ optional
@@ -414,7 +414,7 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender, tmp_
     return att_stats, def_stats[#attacker_infos], attacker_infos, dsts, rating, attacker_rating, defender_rating, extra_rating
 end
 
-function fred_attack_utils.get_attack_combos(attackers, defender, reachmaps, get_strongest_attack, gamedata, move_cache)
+function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, get_strongest_attack, gamedata, move_cache)
     -- Get all attack combinations of @attackers on @defender
     -- OR: get what is considered the strongest of those attacks (approximately)
     -- The former is in order to get all attack combos (but order of individual attacks doesn't matter),
@@ -427,15 +427,15 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reachmaps, get
     -- @defender: defender id and location: { id = { x, y } }
     --
     -- Optional inputs:
-    -- @reachmaps: reachmaps for the attackers in the form as returned by fred_gamestate_utils.get_gamestate()
-    --   - This is _much_ faster if reachmaps is given; should be done for all attack combos for the side
+    -- @reach_maps: reach_maps for the attackers in the form as returned by fred_gamestate_utils.get_gamestate()
+    --   - This is _much_ faster if reach_maps is given; should be done for all attack combos for the side
     --     Only when the result depends on the new map situation (such as for counter attacks) should
-    --     it be calculated here.  If reachmaps are not given, @gamedata must be provided
-    --   - Even if @reachmap is no given, gamedata still needs  to contain the "original" reachmaps for the attackers.
+    --     it be calculated here.  If reach_maps are not given, @gamedata must be provided
+    --   - Even if @reachmap is no given, gamedata still needs  to contain the "original" reach_maps for the attackers.
     --     This is used to speed up the calculation.  If the attacker (enemy) cannot get to a hex originally
     --     (remember that this is done with AI units with MP taken off the map), then it can also
     --     not get there after moving AI units into place.
-    --   - Important: for units on the AI side, reachmaps must NOT included hexes with units that
+    --   - Important: for units on the AI side, reach_maps must NOT included hexes with units that
     --     cannot move out of the way
     -- @get_strongest_attack (boolean): if set to 'true', don't return all attacks, but only the
     --   one deemed strongest as described above.  If this is set, @gamedata and @move_cache nust be provided
@@ -448,18 +448,18 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reachmaps, get
 
     local defender_id, defender_loc = next(defender)
 
-    -- If reachmaps is not given, we need to calculate them
-    if (not reachmaps) then
-        reachmaps = {}
+    -- If reach_maps is not given, we need to calculate them
+    if (not reach_maps) then
+        reach_maps = {}
 
         for attacker_id,_ in pairs(attackers) do
-            reachmaps[attacker_id] = {}
+            reach_maps[attacker_id] = {}
 
             -- Only calculate reach if the attacker could get there using its
             -- original reach.  It cannot have gotten any better than this.
             local can_reach = false
             for xa,ya in H.adjacent_tiles(defender_loc[1], defender_loc[2]) do
-                if gamedata.reachmaps[attacker_id][xa] and gamedata.reachmaps[attacker_id][xa][ya] then
+                if gamedata.reach_maps[attacker_id][xa] and gamedata.reach_maps[attacker_id][xa][ya] then
                     can_reach = true
                     break
                 end
@@ -477,8 +477,8 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reachmaps, get
                 local reach = wesnoth.find_reach(gamedata.unit_copies[attacker_id])
 
                 for _,r in ipairs(reach) do
-                    if (not reachmaps[attacker_id][r[1]]) then reachmaps[attacker_id][r[1]] = {} end
-                    reachmaps[attacker_id][r[1]][r[2]] = r[3]
+                    if (not reach_maps[attacker_id][r[1]]) then reach_maps[attacker_id][r[1]] = {} end
+                    reach_maps[attacker_id][r[1]][r[2]] = r[3]
                 end
 
                 if (gamedata.unit_info[attacker_id].side ~= wesnoth.current.side) then
@@ -488,7 +488,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reachmaps, get
         end
 
         -- Eliminate hexes with other units that cannot move out of the way
-        for id,reachmap in pairs(reachmaps) do
+        for id,reachmap in pairs(reach_maps) do
             for id_noMP,loc in pairs(gamedata.mapstate.my_units_noMP) do
                 if (id ~= id_noMP) then
                     if reachmap[loc[1]] then reachmap[loc[1]][loc[2]] = nil end
@@ -510,7 +510,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reachmaps, get
         local dst = xa * 1000 + ya
 
         for attacker_id,attacker_loc in pairs(attackers) do
-            if reachmaps[attacker_id][xa] and reachmaps[attacker_id][xa][ya] then
+            if reach_maps[attacker_id][xa] and reach_maps[attacker_id][xa][ya] then
                 local _, rating
                 if get_strongest_attack then
                     local att_stats, def_stats = fred_attack_utils.battle_outcome(

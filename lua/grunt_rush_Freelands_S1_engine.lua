@@ -1233,7 +1233,7 @@ return {
                 --print_time('\n', target_id, enemy_worth)
 
                 local attack_combos = FAU.get_attack_combos(
-                    zonedata.zone_units_attacks, target, gamedata.reachmaps
+                    zonedata.zone_units_attacks, target, gamedata.reach_maps
                 )
                 --print_time('#attack_combos', #attack_combos)
 
