@@ -184,7 +184,7 @@ function fred_gamestate_utils.get_gamestate()
         units[unit.id] = { unit.x, unit.y }
 
         if unit.canrecruit then
-            leaders[unit.side] = { unit.x, unit.y }
+            leaders[unit.side] = { unit.x, unit.y, id = unit.id }
         end
 
         if (unit.side == wesnoth.current.side) then
