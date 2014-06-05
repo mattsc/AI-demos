@@ -27,7 +27,7 @@ return {
             end
         end
 
-        function grunt_rush_FLS1:zone_advance_rating(zone_id, x, y, enemy_leader)
+        function grunt_rush_FLS1:zone_advance_rating(zone_id, x, y, gamedata)
             local rating = 0
 
             if (zone_id == 'left') or (zone_id == 'rush_left') then
@@ -89,8 +89,14 @@ return {
                 rating = rating - H.distance_between(x, y, goal_x, goal_y) / 1000.
             end
 
-            if (zone_id == 'enemy_leader') then
-                rating = - H.distance_between(x, y, enemy_leader.x, enemy_leader.y)
+            -- For these zones, advancing is toward the enemy leader
+            if (zone_id == 'enemy_leader') or (zone_id == 'full_map') then
+                for side,loc in ipairs(gamedata.leaders) do
+                    if wesnoth.is_enemy(side, wesnoth.current.side) then
+                        rating = - H.distance_between(x, y, loc[1], loc[2])
+                        break
+                    end
+                end
             end
 
             return rating
@@ -176,7 +182,7 @@ return {
                 zone_filter = { x = '15-24', y = '1-16' },
                 unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
                 skip_action = { retreat_injured_unsafe = true },
-                hold = { x = 18, y = 9, dx = 0, dy = 1, hp_ratio = 1.0 },
+                hold = { x = 18, y = 9, hp_ratio = 1.0 },
                 retreat_villages = { { 18, 9 }, { 24, 7 }, { 22, 2 } },
                 villages = { units_per_village = 0 }
             }
@@ -186,7 +192,7 @@ return {
                 zone_filter = { x = '15-24', y = '1-16' },
                 unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
                 skip_action = { retreat_injured_unsafe = true },
-                hold = { x = 18, y = 9, dx = 0, dy = 1 },
+                hold = { x = 18, y = 9 },
                 retreat_villages = { { 18, 9 }, { 24, 7 }, { 22, 2 } },
             }
 
@@ -196,7 +202,7 @@ return {
                 zone_filter = { x = '4-14', y = '1-15' },
                 unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
                 skip_action = { retreat_injured_unsafe = true },
-                hold = { x = 11, y = 9, dx = 0, dy = 1, hp_ratio = 1.0, unit_ratio = 1.1 },
+                hold = { x = 11, y = 9, hp_ratio = 1.0, unit_ratio = 1.1 },
                 secure = { x = 11, y = 9, moves_away = 1, min_units = 1.1 },
                 retreat_villages = { { 11, 9 }, { 8, 5 }, { 12, 5 }, { 12, 2 } },
                 villages = { hold_threatened = true }
@@ -207,7 +213,7 @@ return {
                 zone_filter = { x = '4-14', y = '1-15' },
                 unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
                 skip_action = { retreat_injured_unsafe = true },
-                hold = { x = 11, y = 9, dx = 0, dy = 1 },
+                hold = { x = 11, y = 9 },
                 retreat_villages = { { 11, 9 }, { 8, 5 }, { 12, 5 }, { 12, 2 } },
             }
 
@@ -217,7 +223,7 @@ return {
                 zone_filter = { x = '24-34', y = '1-17' },
                 unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
                 skip_action = { retreat_injured_unsafe = true },
-                hold = { x = 27, y = 11, dx = 0, dy = 1, hp_ratio = 1.0, unit_ratio = 1.1 },
+                hold = { x = 27, y = 11, hp_ratio = 1.0, unit_ratio = 1.1 },
                 secure = { x = 27, y = 11, moves_away = 1, min_units = 1.1 },
                 retreat_villages = { { 24, 7 }, { 28, 5 } },
                 villages = { hold_threatened = true }
@@ -229,7 +235,7 @@ return {
                 only_zone_units = true,
                 unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
                 skip_action = { retreat_injured_unsafe = true },
-                hold = { x = 27, y = 11, dx = 0, dy = 1 },
+                hold = { x = 27, y = 11 },
                 retreat_villages = { { 24, 7 }, { 28, 5 } }
             }
 
@@ -348,7 +354,7 @@ return {
             return false
         end
 
-        function grunt_rush_FLS1:hold_zone(holders, enemy_defense_map, cfg)
+        function grunt_rush_FLS1:hold_zone(holders, enemy_defense_map, gamedata, cfg)
 
             -- Find all enemies, the enemy leader, and the enemy attack map
             local enemies = AH.get_live_units {
@@ -671,7 +677,7 @@ return {
                     for i,r in ipairs(reach) do
                         local unit_in_way = wesnoth.get_unit(r[1], r[2])
                         if (not unit_in_way) or (unit_in_way == best_unit) then
-                            local rating = -10000 + grunt_rush_FLS1:zone_advance_rating(cfg.zone_id, r[1], r[2], enemy_leader)
+                            local rating = -10000 + grunt_rush_FLS1:zone_advance_rating(cfg.zone_id, r[1], r[2], gamedata)
 
                             unit_rating_map:insert(r[1], r[2], rating)
 
@@ -724,7 +730,7 @@ return {
                         then
                             local unit_in_way = wesnoth.get_unit(r[1], r[2])
                             if (not unit_in_way) or (unit_in_way == best_unit) then
-                                local rating = grunt_rush_FLS1:zone_advance_rating(cfg.zone_id, r[1], r[2], enemy_leader)
+                                local rating = grunt_rush_FLS1:zone_advance_rating(cfg.zone_id, r[1], r[2], gamedata)
 
                                 -- If the unit is injured and does not regenerate,
                                 -- then we very strongly prefer villages
@@ -980,174 +986,87 @@ return {
             end
         end
 
-        function grunt_rush_FLS1:zone_action_villages(units, enemies, zone_map, cfg, gamedata, move_cache)
+        function grunt_rush_FLS1:zone_action_villages(zonedata, gamedata, move_cache)
             -- Otherwise we go for unowned and enemy-owned villages
             -- This needs to happen for all units, not just not-injured ones
             -- Also includes the leader, if he's on his keep
             -- The rating>100 part is to exclude threatened but already owned villages
 
-            local village_grabbers = {}
-            for i,u in ipairs(units) do
-                if u.canrecruit then
-                    if wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
-                        table.insert(village_grabbers, u)
-                    end
-                else
-                    table.insert(village_grabbers, u)
-                end
-            end
-            --print_time('#village_grabbers', #village_grabbers)
-
-            if (not village_grabbers[1]) then return end
-
             -- For this, we consider all villages, not just the retreat_villages,
             -- but restrict it to villages inside the zone
-            local all_villages = wesnoth.get_locations { terrain = '*^V*' }
 
             local villages = {}
-            for _,village in ipairs(all_villages) do
-                if zone_map:get(village[1], village[2]) then
-                    table.insert(villages, village)
-                end
-            end
-
-            local units = village_grabbers
-            --print('#units, #enemies', #units, #enemies)
-
-            -- Get my and enemy keeps
-            local my_leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
-            local enemy_leader = AH.get_live_units { canrecruit = 'yes',
-                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
-            }[1]
-            local keeps = wesnoth.get_locations { terrain = 'K*' }
-
-            local min_dist, my_keep = 9e99
-            for _,keep in ipairs(keeps) do
-                local dist = H.distance_between(my_leader.x, my_leader.y, keep[1], keep[2])
-                if (dist < min_dist) then
-                    min_dist, my_keep = dist, keep
-                end
-            end
-
-            local min_dist, enemy_keep = 9e99
-            for _,keep in ipairs(keeps) do
-                local dist = H.distance_between(enemy_leader.x, enemy_leader.y, keep[1], keep[2])
-                if (dist < min_dist) then
-                    min_dist, enemy_keep = dist, keep
-                end
-            end
-
-            -- Check if a unit can get to a village
-            local max_rating, best_village, best_unit = -9e99, {}, {}
-            for j,v in ipairs(villages) do
-                local close_village = true -- a "close" village is one that is closer to theAI keep than to the closest enemy keep
-
-                local dist_my_keep = H.distance_between(v[1], v[2], my_keep[1], my_keep[2])
-                local dist_enemy_keep = H.distance_between(v[1], v[2], enemy_keep[1], enemy_keep[2])
-                if (dist_enemy_keep < dist_my_keep) then
-                    close_village = false
-                end
-                --print_time('village is close village:', v[1], v[2], close_village)
-
-                local dx, dy
-                if cfg.hold then dx, dy = cfg.hold.dx, cfg.hold.dy end
-                if (dx and dy) then
-                    local r = math.sqrt(dx*dx + dy*dy)
-                    dx, dy = dx / r, dy / r
-                else
-                    dx = nil  -- just in case dx exists and dy does not
-                    -- existence of dx is used as criterion below
-                end
-
-                for i,u in ipairs(units) do
-                    local path, cost = wesnoth.find_path(u, v[1], v[2])
-
-                    local unit_in_way = wesnoth.get_unit(v[1], v[2])
-                    if unit_in_way then
-                        if (unit_in_way.id == u.id) then unit_in_way = nil end
+            for x,arr in pairs(gamedata.village_map) do
+                for y,village in pairs(arr) do
+                    if zonedata.zone_map[x] and zonedata.zone_map[x][y] then
+                        table.insert(villages, { x, y, owner = village.owner })
                     end
+                end
+            end
 
-                    -- Rate all villages that can be reached and are unoccupied by other units
-                    if (cost <= u.moves) and (not unit_in_way) then
-                        --print('Can reach:', u.id, v[1], v[2], cost)
 
-                        local unit_loc = {}
-                        unit_loc[u.id] = { u.x, u.y }
+            -- Check if a zone unit can get to any of the zone villages
+            local max_rating, best_village, best_unit = -9e99, {}, {}
+            for _,village in ipairs(villages) do
+                for id,unit_loc in pairs(zonedata.zone_units_MP) do
+                    --print(id, village[1], village[2])
 
-                        local max_hp_chance_zero = 0.5
-                        local counter_stats = grunt_rush_FLS1:calc_counter_attack(unit_loc, gamedata, move_cache)
+                    if gamedata.reach_maps[id][village[1]] and gamedata.reach_maps[id][village[1]][village[2]] then
+                        local target = {}
+                        target[id] = { village[1], village[2] }
+
+                        -- Actually need to put the unit in place for this
+                        wesnoth.put_unit(village[1], village[2], gamedata.unit_copies[id])
+
+                        local counter_stats = grunt_rush_FLS1:calc_counter_attack(target, gamedata, move_cache)
                         --DBG.dbms(counter_stats)
 
-                        if (not counter_stats.hp_chance)
-                            or (u.canrecruit and (counter_stats.hp_chance[0] == 0))
-                            or ((not u.canrecruit) and (counter_stats.hp_chance[0] <= max_hp_chance_zero))
-                        then
+                        wesnoth.extract_unit(gamedata.unit_copies[id])
 
+                        -- Maximum allowable chance to die
+                        local max_hp_chance_zero = 0.33
+                        if gamedata.unit_infos[id].canrecruit then max_hp_chance_zero = 0 end
+
+                        if (counter_stats.hp_chance[0] <= max_hp_chance_zero) then
                             local rating = 0
-
-                            -- If an enemy can get onto the village, we want to hold it
-                            -- Need to take the unit itself off the map, as it might be sitting on the village itself (which then is not reachable by enemies)
-                            -- This will also prefer close villages over far ones, everything else being equal
-                            wesnoth.extract_unit(u)
-                            for k,e in ipairs(enemies) do
-                                local path_e, cost_e = wesnoth.find_path(e,v[1], v[2])
-                                if (cost_e <= e.max_moves) then
-                                    --print('  within enemy reach', e.id)
-                                    -- Prefer close villages that are in reach of many enemies,
-                                    -- The opposite for far villages
-                                    if close_village then
-                                        rating = rating + 10
-                                    else
-                                        rating = rating - 10
-                                    end
-                                end
-                            end
-                            wesnoth.put_unit(u)
 
                             -- Unowned and enemy-owned villages get a large bonus
                             -- but we do not seek them out specifically, as the standard CA does that
                             -- That means, we only do the rest for villages that can be reached by an enemy
-                            local owner = wesnoth.get_village_owner(v[1], v[2])
-                            if (not owner) then
+                            if (not village.owner) then
                                 rating = rating + 1000
                             else
-                                if wesnoth.is_enemy(owner, wesnoth.current.side) then rating = rating + 2000 end
+                                if wesnoth.is_enemy(village.owner, wesnoth.current.side) then rating = rating + 2000 end
                             end
+                            --print(' owner rating', rating)
 
                             -- It is impossible for these numbers to add up to zero, so we do the
                             -- detail rating only for those
                             if (rating ~= 0) then
                                 -- Take the most injured unit preferentially
-                                -- It was checked above that chance to die is less than 50%
-                                rating = rating + (u.max_hitpoints - u.hitpoints) / 100.
+                                -- It was checked above that chance to die is acceptable
+                                rating = rating + (gamedata.unit_infos[id].max_hitpoints - gamedata.unit_infos[id].hitpoints) / 100.
+                                --print(' HP rating', rating)
 
                                 -- We also want to move the "farthest back" unit first
                                 -- and take villages from the back first
-                                local adv_dist, vill_dist
-                                if dx then
-                                     -- Distance in direction of (dx, dy) and perpendicular to it
-                                    adv_dist = u.x * dx + u.y * dy
-                                    vill_dist = v[1] * dx + v[2] * dy
-                                else
-                                    adv_dist = - H.distance_between(u.x, u.y, enemy_leader.x, enemy_leader.y)
-                                    vill_dist = H.distance_between(v[1], v[2], enemy_leader.x, enemy_leader.y)
-                                end
-                                rating = rating - adv_dist / 10. + vill_dist / 1000.
+                                local unit_advance_rating = grunt_rush_FLS1:zone_advance_rating(
+                                    zonedata.cfg.zone_id, unit_loc[1], unit_loc[2], gamedata
+                                )
+                                local village_advance_rating = grunt_rush_FLS1:zone_advance_rating(
+                                    zonedata.cfg.zone_id, village[1], village[2], gamedata
+                                )
+                                --print(' unit_advance_rating, village_advance_rating', unit_advance_rating, village_advance_rating)
+
+                                rating = rating - unit_advance_rating / 10. - village_advance_rating / 1000.
 
                                 -- If this is the leader, make him the preferred village taker
-                                -- but only if he's on the keep
-                                if u.canrecruit then
-                                    if wesnoth.get_terrain_info(wesnoth.get_terrain(u.x, u.y)).keep then
-                                        --print('      -> take village with leader')
-                                        rating = rating + 2
-                                    else
-                                        rating = -9e99
-                                    end
+                                if gamedata.unit_infos[id].canrecruit then
+                                    rating = rating + 2
                                 end
-                                --print(u.id, v[1], v[2], ' ---> ', rating)
 
                                 if (rating > max_rating) then
-                                    max_rating, best_village, best_unit = rating, v, u
+                                    max_rating, best_village, best_unit = rating, village, gamedata.unit_infos[id]
                                 end
                             end
                         end
@@ -1160,7 +1079,7 @@ return {
                 local action = { units = {}, dsts = {} }
                 action.units[1], action.dsts[1] = best_unit, best_village
                 action.rating = max_rating
-                action.action = cfg.zone_id .. ': ' .. 'grab villages'
+                action.action = zonedata.cfg.zone_id .. ': ' .. 'grab villages'
                 return action
             end
         end
@@ -1522,7 +1441,7 @@ return {
             return nil  -- Unnecessary, just to point out what's going on if no acceptable attack was found
         end
 
-        function grunt_rush_FLS1:zone_action_hold(units, units_noMP, enemies, zone_map, enemy_defense_map, cfg)
+        function grunt_rush_FLS1:zone_action_hold(units, units_noMP, enemies, zone_map, enemy_defense_map, gamedata, cfg)
             --print_time('hold')
 
             -- The leader does not participate in position holding (for now, at least)
@@ -1608,7 +1527,7 @@ return {
             --print('eval_hold 2', eval_hold)
 
             if eval_hold then
-                local unit, dst = grunt_rush_FLS1:hold_zone(holders, enemy_defense_map, cfg)
+                local unit, dst = grunt_rush_FLS1:hold_zone(holders, enemy_defense_map, gamedata, cfg)
 
                 local action = nil
                 if unit then
@@ -1675,36 +1594,49 @@ return {
             return nil
         end
 
-        function grunt_rush_FLS1:high_priority_attack(unit, cfg, move_cache)
-            local attacks = AH.get_attacks({unit})
-            if (not attacks[1]) then return end
-
-            local enemies = AH.get_live_units {
-                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
-            }
-            local enemy_attack_map = BC.get_attack_map(enemies)
+        function grunt_rush_FLS1:high_priority_attack(unit_info, zonedata, gamedata, move_cache)
+            local attacker = {}
+            attacker[unit_info.id] = gamedata.units[unit_info.id]
 
             local max_rating, best_target, best_hex = -9e99
-            for _,attack in ipairs(attacks) do
-                if ((enemy_attack_map.units:get(attack.dst.x, attack.dst.y) or 0) <= 1) then
-                    local target = wesnoth.get_unit(attack.target.x, attack.target.y)
-                    --print('Evaluating attack at: ', attack.dst.x, attack.dst.y, target.id)
+            for enemy_id,enemy_loc in pairs(gamedata.enemies) do
+                local target = {}
+                target[enemy_id] = enemy_loc
 
-                    local dst = { attack.dst.x, attack.dst.y }
-                    local att_stats, def_stats = BC.battle_outcome(unit, target, dst, {}, grunt_rush_FLS1.data.cache, move_cache)
-                    local rating = BC.attack_rating(unit, target, dst, att_stats, def_stats)
-                    --print(rating)
+                local attacks = FAU.get_attack_combos(attacker, target, gamedata.reach_maps)
 
-                    if (rating > 0) and (rating > max_rating) and (def_stats.hp_chance[0] > 0.67) then
-                        max_rating = rating
-                        best_target, best_hex = target, { attack.dst.x, attack.dst.y }
+                for _,attack in ipairs(attacks) do
+                    local src, dst = next(attack)
+                    local dst = { math.floor(dst / 1000), dst % 1000 }
+
+                    if (gamedata.enemy_attack_map[dst[1]][dst[2]].units <= 1) then
+                        local target_proxy = wesnoth.get_unit(enemy_loc[1], enemy_loc[2])
+
+                        local att_stat, def_stat = FAU.battle_outcome(
+                            gamedata.unit_copies[unit_info.id], target_proxy, dst,
+                            unit_info, gamedata.unit_infos[enemy_id], gamedata, move_cache
+                        )
+
+                        local rating = FAU.attack_rating(
+                            { unit_info }, gamedata.unit_infos[enemy_id], { dst },
+                            { att_stat }, def_stat, gamedata
+                        )
+                        --print('high priority attack rating', rating)
+
+                        -- Only if this has a high chance to kill and no chance to die do we consider it
+                        if (rating > 0) and (rating > max_rating)
+                            and (def_stat.hp_chance[0] > 0.59) and (att_stat.hp_chance[0] == 0)
+                        then
+                            max_rating = rating
+                            best_target, best_hex = target, dst
+                        end
                     end
                 end
             end
 
             if best_target then
-                local action = { units = { unit }, dsts = { best_hex }, enemy = best_target }
-                action.action = cfg.zone_id .. ': ' .. 'high priority attack'
+                local action = { units = { unit_info }, dsts = { best_hex }, enemy = best_target }
+                action.action = zonedata.cfg.zone_id .. ': ' .. 'high priority attack'
                 return action
             end
         end
@@ -1734,21 +1666,31 @@ return {
                 if wesnoth.match_unit(gamedata.unit_copies[id], cfg.unit_filter) then
                     zonedata.zone_units[id] = loc
 
+                    -- The leader counts into the active zone_units if he's on his keep
+                    -- This applies to zone_units_MP and zone_units_attacks only.
+                    -- He always counts into zone_units_noMP (if he can't move) and zone_units.
+
+                    -- Flag set to true only if the unit is the side leader AND is NOT on the keep
+                    local is_leader_and_off_keep = false
+                    if gamedata.unit_infos[id].canrecruit then
+                        if (not wesnoth.get_terrain_info(wesnoth.get_terrain(
+                            gamedata.unit_copies[id].x, gamedata.unit_copies[id].y)
+                        ).keep) then
+                            is_leader_and_off_keep = true
+                        end
+                    end
+
                     if gamedata.my_units_MP[id] then
-                        zonedata.zone_units_MP[id] = loc
+                        if (not is_leader_and_off_keep) then
+                            zonedata.zone_units_MP[id] = loc
+                        end
                     else
                         zonedata.zone_units_noMP[id] = loc
                     end
 
                     if (gamedata.unit_copies[id].attacks_left > 0) then
                         -- The leader counts as one of the attackers, but only if he's on his keep
-                        if gamedata.unit_copies[id].canrecruit then
-                            if wesnoth.get_terrain_info(wesnoth.get_terrain(
-                                gamedata.unit_copies[id].x, gamedata.unit_copies[id].y)
-                            ).keep then
-                                zonedata.zone_units_attacks[id] = loc
-                            end
-                        else
+                        if (not is_leader_and_off_keep) then
                             zonedata.zone_units_attacks[id] = loc
                         end
                     end
@@ -1801,7 +1743,14 @@ return {
             local zone_map = LS.of_pairs(zone)
 
             zonedata.zone = wesnoth.get_locations(cfg.zone_filter)
-            zonedata.zone_map = LS.of_pairs(zone)
+
+            zonedata.zone_map = {}
+            for _,loc in ipairs(zonedata.zone) do
+                if (not zonedata.zone_map[loc[1]]) then
+                    zonedata.zone_map[loc[1]] = {}
+                end
+                zonedata.zone_map[loc[1]][loc[2]] = true
+            end
 
             -- Also get the defense map for the enemies
             local enemy_defense_map = BC.best_defense_map(enemies, { ignore_these_units = zone_units })
@@ -1823,20 +1772,6 @@ return {
                 end
             end
 
-            -- **** Villages evaluation -- unowned and enemy-owned villages ****
-            --print_time('  ' .. cfg.zone_id .. ': villages eval')
-            local village_action = nil
-            if (not cfg.do_action) or cfg.do_action.villages then
-                if (not cfg.skip_action) or (not cfg.skip_action.villages) then
-                    village_action = grunt_rush_FLS1:zone_action_villages(zone_units, enemies, zone_map, cfg, gamedata, move_cache)
-                    if village_action and (village_action.rating > 100) then
-                        --print_time(village_action.action)
-                        local attack_action = grunt_rush_FLS1:high_priority_attack(village_action.units[1], cfg, move_cache)
-                        return attack_action or village_action
-                    end
-                end
-            end
-
             -- ***********************************
             -- Take all units with MP off the map.
             -- !!!! This eventually needs to be done for all actions
@@ -1847,6 +1782,22 @@ return {
                 wesnoth.extract_unit(unit)
                 table.insert(extracted_units, unit)
             end
+
+            -- **** Villages evaluation -- unowned and enemy-owned villages ****
+            --print_time('  ' .. cfg.zone_id .. ': villages eval')
+            local village_action = nil
+            if (not cfg.do_action) or cfg.do_action.villages then
+                if (not cfg.skip_action) or (not cfg.skip_action.villages) then
+                    village_action = grunt_rush_FLS1:zone_action_villages(zonedata, gamedata, move_cache)
+                    if village_action and (village_action.rating > 100) then
+                        --print_time(village_action.action)
+                        local attack_action = grunt_rush_FLS1:high_priority_attack(village_action.units[1], zonedata, gamedata, move_cache)
+                        for _,unit in ipairs(extracted_units) do wesnoth.put_unit(unit) end
+                        return attack_action or village_action
+                    end
+                end
+            end
+
 
             -- **** Attack evaluation ****
             --print_time('  ' .. cfg.zone_id .. ': attack eval')
@@ -1874,7 +1825,7 @@ return {
             --print_time('  ' .. cfg.zone_id .. ': hold eval')
             if (not cfg.do_action) or cfg.do_action.hold then
                 if (not cfg.skip_action) or (not cfg.skip_action.hold) then
-                    local action = grunt_rush_FLS1:zone_action_hold(zone_units, zone_units_noMP, enemies, zone_map, enemy_defense_map, cfg)
+                    local action = grunt_rush_FLS1:zone_action_hold(zone_units, zone_units_noMP, enemies, zone_map, enemy_defense_map, gamedata, cfg)
                     if action then
                         --print_time(action.action)
                         return action
