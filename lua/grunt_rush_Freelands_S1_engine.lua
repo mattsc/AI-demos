@@ -790,6 +790,20 @@ return {
         function grunt_rush_FLS1:reset_vars_move_exec()
         end
 
+        ------ Clear self.data table at end of turn -----------
+
+        -- This will be blacklisted after first execution each turn, which happens at the very end of each turn
+        function grunt_rush_FLS1:clear_self_data_eval()
+            return 1
+        end
+
+        function grunt_rush_FLS1:clear_self_data_exec()
+            --print(' Clearing self.data table at end of Turn ' .. wesnoth.current.turn)
+
+            -- This is mostly done so that there is no chance of corruption of savefiles
+            grunt_rush_FLS1.data = {}
+        end
+
         ------ Move leader to keep -----------
 
         function grunt_rush_FLS1:move_leader_to_keep_eval()
