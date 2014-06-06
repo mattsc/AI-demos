@@ -746,32 +746,6 @@ return {
         function grunt_rush_FLS1:reset_vars_turn_exec()
             --print(' Resetting variables at beginning of Turn ' .. wesnoth.current.turn)
 
-            -- Reset grunt_rush_FLS1.data at beginning of turn, but need to keep 'complained_about_luck' variable
-            local complained_about_luck = grunt_rush_FLS1.data.SP_complained_about_luck
-            local enemy_is_undead = grunt_rush_FLS1.data.enemy_is_undead
-
-            --if grunt_rush_FLS1.data.cache then
-            --    local count = 0
-            --    for k,v in pairs(grunt_rush_FLS1.data.cache) do
-            --        print(k)
-            --        count = count + 1
-            --    end
-            --    print('Number of cache entires:', count)
-            --end
-
-            grunt_rush_FLS1.data = {}
-            grunt_rush_FLS1.data.cache = {}
-            grunt_rush_FLS1.data.SP_complained_about_luck = complained_about_luck
-
-            if (enemy_is_undead == nil) then
-                local enemy_leader = wesnoth.get_units{
-                        { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} },
-                        canrecruit = 'yes'
-                    }[1]
-                enemy_is_undead = (enemy_leader.__cfg.race == "undead") or (enemy_leader.type == "Dark Sorcerer")
-            end
-            grunt_rush_FLS1.data.enemy_is_undead = enemy_is_undead
-
             grunt_rush_FLS1.data.turn_start_time = wesnoth.get_time_stamp() / 1000.
         end
 
