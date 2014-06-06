@@ -232,29 +232,29 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
         and move_cache[attacker_info.id][defender_info.id][attacker_defense][defender_defense][attacker_info.hitpoints]
         and move_cache[attacker_info.id][defender_info.id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints]
     then
-        return move_cache[attacker_info.id][defender_info.id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints].att_stats,
+        return move_cache[attacker_info.id][defender_info.id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints].att_stat,
             move_cache[attacker_info.id][defender_info.id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints].def_stat
     end
 
     local old_x, old_y = attacker_copy.x, attacker_copy.y
     attacker_copy.x, attacker_copy.y = dst[1], dst[2]
-    local tmp_att_stats, tmp_def_stat = wesnoth.simulate_combat(attacker_copy, defender_proxy)
+    local tmp_att_stat, tmp_def_stat = wesnoth.simulate_combat(attacker_copy, defender_proxy)
     attacker_copy.x, attacker_copy.y = old_x, old_y
 
     -- Extract only those hp_chances that are non-zero (except for hp_chance[0]
     -- which is always needed).  This slows down this step a little, but significantly speeds
     -- up attack combination calculations
-    local att_stats = {
+    local att_stat = {
         hp_chance = {},
-        average_hp = tmp_att_stats.average_hp,
-        poisoned = tmp_att_stats.poisoned,
-        slowed = tmp_att_stats.slowed
+        average_hp = tmp_att_stat.average_hp,
+        poisoned = tmp_att_stat.poisoned,
+        slowed = tmp_att_stat.slowed
     }
 
-    att_stats.hp_chance[0] = tmp_att_stats.hp_chance[0]
-    for i = 1,#tmp_att_stats.hp_chance do
-        if (tmp_att_stats.hp_chance[i] ~= 0) then
-            att_stats.hp_chance[i] = tmp_att_stats.hp_chance[i]
+    att_stat.hp_chance[0] = tmp_att_stat.hp_chance[0]
+    for i = 1,#tmp_att_stat.hp_chance do
+        if (tmp_att_stat.hp_chance[i] ~= 0) then
+            att_stat.hp_chance[i] = tmp_att_stat.hp_chance[i]
         end
     end
 
@@ -289,9 +289,9 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
     end
 
     move_cache[attacker_info.id][defender_info.id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints]
-        = { att_stats = att_stats, def_stat = def_stat }
+        = { att_stat = att_stat, def_stat = def_stat }
 
-    return att_stats, def_stat
+    return att_stat, def_stat
 end
 
 function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy, tmp_dsts, tmp_attacker_infos, defender_info, gamedata, move_cache)
@@ -511,7 +511,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
             if reach_maps[attacker_id][xa] and reach_maps[attacker_id][xa][ya] then
                 local _, rating
                 if get_strongest_attack then
-                    local att_stats, def_stat = fred_attack_utils.battle_outcome(
+                    local att_stat, def_stat = fred_attack_utils.battle_outcome(
                         gamedata.unit_copies[attacker_id], defender_proxy, { xa, ya },
                         gamedata.unit_infos[attacker_id], gamedata.unit_infos[defender_id],
                         gamedata, move_cache
@@ -520,7 +520,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
                     -- Defender rating
                     _,_,rating = fred_attack_utils.attack_rating(
                         { gamedata.unit_infos[attacker_id] }, gamedata.unit_infos[defender_id], { { xa, ya } },
-                        { att_stats }, def_stat,
+                        { att_stat }, def_stat,
                         gamedata
                     )
                 end

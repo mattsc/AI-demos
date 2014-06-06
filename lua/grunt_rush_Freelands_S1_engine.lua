@@ -1061,9 +1061,9 @@ return {
 
                     -- Don't do this attack if the leader has a chance to get killed, poisoned or slowed
                     if do_attack then
-                        for k,att_stats in ipairs(combo_att_stats) do
+                        for k,att_stat in ipairs(combo_att_stats) do
                             if (sorted_atts[k].canrecruit) then
-                                if (att_stats.hp_chance[0] > 0.0) or (att_stats.slowed > 0.0) or (att_stats.poisoned > 0.0) then
+                                if (att_stat.hp_chance[0] > 0.0) or (att_stat.slowed > 0.0) or (att_stat.poisoned > 0.0) then
                                     do_attack = false
                                     break
                                 end
@@ -1762,7 +1762,7 @@ return {
                         local unit = grunt_rush_FLS1.data.zone_action.units[best_ind]
                         --print_time('Most advanced unit:', unit.id, unit.experience, best_ind)
 
-                        local att_stats, def_stat = BC.battle_outcome(
+                        local att_stat, def_stat = BC.battle_outcome(
                             unit,
                             grunt_rush_FLS1.data.zone_action.enemy,
                             grunt_rush_FLS1.data.zone_action.dsts[best_ind],
@@ -1770,7 +1770,7 @@ return {
                             grunt_rush_FLS1.data.cache
                         )
 
-                        local kill_rating = def_stat.hp_chance[0] - att_stats.hp_chance[0]
+                        local kill_rating = def_stat.hp_chance[0] - att_stat.hp_chance[0]
                         --print_time('kill_rating:', kill_rating)
 
                         if (kill_rating >= 0.5) then
