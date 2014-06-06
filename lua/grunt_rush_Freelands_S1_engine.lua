@@ -130,7 +130,7 @@ return {
             return rating
         end
 
-        function grunt_rush_FLS1:get_zone_cfgs(recalc)
+        function grunt_rush_FLS1:get_zone_cfgs(gamedata)
             -- Set up the config table for the different map zones
             -- zone_id: ID for the zone; only needed for debug messages
             -- zone_filter: SLF describing the zone
@@ -150,15 +150,6 @@ return {
             -- retreat_villages: array of villages to which injured units should retreat
 
             -- The 'cfgs' table is stored in 'grunt_rush_FLS1.data.zone_cfgs' and retrieved from there if it already exists
-            -- This is automatically deleted at the beginning of each turn, so a recalculation is forced then
-
-            -- Optional parameter:
-            -- recalc: if set to 'true', force recalculation of cfgs even if 'grunt_rush_FLS1.data.zone_cfgs' exists
-
-            -- Comment out for now, maybe reinstate later
-            --if (not recalc) and grunt_rush_FLS1.data.zone_cfgs then
-            --    return grunt_rush_FLS1.data.zone_cfgs
-            --end
 
             local width, height = wesnoth.get_map_size()
             local cfg_full_map = {
