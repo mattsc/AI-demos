@@ -1573,13 +1573,6 @@ return {
             --  1. Zones get done one at a time (rather than one CA at a time)
             --  2. Relative scoring of different types of moves is possible
 
-            cfg = cfg or {}
-
-            -- First, set up the general filters and tables, to be used by all actions
-
-            -- Unit filter:
-            -- This includes the leader. Needs to be excluded specifically if he shouldn't take part in an action
-
             local zonedata = {
                 zone_units = {},
                 zone_units_MP = {},
@@ -1621,53 +1614,9 @@ return {
                 end
             end
 
-            -- xxxxxxxxxxxxxxxxxxxxxxxxxxxx
-            local unit_filter = { side = wesnoth.current.side }
-            if cfg.unit_filter then
-                for k,v in pairs(cfg.unit_filter) do unit_filter[k] = v end
-            end
-            --DBG.dbms(unit_filter)
-            local all_units
-            if cfg.only_zone_units then
-                all_units = AH.get_live_units(unit_filter)
-            else
-                all_units = AH.get_live_units { side = wesnoth.current.side }
-            end
-
-            local zone_units, zone_units_attacks = {}, {}
-            for i,u in ipairs(all_units) do
-                if (u.moves > 0) then
-                    table.insert(zone_units, u)
-                end
-                if (u.attacks_left > 0) then
-                    table.insert(zone_units_attacks, u)
-                end
-            end
-            all_units = nil
-
-            local all_zone_units = AH.get_live_units(unit_filter)
-            local zone_units_noMP = {}
-            for i,u in ipairs(all_zone_units) do
-                if (u.moves <= 0) then
-                    table.insert(zone_units_noMP, u)
-                end
-            end
-            -- xxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
             if (not next(zonedata.zone_units_MP)) and (not next(zonedata.zone_units_attacks)) then return end
 
-            -- Then get all the enemies (this needs to be all of them, to get the HP ratio)
-            local enemies = AH.get_live_units {
-                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
-            }
-            --print_time('#zone_units, #enemies', #zone_units, #enemies)
-
-            -- Get all the hexes in the zone
-            local zone = wesnoth.get_locations(cfg.zone_filter)
-            local zone_map = LS.of_pairs(zone)
-
             zonedata.zone = wesnoth.get_locations(cfg.zone_filter)
-
             zonedata.zone_map = {}
             for _,loc in ipairs(zonedata.zone) do
                 if (not zonedata.zone_map[loc[1]]) then
@@ -1675,11 +1624,6 @@ return {
                 end
                 zonedata.zone_map[loc[1]][loc[2]] = true
             end
-
-            -- Also get the defense map for the enemies
-            local enemy_defense_map = BC.best_defense_map(enemies, { ignore_these_units = zone_units })
-
-            -- **** This ends the common initialization for all zone actions ****
 
             -- **** Retreat severely injured units evaluation ****
             --print_time('  ' .. cfg.zone_id .. ': retreat_injured eval')
