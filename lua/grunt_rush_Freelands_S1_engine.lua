@@ -739,7 +739,6 @@ return {
 
         -- This will be blacklisted after first execution each turn
         function grunt_rush_FLS1:reset_vars_turn_eval()
-            -- Probably not necessary, just a safety measure
             local score = 999998
             return score
         end
@@ -774,6 +773,21 @@ return {
             grunt_rush_FLS1.data.enemy_is_undead = enemy_is_undead
 
             grunt_rush_FLS1.data.turn_start_time = wesnoth.get_time_stamp() / 1000.
+        end
+
+        ------ Reset variables at beginning of each move -----------
+
+        -- This always returns 0 -> will never be executed, but evaluated before each move
+        function grunt_rush_FLS1:reset_vars_move_eval()
+            --print(' Resetting gamedata tables (etc.) before move')
+
+            grunt_rush_FLS1.data.gamedata = FGU.get_gamedata()
+            grunt_rush_FLS1.data.move_cache = {}
+
+            return 0
+        end
+
+        function grunt_rush_FLS1:reset_vars_move_exec()
         end
 
         ------ Move leader to keep -----------
@@ -1689,22 +1703,19 @@ return {
                 return 0
             end
 
-            local gamedata = FGU.get_gamedata()
-            local move_cache = {}
-
-            local cfgs = grunt_rush_FLS1:get_zone_cfgs(gamedata)
+            local cfgs = grunt_rush_FLS1:get_zone_cfgs(grunt_rush_FLS1.data.gamedata)
             for i_c,cfg in ipairs(cfgs) do
                 --print_time('zone_control: ', cfg.zone_id)
 
                 -- Extract all AI units with MP left (for enemy path finding, counter attack placement etc.)
                 local extracted_units = {}
-                for id,loc in pairs(gamedata.my_units_MP) do
+                for id,loc in pairs(grunt_rush_FLS1.data.gamedata.my_units_MP) do
                     local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
                     wesnoth.extract_unit(unit_proxy)
                     table.insert(extracted_units, unit_proxy)  -- Not a proxy unit any more at this point
                 end
 
-                local zone_action = grunt_rush_FLS1:get_zone_action(cfg, gamedata, move_cache)
+                local zone_action = grunt_rush_FLS1:get_zone_action(cfg, grunt_rush_FLS1.data.gamedata, grunt_rush_FLS1.data.move_cache)
 
                 for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
 
