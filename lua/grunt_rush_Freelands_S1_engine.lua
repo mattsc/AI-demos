@@ -966,15 +966,17 @@ return {
             -- might be very slow!!!)
             if zonedata.cfg.attack and zonedata.cfg.attack.use_enemies_in_reach then
                 for id,loc in pairs(gamedata.enemies) do
-                    for j,hex in ipairs(zonedata.zone) do
-                        if gamedata.enemy_attack_map[hex[1]]
-                            and gamedata.enemy_attack_map[hex[1]][hex[2]]
-                            and gamedata.enemy_attack_map[hex[1]][hex[2]][id]
-                        then
-                            local target = {}
-                            target[id] = loc
-                            table.insert(targets, target)
-                            break
+                    for x,tmp in pairs(zonedata.zone_map) do
+                        for y,_ in pairs(tmp) do
+                            if gamedata.enemy_attack_map[x]
+                                and gamedata.enemy_attack_map[x][y]
+                                and gamedata.enemy_attack_map[x][y][id]
+                            then
+                                local target = {}
+                                target[id] = loc
+                                table.insert(targets, target)
+                                break
+                            end
                         end
                     end
                 end
@@ -1587,9 +1589,9 @@ return {
 
             if (not next(zonedata.zone_units_MP)) and (not next(zonedata.zone_units_attacks)) then return end
 
-            zonedata.zone = wesnoth.get_locations(cfg.zone_filter)
+            local zone = wesnoth.get_locations(cfg.zone_filter)
             zonedata.zone_map = {}
-            for _,loc in ipairs(zonedata.zone) do
+            for _,loc in ipairs(zone) do
                 if (not zonedata.zone_map[loc[1]]) then
                     zonedata.zone_map[loc[1]] = {}
                 end
