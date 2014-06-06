@@ -489,7 +489,6 @@ return {
                                 local defense = FGUI.get_unit_defense(gamedata.unit_copies[id], xa, ya, gamedata.defense_maps)
                                 defense = 100 - defense * 100
 
-
                                 local movecost = wesnoth.unit_movement_cost(gamedata.unit_copies[id], wesnoth.get_terrain(xa, ya))
                                 if (movecost <= gamedata.unit_copies[id].max_moves) then
                                     adj_rating = adj_rating + defense^2
@@ -1698,14 +1697,14 @@ return {
                 -- Extract all AI units with MP left (for enemy path finding, counter attack placement etc.)
                 local extracted_units = {}
                 for id,loc in pairs(gamedata.my_units_MP) do
-                    local unit = wesnoth.get_unit(loc[1], loc[2])
-                    wesnoth.extract_unit(unit)
-                    table.insert(extracted_units, unit)
+                    local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
+                    wesnoth.extract_unit(unit_proxy)
+                    table.insert(extracted_units, unit_proxy)  -- Not a proxy unit any more at this point
                 end
 
                 local zone_action = grunt_rush_FLS1:get_zone_action(cfg, gamedata, move_cache)
 
-                for _,unit in ipairs(extracted_units) do wesnoth.put_unit(unit) end
+                for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
 
                 if zone_action then
                     grunt_rush_FLS1.data.zone_action = zone_action
@@ -1825,8 +1824,8 @@ return {
                 end
 
                 -- Move out of way in direction of own leader
-                local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
-                local dx, dy  = leader.x - dst[1], leader.y - dst[2]
+                local leader_proxy = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+                local dx, dy  = leader_proxy.x - dst[1], leader_proxy.y - dst[2]
                 local r = math.sqrt(dx * dx + dy * dy)
                 if (r ~= 0) then dx, dy = dx / r, dy / r end
 
@@ -1875,10 +1874,10 @@ return {
             local move_cache = {}
 
             -- Retreat any injured units to villages, if possible
-            local units_with_moves = AH.get_units_with_moves { side = wesnoth.current.side }
+            local unit_proxies_MP = AH.get_units_with_moves { side = wesnoth.current.side }
 
             local injured_units = {}
-            for _,unit in ipairs(units_with_moves) do
+            for _,unit in ipairs(unit_proxies_MP) do
                 if (unit.hitpoints < unit.max_hitpoints) or unit.status.poisoned then
                     table.insert(injured_units, unit)
                 end
@@ -1947,10 +1946,10 @@ return {
             end
 
             -- Otherwise, if any units have attacks or moves left, take them away
-            if units_with_moves[1] then return score_finish_turn end
+            if unit_proxies_MP[1] then return score_finish_turn end
 
-            local units_with_attacks = AH.get_units_with_attacks { side = wesnoth.current.side }
-            if units_with_attacks[1] then return score_finish_turn end
+            local unit_proxies_attacks = AH.get_units_with_attacks { side = wesnoth.current.side }
+            if unit_proxies_attacks[1] then return score_finish_turn end
 
             return 0
         end
@@ -1967,14 +1966,14 @@ return {
                 return
             end
 
-            local units_with_attacks = AH.get_units_with_attacks { side = wesnoth.current.side }
-            for i,u in ipairs(units_with_attacks) do
+            local unit_proxies_attacks = AH.get_units_with_attacks { side = wesnoth.current.side }
+            for i,u in ipairs(unit_proxies_attacks) do
                 AH.checked_stopunit_all(ai, u)
                 --print('Attacks left:', u.id)
             end
 
-            local units_with_moves = AH.get_units_with_moves { side = wesnoth.current.side }
-            for i,u in ipairs(units_with_moves) do
+            local unit_proxies_MP = AH.get_units_with_moves { side = wesnoth.current.side }
+            for i,u in ipairs(unit_proxies_MP) do
                 --print('Moves left:', u.id)
                 AH.checked_stopunit_all(ai, u)
             end
