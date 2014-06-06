@@ -307,33 +307,23 @@ return {
             return cfgs
         end
 
-        function grunt_rush_FLS1:hp_ratio(my_units, enemies, weights)
-            -- Hitpoint ratio of own units / enemy units
-            -- If arguments are not given, use all units on the side
-            if (not my_units) then
-                my_units = AH.get_live_units { side = wesnoth.current.side }
-            end
-            if (not enemies) then
-                enemies = AH.get_live_units {
-                    { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
-                }
-            end
+        function grunt_rush_FLS1:full_offensive()
+            -- Returns true if the conditions to go on all-out offensive are met
+            -- Full offensive mode is done mostly by the RCA AI
+            -- This is a placeholder for now until Fred is better at the endgame
+
+            local my_units = AH.get_live_units { side = wesnoth.current.side }
+            local enemies = AH.get_live_units {
+                { "filter_side", { { "enemy_of", { side = wesnoth.current.side } } } }
+            }
 
             local my_hp, enemy_hp = 0, 0
             for i,u in ipairs(my_units) do my_hp = my_hp + u.hitpoints end
-            for i,u in ipairs(enemies) do
-                local hp = u.hitpoints
-                if weights then hp = hp * weights[i] end
-                enemy_hp = enemy_hp + hp
-            end
+            for i,u in ipairs(enemies) do enemy_hp = enemy_hp + u.hitpoints end
 
-            --print('HP ratio:', my_hp / (enemy_hp + 1e-6)) -- to avoid div by 0
-            return my_hp / (enemy_hp + 1e-6), my_hp, enemy_hp
-        end
+            local hp_ratio = my_hp / (enemy_hp + 1e-6)
 
-        function grunt_rush_FLS1:full_offensive()
-            -- Returns true if the conditions to go on all-out offensive are met
-            if (grunt_rush_FLS1:hp_ratio() > 2.0) and (wesnoth.current.turn >= 5) then return true end
+            if (hp_ratio > 2.0) and (wesnoth.current.turn >= 5) then return true end
             return false
         end
 
