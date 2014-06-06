@@ -236,7 +236,7 @@ function fred_gamestate_utils.get_gamestate()
     -- Unit locations and copies
     local units, leaders = {}, {}
     local my_units, my_units_MP, my_units_noMP, enemies = {}, {}, {}, {}
-    local my_unit_map, my_unit_map_MP, my_unit_map_noMP, enemy_map = {}, {}, {}, {}
+    local my_unit_map, my_unit_map_MP, my_unit_map_noMP, my_attack_map, enemy_map = {}, {}, {}, {}, {}
     local unit_copies = {}
 
     for _,unit_proxy in ipairs(wesnoth.get_units()) do
@@ -258,9 +258,30 @@ function fred_gamestate_utils.get_gamestate()
             local reach = wesnoth.find_reach(unit_copy)
 
             reach_maps[unit_copy.id] = {}
+            local attack_range = {}
             for _,loc in ipairs(reach) do
                 if (not reach_maps[unit_copy.id][loc[1]]) then reach_maps[unit_copy.id][loc[1]] = {} end
                 reach_maps[unit_copy.id][loc[1]][loc[2]] = { moves_left = loc[3] }
+
+                if (not attack_range[loc[1]]) then attack_range[loc[1]] = {} end
+                attack_range[loc[1]][loc[2]] = unit_copy.hitpoints
+
+                for xa,ya in H.adjacent_tiles(loc[1], loc[2]) do
+                    if (not attack_range[xa]) then attack_range[xa] = {} end
+                    attack_range[xa][ya] = unit_copy.hitpoints
+                end
+
+            end
+
+            for x,arr in pairs(attack_range) do
+                for y,hitpoints in pairs(arr) do
+                    if (not my_attack_map[x]) then my_attack_map[x] = {} end
+                    if (not my_attack_map[x][y]) then my_attack_map[x][y] = {} end
+
+                    my_attack_map[x][y].units = (my_attack_map[x][y].units or 0) + 1
+                    my_attack_map[x][y].hitpoints = (my_attack_map[x][y].hitpoints or 0) + hitpoints
+                    my_attack_map[x][y][unit_copy.id] = true
+                end
             end
 
             if (#reach > 1) then
@@ -303,6 +324,7 @@ function fred_gamestate_utils.get_gamestate()
     mapstate.my_unit_map = my_unit_map
     mapstate.my_unit_map_MP = my_unit_map_MP
     mapstate.my_unit_map_noMP = my_unit_map_noMP
+    mapstate.my_attack_map = my_attack_map
     mapstate.enemy_map = enemy_map
 
     -- Get enemy attack and reach maps
