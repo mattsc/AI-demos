@@ -712,7 +712,7 @@ return {
         end
 
         function grunt_rush_FLS1:reset_vars_turn_exec()
-            print(' Resetting variables at beginning of Turn ' .. wesnoth.current.turn)
+            --print(' Resetting variables at beginning of Turn ' .. wesnoth.current.turn)
 
             grunt_rush_FLS1.data.turn_start_time = wesnoth.get_time_stamp() / 1000.
         end
@@ -721,7 +721,7 @@ return {
 
         -- This always returns 0 -> will never be executed, but evaluated before each move
         function grunt_rush_FLS1:reset_vars_move_eval()
-            print(' Resetting gamedata tables (etc.) before move')
+            --print(' Resetting gamedata tables (etc.) before move')
 
             grunt_rush_FLS1.data.gamedata = FGU.get_gamedata()
             grunt_rush_FLS1.data.move_cache = {}
@@ -741,24 +741,43 @@ return {
 
         function grunt_rush_FLS1:stats_exec()
             local tod = wesnoth.get_time_of_day()
-            AH.print_ts(' Beginning of Turn ' .. wesnoth.current.turn .. ' (' .. tod.name ..') stats')
+            AH.print_ts('Beginning of Turn ' .. wesnoth.current.turn .. ' (' .. tod.name ..') stats')
 
-            local villages = wesnoth.get_locations { terrain = '*^V*' }
+            local sides = {}
+            for id,_ in pairs(grunt_rush_FLS1.data.gamedata.units) do
+                local unit_side = grunt_rush_FLS1.data.gamedata.unit_infos[id].side
+                if (not sides[unit_side]) then sides[unit_side] = {} end
 
-            for i,s in ipairs(wesnoth.sides) do
-                local total_hp = 0
-                local units = AH.get_live_units { side = s.side }
-                for i,u in ipairs(units) do total_hp = total_hp + u.hitpoints end
-                local leader = wesnoth.get_units { side = s.side, canrecruit = 'yes' }[1]
-                print('   Player ' .. s.side .. ' (' .. leader.type .. '): ' .. #units .. ' Units with total HP: ' .. total_hp)
+                sides[unit_side].num_units = (sides[unit_side].num_units or 0) + 1
+                sides[unit_side].hitpoints = (sides[unit_side].hitpoints or 0) + grunt_rush_FLS1.data.gamedata.unit_infos[id].hitpoints
 
-                local owned_villages = 0
-                for _,v in ipairs(villages) do
-                    local owner = wesnoth.get_village_owner(v[1], v[2])
-                    if (owner == s.side) then owned_villages = owned_villages + 1 end
+                if grunt_rush_FLS1.data.gamedata.unit_infos[id].canrecruit then
+                    sides[unit_side].leader_type = grunt_rush_FLS1.data.gamedata.unit_copies[id].type
                 end
-                print('     ' .. owned_villages .. '/' .. #villages .. ' villages')
             end
+
+            local total_villages = 0
+            for x,tmp in pairs(grunt_rush_FLS1.data.gamedata.village_map) do
+                for y,village in pairs(tmp) do
+                    local owner = grunt_rush_FLS1.data.gamedata.village_map[x][y].owner
+                    if owner then
+                        sides[owner].num_villages = (sides[owner].num_villages or 0) + 1
+                    end
+
+                    total_villages = total_villages + 1
+                end
+            end
+
+            for _,side_info in ipairs(wesnoth.sides) do
+                local side = side_info.side
+                local num_villages = sides[side].num_villages or 0
+                print('  Side ' .. side .. ': '
+                    .. sides[side].num_units .. ' Units (' .. sides[side].hitpoints .. ' HP), '
+                    .. num_villages .. '/' .. total_villages .. ' villages  ('
+                    .. sides[side].leader_type .. ')'
+                )
+            end
+
             if grunt_rush_FLS1:full_offensive() then print(' Full offensive mode (mostly done by RCA AI)') end
         end
 
