@@ -61,7 +61,10 @@ local H = wesnoth.require "lua/helper.lua"
 --              Elvish Archer-11 = true,        -- ids of units that can get there
 --              Elvish Avenger-13 = true,
 --              units = 2                       -- number of units that can attack that hex
---          },
+--          }
+-- enemy_turn_maps[id][x][y] = { turns = 1.2 }  -- How many turns (fraction, cost / max_moves) unit needs to get to hex
+--                                              -- Out to max of additional_turns+1 turns (currently hard-coded to 2)
+--                                              -- Note that this is 0 for hex the unit is on
 --
 ---------- Separate from mapstate, but part of gamedata ----------
 --
@@ -304,7 +307,7 @@ function fred_gamestate_utils.get_gamestate()
 
     -- Get enemy attack and reach maps
     -- These are for max MP of enemy units, and after taking all AI units with MP off the map
-    local enemy_attack_map = {}
+    local enemy_attack_map, enemy_turn_maps = {}, {}
 
     -- Take all own units with MP left off the map (for enemy pathfinding)
     local extracted_units = {}
@@ -318,23 +321,33 @@ function fred_gamestate_utils.get_gamestate()
         local old_moves = unit_copies[enemy_id].moves
         unit_copies[enemy_id].moves = unit_copies[enemy_id].max_moves
 
-        local reach = wesnoth.find_reach(unit_copies[enemy_id])
+        -- Hexes the enemy can reach in additional_turns+1 turns
+        local additional_turns = 1
+        local reach = wesnoth.find_reach(unit_copies[enemy_id], { additional_turns = additional_turns })
 
         unit_copies[enemy_id].moves = old_moves
 
-        reach_maps[enemy_id] = {}
+        reach_maps[enemy_id], enemy_turn_maps[enemy_id] = {}, {}
         local attack_range = {}
         for _,loc in ipairs(reach) do
-            if (not reach_maps[enemy_id][loc[1]]) then reach_maps[enemy_id][loc[1]] = {} end
-            reach_maps[enemy_id][loc[1]][loc[2]] = { moves_left = loc[3] }
+            -- Only first-turn moves counts toward reach_maps, enemy_attack_maps
+            local max_moves = unit_copies[enemy_id].max_moves
+            if (loc[3] >= (max_moves * additional_turns)) then
+                if (not reach_maps[enemy_id][loc[1]]) then reach_maps[enemy_id][loc[1]] = {} end
+                reach_maps[enemy_id][loc[1]][loc[2]] = { moves_left = loc[3] - (max_moves * additional_turns) }
 
-            if (not attack_range[loc[1]]) then attack_range[loc[1]] = {} end
-            attack_range[loc[1]][loc[2]] = unit_copies[enemy_id].hitpoints
+                if (not attack_range[loc[1]]) then attack_range[loc[1]] = {} end
+                attack_range[loc[1]][loc[2]] = unit_copies[enemy_id].hitpoints
 
-            for xa,ya in H.adjacent_tiles(loc[1], loc[2]) do
-                if (not attack_range[xa]) then attack_range[xa] = {} end
-                attack_range[xa][ya] = unit_copies[enemy_id].hitpoints
+                for xa,ya in H.adjacent_tiles(loc[1], loc[2]) do
+                    if (not attack_range[xa]) then attack_range[xa] = {} end
+                    attack_range[xa][ya] = unit_copies[enemy_id].hitpoints
+                end
             end
+
+            local turns = (additional_turns + 1) - loc[3] / max_moves
+            if (not enemy_turn_maps[enemy_id][loc[1]]) then enemy_turn_maps[enemy_id][loc[1]] = {} end
+            enemy_turn_maps[enemy_id][loc[1]][loc[2]] = { turns = turns }
         end
 
         for x,arr in pairs(attack_range) do
@@ -353,6 +366,7 @@ function fred_gamestate_utils.get_gamestate()
     for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
 
     mapstate.enemy_attack_map = enemy_attack_map
+    mapstate.enemy_turn_maps = enemy_turn_maps
 
     return mapstate, reach_maps, unit_copies
 end
