@@ -676,33 +676,33 @@ return {
                 table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
             end
 
-            local combo_att_stats, combo_def_stats, sorted_atts, sorted_dsts, rating, att_rating, def_rating =
+            local combo_att_stats, combo_def_stat, sorted_atts, sorted_dsts, rating, att_rating, def_rating =
                 FAU.attack_combo_eval(
                     attacker_copies, target_proxy, dsts,
                     attacker_infos, gamedata.unit_infos[target_id],
                     gamedata, move_cache
                 )
 
-            combo_def_stats.rating = rating
-            combo_def_stats.def_rating = def_rating
-            combo_def_stats.att_rating = att_rating
+            combo_def_stat.rating = rating
+            combo_def_stat.def_rating = def_rating
+            combo_def_stat.att_rating = att_rating
 
             -- Add min_hp field
             local min_hp = 0
             for hp = 0,target_proxy.hitpoints do
-                if combo_def_stats.hp_chance[hp] and (combo_def_stats.hp_chance[hp] > 0) then
+                if combo_def_stat.hp_chance[hp] and (combo_def_stat.hp_chance[hp] > 0) then
                     min_hp = hp
                     break
                 end
             end
-            combo_def_stats.min_hp = min_hp
+            combo_def_stat.min_hp = min_hp
 
-            --DBG.dbms(combo_def_stats)
+            --DBG.dbms(combo_def_stat)
             --print('   combo ratings:  ', rating, att_rating, def_rating)
 
             --print_time('  End calc_counter_attack', next(target))
 
-            return combo_def_stats
+            return combo_def_stat
         end
 
         ------ Stats at beginning of turn -----------
@@ -1038,14 +1038,14 @@ return {
                     end
 
 
-                    local combo_att_stats, combo_def_stats, sorted_atts, sorted_dsts,
+                    local combo_att_stats, combo_def_stat, sorted_atts, sorted_dsts,
                         combo_rating, combo_att_rating, combo_def_rating =
                         FAU.attack_combo_eval(
                             attacker_copies, target_proxy, dsts,
                             attacker_infos, gamedata.unit_infos[target_id],
                             gamedata, move_cache
                     )
-                    --DBG.dbms(combo_def_stats)
+                    --DBG.dbms(combo_def_stat)
                     --print('   combo ratings:  ', combo_rating, combo_att_rating, combo_def_rating)
 
                     -- Don't attack if the leader is involved and has chance to die > 0
@@ -1170,7 +1170,7 @@ return {
                         end
 
                         -- Discourage use of poisoners in attacks that may result in kill
-                        if (combo_def_stats.hp_chance[0] > 0) then
+                        if (combo_def_stat.hp_chance[0] > 0) then
                             local number_poisoners = 0
                             for i_a,attacker in ipairs(sorted_atts) do
                                 local is_poisoner = false
@@ -1738,14 +1738,14 @@ return {
                 if grunt_rush_FLS1.data.zone_action.enemy and grunt_rush_FLS1.data.zone_action.units[2] then
                     -- Only do this if CTK for overall attack combo is > 0
                     -- Cannot use move_cache here !!!  (because HP change)
-                    local _, combo_def_stats = BC.attack_combo_eval(
+                    local _, combo_def_stat = BC.attack_combo_eval(
                         grunt_rush_FLS1.data.zone_action.units,
                         grunt_rush_FLS1.data.zone_action.dsts,
                         grunt_rush_FLS1.data.zone_action.enemy,
                         grunt_rush_FLS1.data.cache
                     )
 
-                    if (combo_def_stats.hp_chance[0] > 0) then
+                    if (combo_def_stat.hp_chance[0] > 0) then
                         --print_time('Reordering units for attack to maximize XP gain')
 
                         local min_XP_diff, best_ind = 9e99
@@ -1762,7 +1762,7 @@ return {
                         local unit = grunt_rush_FLS1.data.zone_action.units[best_ind]
                         --print_time('Most advanced unit:', unit.id, unit.experience, best_ind)
 
-                        local att_stats, def_stats = BC.battle_outcome(
+                        local att_stats, def_stat = BC.battle_outcome(
                             unit,
                             grunt_rush_FLS1.data.zone_action.enemy,
                             grunt_rush_FLS1.data.zone_action.dsts[best_ind],
@@ -1770,7 +1770,7 @@ return {
                             grunt_rush_FLS1.data.cache
                         )
 
-                        local kill_rating = def_stats.hp_chance[0] - att_stats.hp_chance[0]
+                        local kill_rating = def_stat.hp_chance[0] - att_stats.hp_chance[0]
                         --print_time('kill_rating:', kill_rating)
 
                         if (kill_rating >= 0.5) then
