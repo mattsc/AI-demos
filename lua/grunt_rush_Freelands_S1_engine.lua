@@ -1640,17 +1640,6 @@ return {
                 end
             end
 
-            -- ***********************************
-            -- Take all units with MP off the map.
-            -- !!!! This eventually needs to be done for all actions
-
-            local extracted_units = {}
-            for id,loc in pairs(gamedata.my_units_MP) do
-                local unit = wesnoth.get_unit(loc[1], loc[2])
-                wesnoth.extract_unit(unit)
-                table.insert(extracted_units, unit)
-            end
-
             -- **** Villages evaluation -- unowned and enemy-owned villages ****
             --print_time('  ' .. cfg.zone_id .. ': villages eval')
             local village_action = nil
@@ -1660,7 +1649,6 @@ return {
                     if village_action and (village_action.rating > 100) then
                         --print_time(village_action.action)
                         local attack_action = grunt_rush_FLS1:high_priority_attack(village_action.units[1], zonedata, gamedata, move_cache)
-                        for _,unit in ipairs(extracted_units) do wesnoth.put_unit(unit) end
                         return attack_action or village_action
                     end
                 end
@@ -1676,7 +1664,6 @@ return {
 
                         -- Put the own units with MP back out there
                         -- !!!! This eventually needs to be done for all actions
-                        for _,unit in ipairs(extracted_units) do wesnoth.put_unit(unit) end
                         return action
                     end
                 end
@@ -1689,17 +1676,10 @@ return {
                     local action = grunt_rush_FLS1:zone_action_hold(zonedata, gamedata, move_cache)
                     if action then
                         --print_time(action.action)
-                        for _,unit in ipairs(extracted_units) do wesnoth.put_unit(unit) end
                         return action
                     end
                 end
             end
-
-            -- Put the own units with MP back out there
-            -- !!!! This eventually needs to be done for all actions
-            for _,unit in ipairs(extracted_units) do wesnoth.put_unit(unit) end
-
-
 
             -- **** Grab threatened villages ****
             if village_action then
@@ -1744,7 +1724,17 @@ return {
             for i_c,cfg in ipairs(cfgs) do
                 --print_time('zone_control: ', cfg.zone_id)
 
+                -- Extract all AI units with MP left (for enemy path finding, counter attack placement etc.)
+                local extracted_units = {}
+                for id,loc in pairs(gamedata.my_units_MP) do
+                    local unit = wesnoth.get_unit(loc[1], loc[2])
+                    wesnoth.extract_unit(unit)
+                    table.insert(extracted_units, unit)
+                end
+
                 local zone_action = grunt_rush_FLS1:get_zone_action(cfg, gamedata, move_cache)
+
+                for _,unit in ipairs(extracted_units) do wesnoth.put_unit(unit) end
 
                 if zone_action then
                     grunt_rush_FLS1.data.zone_action = zone_action
