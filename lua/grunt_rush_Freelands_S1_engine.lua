@@ -708,8 +708,7 @@ return {
 
         -- This will be blacklisted after first execution each turn
         function grunt_rush_FLS1:stats_eval()
-            local score = 999999
-            return score
+            return 999999
         end
 
         function grunt_rush_FLS1:stats_exec()
@@ -739,8 +738,7 @@ return {
 
         -- This will be blacklisted after first execution each turn
         function grunt_rush_FLS1:reset_vars_turn_eval()
-            local score = 999998
-            return score
+            return 999998
         end
 
         function grunt_rush_FLS1:reset_vars_turn_exec()
