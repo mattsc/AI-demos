@@ -738,13 +738,13 @@ return {
         ------ Reset variables at beginning of turn -----------
 
         -- This will be blacklisted after first execution each turn
-        function grunt_rush_FLS1:reset_vars_eval()
+        function grunt_rush_FLS1:reset_vars_turn_eval()
             -- Probably not necessary, just a safety measure
             local score = 999998
             return score
         end
 
-        function grunt_rush_FLS1:reset_vars_exec()
+        function grunt_rush_FLS1:reset_vars_turn_exec()
             --print(' Resetting variables at beginning of Turn ' .. wesnoth.current.turn)
 
             -- Reset grunt_rush_FLS1.data at beginning of turn, but need to keep 'complained_about_luck' variable

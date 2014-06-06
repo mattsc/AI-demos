@@ -66,7 +66,7 @@ local function get_all_CA_names()
         local pos = string.find(k, '_eval')
         if pos and (pos == string.len(k) - 4) then
             local name = string.sub(k, 1, pos-1)
-            if (name ~= 'stats') and (name ~= 'reset_vars') and (name ~= 'spread_poison') and (name ~= 'recruit_rushers') then
+            if (name ~= 'stats') and (name ~= 'reset_vars_turn') and (name ~= 'spread_poison') and (name ~= 'recruit_rushers') then
                 table.insert(cas, name)
             end
         end
@@ -176,11 +176,11 @@ return {
             W.clear_menu_item { id = 'm03_choose_ca' }
             W.clear_menu_item { id = 'm04_highest_score_CA' }
             W.clear_menu_item { id = 'm05_play_turn' }
-            W.clear_menu_item { id = 'm06_reset_vars' }
+            W.clear_menu_item { id = 'm06_reset_vars_turn' }
         end
     end,
 
-    reset_vars = function(no_messages)
+    reset_vars_turn = function(no_messages)
         -- Reset the 'self.data' variable to beginning-of-turn values
         if wrong_side(1) then return end
 
@@ -188,7 +188,7 @@ return {
         local name = CA_name()
 
         -- Set reset_var for execution
-        wesnoth.set_variable('debug_CA_name', 'reset_vars')
+        wesnoth.set_variable('debug_CA_name', 'reset_vars_turn')
 
         -- And call it for execution
         -- Don't need the actual 'ai_global' for that, but need a dummy table)
@@ -267,7 +267,7 @@ return {
         if wrong_side(1) then return end
 
         -- First reset all the variables
-        wesnoth.set_variable('debug_CA_name', 'reset_vars')
+        wesnoth.set_variable('debug_CA_name', 'reset_vars_turn')
         exec_CA({})
 
         while 1 do
