@@ -149,8 +149,6 @@ return {
             --   - hp_ratio: the minimum HP ratio required to hold at this position
             -- retreat_villages: array of villages to which injured units should retreat
 
-            -- The 'cfgs' table is stored in 'grunt_rush_FLS1.data.zone_cfgs' and retrieved from there if it already exists
-
             local width, height = wesnoth.get_map_size()
             local cfg_full_map = {
                 zone_id = 'full_map',
@@ -243,35 +241,28 @@ return {
             table.insert(sorted_cfgs, cfg_left)
             table.insert(sorted_cfgs, cfg_right)
 
-            -- Now find how many enemies can get to each zone
-            local my_units = AH.get_live_units { side = wesnoth.current.side }
-            local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' } [1]
-            local enemies = AH.get_live_units {
-                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
-            }
-            local attack_map = BC.get_attack_map(my_units)
-            local attack_map_hp = BC.get_attack_map(my_units, { return_value = 'hitpoints' })
-            local enemy_attack_map = BC.get_attack_map(enemies, { moves = "max" })
-            local enemy_attack_map_hp = BC.get_attack_map(enemies, { moves = "max", return_value = 'hitpoints' })
-
             for _,cfg in ipairs(sorted_cfgs) do
                 --print('Checking priority of zone: ', cfg.zone_id)
 
                 local moves_away = 0
-                for _,enemy in ipairs(enemies) do
-                    local min_cost = 9e99
+                for enemy_id,enemy_loc in pairs(gamedata.enemies) do
+                    local min_turns = 9e99
                     for _,hex in ipairs(cfg.key_hexes) do
-                        local _,cost = wesnoth.find_path(enemy, hex[1], hex[2], { moves = 'max' })
-                        cost = math.ceil(cost / enemy.max_moves)
+                        local turns = gamedata.enemy_turn_maps[enemy_id][hex[1]]
+                            and gamedata.enemy_turn_maps[enemy_id][hex[1]][hex[2]]
+                            and gamedata.enemy_turn_maps[enemy_id][hex[1]][hex[2]].turns
 
-                        if (cost < min_cost) then min_cost = cost end
+                        if turns then
+                            turns = math.ceil(turns)
+                            if (turns < min_turns) then min_turns = turns end
+                        end
                     end
 
-                    if (min_cost < 1) then min_cost = 1 end
-                    --print('      ', enemy.id, enemy.x, enemy.y, min_cost)
+                    if (min_turns < 1) then min_turns = 1 end
+                    --print('      ', enemy_id, enemy_loc[1], enemy_loc[2], min_turns)
 
-                    if (min_cost <= 2) then
-                        moves_away = moves_away + enemy.hitpoints / min_cost
+                    if (min_turns <= 2) then
+                        moves_away = moves_away + gamedata.unit_infos[enemy_id].hitpoints / min_turns
                     end
                 end
                 --print('    moves away:', moves_away)
@@ -279,8 +270,11 @@ return {
                 -- Any unit that can attack this hex directly counts extra
                 local direct_attack = 0
                 for _,hex in ipairs(cfg.key_hexes) do
-                    local hp = enemy_attack_map_hp.hitpoints:get(hex[1], hex[2]) or 0
-                    if (hp > direct_attack) then direct_attack = hp end
+                    local hp = gamedata.enemy_attack_map[hex[1]]
+                        and gamedata.enemy_attack_map[hex[1]][hex[2]]
+                        and gamedata.enemy_attack_map[hex[1]][hex[2]].hitpoints
+
+                    if hp and (hp > direct_attack) then direct_attack = hp end
                 end
                 --print('    direct attack:', direct_attack)
 
@@ -310,10 +304,7 @@ return {
             --print('Zone order:')
             --for _,cfg in ipairs(cfgs) do print('  ', cfg.zone_id, cfg.score) end
 
-            -- Now set this up as global variable
-            grunt_rush_FLS1.data.zone_cfgs = cfgs
-
-            return grunt_rush_FLS1.data.zone_cfgs
+            return cfgs
         end
 
         function grunt_rush_FLS1:hp_ratio(my_units, enemies, weights)
@@ -1707,11 +1698,10 @@ return {
                 return 0
             end
 
-            -- Set up the different tables for the turn
             local gamedata = FGU.get_gamedata()
             local move_cache = {}
 
-            local cfgs = grunt_rush_FLS1:get_zone_cfgs()
+            local cfgs = grunt_rush_FLS1:get_zone_cfgs(gamedata)
             for i_c,cfg in ipairs(cfgs) do
                 --print_time('zone_control: ', cfg.zone_id)
 
