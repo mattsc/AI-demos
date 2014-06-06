@@ -1016,12 +1016,14 @@ return {
                         target[id] = { village[1], village[2] }
 
                         -- Actually need to put the unit in place for this
+                        local old_loc = { gamedata.unit_copies[id].x, gamedata.unit_copies[id].y }
                         wesnoth.put_unit(village[1], village[2], gamedata.unit_copies[id])
 
                         local counter_stats = grunt_rush_FLS1:calc_counter_attack(target, gamedata, move_cache)
                         --DBG.dbms(counter_stats)
 
                         wesnoth.extract_unit(gamedata.unit_copies[id])
+                        gamedata.unit_copies[id].x, gamedata.unit_copies[id].y = old_loc[1], old_loc[2]
 
                         -- Maximum allowable chance to die
                         local max_hp_chance_zero = 0.33
