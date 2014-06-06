@@ -92,6 +92,37 @@ function ai_helper.put_labels(map, cfg)
     end)
 end
 
+function ai_helper.put_fgumap_labels(map, key, cfg)
+    -- Take @map (in the format as defined in fred_gamestate_utils (fgu) and put
+    -- labels containing the values of @key onto the map.
+    -- Print 'nan' if element exists but is not a number.
+    -- @cfg: table with optional parameters:
+    --   - show_coords: (boolean) use hex coordinates as labels instead of value
+    --   - factor=1: (number) if value is a number, multiply by this factor
+
+    local factor = (cfg and cfg.factor) or 1
+
+    ai_helper.clear_labels()
+
+    for x,arr in pairs(map) do
+        for y,data in pairs(arr) do
+            local out = data[key]
+
+            if cfg and cfg.show_coords then
+                out = x .. ',' .. y
+            end
+
+            if (type(out) ~= 'string') then
+                out = tonumber(out) or 'nan'
+            end
+
+            if (type(out) == 'number') then out = out * factor end
+
+            W.label { x = x, y = y, text = out }
+        end
+    end
+end
+
 function ai_helper.print_ts(...)
     -- Print arguments preceded by a time stamp in seconds
     -- Also return that time stamp
