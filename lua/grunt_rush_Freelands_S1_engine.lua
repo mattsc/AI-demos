@@ -704,11 +704,39 @@ return {
             return combo_def_stat
         end
 
+        ------ Reset variables at beginning of turn -----------
+
+        -- This will be blacklisted after first execution each turn
+        function grunt_rush_FLS1:reset_vars_turn_eval()
+            return 999998
+        end
+
+        function grunt_rush_FLS1:reset_vars_turn_exec()
+            print(' Resetting variables at beginning of Turn ' .. wesnoth.current.turn)
+
+            grunt_rush_FLS1.data.turn_start_time = wesnoth.get_time_stamp() / 1000.
+        end
+
+        ------ Reset variables at beginning of each move -----------
+
+        -- This always returns 0 -> will never be executed, but evaluated before each move
+        function grunt_rush_FLS1:reset_vars_move_eval()
+            print(' Resetting gamedata tables (etc.) before move')
+
+            grunt_rush_FLS1.data.gamedata = FGU.get_gamedata()
+            grunt_rush_FLS1.data.move_cache = {}
+
+            return 0
+        end
+
+        function grunt_rush_FLS1:reset_vars_move_exec()
+        end
+
         ------ Stats at beginning of turn -----------
 
         -- This will be blacklisted after first execution each turn
         function grunt_rush_FLS1:stats_eval()
-            return 999999
+            return 999990
         end
 
         function grunt_rush_FLS1:stats_exec()
@@ -732,34 +760,6 @@ return {
                 print('     ' .. owned_villages .. '/' .. #villages .. ' villages')
             end
             if grunt_rush_FLS1:full_offensive() then print(' Full offensive mode (mostly done by RCA AI)') end
-        end
-
-        ------ Reset variables at beginning of turn -----------
-
-        -- This will be blacklisted after first execution each turn
-        function grunt_rush_FLS1:reset_vars_turn_eval()
-            return 999998
-        end
-
-        function grunt_rush_FLS1:reset_vars_turn_exec()
-            --print(' Resetting variables at beginning of Turn ' .. wesnoth.current.turn)
-
-            grunt_rush_FLS1.data.turn_start_time = wesnoth.get_time_stamp() / 1000.
-        end
-
-        ------ Reset variables at beginning of each move -----------
-
-        -- This always returns 0 -> will never be executed, but evaluated before each move
-        function grunt_rush_FLS1:reset_vars_move_eval()
-            --print(' Resetting gamedata tables (etc.) before move')
-
-            grunt_rush_FLS1.data.gamedata = FGU.get_gamedata()
-            grunt_rush_FLS1.data.move_cache = {}
-
-            return 0
-        end
-
-        function grunt_rush_FLS1:reset_vars_move_exec()
         end
 
         ------ Clear self.data table at end of turn -----------
