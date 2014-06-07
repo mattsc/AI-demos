@@ -6,7 +6,6 @@ return {
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
-        local BC = wesnoth.require "~/add-ons/AI-demos/lua/battle_calcs.lua"
         local FGU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils.lua"
         local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
         local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
