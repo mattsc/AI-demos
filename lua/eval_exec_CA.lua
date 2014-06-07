@@ -30,7 +30,7 @@ local function CA_name()
 end
 
 local function set_menus()
-    -- Set the two menu items that have the selecetd CA name in them
+    -- Set the two menu items that have the selected CA name in them
     -- They need to be reset when that is changed, that's why this is done here
 
     W.set_menu_item {
