@@ -66,7 +66,12 @@ local function get_all_CA_names()
         local pos = string.find(k, '_eval')
         if pos and (pos == string.len(k) - 4) then
             local name = string.sub(k, 1, pos-1)
-            if (name ~= 'stats') and (name ~= 'reset_vars_turn') and (name ~= 'spread_poison') and (name ~= 'recruit_rushers') then
+            if (name ~= 'stats')
+                and (name ~= 'reset_vars_turn')
+                and (name ~= 'reset_vars_move')
+                and (name ~= 'clear_self_data')
+                and (name ~= 'recruit_rushers')
+            then
                 table.insert(cas, name)
             end
         end
@@ -92,14 +97,20 @@ local function eval_CA(ai, no_messages)
 
     -- Loop through the my_ai table until we find the function we are looking for
     local found = false
-    local eval_function = ''
+    local eval_function, reset_vars_move_function
     for k,v in pairs(my_ai) do
         if (k == eval_name) then
             found = true
             eval_function = v
-            break
+        end
+
+        if (k == 'reset_vars_move_eval') then
+            reset_vars_move_function = v
         end
     end
+
+    -- We always need to execute reset_vars_move_eval first, to set up the gamedata table
+    reset_vars_move_function()
 
     -- Now display and return the evaluation score
     local score = 0
