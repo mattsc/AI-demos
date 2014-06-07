@@ -916,7 +916,7 @@ return {
                 -- Is this a healing location?
                 local healloc = false
                 if (dest[3] > 2) then healloc = true end
-                local action = { units = {unit}, dsts = {dest}, type = 'village', reserve = dest }
+                local action = { units = { unit }, dsts = { dest }, type = 'village' }
                 action.action = zonedata.cfg.zone_id .. ': ' .. 'retreat severely injured units'
                 return action, healloc, (enemy_threat <= allowable_retreat_threat)
             end
@@ -1785,28 +1785,32 @@ return {
         function grunt_rush_FLS1:zone_control_exec()
             local action = grunt_rush_FLS1.data.zone_action.action
 
-            for i,unit in ipairs(grunt_rush_FLS1.data.zone_action.units) do
-                local unit_proxy = wesnoth.get_units { id = unit.id }[1]
-                grunt_rush_FLS1.data.zone_action.units[i] = unit_proxy
-            end
-
+            -- Same for the enemy in an attack, which is returned in { id = { x, y } } format.
+            local enemy_proxy
             if grunt_rush_FLS1.data.zone_action.enemy then
-                local enemy_proxy = wesnoth.get_units { id = next(grunt_rush_FLS1.data.zone_action.enemy) }[1]
-                grunt_rush_FLS1.data.zone_action.enemy = enemy_proxy
+                enemy_proxy = wesnoth.get_units { id = next(grunt_rush_FLS1.data.zone_action.enemy) }[1]
             end
 
             while grunt_rush_FLS1.data.zone_action.units and (table.maxn(grunt_rush_FLS1.data.zone_action.units) > 0) do
                 local next_unit_ind = 1
 
                 -- If this is an attack combo, reorder units to give maximum XP to unit closest to advancing
-                if grunt_rush_FLS1.data.zone_action.enemy and grunt_rush_FLS1.data.zone_action.units[2] then
+                if enemy_proxy and grunt_rush_FLS1.data.zone_action.units[2] then
                     -- Only do this if CTK for overall attack combo is > 0
-                    -- Cannot use move_cache here !!!  (because HP change)
-                    local _, combo_def_stat = BC.attack_combo_eval(
-                        grunt_rush_FLS1.data.zone_action.units,
+
+                    local attacker_copies, attacker_infos = {}, {}
+                    for i,unit in ipairs(grunt_rush_FLS1.data.zone_action.units) do
+                        table.insert(attacker_copies, grunt_rush_FLS1.data.gamedata.unit_copies[unit.id])
+                        table.insert(attacker_infos, grunt_rush_FLS1.data.gamedata.unit_infos[unit.id])
+                    end
+
+                    local defender_info = grunt_rush_FLS1.data.gamedata.unit_infos[enemy_proxy.id]
+
+                    local _, combo_def_stat = FAU.attack_combo_eval(
+                        attacker_copies, enemy_proxy,
                         grunt_rush_FLS1.data.zone_action.dsts,
-                        grunt_rush_FLS1.data.zone_action.enemy,
-                        grunt_rush_FLS1.data.cache
+                        attacker_infos, defender_info,
+                        grunt_rush_FLS1.data.gamedata, grunt_rush_FLS1.data.move_cache
                     )
 
                     if (combo_def_stat.hp_chance[0] > 0) then
@@ -1826,12 +1830,11 @@ return {
                         local unit = grunt_rush_FLS1.data.zone_action.units[best_ind]
                         --print_time('Most advanced unit:', unit.id, unit.experience, best_ind)
 
-                        local att_stat, def_stat = BC.battle_outcome(
-                            unit,
-                            grunt_rush_FLS1.data.zone_action.enemy,
+                        local att_stat, def_stat = FAU.battle_outcome(
+                            attacker_copies[best_ind], enemy_proxy,
                             grunt_rush_FLS1.data.zone_action.dsts[best_ind],
-                            {},
-                            grunt_rush_FLS1.data.cache
+                            attacker_infos[best_ind], defender_info,
+                            grunt_rush_FLS1.data.gamedata, grunt_rush_FLS1.data.move_cache
                         )
 
                         local kill_rating = def_stat.hp_chance[0] - att_stat.hp_chance[0]
@@ -1848,7 +1851,7 @@ return {
                 end
                 --print_time('next_unit_ind', next_unit_ind)
 
-                local unit = grunt_rush_FLS1.data.zone_action.units[next_unit_ind]
+                local unit = wesnoth.get_units { id = grunt_rush_FLS1.data.zone_action.units[next_unit_ind].id }[1]
                 local dst = grunt_rush_FLS1.data.zone_action.dsts[next_unit_ind]
 
                 -- If this is the leader, recruit first
@@ -1863,8 +1866,8 @@ return {
                     if AH.show_messages() then W.message { speaker = unit.id, message = 'The leader is about to move. Need to recruit first.' } end
 
                     local have_recruited
-                    while grunt_rush_FLS1:recruit_rushers_eval() > 0 do
-                        if not grunt_rush_FLS1:recruit_rushers_exec(nil, avoid_map) then
+                    while (grunt_rush_FLS1:recruit_rushers_eval() > 0) do
+                        if (not grunt_rush_FLS1:recruit_rushers_exec(nil, avoid_map)) then
                             break
                         else
                             have_recruited = true
@@ -1889,35 +1892,30 @@ return {
                 end
 
                 -- Move out of way in direction of own leader
-                local leader_proxy = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
-                local dx, dy  = leader_proxy.x - dst[1], leader_proxy.y - dst[2]
+                local leader_loc = grunt_rush_FLS1.data.gamedata.leaders[wesnoth.current.side]
+                local dx, dy  = leader_loc[1] - dst[1], leader_loc[2] - dst[2]
                 local r = math.sqrt(dx * dx + dy * dy)
                 if (r ~= 0) then dx, dy = dx / r, dy / r end
 
                 AH.movefull_outofway_stopunit(ai, unit, dst[1], dst[2], { dx = dx, dy = dy })
-
-                -- Also set parameters that need to last for the turn
-                -- If this is a retreat toward village, add it to the "reserved villages" list
-                if grunt_rush_FLS1.data.zone_action.type and (grunt_rush_FLS1.data.zone_action.type == 'village') then
-                    if (not grunt_rush_FLS1.data.reserved_villages) then
-                        grunt_rush_FLS1.data.reserved_villages = {}
-                    end
-                    local v_ind = grunt_rush_FLS1.data.zone_action.reserve[1] * 1000 + grunt_rush_FLS1.data.zone_action.reserve[2]
-                    --print('Putting village on reserved_villages list', v_ind)
-                    grunt_rush_FLS1.data.reserved_villages[v_ind] = true
-                end
 
                 -- Remove these from the table
                 table.remove(grunt_rush_FLS1.data.zone_action.units, next_unit_ind)
                 table.remove(grunt_rush_FLS1.data.zone_action.dsts, next_unit_ind)
 
                 -- Then do the attack, if there is one to do
-                if grunt_rush_FLS1.data.zone_action.enemy then
-                    AH.checked_attack(ai, unit, grunt_rush_FLS1.data.zone_action.enemy)
+                if enemy_proxy then
+                    AH.checked_attack(ai, unit, enemy_proxy)
 
                     -- If enemy got killed, we need to stop here
-                    if (not grunt_rush_FLS1.data.zone_action.enemy.valid) then
+                    if (not enemy_proxy.valid) then
                         grunt_rush_FLS1.data.zone_action.units = nil
+                    end
+
+                    -- Need to reset the enemy information if there are more attacks in this combo
+                    if grunt_rush_FLS1.data.zone_action.units and grunt_rush_FLS1.data.zone_action.units[1] then
+                        grunt_rush_FLS1.data.gamedata.unit_copies[enemy_proxy.id] = wesnoth.copy_unit(enemy_proxy)
+                        grunt_rush_FLS1.data.gamedata.unit_infos[enemy_proxy.id] = FGU.single_unit_info(enemy_proxy)
                     end
                 end
             end
