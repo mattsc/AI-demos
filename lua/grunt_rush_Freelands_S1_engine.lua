@@ -312,14 +312,15 @@ return {
             -- Full offensive mode is done mostly by the RCA AI
             -- This is a placeholder for now until Fred is better at the endgame
 
-            local my_units = AH.get_live_units { side = wesnoth.current.side }
-            local enemies = AH.get_live_units {
-                { "filter_side", { { "enemy_of", { side = wesnoth.current.side } } } }
-            }
-
             local my_hp, enemy_hp = 0, 0
-            for i,u in ipairs(my_units) do my_hp = my_hp + u.hitpoints end
-            for i,u in ipairs(enemies) do enemy_hp = enemy_hp + u.hitpoints end
+            for id,_ in pairs(grunt_rush_FLS1.data.gamedata.units) do
+                local unit_side = grunt_rush_FLS1.data.gamedata.unit_infos[id].side
+                if (unit_side == wesnoth.current.side) then
+                    my_hp = my_hp + grunt_rush_FLS1.data.gamedata.unit_infos[id].hitpoints
+                elseif wesnoth.is_enemy(unit_side, wesnoth.current.side) then
+                    enemy_hp = enemy_hp + grunt_rush_FLS1.data.gamedata.unit_infos[id].hitpoints
+                end
+            end
 
             local hp_ratio = my_hp / (enemy_hp + 1e-6)
 
