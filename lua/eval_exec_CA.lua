@@ -187,32 +187,7 @@ return {
             W.clear_menu_item { id = 'm03_choose_ca' }
             W.clear_menu_item { id = 'm04_highest_score_CA' }
             W.clear_menu_item { id = 'm05_play_turn' }
-            W.clear_menu_item { id = 'm06_reset_vars_turn' }
         end
-    end,
-
-    reset_vars_turn = function(no_messages)
-        -- Reset the 'self.data' variable to beginning-of-turn values
-        if wrong_side(1) then return end
-
-        -- Get the old selected CA name
-        local name = CA_name()
-
-        -- Set reset_var for execution
-        wesnoth.set_variable('debug_CA_name', 'reset_vars_turn')
-
-        -- And call it for execution
-        -- Don't need the actual 'ai_global' for that, but need a dummy table)
-        exec_CA({}, no_messages)
-
-        -- Now reset the CA name
-        wesnoth.set_variable('debug_CA_name', name)
-    end,
-
-    show_vars = function()
-        local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
-        DBG.dbms(self_data_table, true, 'self.data')
-        wesnoth.clear_messages()
     end,
 
     eval_CA = function(ai)
@@ -276,10 +251,6 @@ return {
     play_turn = function(ai)
         -- Play through an entire AI turn
         if wrong_side(1) then return end
-
-        -- First reset all the variables
-        wesnoth.set_variable('debug_CA_name', 'reset_vars_turn')
-        exec_CA({})
 
         while 1 do
             local ca, score = highest_score_CA(ai)
