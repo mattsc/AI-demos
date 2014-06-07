@@ -803,38 +803,76 @@ return {
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'move_leader_to_keep'
             if AH.print_eval() then print_time('     - Evaluating move_leader_to_keep CA:') end
 
-            -- Move of leader to keep is done by hand here
-            -- as we want him to go preferentially to (18,4) not (19.4)
+            local leader = grunt_rush_FLS1.data.gamedata.leaders[wesnoth.current.side]
 
-            local leader = AH.get_units_with_attacks { side = wesnoth.current.side, canrecruit = 'yes' }[1]
-            if (not leader) then
+            -- If the leader cannot move, don't do anything
+            if grunt_rush_FLS1.data.gamedata.my_units_noMP[leader.id] then
                 AH.done_eval_messages(start_time, ca_name)
                 return 0
             end
 
-            local keeps = { { 18, 4 }, { 19, 4 } }  -- keep hexes in order of preference
+            -- If the leader already is on a keep, don't do anything
+            if (wesnoth.get_terrain_info(wesnoth.get_terrain(leader[1], leader[2])).keep) then
+                AH.done_eval_messages(start_time, ca_name)
+                return 0
+            end
 
-            for i,k in ipairs(keeps) do
-                if (leader.x == k[1]) and (leader.y == k[2]) then
-                    -- If the leader already is on a keep, don't consider lesser priority ones
-                    AH.done_eval_messages(start_time, ca_name)
-                    return 0
+            local leader_copy = grunt_rush_FLS1.data.gamedata.unit_copies[leader.id]
+
+            local enemy_leader_loc = {}
+            for side,loc in ipairs(grunt_rush_FLS1.data.gamedata.leaders) do
+                if wesnoth.is_enemy(side, wesnoth.current.side) then
+                    enemy_leader_loc = loc
+                    break
+                end
+            end
+            local enemy_leader_cx, enemy_leader_cy = AH.cartesian_coords(enemy_leader_loc[1], enemy_leader_loc[2])
+
+            local width,height,border = wesnoth.get_map_size()
+            local keeps = wesnoth.get_locations {
+                terrain = 'K*,K*^*,*^K*', -- Keeps
+                x = '1-'..width,
+                y = '1-'..height
+            }
+
+            local max_rating, best_keep = -10  -- Intentionally not set to less than this !!
+                                               -- so that the leader does not try to get to unreachable locations
+            for _,keep in ipairs(keeps) do
+                local unit_in_way = grunt_rush_FLS1.data.gamedata.my_unit_map_noMP[keep[1]]
+                    and grunt_rush_FLS1.data.gamedata.my_unit_map_noMP[keep[1]][keep[2]]
+
+                if (not unit_in_way) then
+                    local path, cost = wesnoth.find_path(leader_copy, keep[1], keep[2])
+
+                    cost = cost + leader_copy.max_moves - leader_copy.moves
+                    local turns = math.ceil(cost / leader_copy.max_moves)
+
+                    -- Main rating is how long it will take the leader to get there
+                    local rating = - turns
+
+                    -- Minor rating is distance from enemy leader (the closer the better)
+                    local keep_cx, keep_cy = AH.cartesian_coords(keep[1], keep[2])
+                    local dist_enemy_leader = math.sqrt((keep_cx - enemy_leader_cx)^2 + (keep_cy - enemy_leader_cx)^2)
+                    rating = rating - dist_enemy_leader / 100.
+
+                    if (rating > max_rating) then
+                        max_rating = rating
+                        best_keep = keep
+                    end
                 end
             end
 
-            -- We move the leader to the keep if
-            -- 1. It's available
-            -- 2. The leader can get there in one move
-            for i,k in ipairs(keeps) do
-                local unit_in_way = wesnoth.get_unit(k[1], k[2])
-                if (not unit_in_way) then
-                    local next_hop = AH.next_hop(leader, k[1], k[2])
-                    if next_hop and (next_hop[1] == k[1]) and (next_hop[2] == k[2]) then
-                        grunt_rush_FLS1.data.MLK_leader = leader
-                        grunt_rush_FLS1.data.MLK_leader_move = { k[1], k[2] }
-                        AH.done_eval_messages(start_time, ca_name)
-                        return score
-                    end
+            if best_keep then
+                local next_hop = AH.next_hop(leader_copy, best_keep[1], best_keep[2])
+
+                -- Only move the leader if he'd actually move
+                if (next_hop[1] ~= leader_copy.x) or (next_hop[2] ~= leader_copy.y) then
+                    grunt_rush_FLS1.data.MLK_leader = leader_copy
+                    grunt_rush_FLS1.data.MLK_keep = best_keep
+                    grunt_rush_FLS1.data.MLK_dst = next_hop
+
+                    AH.done_eval_messages(start_time, ca_name)
+                    return score
                 end
             end
 
@@ -845,9 +883,17 @@ return {
         function grunt_rush_FLS1:move_leader_to_keep_exec()
             if AH.print_exec() then print_time('   Executing move_leader_to_keep CA') end
             if AH.show_messages() then W.message { speaker = grunt_rush_FLS1.data.MLK_leader.id, message = 'Moving back to keep' } end
-            -- This has to be a partial move !!
-            AH.checked_move(ai, grunt_rush_FLS1.data.MLK_leader, grunt_rush_FLS1.data.MLK_leader_move[1], grunt_rush_FLS1.data.MLK_leader_move[2])
-            grunt_rush_FLS1.data.MLK_leader, grunt_rush_FLS1.data.MLK_leader_move = nil, nil
+
+            -- If leader can get to the keep, make this a partial move, otherwise a full move
+            if (grunt_rush_FLS1.data.MLK_dst[1] == grunt_rush_FLS1.data.MLK_keep[1])
+                and (grunt_rush_FLS1.data.MLK_dst[2] == grunt_rush_FLS1.data.MLK_keep[2])
+            then
+                AH.checked_move(ai, grunt_rush_FLS1.data.MLK_leader, grunt_rush_FLS1.data.MLK_dst[1], grunt_rush_FLS1.data.MLK_dst[2])
+            else
+                AH.checked_move_full(ai, grunt_rush_FLS1.data.MLK_leader, grunt_rush_FLS1.data.MLK_dst[1], grunt_rush_FLS1.data.MLK_dst[2])
+            end
+
+            grunt_rush_FLS1.data.MLK_leader, grunt_rush_FLS1.data.MLK_dst = nil, nil
         end
 
         --------- zone_control CA ------------
