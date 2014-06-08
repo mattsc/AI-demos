@@ -1935,64 +1935,68 @@ return {
 
             local move_cache = {}
 
-            -- Retreat any injured units to villages, if possible
-            local unit_proxies_MP = AH.get_units_with_moves { side = wesnoth.current.side }
-
+            -- Retreat any remaining injured units to villages, if possible and
+            -- if the village is safer than their current position
             local injured_units = {}
-            for _,unit in ipairs(unit_proxies_MP) do
-                if (unit.hitpoints < unit.max_hitpoints) or unit.status.poisoned then
-                    table.insert(injured_units, unit)
+            for id,loc in pairs(grunt_rush_FLS1.data.gamedata.my_units_MP) do
+                if (grunt_rush_FLS1.data.gamedata.unit_infos[id].hitpoints < grunt_rush_FLS1.data.gamedata.unit_infos[id].max_hitpoints)
+                    or grunt_rush_FLS1.data.gamedata.unit_copies[id].status.poisoned
+                then
+                    injured_units[id] = loc
                 end
             end
 
-            local max_rating, best_unit, best_hex = -9e99
-            for _,unit in ipairs(injured_units) do
-                local reach = wesnoth.find_reach(unit)
+            local max_rating, best_unit, best_dst = -9e99
+            for id,loc in pairs(injured_units) do
+                local injured_unit_current = {}
+                injured_unit_current[id] = loc
 
-                for i,r in ipairs(reach) do
-                    local is_village = wesnoth.get_terrain_info(wesnoth.get_terrain(r[1], r[2])).village
+                local counter_stats_current = grunt_rush_FLS1:calc_counter_attack(
+                    injured_unit_current,
+                    grunt_rush_FLS1.data.gamedata, grunt_rush_FLS1.data.move_cache
+                )
 
-                    if is_village then
-                        local unit_in_way = wesnoth.get_unit(r[1], r[2])
+                for x,tmp in pairs(grunt_rush_FLS1.data.gamedata.village_map) do
+                    for y,village in pairs(tmp) do
+                        if grunt_rush_FLS1.data.gamedata.reach_maps[id][x]
+                            and grunt_rush_FLS1.data.gamedata.reach_maps[id][x][y]
+                        then
+                            --print('Can reach:', id, x, y)
 
-                        if (unit_in_way == unit) then unit_in_way = nil end
+                            local injured_unit_village = {}
+                            injured_unit_village[id] = { x, y }
 
-                        if unit_in_way and (unit_in_way.moves > 0) then
-                            local reach_map = AH.get_reachable_unocc(unit_in_way)
-                            if (reach_map:size() > 1) then unit_in_way = nil end
-                        end
+                            local old_loc = { grunt_rush_FLS1.data.gamedata.unit_copies[id].x, grunt_rush_FLS1.data.gamedata.unit_copies[id].y }
+                            local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
+                            wesnoth.extract_unit(unit_proxy)
+                            wesnoth.put_unit(x, y, unit_proxy)
 
-                        if (not unit_in_way) then
-                            local max_hp_chance_zero = 0.5
-                            local counter_stats = grunt_rush_FLS1:calc_counter_attack(unit, { r[1], r[2] },
-                                { stop_eval_hp_chance_zero = max_hp_chance_zero },
-                                move_cache
+                            local counter_stats_village = grunt_rush_FLS1:calc_counter_attack(
+                                injured_unit_village,
+                                grunt_rush_FLS1.data.gamedata, grunt_rush_FLS1.data.move_cache
                             )
 
-                            if (not counter_stats.hp_chance)
-                                or (unit.canrecruit and (counter_stats.hp_chance[0] == 0))
-                                or ((not unit.canrecruit) and (counter_stats.hp_chance[0] <= max_hp_chance_zero))
-                            then
-                                -- Most injured unit first
-                                local rating = unit.max_hitpoints - unit.hitpoints
+                            wesnoth.extract_unit(unit_proxy)
+                            grunt_rush_FLS1.data.gamedata.unit_copies[id].x, grunt_rush_FLS1.data.gamedata.unit_copies[id].y = old_loc[1], old_loc[2]
+                            wesnoth.put_unit(loc[1], loc[2], unit_proxy)
 
-                                if unit.status.poisoned then
-                                    rating = rating + 12  -- yes, intentionally more than 8
-                                end
+                            -- Consider this move only if the outcome of the counter attack is better than
+                            -- in the current position (note that that means that the attack rating must be
+                            -- _smaller_, since this is the reating for the counter attack)
+                            local chance_to_die_improvement = counter_stats_current.hp_chance[0] - counter_stats_village.hp_chance[0]
+                            local counter_rating_improvement = counter_stats_current.rating - counter_stats_village.rating
 
-                                -- Chance to die is bad
-                                if counter_stats.hp_chance then
-                                    rating = rating - counter_stats.hp_chance[0] * 100
-                                end
+                            if (chance_to_die_improvement >= 0) and (counter_rating_improvement >= 0) then
+                                --print('  -> better counter_stats at new position', chance_to_die_improvement, counter_rating_improvement)
 
-                                -- Retreat leader first, unless other unit is much more injured
-                                if unit.canrecruit then
-                                    rating = rating + 12
-                                end
+                                -- Counter rating improvement is the potential gain in gold, so we use that
+                                local rating = counter_rating_improvement
+                                --print('  rating:', rating)
 
                                 if (rating > max_rating) then
                                     max_rating = rating
-                                    best_unit, best_hex = unit, { r[1], r[2] }
+                                    best_unit = grunt_rush_FLS1.data.gamedata.unit_copies[id]
+                                    best_dst = { x, y }
                                 end
                             end
                         end
@@ -2002,16 +2006,21 @@ return {
 
             if best_unit then
                 grunt_rush_FLS1.data.finish_unit = best_unit
-                grunt_rush_FLS1.data.finish_hex = best_hex
+                grunt_rush_FLS1.data.finish_dst = best_dst
 
                 return score_finish_turn
             end
 
             -- Otherwise, if any units have attacks or moves left, take them away
-            if unit_proxies_MP[1] then return score_finish_turn end
+            if next(grunt_rush_FLS1.data.gamedata.my_units_MP) then
+                return score_finish_turn
+            end
 
-            local unit_proxies_attacks = AH.get_units_with_attacks { side = wesnoth.current.side }
-            if unit_proxies_attacks[1] then return score_finish_turn end
+            for id,_ in pairs(grunt_rush_FLS1.data.gamedata.my_units) do
+                if (grunt_rush_FLS1.data.gamedata.unit_copies[id].attacks_left > 0) then
+                    return score_finish_turn
+                end
+            end
 
             return 0
         end
@@ -2020,24 +2029,26 @@ return {
             if AH.print_exec() then print_time('   Executing finish_turn CA') end
 
             if grunt_rush_FLS1.data.finish_unit then
-                AH.movefull_outofway_stopunit(ai, grunt_rush_FLS1.data.finish_unit, grunt_rush_FLS1.data.finish_hex)
+                AH.movefull_outofway_stopunit(ai, grunt_rush_FLS1.data.finish_unit, grunt_rush_FLS1.data.finish_dst)
 
                 grunt_rush_FLS1.data.finish_unit = nil
-                grunt_rush_FLS1.data.finish_hex = nil
+                grunt_rush_FLS1.data.finish_dst = nil
 
                 return
             end
 
-            local unit_proxies_attacks = AH.get_units_with_attacks { side = wesnoth.current.side }
-            for i,u in ipairs(unit_proxies_attacks) do
-                AH.checked_stopunit_all(ai, u)
-                --print('Attacks left:', u.id)
+            for id,loc in pairs(grunt_rush_FLS1.data.gamedata.my_units_MP) do
+                local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
+                --print('Taking moves away:', unit_proxy.id)
+                AH.checked_stopunit_moves(ai, unit_proxy)
             end
 
-            local unit_proxies_MP = AH.get_units_with_moves { side = wesnoth.current.side }
-            for i,u in ipairs(unit_proxies_MP) do
-                --print('Moves left:', u.id)
-                AH.checked_stopunit_all(ai, u)
+            for id,loc in pairs(grunt_rush_FLS1.data.gamedata.my_units) do
+                if (grunt_rush_FLS1.data.gamedata.unit_copies[id].attacks_left > 0) then
+                    local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
+                    --print('Taking attacks away:', unit_proxy.id)
+                    AH.checked_stopunit_attacks(ai, unit_proxy)
+                end
             end
         end
 
