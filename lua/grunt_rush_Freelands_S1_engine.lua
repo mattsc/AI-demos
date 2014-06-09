@@ -627,83 +627,6 @@ return {
             end
         end
 
-        function grunt_rush_FLS1:calc_counter_attack(target, gamedata, move_cache)
-            -- Get counter-attack results a unit might experience next turn if it moved to 'hex'
-
-            local target_id, target_loc = next(target)
-            local target_proxy = wesnoth.get_unit(target_loc[1], target_loc[2])
-
-            --print_time('Start calc_counter_attack on:', next(target))
-
-            -- The target here is the AI unit.  It might not be in its original location,
-            -- but it is on the map and the information passed in target is where to calculate the attack.
-            -- The attackers are the enemies.  They have not been moved.
-
-
-            local counter_attack = FAU.get_attack_combos(
-                gamedata.enemies, target,
-                nil, true, gamedata, move_cache
-            )
-
-            -- If no attacks are found, we're done; return stats of unit as is
-            if (not next(counter_attack)) then
-                local hp_chance = {}
-                hp_chance[target_proxy.hitpoints] = 1
-                hp_chance[0] = 0  -- hp_chance[0] is always assumed to be included, even when 0
-                return {
-                    average_hp = target_proxy.hitpoints,
-                    min_hp = target_proxy.hitpoints,
-                    hp_chance = hp_chance,
-                    slowed = 0,
-                    poisoned = 0,
-                    rating = 0,
-                    att_rating = 0,
-                    def_rating = 0
-                }
-            end
-
-            local enemy_map = {}
-            for id,loc in pairs(gamedata.enemies) do
-                enemy_map[loc[1] * 1000 + loc[2]] = id
-            end
-
-
-            local attacker_copies, dsts, attacker_infos = {}, {}, {}
-            for src,dst in pairs(counter_attack) do
-                table.insert(attacker_copies, gamedata.unit_copies[enemy_map[src]])
-                table.insert(attacker_infos, gamedata.unit_infos[enemy_map[src]])
-                table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
-            end
-
-            local combo_att_stats, combo_def_stat, sorted_atts, sorted_dsts, rating, att_rating, def_rating =
-                FAU.attack_combo_eval(
-                    attacker_copies, target_proxy, dsts,
-                    attacker_infos, gamedata.unit_infos[target_id],
-                    gamedata, move_cache
-                )
-
-            combo_def_stat.rating = rating
-            combo_def_stat.def_rating = def_rating
-            combo_def_stat.att_rating = att_rating
-
-            -- Add min_hp field
-            local min_hp = 0
-            for hp = 0,target_proxy.hitpoints do
-                if combo_def_stat.hp_chance[hp] and (combo_def_stat.hp_chance[hp] > 0) then
-                    min_hp = hp
-                    break
-                end
-            end
-            combo_def_stat.min_hp = min_hp
-
-            --DBG.dbms(combo_def_stat)
-            --print('   combo ratings:  ', rating, att_rating, def_rating)
-
-            --print_time('  End calc_counter_attack', next(target))
-
-            return combo_def_stat
-        end
-
         ------ Reset variables at beginning of turn -----------
 
         -- This will be blacklisted after first execution each turn
@@ -954,7 +877,7 @@ return {
                         local old_loc = { gamedata.unit_copies[id].x, gamedata.unit_copies[id].y }
                         wesnoth.put_unit(village[1], village[2], gamedata.unit_copies[id])
 
-                        local counter_stats = grunt_rush_FLS1:calc_counter_attack(target, gamedata, move_cache)
+                        local counter_stats = FAU.calc_counter_attack(target, gamedata, move_cache)
                         --DBG.dbms(counter_stats)
 
                         wesnoth.extract_unit(gamedata.unit_copies[id])
@@ -1312,7 +1235,7 @@ return {
                     local attacker_moved = {}
                     attacker_moved[attacker.id] = { combo.dsts[i_a][1], combo.dsts[i_a][2] }
 
-                    local counter_stats = grunt_rush_FLS1:calc_counter_attack(
+                    local counter_stats = FAU.calc_counter_attack(
                         attacker_moved, gamedata, move_cache
                     )
 
@@ -1951,7 +1874,7 @@ return {
                 local injured_unit_current = {}
                 injured_unit_current[id] = loc
 
-                local counter_stats_current = grunt_rush_FLS1:calc_counter_attack(
+                local counter_stats_current = FAU.calc_counter_attack(
                     injured_unit_current,
                     grunt_rush_FLS1.data.gamedata, grunt_rush_FLS1.data.move_cache
                 )
@@ -1971,7 +1894,7 @@ return {
                             wesnoth.extract_unit(unit_proxy)
                             wesnoth.put_unit(x, y, unit_proxy)
 
-                            local counter_stats_village = grunt_rush_FLS1:calc_counter_attack(
+                            local counter_stats_village = FAU.calc_counter_attack(
                                 injured_unit_village,
                                 grunt_rush_FLS1.data.gamedata, grunt_rush_FLS1.data.move_cache
                             )

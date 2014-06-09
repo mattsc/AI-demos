@@ -621,4 +621,81 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
     end
 end
 
+function fred_attack_utils.calc_counter_attack(target, gamedata, move_cache)
+    -- Get counter-attack results a unit might experience next turn if it moved to 'hex'
+
+    local target_id, target_loc = next(target)
+    local target_proxy = wesnoth.get_unit(target_loc[1], target_loc[2])
+
+    --print_time('Start calc_counter_attack on:', next(target))
+
+    -- The target here is the AI unit.  It might not be in its original location,
+    -- but it is on the map and the information passed in target is where to calculate the attack.
+    -- The attackers are the enemies.  They have not been moved.
+
+
+    local counter_attack = fred_attack_utils.get_attack_combos(
+        gamedata.enemies, target,
+        nil, true, gamedata, move_cache
+    )
+
+    -- If no attacks are found, we're done; return stats of unit as is
+    if (not next(counter_attack)) then
+        local hp_chance = {}
+        hp_chance[target_proxy.hitpoints] = 1
+        hp_chance[0] = 0  -- hp_chance[0] is always assumed to be included, even when 0
+        return {
+            average_hp = target_proxy.hitpoints,
+            min_hp = target_proxy.hitpoints,
+            hp_chance = hp_chance,
+            slowed = 0,
+            poisoned = 0,
+            rating = 0,
+            att_rating = 0,
+            def_rating = 0
+        }
+    end
+
+    local enemy_map = {}
+    for id,loc in pairs(gamedata.enemies) do
+        enemy_map[loc[1] * 1000 + loc[2]] = id
+    end
+
+
+    local attacker_copies, dsts, attacker_infos = {}, {}, {}
+    for src,dst in pairs(counter_attack) do
+        table.insert(attacker_copies, gamedata.unit_copies[enemy_map[src]])
+        table.insert(attacker_infos, gamedata.unit_infos[enemy_map[src]])
+        table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
+    end
+
+    local combo_att_stats, combo_def_stat, sorted_atts, sorted_dsts, rating, att_rating, def_rating =
+        fred_attack_utils.attack_combo_eval(
+            attacker_copies, target_proxy, dsts,
+            attacker_infos, gamedata.unit_infos[target_id],
+            gamedata, move_cache
+        )
+
+    combo_def_stat.rating = rating
+    combo_def_stat.def_rating = def_rating
+    combo_def_stat.att_rating = att_rating
+
+    -- Add min_hp field
+    local min_hp = 0
+    for hp = 0,target_proxy.hitpoints do
+        if combo_def_stat.hp_chance[hp] and (combo_def_stat.hp_chance[hp] > 0) then
+            min_hp = hp
+            break
+        end
+    end
+    combo_def_stat.min_hp = min_hp
+
+    --DBG.dbms(combo_def_stat)
+    --print('   combo ratings:  ', rating, att_rating, def_rating)
+
+    --print_time('  End calc_counter_attack', next(target))
+
+    return combo_def_stat
+end
+
 return fred_attack_utils
