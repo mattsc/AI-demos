@@ -1389,24 +1389,31 @@ return {
             end
             --print('eval_hold 2', eval_hold)
 
-            -- Not sure if this is still needed, but leave the code here for now
             -- If there are unoccupied or enemy-occupied villages in the hold zone, send units there,
             -- if we do not have enough units that have moved already in the zone
-            --local units_per_village = 0.5
-            --if cfg.villages and cfg.villages.units_per_village then
-            --    units_per_village = cfg.villages.units_per_village
-            --end
-            --if (not eval_hold) then
-            --    if (#units_noMP < #cfg.retreat_villages * units_per_village) then
-            --        for i,v in ipairs(cfg.retreat_villages) do
-            --            local owner = wesnoth.get_village_owner(v[1], v[2])
-            --            if (not owner) or wesnoth.is_enemy(owner, wesnoth.current.side) then
-            --                eval_hold, get_villages = true, true
-            --            end
-            --        end
-            --    end
-            --    --print('#units_noMP, #cfg.retreat_villages', #units_noMP, #cfg.retreat_villages)
-            --end
+            if (not eval_hold) then
+                local units_per_village = 0.5
+                if zonedata.cfg.villages and zonedata.cfg.villages.units_per_village then
+                    units_per_village = zonedata.cfg.villages.units_per_village
+                end
+
+                local count_units_noMP = 0
+                for id,_ in pairs(zonedata.zone_units_noMP) do
+                    if (not gamedata.unit_infos[id].canrecruit) then
+                        count_units_noMP = count_units_noMP + 1
+                    end
+                end
+
+                if (count_units_noMP < #zonedata.cfg.retreat_villages * units_per_village) then
+                    for _,village in ipairs(zonedata.cfg.retreat_villages) do
+                        local owner = gamedata.village_map[village[1]][village[2]].owner
+                        if (not owner) or wesnoth.is_enemy(owner, wesnoth.current.side) then
+                            eval_hold, get_villages = true, true
+                        end
+                    end
+                end
+                --print('#units_noMP, #cfg.retreat_villages', count_units_noMP, #zonedata.cfg.retreat_villages)
+            end
             --print('eval_hold 2', eval_hold)
 
             if eval_hold then
