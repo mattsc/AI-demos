@@ -621,30 +621,132 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
     end
 end
 
-function fred_attack_utils.calc_counter_attack(target, gamedata, move_cache)
-    -- Get counter-attack results a unit might experience next turn if it moved to 'hex'
+function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamedata, move_cache)
+    -- Get counter-attack statistics of an AI unit in a hypothetical maps situation
+    -- Units are placed on the map and the gamedata tables are adjusted inside this
+    -- function in order to avoid code duplication and ensure consistency
+    --
+    -- Conditions that need to be met before calling this function (otherwise it won't work):
+    --  - @target is a unit of the current side's AI
+    --  - AI units with MP are taken off the map
+    --  - AI units without MP are still on the map
+    --  - All enemy units are on the map
+    --
+    -- INPUTS:
+    -- @target: id and location of the unit for which to calculated the counter attack stats; syntax: { id = { x, y } }
+    -- @old_locs, @new_locs: arrays of locations of the current and goal locations
+    --   of all AI units to be moved into different positions, such as all units
+    --   involved in an attack combination
+
+    -- Two array to be made available below via closure
+    local stored_units, ids = {}, {}
+
+    ----- Begin adjust_gamedata_tables() -----
+    local function adjust_gamedata_tables(old_locs, new_locs, store_units_in_way)
+        -- Adjust all the gamedata tables to the new position, and reset them again later.
+        -- This is a local function as only counter attack calculations should have to move units.
+        --
+        -- INPUTS:
+        -- @old_locs, @new_locs as above
+        -- @store_units_in_way (boolean): whether to store the locations of the units in the way.  Needs to
+        -- be set to 'true' when moving the units into their new locations, needs to be set to
+        -- 'false' when moving them back, in which case the stored information will be used.
+
+        -- If any of the hexes marked in @new_locs is occupied, we
+        -- need to store that information as it otherwise will be overwritten.
+        -- This needs to be done for all locations before any unit is moved
+        -- in order to avoid conflicts of the units to be moved among themselves
+        if store_units_in_way then
+            for i_l,old_loc in ipairs(old_locs) do
+                local x1, y1 = old_loc[1], old_loc[2]
+                local x2, y2 = new_locs[i_l][1], new_locs[i_l][2]
+
+                -- Store the ids of the units to be moved
+                ids[i_l] = gamedata.my_unit_map[x1][y1].id
+
+                -- Do only if the unit actually gets moved
+                if (x1 ~= x2) or (y1 ~= y2) then
+                    -- If there is another unit at the new location, store it
+                    -- It does not matter for this whether this is a unit involved in the move or not
+                    if gamedata.my_unit_map[x2] and gamedata.my_unit_map[x2][y2] then
+                        stored_units[gamedata.my_unit_map[x2][y2].id] = { x2, y2 }
+                    end
+                end
+            end
+        end
+
+        -- Now adjust all the gamedata tables
+        for i_l,old_loc in ipairs(old_locs) do
+            local x1, y1 = old_loc[1], old_loc[2]
+            local x2, y2 = new_locs[i_l][1], new_locs[i_l][2]
+            --print('Moving unit:', x1, y1, '-->', x2, y2)
+
+            -- Do only if the unit actually gets moved
+            if (x1 ~= x2) or (y1 ~= y2) then
+                local id = ids[i_l]
+
+                -- Likely, not all of these tables have to be changed, but it takes
+                -- very little time, so better safe than sorry
+                gamedata.unit_copies[id].x, gamedata.unit_copies[id].y = x2, y2
+
+                gamedata.units[id] = { x2, y2 }
+                gamedata.my_units[id] = { x2, y2 }
+                gamedata.my_units_MP[id] = { x2, y2 }
+
+                if gamedata.unit_infos[id].canrecruit then
+                    gamedata.leaders[wesnoth.current.side] = { x2, y2, id = id }
+                end
+
+                -- Note that the following might leave empty orphan table elements, but that doesn't matter
+                gamedata.my_unit_map[x1][y1] = nil
+                if (not gamedata.my_unit_map[x2]) then gamedata.my_unit_map[x2] = {} end
+                gamedata.my_unit_map[x2][y2] = { id = id }
+
+                gamedata.my_unit_map_MP[x1][y1] = nil
+                if (not gamedata.my_unit_map_MP[x2]) then gamedata.my_unit_map_MP[x2] = {} end
+                gamedata.my_unit_map_MP[x2][y2] = { id = id }
+            end
+        end
+
+        -- Finally, if 'store_units_in_way' is not set (this is, when moving units back
+        -- into place), restore the stored units into the maps again
+        if (not store_units_in_way) then
+            for id,loc in pairs(stored_units) do
+                gamedata.my_unit_map[loc[1]][loc[2]] = { id = id }
+                gamedata.my_unit_map_MP[loc[1]][loc[2]] = { id = id }
+            end
+        end
+    end
+    ----- End adjust_gamedata_tables() -----
+
+    -- Mark the new positions of the units in the gamedata tables
+    adjust_gamedata_tables(old_locs, new_locs, true)
+
+    -- Put all the units with MP onto the  map (those without are already there)
+    -- They need to be proxy units for the counter attack calculation.
+    for _,id in ipairs(ids) do
+        wesnoth.put_unit(gamedata.unit_copies[id])
+    end
 
     local target_id, target_loc = next(target)
-    local target_proxy = wesnoth.get_unit(target_loc[1], target_loc[2])
+    local target_proxy = gamedata.unit_copies[target_id]
 
-    --print_time('Start calc_counter_attack on:', next(target))
-
-    -- The target here is the AI unit.  It might not be in its original location,
-    -- but it is on the map and the information passed in target is where to calculate the attack.
-    -- The attackers are the enemies.  They have not been moved.
-
-
+    -- reach_maps must not be given here, as this is for a hypothetical situation
+    -- on the map.  Needs to be recalculated for that situation.
+    -- Only want the best attack combo for this.
     local counter_attack = fred_attack_utils.get_attack_combos(
         gamedata.enemies, target,
         nil, true, gamedata, move_cache
     )
 
-    -- If no attacks are found, we're done; return stats of unit as is
+    local counter_attack_stat
     if (not next(counter_attack)) then
+        -- If no attacks are found, we're done; use stats of unit as is
         local hp_chance = {}
         hp_chance[target_proxy.hitpoints] = 1
         hp_chance[0] = 0  -- hp_chance[0] is always assumed to be included, even when 0
-        return {
+
+        counter_attack_stat = {
             average_hp = target_proxy.hitpoints,
             min_hp = target_proxy.hitpoints,
             hp_chance = hp_chance,
@@ -654,48 +756,53 @@ function fred_attack_utils.calc_counter_attack(target, gamedata, move_cache)
             att_rating = 0,
             def_rating = 0
         }
-    end
-
-    local enemy_map = {}
-    for id,loc in pairs(gamedata.enemies) do
-        enemy_map[loc[1] * 1000 + loc[2]] = id
-    end
-
-
-    local attacker_copies, dsts, attacker_infos = {}, {}, {}
-    for src,dst in pairs(counter_attack) do
-        table.insert(attacker_copies, gamedata.unit_copies[enemy_map[src]])
-        table.insert(attacker_infos, gamedata.unit_infos[enemy_map[src]])
-        table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
-    end
-
-    local combo_att_stats, combo_def_stat, sorted_atts, sorted_dsts, rating, att_rating, def_rating =
-        fred_attack_utils.attack_combo_eval(
-            attacker_copies, target_proxy, dsts,
-            attacker_infos, gamedata.unit_infos[target_id],
-            gamedata, move_cache
-        )
-
-    combo_def_stat.rating = rating
-    combo_def_stat.def_rating = def_rating
-    combo_def_stat.att_rating = att_rating
-
-    -- Add min_hp field
-    local min_hp = 0
-    for hp = 0,target_proxy.hitpoints do
-        if combo_def_stat.hp_chance[hp] and (combo_def_stat.hp_chance[hp] > 0) then
-            min_hp = hp
-            break
+    else
+        -- Otherwise calculate the attack combo statistics
+        local enemy_map = {}
+        for id,loc in pairs(gamedata.enemies) do
+            enemy_map[loc[1] * 1000 + loc[2]] = id
         end
+
+        local attacker_copies, dsts, attacker_infos = {}, {}, {}
+        for src,dst in pairs(counter_attack) do
+            table.insert(attacker_copies, gamedata.unit_copies[enemy_map[src]])
+            table.insert(attacker_infos, gamedata.unit_infos[enemy_map[src]])
+            table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
+        end
+
+        local combo_att_stats, combo_def_stat, sorted_atts, sorted_dsts, rating, att_rating, def_rating =
+            fred_attack_utils.attack_combo_eval(
+                attacker_copies, target_proxy, dsts,
+                attacker_infos, gamedata.unit_infos[target_id],
+                gamedata, move_cache
+            )
+
+        combo_def_stat.rating = rating
+        combo_def_stat.def_rating = def_rating
+        combo_def_stat.att_rating = att_rating
+
+        -- Add min_hp field
+        local min_hp = 0
+        for hp = 0,target_proxy.hitpoints do
+            if combo_def_stat.hp_chance[hp] and (combo_def_stat.hp_chance[hp] > 0) then
+                min_hp = hp
+                break
+            end
+        end
+        combo_def_stat.min_hp = min_hp
+
+        counter_attack_stat = combo_def_stat
     end
-    combo_def_stat.min_hp = min_hp
 
-    --DBG.dbms(combo_def_stat)
-    --print('   combo ratings:  ', rating, att_rating, def_rating)
+    -- Extract the units from the map
+    for _,id in ipairs(ids) do
+        wesnoth.extract_unit(gamedata.unit_copies[id])
+    end
 
-    --print_time('  End calc_counter_attack', next(target))
+    -- And put them back into their original locations
+    adjust_gamedata_tables(new_locs, old_locs)
 
-    return combo_def_stat
+    return counter_attack_stat
 end
 
 return fred_attack_utils

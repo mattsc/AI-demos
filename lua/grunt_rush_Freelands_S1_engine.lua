@@ -870,18 +870,15 @@ return {
                     --print(id, village[1], village[2])
 
                     if gamedata.reach_maps[id][village[1]] and gamedata.reach_maps[id][village[1]][village[2]] then
+                        -- Calculate counter attack outcome
                         local target = {}
                         target[id] = { village[1], village[2] }
 
-                        -- Actually need to put the unit in place for this
-                        local old_loc = { gamedata.unit_copies[id].x, gamedata.unit_copies[id].y }
-                        wesnoth.put_unit(village[1], village[2], gamedata.unit_copies[id])
+                        local old_locs = { { gamedata.unit_copies[id].x, gamedata.unit_copies[id].y } }
+                        local new_locs = { { village[1], village[2] } }
 
-                        local counter_stats = FAU.calc_counter_attack(target, gamedata, move_cache)
+                        local counter_stats = FAU.calc_counter_attack(target, old_locs, new_locs, gamedata, move_cache)
                         --DBG.dbms(counter_stats)
-
-                        wesnoth.extract_unit(gamedata.unit_copies[id])
-                        gamedata.unit_copies[id].x, gamedata.unit_copies[id].y = old_loc[1], old_loc[2]
 
                         -- Maximum allowable chance to die
                         local max_hp_chance_zero = 0.33
@@ -1202,15 +1199,15 @@ return {
             for _,combo in ipairs(combo_ratings) do
                 --print_time('Checking counter attack for attack on', target_id, enemy_worth)
 
-                -- We first need to move all units into place, as the counter attack threat
-                -- should be calculated for that formation as a whole
-                -- All units with MP left have already been extracted, so we only need to
-                -- put the attackers into the right position and don't have to worry about any other unit
-                for i_a,attacker in pairs(combo.attackers) do
-                    if gamedata.my_units_MP[attacker.id] then
-                        --print('  has been extracted')
-                        wesnoth.put_unit(combo.dsts[i_a][1], combo.dsts[i_a][2], gamedata.unit_copies[attacker.id])
-                    end
+                -- TODO: the following is slightly inefficient, as it places units and
+                -- takes them off again several times for the same attack combo.
+                -- This could be streamlined if it becomes an issue, but at the expense
+                -- of either duplicating code or adding parameters to FAU.calc_counter_attack()
+                -- I don't think that it is the bottleneck, so we leave it as it is for now.
+
+                local old_locs = {}
+                for i_a,attacker_info in ipairs(combo.attackers) do
+                    table.insert(old_locs, gamedata.my_units[attacker_info.id])
                 end
 
                 local acceptable_counter = true
@@ -1230,13 +1227,11 @@ return {
                     --print('max_damage, attacker.hitpoints, min_hp', max_damage, attacker.hitpoints, min_hp)
 
                     -- Now calculate the counter attack outcome
-                    local x, y = combo.dsts[i_a][1], combo.dsts[i_a][2]
-
                     local attacker_moved = {}
                     attacker_moved[attacker.id] = { combo.dsts[i_a][1], combo.dsts[i_a][2] }
 
                     local counter_stats = FAU.calc_counter_attack(
-                        attacker_moved, gamedata, move_cache
+                        attacker_moved, old_locs, combo.dsts, gamedata, move_cache
                     )
 
                     local counter_rating = counter_stats.rating
@@ -1856,14 +1851,23 @@ return {
                 return 0
             end
 
-            local move_cache = {}
+            local gamedata = grunt_rush_FLS1.data.gamedata
+            local move_cache = grunt_rush_FLS1.data.move_cache
 
-            -- Retreat any remaining injured units to villages, if possible and
+            -- Extract all AI units with MP left (for counter attack calculation)
+            local extracted_units = {}
+            for _,loc in pairs(gamedata.my_units_MP) do
+                local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
+                wesnoth.extract_unit(unit_proxy)
+                table.insert(extracted_units, unit_proxy)  -- Not a proxy unit any more at this point
+            end
+
+            -- Retreat any remaining injured units to villages if possible and
             -- if the village is safer than their current position
             local injured_units = {}
-            for id,loc in pairs(grunt_rush_FLS1.data.gamedata.my_units_MP) do
-                if (grunt_rush_FLS1.data.gamedata.unit_infos[id].hitpoints < grunt_rush_FLS1.data.gamedata.unit_infos[id].max_hitpoints)
-                    or grunt_rush_FLS1.data.gamedata.unit_copies[id].status.poisoned
+            for id,loc in pairs(gamedata.my_units_MP) do
+                if (gamedata.unit_infos[id].hitpoints < gamedata.unit_infos[id].max_hitpoints)
+                    or gamedata.unit_copies[id].status.poisoned
                 then
                     injured_units[id] = loc
                 end
@@ -1871,37 +1875,28 @@ return {
 
             local max_rating, best_unit, best_dst = -9e99
             for id,loc in pairs(injured_units) do
+                -- Counter attack outcome at the unit's current location
                 local injured_unit_current = {}
                 injured_unit_current[id] = loc
 
                 local counter_stats_current = FAU.calc_counter_attack(
-                    injured_unit_current,
-                    grunt_rush_FLS1.data.gamedata, grunt_rush_FLS1.data.move_cache
+                    injured_unit_current, { loc }, { loc }, gamedata, move_cache
                 )
 
-                for x,tmp in pairs(grunt_rush_FLS1.data.gamedata.village_map) do
+                for x,tmp in pairs(gamedata.village_map) do
                     for y,village in pairs(tmp) do
-                        if grunt_rush_FLS1.data.gamedata.reach_maps[id][x]
-                            and grunt_rush_FLS1.data.gamedata.reach_maps[id][x][y]
+                        if gamedata.reach_maps[id][x]
+                            and gamedata.reach_maps[id][x][y]
                         then
                             --print('Can reach:', id, x, y)
 
+                             -- Counter attack outcome at the village
                             local injured_unit_village = {}
                             injured_unit_village[id] = { x, y }
 
-                            local old_loc = { grunt_rush_FLS1.data.gamedata.unit_copies[id].x, grunt_rush_FLS1.data.gamedata.unit_copies[id].y }
-                            local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
-                            wesnoth.extract_unit(unit_proxy)
-                            wesnoth.put_unit(x, y, unit_proxy)
-
                             local counter_stats_village = FAU.calc_counter_attack(
-                                injured_unit_village,
-                                grunt_rush_FLS1.data.gamedata, grunt_rush_FLS1.data.move_cache
+                                injured_unit_village, { loc }, { { x, y } }, gamedata, move_cache
                             )
-
-                            wesnoth.extract_unit(unit_proxy)
-                            grunt_rush_FLS1.data.gamedata.unit_copies[id].x, grunt_rush_FLS1.data.gamedata.unit_copies[id].y = old_loc[1], old_loc[2]
-                            wesnoth.put_unit(loc[1], loc[2], unit_proxy)
 
                             -- Consider this move only if the outcome of the counter attack is better than
                             -- in the current position (note that that means that the attack rating must be
@@ -1918,7 +1913,7 @@ return {
 
                                 if (rating > max_rating) then
                                     max_rating = rating
-                                    best_unit = grunt_rush_FLS1.data.gamedata.unit_copies[id]
+                                    best_unit = gamedata.unit_copies[id]
                                     best_dst = { x, y }
                                 end
                             end
@@ -1926,6 +1921,8 @@ return {
                     end
                 end
             end
+
+            for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
 
             if best_unit then
                 grunt_rush_FLS1.data.finish_unit = best_unit
@@ -1935,12 +1932,12 @@ return {
             end
 
             -- Otherwise, if any units have attacks or moves left, take them away
-            if next(grunt_rush_FLS1.data.gamedata.my_units_MP) then
+            if next(gamedata.my_units_MP) then
                 return score_finish_turn
             end
 
-            for id,_ in pairs(grunt_rush_FLS1.data.gamedata.my_units) do
-                if (grunt_rush_FLS1.data.gamedata.unit_copies[id].attacks_left > 0) then
+            for id,_ in pairs(gamedata.my_units) do
+                if (gamedata.unit_copies[id].attacks_left > 0) then
                     return score_finish_turn
                 end
             end
