@@ -1,4 +1,4 @@
-local AH = wesnoth.dofile "~/add-ons/AI-demos/lua/ai_helper.lua"
+local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
 local H = wesnoth.require "lua/helper.lua"
 
 -- Collection of functions to get information about units and the gamestate and
