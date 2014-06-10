@@ -784,6 +784,15 @@ return {
                 end
             end
 
+            -- If the leader can reach the keep, but there's a unit on it: wait
+            if grunt_rush_FLS1.data.gamedata.reach_maps[leader.id][best_keep[1]]
+                and grunt_rush_FLS1.data.gamedata.reach_maps[leader.id][best_keep[1]][best_keep[2]]
+                and grunt_rush_FLS1.data.gamedata.my_unit_map_MP[best_keep[1]]
+                and grunt_rush_FLS1.data.gamedata.my_unit_map_MP[best_keep[1]][best_keep[2]]
+            then
+                return 0
+            end
+
             if best_keep then
                 local next_hop = AH.next_hop(leader_copy, best_keep[1], best_keep[2])
 
