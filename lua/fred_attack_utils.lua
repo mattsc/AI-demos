@@ -661,10 +661,16 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
                 local x1, y1 = old_loc[1], old_loc[2]
                 local x2, y2 = new_locs[i_l][1], new_locs[i_l][2]
 
-                -- Store the ids of the units to be moved
-                ids[i_l] = gamedata.my_unit_map[x1][y1].id
+                -- Store the ids of the units to be put onto the map.
+                -- This includes units with MP that attack from their current position,
+                -- but not units without MP (as the latter are already on the map)
+                -- Note: this array might have missing elements -> needs to be iterated using pairs()
+                if gamedata.my_unit_map_MP[x1] and gamedata.my_unit_map_MP[x1][y1] then
+                    ids[i_l] = gamedata.my_unit_map_MP[x1][y1].id
+                end
 
-                -- Do only if the unit actually gets moved
+                -- By contrast, we only need to store the information about units in the way,
+                -- if a unit  actually gets moved to the hex (independent of whether it has MP left or not)
                 if (x1 ~= x2) or (y1 ~= y2) then
                     -- If there is another unit at the new location, store it
                     -- It does not matter for this whether this is a unit involved in the move or not
@@ -681,7 +687,7 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
             local x2, y2 = new_locs[i_l][1], new_locs[i_l][2]
             --print('Moving unit:', x1, y1, '-->', x2, y2)
 
-            -- Do only if the unit actually gets moved
+            -- We only need to do this if the unit actually gets moved
             if (x1 ~= x2) or (y1 ~= y2) then
                 local id = ids[i_l]
 
@@ -724,12 +730,12 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
 
     -- Put all the units with MP onto the  map (those without are already there)
     -- They need to be proxy units for the counter attack calculation.
-    for _,id in ipairs(ids) do
+    for _,id in pairs(ids) do
         wesnoth.put_unit(gamedata.unit_copies[id])
     end
 
     local target_id, target_loc = next(target)
-    local target_proxy = gamedata.unit_copies[target_id]
+    local target_proxy = wesnoth.get_unit(target_loc[1], target_loc[2])
 
     -- reach_maps must not be given here, as this is for a hypothetical situation
     -- on the map.  Needs to be recalculated for that situation.
@@ -795,7 +801,7 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
     end
 
     -- Extract the units from the map
-    for _,id in ipairs(ids) do
+    for _,id in pairs(ids) do
         wesnoth.extract_unit(gamedata.unit_copies[id])
     end
 
