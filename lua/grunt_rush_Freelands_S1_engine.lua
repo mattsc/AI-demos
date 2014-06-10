@@ -1298,7 +1298,7 @@ return {
             return nil  -- Unnecessary, just to point out what's going on if no acceptable attack was found
         end
 
-        function grunt_rush_FLS1:zone_action_hold(zonedata, gamedata, cfg)
+        function grunt_rush_FLS1:zone_action_hold(zonedata, gamedata, move_cache)
             --print_time('hold', zonedata.cfg.zone_id)
 
             -- The leader does not participate in position holding (for now, at least)
