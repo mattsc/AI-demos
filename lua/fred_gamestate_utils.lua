@@ -62,6 +62,7 @@ local H = wesnoth.require "lua/helper.lua"
 --              Elvish Avenger-13 = true,
 --              units = 2                       -- number of units that can attack that hex
 --          }
+-- my_attack_map[x][y] = { ... }                 -- same for own units
 -- enemy_turn_maps[id][x][y] = { turns = 1.2 }  -- How many turns (fraction, cost / max_moves) unit needs to get to hex
 --                                              -- Out to max of additional_turns+1 turns (currently hard-coded to 2)
 --                                              -- Note that this is 0 for hex the unit is on
