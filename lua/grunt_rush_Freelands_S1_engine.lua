@@ -1193,6 +1193,7 @@ return {
                             dsts = sorted_dsts,
                             target = target,
                             att_stats = combo_att_stats,
+                            def_stat = combo_def_stat,
                             att_rating = combo_att_rating,
                             def_rating = combo_def_rating,
                             enemy_worth = enemy_worth
@@ -1214,26 +1215,42 @@ return {
                 -- of either duplicating code or adding parameters to FAU.calc_counter_attack()
                 -- I don't think that it is the bottleneck, so we leave it as it is for now.
 
-                local old_locs = {}
+                local old_locs, old_HP_attackers = {}, {}
                 for i_a,attacker_info in ipairs(combo.attackers) do
                     table.insert(old_locs, gamedata.my_units[attacker_info.id])
+
+                    -- Apply average hitpoints from the forward attack as starting point
+                    -- for the counter attack.  This isn't entirely accurate, but
+                    -- doing it correctly is too expensive, and this is better than doing nothing.
+                    table.insert(old_HP_attackers, gamedata.unit_infos[attacker_info.id].hitpoints)
+
+                    local hp = combo.att_stats[i_a].average_hp
+                    if (hp < 1) then hp = 1 end
+                    gamedata.unit_infos[attacker_info.id].hitpoints = hp
+                    gamedata.unit_copies[attacker_info.id].hitpoints = hp
+
+                    -- If the unit is on the map, it also needs to be applied to the unit proxy
+                    if gamedata.my_units_noMP[attacker_info.id] then
+                        local unit_proxy = wesnoth.get_unit(old_locs[i_a][1], old_locs[i_a][2])
+                        unit_proxy.hitpoints = hp
+                    end
                 end
+
+                -- Also set the hitpoints for the defender
+                local target_id, target_loc = next(combo.target)
+                local target_proxy = wesnoth.get_unit(target_loc[1], target_loc[2])
+                local old_HP_target = target_proxy.hitpoints
+                local hp = combo.def_stat.average_hp
+                if (hp < 1) then hp = 1 end
+
+                gamedata.unit_infos[target_id].hitpoints = hp
+                gamedata.unit_copies[target_id].hitpoints = hp
+                target_proxy.hitpoints = hp
 
                 local acceptable_counter = true
 
                 for i_a,attacker in ipairs(combo.attackers) do
                     --print_time('  by', attacker.id, combo.dsts[i_a][1], combo.dsts[i_a][2])
-                    -- Add max damages from this turn and counter-attack
-                    local min_hp = 0
-                    for hp = 0,attacker.hitpoints do
-                        if combo.att_stats[i_a].hp_chance[hp] and (combo.att_stats[i_a].hp_chance[hp] > 0) then
-                            min_hp = hp
-                            break
-                        end
-                    end
-
-                    local max_damage = attacker.hitpoints - min_hp
-                    --print('max_damage, attacker.hitpoints, min_hp', max_damage, attacker.hitpoints, min_hp)
 
                     -- Now calculate the counter attack outcome
                     local attacker_moved = {}
@@ -1264,16 +1281,32 @@ return {
                             break
                         end
 
-                        -- Add damage from attack and counter attack
-                        local min_outcome = counter_min_hp - max_damage
-                        --print('Leader: min_outcome, counter_min_hp, max_damage', min_outcome, counter_min_hp, max_damage)
+                        -- Add max damages from this turn and counter-attack
+                        local min_hp = 0
+                        for hp = 0,attacker.hitpoints do
+                            if combo.att_stats[i_a].hp_chance[hp] and (combo.att_stats[i_a].hp_chance[hp] > 0) then
+                                min_hp = hp
+                                break
+                            end
+                        end
 
-                        if (min_outcome <= 0) then
+                        -- Note that this is not really the maximum damage from the attack, as
+                        -- attacker.hitpoints is reduced to the average HP outcome of the attack
+                        -- However, min_hp for the counter also contains this reduction, so
+                        -- min_outcome below has the correct value (except for rounding errors,
+                        -- that's why it is compared ot 0.5 instead of 0)
+                        local max_damage_attack = attacker.hitpoints - min_hp
+                        --print('max_damage_attack, attacker.hitpoints, min_hp', max_damage_attack, attacker.hitpoints, min_hp)
+
+                        -- Add damage from attack and counter attack
+                        local min_outcome = counter_min_hp - max_damage_attack
+                        --print('Leader: min_outcome, counter_min_hp, max_damage_attack', min_outcome, counter_min_hp, max_damage_attack)
+
+                        if (min_outcome < 0.5) then
                             acceptable_counter = false
                             break
                         end
-                    -- Or for normal units, use the somewhat looser criteria
-                    else  -- Or for normal units, use the somewhat looser criteria
+                    else  -- Or for normal units, evaluate whether the attack is worth it
                         --print('Non-leader damage_ratio, enemy_worth', damage_ratio, combo.enemy_worth)
                         if (damage_ratio > combo.enemy_worth ) then
                             acceptable_counter = false
@@ -1281,6 +1314,20 @@ return {
                         end
                     end
                 end
+
+                -- Now reset the hitpoints for attackers and defender
+                for i_a,attacker_info in ipairs(combo.attackers) do
+                    gamedata.unit_infos[attacker_info.id].hitpoints = old_HP_attackers[i_a]
+                    gamedata.unit_copies[attacker_info.id].hitpoints = old_HP_attackers[i_a]
+                    if gamedata.my_units_noMP[attacker_info.id] then
+                        local unit_proxy = wesnoth.get_unit(old_locs[i_a][1], old_locs[i_a][2])
+                        unit_proxy.hitpoints = old_HP_attackers[i_a]
+                    end
+                end
+
+                gamedata.unit_infos[target_id].hitpoints = old_HP_target
+                gamedata.unit_copies[target_id].hitpoints = old_HP_target
+                target_proxy.hitpoints = old_HP_target
 
                 --print_time('acceptable_counter', acceptable_counter)
                 if acceptable_counter then
