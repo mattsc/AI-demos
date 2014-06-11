@@ -1282,18 +1282,6 @@ return {
                     end
                 end
 
-                -- Now put the units back out there
-                -- We first need to extract the attacker units again, then
-                -- put both units in way and attackers back out there
-
-                for i_a,attacker in ipairs(combo.attackers) do
-                    --print(attacker.id)
-
-                    if gamedata.my_units_MP[attacker.id] then
-                        wesnoth.extract_unit(gamedata.unit_copies[attacker.id])
-                    end
-                end
-
                 --print_time('acceptable_counter', acceptable_counter)
                 if acceptable_counter then
                     -- Only execute the first of these attacks
