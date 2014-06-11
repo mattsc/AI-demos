@@ -166,7 +166,7 @@ return {
 
             local cfg_center = {
                 zone_id = 'center',
-                priority = 1.5,
+                priority = 1.2,
                 key_hexes = { { 18, 9 }, { 22, 10 } },
                 zone_filter = { x = '15-24', y = '1-16' },
                 unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
