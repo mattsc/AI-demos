@@ -342,6 +342,7 @@ return {
                     local hex_rating, count = 0, 0
                     for enemy_id,etm in pairs(gamedata.enemy_turn_maps) do
                         local turns = etm[x] and etm[x][y] and etm[x][y].turns
+                        if (turns == 0) then turns = 0.2 end
 
                         if turns then
                             local rating = FGUI.get_unit_defense(gamedata.unit_copies[enemy_id], x, y, gamedata.defense_maps)
@@ -362,7 +363,6 @@ return {
 
             --AH.put_fgumap_labels(enemy_def_rating_map, 'rating')
             --W.message{ speaker = 'narrator', message = zonedata.cfg.zone_id .. ': enemy_def_rating_map' }
-
 
             local leader_cx, leader_cy = AH.cartesian_coords(gamedata.leaders[wesnoth.current.side][1], gamedata.leaders[wesnoth.current.side][2])
 
@@ -401,7 +401,6 @@ return {
             rating_map, defense_rating_map = {}, {}
             for x,tmp in pairs(zonedata.zone_map) do
                 for y,_ in pairs(tmp) do
-
                     local def_rating_center = enemy_def_rating_map[x]
                         and enemy_def_rating_map[x][y]
                         and enemy_def_rating_map[x][y].rating
