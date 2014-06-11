@@ -1058,7 +1058,12 @@ return {
                     if do_attack then
                         for k,att_stat in ipairs(combo_att_stats) do
                             if (sorted_atts[k].canrecruit) then
-                                if (att_stat.hp_chance[0] > 0.0) or (att_stat.slowed > 0.0) or (att_stat.poisoned > 0.0) then
+                                if (att_stat.hp_chance[0] > 0.0) or (att_stat.slowed > 0.0) then
+                                    do_attack = false
+                                    break
+                                end
+
+                                if (att_stat.poisoned > 0.0) and (not sorted_atts[k].regenerate) then
                                     do_attack = false
                                     break
                                 end
@@ -1275,8 +1280,12 @@ return {
                     -- If there's a chance of the leader getting poisoned, slowed or killed, don't do it
                     if attacker.canrecruit then
                         --print('Leader: slowed, poisoned %', counter_stats.slowed, counter_stats.poisoned)
-                        if (counter_stats.slowed > 0.0) or (counter_stats.poisoned > 0.0) then
-                            --print('Leader slowed or poisoned', counter_stats.slowed, counter_stats.poisoned)
+                        if (counter_stats.slowed > 0.0) then
+                            acceptable_counter = false
+                            break
+                        end
+
+                        if (counter_stats.poisoned > 0.0) and (not attacker.regenerate) then
                             acceptable_counter = false
                             break
                         end
