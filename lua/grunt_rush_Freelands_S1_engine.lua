@@ -247,14 +247,21 @@ return {
                 for enemy_id,enemy_loc in pairs(gamedata.enemies) do
                     local min_turns = 9e99
                     for _,hex in ipairs(cfg.key_hexes) do
-                        local turns = gamedata.enemy_turn_maps[enemy_id][hex[1]]
-                            and gamedata.enemy_turn_maps[enemy_id][hex[1]][hex[2]]
-                            and gamedata.enemy_turn_maps[enemy_id][hex[1]][hex[2]].turns
 
-                        if turns then
-                            turns = math.ceil(turns)
-                            if (turns < min_turns) then min_turns = turns end
-                        end
+                        -- Cannot use gamedata.enemy_turn_maps here, as we need movecost ignoring enemies
+                        -- Since this is only to individual hexes, we do the path finding here
+                        local old_moves = gamedata.unit_copies[enemy_id].moves
+                        gamedata.unit_copies[enemy_id].moves = gamedata.unit_copies[enemy_id].max_moves
+                        local path, cost = wesnoth.find_path(
+                            gamedata.unit_copies[enemy_id],
+                            hex[1], hex[2],
+                            { ignore_units = true }
+                        )
+                        gamedata.unit_copies[enemy_id].moves = old_moves
+
+                        local turns = math.ceil(cost / gamedata.unit_copies[enemy_id].max_moves)
+
+                        if (turns < min_turns) then min_turns = turns end
                     end
 
                     if (min_turns < 1) then min_turns = 1 end
