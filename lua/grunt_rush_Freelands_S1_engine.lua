@@ -1997,6 +1997,100 @@ return {
                 return score_finish_turn
             end
 
+            -- Check all units with attacks but no MP left.
+            -- Check whether attack + counter attack result on adjacent units
+            -- is better than counter attack alone.
+            local max_rating, best_attacker, best_target_proxy = -9e99
+            for id,loc in pairs(gamedata.my_units_noMP) do
+                if (gamedata.unit_copies[id].attacks_left > 0) then
+                    local attacker = {}
+                    attacker[id] = loc
+                    local attacker_proxy = wesnoth.get_unit(loc[1], loc[2])
+                    --print('\nattacks left:', id)
+
+                    for xa,ya in H.adjacent_tiles(loc[1], loc[2]) do
+                        local target_id = gamedata.enemy_map[xa]
+                           and gamedata.enemy_map[xa][ya]
+                           and gamedata.enemy_map[xa][ya].id
+
+                        local counter_stats_before
+                        if target_id then
+                            local target_proxy = wesnoth.get_unit(xa, ya)
+                            --print('  target:', target_id)
+
+                            -- Counter attack rating if not attacking target first
+                            if not counter_stats_before then
+                                counter_stats_before = FAU.calc_counter_attack(
+                                    attacker, { loc }, { loc }, gamedata, move_cache
+                                )
+                            end
+                            --DBG.dbms(counter_stats_before)
+                            --print('    counter rating before:', counter_stats_before.rating)
+
+                            -- Rating of attack on target
+                            local att_stat, def_stat = FAU.battle_outcome(
+                                gamedata.unit_copies[id], target_proxy, loc,
+                                gamedata.unit_infos[id], gamedata.unit_infos[target_id],
+                                gamedata, move_cache
+                            )
+
+                            local attack_rating = FAU.attack_rating(
+                                { gamedata.unit_infos[id] }, gamedata.unit_infos[target_id], { loc },
+                                { att_stat }, def_stat, gamedata
+                            )
+                            --print('    attack rating:', attack_rating)
+
+                            -- Counter attack rating after attacking target first
+                            -- Use average outcome from forward attack as input
+                            local old_HP_attacker = attacker_proxy.hitpoints
+                            local hp = att_stat.average_hp
+                            if (hp < 1) then hp = 1 end
+                            gamedata.unit_infos[id].hitpoints = hp
+                            gamedata.unit_copies[id].hitpoints = hp
+                            attacker_proxy.hitpoints = hp
+
+                            local old_HP_target = target_proxy.hitpoints
+                            local hp = def_stat.average_hp
+                            if (hp < 1) then hp = 1 end
+                            gamedata.unit_infos[target_id].hitpoints = hp
+                            gamedata.unit_copies[target_id].hitpoints = hp
+                            target_proxy.hitpoints = hp
+
+                            local counter_stats_after = FAU.calc_counter_attack(
+                                attacker, { loc }, { loc }, gamedata, move_cache
+                            )
+                            --DBG.dbms(counter_stats_after)
+                            --print('    counter rating after:', counter_stats_after.rating)
+
+                            gamedata.unit_infos[id].hitpoints = old_HP_attacker
+                            gamedata.unit_copies[id].hitpoints = old_HP_attacker
+                            attacker_proxy.hitpoints = old_HP_attacker
+
+                            gamedata.unit_infos[target_id].hitpoints = old_HP_target
+                            gamedata.unit_copies[target_id].hitpoints = old_HP_target
+                            target_proxy.hitpoints = old_HP_target
+
+                            -- Rating before = - counter_stats_before.rating
+                            -- Rating after  = attack_rating - counter_stats_after.rating
+                            local rating = attack_rating - counter_stats_after.rating + counter_stats_before.rating
+                            --print('    --> rating:', rating)
+
+                            if (rating > 0) and (rating > max_rating) then
+                                max_rating = rating
+                                best_attacker, best_target_proxy = gamedata.unit_copies[id], target_proxy
+                            end
+                        end
+                    end
+                end
+            end
+
+            if best_attacker then
+                grunt_rush_FLS1.data.finish_attacker = best_attacker
+                grunt_rush_FLS1.data.finish_target_proxy = best_target_proxy
+
+                return score_finish_turn
+            end
+
             -- Otherwise, if any units have attacks or moves left, take them away
             if next(gamedata.my_units_MP) then
                 return score_finish_turn
@@ -2013,6 +2107,15 @@ return {
 
         function grunt_rush_FLS1:finish_turn_exec()
             if AH.print_exec() then print_time('   Executing finish_turn CA') end
+
+            if grunt_rush_FLS1.data.finish_attacker then
+                AH.checked_attack(ai, grunt_rush_FLS1.data.finish_attacker, grunt_rush_FLS1.data.finish_target_proxy)
+
+                grunt_rush_FLS1.data.finish_attacker = nil
+                grunt_rush_FLS1.data.finish_target_proxy = nil
+
+                return
+            end
 
             if grunt_rush_FLS1.data.finish_unit then
                 AH.movefull_outofway_stopunit(ai, grunt_rush_FLS1.data.finish_unit, grunt_rush_FLS1.data.finish_dst)
