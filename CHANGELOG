@@ -1,10 +1,10 @@
-0.12.4+dev, ???
+0.13.0, 12 June 2014
 - *** This is an abbreviated changelog since it has been so long since the last release ***
   - Only major (general) changes are summarized, without details about the specifics
   - Check out the AI-demos github site for all the details
 - Freelands Side 1 Grunt Rush (Fred)
   - Fred has been completely overhauled.  Pretty much all parts of Fred were rewritten twice,
-    once to improve behavior and then again to increas evaluation speed.  In the process,
+    once to improve behavior and then again to increase evaluation speed.  In the process,
     many bugs were fixed.
   - There is a new Fred test scenario that can be started from the switchboard scenario or
     from the command line with ‘wesnoth -t fred’
@@ -13,7 +13,7 @@
   - ai_helper:
     - New functions get_units_with_moves(), get_units_with_attacks(), checked_attack(), checked_move_full(),
       checked_move(), checked_recruit(), checked_stopunit_all(), checked_stopunit_attacks(),
-      checked_stopunit_moves(), get_direction_index(), get_cardinal_directions(), 
+      checked_stopunit_moves(), get_direction_index(), get_cardinal_directions(),
       get_intercardinal_directions(), get_hex_facing(), put_fgumap_labels()
     - Removed ai_helper.random()
   - battle_calcs: largely rewritten, but not used in Fred any more.  Instead we now have:
