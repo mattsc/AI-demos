@@ -703,7 +703,7 @@ return {
                 print('  Side ' .. side .. ': '
                     .. sides[side].num_units .. ' Units (' .. sides[side].hitpoints .. ' HP), '
                     .. num_villages .. '/' .. total_villages .. ' villages  ('
-                    .. sides[side].leader_type .. ')'
+                    .. sides[side].leader_type .. ', ' .. side_info.gold .. ' gold)'
                 )
             end
 
