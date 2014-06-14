@@ -193,8 +193,7 @@ return {
                 skip_action = { retreat_injured_unsafe = true },
                 hold = { x = 11, y = 9, hp_ratio = 1.0, unit_ratio = 1.1 },
                 secure = { x = 11, y = 9, moves_away = 1, min_units = 1.1 },
-                retreat_villages = { { 11, 9 }, { 8, 5 }, { 12, 5 }, { 12, 2 } },
-                villages = { hold_threatened = true }
+                retreat_villages = { { 11, 9 }, { 8, 5 }, { 12, 5 }, { 12, 2 } }
             }
 
             local cfg_rush_left = {
@@ -214,8 +213,7 @@ return {
                 skip_action = { retreat_injured_unsafe = true },
                 hold = { x = 27, y = 11, hp_ratio = 1.0, unit_ratio = 1.1 },
                 secure = { x = 27, y = 11, moves_away = 1, min_units = 1.1 },
-                retreat_villages = { { 24, 7 }, { 28, 5 } },
-                villages = { hold_threatened = true }
+                retreat_villages = { { 24, 7 }, { 28, 5 } }
             }
 
             local cfg_rush_right = {
@@ -876,7 +874,6 @@ return {
                     end
                 end
             end
-
 
             -- Check if a zone unit can get to any of the zone villages
             local max_rating, best_village, best_unit = -9e99, {}, {}
@@ -1699,17 +1696,6 @@ return {
                     if action then
                         --print_time(action.action)
                         return action
-                    end
-                end
-            end
-
-            -- **** Grab threatened villages ****
-            if village_action then
-                if (not cfg.do_action) or cfg.do_action.hold_threatened then
-                    if (not cfg.skip_action) or (not cfg.skip_action.hold_threatened) then
-                        village_action.action = village_action.action .. ' (threatened village)'
-                        --print(village_action.action)
-                        return village_action
                     end
                 end
             end
