@@ -146,7 +146,6 @@ return {
             --   - x: the central x coordinate of the position to hold
             --   - max_y: the maximum y coordinate where to hold
             --   - hp_ratio: the minimum HP ratio required to hold at this position
-            -- retreat_villages: array of villages to which injured units should retreat
 
             local width, height = wesnoth.get_map_size()
             local cfg_full_map = {
@@ -172,7 +171,6 @@ return {
                 unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
                 skip_action = { retreat_injured_unsafe = true },
                 hold = { x = 18, y = 9, hp_ratio = 1.0 },
-                retreat_villages = { { 18, 9 }, { 24, 7 }, { 22, 2 } },
                 villages = { units_per_village = 0 }
             }
 
@@ -181,8 +179,7 @@ return {
                 zone_filter = { x = '15-24', y = '1-16' },
                 unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
                 skip_action = { retreat_injured_unsafe = true },
-                hold = { x = 18, y = 9 },
-                retreat_villages = { { 18, 9 }, { 24, 7 }, { 22, 2 } },
+                hold = { x = 18, y = 9 }
             }
 
             local cfg_left = {
@@ -191,8 +188,7 @@ return {
                 zone_filter = { x = '4-14', y = '1-15' },
                 unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
                 skip_action = { retreat_injured_unsafe = true },
-                hold = { x = 11, y = 9, hp_ratio = 1.0, unit_ratio = 1.1 },
-                retreat_villages = { { 11, 9 }, { 8, 5 }, { 12, 5 }, { 12, 2 } }
+                hold = { x = 11, y = 9, hp_ratio = 1.0, unit_ratio = 1.1 }
             }
 
             local cfg_rush_left = {
@@ -200,8 +196,7 @@ return {
                 zone_filter = { x = '4-14', y = '1-15' },
                 unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
                 skip_action = { retreat_injured_unsafe = true },
-                hold = { x = 11, y = 9 },
-                retreat_villages = { { 11, 9 }, { 8, 5 }, { 12, 5 }, { 12, 2 } },
+                hold = { x = 11, y = 9 }
             }
 
             local cfg_right = {
@@ -210,8 +205,7 @@ return {
                 zone_filter = { x = '24-34', y = '1-17' },
                 unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
                 skip_action = { retreat_injured_unsafe = true },
-                hold = { x = 27, y = 11, hp_ratio = 1.0, unit_ratio = 1.1 },
-                retreat_villages = { { 24, 7 }, { 28, 5 } }
+                hold = { x = 27, y = 11, hp_ratio = 1.0, unit_ratio = 1.1 }
             }
 
             local cfg_rush_right = {
@@ -220,8 +214,7 @@ return {
                 only_zone_units = true,
                 unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
                 skip_action = { retreat_injured_unsafe = true },
-                hold = { x = 27, y = 11 },
-                retreat_villages = { { 24, 7 }, { 28, 5 } }
+                hold = { x = 27, y = 11 }
             }
 
             local cfg_enemy_leader = {
@@ -861,9 +854,6 @@ return {
             -- Also includes the leader, if he's on his keep
             -- The rating>100 part is to exclude threatened but already owned villages
 
-            -- For this, we consider all villages, not just the retreat_villages,
-            -- but restrict it to villages inside the zone
-
             local villages = {}
             for x,arr in pairs(gamedata.village_map) do
                 for y,village in pairs(arr) do
@@ -1458,15 +1448,20 @@ return {
                     end
                 end
 
-                if (count_units_noMP < #zonedata.cfg.retreat_villages * units_per_village) then
-                    for _,village in ipairs(zonedata.cfg.retreat_villages) do
-                        local owner = gamedata.village_map[village[1]][village[2]].owner
-                        if (not owner) or wesnoth.is_enemy(owner, wesnoth.current.side) then
-                            eval_hold, get_villages = true, true
+                local count_not_own_villages = 0
+                for x,arr in pairs(gamedata.village_map) do
+                    for y,village in pairs(arr) do
+                        if zonedata.zone_map[x] and zonedata.zone_map[x][y] then
+                            if (not village.owner) or wesnoth.is_enemy(village.owner, wesnoth.current.side) then
+                                count_not_own_villages = count_not_own_villages + 1
+                            end
                         end
                     end
                 end
-                --print('#units_noMP, #cfg.retreat_villages', count_units_noMP, #zonedata.cfg.retreat_villages)
+
+                if (count_units_noMP < count_not_own_villages * units_per_village) then
+                    eval_hold, get_villages = true, true
+                end
             end
             --print('eval_hold 2', eval_hold)
 
