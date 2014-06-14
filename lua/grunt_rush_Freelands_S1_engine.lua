@@ -192,7 +192,6 @@ return {
                 unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
                 skip_action = { retreat_injured_unsafe = true },
                 hold = { x = 11, y = 9, hp_ratio = 1.0, unit_ratio = 1.1 },
-                secure = { x = 11, y = 9, moves_away = 1, min_units = 1.1 },
                 retreat_villages = { { 11, 9 }, { 8, 5 }, { 12, 5 }, { 12, 2 } }
             }
 
@@ -212,7 +211,6 @@ return {
                 unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
                 skip_action = { retreat_injured_unsafe = true },
                 hold = { x = 27, y = 11, hp_ratio = 1.0, unit_ratio = 1.1 },
-                secure = { x = 27, y = 11, moves_away = 1, min_units = 1.1 },
                 retreat_villages = { { 24, 7 }, { 28, 5 } }
             }
 
@@ -1482,61 +1480,6 @@ return {
                 end
                 return action
             end
-
-            -- I don't think this part is useful any more - but keep the code until I'm sure
-            -- If we got here, check whether there are instructions to secure the zone
-            -- That is, whether units are not in the zone, but are threatening a key location in it
-            -- The parameters for this are set in cfg.secure
-            --if cfg.secure then
-            --    -- Count units that are already in the zone (no MP left) that
-            --    -- are not the side leader
-            --    local number_units_noMP_noleader = 0
-            --    for i,u in pairs(units_noMP) do
-            --        if (not u.canrecruit) then number_units_noMP_noleader = number_units_noMP_noleader + 1 end
-            --    end
-            --    --print('Units already in zone:', number_units_noMP_noleader)
-
-            --    -- If there are not enough units, move others there
-            --    if (number_units_noMP_noleader < cfg.secure.min_units) then
-            --        -- Check whether (cfg.secure.x,cfg.secure.y) is threatened
-            --        local enemy_threats = false
-            --        for i,e in ipairs(enemies) do
-            --            local path, cost = wesnoth.find_path(e, cfg.secure.x, cfg.secure.y)
-            --            if (cost <= e.max_moves * cfg.secure.moves_away) then
-            --               enemy_threats = true
-            --               break
-            --            end
-            --        end
-            --        --print(cfg.zone_id, 'need to secure ' .. cfg.secure.x .. ',' .. cfg.secure.y, enemy_threats)
-
-            --        -- If we need to secure the zone
-            --        if enemy_threats then
-            --            -- The best unit is simply the one that can get there first
-            --            -- If several can make it in the same number of moves, use the one with the most HP
-            --            local max_rating, best_unit = -9e99, {}
-            --            for i,u in ipairs(holders) do
-            --                local path, cost = wesnoth.find_path(u, cfg.secure.x, cfg.secure.y)
-            --                local rating = - math.ceil(cost / u.max_moves)
-
-            --                rating = rating + u.hitpoints / 100.
-
-            --                if (rating > max_rating) then
-            --                    max_rating, best_unit = rating, u
-            --                end
-            --            end
-
-            --            -- Find move for the unit found above
-            --            if (max_rating > -9e99) then
-            --                local dst = AH.next_hop(best_unit, cfg.secure.x, cfg.secure.y)
-            --                if dst then
-            --                    local action = { units = { best_unit }, dsts = { dst } }
-            --                    action.action = cfg.zone_id .. ': ' .. 'secure zone'
-            --                    return action
-            --                end
-            --            end
-            --        end
-            --    end
-            --end
         end
 
         function grunt_rush_FLS1:high_priority_attack(unit_info, zonedata, gamedata, move_cache)
