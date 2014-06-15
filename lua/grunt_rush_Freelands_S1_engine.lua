@@ -232,7 +232,7 @@ return {
             for _,cfg in ipairs(sorted_cfgs) do
                 --print('Checking priority of zone: ', cfg.zone_id)
 
-                local moves_away = 0
+                local hp_enemies = 0
                 for enemy_id,enemy_loc in pairs(gamedata.enemies) do
                     local min_turns = 9e99
                     for _,hex in ipairs(cfg.key_hexes) do
@@ -257,10 +257,10 @@ return {
                     --print('      ', enemy_id, enemy_loc[1], enemy_loc[2], min_turns)
 
                     if (min_turns <= 2) then
-                        moves_away = moves_away + gamedata.unit_infos[enemy_id].hitpoints / min_turns
+                        hp_enemies = hp_enemies + gamedata.unit_infos[enemy_id].hitpoints / min_turns
                     end
                 end
-                --print('    moves away:', moves_away)
+                print('    hp_enemies:', hp_enemies)
 
                 -- Any unit that can attack this hex directly counts extra
                 local direct_attack = 0
@@ -273,7 +273,7 @@ return {
                 end
                 --print('    direct attack:', direct_attack)
 
-                local total_threat = moves_away + direct_attack
+                local total_threat = hp_enemies + direct_attack
                 --print('    total_threat:', total_threat)
 
                 cfg.score = total_threat * (cfg.priority or 1.)
