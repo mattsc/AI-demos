@@ -212,7 +212,7 @@ return {
                 zone_id = 'rush_right',
                 zone_filter = { x = '24-34', y = '1-17' },
                 only_zone_units = true,
-                unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
+                unit_filter = { x = '16-99,22-99', y = '1-11,12-16' },
                 skip_action = { retreat_injured_unsafe = true },
                 hold = { x = 27, y = 11 }
             }
@@ -221,7 +221,7 @@ return {
                 zone_id = 'enemy_leader',
                 zone_filter = { x = '1-' .. width , y = '1-' .. height },
                 unit_filter = { x = '1-' .. width , y = '1-' .. height },
-                hold = { },
+                hold = {},
             }
 
             local sorted_cfgs = {}
@@ -289,9 +289,12 @@ return {
                 --print('Inserting zone: ', cfg.zone_id, cfg.score)
                 table.insert(cfgs, cfg)
             end
-            table.insert(cfgs, cfg_rush_right)
-            --table.insert(cfgs, cfg_rush_left)
-            --table.insert(cfgs, cfg_rush_center)
+
+            if (not grunt_rush_FLS1:full_offensive()) then
+                table.insert(cfgs, cfg_rush_right)
+                --table.insert(cfgs, cfg_rush_left)
+                --table.insert(cfgs, cfg_rush_center)
+            end
 
             table.insert(cfgs, cfg_enemy_leader)
 
@@ -319,7 +322,7 @@ return {
 
             local hp_ratio = my_hp / (enemy_hp + 1e-6)
 
-            if (hp_ratio > 2.0) and (wesnoth.current.turn >= 5) then return true end
+            if (hp_ratio > 1.5) and (wesnoth.current.turn >= 5) then return true end
             return false
         end
 
@@ -695,7 +698,7 @@ return {
                 )
             end
 
-            if grunt_rush_FLS1:full_offensive() then print(' Full offensive mode (mostly done by RCA AI)') end
+            if grunt_rush_FLS1:full_offensive() then print(' Full offensive mode') end
         end
 
         ------ Clear self.data table at end of turn -----------
@@ -1655,12 +1658,6 @@ return {
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
             if AH.print_eval() then print_time('     - Evaluating zone_control CA:') end
 
-            -- Skip this if AI is much stronger than enemy
-            if grunt_rush_FLS1:full_offensive() then
-                AH.done_eval_messages(start_time, ca_name)
-                return 0
-            end
-
             local cfgs = grunt_rush_FLS1:get_zone_cfgs(grunt_rush_FLS1.data.gamedata)
             for i_c,cfg in ipairs(cfgs) do
                 --print_time('zone_control: ', cfg.zone_id)
@@ -1833,12 +1830,6 @@ return {
             local score_finish_turn = 170000
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'finish_turn'
             if AH.print_eval() then print_time('     - Evaluating finish_turn CA:') end
-
-            -- Skip this if AI is much stronger than enemy
-            if grunt_rush_FLS1:full_offensive() then
-                AH.done_eval_messages(start_time, ca_name)
-                return 0
-            end
 
             local gamedata = grunt_rush_FLS1.data.gamedata
             local move_cache = grunt_rush_FLS1.data.move_cache
