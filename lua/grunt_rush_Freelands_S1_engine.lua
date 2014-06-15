@@ -174,13 +174,13 @@ return {
                 villages = { units_per_village = 0 }
             }
 
-            local cfg_rush_center = {
-                zone_id = 'rush_center',
-                zone_filter = { x = '15-24', y = '1-16' },
-                unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
-                skip_action = { retreat_injured_unsafe = true },
-                hold = { x = 18, y = 9 }
-            }
+            --local cfg_rush_center = {
+            --    zone_id = 'rush_center',
+            --    zone_filter = { x = '15-24', y = '1-16' },
+            --    unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
+            --    skip_action = { retreat_injured_unsafe = true },
+            --    hold = { x = 18, y = 9 }
+            --}
 
             local cfg_left = {
                 zone_id = 'left',
@@ -191,13 +191,13 @@ return {
                 hold = { x = 11, y = 9, hp_ratio = 1.0, unit_ratio = 1.1 }
             }
 
-            local cfg_rush_left = {
-                zone_id = 'rush_left',
-                zone_filter = { x = '4-14', y = '1-15' },
-                unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
-                skip_action = { retreat_injured_unsafe = true },
-                hold = { x = 11, y = 9 }
-            }
+            --local cfg_rush_left = {
+            --    zone_id = 'rush_left',
+            --    zone_filter = { x = '4-14', y = '1-15' },
+            --    unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
+            --    skip_action = { retreat_injured_unsafe = true },
+            --    hold = { x = 11, y = 9 }
+            --}
 
             local cfg_right = {
                 zone_id = 'right',
