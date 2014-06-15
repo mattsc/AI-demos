@@ -170,7 +170,7 @@ return {
                 zone_filter = { x = '15-24', y = '1-16' },
                 unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
                 skip_action = { retreat_injured_unsafe = true },
-                hold = { x = 18, y = 9, hp_ratio = 1.0 },
+                hold = { hp_ratio = 1.0 },
                 villages = { units_per_village = 0 }
             }
 
@@ -178,8 +178,7 @@ return {
             --    zone_id = 'rush_center',
             --    zone_filter = { x = '15-24', y = '1-16' },
             --    unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
-            --    skip_action = { retreat_injured_unsafe = true },
-            --    hold = { x = 18, y = 9 }
+            --    skip_action = { retreat_injured_unsafe = true }
             --}
 
             local cfg_left = {
@@ -188,15 +187,14 @@ return {
                 zone_filter = { x = '4-14', y = '1-15' },
                 unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
                 skip_action = { retreat_injured_unsafe = true },
-                hold = { x = 11, y = 9, hp_ratio = 1.0, unit_ratio = 1.1 }
+                hold = { hp_ratio = 1.0, unit_ratio = 1.1 }
             }
 
             --local cfg_rush_left = {
             --    zone_id = 'rush_left',
             --    zone_filter = { x = '4-14', y = '1-15' },
             --    unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
-            --    skip_action = { retreat_injured_unsafe = true },
-            --    hold = { x = 11, y = 9 }
+            --    skip_action = { retreat_injured_unsafe = true }
             --}
 
             local cfg_right = {
@@ -205,7 +203,7 @@ return {
                 zone_filter = { x = '24-34', y = '1-17' },
                 unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
                 skip_action = { retreat_injured_unsafe = true },
-                hold = { x = 27, y = 11, hp_ratio = 1.0, unit_ratio = 1.1 }
+                hold = { hp_ratio = 1.0, unit_ratio = 1.1 }
             }
 
             local cfg_rush_right = {
@@ -213,15 +211,13 @@ return {
                 zone_filter = { x = '24-34', y = '1-17' },
                 only_zone_units = true,
                 unit_filter = { x = '16-99,22-99', y = '1-11,12-16' },
-                skip_action = { retreat_injured_unsafe = true },
-                hold = { x = 27, y = 11 }
+                skip_action = { retreat_injured_unsafe = true }
             }
 
             local cfg_enemy_leader = {
                 zone_id = 'enemy_leader',
                 zone_filter = { x = '1-' .. width , y = '1-' .. height },
-                unit_filter = { x = '1-' .. width , y = '1-' .. height },
-                hold = {},
+                unit_filter = { x = '1-' .. width , y = '1-' .. height }
             }
 
             local sorted_cfgs = {}
@@ -261,7 +257,7 @@ return {
                         num_enemies = num_enemies + 1. / min_turns
                     end
                 end
-                print('    hp_enemies, num_enemies:', hp_enemies, num_enemies)
+                --print('    hp_enemies, num_enemies:', hp_enemies, num_enemies)
                 cfg.hp_enemies, cfg.num_enemies = hp_enemies, num_enemies
 
                 -- Any unit that can attack this hex directly counts extra
@@ -1366,7 +1362,7 @@ return {
             -- If hold.hp_ratio and hold.unit_ratio are not provided, holding is done by default
             local eval_hold = true
 
-            if zonedata.cfg.hold.hp_ratio then
+            if zonedata.cfg.hold and zonedata.cfg.hold.hp_ratio then
                 --print('Checking for HP ratio', zonedata.cfg.zone_id, zonedata.cfg.hold.hp_ratio)
 
                 local hp_units_noMP = 0
@@ -1386,7 +1382,7 @@ return {
             end
             --print('eval_hold 1', eval_hold)
 
-            if eval_hold and zonedata.cfg.hold.unit_ratio then
+            if eval_hold and zonedata.cfg.hold and zonedata.cfg.hold.unit_ratio then
                 --print('Checking for unit ratio', zonedata.cfg.zone_id, zonedata.cfg.hold.unit_ratio)
 
                 local num_units_noMP = 0
