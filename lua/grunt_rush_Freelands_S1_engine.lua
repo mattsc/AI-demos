@@ -262,6 +262,7 @@ return {
                     end
                 end
                 print('    hp_enemies, num_enemies:', hp_enemies, num_enemies)
+                cfg.hp_enemies, cfg.num_enemies = hp_enemies, num_enemies
 
                 -- Any unit that can attack this hex directly counts extra
                 local direct_attack = 0
@@ -1361,37 +1362,6 @@ return {
 
             if (not next(holders)) then return end
 
-            local zone_enemies = {}
-            local num_enemies, hp_enemies = 0, 0
-            if zonedata.cfg.hold and zonedata.cfg.hold.x and zonedata.cfg.hold.y then
-                for enemy_id,enemy_loc in pairs(gamedata.enemies) do
-
-                    -- Cannot use gamedata.enemy_turn_maps here, as we need movecost ignoring enemies
-                    -- Since this is only to individual hexes, we do the path finding here
-                    local old_moves = gamedata.unit_copies[enemy_id].moves
-                    gamedata.unit_copies[enemy_id].moves = gamedata.unit_copies[enemy_id].max_moves
-                    local path, cost = wesnoth.find_path(
-                        gamedata.unit_copies[enemy_id],
-                        zonedata.cfg.hold.x, zonedata.cfg.hold.y,
-                        { ignore_units = true }
-                    )
-                    gamedata.unit_copies[enemy_id].moves = old_moves
-                    --print(zonedata.cfg.zone_id, enemy_id, zonedata.cfg.hold.x, zonedata.cfg.hold.y, cost)
-
-                    if (cost <= gamedata.unit_copies[enemy_id].max_moves * 2) then
-                        zone_enemies[enemy_id] = enemy_loc
-
-                        local turns = math.ceil(cost / gamedata.unit_copies[enemy_id].max_moves)
-                        if (turns == 0) then turns = 1 end
-                        local weight = 1. / turns
-                        --print('   ', zonedata.cfg.zone_id, 'inserting enemy (id, weight):', enemy_id, weight)
-
-                        num_enemies = num_enemies + weight
-                        hp_enemies = hp_enemies + gamedata.unit_infos[enemy_id].hitpoints * weight
-                    end
-                end
-            end
-
             -- Only check for possible position holding if hold.hp_ratio and hold.unit_ratio are met
             -- If hold.hp_ratio and hold.unit_ratio are not provided, holding is done by default
             local eval_hold = true
@@ -1405,8 +1375,8 @@ return {
                 end
 
                 local hp_ratio = 1000
-                if (hp_enemies > 0) then
-                    hp_ratio = hp_units_noMP / hp_enemies
+                if (zonedata.cfg.hp_enemies > 0) then
+                    hp_ratio = hp_units_noMP / zonedata.cfg.hp_enemies
                 end
                 --print('  hp_ratio', hp_ratio)
 
@@ -1425,8 +1395,8 @@ return {
                 end
 
                 local unit_ratio = 1000
-                if (num_enemies > 0) then
-                    unit_ratio = num_units_noMP / num_enemies
+                if (zonedata.cfg.num_enemies > 0) then
+                    unit_ratio = num_units_noMP / zonedata.cfg.num_enemies
                 end
                 --print('  unit_ratio', unit_ratio)
 
