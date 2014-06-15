@@ -550,8 +550,7 @@ return {
                 -- advanced in the zone can be gotten to.
                 -- This needs to be separate from and in addition to the step above (if unit cannot get into zone)
 
-                -- For Northerners, to force some aggressiveness:
-                local hp_factor = 1.2
+                local hp_factor = 1.1
 
                 local enemy_hp =
                     gamedata.enemy_attack_map[best_hex[1]]
@@ -993,7 +992,7 @@ return {
                 --print(target_id, '  trappable:', is_trappable_enemy)
 
                 -- How much more valuable do we consider the enemy units than out own
-                local enemy_worth = 1.2 -- We are Northerners, after all
+                local enemy_worth = 1.1
                 if zonedata.cfg.attack and zonedata.cfg.attack.enemy_worth then
                     enemy_worth = zonedata.cfg.attack.enemy_worth
                 end
