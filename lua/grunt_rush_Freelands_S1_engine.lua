@@ -1012,6 +1012,10 @@ return {
 
                 for j,combo in ipairs(attack_combos) do
                     --print_time('combo ' .. j)
+
+                    -- Only check out the first 1000 attack combos to keep evaluation time reasonable
+                    if (j > 1000) then break end
+
                     -- attackers and dsts arrays for stats calculation
 
                     local attempt_trapping = is_trappable_enemy
