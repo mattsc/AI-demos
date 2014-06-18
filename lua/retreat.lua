@@ -96,9 +96,9 @@ function retreat_functions.get_healing_locations()
             if heal_amount + cure > 0 then
                 for x, y in H.adjacent_tiles(u.x, u.y) do
                     local old_values = healing_locs:get(x, y) or {0, 0}
-                    local best_heal = math.max(old_values[0] or heal_amount)
-                    local best_cure = math.max(old_values[1] or cure)
                     healing_locs:insert(u.x, u.y, {best_heal, best_cure})
+                    local best_heal = math.max(old_values[0], heal_amount)
+                    local best_cure = math.max(old_values[1], cure)
                 end
             end
         end
