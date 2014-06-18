@@ -88,9 +88,9 @@ function retreat_functions.get_healing_locations()
             for ability in H.child_range(abilities, "heals") do
                 heal_amount = ability.value
                 if ability.poison == "slowed" then
-                    cure = 1
+                    if (cure < 1) then cure = 1 end
                 elseif ability.poison == "cured" then
-                    cure = 2
+                    if (cure < 2) then cure = 2 end
                 end
             end
             if heal_amount + cure > 0 then
