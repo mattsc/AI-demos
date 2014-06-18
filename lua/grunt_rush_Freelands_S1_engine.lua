@@ -997,7 +997,6 @@ return {
                 if zonedata.cfg.attack and zonedata.cfg.attack.enemy_worth then
                     enemy_worth = zonedata.cfg.attack.enemy_worth
                 end
-                if gamedata.unit_infos[target_id].canrecruit then enemy_worth = enemy_worth * 3 end
                 --print_time('\n', target_id, enemy_worth)
 
                 local attack_combos = FAU.get_attack_combos(

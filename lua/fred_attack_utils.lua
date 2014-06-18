@@ -26,7 +26,7 @@ function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_
     -- Optional parameters:
     --  @cfg: the optional different weights listed right below
 
-    local leader_weight = (cfg and cfg.leader_weight) or 3.
+    local leader_weight = (cfg and cfg.leader_weight) or 2.
     local xp_weight = (cfg and cfg.xp_weight) or 1.
     local level_weight = (cfg and cfg.level_weight) or 1.
 
