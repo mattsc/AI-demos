@@ -1042,6 +1042,10 @@ return {
                     local do_attack = true
 
                     -- Ratio of damage taken / done
+                    -- Don't want small or negative ratings to screw this up
+                    if (combo_att_rating < 0.5) then combo_att_rating = 0.5 end
+                    if (combo_def_rating < 0.5) then combo_def_rating = 0.5 end
+
                     local damage_ratio = combo_att_rating / combo_def_rating
                     --print('     damage done, taken, taken/done:', combo_def_rating, combo_att_rating, ' --->', damage_ratio)
 
@@ -1207,7 +1211,7 @@ return {
 
             -- Now check whether counter attacks are acceptable
             for _,combo in ipairs(combo_ratings) do
-                --print_time('Checking counter attack for attack on', target_id, enemy_worth)
+                --print_time('Checking counter attack for attack on', next(combo.target), combo.enemy_worth)
 
                 -- TODO: the following is slightly inefficient, as it places units and
                 -- takes them off again several times for the same attack combo.
@@ -1267,6 +1271,9 @@ return {
 
                     local damage_done = combo.def_rating + counter_att_rating
                     local damage_taken = combo.att_rating + counter_def_rating
+
+                    if (damage_done < 0.5) then damage_done = 0.5 end
+                    if (damage_taken < 0.5) then damage_taken = 0.5 end
                     local damage_ratio = damage_taken / damage_done
                     --print('     damage done, taken, taken/done:', damage_done, damage_taken, ' --->', damage_ratio)
 
