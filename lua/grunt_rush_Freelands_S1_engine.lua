@@ -1209,8 +1209,11 @@ return {
             --DBG.dbms(combo_ratings)
 
             -- Now check whether counter attacks are acceptable
-            for _,combo in ipairs(combo_ratings) do
-                --print_time('Checking counter attack for attack on', next(combo.target), combo.enemy_worth)
+            local max_total_rating, action = -9e99
+            for count,combo in ipairs(combo_ratings) do
+                if (count > 50) and action then break end
+
+                --print_time('Checking counter attack for attack on', _, next(combo.target), combo.enemy_worth, combo.rating)
 
                 -- TODO: the following is slightly inefficient, as it places units and
                 -- takes them off again several times for the same attack combo.
@@ -1252,6 +1255,7 @@ return {
 
                 local acceptable_counter = true
 
+                local max_counter_rating = -9e99
                 for i_a,attacker in ipairs(combo.attackers) do
                     --print_time('  by', attacker.id, combo.dsts[i_a][1], combo.dsts[i_a][2])
 
@@ -1267,6 +1271,10 @@ return {
                     local counter_att_rating = counter_stats.att_rating
                     local counter_def_rating = counter_stats.def_rating
                     --print('   counter ratings:', counter_rating, counter_att_rating, counter_def_rating)
+
+                    if (counter_rating > max_counter_rating) then
+                        max_counter_rating = counter_rating
+                    end
 
                     local damage_done = combo.def_rating + counter_att_rating
                     local damage_taken = combo.att_rating + counter_def_rating
@@ -1341,15 +1349,21 @@ return {
 
                 --print_time('acceptable_counter', acceptable_counter)
                 if acceptable_counter then
+                    local total_rating = combo.rating - max_counter_rating
+                    --print('rating, counter_rating, total_rating', combo.rating, max_counter_rating, total_rating)
                     -- Only execute the first of these attacks
-                    local action = { units = {}, dsts = {}, enemy = combo.target }
-                    action.units, action.dsts = combo.attackers, combo.dsts
-                    action.action = zonedata.cfg.zone_id .. ': ' .. 'attack'
-                    return action
+
+                    if (total_rating > max_total_rating) then
+                        max_total_rating = total_rating
+
+                        action = { units = {}, dsts = {}, enemy = combo.target }
+                        action.units, action.dsts = combo.attackers, combo.dsts
+                        action.action = zonedata.cfg.zone_id .. ': ' .. 'attack'
+                    end
                 end
             end
 
-            return nil  -- Unnecessary, just to point out what's going on if no acceptable attack was found
+            return action  -- returns nil is no acceptable attack was found
         end
 
         function grunt_rush_FLS1:zone_action_hold(zonedata, gamedata, move_cache)
