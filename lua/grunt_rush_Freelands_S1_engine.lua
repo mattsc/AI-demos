@@ -1773,6 +1773,31 @@ return {
                     return
                 end
 
+                -- It is also possible that a unit moving out of the way for a previous
+                -- move of this combination is now in the way again and cannot move any more.
+                -- We also need to stop execution in that case.
+                -- Just checking for moves > 0 is not always sufficient.
+                local unit_in_way = wesnoth.get_unit(dst[1], dst[2])
+                if unit_in_way then
+                    uiw_reach = wesnoth.find_reach(unit_in_way)
+
+                    -- Check whether the unit to move out of the way has an unoccupied hex to move to.
+                    local unit_blocked = true
+                    for _,uiw_loc in ipairs(uiw_reach) do
+                        -- Unit in the way of the unit in the way
+                        local uiw_uiw = wesnoth.get_unit(uiw_loc[1], uiw_loc[2])
+                        if (not uiw_uiw) then
+                            unit_blocked = false
+                            break
+                        end
+                    end
+
+                    if unit_blocked then
+                        grunt_rush_FLS1.data.zone_action = nil
+                        return
+                    end
+                end
+
                 -- Move out of way in direction of own leader
                 local leader_loc = grunt_rush_FLS1.data.gamedata.leaders[wesnoth.current.side]
                 local dx, dy  = leader_loc[1] - dst[1], leader_loc[2] - dst[2]
