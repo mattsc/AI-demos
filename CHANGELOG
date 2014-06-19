@@ -1,3 +1,18 @@
+0.13.1, 18 June 2014
+- Main reason for this release: fix for a serious bug in Fred's attack evaluation that
+  made Fred do extremely suicidal moves when an enemy unit was close to leveling up
+- Other changes (some of them still work in progress):
+  - Fred: Tuning of evaluation functions to improve playing of factions other
+    than Northerners
+  - Fred: Take counter attack rating into account in picking the best attack (this
+    makes evaluation times a little longer, but should result in better attacks)
+  - Fred: full offensive mode is now done by Fred, not left to the RCA AI any
+    more (this is still work in progress)
+  - retreat.lua: a variety of bug fixes, ensuring that injured units do, in fact,
+    always go to villages or hexes adjacent to healers if possible
+  - Miscellaneous performance improvements, minor bug fixes and code cleanup to
+    Fred and helper libraries
+
 0.13.0, 12 June 2014
 - *** This is an abbreviated changelog since it has been so long since the last release ***
   - Only major (general) changes are summarized, without details about the specifics
