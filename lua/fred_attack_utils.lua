@@ -10,6 +10,32 @@ local FGUI = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_utils_increm
 
 local fred_attack_utils = {}
 
+function fred_attack_utils.is_acceptable_attack(damage_taken, damage_done, enemy_worth)
+    -- Evaluate whether an attack is acceptable, based on the damage taken/done ratio
+    --
+    -- Inputs:
+    -- @damage_taken, @damage_done: should be in gold units as returned by fred_attack_utils.attack_rating
+    --   This could be either the attacker (for taken) and defender (for done) rating of a single attack (combo)
+    --   or the overall attack (for done) and counter attack rating (for taken)
+    -- @enemy_worth (optional): value for the maximum ratio of taken/done that is acceptable
+
+    enemy_worth = enemy_worth or 1
+
+    -- If damage taken is <= 2 more than damage done (roughly in units of gold), that's good enough
+    if (damage_taken - damage_done <= 2) then return true end
+
+    -- Otherwise it depends on whether the numbers are positive or negative
+    -- Negative damage means that one or several of the units are likely to level up
+    if (damage_taken < 0) and (damage_done < 0) then
+        return (damage_done / damage_taken) <= enemy_worth
+    end
+
+    if (damage_taken <= 0) then damage_taken = 0.001 end
+    if (damage_done <= 0) then damage_done = 0.001 end
+
+    return (damage_taken / damage_done) <= enemy_worth
+end
+
 function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_stat, def_stat, is_village, cfg)
     -- Calculate the rating for the damage received by a single attacker on a defender.
     -- The attack att_stat both for the attacker and the defender need to be precalculated for this.

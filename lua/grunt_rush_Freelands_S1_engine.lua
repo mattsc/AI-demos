@@ -1040,15 +1040,8 @@ return {
                     -- Don't attack if the leader is involved and has chance to die > 0
                     local do_attack = true
 
-                    -- Ratio of damage taken / done
-                    -- Don't want small or negative ratings to screw this up
-                    if (combo_att_rating < 0.5) then combo_att_rating = 0.5 end
-                    if (combo_def_rating < 0.5) then combo_def_rating = 0.5 end
-
-                    local damage_ratio = combo_att_rating / combo_def_rating
-                    --print('     damage done, taken, taken/done:', combo_def_rating, combo_att_rating, ' --->', damage_ratio)
-
-                    if (damage_ratio > enemy_worth ) then
+                    --print('     damage taken, done, enemy_worth:', combo_att_rating, combo_def_rating, enemy_worth)
+                    if (not FAU.is_acceptable_attack(combo_att_rating, combo_def_rating, enemy_worth)) then
                         do_attack = false
                     end
 
@@ -1276,14 +1269,6 @@ return {
                         max_counter_rating = counter_rating
                     end
 
-                    local damage_done = combo.def_rating + counter_att_rating
-                    local damage_taken = combo.att_rating + counter_def_rating
-
-                    if (damage_done < 0.5) then damage_done = 0.5 end
-                    if (damage_taken < 0.5) then damage_taken = 0.5 end
-                    local damage_ratio = damage_taken / damage_done
-                    --print('     damage done, taken, taken/done:', damage_done, damage_taken, ' --->', damage_ratio)
-
                     local counter_min_hp = counter_stats.min_hp
 
                     -- If there's a chance of the leader getting poisoned, slowed or killed, don't do it
@@ -1325,8 +1310,11 @@ return {
                             break
                         end
                     else  -- Or for normal units, evaluate whether the attack is worth it
-                        --print('Non-leader damage_ratio, enemy_worth', damage_ratio, combo.enemy_worth)
-                        if (damage_ratio > combo.enemy_worth ) then
+                        local damage_taken = combo.att_rating + counter_def_rating
+                        local damage_done = combo.def_rating + counter_att_rating
+                        --print('     damage taken, done, enemy_worth:', damage_taken, damage_done, combo.enemy_worth)
+
+                        if (not FAU.is_acceptable_attack(damage_taken, damage_done, combo.enemy_worth)) then
                             acceptable_counter = false
                             break
                         end
