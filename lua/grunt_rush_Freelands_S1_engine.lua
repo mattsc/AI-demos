@@ -1142,7 +1142,7 @@ return {
                                 for x,map in pairs(adj_occ_hex_map) do
                                     for y,_ in pairs(map) do
                                         local opp_hex = AH.find_opposite_hex_adjacent({ x, y }, target_loc)
-                                        if adj_occ_hex_map[opp_hex[1]] and adj_occ_hex_map[opp_hex[1]][opp_hex[2]] then
+                                        if opp_hex and adj_occ_hex_map[opp_hex[1]] and adj_occ_hex_map[opp_hex[1]][opp_hex[2]] then
                                             trapping_bonus = true
                                             break
                                         end
