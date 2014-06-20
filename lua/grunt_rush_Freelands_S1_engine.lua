@@ -1200,13 +1200,14 @@ return {
 
             table.sort(combo_ratings, function(a, b) return a.rating > b.rating end)
             --DBG.dbms(combo_ratings)
+            --print_time('#combo_ratings', #combo_ratings)
 
             -- Now check whether counter attacks are acceptable
             local max_total_rating, action = -9e99
             for count,combo in ipairs(combo_ratings) do
                 if (count > 50) and action then break end
 
-                --print_time('Checking counter attack for attack on', _, next(combo.target), combo.enemy_worth, combo.rating)
+                --print_time('Checking counter attack for attack on', count, next(combo.target), combo.enemy_worth, combo.rating)
 
                 -- TODO: the following is slightly inefficient, as it places units and
                 -- takes them off again several times for the same attack combo.
@@ -1263,7 +1264,7 @@ return {
                     local counter_rating = counter_stats.rating
                     local counter_att_rating = counter_stats.att_rating
                     local counter_def_rating = counter_stats.def_rating
-                    --print('   counter ratings:', counter_rating, counter_att_rating, counter_def_rating)
+                    --print_time('   counter ratings:', counter_rating, counter_att_rating, counter_def_rating)
 
                     if (counter_rating > max_counter_rating) then
                         max_counter_rating = counter_rating
