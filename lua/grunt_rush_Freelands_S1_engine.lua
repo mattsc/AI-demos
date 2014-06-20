@@ -541,7 +541,7 @@ return {
                 show_debug = false
                 if show_debug then
                     AH.put_fgumap_labels(unit_rating_map, 'rating')
-                    W.message { speaker = id, message = 'Hold zone: unit-specific rating map' }
+                    W.message { speaker = 'narrator', message = 'Hold zone: unit-specific rating map: ' .. id }
                 end
             end
 
