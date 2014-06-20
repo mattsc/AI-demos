@@ -1,3 +1,10 @@
+0.13.2, 19 June 2014
+- Another bug fix release:
+  - Fix a couple bugs in Fred that sometimes caused the AI to crash (with one of
+    them even ending the game sometimes)
+  - Limit number of counter attack combos considered in order to speed things up again
+    after the change in attack evaluation in 0.13.1
+
 0.13.1, 18 June 2014
 - Main reason for this release: fix for a serious bug in Fred's attack evaluation that
   made Fred do extremely suicidal moves when an enemy unit was close to leveling up
