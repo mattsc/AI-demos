@@ -1674,6 +1674,8 @@ return {
                 enemy_proxy = wesnoth.get_units { id = next(grunt_rush_FLS1.data.zone_action.enemy) }[1]
             end
 
+            local gamestate_changed = false
+
             while grunt_rush_FLS1.data.zone_action.units and (table.maxn(grunt_rush_FLS1.data.zone_action.units) > 0) do
                 local next_unit_ind = 1
 
@@ -1754,6 +1756,7 @@ return {
                             break
                         else
                             have_recruited = true
+                            gamestate_changed = true
                         end
                     end
 
@@ -1764,38 +1767,46 @@ return {
                 if AH.print_exec() then print_time('   Executing zone_control CA ' .. action) end
                 if AH.show_messages() then W.message { speaker = unit.id, message = 'Zone action ' .. action } end
 
-                -- It's possible that one of the units got moved out of the way
-                -- by a move of a previous unit and that it cannot reach the dst
-                -- hex any more.  In that case we stop and reevaluate.
-                -- TODO: make sure up front that move combination is possible
-                local _,cost = wesnoth.find_path(unit, dst[1], dst[2])
-                if (cost > unit.moves) then
-                    grunt_rush_FLS1.data.zone_action = nil
-                    return
-                end
-
-                -- It is also possible that a unit moving out of the way for a previous
-                -- move of this combination is now in the way again and cannot move any more.
-                -- We also need to stop execution in that case.
-                -- Just checking for moves > 0 is not always sufficient.
-                local unit_in_way = wesnoth.get_unit(dst[1], dst[2])
-                if unit_in_way then
-                    uiw_reach = wesnoth.find_reach(unit_in_way)
-
-                    -- Check whether the unit to move out of the way has an unoccupied hex to move to.
-                    local unit_blocked = true
-                    for _,uiw_loc in ipairs(uiw_reach) do
-                        -- Unit in the way of the unit in the way
-                        local uiw_uiw = wesnoth.get_unit(uiw_loc[1], uiw_loc[2])
-                        if (not uiw_uiw) then
-                            unit_blocked = false
-                            break
-                        end
-                    end
-
-                    if unit_blocked then
+                -- The following are some tests to make sure the intended move is actually
+                -- possible, as there might have been some interference with units moving
+                -- out of the way.  It is also possible that units that are supposed to
+                -- move out of the way cannot actually do so in practice.  Abandon the move
+                -- and reevaluate in that case. However, we can only do this if the gamestate
+                -- has actually be changed already, or the CA will be blacklisted
+                if gamestate_changed then
+                    -- It's possible that one of the units got moved out of the way
+                    -- by a move of a previous unit and that it cannot reach the dst
+                    -- hex any more.  In that case we stop and reevaluate.
+                    -- TODO: make sure up front that move combination is possible
+                    local _,cost = wesnoth.find_path(unit, dst[1], dst[2])
+                    if (cost > unit.moves) then
                         grunt_rush_FLS1.data.zone_action = nil
                         return
+                    end
+
+                    -- It is also possible that a unit moving out of the way for a previous
+                    -- move of this combination is now in the way again and cannot move any more.
+                    -- We also need to stop execution in that case.
+                    -- Just checking for moves > 0 is not always sufficient.
+                    local unit_in_way = wesnoth.get_unit(dst[1], dst[2])
+                    if unit_in_way then
+                        uiw_reach = wesnoth.find_reach(unit_in_way)
+
+                        -- Check whether the unit to move out of the way has an unoccupied hex to move to.
+                        local unit_blocked = true
+                        for _,uiw_loc in ipairs(uiw_reach) do
+                            -- Unit in the way of the unit in the way
+                            local uiw_uiw = wesnoth.get_unit(uiw_loc[1], uiw_loc[2])
+                            if (not uiw_uiw) then
+                                unit_blocked = false
+                                break
+                            end
+                        end
+
+                        if unit_blocked then
+                            grunt_rush_FLS1.data.zone_action = nil
+                            return
+                        end
                     end
                 end
 
@@ -1806,6 +1817,7 @@ return {
                 if (r ~= 0) then dx, dy = dx / r, dy / r end
 
                 AH.movefull_outofway_stopunit(ai, unit, dst[1], dst[2], { dx = dx, dy = dy })
+                gamestate_changed = true
 
                 -- Remove these from the table
                 table.remove(grunt_rush_FLS1.data.zone_action.units, next_unit_ind)
