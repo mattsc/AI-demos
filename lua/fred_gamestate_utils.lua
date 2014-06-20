@@ -306,12 +306,17 @@ function fred_gamestate_utils.get_gamestate()
         end
     end
 
-    -- reach_maps: eliminate hexes with other units that cannot move out of the way
+    -- reach_maps: eliminate hexes with other own units that cannot move out of the way
+    -- Also, there might be hidden enemies on the hex
     for id,reach_map in pairs(reach_maps) do
         for id_noMP,loc in pairs(my_units_noMP) do
             if (id ~= id_noMP) then
                 if reach_map[loc[1]] then reach_map[loc[1]][loc[2]] = nil end
             end
+        end
+
+        for id_enemy,loc in pairs(enemies) do
+            if reach_map[loc[1]] then reach_map[loc[1]][loc[2]] = nil end
         end
     end
 
