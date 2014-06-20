@@ -579,6 +579,11 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
     local num_hexes = #attacks_dst_src
     local max_rating, rating, hex = -9e99, 0, 0
 
+    -- If get_strongest_attack is set, we cap this at 1,000 combos, assuming
+    -- that we will have found something close to the strongest by then,
+    -- esp. given that the method is only approximate anyway
+    local count = 0
+
     -- This is the recursive function adding units to each hex
     -- It is defined here so that we can use the variables above by closure
     local function add_attacks()
@@ -586,9 +591,11 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
 
         for _,attack in ipairs(attacks_dst_src[hex]) do  -- Go through all the attacks (src and rating) for each hex
             if (not combo[attack.src]) then  -- If that unit has not been used yet, add it
-                combo[attack.src] = attacks_dst_src[hex].dst
+                count = count + 1
 
+                combo[attack.src] = attacks_dst_src[hex].dst
                 if get_strongest_attack then
+                    if (count > 1000) then break end
                     rating = rating + attack.rating  -- Rating is simply the sum of the individual ratings
                 end
 
