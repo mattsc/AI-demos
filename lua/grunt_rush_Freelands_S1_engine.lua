@@ -1824,7 +1824,7 @@ return {
                 table.remove(grunt_rush_FLS1.data.zone_action.dsts, next_unit_ind)
 
                 -- Then do the attack, if there is one to do
-                if enemy_proxy then
+                if enemy_proxy and (H.distance_between(unit.x, unit.y, enemy_proxy.x, enemy_proxy.y) == 1) then
                     AH.checked_attack(ai, unit, enemy_proxy)
 
                     -- If enemy got killed, we need to stop here
