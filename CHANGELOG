@@ -1,3 +1,7 @@
+0.13.3, 20 June 2014
+- Fix for bug that prematurely ended the game in rare cases when the enemy
+  has units with the hides ability
+
 0.13.2, 19 June 2014
 - Another bug fix release:
   - Fix a couple bugs in Fred that sometimes caused the AI to crash (with one of
