@@ -30,7 +30,7 @@ function grunt_rush_helper.GRFLS1_hello()
         local width, height = wesnoth.get_map_size()
         local start_loc = wesnoth.get_starting_location(wesnoth.current.side)
 
-        if (width ~= 37) or (height ~= 24) or (start_loc[1] ~= 19) or (start_loc[2] ~= 4) then
+        if (width ~= 37) or (height ~= 24) or (start_loc[1] ~= 19) or ((start_loc[2] ~= 4) and (start_loc[2] ~= 20)) then
             W.message {
                 speaker = 'narrator',
                 caption = "Message from the Freelands AI  (Fred v" .. version .. ")",
@@ -57,6 +57,5 @@ function grunt_rush_helper.GRFLS1_bye()
         }
     end
 end
-
 
 return grunt_rush_helper

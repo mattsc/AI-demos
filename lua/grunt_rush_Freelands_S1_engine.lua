@@ -30,63 +30,126 @@ return {
         function grunt_rush_FLS1:zone_advance_rating(zone_id, x, y, gamedata)
             local rating = 0
 
-            if (zone_id == 'left') or (zone_id == 'rush_left') then
-                rating = rating + y / 10.
+            if (wesnoth.current.side == 1) then
+                if (zone_id == 'left') or (zone_id == 'rush_left') then
+                    rating = rating + y / 10.
 
-                local x0 = 11
-                local goal_x, goal_y = 12, 18
-                if (y < 7)  then
-                    x0 = -1.0 * (y - 2) + 18
-                    goal_x, goal_y = 8, 8
-                elseif (y > 15) then
-                    x0 = 2.0 * (y - 15) + 13
-                    goal_x, goal_y = 22, 22
+                    local x0 = 11
+                    local goal_x, goal_y = 12, 18
+                    if (y < 7)  then
+                        x0 = -1.0 * (y - 2) + 18
+                        goal_x, goal_y = 8, 8
+                    elseif (y > 15) then
+                        x0 = 2.0 * (y - 15) + 13
+                        goal_x, goal_y = 22, 22
+                    end
+
+                    local dx = math.abs(x - x0)
+                    if (dx > 2) then
+                        rating = rating - dx
+                    end
+
+                    rating = rating - H.distance_between(x, y, goal_x, goal_y) / 1000.
                 end
 
-                local dx = math.abs(x - x0)
-                if (dx > 2) then
-                    rating = rating - dx
+                if (zone_id == 'center') or (zone_id == 'rush_center') then
+                    rating = rating + y / 10.
+
+                    local x0 = 19
+                    local dx = math.abs(x - x0)
+
+                    if (dx > 2) then
+                        rating = rating - dx
+                    end
+
+                    if (x < 15) and (y < 14) then
+                        rating = rating - H.distance_between(x, y, 19, 4) - 100.
+                    else
+                        rating = rating - H.distance_between(x, y, 19, 21) / 1000.
+                    end
                 end
 
-                rating = rating - H.distance_between(x, y, goal_x, goal_y) / 1000.
+                if (zone_id == 'right') or (zone_id == 'rush_right') then
+                    rating = rating + y / 10.
+
+                    local x0 = 27
+                    local goal_x, goal_y = 25, 19
+                    if (y < 11)  then
+                        x0 = 1.0 * (y - 2) + 18
+                        goal_x, goal_y = 31, 10
+                    elseif (y > 16) then
+                        x0 =  -2.0 * (y - 17) + 27
+                        goal_x, goal_y = 16, 22
+                    end
+
+                    local dx = math.abs(x - x0)
+                    if (dx > 2) then
+                        rating = rating - dx
+                    end
+
+                    rating = rating - H.distance_between(x, y, goal_x, goal_y) / 1000.
+                end
             end
 
-            if (zone_id == 'center') or (zone_id == 'rush_center') then
-                rating = rating + y / 10.
+            if (wesnoth.current.side == 2) then
+                if (zone_id == 'left') or (zone_id == 'rush_left') then
+                    rating = rating - y / 10.
 
-                local x0 = 19
-                local dx = math.abs(x - x0)
+                    local x0 = 27
+                    local goal_x, goal_y = 26, 6
+                    if (y > 17)  then
+                        x0 = -1.0 * (23 - y) + 20
+                        goal_x, goal_y = 30, 16
+                    elseif (y < 10) then
+                        x0 = 2.0 * (10 - y) + 25
+                        goal_x, goal_y = 16, 2
+                    end
 
-                if (dx > 2) then
-                    rating = rating - dx
+                    local dx = math.abs(x - x0)
+                    if (dx > 2) then
+                        rating = rating - dx
+                    end
+
+                    rating = rating - H.distance_between(x, y, goal_x, goal_y) / 1000.
                 end
 
-                if (x < 15) and (y < 14) then
-                    rating = rating - H.distance_between(x, y, 19, 4) - 100.
-                else
-                    rating = rating - H.distance_between(x, y, 19, 21) / 1000.
-                end
-            end
+                if (zone_id == 'center') or (zone_id == 'rush_center') then
+                    rating = rating - y / 10.
 
-            if (zone_id == 'right') or (zone_id == 'rush_right') then
-                rating = rating + y / 10.
+                    local x0 = 19
+                    local dx = math.abs(x - x0)
 
-                local x0 = 27
-                local goal_x, goal_y = 25, 19
-                if (y < 11)  then
-                    x0 = 1.0 * (y - 2) + 18
-                    goal_x, goal_y = 31, 10
-                elseif (y > 16) then
-                    x0 =  -2.0 * (y - 17) + 27
-                    goal_x, goal_y = 16, 22
+                    if (dx > 2) then
+                        rating = rating - dx
+                    end
+
+                    if (x > 23) and (y > 11) then
+                        rating = rating - H.distance_between(x, y, 19, 21) - 100.
+                    else
+                        rating = rating - H.distance_between(x, y, 19, 4) / 1000.
+                    end
                 end
 
-                local dx = math.abs(x - x0)
-                if (dx > 2) then
-                    rating = rating - dx
-                end
+                if (zone_id == 'right') or (zone_id == 'rush_right') then
+                    rating = rating - y / 10.
 
-                rating = rating - H.distance_between(x, y, goal_x, goal_y) / 1000.
+                    local x0 = 11
+                    local goal_x, goal_y = 13, 6
+                    if (y > 14)  then
+                        x0 = 1.0 * (23 - y) + 20
+                        goal_x, goal_y = 7, 15
+                    elseif (y < 9) then
+                        x0 =  -2.0 * (8 - y) + 11
+                        goal_x, goal_y = 22, 2
+                    end
+
+                    local dx = math.abs(x - x0)
+                    if (dx > 2) then
+                        rating = rating - dx
+                    end
+
+                    rating = rating - H.distance_between(x, y, goal_x, goal_y) / 1000.
+                end
             end
 
             -- For these zones, advancing is toward the enemy leader
@@ -105,24 +168,49 @@ return {
         function grunt_rush_FLS1:zone_loc_rating(zone_id, x, y)
             local rating = 0
 
-            if (zone_id == 'left') or (zone_id == 'rush_left') then
-                if (y < 13) then
-                    rating = (y - 13) * 200
+            if (wesnoth.current.side == 1) then
+                if (zone_id == 'left') or (zone_id == 'rush_left') then
+                    if (y < 13) then
+                        rating = (y - 13) * 200
+                    end
+                end
+
+                if (zone_id == 'center') or (zone_id == 'rush_center') then
+                    if (y < 8) then
+                        rating = (y - 8) * 200 - 2000
+                    end
+                    if (y > 10) then
+                        rating = (10 - y) * 200 - 2000
+                    end
+                end
+
+                if (zone_id == 'right') or (zone_id == 'rush_right') then
+                    if (y < 9) then
+                        rating = (y - 9) * 200 - 2000
+                    end
                 end
             end
 
-            if (zone_id == 'center') or (zone_id == 'rush_center') then
-                if (y < 8) then
-                    rating = (y - 8) * 200 - 2000
+            if (wesnoth.current.side == 2) then
+                if (zone_id == 'left') or (zone_id == 'rush_left') then
+                    if (y > 12) then
+                        rating = (12 - y) * 200
+                    end
                 end
-                if (y > 10) then
-                    rating = (10 - y) * 200 - 2000
-                end
-            end
 
-            if (zone_id == 'right') or (zone_id == 'rush_right') then
-                if (y < 9) then
-                    rating = (y - 9) * 200 - 2000
+                if (zone_id == 'center') or (zone_id == 'rush_center') then
+                    if (y > 16) then
+                        rating = (16 - y) * 200 - 2000
+                    end
+                    if (y < 14) then
+                        rating = (y - 14) * 200 - 2000
+                    end
+                end
+
+                if (zone_id == 'right') or (zone_id == 'rush_right') then
+                    if (y > 15) then
+                        rating = (15 - y) * 200 - 2000
+                    end
                 end
             end
 
@@ -163,56 +251,98 @@ return {
                 attack = { use_enemies_in_reach = true, enemy_worth = 2.0 }
             }
 
-            local cfg_center = {
-                zone_id = 'center',
-                priority = 1.0,
-                key_hexes = { { 18, 9 }, { 22, 10 } },
-                zone_filter = { x = '15-24', y = '1-16' },
-                unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
-                skip_action = { retreat_injured_unsafe = true },
-                hold = { hp_ratio = 1.0 },
-                villages = { units_per_village = 0 }
-            }
+            local cfg_center, cfg_rush_center, cfg_left, cfg_rush_left, cfg_right, cfg_rush_right
+            if (wesnoth.current.side == 1) then
+                cfg_center = {
+                    zone_id = 'center',
+                    priority = 1.0,
+                    key_hexes = { { 18, 9 }, { 22, 10 } },
+                    zone_filter = { x = '15-24', y = '1-16' },
+                    unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
+                    skip_action = { retreat_injured_unsafe = true },
+                    hold = { hp_ratio = 1.0 },
+                    villages = { units_per_village = 0 }
+                }
 
-            --local cfg_rush_center = {
-            --    zone_id = 'rush_center',
-            --    zone_filter = { x = '15-24', y = '1-16' },
-            --    unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
-            --    skip_action = { retreat_injured_unsafe = true }
-            --}
+                --cfg_rush_center = {
+                --    zone_id = 'rush_center',
+                --    zone_filter = { x = '15-24', y = '1-16' },
+                --    unit_filter = { x = '16-25,15-22', y = '1-13,14-19' },
+                --    skip_action = { retreat_injured_unsafe = true }
+                --}
 
-            local cfg_left = {
-                zone_id = 'left',
-                key_hexes = { { 11, 9 } },
-                zone_filter = { x = '4-14', y = '1-15' },
-                unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
-                skip_action = { retreat_injured_unsafe = true },
-                hold = { hp_ratio = 1.0, unit_ratio = 1.1 }
-            }
+                cfg_left = {
+                    zone_id = 'left',
+                    key_hexes = { { 11, 9 } },
+                    zone_filter = { x = '4-14', y = '1-15' },
+                    unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
+                    skip_action = { retreat_injured_unsafe = true },
+                    hold = { hp_ratio = 1.0, unit_ratio = 1.1 }
+                }
 
-            --local cfg_rush_left = {
-            --    zone_id = 'rush_left',
-            --    zone_filter = { x = '4-14', y = '1-15' },
-            --    unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
-            --    skip_action = { retreat_injured_unsafe = true }
-            --}
+                --cfg_rush_left = {
+                --    zone_id = 'rush_left',
+                --    zone_filter = { x = '4-14', y = '1-15' },
+                --    unit_filter = { x = '1-15,16-20', y = '1-15,1-6' },
+                --    skip_action = { retreat_injured_unsafe = true }
+                --}
 
-            local cfg_right = {
-                zone_id = 'right',
-                key_hexes = { { 27, 11 } },
-                zone_filter = { x = '24-34', y = '1-17' },
-                unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
-                skip_action = { retreat_injured_unsafe = true },
-                hold = { hp_ratio = 1.0, unit_ratio = 1.1 }
-            }
+                cfg_right = {
+                    zone_id = 'right',
+                    key_hexes = { { 27, 11 } },
+                    zone_filter = { x = '24-34', y = '1-17' },
+                    unit_filter = { x = '16-99,22-99', y = '1-11,12-25' },
+                    skip_action = { retreat_injured_unsafe = true },
+                    hold = { hp_ratio = 1.0, unit_ratio = 1.1 }
+                }
 
-            local cfg_rush_right = {
-                zone_id = 'rush_right',
-                zone_filter = { x = '24-34', y = '1-17' },
-                only_zone_units = true,
-                unit_filter = { x = '16-99,22-99', y = '1-11,12-16' },
-                skip_action = { retreat_injured_unsafe = true }
-            }
+                cfg_rush_right = {
+                    zone_id = 'rush_right',
+                    zone_filter = { x = '24-34', y = '1-17' },
+                    only_zone_units = true,
+                    unit_filter = { x = '16-99,22-99', y = '1-11,12-16' },
+                    skip_action = { retreat_injured_unsafe = true }
+                }
+            end
+
+            if (wesnoth.current.side == 2) then
+                cfg_center = {
+                    zone_id = 'center',
+                    priority = 1.0,
+                    key_hexes = { { 20, 15 }, { 16,14 } },
+                    zone_filter = { x = '14-23', y = '9-23' },
+                    unit_filter = { x = '13-22,16-23', y = '11-23,5-10' },
+                    skip_action = { retreat_injured_unsafe = true },
+                    hold = { hp_ratio = 1.0 },
+                    villages = { units_per_village = 0 }
+                }
+
+                cfg_left = {
+                    zone_id = 'left',
+                    key_hexes = { { 27,16 } },
+                    zone_filter = { x = '24-34', y = '10-23' },
+                    unit_filter = { x = '23-34,18-22', y = '10-23,19-23' },
+                    skip_action = { retreat_injured_unsafe = true },
+                    hold = { hp_ratio = 1.0, unit_ratio = 1.1 }
+                }
+
+                cfg_right = {
+                    zone_id = 'right',
+                    key_hexes = { { 27, 11 } },
+                    zone_filter = { x = '4-14', y = '7-23' },
+                    unit_filter = { x = '1-22,1-16', y = '14-23,1-13' },
+                    skip_action = { retreat_injured_unsafe = true },
+                    hold = { hp_ratio = 1.0, unit_ratio = 1.1 }
+                }
+
+                cfg_rush_right = {
+                    zone_id = 'rush_right',
+                    zone_filter = { x = '4-14', y = '7-23' },
+                    only_zone_units = true,
+                    unit_filter = { x = '1-22,1-16', y = '14-23,8-13' },
+                    skip_action = { retreat_injured_unsafe = true }
+                }
+            end
 
             local cfg_enemy_leader = {
                 zone_id = 'enemy_leader',
@@ -992,7 +1122,7 @@ return {
                 end
                 --print(target_id, '  trappable:', is_trappable_enemy)
 
-                -- How much more valuable do we consider the enemy units than out own
+                -- How much more valuable do we consider the enemy units than our own
                 local enemy_worth = 1.1
                 if zonedata.cfg.attack and zonedata.cfg.attack.enemy_worth then
                     enemy_worth = zonedata.cfg.attack.enemy_worth
