@@ -4,8 +4,6 @@ return {
         -- Grab a useful separate CA as a starting point
         local generic_rush = wesnoth.require("~/add-ons/AI-demos/lua/move_to_any_target.lua").init(ai)
 
-        -- More generic grunt rush (and can, in fact, be used with other unit types as well)
-
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
