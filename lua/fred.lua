@@ -1,7 +1,7 @@
 return {
     init = function(ai)
 
-        local grunt_rush_FLS1 = {}
+        local fred = {}
 
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
@@ -17,17 +17,17 @@ return {
 
         local params = {score_function = function () return 181000 end}
 
-        wesnoth.require("~add-ons/AI-demos/lua/generic_recruit_engine.lua").init(ai, grunt_rush_FLS1, params)
+        wesnoth.require("~add-ons/AI-demos/lua/generic_recruit_engine.lua").init(ai, fred, params)
 
         local function print_time(...)
-            if grunt_rush_FLS1.data.turn_start_time then
-                AH.print_ts_delta(grunt_rush_FLS1.data.turn_start_time, ...)
+            if fred.data.turn_start_time then
+                AH.print_ts_delta(fred.data.turn_start_time, ...)
             else
                 AH.print_ts(...)
             end
         end
 
-        function grunt_rush_FLS1:zone_advance_rating(zone_id, x, y, gamedata)
+        function fred:zone_advance_rating(zone_id, x, y, gamedata)
             local rating = 0
 
             if (wesnoth.current.side == 1) then
@@ -165,7 +165,7 @@ return {
             return rating
         end
 
-        function grunt_rush_FLS1:zone_loc_rating(zone_id, x, y)
+        function fred:zone_loc_rating(zone_id, x, y)
             local rating = 0
 
             if (wesnoth.current.side == 1) then
@@ -217,7 +217,7 @@ return {
             return rating
         end
 
-        function grunt_rush_FLS1:get_zone_cfgs(gamedata)
+        function fred:get_zone_cfgs(gamedata)
             -- Set up the config table for the different map zones
             -- zone_id: ID for the zone; only needed for debug messages
             -- zone_filter: SLF describing the zone
@@ -418,7 +418,7 @@ return {
                 table.insert(cfgs, cfg)
             end
 
-            if (not grunt_rush_FLS1:full_offensive()) then
+            if (not fred:full_offensive()) then
                 table.insert(cfgs, cfg_rush_right)
                 --table.insert(cfgs, cfg_rush_left)
                 --table.insert(cfgs, cfg_rush_center)
@@ -433,18 +433,18 @@ return {
             return cfgs
         end
 
-        function grunt_rush_FLS1:full_offensive()
+        function fred:full_offensive()
             -- Returns true if the conditions to go on all-out offensive are met
             -- Full offensive mode is done mostly by the RCA AI
             -- This is a placeholder for now until Fred is better at the endgame
 
             local my_hp, enemy_hp = 0, 0
-            for id,_ in pairs(grunt_rush_FLS1.data.gamedata.units) do
-                local unit_side = grunt_rush_FLS1.data.gamedata.unit_infos[id].side
+            for id,_ in pairs(fred.data.gamedata.units) do
+                local unit_side = fred.data.gamedata.unit_infos[id].side
                 if (unit_side == wesnoth.current.side) then
-                    my_hp = my_hp + grunt_rush_FLS1.data.gamedata.unit_infos[id].hitpoints
+                    my_hp = my_hp + fred.data.gamedata.unit_infos[id].hitpoints
                 elseif wesnoth.is_enemy(unit_side, wesnoth.current.side) then
-                    enemy_hp = enemy_hp + grunt_rush_FLS1.data.gamedata.unit_infos[id].hitpoints
+                    enemy_hp = enemy_hp + fred.data.gamedata.unit_infos[id].hitpoints
                 end
             end
 
@@ -454,7 +454,7 @@ return {
             return false
         end
 
-        function grunt_rush_FLS1:hold_zone(holders, zonedata, gamedata)
+        function fred:hold_zone(holders, zonedata, gamedata)
             -- Create enemy defense rating map
             local enemy_def_rating_map = {}
             for x,tmp in pairs(zonedata.zone_map) do
@@ -547,7 +547,7 @@ return {
                             rating = rating - def_rating_center
 
                             -- zone specific rating
-                            rating = rating + grunt_rush_FLS1:zone_loc_rating(zonedata.cfg.zone_id, x, y)
+                            rating = rating + fred:zone_loc_rating(zonedata.cfg.zone_id, x, y)
 
                             -- Add stiff penalty if this is a location next to an unoccupied village
                             for xa, ya in H.adjacent_tiles(x, y) do
@@ -649,7 +649,7 @@ return {
                     for x,tmp in pairs(gamedata.reach_maps[id]) do
                         for y,_ in pairs(tmp) do
 
-                            local rating = -10000 + grunt_rush_FLS1:zone_advance_rating(zonedata.cfg.zone_id, x, y, gamedata)
+                            local rating = -10000 + fred:zone_advance_rating(zonedata.cfg.zone_id, x, y, gamedata)
 
                             if (not unit_rating_map[x]) then unit_rating_map[x] = {} end
                             unit_rating_map[x][y] = { rating = rating }
@@ -713,7 +713,7 @@ return {
                             if (enemy_hp == 0) or
                                 ((enemy_hp < best_unit.hitpoints * hp_factor) and (best_unit_rating > 0))
                             then
-                                local rating = grunt_rush_FLS1:zone_advance_rating(zonedata.cfg.zone_id, x, y, gamedata)
+                                local rating = fred:zone_advance_rating(zonedata.cfg.zone_id, x, y, gamedata)
 
                                 -- If the unit is injured and does not regenerate,
                                 -- then we very strongly prefer villages
@@ -755,59 +755,59 @@ return {
         ------ Reset variables at beginning of turn -----------
 
         -- This will be blacklisted after first execution each turn
-        function grunt_rush_FLS1:reset_vars_turn_eval()
+        function fred:reset_vars_turn_eval()
             return 999998
         end
 
-        function grunt_rush_FLS1:reset_vars_turn_exec()
+        function fred:reset_vars_turn_exec()
             --print(' Resetting variables at beginning of Turn ' .. wesnoth.current.turn)
 
-            grunt_rush_FLS1.data.turn_start_time = wesnoth.get_time_stamp() / 1000.
+            fred.data.turn_start_time = wesnoth.get_time_stamp() / 1000.
         end
 
         ------ Reset variables at beginning of each move -----------
 
         -- This always returns 0 -> will never be executed, but evaluated before each move
-        function grunt_rush_FLS1:reset_vars_move_eval()
+        function fred:reset_vars_move_eval()
             --print(' Resetting gamedata tables (etc.) before move')
 
-            grunt_rush_FLS1.data.gamedata = FGU.get_gamedata()
-            grunt_rush_FLS1.data.move_cache = {}
+            fred.data.gamedata = FGU.get_gamedata()
+            fred.data.move_cache = {}
 
             return 0
         end
 
-        function grunt_rush_FLS1:reset_vars_move_exec()
+        function fred:reset_vars_move_exec()
         end
 
         ------ Stats at beginning of turn -----------
 
         -- This will be blacklisted after first execution each turn
-        function grunt_rush_FLS1:stats_eval()
+        function fred:stats_eval()
             return 999990
         end
 
-        function grunt_rush_FLS1:stats_exec()
+        function fred:stats_exec()
             local tod = wesnoth.get_time_of_day()
             AH.print_ts('Beginning of Turn ' .. wesnoth.current.turn .. ' (' .. tod.name ..') stats')
 
             local sides = {}
-            for id,_ in pairs(grunt_rush_FLS1.data.gamedata.units) do
-                local unit_side = grunt_rush_FLS1.data.gamedata.unit_infos[id].side
+            for id,_ in pairs(fred.data.gamedata.units) do
+                local unit_side = fred.data.gamedata.unit_infos[id].side
                 if (not sides[unit_side]) then sides[unit_side] = {} end
 
                 sides[unit_side].num_units = (sides[unit_side].num_units or 0) + 1
-                sides[unit_side].hitpoints = (sides[unit_side].hitpoints or 0) + grunt_rush_FLS1.data.gamedata.unit_infos[id].hitpoints
+                sides[unit_side].hitpoints = (sides[unit_side].hitpoints or 0) + fred.data.gamedata.unit_infos[id].hitpoints
 
-                if grunt_rush_FLS1.data.gamedata.unit_infos[id].canrecruit then
-                    sides[unit_side].leader_type = grunt_rush_FLS1.data.gamedata.unit_copies[id].type
+                if fred.data.gamedata.unit_infos[id].canrecruit then
+                    sides[unit_side].leader_type = fred.data.gamedata.unit_copies[id].type
                 end
             end
 
             local total_villages = 0
-            for x,tmp in pairs(grunt_rush_FLS1.data.gamedata.village_map) do
+            for x,tmp in pairs(fred.data.gamedata.village_map) do
                 for y,village in pairs(tmp) do
-                    local owner = grunt_rush_FLS1.data.gamedata.village_map[x][y].owner
+                    local owner = fred.data.gamedata.village_map[x][y].owner
                     if owner then
                         sides[owner].num_villages = (sides[owner].num_villages or 0) + 1
                     end
@@ -826,34 +826,34 @@ return {
                 )
             end
 
-            if grunt_rush_FLS1:full_offensive() then print(' Full offensive mode') end
+            if fred:full_offensive() then print(' Full offensive mode') end
         end
 
         ------ Clear self.data table at end of turn -----------
 
         -- This will be blacklisted after first execution each turn, which happens at the very end of each turn
-        function grunt_rush_FLS1:clear_self_data_eval()
+        function fred:clear_self_data_eval()
             return 1
         end
 
-        function grunt_rush_FLS1:clear_self_data_exec()
+        function fred:clear_self_data_exec()
             --print(' Clearing self.data table at end of Turn ' .. wesnoth.current.turn)
 
             -- This is mostly done so that there is no chance of corruption of savefiles
-            grunt_rush_FLS1.data = {}
+            fred.data = {}
         end
 
         ------ Move leader to keep -----------
 
-        function grunt_rush_FLS1:move_leader_to_keep_eval()
+        function fred:move_leader_to_keep_eval()
             local score = 480000
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'move_leader_to_keep'
             if AH.print_eval() then print_time('     - Evaluating move_leader_to_keep CA:') end
 
-            local leader = grunt_rush_FLS1.data.gamedata.leaders[wesnoth.current.side]
+            local leader = fred.data.gamedata.leaders[wesnoth.current.side]
 
             -- If the leader cannot move, don't do anything
-            if grunt_rush_FLS1.data.gamedata.my_units_noMP[leader.id] then
+            if fred.data.gamedata.my_units_noMP[leader.id] then
                 AH.done_eval_messages(start_time, ca_name)
                 return 0
             end
@@ -864,10 +864,10 @@ return {
                 return 0
             end
 
-            local leader_copy = grunt_rush_FLS1.data.gamedata.unit_copies[leader.id]
+            local leader_copy = fred.data.gamedata.unit_copies[leader.id]
 
             local enemy_leader_loc = {}
-            for side,loc in ipairs(grunt_rush_FLS1.data.gamedata.leaders) do
+            for side,loc in ipairs(fred.data.gamedata.leaders) do
                 if wesnoth.is_enemy(side, wesnoth.current.side) then
                     enemy_leader_loc = loc
                     break
@@ -885,8 +885,8 @@ return {
             local max_rating, best_keep = -10  -- Intentionally not set to less than this !!
                                                -- so that the leader does not try to get to unreachable locations
             for _,keep in ipairs(keeps) do
-                local unit_in_way = grunt_rush_FLS1.data.gamedata.my_unit_map_noMP[keep[1]]
-                    and grunt_rush_FLS1.data.gamedata.my_unit_map_noMP[keep[1]][keep[2]]
+                local unit_in_way = fred.data.gamedata.my_unit_map_noMP[keep[1]]
+                    and fred.data.gamedata.my_unit_map_noMP[keep[1]][keep[2]]
 
                 if (not unit_in_way) then
                     local path, cost = wesnoth.find_path(leader_copy, keep[1], keep[2])
@@ -910,10 +910,10 @@ return {
             end
 
             -- If the leader can reach the keep, but there's a unit on it: wait
-            if grunt_rush_FLS1.data.gamedata.reach_maps[leader.id][best_keep[1]]
-                and grunt_rush_FLS1.data.gamedata.reach_maps[leader.id][best_keep[1]][best_keep[2]]
-                and grunt_rush_FLS1.data.gamedata.my_unit_map_MP[best_keep[1]]
-                and grunt_rush_FLS1.data.gamedata.my_unit_map_MP[best_keep[1]][best_keep[2]]
+            if fred.data.gamedata.reach_maps[leader.id][best_keep[1]]
+                and fred.data.gamedata.reach_maps[leader.id][best_keep[1]][best_keep[2]]
+                and fred.data.gamedata.my_unit_map_MP[best_keep[1]]
+                and fred.data.gamedata.my_unit_map_MP[best_keep[1]][best_keep[2]]
             then
                 return 0
             end
@@ -923,9 +923,9 @@ return {
 
                 -- Only move the leader if he'd actually move
                 if (next_hop[1] ~= leader_copy.x) or (next_hop[2] ~= leader_copy.y) then
-                    grunt_rush_FLS1.data.MLK_leader = leader_copy
-                    grunt_rush_FLS1.data.MLK_keep = best_keep
-                    grunt_rush_FLS1.data.MLK_dst = next_hop
+                    fred.data.MLK_leader = leader_copy
+                    fred.data.MLK_keep = best_keep
+                    fred.data.MLK_dst = next_hop
 
                     AH.done_eval_messages(start_time, ca_name)
                     return score
@@ -936,25 +936,25 @@ return {
             return 0
         end
 
-        function grunt_rush_FLS1:move_leader_to_keep_exec()
+        function fred:move_leader_to_keep_exec()
             if AH.print_exec() then print_time('   Executing move_leader_to_keep CA') end
-            if AH.show_messages() then W.message { speaker = grunt_rush_FLS1.data.MLK_leader.id, message = 'Moving back to keep' } end
+            if AH.show_messages() then W.message { speaker = fred.data.MLK_leader.id, message = 'Moving back to keep' } end
 
             -- If leader can get to the keep, make this a partial move, otherwise a full move
-            if (grunt_rush_FLS1.data.MLK_dst[1] == grunt_rush_FLS1.data.MLK_keep[1])
-                and (grunt_rush_FLS1.data.MLK_dst[2] == grunt_rush_FLS1.data.MLK_keep[2])
+            if (fred.data.MLK_dst[1] == fred.data.MLK_keep[1])
+                and (fred.data.MLK_dst[2] == fred.data.MLK_keep[2])
             then
-                AH.checked_move(ai, grunt_rush_FLS1.data.MLK_leader, grunt_rush_FLS1.data.MLK_dst[1], grunt_rush_FLS1.data.MLK_dst[2])
+                AH.checked_move(ai, fred.data.MLK_leader, fred.data.MLK_dst[1], fred.data.MLK_dst[2])
             else
-                AH.checked_move_full(ai, grunt_rush_FLS1.data.MLK_leader, grunt_rush_FLS1.data.MLK_dst[1], grunt_rush_FLS1.data.MLK_dst[2])
+                AH.checked_move_full(ai, fred.data.MLK_leader, fred.data.MLK_dst[1], fred.data.MLK_dst[2])
             end
 
-            grunt_rush_FLS1.data.MLK_leader, grunt_rush_FLS1.data.MLK_dst = nil, nil
+            fred.data.MLK_leader, fred.data.MLK_dst = nil, nil
         end
 
         --------- zone_control CA ------------
 
-        function grunt_rush_FLS1:zone_action_retreat_injured(zonedata, gamedata)
+        function fred:zone_action_retreat_injured(zonedata, gamedata)
             -- **** Retreat seriously injured units
             --print_time('retreat')
 
@@ -978,7 +978,7 @@ return {
             end
         end
 
-        function grunt_rush_FLS1:zone_action_villages(zonedata, gamedata, move_cache)
+        function fred:zone_action_villages(zonedata, gamedata, move_cache)
             -- Otherwise we go for unowned and enemy-owned villages
             -- This needs to happen for all units, not just not-injured ones
             -- Also includes the leader, if he's on his keep
@@ -1037,10 +1037,10 @@ return {
 
                                 -- We also want to move the "farthest back" unit first
                                 -- and take villages from the back first
-                                local unit_advance_rating = grunt_rush_FLS1:zone_advance_rating(
+                                local unit_advance_rating = fred:zone_advance_rating(
                                     zonedata.cfg.zone_id, unit_loc[1], unit_loc[2], gamedata
                                 )
-                                local village_advance_rating = grunt_rush_FLS1:zone_advance_rating(
+                                local village_advance_rating = fred:zone_advance_rating(
                                     zonedata.cfg.zone_id, village[1], village[2], gamedata
                                 )
                                 --print(' unit_advance_rating, village_advance_rating', unit_advance_rating, village_advance_rating)
@@ -1071,7 +1071,7 @@ return {
             end
         end
 
-        function grunt_rush_FLS1:zone_action_attack(zonedata, gamedata, move_cache)
+        function fred:zone_action_attack(zonedata, gamedata, move_cache)
             --print_time(zonedata.cfg.zone_id, 'attack')
 
             local targets = {}
@@ -1425,8 +1425,8 @@ return {
                         end
 
                         -- Note that this is not really the maximum damage from the attack, as
-                        -- attacker.hitpoints is reduced to the average HP outcome of the attack
-                        -- However, min_hp for the counter also contains this reduction, so
+                        -- attacker.hitpoints is freduced to the average HP outcome of the attack
+                        -- However, min_hp for the counter also contains this freduction, so
                         -- min_outcome below has the correct value (except for rounding errors,
                         -- that's why it is compared ot 0.5 instead of 0)
                         local max_damage_attack = attacker.hitpoints - min_hp
@@ -1485,7 +1485,7 @@ return {
             return action  -- returns nil is no acceptable attack was found
         end
 
-        function grunt_rush_FLS1:zone_action_hold(zonedata, gamedata, move_cache)
+        function fred:zone_action_hold(zonedata, gamedata, move_cache)
             --print_time('hold', zonedata.cfg.zone_id)
 
             -- The leader does not participate in position holding (for now, at least)
@@ -1578,7 +1578,7 @@ return {
             --print('eval_hold 2', eval_hold)
 
             if eval_hold then
-                local unit, dst = grunt_rush_FLS1:hold_zone(holders, zonedata, gamedata)
+                local unit, dst = fred:hold_zone(holders, zonedata, gamedata)
 
                 local action
                 if unit then
@@ -1589,7 +1589,7 @@ return {
             end
         end
 
-        function grunt_rush_FLS1:high_priority_attack(unit_info, zonedata, gamedata, move_cache)
+        function fred:high_priority_attack(unit_info, zonedata, gamedata, move_cache)
             local attacker = {}
             attacker[unit_info.id] = gamedata.units[unit_info.id]
 
@@ -1636,7 +1636,7 @@ return {
             end
         end
 
-        function grunt_rush_FLS1:get_zone_action(cfg, gamedata, move_cache)
+        function fred:get_zone_action(cfg, gamedata, move_cache)
             -- Find the best action to do in the zone described in 'cfg'
             -- This is all done together in one function, rather than in separate CAs so that
             --  1. Zones get done one at a time (rather than one CA at a time)
@@ -1700,7 +1700,7 @@ return {
             if (not cfg.do_action) or cfg.do_action.retreat_injured_safe then
                 if (not cfg.skip_action) or (not cfg.skip_action.retreat_injured) then
                     local healloc, safeloc  -- boolean indicating whether the destination is a healing location
-                    retreat_action, healloc, safeloc = grunt_rush_FLS1:zone_action_retreat_injured(zonedata, gamedata)
+                    retreat_action, healloc, safeloc = fred:zone_action_retreat_injured(zonedata, gamedata)
                     -- Only retreat to healing locations at this time, other locations later
                     if retreat_action and healloc and safeloc then
                         --print(action.action)
@@ -1714,10 +1714,10 @@ return {
             local village_action = nil
             if (not cfg.do_action) or cfg.do_action.villages then
                 if (not cfg.skip_action) or (not cfg.skip_action.villages) then
-                    village_action = grunt_rush_FLS1:zone_action_villages(zonedata, gamedata, move_cache)
+                    village_action = fred:zone_action_villages(zonedata, gamedata, move_cache)
                     if village_action and (village_action.rating > 100) then
                         --print_time(village_action.action)
-                        local attack_action = grunt_rush_FLS1:high_priority_attack(village_action.units[1], zonedata, gamedata, move_cache)
+                        local attack_action = fred:high_priority_attack(village_action.units[1], zonedata, gamedata, move_cache)
                         return attack_action or village_action
                     end
                 end
@@ -1727,7 +1727,7 @@ return {
             --print_time('  ' .. cfg.zone_id .. ': attack eval')
             if (not cfg.do_action) or cfg.do_action.attack then
                 if (not cfg.skip_action) or (not cfg.skip_action.attack) then
-                    local action = grunt_rush_FLS1:zone_action_attack(zonedata, gamedata, move_cache)
+                    local action = fred:zone_action_attack(zonedata, gamedata, move_cache)
                     if action then
                         --print(action.action)
 
@@ -1742,7 +1742,7 @@ return {
             --print_time('  ' .. cfg.zone_id .. ': hold eval')
             if (not cfg.do_action) or cfg.do_action.hold then
                 if (not cfg.skip_action) or (not cfg.skip_action.hold) then
-                    local action = grunt_rush_FLS1:zone_action_hold(zonedata, gamedata, move_cache)
+                    local action = fred:zone_action_hold(zonedata, gamedata, move_cache)
                     if action then
                         --print_time(action.action)
                         return action
@@ -1763,29 +1763,29 @@ return {
             return nil  -- This is technically unnecessary
         end
 
-        function grunt_rush_FLS1:zone_control_eval()
+        function fred:zone_control_eval()
             local score_zone_control = 350000
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
             if AH.print_eval() then print_time('     - Evaluating zone_control CA:') end
 
-            local cfgs = grunt_rush_FLS1:get_zone_cfgs(grunt_rush_FLS1.data.gamedata)
+            local cfgs = fred:get_zone_cfgs(fred.data.gamedata)
             for i_c,cfg in ipairs(cfgs) do
                 --print_time('zone_control: ', cfg.zone_id)
 
                 -- Extract all AI units with MP left (for enemy path finding, counter attack placement etc.)
                 local extracted_units = {}
-                for id,loc in pairs(grunt_rush_FLS1.data.gamedata.my_units_MP) do
+                for id,loc in pairs(fred.data.gamedata.my_units_MP) do
                     local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
                     wesnoth.extract_unit(unit_proxy)
                     table.insert(extracted_units, unit_proxy)  -- Not a proxy unit any more at this point
                 end
 
-                local zone_action = grunt_rush_FLS1:get_zone_action(cfg, grunt_rush_FLS1.data.gamedata, grunt_rush_FLS1.data.move_cache)
+                local zone_action = fred:get_zone_action(cfg, fred.data.gamedata, fred.data.move_cache)
 
                 for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
 
                 if zone_action then
-                    grunt_rush_FLS1.data.zone_action = zone_action
+                    fred.data.zone_action = zone_action
                     AH.done_eval_messages(start_time, ca_name)
                     return score_zone_control
                 end
@@ -1795,44 +1795,44 @@ return {
             return 0
         end
 
-        function grunt_rush_FLS1:zone_control_exec()
-            local action = grunt_rush_FLS1.data.zone_action.action
+        function fred:zone_control_exec()
+            local action = fred.data.zone_action.action
 
             -- Same for the enemy in an attack, which is returned in { id = { x, y } } format.
             local enemy_proxy
-            if grunt_rush_FLS1.data.zone_action.enemy then
-                enemy_proxy = wesnoth.get_units { id = next(grunt_rush_FLS1.data.zone_action.enemy) }[1]
+            if fred.data.zone_action.enemy then
+                enemy_proxy = wesnoth.get_units { id = next(fred.data.zone_action.enemy) }[1]
             end
 
             local gamestate_changed = false
 
-            while grunt_rush_FLS1.data.zone_action.units and (table.maxn(grunt_rush_FLS1.data.zone_action.units) > 0) do
+            while fred.data.zone_action.units and (table.maxn(fred.data.zone_action.units) > 0) do
                 local next_unit_ind = 1
 
                 -- If this is an attack combo, reorder units to give maximum XP to unit closest to advancing
-                if enemy_proxy and grunt_rush_FLS1.data.zone_action.units[2] then
+                if enemy_proxy and fred.data.zone_action.units[2] then
                     -- Only do this if CTK for overall attack combo is > 0
 
                     local attacker_copies, attacker_infos = {}, {}
-                    for i,unit in ipairs(grunt_rush_FLS1.data.zone_action.units) do
-                        table.insert(attacker_copies, grunt_rush_FLS1.data.gamedata.unit_copies[unit.id])
-                        table.insert(attacker_infos, grunt_rush_FLS1.data.gamedata.unit_infos[unit.id])
+                    for i,unit in ipairs(fred.data.zone_action.units) do
+                        table.insert(attacker_copies, fred.data.gamedata.unit_copies[unit.id])
+                        table.insert(attacker_infos, fred.data.gamedata.unit_infos[unit.id])
                     end
 
-                    local defender_info = grunt_rush_FLS1.data.gamedata.unit_infos[enemy_proxy.id]
+                    local defender_info = fred.data.gamedata.unit_infos[enemy_proxy.id]
 
                     local _, combo_def_stat = FAU.attack_combo_eval(
                         attacker_copies, enemy_proxy,
-                        grunt_rush_FLS1.data.zone_action.dsts,
+                        fred.data.zone_action.dsts,
                         attacker_infos, defender_info,
-                        grunt_rush_FLS1.data.gamedata, grunt_rush_FLS1.data.move_cache
+                        fred.data.gamedata, fred.data.move_cache
                     )
 
                     if (combo_def_stat.hp_chance[0] > 0) then
                         --print_time('Reordering units for attack to maximize XP gain')
 
                         local min_XP_diff, best_ind = 9e99
-                        for ind,unit in ipairs(grunt_rush_FLS1.data.zone_action.units) do
+                        for ind,unit in ipairs(fred.data.zone_action.units) do
                             local XP_diff = unit.max_experience - unit.experience
                             -- Add HP as minor rating
                             XP_diff = XP_diff + unit.hitpoints / 100.
@@ -1842,14 +1842,14 @@ return {
                             end
                         end
 
-                        local unit = grunt_rush_FLS1.data.zone_action.units[best_ind]
+                        local unit = fred.data.zone_action.units[best_ind]
                         --print_time('Most advanced unit:', unit.id, unit.experience, best_ind)
 
                         local att_stat, def_stat = FAU.battle_outcome(
                             attacker_copies[best_ind], enemy_proxy,
-                            grunt_rush_FLS1.data.zone_action.dsts[best_ind],
+                            fred.data.zone_action.dsts[best_ind],
                             attacker_infos[best_ind], defender_info,
-                            grunt_rush_FLS1.data.gamedata, grunt_rush_FLS1.data.move_cache
+                            fred.data.gamedata, fred.data.move_cache
                         )
 
                         local kill_rating = def_stat.hp_chance[0] - att_stat.hp_chance[0]
@@ -1866,23 +1866,23 @@ return {
                 end
                 --print_time('next_unit_ind', next_unit_ind)
 
-                local unit = wesnoth.get_units { id = grunt_rush_FLS1.data.zone_action.units[next_unit_ind].id }[1]
-                local dst = grunt_rush_FLS1.data.zone_action.dsts[next_unit_ind]
+                local unit = wesnoth.get_units { id = fred.data.zone_action.units[next_unit_ind].id }[1]
+                local dst = fred.data.zone_action.dsts[next_unit_ind]
 
                 -- If this is the leader, recruit first
                 -- We're doing that by running a mini CA eval/exec loop
                 if unit.canrecruit then
                     --print('-------------------->  This is the leader. Recruit first.')
                     local avoid_map = LS.create()
-                    for _,loc in ipairs(grunt_rush_FLS1.data.zone_action.dsts) do
+                    for _,loc in ipairs(fred.data.zone_action.dsts) do
                         avoid_map:insert(dst[1], dst[2])
                     end
 
                     if AH.show_messages() then W.message { speaker = unit.id, message = 'The leader is about to move. Need to recruit first.' } end
 
                     local have_recruited
-                    while (grunt_rush_FLS1:recruit_rushers_eval() > 0) do
-                        if (not grunt_rush_FLS1:recruit_rushers_exec(nil, avoid_map)) then
+                    while (fred:recruit_rushers_eval() > 0) do
+                        if (not fred:recruit_rushers_exec(nil, avoid_map)) then
                             break
                         else
                             have_recruited = true
@@ -1910,7 +1910,7 @@ return {
                     -- TODO: make sure up front that move combination is possible
                     local _,cost = wesnoth.find_path(unit, dst[1], dst[2])
                     if (cost > unit.moves) then
-                        grunt_rush_FLS1.data.zone_action = nil
+                        fred.data.zone_action = nil
                         return
                     end
 
@@ -1934,14 +1934,14 @@ return {
                         end
 
                         if unit_blocked then
-                            grunt_rush_FLS1.data.zone_action = nil
+                            fred.data.zone_action = nil
                             return
                         end
                     end
                 end
 
                 -- Move out of way in direction of own leader
-                local leader_loc = grunt_rush_FLS1.data.gamedata.leaders[wesnoth.current.side]
+                local leader_loc = fred.data.gamedata.leaders[wesnoth.current.side]
                 local dx, dy  = leader_loc[1] - dst[1], leader_loc[2] - dst[2]
                 local r = math.sqrt(dx * dx + dy * dy)
                 if (r ~= 0) then dx, dy = dx / r, dy / r end
@@ -1950,8 +1950,8 @@ return {
                 gamestate_changed = true
 
                 -- Remove these from the table
-                table.remove(grunt_rush_FLS1.data.zone_action.units, next_unit_ind)
-                table.remove(grunt_rush_FLS1.data.zone_action.dsts, next_unit_ind)
+                table.remove(fred.data.zone_action.units, next_unit_ind)
+                table.remove(fred.data.zone_action.dsts, next_unit_ind)
 
                 -- Then do the attack, if there is one to do
                 if enemy_proxy and (H.distance_between(unit.x, unit.y, enemy_proxy.x, enemy_proxy.y) == 1) then
@@ -1959,27 +1959,27 @@ return {
 
                     -- If enemy got killed, we need to stop here
                     if (not enemy_proxy.valid) then
-                        grunt_rush_FLS1.data.zone_action.units = nil
+                        fred.data.zone_action.units = nil
                     end
 
                     -- Need to reset the enemy information if there are more attacks in this combo
-                    if grunt_rush_FLS1.data.zone_action.units and grunt_rush_FLS1.data.zone_action.units[1] then
-                        grunt_rush_FLS1.data.gamedata.unit_copies[enemy_proxy.id] = wesnoth.copy_unit(enemy_proxy)
-                        grunt_rush_FLS1.data.gamedata.unit_infos[enemy_proxy.id] = FGU.single_unit_info(enemy_proxy)
+                    if fred.data.zone_action.units and fred.data.zone_action.units[1] then
+                        fred.data.gamedata.unit_copies[enemy_proxy.id] = wesnoth.copy_unit(enemy_proxy)
+                        fred.data.gamedata.unit_infos[enemy_proxy.id] = FGU.single_unit_info(enemy_proxy)
                     end
                 end
             end
 
-            grunt_rush_FLS1.data.zone_action = nil
+            fred.data.zone_action = nil
         end
 
-        function grunt_rush_FLS1:finish_turn_eval()
+        function fred:finish_turn_eval()
             local score_finish_turn = 170000
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'finish_turn'
             if AH.print_eval() then print_time('     - Evaluating finish_turn CA:') end
 
-            local gamedata = grunt_rush_FLS1.data.gamedata
-            local move_cache = grunt_rush_FLS1.data.move_cache
+            local gamedata = fred.data.gamedata
+            local move_cache = fred.data.move_cache
 
             -- Extract all AI units with MP left (for counter attack calculation)
             local extracted_units = {}
@@ -2052,8 +2052,8 @@ return {
             for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
 
             if best_unit then
-                grunt_rush_FLS1.data.finish_unit = best_unit
-                grunt_rush_FLS1.data.finish_dst = best_dst
+                fred.data.finish_unit = best_unit
+                fred.data.finish_dst = best_dst
 
                 return score_finish_turn
             end
@@ -2146,8 +2146,8 @@ return {
             end
 
             if best_attacker then
-                grunt_rush_FLS1.data.finish_attacker = best_attacker
-                grunt_rush_FLS1.data.finish_target_proxy = best_target_proxy
+                fred.data.finish_attacker = best_attacker
+                fred.data.finish_target_proxy = best_target_proxy
 
                 return score_finish_turn
             end
@@ -2166,35 +2166,35 @@ return {
             return 0
         end
 
-        function grunt_rush_FLS1:finish_turn_exec()
+        function fred:finish_turn_exec()
             if AH.print_exec() then print_time('   Executing finish_turn CA') end
 
-            if grunt_rush_FLS1.data.finish_attacker then
-                AH.checked_attack(ai, grunt_rush_FLS1.data.finish_attacker, grunt_rush_FLS1.data.finish_target_proxy)
+            if fred.data.finish_attacker then
+                AH.checked_attack(ai, fred.data.finish_attacker, fred.data.finish_target_proxy)
 
-                grunt_rush_FLS1.data.finish_attacker = nil
-                grunt_rush_FLS1.data.finish_target_proxy = nil
-
-                return
-            end
-
-            if grunt_rush_FLS1.data.finish_unit then
-                AH.movefull_outofway_stopunit(ai, grunt_rush_FLS1.data.finish_unit, grunt_rush_FLS1.data.finish_dst)
-
-                grunt_rush_FLS1.data.finish_unit = nil
-                grunt_rush_FLS1.data.finish_dst = nil
+                fred.data.finish_attacker = nil
+                fred.data.finish_target_proxy = nil
 
                 return
             end
 
-            for id,loc in pairs(grunt_rush_FLS1.data.gamedata.my_units_MP) do
+            if fred.data.finish_unit then
+                AH.movefull_outofway_stopunit(ai, fred.data.finish_unit, fred.data.finish_dst)
+
+                fred.data.finish_unit = nil
+                fred.data.finish_dst = nil
+
+                return
+            end
+
+            for id,loc in pairs(fred.data.gamedata.my_units_MP) do
                 local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
                 --print('Taking moves away:', unit_proxy.id)
                 AH.checked_stopunit_moves(ai, unit_proxy)
             end
 
-            for id,loc in pairs(grunt_rush_FLS1.data.gamedata.my_units) do
-                if (grunt_rush_FLS1.data.gamedata.unit_copies[id].attacks_left > 0) then
+            for id,loc in pairs(fred.data.gamedata.my_units) do
+                if (fred.data.gamedata.unit_copies[id].attacks_left > 0) then
                     local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
                     --print('Taking attacks away:', unit_proxy.id)
                     AH.checked_stopunit_attacks(ai, unit_proxy)
@@ -2202,6 +2202,6 @@ return {
             end
         end
 
-        return grunt_rush_FLS1
+        return fred
     end
 }

@@ -36,7 +36,7 @@ local ai = wesnoth.debug_ai(wesnoth.current.side).ai
 --DBG.dbms(ai)
 
 -- Load the custom AI into array 'my_ai'
-fn = "~add-ons/AI-demos/lua/grunt_rush_Freelands_S1_engine.lua"
+fn = "~add-ons/AI-demos/lua/fred.lua"
 fn = "ai/micro_ais/cas/ca_fast_move.lua"
 local self = { data = {} }
 

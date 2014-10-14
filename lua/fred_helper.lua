@@ -1,10 +1,10 @@
 local H = wesnoth.require "lua/helper.lua"
 local W = H.set_wml_action_metatable {}
 
-local grunt_rush_helper = {}
+local fred_helper = {}
 
-function grunt_rush_helper.is_GRFLS1()
-    -- Check whether Side 1 is played by 'Rush AI for Freelands Side 1'
+function fred_helper.is_freelands()
+    -- Check whether side is played by Fred
     -- We do this by testing whether the 'zone_control' CA exists
     local stage = H.get_child( H.get_child( wesnoth.sides[1].__cfg, 'ai'), 'stage')
     for CA in H.child_range(stage, 'candidate_action') do
@@ -15,9 +15,9 @@ function grunt_rush_helper.is_GRFLS1()
     return false
 end
 
-function grunt_rush_helper.GRFLS1_hello()
-    -- Hello message for 'Rush AI for Freelands Side 1'
-    if grunt_rush_helper.is_GRFLS1() then
+function fred_helper.fred_hello()
+    -- Hello message for Fred AI
+    if fred_helper.is_freelands() then
 
         local version = wesnoth.get_variable('AI_Demos_version')
         version = version or '?.?.?'
@@ -47,9 +47,9 @@ function grunt_rush_helper.GRFLS1_hello()
     end
 end
 
-function grunt_rush_helper.GRFLS1_bye()
-    -- Good bye message for 'Rush AI for Freelands Side 1'
-    if grunt_rush_helper.is_GRFLS1() then
+function fred_helper.fred_bye()
+    -- Good bye message for Fred AI
+    if fred_helper.is_freelands() then
         W.delay { time = 300 }
         W.message {
             side = 1, canrecruit = 'yes',
@@ -58,4 +58,4 @@ function grunt_rush_helper.GRFLS1_bye()
     end
 end
 
-return grunt_rush_helper
+return fred_helper

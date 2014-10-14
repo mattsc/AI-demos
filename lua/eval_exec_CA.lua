@@ -58,7 +58,7 @@ local function get_all_CA_names()
     -- Return an array of CA names to choose from
 
     -- First, get all the custom AI functions
-    local tmp_ai = wesnoth.dofile("~add-ons/AI-demos/lua/grunt_rush_Freelands_S1_engine.lua").init(ai)
+    local tmp_ai = wesnoth.dofile("~add-ons/AI-demos/lua/fred.lua").init(ai)
 
     -- Loop through the tmp_ai table and set up table of all available CAs
     local cas = {}
@@ -89,7 +89,7 @@ local function eval_CA(ai, no_messages)
     local eval_name = CA_name() .. '_eval'
 
     -- Get all the custom AI functions
-    my_ai = wesnoth.dofile("~add-ons/AI-demos/lua/grunt_rush_Freelands_S1_engine.lua").init(ai)
+    my_ai = wesnoth.dofile("~add-ons/AI-demos/lua/fred.lua").init(ai)
 
     -- Need to set up a fake 'self.data' table, as that does not exist outside the AI engine
     -- This is taken from the global table 'self_data_table', because it needs to persist between moves
@@ -135,7 +135,7 @@ local function exec_CA(ai, no_messages)
         if (not no_messages) then wesnoth.message("Executing CA: " .. CA_name()) end
 
         -- Get all the custom AI functions
-        my_ai = wesnoth.dofile("~add-ons/AI-demos/lua/grunt_rush_Freelands_S1_engine.lua").init(ai)
+        my_ai = wesnoth.dofile("~add-ons/AI-demos/lua/fred.lua").init(ai)
 
         -- Need to set up a fake 'self.data' table, as that does not exist outside the AI engine
         -- This is taken from the global table 'self_data_table', because it needs to persist between moves
