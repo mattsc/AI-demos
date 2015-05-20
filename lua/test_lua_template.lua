@@ -78,5 +78,7 @@ else  -- ... or do manual testing
 
     ------- Do something with the units here -------
 
-    wesnoth.message('Finish time:', wesnoth.get_time_stamp() / 1000. .. '  ' .. tostring(wesnoth.get_time_stamp() / 1000. - start_time))
+    local end_time = wesnoth.get_time_stamp() / 1000.
+    wesnoth.message('Finish time:', end_time .. '  ' .. tostring(end_time - start_time))
+    print('Finish time:', end_time .. '  ' .. tostring(end_time - start_time))
 end
