@@ -45,7 +45,7 @@ local self = { data = {} }
 local test_CA, exec_also = false, false
 
 if test_CA then  -- Test a specific CA ...
-    cfg = {}
+    cfg = { ca_score = 300000 }
 
     if (wesnoth.current.side == 1) then
         local start_time = wesnoth.get_time_stamp() / 1000.
