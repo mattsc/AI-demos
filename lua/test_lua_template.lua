@@ -42,20 +42,30 @@ local self = { data = {} }
 
 -----------------------------------------------------------------
 
-local test_CA, exec_also = false, false
+local test_CA, exec_also, exec_loop = true, false, false
 
 if test_CA then  -- Test a specific CA ...
     cfg = { ca_score = 300000 }
 
+    eval = 1
+
     if (wesnoth.current.side == 1) then
-        local start_time = wesnoth.get_time_stamp() / 1000.
-        wesnoth.message('Start time:', start_time)
-        local eval = wesnoth.dofile(fn):evaluation(ai, cfg, self)
-        wesnoth.message('Eval score:', eval)
-        wesnoth.message('Time after eval:', wesnoth.get_time_stamp() / 1000., wesnoth.get_time_stamp() / 1000. - start_time)
-        if (exec_also) and (eval > 0) then
-            wesnoth.dofile(fn):execution(ai, cfg, self)
-            wesnoth.message('Time after exec:', wesnoth.get_time_stamp() / 1000., wesnoth.get_time_stamp() / 1000. - start_time)
+        while (eval > 0)  do
+            local start_time = wesnoth.get_time_stamp() / 1000.
+            wesnoth.message('Start time:', start_time)
+            eval = wesnoth.dofile(fn):evaluation(ai, cfg, self)
+            wesnoth.message('Eval score:', eval)
+            wesnoth.message('Time after eval:', wesnoth.get_time_stamp() / 1000., wesnoth.get_time_stamp() / 1000. - start_time)
+            if (eval > 0) and (exec_also or exec_loop) then
+                wesnoth.dofile(fn):execution(ai, cfg, self)
+                wesnoth.message('Time after exec:', wesnoth.get_time_stamp() / 1000., wesnoth.get_time_stamp() / 1000. - start_time)
+            end
+
+            -- Only do another iteration if ca_exec_loop is set.
+            -- The loop is also broken if evaluation resulted in a score of 0.
+            if (not exec_loop) then
+                eval = 0
+            end
         end
     else
         wesnoth.message("This only works when you're in control of Side 1")
