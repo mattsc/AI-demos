@@ -14,7 +14,8 @@ function fred_attack_utils.is_acceptable_attack(damage_taken, damage_done, enemy
     -- Evaluate whether an attack is acceptable, based on the damage taken/done ratio
     --
     -- Inputs:
-    -- @damage_taken, @damage_done: should be in gold units as returned by fred_attack_utils.attack_rating
+    -- @damage_taken, @damage_done: should be in gold units as returned by fred_attack_utils.
+    --   Note, however, that attacker_rating (but not defender_rating!) is the negative of the damage taken!!
     --   This could be either the attacker (for taken) and defender (for done) rating of a single attack (combo)
     --   or the overall attack (for done) and counter attack rating (for taken)
     -- @enemy_worth (optional): value for the maximum ratio of taken/done that is acceptable
@@ -140,7 +141,9 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     --   - Extra rating: additional ratings that do not directly describe damage
     --       This should be used to help decide which attack to pick,
     --       but not for, e.g., evaluating counter attacks (which should be entirely damage based)
-    --   Note: rating = defender_rating - attacker_rating * own_value_weight + extra_rating
+    --   Note: rating = defender_rating + attacker_rating * own_value_weight + extra_rating
+    --            defender/attacker_rating are "damage done" ratings
+    --            -> defender_rating >= 0; attacker_rating <= 0
 
     -- Set up the config parameters for the rating
     local defender_starting_damage_weight = (cfg and cfg.defender_starting_damage_weight) or 0.33
@@ -152,7 +155,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     local attacker_rating = 0
     for i,attacker_info in ipairs(attacker_infos) do
         local attacker_on_village = gamedata.village_map[dsts[i][1]] and gamedata.village_map[dsts[i][1]][dsts[i][2]]
-        attacker_rating = attacker_rating + fred_attack_utils.damage_rating_unit(
+        attacker_rating = attacker_rating - fred_attack_utils.damage_rating_unit(
             attacker_info, defender_info, att_stats[i], def_stat, attacker_on_village, cfg
         )
     end
@@ -229,7 +232,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
 
     -- Finally add up and apply factor of own unit weight to defender unit weight
     -- This is a number equivalent to 'aggression' in the default AI (but not numerically equal)
-    local rating = defender_rating - attacker_rating * own_value_weight + extra_rating
+    local rating = defender_rating + attacker_rating * own_value_weight + extra_rating
 
     --print('rating, attacker_rating, defender_rating, extra_rating:', rating, attacker_rating, defender_rating, extra_rating)
 

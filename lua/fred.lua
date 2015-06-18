@@ -1171,7 +1171,8 @@ return {
                     local do_attack = true
 
                     --print('     damage taken, done, enemy_worth:', combo_att_rating, combo_def_rating, enemy_worth)
-                    if (not FAU.is_acceptable_attack(combo_att_rating, combo_def_rating, enemy_worth)) then
+                    -- Note: att_rating is the negative of the damage taken
+                    if (not FAU.is_acceptable_attack(-combo_att_rating, combo_def_rating, enemy_worth)) then
                         do_attack = false
                     end
 
@@ -1441,8 +1442,8 @@ return {
                             break
                         end
                     else  -- Or for normal units, evaluate whether the attack is worth it
-                        local damage_taken = combo.att_rating + counter_def_rating
-                        local damage_done = combo.def_rating + counter_att_rating
+                        local damage_taken = - combo.att_rating + counter_def_rating
+                        local damage_done = combo.def_rating - counter_att_rating
                         --print('     damage taken, done, enemy_worth:', damage_taken, damage_done, combo.enemy_worth)
 
                         if (not FAU.is_acceptable_attack(damage_taken, damage_done, combo.enemy_worth)) then
