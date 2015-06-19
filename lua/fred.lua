@@ -454,36 +454,68 @@ return {
             return false
         end
 
-        function fred:hold_zone(holders, zonedata, gamedata)
-            -- Create enemy defense rating map
-            local enemy_def_rating_map = {}
+        function fred:hold_zone(holders, zonedata, gamedata, move_cache)
+
+print(zonedata.cfg.zone_id)
+if (zonedata.cfg.zone_id ~= 'center') then
+    return
+end
+
+            -- This part starts with a quick and dirt zone analysis for what
+            -- *might* be the best positions.  This is calculated by assuming
+            -- the same damage and strikes for all units, and calculating the
+            -- damage for own and enemy units there based on terrain defense.
+            -- In addition, values for the enemies are averaged over all units
+            -- that can reach a hex.
+            -- The assumption is that this will give us a good pre-selection of
+            -- hexes, for which a more detailed analysis can then be done.
+
+            local default_damage, default_strikes = 8, 2
+
+
+            -- Enemy rating map: average (over all enemy units) of damage received here
+            -- Only use hexes the enemies can reach on this turn
+            local enemy_rating_map = {}
             for x,tmp in pairs(zonedata.zone_map) do
                 for y,_ in pairs(tmp) do
                     local hex_rating, count = 0, 0
                     for enemy_id,etm in pairs(gamedata.enemy_turn_maps) do
                         local turns = etm[x] and etm[x][y] and etm[x][y].turns
-                        if (turns == 0) then turns = 0.2 end
 
-                        if turns then
+                        if turns and (turns <= 1) then
                             local rating = FGUI.get_unit_defense(gamedata.unit_copies[enemy_id], x, y, gamedata.defense_maps)
-                            rating = (100 - rating * 100) ^ 2 / turns
-                            rating = rating / gamedata.unit_infos[enemy_id].tod_bonus^2
+                            rating = (1 - rating)  -- Probability of being hit
 
                             hex_rating = hex_rating + rating
-                            count = count + 1. / turns
+                            count = count + 1.
                         end
                     end
 
                     if (count > 0) then
-                        if (not enemy_def_rating_map[x]) then enemy_def_rating_map[x] = {} end
-                        enemy_def_rating_map[x][y] = { rating = hex_rating / count }
+                        -- Average chance of being hit here
+                        hex_rating = hex_rating / count
+
+                        -- Average damage received:
+                        hex_rating = hex_rating * default_damage * default_strikes
+
+                        -- If this is a village, add 8 HP bonus
+                        if gamedata.village_map[x] and gamedata.village_map[x][y] then
+                            hex_rating = hex_rating - 8
+                        end
+
+                        if (not enemy_rating_map[x]) then enemy_rating_map[x] = {} end
+                        enemy_rating_map[x][y] = { rating = hex_rating }
                     end
                 end
             end
 
-            --AH.put_fgumap_labels(enemy_def_rating_map, 'rating')
-            --W.message{ speaker = 'narrator', message = zonedata.cfg.zone_id .. ': enemy_def_rating_map' }
+            local show_debug = false
+            if show_debug then
+                AH.put_fgumap_labels(enemy_rating_map, 'rating')
+                W.message{ speaker = 'narrator', message = zonedata.cfg.zone_id .. ': enemy_rating_map' }
+            end
 
+            -- Need a map with the distances to the enemy and own leaders
             local leader_cx, leader_cy = AH.cartesian_coords(gamedata.leaders[wesnoth.current.side][1], gamedata.leaders[wesnoth.current.side][2])
 
             local enemy_leader_loc = {}
@@ -518,48 +550,33 @@ return {
             end
 
             -- First calculate a unit independent rating map
-            rating_map, defense_rating_map = {}, {}
+            -- For the time being, this is the just the enemy rating over all
+            -- adjacent hexes that are closer to the enemy leader than the hex
+            -- being evaluated.
+            -- The assumption is that the enemies will be coming from there.
+            -- TODO: evaluate when this might break down
+
+            indep_rating_map = {}
             for x,tmp in pairs(zonedata.zone_map) do
                 for y,_ in pairs(tmp) do
-                    local def_rating_center = enemy_def_rating_map[x]
-                        and enemy_def_rating_map[x][y]
-                        and enemy_def_rating_map[x][y].rating
+                    local rating, adj_count = 0, 0
 
-                    if def_rating_center then
-                        local rating, count = 0, 0
+                    for xa,ya in H.adjacent_tiles(x, y) do
+                        if leader_distance_map[xa][ya].distance >= leader_distance_map[x][y].distance then
+                            local def_rating = enemy_rating_map[xa]
+                                and enemy_rating_map[xa][ya]
+                                and enemy_rating_map[xa][ya].rating
 
-                        for xa,ya in H.adjacent_tiles(x, y) do
-                            if leader_distance_map[xa][ya].distance >= leader_distance_map[x][y].distance then
-                                local def_rating = enemy_def_rating_map[xa]
-                                    and enemy_def_rating_map[xa][ya]
-                                    and enemy_def_rating_map[xa][ya].rating
-
-                                if def_rating then
-                                    rating = rating + def_rating
-                                    count = count + 1
-                                end
-                            end
-                        end
-
-                        if (count > 0) then
-                            rating = rating / count
-
-                            rating = rating - def_rating_center
-
-                            -- zone specific rating
-                            rating = rating + fred:zone_loc_rating(zonedata.cfg.zone_id, x, y)
-
-                            -- Add stiff penalty if this is a location next to an unoccupied village
-                            for xa, ya in H.adjacent_tiles(x, y) do
-                                if gamedata.village_map[xa] and gamedata.village_map[xa][ya] then
-                                    if (not gamedata.my_unit_map_noMP[xa]) or (not gamedata.my_unit_map_noMP[xa][ya]) then
-                                        rating = rating - 2000
-                                    end
-                                end
+                            if def_rating then
+                                rating = rating + def_rating
+                                adj_count = adj_count + 1
                             end
 
-                            if (not rating_map[x]) then rating_map[x] = {} end
-                            rating_map[x][y] = { rating = rating }
+                            if (not indep_rating_map[x]) then indep_rating_map[x] = {} end
+                            indep_rating_map[x][y] = {
+                                rating = rating,
+                                adj_count = adj_count
+                            }
                         end
                     end
                 end
@@ -567,113 +584,294 @@ return {
 
             local show_debug = false
             if show_debug then
-                AH.put_fgumap_labels(rating_map, 'rating')
-                W.message { speaker = 'narrator', message = 'Hold zone ' .. zonedata.cfg.zone_id .. ': unit-independent rating map' }
+                AH.put_fgumap_labels(indep_rating_map, 'rating')
+                W.message { speaker = 'narrator', message = 'Hold zone ' .. zonedata.cfg.zone_id .. ': unit-independent rating map: rating' }
+                AH.put_fgumap_labels(indep_rating_map, 'adj_count')
+                W.message { speaker = 'narrator', message = 'Hold zone ' .. zonedata.cfg.zone_id .. ': unit-independent rating map: adjacent count' }
             end
 
             -- Now we go on to the unit-dependent rating part
-            local max_rating, best_hex, best_unit, best_unit_rating_map = -9e99, {}, {}
+            -- This is the same type of rating as for enemies, but done individually
+            -- for each AI unit, rather than averaged of all units for each hex
+
+            -- This will hold the rating maps for all units
+            local unit_rating_maps = {}
 
             for id,loc in pairs(holders) do
                 local max_rating_unit, best_hex_unit = -9e99, {}
 
-                local unit_rating_map = {}
+                unit_rating_maps[id] = {}
+
                 for x,tmp in pairs(gamedata.reach_maps[id]) do
                     for y,_ in pairs(tmp) do
-                        local rating = rating_map[x] and rating_map[x][y] and rating_map[x][y].rating
-                        if rating then
-                            if (not unit_rating_map[x]) then unit_rating_map[x] = {} end
-                            unit_rating_map[x][y] = { rating = rating }
+                        -- Only count hexes that enemies can attack
+                        local adj_count = (indep_rating_map[x]
+                            and indep_rating_map[x][y]
+                            and indep_rating_map[x][y].adj_count
+                        )
+
+                        if adj_count and (adj_count > 0) then
+                            -- Chance of being hit here
+                            local defense = FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
+                            defense = 1 - defense
+
+                            -- Base rating is negative of damage received:
+                            local unit_damage = defense * default_damage * default_strikes
+
+                            -- This needs to be multiplied by the number of enemies
+                            -- which can attack here
+                            unit_damage = unit_damage * adj_count
+
+                            local unit_rating = - unit_damage + indep_rating_map[x][y].rating
+
+                            -- If this is a village, add 8 HP bonus
+                            if gamedata.village_map[x] and gamedata.village_map[x][y] then
+                                 unit_rating = unit_rating + 8
+                            end
+
+                            if (not unit_rating_maps[id][x]) then unit_rating_maps[id][x] = {} end
+                            unit_rating_maps[id][x][y] = { rating = unit_rating }
                         end
                     end
                 end
-
-                for x,tmp in pairs(unit_rating_map) do
-                    for y,_ in pairs(tmp) do
-                        local indep_rating = unit_rating_map[x][y].rating
-
-                        local unit_rating = 0
-
-                        local defense = FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
-                        defense = 100 - defense * 100
-
-                        if gamedata.village_map[x] and gamedata.village_map[x][y] then
-                            if gamedata.unit_infos[id].regenerate then
-                                defense = defense - 10
-                            else
-                                defense = defense - 15
-                            end
-                            if (defense < 10) then defense = 10 end
-                        end
-
-                        unit_rating = unit_rating - defense ^ 2
-
-                        local adj_rating, count = 0, 0
-                        for xa,ya in H.adjacent_tiles(x, y) do
-                            if leader_distance_map[xa][ya].distance >= leader_distance_map[x][y].distance then
-
-                                local defense = FGUI.get_unit_defense(gamedata.unit_copies[id], xa, ya, gamedata.defense_maps)
-                                defense = 100 - defense * 100
-
-                                local movecost = wesnoth.unit_movement_cost(gamedata.unit_copies[id], wesnoth.get_terrain(xa, ya))
-                                if (movecost <= gamedata.unit_copies[id].max_moves) then
-                                    adj_rating = adj_rating + defense^2
-                                    count = count + 1
-                                end
-                            end
-                        end
-
-                        if (count > 0) then
-                            unit_rating = unit_rating + adj_rating / count
-                            unit_rating = unit_rating / gamedata.unit_infos[id].tod_bonus^2
-                        end
-
-                        -- Make it more important to have enemy on bad terrain than being on good terrain
-                        local total_rating = indep_rating + unit_rating
-
-                        unit_rating_map[x][y] = { rating = total_rating }
-
-                        if (total_rating > max_rating_unit) then
-                            max_rating_unit = total_rating
-                            best_hex_unit = { x, y }
-                        end
-                    end
-                end
-                --print('max_rating_unit:', max_rating_unit)
-
-                -- If we cannot get there, advance as far as possible
-                -- This needs to be separate from and in addition to the step below (unthreatened hexes)
-                if (max_rating_unit == -9e99) then
-                    --print(cfg.zone_id, ': cannot get to zone -> move toward it', best_unit.id, best_unit.x, best_unit.y)
-
-                    for x,tmp in pairs(gamedata.reach_maps[id]) do
-                        for y,_ in pairs(tmp) do
-
-                            local rating = -10000 + fred:zone_advance_rating(zonedata.cfg.zone_id, x, y, gamedata)
-
-                            if (not unit_rating_map[x]) then unit_rating_map[x] = {} end
-                            unit_rating_map[x][y] = { rating = rating }
-
-                            if (rating > max_rating_unit) then
-                                max_rating_unit = rating
-                                best_hex_unit = { x, y }
-                            end
-                        end
-                    end
-                end
-
-                if (max_rating_unit > max_rating) then
-                    max_rating, best_unit_rating_map = max_rating_unit, unit_rating_map
-                    best_hex, best_unit = best_hex_unit, gamedata.unit_infos[id]
-                end
-                --print('max_rating:', max_rating, best_hex_unit[1], best_hex_unit[2])
 
                 show_debug = false
                 if show_debug then
-                    AH.put_fgumap_labels(unit_rating_map, 'rating')
+                    AH.put_fgumap_labels(unit_rating_maps[id], 'rating')
+                    wesnoth.add_tile_overlay(gamedata.units[id][1], gamedata.units[id][2], { image = "items/orcish-flag.png" })
                     W.message { speaker = 'narrator', message = 'Hold zone: unit-specific rating map: ' .. id }
+                    wesnoth.remove_tile_overlay(gamedata.units[id][1], gamedata.units[id][2], { image = "items/orcish-flag.png" })
                 end
             end
+
+            -- Next, we do a more detailed single-unit analysis for the best
+            -- hexes found in the preselection for each unit
+
+            local new_unit_ratings, rated_units = {}, {}
+            local max_hexes_pre = 20 -- number of hexes to analyze for units individually
+            local max_hexes = 5 -- number of hexes per unit for placement combos
+
+            -- Need to make sure that the same weapons are used for all counter attack calculations
+            local cfg_counter_attack = { cache_weapons = true }
+
+            for id,unit_rating_map in pairs(unit_rating_maps) do
+                -- Need to extract the map into a sortable format first
+                -- TODO: this is additional overhead that can be removed later
+                -- when the maps are not needed any more
+
+                local unit_ratings = {}
+                for x,tmp in pairs(unit_rating_map) do
+                    for y,r in pairs(tmp) do
+                        table.insert(unit_ratings, {
+                            rating = r.rating,
+                            x = x, y = y
+                        })
+                    end
+                end
+
+                table.sort(unit_ratings, function(a, b) return a.rating > b.rating end)
+
+                -- Calculate counter attack ratings for the best hexes previously
+                -- found and use those as the new rating
+                n_hexes = math.min(max_hexes_pre, #unit_ratings)
+                new_unit_ratings[id] = {}
+                for i = 1,n_hexes do
+                    local old_locs = {
+                        { gamedata.unit_copies[id].x, gamedata.unit_copies[id].y }
+                    }
+
+                    local new_locs = {
+                        { unit_ratings[i].x, unit_ratings[i].y }
+                    }
+
+                    local target = {}
+                    target[id] = { unit_ratings[i].x, unit_ratings[i].y }
+                    local counter_stats = FAU.calc_counter_attack(target, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
+                    --print(id, unit_ratings[i].rating, -counter_stats.rating, unit_ratings[i].x, unit_ratings[i].y)
+
+                    -- Important: the counter_stats rating is the rating of the
+                    -- counter attack. We want this to be as *bad* as possible
+                    table.insert(new_unit_ratings[id], {
+                        rating = - counter_stats.rating,
+                        x = unit_ratings[i].x,
+                        y = unit_ratings[i].y
+                    })
+                end
+
+                unit_ratings = nil -- so that we don't accidentally use it any more
+
+                table.sort(new_unit_ratings[id], function(a, b) return a.rating > b.rating end)
+
+                -- We also identify the best units; which are those with the highest
+                -- sum of the best ratings (only those to be used for the next step)
+                -- TODO: possibly refine this?
+
+                local sum_best_ratings = 0
+                n_hexes = math.min(max_hexes, #new_unit_ratings[id])
+                for i = 1,n_hexes do
+                    --print(id, new_unit_ratings[id][i].rating, new_unit_ratings[id][i].x, new_unit_ratings[id][i].y)
+                    sum_best_ratings = sum_best_ratings + new_unit_ratings[id][i].rating
+                end
+                --print('  total rating: ', sum_best_ratings, id)
+
+                table.insert(rated_units, { id = id, rating = sum_best_ratings })
+            end
+
+            -- Sorting this will now give us the order of units to be considered
+            table.sort(rated_units, function(a, b) return a.rating > b.rating end)
+
+            -- If there's only one unit, we're done and simply use the best hex found
+            if (#rated_units == 1) then
+                local id1 = rated_units[1].id
+
+                best_hexes = { { new_unit_ratings[id1][1].x, new_unit_ratings[id1][1].y } }
+                best_units = { gamedata.unit_infos[id1] }
+
+                return best_units, best_hexes
+            end
+
+            -- Otherwise, we choose the best 2 or 3 units and do a combo
+            -- placements analysis
+            -- TODO: this is currently hard-coded to use 3 units if they are
+            -- available, 2 otherwise.  Make this configurable later (and it's
+            -- also quite inelegant this way!)
+
+            local id1 = rated_units[1].id
+            local max_hexes_1 = math.min(max_hexes, #new_unit_ratings[id1])
+            --print(id1, max_hexes_1, #new_unit_ratings[id1])
+
+            local id2 = rated_units[2].id
+            local max_hexes_2 = math.min(max_hexes, #new_unit_ratings[id2])
+            --print(id2, max_hexes_2, #new_unit_ratings[id2])
+
+            local id3, max_hexes_3
+            if (#rated_units > 2) then
+                id3 = rated_units[3].id
+                max_hexes_3 = math.min(max_hexes, #new_unit_ratings[id3])
+                --print(id3, max_hexes_3, #new_unit_ratings[id3])
+            end
+
+            max_hexes = nil -- just so that it is not accidentally used
+
+
+            local max_rating, best_combo = -9e99, {}
+
+            for i1 = 1, max_hexes_1 do
+                x1 = new_unit_ratings[id1][i1].x
+                y1 = new_unit_ratings[id1][i1].y
+                --print(x1 .. ',' .. y1)
+
+                for i2 = 1, max_hexes_2 do
+                    x2 = new_unit_ratings[id1][i2].x
+                    y2 = new_unit_ratings[id1][i2].y
+
+                    if (x2 == x1) and (y2 == y1) then
+                        -- If this hex is already used by first unit
+                        --print('  ' .. x2 .. ',' .. y2 .. ' -- skipping')
+                    else
+                        --print('  ' .. x2 .. ',' .. y2)
+
+                        -- Different code for whether there are 3 or 2 units available
+                        -- TODO: put this in a recursive functions, because it is
+                        -- very inelegant this way and in order to make it configurable
+                        -- for different numbers of units
+
+                        if id3 then
+                            for i3 = 1, max_hexes_3 do
+                                x3 = new_unit_ratings[id1][i3].x
+                                y3 = new_unit_ratings[id1][i3].y
+
+                                if ((x3 == x1) and (y3 == y1)) or ((x3 == x2) and (y3 == y2)) then
+                                    -- If this hex is already used by first or second unit
+                                    --print('    ' .. x3 .. ',' .. y3 .. ' -- skipping')
+                                else
+                                    --print('    ' .. x3 .. ',' .. y3)
+
+                                    local old_locs = {
+                                        { gamedata.unit_copies[id1].x, gamedata.unit_copies[id1].y },
+                                        { gamedata.unit_copies[id2].x, gamedata.unit_copies[id2].y },
+                                        { gamedata.unit_copies[id3].x, gamedata.unit_copies[id3].y }
+                                    }
+                                    local new_locs = {
+                                        { x1, y1 },
+                                        { x2, y2 },
+                                        { x3, y3 }
+                                    }
+
+                                    local target1 = {}
+                                    target1[id1] = { x1, y1 }
+                                    local counter_stats1 = FAU.calc_counter_attack(target1, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
+
+                                    local target2 = {}
+                                    target2[id2] = { x2, y2 }
+                                    local counter_stats2 = FAU.calc_counter_attack(target2, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
+
+                                    local target3 = {}
+                                    target3[id3] = { x3, y3 }
+                                    local counter_stats3 = FAU.calc_counter_attack(target3, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
+
+                                    -- Important: the counter_stats rating is the rating of the
+                                    -- counter attack. We want this to be as *bad* as possible
+                                    local rating = - counter_stats1.rating - counter_stats2.rating - counter_stats3.rating
+                                    --print('      ', rating, counter_stats1.rating, counter_stats2.rating, counter_stats3.rating)
+
+                                    -- We want to exclude combinations where one unit is out of attack range
+                                    -- as this is for holding a zone, not protecting units.
+                                    -- TODO: The latter might be added as an option later.
+                                    if (rating > max_rating)
+                                        and ((counter_stats1.att_rating ~= 0) or (counter_stats1.def_rating ~= 0))
+                                        and ((counter_stats2.att_rating ~= 0) or (counter_stats2.def_rating ~= 0))
+                                        and ((counter_stats3.att_rating ~= 0) or (counter_stats3.def_rating ~= 0))
+                                    then
+                                        max_rating = rating
+                                        best_hexes = { { x1, y1 }, { x2, y2 }, { x3, y3 } }
+                                        best_units = { gamedata.unit_infos[id1], gamedata.unit_infos[id2], gamedata.unit_infos[id3] }
+                                    end
+                                end
+                            end
+                        else
+                            local old_locs = {
+                                { gamedata.unit_copies[id1].x, gamedata.unit_copies[id1].y },
+                                { gamedata.unit_copies[id2].x, gamedata.unit_copies[id2].y }
+                            }
+                            local new_locs = {
+                                { x1, y1 },
+                                { x2, y2 }
+                            }
+
+                            local target1 = {}
+                            target1[id1] = { x1, y1 }
+                            local counter_stats1 = FAU.calc_counter_attack(target1, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
+
+                            local target2 = {}
+                            target2[id2] = { x2, y2 }
+                            local counter_stats2 = FAU.calc_counter_attack(target2, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
+
+                            -- Important: the counter_stats rating is the rating of the
+                            -- counter attack. We want this to be as *bad* as possible
+                            local rating = - counter_stats1.rating - counter_stats2.rating
+                            --print('      ', rating, counter_stats1.rating, counter_stats2.rating)
+
+                            -- We want to exclude combinations where one unit is out of attack range
+                            -- as this is for holding a zone, not protecting units.
+                            -- TODO: The latter might be added as an option later.
+                            if (rating > max_rating)
+                                and ((counter_stats1.att_rating ~= 0) or (counter_stats1.def_rating ~= 0))
+                                and ((counter_stats2.att_rating ~= 0) or (counter_stats2.def_rating ~= 0))
+                            then
+                                max_rating = rating
+                                best_hexes = { { x1, y1 }, { x2, y2 } }
+                                best_units = { gamedata.unit_infos[id1], gamedata.unit_infos[id2] }
+                            end
+                        end
+                    end
+                end
+            end
+
+            -- TODO: For now, we only consider holding of threatened hexes here.
+            -- Advancing on unthreatened hexes will be dealt with separately in
+            -- the future, but we keep the code below for reference until then
+            if 1 then return best_units, best_hexes end
 
             if (max_rating > -9e99) then
                 -- If the best hex is unthreatened,
@@ -1579,7 +1777,7 @@ return {
             --print('eval_hold 2', eval_hold)
 
             if eval_hold then
-                local unit, dst = fred:hold_zone(holders, zonedata, gamedata)
+                local units, dsts = fred:hold_zone(holders, zonedata, gamedata, move_cache)
 
                 local action
                 if unit then
