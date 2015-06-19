@@ -131,8 +131,8 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     --  @def_stat: the combat stats of the defender after facing the combination of the attackers
     --  @gamedata: table with the game state as produced by fred_gamestate_utils.gamedata()
     --
-    --  Optional inputs:
-    --   @cfg: the different weights listed right below
+    -- Optional inputs:
+    --  @cfg: the different weights listed right below
     --
     -- Returns:
     --   - Overall rating for the attack or attack combo
@@ -403,7 +403,7 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
     return att_stat, def_stat
 end
 
-function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy, tmp_dsts, tmp_attacker_infos, defender_info, gamedata, move_cache)
+function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy, tmp_dsts, tmp_attacker_infos, defender_info, gamedata, move_cache, cfg)
     -- Calculate attack combination outcomes using
     -- @tmp_attacker_copies: array of attacker unit copies (must be copies, does not work with the proxy table)
     -- @defender_proxy: the unit being attacked (must be a unit proxy table on the map, does not work with a copy)
@@ -413,6 +413,9 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
     --   themselves in order to speed things up)
     -- @gamedata, @move_cache: only needed to pass to the functions being called
     --    see fred_attack_utils.battle_outcome() for descriptions
+    --
+    -- Optional inputs:
+    --  @cfg: configuration parameters to be passed through the battle_outcome, attack_rating
     --
     -- Return values (in this order):
     --   - att_stats: an array of stats for each attacker, in the order found for the "best attack",
@@ -429,13 +432,13 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
             fred_attack_utils.battle_outcome(
                 attacker_copy, defender_proxy, tmp_dsts[i],
                 tmp_attacker_infos[i], defender_info,
-                gamedata, move_cache
+                gamedata, move_cache, cfg
             )
 
         local rating =
             fred_attack_utils.attack_rating(
                 { tmp_attacker_infos[i] }, defender_info, { tmp_dsts[i] },
-                { tmp_att_stats[i] }, tmp_def_stats[i], gamedata
+                { tmp_att_stats[i] }, tmp_def_stats[i], gamedata, cfg
             )
 
         ratings[i] = { i, rating }  -- Need the i here in order to specify the order of attackers, dsts below
@@ -479,7 +482,7 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
                 local ast, dst = fred_attack_utils.battle_outcome(
                     attacker_copies[i], defender_proxy, dsts[i],
                     attacker_infos[i], defender_info,
-                    gamedata, move_cache
+                    gamedata, move_cache, cfg
                 )
 
                 defender_proxy.hitpoints = org_hp
@@ -515,13 +518,13 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
     local rating, attacker_rating, defender_rating, extra_rating =
         fred_attack_utils.attack_rating(
             attacker_infos, defender_info, dsts,
-            att_stats, def_stats[#attacker_infos], gamedata
+            att_stats, def_stats[#attacker_infos], gamedata, cfg
         )
 
     return att_stats, def_stats[#attacker_infos], attacker_infos, dsts, rating, attacker_rating, defender_rating, extra_rating
 end
 
-function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, get_strongest_attack, gamedata, move_cache)
+function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, get_strongest_attack, gamedata, move_cache, cfg)
     -- Get all attack combinations of @attackers on @defender
     -- OR: get what is considered the strongest of those attacks (approximately)
     -- The former is in order to get all attack combos (but order of individual attacks doesn't matter),
@@ -546,6 +549,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
     --     cannot move out of the way
     -- @get_strongest_attack (boolean): if set to 'true', don't return all attacks, but only the
     --   one deemed strongest as described above.  If this is set, @gamedata and @move_cache nust be provided
+    --  @cfg: configuration parameters to be passed through the battle_outcome, attack_rating
     --
     -- Return value: attack combinations (either a single one or an array) of form { src = dst } :
     -- {
@@ -623,14 +627,14 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
                     local att_stat, def_stat = fred_attack_utils.battle_outcome(
                         gamedata.unit_copies[attacker_id], defender_proxy, { xa, ya },
                         gamedata.unit_infos[attacker_id], gamedata.unit_infos[defender_id],
-                        gamedata, move_cache
+                        gamedata, move_cache, cfg
                     )
 
                     -- Defender rating
                     _,_,rating = fred_attack_utils.attack_rating(
                         { gamedata.unit_infos[attacker_id] }, gamedata.unit_infos[defender_id], { { xa, ya } },
                         { att_stat }, def_stat,
-                        gamedata
+                        gamedata, cfg
                     )
                 end
 
@@ -737,7 +741,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
     end
 end
 
-function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamedata, move_cache)
+function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamedata, move_cache, cfg)
     -- Get counter-attack statistics of an AI unit in a hypothetical maps situation
     -- Units are placed on the map and the gamedata tables are adjusted inside this
     -- function in order to avoid code duplication and ensure consistency
@@ -753,6 +757,9 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
     -- @old_locs, @new_locs: arrays of locations of the current and goal locations
     --   of all AI units to be moved into different positions, such as all units
     --   involved in an attack combination
+    --
+    -- Optional inputs:
+    --  @cfg: configuration parameters to be passed through the battle_outcome, attack_rating
 
     -- Two array to be made available below via closure
     local stored_units, ids = {}, {}
@@ -858,7 +865,7 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
     -- Only want the best attack combo for this.
     local counter_attack = fred_attack_utils.get_attack_combos(
         gamedata.enemies, target,
-        nil, true, gamedata, move_cache
+        nil, true, gamedata, move_cache, cfg
     )
 
     local counter_attack_stat
@@ -896,7 +903,7 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
             fred_attack_utils.attack_combo_eval(
                 attacker_copies, target_proxy, dsts,
                 attacker_infos, gamedata.unit_infos[target_id],
-                gamedata, move_cache
+                gamedata, move_cache, cfg
             )
 
         combo_def_stat.rating = rating
