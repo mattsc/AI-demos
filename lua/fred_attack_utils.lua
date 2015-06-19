@@ -239,7 +239,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     return rating, attacker_rating, defender_rating, extra_rating
 end
 
-function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, attacker_info, defender_info, gamedata, move_cache)
+function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, attacker_info, defender_info, gamedata, move_cache, cfg)
     -- Calculate the stats of a combat by @attacker_copy vs. @defender_proxy at location @dst
     -- We use wesnoth.simulate_combat for this, but cache results when possible
     -- Inputs:
@@ -250,6 +250,11 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
     --   themselves in order to speed things up)
     --  @gamedata: table with the game state as produced by fred_gamestate_utils.gamedata()
     --  @move_cache: for caching data *for this move only*, needs to be cleared after a gamestate change
+    --
+    --  Optional inputs:
+    -- @cfg: configuration parameters (only cache_weapons so far, possibly to be extended)
+
+    local cache_weapons = (cfg and cfg.cache_weapons) or false
 
     local defender_defense = FGUI.get_unit_defense(defender_proxy, defender_proxy.x, defender_proxy.y, gamedata.defense_maps)
     local attacker_defense = FGUI.get_unit_defense(attacker_copy, dst[1], dst[2], gamedata.defense_maps)
@@ -267,7 +272,82 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
 
     local old_x, old_y = attacker_copy.x, attacker_copy.y
     attacker_copy.x, attacker_copy.y = dst[1], dst[2]
-    local tmp_att_stat, tmp_def_stat = wesnoth.simulate_combat(attacker_copy, defender_proxy)
+
+    local tmp_att_stat, tmp_def_stat
+    local att_weapon_i, def_weapon_i = nil, nil
+    if cache_weapons then
+        if (not move_cache.best_weapons)
+            or (not move_cache.best_weapons[attacker_info.id])
+            or (not move_cache.best_weapons[attacker_info.id][defender_info.id])
+        then
+            if (not move_cache[attacker_info.id]) then
+                move_cache[attacker_info.id] = {}
+            end
+            if (not move_cache[attacker_info.id][defender_info.id]) then
+                move_cache[attacker_info.id][defender_info.id] = {}
+            end
+
+            --print(' Finding highest-damage weapons: ', attacker_info.id, defender_proxy.id)
+
+            local best_att, best_def = 0, 0
+
+            for i_a,att in ipairs(attacker_info.attacks) do
+                -- This is a bit wasteful the first time around, but shouldn't be too bad overall
+                local _, _, att_weapon, _ = wesnoth.simulate_combat(attacker_copy, i_a, defender_proxy)
+
+                local total_damage_attack = att_weapon.num_blows * att_weapon.damage
+
+                --print('  i_a:', i_a, total_damage_attack)
+
+                if (total_damage_attack > best_att) then
+                    best_att = total_damage_attack
+                    att_weapon_i = i_a
+
+                    -- Only for this attack do we need to check out the defender attacks
+                    best_def, def_weapon_i = 0, nil -- need to reset these again
+
+                    for i_d,def in ipairs(defender_info.attacks) do
+                        if (att.range == def.range) then
+                            -- This is a bit wasteful the first time around, but shouldn't be too bad overall
+                            local _, _, _, def_weapon = wesnoth.simulate_combat(attacker_copy, i_a, defender_proxy, i_d)
+
+                            local total_damage_defense = def_weapon.num_blows * def_weapon.damage
+
+                            if (total_damage_defense > best_def) then
+                                best_def = total_damage_defense
+                                def_weapon_i = i_d
+                            end
+
+                            --print('    i_d:', i_d, total_damage_defense)
+                        end
+                    end
+                end
+            end
+            --print('  --> best att/def:', att_weapon_i, best_att, def_weapon_i, best_def)
+
+            if (not move_cache.best_weapons) then
+                move_cache.best_weapons = {}
+            end
+            if (not move_cache.best_weapons[attacker_info.id]) then
+                move_cache.best_weapons[attacker_info.id] = {}
+            end
+
+            move_cache.best_weapons[attacker_info.id][defender_info.id] = {
+                att_weapon_i = att_weapon_i,
+                def_weapon_i = def_weapon_i
+            }
+
+        else
+            att_weapon_i = move_cache.best_weapons[attacker_info.id][defender_info.id].att_weapon_i
+            def_weapon_i = move_cache.best_weapons[attacker_info.id][defender_info.id].def_weapon_i
+            --print(' Reusing weapons: ', attacker_info.id, defender_proxy.id, att_weapon_i, def_weapon_i)
+        end
+
+        tmp_att_stat, tmp_def_stat = wesnoth.simulate_combat(attacker_copy, att_weapon_i, defender_proxy, def_weapon_i)
+    else
+        tmp_att_stat, tmp_def_stat = wesnoth.simulate_combat(attacker_copy, defender_proxy)
+    end
+
     attacker_copy.x, attacker_copy.y = old_x, old_y
 
     -- Extract only those hp_chances that are non-zero (except for hp_chance[0]
