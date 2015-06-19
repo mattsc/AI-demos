@@ -150,7 +150,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     local defense_weight = (cfg and cfg.defense_weight) or 0.1
     local distance_leader_weight = (cfg and cfg.distance_leader_weight) or 0.002
     local occupied_hex_penalty = (cfg and cfg.occupied_hex_penalty) or 0.001
-    local own_value_weight = (cfg and cfg.own_value_weight) or 1.0
+    local own_value_weight = (cfg and cfg.own_value_weight) or 1.2
 
     local attacker_rating = 0
     for i,attacker_info in ipairs(attacker_infos) do
