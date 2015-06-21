@@ -138,12 +138,11 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     --   - Extra rating: additional ratings that do not directly describe damage
     --       This should be used to help decide which attack to pick,
     --       but not for, e.g., evaluating counter attacks (which should be entirely damage based)
-    --   Note: rating = defender_rating + attacker_rating * damage_ratio + extra_rating
-    --            defender/attacker_rating are "damage done" ratings
-    --            -> defender_rating >= 0; attacker_rating <= 0
-    --      Damage ratio is the weight we give to damage done to attacking units
-    --      relative to that done to the defender; generally < 1 for AI attacks
-    --      and > 1 for enemy attacks, in order to make AI more aggressive
+    --   Note: rating = defender_rating * defender_weight + attacker_rating * attacker_weight + extra_rating
+    --          defender/attacker_rating are "damage done" ratings
+    --          -> defender_rating >= 0; attacker_rating <= 0
+    --          defender/attack_weight are set equal to damage_ratio for the AI
+    --          side, and to 1 for the other side
 
     -- Set up the config parameters for the rating
     local defender_starting_damage_weight = (cfg and cfg.defender_starting_damage_weight) or 0.33
@@ -232,7 +231,18 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
 
     -- Finally add up and apply factor of own unit damage to defender unit damage
     -- This is a number equivalent to 'aggression' in the default AI (but not numerically equal)
-    local rating = defender_rating + attacker_rating * damage_ratio + extra_rating
+    -- TODO: clean up this code block; for the time being, I want it to crash is something's wrong
+    local attacker_weight, defender_weight
+    if (attacker_infos[1].side == wesnoth.current.side) then
+        attacker_weight = damage_ratio
+        defender_weight = 1
+    end
+    if (defender_info.side == wesnoth.current.side) then
+        attacker_weight = 1
+        defender_weight = damage_ratio
+    end
+
+    local rating = defender_rating * defender_weight + attacker_rating * attacker_weight + extra_rating
 
     --print('rating, attacker_rating, defender_rating, extra_rating:', rating, attacker_rating, defender_rating, extra_rating)
 
