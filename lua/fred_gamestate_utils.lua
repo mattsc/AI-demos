@@ -278,10 +278,11 @@ function fred_gamestate_utils.get_gamestate()
                 for y,hitpoints in pairs(arr) do
                     if (not my_attack_map[x]) then my_attack_map[x] = {} end
                     if (not my_attack_map[x][y]) then my_attack_map[x][y] = {} end
+                    if (not my_attack_map[x][y].ids) then my_attack_map[x][y].ids = {} end
 
                     my_attack_map[x][y].units = (my_attack_map[x][y].units or 0) + 1
                     my_attack_map[x][y].hitpoints = (my_attack_map[x][y].hitpoints or 0) + hitpoints
-                    my_attack_map[x][y][unit_copy.id] = true
+                    table.insert(my_attack_map[x][y].ids, unit_copy.id)
                 end
             end
 
@@ -382,10 +383,11 @@ function fred_gamestate_utils.get_gamestate()
             for y,hitpoints in pairs(arr) do
                 if (not enemy_attack_map[x]) then enemy_attack_map[x] = {} end
                 if (not enemy_attack_map[x][y]) then enemy_attack_map[x][y] = {} end
+                if (not enemy_attack_map[x][y].ids) then enemy_attack_map[x][y].ids = {} end
 
                 enemy_attack_map[x][y].units = (enemy_attack_map[x][y].units or 0) + 1
                 enemy_attack_map[x][y].hitpoints = (enemy_attack_map[x][y].hitpoints or 0) + hitpoints
-                enemy_attack_map[x][y][enemy_id] = true
+                table.insert(enemy_attack_map[x][y].ids, enemy_id)
             end
         end
     end
