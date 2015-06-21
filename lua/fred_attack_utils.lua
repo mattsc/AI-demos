@@ -252,9 +252,9 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
     --  @move_cache: for caching data *for this move only*, needs to be cleared after a gamestate change
     --
     --  Optional inputs:
-    -- @cfg: configuration parameters (only cache_weapons so far, possibly to be extended)
+    -- @cfg: configuration parameters (only use_max_damage_weapons so far, possibly to be extended)
 
-    local cache_weapons = (cfg and cfg.cache_weapons) or false
+    local use_max_damage_weapons = (cfg and cfg.use_max_damage_weapons) or false
 
     local defender_defense = FGUI.get_unit_defense(defender_proxy, defender_proxy.x, defender_proxy.y, gamedata.defense_maps)
     local attacker_defense = FGUI.get_unit_defense(attacker_copy, dst[1], dst[2], gamedata.defense_maps)
@@ -275,7 +275,7 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
 
     local tmp_att_stat, tmp_def_stat
     local att_weapon_i, def_weapon_i = nil, nil
-    if cache_weapons then
+    if use_max_damage_weapons then
         if (not move_cache.best_weapons)
             or (not move_cache.best_weapons[attacker_info.id])
             or (not move_cache.best_weapons[attacker_info.id][defender_info.id])
