@@ -10,28 +10,30 @@ local FGUI = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_utils_increm
 
 local fred_attack_utils = {}
 
-function fred_attack_utils.is_acceptable_attack(damage_taken, damage_done, damage_ratio)
-    -- Evaluate whether an attack is acceptable, based on the damage taken/done ratio
+function fred_attack_utils.is_acceptable_attack(damage_to_ai, damage_to_enemy, damage_ratio)
+    -- Evaluate whether an attack is acceptable, based on the damage to_ai/to_enemy ratio
     --
     -- Inputs:
-    -- @damage_taken, @damage_done: should be in gold units as returned by fred_attack_utils.
-    --   Note, however, that attacker_rating (but not defender_rating!) is the negative of the damage taken!!
-    --   This could be either the attacker (for taken) and defender (for done) rating of a single attack (combo)
-    --   or the overall attack (for done) and counter attack rating (for taken)
-    -- @damage_ratio (optional): value for the minimum ratio of damage done/taken that is acceptable
+    -- @damage_to_ai, @damage_to_enemy: should be in gold units as returned by fred_attack_utils.
+    --   Note, however, that attacker_rating (but not defender_rating!) is the negative of the damage!!
+    --   This could be either the attacker (for to_ai) and defender (for to_enemy) rating of a single attack (combo)
+    --   or the overall attack (for to_enemy) and counter attack rating (for to_ai)
+    -- @damage_ratio (optional): value for the minimum ratio of damage to_enemy/to_ai that is acceptable
+    --   It is generally okay for the AI to take a little more damage than it deals out,
+    --   so for the most part this value should be slightly smaller than 1.
 
     damage_ratio = damage_ratio or 0.8
 
     -- Otherwise it depends on whether the numbers are positive or negative
     -- Negative damage means that one or several of the units are likely to level up
-    if (damage_taken < 0) and (damage_done < 0) then
-        return (damage_taken / damage_done) >= damage_ratio
+    if (damage_to_ai < 0) and (damage_to_enemy < 0) then
+        return (damage_to_ai / damage_to_enemy) >= damage_ratio
     end
 
-    if (damage_taken <= 0) then damage_taken = 0.001 end
-    if (damage_done <= 0) then damage_done = 0.001 end
+    if (damage_to_ai <= 0) then damage_to_ai = 0.001 end
+    if (damage_to_enemy <= 0) then damage_to_enemy = 0.001 end
 
-    return (damage_done / damage_taken) >= damage_ratio
+    return (damage_to_enemy / damage_to_ai) >= damage_ratio
 end
 
 function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_stat, def_stat, is_village, cfg)
