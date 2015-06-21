@@ -86,6 +86,8 @@ end
 local function eval_CA(ai, no_messages)
     -- Evaluates the CA with name returned by CA_name()
 
+    wesnoth.clear_messages()
+
     local eval_name = CA_name() .. '_eval'
 
     -- Get all the custom AI functions
