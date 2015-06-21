@@ -10,7 +10,7 @@ local FGUI = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_utils_increm
 
 local fred_attack_utils = {}
 
-function fred_attack_utils.is_acceptable_attack(damage_taken, damage_done, enemy_worth)
+function fred_attack_utils.is_acceptable_attack(damage_taken, damage_done, damage_ratio)
     -- Evaluate whether an attack is acceptable, based on the damage taken/done ratio
     --
     -- Inputs:
@@ -18,23 +18,20 @@ function fred_attack_utils.is_acceptable_attack(damage_taken, damage_done, enemy
     --   Note, however, that attacker_rating (but not defender_rating!) is the negative of the damage taken!!
     --   This could be either the attacker (for taken) and defender (for done) rating of a single attack (combo)
     --   or the overall attack (for done) and counter attack rating (for taken)
-    -- @enemy_worth (optional): value for the maximum ratio of taken/done that is acceptable
+    -- @damage_ratio (optional): value for the minimum ratio of damage done/taken that is acceptable
 
-    enemy_worth = enemy_worth or 1
-
-    -- If damage taken is <= 2 more than damage done (roughly in units of gold), that's good enough
-    if (damage_taken - damage_done <= 2) then return true end
+    damage_ratio = damage_ratio or 0.8
 
     -- Otherwise it depends on whether the numbers are positive or negative
     -- Negative damage means that one or several of the units are likely to level up
     if (damage_taken < 0) and (damage_done < 0) then
-        return (damage_done / damage_taken) <= enemy_worth
+        return (damage_taken / damage_done) >= damage_ratio
     end
 
     if (damage_taken <= 0) then damage_taken = 0.001 end
     if (damage_done <= 0) then damage_done = 0.001 end
 
-    return (damage_taken / damage_done) <= enemy_worth
+    return (damage_done / damage_taken) >= damage_ratio
 end
 
 function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_stat, def_stat, is_village, cfg)
@@ -141,16 +138,19 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     --   - Extra rating: additional ratings that do not directly describe damage
     --       This should be used to help decide which attack to pick,
     --       but not for, e.g., evaluating counter attacks (which should be entirely damage based)
-    --   Note: rating = defender_rating + attacker_rating * own_value_weight + extra_rating
+    --   Note: rating = defender_rating + attacker_rating * damage_ratio + extra_rating
     --            defender/attacker_rating are "damage done" ratings
     --            -> defender_rating >= 0; attacker_rating <= 0
+    --      Damage ratio is the weight we give to damage done to attacking units
+    --      relative to that done to the defender; generally < 1 for AI attacks
+    --      and > 1 for enemy attacks, in order to make AI more aggressive
 
     -- Set up the config parameters for the rating
     local defender_starting_damage_weight = (cfg and cfg.defender_starting_damage_weight) or 0.33
     local defense_weight = (cfg and cfg.defense_weight) or 0.1
     local distance_leader_weight = (cfg and cfg.distance_leader_weight) or 0.002
     local occupied_hex_penalty = (cfg and cfg.occupied_hex_penalty) or 0.001
-    local own_value_weight = (cfg and cfg.own_value_weight) or 1.2
+    local damage_ratio = (cfg and cfg.damage_ratio) or 0.8
 
     local attacker_rating = 0
     for i,attacker_info in ipairs(attacker_infos) do
@@ -232,7 +232,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
 
     -- Finally add up and apply factor of own unit weight to defender unit weight
     -- This is a number equivalent to 'aggression' in the default AI (but not numerically equal)
-    local rating = defender_rating + attacker_rating * own_value_weight + extra_rating
+    local rating = defender_rating + attacker_rating * damage_ratio + extra_rating
 
     --print('rating, attacker_rating, defender_rating, extra_rating:', rating, attacker_rating, defender_rating, extra_rating)
 

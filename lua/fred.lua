@@ -248,7 +248,7 @@ return {
                 zone_filter = { { 'filter', { canrecruit = 'yes', side = wesnoth.current.side } } },
                 unit_filter = { x = '1-' .. width , y = '1-' .. height },
                 do_action = { attack = true },
-                attack = { use_enemies_in_reach = true, enemy_worth = 2.0 }
+                attack = { use_enemies_in_reach = true, damage_ratio = 0.5 }
             }
 
             local cfg_center, cfg_rush_center, cfg_left, cfg_rush_left, cfg_right, cfg_rush_right
@@ -1321,11 +1321,11 @@ end
                 --print(target_id, '  trappable:', is_trappable_enemy)
 
                 -- How much more valuable do we consider the enemy units than our own
-                local enemy_worth = 1.1
-                if zonedata.cfg.attack and zonedata.cfg.attack.enemy_worth then
-                    enemy_worth = zonedata.cfg.attack.enemy_worth
+                local damage_ratio = 0.8
+                if zonedata.cfg.actions.attack.damage_ratio then
+                    damage_ratio = zonedata.cfg.actions.attack.damage_ratio
                 end
-                --print_time('\n', target_id, enemy_worth)
+                --print_time('\n', target_id, damage_ratio)
 
                 local attack_combos = FAU.get_attack_combos(
                     zonedata.zone_units_attacks, target, gamedata.reach_maps
@@ -1368,9 +1368,9 @@ end
                     -- Don't attack if the leader is involved and has chance to die > 0
                     local do_attack = true
 
-                    --print('     damage taken, done, enemy_worth:', combo_att_rating, combo_def_rating, enemy_worth)
+                    --print('     damage taken, done, damage_ratio:', combo_att_rating, combo_def_rating, damage_ratio)
                     -- Note: att_rating is the negative of the damage taken
-                    if (not FAU.is_acceptable_attack(-combo_att_rating, combo_def_rating, enemy_worth)) then
+                    if (not FAU.is_acceptable_attack(-combo_att_rating, combo_def_rating, damage_ratio)) then
                         do_attack = false
                     end
 
@@ -1521,7 +1521,7 @@ end
                             def_stat = combo_def_stat,
                             att_rating = combo_att_rating,
                             def_rating = combo_def_rating,
-                            enemy_worth = enemy_worth
+                            damage_ratio = damage_ratio
                         })
                     end
                 end
@@ -1536,7 +1536,7 @@ end
             for count,combo in ipairs(combo_ratings) do
                 if (count > 50) and action then break end
 
-                --print_time('Checking counter attack for attack on', count, next(combo.target), combo.enemy_worth, combo.rating)
+                --print_time('Checking counter attack for attack on', count, next(combo.target), combo.damage_ratio, combo.rating)
 
                 -- TODO: the following is slightly inefficient, as it places units and
                 -- takes them off again several times for the same attack combo.
@@ -1642,9 +1642,9 @@ end
                     else  -- Or for normal units, evaluate whether the attack is worth it
                         local damage_taken = - combo.att_rating + counter_def_rating
                         local damage_done = combo.def_rating - counter_att_rating
-                        --print('     damage taken, done, enemy_worth:', damage_taken, damage_done, combo.enemy_worth)
+                        --print('     damage taken, done, damage_ratio:', damage_taken, damage_done, combo.damage_ratio)
 
-                        if (not FAU.is_acceptable_attack(damage_taken, damage_done, combo.enemy_worth)) then
+                        if (not FAU.is_acceptable_attack(damage_taken, damage_done, combo.damage_ratio)) then
                             acceptable_counter = false
                             break
                         end
