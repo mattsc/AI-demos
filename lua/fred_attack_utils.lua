@@ -78,7 +78,7 @@ function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_
     -- Fractional damage (= fractional value of the attacker)
     local fractional_damage = damage / attacker_info.max_hitpoints
 
-    -- Additionally, subtract the chance to die, in order to (de)emphasize units that might die
+    -- Additionally, add the chance to die, in order to (de)emphasize units that might die
     fractional_damage = fractional_damage + att_stat.hp_chance[0]
 
     -- In addition, potentially leveling up in this attack is a huge bonus.
@@ -175,8 +175,8 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     local extra_rating = 0.
 
     -- Prefer to attack already damaged enemies
-    local defender_starting_damage_fraction = defender_info.max_hitpoints - defender_info.hitpoints
-    extra_rating = extra_rating + defender_starting_damage_fraction * defender_starting_damage_weight
+    local defender_starting_damage = defender_info.max_hitpoints - defender_info.hitpoints
+    extra_rating = extra_rating + defender_starting_damage * defender_starting_damage_weight
 
     -- If defender is on a village, add a bonus rating (we want to get rid of those preferentially)
     -- This is in addition to the damage bonus already included above (but as an extra rating)
@@ -230,7 +230,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
         end
     end
 
-    -- Finally add up and apply factor of own unit weight to defender unit weight
+    -- Finally add up and apply factor of own unit damage to defender unit damage
     -- This is a number equivalent to 'aggression' in the default AI (but not numerically equal)
     local rating = defender_rating + attacker_rating * damage_ratio + extra_rating
 
