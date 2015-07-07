@@ -1,4 +1,5 @@
 local H = wesnoth.require "lua/helper.lua"
+local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FGUI = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 
 -- Functions to perform fast evaluation of attacks and attack combinations.
@@ -10,30 +11,34 @@ local FGUI = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_utils_increm
 
 local fred_attack_utils = {}
 
-function fred_attack_utils.is_acceptable_attack(damage_to_ai, damage_to_enemy, damage_ratio)
-    -- Evaluate whether an attack is acceptable, based on the damage to_ai/to_enemy ratio
+function fred_attack_utils.is_acceptable_attack(damage_to_ai, damage_to_enemy, value_ratio)
+    -- Evaluate whether an attack is acceptable, based on the damage to_enemy/to_ai ratio
+    -- As an example, if value_ratio = 0.5 -> it is okay to do only half the damage
+    -- to the enemy as is received.  In other words, value own units only half of
+    -- enemy units.  The smaller value_ratio, the more aggressive the AI gets.
+    -- Default is 0.8, meaning the AI is slightly more aggressive than even terms.
     --
     -- Inputs:
     -- @damage_to_ai, @damage_to_enemy: should be in gold units as returned by fred_attack_utils.
     --   Note, however, that attacker_rating (but not defender_rating!) is the negative of the damage!!
     --   This could be either the attacker (for to_ai) and defender (for to_enemy) rating of a single attack (combo)
     --   or the overall attack (for to_enemy) and counter attack rating (for to_ai)
-    -- @damage_ratio (optional): value for the minimum ratio of damage to_enemy/to_ai that is acceptable
+    -- @value_ratio (optional): value for the minimum ratio of damage to_enemy/to_ai that is acceptable
     --   It is generally okay for the AI to take a little more damage than it deals out,
     --   so for the most part this value should be slightly smaller than 1.
 
-    damage_ratio = damage_ratio or 0.8
+    value_ratio = value_ratio or FU.cfg_default('value_ratio')
 
     -- Otherwise it depends on whether the numbers are positive or negative
     -- Negative damage means that one or several of the units are likely to level up
     if (damage_to_ai < 0) and (damage_to_enemy < 0) then
-        return (damage_to_ai / damage_to_enemy) >= damage_ratio
+        return (damage_to_ai / damage_to_enemy) >= value_ratio
     end
 
     if (damage_to_ai <= 0) then damage_to_ai = 0.001 end
     if (damage_to_enemy <= 0) then damage_to_enemy = 0.001 end
 
-    return (damage_to_enemy / damage_to_ai) >= damage_ratio
+    return (damage_to_enemy / damage_to_ai) >= value_ratio
 end
 
 function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_stat, def_stat, is_village, cfg)
@@ -52,9 +57,7 @@ function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_
     -- Optional parameters:
     --  @cfg: the optional different weights listed right below
 
-    local leader_weight = (cfg and cfg.leader_weight) or 2.
-    local xp_weight = (cfg and cfg.xp_weight) or 1.
-    local level_weight = (cfg and cfg.level_weight) or 1.
+    local level_weight = (cfg and cfg.level_weight) or FU.cfg_default('level_weight')
 
     local damage = attacker_info.hitpoints - att_stat.average_hp
 
@@ -100,20 +103,10 @@ function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_
     fractional_damage = fractional_damage - level_bonus * level_weight
 
     -- Now convert this into gold-equivalent value
-    local value = attacker_info.cost
+    local unit_value = FU.unit_value(attacker_info, cfg)
 
-    -- If this is the side leader, make damage to it much more important
-    if attacker_info.canrecruit then
-        value = value * leader_weight
-    end
-
-    -- Being closer to leveling makes the attacker more valuable
-    -- TODO: consider using a more precise measure here
-    local xp_bonus = attacker_info.experience / attacker_info.max_experience
-    value = value * (1. + xp_bonus * xp_weight)
-
-    local rating = fractional_damage * value
-    --print('damage, fractional_damage, value, rating', attacker_info.id, damage, fractional_damage, value, rating)
+    local rating = fractional_damage * unit_value
+    --print('damage, fractional_damage, unit_value, rating', attacker_info.id, damage, fractional_damage, unit_value, rating)
 
     return rating
 end
@@ -143,15 +136,15 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     --   Note: rating = defender_rating * defender_weight + attacker_rating * attacker_weight + extra_rating
     --          defender/attacker_rating are "damage done" ratings
     --          -> defender_rating >= 0; attacker_rating <= 0
-    --          defender/attack_weight are set equal to damage_ratio for the AI
+    --          defender/attack_weight are set equal to value_ratio for the AI
     --          side, and to 1 for the other side
 
     -- Set up the config parameters for the rating
-    local defender_starting_damage_weight = (cfg and cfg.defender_starting_damage_weight) or 0.33
-    local defense_weight = (cfg and cfg.defense_weight) or 0.1
-    local distance_leader_weight = (cfg and cfg.distance_leader_weight) or 0.002
-    local occupied_hex_penalty = (cfg and cfg.occupied_hex_penalty) or 0.001
-    local damage_ratio = (cfg and cfg.damage_ratio) or 0.8
+    local defender_starting_damage_weight = (cfg and cfg.defender_starting_damage_weight) or FU.cfg_default('defender_starting_damage_weight')
+    local defense_weight = (cfg and cfg.defense_weight) or FU.cfg_default('defense_weight')
+    local distance_leader_weight = (cfg and cfg.distance_leader_weight) or FU.cfg_default('distance_leader_weight')
+    local occupied_hex_penalty = (cfg and cfg.occupied_hex_penalty) or FU.cfg_default('occupied_hex_penalty')
+    local value_ratio = (cfg and cfg.value_ratio) or FU.cfg_default('value_ratio')
 
     local attacker_rating = 0
     for i,attacker_info in ipairs(attacker_infos) do
@@ -236,12 +229,12 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     -- TODO: clean up this code block; for the time being, I want it to crash is something's wrong
     local attacker_weight, defender_weight
     if (attacker_infos[1].side == wesnoth.current.side) then
-        attacker_weight = damage_ratio
+        attacker_weight = value_ratio
         defender_weight = 1
     end
     if (defender_info.side == wesnoth.current.side) then
         attacker_weight = 1
-        defender_weight = damage_ratio
+        defender_weight = value_ratio
     end
 
     local rating = defender_rating * defender_weight + attacker_rating * attacker_weight + extra_rating
@@ -266,7 +259,7 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
     --  Optional inputs:
     -- @cfg: configuration parameters (only use_max_damage_weapons so far, possibly to be extended)
 
-    local use_max_damage_weapons = (cfg and cfg.use_max_damage_weapons) or false
+    local use_max_damage_weapons = (cfg and cfg.use_max_damage_weapons) or FU.cfg_default('use_max_damage_weapons')
 
     local defender_defense = FGUI.get_unit_defense(defender_proxy, defender_proxy.x, defender_proxy.y, gamedata.defense_maps)
     local attacker_defense = FGUI.get_unit_defense(attacker_copy, dst[1], dst[2], gamedata.defense_maps)
