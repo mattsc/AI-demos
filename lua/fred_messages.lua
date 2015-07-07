@@ -1,9 +1,9 @@
 local H = wesnoth.require "lua/helper.lua"
 local W = H.set_wml_action_metatable {}
 
-local fred_helper = {}
+local fred_messages = {}
 
-function fred_helper.is_freelands()
+function fred_messages.is_freelands()
     -- Check whether side is played by Fred
     -- We do this by testing whether the 'zone_control' CA exists
     local stage = H.get_child( H.get_child( wesnoth.sides[1].__cfg, 'ai'), 'stage')
@@ -15,9 +15,9 @@ function fred_helper.is_freelands()
     return false
 end
 
-function fred_helper.fred_hello()
+function fred_messages.fred_hello()
     -- Hello message for Fred AI
-    if fred_helper.is_freelands() then
+    if fred_messages.is_freelands() then
 
         local version = wesnoth.get_variable('AI_Demos_version')
         version = version or '?.?.?'
@@ -47,9 +47,9 @@ function fred_helper.fred_hello()
     end
 end
 
-function fred_helper.fred_bye()
+function fred_messages.fred_bye()
     -- Good bye message for Fred AI
-    if fred_helper.is_freelands() then
+    if fred_messages.is_freelands() then
         W.delay { time = 300 }
         W.message {
             side = 1, canrecruit = 'yes',
@@ -58,4 +58,4 @@ function fred_helper.fred_bye()
     end
 end
 
-return fred_helper
+return fred_messages
