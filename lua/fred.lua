@@ -1038,7 +1038,7 @@ if 1 then return zone_cfgs end
         ----- Functions for getting the best actions -----
 
         ----- Attack: -----
-        function fred:zone_action_attack(zonedata, gamedata, move_cache)
+        function fred:get_attack_action(zonedata, gamedata, move_cache)
             print_time(zonedata.cfg.id, 'attack')
             --DBG.dbms(zonedata.cfg)
 
@@ -1503,7 +1503,7 @@ if 1 then return zone_cfgs end
 
 
         ----- Hold: -----
-        function fred:zone_action_hold(zonedata, gamedata, move_cache)
+        function fred:get_hold_action(zonedata, gamedata, move_cache)
 
             print('Hold evaluation: ' .. zonedata.cfg.zone_id)
             --DBG.dbms(zonedata.cfg)
@@ -2019,7 +2019,7 @@ if 1 then return zone_cfgs end
 
 
         ----- Advance: -----
-        function fred:zone_action_advance(zonedata, gamedata, move_cache)
+        function fred:get_advance_action(zonedata, gamedata, move_cache)
             print('Advance evaluation: ' .. zonedata.cfg.zone_id)
             --DBG.dbms(zonedata.cfg)
             --DBG.dbms(gamedata.village_map)
@@ -2132,7 +2132,7 @@ if 1 then return zone_cfgs end
 
 
         ----- Retreat: -----
-        function fred:zone_action_retreat_injured(zonedata, gamedata)
+        function fred:get_retreat_action(zonedata, gamedata)
             -- **** Retreat seriously injured units
             --print_time('retreat')
 
@@ -2437,7 +2437,7 @@ if 1 then return zone_cfgs end
                 print_time('  ' .. cfg.zone_id .. ': retreat_injured eval')
                 -- TODO: heal_loc and safe_loc are not used at this time
                 -- keep for now and see later if needed
-                local action, healloc, safeloc = fred:zone_action_retreat_injured(zonedata, gamedata)
+                local action, healloc, safeloc = fred:get_retreat_action(zonedata, gamedata)
                 if action then
                     --print(action.action)
                     return action
@@ -2447,7 +2447,7 @@ if 1 then return zone_cfgs end
             -- **** Attack evaluation ****
             if (cfg.actions.attack) then
                 print_time('  ' .. cfg.zone_id .. ': attack eval')
-                local action = fred:zone_action_attack(zonedata, gamedata, move_cache)
+                local action = fred:get_attack_action(zonedata, gamedata, move_cache)
                 if action then
                     --print(action.action)
                     return action
@@ -2457,7 +2457,7 @@ if 1 then return zone_cfgs end
             -- **** Hold position evaluation ****
             if (cfg.actions.hold) then
                 print_time('  ' .. cfg.zone_id .. ': hold eval')
-                local action = fred:zone_action_hold(zonedata, gamedata, move_cache)
+                local action = fred:get_hold_action(zonedata, gamedata, move_cache)
                 if action then
                     --print_time(action.action)
                     return action
@@ -2467,7 +2467,7 @@ if 1 then return zone_cfgs end
             -- **** Advance in zone evaluation ****
             if (cfg.actions.advance) then
                 print_time('  ' .. cfg.zone_id .. ': advance eval')
-                local action = fred:zone_action_advance(zonedata, gamedata, move_cache)
+                local action = fred:get_advance_action(zonedata, gamedata, move_cache)
                 if action then
                     --print_time(action.action)
                     return action
