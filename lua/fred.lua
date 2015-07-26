@@ -2474,20 +2474,7 @@ if 1 then return zone_cfgs end
                 end
             end
 
-
-if 1 then return end
-
-            -- Now we retreat injured units to other (unsafe) locations
-            if (not cfg.do_action) or cfg.do_action.retreat_injured_unsafe then
-                if (not cfg.skip_action) or (not cfg.skip_action.retreat_injured_unsafe) then
-                    if retreat_action then
-                        --print(action.action)
-                        return retreat_action
-                    end
-                end
-            end
-
-            return nil  -- This is technically unnecessary
+            return nil  -- This is technically unnecessary, just for clarity
         end
 
 
