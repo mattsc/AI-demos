@@ -178,27 +178,6 @@ return {
             return rating -- return nil if we got here
         end
 
-        function fred:full_offensive()
-            -- Returns true if the conditions to go on all-out offensive are met
-            -- Full offensive mode is done mostly by the RCA AI
-            -- This is a placeholder for now until Fred is better at the endgame
-
-            local my_hp, enemy_hp = 0, 0
-            for id,_ in pairs(fred.data.gamedata.units) do
-                local unit_side = fred.data.gamedata.unit_infos[id].side
-                if (unit_side == wesnoth.current.side) then
-                    my_hp = my_hp + fred.data.gamedata.unit_infos[id].hitpoints
-                elseif wesnoth.is_enemy(unit_side, wesnoth.current.side) then
-                    enemy_hp = enemy_hp + fred.data.gamedata.unit_infos[id].hitpoints
-                end
-            end
-
-            local hp_ratio = my_hp / (enemy_hp + 1e-6)
-
-            if (hp_ratio > 1.5) and (wesnoth.current.turn >= 5) then return true end
-            return false
-        end
-
         function fred:zone_action_hold(zonedata, gamedata, move_cache)
 
             print('Hold evaluation: ' .. zonedata.cfg.zone_id)
@@ -898,8 +877,6 @@ return {
                     .. sides[side].leader_type .. ', ' .. side_info.gold .. ' gold)'
                 )
             end
-
-            --if fred:full_offensive() then print(' Full offensive mode') end
         end
 
         ------ Clear self.data table at end of turn -----------
