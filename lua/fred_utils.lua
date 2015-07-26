@@ -1,7 +1,20 @@
 local H = wesnoth.require "lua/helper.lua"
 local W = H.set_wml_action_metatable {}
 
+-- TODO: Some functions are currently repeats of those in ai_helper
+-- Trying not to use ai_helper for now.
+
 local fred_utils = {}
+
+function fred_utils.clear_labels()
+    -- Clear all labels on a map
+    local width, height = wesnoth.get_map_size()
+    for x = 1,width do
+        for y = 1,height do
+            W.label { x = x, y = y, text = "" }
+        end
+    end
+end
 
 function fred_utils.put_fgumap_labels(map, key, cfg)
     -- Take @map (in the format as defined in fred_gamestate_utils (fgu) and put
@@ -78,6 +91,31 @@ function fred_utils.put_fgumap_labels(map, key, cfg)
     end
 end
 
+function fred_utils.get_fgumap_value(map, x, y, key, alt_value)
+    return (map[x] and map[x][y] and map[x][y][key]) or alt_value
+end
+
+function fred_utils.set_fgumap_value(map, x, y, key, value)
+    if (not map[x]) then map[x] = {} end
+    if (not map[x][y]) then map[x][y] = {} end
+    map[x][y][key] = value
+end
+
+function fred_utils.get_unit_time_of_day_bonus(alignment, lawful_bonus)
+    local multiplier = 1
+    if (lawful_bonus ~= 0) then
+        if (alignment == 'lawful') then
+            multiplier = (1 + lawful_bonus / 100.)
+        elseif (alignment == 'chaotic') then
+            multiplier = (1 - lawful_bonus / 100.)
+        elseif (alignment == 'liminal') then
+            multipler = (1 - math.abs(lawful_bonus) / 100.)
+        end
+    end
+    return multiplier
+end
+
+
 function fred_utils.cfg_default(parm)
     local cfg = {
         value_ratio = 0.8,  -- how valuable are own units compared to enemies
@@ -115,13 +153,83 @@ function fred_utils.unit_value(unit_info, cfg)
     end
 
     -- Being closer to leveling makes the unit more valuable
+    -- Square so that a few XP don't matter, but being close to leveling is important
     -- TODO: consider using a more precise measure here
-    local xp_bonus = unit_info.experience / unit_info.max_experience
+    local xp_bonus = (unit_info.experience / unit_info.max_experience)^2
     unit_value = unit_value * (1. + xp_bonus * xp_weight)
 
     --print('FU.unit_value:', unit_info.id, unit_value)
 
     return unit_value
+end
+
+function fred_utils.unit_power(unit_info, cfg)
+    -- Use sqrt() here so that just missing a few HP does not matter much
+    local hp_mod = math.sqrt(unit_info.hitpoints / unit_info.max_hitpoints)
+
+    local power = fred_utils.unit_value(unit_info, cfg)
+    power = power * hp_mod * unit_info.tod_mod
+
+    return power
+end
+
+function fred_utils.unit_damage_rating(hp, max_hp, max_damage, tod_mod)
+    -- Use sqrt() here so that just missing a few HP does not matter much
+    local hp_mod = math.sqrt(hp / max_hp)
+
+    local power = max_damage * hp_mod * tod_mod
+
+    return power
+end
+
+function fred_utils.get_influence_maps(my_attack_map, enemy_attack_map)
+    -- For now, we use combined unit_power as the influence
+
+    local influence_map = {}
+
+    for x,arr in pairs(my_attack_map) do
+        for y,data in pairs(arr) do
+            local my_influence = data.power
+
+            if (not influence_map[x]) then influence_map[x] = {} end
+            influence_map[x][y] = {
+                my_influence = my_influence,
+                enemy_influence = 0,
+                influence = my_influence,
+                tension = my_influence
+            }
+        end
+    end
+
+    for x,arr in pairs(enemy_attack_map) do
+        for y,data in pairs(arr) do
+            local enemy_influence = data.power
+
+            if (not influence_map[x]) then influence_map[x] = {} end
+            if (not influence_map[x][y]) then
+                influence_map[x][y] = {
+                    my_influence = 0,
+                    influence = 0,
+                    tension = 0
+                }
+            end
+
+            influence_map[x][y].enemy_influence = enemy_influence
+            influence_map[x][y].influence = influence_map[x][y].influence - enemy_influence
+            influence_map[x][y].tension = influence_map[x][y].tension + enemy_influence
+
+        end
+    end
+
+    for x,arr in pairs(influence_map) do
+        for y,data in pairs(arr) do
+            local vulnerability = data.tension - math.abs(data.influence)
+            influence_map[x][y].vulnerability = vulnerability
+        end
+    end
+
+
+    return influence_map
 end
 
 return fred_utils

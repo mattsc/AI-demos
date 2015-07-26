@@ -6,9 +6,10 @@ return {
         local H = wesnoth.require "lua/helper.lua"
         local W = H.set_wml_action_metatable {}
         local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
-        local FGU = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_utils.lua"
-        local FGUI = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
-        local FAU = wesnoth.require "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
+        local FGU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils.lua"
+        local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
+        local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
+        local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
         local LS = wesnoth.require "lua/location_set.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
         local R = wesnoth.require "~/add-ons/AI-demos/lua/retreat.lua"
@@ -28,11 +29,15 @@ return {
         end
 
         function fred:zone_advance_rating(zone_id, x, y, gamedata)
-            local rating = 0
+            local rating
 
             if (wesnoth.current.side == 1) then
-                if (zone_id == 'left') or (zone_id == 'rush_left') then
-                    rating = rating + y / 10.
+                if (zone_id == 'west') then
+                    -- Return nil for being outside certain areas
+                    if (x > 19) then return end
+                    if (x > 14) and (y > 6) and (y < 15) then return end
+
+                    rating = y
 
                     local x0 = 11
                     local goal_x, goal_y = 12, 18
@@ -52,8 +57,11 @@ return {
                     rating = rating - H.distance_between(x, y, goal_x, goal_y) / 1000.
                 end
 
-                if (zone_id == 'center') or (zone_id == 'rush_center') then
-                    rating = rating + y / 10.
+                if (zone_id == 'center') then
+                    -- Return nil for being outside certain areas
+                    if (x < 15) or (x > 23) then return end
+
+                    rating = y
 
                     local x0 = 19
                     local dx = math.abs(x - x0)
@@ -69,8 +77,12 @@ return {
                     end
                 end
 
-                if (zone_id == 'right') or (zone_id == 'rush_right') then
-                    rating = rating + y / 10.
+                if (zone_id == 'east') then
+                    -- Return nil for being outside certain areas
+                    if (x < 17) then return end
+                    if (x < 24) and (y > 8) and (y < 18) then return end
+
+                    rating = y
 
                     local x0 = 27
                     local goal_x, goal_y = 25, 19
@@ -91,7 +103,8 @@ return {
                 end
             end
 
-            if (wesnoth.current.side == 2) then
+            -- TODO: not set up for new method
+            if (wesnoth.current.side == '222xxx') then
                 if (zone_id == 'left') or (zone_id == 'rush_left') then
                     rating = rating - y / 10.
 
@@ -162,9 +175,10 @@ return {
                 end
             end
 
-            return rating
+            return rating -- return nil if we got here
         end
 
+        -- TODO: not currently used
         function fred:zone_loc_rating(zone_id, x, y)
             local rating = 0
 
@@ -217,7 +231,8 @@ return {
             return rating
         end
 
-        function fred:get_zone_cfgs(gamedata)
+        -- TODO: not used any more
+        function fred:get_zone_cfgs_old(gamedata)
             -- Set up the config table for the different map zones
             -- zone_id: ID for the zone; only needed for debug messages
             -- zone_filter: SLF describing the zone
@@ -245,10 +260,10 @@ return {
 
             local cfg_leader_threat = {
                 zone_id = 'leader_threat',
-                zone_filter = { { 'filter', { canrecruit = 'yes', side = wesnoth.current.side } } },
+                zone_filter = 'leader',
                 unit_filter = { x = '1-' .. width , y = '1-' .. height },
                 do_action = { attack = true },
-                attack = { use_enemies_in_reach = true, damage_ratio = 0.5 }
+                attack = { use_enemies_in_reach = true, value_ratio = 0.5 }
             }
 
             local cfg_center, cfg_rush_center, cfg_left, cfg_rush_left, cfg_right, cfg_rush_right
@@ -410,7 +425,7 @@ return {
             table.sort(sorted_cfgs, function(a, b) return a.score > b.score end)
 
             local cfgs = {}
-            table.insert(cfgs, cfg_full_map)
+--            table.insert(cfgs, cfg_full_map)
             table.insert(cfgs, cfg_leader_threat)
 
             for _,cfg in ipairs(sorted_cfgs) do
@@ -454,12 +469,31 @@ return {
             return false
         end
 
-        function fred:hold_zone(holders, zonedata, gamedata, move_cache)
+        function fred:zone_action_hold(zonedata, gamedata, move_cache)
 
-print(zonedata.cfg.zone_id)
-if (zonedata.cfg.zone_id ~= 'center') then
-    return
-end
+            print('Hold evaluation: ' .. zonedata.cfg.zone_id)
+            --DBG.dbms(zonedata.cfg)
+
+--if (zonedata.cfg.zone_id ~= 'west') then return end
+
+            --DBG.dbms(fred.data.analysis.status)
+
+            local raw_cfg = fred:get_raw_cfgs(zonedata.cfg.zone_id)
+            --DBG.dbms(raw_cfg)
+
+            local holders = {}
+
+            if zonedata.cfg.holders then
+                holders = zonedata.cfg.holders
+            else
+                for id,_ in pairs(gamedata.my_units_MP) do
+                    if (not gamedata.unit_infos[id].canrecruit) then
+                        holders[id] = gamedata.unit_infos[id].power
+                    end
+                end
+            end
+
+            if (not next(holders)) then return end
 
             -- This part starts with a quick and dirt zone analysis for what
             -- *might* be the best positions.  This is calculated by assuming
@@ -472,11 +506,22 @@ end
 
             local default_damage, default_strikes = 8, 2
 
+            -- TODO: do this overall, rather than for this action?
+            local zone = wesnoth.get_locations(raw_cfg.zone_filter)
+            local zone_map = {}
+            for _,loc in ipairs(zone) do
+                if (not zone_map[loc[1]]) then
+                    zone_map[loc[1]] = {}
+                end
+                zone_map[loc[1]][loc[2]] = true
+            end
+            --DBG.dbms(zone_map)
+
 
             -- Enemy rating map: average (over all enemy units) of damage received here
             -- Only use hexes the enemies can reach on this turn
             local enemy_rating_map = {}
-            for x,tmp in pairs(zonedata.zone_map) do
+            for x,tmp in pairs(zone_map) do
                 for y,_ in pairs(tmp) do
                     local hex_rating, count = 0, 0
                     for enemy_id,etm in pairs(gamedata.enemy_turn_maps) do
@@ -511,7 +556,7 @@ end
 
             local show_debug = false
             if show_debug then
-                AH.put_fgumap_labels(enemy_rating_map, 'rating')
+                FU.put_fgumap_labels(enemy_rating_map, 'rating')
                 W.message{ speaker = 'narrator', message = zonedata.cfg.zone_id .. ': enemy_rating_map' }
             end
 
@@ -545,7 +590,7 @@ end
 
             local show_debug = false
             if show_debug then
-                AH.put_fgumap_labels(leader_distance_map, 'distance')
+                FU.put_fgumap_labels(leader_distance_map, 'distance')
                 W.message{ speaker = 'narrator', message = zonedata.cfg.zone_id .. ': leader_distance_map' }
             end
 
@@ -557,7 +602,7 @@ end
             -- TODO: evaluate when this might break down
 
             indep_rating_map = {}
-            for x,tmp in pairs(zonedata.zone_map) do
+            for x,tmp in pairs(zone_map) do
                 for y,_ in pairs(tmp) do
                     local rating, adj_count = 0, 0
 
@@ -584,9 +629,9 @@ end
 
             local show_debug = false
             if show_debug then
-                AH.put_fgumap_labels(indep_rating_map, 'rating')
+                FU.put_fgumap_labels(indep_rating_map, 'rating')
                 W.message { speaker = 'narrator', message = 'Hold zone ' .. zonedata.cfg.zone_id .. ': unit-independent rating map: rating' }
-                AH.put_fgumap_labels(indep_rating_map, 'adj_count')
+                FU.put_fgumap_labels(indep_rating_map, 'adj_count')
                 W.message { speaker = 'narrator', message = 'Hold zone ' .. zonedata.cfg.zone_id .. ': unit-independent rating map: adjacent count' }
             end
 
@@ -637,7 +682,7 @@ end
 
                 show_debug = false
                 if show_debug then
-                    AH.put_fgumap_labels(unit_rating_maps[id], 'rating')
+                    FU.put_fgumap_labels(unit_rating_maps[id], 'rating')
                     wesnoth.add_tile_overlay(gamedata.units[id][1], gamedata.units[id][2], { image = "items/orcish-flag.png" })
                     W.message { speaker = 'narrator', message = 'Hold zone: unit-specific rating map: ' .. id }
                     wesnoth.remove_tile_overlay(gamedata.units[id][1], gamedata.units[id][2], { image = "items/orcish-flag.png" })
@@ -717,53 +762,115 @@ end
                 table.insert(rated_units, { id = id, rating = sum_best_ratings })
             end
 
+            -- Exclude units that have no reachable qualified hexes
+            for i_ru = #rated_units,1,-1 do
+                local id = rated_units[i_ru].id
+                if (#new_unit_ratings[id] == 0) then
+                    table.remove(rated_units, i_ru)
+                end
+            end
+
+            if (#rated_units == 0) then
+                return
+            end
+
             -- Sorting this will now give us the order of units to be considered
             table.sort(rated_units, function(a, b) return a.rating > b.rating end)
 
-            -- If there's only one unit, we're done and simply use the best hex found
-            if (#rated_units == 1) then
-                local id1 = rated_units[1].id
-
-                best_hexes = { { new_unit_ratings[id1][1].x, new_unit_ratings[id1][1].y } }
-                best_units = { gamedata.unit_infos[id1] }
-
-                return best_units, best_hexes
-            end
 
             -- Otherwise, we choose the best 2 or 3 units and do a combo
             -- placements analysis
             -- TODO: this is currently hard-coded to use 3 units if they are
             -- available, 2 otherwise.  Make this configurable later (and it's
             -- also quite inelegant this way!)
+            -- TODO: this entire section is a mess; needs serious cleanup
+
+            -- For holding, we are allowed to add units until we are above
+            -- the limit given by power_missing (not taking contingency into account)
+            local stage_status = fred.data.analysis.status[zonedata.cfg.stage_id] -- just for convenience for now
+            local power_missing = stage_status[zonedata.cfg.zone_id].power_missing
+            print('  power_missing', power_missing)
 
             local id1 = rated_units[1].id
+            local power1 = gamedata.unit_infos[id1].power
             local max_hexes_1 = math.min(max_hexes, #new_unit_ratings[id1])
-            --print(id1, max_hexes_1, #new_unit_ratings[id1])
+            print(id1, power1, max_hexes_1, #new_unit_ratings[id1])
 
-            local id2 = rated_units[2].id
-            local max_hexes_2 = math.min(max_hexes, #new_unit_ratings[id2])
-            --print(id2, max_hexes_2, #new_unit_ratings[id2])
+            local total_power = power1
+            print('    total_power 1:', total_power)
 
-            local id3, max_hexes_3
-            if (#rated_units > 2) then
-                id3 = rated_units[3].id
-                max_hexes_3 = math.min(max_hexes, #new_unit_ratings[id3])
-                --print(id3, max_hexes_3, #new_unit_ratings[id3])
+            -- If there's only one unit, we're done and simply use the best hex found
+            -- or if the missing power is used with the first unit
+            if (#rated_units == 1) or (total_power > power_missing) then
+                local x1 = new_unit_ratings[id1][1].x
+                local y1 = new_unit_ratings[id1][1].y
+
+                local old_locs = {
+                    { gamedata.unit_copies[id1].x, gamedata.unit_copies[id1].y }
+                }
+                local new_locs = {
+                    { x1, y1 }
+                }
+
+                local target1 = {}
+                target1[id1] = { x1, y1 }
+                local counter_stats1 = FAU.calc_counter_attack(target1, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
+
+                -- Important: the counter_stats rating is the rating of the
+                -- counter attack. We want this to be as *bad* as possible
+                local rating = - counter_stats1.rating
+
+                local acceptable_move = true
+                if zonedata.cfg.min_counter_rating and (rating < zonedata.cfg.min_counter_rating) then
+                    acceptable_move = false
+                end
+                print('      ', rating, zonedata.cfg.min_counter_rating, acceptable_move)
+
+                if acceptable_move then
+                    print('****** Found hold action:')
+
+                    best_hexes = { { new_unit_ratings[id1][1].x, new_unit_ratings[id1][1].y } }
+                    best_units = { gamedata.unit_infos[id1] }
+
+                    local action = { units = best_units, dsts = best_hexes }
+                    action.action = zonedata.cfg.zone_id .. ': ' .. 'hold position'
+
+                    return action
+                elseif zonedata.cfg.min_counter_rating then
+                    return
+                end
             end
 
-            max_hexes = nil -- just so that it is not accidentally used
+            local id2 = rated_units[2].id
+            local power2 = gamedata.unit_infos[id2].power
+            local max_hexes_2 = math.min(max_hexes, #new_unit_ratings[id2])
+            print(id2, power2, max_hexes_2, #new_unit_ratings[id2])
 
+            total_power = total_power + power2
+            print('    total_power 2:', total_power)
+
+            local id3, max_hexes_3
+            if ((total_power < power_missing) and (#rated_units > 2)) then
+                id3 = rated_units[3].id
+                max_hexes_3 = math.min(max_hexes, #new_unit_ratings[id3])
+                print(id3, max_hexes_3, #new_unit_ratings[id3])
+            end
+
+
+
+
+            max_hexes = nil -- just so that it is not accidentally used
 
             local max_rating, best_combo = -9e99, {}
 
             for i1 = 1, max_hexes_1 do
-                x1 = new_unit_ratings[id1][i1].x
-                y1 = new_unit_ratings[id1][i1].y
+                local x1 = new_unit_ratings[id1][i1].x
+                local y1 = new_unit_ratings[id1][i1].y
                 --print(x1 .. ',' .. y1)
 
                 for i2 = 1, max_hexes_2 do
-                    x2 = new_unit_ratings[id1][i2].x
-                    y2 = new_unit_ratings[id1][i2].y
+                    local x2 = new_unit_ratings[id2][i2].x
+                    local y2 = new_unit_ratings[id2][i2].y
 
                     if (x2 == x1) and (y2 == y1) then
                         -- If this hex is already used by first unit
@@ -778,8 +885,8 @@ end
 
                         if id3 then
                             for i3 = 1, max_hexes_3 do
-                                x3 = new_unit_ratings[id1][i3].x
-                                y3 = new_unit_ratings[id1][i3].y
+                                local x3 = new_unit_ratings[id3][i3].x
+                                local y3 = new_unit_ratings[id3][i3].y
 
                                 if ((x3 == x1) and (y3 == y1)) or ((x3 == x2) and (y3 == y2)) then
                                     -- If this hex is already used by first or second unit
@@ -868,85 +975,123 @@ end
                 end
             end
 
-            -- TODO: For now, we only consider holding of threatened hexes here.
-            -- Advancing on unthreatened hexes will be dealt with separately in
-            -- the future, but we keep the code below for reference until then
-            if 1 then return best_units, best_hexes end
+            if best_units then
+                print('****** Found hold action:')
+                local action = { units = best_units, dsts = best_hexes }
+                action.action = zonedata.cfg.zone_id .. ': ' .. 'hold position'
+                return action
+            end
+        end
 
-            if (max_rating > -9e99) then
-                -- If the best hex is unthreatened,
-                -- check whether another mostly unthreatened hex farther
-                -- advanced in the zone can be gotten to.
-                -- This needs to be separate from and in addition to the step above (if unit cannot get into zone)
 
-                local hp_factor = 1.1
+        function fred:zone_action_advance(zonedata, gamedata, move_cache)
+            print('Advance evaluation: ' .. zonedata.cfg.zone_id)
+            --DBG.dbms(zonedata.cfg)
+            --DBG.dbms(gamedata.village_map)
 
-                local enemy_hp =
-                    gamedata.enemy_attack_map[best_hex[1]]
-                    and gamedata.enemy_attack_map[best_hex[1]][best_hex[2]]
-                    and gamedata.enemy_attack_map[best_hex[1]][best_hex[2]].hitpoints
-                enemy_hp = enemy_hp or 0
+            --DBG.dbms(gamedata.my_units_MP)
+            --DBG.dbms(gamedata.enemy_attack_map[1])
 
-                if (enemy_hp == 0) then
-                    --print(zonedata.cfg.zone_id, ': reconsidering best hex', best_unit.id, '->', best_hex[1], best_hex[2])
+            -- Don't need to enforce a resource limit here, as this is one
+            -- unti at a time.  It will be checked before the action is called.
 
-                    local new_rating_map = {}
-                    max_rating = -9e99
-                    for x,tmp in pairs(gamedata.reach_maps[best_unit.id]) do
-                        for y,_ in pairs(tmp) do
-                            -- ... or if it is threatened by less HP than the unit moving there has itself
-                            -- This is only approximate, of course, potentially to be changed later
-                            local enemy_hp =
-                                gamedata.enemy_attack_map[x]
-                                and gamedata.enemy_attack_map[x][y]
-                                and gamedata.enemy_attack_map[x][y].hitpoints
-                            enemy_hp = enemy_hp or 0
+            local max_rating, best_unit, best_hex = -9e99
+            for id,loc in pairs(gamedata.my_units_MP) do
+                -- We do not check if the leader is on the keep since a higher
+                -- ranked action would have moved him there first
+                -- However, the leader only participates in village grabbing
+                local is_leader = gamedata.unit_infos[id].canrecruit
 
-                            local best_unit_rating =
-                                best_unit_rating_map[x]
-                                and best_unit_rating_map[x][y]
-                                and best_unit_rating_map[x][y].rating
-                            best_unit_rating = best_unit_rating or 1
+                -- TODO: change retreat.lua so that it uses the gamedata tables
+                local min_hp = R.min_hp(gamedata.unit_copies[id])
+                local must_retreat = gamedata.unit_copies[id].hitpoints < min_hp
+                --print(id, min_hp, must_retreat)
 
-                            if (enemy_hp == 0) or
-                                ((enemy_hp < best_unit.hitpoints * hp_factor) and (best_unit_rating > 0))
-                            then
-                                local rating = fred:zone_advance_rating(zonedata.cfg.zone_id, x, y, gamedata)
+                local unit_rating_map = {}
 
-                                -- If the unit is injured and does not regenerate,
-                                -- then we very strongly prefer villages
+                for x,tmp in pairs(gamedata.reach_maps[id]) do
+                    for y,_ in pairs(tmp) do
+                        -- only consider unthreatened hexes
+                        local threat = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'power')
 
-                                if (best_unit.hitpoints < R.min_hp(gamedata.unit_copies[best_unit.id]))
-                                    and (not gamedata.unit_infos[best_unit.id].regenerate)
-                                then
-                                    if gamedata.village_map[x] and gamedata.village_map[x][y] then
-                                        rating = rating + 1000
-                                    end
+                        local zone_rating = fred:zone_advance_rating(zonedata.cfg.zone_id, x, y, gamedata)
+                        if zone_rating and (not threat) then
+                            local rating
+
+                            if (not is_leader) and (not must_retreat) then
+                                -- Want to use faster units preferentially
+                                rating = zone_rating + gamedata.unit_infos[id].max_moves
+
+                                -- All else being equal, use the more powerful unit
+                                rating = rating + gamedata.unit_infos[id].power / 100.
+                            end
+
+                            -- Unowned and enemy_owned villages are much preferred
+                            -- and get a very different rating
+                            -- This part is also done for the leader
+                            -- and for severely injured units
+                            -- Retreating injured units to AI owned and other safe
+                            -- locations is done separately (TODO: reconsider that)
+                            local owner = FU.get_fgumap_value(gamedata.village_map, x, y, 'owner')
+                            if owner and (owner ~= wesnoth.current.side) then
+                                if (owner == 0) then
+                                    rating = 1000
+                                else
+                                    rating = 2000
                                 end
 
-                                if (not new_rating_map[x]) then new_rating_map[x] = {} end
-                                new_rating_map[x][y] = { rating = rating }
+                                -- In this case, farther back in the zone is better
+                                rating = rating - zone_rating
 
-                                if (rating > max_rating) then
-                                    max_rating = rating
-                                    best_hex = { x, y }
+                                -- Want the most seriously injured units
+                                local dhp = gamedata.unit_infos[id].max_hitpoints - gamedata.unit_infos[id].hitpoints
+
+                                if is_leader then
+                                    dhp = dhp * 2  -- damage to leader counts double
+                                    dhp = dhp + 1  -- prefer leader, all else being equal
                                 end
+
+                                rating = rating + dhp
+
+                                -- And more urgency to poisoned units
+                                -- This is intentionally set to 12 = 8 * 1.5
+                                if gamedata.unit_copies[id].status.poisoned then
+                                    rating = rating + 12
+                                end
+
+                                -- Finally, the faster unit is again preferred,
+                                -- but in this case that's a minor rating
+                                rating = rating + gamedata.unit_infos[id].max_moves / 100
+                            end
+
+                            if rating and (rating > max_rating) then
+                                max_rating = rating
+                                best_unit = gamedata.unit_infos[id]
+                                best_hex = { x, y }
+                            end
+
+                            if rating then
+                                FU.set_fgumap_value(unit_rating_map, x, y, 'rating', rating)
                             end
                         end
                     end
-
-                    if show_debug then
-                        AH.put_fgumap_labels(new_rating_map, 'rating')
-                        W.message { speaker = 'narrator', message = 'new_rating_map' }
-                    end
                 end
 
+                show_debug = false
                 if show_debug then
-                    local loc = gamedata.units[best_unit.id]
-                    wesnoth.message('Best unit: ' .. best_unit.id .. ' at ' .. loc[1] .. ',' .. loc[2] .. ' --> ' .. best_hex[1] .. ',' .. best_hex[2] .. '  (rating=' .. max_rating .. ')')
-                    wesnoth.select_hex(best_hex[1], best_hex[2])
+                    FU.put_fgumap_labels(unit_rating_map, 'rating')
+                    wesnoth.add_tile_overlay(gamedata.units[id][1], gamedata.units[id][2], { image = "items/orcish-flag.png" })
+                    W.message { speaker = 'narrator', message = 'Advance zone: unit-specific rating map: ' .. id }
+                    wesnoth.remove_tile_overlay(gamedata.units[id][1], gamedata.units[id][2], { image = "items/orcish-flag.png" })
                 end
-                return best_unit, best_hex
+            end
+
+
+            if best_unit then
+                print('****** Found advance action:')
+                local action = { units = { best_unit }, dsts = { best_hex } }
+                action.action = zonedata.cfg.zone_id .. ': ' .. 'advance'
+                return action
             end
         end
 
@@ -1006,7 +1151,7 @@ end
             for x,tmp in pairs(fred.data.gamedata.village_map) do
                 for y,village in pairs(tmp) do
                     local owner = fred.data.gamedata.village_map[x][y].owner
-                    if owner then
+                    if (owner > 0) then
                         sides[owner].num_villages = (sides[owner].num_villages or 0) + 1
                     end
 
@@ -1024,7 +1169,7 @@ end
                 )
             end
 
-            if fred:full_offensive() then print(' Full offensive mode') end
+            --if fred:full_offensive() then print(' Full offensive mode') end
         end
 
         ------ Clear self.data table at end of turn -----------
@@ -1040,6 +1185,867 @@ end
             -- This is mostly done so that there is no chance of corruption of savefiles
             fred.data = {}
         end
+
+        ------ Map analysis at beginning of turn -----------
+
+        function fred:get_raw_cfgs(zone_id)
+            local cfg_west = {
+                zone_id = 'west',
+                key_hexes = { { 8,8 },  { 11,9 }, { 14,8 } },
+                target_zone = { x = '1-15', y = '7-14' },
+                zone_filter = { x = '4-14', y = '7-15' },
+                villages = {
+                    suf = { x = '1-14', y = '1-10' },
+                    villages_per_unit = 2
+                }
+            }
+
+            local cfg_center = {
+                zone_id = 'center',
+                key_hexes = { { 17,10 },  { 18,9 }, { 20,9 }, { 22,10 } },
+                target_zone = { x = '16-23', y = '8-14' },
+                zone_filter = { x = '15-24', y = '8-16' },
+                villages = {
+                    suf = { x = '16-21', y = '7-10' },
+                    villages_per_unit = 2
+                }
+            }
+
+            local cfg_east = {
+                zone_id = 'east',
+                key_hexes = { { 25,12 },  { 27,11 }, { 29,11 }, { 32,10 } },
+                target_zone = { x = '24-99', y = '9-18' },
+                zone_filter = { x = '24-34', y = '9-17' },
+                villages = {
+                    suf = { x = '22-34', y = '1-10' },
+                    villages_per_unit = 2
+                }
+            }
+
+            local cfgs = {
+                cfg_west,
+                cfg_center,
+                cfg_east
+            }
+
+            if (not zone_id) then
+               return cfgs
+            else
+                for _,cfg in pairs(cfgs) do
+                    if (cfg.zone_id == zone_id) then
+                        return cfg
+                    end
+                end
+            end
+        end
+
+        function fred:analyze_defend_zones(gamedata)
+            local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
+            if AH.print_eval() then print_time('     - Evaluating zone_control CA:') end
+
+            -- Some pointers just for convenience
+            local stage_id = fred.data.analysis.stage_ids[fred.data.analysis.stage_counter]
+            local stage_status = fred.data.analysis.status[stage_id]
+
+
+            print('\n---------------------------------------')
+            --for k,v in pairs(gamedata) do print(k) end
+            --DBG.dbms(gamedata.enemy_turn_maps)
+
+            local raw_cfgs = fred:get_raw_cfgs()
+            --DBG.dbms(raw_cfgs)
+
+            zone_cfgs = {}
+
+            local cfg_attack = { use_max_damage_weapons = true }
+
+
+            local influence_maps = FU.get_influence_maps(gamedata.my_attack_map[1], gamedata.enemy_attack_map[1])
+--DBG.dbms(gamedata.my_attack_map[1])
+
+            local show_debug = false
+            if show_debug then
+                FU.put_fgumap_labels(influence_maps, 'my_influence')
+                W.message{ speaker = 'narrator', message = 'my_influence' }
+                FU.put_fgumap_labels(influence_maps, 'enemy_influence')
+                W.message{ speaker = 'narrator', message = 'enemy_influence' }
+                FU.put_fgumap_labels(influence_maps, 'influence')
+                W.message{ speaker = 'narrator', message = 'influence' }
+                FU.put_fgumap_labels(influence_maps, 'tension')
+                W.message{ speaker = 'narrator', message = 'tension' }
+                FU.put_fgumap_labels(influence_maps, 'vulnerability')
+                W.message{ speaker = 'narrator', message = 'vulnerability' }
+            end
+
+
+            local map_analysis = { zones = {} }
+            local MA = map_analysis -- just for convenience
+            local MAZ = map_analysis.zones -- just for convenience
+
+            -- First calculate power that has been used for the zone already
+            --DBG.dbms(gamedata.my_move_map[2])
+            print('power_used:')
+
+            for _,cfg in ipairs(raw_cfgs) do
+                local village_count = 0  -- unowned and enemy-owned villages
+                for x,tmp in pairs(gamedata.village_map) do
+                    for y,village in pairs(tmp) do
+
+                        if wesnoth.match_location(x, y, cfg.villages.suf) then
+                            if (village.owner ~= wesnoth.current.side) then
+                                village_count = village_count + 1
+                            end
+                        end
+                    end
+                end
+
+                local n_units_needed = math.ceil(village_count / cfg.villages.villages_per_unit)
+                --print('  units needed for villages: ' .. cfg.zone_id, village_count, n_units_needed)
+
+
+                stage_status[cfg.zone_id] = {
+                    power_used = 0,
+                    n_units_needed = n_units_needed,
+                    n_units_used = 0,
+                    units_used = {}
+                }
+            end
+
+            for id,zone_id in pairs(fred.data.analysis.status.units_used) do
+                -- Check whether unit still exists and has no MP left
+                -- This is a safeguard against "unusual stuff"
+                if gamedata.my_units_noMP[id] then
+                    if (not gamedata.unit_infos[id].canrecruit) then
+                        local power = gamedata.unit_infos[id].power
+                        stage_status[zone_id].power_used = stage_status[zone_id].power_used + power
+                        stage_status[zone_id].n_units_used = stage_status[zone_id].n_units_used + 1
+                        stage_status[zone_id].units_used[id] = power
+                    end
+                else
+                    fred.data.analysis.status.units_used[id] = nil
+                end
+            end
+
+            -- TODO: disable this for now; may or may not be reactivated later
+            -- For example, we might want to include units that were used for
+            -- what does not count into one of the zones
+            while false do
+            for id,loc in pairs(gamedata.my_units_noMP) do
+                print(id)
+
+                local in_zone
+                for _,cfg in ipairs(raw_cfgs) do
+                    if (not in_any_zone) then
+                        if wesnoth.match_unit(gamedata.unit_copies[id], cfg.zone_filter) then
+                            in_zone = cfg.zone_id
+                        end
+                    end
+                end
+
+                if in_zone then
+                    print('  is in: ', in_zone)
+                    local power = gamedata.unit_infos[id].power
+                    stage_status[in_zone].power_used = stage_status[in_zone].power_used + power
+                    stage_status[in_zone].n_units_used = stage_status[in_zone].n_units_used + 1
+                    stage_status[in_zone].units_used[id] = power
+                else
+                    local can_reach = {}
+                    for _,cfg in ipairs(raw_cfgs) do
+                        --print(cfg.zone_id)
+                        for _,hex in pairs(cfg.key_hexes) do
+                            local ids = gamedata.my_move_map[2][hex[1]]
+                               and gamedata.my_move_map[2][hex[1]][hex[2]]
+                               and gamedata.my_move_map[2][hex[1]][hex[2]].ids
+                               or {}
+                            --DBG.dbms(ids)
+
+                            for _,tmp_id in ipairs(ids) do
+                                if (tmp_id == id) then
+                                    --print(  'can reach:' .. cfg.zone_id)
+                                    can_reach[cfg.zone_id] = true
+                                    -- Cannot add up the count here, as same unit might be able to reach several key hexes
+                                end
+                            end
+                        end
+                    end
+
+                    local power = gamedata.unit_infos[id].power
+                    local count = 0
+                    for zid,_ in pairs(can_reach) do count = count + 1 end
+                    --print(power,count)
+                    for zid,_ in pairs(can_reach) do
+                        stage_status[zid].power_used = stage_status[zid].power_used + power / count
+                        stage_status[zid].n_units_used = stage_status[zid].n_units_used + 1 / count
+                        stage_status[zid].units_used[id] = power / count
+                    end
+                end
+            end
+            end  -- end disabling this part
+
+
+            -- T1 threats: those enemies that can attack a key hex in one move
+            -- Enemy units that are T1 threats in several zones are counted
+            -- multiple times by this. That is intentional.
+
+            local threats1_all_zones = {}
+            local my_power1_all_zones = {}
+            for _,cfg in ipairs(raw_cfgs) do
+                print(cfg.zone_id)
+                local threats1_zone = {}  -- This is just for this zone
+                local my_power_zone = {}  -- This is just for this zone
+                for _,hex in pairs(cfg.key_hexes) do
+                    local x, y = hex[1], hex[2]
+
+                    -- Enemies that can attack a key hex
+                    local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids', {})
+                    for _,id in pairs(ids) do
+                        threats1_zone[id] = gamedata.unit_infos[id].power
+                        threats1_all_zones[id] = true
+                    end
+
+                    -- AI units which can move to a key hex
+                    local ids = FU.get_fgumap_value(gamedata.my_move_map[1], x, y, 'ids', {})
+                    for _,id in pairs(ids) do
+                        if (not gamedata.unit_infos[id].canrecruit) then
+                            my_power_zone[id] = gamedata.unit_infos[id].power
+                            my_power1_all_zones[id] = gamedata.unit_infos[id].power
+                        end
+                    end
+                end
+
+                -- In addition, this must count units that have moved in the zone
+                -- already (which might or might not be included in the above
+                -- metric, depending on whether they moved onto a key hex
+                for id,power in pairs(stage_status[cfg.zone_id].units_used) do
+                    print('  already used:', id, power)
+                    my_power_zone[id] = power
+                    my_power1_all_zones[id] = power
+                end
+
+                -- Now add up the power of all T1 threats on this zone
+                local enemy_power1 = 0
+                for id,power in pairs(threats1_zone) do
+                    enemy_power1 = enemy_power1 + power
+                end
+                print('  enemy_power1:', enemy_power1)
+
+                local my_power1 = 0
+                for id,power in pairs(my_power_zone) do
+                    my_power1 = my_power1 + power
+                end
+                print('  my_power1:', my_power1)
+
+                -- And finally, save it all in the threats table
+                MAZ[cfg.zone_id] = {
+                    enemy_power1 = enemy_power1,
+                    my_power1 = my_power1,
+                    my_units1 = my_power_zone,
+                    raw_cfg = cfg,
+                    raw_targets = threats1_zone
+                }
+            end
+            --DBG.dbms(threats1_all_zones)
+            --DBG.dbms(my_power1_all_zones)
+            --DBG.dbms(MAZ['west'])
+
+
+            -- T2 threats: those enemies that can get to a key hex in two moves
+            -- Enemy units that are T1 threats in a different zone need to be
+            -- excluded from this.
+            -- The power of enemy units that are T2 threats in several zones is
+            -- divided evenly between those zones
+            -- Own units that have moves but can get to the zone next turn are
+            -- included in my_move_map[2] automatically
+
+            local threats2_by_zone = {} -- This is to collect T2 threats for all zones first
+            for _,cfg in ipairs(raw_cfgs) do
+                threats2_by_zone[cfg.zone_id] = {}
+
+                for _,hex in pairs(cfg.key_hexes) do
+                    local x, y = hex[1], hex[2]
+
+                    local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[2], x, y, 'ids', {})
+                    for _,id in pairs(ids) do
+                        -- Only units that are note T1 threats can be T2 threats
+                        if (not threats1_all_zones[id]) then
+                            threats2_by_zone[cfg.zone_id][id] = gamedata.unit_infos[id].power
+                        end
+                    end
+                end
+            end
+            --DBG.dbms(threats2_by_zone)
+
+            -- Count how many times each of the T2 threats appears across all zones
+            local threats2_all_zones = {}
+            for _,ids in pairs(threats2_by_zone) do
+                for id,_ in pairs(ids) do
+                    threats2_all_zones[id] = (threats2_all_zones[id] or 0) + 1
+                end
+            end
+            --DBG.dbms(threats2_all_zones)
+
+            -- Then divide the power for each zone by that count
+            for zone_id,ids in pairs(threats2_by_zone) do
+                local enemy_power2 = 0
+                for id,power in pairs(ids) do
+                    enemy_power2 = enemy_power2 + power / threats2_all_zones[id]
+                end
+
+                MAZ[zone_id].enemy_power2 = enemy_power2
+            end
+
+            -- For the own units, we do T2 the same way as T1, that is, we do
+            -- double count here at this stage
+            -- However, we need to exclude units that are on the T1 list (they might
+            -- have been included through having been used already)
+            local my_power2_all_zones = {}
+            for _,cfg in ipairs(raw_cfgs) do
+                print(cfg.zone_id)
+                local my_power_zone = {}  -- This is just for this zone
+                for _,hex in pairs(cfg.key_hexes) do
+                    local x, y = hex[1], hex[2]
+
+                    local ids = FU.get_fgumap_value(gamedata.my_move_map[2], x, y, 'ids', {})
+                    for _,id in pairs(ids) do
+
+                        if (not MAZ[cfg.zone_id].my_units1[id])
+                            and (not gamedata.unit_infos[id].canrecruit)
+                        then
+                            my_power_zone[id] = gamedata.unit_infos[id].power
+                            my_power2_all_zones[id] = gamedata.unit_infos[id].power
+                        end
+                    end
+                end
+
+                -- Now add up the power of all T2 units for this zone
+                local my_power2 = 0
+                for id,power in pairs(my_power_zone) do
+                    my_power2 = my_power2 + power
+                end
+                print('  my_power2:', my_power2)
+
+                -- And finally, save it all in the threats table
+                MAZ[cfg.zone_id].my_power2 = my_power2
+                MAZ[cfg.zone_id].my_units2 = my_power_zone
+            end
+            --DBG.dbms(my_power1_all_zones)
+            --DBG.dbms(my_power2_all_zones)
+
+            -- Calculate vulnerability for the zones
+            -- TODO: currently this is not used; either use or remove
+            for _,cfg in ipairs(raw_cfgs) do
+                local max_vul = 0
+                for _,hex in pairs(cfg.key_hexes) do
+                    local x, y = hex[1], hex[2]
+                    local vulnerability = FU.get_fgumap_value(influence_maps, x, y, 'vulnerability', 0)
+
+                    if (vulnerability > max_vul) then
+                        max_vul = vulnerability
+                    end
+                end
+
+                MAZ[cfg.zone_id].vulnerability = max_vul
+            end
+
+            MA.enemy_power1, MA.enemy_power2 = 0, 0
+            for zone_id,power in pairs(MAZ) do
+                MA.enemy_power1 = MA.enemy_power1 + power.enemy_power1
+                MA.enemy_power2 = MA.enemy_power2 + power.enemy_power2
+            end
+            print('enemy_power:', MA.enemy_power1, MA.enemy_power2, MA.enemy_power1 + MA.enemy_power2)
+
+
+            -- What does AI have:
+            --DBG.dbms(gamedata.my_units)
+
+            -- First, count overall power of AI units (excluding leader)
+            -- This only counts units once, even if they appear in several zones
+            MA.my_power1, MA.my_power2 = 0, 0
+            for id,power in pairs(my_power1_all_zones) do
+                MA.my_power1 = MA.my_power1 + power
+            end
+            for id,power in pairs(my_power2_all_zones) do
+                if (not my_power1_all_zones[id]) then
+                    MA.my_power2 = MA.my_power2 + power
+                end
+            end
+            print('my_power:', MA.my_power1, MA.my_power2, MA.my_power1 + MA.my_power2)
+
+            MA.value_ratio = FU.cfg_default('value_ratio')
+            MA.power_needed = (MA.enemy_power1 + MA.enemy_power2) * MA.value_ratio
+            MA.contingency = (MA.my_power1 + MA.my_power2) - MA.power_needed
+            if (MA.contingency < 0) then MA.contingency = 0 end
+            print('power_needed, contingency', MA.power_needed, MA.contingency)
+
+
+
+            ----- Start the zone analysis comparison -----
+            -- TODO: should be possible to combine some of these steps
+            -- Leave them separate for now for clarity
+            print('---- Zone evaluation ----')
+
+            for zone_id,data in pairs(MAZ) do
+                print(zone_id .. ':')
+
+                local dpower1 = data.my_power1 - data.enemy_power1
+                local dpower2 = data.my_power2 - data.enemy_power2
+                print('  T1:', data.my_power1, -data.enemy_power1, dpower1)
+                print('  T2:', data.my_power2, -data.enemy_power2, dpower2)
+                print('  All:', data.my_power1+data.my_power2, -data.enemy_power1-data.enemy_power2, data.my_power1 + data.my_power2 - data.enemy_power1 - data.enemy_power2)
+
+                local vul1 = data.my_power1 + data.enemy_power1 - math.abs(data.my_power1 - data.enemy_power1)
+                local vul2 = data.my_power2 + data.enemy_power2 - math.abs(data.my_power2 - data.enemy_power2)
+                print('  Vul:', data.vulnerability, vul1, vul2, vul1 + vul2)
+
+                data.rating1 = -dpower1 -- + vul1 TODO: reconsider this rating
+                data.rating2 = -dpower2 -- + vul2
+                print('rating 1 & 2', data.rating1, data.rating2)
+
+                stage_status[zone_id].rating = data.rating1
+                stage_status.contingency = MA.contingency
+            end
+
+--DBG.dbms(MAZ)
+            -- Get action config for T1
+            local attack_cfgs = {}
+            for zone_id,data in pairs(MAZ) do
+                local zone_cfg = { zone_id = zone_id }
+                zone_cfg.target_zone = data.raw_cfg.target_zone
+                zone_cfg.rating = data.rating1
+                zone_cfg.stage_id = stage_id
+                zone_cfg.targets = {}
+
+                -- Also add in the targets, but now use only those that are inside cfg.target_zone
+                for id,_ in pairs(data.raw_targets) do
+                    if wesnoth.match_unit(gamedata.unit_copies[id], data.raw_cfg.target_zone) then
+                        local target = {}
+                        target[id] = gamedata.enemies[id]
+                        table.insert(zone_cfg.targets, target)
+                    end
+                end
+
+                -- This is the sum of both T1 and T2!!
+                local power_needed = (data.enemy_power1 + data.enemy_power2) * MA.value_ratio
+                stage_status[zone_id].power_needed = power_needed
+
+                if (data.my_power1 > 0) then
+                    zone_cfg.actions = { attack = true }
+                else
+                    -- TODO: Could exclude table entry in the first place, but leave for now for clarity
+                    zone_cfg.actions = {}
+                end
+
+
+                table.insert(attack_cfgs, zone_cfg)
+            end
+            table.sort(attack_cfgs, function(a, b) return a.rating > b.rating end)
+            --DBG.dbms(attack_cfgs)
+
+            fred.data.zone_cfgs = {}
+            for _,cfg in pairs(attack_cfgs) do
+                table.insert(fred.data.zone_cfgs, cfg)
+            end
+
+
+            --DBG.dbms(fred.data.zone_cfgs)
+
+
+            --print('\nSend units to:')
+
+            local tmp_cfgs_hold = {}
+            local tmp_cfgs_advance = {}
+            local hold = {
+                total_needed = MA.power_needed,
+                total_available = MA.my_power1 + MA.my_power2
+            }
+
+            local power_fac = 1
+            if (hold.total_available < hold.total_needed) then
+                power_fac = hold.total_available / hold.total_needed
+            end
+            stage_status.power_fac = power_fac
+
+
+            for zone_id,data in pairs(MAZ) do
+                --print(zone_id)
+
+--DBG.dbms(stage_status[zone_id])
+                local power_needed = stage_status[zone_id].power_needed
+                local power_used = stage_status[zone_id].power_used
+                local power_missing = (power_needed - power_used) * power_fac
+                stage_status[zone_id].power_missing = power_missing
+
+                hold[zone_id] = {
+                    units = {}
+                }
+
+                --print('  power needed, used, missing:')
+                --print(power_needed, power_used, power_missing)
+                for id,power in pairs(data.my_units1) do
+                    if (not stage_status[zone_id].units_used[id]) then
+                        --print('  1: ' .. id, power)
+                        hold[zone_id].units[id] = power
+                    end
+                end
+                for id,power in pairs(data.my_units2) do
+                    if (not stage_status[zone_id].units_used[id]) then
+                        --print('  2: ' .. id, power)
+--xxxxx                        hold[zone_id].units[id] = power
+                    end
+                end
+
+                -- Now add up the power of all those units
+                local power_available = 0
+                for id,power in pairs(hold[zone_id].units) do
+                    power_available = power_available + power
+                end
+                hold[zone_id].power_available = power_available
+                hold[zone_id].rating = power_missing - power_available
+
+                local cfg = {
+                    zone_id = zone_id,
+                    stage_id = stage_id,
+                    actions = { hold = true },
+min_counter_rating = -1,
+                    rating = hold[zone_id].rating,
+                    holders = hold[zone_id].units
+                }
+                table.insert(tmp_cfgs_hold, cfg)
+
+                -- And for advancing, it's very similar, but number of units
+                -- needed plays the most important role here
+                rating = hold[zone_id].rating / 1000
+                    + stage_status[zone_id].n_units_needed - stage_status[zone_id].n_units_used
+
+                local cfg = {
+                    zone_id = zone_id,
+                    stage_id = stage_id,
+                    actions = { advance = true },
+                    rating = rating
+                }
+                table.insert(tmp_cfgs_advance, cfg)
+            end
+
+            table.sort(tmp_cfgs_hold, function(a, b) return a.rating > b.rating end)
+            --DBG.dbms(tmp_cfgs_hold)
+            for _,cfg in pairs(tmp_cfgs_hold) do
+                table.insert(fred.data.zone_cfgs, cfg)
+            end
+
+            table.sort(tmp_cfgs_advance, function(a, b) return a.rating > b.rating end)
+            --DBG.dbms(tmp_cfgs_advance)
+            for _,cfg in pairs(tmp_cfgs_advance) do
+                table.insert(fred.data.zone_cfgs, cfg)
+            end
+
+            -- At the end, we add all the attack cfgs again, but with
+
+            --DBG.dbms(fred.data.zone_cfgs)
+if 1 then return end
+
+
+            -- Get action config for T2
+            local tmp_actions = {}
+            for zone_id,data in pairs(MAZ) do
+                local zone_actions = {
+                    zone_id = zone_id,
+                    rating = data.rating2,
+                    stage_id = stage_id
+                }
+
+                -- This is the sum of both T1 and T2!!
+                zone_actions.power_needed = (data.enemy_power1 + data.enemy_power2) * MA.value_ratio
+
+                if (data.my_power2 > 0) then
+                    zone_actions.actions = { attack = true, hold = true }
+                else
+                    -- Could exclude table entry in the first place, but leave for now for clarity
+                    zone_actions.actions = {}
+                end
+
+
+                table.insert(tmp_actions, zone_actions)
+            end
+            table.sort(tmp_actions, function(a, b) return a.rating > b.rating end)
+            --DBG.dbms(tmp_actions)
+
+            for _,action in pairs(tmp_actions) do
+                table.insert(MAA, action)
+            end
+
+
+
+if 1 then return zone_cfgs end
+
+
+
+
+
+
+
+
+
+            -- Start with an analysis of the threat to the AI leader
+            local leader_x = gamedata.leaders[wesnoth.current.side][1]
+            local leader_y = gamedata.leaders[wesnoth.current.side][2]
+            print(leader_x, leader_y)
+
+            local leader_proxy = wesnoth.get_unit(leader_x, leader_y)
+
+            local enemy_leader_loc = {}
+            for side,loc in ipairs(gamedata.leaders) do
+                if wesnoth.is_enemy(side, wesnoth.current.side) then
+                    enemy_leader_loc = loc
+                    break
+                end
+            end
+
+            local my_hp, my_num, my_value = 0, 0, 0
+            local enemy_hp, enemy_num, enemy_value = 0, 0, 0
+
+            local my_defenders = {}
+
+            local direct_threats = gamedata.enemy_attack_map[leader_x]
+                and gamedata.enemy_attack_map[leader_x][leader_y]
+                and gamedata.enemy_attack_map[leader_x][leader_y].ids
+            --DBG.dbms(direct_threats)
+
+            local kill_threats, threats = {}, {}
+
+            for _,enemy_id in ipairs(direct_threats) do
+                local enemy_x,enemy_y = gamedata.unit_copies[enemy_id].x, gamedata.unit_copies[enemy_id].y
+
+                --print('Evaluating leader threat by:', enemy_id, enemy_x, enemy_y)
+
+                enemy_hp = enemy_hp + gamedata.unit_infos[enemy_id].hitpoints
+                enemy_num = enemy_num + 1.
+
+                local value = FU.unit_value(gamedata.unit_infos[enemy_id], {})
+                enemy_value = enemy_value + value
+
+                local max_rating, chance_to_die = -9e99, 0
+
+                for xa,ya in H.adjacent_tiles(leader_x, leader_y) do
+                    if gamedata.enemy_turn_maps[enemy_id][xa]
+                       and gamedata.enemy_turn_maps[enemy_id][xa][ya]
+                       and (gamedata.enemy_turn_maps[enemy_id][xa][ya].turns <= 1)
+                    then
+                        --print('  can reach', xa, ya)
+
+                        local att_stat, def_stat = FAU.battle_outcome(
+                            gamedata.unit_copies[enemy_id], leader_proxy, {xa, ya},
+                            gamedata.unit_infos[enemy_id], gamedata.unit_infos[leader_proxy.id],
+                            gamedata, fred.data.move_cache, cfg_attack
+                        )
+                        --DBG.dbms(def_stat)
+
+                        -- Don't need to set value_ratio or anything, as we are only interested
+                        -- in defender_rating
+                        local rating, attacker_rating, defender_rating, extra_rating = FAU.attack_rating(
+                            { gamedata.unit_infos[enemy_id] },
+                            gamedata.unit_infos[leader_proxy.id],
+                            { { xa, ya } },
+                            { att_stat }, def_stat, gamedata, cfg_attack
+                        )
+                        --print('  rating, attacker_rating, defender_rating, extra_rating:', rating, attacker_rating, defender_rating, extra_rating)
+
+                        -- We're only interested in the damage done to the AI leader here
+                        if (defender_rating > max_rating) then
+                            max_rating = defender_rating
+                            chance_to_die = def_stat.hp_chance[0]
+                        end
+                    end
+                end
+                --print('    -> best attack:', max_rating, chance_to_die)
+
+                local threat = {}
+                threat[enemy_id] = {
+                    enemy_x, enemy_y,
+                    threat_rating = max_rating
+                }
+                if (chance_to_die > 0) then
+                    table.insert(kill_threats, threat)
+                else
+                    table.insert(threats, threat)
+                end
+
+                -- Get own units that can attack this enemy (excluding side leader)
+                local defenders = gamedata.my_attack_map[enemy_x]
+                    and gamedata.my_attack_map[enemy_x][enemy_y]
+                    and gamedata.my_attack_map[enemy_x][enemy_y].ids
+                --DBG.dbms(defenders)
+
+                for _,defender_id in ipairs(defenders) do
+                    if (not gamedata.unit_infos[defender_id].canrecruit) then
+                        my_defenders[defender_id] = true
+                    end
+                end
+
+            end
+            --print('enemy_hp, enemy_num, enemy_value', enemy_hp, enemy_num, enemy_value)
+
+            --DBG.dbms(my_defenders)
+            local my_hp, my_num, my_value = 0, 0, 0
+
+            for my_id,_ in pairs(my_defenders) do
+                my_hp = my_hp + gamedata.unit_infos[my_id].hitpoints
+                my_num = my_num + 1.
+
+                local value = FU.unit_value(gamedata.unit_infos[my_id], {})
+                my_value = my_value + value
+            end
+            --print('my_hp, my_num, my_value         ', my_hp, my_num, my_value)
+
+            local value_ratio = my_value / enemy_value
+            if (value_ratio < 0.5) then value_ratio = 0.5 end
+            if (value_ratio > 0.8) then value_ratio = 0.8 end
+            --print('value_ratio', value_ratio)
+
+            if next(kill_threats) then
+                table.insert(zone_cfgs, {
+                    id = 'leader_kill_threats',
+                    zone_filter = 'leader',
+                    unit_filter = {}, -- all units
+                    actions = { attack = true, hold = true },
+                    enemies = kill_threats,
+                    value_ratio = 0.5  -- always be very aggressive on these units
+                })
+            end
+
+            if next(threats) then
+                table.insert(zone_cfgs, {
+                    id = 'leader_threats',
+                    zone_filter = 'leader',
+                    unit_filter = {}, -- all units
+                    actions = { attack = true, hold = true },
+                    enemies = threats,
+                    value_ratio = value_ratio
+                })
+            end
+            --DBG.dbms(zone_cfgs)
+
+            return zone_cfgs
+        end
+
+        function fred:analyze_all_map(gamedata)
+            local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'all_map'
+            if AH.print_eval() then print_time('     - Evaluating all_map CA:') end
+
+            -- Some pointers just for convenience
+            local stage_id = fred.data.analysis.stage_ids[fred.data.analysis.stage_counter]
+            local stage_status = fred.data.analysis.status[stage_id]
+
+            print('\n---------------------------------------')
+
+            fred.data.zone_cfgs = {}
+
+
+
+            ----- Attack all remaining valid targets -----
+
+            local zone_id = 'attack_all'
+
+            -- This is needed throughout the code, just needs to be set to
+            -- give unlimited resources here
+            stage_status.contingency = 0
+            stage_status[zone_id] = {
+                power_missing = 9999,
+                power_needed = 0,
+                power_used = 0,
+                n_units_needed = 0,
+                n_units_used = 0,
+                units_used = {}
+            }
+
+            local attack_all_cfg = {
+                zone_id = zone_id,
+                stage_id = stage_id,
+                actions = { attack = true }
+            }
+
+            table.insert(fred.data.zone_cfgs, attack_all_cfg)
+
+
+
+            ----- Retreat remaining injured units -----
+
+            local zone_id = 'retreat'
+
+            -- This is needed throughout the code, just needs to be set to
+            -- give unlimited resources here
+            stage_status.contingency = 0
+            stage_status[zone_id] = {
+                power_missing = 9999,
+                power_needed = 0,
+                power_used = 0,
+                n_units_needed = 0,
+                n_units_used = 0,
+                units_used = {}
+            }
+
+            local retreat_cfg = {
+                zone_id = zone_id,
+                stage_id = stage_id,
+                actions = { retreat = true }
+            }
+
+            table.insert(fred.data.zone_cfgs, retreat_cfg)
+
+
+            ----- Rush in east (hold and advance) -----
+            local zone_id = 'east'
+
+            -- This is needed throughout the code, just needs to be set to
+            -- give unlimited resources here
+            stage_status.contingency = 0
+            stage_status[zone_id] = {
+                power_missing = 9999,
+                power_needed = 0,
+                power_used = 0,
+                n_units_needed = 0,
+                n_units_used = 0,
+                units_used = {}
+            }
+
+            local retreat_cfg = {
+                zone_id = zone_id,
+                stage_id = stage_id,
+                actions = { hold = true, advance = true }
+--                actions = { hold = true }
+            }
+
+            table.insert(fred.data.zone_cfgs, retreat_cfg)
+
+        end
+
+
+        function fred:analyze_map(gamedata)
+            -- Some pointers just for convenience
+            local status = fred.data.analysis.status
+            local stage_id = fred.data.analysis.stage_ids[fred.data.analysis.stage_counter]
+
+            print('Doing map analysis for stage: ' .. stage_id)
+
+            if (not status[stage_id]) then
+                status[stage_id] = {}
+            end
+
+            if (stage_id == 'leader_threat') then
+                fred.data.zone_cfgs = {}
+                return
+            end
+
+            if (stage_id == 'defend_zones') then
+                fred:analyze_defend_zones(gamedata)
+                return
+            end
+
+            if (stage_id == 'all_map') then
+                fred:analyze_all_map(gamedata)
+                return
+            end
+        end
+
 
         ------ Move leader to keep -----------
 
@@ -1176,108 +2182,19 @@ end
             end
         end
 
-        function fred:zone_action_villages(zonedata, gamedata, move_cache)
-            -- Otherwise we go for unowned and enemy-owned villages
-            -- This needs to happen for all units, not just not-injured ones
-            -- Also includes the leader, if he's on his keep
-            -- The rating>100 part is to exclude threatened but already owned villages
-
-            local villages = {}
-            for x,arr in pairs(gamedata.village_map) do
-                for y,village in pairs(arr) do
-                    if zonedata.zone_map[x] and zonedata.zone_map[x][y] then
-                        table.insert(villages, { x, y, owner = village.owner })
-                    end
-                end
-            end
-
-            -- Check if a zone unit can get to any of the zone villages
-            local max_rating, best_village, best_unit = -9e99, {}, {}
-            for _,village in ipairs(villages) do
-                for id,unit_loc in pairs(zonedata.zone_units_MP) do
-                    --print(id, village[1], village[2])
-
-                    if gamedata.reach_maps[id][village[1]] and gamedata.reach_maps[id][village[1]][village[2]] then
-                        -- Calculate counter attack outcome
-                        local target = {}
-                        target[id] = { village[1], village[2] }
-
-                        local old_locs = { { gamedata.unit_copies[id].x, gamedata.unit_copies[id].y } }
-                        local new_locs = { { village[1], village[2] } }
-
-                        local counter_stats = FAU.calc_counter_attack(target, old_locs, new_locs, gamedata, move_cache)
-                        --DBG.dbms(counter_stats)
-
-                        -- Maximum allowable chance to die
-                        local max_hp_chance_zero = 0.33
-                        if gamedata.unit_infos[id].canrecruit then max_hp_chance_zero = 0 end
-
-                        if (counter_stats.hp_chance[0] <= max_hp_chance_zero) then
-                            local rating = 0
-
-                            -- Unowned and enemy-owned villages get a large bonus
-                            -- but we do not seek them out specifically, as the standard CA does that
-                            -- That means, we only do the rest for villages that can be reached by an enemy
-                            if (not village.owner) then
-                                rating = rating + 1000
-                            else
-                                if wesnoth.is_enemy(village.owner, wesnoth.current.side) then rating = rating + 2000 end
-                            end
-                            --print(' owner rating', rating)
-
-                            -- It is impossible for these numbers to add up to zero, so we do the
-                            -- detail rating only for those
-                            if (rating ~= 0) then
-                                -- Take the most injured unit preferentially
-                                -- It was checked above that chance to die is acceptable
-                                rating = rating + (gamedata.unit_infos[id].max_hitpoints - gamedata.unit_infos[id].hitpoints) / 100.
-                                --print(' HP rating', rating)
-
-                                -- We also want to move the "farthest back" unit first
-                                -- and take villages from the back first
-                                local unit_advance_rating = fred:zone_advance_rating(
-                                    zonedata.cfg.zone_id, unit_loc[1], unit_loc[2], gamedata
-                                )
-                                local village_advance_rating = fred:zone_advance_rating(
-                                    zonedata.cfg.zone_id, village[1], village[2], gamedata
-                                )
-                                --print(' unit_advance_rating, village_advance_rating', unit_advance_rating, village_advance_rating)
-
-                                rating = rating - unit_advance_rating / 10. - village_advance_rating / 1000.
-
-                                -- If this is the leader, make him the preferred village taker
-                                if gamedata.unit_infos[id].canrecruit then
-                                    rating = rating + 2
-                                end
-
-                                if (rating > max_rating) then
-                                    max_rating, best_village, best_unit = rating, village, gamedata.unit_infos[id]
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-            --print('max_rating', max_rating, best_village[1], best_village[2])
-
-            if (max_rating > -9e99) then
-                local action = { units = {}, dsts = {} }
-                action.units[1], action.dsts[1] = best_unit, best_village
-                action.rating = max_rating
-                action.action = zonedata.cfg.zone_id .. ': ' .. 'grab villages'
-                return action
-            end
-        end
 
         function fred:zone_action_attack(zonedata, gamedata, move_cache)
-            --print_time(zonedata.cfg.zone_id, 'attack')
+            print_time(zonedata.cfg.id, 'attack')
+            --DBG.dbms(zonedata.cfg)
 
             local targets = {}
             -- If cfg.attack.use_enemies_in_reach is set, we use all enemies that
             -- can get to the zone (Note: this should only be used for small zones,
             -- such as that consisting only of the AI leader position, otherwise it
             -- might be very slow!!!)
-            if zonedata.cfg.attack and zonedata.cfg.attack.use_enemies_in_reach then
+            if zonedata.cfg.targets then
+                targets = zonedata.cfg.targets
+            elseif zonedata.cfg.use_enemies_in_reach then
                 for id,loc in pairs(gamedata.enemies) do
                     for x,tmp in pairs(zonedata.zone_map) do
                         for y,_ in pairs(tmp) do
@@ -1293,7 +2210,8 @@ end
                         end
                     end
                 end
-            -- Otherwise use all units inside the zone
+            -- Otherwise use all units inside the zone (or all units on the
+            -- map if cfg.unit_filter is not set)
             else
                 for id,loc in pairs(gamedata.enemies) do
                     if wesnoth.match_unit(gamedata.unit_copies[id], zonedata.cfg.unit_filter) then
@@ -1303,11 +2221,25 @@ end
                     end
                 end
             end
+            print('  #targets', #targets)
+            --DBG.dbms(targets)
 
             local attacker_map = {}
             for id,loc in pairs(zonedata.zone_units_attacks) do
                 attacker_map[loc[1] * 1000 + loc[2]] = id
             end
+
+            -- How much more valuable do we consider the enemy units than our own
+            local value_ratio = FU.cfg_default('value_ratio')
+            if zonedata.cfg.value_ratio then
+                value_ratio = zonedata.cfg.value_ratio
+            end
+            print_time('value_ratio', value_ratio)
+
+            local cfg_attack = {
+                value_ratio = value_ratio,
+                use_max_damage_weapons = true
+            }
 
             local combo_ratings = {}
             for _,target in pairs(targets) do
@@ -1318,19 +2250,40 @@ end
                 if gamedata.unit_infos[target_id].skirmisher then
                     is_trappable_enemy = false
                 end
-                --print(target_id, '  trappable:', is_trappable_enemy)
-
-                -- How much more valuable do we consider the enemy units than our own
-                local damage_ratio = 0.8
-                if zonedata.cfg.actions.attack.damage_ratio then
-                    damage_ratio = zonedata.cfg.actions.attack.damage_ratio
-                end
-                --print_time('\n', target_id, damage_ratio)
+                print(target_id, '  trappable:', is_trappable_enemy)
 
                 local attack_combos = FAU.get_attack_combos(
-                    zonedata.zone_units_attacks, target, gamedata.reach_maps
+                    zonedata.zone_units_attacks, target, gamedata.reach_maps, false, move_cache, cfg_attack
                 )
-                --print_time('#attack_combos', #attack_combos)
+                print_time('#attack_combos', #attack_combos)
+
+                -- Check if this exceeds allowable resources
+                -- For attacks, we allow use of power up to power_missing + contingency
+
+                -- TODO: check: table.remove might be slow
+                local stage_status = fred.data.analysis.status[zonedata.cfg.stage_id] -- just for convenience for now
+                local power_missing = stage_status[zonedata.cfg.zone_id].power_missing
+                local contingency = stage_status.contingency
+
+                local allowable_power = power_missing + contingency
+                print('  Allowable power (power_missing + contingency ): ' .. power_missing .. ' + ' .. contingency .. ' = ' .. allowable_power)
+
+                for j = #attack_combos,1,-1 do
+                    local combo = attack_combos[j]
+                    local total_power = 0
+                    for src,dst in pairs(combo) do
+                        --print('    attacker power:', gamedata.unit_infos[attacker_map[src]].id, gamedata.unit_infos[attacker_map[src]].power)
+                        total_power = total_power + gamedata.unit_infos[attacker_map[src]].power
+                    end
+                    --print('      total_power: ', j, total_power)
+
+                    if (total_power > allowable_power) then
+                        --print('      ----> eliminating this attack')
+                        table.remove(attack_combos, j)
+                    end
+                end
+                print_time('#attack_combos', #attack_combos)
+
 
                 local enemy_on_village = gamedata.village_map[target_loc[1]]
                     and gamedata.village_map[target_loc[1]][target_loc[2]]
@@ -1360,7 +2313,7 @@ end
                         FAU.attack_combo_eval(
                             attacker_copies, target_proxy, dsts,
                             attacker_infos, gamedata.unit_infos[target_id],
-                            gamedata, move_cache
+                            gamedata, move_cache, cfg_attack
                     )
                     --DBG.dbms(combo_def_stat)
                     --print('   combo ratings:  ', combo_rating, combo_att_rating, combo_def_rating)
@@ -1368,9 +2321,9 @@ end
                     -- Don't attack if the leader is involved and has chance to die > 0
                     local do_attack = true
 
-                    --print('     damage taken, done, damage_ratio:', combo_att_rating, combo_def_rating, damage_ratio)
+                    --print('     damage taken, done, value_ratio:', combo_att_rating, combo_def_rating, value_ratio)
                     -- Note: att_rating is the negative of the damage taken
-                    if (not FAU.is_acceptable_attack(-combo_att_rating, combo_def_rating, damage_ratio)) then
+                    if (not FAU.is_acceptable_attack(-combo_att_rating, combo_def_rating, value_ratio)) then
                         do_attack = false
                     end
 
@@ -1521,7 +2474,7 @@ end
                             def_stat = combo_def_stat,
                             att_rating = combo_att_rating,
                             def_rating = combo_def_rating,
-                            damage_ratio = damage_ratio
+                            value_ratio = value_ratio
                         })
                     end
                 end
@@ -1536,7 +2489,7 @@ end
             for count,combo in ipairs(combo_ratings) do
                 if (count > 50) and action then break end
 
-                --print_time('Checking counter attack for attack on', count, next(combo.target), combo.damage_ratio, combo.rating)
+                --print_time('Checking counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating)
 
                 -- TODO: the following is slightly inefficient, as it places units and
                 -- takes them off again several times for the same attack combo.
@@ -1567,6 +2520,8 @@ end
 
                 -- Also set the hitpoints for the defender
                 local target_id, target_loc = next(combo.target)
+                -- TODO: change how threat_rating is stored?
+                local threat_rating = target_loc.threat_rating or 0
                 local target_proxy = wesnoth.get_unit(target_loc[1], target_loc[2])
                 local old_HP_target = target_proxy.hitpoints
                 local hp = combo.def_stat.average_hp
@@ -1587,7 +2542,7 @@ end
                     attacker_moved[attacker.id] = { combo.dsts[i_a][1], combo.dsts[i_a][2] }
 
                     local counter_stats = FAU.calc_counter_attack(
-                        attacker_moved, old_locs, combo.dsts, gamedata, move_cache
+                        attacker_moved, old_locs, combo.dsts, gamedata, move_cache, cfg_attack
                     )
 
                     local counter_rating = counter_stats.rating
@@ -1642,9 +2597,9 @@ end
                     else  -- Or for normal units, evaluate whether the attack is worth it
                         local damage_taken = - combo.att_rating + counter_def_rating
                         local damage_done = combo.def_rating - counter_att_rating
-                        --print('     damage taken, done, damage_ratio:', damage_taken, damage_done, combo.damage_ratio)
+                        --print('     damage taken, done, value_ratio:', damage_taken, damage_done, combo.value_ratio)
 
-                        if (not FAU.is_acceptable_attack(damage_taken, damage_done, combo.damage_ratio)) then
+                        if (not FAU.is_acceptable_attack(damage_taken, damage_done, combo.value_ratio)) then
                             acceptable_counter = false
                             break
                         end
@@ -1665,18 +2620,25 @@ end
                 gamedata.unit_copies[target_id].hitpoints = old_HP_target
                 target_proxy.hitpoints = old_HP_target
 
-                --print_time('acceptable_counter', acceptable_counter)
+                --print_time('  acceptable_counter', acceptable_counter)
                 if acceptable_counter then
                     local total_rating = combo.rating - max_counter_rating
-                    --print('rating, counter_rating, total_rating', combo.rating, max_counter_rating, total_rating)
-                    -- Only execute the first of these attacks
+                    print('Acceptable counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating)
+                    print('  rating, counter_rating, total_rating', combo.rating, max_counter_rating, total_rating)
+                    print('  threat_rating:', threat_rating)
+
+                    -- Of the acceptable attacks, prioritize them by threat_rating
+                    -- As both the total rating and the threat_rating are supposed to
+                    -- be in units of gold, they can simply be added
+
+                    total_rating = total_rating + threat_rating
 
                     if (total_rating > max_total_rating) then
                         max_total_rating = total_rating
 
                         action = { units = {}, dsts = {}, enemy = combo.target }
                         action.units, action.dsts = combo.attackers, combo.dsts
-                        action.action = zonedata.cfg.zone_id .. ': ' .. 'attack'
+                        action.action = 'attack'
                     end
                 end
             end
@@ -1684,110 +2646,8 @@ end
             return action  -- returns nil is no acceptable attack was found
         end
 
-        function fred:zone_action_hold(zonedata, gamedata, move_cache)
-            --print_time('hold', zonedata.cfg.zone_id)
-
-            -- The leader does not participate in position holding (for now, at least)
-            -- We also exclude severely injured units
-            local holders = {}
-            for id,loc in pairs(zonedata.zone_units_MP) do
-                if (not gamedata.unit_infos[id].canrecruit)
-                    and (gamedata.unit_infos[id].hitpoints >= R.min_hp(gamedata.unit_copies[id]))
-                then
-                    holders[id] = loc
-                end
-            end
-
-            if (not next(holders)) then return end
-
-            -- Only check for possible position holding if hold.hp_ratio and hold.unit_ratio are met
-            -- If hold.hp_ratio and hold.unit_ratio are not provided, holding is done by default
-            local eval_hold = true
-
-            if zonedata.cfg.hold and zonedata.cfg.hold.hp_ratio then
-                --print('Checking for HP ratio', zonedata.cfg.zone_id, zonedata.cfg.hold.hp_ratio)
-
-                local hp_units_noMP = 0
-                for id,loc in pairs(zonedata.zone_units_noMP) do
-                    hp_units_noMP = hp_units_noMP + gamedata.unit_infos[id].hitpoints
-                end
-
-                local hp_ratio = 1000
-                if (zonedata.cfg.hp_enemies > 0) then
-                    hp_ratio = hp_units_noMP / zonedata.cfg.hp_enemies
-                end
-                --print('  hp_ratio', hp_ratio)
-
-                if (hp_ratio >= zonedata.cfg.hold.hp_ratio) then
-                    eval_hold = false
-                end
-            end
-            --print('eval_hold 1', eval_hold)
-
-            if eval_hold and zonedata.cfg.hold and zonedata.cfg.hold.unit_ratio then
-                --print('Checking for unit ratio', zonedata.cfg.zone_id, zonedata.cfg.hold.unit_ratio)
-
-                local num_units_noMP = 0
-                for id,loc in pairs(zonedata.zone_units_noMP) do
-                    num_units_noMP = num_units_noMP + 1
-                end
-
-                local unit_ratio = 1000
-                if (zonedata.cfg.num_enemies > 0) then
-                    unit_ratio = num_units_noMP / zonedata.cfg.num_enemies
-                end
-                --print('  unit_ratio', unit_ratio)
-
-                if (unit_ratio >= zonedata.cfg.hold.unit_ratio) then
-                    eval_hold = false
-                end
-            end
-            --print('eval_hold 2', eval_hold)
-
-            -- If there are unoccupied or enemy-occupied villages in the hold zone, send units there,
-            -- if we do not have enough units that have moved already in the zone
-            if (not eval_hold) then
-                local units_per_village = 0.5
-                if zonedata.cfg.villages and zonedata.cfg.villages.units_per_village then
-                    units_per_village = zonedata.cfg.villages.units_per_village
-                end
-
-                local count_units_noMP = 0
-                for id,_ in pairs(zonedata.zone_units_noMP) do
-                    if (not gamedata.unit_infos[id].canrecruit) then
-                        count_units_noMP = count_units_noMP + 1
-                    end
-                end
-
-                local count_not_own_villages = 0
-                for x,arr in pairs(gamedata.village_map) do
-                    for y,village in pairs(arr) do
-                        if zonedata.zone_map[x] and zonedata.zone_map[x][y] then
-                            if (not village.owner) or wesnoth.is_enemy(village.owner, wesnoth.current.side) then
-                                count_not_own_villages = count_not_own_villages + 1
-                            end
-                        end
-                    end
-                end
-
-                if (count_units_noMP < count_not_own_villages * units_per_village) then
-                    eval_hold, get_villages = true, true
-                end
-            end
-            --print('eval_hold 2', eval_hold)
-
-            if eval_hold then
-                local units, dsts = fred:hold_zone(holders, zonedata, gamedata, move_cache)
-
-                local action
-                if unit then
-                    action = { units = { unit }, dsts = { dst } }
-                    action.action = zonedata.cfg.zone_id .. ': ' .. 'hold position'
-                end
-                return action
-            end
-        end
-
+        --TODO: not currently used
+        --   -> go through for useful code, otherwise delete
         function fred:high_priority_attack(unit_info, zonedata, gamedata, move_cache)
             local attacker = {}
             attacker[unit_info.id] = gamedata.units[unit_info.id]
@@ -1797,7 +2657,8 @@ end
                 local target = {}
                 target[enemy_id] = enemy_loc
 
-                local attacks = FAU.get_attack_combos(attacker, target, gamedata.reach_maps)
+                -- Don't use cfg_attack = { use_max_damage_weapons = true } here
+                local attacks = FAU.get_attack_combos(attacker, target, gamedata.reach_maps, move_cache)
 
                 for _,attack in ipairs(attacks) do
                     local src, dst = next(attack)
@@ -1811,6 +2672,7 @@ end
                             unit_info, gamedata.unit_infos[enemy_id], gamedata, move_cache
                         )
 
+                        -- Don't use cfg_attack = { use_max_damage_weapons = true } here
                         local rating = FAU.attack_rating(
                             { unit_info }, gamedata.unit_infos[enemy_id], { dst },
                             { att_stat }, def_stat, gamedata
@@ -1841,6 +2703,8 @@ end
             --  1. Zones get done one at a time (rather than one CA at a time)
             --  2. Relative scoring of different types of moves is possible
 
+            if (not next(cfg.actions)) then return end
+
             local zonedata = {
                 zone_units = {},
                 zone_units_MP = {},
@@ -1849,6 +2713,7 @@ end
                 cfg = cfg
             }
 
+            -- TODO: currently cfg.unit_filter is not set -> this defaults to all units
             for id,loc in pairs(gamedata.my_units) do
                 if wesnoth.match_unit(gamedata.unit_copies[id], cfg.unit_filter) then
                     zonedata.zone_units[id] = loc
@@ -1883,71 +2748,69 @@ end
             end
 
             if (not next(zonedata.zone_units_MP)) and (not next(zonedata.zone_units_attacks)) then return end
+            --DBG.dbms(zonedata)
 
-            local zone = wesnoth.get_locations(cfg.zone_filter)
-            zonedata.zone_map = {}
-            for _,loc in ipairs(zone) do
-                if (not zonedata.zone_map[loc[1]]) then
-                    zonedata.zone_map[loc[1]] = {}
-                end
-                zonedata.zone_map[loc[1]][loc[2]] = true
-            end
+
+
+            --local zone
+            --if (cfg.zone_filter == 'leader') then
+            --    zone = { gamedata.leaders[wesnoth.current.side] }
+            --else
+            --    zone = wesnoth.get_locations(cfg.zone_filter)
+            --end
+            --zonedata.zone_map = {}
+            --for _,loc in ipairs(zone) do
+            --    if (not zonedata.zone_map[loc[1]]) then
+            --        zonedata.zone_map[loc[1]] = {}
+            --    end
+            --    zonedata.zone_map[loc[1]][loc[2]] = true
+            --end
+            --DBG.dbms(zone)
 
             -- **** Retreat severely injured units evaluation ****
-            --print_time('  ' .. cfg.zone_id .. ': retreat_injured eval')
-            local retreat_action
-            if (not cfg.do_action) or cfg.do_action.retreat_injured_safe then
-                if (not cfg.skip_action) or (not cfg.skip_action.retreat_injured) then
-                    local healloc, safeloc  -- boolean indicating whether the destination is a healing location
-                    retreat_action, healloc, safeloc = fred:zone_action_retreat_injured(zonedata, gamedata)
-                    -- Only retreat to healing locations at this time, other locations later
-                    if retreat_action and healloc and safeloc then
-                        --print(action.action)
-                        return retreat_action
-                    end
-                end
-            end
-
-            -- **** Villages evaluation -- unowned and enemy-owned villages ****
-            --print_time('  ' .. cfg.zone_id .. ': villages eval')
-            local village_action = nil
-            if (not cfg.do_action) or cfg.do_action.villages then
-                if (not cfg.skip_action) or (not cfg.skip_action.villages) then
-                    village_action = fred:zone_action_villages(zonedata, gamedata, move_cache)
-                    if village_action and (village_action.rating > 100) then
-                        --print_time(village_action.action)
-                        local attack_action = fred:high_priority_attack(village_action.units[1], zonedata, gamedata, move_cache)
-                        return attack_action or village_action
-                    end
+            if (cfg.actions.retreat) then
+                print_time('  ' .. cfg.zone_id .. ': retreat_injured eval')
+                -- TODO: heal_loc and safe_loc are not used at this time
+                -- keep for now and see later if needed
+                local action, healloc, safeloc = fred:zone_action_retreat_injured(zonedata, gamedata)
+                if action then
+                    --print(action.action)
+                    return action
                 end
             end
 
             -- **** Attack evaluation ****
-            --print_time('  ' .. cfg.zone_id .. ': attack eval')
-            if (not cfg.do_action) or cfg.do_action.attack then
-                if (not cfg.skip_action) or (not cfg.skip_action.attack) then
-                    local action = fred:zone_action_attack(zonedata, gamedata, move_cache)
-                    if action then
-                        --print(action.action)
-
-                        -- Put the own units with MP back out there
-                        -- !!!! This eventually needs to be done for all actions
-                        return action
-                    end
+            if (cfg.actions.attack) then
+                print_time('  ' .. cfg.zone_id .. ': attack eval')
+                local action = fred:zone_action_attack(zonedata, gamedata, move_cache)
+                if action then
+                    --print(action.action)
+                    return action
                 end
             end
 
             -- **** Hold position evaluation ****
-            --print_time('  ' .. cfg.zone_id .. ': hold eval')
-            if (not cfg.do_action) or cfg.do_action.hold then
-                if (not cfg.skip_action) or (not cfg.skip_action.hold) then
-                    local action = fred:zone_action_hold(zonedata, gamedata, move_cache)
-                    if action then
-                        --print_time(action.action)
-                        return action
-                    end
+            if (cfg.actions.hold) then
+                print_time('  ' .. cfg.zone_id .. ': hold eval')
+                local action = fred:zone_action_hold(zonedata, gamedata, move_cache)
+                if action then
+                    --print_time(action.action)
+                    return action
                 end
             end
+
+            -- **** Advance in zone evaluation ****
+            if (cfg.actions.advance) then
+                print_time('  ' .. cfg.zone_id .. ': advance eval')
+                local action = fred:zone_action_advance(zonedata, gamedata, move_cache)
+                if action then
+                    --print_time(action.action)
+                    return action
+                end
+            end
+
+
+if 1 then return end
 
             -- Now we retreat injured units to other (unsafe) locations
             if (not cfg.do_action) or cfg.do_action.retreat_injured_unsafe then
@@ -1962,32 +2825,100 @@ end
             return nil  -- This is technically unnecessary
         end
 
+------------------------------------------------------------------------------
+
         function fred:zone_control_eval()
             local score_zone_control = 350000
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
+            print()
+            print('*****************************************')
+
             if AH.print_eval() then print_time('     - Evaluating zone_control CA:') end
 
-            local cfgs = fred:get_zone_cfgs(fred.data.gamedata)
-            for i_c,cfg in ipairs(cfgs) do
-                --print_time('zone_control: ', cfg.zone_id)
+            if (not fred.data.analysis) or (fred.data.analysis.turn ~= wesnoth.current.turn) then
+                fred.data.analysis = {
+                    turn = wesnoth.current.turn,
+                    stage_counter = 1,
+                    --stage_ids = { 'leader_threat', 'defend_zones' },
+                    stage_ids = { 'defend_zones', 'all_map' },
+                    --stage_ids = { 'all_map' },
+                    status = { units_used = {} }
+                }
+            end
+            local FDA = fred.data.analysis -- just for convenience
 
-                -- Extract all AI units with MP left (for enemy path finding, counter attack placement etc.)
-                local extracted_units = {}
-                for id,loc in pairs(fred.data.gamedata.my_units_MP) do
-                    local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
-                    wesnoth.extract_unit(unit_proxy)
-                    table.insert(extracted_units, unit_proxy)  -- Not a proxy unit any more at this point
+            while 1 do
+                if (FDA.stage_counter > #FDA.stage_ids) then
+                    print(FDA.stage_counter, #FDA.stage_ids)
+                    print(' ---> done with all stages')
+
+FDA.stage_counter = 1
+
+                    return 0
                 end
 
-                local zone_action = fred:get_zone_action(cfg, fred.data.gamedata, fred.data.move_cache)
+                local stage_id = FDA.stage_ids[FDA.stage_counter]
+                print('Stage: ' .. stage_id)
 
-                for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
 
-                if zone_action then
-                    fred.data.zone_action = zone_action
-                    AH.done_eval_messages(start_time, ca_name)
-                    return score_zone_control
+                fred:analyze_map(fred.data.gamedata)
+                --DBG.dbms(FDA.status)
+
+                --DBG.dbms(fred.data.zone_cfgs)
+
+                for i_c,cfg in ipairs(fred.data.zone_cfgs) do
+                    print()
+                    print('-----------------------------------')
+                    print_time('zone_control: ', cfg.zone_id, cfg.stage_id)
+                    for action,_ in pairs(cfg.actions) do print('  --> ' .. action) end
+                    --DBG.dbms(cfg)
+
+                    local power_used = FDA.status[stage_id][cfg.zone_id].power_used
+                    local power_needed = FDA.status[stage_id][cfg.zone_id].power_needed
+                    local power_missing = FDA.status[stage_id][cfg.zone_id].power_missing
+                    local n_units_needed = FDA.status[stage_id][cfg.zone_id].n_units_needed
+                    local n_units_used = FDA.status[stage_id][cfg.zone_id].n_units_used
+
+                    -- !!! Note that power_missing is not necessarily power_needed - power_used !!!
+                    print('  power used, needed, missing:', power_used, power_needed, power_missing)
+                    print('  n_units_used, needed:', n_units_used, n_units_needed)
+
+                    -- Also need to check whether we have enough units for
+                    -- village grabbing
+
+                    if (power_missing > 0) or (n_units_needed > n_units_used) then
+                        -- Extract all AI units with MP left (for enemy path finding, counter attack placement etc.)
+                        local extracted_units = {}
+                        for id,loc in pairs(fred.data.gamedata.my_units_MP) do
+                            local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
+                            wesnoth.extract_unit(unit_proxy)
+                            table.insert(extracted_units, unit_proxy)  -- Not a proxy unit any more at this point
+                        end
+
+                        local zone_action = fred:get_zone_action(cfg, fred.data.gamedata, fred.data.move_cache)
+
+                        for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
+
+                        if zone_action then
+                            zone_action.zone_id = cfg.zone_id
+                            zone_action.stage_id = cfg.stage_id
+                            --DBG.dbms(zone_action)
+                            fred.data.zone_action = zone_action
+                            AH.done_eval_messages(start_time, ca_name)
+                            return score_zone_control
+                        end
+                    else
+                        print('  --> power used already greater than power needed:', power_used, power_needed, power_missing)
+                    end
                 end
+
+                -- If we get here, this means no action was found for this stage
+                -- --> reset the zone_cfgs, so that they will be recalculate
+                --     and up the counter
+                fred.data.zone_cfgs = nil
+                FDA.stage_counter = FDA.stage_counter + 1
+
+                print(' ---> done with all cfgs of this stage')
             end
 
             AH.done_eval_messages(start_time, ca_name)
@@ -1995,7 +2926,7 @@ end
         end
 
         function fred:zone_control_exec()
-            local action = fred.data.zone_action.action
+            local action = fred.data.zone_action.zone_id .. ': ' .. fred.data.zone_action.action
 
             -- Same for the enemy in an attack, which is returned in { id = { x, y } } format.
             local enemy_proxy
@@ -2020,6 +2951,7 @@ end
 
                     local defender_info = fred.data.gamedata.unit_infos[enemy_proxy.id]
 
+                    -- Don't use cfg_attack = { use_max_damage_weapons = true } here
                     local _, combo_def_stat = FAU.attack_combo_eval(
                         attacker_copies, enemy_proxy,
                         fred.data.zone_action.dsts,
@@ -2167,12 +3099,19 @@ end
                         fred.data.gamedata.unit_infos[enemy_proxy.id] = FGU.single_unit_info(enemy_proxy)
                     end
                 end
+
+                -- Add units_used to status table
+                if unit and unit.valid then
+                    fred.data.analysis.status.units_used[unit.id] = fred.data.zone_action.zone_id or 'other'
+                end
             end
 
             fred.data.zone_action = nil
         end
 
+        -- TODO: remove?
         function fred:finish_turn_eval()
+if 1 then return 0 end
             local score_finish_turn = 170000
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'finish_turn'
             if AH.print_eval() then print_time('     - Evaluating finish_turn CA:') end
@@ -2199,6 +3138,8 @@ end
                 end
             end
 
+            local cfg_attack = { use_max_damage_weapons = true }
+
             local max_rating, best_unit, best_dst = -9e99
             for id,loc in pairs(injured_units) do
                 -- Counter attack outcome at the unit's current location
@@ -2206,7 +3147,7 @@ end
                 injured_unit_current[id] = loc
 
                 local counter_stats_current = FAU.calc_counter_attack(
-                    injured_unit_current, { loc }, { loc }, gamedata, move_cache
+                    injured_unit_current, { loc }, { loc }, gamedata, move_cache, cfg_attack
                 )
 
                 for x,tmp in pairs(gamedata.village_map) do
@@ -2221,7 +3162,7 @@ end
                             injured_unit_village[id] = { x, y }
 
                             local counter_stats_village = FAU.calc_counter_attack(
-                                injured_unit_village, { loc }, { { x, y } }, gamedata, move_cache
+                                injured_unit_village, { loc }, { { x, y } }, gamedata, move_cache, cfg_attack
                             )
 
                             -- Consider this move only if the outcome of the counter attack is better than
@@ -2281,13 +3222,15 @@ end
                             -- Counter attack rating if not attacking target first
                             if not counter_stats_before then
                                 counter_stats_before = FAU.calc_counter_attack(
-                                    attacker, { loc }, { loc }, gamedata, move_cache
+                                    attacker, { loc }, { loc }, gamedata, move_cache, cfg_attack
                                 )
                             end
                             --DBG.dbms(counter_stats_before)
                             --print('    counter rating before:', counter_stats_before.rating)
 
                             -- Rating of attack on target
+                            -- Don't use cfg_attack = { use_max_damage_weapons = true } for
+                            -- the forward attack, only for the counter
                             local att_stat, def_stat = FAU.battle_outcome(
                                 gamedata.unit_copies[id], target_proxy, loc,
                                 gamedata.unit_infos[id], gamedata.unit_infos[target_id],
@@ -2317,7 +3260,7 @@ end
                             target_proxy.hitpoints = hp
 
                             local counter_stats_after = FAU.calc_counter_attack(
-                                attacker, { loc }, { loc }, gamedata, move_cache
+                                attacker, { loc }, { loc }, gamedata, move_cache, cfg_attack
                             )
                             --DBG.dbms(counter_stats_after)
                             --print('    counter rating after:', counter_stats_after.rating)

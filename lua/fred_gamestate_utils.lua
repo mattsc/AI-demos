@@ -1,5 +1,5 @@
-local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
 local H = wesnoth.require "lua/helper.lua"
+local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 
 -- Collection of functions to get information about units and the gamestate and
 -- collect them in tables for easy access.  They are expensive, so this should
@@ -55,7 +55,7 @@ local H = wesnoth.require "lua/helper.lua"
 --
 ------ Other maps ------
 --
--- village_map[x][y] = { owner = 1 }            -- owner= is missing (nil) if village is unowned
+-- village_map[x][y] = { owner = 1 }            -- owner=0 if village is unowned
 -- enemy_attack_map[x][y] = {
 --              hitpoints = 88,                 -- combined hitpoints
 --              Elvish Archer-11 = true,        -- ids of units that can get there
@@ -82,7 +82,7 @@ local H = wesnoth.require "lua/helper.lua"
 --    Chocobone-17 = {
 --        hides = true,
 --        canrecruit = false,
---        tod_bonus = 1,
+--        tod_mod = 1.25,
 --        id = "Chocobone-17",
 --        max_hitpoints = 45,
 --        max_experience = 100,
@@ -135,13 +135,14 @@ function fred_gamestate_utils.single_unit_info(unit_proxy)
         canrecruit = unit_proxy.canrecruit,
         side = unit_proxy.side,
 
+        max_moves = unit_proxy.max_moves,
         hitpoints = unit_proxy.hitpoints,
         max_hitpoints = unit_proxy.max_hitpoints,
         experience = unit_proxy.experience,
         max_experience = unit_proxy.max_experience,
 
         alignment = unit_cfg.alignment,
-        tod_bonus = AH.get_unit_time_of_day_bonus(unit_cfg.alignment, wesnoth.get_time_of_day().lawful_bonus),
+        tod_mod = FU.get_unit_time_of_day_bonus(unit_cfg.alignment, wesnoth.get_time_of_day().lawful_bonus),
         cost = unit_cfg.cost,
         level = unit_cfg.level
     }
@@ -157,6 +158,7 @@ function fred_gamestate_utils.single_unit_info(unit_proxy)
     -- Information about the attacks indexed by weapon number,
     -- including specials (e.g. 'poison = true')
     single_unit_info.attacks = {}
+    single_unit_info.max_damage = 0
     for attack in H.child_range(unit_cfg, 'attack') do
         -- Extract information for specials; we do this first because some
         -- custom special might have the same name as one of the default scalar fields
@@ -187,6 +189,11 @@ function fred_gamestate_utils.single_unit_info(unit_proxy)
             end
         end
 
+        local damage = (a.number or 0) * (a.damage or 0)
+        if (damage > single_unit_info.max_damage) then
+            single_unit_info.max_damage = damage
+        end
+
         table.insert(single_unit_info.attacks, a)
     end
 
@@ -196,6 +203,11 @@ function fred_gamestate_utils.single_unit_info(unit_proxy)
     for _,attack_type in ipairs(attack_types) do
         single_unit_info.resistances[attack_type] = wesnoth.unit_resistance(unit_proxy, attack_type) / 100.
     end
+
+    -- This needs to be at the very end, as it needs some of the other
+    -- information in single_unit_info as input
+    local power = FU.unit_power(single_unit_info)
+    single_unit_info.power = power
 
     return single_unit_info
 end
@@ -214,7 +226,7 @@ function fred_gamestate_utils.unit_infos()
     return unit_infos
 end
 
-function fred_gamestate_utils.get_gamestate()
+function fred_gamestate_utils.get_gamestate(unit_infos)
     -- Returns:
     --   - State of villages and units on the map (all in one variable: gamestate)
     --   - Reach maps for all the AI's units (in separate variable: reach_maps)
@@ -230,18 +242,28 @@ function fred_gamestate_utils.get_gamestate()
     local village_map = {}
     for _,village in ipairs(wesnoth.get_villages()) do
         if (not village_map[village[1]]) then village_map[village[1]] = {} end
-        village_map[village[1]][village[2]] = { owner = wesnoth.get_village_owner(village[1], village[2]) }
+        village_map[village[1]][village[2]] = {
+            owner = wesnoth.get_village_owner(village[1], village[2]) or 0
+        }
     end
     mapstate.village_map = village_map
 
     -- Unit locations and copies
     local units, leaders = {}, {}
     local my_units, my_units_MP, my_units_noMP, enemies = {}, {}, {}, {}
-    local my_unit_map, my_unit_map_MP, my_unit_map_noMP, my_attack_map, enemy_map = {}, {}, {}, {}, {}
+    local my_unit_map, my_unit_map_MP, my_unit_map_noMP, enemy_map = {}, {}, {}, {}
+    local my_attack_map, my_move_map = {}, {}
     local unit_copies = {}
+
+    local additional_turns = 1
+    for i = 1,additional_turns+1 do
+        my_attack_map[i] = {}
+        my_move_map[i] = {}
+    end
 
     for _,unit_proxy in ipairs(wesnoth.get_units()) do
         local unit_copy = wesnoth.copy_unit(unit_proxy)
+        local id = unit_proxy.id
         unit_copies[unit_copy.id] = unit_copy
 
         units[unit_copy.id] = { unit_copy.x, unit_copy.y }
@@ -256,35 +278,70 @@ function fred_gamestate_utils.get_gamestate()
 
             my_units[unit_copy.id] = { unit_copy.x, unit_copy.y }
 
-            local reach = wesnoth.find_reach(unit_copy)
+            -- Hexes the unit can reach in additional_turns+1 turns
+            local reach = wesnoth.find_reach(unit_copy, { additional_turns = additional_turns })
 
             reach_maps[unit_copy.id] = {}
             local attack_range = {}
             for _,loc in ipairs(reach) do
-                if (not reach_maps[unit_copy.id][loc[1]]) then reach_maps[unit_copy.id][loc[1]] = {} end
-                reach_maps[unit_copy.id][loc[1]][loc[2]] = { moves_left = loc[3] }
+                -- reach_map:
+                -- Only first-turn moves counts toward reach_maps
+                local max_moves = unit_copy.max_moves
+                if (loc[3] >= (max_moves * additional_turns)) then
+                    if (not reach_maps[id][loc[1]]) then reach_maps[id][loc[1]] = {} end
+                    reach_maps[id][loc[1]][loc[2]] = { moves_left = loc[3] - (max_moves * additional_turns) }
+                end
+
+                local turns = (additional_turns + 1) - loc[3] / max_moves
+
+                -- attack_range: for attack_map
+                local int_turns = math.ceil(turns)
+
+                if (int_turns == 0) then int_turns = 1 end
+
+                if (not my_move_map[int_turns][loc[1]]) then my_move_map[int_turns][loc[1]] = {} end
+                if (not my_move_map[int_turns][loc[1]][loc[2]]) then my_move_map[int_turns][loc[1]][loc[2]] = {} end
+                if (not my_move_map[int_turns][loc[1]][loc[2]].ids) then my_move_map[int_turns][loc[1]][loc[2]].ids = {} end
+                my_move_map[int_turns][loc[1]][loc[2]].units = (my_move_map[int_turns][loc[1]][loc[2]].units or 0) + 1
+
+                local power = unit_infos[id].power
+                my_move_map[int_turns][loc[1]][loc[2]].power = (my_move_map[int_turns][loc[1]][loc[2]].power or 0) + power
+
+                table.insert(my_move_map[int_turns][loc[1]][loc[2]].ids, id)
+
 
                 if (not attack_range[loc[1]]) then attack_range[loc[1]] = {} end
-                attack_range[loc[1]][loc[2]] = unit_copy.hitpoints
+                if (not attack_range[loc[1]][loc[2]]) or (attack_range[loc[1]][loc[2]] > int_turns) then
+                    attack_range[loc[1]][loc[2]] = int_turns
+                end
 
                 for xa,ya in H.adjacent_tiles(loc[1], loc[2]) do
                     if (not attack_range[xa]) then attack_range[xa] = {} end
-                    attack_range[xa][ya] = unit_copy.hitpoints
-                end
 
+                    if (not attack_range[xa][ya]) or (attack_range[xa][ya] > int_turns) then
+                        attack_range[xa][ya] = int_turns
+                    end
+                end
             end
 
             for x,arr in pairs(attack_range) do
-                for y,hitpoints in pairs(arr) do
-                    if (not my_attack_map[x]) then my_attack_map[x] = {} end
-                    if (not my_attack_map[x][y]) then my_attack_map[x][y] = {} end
-                    if (not my_attack_map[x][y].ids) then my_attack_map[x][y].ids = {} end
+                for y,int_turns in pairs(arr) do
+                    if (not my_attack_map[int_turns][x]) then my_attack_map[int_turns][x] = {} end
+                    if (not my_attack_map[int_turns][x][y]) then my_attack_map[int_turns][x][y] = {} end
+                    if (not my_attack_map[int_turns][x][y].ids) then my_attack_map[int_turns][x][y].ids = {} end
 
-                    my_attack_map[x][y].units = (my_attack_map[x][y].units or 0) + 1
-                    my_attack_map[x][y].hitpoints = (my_attack_map[x][y].hitpoints or 0) + hitpoints
-                    table.insert(my_attack_map[x][y].ids, unit_copy.id)
+                    my_attack_map[int_turns][x][y].units = (my_attack_map[int_turns][x][y].units or 0) + 1
+
+                    local power = unit_infos[id].power
+                    my_attack_map[int_turns][x][y].power = (my_attack_map[int_turns][x][y].power or 0) + power
+
+                    table.insert(my_attack_map[int_turns][x][y].ids, id)
                 end
             end
+
+            -- TODO: I'm getting reach again here without additional_turns,
+            -- for convenience; this can be sped up
+            local reach = wesnoth.find_reach(unit_copy)
 
             if (#reach > 1) then
                 if (not my_unit_map_MP[unit_copy.x]) then my_unit_map_MP[unit_copy.x] = {} end
@@ -331,12 +388,17 @@ function fred_gamestate_utils.get_gamestate()
     mapstate.my_unit_map = my_unit_map
     mapstate.my_unit_map_MP = my_unit_map_MP
     mapstate.my_unit_map_noMP = my_unit_map_noMP
+    mapstate.my_move_map = my_move_map
     mapstate.my_attack_map = my_attack_map
     mapstate.enemy_map = enemy_map
 
     -- Get enemy attack and reach maps
     -- These are for max MP of enemy units, and after taking all AI units with MP off the map
     local enemy_attack_map, enemy_turn_maps = {}, {}
+
+    for i = 1,additional_turns+1 do
+        enemy_attack_map[i] = {}
+    end
 
     -- Take all own units with MP left off the map (for enemy pathfinding)
     local extracted_units = {}
@@ -347,11 +409,11 @@ function fred_gamestate_utils.get_gamestate()
     end
 
     for enemy_id,_ in pairs(mapstate.enemies) do
+        local unit_cost = unit_copies[enemy_id].__cfg.cost
         local old_moves = unit_copies[enemy_id].moves
         unit_copies[enemy_id].moves = unit_copies[enemy_id].max_moves
 
         -- Hexes the enemy can reach in additional_turns+1 turns
-        local additional_turns = 1
         local reach = wesnoth.find_reach(unit_copies[enemy_id], { additional_turns = additional_turns })
 
         unit_copies[enemy_id].moves = old_moves
@@ -359,35 +421,49 @@ function fred_gamestate_utils.get_gamestate()
         reach_maps[enemy_id], enemy_turn_maps[enemy_id] = {}, {}
         local attack_range = {}
         for _,loc in ipairs(reach) do
-            -- Only first-turn moves counts toward reach_maps, enemy_attack_maps
+            -- reach_map:
+            -- Only first-turn moves counts toward reach_maps
             local max_moves = unit_copies[enemy_id].max_moves
             if (loc[3] >= (max_moves * additional_turns)) then
                 if (not reach_maps[enemy_id][loc[1]]) then reach_maps[enemy_id][loc[1]] = {} end
                 reach_maps[enemy_id][loc[1]][loc[2]] = { moves_left = loc[3] - (max_moves * additional_turns) }
-
-                if (not attack_range[loc[1]]) then attack_range[loc[1]] = {} end
-                attack_range[loc[1]][loc[2]] = unit_copies[enemy_id].hitpoints
-
-                for xa,ya in H.adjacent_tiles(loc[1], loc[2]) do
-                    if (not attack_range[xa]) then attack_range[xa] = {} end
-                    attack_range[xa][ya] = unit_copies[enemy_id].hitpoints
-                end
             end
 
+            -- turn_map:
             local turns = (additional_turns + 1) - loc[3] / max_moves
             if (not enemy_turn_maps[enemy_id][loc[1]]) then enemy_turn_maps[enemy_id][loc[1]] = {} end
             enemy_turn_maps[enemy_id][loc[1]][loc[2]] = { turns = turns }
+
+            -- attack_range: for attack_map
+            local int_turns = math.ceil(turns)
+            if (int_turns == 0) then int_turns = 1 end
+
+            if (not attack_range[loc[1]]) then attack_range[loc[1]] = {} end
+            if (not attack_range[loc[1]][loc[2]]) or (attack_range[loc[1]][loc[2]] > int_turns) then
+                attack_range[loc[1]][loc[2]] = int_turns
+            end
+
+            for xa,ya in H.adjacent_tiles(loc[1], loc[2]) do
+                if (not attack_range[xa]) then attack_range[xa] = {} end
+
+                if (not attack_range[xa][ya]) or (attack_range[xa][ya] > int_turns) then
+                    attack_range[xa][ya] = int_turns
+                end
+            end
         end
 
         for x,arr in pairs(attack_range) do
-            for y,hitpoints in pairs(arr) do
-                if (not enemy_attack_map[x]) then enemy_attack_map[x] = {} end
-                if (not enemy_attack_map[x][y]) then enemy_attack_map[x][y] = {} end
-                if (not enemy_attack_map[x][y].ids) then enemy_attack_map[x][y].ids = {} end
+            for y,int_turns in pairs(arr) do
+                if (not enemy_attack_map[int_turns][x]) then enemy_attack_map[int_turns][x] = {} end
+                if (not enemy_attack_map[int_turns][x][y]) then enemy_attack_map[int_turns][x][y] = {} end
+                if (not enemy_attack_map[int_turns][x][y].ids) then enemy_attack_map[int_turns][x][y].ids = {} end
 
-                enemy_attack_map[x][y].units = (enemy_attack_map[x][y].units or 0) + 1
-                enemy_attack_map[x][y].hitpoints = (enemy_attack_map[x][y].hitpoints or 0) + hitpoints
-                table.insert(enemy_attack_map[x][y].ids, enemy_id)
+                enemy_attack_map[int_turns][x][y].units = (enemy_attack_map[int_turns][x][y].units or 0) + 1
+
+                local power = unit_infos[enemy_id].power
+                enemy_attack_map[int_turns][x][y].power = (enemy_attack_map[int_turns][x][y].power or 0) + power
+
+                table.insert(enemy_attack_map[int_turns][x][y].ids, enemy_id)
             end
         end
     end
@@ -405,11 +481,13 @@ function fred_gamestate_utils.get_gamedata()
     -- Combine all the game data tables into one wrapper table
     -- See above for the information included
 
-    local gamedata, reach_maps, unit_copies = fred_gamestate_utils.get_gamestate()
+    local unit_infos = fred_gamestate_utils.unit_infos()
+
+    local gamedata, reach_maps, unit_copies = fred_gamestate_utils.get_gamestate(unit_infos)
 
     gamedata.reach_maps = reach_maps
     gamedata.unit_copies = unit_copies
-    gamedata.unit_infos = fred_gamestate_utils.unit_infos()
+    gamedata.unit_infos = unit_infos
     gamedata.defense_maps = {}
 
     return gamedata
