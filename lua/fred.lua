@@ -1728,7 +1728,7 @@ if 1 then return zone_cfgs end
 
             local new_unit_ratings, rated_units = {}, {}
             local max_hexes_pre = 20 -- number of hexes to analyze for units individually
-            local max_hexes = 5 -- number of hexes per unit for placement combos
+            local max_hexes = 8 -- number of hexes per unit for placement combos
 
             -- Need to make sure that the same weapons are used for all counter attack calculations
             local cfg_counter_attack = { use_max_damage_weapons = true }
@@ -1812,202 +1812,144 @@ if 1 then return zone_cfgs end
             table.sort(rated_units, function(a, b) return a.rating > b.rating end)
 
 
-            -- Otherwise, we choose the best 2 or 3 units and do a combo
-            -- placements analysis
-            -- TODO: this is currently hard-coded to use 3 units if they are
-            -- available, 2 otherwise.  Make this configurable later (and it's
-            -- also quite inelegant this way!)
-            -- TODO: this entire section is a mess; needs serious cleanup
-
             -- For holding, we are allowed to add units until we are above
-            -- the limit given by power_missing (not taking contingency into account)
+            -- the limit given by power_missing (without taking contingency into account)
             local stage_status = fred.data.analysis.status[zonedata.cfg.stage_id] -- just for convenience for now
             local power_missing = stage_status[zonedata.cfg.zone_id].power_missing
             print('  power_missing', power_missing)
 
-            local id1 = rated_units[1].id
-            local power1 = gamedata.unit_infos[id1].power
-            local max_hexes_1 = math.min(max_hexes, #new_unit_ratings[id1])
-            print(id1, power1, max_hexes_1, #new_unit_ratings[id1])
+            local n_units = math.min(3, #rated_units)
+            print('n_units', n_units)
 
-            local total_power = power1
-            print('    total_power 1:', total_power)
+            -- TODO: limit power after calculating combos, rather than before?
+            local ids, n_hexes = {}, {}
+            local total_power = 0
+            for i = 1,n_units do
+                local id = rated_units[i].id
+                table.insert(ids, id)
 
-            -- If there's only one unit, we're done and simply use the best hex found
-            -- or if the missing power is used with the first unit
-            if (#rated_units == 1) or (total_power > power_missing) then
-                local x1 = new_unit_ratings[id1][1].x
-                local y1 = new_unit_ratings[id1][1].y
+                table.insert(n_hexes, math.min(max_hexes, #new_unit_ratings[id]))
 
-                local old_locs = {
-                    { gamedata.unit_copies[id1].x, gamedata.unit_copies[id1].y }
-                }
-                local new_locs = {
-                    { x1, y1 }
-                }
+                total_power = total_power + gamedata.unit_infos[id].power
+                --print('  ' .. id, gamedata.unit_infos[id].power, total_power)
 
-                local target1 = {}
-                target1[id1] = { x1, y1 }
-                local counter_stats1 = FAU.calc_counter_attack(target1, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
-
-                -- Important: the counter_stats rating is the rating of the
-                -- counter attack. We want this to be as *bad* as possible
-                local rating = - counter_stats1.rating
-
-                local acceptable_move = true
-                if zonedata.cfg.min_counter_rating and (rating < zonedata.cfg.min_counter_rating) then
-                    acceptable_move = false
-                end
-                print('      ', rating, zonedata.cfg.min_counter_rating, acceptable_move)
-
-                if acceptable_move then
-                    print('****** Found hold action:')
-
-                    best_hexes = { { new_unit_ratings[id1][1].x, new_unit_ratings[id1][1].y } }
-                    best_units = { gamedata.unit_infos[id1] }
-
-                    local action = { units = best_units, dsts = best_hexes }
-                    action.action = zonedata.cfg.zone_id .. ': ' .. 'hold position'
-
-                    return action
-                elseif zonedata.cfg.min_counter_rating then
-                    return
+                if (total_power > power_missing) then
+                    break
                 end
             end
 
-            local id2 = rated_units[2].id
-            local power2 = gamedata.unit_infos[id2].power
-            local max_hexes_2 = math.min(max_hexes, #new_unit_ratings[id2])
-            print(id2, power2, max_hexes_2, #new_unit_ratings[id2])
-
-            total_power = total_power + power2
-            print('    total_power 2:', total_power)
-
-            local id3, max_hexes_3
-            if ((total_power < power_missing) and (#rated_units > 2)) then
-                id3 = rated_units[3].id
-                max_hexes_3 = math.min(max_hexes, #new_unit_ratings[id3])
-                print(id3, max_hexes_3, #new_unit_ratings[id3])
-            end
+            local n_units = #ids
+            print('n_units', n_units)
+            --DBG.dbms(ids)
+            --DBG.dbms(n_hexes)
 
 
+            -- Use recursive function to get all the combinations
+            local layer = 1
+            local combo, combos = {}, {}
 
-
-            max_hexes = nil -- just so that it is not accidentally used
-
-            local max_rating, best_combo = -9e99, {}
-
-            for i1 = 1, max_hexes_1 do
-                local x1 = new_unit_ratings[id1][i1].x
-                local y1 = new_unit_ratings[id1][i1].y
-                --print(x1 .. ',' .. y1)
-
-                for i2 = 1, max_hexes_2 do
-                    local x2 = new_unit_ratings[id2][i2].x
-                    local y2 = new_unit_ratings[id2][i2].y
-
-                    if (x2 == x1) and (y2 == y1) then
-                        -- If this hex is already used by first unit
-                        --print('  ' .. x2 .. ',' .. y2 .. ' -- skipping')
+            -- This is the recursive function
+            -- Uses variables by closure
+            local function hex_combos()
+                for i = 0,n_hexes[layer] do
+                    local id = ids[layer]
+                    local xy
+                    if (i ~= 0) then
+                        local x = new_unit_ratings[id][i].x
+                        local y = new_unit_ratings[id][i].y
+                        xy = x * 1000 + y
                     else
-                        --print('  ' .. x2 .. ',' .. y2)
+                        xy = 0
+                    end
 
-                        -- Different code for whether there are 3 or 2 units available
-                        -- TODO: put this in a recursive functions, because it is
-                        -- very inelegant this way and in order to make it configurable
-                        -- for different numbers of units
+                    if (not combo[xy]) then
+                        if (xy ~= 0) then
+                            combo[xy] = id
+                        end
 
-                        if id3 then
-                            for i3 = 1, max_hexes_3 do
-                                local x3 = new_unit_ratings[id3][i3].x
-                                local y3 = new_unit_ratings[id3][i3].y
-
-                                if ((x3 == x1) and (y3 == y1)) or ((x3 == x2) and (y3 == y2)) then
-                                    -- If this hex is already used by first or second unit
-                                    --print('    ' .. x3 .. ',' .. y3 .. ' -- skipping')
-                                else
-                                    --print('    ' .. x3 .. ',' .. y3)
-
-                                    local old_locs = {
-                                        { gamedata.unit_copies[id1].x, gamedata.unit_copies[id1].y },
-                                        { gamedata.unit_copies[id2].x, gamedata.unit_copies[id2].y },
-                                        { gamedata.unit_copies[id3].x, gamedata.unit_copies[id3].y }
-                                    }
-                                    local new_locs = {
-                                        { x1, y1 },
-                                        { x2, y2 },
-                                        { x3, y3 }
-                                    }
-
-                                    local target1 = {}
-                                    target1[id1] = { x1, y1 }
-                                    local counter_stats1 = FAU.calc_counter_attack(target1, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
-
-                                    local target2 = {}
-                                    target2[id2] = { x2, y2 }
-                                    local counter_stats2 = FAU.calc_counter_attack(target2, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
-
-                                    local target3 = {}
-                                    target3[id3] = { x3, y3 }
-                                    local counter_stats3 = FAU.calc_counter_attack(target3, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
-
-                                    -- Important: the counter_stats rating is the rating of the
-                                    -- counter attack. We want this to be as *bad* as possible
-                                    local rating = - counter_stats1.rating - counter_stats2.rating - counter_stats3.rating
-                                    --print('      ', rating, counter_stats1.rating, counter_stats2.rating, counter_stats3.rating)
-
-                                    -- We want to exclude combinations where one unit is out of attack range
-                                    -- as this is for holding a zone, not protecting units.
-                                    -- TODO: The latter might be added as an option later.
-                                    if (rating > max_rating)
-                                        and ((counter_stats1.att_rating ~= 0) or (counter_stats1.def_rating ~= 0))
-                                        and ((counter_stats2.att_rating ~= 0) or (counter_stats2.def_rating ~= 0))
-                                        and ((counter_stats3.att_rating ~= 0) or (counter_stats3.def_rating ~= 0))
-                                    then
-                                        max_rating = rating
-                                        best_hexes = { { x1, y1 }, { x2, y2 }, { x3, y3 } }
-                                        best_units = { gamedata.unit_infos[id1], gamedata.unit_infos[id2], gamedata.unit_infos[id3] }
-                                    end
-                                end
-                            end
+                        if (layer < n_units) then
+                            layer = layer + 1
+                            hex_combos()
                         else
-                            local old_locs = {
-                                { gamedata.unit_copies[id1].x, gamedata.unit_copies[id1].y },
-                                { gamedata.unit_copies[id2].x, gamedata.unit_copies[id2].y }
-                            }
-                            local new_locs = {
-                                { x1, y1 },
-                                { x2, y2 }
-                            }
-
-                            local target1 = {}
-                            target1[id1] = { x1, y1 }
-                            local counter_stats1 = FAU.calc_counter_attack(target1, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
-
-                            local target2 = {}
-                            target2[id2] = { x2, y2 }
-                            local counter_stats2 = FAU.calc_counter_attack(target2, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
-
-                            -- Important: the counter_stats rating is the rating of the
-                            -- counter attack. We want this to be as *bad* as possible
-                            local rating = - counter_stats1.rating - counter_stats2.rating
-                            --print('      ', rating, counter_stats1.rating, counter_stats2.rating)
-
-                            -- We want to exclude combinations where one unit is out of attack range
-                            -- as this is for holding a zone, not protecting units.
-                            -- TODO: The latter might be added as an option later.
-                            if (rating > max_rating)
-                                and ((counter_stats1.att_rating ~= 0) or (counter_stats1.def_rating ~= 0))
-                                and ((counter_stats2.att_rating ~= 0) or (counter_stats2.def_rating ~= 0))
-                            then
-                                max_rating = rating
-                                best_hexes = { { x1, y1 }, { x2, y2 } }
-                                best_units = { gamedata.unit_infos[id1], gamedata.unit_infos[id2] }
+                            if next(combo) then  -- To eliminate the empty combination
+                                local tmp = AH.table_copy(combo)
+                                table.insert(combos, tmp)
                             end
                         end
+
+                        combo[xy] = nil  -- This can be done even if xy == 0
+                    end
+                end
+                layer = layer - 1
+            end
+
+            -- And here is where we call the recursive functions
+            hex_combos()
+            --DBG.dbms(combos)
+
+
+            -- Finally, rate all the combos
+            local max_rating, best_hexes, best_units = -9e99
+
+            for _,combo in ipairs(combos) do
+                local old_locs, new_locs = {}, {}
+                print('Combo ' .. _)
+                for xy,id in pairs(combo) do
+                    local x, y =  math.floor(xy / 1000), xy % 1000
+                    print('  ', id, x, y)
+
+                    table.insert(old_locs, { gamedata.unit_copies[id].x, gamedata.unit_copies[id].y })
+                    table.insert(new_locs, { x, y })
+                end
+                --DBG.dbms(old_locs)
+                --DBG.dbms(new_locs)
+
+                local is_acceptable = true
+                local rating = 0
+                for xy,id in pairs(combo) do
+                    local target = {}
+                    local x, y =  math.floor(xy / 1000), xy % 1000
+                    --print('  ', id, x, y)
+
+                    target[id] = { x, y }
+                    local counter_stats = FAU.calc_counter_attack(target, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
+                    --DBG.dbms(counter_stats)
+
+                    -- IF this results in a shielded position, don't use this combo
+                    if (counter_stats.att_rating == 0) and (counter_stats.def_rating == 0) then
+                        is_acceptable = false
+                        break
+                    end
+
+                    -- Important: the counter_stats rating is the rating of the
+                    -- counter attack. We want this to be as *bad* as possible
+                    rating = rating - counter_stats.rating
+                end
+                print('  --> rating:', rating)
+
+                -- If this is the best move found so far but has negative rating,
+                -- check whether it is acceptable after all
+                if is_acceptable and (rating < 0) and (rating > max_rating) then
+                    print('  Hold has negative rating; checking for acceptability')
+                    --is_acceptable = false
+                end
+
+                print('      is_acceptable', is_acceptable)
+
+                -- We want to exclude combinations where one unit is out of attack range
+                -- as this is for holding a zone, not protecting units.
+                if is_acceptable and (rating > max_rating) then
+                    max_rating = rating
+                    best_hexes = new_locs
+
+                    best_units = {}
+                    for xy,id in pairs(combo) do
+                        table.insert(best_units, gamedata.unit_infos[id])
                     end
                 end
             end
+            --DBG.dbms(best_hexes)
+            --DBG.dbms(best_units)
 
             if best_units then
                 print('****** Found hold action:')
