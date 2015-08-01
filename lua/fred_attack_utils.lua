@@ -939,7 +939,7 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
     -- And put them back into their original locations
     adjust_gamedata_tables(new_locs, old_locs)
 
-    return counter_attack_stat
+    return counter_attack_stat, counter_attack
 end
 
 return fred_attack_utils
