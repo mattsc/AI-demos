@@ -78,7 +78,10 @@ function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_
         damage = damage - 8.
     end
 
-    if (damage < 0) then damage = 0 end
+    -- Damage can be negative due to healing (village or regeneration), but only
+    -- up to the amount by which hitpoints are below max_hitpoints
+    local hp_to_max = attacker_info.hitpoints - attacker_info.max_hitpoints
+    if (damage < hp_to_max) then damage = hp_to_max end
 
     -- Fractional damage (= fractional value of the attacker)
     local fractional_damage = damage / attacker_info.max_hitpoints
