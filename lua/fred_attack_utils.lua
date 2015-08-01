@@ -635,12 +635,15 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
                         gamedata, move_cache, cfg
                     )
 
-                    -- Defender rating
-                    _,_,rating = fred_attack_utils.attack_rating(
+                    -- We mostly want the defender rating
+                    -- However, we add attacker rating as a small contribution,
+                    -- so that good terrain for the attacker will be preferred
+                    _,attacker_rating,defender_rating = fred_attack_utils.attack_rating(
                         { gamedata.unit_infos[attacker_id] }, gamedata.unit_infos[defender_id], { { xa, ya } },
                         { att_stat }, def_stat,
                         gamedata, cfg
                     )
+                    rating = defender_rating + attacker_rating / 100
                 end
 
                 if (not tmp_attacks_dst_src[dst]) then
