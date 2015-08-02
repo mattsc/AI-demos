@@ -1508,8 +1508,6 @@ if 1 then return zone_cfgs end
             print('Hold evaluation: ' .. zonedata.cfg.zone_id)
             --DBG.dbms(zonedata.cfg)
 
---if (zonedata.cfg.zone_id ~= 'west') then return end
-
             --DBG.dbms(fred.data.analysis.status)
 
             local raw_cfg = fred:get_raw_cfgs(zonedata.cfg.zone_id)
@@ -1728,7 +1726,7 @@ if 1 then return zone_cfgs end
 
             local new_unit_ratings, rated_units = {}, {}
             local max_hexes_pre = 20 -- number of hexes to analyze for units individually
-            local max_hexes = 8 -- number of hexes per unit for placement combos
+            local max_hexes = 6 -- number of hexes per unit for placement combos
 
             -- Need to make sure that the same weapons are used for all counter attack calculations
             local cfg_counter_attack = { use_max_damage_weapons = true }
@@ -1811,15 +1809,14 @@ if 1 then return zone_cfgs end
             -- Sorting this will now give us the order of units to be considered
             table.sort(rated_units, function(a, b) return a.rating > b.rating end)
 
-
             -- For holding, we are allowed to add units until we are above
             -- the limit given by power_missing (without taking contingency into account)
             local stage_status = fred.data.analysis.status[zonedata.cfg.stage_id] -- just for convenience for now
             local power_missing = stage_status[zonedata.cfg.zone_id].power_missing
-            print('  power_missing', power_missing)
+            --print('  power_missing', power_missing)
 
             local n_units = math.min(3, #rated_units)
-            print('n_units', n_units)
+            --print('n_units', n_units)
 
             -- TODO: limit power after calculating combos, rather than before?
             local ids, n_hexes = {}, {}
@@ -1839,7 +1836,7 @@ if 1 then return zone_cfgs end
             end
 
             local n_units = #ids
-            print('n_units', n_units)
+            --print('n_units', n_units)
             --DBG.dbms(ids)
             --DBG.dbms(n_hexes)
 
@@ -1893,10 +1890,10 @@ if 1 then return zone_cfgs end
 
             for _,combo in ipairs(combos) do
                 local old_locs, new_locs = {}, {}
-                print('Combo ' .. _)
+                --print('Combo ' .. _)
                 for xy,id in pairs(combo) do
                     local x, y =  math.floor(xy / 1000), xy % 1000
-                    print('  ', id, x, y)
+                    --print('  ', id, x, y)
 
                     table.insert(old_locs, { gamedata.unit_copies[id].x, gamedata.unit_copies[id].y })
                     table.insert(new_locs, { x, y })
@@ -1905,36 +1902,92 @@ if 1 then return zone_cfgs end
                 --DBG.dbms(new_locs)
 
                 local is_acceptable = true
-                local rating = 0
+                local rating, counter_attack_rating = 0, 0
                 for xy,id in pairs(combo) do
                     local target = {}
                     local x, y =  math.floor(xy / 1000), xy % 1000
-                    --print('  ', id, x, y)
 
                     target[id] = { x, y }
-                    local counter_stats = FAU.calc_counter_attack(target, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
+                    local counter_stats, counter_attack = FAU.calc_counter_attack(target, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
                     --DBG.dbms(counter_stats)
+                    --DBG.dbms(counter_attack)
 
-                    -- IF this results in a shielded position, don't use this combo
-                    if (counter_stats.att_rating == 0) and (counter_stats.def_rating == 0) then
+                    -- If this is a shielded position, don't use this combo
+                    if (not (next(counter_attack))) then
+                        --print('  not accepatable because unit cannot be reached by enemy')
                         is_acceptable = false
                         break
                     end
 
+                    -- If chance to die is too large, also do not use this position
+                    -- TODO: what value is good here?
+                    if (counter_stats.hp_chance[0] >= 0.25) then
+                        --print('  not accepatable because chance to die too high:', counter_stats.hp_chance[0])
+                        is_acceptable = false
+                        break
+                    end
+
+                    local hit_chance = FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
+                    hit_chance = 1 - hit_chance
+
+                    -- If this is a village, give a bonus
+                    -- TODO: do this more quantitatively
+                    if gamedata.village_map[x] and gamedata.village_map[x][y] then
+                        hit_chance = hit_chance - 0.15
+                        if (hit_chance < 0) then hit_chance = 0 end
+                    end
+
+                    --print('  ' .. id, x, y, hit_chance)
+
+                    local enemy_rating, count = 0, 0
+                    for src,dst in pairs(counter_attack) do
+                        local old = { math.floor(src / 1000), src % 1000 }
+                        local new = { math.floor(dst / 1000), dst % 1000 }
+                        local enemy_id = gamedata.enemy_map[old[1]][old[2]].id
+                        --print('  enemy:', enemy_id, old[1], old[2], new[1], new[2])
+
+                        local enemy_hc = FGUI.get_unit_defense(gamedata.unit_copies[enemy_id], new[1], new[2], gamedata.defense_maps)
+                        enemy_hc = 1 - enemy_hc
+
+                        -- If this is a village, give a bonus
+                        -- TODO: do this more quantitatively
+                        if gamedata.village_map[new[1]] and gamedata.village_map[new[1]][new[2]] then
+                            enemy_hc = enemy_hc - 0.15
+                            if (enemy_hc < 0) then enemy_hc = 0 end
+                        end
+
+                        --print('    enemy_hc:', enemy_hc)
+
+                        enemy_rating = enemy_rating + enemy_hc^2 - hit_chance^2
+                        count = count + 1
+                    end
+                    enemy_rating = enemy_rating / count
+                    --print('      --> enemy_rating', enemy_rating)
+
+                    -- We also add a very small contribution from the counter
+                    -- attack rating, as lots of option can otherwise be equal
+                    -- This needs to be multiplied be a small number.  enemy_rating
+                    -- often varies by .01 or so
                     -- Important: the counter_stats rating is the rating of the
                     -- counter attack. We want this to be as *bad* as possible
-                    rating = rating - counter_stats.rating
-                end
-                print('  --> rating:', rating)
+                    counter_attack_rating = - counter_stats.rating / 1000.
+                    --print('      --> counter_attack_rating', counter_attack_rating)
 
-                -- If this is the best move found so far but has negative rating,
-                -- check whether it is acceptable after all
-                if is_acceptable and (rating < 0) and (rating > max_rating) then
-                    print('  Hold has negative rating; checking for acceptability')
-                    --is_acceptable = false
+                    rating = rating + enemy_rating + counter_attack_rating
+
+                end
+                --print('  --> rating:', rating, max_rating)
+
+                -- If this has negative rating, check whether it is acceptable after all
+                -- For now we always consider these unacceptable
+                -- Note: only the enemy_rating contributions count here, not
+                -- the part in counter_attack_rating
+                if (rating < counter_attack_rating - 1e-8) then
+                    --print('  Hold has negative rating; checking for acceptability')
+                    is_acceptable = false
                 end
 
-                print('      is_acceptable', is_acceptable)
+                --print('      is_acceptable', is_acceptable)
 
                 -- We want to exclude combinations where one unit is out of attack range
                 -- as this is for holding a zone, not protecting units.
