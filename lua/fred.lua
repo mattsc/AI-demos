@@ -2066,10 +2066,13 @@ if 1 then return zone_cfgs end
 
             local max_rating, best_unit, best_hex = -9e99
             for id,loc in pairs(gamedata.my_units_MP) do
-                -- We do not check if the leader is on the keep since a higher
-                -- ranked action would have moved him there first
-                -- However, the leader only participates in village grabbing
+                -- The leader only participates in village grabbing, and
+                -- that only if he is on the keep
                 local is_leader = gamedata.unit_infos[id].canrecruit
+                local not_leader_or_leader_on_keep =
+                    (not is_leader)
+                    or wesnoth.get_terrain_info(wesnoth.get_terrain(gamedata.units[id][1], gamedata.units[id][2])).keep
+                print(id, is_leader, not_leader_or_leader_on_keep)
 
                 -- TODO: change retreat.lua so that it uses the gamedata tables
                 local min_hp = R.min_hp(gamedata.unit_copies[id])
@@ -2102,7 +2105,7 @@ if 1 then return zone_cfgs end
                             -- Retreating injured units to AI owned and other safe
                             -- locations is done separately (TODO: reconsider that)
                             local owner = FU.get_fgumap_value(gamedata.village_map, x, y, 'owner')
-                            if owner and (owner ~= wesnoth.current.side) then
+                            if not_leader_or_leader_on_keep and owner and (owner ~= wesnoth.current.side) then
                                 if (owner == 0) then
                                     rating = 1000
                                 else
