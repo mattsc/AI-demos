@@ -1884,11 +1884,41 @@ if 1 then return zone_cfgs end
             hex_combos()
             --DBG.dbms(combos)
 
+            -- Eliminate all that do not use the maximum number of units
+            local max_count = 0
+            for _,combo in pairs(combos) do
+                local count = 0
+                for xy,id in pairs(combo) do
+                    count = count + 1
+                end
+
+                if (count > max_count) then
+                    max_count = count
+                end
+            end
+            print('max_count', max_count)
+
+            local reduced_combos = {}
+            for _,combo in pairs(combos) do
+                local count = 0
+                local new_combo = {}
+                for xy,id in pairs(combo) do
+                    count = count + 1
+                    new_combo[xy] = id
+                end
+
+                if (count == max_count) then
+                    table.insert(reduced_combos, new_combo)
+                end
+            end
+            --DBG.dbms(reduced_combos)
+
+            combos = nil
 
             -- Finally, rate all the combos
             local max_rating, best_hexes, best_units = -9e99
 
-            for _,combo in ipairs(combos) do
+            for _,combo in ipairs(reduced_combos) do
                 local old_locs, new_locs = {}, {}
                 --print('Combo ' .. _)
                 for xy,id in pairs(combo) do
