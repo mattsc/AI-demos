@@ -693,6 +693,15 @@ return {
                 local cfg = {
                     zone_id = zone_id,
                     stage_id = stage_id,
+                    actions = { advance = true },
+                    rating = hold[zone_id].rating,
+                    villages_only = true
+                }
+                table.insert(tmp_cfgs_hold, cfg)
+
+                local cfg = {
+                    zone_id = zone_id,
+                    stage_id = stage_id,
                     actions = { hold = true },
 min_counter_rating = -1,
                     rating = hold[zone_id].rating,
@@ -2078,7 +2087,7 @@ if 1 then return zone_cfgs end
                         if zone_rating and (not threat) then
                             local rating
 
-                            if (not is_leader) and (not must_retreat) then
+                            if (not is_leader) and (not must_retreat) and (not zonedata.cfg.villages_only) then
                                 -- Want to use faster units preferentially
                                 rating = zone_rating + gamedata.unit_infos[id].max_moves
 
