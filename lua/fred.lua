@@ -2540,7 +2540,7 @@ if 1 then return zone_cfgs end
                     print(FDA.stage_counter, #FDA.stage_ids)
                     print(' ---> done with all stages')
 
-FDA.stage_counter = 1
+--FDA.stage_counter = 1
 
                     return 0
                 end
