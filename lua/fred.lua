@@ -1089,7 +1089,7 @@ if 1 then return zone_cfgs end
                     end
                 end
             end
-            print('  #targets', #targets)
+            --print('  #targets', #targets)
             --DBG.dbms(targets)
 
             local attacker_map = {}
@@ -1102,7 +1102,7 @@ if 1 then return zone_cfgs end
             if zonedata.cfg.value_ratio then
                 value_ratio = zonedata.cfg.value_ratio
             end
-            print_time('value_ratio', value_ratio)
+            --print_time('value_ratio', value_ratio)
 
             local cfg_attack = {
                 value_ratio = value_ratio,
@@ -1118,12 +1118,12 @@ if 1 then return zone_cfgs end
                 if gamedata.unit_infos[target_id].skirmisher then
                     is_trappable_enemy = false
                 end
-                print(target_id, '  trappable:', is_trappable_enemy)
+                --print(target_id, '  trappable:', is_trappable_enemy)
 
                 local attack_combos = FAU.get_attack_combos(
                     zonedata.zone_units_attacks, target, gamedata.reach_maps, false, move_cache, cfg_attack
                 )
-                print_time('#attack_combos', #attack_combos)
+                --print_time('#attack_combos', #attack_combos)
 
                 -- Check if this exceeds allowable resources
                 -- For attacks, we allow use of power up to power_missing + contingency
@@ -1134,7 +1134,7 @@ if 1 then return zone_cfgs end
                 local contingency = stage_status.contingency
 
                 local allowable_power = power_missing + contingency
-                print('  Allowable power (power_missing + contingency ): ' .. power_missing .. ' + ' .. contingency .. ' = ' .. allowable_power)
+                --print('  Allowable power (power_missing + contingency ): ' .. power_missing .. ' + ' .. contingency .. ' = ' .. allowable_power)
 
                 for j = #attack_combos,1,-1 do
                     local combo = attack_combos[j]
@@ -1150,7 +1150,7 @@ if 1 then return zone_cfgs end
                         table.remove(attack_combos, j)
                     end
                 end
-                print_time('#attack_combos', #attack_combos)
+                --print_time('#attack_combos', #attack_combos)
 
 
                 local enemy_on_village = gamedata.village_map[target_loc[1]]
@@ -1491,9 +1491,9 @@ if 1 then return zone_cfgs end
                 --print_time('  acceptable_counter', acceptable_counter)
                 if acceptable_counter then
                     local total_rating = combo.rating - max_counter_rating
-                    print('Acceptable counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating)
-                    print('  rating, counter_rating, total_rating', combo.rating, max_counter_rating, total_rating)
-                    print('  threat_rating:', threat_rating)
+                    --print('Acceptable counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating)
+                    --print('  rating, counter_rating, total_rating', combo.rating, max_counter_rating, total_rating)
+                    --print('  threat_rating:', threat_rating)
 
                     -- Of the acceptable attacks, prioritize them by threat_rating
                     -- As both the total rating and the threat_rating are supposed to
@@ -2089,7 +2089,7 @@ if 1 then return zone_cfgs end
                 local not_leader_or_leader_on_keep =
                     (not is_leader)
                     or wesnoth.get_terrain_info(wesnoth.get_terrain(gamedata.units[id][1], gamedata.units[id][2])).keep
-                print(id, is_leader, not_leader_or_leader_on_keep)
+                --print(id, is_leader, not_leader_or_leader_on_keep)
 
                 -- TODO: change retreat.lua so that it uses the gamedata tables
                 local min_hp = R.min_hp(gamedata.unit_copies[id])
