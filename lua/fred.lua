@@ -182,6 +182,7 @@ return {
                 key_hexes = { { 8,8 },  { 11,9 }, { 14,8 } },
                 target_zone = { x = '1-15', y = '7-14' },
                 zone_filter = { x = '4-14', y = '7-15' },
+                unit_filter_advance = { x = '1-20,1-14', y = '1-6,7-13' },
                 villages = {
                     suf = { x = '1-14', y = '1-10' },
                     villages_per_unit = 2
@@ -193,6 +194,7 @@ return {
                 key_hexes = { { 17,10 },  { 18,9 }, { 20,9 }, { 22,10 } },
                 target_zone = { x = '16-23', y = '8-14' },
                 zone_filter = { x = '15-24', y = '8-16' },
+                unit_filter_advance = { x = '15-23,', y = '1-13' },
                 villages = {
                     suf = { x = '16-21', y = '7-10' },
                     villages_per_unit = 2
@@ -204,6 +206,7 @@ return {
                 key_hexes = { { 25,12 },  { 27,11 }, { 29,11 }, { 32,10 } },
                 target_zone = { x = '24-99', y = '9-18' },
                 zone_filter = { x = '24-34', y = '9-17' },
+                unit_filter_advance = { x = '17-34,24-34', y = '1-8,9-16' },
                 villages = {
                     suf = { x = '22-34', y = '1-10' },
                     villages_per_unit = 2
@@ -2056,16 +2059,29 @@ if 1 then return zone_cfgs end
         function fred:get_advance_action(zonedata, gamedata, move_cache)
             print('Advance evaluation: ' .. zonedata.cfg.zone_id)
             --DBG.dbms(zonedata.cfg)
+            local raw_cfg = fred:get_raw_cfgs(zonedata.cfg.zone_id)
+            --DBG.dbms(raw_cfg)
             --DBG.dbms(gamedata.village_map)
 
             --DBG.dbms(gamedata.my_units_MP)
             --DBG.dbms(gamedata.enemy_attack_map[1])
 
+            -- Select only the units specified in raw_cfg.unit_filter_advance
+            -- If that table is missing, it matches all units
+            local advance_units = {}
+            for id,loc in pairs(gamedata.my_units_MP) do
+                if wesnoth.match_unit(gamedata.unit_copies[id], raw_cfg.unit_filter_advance) then
+                    --print('  matches unit_filter_advance in zone ' .. zonedata.cfg.zone_id, id)
+                    advance_units[id] = loc
+                end
+            end
+
+
             -- Don't need to enforce a resource limit here, as this is one
             -- unti at a time.  It will be checked before the action is called.
 
             local max_rating, best_unit, best_hex = -9e99
-            for id,loc in pairs(gamedata.my_units_MP) do
+            for id,loc in pairs(advance_units) do
                 -- The leader only participates in village grabbing, and
                 -- that only if he is on the keep
                 local is_leader = gamedata.unit_infos[id].canrecruit
