@@ -727,7 +727,9 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
             add_attacks()
         else
             if get_strongest_attack then
-                if (rating > max_rating) then
+                -- Need to check here for next(combo), as the empty combo has a
+                -- rating of 0, which might be higher than all other combos
+                if (rating > max_rating) and next(combo) then
                     max_rating = rating
                     best_combo = {}
                     for k,v in pairs(combo) do best_combo[k] = v end
