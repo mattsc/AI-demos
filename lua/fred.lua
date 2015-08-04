@@ -698,6 +698,7 @@ return {
                     stage_id = stage_id,
                     actions = { advance = true },
                     rating = hold[zone_id].rating + 0.001, -- as there's a sorting later
+                    ignore_resource_limit = true,
                     villages_only = true
                 }
                 table.insert(tmp_cfgs_hold, cfg)
@@ -2589,8 +2590,9 @@ if 1 then return zone_cfgs end
 
                     -- Also need to check whether we have enough units for
                     -- village grabbing
-
-                    if (power_missing > 0) or (n_units_needed > n_units_used) then
+                    if cfg.ignore_resource_limit
+                        or ((power_missing > 0) or (n_units_needed > n_units_used))
+                    then
                         -- Extract all AI units with MP left (for enemy path finding, counter attack placement etc.)
                         local extracted_units = {}
                         for id,loc in pairs(fred.data.gamedata.my_units_MP) do
