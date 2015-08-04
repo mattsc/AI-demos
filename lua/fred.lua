@@ -697,7 +697,7 @@ return {
                     zone_id = zone_id,
                     stage_id = stage_id,
                     actions = { advance = true },
-                    rating = hold[zone_id].rating,
+                    rating = hold[zone_id].rating + 0.001, -- as there's a sorting later
                     villages_only = true
                 }
                 table.insert(tmp_cfgs_hold, cfg)
