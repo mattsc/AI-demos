@@ -1,6 +1,7 @@
 local H = wesnoth.require "lua/helper.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FGUI = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
+--local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 -- Functions to perform fast evaluation of attacks and attack combinations.
 -- The emphasis with all of this is on speed, not elegance.
@@ -684,11 +685,16 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
     local all_combos, combo, best_combo = {}, {}
     local num_hexes = #attacks_dst_src
     local max_rating, rating, hex = -9e99, 0, 0
+    local max_count = 1 -- Note: must be 1, not 0
 
     -- If get_strongest_attack is set, we cap this at 1,000 combos, assuming
     -- that we will have found something close to the strongest by then,
     -- esp. given that the method is only approximate anyway
     local count = 0
+
+    -- Also, if get_strongest_attack is set, we only take combos that have
+    -- the maximum number of attackers. Otherwise the comparison is not fair
+    -- if there are, for example villages involved
 
     -- This is the recursive function adding units to each hex
     -- It is defined here so that we can use the variables above by closure
@@ -709,8 +715,17 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
                     add_attacks()
                 else
                     if get_strongest_attack then
+                        -- Only keep attacks with the maximum number of units
+                        local tmp_count = 0
+                        for _,_ in pairs(combo) do tmp_count = tmp_count + 1 end
+                        -- If this is less than current max_count, don't use this attack
+                        if (tmp_count < max_count) then rating = -9e99 end
+                        -- If it is more, reset the max_rating (forcing this combo to be taken)
+                        if (tmp_count > max_count) then max_rating = -9e99 end
+
                         if (rating > max_rating) then
                             max_rating = rating
+                            max_count = tmp_count
                             best_combo = {}
                             for k,v in pairs(combo) do best_combo[k] = v end
                         end
@@ -735,10 +750,18 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
             add_attacks()
         else
             if get_strongest_attack then
-                -- Need to check here for next(combo), as the empty combo has a
-                -- rating of 0, which might be higher than all other combos
-                if (rating > max_rating) and next(combo) then
+                -- Only keep attacks with the maximum number of units
+                -- This also automatically excludes the empty combo
+                local tmp_count = 0
+                for _,_ in pairs(combo) do tmp_count = tmp_count + 1 end
+                -- If this is less than current max_count, don't use this attack
+                if (tmp_count < max_count) then rating = -9e99 end
+                -- If it is more, reset the max_rating (forcing this combo to be taken)
+                if (tmp_count > max_count) then max_rating = -9e99 end
+
+                if (rating > max_rating) then
                     max_rating = rating
+                    max_count = tmp_count
                     best_combo = {}
                     for k,v in pairs(combo) do best_combo[k] = v end
                 end
