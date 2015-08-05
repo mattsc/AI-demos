@@ -707,7 +707,6 @@ return {
                     zone_id = zone_id,
                     stage_id = stage_id,
                     actions = { hold = true },
-min_counter_rating = -1,
                     rating = hold[zone_id].rating,
                     holders = hold[zone_id].units
                 }
