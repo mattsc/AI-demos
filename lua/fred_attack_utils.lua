@@ -305,6 +305,14 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
 
                 local total_damage_attack = att_weapon.num_blows * att_weapon.damage
 
+                -- Give bonus for poison and slow
+                if att.poison then
+                    total_damage_attack = total_damage_attack + 8
+                end
+                if att.slow then
+                    total_damage_attack = total_damage_attack + 4
+                end
+
                 --print('  i_a:', i_a, total_damage_attack)
 
                 if (total_damage_attack > best_att) then
