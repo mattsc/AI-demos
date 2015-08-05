@@ -271,10 +271,13 @@ return {
 
             stage_status[raw_cfg.zone_id] = {
                 power_used = 0,
-                n_units_needed = n_units_needed,
+                power_needed = 0,
+                power_missing = 0,
+                n_units_needed = 0,
                 n_units_used = 0,
                 units_used = {}
             }
+            stage_status.contingency = 0
 
             for id,zone_id in pairs(fred.data.analysis.status.units_used) do
                 -- Check whether unit still exists and has no MP left
@@ -349,23 +352,13 @@ return {
 
 
             -- Attacks on T1 threats is with unlimited resources
-            stage_status.contingency = 0
-            stage_status[raw_cfg.zone_id] = {
-                power_missing = 9999,
-                power_needed = 0,
-                power_used = 0,
-                n_units_needed = 0,
-                n_units_used = 0,
-                units_used = {}
-            }
-
-
             local attack1_cfg = {
                 zone_id = raw_cfg.zone_id,
                 stage_id = stage_id,
                 targets = {},
                 actions = { attack = true },
-                value_ratio = 0.5  -- more aggressive for direct leader threats
+                value_ratio = 0.5,  -- more aggressive for direct leader threats
+                ignore_resource_limit = true
             }
 
             for id,_ in pairs(threats1) do
@@ -379,7 +372,8 @@ return {
                 zone_id = raw_cfg.zone_id,
                 stage_id = stage_id,
                 targets = {},
-                actions = { attack = true }
+                actions = { attack = true },
+                ignore_resource_limit = true
             }
 
             for id,_ in pairs(threats2) do
@@ -1109,12 +1103,17 @@ return {
                 -- For attacks, we allow use of power up to power_missing + contingency
 
                 -- TODO: check: table.remove might be slow
-                local stage_status = fred.data.analysis.status[zonedata.cfg.stage_id] -- just for convenience for now
-                local power_missing = stage_status[zonedata.cfg.zone_id].power_missing
-                local contingency = stage_status.contingency
 
-                local allowable_power = power_missing + contingency
-                --print('  Allowable power (power_missing + contingency ): ' .. power_missing .. ' + ' .. contingency .. ' = ' .. allowable_power)
+
+                local allowable_power = 9e99
+                if (not zonedata.cfg.ignore_resource_limit) then
+                    local stage_status = fred.data.analysis.status[zonedata.cfg.stage_id] -- just for convenience for now
+                    local power_missing = stage_status[zonedata.cfg.zone_id].power_missing
+                    local contingency = stage_status.contingency
+
+                    allowable_power = power_missing + contingency
+                    print('  Allowable power (power_missing + contingency ): ' .. power_missing .. ' + ' .. contingency .. ' = ' .. allowable_power)
+                end
 
                 for j = #attack_combos,1,-1 do
                     local combo = attack_combos[j]
