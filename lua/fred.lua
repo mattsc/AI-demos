@@ -176,6 +176,16 @@ return {
 
         ------ Map analysis at beginning of turn -----------
 
+        function fred:get_leader_zone_raw_cfg()
+            local cfg_leader = {
+                zone_id = 'leader',
+                key_hexes = { { 18,4 },  { 19,4 } },
+                zone_filter = { x = '1-15,16-23,24-34', y = '1-6,1-7,1-8' },
+            }
+
+            return cfg_leader
+        end
+
         function fred:get_raw_cfgs(zone_id)
             local cfg_west = {
                 zone_id = 'west',
@@ -230,16 +240,170 @@ return {
             end
         end
 
-        function fred:analyze_defend_zones(gamedata)
+        function fred:analyze_leader_threat(gamedata)
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
-            if AH.print_eval() then print_time('     - Evaluating zone_control CA:') end
+            if AH.print_eval() then print_time('     - Evaluating leader threat map analysis:') end
 
             -- Some pointers just for convenience
             local stage_id = fred.data.analysis.stage_ids[fred.data.analysis.stage_counter]
             local stage_status = fred.data.analysis.status[stage_id]
 
 
-            print('\n---------------------------------------')
+            print('\n--------------- ' .. stage_id .. ' ------------------------')
+
+            -- Start with an analysis of the threat to the AI leader
+            local leader_x = gamedata.leaders[wesnoth.current.side][1]
+            local leader_y = gamedata.leaders[wesnoth.current.side][2]
+            --print(leader_x, leader_y)
+
+            local leader_proxy = wesnoth.get_unit(leader_x, leader_y)
+
+            local enemy_leader_loc = {}
+            for side,loc in ipairs(gamedata.leaders) do
+                if wesnoth.is_enemy(side, wesnoth.current.side) then
+                    enemy_leader_loc = loc
+                    break
+                end
+            end
+
+            local raw_cfg = fred:get_leader_zone_raw_cfg()
+            --DBG.dbms(raw_cfg)
+
+            stage_status[raw_cfg.zone_id] = {
+                power_used = 0,
+                n_units_needed = n_units_needed,
+                n_units_used = 0,
+                units_used = {}
+            }
+
+            for id,zone_id in pairs(fred.data.analysis.status.units_used) do
+                -- Check whether unit still exists and has no MP left
+                -- This is a safeguard against "unusual stuff"
+                if (zone_id == raw_cfg.zone_id) and gamedata.my_units_noMP[id] then
+                    if (not gamedata.unit_infos[id].canrecruit) then
+                        local power = gamedata.unit_infos[id].power
+                        stage_status[zone_id].power_used = stage_status[zone_id].power_used + power
+                        stage_status[zone_id].n_units_used = stage_status[zone_id].n_units_used + 1
+                        stage_status[zone_id].units_used[id] = power
+                    end
+                else
+                    fred.data.analysis.status.units_used[id] = nil
+                end
+            end
+            --DBG.dbms(stage_status)
+
+
+            -- T1 threats: those enemies that can attack the leader directly.
+            -- And enemies who can reach the key hexes (if leader is not there)
+
+            local threats1 = {}
+            local my_power1 = {}
+            local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], leader_x, leader_y, 'ids', {})
+
+
+            for _,id in pairs(ids) do
+                threats1[id] = gamedata.unit_infos[id].power
+            end
+
+            for _,hex in pairs(raw_cfg.key_hexes) do
+                local x, y = hex[1], hex[2]
+
+                -- Enemies that can attack a key hex
+                local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids', {})
+                for _,id in pairs(ids) do
+                    threats1[id] = gamedata.unit_infos[id].power
+                end
+            end
+            --DBG.dbms(threats1)
+
+            local my_power = {}
+            -- Count units that have already moved in the zone
+            for id,power in pairs(stage_status[raw_cfg.zone_id].units_used) do
+                print('  already used:', id, power)
+                my_power[id] = power
+            end
+
+            -- Add up the power of all T1 threats on this zone
+            local enemy_power1 = 0
+            for id,power in pairs(threats1) do
+                enemy_power1 = enemy_power1 + power
+            end
+            print('  enemy_power1:', enemy_power1)
+
+
+            -- We also get all units that are in the zone but not T1 threats
+            local threats2 = {}
+            for id,loc in pairs(gamedata.enemies) do
+                if (not threats1[id]) and wesnoth.match_unit(gamedata.unit_copies[id], raw_cfg.zone_filter) then
+                    threats2[id] = gamedata.unit_infos[id].power
+                end
+            end
+            --DBG.dbms(threats2)
+
+            -- Add up the power of all T1 threats on this zone
+            local enemy_power2 = 0
+            for id,power in pairs(threats2) do
+                enemy_power2 = enemy_power2 + power
+            end
+            print('  enemy_power2:', enemy_power2)
+
+
+            -- Attacks on T1 threats is with unlimited resources
+            stage_status.contingency = 0
+            stage_status[raw_cfg.zone_id] = {
+                power_missing = 9999,
+                power_needed = 0,
+                power_used = 0,
+                n_units_needed = 0,
+                n_units_used = 0,
+                units_used = {}
+            }
+
+
+            local attack1_cfg = {
+                zone_id = raw_cfg.zone_id,
+                stage_id = stage_id,
+                targets = {},
+                actions = { attack = true }
+            }
+
+            for id,_ in pairs(threats1) do
+                local target = {}
+                target[id] = gamedata.enemies[id]
+                table.insert(attack1_cfg.targets, target)
+            end
+            --DBG.dbms(attack1_cfg)
+
+            local attack2_cfg = {
+                zone_id = raw_cfg.zone_id,
+                stage_id = stage_id,
+                targets = {},
+                actions = { attack = true }
+            }
+
+            for id,_ in pairs(threats2) do
+                local target = {}
+                target[id] = gamedata.enemies[id]
+                table.insert(attack2_cfg.targets, target)
+            end
+            --DBG.dbms(attack2_cfg)
+
+            fred.data.zone_cfgs = {}
+            table.insert(fred.data.zone_cfgs, attack1_cfg)
+            table.insert(fred.data.zone_cfgs, attack2_cfg)
+            --DBG.dbms(fred.data.zone_cfgs)
+        end
+
+        function fred:analyze_defend_zones(gamedata)
+            local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
+            if AH.print_eval() then print_time('     - Evaluating defend zones map analysis:') end
+
+            -- Some pointers just for convenience
+            local stage_id = fred.data.analysis.stage_ids[fred.data.analysis.stage_counter]
+            local stage_status = fred.data.analysis.status[stage_id]
+
+
+            print('\n--------------- ' .. stage_id .. ' ------------------------')
             --for k,v in pairs(gamedata) do print(k) end
             --DBG.dbms(gamedata.enemy_turn_maps)
 
@@ -252,7 +416,7 @@ return {
 
 
             local influence_maps = FU.get_influence_maps(gamedata.my_attack_map[1], gamedata.enemy_attack_map[1])
---DBG.dbms(gamedata.my_attack_map[1])
+            --DBG.dbms(gamedata.my_attack_map[1])
 
             local show_debug = false
             if show_debug then
@@ -306,7 +470,7 @@ return {
                 -- Check whether unit still exists and has no MP left
                 -- This is a safeguard against "unusual stuff"
                 if gamedata.my_units_noMP[id] then
-                    if (not gamedata.unit_infos[id].canrecruit) then
+                    if stage_status[zone_id] and (not gamedata.unit_infos[id].canrecruit) then
                         local power = gamedata.unit_infos[id].power
                         stage_status[zone_id].power_used = stage_status[zone_id].power_used + power
                         stage_status[zone_id].n_units_used = stage_status[zone_id].n_units_used + 1
@@ -741,157 +905,6 @@ return {
             -- At the end, we add all the attack cfgs again, but with
 
             --DBG.dbms(fred.data.zone_cfgs)
-
-if 1 then return zone_cfgs end
-
-
-
-
-
-
-
-
-
-            -- Start with an analysis of the threat to the AI leader
-            local leader_x = gamedata.leaders[wesnoth.current.side][1]
-            local leader_y = gamedata.leaders[wesnoth.current.side][2]
-            print(leader_x, leader_y)
-
-            local leader_proxy = wesnoth.get_unit(leader_x, leader_y)
-
-            local enemy_leader_loc = {}
-            for side,loc in ipairs(gamedata.leaders) do
-                if wesnoth.is_enemy(side, wesnoth.current.side) then
-                    enemy_leader_loc = loc
-                    break
-                end
-            end
-
-            local my_hp, my_num, my_value = 0, 0, 0
-            local enemy_hp, enemy_num, enemy_value = 0, 0, 0
-
-            local my_defenders = {}
-
-            local direct_threats = gamedata.enemy_attack_map[leader_x]
-                and gamedata.enemy_attack_map[leader_x][leader_y]
-                and gamedata.enemy_attack_map[leader_x][leader_y].ids
-            --DBG.dbms(direct_threats)
-
-            local kill_threats, threats = {}, {}
-
-            for _,enemy_id in ipairs(direct_threats) do
-                local enemy_x,enemy_y = gamedata.unit_copies[enemy_id].x, gamedata.unit_copies[enemy_id].y
-
-                --print('Evaluating leader threat by:', enemy_id, enemy_x, enemy_y)
-
-                enemy_hp = enemy_hp + gamedata.unit_infos[enemy_id].hitpoints
-                enemy_num = enemy_num + 1.
-
-                local value = FU.unit_value(gamedata.unit_infos[enemy_id], {})
-                enemy_value = enemy_value + value
-
-                local max_rating, chance_to_die = -9e99, 0
-
-                for xa,ya in H.adjacent_tiles(leader_x, leader_y) do
-                    if gamedata.enemy_turn_maps[enemy_id][xa]
-                       and gamedata.enemy_turn_maps[enemy_id][xa][ya]
-                       and (gamedata.enemy_turn_maps[enemy_id][xa][ya].turns <= 1)
-                    then
-                        --print('  can reach', xa, ya)
-
-                        local att_stat, def_stat = FAU.battle_outcome(
-                            gamedata.unit_copies[enemy_id], leader_proxy, {xa, ya},
-                            gamedata.unit_infos[enemy_id], gamedata.unit_infos[leader_proxy.id],
-                            gamedata, fred.data.move_cache, cfg_attack
-                        )
-                        --DBG.dbms(def_stat)
-
-                        -- Don't need to set value_ratio or anything, as we are only interested
-                        -- in defender_rating
-                        local rating, attacker_rating, defender_rating, extra_rating = FAU.attack_rating(
-                            { gamedata.unit_infos[enemy_id] },
-                            gamedata.unit_infos[leader_proxy.id],
-                            { { xa, ya } },
-                            { att_stat }, def_stat, gamedata, cfg_attack
-                        )
-                        --print('  rating, attacker_rating, defender_rating, extra_rating:', rating, attacker_rating, defender_rating, extra_rating)
-
-                        -- We're only interested in the damage done to the AI leader here
-                        if (defender_rating > max_rating) then
-                            max_rating = defender_rating
-                            chance_to_die = def_stat.hp_chance[0]
-                        end
-                    end
-                end
-                --print('    -> best attack:', max_rating, chance_to_die)
-
-                local threat = {}
-                threat[enemy_id] = {
-                    enemy_x, enemy_y,
-                    threat_rating = max_rating
-                }
-                if (chance_to_die > 0) then
-                    table.insert(kill_threats, threat)
-                else
-                    table.insert(threats, threat)
-                end
-
-                -- Get own units that can attack this enemy (excluding side leader)
-                local defenders = gamedata.my_attack_map[enemy_x]
-                    and gamedata.my_attack_map[enemy_x][enemy_y]
-                    and gamedata.my_attack_map[enemy_x][enemy_y].ids
-                --DBG.dbms(defenders)
-
-                for _,defender_id in ipairs(defenders) do
-                    if (not gamedata.unit_infos[defender_id].canrecruit) then
-                        my_defenders[defender_id] = true
-                    end
-                end
-
-            end
-            --print('enemy_hp, enemy_num, enemy_value', enemy_hp, enemy_num, enemy_value)
-
-            --DBG.dbms(my_defenders)
-            local my_hp, my_num, my_value = 0, 0, 0
-
-            for my_id,_ in pairs(my_defenders) do
-                my_hp = my_hp + gamedata.unit_infos[my_id].hitpoints
-                my_num = my_num + 1.
-
-                local value = FU.unit_value(gamedata.unit_infos[my_id], {})
-                my_value = my_value + value
-            end
-            --print('my_hp, my_num, my_value         ', my_hp, my_num, my_value)
-
-            local value_ratio = my_value / enemy_value
-            if (value_ratio < 0.5) then value_ratio = 0.5 end
-            if (value_ratio > 0.8) then value_ratio = 0.8 end
-            --print('value_ratio', value_ratio)
-
-            if next(kill_threats) then
-                table.insert(zone_cfgs, {
-                    id = 'leader_kill_threats',
-                    zone_filter = 'leader',
-                    unit_filter = {}, -- all units
-                    actions = { attack = true, hold = true },
-                    enemies = kill_threats,
-                    value_ratio = 0.5  -- always be very aggressive on these units
-                })
-            end
-
-            if next(threats) then
-                table.insert(zone_cfgs, {
-                    id = 'leader_threats',
-                    zone_filter = 'leader',
-                    unit_filter = {}, -- all units
-                    actions = { attack = true, hold = true },
-                    enemies = threats,
-                    value_ratio = value_ratio
-                })
-            end
-            --DBG.dbms(zone_cfgs)
-
-            return zone_cfgs
         end
 
         function fred:analyze_all_map(gamedata)
@@ -998,7 +1011,7 @@ if 1 then return zone_cfgs end
             end
 
             if (stage_id == 'leader_threat') then
-                fred.data.zone_cfgs = {}
+                fred:analyze_leader_threat(gamedata)
                 return
             end
 
@@ -2514,8 +2527,8 @@ if 1 then return zone_cfgs end
                     turn = wesnoth.current.turn,
                     stage_counter = 1,
                     --stage_ids = { 'leader_threat', 'defend_zones' },
-                    stage_ids = { 'defend_zones', 'all_map' },
-                    --stage_ids = { 'all_map' },
+                    stage_ids = { 'leader_threat', 'defend_zones', 'all_map' },
+                    --stage_ids = { 'leader_threat' },
                     status = { units_used = {} }
                 }
             end
