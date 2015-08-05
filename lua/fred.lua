@@ -924,7 +924,7 @@ return {
             -- give unlimited resources here
             stage_status.contingency = 0
             stage_status[zone_id] = {
-                power_missing = 9999,
+                power_missing = 0,
                 power_needed = 0,
                 power_used = 0,
                 n_units_needed = 0,
@@ -935,7 +935,8 @@ return {
             local attack_all_cfg = {
                 zone_id = zone_id,
                 stage_id = stage_id,
-                actions = { attack = true }
+                actions = { attack = true },
+                ignore_resource_limit = true
             }
 
             table.insert(fred.data.zone_cfgs, attack_all_cfg)
@@ -950,7 +951,7 @@ return {
             -- give unlimited resources here
             stage_status.contingency = 0
             stage_status[zone_id] = {
-                power_missing = 9999,
+                power_missing = 0,
                 power_needed = 0,
                 power_used = 0,
                 n_units_needed = 0,
@@ -961,7 +962,8 @@ return {
             local retreat_cfg = {
                 zone_id = zone_id,
                 stage_id = stage_id,
-                actions = { retreat = true }
+                actions = { retreat = true },
+                ignore_resource_limit = true
             }
 
             table.insert(fred.data.zone_cfgs, retreat_cfg)
@@ -974,7 +976,7 @@ return {
             -- give unlimited resources here
             stage_status.contingency = 0
             stage_status[zone_id] = {
-                power_missing = 9999,
+                power_missing = 0,
                 power_needed = 0,
                 power_used = 0,
                 n_units_needed = 0,
@@ -985,8 +987,8 @@ return {
             local retreat_cfg = {
                 zone_id = zone_id,
                 stage_id = stage_id,
-                actions = { hold = true, advance = true }
---                actions = { hold = true }
+                actions = { hold = true, advance = true },
+                ignore_resource_limit = true
             }
 
             table.insert(fred.data.zone_cfgs, retreat_cfg)
@@ -1807,8 +1809,11 @@ return {
 
             -- For holding, we are allowed to add units until we are above
             -- the limit given by power_missing (without taking contingency into account)
-            local stage_status = fred.data.analysis.status[zonedata.cfg.stage_id] -- just for convenience for now
-            local power_missing = stage_status[zonedata.cfg.zone_id].power_missing
+            local power_missing = 9e99
+            if (not zonedata.cfg.ignore_resource_limit) then
+                local stage_status = fred.data.analysis.status[zonedata.cfg.stage_id] -- just for convenience for now
+                power_missing = stage_status[zonedata.cfg.zone_id].power_missing
+            end
             --print('  power_missing', power_missing)
 
             local n_units = math.min(3, #rated_units)
