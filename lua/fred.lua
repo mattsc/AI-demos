@@ -364,7 +364,8 @@ return {
                 zone_id = raw_cfg.zone_id,
                 stage_id = stage_id,
                 targets = {},
-                actions = { attack = true }
+                actions = { attack = true },
+                value_ratio = 0.5  -- more aggressive for direct leader threats
             }
 
             for id,_ in pairs(threats1) do
