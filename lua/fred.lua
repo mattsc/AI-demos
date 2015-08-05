@@ -1776,8 +1776,11 @@ if 1 then return zone_cfgs end
 
                     local target = {}
                     target[id] = { unit_ratings[i].x, unit_ratings[i].y }
-                    local counter_stats = FAU.calc_counter_attack(target, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
+                    local counter_stats, counter_attack = FAU.calc_counter_attack(target, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
                     --print(id, unit_ratings[i].rating, -counter_stats.rating, unit_ratings[i].x, unit_ratings[i].y)
+                    --DBG.dbms(counter_stats)
+                    --DBG.dbms(counter_attack)
+                    --W.message { speaker = 'narrator', message = 'counter stats' }
 
                     -- Important: the counter_stats rating is the rating of the
                     -- counter attack. We want this to be as *bad* as possible
@@ -1791,6 +1794,7 @@ if 1 then return zone_cfgs end
                 unit_ratings = nil -- so that we don't accidentally use it any more
 
                 table.sort(new_unit_ratings[id], function(a, b) return a.rating > b.rating end)
+                --DBG.dbms(new_unit_ratings)
 
                 -- We also identify the best units; which are those with the highest
                 -- sum of the best ratings (only those to be used for the next step)
@@ -1909,7 +1913,7 @@ if 1 then return zone_cfgs end
                     max_count = count
                 end
             end
-            print('max_count', max_count)
+            --print('max_count', max_count)
 
             local reduced_combos = {}
             for _,combo in pairs(combos) do
@@ -2017,7 +2021,6 @@ if 1 then return zone_cfgs end
                     --print('      --> counter_attack_rating', counter_attack_rating)
 
                     rating = rating + enemy_rating + counter_attack_rating
-
                 end
                 --print('  --> rating:', rating, max_rating)
 
@@ -2633,6 +2636,7 @@ if 1 then return zone_cfgs end
 
         function fred:zone_control_exec()
             local action = fred.data.zone_action.zone_id .. ': ' .. fred.data.zone_action.action
+            --DBG.dbms(fred.data.zone_action)
 
             -- Same for the enemy in an attack, which is returned in { id = { x, y } } format.
             local enemy_proxy
