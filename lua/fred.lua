@@ -194,7 +194,7 @@ return {
                 zone_filter = { x = '4-14', y = '7-15' },
                 unit_filter_advance = { x = '1-20,1-14', y = '1-6,7-13' },
                 villages = {
-                    suf = { x = '1-14', y = '1-10' },
+                    slf = { x = '1-14', y = '1-10' },
                     villages_per_unit = 2
                 }
             }
@@ -206,7 +206,7 @@ return {
                 zone_filter = { x = '15-24', y = '8-16' },
                 unit_filter_advance = { x = '15-23,', y = '1-13' },
                 villages = {
-                    suf = { x = '16-21', y = '7-10' },
+                    slf = { x = '16-21', y = '7-10' },
                     villages_per_unit = 2
                 }
             }
@@ -218,7 +218,7 @@ return {
                 zone_filter = { x = '24-34', y = '9-17' },
                 unit_filter_advance = { x = '17-34,24-34', y = '1-8,9-16' },
                 villages = {
-                    suf = { x = '22-34', y = '1-10' },
+                    slf = { x = '22-34', y = '1-10' },
                     villages_per_unit = 2
                 }
             }
@@ -446,7 +446,7 @@ return {
                 for x,tmp in pairs(gamedata.village_map) do
                     for y,village in pairs(tmp) do
 
-                        if wesnoth.match_location(x, y, cfg.villages.suf) then
+                        if wesnoth.match_location(x, y, cfg.villages.slf) then
                             if (village.owner ~= wesnoth.current.side) then
                                 village_count = village_count + 1
                             end
