@@ -741,39 +741,6 @@ return {
             -- At the end, we add all the attack cfgs again, but with
 
             --DBG.dbms(fred.data.zone_cfgs)
-if 1 then return end
-
-
-            -- Get action config for T2
-            local tmp_actions = {}
-            for zone_id,data in pairs(MAZ) do
-                local zone_actions = {
-                    zone_id = zone_id,
-                    rating = data.rating2,
-                    stage_id = stage_id
-                }
-
-                -- This is the sum of both T1 and T2!!
-                zone_actions.power_needed = (data.enemy_power1 + data.enemy_power2) * MA.value_ratio
-
-                if (data.my_power2 > 0) then
-                    zone_actions.actions = { attack = true, hold = true }
-                else
-                    -- Could exclude table entry in the first place, but leave for now for clarity
-                    zone_actions.actions = {}
-                end
-
-
-                table.insert(tmp_actions, zone_actions)
-            end
-            table.sort(tmp_actions, function(a, b) return a.rating > b.rating end)
-            --DBG.dbms(tmp_actions)
-
-            for _,action in pairs(tmp_actions) do
-                table.insert(MAA, action)
-            end
-
-
 
 if 1 then return zone_cfgs end
 
