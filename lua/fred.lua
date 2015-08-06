@@ -1885,41 +1885,30 @@ return {
             hex_combos()
             --DBG.dbms(combos)
 
-            -- Eliminate all that do not use the maximum number of units
-            local max_count = 0
+            -- Count the number of holders in the largest combo.
+            -- We prefer combos using the maximum number, even if the overall
+            -- rating is lower than for fewer units. Only when none of the
+            -- max. number combos are acceptable do we use fewer units.
+            local max_holders = 0
             for _,combo in pairs(combos) do
-                local count = 0
+                local n_holders = 0
                 for xy,id in pairs(combo) do
-                    count = count + 1
+                    n_holders = n_holders + 1
                 end
 
-                if (count > max_count) then
-                    max_count = count
+                if (n_holders > max_holders) then
+                    max_holders = n_holders
                 end
             end
-            --print('max_count', max_count)
-
-            local reduced_combos = {}
-            for _,combo in pairs(combos) do
-                local count = 0
-                local new_combo = {}
-                for xy,id in pairs(combo) do
-                    count = count + 1
-                    new_combo[xy] = id
-                end
-
-                if (count == max_count) then
-                    table.insert(reduced_combos, new_combo)
-                end
-            end
-            --DBG.dbms(reduced_combos)
-
-            combos = nil
+            --print('max_holders', max_holders)
 
             -- Finally, rate all the combos
-            local max_rating, best_hexes, best_units = -9e99
+            local best_combos = {}
+            for i = 1,max_holders do
+                best_combos[i] = { max_rating = -9e99 }
+            end
 
-            for _,combo in ipairs(reduced_combos) do
+            for _,combo in ipairs(combos) do
                 local old_locs, new_locs = {}, {}
                 --print('Combo ' .. _)
                 for xy,id in pairs(combo) do
@@ -1932,9 +1921,11 @@ return {
                 --DBG.dbms(old_locs)
                 --DBG.dbms(new_locs)
 
+                local n_holders = 0
                 local is_acceptable = true
                 local rating, counter_attack_rating = 0, 0
                 for xy,id in pairs(combo) do
+                    n_holders = n_holders + 1
                     local target = {}
                     local x, y =  math.floor(xy / 1000), xy % 1000
 
@@ -2021,24 +2012,28 @@ return {
 
                 -- We want to exclude combinations where one unit is out of attack range
                 -- as this is for holding a zone, not protecting units.
-                if is_acceptable and (rating > max_rating) then
-                    max_rating = rating
-                    best_hexes = new_locs
+                if is_acceptable and (rating > best_combos[n_holders].max_rating) then
+                    best_combos[n_holders].max_rating = rating
+                    best_combos[n_holders].best_hexes = new_locs
 
-                    best_units = {}
+                    best_combos[n_holders].best_units = {}
                     for xy,id in pairs(combo) do
-                        table.insert(best_units, gamedata.unit_infos[id])
+                        table.insert(best_combos[n_holders].best_units, gamedata.unit_infos[id])
                     end
                 end
             end
-            --DBG.dbms(best_hexes)
-            --DBG.dbms(best_units)
+            --DBG.dbms(best_combos)
 
-            if best_units then
-                print('****** Found hold action:')
-                local action = { units = best_units, dsts = best_hexes }
-                action.action = zonedata.cfg.zone_id .. ': ' .. 'hold position'
-                return action
+            for i=max_holders,1,-1 do
+                if best_combos[i].best_units then
+                    print('****** Found hold action:')
+                    local action = {
+                        units = best_combos[i].best_units,
+                        dsts = best_combos[i].best_hexes
+                    }
+                    action.action = zonedata.cfg.zone_id .. ': ' .. 'hold position'
+                    return action
+                end
             end
         end
 
@@ -2533,7 +2528,7 @@ return {
                     stage_counter = 1,
                     --stage_ids = { 'leader_threat', 'defend_zones' },
                     stage_ids = { 'leader_threat', 'defend_zones', 'all_map' },
-                    --stage_ids = { 'leader_threat' },
+                    --stage_ids = { 'defend_zones' },
                     status = { units_used = {} }
                 }
             end
