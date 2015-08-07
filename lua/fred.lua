@@ -2559,7 +2559,10 @@ return {
                     print(FDA.stage_counter, #FDA.stage_ids)
                     print(' ---> done with all stages')
 
---FDA.stage_counter = 1
+                    -- Reset stage counter for each evaluation
+                    -- This makes the stage system somewhat pointless
+                    -- TODO: reconsider if this should be done or not
+                    FDA.stage_counter = 1
 
                     return 0
                 end
