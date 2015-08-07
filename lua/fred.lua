@@ -1533,7 +1533,7 @@ return {
             local default_damage, default_strikes = 8, 2
 
             -- TODO: do this overall, rather than for this action?
-            local zone = wesnoth.get_locations(raw_cfg.zone_filter)
+            local zone = wesnoth.get_locations(raw_cfg.unit_filter_advance)
             local zone_map = {}
             for _,loc in ipairs(zone) do
                 if (not zone_map[loc[1]]) then
