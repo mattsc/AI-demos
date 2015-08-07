@@ -1114,7 +1114,7 @@ return {
                     local contingency = stage_status.contingency
 
                     allowable_power = power_missing + contingency
-                    print('  Allowable power (power_missing + contingency ): ' .. power_missing .. ' + ' .. contingency .. ' = ' .. allowable_power)
+                    --print('  Allowable power (power_missing + contingency ): ' .. power_missing .. ' + ' .. contingency .. ' = ' .. allowable_power)
                 end
 
                 for j = #attack_combos,1,-1 do
@@ -1936,15 +1936,7 @@ return {
 
                     -- If this is a shielded position, don't use this combo
                     if (not (next(counter_attack))) then
-                        --print('  not accepatable because unit cannot be reached by enemy')
-                        is_acceptable = false
-                        break
-                    end
-
-                    -- If chance to die is too large, also do not use this position
-                    -- TODO: what value is good here?
-                    if (counter_stats.hp_chance[0] >= 0.25) then
-                        --print('  not accepatable because chance to die too high:', counter_stats.hp_chance[0])
+                        --print('  not acceptable because unit cannot be reached by enemy')
                         is_acceptable = false
                         break
                     end
@@ -1960,6 +1952,26 @@ return {
                     end
 
                     --print('  ' .. id, x, y, hit_chance)
+
+                    -- If chance to die is too large, also do not use this position
+                    -- This is dependent on how good the terrain is
+                    -- For better terrain we allow a higher hit_chance than for bad terrain
+                    -- The argument is that we want to be on the good terrain, whereas
+                    -- taking a stance on bad terrain might not be worth it
+                    -- TODO: what value is good here?
+                    if (hit_chance > 0.5) then -- bad terrain
+                        if (counter_stats.hp_chance[0] >= 0) then
+                            --print('  not acceptable because chance to die too high:', counter_stats.hp_chance[0])
+                            is_acceptable = false
+                            break
+                        end
+                    else -- at least 50% defense
+                        if (counter_stats.hp_chance[0] >= 0.25) then
+                            --print('  not acceptable because chance to die too high:', counter_stats.hp_chance[0])
+                            is_acceptable = false
+                            break
+                        end
+                    end
 
                     local enemy_rating, count = 0, 0
                     for src,dst in pairs(counter_attack) do
@@ -1997,7 +2009,7 @@ return {
 
                     rating = rating + enemy_rating + counter_attack_rating
                 end
-                --print('  --> rating:', rating, max_rating)
+                --print('  --> rating:', rating)
 
                 -- If this has negative rating, check whether it is acceptable after all
                 -- For now we always consider these unacceptable
