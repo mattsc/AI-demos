@@ -1965,6 +1965,14 @@ return {
                             is_acceptable = false
                             break
                         end
+                        -- TODO: not sure yet if this should be used
+                        -- Also if the relative loss is more than 6 points (half the
+                        -- value of a grunt) for any single attack
+                        --if (counter_stats.rating >= 6) then
+                        --    --print('  not acceptable because chance to die too high:', counter_stats.hp_chance[0])
+                        --    is_acceptable = false
+                        --    break
+                        --end
                     else -- at least 50% defense
                         if (counter_stats.hp_chance[0] >= 0.25) then
                             --print('  not acceptable because chance to die too high:', counter_stats.hp_chance[0])
