@@ -193,6 +193,7 @@ return {
                 target_zone = { x = '1-15', y = '7-14' },
                 zone_filter = { x = '4-14', y = '7-15' },
                 unit_filter_advance = { x = '1-20,1-14', y = '1-6,7-13' },
+                hold_slf = { x = '1-15', y = '6-14' },
                 villages = {
                     slf = { x = '1-14', y = '1-10' },
                     villages_per_unit = 2
@@ -205,6 +206,7 @@ return {
                 target_zone = { x = '16-23', y = '8-14' },
                 zone_filter = { x = '15-24', y = '8-16' },
                 unit_filter_advance = { x = '15-23,', y = '1-13' },
+                hold_slf = { x = '16-23', y = '7-14' },
                 villages = {
                     slf = { x = '16-21', y = '7-10' },
                     villages_per_unit = 2
@@ -217,6 +219,7 @@ return {
                 target_zone = { x = '24-99', y = '9-18' },
                 zone_filter = { x = '24-34', y = '9-17' },
                 unit_filter_advance = { x = '17-34,24-34', y = '1-8,9-16' },
+                hold_slf = { x = '24-34', y = '9-18' },
                 villages = {
                     slf = { x = '22-34', y = '1-10' },
                     villages_per_unit = 2
@@ -1561,7 +1564,7 @@ return {
             local default_damage, default_strikes = 8, 2
 
             -- TODO: do this overall, rather than for this action?
-            local zone = wesnoth.get_locations(raw_cfg.unit_filter_advance)
+            local zone = wesnoth.get_locations(raw_cfg.hold_slf)
             local zone_map = {}
             for _,loc in ipairs(zone) do
                 if (not zone_map[loc[1]]) then
