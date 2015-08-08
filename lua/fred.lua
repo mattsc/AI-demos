@@ -1119,7 +1119,7 @@ return {
                 if gamedata.unit_infos[target_id].skirmisher then
                     is_trappable_enemy = false
                 end
-                --print(target_id, '  trappable:', is_trappable_enemy)
+                --print(target_id, '  trappable:', is_trappable_enemy, target_loc[1], target_loc[2])
 
                 local attack_combos = FAU.get_attack_combos(
                     zonedata.zone_units_attacks, target, gamedata.reach_maps, false, move_cache, cfg_attack
@@ -1157,6 +1157,7 @@ return {
                     end
                 end
                 --print_time('#attack_combos', #attack_combos)
+                --DBG.dbms(attack_combos)
 
 
                 local enemy_on_village = gamedata.village_map[target_loc[1]]
@@ -1418,6 +1419,7 @@ return {
                     local counter_stats = FAU.calc_counter_attack(
                         attacker_moved, old_locs, combo.dsts, gamedata, move_cache, cfg_attack
                     )
+                    --DBG.dbms(counter_stats)
 
                     local counter_rating = counter_stats.rating
                     local counter_att_rating = counter_stats.att_rating
@@ -1454,7 +1456,7 @@ return {
                         end
 
                         -- Note that this is not really the maximum damage from the attack, as
-                        -- attacker.hitpoints is freduced to the average HP outcome of the attack
+                        -- attacker.hitpoints is reduced to the average HP outcome of the attack
                         -- However, min_hp for the counter also contains this freduction, so
                         -- min_outcome below has the correct value (except for rounding errors,
                         -- that's why it is compared ot 0.5 instead of 0)
@@ -2130,7 +2132,6 @@ return {
                 --print(id, min_hp, must_retreat)
 
                 local unit_rating_map = {}
-
                 for x,tmp in pairs(gamedata.reach_maps[id]) do
                     for y,_ in pairs(tmp) do
                         -- only consider unthreatened hexes
