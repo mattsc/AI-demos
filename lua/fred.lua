@@ -1364,7 +1364,7 @@ return {
             for count,combo in ipairs(combo_ratings) do
                 if (count > 50) and action then break end
 
-                --print_time('Checking counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating)
+                --print_time('\nChecking counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating)
 
                 -- TODO: the following is slightly inefficient, as it places units and
                 -- takes them off again several times for the same attack combo.
@@ -1505,8 +1505,8 @@ return {
                 --print_time('  acceptable_counter', acceptable_counter)
                 if acceptable_counter then
                     local total_rating = combo.rating - max_counter_rating
-                    --print('Acceptable counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating)
-                    --print('  rating, counter_rating, total_rating', combo.rating, max_counter_rating, total_rating)
+                    --print('    Acceptable counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating)
+                    --print('    rating, counter_rating, total_rating', combo.rating, max_counter_rating, total_rating)
                     --print('  threat_rating:', threat_rating)
 
                     -- Of the acceptable attacks, prioritize them by threat_rating
