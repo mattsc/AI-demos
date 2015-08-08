@@ -1419,7 +1419,8 @@ return {
                     local counter_rating = counter_stats.rating
                     local counter_att_rating = counter_stats.att_rating
                     local counter_def_rating = counter_stats.def_rating
-                    --print_time('   counter ratings:', counter_rating, counter_att_rating, counter_def_rating)
+                    local counter_chance_to_die = counter_stats.hp_chance[0]
+                    --print_time('   counter ratings:', counter_rating, counter_att_rating, counter_def_rating, counter_chance_to_die)
 
                     if (counter_rating > max_counter_rating) then
                         max_counter_rating = counter_rating
@@ -1469,6 +1470,11 @@ return {
                         local damage_taken = - combo.att_rating + counter_def_rating
                         local damage_done = combo.def_rating - counter_att_rating
                         --print('     damage taken, done, value_ratio:', damage_taken, damage_done, combo.value_ratio)
+
+--                        if (counter_chance_to_die >= 0.5) then
+--                            acceptable_counter = false
+--                            break
+--                        end
 
                         if (not FAU.is_acceptable_attack(damage_taken, damage_done, combo.value_ratio)) then
                             acceptable_counter = false
