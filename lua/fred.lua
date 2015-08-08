@@ -383,9 +383,31 @@ return {
             end
             --DBG.dbms(attack2_cfg)
 
+            -- Favorable attacks can be done at any time after threats to
+            -- the AI leader are dealt with
+            local zone_id = 'favorable_attacks'
+            stage_status.contingency = 0
+            stage_status[zone_id] = {
+                power_missing = 0,
+                power_needed = 0,
+                power_used = 0,
+                n_units_needed = 0,
+                n_units_used = 0,
+                units_used = {}
+            }
+
+            local favorable_attacks_cfg = {
+                zone_id = zone_id,
+                stage_id = stage_id,
+                actions = { attack = true },
+                value_ratio = 2.0,  -- only very favorable attacks will pass this
+                ignore_resource_limit = true
+            }
+
             fred.data.zone_cfgs = {}
             table.insert(fred.data.zone_cfgs, attack1_cfg)
             table.insert(fred.data.zone_cfgs, attack2_cfg)
+            table.insert(fred.data.zone_cfgs, favorable_attacks_cfg)
             --DBG.dbms(fred.data.zone_cfgs)
         end
 
