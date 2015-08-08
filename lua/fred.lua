@@ -1991,7 +1991,7 @@ return {
                     -- taking a stance on bad terrain might not be worth it
                     -- TODO: what value is good here?
                     if (hit_chance > 0.5) then -- bad terrain
-                        if (counter_stats.hp_chance[0] >= 0) then
+                        if (counter_stats.hp_chance[0] > 0) then
                             --print('  not acceptable because chance to die too high:', counter_stats.hp_chance[0])
                             is_acceptable = false
                             break
