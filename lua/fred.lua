@@ -2112,9 +2112,8 @@ return {
                 end
             end
 
-
             -- Don't need to enforce a resource limit here, as this is one
-            -- unti at a time.  It will be checked before the action is called.
+            -- unit at a time.  It will be checked before the action is called.
 
             local max_rating, best_unit, best_hex = -9e99
             for id,loc in pairs(advance_units) do
@@ -2134,12 +2133,24 @@ return {
                 local unit_rating_map = {}
                 for x,tmp in pairs(gamedata.reach_maps[id]) do
                     for y,_ in pairs(tmp) do
+                        -- TODO: remove this once we know that it is really not needed any more
                         -- only consider unthreatened hexes
-                        local threat = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'power')
+                        --local threat = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'power')
 
                         local zone_rating = fred:zone_advance_rating(zonedata.cfg.zone_id, x, y, gamedata)
-                        if zone_rating and (not threat) then
+                        if zone_rating then
                             local rating
+
+                            local hit_chance = FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
+                            hit_chance = 1 - hit_chance
+                            --print('  ' .. id, x, y, hit_chance)
+
+                            -- If this is a village, give a bonus
+                            -- TODO: do this more quantitatively
+                            if gamedata.village_map[x] and gamedata.village_map[x][y] then
+                                hit_chance = hit_chance - 0.15
+                                if (hit_chance < 0) then hit_chance = 0 end
+                            end
 
                             if (not is_leader) and (not must_retreat) and (not zonedata.cfg.villages_only) then
                                 -- Want to use faster units preferentially
@@ -2147,7 +2158,11 @@ return {
 
                                 -- All else being equal, use the more powerful unit
                                 rating = rating + gamedata.unit_infos[id].power / 100.
+
+                                -- Add very minor penalty for the terrain
+                                rating = rating - hit_chance / 1000
                             end
+
 
                             -- Unowned and enemy_owned villages are much preferred
                             -- and get a very different rating
@@ -2187,7 +2202,54 @@ return {
                                 rating = rating + gamedata.unit_infos[id].max_moves / 100
                             end
 
+                            -- Now check whether the counter attack is acceptable
+                            local is_acceptable = true
                             if rating and (rating > max_rating) then
+                                --print('Checking if location is acceptable', x, y)
+
+                                local old_locs = { { loc[1], loc[2] } }
+                                local new_locs = { { x, y } }
+                                --DBG.dbms(old_locs)
+                                --DBG.dbms(new_locs)
+
+                                local target = {}
+                                target[id] = { x, y }
+                                local counter_stats, counter_attack = FAU.calc_counter_attack(target, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
+                                --DBG.dbms(counter_stats)
+
+                                -- If chance to die is too large, do not use this position
+                                -- This is dependent on how good the terrain is
+                                -- For better terrain we allow a higher chance to die than for bad terrain
+                                -- The rationale is that we want to be on the good terrain, whereas
+                                -- taking a stance on bad terrain might not be worth it
+                                -- TODO: what value is good here?
+                                if (hit_chance > 0.5) then -- bad terrain
+                                    if (counter_stats.hp_chance[0] > 0) then
+                                        --print('  not acceptable because chance to die too high (bad terrain):', counter_stats.hp_chance[0])
+                                        is_acceptable = false
+                                    end
+                                    -- TODO: not sure yet if this should be used
+                                    -- Also if the relative loss is more than X HP (X/12 the
+                                    -- value of a grunt) for any single attack
+                                    if (counter_stats.rating >= 9) then
+                                        --print('  not acceptable because counter attack rating too bad:', counter_stats.rating)
+                                        is_acceptable = false
+                                    end
+                                else -- at least 50% defense
+                                    if (counter_stats.hp_chance[0] >= 0.25) then
+                                        --print('  not acceptable because chance to die too high (good terrain):', counter_stats.hp_chance[0])
+                                        is_acceptable = false
+                                    end
+                                end
+                            end
+
+                            -- This is just for displaying purposes (unit_rating_map)
+                            -- Has no effect on evaluation
+                            if rating and (not is_acceptable) then
+                                rating = -1000
+                            end
+
+                            if is_acceptable and rating and (rating > max_rating) then
                                 max_rating = rating
                                 best_unit = gamedata.unit_infos[id]
                                 best_hex = { x, y }
