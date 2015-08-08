@@ -190,7 +190,7 @@ return {
             local cfg_west = {
                 zone_id = 'west',
                 key_hexes = { { 8,8 },  { 11,9 }, { 14,8 } },
-                target_zone = { x = '1-15', y = '7-14' },
+                target_zone = { x = '1-15', y = '7-19' },
                 zone_filter = { x = '4-14', y = '7-15' },
                 unit_filter_advance = { x = '1-20,1-14', y = '1-6,7-13' },
                 hold_slf = { x = '1-15', y = '6-14' },
@@ -203,7 +203,7 @@ return {
             local cfg_center = {
                 zone_id = 'center',
                 key_hexes = { { 17,10 },  { 18,9 }, { 20,9 }, { 22,10 } },
-                target_zone = { x = '16-23', y = '8-14' },
+                target_zone = { x = '15-23,13-23', y = '8-13,14-19' },
                 zone_filter = { x = '15-24', y = '8-16' },
                 unit_filter_advance = { x = '15-23,', y = '1-13' },
                 hold_slf = { x = '16-23', y = '7-14' },
@@ -216,7 +216,7 @@ return {
             local cfg_east = {
                 zone_id = 'east',
                 key_hexes = { { 25,12 },  { 27,11 }, { 29,11 }, { 32,10 } },
-                target_zone = { x = '24-99', y = '9-18' },
+                target_zone = { x = '24-34,22-34', y = '9-17,18-23' },
                 zone_filter = { x = '24-34', y = '9-17' },
                 unit_filter_advance = { x = '17-34,24-34', y = '1-8,9-16' },
                 hold_slf = { x = '24-34', y = '9-18' },
