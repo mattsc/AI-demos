@@ -14,6 +14,12 @@ return {
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
         local R = wesnoth.require "~/add-ons/AI-demos/lua/retreat.lua"
 
+
+        ----- Debug output flags -----
+        local debug_zone_eval = false
+        local debug_exec = true
+
+
         ------- Utility functions -------
         local function print_time(...)
             if fred.data.turn_start_time then
@@ -22,6 +28,7 @@ return {
                 AH.print_ts(...)
             end
         end
+
 
         function fred:zone_advance_rating(zone_id, x, y, gamedata)
             local rating
@@ -1096,7 +1103,7 @@ return {
 
         ----- Attack: -----
         function fred:get_attack_action(zonedata, gamedata, move_cache)
-            print_time('  --> attack evaluation: ' .. zonedata.cfg.zone_id)
+            if debug_zone_eval then print_time('  --> attack evaluation: ' .. zonedata.cfg.zone_id) end
             --DBG.dbms(zonedata.cfg)
 
             local targets = {}
@@ -1583,7 +1590,7 @@ return {
 
         ----- Hold: -----
         function fred:get_hold_action(zonedata, gamedata, move_cache)
-            print_time('  --> hold evaluation: ' .. zonedata.cfg.zone_id)
+            if debug_zone_eval then print_time('  --> hold evaluation: ' .. zonedata.cfg.zone_id) end
             --DBG.dbms(zonedata.cfg)
 
             --DBG.dbms(fred.data.analysis.status)
@@ -2153,7 +2160,7 @@ return {
 
         ----- Advance: -----
         function fred:get_advance_action(zonedata, gamedata, move_cache)
-            print_time('  --> advance evaluation: ' .. zonedata.cfg.zone_id)
+            if debug_zone_eval then print_time('  --> advance evaluation: ' .. zonedata.cfg.zone_id) end
             --DBG.dbms(zonedata.cfg)
             local raw_cfg = fred:get_raw_cfgs(zonedata.cfg.zone_id)
             --DBG.dbms(raw_cfg)
@@ -2344,7 +2351,7 @@ return {
 
         ----- Retreat: -----
         function fred:get_retreat_action(zonedata, gamedata)
-            print_time('  --> retreat evaluation: ' .. zonedata.cfg.zone_id)
+            if debug_zone_eval then print_time('  --> retreat evaluation: ' .. zonedata.cfg.zone_id) end
 
             -- This is a placeholder for when (if) retreat.lua gets adapted to the new
             -- tables also.  It might not be necessary, it's fast enough the way it is
@@ -2442,7 +2449,7 @@ return {
                     .. sides[side].leader_type .. ', ' .. side_info.gold .. ' gold)'
                 )
             end
-            print('***********************************************************\n')
+            print('***********************************************************')
         end
 
         ----- CA: Clear self.data table at end of turn (max_score: 1) -----
@@ -2552,7 +2559,7 @@ return {
         end
 
         function fred:move_leader_to_keep_exec()
-            if AH.print_exec() then print_time('   Executing move_leader_to_keep CA') end
+            if debug_exec then print_time('====> Executing move_leader_to_keep CA') end
             if AH.show_messages() then W.message { speaker = fred.data.MLK_leader.id, message = 'Moving back to keep' } end
 
             -- If leader can get to the keep, make this a partial move, otherwise a full move
@@ -2711,7 +2718,7 @@ return {
             while 1 do
                 if (FDA.stage_counter > #FDA.stage_ids) then
                     --print(FDA.stage_counter, #FDA.stage_ids)
-                    print('--> done with all stages')
+                    if debug_zone_eval then print('--> done with all stages') end
 
                     -- Reset stage counter for each evaluation
                     -- This makes the stage system somewhat pointless
@@ -2722,7 +2729,7 @@ return {
                 end
 
                 local stage_id = FDA.stage_ids[FDA.stage_counter]
-                print('\nStage: ' .. stage_id)
+                if debug_zone_eval then print('\nStage: ' .. stage_id) end
 
 
                 fred:analyze_map(fred.data.gamedata)
@@ -2783,7 +2790,7 @@ return {
                 fred.data.zone_cfgs = nil
                 FDA.stage_counter = FDA.stage_counter + 1
 
-                print('--> done with all cfgs of this stage')
+                if debug_zone_eval then print('--> done with all cfgs of this stage') end
             end
 
             AH.done_eval_messages(start_time, ca_name)
@@ -2892,7 +2899,7 @@ return {
                     if have_recruited then break end
                 end
 
-                if AH.print_exec() then print_time('====> Executing zone_control CA ' .. action) end
+                if debug_exec then print_time('====> Executing zone_control CA ' .. action) end
                 if AH.show_messages() then W.message { speaker = unit.id, message = 'Zone action ' .. action } end
 
                 -- The following are some tests to make sure the intended move is actually
