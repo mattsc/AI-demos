@@ -1550,7 +1550,16 @@ return {
                         max_total_rating = total_rating
 
                         action = { units = {}, dsts = {}, enemy = combo.target }
-                        action.units, action.dsts = combo.attackers, combo.dsts
+
+                        -- This is done simply so that the table is shorter when
+                        -- displayed.  We could also simply use combo.attackers
+                        for _,attacker in ipairs(combo.attackers) do
+                            local tmp_unit = gamedata.my_units[attacker.id]
+                            tmp_unit.id = attacker.id
+                            table.insert(action.units, tmp_unit)
+                        end
+
+                        action.dsts = combo.dsts
                         action.action = 'attack'
                     end
                 end
@@ -2112,9 +2121,18 @@ return {
                 if best_combos[i].best_units then
                     print('****** Found hold action:')
                     local action = {
-                        units = best_combos[i].best_units,
+                        units = {},
                         dsts = best_combos[i].best_hexes
                     }
+
+                    -- This is done simply so that the table is shorter when
+                    -- displayed.  We could also simply use combo.attackers
+                    for _,unit in ipairs(best_combos[i].best_units) do
+                    local tmp_unit = gamedata.my_units[unit.id]
+                        tmp_unit.id = unit.id
+                        table.insert(action.units, tmp_unit)
+                    end
+
                     action.action = zonedata.cfg.zone_id .. ': ' .. 'hold position'
                     return action
                 end
@@ -2282,7 +2300,8 @@ return {
 
                             if is_acceptable and rating and (rating > max_rating) then
                                 max_rating = rating
-                                best_unit = gamedata.unit_infos[id]
+                                best_unit = gamedata.my_units[id]
+                                best_unit.id = id
                                 best_hex = { x, y }
                             end
 
@@ -2801,9 +2820,10 @@ return {
 
                         local min_XP_diff, best_ind = 9e99
                         for ind,unit in ipairs(fred.data.zone_action.units) do
-                            local XP_diff = unit.max_experience - unit.experience
+                            local unit_info = fred.data.gamedata.unit_infos[unit.id]
+                            local XP_diff = unit_info.max_experience - unit_info.experience
                             -- Add HP as minor rating
-                            XP_diff = XP_diff + unit.hitpoints / 100.
+                            XP_diff = XP_diff + unit_info.hitpoints / 100.
 
                             if (XP_diff < min_XP_diff) then
                                 min_XP_diff, best_ind = XP_diff, ind
