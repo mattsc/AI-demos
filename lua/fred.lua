@@ -273,7 +273,7 @@ return {
             local stage_status = fred.data.analysis.status[stage_id]
 
 
-            print('\n--------------- ' .. stage_id .. ' ------------------------')
+            --print('\n--------------- ' .. stage_id .. ' ------------------------')
 
             -- Start with an analysis of the threat to the AI leader
             local leader_x = gamedata.leaders[wesnoth.current.side][1]
@@ -346,7 +346,7 @@ return {
             local my_power = {}
             -- Count units that have already moved in the zone
             for id,power in pairs(stage_status[raw_cfg.zone_id].units_used) do
-                print('  already used:', id, power)
+                --print('  already used:', id, power)
                 my_power[id] = power
             end
 
@@ -355,7 +355,7 @@ return {
             for id,power in pairs(threats1) do
                 enemy_power1 = enemy_power1 + power
             end
-            print('  enemy_power1:', enemy_power1)
+            --print('  enemy_power1:', enemy_power1)
 
 
             -- We also get all units that are in the zone but not T1 threats
@@ -372,7 +372,7 @@ return {
             for id,power in pairs(threats2) do
                 enemy_power2 = enemy_power2 + power
             end
-            print('  enemy_power2:', enemy_power2)
+            --print('  enemy_power2:', enemy_power2)
 
 
             -- Attacks on T1 threats is with unlimited resources
@@ -443,18 +443,12 @@ return {
             local stage_id = fred.data.analysis.stage_ids[fred.data.analysis.stage_counter]
             local stage_status = fred.data.analysis.status[stage_id]
 
-
-            print('\n--------------- ' .. stage_id .. ' ------------------------')
-            --for k,v in pairs(gamedata) do print(k) end
-            --DBG.dbms(gamedata.enemy_turn_maps)
-
             local raw_cfgs = fred:get_raw_cfgs()
             --DBG.dbms(raw_cfgs)
 
             zone_cfgs = {}
 
             local cfg_attack = { use_max_damage_weapons = true }
-
 
             local influence_maps = FU.get_influence_maps(gamedata.my_attack_map[1], gamedata.enemy_attack_map[1])
             --DBG.dbms(gamedata.my_attack_map[1])
@@ -480,7 +474,7 @@ return {
 
             -- First calculate power that has been used for the zone already
             --DBG.dbms(gamedata.my_move_map[2])
-            print('power_used:')
+            --print('power_used:')
 
             for _,cfg in ipairs(raw_cfgs) do
                 local village_count = 0  -- unowned and enemy-owned villages
@@ -527,8 +521,6 @@ return {
             -- what does not count into one of the zones
             while false do
             for id,loc in pairs(gamedata.my_units_noMP) do
-                print(id)
-
                 local in_zone
                 for _,cfg in ipairs(raw_cfgs) do
                     if (not in_any_zone) then
@@ -539,7 +531,7 @@ return {
                 end
 
                 if in_zone then
-                    print('  is in: ', in_zone)
+                    --print('  is in: ', in_zone)
                     local power = gamedata.unit_infos[id].power
                     stage_status[in_zone].power_used = stage_status[in_zone].power_used + power
                     stage_status[in_zone].n_units_used = stage_status[in_zone].n_units_used + 1
@@ -586,7 +578,7 @@ return {
             local threats1_all_zones = {}
             local my_power1_all_zones = {}
             for _,cfg in ipairs(raw_cfgs) do
-                print(cfg.zone_id)
+                --print(cfg.zone_id)
                 local threats1_zone = {}  -- This is just for this zone
                 local my_power_zone = {}  -- This is just for this zone
                 for _,hex in pairs(cfg.key_hexes) do
@@ -613,7 +605,7 @@ return {
                 -- already (which might or might not be included in the above
                 -- metric, depending on whether they moved onto a key hex
                 for id,power in pairs(stage_status[cfg.zone_id].units_used) do
-                    print('  already used:', id, power)
+                    --print('  already used:', id, power)
                     my_power_zone[id] = power
                     my_power1_all_zones[id] = power
                 end
@@ -623,13 +615,13 @@ return {
                 for id,power in pairs(threats1_zone) do
                     enemy_power1 = enemy_power1 + power
                 end
-                print('  enemy_power1:', enemy_power1)
+                --print('  enemy_power1:', enemy_power1)
 
                 local my_power1 = 0
                 for id,power in pairs(my_power_zone) do
                     my_power1 = my_power1 + power
                 end
-                print('  my_power1:', my_power1)
+                --print('  my_power1:', my_power1)
 
                 -- And finally, save it all in the threats table
                 MAZ[cfg.zone_id] = {
@@ -696,7 +688,7 @@ return {
             -- have been included through having been used already)
             local my_power2_all_zones = {}
             for _,cfg in ipairs(raw_cfgs) do
-                print(cfg.zone_id)
+                --print(cfg.zone_id)
                 local my_power_zone = {}  -- This is just for this zone
                 for _,hex in pairs(cfg.key_hexes) do
                     local x, y = hex[1], hex[2]
@@ -718,7 +710,7 @@ return {
                 for id,power in pairs(my_power_zone) do
                     my_power2 = my_power2 + power
                 end
-                print('  my_power2:', my_power2)
+                --print('  my_power2:', my_power2)
 
                 -- And finally, save it all in the threats table
                 MAZ[cfg.zone_id].my_power2 = my_power2
@@ -748,12 +740,10 @@ return {
                 MA.enemy_power1 = MA.enemy_power1 + power.enemy_power1
                 MA.enemy_power2 = MA.enemy_power2 + power.enemy_power2
             end
-            print('enemy_power:', MA.enemy_power1, MA.enemy_power2, MA.enemy_power1 + MA.enemy_power2)
+            --print('enemy_power:', MA.enemy_power1, MA.enemy_power2, MA.enemy_power1 + MA.enemy_power2)
 
 
             -- What does AI have:
-            --DBG.dbms(gamedata.my_units)
-
             -- First, count overall power of AI units (excluding leader)
             -- This only counts units once, even if they appear in several zones
             MA.my_power1, MA.my_power2 = 0, 0
@@ -765,37 +755,37 @@ return {
                     MA.my_power2 = MA.my_power2 + power
                 end
             end
-            print('my_power:', MA.my_power1, MA.my_power2, MA.my_power1 + MA.my_power2)
+            --print('my_power:', MA.my_power1, MA.my_power2, MA.my_power1 + MA.my_power2)
 
             MA.value_ratio = FU.cfg_default('value_ratio')
             MA.power_needed = (MA.enemy_power1 + MA.enemy_power2) * MA.value_ratio
             MA.contingency = (MA.my_power1 + MA.my_power2) - MA.power_needed
             if (MA.contingency < 0) then MA.contingency = 0 end
-            print('power_needed, contingency', MA.power_needed, MA.contingency)
+            --print('power_needed, contingency', MA.power_needed, MA.contingency)
 
 
 
             ----- Start the zone analysis comparison -----
             -- TODO: should be possible to combine some of these steps
             -- Leave them separate for now for clarity
-            print('---- Zone evaluation ----')
+            --print('---- Zone evaluation ----')
 
             for zone_id,data in pairs(MAZ) do
-                print(zone_id .. ':')
+                --print(zone_id .. ':')
 
                 local dpower1 = data.my_power1 - data.enemy_power1
                 local dpower2 = data.my_power2 - data.enemy_power2
-                print('  T1:', data.my_power1, -data.enemy_power1, dpower1)
-                print('  T2:', data.my_power2, -data.enemy_power2, dpower2)
-                print('  All:', data.my_power1+data.my_power2, -data.enemy_power1-data.enemy_power2, data.my_power1 + data.my_power2 - data.enemy_power1 - data.enemy_power2)
+                --print('  T1:', data.my_power1, -data.enemy_power1, dpower1)
+                --print('  T2:', data.my_power2, -data.enemy_power2, dpower2)
+                --print('  All:', data.my_power1+data.my_power2, -data.enemy_power1-data.enemy_power2, data.my_power1 + data.my_power2 - data.enemy_power1 - data.enemy_power2)
 
                 local vul1 = data.my_power1 + data.enemy_power1 - math.abs(data.my_power1 - data.enemy_power1)
                 local vul2 = data.my_power2 + data.enemy_power2 - math.abs(data.my_power2 - data.enemy_power2)
-                print('  Vul:', data.vulnerability, vul1, vul2, vul1 + vul2)
+                --print('  Vul:', data.vulnerability, vul1, vul2, vul1 + vul2)
 
                 data.rating1 = -dpower1 -- + vul1 TODO: reconsider this rating
                 data.rating2 = -dpower2 -- + vul2
-                print('rating 1 & 2', data.rating1, data.rating2)
+                --print('rating 1 & 2', data.rating1, data.rating2)
 
                 stage_status[zone_id].rating = data.rating1
                 stage_status.contingency = MA.contingency
@@ -962,10 +952,7 @@ return {
             local stage_id = fred.data.analysis.stage_ids[fred.data.analysis.stage_counter]
             local stage_status = fred.data.analysis.status[stage_id]
 
-            print('\n---------------------------------------')
-
             fred.data.zone_cfgs = {}
-
 
             --print(' --- my units all_map')
             local my_power = 0
@@ -1082,7 +1069,7 @@ return {
             local status = fred.data.analysis.status
             local stage_id = fred.data.analysis.stage_ids[fred.data.analysis.stage_counter]
 
-            print('Doing map analysis for stage: ' .. stage_id)
+            --print('Doing map analysis for stage: ' .. stage_id)
 
             if (not status[stage_id]) then
                 status[stage_id] = {}
@@ -1109,7 +1096,7 @@ return {
 
         ----- Attack: -----
         function fred:get_attack_action(zonedata, gamedata, move_cache)
-            print_time(zonedata.cfg.id, 'attack')
+            print_time('  --> attack evaluation: ' .. zonedata.cfg.zone_id)
             --DBG.dbms(zonedata.cfg)
 
             local targets = {}
@@ -1596,8 +1583,7 @@ return {
 
         ----- Hold: -----
         function fred:get_hold_action(zonedata, gamedata, move_cache)
-
-            print('Hold evaluation: ' .. zonedata.cfg.zone_id)
+            print_time('  --> hold evaluation: ' .. zonedata.cfg.zone_id)
             --DBG.dbms(zonedata.cfg)
 
             --DBG.dbms(fred.data.analysis.status)
@@ -2144,7 +2130,7 @@ return {
 
             for i=max_holders,1,-1 do
                 if best_combos[i].best_units then
-                    print('****** Found hold action:')
+                    --print('****** Found hold action:')
                     local action = {
                         units = {},
                         dsts = best_combos[i].best_hexes
@@ -2167,7 +2153,7 @@ return {
 
         ----- Advance: -----
         function fred:get_advance_action(zonedata, gamedata, move_cache)
-            print('Advance evaluation: ' .. zonedata.cfg.zone_id)
+            print_time('  --> advance evaluation: ' .. zonedata.cfg.zone_id)
             --DBG.dbms(zonedata.cfg)
             local raw_cfg = fred:get_raw_cfgs(zonedata.cfg.zone_id)
             --DBG.dbms(raw_cfg)
@@ -2348,7 +2334,7 @@ return {
 
 
             if best_unit then
-                print('****** Found advance action:')
+                --print('****** Found advance action:')
                 local action = { units = { best_unit }, dsts = { best_hex } }
                 action.action = zonedata.cfg.zone_id .. ': ' .. 'advance'
                 return action
@@ -2358,8 +2344,7 @@ return {
 
         ----- Retreat: -----
         function fred:get_retreat_action(zonedata, gamedata)
-            -- **** Retreat seriously injured units
-            --print_time('retreat')
+            print_time('  --> retreat evaluation: ' .. zonedata.cfg.zone_id)
 
             -- This is a placeholder for when (if) retreat.lua gets adapted to the new
             -- tables also.  It might not be necessary, it's fast enough the way it is
@@ -2420,6 +2405,7 @@ return {
 
         function fred:stats_exec()
             local tod = wesnoth.get_time_of_day()
+            print('\n***********************************************************')
             AH.print_ts('Beginning of Turn ' .. wesnoth.current.turn .. ' (' .. tod.name ..') stats')
 
             local sides = {}
@@ -2456,6 +2442,7 @@ return {
                     .. sides[side].leader_type .. ', ' .. side_info.gold .. ' gold)'
                 )
             end
+            print('***********************************************************\n')
         end
 
         ----- CA: Clear self.data table at end of turn (max_score: 1) -----
@@ -2659,7 +2646,7 @@ return {
 
             -- **** Retreat severely injured units evaluation ****
             if (cfg.actions.retreat) then
-                print_time('  ' .. cfg.zone_id .. ': retreat_injured eval')
+                --print_time('  ' .. cfg.zone_id .. ': retreat_injured eval')
                 -- TODO: heal_loc and safe_loc are not used at this time
                 -- keep for now and see later if needed
                 local action, healloc, safeloc = fred:get_retreat_action(zonedata, gamedata)
@@ -2671,7 +2658,7 @@ return {
 
             -- **** Attack evaluation ****
             if (cfg.actions.attack) then
-                print_time('  ' .. cfg.zone_id .. ': attack eval')
+                --print_time('  ' .. cfg.zone_id .. ': attack eval')
                 local action = fred:get_attack_action(zonedata, gamedata, move_cache)
                 if action then
                     --print(action.action)
@@ -2681,7 +2668,7 @@ return {
 
             -- **** Hold position evaluation ****
             if (cfg.actions.hold) then
-                print_time('  ' .. cfg.zone_id .. ': hold eval')
+                --print_time('  ' .. cfg.zone_id .. ': hold eval')
                 local action = fred:get_hold_action(zonedata, gamedata, move_cache)
                 if action then
                     --print_time(action.action)
@@ -2691,7 +2678,7 @@ return {
 
             -- **** Advance in zone evaluation ****
             if (cfg.actions.advance) then
-                print_time('  ' .. cfg.zone_id .. ': advance eval')
+                --print_time('  ' .. cfg.zone_id .. ': advance eval')
                 local action = fred:get_advance_action(zonedata, gamedata, move_cache)
                 if action then
                     --print_time(action.action)
@@ -2706,8 +2693,6 @@ return {
         function fred:zone_control_eval()
             local score_zone_control = 350000
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
-            print()
-            print('*****************************************')
 
             if AH.print_eval() then print_time('     - Evaluating zone_control CA:') end
 
@@ -2725,8 +2710,8 @@ return {
 
             while 1 do
                 if (FDA.stage_counter > #FDA.stage_ids) then
-                    print(FDA.stage_counter, #FDA.stage_ids)
-                    print(' ---> done with all stages')
+                    --print(FDA.stage_counter, #FDA.stage_ids)
+                    print('--> done with all stages')
 
                     -- Reset stage counter for each evaluation
                     -- This makes the stage system somewhat pointless
@@ -2737,7 +2722,7 @@ return {
                 end
 
                 local stage_id = FDA.stage_ids[FDA.stage_counter]
-                print('Stage: ' .. stage_id)
+                print('\nStage: ' .. stage_id)
 
 
                 fred:analyze_map(fred.data.gamedata)
@@ -2746,10 +2731,10 @@ return {
                 --DBG.dbms(fred.data.zone_cfgs)
 
                 for i_c,cfg in ipairs(fred.data.zone_cfgs) do
-                    print()
-                    print('-----------------------------------')
-                    print_time('zone_control: ', cfg.zone_id, cfg.stage_id)
-                    for action,_ in pairs(cfg.actions) do print('  --> ' .. action) end
+                    --print()
+                    --print('-----------------------------------')
+                    --print_time('zone_control: ', cfg.zone_id, cfg.stage_id)
+                    --for action,_ in pairs(cfg.actions) do print('  --> ' .. action) end
                     --DBG.dbms(cfg)
 
                     local power_used = FDA.status[stage_id][cfg.zone_id].power_used
@@ -2759,8 +2744,8 @@ return {
                     local n_units_used = FDA.status[stage_id][cfg.zone_id].n_units_used
 
                     -- !!! Note that power_missing is not necessarily power_needed - power_used !!!
-                    print('  power used, needed, missing:', power_used, power_needed, power_missing)
-                    print('  n_units_used, needed:', n_units_used, n_units_needed)
+                    --print('  power used, needed, missing:', power_used, power_needed, power_missing)
+                    --print('  n_units_used, needed:', n_units_used, n_units_needed)
 
                     -- Also need to check whether we have enough units for
                     -- village grabbing
@@ -2788,7 +2773,7 @@ return {
                             return score_zone_control
                         end
                     else
-                        print('  --> power used already greater than power needed:', power_used, power_needed, power_missing)
+                        --print('  --> power used already greater than power needed:', power_used, power_needed, power_missing)
                     end
                 end
 
@@ -2798,7 +2783,7 @@ return {
                 fred.data.zone_cfgs = nil
                 FDA.stage_counter = FDA.stage_counter + 1
 
-                print(' ---> done with all cfgs of this stage')
+                print('--> done with all cfgs of this stage')
             end
 
             AH.done_eval_messages(start_time, ca_name)
@@ -2907,7 +2892,7 @@ return {
                     if have_recruited then break end
                 end
 
-                if AH.print_exec() then print_time('   Executing zone_control CA ' .. action) end
+                if AH.print_exec() then print_time('====> Executing zone_control CA ' .. action) end
                 if AH.show_messages() then W.message { speaker = unit.id, message = 'Zone action ' .. action } end
 
                 -- The following are some tests to make sure the intended move is actually
