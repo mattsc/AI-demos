@@ -967,6 +967,30 @@ return {
             fred.data.zone_cfgs = {}
 
 
+            --print(' --- my units all_map')
+            local my_power = 0
+            for id,loc in pairs(gamedata.my_units) do
+                --print(id, gamedata.unit_infos[id].power)
+                my_power = my_power + gamedata.unit_infos[id].power
+            end
+            --print(' --- enemy units all_map')
+            local enemy_power = 0
+            for id,loc in pairs(gamedata.enemies) do
+                --print(id, gamedata.unit_infos[id].power)
+                enemy_power = enemy_power + gamedata.unit_infos[id].power
+            end
+            local power_ratio = enemy_power / my_power
+            --print(' -----> my_power, enemy_power, power_ratio', my_power, enemy_power, power_ratio)
+
+            local value_ratio = FU.cfg_default('value_ratio')
+            --print('value_ratio', value_ratio)
+
+            if (power_ratio < 0.75) then value_ratio = power_ratio end
+            --print('value_ratio', value_ratio)
+
+            if (value_ratio < 0.5) then value_ratio = 0.5 end
+            --print('value_ratio', value_ratio)
+
 
             ----- Attack all remaining valid targets -----
 
@@ -988,7 +1012,8 @@ return {
                 zone_id = zone_id,
                 stage_id = stage_id,
                 actions = { attack = true },
-                ignore_resource_limit = true
+                ignore_resource_limit = true,
+                value_ratio = value_ratio
             }
 
             table.insert(fred.data.zone_cfgs, attack_all_cfg)
@@ -1015,7 +1040,7 @@ return {
                 zone_id = zone_id,
                 stage_id = stage_id,
                 actions = { retreat = true },
-                ignore_resource_limit = true
+                ignore_resource_limit = true,
             }
 
             table.insert(fred.data.zone_cfgs, retreat_cfg)
@@ -1044,7 +1069,7 @@ return {
                     advance = true
                 },
                 ignore_resource_limit = true,
-
+                value_ratio = value_ratio
             }
 
             table.insert(fred.data.zone_cfgs, retreat_cfg)
