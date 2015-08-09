@@ -16,8 +16,8 @@ return {
 
 
         ----- Debug output flags -----
-        local debug_zone_eval = false
-        local debug_exec = true
+        local debug_eval = false    -- top-level evaluation information
+        local debug_exec = true     -- top-level executiuon information
 
 
         ------- Utility functions -------
@@ -273,7 +273,7 @@ return {
 
         function fred:analyze_leader_threat(gamedata)
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
-            if AH.print_eval() then print_time('     - Evaluating leader threat map analysis:') end
+            if debug_eval then print_time('     - Evaluating leader threat map analysis:') end
 
             -- Some pointers just for convenience
             local stage_id = fred.data.analysis.stage_ids[fred.data.analysis.stage_counter]
@@ -444,7 +444,7 @@ return {
 
         function fred:analyze_defend_zones(gamedata)
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
-            if AH.print_eval() then print_time('     - Evaluating defend zones map analysis:') end
+            if debug_eval then print_time('     - Evaluating defend zones map analysis:') end
 
             -- Some pointers just for convenience
             local stage_id = fred.data.analysis.stage_ids[fred.data.analysis.stage_counter]
@@ -953,7 +953,7 @@ return {
 
         function fred:analyze_all_map(gamedata)
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'all_map'
-            if AH.print_eval() then print_time('     - Evaluating all_map CA:') end
+            if debug_eval then print_time('     - Evaluating all_map CA:') end
 
             -- Some pointers just for convenience
             local stage_id = fred.data.analysis.stage_ids[fred.data.analysis.stage_counter]
@@ -1103,7 +1103,7 @@ return {
 
         ----- Attack: -----
         function fred:get_attack_action(zonedata, gamedata, move_cache)
-            if debug_zone_eval then print_time('  --> attack evaluation: ' .. zonedata.cfg.zone_id) end
+            if debug_eval then print_time('  --> attack evaluation: ' .. zonedata.cfg.zone_id) end
             --DBG.dbms(zonedata.cfg)
 
             local targets = {}
@@ -1590,7 +1590,7 @@ return {
 
         ----- Hold: -----
         function fred:get_hold_action(zonedata, gamedata, move_cache)
-            if debug_zone_eval then print_time('  --> hold evaluation: ' .. zonedata.cfg.zone_id) end
+            if debug_eval then print_time('  --> hold evaluation: ' .. zonedata.cfg.zone_id) end
             --DBG.dbms(zonedata.cfg)
 
             --DBG.dbms(fred.data.analysis.status)
@@ -2160,7 +2160,7 @@ return {
 
         ----- Advance: -----
         function fred:get_advance_action(zonedata, gamedata, move_cache)
-            if debug_zone_eval then print_time('  --> advance evaluation: ' .. zonedata.cfg.zone_id) end
+            if debug_eval then print_time('  --> advance evaluation: ' .. zonedata.cfg.zone_id) end
             --DBG.dbms(zonedata.cfg)
             local raw_cfg = fred:get_raw_cfgs(zonedata.cfg.zone_id)
             --DBG.dbms(raw_cfg)
@@ -2351,7 +2351,7 @@ return {
 
         ----- Retreat: -----
         function fred:get_retreat_action(zonedata, gamedata)
-            if debug_zone_eval then print_time('  --> retreat evaluation: ' .. zonedata.cfg.zone_id) end
+            if debug_eval then print_time('  --> retreat evaluation: ' .. zonedata.cfg.zone_id) end
 
             -- This is a placeholder for when (if) retreat.lua gets adapted to the new
             -- tables also.  It might not be necessary, it's fast enough the way it is
@@ -2470,7 +2470,7 @@ return {
         function fred:move_leader_to_keep_eval()
             local score = 480000
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'move_leader_to_keep'
-            if AH.print_eval() then print_time('     - Evaluating move_leader_to_keep CA:') end
+            if debug_eval then print_time('     - Evaluating move_leader_to_keep CA:') end
 
             local leader = fred.data.gamedata.leaders[wesnoth.current.side]
 
@@ -2701,7 +2701,7 @@ return {
             local score_zone_control = 350000
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
 
-            if AH.print_eval() then print_time('     - Evaluating zone_control CA:') end
+            if debug_eval then print_time('     - Evaluating zone_control CA:') end
 
             if (not fred.data.analysis) or (fred.data.analysis.turn ~= wesnoth.current.turn) then
                 fred.data.analysis = {
@@ -2718,7 +2718,7 @@ return {
             while 1 do
                 if (FDA.stage_counter > #FDA.stage_ids) then
                     --print(FDA.stage_counter, #FDA.stage_ids)
-                    if debug_zone_eval then print('--> done with all stages') end
+                    if debug_eval then print('--> done with all stages') end
 
                     -- Reset stage counter for each evaluation
                     -- This makes the stage system somewhat pointless
@@ -2729,7 +2729,7 @@ return {
                 end
 
                 local stage_id = FDA.stage_ids[FDA.stage_counter]
-                if debug_zone_eval then print('\nStage: ' .. stage_id) end
+                if debug_eval then print('\nStage: ' .. stage_id) end
 
 
                 fred:analyze_map(fred.data.gamedata)
@@ -2790,7 +2790,7 @@ return {
                 fred.data.zone_cfgs = nil
                 FDA.stage_counter = FDA.stage_counter + 1
 
-                if debug_zone_eval then print('--> done with all cfgs of this stage') end
+                if debug_eval then print('--> done with all cfgs of this stage') end
             end
 
             AH.done_eval_messages(start_time, ca_name)
