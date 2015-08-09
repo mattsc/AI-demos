@@ -859,13 +859,19 @@ return {
                 for id,power in pairs(data.my_units1) do
                     if (not stage_status[zone_id].units_used[id]) then
                         --print('  1: ' .. id, power)
-                        hold[zone_id].units[id] = power
+
+                        if gamedata.my_units_MP[id] then
+                            hold[zone_id].units[id] = power
+                        end
                     end
                 end
                 for id,power in pairs(data.my_units2) do
                     if (not stage_status[zone_id].units_used[id]) then
                         --print('  2: ' .. id, power)
---xxxxx                        hold[zone_id].units[id] = power
+
+                        if gamedata.my_units_MP[id] then
+--xxxxx                            hold[zone_id].units[id] = power
+                        end
                     end
                 end
 
