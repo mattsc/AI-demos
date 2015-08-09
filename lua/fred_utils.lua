@@ -118,7 +118,7 @@ end
 
 function fred_utils.cfg_default(parm)
     local cfg = {
-        value_ratio = 1,  -- how valuable are own units compared to enemies
+        value_ratio = 0.8,  -- how valuable are own units compared to enemies
 
         leader_weight = 2.,
 

@@ -96,6 +96,10 @@ return {
 
                     rating = rating - H.distance_between(x, y, goal_x, goal_y) / 1000.
                 end
+
+                if (zone_id == 'all_map') then
+                    rating = - H.distance_between(x, y, 20, 19)
+                end
             end
 
             -- TODO: not set up for new method
@@ -187,6 +191,23 @@ return {
         end
 
         function fred:get_raw_cfgs(zone_id)
+            if (zone_id == 'all_map') then
+                local cfg_all_map = {
+                    zone_id = 'all_map',
+                    --key_hexes = { { 25,12 },  { 27,11 }, { 29,11 }, { 32,10 } },
+                    target_zone = { x = '1-34', y = '1-23' },
+                    zone_filter = { x = '1-34', y = '1-23' },
+                    unit_filter_advance = { x = '1-34', y = '1-23' },
+                    hold_slf = { x = '1-34', y = '1-23' },
+                    villages = {
+                        slf = { x = '1-34', y = '1-23' },
+                        villages_per_unit = 2
+                    }
+                }
+
+                return cfg_all_map
+            end
+
             local cfg_west = {
                 zone_id = 'west',
                 key_hexes = { { 8,8 },  { 11,9 }, { 14,8 } },
@@ -1001,7 +1022,7 @@ return {
 
 
             ----- Rush in east (hold and advance) -----
-            local zone_id = 'east'
+            local zone_id = 'all_map'
 
             -- This is needed throughout the code, just needs to be set to
             -- give unlimited resources here
@@ -1018,8 +1039,12 @@ return {
             local retreat_cfg = {
                 zone_id = zone_id,
                 stage_id = stage_id,
-                actions = { hold = true, advance = true },
-                ignore_resource_limit = true
+                actions = {
+--                    hold = true,
+                    advance = true
+                },
+                ignore_resource_limit = true,
+
             }
 
             table.insert(fred.data.zone_cfgs, retreat_cfg)
