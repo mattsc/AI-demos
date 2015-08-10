@@ -185,20 +185,35 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     -- Normalize so that it is in fraction of defender max_hitpoints
     extra_rating = extra_rating / defender_info.max_hitpoints
 
-    -- We don't need a bonus for good terrain for the attacker, as that is covered in the damage calculation
-    -- However, we add a small bonus for good terrain defense of the _defender_ on the _attack_ hexes
+    -- Most of the time, we don't need a bonus for good terrain for the attacker,
+    -- as that is covered in the damage calculation.  However, this might give misleading
+    -- results for units that can regenerate (they might get equal rating independent
+    -- of the terrain) -> add a small bonus for terrain
+    local defense_rating_attacker = 0.
+    for i,attacker_info in ipairs(attacker_infos) do
+        defense_rating_attacker = defense_rating_attacker + FGUI.get_unit_defense(
+            gamedata.unit_copies[attacker_info.id],
+            dsts[i][1], dsts[i][2],
+            gamedata.defense_maps
+        )
+    end
+    defense_rating_attacker = defense_rating_attacker / #attacker_infos * defense_weight
+
+    extra_rating = extra_rating + defense_rating_attacker
+
+    -- Also, we add a small bonus for good terrain defense of the _defender_ on the _attack_ hexes
     -- This is in order to take good terrain away from defender on its next move
-    local defense_rating = 0.
+    local defense_rating_defender = 0.
     for _,dst in ipairs(dsts) do
-        defense_rating = defense_rating + FGUI.get_unit_defense(
+        defense_rating_defender = defense_rating_defender + FGUI.get_unit_defense(
             gamedata.unit_copies[defender_info.id],
             dst[1], dst[2],
             gamedata.defense_maps
         )
     end
-    defense_rating = defense_rating / #dsts * defense_weight
+    defense_rating_defender = defense_rating_defender / #dsts * defense_weight
 
-    extra_rating = extra_rating + defense_rating
+    extra_rating = extra_rating + defense_rating_defender
 
     -- Get a very small bonus for hexes in between defender and AI leader
     -- 'relative_distances' is larger for attack hexes closer to the side leader (possible values: -1 .. 1)
@@ -650,12 +665,14 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
                     -- We mostly want the defender rating
                     -- However, we add attacker rating as a small contribution,
                     -- so that good terrain for the attacker will be preferred
-                    _,attacker_rating,defender_rating = fred_attack_utils.attack_rating(
+                    _,attacker_rating,defender_rating,extra_rating = fred_attack_utils.attack_rating(
                         { gamedata.unit_infos[attacker_id] }, gamedata.unit_infos[defender_id], { { xa, ya } },
                         { att_stat }, def_stat,
                         gamedata, cfg
                     )
-                    rating = defender_rating + attacker_rating / 100
+
+                    rating = defender_rating + (attacker_rating + extra_rating) / 100
+                    --print(xa,ya,rating,attacker_rating,defender_rating,extra_rating)
                 end
 
                 if (not tmp_attacks_dst_src[dst]) then
