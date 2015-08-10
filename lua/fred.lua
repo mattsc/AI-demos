@@ -2832,7 +2832,9 @@ return {
                         fred.data.gamedata, fred.data.move_cache
                     )
 
-                    if (combo_def_stat.hp_chance[0] > 0) then
+                    -- Disable reordering of attacks for the time being
+                    -- TODO: this needs to be completely redone
+                    if (combo_def_stat.hp_chance[0] > 100) then
                         --print_time('Reordering units for attack to maximize XP gain')
 
                         local min_XP_diff, best_ind = 9e99
