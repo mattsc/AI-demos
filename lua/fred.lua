@@ -234,7 +234,7 @@ return {
                 target_zone = { x = '15-23,13-23', y = '8-13,14-19' },
                 zone_filter = { x = '15-24', y = '8-16' },
                 unit_filter_advance = { x = '15-23,', y = '1-13' },
-                hold_slf = { x = '16-23', y = '7-14' },
+                hold_slf = { x = '16-24,16-23', y = '7-10,11-14' },
                 villages = {
                     slf = { x = '16-21', y = '7-10' },
                     villages_per_unit = 2
