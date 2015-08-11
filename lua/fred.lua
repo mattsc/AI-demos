@@ -2219,6 +2219,9 @@ return {
                                 if (hit_chance < 0) then hit_chance = 0 end
                             end
 
+                            -- Village owner; set to 0 for unowned villages
+                            local owner = FU.get_fgumap_value(gamedata.village_map, x, y, 'owner')
+
                             if (not is_leader) and (not must_retreat) and (not zonedata.cfg.villages_only) then
                                 -- Want to use faster units preferentially
                                 rating = zone_rating + gamedata.unit_infos[id].max_moves
@@ -2228,8 +2231,22 @@ return {
 
                                 -- Add very minor penalty for the terrain
                                 rating = rating - hit_chance / 1000
-                            end
 
+                                -- Own villages that can be reached by an enemy get a big bonus
+                                if owner and (owner == wesnoth.current.side) then
+                                    local enemies_in_reach = 0
+
+                                    -- TODO: might want to set up an enemy_move_map
+                                    for id,_ in pairs(gamedata.enemies) do
+                                        if FU.get_fgumap_value(gamedata.reach_maps[id], x, y, 'moves_left') then
+                                            enemies_in_reach = enemies_in_reach + 1
+                                        end
+                                    end
+                                    --print(x,y,enemies_in_reach)
+
+                                    rating = rating + 10 * enemies_in_reach
+                                end
+                            end
 
                             -- Unowned and enemy_owned villages are much preferred
                             -- and get a very different rating
@@ -2237,7 +2254,6 @@ return {
                             -- and for severely injured units
                             -- Retreating injured units to AI owned and other safe
                             -- locations is done separately (TODO: reconsider that)
-                            local owner = FU.get_fgumap_value(gamedata.village_map, x, y, 'owner')
                             if not_leader_or_leader_on_keep and owner and (owner ~= wesnoth.current.side) then
                                 if (owner == 0) then
                                     rating = 1000
