@@ -2249,6 +2249,28 @@ return {
 
                                     rating = rating + 10 * enemies_in_reach
                                 end
+
+                                -- Penalty for hexes adjacent to villages the enemy can reach
+                                -- TODO: do we want a adjacent_to_villages_map?
+                                -- Potential TODO: in principle this should be calculated
+                                -- for the situation _after_ the unit moves, but that
+                                -- might be too costly
+                                for xa,ya in H.adjacent_tiles(x,y) do
+                                    if FU.get_fgumap_value(gamedata.village_map, xa, ya, 'owner') then
+                                        local enemies_in_reach = 0
+
+                                        -- TODO: might want to set up an enemy_move_map
+                                        for id,_ in pairs(gamedata.enemies) do
+                                            if FU.get_fgumap_value(gamedata.reach_maps[id], xa, ya, 'moves_left') then
+                                                enemies_in_reach = enemies_in_reach + 1
+                                            end
+                                        end
+
+                                        if (enemies_in_reach > 0) then
+                                            rating = rating - 100
+                                        end
+                                    end
+                                end
                             end
 
                             -- Unowned and enemy_owned villages are much preferred
