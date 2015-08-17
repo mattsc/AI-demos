@@ -2183,7 +2183,10 @@ return {
             -- unit at a time.  It will be checked before the action is called.
 
             local max_rating, best_unit, best_hex = -9e99
+            local reachable_villages = {}
             for id,loc in pairs(advance_units) do
+                reachable_villages[id] = {}
+
                 -- The leader only participates in village grabbing, and
                 -- that only if he is on the keep
                 local is_leader = gamedata.unit_infos[id].canrecruit
@@ -2254,7 +2257,10 @@ return {
                             -- and for severely injured units
                             -- Retreating injured units to AI owned and other safe
                             -- locations is done separately (TODO: reconsider that)
-                            if not_leader_or_leader_on_keep and owner and (owner ~= wesnoth.current.side) then
+
+                            local is_priority_village = not_leader_or_leader_on_keep and owner and (owner ~= wesnoth.current.side)
+
+                            if is_priority_village then
                                 if (owner == 0) then
                                     rating = 1000
                                 else
@@ -2286,8 +2292,12 @@ return {
                             end
 
                             -- Now check whether the counter attack is acceptable
+                            -- This is expensive, so only done if rating is largest
+                            -- to date, but:
+                            -- All priority villages need to be considered, as they
+                            -- are re-evaluated later
                             local is_acceptable = true
-                            if rating and (rating > max_rating) then
+                            if rating and ((rating > max_rating) or is_priority_village) then
                                 --print('Checking if location is acceptable', x, y)
 
                                 local old_locs = { { loc[1], loc[2] } }
@@ -2326,6 +2336,12 @@ return {
                                 end
                             end
 
+                            -- If this is an enemy owned or unowned village, we need to
+                            -- store all of those hexes for re-evaluation
+                            if is_priority_village and rating and is_acceptable then
+                                table.insert(reachable_villages[id], { x, y, rating = rating })
+                            end
+
                             -- This is just for displaying purposes (unit_rating_map)
                             -- Has no effect on evaluation
                             if rating and (not is_acceptable) then
@@ -2355,6 +2371,34 @@ return {
                 end
             end
 
+            -- All enemy-owned and unowned villages are reconsidered now.
+            -- The goal is to make sure that the units capture as many villages
+            -- as possible -- a unit that can take two villages should not
+            -- take priority over another unit that can only get to one village.
+            -- This is done by adding a dummy bonus to the rating that is the
+            -- larger the fewer villages a unit can get to.
+            -- There are probably situations in which this is not the best way
+            -- to do this, but for a map like Freelands it should work well enough.
+            local max_rating_vill, best_unit_vill, best_hex_vill = -9e99
+            for id,locs in pairs(reachable_villages) do
+                local dummy_bonus = 10000 / #locs
+
+                for _,loc in ipairs(locs) do
+                    local rating = loc.rating + dummy_bonus
+
+                    if (rating > max_rating_vill) then
+                        max_rating_vill = rating
+                        best_unit_vill = gamedata.my_units[id]
+                        best_unit_vill.id = id
+                        best_hex_vill = { loc[1], loc[2] }
+                    end
+                end
+            end
+
+            if best_unit_vill then
+                best_unit = best_unit_vill
+                best_hex = best_hex_vill
+            end
 
             if best_unit then
                 --print('****** Found advance action:')
