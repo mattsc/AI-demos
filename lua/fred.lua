@@ -1377,10 +1377,12 @@ return {
                                     end
                                 end
                             end
+
                             -- For each poisoner in such an attack, we give a penalty eqivalent to 8 HP of the target
                             if (number_poisoners > 0) then
-                                local penalty = 8. / gamedata.unit_infos[target_id].max_hitpoints
-                                penalty = penalty * gamedata.unit_infos[target_id].cost * number_poisoners
+                                local unit_value = FU.unit_value(gamedata.unit_infos[target_id])
+                                local penalty = 8. / gamedata.unit_infos[target_id].max_hitpoints * unit_value
+                                penalty = penalty * number_poisoners
                                 --print('Applying poisoner penalty', combo_rating, penalty)
                                 combo_rating = combo_rating - penalty
                             end
