@@ -63,11 +63,13 @@ function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_
     local damage = attacker_info.hitpoints - att_stat.average_hp
 
     -- Count poisoned as additional 8 HP damage times probability of being poisoned
-    if (att_stat.poisoned ~= 0) then
+    -- but only if the unit is not already poisoned
+    if (att_stat.poisoned ~= 0) and (not attacker_info.poisoned) then
         damage = damage + 8 * (att_stat.poisoned - att_stat.hp_chance[0])
     end
     -- Count slowed as additional 4 HP damage times probability of being slowed
-    if (att_stat.slowed ~= 0) then
+    -- but only if the unit is not already slowed
+    if (att_stat.slowed ~= 0) and (not attacker_info.slowed) then
         damage = damage + 4 * (att_stat.slowed - att_stat.hp_chance[0])
     end
 
