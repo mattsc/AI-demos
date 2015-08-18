@@ -1340,18 +1340,39 @@ return {
                                 end
                             end
 
-                            -- Now check if any of this would result in trapping
+                            -- Check whether this is a valid trapping attack
                             local trapping_bonus = false
                             if (count > 1) then
-                                for x,map in pairs(adj_occ_hex_map) do
-                                    for y,_ in pairs(map) do
-                                        local opp_hex = AH.find_opposite_hex_adjacent({ x, y }, target_loc)
-                                        if opp_hex and adj_occ_hex_map[opp_hex[1]] and adj_occ_hex_map[opp_hex[1]][opp_hex[2]] then
-                                            trapping_bonus = true
-                                            break
+                                trapping_bonus = true
+
+                                -- If it gives the target access to good terrain, we don't do it,
+                                -- except if the target is down to less than half of its hitpoints
+                                if (gamedata.unit_infos[target_id].hitpoints >= gamedata.unit_infos[target_id].max_hitpoints/2) then
+                                    for xa,ya in H.adjacent_tiles(target_loc[1], target_loc[2]) do
+                                        if (not adj_occ_hex_map[xa]) or (not adj_occ_hex_map[xa][ya]) then
+                                            local defense = FGUI.get_unit_defense(gamedata.unit_copies[target_id], xa, ya, gamedata.defense_maps)
+                                            if (defense >= 0.5) then
+                                                trapping_bonus = false
+                                                break
+                                            end
                                         end
                                     end
-                                    if trapping_bonus then break end
+                                end
+
+                                -- If the previous check did not disqualify the attack,
+                                -- check if this would result in trapping
+                                if trapping_bonus then
+                                    trapping_bonus = false
+                                    for x,map in pairs(adj_occ_hex_map) do
+                                        for y,_ in pairs(map) do
+                                            local opp_hex = AH.find_opposite_hex_adjacent({ x, y }, target_loc)
+                                            if opp_hex and adj_occ_hex_map[opp_hex[1]] and adj_occ_hex_map[opp_hex[1]][opp_hex[2]] then
+                                                trapping_bonus = true
+                                                break
+                                            end
+                                        end
+                                        if trapping_bonus then break end
+                                    end
                                 end
                             end
 
