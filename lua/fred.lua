@@ -2626,6 +2626,8 @@ return {
         ----- CA: Move leader to keep (max_score: 4800000) -----
         function fred:move_leader_to_keep_eval()
             local score = 480000
+            local low_score = 1000
+
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'move_leader_to_keep'
             if debug_eval then print_time('     - Evaluating move_leader_to_keep CA:') end
 
@@ -2707,7 +2709,14 @@ return {
                     fred.data.MLK_dst = next_hop
 
                     AH.done_eval_messages(start_time, ca_name)
-                    return score
+
+                    -- This is done with high priority if the leader can get to the keep,
+                    -- otherwise with very low priority
+                    if (next_hop[1] == best_keep[1]) and (next_hop[2] == best_keep[2]) then
+                        return score
+                    else
+                        return low_score
+                    end
                 end
             end
 
