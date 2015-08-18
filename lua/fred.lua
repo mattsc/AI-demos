@@ -1316,6 +1316,15 @@ return {
                             attempt_trapping = false
                         end
 
+                        -- Do not attempt trapping if the unit is on good terrain,
+                        -- except if the target is down to less than half of its hitpoints
+                        if (gamedata.unit_infos[target_id].hitpoints >= gamedata.unit_infos[target_id].max_hitpoints/2) then
+                            local defense = FGUI.get_unit_defense(gamedata.unit_copies[target_id], target_loc[1], target_loc[2], gamedata.defense_maps)
+                            if (defense >= 0.5) then
+                                attempt_trapping = false
+                            end
+                        end
+
                         -- Give a bonus to attacks that trap the enemy
                         -- TODO: Consider other cases than just two units on each side as well
                         if attempt_trapping then
