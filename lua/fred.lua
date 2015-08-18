@@ -1450,7 +1450,7 @@ return {
                 local target_proxy = wesnoth.get_unit(target_loc[1], target_loc[2])
                 local old_HP_target = target_proxy.hitpoints
                 local hp = combo.def_stat.average_hp
-                if (hp < 1) then hp = 1 end
+                if (hp < 0) then hp = 0 end
 
                 gamedata.unit_infos[target_id].hitpoints = hp
                 gamedata.unit_copies[target_id].hitpoints = hp
