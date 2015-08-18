@@ -1365,8 +1365,10 @@ return {
                             end
                         end
 
-                        -- Discourage use of poisoners in attacks that may result in kill
-                        if (combo_def_stat.hp_chance[0] > 0) then
+                        -- Discourage use of poisoners in attacks that have a
+                        -- high chance to result in kill
+                        -- TODO: does the value of 0.33 make sense?
+                        if (combo_def_stat.hp_chance[0] > 0.33) then
                             local number_poisoners = 0
                             for i_a,attacker in ipairs(sorted_atts) do
                                 local is_poisoner = false
