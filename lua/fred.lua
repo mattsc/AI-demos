@@ -1483,57 +1483,65 @@ return {
 
                     local counter_min_hp = counter_stats.min_hp
 
-                    -- If there's a chance of the leader getting poisoned, slowed or killed, don't do it
-                    if attacker.canrecruit then
-                        --print('Leader: slowed, poisoned %', counter_stats.slowed, counter_stats.poisoned)
-                        if (counter_stats.slowed > 0.0) then
-                            acceptable_counter = false
-                            break
-                        end
+                    -- We next check whether the counter attack is acceptable
+                    -- This is different for the side leader and other units
+                    -- Also, it is different for attacks by individual units without MP;
+                    -- for those it simply matters whether the attack makes things
+                    -- better or worse, since there isn't a coice of moving someplace else
 
-                        if (counter_stats.poisoned > 0.0) and (not attacker.regenerate) then
-                            acceptable_counter = false
-                            break
-                        end
-
-                        -- Add max damages from this turn and counter-attack
-                        local min_hp = 0
-                        for hp = 0,attacker.hitpoints do
-                            if combo.att_stats[i_a].hp_chance[hp] and (combo.att_stats[i_a].hp_chance[hp] > 0) then
-                                min_hp = hp
+                    if (#combo.attackers > 1) or (attacker.moves > 0) then
+                        -- If there's a chance of the leader getting poisoned, slowed or killed, don't do it
+                        if attacker.canrecruit then
+                            --print('Leader: slowed, poisoned %', counter_stats.slowed, counter_stats.poisoned)
+                            if (counter_stats.slowed > 0.0) then
+                                acceptable_counter = false
                                 break
                             end
-                        end
 
-                        -- Note that this is not really the maximum damage from the attack, as
-                        -- attacker.hitpoints is reduced to the average HP outcome of the attack
-                        -- However, min_hp for the counter also contains this freduction, so
-                        -- min_outcome below has the correct value (except for rounding errors,
-                        -- that's why it is compared ot 0.5 instead of 0)
-                        local max_damage_attack = attacker.hitpoints - min_hp
-                        --print('max_damage_attack, attacker.hitpoints, min_hp', max_damage_attack, attacker.hitpoints, min_hp)
+                            if (counter_stats.poisoned > 0.0) and (not attacker.regenerate) then
+                                acceptable_counter = false
+                                break
+                            end
 
-                        -- Add damage from attack and counter attack
-                        local min_outcome = counter_min_hp - max_damage_attack
-                        --print('Leader: min_outcome, counter_min_hp, max_damage_attack', min_outcome, counter_min_hp, max_damage_attack)
+                            -- Add max damages from this turn and counter-attack
+                            local min_hp = 0
+                            for hp = 0,attacker.hitpoints do
+                                if combo.att_stats[i_a].hp_chance[hp] and (combo.att_stats[i_a].hp_chance[hp] > 0) then
+                                    min_hp = hp
+                                    break
+                                end
+                            end
 
-                        if (min_outcome < 0.5) then
-                            acceptable_counter = false
-                            break
-                        end
-                    else  -- Or for normal units, evaluate whether the attack is worth it
-                        local damage_taken = - combo.att_rating + counter_def_rating
-                        local damage_done = combo.def_rating - counter_att_rating
-                        --print('     damage taken, done, value_ratio:', damage_taken, damage_done, combo.value_ratio)
+                            -- Note that this is not really the maximum damage from the attack, as
+                            -- attacker.hitpoints is reduced to the average HP outcome of the attack
+                            -- However, min_hp for the counter also contains this reduction, so
+                            -- min_outcome below has the correct value (except for rounding errors,
+                            -- that's why it is compared ot 0.5 instead of 0)
+                            local max_damage_attack = attacker.hitpoints - min_hp
+                            --print('max_damage_attack, attacker.hitpoints, min_hp', max_damage_attack, attacker.hitpoints, min_hp)
 
---                        if (counter_chance_to_die >= 0.5) then
---                            acceptable_counter = false
---                            break
---                        end
+                            -- Add damage from attack and counter attack
+                            local min_outcome = counter_min_hp - max_damage_attack
+                            --print('Leader: min_outcome, counter_min_hp, max_damage_attack', min_outcome, counter_min_hp, max_damage_attack)
 
-                        if (not FAU.is_acceptable_attack(damage_taken, damage_done, combo.value_ratio)) then
-                            acceptable_counter = false
-                            break
+                            if (min_outcome < 0.5) then
+                                acceptable_counter = false
+                                break
+                            end
+                        else  -- Or for normal units, evaluate whether the attack is worth it
+                            local damage_taken = - combo.att_rating + counter_def_rating
+                            local damage_done = combo.def_rating - counter_att_rating
+                            --print('     damage taken, done, value_ratio:', damage_taken, damage_done, combo.value_ratio)
+
+    --                        if (counter_chance_to_die >= 0.5) then
+    --                            acceptable_counter = false
+    --                            break
+    --                        end
+
+                            if (not FAU.is_acceptable_attack(damage_taken, damage_done, combo.value_ratio)) then
+                                acceptable_counter = false
+                                break
+                            end
                         end
                     end
                 end
@@ -1551,6 +1559,46 @@ return {
                 gamedata.unit_infos[target_id].hitpoints = old_HP_target
                 gamedata.unit_copies[target_id].hitpoints = old_HP_target
                 target_proxy.hitpoints = old_HP_target
+
+
+                -- Now we add the check for attacks by individual units with
+                -- no MP. Here we simply compare the rating of not attacking
+                -- vs. attacking. If attacking results in a better rating, we do it.
+                if (#combo.attackers == 1) then
+                    local attacker = combo.attackers[1]
+
+                    if (attacker.moves == 0) then
+                        --print_time('  by', attacker.id, combo.dsts[1][1], combo.dsts[1][2])
+
+                        -- Now calculate the counter attack outcome
+                        local attacker_moved = {}
+                        attacker_moved[attacker.id] = { combo.dsts[1][1], combo.dsts[1][2] }
+
+                        local counter_stats = FAU.calc_counter_attack(
+                            attacker_moved, old_locs, combo.dsts, gamedata, move_cache, cfg_attack
+                        )
+                        --DBG.dbms(counter_stats)
+
+                        local counter_rating = counter_stats.rating
+                        local counter_att_rating = counter_stats.att_rating
+                        local counter_def_rating = counter_stats.def_rating
+                        local counter_chance_to_die = counter_stats.hp_chance[0]
+                        --print_time('   counter ratings no attack:', counter_rating, counter_att_rating, counter_def_rating, counter_chance_to_die)
+
+                        -- Rating if no forward attack is done is done is only the counter attack rating
+                        local no_attack_rating = 0 - counter_rating
+                        -- If an attack is done, it's the combined forward and counter attack rating
+                        local with_attack_rating = combo.rating - max_counter_rating
+
+                        --print('    V1: no attack rating :  ', no_attack_rating, '<---', 0, -counter_rating)
+                        --print('    V2: with attack rating :', with_attack_rating, '<---', combo.rating, -max_counter_rating)
+
+                        if (with_attack_rating < no_attack_rating) then
+                            acceptable_counter = false
+                        end
+                        --print('acceptable_counter', acceptable_counter)
+                    end
+                end
 
                 --print_time('  acceptable_counter', acceptable_counter)
                 if acceptable_counter then
