@@ -1201,6 +1201,7 @@ return {
                     end
                     --print('      total_power: ', j, total_power)
 
+                    -- TODO: table.remove() can be slow
                     if (total_power > allowable_power) then
                         --print('      ----> eliminating this attack')
                         table.remove(attack_combos, j)
