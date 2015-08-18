@@ -3006,9 +3006,9 @@ return {
                 local unit = wesnoth.get_units { id = fred.data.zone_action.units[next_unit_ind].id }[1]
                 local dst = fred.data.zone_action.dsts[next_unit_ind]
 
-                -- If this is the leader, recruit first
+                -- If this is the leader (and he has MP left), recruit first
                 -- We're doing that by running a mini CA eval/exec loop
-                if unit.canrecruit then
+                if unit.canrecruit and (unit.moves > 0) then
                     --print('-------------------->  This is the leader. Recruit first.')
                     local avoid_map = LS.create()
                     for _,loc in ipairs(fred.data.zone_action.dsts) do
