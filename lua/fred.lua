@@ -1211,11 +1211,6 @@ return {
                 --DBG.dbms(attack_combos)
 
 
-                local enemy_on_village = gamedata.village_map[target_loc[1]]
-                    and gamedata.village_map[target_loc[1]][target_loc[2]]
-                local enemy_cost = gamedata.unit_infos[target_id].cost
-                --print('enemy_cost, enemy_on_village', enemy_cost, enemy_on_village)
-
                 for j,combo in ipairs(attack_combos) do
                     --print_time('combo ' .. j)
 
