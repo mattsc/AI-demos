@@ -1429,6 +1429,10 @@ return {
                     -- Apply average hitpoints from the forward attack as starting point
                     -- for the counter attack.  This isn't entirely accurate, but
                     -- doing it correctly is too expensive, and this is better than doing nothing.
+                    -- TODO: It also sometimes overrates poisoned or slowed, as it might be
+                    -- counted for both attack and counter attack. This could be done more
+                    -- accurately by using a combined chance of getting poisoned/slowed, but
+                    -- for now we use this as good enough.
                     table.insert(old_HP_attackers, gamedata.unit_infos[attacker_info.id].hitpoints)
 
                     local hp = combo.att_stats[i_a].average_hp
