@@ -1449,8 +1449,6 @@ return {
 
                 -- Also set the hitpoints for the defender
                 local target_id, target_loc = next(combo.target)
-                -- TODO: change how threat_rating is stored?
-                local threat_rating = target_loc.threat_rating or 0
                 local target_proxy = wesnoth.get_unit(target_loc[1], target_loc[2])
                 local old_HP_target = target_proxy.hitpoints
                 local hp = combo.def_stat.average_hp
@@ -1609,13 +1607,6 @@ return {
                     local total_rating = combo.rating - max_counter_rating
                     --print('    Acceptable counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating)
                     --print('    rating, counter_rating, total_rating', combo.rating, max_counter_rating, total_rating)
-                    --print('  threat_rating:', threat_rating)
-
-                    -- Of the acceptable attacks, prioritize them by threat_rating
-                    -- As both the total rating and the threat_rating are supposed to
-                    -- be in units of gold, they can simply be added
-
-                    total_rating = total_rating + threat_rating
 
                     if (total_rating > max_total_rating) then
                         max_total_rating = total_rating
