@@ -1357,8 +1357,8 @@ return {
 
                             -- For each such village found, we give a bonus eqivalent to 8 HP of the target
                             if trapping_bonus then
-                                local bonus = 8. / gamedata.unit_infos[target_id].max_hitpoints
-                                bonus = bonus * gamedata.unit_infos[target_id].cost
+                                local unit_value = FU.unit_value(gamedata.unit_infos[target_id])
+                                local bonus = 8. / gamedata.unit_infos[target_id].max_hitpoints * unit_value
                                 --print('Applying trapping bonus', combo_rating, bonus)
                                 combo_rating = combo_rating + bonus
                             end
