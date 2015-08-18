@@ -1306,8 +1306,9 @@ return {
 
                         -- For each such village found, we give a penalty eqivalent to 10 HP of the target
                         if (adj_unocc_village > 0) then
-                            local penalty = 10. / gamedata.unit_infos[target_id].max_hitpoints
-                            penalty = penalty * gamedata.unit_infos[target_id].cost * adj_unocc_village
+                            local unit_value = FU.unit_value(gamedata.unit_infos[target_id])
+                            local penalty = 10. / gamedata.unit_infos[target_id].max_hitpoints * unit_value
+                            penalty = penalty * adj_unocc_village
                             --print('Applying village penalty', combo_rating, penalty)
                             combo_rating = combo_rating - penalty
 
