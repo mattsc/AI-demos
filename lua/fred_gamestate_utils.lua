@@ -135,6 +135,7 @@ function fred_gamestate_utils.single_unit_info(unit_proxy)
         canrecruit = unit_proxy.canrecruit,
         side = unit_proxy.side,
 
+        moves = unit_proxy.moves,
         max_moves = unit_proxy.max_moves,
         hitpoints = unit_proxy.hitpoints,
         max_hitpoints = unit_proxy.max_hitpoints,
