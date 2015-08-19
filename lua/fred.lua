@@ -1034,7 +1034,7 @@ return {
                 zone_id = zone_id,
                 stage_id = stage_id,
                 actions = { retreat = true },
-                ignore_resource_limit = true,
+                ignore_resource_limit = true
             }
 
             table.insert(fred.data.zone_cfgs, retreat_cfg)
