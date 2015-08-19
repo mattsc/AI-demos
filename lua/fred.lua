@@ -205,17 +205,17 @@ return {
 
         ------ Map analysis at beginning of turn -----------
 
-        function fred:get_leader_zone_raw_cfg()
-            local cfg_leader = {
-                zone_id = 'leader',
-                key_hexes = { { 18,4 },  { 19,4 } },
-                zone_filter = { x = '1-15,16-23,24-34', y = '1-6,1-7,1-8' },
-            }
-
-            return cfg_leader
-        end
-
         function fred:get_raw_cfgs(zone_id)
+            if (zone_id == 'leader') then
+                local cfg_leader = {
+                    zone_id = 'leader',
+                    key_hexes = { { 18,4 },  { 19,4 } },
+                    zone_filter = { x = '1-15,16-23,24-34', y = '1-6,1-7,1-8' },
+                }
+
+                return cfg_leader
+            end
+
             if (zone_id == 'all_map') then
                 local cfg_all_map = {
                     zone_id = 'all_map',
@@ -315,7 +315,7 @@ return {
                 end
             end
 
-            local raw_cfg = fred:get_leader_zone_raw_cfg()
+            local raw_cfg = fred:get_raw_cfgs('leader')
             --DBG.dbms(raw_cfg)
 
             stage_status[raw_cfg.zone_id] = {
