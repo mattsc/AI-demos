@@ -33,7 +33,7 @@ end
 
 -- Given a set of units, return one from the set that should retreat and the location to retreat to
 -- Return nil if no unit needs to retreat
-function retreat_functions.retreat_injured_units(units, retreat_all)
+function retreat_functions.retreat_injured_units(units, retreat_all, enemy_count_weight)
     -- Split units into those that regenerate and those that do not
     local regen, non_regen = {}, {}
     for i,u in ipairs(units) do
@@ -56,7 +56,7 @@ function retreat_functions.retreat_injured_units(units, retreat_all)
     -- First we retreat non-regenerating units to healing terrain, if they can get to a safe location
     local unit_nr, loc_nr, threat_nr
     if non_regen[1] then
-        unit_nr, loc_nr, threat_nr = retreat_functions.get_retreat_injured_units(non_regen, false)
+        unit_nr, loc_nr, threat_nr = retreat_functions.get_retreat_injured_units(non_regen, false, enemy_count_weight)
         if unit_nr and (threat_nr == 0) then
             return unit_nr, loc_nr, threat_nr
         end
@@ -65,7 +65,7 @@ function retreat_functions.retreat_injured_units(units, retreat_all)
     -- Then we retreat regenerating units to terrain with high defense, if they can get to a safe location
     local unit_r, loc_r, threat_r
     if regen[1] then
-        unit_r, loc_r, threat_r = retreat_functions.get_retreat_injured_units(regen, true)
+        unit_r, loc_r, threat_r = retreat_functions.get_retreat_injured_units(regen, true, enemy_count_weight)
         if unit_r and (threat_r == 0) then
             return unit_r, loc_r, threat_r
         end
@@ -114,12 +114,14 @@ function retreat_functions.get_healing_locations()
     return healing_locs
 end
 
-function retreat_functions.get_retreat_injured_units(healees, regenerates)
+function retreat_functions.get_retreat_injured_units(healees, regenerates, enemy_count_weight)
     -- Only retreat to safe locations
     local enemies = AH.get_live_units {
         { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
     }
     local enemy_attack_map = BC.get_attack_map(enemies)
+
+    local enemy_count_weight = enemy_count_weight or 100000
 
     local healing_locs = retreat_functions.get_healing_locations()
 
@@ -180,7 +182,7 @@ function retreat_functions.get_retreat_injured_units(healees, regenerates)
                 -- Huge penalty for each enemy that can reach location,
                 -- this is the single most important point (and non-linear)
                 local enemy_count = enemy_attack_map.units:get(loc[1], loc[2]) or 0
-                rating = rating - enemy_count * 100000
+                rating = rating - enemy_count * enemy_count_weight
 
                 -- Penalty based on terrain defense for unit
                 rating = rating - wesnoth.unit_defense(u, wesnoth.get_terrain(loc[1], loc[2]))/100.
