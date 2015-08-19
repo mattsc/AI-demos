@@ -1055,7 +1055,7 @@ return {
                 units_used = {}
             }
 
-            local retreat_cfg = {
+            local advance_cfg = {
                 zone_id = zone_id,
                 stage_id = stage_id,
                 actions = {
@@ -1066,6 +1066,7 @@ return {
                 value_ratio = value_ratio
             }
 
+            table.insert(fred.data.zone_cfgs, advance_cfg)
 
 
             local zone_id = 'retreat_all'
