@@ -1066,6 +1066,30 @@ return {
                 value_ratio = value_ratio
             }
 
+
+
+            local zone_id = 'retreat_all'
+
+            -- This is needed throughout the code, just needs to be set to
+            -- give unlimited resources here
+            stage_status.contingency = 0
+            stage_status[zone_id] = {
+                power_missing = 0,
+                power_needed = 0,
+                power_used = 0,
+                n_units_needed = 0,
+                n_units_used = 0,
+                units_used = {}
+            }
+
+            local retreat_cfg = {
+                zone_id = zone_id,
+                stage_id = stage_id,
+                actions = { retreat = true },
+                ignore_resource_limit = true,
+                retreat_all = true
+            }
+
             table.insert(fred.data.zone_cfgs, retreat_cfg)
 
         end
@@ -2517,7 +2541,7 @@ return {
                 table.insert(retreat_units, gamedata.unit_copies[id])
             end
 
-            local unit, dest, enemy_threat = R.retreat_injured_units(retreat_units)
+            local unit, dest, enemy_threat = R.retreat_injured_units(retreat_units, zonedata.cfg.retreat_all)
             if unit then
                 local allowable_retreat_threat = zonedata.cfg.allowable_retreat_threat or 0
                 --print_time('Found unit to retreat:', unit.id, enemy_threat, allowable_retreat_threat)
