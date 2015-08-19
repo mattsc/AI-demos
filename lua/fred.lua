@@ -1909,77 +1909,36 @@ return {
                 end
             end
 
-            -- Next, we do a more detailed single-unit analysis for the best
-            -- hexes found in the preselection for each unit
+            -- Next, we find the units that have the highest-rated hexes, and
+            -- sort the hexes for each unit by rating
 
-            local new_unit_ratings, rated_units = {}, {}
-            local max_hexes_pre = 20 -- number of hexes to analyze for units individually
-
-            -- Need to make sure that the same weapons are used for all counter attack calculations
-            local cfg_counter_attack = { use_max_damage_weapons = true }
+            local unit_ratings, rated_units = {}, {}
             local max_hexes = 5 -- number of hexes per unit for placement combos
 
             for id,unit_rating_map in pairs(unit_rating_maps) do
                 -- Need to extract the map into a sortable format first
                 -- TODO: this is additional overhead that can be removed later
                 -- when the maps are not needed any more
-
-                local unit_ratings = {}
+                unit_ratings[id] = {}
                 for x,tmp in pairs(unit_rating_map) do
                     for y,r in pairs(tmp) do
-                        table.insert(unit_ratings, {
+                        table.insert(unit_ratings[id], {
                             rating = r.rating,
                             x = x, y = y
                         })
                     end
                 end
 
-                table.sort(unit_ratings, function(a, b) return a.rating > b.rating end)
-
-                -- Calculate counter attack ratings for the best hexes previously
-                -- found and use those as the new rating
-                n_hexes = math.min(max_hexes_pre, #unit_ratings)
-                new_unit_ratings[id] = {}
-                for i = 1,n_hexes do
-                    --local old_locs = {
-                    --    { gamedata.unit_copies[id].x, gamedata.unit_copies[id].y }
-                    --}
-
-                    --local new_locs = {
-                    --    { unit_ratings[i].x, unit_ratings[i].y }
-                    --}
-
-                    --local target = {}
-                    --target[id] = { unit_ratings[i].x, unit_ratings[i].y }
-                    --local counter_stats, counter_attack = FAU.calc_counter_attack(target, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
-                    --print(id, unit_ratings[i].rating, -counter_stats.rating, unit_ratings[i].x, unit_ratings[i].y)
-                    --DBG.dbms(counter_stats)
-                    --DBG.dbms(counter_attack)
-                    --W.message { speaker = 'narrator', message = 'counter stats' }
-
-                    -- Important: the counter_stats rating is the rating of the
-                    -- counter attack. We want this to be as *bad* as possible
-                    table.insert(new_unit_ratings[id], {
-                        rating = unit_ratings[i].rating,
-                        x = unit_ratings[i].x,
-                        y = unit_ratings[i].y
-                    })
-                end
-
-                unit_ratings = nil -- so that we don't accidentally use it any more
-
-                table.sort(new_unit_ratings[id], function(a, b) return a.rating > b.rating end)
-                --DBG.dbms(new_unit_ratings)
+                table.sort(unit_ratings[id], function(a, b) return a.rating > b.rating end)
 
                 -- We also identify the best units; which are those with the highest
                 -- sum of the best ratings (only those to be used for the next step)
                 -- TODO: possibly refine this?
-
                 local sum_best_ratings = 0
-                n_hexes = math.min(max_hexes, #new_unit_ratings[id])
+                n_hexes = math.min(max_hexes, #unit_ratings[id])
                 for i = 1,n_hexes do
-                    --print(id, new_unit_ratings[id][i].rating, new_unit_ratings[id][i].x, new_unit_ratings[id][i].y)
-                    sum_best_ratings = sum_best_ratings + new_unit_ratings[id][i].rating
+                    --print(id, unit_ratings[id][i].rating, unit_ratings[id][i].x, unit_ratings[id][i].y)
+                    sum_best_ratings = sum_best_ratings + unit_ratings[id][i].rating
                 end
                 --print('  total rating: ', sum_best_ratings, id)
 
@@ -1989,7 +1948,7 @@ return {
             -- Exclude units that have no reachable qualified hexes
             for i_ru = #rated_units,1,-1 do
                 local id = rated_units[i_ru].id
-                if (#new_unit_ratings[id] == 0) then
+                if (#unit_ratings[id] == 0) then
                     table.remove(rated_units, i_ru)
                 end
             end
@@ -2000,6 +1959,9 @@ return {
 
             -- Sorting this will now give us the order of units to be considered
             table.sort(rated_units, function(a, b) return a.rating > b.rating end)
+            --DBG.dbms(unit_ratings)
+            --DBG.dbms(rated_units)
+
 
             -- For holding, we are allowed to add units until we are above
             -- the limit given by power_missing (without taking contingency into account)
@@ -2020,7 +1982,7 @@ return {
                 local id = rated_units[i].id
                 table.insert(ids, id)
 
-                table.insert(n_hexes, math.min(max_hexes, #new_unit_ratings[id]))
+                table.insert(n_hexes, math.min(max_hexes, #unit_ratings[id]))
 
                 total_power = total_power + gamedata.unit_infos[id].power
                 --print('  ' .. id, gamedata.unit_infos[id].power, total_power)
@@ -2040,15 +2002,15 @@ return {
             local layer = 1
             local combo, combos = {}, {}
 
-            -- This is the recursive function
+            ----------- Start recursive function hex_combos() ----------
             -- Uses variables by closure
             local function hex_combos()
                 for i = 0,n_hexes[layer] do
                     local id = ids[layer]
                     local xy
                     if (i ~= 0) then
-                        local x = new_unit_ratings[id][i].x
-                        local y = new_unit_ratings[id][i].y
+                        local x = unit_ratings[id][i].x
+                        local y = unit_ratings[id][i].y
                         xy = x * 1000 + y
                     else
                         xy = 0
@@ -2074,6 +2036,7 @@ return {
                 end
                 layer = layer - 1
             end
+            ----------- End recursive function hex_combos() ----------
 
             -- And here is where we call the recursive functions
             hex_combos()
@@ -2101,6 +2064,9 @@ return {
             for i = 1,max_holders do
                 best_combos[i] = { max_rating = -9e99 }
             end
+
+            -- Need to make sure that the same weapons are used for all counter attack calculations
+            local cfg_counter_attack = { use_max_damage_weapons = true }
 
             for _,combo in ipairs(combos) do
                 local old_locs, new_locs = {}, {}
