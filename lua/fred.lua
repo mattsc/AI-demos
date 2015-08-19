@@ -104,6 +104,24 @@ return {
                     rating = rating - H.distance_between(x, y, goal_x, goal_y) / 1000.
                 end
 
+                if (zone_id == 'leader') then
+                    if (y > 8) then
+                        rating = -y - 100
+                    else
+                        rating = - H.distance_between(x, y, 18, 4)
+                    end
+
+                    -- But don't displace the leader from his hex
+                    for side,loc in ipairs(gamedata.leaders) do
+                        if (side == wesnoth.current.side) then
+                            if (x == loc[1]) and (y == loc[2]) then
+                                rating = -1000
+                                break
+                            end
+                        end
+                    end
+                end
+
                 if (zone_id == 'all_map') then
                     rating = - H.distance_between(x, y, 20, 19)
                 end
