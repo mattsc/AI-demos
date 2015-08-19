@@ -1914,10 +1914,10 @@ return {
 
             local new_unit_ratings, rated_units = {}, {}
             local max_hexes_pre = 20 -- number of hexes to analyze for units individually
-            local max_hexes = 6 -- number of hexes per unit for placement combos
 
             -- Need to make sure that the same weapons are used for all counter attack calculations
             local cfg_counter_attack = { use_max_damage_weapons = true }
+            local max_hexes = 5 -- number of hexes per unit for placement combos
 
             for id,unit_rating_map in pairs(unit_rating_maps) do
                 -- Need to extract the map into a sortable format first
