@@ -1938,17 +1938,17 @@ return {
                 n_hexes = math.min(max_hexes_pre, #unit_ratings)
                 new_unit_ratings[id] = {}
                 for i = 1,n_hexes do
-                    local old_locs = {
-                        { gamedata.unit_copies[id].x, gamedata.unit_copies[id].y }
-                    }
+                    --local old_locs = {
+                    --    { gamedata.unit_copies[id].x, gamedata.unit_copies[id].y }
+                    --}
 
-                    local new_locs = {
-                        { unit_ratings[i].x, unit_ratings[i].y }
-                    }
+                    --local new_locs = {
+                    --    { unit_ratings[i].x, unit_ratings[i].y }
+                    --}
 
-                    local target = {}
-                    target[id] = { unit_ratings[i].x, unit_ratings[i].y }
-                    local counter_stats, counter_attack = FAU.calc_counter_attack(target, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
+                    --local target = {}
+                    --target[id] = { unit_ratings[i].x, unit_ratings[i].y }
+                    --local counter_stats, counter_attack = FAU.calc_counter_attack(target, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
                     --print(id, unit_ratings[i].rating, -counter_stats.rating, unit_ratings[i].x, unit_ratings[i].y)
                     --DBG.dbms(counter_stats)
                     --DBG.dbms(counter_attack)
@@ -1957,7 +1957,7 @@ return {
                     -- Important: the counter_stats rating is the rating of the
                     -- counter attack. We want this to be as *bad* as possible
                     table.insert(new_unit_ratings[id], {
-                        rating = - counter_stats.rating,
+                        rating = unit_ratings[i].rating,
                         x = unit_ratings[i].x,
                         y = unit_ratings[i].y
                     })
