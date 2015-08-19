@@ -33,11 +33,18 @@ end
 
 -- Given a set of units, return one from the set that should retreat and the location to retreat to
 -- Return nil if no unit needs to retreat
-function retreat_functions.retreat_injured_units(units)
+function retreat_functions.retreat_injured_units(units, retreat_all)
     -- Split units into those that regenerate and those that do not
     local regen, non_regen = {}, {}
     for i,u in ipairs(units) do
-        if u.hitpoints < retreat_functions.min_hp(u) then
+        local min_hp
+        if retreat_all then
+            min_hp = u.max_hitpoints
+        else
+            min_hp = retreat_functions.min_hp(u)
+        end
+
+        if u.hitpoints < min_hp then
             if wesnoth.unit_ability(u, 'regenerate') then
                 table.insert(regen, u)
             else
