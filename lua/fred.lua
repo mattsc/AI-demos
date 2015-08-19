@@ -1717,15 +1717,11 @@ return {
             if (not next(holders)) then return end
 
             -- This part starts with a quick and dirt zone analysis for what
-            -- *might* be the best positions.  This is calculated by assuming
-            -- the same damage and strikes for all units, and calculating the
-            -- damage for own and enemy units there based on terrain defense.
-            -- In addition, values for the enemies are averaged over all units
-            -- that can reach a hex.
-            -- The assumption is that this will give us a good pre-selection of
-            -- hexes, for which a more detailed analysis can then be done.
-
-            local default_damage, default_strikes = 8, 2
+            -- *might* be the best positions.  The rating is the same as the
+            -- more detailed analysis below, but it is done using the assumed
+            -- counter attack positions on the enemy on the map, while the
+            -- more detailed analysis actually does a full counter attack
+            -- calculation
 
             -- TODO: do this overall, rather than for this action?
             local zone = wesnoth.get_locations(raw_cfg.hold_slf)
@@ -1739,38 +1735,41 @@ return {
             --DBG.dbms(zone_map)
 
 
-            -- Enemy rating map: average (over all enemy units) of damage received here
-            -- Only use hexes the enemies can reach on this turn
+            -- Enemy rating map: get the sum of the squares of the (modified)
+            -- defense ratings of all enemies that can reach a hex
             local enemy_rating_map = {}
             for x,tmp in pairs(zone_map) do
                 for y,_ in pairs(tmp) do
-                    local hex_rating, count = 0, 0
+                    local enemy_rating, count = 0, 0
                     for enemy_id,etm in pairs(gamedata.enemy_turn_maps) do
                         local turns = etm[x] and etm[x][y] and etm[x][y].turns
 
                         if turns and (turns <= 1) then
-                            local rating = FGUI.get_unit_defense(gamedata.unit_copies[enemy_id], x, y, gamedata.defense_maps)
-                            rating = (1 - rating)  -- Probability of being hit
+                            local enemy_hc = FGUI.get_unit_defense(gamedata.unit_copies[enemy_id], x, y, gamedata.defense_maps)
+                            enemy_hc = 1 - enemy_hc
 
-                            hex_rating = hex_rating + rating
-                            count = count + 1.
+                            -- If this is a village, give a bonus
+                            -- TODO: do this more quantitatively
+                            if gamedata.village_map[x] and gamedata.village_map[x][y] then
+                                enemy_hc = enemy_hc - 0.15
+                                if (enemy_hc < 0) then enemy_hc = 0 end
+                            end
+
+                            -- Note that this number is large if it is bad for
+                            -- the enemy, good for the AI, so it needs to be
+                            -- added, not subtracted
+                            enemy_rating = enemy_rating + enemy_hc^2
+                            count = count + 1
                         end
                     end
 
                     if (count > 0) then
-                        -- Average chance of being hit here
-                        hex_rating = hex_rating / count
-
-                        -- Average damage received:
-                        hex_rating = hex_rating * default_damage * default_strikes
-
-                        -- If this is a village, add 8 HP bonus
-                        if gamedata.village_map[x] and gamedata.village_map[x][y] then
-                            hex_rating = hex_rating - 8
-                        end
-
+                        enemy_rating = enemy_rating / count
                         if (not enemy_rating_map[x]) then enemy_rating_map[x] = {} end
-                        enemy_rating_map[x][y] = { rating = hex_rating }
+                        enemy_rating_map[x][y] = {
+                            rating = enemy_rating,
+                            count = count
+                        }
                     end
                 end
             end
@@ -1816,7 +1815,7 @@ return {
             end
 
             -- First calculate a unit independent rating map
-            -- For the time being, this is the just the enemy rating over all
+            -- For the time being, this is the just the enemy rating averaged over all
             -- adjacent hexes that are closer to the enemy leader than the hex
             -- being evaluated.
             -- The assumption is that the enemies will be coming from there.
@@ -1838,12 +1837,17 @@ return {
                                 adj_count = adj_count + 1
                             end
 
-                            if (not indep_rating_map[x]) then indep_rating_map[x] = {} end
-                            indep_rating_map[x][y] = {
-                                rating = rating,
-                                adj_count = adj_count
-                            }
                         end
+                    end
+
+                    if (adj_count > 0) then
+                        rating = rating / adj_count
+
+                        if (not indep_rating_map[x]) then indep_rating_map[x] = {} end
+                        indep_rating_map[x][y] = {
+                            rating = rating,
+                            adj_count = adj_count
+                        }
                     end
                 end
             end
@@ -1855,6 +1859,7 @@ return {
                 FU.put_fgumap_labels(indep_rating_map, 'adj_count')
                 W.message { speaker = 'narrator', message = 'Hold zone ' .. zonedata.cfg.zone_id .. ': unit-independent rating map: adjacent count' }
             end
+
 
             -- Now we go on to the unit-dependent rating part
             -- This is the same type of rating as for enemies, but done individually
@@ -1877,23 +1882,17 @@ return {
                         )
 
                         if adj_count and (adj_count > 0) then
-                            -- Chance of being hit here
-                            local defense = FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
-                            defense = 1 - defense
+                            local hit_chance = FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
+                            hit_chance = 1 - hit_chance
 
-                            -- Base rating is negative of damage received:
-                            local unit_damage = defense * default_damage * default_strikes
-
-                            -- This needs to be multiplied by the number of enemies
-                            -- which can attack here
-                            unit_damage = unit_damage * adj_count
-
-                            local unit_rating = - unit_damage + indep_rating_map[x][y].rating
-
-                            -- If this is a village, add 8 HP bonus
+                            -- If this is a village, give a bonus
+                            -- TODO: do this more quantitatively
                             if gamedata.village_map[x] and gamedata.village_map[x][y] then
-                                 unit_rating = unit_rating + 8
+                                hit_chance = hit_chance - 0.15
+                                if (hit_chance < 0) then hit_chance = 0 end
                             end
+
+                            local unit_rating = indep_rating_map[x][y].rating - hit_chance^2
 
                             if (not unit_rating_maps[id][x]) then unit_rating_maps[id][x] = {} end
                             unit_rating_maps[id][x][y] = { rating = unit_rating }
