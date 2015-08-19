@@ -1088,7 +1088,11 @@ return {
                 stage_id = stage_id,
                 actions = { retreat = true },
                 ignore_resource_limit = true,
-                retreat_all = true
+                retreat_all = true,
+                -- The value of 5 below means it take preference over rest
+                -- healing (value of 2^2), but not over village or regeneration
+                -- healing (8^2)
+                enemy_count_weight = 5
             }
 
             table.insert(fred.data.zone_cfgs, retreat_cfg)
@@ -2542,7 +2546,7 @@ return {
                 table.insert(retreat_units, gamedata.unit_copies[id])
             end
 
-            local unit, dest, enemy_threat = R.retreat_injured_units(retreat_units, zonedata.cfg.retreat_all)
+            local unit, dest, enemy_threat = R.retreat_injured_units(retreat_units, zonedata.cfg.retreat_all, zonedata.cfg.enemy_count_weight)
             if unit then
                 local allowable_retreat_threat = zonedata.cfg.allowable_retreat_threat or 0
                 --print_time('Found unit to retreat:', unit.id, enemy_threat, allowable_retreat_threat)
