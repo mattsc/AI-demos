@@ -383,6 +383,28 @@ return {
             --print('  enemy_power1:', enemy_power1)
 
 
+            -- Also want to set up an action to pull units back toward the
+            -- leader, if there are too many enemies around him.
+
+            -- Power missing (which is not equal to power_needed - power_used!)
+            -- TODO: check whether these hard-coded values are right
+            local leader_advance_value_ratio = 1.0
+            local leader_power_fraction = 0.5
+
+            local power_needed = enemy_power1 * leader_advance_value_ratio
+            local power_used = stage_status[raw_cfg.zone_id].power_used
+            local leader_power = gamedata.unit_infos[leader_proxy.id].power
+
+            -- We count a fraction of the leader's power as available in the leader zone
+            local power_missing = power_needed - power_used
+            power_missing = power_missing - leader_power * leader_power_fraction
+
+            -- This is set for the entire stage, but only applies to advancing
+            -- Everything else is done without resource limit
+            stage_status[raw_cfg.zone_id].power_needed = power_needed
+            stage_status[raw_cfg.zone_id].power_missing = power_missing
+
+
             -- We also get all units that are in the zone but not T1 threats
             local threats2 = {}
             for id,loc in pairs(gamedata.enemies) do
@@ -417,6 +439,17 @@ return {
             end
             --DBG.dbms(attack1_cfg)
 
+
+            -- Move unit toward leader if there's power missing
+            local advance1_cfg = {
+                zone_id = raw_cfg.zone_id,
+                stage_id = stage_id,
+                actions = { advance = true },
+                ignore_villages = true, -- main goal is to get toward the leader
+                value_ratio = 0.5  -- and need to do so very aggressively
+            }
+
+
             local attack2_cfg = {
                 zone_id = raw_cfg.zone_id,
                 stage_id = stage_id,
@@ -431,6 +464,7 @@ return {
                 table.insert(attack2_cfg.targets, target)
             end
             --DBG.dbms(attack2_cfg)
+
 
             -- Favorable attacks can be done at any time after threats to
             -- the AI leader are dealt with
@@ -455,6 +489,7 @@ return {
 
             fred.data.zone_cfgs = {}
             table.insert(fred.data.zone_cfgs, attack1_cfg)
+            table.insert(fred.data.zone_cfgs, advance1_cfg)
             table.insert(fred.data.zone_cfgs, attack2_cfg)
             table.insert(fred.data.zone_cfgs, favorable_attacks_cfg)
             --DBG.dbms(fred.data.zone_cfgs)
@@ -2266,6 +2301,10 @@ return {
                 end
             end
 
+            -- Make sure that we use the value ratio from the cfg
+            -- Don't need to set use_max_damage_weapons here, as it is not used for comparison
+            local cfg_counter_attack = { value_ratio = zonedata.cfg.value_ratio }
+
             -- Don't need to enforce a resource limit here, as this is one
             -- unit at a time.  It will be checked before the action is called.
 
@@ -2334,7 +2373,12 @@ return {
                                     end
                                     --print(x,y,enemies_in_reach)
 
-                                    rating = rating + 10 * enemies_in_reach
+                                    -- Still give a very minor preference to these if ignore_villages is set
+                                    if zonedata.cfg.ignore_villages then
+                                        rating = rating + 0.1 * enemies_in_reach
+                                    else
+                                        rating = rating + 10 * enemies_in_reach
+                                    end
                                 end
 
                                 -- Penalty for hexes adjacent to villages the enemy can reach
@@ -2342,6 +2386,8 @@ return {
                                 -- Potential TODO: in principle this should be calculated
                                 -- for the situation _after_ the unit moves, but that
                                 -- might be too costly
+                                -- We keep this penalty even if zonedata.cfg.ignore_villages is set.
+                                -- It is always a bad thing
                                 for xa,ya in H.adjacent_tiles(x,y) do
                                     if FU.get_fgumap_value(gamedata.village_map, xa, ya, 'owner') then
                                         local enemies_in_reach = 0
@@ -2368,6 +2414,9 @@ return {
                             -- locations is done separately (TODO: reconsider that)
 
                             local is_priority_village = not_leader_or_leader_on_keep and owner and (owner ~= wesnoth.current.side)
+                            if zonedata.cfg.ignore_villages then
+                                is_priority_village = false
+                            end
 
                             if is_priority_village then
                                 if (owner == 0) then
@@ -2885,7 +2934,6 @@ return {
                 fred.data.analysis = {
                     turn = wesnoth.current.turn,
                     stage_counter = 1,
-                    --stage_ids = { 'leader_threat', 'defend_zones' },
                     stage_ids = { 'leader_threat', 'defend_zones', 'all_map' },
                     --stage_ids = { 'defend_zones' },
                     status = { units_used = {} }
