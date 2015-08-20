@@ -123,7 +123,11 @@ return {
                 end
 
                 if (zone_id == 'all_map') then
-                    rating = - H.distance_between(x, y, 20, 19)
+                    if (y < 17) then
+                        rating = y - 100
+                    else
+                        rating = - H.distance_between(x, y, 20, 20)
+                    end
                 end
             end
 
