@@ -32,16 +32,16 @@ function fred_messages.fred_hello()
 
         if (width ~= 37) or (height ~= 24) or (start_loc[1] ~= 19) or ((start_loc[2] ~= 4) and (start_loc[2] ~= 20)) then
             W.message {
-                speaker = 'narrator',
-                caption = "Message from the Freelands AI  (Fred v" .. version .. ")",
-                image = 'wesnoth-icon.png', message = "I only know how to play Side 1 on the Freelands map. Sorry!"
+                side = 1, canrecruit = 'yes',
+                caption = "Fred  (Freelands AI v" .. version .. ")",
+                message = "I only know how to play Side 1 on the Freelands map. Sorry!"
             }
             W.endlevel { result = 'defeat' }
         else
             W.message {
-                speaker = 'narrator',
-                caption = "Hello from the Freelands AI  (Fred v" .. version .. ")",
-                image = 'wesnoth-icon.png', message = "Good luck, have fun !"
+                side = 1, canrecruit = 'yes',
+                caption = "Fred  (Freelands AI v" .. version .. ")",
+                message = "Good luck, have fun!"
             }
         end
     end
@@ -53,7 +53,7 @@ function fred_messages.fred_bye()
         W.delay { time = 300 }
         W.message {
             side = 1, canrecruit = 'yes',
-            message = 'Good game, thanks !'
+            message = 'Good game, thanks!'
         }
     end
 end
