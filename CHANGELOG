@@ -1,3 +1,22 @@
+0.14.0. xx August 2014
+- Fred (Freelands AI for Northerners, Side 1):
+  - Complete overhaul with huge changes to both the overall strategy and the
+    individual actions, as well as to many of the utility functions
+  - AI id renamed from 'grunt_rush_Freelands' to 'fred', as it really is not a
+    grunt rush any more
+- Fast Micro AI:
+  - New version that uses fred_attack_utils and gamestate functions rather than
+    battle_calcs.lua. This is faster in many cases.
+- High XP Attack Micro AI:
+  - Added first draft of an AI that deals with attacks on enemy units that are
+    very close to leveling
+- Test scenario:
+  - New flag 'exec_loop'
+- Miscellaneous:
+  - All AIs: don't include mainline AI macros if they have already been loaded
+  - ai_helper: only display checked action error message in debug mode
+  - A variety of internal changes
+
 0.13.3, 20 June 2014
 - Fix for bug that prematurely ended the game in rare cases when the enemy
   has units with the hides ability
