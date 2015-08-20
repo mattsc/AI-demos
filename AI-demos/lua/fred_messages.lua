@@ -6,10 +6,14 @@ local fred_messages = {}
 function fred_messages.is_fred()
     -- Check whether side is played by Fred
     -- We do this by testing whether the 'zone_control' CA exists
-    local stage = H.get_child( H.get_child( wesnoth.sides[1].__cfg, 'ai'), 'stage')
-    for CA in H.child_range(stage, 'candidate_action') do
-        --print(CA.name)
-        if (CA.name == 'zone_control') then return true end
+    -- Returns the side number of the first side for which the CA is found, false otherwise
+
+    for _,side_info in ipairs(wesnoth.sides) do
+        local stage = H.get_child(H.get_child(side_info.__cfg, 'ai'), 'stage')
+        for CA in H.child_range(stage, 'candidate_action') do
+            --print(CA.name)
+            if (CA.name == 'zone_control') then return side_info.side end
+        end
     end
 
     return false
