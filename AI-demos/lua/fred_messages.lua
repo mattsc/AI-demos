@@ -34,6 +34,20 @@ function fred_messages.fred_hello()
             end
         end
 
+        -- Check whether enemy is Undead, which Fred still has problems with
+        local enemy_warning = ''
+        for _,side_info in ipairs(wesnoth.sides) do
+            local side = side_info.side
+            if wesnoth.is_enemy(side, wesnoth.current.side) then
+                for i,r in ipairs(wesnoth.sides[side].recruit) do
+                    if (r == 'Skeleton') then
+                        enemy_warning = '\n<i> </i>\n<i>Remember that I still have problems playing against the undead.</i>'
+                        break
+                    end
+                end
+            end
+        end
+
         -- Map is checked through the map size and the starting location of the AI side
         -- This also takes care of the side check, so that does not have to be done separately
         local width, height = wesnoth.get_map_size()
@@ -50,7 +64,7 @@ function fred_messages.fred_hello()
             W.message {
                 side = 1, canrecruit = 'yes',
                 caption = "Fred  (Freelands AI v" .. version .. ")",
-                message = "Good luck, have fun!"
+                message = "Good luck, have fun!" .. enemy_warning
             }
         end
     end
