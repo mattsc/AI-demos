@@ -1,4 +1,5 @@
-0.14.0. xx August 2014
+----- 0.14.0 xx August 2014 -----
+
 - Fred (Freelands AI for Northerners, Side 1):
   - Complete overhaul with huge changes to both the overall strategy and the
     individual actions, as well as to many of the utility functions
@@ -17,18 +18,24 @@
   - ai_helper: only display checked action error message in debug mode
   - A variety of internal changes
 
-0.13.3, 20 June 2014
+
+----- 0.13.3, 20 June 2014 -----
+
 - Fix for bug that prematurely ended the game in rare cases when the enemy
   has units with the hides ability
 
-0.13.2, 19 June 2014
+
+----- 0.13.2, 19 June 2014 -----
+
 - Another bug fix release:
   - Fix a couple bugs in Fred that sometimes caused the AI to crash (with one of
     them even ending the game sometimes)
   - Limit number of counter attack combos considered in order to speed things up again
     after the change in attack evaluation in 0.13.1
 
-0.13.1, 18 June 2014
+
+----- 0.13.1, 18 June 2014 -----
+
 - Main reason for this release: fix for a serious bug in Fred's attack evaluation that
   made Fred do extremely suicidal moves when an enemy unit was close to leveling up
 - Other changes (some of them still work in progress):
@@ -43,7 +50,9 @@
   - Miscellaneous performance improvements, minor bug fixes and code cleanup to
     Fred and helper libraries
 
-0.13.0, 12 June 2014
+
+----- 0.13.0, 12 June 2014 -----
+
 - *** This is an abbreviated changelog since it has been so long since the last release ***
   - Only major (general) changes are summarized, without details about the specifics
   - Check out the AI-demos github site for all the details
@@ -69,12 +78,16 @@
   - Many bug fixes, code cleanup changes and efficiency/speed improvements
 - Switch to external CAs for most AIs (but not yet for the MP AIs (Fred, Ron, …)
 
-0.12.4, 16 November 2013
+
+----- 0.12.4, 16 November 2013 -----
+
 - This is the real release of Version 0.12.4 (for the add-ons server)
   - Dropped support for Wesnoth 1.11.6
   - *** This version now requires Wesnoth 1.11.7 ***
 
-0.12.4-1.11.6, 16 November 2013
+
+----- 0.12.4-1.11.6, 16 November 2013 -----
+
 - *** This is a special release set up to work with Wesnoth 1.11.6 ***
   - Wesnoth 1.11.7 will be required immediately following this
 - MP AIs:
@@ -109,7 +122,9 @@
 - General:
   - Some changes to internal syntax to keep up with mainline development
 
-0.12.3, 6 June 2013
+
+----- 0.12.3, 6 June 2013 -----
+
 - Generic Rush (Ron)
   - Improve village grabbing by leader when lacking gold to recruit
   - New Retreat CA based on ideas from Fred
@@ -159,7 +174,9 @@
   - Run wmllint, fix problems found and add exceptions, where necessary
   - Clean up textdomain definition and bindings
 
-0.12.2, 28 Dec 2012
+
+----- 0.12.2, 28 Dec 2012 -----
+
 - Micro AIs
   - New Micro AIs:
     - Rush recruiting
@@ -185,7 +202,9 @@
   - Increase chance that all nearby villages are reachable by recruit
 - ai_helper: new function get_passable_locations()
 
-0.12.1, 2 Dec 2012
+
+----- 0.12.1, 2 Dec 2012 -----
+
 - Freelands Side 1 Grunt Rush (Fred):
   - Adjusted time-of-day dependent cycles so that they work for any unit/faction
     - They are now based on relative damage that AI and enemy units can do, rather than on the alignment per se
@@ -214,7 +233,9 @@
   - New function serialize()
 - battle_calcs: new function relative_damage_map()
 
-0.12.0, 24 Nov 2012
+
+----- 0.12.0, 24 Nov 2012 -----
+
 - New recruitment AIs
   - The AIs for the ML recruiter described at http://forums.wesnoth.org/viewtopic.php?f=10&t=36642 are now in AI-Demos.
   - This adds 3 new multiplayer AIs: The two from ML Recruiter 0.3 (Recommended and Less variety) and one that replaces Ron's current recruitment algorithm with the Recommended ML recruitment.
@@ -251,7 +272,9 @@
   - Some cleaning up and creating of templates in preparation for Google Code-in projects
 - ai_helper.next_hop now has option to ignore own units that can move out of the way
 
-0.11.5, 4 Nov 2012
+
+----- 0.11.5, 4 Nov 2012 -----
+
 - Bug fix: Units now use correct weapons to attack again in all scenarios
 - Generic Rush:
   - Many improvements to recruit algorithm
@@ -278,7 +301,9 @@
     - attack_combo_stats, attack_rating, get_attack_combos*, get_attacks*, get_attack_map*, simulate_combat*, done_eval_messages
 - New function library battle_calcs.lua for battle outcome calculations: not used in an AI yet
 
-0.11.4, 16 Oct 2012
+
+----- 0.11.4, 16 Oct 2012 -----
+
 - Generic Rush:
   - Recruit algorithm:
     - Somewhat improved, though there are still glaring flaws
@@ -292,11 +317,15 @@
     - Faster and more accurate calculation of outcome
     - Modified relative ranking of the individual attacks within a combo
 
-0.11.3, 12 Oct 2012
+
+----- 0.11.3, 12 Oct 2012 -----
+
 - Original release of v0.11.3 for Wesnoth 1.11
   - Identical to v0.11.2, except for the "this is the last 1.10 release" messages
 
-0.11.2, 12 Oct 2012
+
+----- 0.11.2, 12 Oct 2012 -----
+
 - ***** Important Note: This will be the last release of AI-Demos for Wesnoth 1.10 *****
   - Some of the next steps required at this point will only be possible with the new capabilities of BfW 1.11
   - Except for potential bug fixes, this will therefore be the last release of AI-Demos for Wesnoth 1.10
@@ -324,7 +353,9 @@
     - Debugger now gives error message if used with Side 2 (instead of crashing Wesnoth)
     - Selected CA name is now shown in right-click menu
 
-0.11.1, 6 Oct 2012
+
+----- 0.11.1, 6 Oct 2012 -----
+
 - Generic Rush:
   - New recruit algorithm
     - Can counter recruit
@@ -337,7 +368,9 @@
 - Freelands Side 1 Grunt Rush:
   - More refactoring, but so far only small changes to behavior
 
-0.11.0, 30 Sep 2012
+
+----- 0.11.0, 30 Sep 2012 -----
+
 - Introduction of Micro AIs and the [micro_ai] tag
   - This includes a new scenario: Healer Support, which is the first to use the MAI functionality
   - Bottleneck Defense (formerly Pass Defense)
@@ -368,7 +401,9 @@
 - Scale background image in campaign menu to avoid horizontal scroll bar
 - Added GPL v2+ file (so that it is clear for the github site, mostly)
 
-0.10.5, 1 Sep 2012
+
+----- 0.10.5, 1 Sep 2012 -----
+
 - Generic Rush
   - Replaced the generic grunt and elvish fighter rushes by a single version that can deal with all factions
     - Notes:
@@ -383,7 +418,9 @@
   - Changed ai_helper.get_attacks...() functions to exclude petrified unit
     - This means that the generic rush now works on maps that have petrified units on them
 
-0.10.4, 30 Aug 2012
+
+----- 0.10.4, 30 Aug 2012 -----
+
 - Freelands Side 1 Grunt Rush:
   - Changed day-time behavior (retreat) of rush on right:
     - Now set never to attack from dawn to afternoon
@@ -400,7 +437,9 @@
 - ai_helper:
   - New function ai_helper.print_eval() to help with debugging
 
-0.10.3, 28 Aug 2012
+
+----- 0.10.3, 28 Aug 2012 -----
+
 - Freelands Side 1 Grunt Rush:
   - Reworked the rush in the east (right)
   - Trapping attacks now move units out of way
@@ -412,7 +451,9 @@
   - New functions ai_helper.print_exec() and ai_helper.show_messages() to help with debugging
   - ai_helper.get_attack_combos_no_order() now also considers attack hexes occupied by units with MP>0
 
-0.10.2, 25 Aug 2012
+
+----- 0.10.2, 25 Aug 2012 -----
+
 - Freelands Side 1 Grunt Rush:
   - Added new counter attack evaluation function
     -> Leader does now preferentially take villages when safe
@@ -422,19 +463,25 @@
     - If recruitment is done before end of turn, move units off castle if needed
   - Poisoner attacks: set up so that units move out of the way for poisoner and supporter
 
-0.10.1-b, 20 Aug 2012
+
+----- 0.10.1-b, 20 Aug 2012 -----
+
 - Freelands Side 1 Grunt Rush:
   - Fixed a bug introduced by adding trapping attack to attack_weak_enemy() that eliminated some attacks from consideration
   - Lowered threshold of CTK for weak enemy attack
   - Eliminated some unnecessary code now that best_trapping_attack_opposite() takes care of checking for Level-0 units and skirmishers
   - Made poison attack work even if poison weapon is not the second weapon
 
-0.10.1-a, 16 Aug 2012
+
+----- 0.10.1-a, 16 Aug 2012 -----
+
 - Freelands Side 1 Grunt Rush:
   - Fixed bug that let own Level-0 units and enemy skirmishers be part of trapping attack
   - Also eliminated already trapped units from list of potential trapping targets
 
-0.10.1, 16 Aug 2012
+
+----- 0.10.1, 16 Aug 2012 -----
+
 - General:
   AI Demos is now on github: https://github.com/mattsc/Wesnoth-AI-Demos
 - Freelands Side 1 Grunt Rush:
@@ -445,10 +492,14 @@
   - If the dragon ends up next to an enemy, it will now always attack
 - Added a scenario that explains how to start the MP grunt rushes
 
-0.10.0, 30 July 2012
+
+----- 0.10.0, 30 July 2012 -----
+
 - New scenario: Dragon
 
-0.9.18, 26 July 2012
+
+----- 0.9.18, 26 July 2012 -----
+
 - Freelands Side 1 Grunt Rush:
   - Recruit more assassins (and slightly fewer orcs) and do poison attack with higher priority
   - Retreat injured units to village only if that village is (comparatively) safe
@@ -457,7 +508,9 @@
 - Defend Pass, Messenger Attack, Grunt Rushes:
   - Made sure weapon choice works in both 1.10 and 1.11
 
-0.9.17, 23 July 2012
+
+----- 0.9.17, 23 July 2012 -----
+
 - Freelands Side 1 Grunt Rush:
   - Added retreat of injured units to villages
   - Completely reworked grunt rush in the east
@@ -485,11 +538,15 @@
   - modified get_reachable_attack_map() to return hitpoints, if desired
   - Added 2 different functions to calculate attack combinations (need to be commented!)
 
-0.9.16-b, 15 July 2012
+
+----- 0.9.16-b, 15 July 2012 -----
+
 - Freelands Side 1 Grunt Rush:
   - Another bug fix to the next_hop situation
 
-0.9.16-a, 14 July 2012
+
+----- 0.9.16-a, 14 July 2012 -----
+
 - Freelands Side 1 Grunt Rush:
   - Changed hello and bye message to be called from era.cfg, so that they show up in replays
   - Set up file grunt_rush_helper.lua for that
@@ -499,23 +556,31 @@
   - Added female deer from dirtywhitellama
   - Changed deer.cfg to have male and female variations
 
-0.9.16, 12 July 2012
+
+----- 0.9.16, 12 July 2012 -----
+
 - Freelands Side 1 Grunt Rush:
   - Poisoner code changed so that they poisoners only attack when:
     - Units on villages are either hurt already, or will also be attacked by a supporting unit
     - Units not on villages are by themselves or another unit can move with the poisoner (supporter might not always attack)
 
-0.9.15-a, 11 July 2012
+
+----- 0.9.15-a, 11 July 2012 -----
+
 - Freelands Side 1 Grunt Rush:
   - Added 'gg, thx' message at end as well
 
-0.9.15, 11 July 2012
+
+----- 0.9.15, 11 July 2012 -----
+
 - Freelands Side 1 Grunt Rush:
   - Enemy leader is now attacked with priority if there's any chance to kill
   - Reverted strict village holding, but added some importance to villages for the other parts
   - Added 'gl, hv' message at beginning
 
-0.9.14, 10 July 2012
+
+----- 0.9.14, 10 July 2012 -----
+
 - Freelands Side 1 Grunt Rush:
   - Leader threats:
     - Only attack unconditionally:
@@ -529,12 +594,16 @@
   - Reprioritized some CAs again (village grabbing vs. village attacking vs. poisoning)
   - Added assassin complaining about luck :-)
 
-0.9.13, 9 July 2012
+
+----- 0.9.13, 9 July 2012 -----
+
 - Freelands Side 1 Grunt Rush:
   - Added backup by another unit after a poisoner attack
   - Added full_offensive() as a function, rather than coding it separately in all relevant CA's
 
-0.9.12, 8 July 2012
+
+----- 0.9.12, 8 July 2012 -----
+
 - Freelands Side 1 Grunt Rush:
   - Leader now attacks close enemies before other AI units, if it is safe
   - Priority of village attack is now higher than poisoning
@@ -542,7 +611,9 @@
   - Units do not stay on left side if there are no enemies left
   - In hold_position(), closest units are now moved first
 
-0.9.11, 6 July 2012
+
+----- 0.9.11, 6 July 2012 -----
+
 - Freelands Side 1 Grunt Rush:
   - Added goblin sitting on western-most village
   - Attacks by leader only if he cannot die by next-move retaliation
@@ -556,14 +627,18 @@
 - Messenger Escort:
   - Added a few lines so that this will also work in other scenarios, where the messenger is not necessarily always there
 
-0.9.10, 4 July 2012
+
+----- 0.9.10, 4 July 2012 -----
+
 - Freelands Side 1 Grunt Rush:
   - Reorganized the entire Lua engine code
   - Fixed a couple bugs
   - Added attacks with high chance to kill
   - Added attacks on leader threats
 
-0.9.9, 3 July 2012
+
+----- 0.9.9, 3 July 2012 -----
+
 - Freelands Side 1 Grunt Rush:
   - Added basic routine for holding left (west) side (but not great yet)
   - Added fall-back candidate action for when enemy becomes too strong
@@ -574,7 +649,9 @@
 - Formula AI Demo scenario
   - Code added but not selectable yet
 
-0.9.8, 2 July 2012
+
+----- 0.9.8, 2 July 2012 -----
+
 - Freelands Side 1 Grunt Rush:
   - Fixed a bug that crashed the game
   - Added poisoner control
@@ -582,39 +659,53 @@
 - Messenger Escort:
   - Added some comments
 
-0.9.7, 1 July 2012
+
+----- 0.9.7, 1 July 2012 -----
+
 - Improvements to general grunt AI
   - Added poisoning
   - Fixed some bugs
   - Generalized so that it can be used with units other than grunts as well
   - 2 different recruitment CA's can be used
 
-0.9.6-a, 28 June 2012
+
+----- 0.9.6-a, 28 June 2012 -----
+
 - Added MP era code provided by FAAB. MP games with grunt-rush AI can now be launched directly in MP mode
 
-0.9.6, 28 June 2012
+
+----- 0.9.6, 28 June 2012 -----
+
 - Grunt rush MP AI:
   - First (still simple and incomplete) version of a grunt rush a la Rigor
 
-0.9.5, 25 June 2012
+
+----- 0.9.5, 25 June 2012 -----
+
 - Orcs MP AI:
   - Improvements to code as suggested by FAAB
 - ai_helper:
   - Fixed a bug in get_attacks() that caused crashes when enemy units have the same id's as AI units (which can happen e.g. for the leaders in MP games)
 
-0.9.4, 24 June 2012
+
+----- 0.9.4, 24 June 2012 -----
+
 - Animals
   - Added a 'sheep run from close enemies' CA
   - Fixed a bug in 'dogs intercept enemies' intorduced in 0.9.2 with AH.find_best_move
 - General
   - Made all sides (except Grnk) non-persistent, to preventaccidental carry-over of units
 
-0.9.3, 23 June 2012
+
+----- 0.9.3, 23 June 2012 -----
+
 - New multiplayer AI file for 'orcs' code
   - Start from command line with
   > ./Wesnoth-1.10.app/Contents/MacOS/Wesnoth -d -m --controller 1:ai --controller 2:ai --side 1:Northerners --side 2:Northerners --parm 1:gold:200 --parm 2:gold:200 --ai-config 1:~add-ons/AI-demos/ais/ai_orcs.cfg
 
-0.9.2, 22 June 2012
+
+----- 0.9.2, 22 June 2012 -----
+
 - New (hidden) scenario: Healer
   - Only accessible in debug mode so far
 - New multiplayer AI file for 'healer' code
@@ -624,64 +715,90 @@
   - New function movefull_stopunit(); used in all applicable scenarios
   - New function find_best_move() to simplify finding best hex to go to (does not work in all cases)
 
-0.9.1, 18 June 2012
+
+----- 0.9.1, 18 June 2012 -----
+
 - Swarm:
   - Added 'vision_range', so that scattering/joining only happens when respective units are close enough
   - Some improvements to speed
 
-0.9.0, 18 June 2012
+
+----- 0.9.0, 18 June 2012 -----
+
 - New scenario: Swarm
 
-0.8.0, 17 June 2012
+
+----- 0.8.0, 17 June 2012 -----
+
 - New scenario: Wolves
 - General:
   - Cleaned up how the AI code is called in all scenarios (no more global definition of the ai table)
 
-0.7.1, 9 June 2012
+
+----- 0.7.1, 9 June 2012 -----
+
 - Protect the Wizard & The Elves Besieged
   - Added a CA that makes the protected unit go to the goal as the very first thing, if it can be reached on this turn
 
-0.7.0-b, 9 June 2012
+
+----- 0.7.0-b, 9 June 2012 -----
+
 - Animals
   - Fixed a bug that gave error messages (but correct behavior) when bunnies disappeared into holes
 
-0.7.0-a, 9 June 2012
+
+----- 0.7.0-a, 9 June 2012 -----
+
 - Animals
   - Fixed a bug due to 'goto' being a reserved word in Lua 5.2
   - Also fixed a typo that had a line commented out by accident
 - Switchboard
   - Changed right-click option so that there is one for each scenario (need to click on signpost now)
 
-0.7.0, 7 June 2012
+
+----- 0.7.0, 7 June 2012 -----
+
 - New scenario: Animals
 - ai_helper:
   - Added function to select a random hex from a location set
   - Made WLP debug_utils local and modified debug_utils.dbms() default options a bit
 
-0.6.7c, 4 June 2012
+
+----- 0.6.7c, 4 June 2012 -----
+
 - Prune Cart:
   - Fixed a bug that crashed Wesnoth if Wesnoth Lua Pack is not installed
 
-0.6.7b, 30 May 2012
+
+----- 0.6.7b, 30 May 2012 -----
+
 - Prune Cart:
   - Removed warning message that this currently does not work in 1.11.0-svn because of a bug in ai.attacks(). Fixed as of r54340
 
-0.6.7a, 8 May 2012
+
+----- 0.6.7a, 8 May 2012 -----
+
 - Prune Cart:
   - Added warning message that this currently does not work in 1.11.0-svn because of a bug in ai.attacks()
   - Also added the version checker handler to deal with the difference in weapon number in ai.attack() between 1.10 and 1.11 once the bug is fixed
 
-0.6.7, 8 May 2012
+
+----- 0.6.7, 8 May 2012 -----
+
 - Prune Cart:
   - Gave player the option to play with moving or stationary cart
   - Implemented and "end game" mode; AI attacks all enemies when it is much stronger
 
-0.6.6, 7 May 2012
+
+----- 0.6.6, 7 May 2012 -----
+
 - Prune Cart:
   - Lots of additions and improvements to AI code, plays much better now
   - Disabled cart movement in order to have a slightly easier problem to start with
 
-0.6.4, 24 Apr 2012
+
+----- 0.6.4, 24 Apr 2012 -----
+
 - Prune Cart:
   - Much improved behavior for several CAs
   - Lots of refactoring the code
@@ -689,7 +806,9 @@
 - lua/ai_helper:
   - inverse_distance_map() generalized to work on whole map or part of it
 
-0.6.3, 22 Apr 2012
+
+----- 0.6.3, 22 Apr 2012 -----
+
 - Prune Cart:
   - Added retreating injured units from the front line (but they aren't dealt with sensibly later yet)
   - Added healer control
@@ -697,11 +816,15 @@
 - lua/ai_helper:
   - new dst_src functions
 
-0.6.2, 22 Apr 2012
+
+----- 0.6.2, 22 Apr 2012 -----
+
 - Prune Cart:
   - Improved how threats to cart are dealt with
 
-0.6.1, 20 Apr 2012
+
+----- 0.6.1, 20 Apr 2012 -----
+
 - Prune Cart:
   - Major improvements to AI behavior, e.g.:
     - Choice of defensive position
@@ -710,18 +833,24 @@
 - lua/ai_helper:
   - Added 'cfg' parameter to next_hop()
 
-0.6.0, 19 Apr 2012
+
+----- 0.6.0, 19 Apr 2012 -----
+
 - New scenario: Prune Cart
 - lua/ai_helper:
   - Added/modified a couple functions
 
-0.5.3, 13 Apr 2012
+
+----- 0.5.3, 13 Apr 2012 -----
+
 - Messenger Escort
   - Reverted the terrain change from 0.5.2
   - Other units now try to get in between messenger and enemies on their move (not attack)
   - Cost of alternative path introduced in 0.5.2 now needs to be significantly better, for AI to take it
 
-0.5.2, 13 Apr 2012
+
+----- 0.5.2, 13 Apr 2012 -----
+
 - Messenger Escort
   - Changed one map tile so that player can get 2 units to front on Turn 2
   - Messenger now will try to get back to path, if that might be an advantage on the next turn
@@ -729,7 +858,9 @@
 - lua/ai_helper:
   - next_hop: yet another little change (efficiency improvement only)
 
-0.5.1, 12 Apr 2012
+
+----- 0.5.1, 12 Apr 2012 -----
+
 - Messenger Escort
   - Added wolf riders and attacks by messenger (if safe or no retaliation)
   - Fixed bug that disabled messenger if enemy unit is on signpost hex
@@ -737,18 +868,24 @@
 - lua/ai_helper:
   - next_hop: another little bug fix (didn't always work when unit could reach hex on current turn)
 
-0.5.0, 11 Apr 2012
+
+----- 0.5.0, 11 Apr 2012 -----
+
 - New scenario: Messenger Escort
 - lua/ai_helper:
   - next_hop: now only considers unoccupied hexes (not occupied by own units either)
 
-0.4.10, 23 Mar 2012
+
+----- 0.4.10, 23 Mar 2012 -----
+
 - Maintenance update
   - Changed all occurrences of my own map index code to the built-in location sets. This mostly �affects 'Pass Defense' and ai_helper.cfg
   - Functions with _LS in file name have now been made the default (and the _LS has been deleted)
   - A couple minor fixes to the text in 'Switchboard' and 'Protect the Wizard'
 
-0.4.9, 22 Mar 2012
+
+----- 0.4.9, 22 Mar 2012 -----
+
 - The Elves Besieged and Protect the Wizard:
   - Many improveents to AI algorithm
     - Adapted candidate actions to work with several units (also improves behavior a little)
@@ -762,41 +899,57 @@
 - Protect the Wizard
   - Rossauba is now kept in place during Turn 1
 
-0.4.8, 19 Mar 2012
+
+----- 0.4.8, 19 Mar 2012 -----
+
 - The Elves Besieged
   - Adapted the algorithm from "Protect the Wizard" to first scenario from HttT. Works right out of the box!
 
-0.4.7, 19 Mar 2012
+
+----- 0.4.7, 19 Mar 2012 -----
+
 - Protect the Wizard
   - Made Rossauba an Elder Mage
   - Added attacks for Rossauba
   - Added moving toward signpost for Rossauba
   - Changed code for 'priority target' so that only one aggression and caution facet is set at any one time
 
-0.4.6a, 29 Feb 2012
+
+----- 0.4.6a, 29 Feb 2012 -----
+
 - Protect the Wizard
   - Fixed a bug in how 'aggression' and 'caution' were set
 
-0.4.6, 27 Feb 2012
+
+----- 0.4.6, 27 Feb 2012 -----
+
 - Protect the Wizard
   - Koorzhar's side now attacks Rossauba preferentially
 
-0.4.5, 25 Feb 2012
+
+----- 0.4.5, 25 Feb 2012 -----
+
 - Protect the Wizard
   - Added parameter choice window
   - Added option to play Koorzhar as human player
 
-0.4.4a, 22 Feb 2012
+
+----- 0.4.4a, 22 Feb 2012 -----
+
 - Patrols:
   - Minor changes to Konrad and Jabb code in order to get rid of 'next_step ' WML variable. Use data.self.next_step instead.
 
-0.4.4, 21 Feb 2012
+
+----- 0.4.4, 21 Feb 2012 -----
+
 - Patrols:
   - Jabb now remembers after a reload which his next waypoint is
 - Lurkers:
   - Added option to have all lurkers (of different sides) work together
 
-0.4.3, 20 Feb 2012
+
+----- 0.4.3, 20 Feb 2012 -----
+
 - Maintenance update
   - Pulled all the Lua AI engine code out of the scenario files into separate engine files. This requires some changes to local vs. global variables, and adjustments if more than one engine is present in a scenario
   - Pulled common functions out of Lua engines and put into ai_helper.lua
@@ -804,17 +957,23 @@
 - Patrols:
   - Changed map terrain: Ggf -> Gg^Efm (so that it'll work in trunk)
 
-0.4.2, 19 Feb 2012
+
+----- 0.4.2, 19 Feb 2012 -----
+
 - General
   - Added ai_helper.lua
 - Protect the Wizard
   - Added first, very simple, version of this scenario
 
-0.4.1, 13 Feb 2012
+
+----- 0.4.1, 13 Feb 2012 -----
+
 - Patrols:
   - Fixed Jabb behavior to go toward occupied waypoint also
 
-0.4.0, 12 Feb 2012
+
+----- 0.4.0, 12 Feb 2012 -----
+
 - General:
   - Eliminated preload macro from all Lua AI code
   - Changed message font size handler to use new wml_actions Lua function
@@ -822,31 +981,41 @@
 - Patrols:
   - completed scenario with Urudin retreat behavior
 
-0.3.2, 8 Feb 2012:
+
+----- 0.3.2, 8 Feb 2012 -----
+
 - Patrols:
   - Added goblin handler Jabb patrol
   - Changed Konrad code so that it only applies to Konrad, not all units of that side
 
-0.3.1, 7 Feb 2012:
+
+----- 0.3.1, 7 Feb 2012 -----
+
 - General:
   - Added first (still imcomplete) version of 'Patrols' scenario
 - Guardians:
   - Added 'home guard'
   - Added "normal" non-guardian units
 
-0.3.0, 3 Feb 2012:
+
+----- 0.3.0, 3 Feb 2012 -----
+
 - General:
   - Added 'Guardians' scenario
 - Pass Defense:
   - Reduced map size
 
-0.2.0, 29 Jan 2012:
+
+----- 0.2.0, 29 Jan 2012 -----
+
 - General:
   - Now on BfW 1.10!!
   - Added 'Lurkers of the Swamp' scenario
   - Minor changes to wording in several scenarios, files
 
-0.1.3, 28 Jan 2012:
+
+----- 0.1.3, 28 Jan 2012 -----
+
 - General:
   - Added 'Grnk the Rouser' unit file
 - Switchboard:
@@ -856,7 +1025,9 @@
   - Made attacks a bit more conservative
   - Added wesnoth icon to question for player
 
-0.1.2, 27 Jan 2012:
+
+----- 0.1.2, 27 Jan 2012 -----
+
 - Pass Defense:
   - Positioning/attacks now take XP into account
   - If level-up will definitely or likely follow an attack, do this attack first thing
@@ -865,11 +1036,15 @@
   - Spearmen now always advance to Javelineers
   - A few minor tweaks to the algorithm
 
-0.1.1, 26 Jan 2012:
+
+----- 0.1.1, 26 Jan 2012 -----
+
 - Pass Defense:
   - Changes to improve speed of move evaluation
   - Healer and leader don't take center hex on front line any more
   - Lieutenant can now hire spearmen and bowmen
 
-0.1.0, 24 Jan 2012:
+
+----- 0.1.0, 24 Jan 2012 -----
+
 - First version, with Pass Defense scenario
