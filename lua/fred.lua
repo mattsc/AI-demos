@@ -2382,6 +2382,13 @@ return {
                                     else
                                         rating = rating + 10 * enemies_in_reach
                                     end
+
+                                    -- In addition, if the unit is injured, we give a bonus for
+                                    -- villages as well
+                                    -- It is the bigger the more injured the unit is.
+                                    -- TODO: finetune this
+                                    local injured_fraction = (gamedata.unit_infos[id].max_hitpoints - gamedata.unit_infos[id].hitpoints) / gamedata.unit_infos[id].max_hitpoints
+                                    rating = rating + injured_fraction * 10
                                 end
 
                                 -- Penalty for hexes adjacent to villages the enemy can reach
