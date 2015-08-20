@@ -2738,7 +2738,7 @@ return {
                 y = '1-'..height
             }
 
-            local max_rating, best_keep = -10  -- Intentionally not set to less than this !!
+            local max_rating, best_keep = -10  -- Intentionally not set to less than this!!
                                                -- so that the leader does not try to get to unreachable locations
             for _,keep in ipairs(keeps) do
                 local unit_in_way = fred.data.gamedata.my_unit_map_noMP[keep[1]]

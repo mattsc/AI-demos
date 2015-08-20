@@ -14,7 +14,7 @@ end
 
 local function wrong_side(side)
     if (side ~= wesnoth.current.side) then
-        wesnoth.message("!!!!! Error !!!!!  You need to be in control of Side " .. side)
+        wesnoth.message("!!!!! Error !!!!! You need to be in control of Side " .. side)
         return true
     end
     return false
@@ -155,7 +155,7 @@ local function exec_CA(ai, no_messages)
         -- At the end, transfer my_ai.data content to global self_data_table
         self_data_table = my_ai.data
     else
-        wesnoth.message("!!!!! Error !!!!!  CAs not activated for execution.")
+        wesnoth.message("!!!!! Error !!!!! CAs not activated for execution.")
     end
 end
 

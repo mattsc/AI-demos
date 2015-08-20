@@ -643,7 +643,7 @@ function battle_calcs.battle_outcome(attacker, defender, dst, cfg, cache, cache_
     -- @cache_this_move: an optional table of pre-calculated attack outcomes
     --   - !!!!!!!!!!!!!!!!!!!!!!!! Read this carefully, there are all kinds of caveats !!!!!!!!!!!!!!!!!!!!!
     --   - 1. This is different from the other cache tables used in this file
-    --   -    This table may only persist for this move (move, not turn !!!), as otherwise too many things change
+    --   -    This table may only persist for this move (move, not turn!!!), as otherwise too many things change
     --   - 2. The starting HP of the units are part of the cache index and do not have to be saved
     --   - 3. Caching is done by the defense of the terrain, not the location itself. As a result:
     --   - 4. Things like leadership, illumination by other units etc. may or may not be considered correctly
@@ -966,7 +966,7 @@ function battle_calcs.attack_combo_eval(tmp_attackers, tmp_dsts, defender, cache
     -- @cache_this_move: an optional table of pre-calculated attack outcomes
     --   - !!!!!!!!!!!!!!!!!!!!!!!! Read this carefully, there are all kinds of caveats !!!!!!!!!!!!!!!!!!!!!
     --   - 1. This is different from the other cache tables used in this file
-    --   -    This table may only persist for this move (move, not turn !!!), as otherwise too many things change
+    --   -    This table may only persist for this move (move, not turn!!!), as otherwise too many things change
     --   - 2. The starting HP of the units are part of the cache index and do not have to be saved
     --   - 3. Caching is done by the defense of the terrain, not the location itself. As a result:
     --   - 4. Things like leadership, illumination by other units etc. may or may not be considered correctly

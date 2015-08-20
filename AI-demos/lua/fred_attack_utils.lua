@@ -585,7 +585,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
     --   one deemed strongest as described above. If this is set, @gamedata and @move_cache nust be provided
     --  @cfg: configuration parameters to be passed through the battle_outcome, attack_rating
     --
-    -- Return value: attack combinations (either a single one or an array) of form { src = dst } :
+    -- Return value: attack combinations (either a single one or an array) of form { src = dst }, e.g.:
     -- {
     --     [21007] = 19006,
     --     [19003] = 19007
