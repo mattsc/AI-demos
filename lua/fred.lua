@@ -700,6 +700,8 @@ return {
             -- T2 threats: those enemies that can get to a key hex in two moves
             -- Enemy units that are T1 threats in a different zone need to be
             -- excluded from this.
+            -- The enemy leader is included in T1 threats (and in T2 threats in
+            -- the leader zone evaluation), but not here.
             -- The power of enemy units that are T2 threats in several zones is
             -- divided evenly between those zones
             -- Own units that have moves but can get to the zone next turn are
@@ -715,7 +717,7 @@ return {
                     local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[2], x, y, 'ids', {})
                     for _,id in pairs(ids) do
                         -- Only units that are note T1 threats can be T2 threats
-                        if (not threats1_all_zones[id]) then
+                        if (not gamedata.unit_infos[id].canrecruit) and (not threats1_all_zones[id]) then
                             threats2_by_zone[cfg.zone_id][id] = gamedata.unit_infos[id].power
                         end
                     end
