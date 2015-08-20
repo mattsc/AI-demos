@@ -2,7 +2,7 @@ local H = wesnoth.require "lua/helper.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 
 -- Collection of functions to get information about units and the gamestate and
--- collect them in tables for easy access.  They are expensive, so this should
+-- collect them in tables for easy access. They are expensive, so this should
 -- be done as infrequently as possible, but it needs to be redone after each move.
 --
 -- Unlike fred_gamestate_utils_incremental.lua, these functions are called once
@@ -12,13 +12,13 @@ local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 --
 -- Variable use and naming conventions:
 --  - Singular vs. plural: here, a plural variable name means it is of the same form as
---    the singular variable, but one such variable exists for each unit.  Indexed by id.
+--    the singular variable, but one such variable exists for each unit. Indexed by id.
 --    The exception are units, where even the single unit contains the id index.
 --    Only the singular variable types are described here.
 --    Note: in the main code, plural variables might also be indexed by number or other means
 --
 --  - Units:
---    - 'unit', 'enemy' etc.: identify units of form:  unit = { id = { x, y } }
+--    - 'unit', 'enemy' etc.: identify units of form: unit = { id = { x, y } }
 --    - 'unit_info': various information about a unit, for faster access than through wesnoth.*() functions
 --        Note: this does NOT include the unit location
 --    - 'unit_copy': private copy of a unit proxy table for when full unit information is needed.

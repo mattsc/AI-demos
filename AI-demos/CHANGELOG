@@ -57,8 +57,8 @@
   - Only major (general) changes are summarized, without details about the specifics
   - Check out the AI-demos github site for all the details
 - Freelands Side 1 Grunt Rush (Fred)
-  - Fred has been completely overhauled.  Pretty much all parts of Fred were rewritten twice,
-    once to improve behavior and then again to increase evaluation speed.  In the process,
+  - Fred has been completely overhauled. Pretty much all parts of Fred were rewritten twice,
+    once to improve behavior and then again to increase evaluation speed. In the process,
     many bugs were fixed.
   - There is a new Fred test scenario that can be started from the switchboard scenario or
     from the command line with ‘wesnoth -t fred’
@@ -70,7 +70,7 @@
       checked_stopunit_moves(), get_direction_index(), get_cardinal_directions(),
       get_intercardinal_directions(), get_hex_facing(), put_fgumap_labels()
     - Removed ai_helper.random()
-  - battle_calcs: largely rewritten, but not used in Fred any more.  Instead we now have:
+  - battle_calcs: largely rewritten, but not used in Fred any more. Instead we now have:
   - New helper libraries fred_attack_utils, fred_gamestate_utils, fred_gamestate_utils_incremental
 - Generic recruit engine:
   - Add option to evaluate pre-recruiting at another castle reachable on the current turn

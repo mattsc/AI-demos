@@ -8,7 +8,7 @@ local AH = wesnoth.require "ai/lua/ai_helper.lua"
 -- Note to self: working with Lua tables is generally much faster than with unit proxy tables.
 --   Also, creating tables takes time, indexing by number is faster than by string, etc.
 -- Note 2: these utility functions are a subset of those used in the experimental grunt rush AIs
---   and therefore contain some bits that are not necessary for the Fast MAI.  Some, albeit
+--   and therefore contain some bits that are not necessary for the Fast MAI. Some, albeit
 --   likely not a significant, speed-up can therefore be obtained eventually by removing those
 --   parts from the code.
 
@@ -160,7 +160,7 @@ function ca_fast_attack_utils.get_unit_defense(unit_copy, x, y, defense_maps)
     -- Inputs:
     -- @unit_copy: private copy of the unit (proxy table works too, but is slower)
     -- @x, @y: the location for which to calculate the unit's terrain defense
-    -- @defense_maps: table in which to cache the results.  Note: this is NOT an optional input
+    -- @defense_maps: table in which to cache the results. Note: this is NOT an optional input
     --
     -- Sample structure of defense_maps:
     --   defense_maps['Vanak'][19][4] = 0.6
@@ -330,7 +330,7 @@ function ca_fast_attack_utils.attack_rating(attacker_infos, defender_info, dsts,
         defender_info, attacker_infos[1], def_stat, att_stats[1], defender_on_village, cfg
     )
 
-    -- Now we add some extra ratings.  They are positive for attacks that should be preferred
+    -- Now we add some extra ratings. They are positive for attacks that should be preferred
     -- and expressed in fraction of the defender maximum hitpoints
     -- They should be used to help decide which attack to pick all else being equal,
     -- but not for, e.g., evaluating counter attacks (which should be entirely damage based)
@@ -422,7 +422,7 @@ function ca_fast_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst,
     attacker_copy.x, attacker_copy.y = old_x, old_y
 
     -- Extract only those hp_chances that are non-zero (except for hp_chance[0]
-    -- which is always needed).  This slows down this step a little, but significantly speeds
+    -- which is always needed). This slows down this step a little, but significantly speeds
     -- up attack combination calculations
     local att_stat = {
         hp_chance = {},

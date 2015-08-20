@@ -213,7 +213,7 @@ return {
             if (zone_id == 'leader') then
                 local cfg_leader = {
                     zone_id = 'leader',
-                    key_hexes = { { 18,4 },  { 19,4 } },
+                    key_hexes = { { 18,4 }, { 19,4 } },
                     zone_filter = { x = '1-15,16-23,24-34', y = '1-6,1-7,1-8' },
                 }
 
@@ -223,7 +223,7 @@ return {
             if (zone_id == 'all_map') then
                 local cfg_all_map = {
                     zone_id = 'all_map',
-                    --key_hexes = { { 25,12 },  { 27,11 }, { 29,11 }, { 32,10 } },
+                    --key_hexes = { { 25,12 }, { 27,11 }, { 29,11 }, { 32,10 } },
                     target_zone = { x = '1-34', y = '1-23' },
                     zone_filter = { x = '1-34', y = '1-23' },
                     unit_filter_advance = { x = '1-34', y = '1-23' },
@@ -239,7 +239,7 @@ return {
 
             local cfg_west = {
                 zone_id = 'west',
-                key_hexes = { { 8,8 },  { 11,9 }, { 14,8 } },
+                key_hexes = { { 8,8 }, { 11,9 }, { 14,8 } },
                 target_zone = { x = '1-15', y = '7-19' },
                 zone_filter = { x = '4-14', y = '7-15' },
                 unit_filter_advance = { x = '1-20,1-14', y = '1-6,7-13' },
@@ -252,7 +252,7 @@ return {
 
             local cfg_center = {
                 zone_id = 'center',
-                key_hexes = { { 17,10 },  { 18,9 }, { 20,9 }, { 22,10 } },
+                key_hexes = { { 17,10 }, { 18,9 }, { 20,9 }, { 22,10 } },
                 target_zone = { x = '15-23,13-23', y = '8-13,14-19' },
                 zone_filter = { x = '15-24', y = '8-16' },
                 unit_filter_advance = { x = '15-23,', y = '1-13' },
@@ -265,7 +265,7 @@ return {
 
             local cfg_east = {
                 zone_id = 'east',
-                key_hexes = { { 25,12 },  { 27,11 }, { 29,11 }, { 32,10 } },
+                key_hexes = { { 25,12 }, { 27,11 }, { 29,11 }, { 32,10 } },
                 target_zone = { x = '24-34,22-34', y = '9-17,18-23' },
                 zone_filter = { x = '24-34', y = '9-17' },
                 unit_filter_advance = { x = '17-34,24-34', y = '1-8,9-16' },
@@ -432,7 +432,7 @@ return {
                 stage_id = stage_id,
                 targets = {},
                 actions = { attack = true },
-                value_ratio = 0.75,  -- more aggressive for direct leader threats
+                value_ratio = 0.75, -- more aggressive for direct leader threats
                 ignore_resource_limit = true
             }
 
@@ -487,7 +487,7 @@ return {
                 zone_id = zone_id,
                 stage_id = stage_id,
                 actions = { attack = true },
-                value_ratio = 2.0,  -- only very favorable attacks will pass this
+                value_ratio = 2.0, -- only very favorable attacks will pass this
                 ignore_resource_limit = true
             }
 
@@ -1328,7 +1328,7 @@ return {
                             gamedata, move_cache, cfg_attack
                     )
                     --DBG.dbms(combo_def_stat)
-                    --print('   combo ratings:  ', combo_rating, combo_att_rating, combo_def_rating)
+                    --print('   combo ratings: ', combo_rating, combo_att_rating, combo_def_rating)
 
                     -- Don't attack if the leader is involved and has chance to die > 0
                     local do_attack = true
@@ -1550,7 +1550,7 @@ return {
                     table.insert(old_locs, gamedata.my_units[attacker_info.id])
 
                     -- Apply average hitpoints from the forward attack as starting point
-                    -- for the counter attack.  This isn't entirely accurate, but
+                    -- for the counter attack. This isn't entirely accurate, but
                     -- doing it correctly is too expensive, and this is better than doing nothing.
                     -- TODO: It also sometimes overrates poisoned or slowed, as it might be
                     -- counted for both attack and counter attack. This could be done more
@@ -1715,8 +1715,8 @@ return {
                         -- If an attack is done, it's the combined forward and counter attack rating
                         local with_attack_rating = combo.rating - max_counter_rating
 
-                        --print('    V1: no attack rating :  ', no_attack_rating, '<---', 0, -counter_rating)
-                        --print('    V2: with attack rating :', with_attack_rating, '<---', combo.rating, -max_counter_rating)
+                        --print('    V1: no attack rating: ', no_attack_rating, '<---', 0, -counter_rating)
+                        --print('    V2: with attack rating:', with_attack_rating, '<---', combo.rating, -max_counter_rating)
 
                         if (with_attack_rating < no_attack_rating) then
                             acceptable_counter = false
@@ -1737,7 +1737,7 @@ return {
                         action = { units = {}, dsts = {}, enemy = combo.target }
 
                         -- This is done simply so that the table is shorter when
-                        -- displayed.  We could also simply use combo.attackers
+                        -- displayed. We could also simply use combo.attackers
                         for _,attacker in ipairs(combo.attackers) do
                             local tmp_unit = gamedata.my_units[attacker.id]
                             tmp_unit.id = attacker.id
@@ -1779,7 +1779,7 @@ return {
             if (not next(holders)) then return end
 
             -- This part starts with a quick and dirt zone analysis for what
-            -- *might* be the best positions.  The rating is the same as the
+            -- *might* be the best positions. The rating is the same as the
             -- more detailed analysis below, but it is done using the assumed
             -- counter attack positions on the enemy on the map, while the
             -- more detailed analysis actually does a full counter attack
@@ -2230,7 +2230,7 @@ return {
 
                     -- We also add a very small contribution from the counter
                     -- attack rating, as lots of option can otherwise be equal
-                    -- This needs to be multiplied be a small number.  enemy_rating
+                    -- This needs to be multiplied be a small number. enemy_rating
                     -- often varies by .01 or so
                     -- Important: the counter_stats rating is the rating of the
                     -- counter attack. We want this to be as *bad* as possible
@@ -2275,7 +2275,7 @@ return {
                     }
 
                     -- This is done simply so that the table is shorter when
-                    -- displayed.  We could also simply use combo.attackers
+                    -- displayed. We could also simply use combo.attackers
                     for _,unit in ipairs(best_combos[i].best_units) do
                     local tmp_unit = gamedata.my_units[unit.id]
                         tmp_unit.id = unit.id
@@ -2315,7 +2315,7 @@ return {
             local cfg_counter_attack = { value_ratio = zonedata.cfg.value_ratio }
 
             -- Don't need to enforce a resource limit here, as this is one
-            -- unit at a time.  It will be checked before the action is called.
+            -- unit at a time. It will be checked before the action is called.
 
             local max_rating, best_unit, best_hex = -9e99
             local reachable_villages = {}
@@ -2588,7 +2588,7 @@ return {
             if debug_eval then print_time('  --> retreat evaluation: ' .. zonedata.cfg.zone_id) end
 
             -- This is a placeholder for when (if) retreat.lua gets adapted to the new
-            -- tables also.  It might not be necessary, it's fast enough the way it is
+            -- tables also. It might not be necessary, it's fast enough the way it is
             local retreat_units = {}
             for id,_ in pairs(zonedata.zone_units_MP) do
                 table.insert(retreat_units, gamedata.unit_copies[id])
@@ -3146,14 +3146,14 @@ return {
 
                 -- The following are some tests to make sure the intended move is actually
                 -- possible, as there might have been some interference with units moving
-                -- out of the way.  It is also possible that units that are supposed to
-                -- move out of the way cannot actually do so in practice.  Abandon the move
+                -- out of the way. It is also possible that units that are supposed to
+                -- move out of the way cannot actually do so in practice. Abandon the move
                 -- and reevaluate in that case. However, we can only do this if the gamestate
                 -- has actually be changed already, or the CA will be blacklisted
                 if gamestate_changed then
                     -- It's possible that one of the units got moved out of the way
                     -- by a move of a previous unit and that it cannot reach the dst
-                    -- hex any more.  In that case we stop and reevaluate.
+                    -- hex any more. In that case we stop and reevaluate.
                     -- TODO: make sure up front that move combination is possible
                     local _,cost = wesnoth.find_path(unit, dst[1], dst[2])
                     if (cost > unit.moves) then

@@ -15,8 +15,8 @@ local fred_attack_utils = {}
 function fred_attack_utils.is_acceptable_attack(damage_to_ai, damage_to_enemy, value_ratio)
     -- Evaluate whether an attack is acceptable, based on the damage to_enemy/to_ai ratio
     -- As an example, if value_ratio = 0.5 -> it is okay to do only half the damage
-    -- to the enemy as is received.  In other words, value own units only half of
-    -- enemy units.  The smaller value_ratio, the more aggressive the AI gets.
+    -- to the enemy as is received. In other words, value own units only half of
+    -- enemy units. The smaller value_ratio, the more aggressive the AI gets.
     -- Default is 0.8, meaning the AI is slightly more aggressive than even terms.
     --
     -- Inputs:
@@ -168,7 +168,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
         defender_info, attacker_infos[1], def_stat, att_stats[1], defender_on_village, cfg
     )
 
-    -- Now we add some extra ratings.  They are positive for attacks that should be preferred
+    -- Now we add some extra ratings. They are positive for attacks that should be preferred
     -- and expressed in fraction of the defender maximum hitpoints
     -- They should be used to help decide which attack to pick all else being equal,
     -- but not for, e.g., evaluating counter attacks (which should be entirely damage based)
@@ -188,7 +188,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     extra_rating = extra_rating / defender_info.max_hitpoints
 
     -- Most of the time, we don't need a bonus for good terrain for the attacker,
-    -- as that is covered in the damage calculation.  However, this might give misleading
+    -- as that is covered in the damage calculation. However, this might give misleading
     -- results for units that can regenerate (they might get equal rating independent
     -- of the terrain) -> add a small bonus for terrain
     local defense_rating_attacker = 0.
@@ -385,7 +385,7 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
     attacker_copy.x, attacker_copy.y = old_x, old_y
 
     -- Extract only those hp_chances that are non-zero (except for hp_chance[0]
-    -- which is always needed).  This slows down this step a little, but significantly speeds
+    -- which is always needed). This slows down this step a little, but significantly speeds
     -- up attack combination calculations
     local att_stat = {
         hp_chance = {},
@@ -510,7 +510,7 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
                 def_stats[i].hp_chance[0] = (def_stats[i].hp_chance[0] or 0) + prob1
             else
                 local org_hp = defender_info.hitpoints
-                defender_proxy.hitpoints = hp1  -- Yes, we need both here.  It speeds up other parts.
+                defender_proxy.hitpoints = hp1  -- Yes, we need both here. It speeds up other parts.
                 defender_info.hitpoints = hp1
 
                 local ast, dst = fred_attack_utils.battle_outcome(
@@ -563,7 +563,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
     -- OR: get what is considered the strongest of those attacks (approximately)
     -- The former is in order to get all attack combos (but order of individual attacks doesn't matter),
     -- the latter is for a quick-and-dirty search for, for example, the strongest counter attack,
-    -- when a full attack combination evaluation is too expensive.  The strongest attack is defined
+    -- when a full attack combination evaluation is too expensive. The strongest attack is defined
     -- here as the one which has the maximum sum of damage done to the defender
     --
     -- Required inputs:
@@ -574,15 +574,15 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
     -- @reach_maps: reach_maps for the attackers in the form as returned by fred_gamestate_utils.get_mapstate()
     --   - This is _much_ faster if reach_maps is given; should be done for all attack combos for the side
     --     Only when the result depends on a hypothetical map situation (such as for counter attacks) should
-    --     it be calculated here.  If reach_maps are not given, @gamedata must be provided
+    --     it be calculated here. If reach_maps are not given, @gamedata must be provided
     --   - Even if @reach_maps is no given, gamedata still needs  to contain the "original" reach_maps for the attackers.
-    --     This is used to speed up the calculation.  If the attacker (enemy) cannot get to a hex originally
+    --     This is used to speed up the calculation. If the attacker (enemy) cannot get to a hex originally
     --     (remember that this is done with AI units with MP taken off the map), then it can also
     --     not get there after moving AI units into place.
     --   - Important: for units on the AI side, reach_maps must NOT included hexes with units that
     --     cannot move out of the way
     -- @get_strongest_attack (boolean): if set to 'true', don't return all attacks, but only the
-    --   one deemed strongest as described above.  If this is set, @gamedata and @move_cache nust be provided
+    --   one deemed strongest as described above. If this is set, @gamedata and @move_cache nust be provided
     --  @cfg: configuration parameters to be passed through the battle_outcome, attack_rating
     --
     -- Return value: attack combinations (either a single one or an array) of form { src = dst } :
@@ -601,7 +601,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
             reach_maps[attacker_id] = {}
 
             -- Only calculate reach if the attacker could get there using its
-            -- original reach.  It cannot have gotten any better than this.
+            -- original reach. It cannot have gotten any better than this.
             local can_reach = false
             for xa,ya in H.adjacent_tiles(defender_loc[1], defender_loc[2]) do
                 if gamedata.reach_maps[attacker_id][xa] and gamedata.reach_maps[attacker_id][xa][ya] then
@@ -834,7 +834,7 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
         --
         -- INPUTS:
         -- @old_locs, @new_locs as above
-        -- @store_units_in_way (boolean): whether to store the locations of the units in the way.  Needs to
+        -- @store_units_in_way (boolean): whether to store the locations of the units in the way. Needs to
         -- be set to 'true' when moving the units into their new locations, needs to be set to
         -- 'false' when moving them back, in which case the stored information will be used.
 
@@ -924,7 +924,7 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
     local target_proxy = wesnoth.get_unit(target_loc[1], target_loc[2])
 
     -- reach_maps must not be given here, as this is for a hypothetical situation
-    -- on the map.  Needs to be recalculated for that situation.
+    -- on the map. Needs to be recalculated for that situation.
     -- Only want the best attack combo for this.
     local counter_attack = fred_attack_utils.get_attack_combos(
         gamedata.enemies, target,
