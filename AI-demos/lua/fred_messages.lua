@@ -81,7 +81,6 @@ function fred_messages.fred_hello()
             if fog_set then
                 W.message {
                     side = 1, canrecruit = 'yes',
-                    caption = "Fred  (Freelands AI v" .. version .. ")",
                     message = "I'm noticing that you have fog turned on. Turning it off in order to help with testing."
                 }
 
