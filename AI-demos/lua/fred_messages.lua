@@ -36,6 +36,7 @@ function fred_messages.fred_hello()
 
         -- Check whether enemy is Undead, which Fred still has problems with
         local enemy_warning = ''
+        local fog_set = false
         for _,side_info in ipairs(wesnoth.sides) do
             local side = side_info.side
             if wesnoth.is_enemy(side, wesnoth.current.side) then
@@ -45,6 +46,10 @@ function fred_messages.fred_hello()
                         break
                     end
                 end
+            end
+
+            if side_info.fog then
+                fog_set = true
             end
         end
 
@@ -61,6 +66,19 @@ function fred_messages.fred_hello()
             }
             W.endlevel { result = 'defeat' }
         else
+            if fog_set then
+                W.message {
+                    side = 1, canrecruit = 'yes',
+                    caption = "Fred  (Freelands AI v" .. version .. ")",
+                    message = "I'm noticing that you have fog turned on. Turning it off in order to help with testing."
+                }
+
+                W.modify_side {
+                    side = '1,2',
+                    fog = 'no'
+                }
+            end
+
             W.message {
                 side = 1, canrecruit = 'yes',
                 caption = "Fred  (Freelands AI v" .. version .. ")",
