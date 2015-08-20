@@ -21,7 +21,15 @@ end
 
 function fred_messages.fred_hello()
     -- Hello message for Fred AI
-    if fred_messages.is_fred() then
+    local fred_side = fred_messages.is_fred()
+    if fred_side then
+        -- First thing we do is set the name and id of the side leader
+        -- This is done for the messages
+        W.modify_unit {
+            { 'filter', { side = fred_side, canrecruit = 'yes' } },
+            id = 'Fred',
+            name = 'Fred'
+        }
 
         local version = wesnoth.get_variable('AI_Demos_version')
         version = version or '?.?.?'
