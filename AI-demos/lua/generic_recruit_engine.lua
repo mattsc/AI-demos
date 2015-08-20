@@ -8,7 +8,7 @@ return {
     --     find_best_recruit, find_best_recruit_hex may be useful for writing recruitment code separately from the engine
     -- params: parameters to configure recruitment
     --      score_function: function that returns the CA score when recruit_rushers_eval wants to recruit
-    --          (default returns the RCA recruitment score)
+    --          (default returns the Default AI recruitment score)
     --      randomness: a measure of randomness in recruitment
     --          higher absolute values increase randomness, with values above about 3 being close to completely random
     --          (default = 0.1)
@@ -398,7 +398,7 @@ return {
                 end
             end
 
-            local score = 180000 -- default score if one not provided. Same as RCA AI
+            local score = 180000 -- default score if one not provided. Same as Default AI
             if params.score_function then
                 score = params.score_function()
             end
