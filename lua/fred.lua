@@ -964,14 +964,17 @@ return {
                 }
                 table.insert(tmp_cfgs_hold, cfg)
 
-                local cfg = {
-                    zone_id = zone_id,
-                    stage_id = stage_id,
-                    actions = { hold = true },
-                    rating = hold[zone_id].rating,
-                    holders = hold[zone_id].units
-                }
-                table.insert(tmp_cfgs_hold, cfg)
+                -- Don't hold if the enemy does not have any T1 power
+                if (data.enemy_power1 > 0) then
+                    local cfg = {
+                        zone_id = zone_id,
+                        stage_id = stage_id,
+                        actions = { hold = true },
+                        rating = hold[zone_id].rating,
+                        holders = hold[zone_id].units
+                    }
+                    table.insert(tmp_cfgs_hold, cfg)
+                end
 
                 -- And for advancing, it's very similar, but number of units
                 -- needed plays the most important role here
