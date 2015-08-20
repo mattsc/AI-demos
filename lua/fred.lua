@@ -2593,11 +2593,9 @@ return {
                 local allowable_retreat_threat = zonedata.cfg.allowable_retreat_threat or 0
                 --print_time('Found unit to retreat:', unit.id, enemy_threat, allowable_retreat_threat)
                 -- Is this a healing location?
-                local healloc = false
-                if (dest[3] > 2) then healloc = true end
                 local action = { units = { unit }, dsts = { dest }, type = 'village' }
                 action.action = zonedata.cfg.zone_id .. ': ' .. 'retreat severely injured units'
-                return action, healloc, (enemy_threat <= allowable_retreat_threat)
+                return action
             end
         end
 
@@ -2893,7 +2891,7 @@ return {
                 --print_time('  ' .. cfg.zone_id .. ': retreat_injured eval')
                 -- TODO: heal_loc and safe_loc are not used at this time
                 -- keep for now and see later if needed
-                local action, healloc, safeloc = fred:get_retreat_action(zonedata, gamedata)
+                local action = fred:get_retreat_action(zonedata, gamedata)
                 if action then
                     --print(action.action)
                     return action
