@@ -22,19 +22,28 @@ function fred_messages.fred_hello()
         local version = wesnoth.get_variable('AI_Demos_version')
         version = version or '?.?.?'
 
-        -- We first add a check here whether the AI is for Side 1 and the Freelands map
+        -- We first add a check here whether the AI is for Side 1, Northerners and the Freelands map
         -- None of these can be checked directly, but at least for mainline the method is unique anyway
+
+        -- Faction is checked by seeing if the side can recruit orcs
+        local can_recruit_grunts = false
+        for i,r in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
+            if (r == 'Orcish Grunt') then
+                can_recruit_grunts = true
+                break
+            end
+        end
 
         -- Map is checked through the map size and the starting location of the AI side
         -- This also takes care of the side check, so that does not have to be done separately
         local width, height = wesnoth.get_map_size()
         local start_loc = wesnoth.get_starting_location(wesnoth.current.side)
 
-        if (width ~= 37) or (height ~= 24) or (start_loc[1] ~= 19) or ((start_loc[2] ~= 4) and (start_loc[2] ~= 20)) then
+        if (not can_recruit_grunts) or (width ~= 37) or (height ~= 24) or (start_loc[1] ~= 19) or ((start_loc[2] ~= 4) and (start_loc[2] ~= 20)) then
             W.message {
                 side = 1, canrecruit = 'yes',
                 caption = "Fred  (Freelands AI v" .. version .. ")",
-                message = "I only know how to play Side 1 on the Freelands map. Sorry!"
+                message = "I currently only know how to play Northerners as Side 1 on the Freelands map. Sorry!"
             }
             W.endlevel { result = 'defeat' }
         else
