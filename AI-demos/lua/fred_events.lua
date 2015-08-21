@@ -19,7 +19,7 @@ function fred_events.is_fred()
     return false
 end
 
-function fred_events.fred_hello()
+function fred_events.fred_setup()
     -- Hello message for Fred AI
     local fred_side = fred_events.is_fred()
     if fred_side then
