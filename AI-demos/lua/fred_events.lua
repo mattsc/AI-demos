@@ -47,14 +47,14 @@ function fred_events.fred_setup()
         end
 
         -- Check whether enemy is Undead, which Fred still has problems with
-        local enemy_warning = ''
+        wesnoth.set_variable('fred_enemy_warning', '')
         local fog_set = false
         for _,side_info in ipairs(wesnoth.sides) do
             local side = side_info.side
             if wesnoth.is_enemy(side, wesnoth.current.side) then
                 for i,r in ipairs(wesnoth.sides[side].recruit) do
                     if (r == 'Skeleton') then
-                        enemy_warning = '\n<i> </i>\n<i>Remember that I still have problems playing against the undead.</i>'
+                        wesnoth.set_variable('fred_enemy_warning', '\n<i> </i>\n<i>Remember that I still have problems playing against the undead.</i>')
                         break
                     end
                 end
@@ -72,8 +72,8 @@ function fred_events.fred_setup()
 
         if (not can_recruit_grunts) or (width ~= 37) or (height ~= 24) or (start_loc[1] ~= 19) or ((start_loc[2] ~= 4) and (start_loc[2] ~= 20)) then
             W.message {
-                side = 1, canrecruit = 'yes',
-                caption = "Fred  (Freelands AI v" .. version .. ")",
+                id = 'Fred',
+                caption = "Fred (Freelands AI v" .. version .. ")",
                 message = "I currently only know how to play Northerners as Side 1 on the Freelands map. Sorry!"
             }
             W.endlevel { result = 'defeat' }
@@ -82,23 +82,8 @@ function fred_events.fred_setup()
                 wesnoth.fire_event("fred_lift_fog")
             end
 
-            W.message {
-                side = 1, canrecruit = 'yes',
-                caption = "Fred  (Freelands AI v" .. version .. ")",
-                message = "Good luck, have fun!" .. enemy_warning
-            }
+            wesnoth.fire_event("fred_setup_events")
         end
-    end
-end
-
-function fred_events.fred_bye()
-    -- Good bye message for Fred AI
-    if fred_events.is_fred() then
-        W.delay { time = 300 }
-        W.message {
-            side = 1, canrecruit = 'yes',
-            message = 'Good game, thanks!'
-        }
     end
 end
 
