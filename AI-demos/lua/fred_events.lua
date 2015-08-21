@@ -54,7 +54,7 @@ function fred_events.fred_setup()
             if wesnoth.is_enemy(side, wesnoth.current.side) then
                 for i,r in ipairs(wesnoth.sides[side].recruit) do
                     if (r == 'Skeleton') then
-                        wesnoth.set_variable('fred_enemy_warning', '\n<i> </i>\n<i>Remember that I still have problems playing against the undead.</i>')
+                        wesnoth.set_variable('fred_enemy_warning', '\n<i> </i>\n<i>Note that I still have problems playing against the undead.</i>')
                         break
                     end
                 end
