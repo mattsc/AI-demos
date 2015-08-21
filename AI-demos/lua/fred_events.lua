@@ -1,9 +1,9 @@
 local H = wesnoth.require "lua/helper.lua"
 local W = H.set_wml_action_metatable {}
 
-local fred_messages = {}
+local fred_events = {}
 
-function fred_messages.is_fred()
+function fred_events.is_fred()
     -- Check whether side is played by Fred
     -- We do this by testing whether the 'zone_control' CA exists
     -- Returns the side number of the first side for which the CA is found, false otherwise
@@ -19,9 +19,9 @@ function fred_messages.is_fred()
     return false
 end
 
-function fred_messages.fred_hello()
+function fred_events.fred_hello()
     -- Hello message for Fred AI
-    local fred_side = fred_messages.is_fred()
+    local fred_side = fred_events.is_fred()
     if fred_side then
         -- First thing we do is set the name and id of the side leader
         -- This is done for the messages
@@ -91,9 +91,9 @@ function fred_messages.fred_hello()
     end
 end
 
-function fred_messages.fred_bye()
+function fred_events.fred_bye()
     -- Good bye message for Fred AI
-    if fred_messages.is_fred() then
+    if fred_events.is_fred() then
         W.delay { time = 300 }
         W.message {
             side = 1, canrecruit = 'yes',
@@ -102,4 +102,4 @@ function fred_messages.fred_bye()
     end
 end
 
-return fred_messages
+return fred_events
