@@ -13,27 +13,24 @@ Many other Micro AIs were also developed in this add-on, but have now mostly bee
 * Animals
 * Bottleneck Defense
 * Goto
-* Guardian
-* Healer
+* Guardians
+* Hang Out
+* Healer Support
 * Lurkers
 * Messenger Escort
 * Patrol
 * Protect Unit
 * Recruiting
-* Formula AI Demo
-* MP Rushes
-* Prune Cart
-* and more!
+* Simple Attack
 
 For a complete and current list of the Micro AIs, see: http://wiki.wesnoth.org/Micro_AIs
 
 For more information, check out the thread on the official Wesnoth forums:
 http://forum.wesnoth.org/viewtopic.php?f=10&t=34976
+
 There is also a feedback thread specifically for the Micro AIs:
 http://forums.wesnoth.org/viewtopic.php?f=10&t=39456
 
 And of course get the game itself at http://wesnoth.org/
-
-You can find the add-on on the Wesnoth add-on server under "AI Modification Demo" and install it that way. Do it and help us test out our experimental AIs!
 
 All of our code is licensed under the GPLv2+, just like the rest of Wesnoth.
