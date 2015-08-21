@@ -79,15 +79,7 @@ function fred_messages.fred_hello()
             W.endlevel { result = 'defeat' }
         else
             if fog_set then
-                W.message {
-                    side = 1, canrecruit = 'yes',
-                    message = "I'm noticing that you have fog turned on. Turning it off in order to help with testing."
-                }
-
-                W.modify_side {
-                    side = '1,2',
-                    fog = 'no'
-                }
+                wesnoth.fire_event("fred_lift_fog")
             end
 
             W.message {
