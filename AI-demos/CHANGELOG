@@ -1,22 +1,32 @@
------ 0.14.0, xx August 2014 -----
+----- 0.14.0, 22 August 2014 -----
 
 - Fred (Freelands AI for Northerners, Side 1):
   - Complete overhaul with huge changes to both the overall strategy and the
     individual actions, as well as to many of the utility functions
   - AI id renamed from 'grunt_rush_Freelands' to 'fred', as it really is not a
     grunt rush any more
+  - Reintroduce restriction that Fred can only play Northerners. This is
+    technically not necessary, but I want to concentrate on that faction for now.
+    This restriction will be removed again later.
+  - Lift fog at beginning of MP game if it is on. This is also a temporary
+    measure for testing right now.
+  - Set name and id of side leader to 'Fred' in MP game
+  - Add menus at SP scenario start to choose human player/AI and enemy gold
+  - Have Fred's messages show up in both MP game and SP scenario
+  - Add some trash talk easter eggs
 - Fast Micro AI:
   - New version that uses fred_attack_utils and gamestate functions rather than
     battle_calcs.lua. This is faster in many cases.
 - High XP Attack Micro AI:
-  - Added first draft of an AI that deals with attacks on enemy units that are
+  - Added first version of an AI that deals with attacks on enemy units that are
     very close to leveling
 - Test scenario:
   - New flag 'exec_loop'
 - Miscellaneous:
+  - Rename the AIs in the MP setup menus
   - All AIs: don't include mainline AI macros if they have already been loaded
   - ai_helper: only display checked action error message in debug mode
-  - A variety of internal changes
+  - Many other changes, some visible, some internal. See git repository for details.
 
 
 ----- 0.13.3, 20 June 2014 -----
