@@ -98,6 +98,7 @@ function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_
     if (att_stat.poisoned ~= 0) and (not attacker_info.poisoned) then
         damage = damage + 8 * (att_stat.poisoned - att_stat.hp_chance[0])
     end
+
     -- Count slowed as additional 4 HP damage times probability of being slowed
     -- but only if the unit is not already slowed
     if (att_stat.slowed ~= 0) and (not attacker_info.slowed) then
@@ -111,15 +112,16 @@ function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_
     fractional_damage = fractional_damage + att_stat.hp_chance[0]
 
     -- In addition, potentially leveling up in this attack is a huge bonus.
-    -- we reduce the fractions damage by the chance of it happening multiplied
-    -- by the chance of not dying itself.
     -- Note: this can make the fractional damage negative (as it should)
     local defender_level = defender_info.level
     if (defender_level == 0) then defender_level = 0.5 end  -- L0 units
 
     local level_bonus = 0.
+    -- If missing XP is <= level of attacker, it's a guaranteed level-up as long as the unit does not die
     if (attacker_info.max_experience - attacker_info.experience <= defender_level) then
         level_bonus = 1. - att_stat.hp_chance[0]
+    -- Otherwise, if a kill is needed, the bonus is the chance of the defender
+    -- dying times the attacker NOT dying
     elseif (attacker_info.max_experience - attacker_info.experience <= defender_level * 8) then
         level_bonus = (1. - att_stat.hp_chance[0]) * def_stat.hp_chance[0]
     end
