@@ -291,17 +291,17 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
 
     local rating_table = {
         rating = rating,
-        attacker_rating = {
+        attacker = {
             rating = attacker_rating,
             damage_rating = attacker_damage_rating,
             healing_bonus = attacker_healing_bonus
         },
-        defender_rating = {
+        defender = {
             rating = defender_rating,
             damage_rating = defender_damage_rating,
             healing_bonus = defender_healing_bonus
         },
-        extra_rating = {
+        extra = {
             rating = extra_rating
             -- TODO: add the details? Not sure if there's a use for that
         },
@@ -309,7 +309,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     }
     --DBG.dbms(rating_table)
 
-    return rating, attacker_rating, defender_rating, extra_rating
+    return rating_table
 end
 
 function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, attacker_info, defender_info, gamedata, move_cache, cfg)
@@ -516,13 +516,13 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
                 gamedata, move_cache, cfg
             )
 
-        local rating =
+        local rating_table =
             fred_attack_utils.attack_rating(
                 { tmp_attacker_infos[i] }, defender_info, { tmp_dsts[i] },
                 { tmp_att_stats[i] }, tmp_def_stats[i], gamedata, cfg
             )
 
-        ratings[i] = { i, rating }  -- Need the i here in order to specify the order of attackers, dsts below
+        ratings[i] = { i, rating_table.rating }  -- Need the i here in order to specify the order of attackers, dsts below
     end
 
     -- Sort all the arrays based on this rating
@@ -596,13 +596,14 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
         def_stats[i].average_hp = av_hp
     end
 
-    local rating, attacker_rating, defender_rating, extra_rating =
+    local rating_table =
         fred_attack_utils.attack_rating(
             attacker_infos, defender_info, dsts,
             att_stats, def_stats[#attacker_infos], gamedata, cfg
         )
 
-    return att_stats, def_stats[#attacker_infos], attacker_infos, dsts, rating, attacker_rating, defender_rating, extra_rating
+    return att_stats, def_stats[#attacker_infos], attacker_infos, dsts,
+        rating_table.rating, rating_table.attacker.rating, rating_table.defender.rating, rating_table.extra.rating
 end
 
 function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, get_strongest_attack, gamedata, move_cache, cfg)
@@ -714,14 +715,14 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
                     -- We mostly want the defender rating
                     -- However, we add attacker rating as a small contribution,
                     -- so that good terrain for the attacker will be preferred
-                    _,attacker_rating,defender_rating,extra_rating = fred_attack_utils.attack_rating(
+                    local rating_table = fred_attack_utils.attack_rating(
                         { gamedata.unit_infos[attacker_id] }, gamedata.unit_infos[defender_id], { { xa, ya } },
                         { att_stat }, def_stat,
                         gamedata, cfg
                     )
 
-                    rating = defender_rating + (attacker_rating + extra_rating) / 100
-                    --print(xa,ya,rating,attacker_rating,defender_rating,extra_rating)
+                    rating = rating_table.defender.rating + (rating_table.attacker.rating + rating_table.extra.rating) / 100
+                    --print(xa, ya, rating, rating_table.attacker.rating, rating_table.defender.rating, rating_table.extra.rating)
                 end
 
                 if (not tmp_attacks_dst_src[dst]) then
