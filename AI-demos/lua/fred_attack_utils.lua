@@ -71,7 +71,7 @@ function fred_attack_utils.healing_bonus(unit_info, hp_before_healing, is_villag
     return healing_bonus
 end
 
-function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_stat, def_stat, is_village, cfg)
+function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_stat, def_stat, cfg)
     -- Calculate the rating for the damage received by a single attacker on a defender.
     -- The attack att_stat both for the attacker and the defender need to be precalculated for this.
     -- Unit information is passed in unit_infos format, rather than as unit proxy tables for speed reasons.
@@ -81,8 +81,6 @@ function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_
     -- Input parameters:
     --  @attacker_info, @defender_info: unit_info tables produced by fred_gamestate_utils.single_unit_info()
     --  @att_stat, @def_stat: attack statistics for the two units
-    --  @is_village: whether the hex from which the attacker attacks is a village
-    --    Set to nil or false if not, to anything if it is a village (does not have to be a boolean)
     --
     -- Optional parameters:
     --  @cfg: the optional different weights listed right below
@@ -107,11 +105,6 @@ function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_
 
     -- Additionally, add the chance to die, in order to (de)emphasize units that might die
     fractional_damage = fractional_damage + att_stat.hp_chance[0]
-
-    -- Add in the healing bonus (well, subtract, since this counts as negative damage)
-    local healing_bonus = fred_attack_utils.healing_bonus(attacker_info, att_stat.average_hp, is_village)
-
-    fractional_damage = fractional_damage - healing_bonus
 
     -- In addition, potentially leveling up in this attack is a huge bonus.
     -- we reduce the fractions damage by the chance of it happening multiplied
@@ -175,19 +168,27 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
 
     local attacker_rating = 0
     for i,attacker_info in ipairs(attacker_infos) do
-        local attacker_on_village = gamedata.village_map[dsts[i][1]] and gamedata.village_map[dsts[i][1]][dsts[i][2]]
         attacker_rating = attacker_rating - fred_attack_utils.damage_rating_unit(
-            attacker_info, defender_info, att_stats[i], def_stat, attacker_on_village, cfg
+            attacker_info, defender_info, att_stats[i], def_stat, cfg
         )
+
+        -- Add in the healing bonus
+        local attacker_on_village = gamedata.village_map[dsts[i][1]] and gamedata.village_map[dsts[i][1]][dsts[i][2]]
+        local healing_bonus = fred_attack_utils.healing_bonus(attacker_info, att_stats[i].average_hp, attacker_on_village)
+        attacker_rating = attacker_rating + healing_bonus
     end
 
     -- attacker_info is passed only to figure out whether the attacker might level up
     -- TODO: This is only works for the first attacker in a combo at the moment
     local defender_x, defender_y = gamedata.units[defender_info.id][1], gamedata.units[defender_info.id][2]
-    local defender_on_village = gamedata.village_map[defender_x] and gamedata.village_map[defender_x][defender_y]
     local defender_rating = fred_attack_utils.damage_rating_unit(
-        defender_info, attacker_infos[1], def_stat, att_stats[1], defender_on_village, cfg
+        defender_info, attacker_infos[1], def_stat, att_stats[1], cfg
     )
+
+    -- Add in the healing bonus
+    local defender_on_village = gamedata.village_map[defender_x] and gamedata.village_map[defender_x][defender_y]
+    local healing_bonus = fred_attack_utils.healing_bonus(defender_info, def_stat.average_hp, defender_on_village)
+    defender_rating = defender_rating + healing_bonus
 
     -- Now we add some extra ratings. They are positive for attacks that should be preferred
     -- and expressed in fraction of the defender maximum hitpoints
