@@ -42,6 +42,35 @@ function fred_attack_utils.is_acceptable_attack(damage_to_ai, damage_to_enemy, v
     return (damage_to_enemy / damage_to_ai) >= value_ratio
 end
 
+function fred_attack_utils.healing_bonus(unit_info, hp_before_healing, is_village)
+    -- Returns the bonus rating the unit would get from healing
+    -- Currently taken into account: villages and regenerate
+    -- TODO: healers, rest healing
+    -- The bonus is in the same units (fractional gold) as the damage rating
+    --
+    -- @hp_before_healing: HP of the unit before the healing is done; this might
+    -- be different from unit_info.hitpoints. It is used to cap the amount of healing
+
+    local HP_bonus = 0
+
+    -- If unit is on a village, we count that as an 8 HP bonus
+    if is_village then
+        HP_bonus = HP_bonus + 8
+    -- Otherwise only: if unit can regenerate, this is an 8 HP bonus
+    elseif unit_info.regenerate then
+        HP_bonus = HP_bonus + 8
+    end
+
+    -- Bonus needs to be capped at amount by which hitpoints are below max_hitpoints
+    local hp_to_max = unit_info.max_hitpoints - hp_before_healing
+    HP_bonus = math.min(HP_bonus, hp_to_max)
+
+    -- Convert to fraction units
+    local healing_bonus = HP_bonus / unit_info.max_hitpoints
+
+    return healing_bonus
+end
+
 function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_stat, def_stat, is_village, cfg)
     -- Calculate the rating for the damage received by a single attacker on a defender.
     -- The attack att_stat both for the attacker and the defender need to be precalculated for this.
@@ -73,24 +102,16 @@ function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_
         damage = damage + 4 * (att_stat.slowed - att_stat.hp_chance[0])
     end
 
-    -- If attack is from a village, we count that as an 8 HP bonus
-    if is_village then
-        damage = damage - 8.
-    -- Otherwise only: if attacker can regenerate, this is an 8 HP bonus
-    elseif attacker_info.regenerate then
-        damage = damage - 8.
-    end
-
-    -- Damage can be negative due to healing (village or regeneration), but only
-    -- up to the amount by which hitpoints are below max_hitpoints
-    local hp_to_max = attacker_info.hitpoints - attacker_info.max_hitpoints
-    if (damage < hp_to_max) then damage = hp_to_max end
-
     -- Fractional damage (= fractional value of the attacker)
     local fractional_damage = damage / attacker_info.max_hitpoints
 
     -- Additionally, add the chance to die, in order to (de)emphasize units that might die
     fractional_damage = fractional_damage + att_stat.hp_chance[0]
+
+    -- Add in the healing bonus (well, subtract, since this counts as negative damage)
+    local healing_bonus = fred_attack_utils.healing_bonus(attacker_info, att_stat.average_hp, is_village)
+
+    fractional_damage = fractional_damage - healing_bonus
 
     -- In addition, potentially leveling up in this attack is a huge bonus.
     -- we reduce the fractions damage by the chance of it happening multiplied
