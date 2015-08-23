@@ -42,16 +42,20 @@ function fred_attack_utils.is_acceptable_attack(damage_to_ai, damage_to_enemy, v
     return (damage_to_enemy / damage_to_ai) >= value_ratio
 end
 
-function fred_attack_utils.healing_bonus(unit_info, hp_before_healing, is_village)
+function fred_attack_utils.healing_bonus(unit_info, hp_before_healing, x, y, gamedata)
     -- Returns the bonus rating the unit would get from healing
     -- Currently taken into account: villages and regenerate
     -- TODO: healers, rest healing
     -- The bonus is in the same units (fractional gold) as the damage rating
     --
     -- @hp_before_healing: HP of the unit before the healing is done; this might
-    -- be different from unit_info.hitpoints. It is used to cap the amount of healing
+    --   be different from unit_info.hitpoints. It is used to cap the amount of healing
+    -- @x,@y: location of the unit for which to calculate this; this might or
+    --   might not be the current location of the unit
 
     local HP_bonus = 0
+
+    local is_village = gamedata.village_map[x] and gamedata.village_map[x][y]
 
     -- If unit is on a village, we count that as an 8 HP bonus
     if is_village then
@@ -173,8 +177,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
         )
 
         -- Add in the healing bonus
-        local attacker_on_village = gamedata.village_map[dsts[i][1]] and gamedata.village_map[dsts[i][1]][dsts[i][2]]
-        local healing_bonus = fred_attack_utils.healing_bonus(attacker_info, att_stats[i].average_hp, attacker_on_village)
+        local healing_bonus = fred_attack_utils.healing_bonus(attacker_info, att_stats[i].average_hp, dsts[i][1], dsts[i][2], gamedata)
         attacker_rating = attacker_rating + healing_bonus
     end
 
@@ -186,8 +189,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     )
 
     -- Add in the healing bonus
-    local defender_on_village = gamedata.village_map[defender_x] and gamedata.village_map[defender_x][defender_y]
-    local healing_bonus = fred_attack_utils.healing_bonus(defender_info, def_stat.average_hp, defender_on_village)
+    local healing_bonus = fred_attack_utils.healing_bonus(defender_info, def_stat.average_hp, defender_x, defender_y, gamedata)
     defender_rating = defender_rating + healing_bonus
 
     -- Now we add some extra ratings. They are positive for attacks that should be preferred
@@ -202,6 +204,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
 
     -- If defender is on a village, add a bonus rating (we want to get rid of those preferentially)
     -- This is in addition to the damage bonus already included above (but as an extra rating)
+    local defender_on_village = gamedata.village_map[defender_x] and gamedata.village_map[defender_x][defender_y]
     if defender_on_village then
         extra_rating = extra_rating + 10.
     end
