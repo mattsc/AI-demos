@@ -126,7 +126,7 @@ function fred_utils.cfg_default(parm)
         -- TODO: come up with a more exact measure of this
         xp_weight = 0.75,
 
-        level_weight = 1.,
+        leveling_weight = 1.,
 
         defender_starting_damage_weight = 0.33,
         defense_weight = 0.1,

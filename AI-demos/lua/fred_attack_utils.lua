@@ -89,7 +89,7 @@ function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_
     -- Optional parameters:
     --  @cfg: the optional different weights listed right below
 
-    local level_weight = (cfg and cfg.level_weight) or FU.cfg_default('level_weight')
+    local leveling_weight = (cfg and cfg.leveling_weight) or FU.cfg_default('leveling_weight')
 
     local damage = attacker_info.hitpoints - att_stat.average_hp
 
@@ -126,7 +126,7 @@ function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_
         level_bonus = (1. - att_stat.hp_chance[0]) * def_stat.hp_chance[0]
     end
 
-    fractional_damage = fractional_damage - level_bonus * level_weight
+    fractional_damage = fractional_damage - level_bonus * leveling_weight
 
     -- Now convert this into gold-equivalent value
     local unit_value = FU.unit_value(attacker_info, cfg)
