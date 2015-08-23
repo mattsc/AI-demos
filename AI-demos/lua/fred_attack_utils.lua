@@ -172,27 +172,27 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     local occupied_hex_penalty = (cfg and cfg.occupied_hex_penalty) or FU.cfg_default('occupied_hex_penalty')
     local value_ratio = (cfg and cfg.value_ratio) or FU.cfg_default('value_ratio')
 
-    local attacker_rating = 0
+    local attacker_damage_rating, attacker_healing_bonus = 0, 0
     for i,attacker_info in ipairs(attacker_infos) do
-        attacker_rating = attacker_rating - fred_attack_utils.damage_rating_unit(
+        attacker_damage_rating = attacker_damage_rating - fred_attack_utils.damage_rating_unit(
             attacker_info, defender_info, att_stats[i], def_stat, cfg
         )
 
         -- Add in the healing bonus
-        local healing_bonus = fred_attack_utils.healing_bonus(attacker_info, att_stats[i].average_hp, dsts[i][1], dsts[i][2], gamedata)
-        attacker_rating = attacker_rating + healing_bonus
+        attacker_healing_bonus = attacker_healing_bonus + fred_attack_utils.healing_bonus(attacker_info, att_stats[i].average_hp, dsts[i][1], dsts[i][2], gamedata)
     end
+    local attacker_rating = attacker_damage_rating + attacker_healing_bonus
 
     -- attacker_info is passed only to figure out whether the attacker might level up
     -- TODO: This is only works for the first attacker in a combo at the moment
     local defender_x, defender_y = gamedata.units[defender_info.id][1], gamedata.units[defender_info.id][2]
-    local defender_rating = fred_attack_utils.damage_rating_unit(
+    local defender_damage_rating = fred_attack_utils.damage_rating_unit(
         defender_info, attacker_infos[1], def_stat, att_stats[1], cfg
     )
 
     -- Add in the healing bonus
-    local healing_bonus = fred_attack_utils.healing_bonus(defender_info, def_stat.average_hp, defender_x, defender_y, gamedata)
-    defender_rating = defender_rating + healing_bonus
+    local defender_healing_bonus = fred_attack_utils.healing_bonus(defender_info, def_stat.average_hp, defender_x, defender_y, gamedata)
+    local defender_rating = defender_damage_rating + defender_healing_bonus
 
     -- Now we add some extra ratings. They are positive for attacks that should be preferred
     -- and expressed in fraction of the defender maximum hitpoints
@@ -288,6 +288,26 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     local rating = defender_rating * defender_weight + attacker_rating * attacker_weight + extra_rating
 
     --print('rating, attacker_rating, defender_rating, extra_rating:', rating, attacker_rating, defender_rating, extra_rating)
+
+    local rating_table = {
+        rating = rating,
+        attacker_rating = {
+            rating = attacker_rating,
+            damage_rating = attacker_damage_rating,
+            healing_bonus = attacker_healing_bonus
+        },
+        defender_rating = {
+            rating = defender_rating,
+            damage_rating = defender_damage_rating,
+            healing_bonus = defender_healing_bonus
+        },
+        extra_rating = {
+            rating = extra_rating
+            -- TODO: add the details? Not sure if there's a use for that
+        },
+        value_ratio = value_ratio
+    }
+    --DBG.dbms(rating_table)
 
     return rating, attacker_rating, defender_rating, extra_rating
 end
