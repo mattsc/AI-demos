@@ -167,7 +167,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
 
     -- Set up the config parameters for the rating
     local defender_starting_damage_weight = (cfg and cfg.defender_starting_damage_weight) or FU.cfg_default('defender_starting_damage_weight')
-    local defense_weight = (cfg and cfg.defense_weight) or FU.cfg_default('defense_weight')
+    local terrain_defense_weight = (cfg and cfg.terrain_defense_weight) or FU.cfg_default('terrain_defense_weight')
     local distance_leader_weight = (cfg and cfg.distance_leader_weight) or FU.cfg_default('distance_leader_weight')
     local occupied_hex_penalty = (cfg and cfg.occupied_hex_penalty) or FU.cfg_default('occupied_hex_penalty')
     local value_ratio = (cfg and cfg.value_ratio) or FU.cfg_default('value_ratio')
@@ -226,7 +226,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
             gamedata.defense_maps
         )
     end
-    defense_rating_attacker = defense_rating_attacker / #attacker_infos * defense_weight
+    defense_rating_attacker = defense_rating_attacker / #attacker_infos * terrain_defense_weight
 
     extra_rating = extra_rating + defense_rating_attacker
 
@@ -240,7 +240,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
             gamedata.defense_maps
         )
     end
-    defense_rating_defender = defense_rating_defender / #dsts * defense_weight
+    defense_rating_defender = defense_rating_defender / #dsts * terrain_defense_weight
 
     extra_rating = extra_rating + defense_rating_defender
 
