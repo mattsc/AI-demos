@@ -66,7 +66,7 @@ function fred_attack_utils.healing_bonus(unit_info, hp_before_healing, is_villag
     HP_bonus = math.min(HP_bonus, hp_to_max)
 
     -- Convert to fraction units
-    local healing_bonus = HP_bonus / unit_info.max_hitpoints
+    local healing_bonus = HP_bonus / unit_info.max_hitpoints * unit_info.cost
 
     return healing_bonus
 end
