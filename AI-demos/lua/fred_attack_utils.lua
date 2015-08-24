@@ -302,11 +302,17 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     end
 
     local rating = defender_rating * defender_weight + attacker_rating * attacker_weight + extra_rating
+    local damage_rating = defender_damage_rating * defender_weight + attacker_damage_rating * attacker_weight + extra_rating
+    local delayed_damage = defender_delayed_damage * defender_weight + attacker_delayed_damage * attacker_weight + extra_rating
 
     --print('rating, attacker_rating, defender_rating, extra_rating:', rating, attacker_rating, defender_rating, extra_rating)
 
+    -- The overall ratings take the value_ratio into account, the attacker and
+    -- defender tables do not
     local rating_table = {
         rating = rating,
+        damage_rating = damage_rating,
+        delayed_damage = delayed_damage,
         attacker = {
             rating = attacker_rating,
             damage_rating = attacker_damage_rating,
