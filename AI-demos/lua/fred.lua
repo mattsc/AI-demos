@@ -1523,12 +1523,12 @@ return {
                             def_stat = combo_def_stat,
                             att_rating = combo_rt.attacker.rating,
                             def_rating = combo_rt.defender.rating,
+                            def_delayed_damage = combo_rt.defender.delayed_damage,
                             value_ratio = value_ratio
                         })
                     end
                 end
             end
-
             table.sort(combo_ratings, function(a, b) return a.rating > b.rating end)
             --DBG.dbms(combo_ratings)
             --print_time('#combo_ratings', #combo_ratings)
@@ -1576,6 +1576,12 @@ return {
                 local target_proxy = wesnoth.get_unit(target_loc[1], target_loc[2])
                 local old_HP_target = target_proxy.hitpoints
                 local hp = combo.def_stat.average_hp
+
+                -- As the counter attack happens on the enemy's side next turn,
+                -- delayed damage also needs to be applied
+                hp = hp - combo.def_delayed_damage
+
+                -- This is probably not necessary, but just in case:
                 if (hp < 0) then hp = 0 end
 
                 gamedata.unit_infos[target_id].hitpoints = hp
