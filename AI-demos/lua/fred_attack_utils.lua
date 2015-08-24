@@ -737,6 +737,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
                         gamedata, cfg
                     )
 
+                    -- It's okay to use the full rating here, rather than just damage_rating
                     rating = rating_table.defender.rating + (rating_table.attacker.rating + rating_table.extra.rating) / 100
                     --print(xa, ya, rating, rating_table.attacker.rating, rating_table.defender.rating, rating_table.extra.rating)
                 end
@@ -819,6 +820,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
                     end
                 end
 
+                -- Remove this attack from the rating and table again
                 if get_strongest_attack then
                     rating = rating - attack.rating
                 end
