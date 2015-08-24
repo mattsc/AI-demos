@@ -85,8 +85,8 @@ function fred_attack_utils.delayed_damage(unit_info, att_stat, hp_before, x, y, 
         delayed_damage = delayed_damage - 8 * (1 - att_stat.hp_chance[0])
     end
 
-    -- Positive damage needs to be capped at the amount of HP (can't lose more than that)
-    delayed_damage = math.min(delayed_damage, hp_before)
+    -- Positive damage needs to be capped at the amount of (HP - 1) (can't lose more than that)
+    delayed_damage = math.min(delayed_damage, hp_before - 1)
 
     -- Negative damage needs to be capped at amount by which hitpoints are below max_hitpoints
     -- Note that neg_hp_to_max is negative; delayed_damage cannot be smaller than that
