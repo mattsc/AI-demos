@@ -94,9 +94,9 @@ function fred_attack_utils.delayed_damage(unit_info, att_stat, hp_before, x, y, 
     delayed_damage = math.max(delayed_damage, neg_hp_to_max)
 
     -- Convert to fraction units
-    local delayed_damage = delayed_damage / unit_info.max_hitpoints * unit_info.cost
+    local delayed_damage_rating = delayed_damage / unit_info.max_hitpoints * unit_info.cost
 
-    return delayed_damage
+    return delayed_damage_rating, delayed_damage
 end
 
 function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_stat, def_stat, cfg)
@@ -184,18 +184,20 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     local occupied_hex_penalty = (cfg and cfg.occupied_hex_penalty) or FU.cfg_default('occupied_hex_penalty')
     local value_ratio = (cfg and cfg.value_ratio) or FU.cfg_default('value_ratio')
 
-    local attacker_damage_rating, attacker_delayed_damage = 0, 0
+    local attacker_damage_rating, attacker_delayed_damage_rating, attacker_delayed_damage = 0, 0, 0
     for i,attacker_info in ipairs(attacker_infos) do
         attacker_damage_rating = attacker_damage_rating - fred_attack_utils.damage_rating_unit(
             attacker_info, defender_info, att_stats[i], def_stat, cfg
         )
 
         -- Add in the delayed damage
-        attacker_delayed_damage = attacker_delayed_damage + fred_attack_utils.delayed_damage(attacker_info, att_stats[i], att_stats[i].average_hp, dsts[i][1], dsts[i][2], gamedata)
+        local tmp_addr, tmp_add = fred_attack_utils.delayed_damage(attacker_info, att_stats[i], att_stats[i].average_hp, dsts[i][1], dsts[i][2], gamedata)
+        attacker_delayed_damage_rating = attacker_delayed_damage_rating + tmp_addr
+        attacker_delayed_damage = attacker_delayed_damage + tmp_add
     end
 
     -- Delayed damage for the attacker is a negative rating
-    local attacker_rating = attacker_damage_rating - attacker_delayed_damage
+    local attacker_rating = attacker_damage_rating - attacker_delayed_damage_rating
 
     -- attacker_info is passed only to figure out whether the attacker might level up
     -- TODO: This is only works for the first attacker in a combo at the moment
@@ -205,10 +207,10 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     )
 
     -- Add in the delayed damage
-    local defender_delayed_damage = fred_attack_utils.delayed_damage(defender_info, def_stat, def_stat.average_hp, defender_x, defender_y, gamedata)
+    local defender_delayed_damage_rating, defender_delayed_damage = fred_attack_utils.delayed_damage(defender_info, def_stat, def_stat.average_hp, defender_x, defender_y, gamedata)
 
     -- Delayed damage for the defender is a positive rating
-    local defender_rating = defender_damage_rating + defender_delayed_damage
+    local defender_rating = defender_damage_rating + defender_delayed_damage_rating
 
     -- Now we add some extra ratings. They are positive for attacks that should be preferred
     -- and expressed in fraction of the defender maximum hitpoints
@@ -303,7 +305,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
 
     local rating = defender_rating * defender_weight + attacker_rating * attacker_weight + extra_rating
     local damage_rating = defender_damage_rating * defender_weight + attacker_damage_rating * attacker_weight + extra_rating
-    local delayed_damage = defender_delayed_damage * defender_weight + attacker_delayed_damage * attacker_weight + extra_rating
+    local delayed_damage_rating = defender_delayed_damage_rating * defender_weight + attacker_delayed_damage_rating * attacker_weight + extra_rating
 
     --print('rating, attacker_rating, defender_rating, extra_rating:', rating, attacker_rating, defender_rating, extra_rating)
 
@@ -316,12 +318,14 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
         attacker = {
             rating = attacker_rating,
             damage_rating = attacker_damage_rating,
-            delayed_damage = attacker_delayed_damage
+            delayed_damage = attacker_delayed_damage,
+            delayed_damage_rating = attacker_delayed_damage_rating
         },
         defender = {
             rating = defender_rating,
             damage_rating = defender_damage_rating,
-            delayed_damage = defender_delayed_damage
+            delayed_damage = defender_delayed_damage,
+            delayed_damage_rating = defender_delayed_damage_rating
         },
         extra = {
             rating = extra_rating
