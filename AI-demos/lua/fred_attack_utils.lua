@@ -42,37 +42,39 @@ function fred_attack_utils.is_acceptable_attack(damage_to_ai, damage_to_enemy, v
     return (damage_to_enemy / damage_to_ai) >= value_ratio
 end
 
-function fred_attack_utils.healing_bonus(unit_info, hp_before_healing, x, y, gamedata)
-    -- Returns the bonus rating the unit would get from healing
-    -- Currently taken into account: villages and regenerate
-    -- TODO: healers, rest healing
-    -- The bonus is in the same units (fractional gold) as the damage rating
+function fred_attack_utils.delayed_damage(unit_info, hp_before, x, y, gamedata)
+    -- Returns the damage the unit gets from delayed actions, both positive and negative
+    --  - Positive damage: poison, slow (counting slow as damage)
+    --  - Negative damage: villages, regenerate
+    -- TODO: add healers, rest healing
+    -- This damage is in the same units (fractional gold) as the damage rating
     --
-    -- @hp_before_healing: HP of the unit before the healing is done; this might
-    --   be different from unit_info.hitpoints. It is used to cap the amount of healing
+    -- @hp_before: HP of the unit before the delayed damage is applied; this might
+    --   be different from unit_info.hitpoints. It is used to cap the amount of damage, if needed.
     -- @x,@y: location of the unit for which to calculate this; this might or
     --   might not be the current location of the unit
 
-    local HP_bonus = 0
+    local delayed_damage = 0
 
     local is_village = gamedata.village_map[x] and gamedata.village_map[x][y]
 
-    -- If unit is on a village, we count that as an 8 HP bonus
+    -- If unit is on a village, we count that as an 8 HP bonus (negative damage)
     if is_village then
-        HP_bonus = HP_bonus + 8
-    -- Otherwise only: if unit can regenerate, this is an 8 HP bonus
+        delayed_damage = delayed_damage - 8
+    -- Otherwise only: if unit can regenerate, this is an 8 HP bonus (negative damage)
     elseif unit_info.regenerate then
-        HP_bonus = HP_bonus + 8
+        delayed_damage = delayed_damage - 8
     end
 
-    -- Bonus needs to be capped at amount by which hitpoints are below max_hitpoints
-    local hp_to_max = unit_info.max_hitpoints - hp_before_healing
-    HP_bonus = math.min(HP_bonus, hp_to_max)
+    -- Healing bonus needs to be capped at amount by which hitpoints are below max_hitpoints
+    -- Note that neg_hp_to_max is negative; delayed_damage cannot be smaller than that
+    local neg_hp_to_max = hp_before - unit_info.max_hitpoints
+    delayed_damage = math.max(delayed_damage, neg_hp_to_max)
 
     -- Convert to fraction units
-    local healing_bonus = HP_bonus / unit_info.max_hitpoints * unit_info.cost
+    local delayed_damage = delayed_damage / unit_info.max_hitpoints * unit_info.cost
 
-    return healing_bonus
+    return delayed_damage
 end
 
 function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_stat, def_stat, cfg)
@@ -172,16 +174,16 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     local occupied_hex_penalty = (cfg and cfg.occupied_hex_penalty) or FU.cfg_default('occupied_hex_penalty')
     local value_ratio = (cfg and cfg.value_ratio) or FU.cfg_default('value_ratio')
 
-    local attacker_damage_rating, attacker_healing_bonus = 0, 0
+    local attacker_damage_rating, attacker_delayed_damage = 0, 0
     for i,attacker_info in ipairs(attacker_infos) do
         attacker_damage_rating = attacker_damage_rating - fred_attack_utils.damage_rating_unit(
             attacker_info, defender_info, att_stats[i], def_stat, cfg
         )
 
-        -- Add in the healing bonus
-        attacker_healing_bonus = attacker_healing_bonus + fred_attack_utils.healing_bonus(attacker_info, att_stats[i].average_hp, dsts[i][1], dsts[i][2], gamedata)
+        -- Add in the delayed damage
+        attacker_delayed_damage = attacker_delayed_damage + fred_attack_utils.delayed_damage(attacker_info, att_stats[i].average_hp, dsts[i][1], dsts[i][2], gamedata)
     end
-    local attacker_rating = attacker_damage_rating + attacker_healing_bonus
+    local attacker_rating = attacker_damage_rating - attacker_delayed_damage
 
     -- attacker_info is passed only to figure out whether the attacker might level up
     -- TODO: This is only works for the first attacker in a combo at the moment
@@ -190,9 +192,9 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
         defender_info, attacker_infos[1], def_stat, att_stats[1], cfg
     )
 
-    -- Add in the healing bonus
-    local defender_healing_bonus = fred_attack_utils.healing_bonus(defender_info, def_stat.average_hp, defender_x, defender_y, gamedata)
-    local defender_rating = defender_damage_rating + defender_healing_bonus
+    -- Add in the delayed damage
+    local defender_delayed_damage = fred_attack_utils.delayed_damage(defender_info, def_stat.average_hp, defender_x, defender_y, gamedata)
+    local defender_rating = defender_damage_rating - defender_delayed_damage
 
     -- Now we add some extra ratings. They are positive for attacks that should be preferred
     -- and expressed in fraction of the defender maximum hitpoints
@@ -294,12 +296,12 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
         attacker = {
             rating = attacker_rating,
             damage_rating = attacker_damage_rating,
-            healing_bonus = attacker_healing_bonus
+            delayed_damage = attacker_delayed_damage
         },
         defender = {
             rating = defender_rating,
             damage_rating = defender_damage_rating,
-            healing_bonus = defender_healing_bonus
+            delayed_damage = defender_delayed_damage
         },
         extra = {
             rating = extra_rating
