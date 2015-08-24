@@ -42,7 +42,7 @@ function fred_attack_utils.is_acceptable_attack(damage_to_ai, damage_to_enemy, v
     return (damage_to_enemy / damage_to_ai) >= value_ratio
 end
 
-function fred_attack_utils.delayed_damage(unit_info, hp_before, x, y, gamedata)
+function fred_attack_utils.delayed_damage(unit_info, att_stat, hp_before, x, y, gamedata)
     -- Returns the damage the unit gets from delayed actions, both positive and negative
     --  - Positive damage: poison, slow (counting slow as damage)
     --  - Negative damage: villages, regenerate
@@ -56,14 +56,17 @@ function fred_attack_utils.delayed_damage(unit_info, hp_before, x, y, gamedata)
 
     local delayed_damage = 0
 
+    -- Negative delayed damage (healing)
     local is_village = gamedata.village_map[x] and gamedata.village_map[x][y]
 
     -- If unit is on a village, we count that as an 8 HP bonus (negative damage)
+    -- multiplied by the chance to survive
     if is_village then
-        delayed_damage = delayed_damage - 8
+        delayed_damage = delayed_damage - 8 * (1 - att_stat.hp_chance[0])
     -- Otherwise only: if unit can regenerate, this is an 8 HP bonus (negative damage)
+    -- multiplied by the chance to survive
     elseif unit_info.regenerate then
-        delayed_damage = delayed_damage - 8
+        delayed_damage = delayed_damage - 8 * (1 - att_stat.hp_chance[0])
     end
 
     -- Healing bonus needs to be capped at amount by which hitpoints are below max_hitpoints
@@ -181,7 +184,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
         )
 
         -- Add in the delayed damage
-        attacker_delayed_damage = attacker_delayed_damage + fred_attack_utils.delayed_damage(attacker_info, att_stats[i].average_hp, dsts[i][1], dsts[i][2], gamedata)
+        attacker_delayed_damage = attacker_delayed_damage + fred_attack_utils.delayed_damage(attacker_info, att_stats[i], att_stats[i].average_hp, dsts[i][1], dsts[i][2], gamedata)
     end
     local attacker_rating = attacker_damage_rating - attacker_delayed_damage
 
@@ -193,7 +196,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     )
 
     -- Add in the delayed damage
-    local defender_delayed_damage = fred_attack_utils.delayed_damage(defender_info, def_stat.average_hp, defender_x, defender_y, gamedata)
+    local defender_delayed_damage = fred_attack_utils.delayed_damage(defender_info, def_stat, def_stat.average_hp, defender_x, defender_y, gamedata)
     local defender_rating = defender_damage_rating - defender_delayed_damage
 
     -- Now we add some extra ratings. They are positive for attacks that should be preferred
