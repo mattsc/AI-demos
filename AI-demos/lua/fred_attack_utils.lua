@@ -56,6 +56,22 @@ function fred_attack_utils.delayed_damage(unit_info, att_stat, hp_before, x, y, 
 
     local delayed_damage = 0
 
+    -- Positive delayed damage (poison etc.)
+
+    -- Count poisoned as additional 8 HP damage times probability of being poisoned
+    -- but only if the unit is not already poisoned
+    -- HP=0 case counts as poisoned in the att_stats, so that needs to be subtracted
+    if (att_stat.poisoned ~= 0) and (not unit_info.poisoned) then
+        delayed_damage = delayed_damage + 8 * (att_stat.poisoned - att_stat.hp_chance[0])
+    end
+
+    -- Count slowed as additional 4 HP damage times probability of being slowed
+    -- but only if the unit is not already slowed
+    -- HP=0 case counts as slowed in the att_stats, so that needs to be subtracted
+    if (att_stat.slowed ~= 0) and (not unit_info.slowed) then
+        delayed_damage = delayed_damage + 4 * (att_stat.slowed - att_stat.hp_chance[0])
+    end
+
     -- Negative delayed damage (healing)
     local is_village = gamedata.village_map[x] and gamedata.village_map[x][y]
 
@@ -69,7 +85,10 @@ function fred_attack_utils.delayed_damage(unit_info, att_stat, hp_before, x, y, 
         delayed_damage = delayed_damage - 8 * (1 - att_stat.hp_chance[0])
     end
 
-    -- Healing bonus needs to be capped at amount by which hitpoints are below max_hitpoints
+    -- Positive damage needs to be capped at the amount of HP (can't lose more than that)
+    delayed_damage = math.min(delayed_damage, hp_before)
+
+    -- Negative damage needs to be capped at amount by which hitpoints are below max_hitpoints
     -- Note that neg_hp_to_max is negative; delayed_damage cannot be smaller than that
     local neg_hp_to_max = hp_before - unit_info.max_hitpoints
     delayed_damage = math.max(delayed_damage, neg_hp_to_max)
@@ -97,18 +116,6 @@ function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_
     local leveling_weight = (cfg and cfg.leveling_weight) or FU.cfg_default('leveling_weight')
 
     local damage = attacker_info.hitpoints - att_stat.average_hp
-
-    -- Count poisoned as additional 8 HP damage times probability of being poisoned
-    -- but only if the unit is not already poisoned
-    if (att_stat.poisoned ~= 0) and (not attacker_info.poisoned) then
-        damage = damage + 8 * (att_stat.poisoned - att_stat.hp_chance[0])
-    end
-
-    -- Count slowed as additional 4 HP damage times probability of being slowed
-    -- but only if the unit is not already slowed
-    if (att_stat.slowed ~= 0) and (not attacker_info.slowed) then
-        damage = damage + 4 * (att_stat.slowed - att_stat.hp_chance[0])
-    end
 
     -- Fractional damage (= fractional value of the attacker)
     local fractional_damage = damage / attacker_info.max_hitpoints
