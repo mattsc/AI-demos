@@ -544,13 +544,16 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
                 { tmp_att_stats[i] }, tmp_def_stats[i], gamedata, cfg
             )
 
-        ratings[i] = { i, rating_table.rating }  -- Need the i here in order to specify the order of attackers, dsts below
+        -- Need the i here in order to specify the order of attackers, dsts below
+        ratings[i] = { i, rating_table }
     end
 
     -- Sort all the arrays based on this rating
     -- This will give the order in which the individual attacks are executed
     -- That's an approximation of the best order, everything else is too expensive
-    table.sort(ratings, function(a, b) return a[2] > b[2] end)
+    -- TODO: reconsider whether total rating is what we want here
+    -- TODO: find a better way of ordering the attacks?
+    table.sort(ratings, function(a, b) return a[2].rating > b[2].rating end)
 
     -- Reorder attackers, dsts in this order
     local attacker_copies, attacker_infos, dsts = {}, {}, {}
@@ -624,8 +627,7 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
             att_stats, def_stats[#attacker_infos], gamedata, cfg
         )
 
-    return att_stats, def_stats[#attacker_infos], attacker_infos, dsts,
-        rating_table.rating, rating_table.attacker.rating, rating_table.defender.rating, rating_table.extra.rating
+    return att_stats, def_stats[#attacker_infos], attacker_infos, dsts, rating_table
 end
 
 function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, get_strongest_attack, gamedata, move_cache, cfg)
@@ -1034,16 +1036,16 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
             table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
         end
 
-        local combo_att_stats, combo_def_stat, sorted_atts, sorted_dsts, rating, att_rating, def_rating =
+        local combo_att_stats, combo_def_stat, sorted_atts, sorted_dsts, rating_table =
             fred_attack_utils.attack_combo_eval(
                 attacker_copies, target_proxy, dsts,
                 attacker_infos, gamedata.unit_infos[target_id],
                 gamedata, move_cache, cfg
             )
 
-        combo_def_stat.rating = rating
-        combo_def_stat.def_rating = def_rating
-        combo_def_stat.att_rating = att_rating
+        combo_def_stat.rating = rating_table.rating
+        combo_def_stat.def_rating = rating_table.defender.rating
+        combo_def_stat.att_rating = rating_table.attacker.rating
 
         -- Add min_hp field
         local min_hp = 0

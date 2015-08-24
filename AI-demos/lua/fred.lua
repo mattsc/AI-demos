@@ -1320,22 +1320,23 @@ return {
                     end
 
 
-                    local combo_att_stats, combo_def_stat, sorted_atts, sorted_dsts,
-                        combo_rating, combo_att_rating, combo_def_rating =
+                    local combo_att_stats, combo_def_stat, sorted_atts, sorted_dsts, combo_rt =
                         FAU.attack_combo_eval(
                             attacker_copies, target_proxy, dsts,
                             attacker_infos, gamedata.unit_infos[target_id],
                             gamedata, move_cache, cfg_attack
                     )
+                    local combo_rating = combo_rt.rating
+
                     --DBG.dbms(combo_def_stat)
-                    --print('   combo ratings: ', combo_rating, combo_att_rating, combo_def_rating)
+                    --print('   combo ratings: ', combo_rt.rating, combo_rt.attacker.rating, combo_rt.defender.rating)
 
                     -- Don't attack if the leader is involved and has chance to die > 0
                     local do_attack = true
 
-                    --print('     damage taken, done, value_ratio:', combo_att_rating, combo_def_rating, value_ratio)
+                    --print('     damage taken, done, value_ratio:', combo_rt.attacker.rating, combo_rt.defender.rating, value_ratio)
                     -- Note: att_rating is the negative of the damage taken
-                    if (not FAU.is_acceptable_attack(-combo_att_rating, combo_def_rating, value_ratio)) then
+                    if (not FAU.is_acceptable_attack(-combo_rt.attacker.rating, combo_rt.defender.rating, value_ratio)) then
                         do_attack = false
                     end
 
@@ -1520,8 +1521,8 @@ return {
                             target = target,
                             att_stats = combo_att_stats,
                             def_stat = combo_def_stat,
-                            att_rating = combo_att_rating,
-                            def_rating = combo_def_rating,
+                            att_rating = combo_rt.attacker.rating,
+                            def_rating = combo_rt.defender.rating,
                             value_ratio = value_ratio
                         })
                     end
