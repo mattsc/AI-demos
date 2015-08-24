@@ -186,6 +186,8 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
         -- Add in the delayed damage
         attacker_delayed_damage = attacker_delayed_damage + fred_attack_utils.delayed_damage(attacker_info, att_stats[i], att_stats[i].average_hp, dsts[i][1], dsts[i][2], gamedata)
     end
+
+    -- Delayed damage for the attacker is a negative rating
     local attacker_rating = attacker_damage_rating - attacker_delayed_damage
 
     -- attacker_info is passed only to figure out whether the attacker might level up
@@ -197,7 +199,9 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
 
     -- Add in the delayed damage
     local defender_delayed_damage = fred_attack_utils.delayed_damage(defender_info, def_stat, def_stat.average_hp, defender_x, defender_y, gamedata)
-    local defender_rating = defender_damage_rating - defender_delayed_damage
+
+    -- Delayed damage for the defender is a positive rating
+    local defender_rating = defender_damage_rating + defender_delayed_damage
 
     -- Now we add some extra ratings. They are positive for attacks that should be preferred
     -- and expressed in fraction of the defender maximum hitpoints
