@@ -1017,14 +1017,33 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
         hp_chance[0] = 0  -- hp_chance[0] is always assumed to be included, even when 0
 
         counter_attack_stat = {
-            average_hp = target_proxy.hitpoints,
-            min_hp = target_proxy.hitpoints,
-            hp_chance = hp_chance,
-            slowed = 0,
-            poisoned = 0,
-            rating = 0,
-            att_rating = 0,
-            def_rating = 0
+            def_stat = {
+                average_hp = target_proxy.hitpoints,
+                min_hp = target_proxy.hitpoints,
+                hp_chance = hp_chance,
+                slowed = 0,
+                poisoned = 0
+
+            },
+            rating_table = {
+                rating = 0,
+                damage_rating = 0,
+                attacker = {
+                    delayed_damage = 0,
+                    delayed_damage_rating = 0,
+                    rating = 0,
+                    damage_rating = 0
+                },
+                defender = {
+                    delayed_damage = 0,
+                    delayed_damage_rating = 0,
+                    rating = 0,
+                    damage_rating = 0
+                },
+                extra = {
+                    rating = 0
+                }
+            }
         }
     else
         -- Otherwise calculate the attack combo statistics
@@ -1047,9 +1066,11 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
                 gamedata, move_cache, cfg
             )
 
-        combo_def_stat.rating = rating_table.rating
-        combo_def_stat.def_rating = rating_table.defender.rating
-        combo_def_stat.att_rating = rating_table.attacker.rating
+        --combo_def_stat.rating = rating_table.rating
+        --combo_def_stat.def_rating = rating_table.defender.rating
+        --combo_def_stat.att_rating = rating_table.attacker.rating
+        --combo_def_stat.def_delayed_damage_rating = rating_table.defender.delayed_damage_rating
+        --combo_def_stat.att_delayed_damage_rating = rating_table.attacker.delayed_damage_rating
 
         -- Add min_hp field
         local min_hp = 0
@@ -1061,7 +1082,10 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
         end
         combo_def_stat.min_hp = min_hp
 
-        counter_attack_stat = combo_def_stat
+        counter_attack_stat = {
+            def_stat = combo_def_stat,
+            rating_table = rating_table
+        }
     end
 
     -- Extract the units from the map

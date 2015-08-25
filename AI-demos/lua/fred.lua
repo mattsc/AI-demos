@@ -1521,10 +1521,7 @@ return {
                             target = target,
                             att_stats = combo_att_stats,
                             def_stat = combo_def_stat,
-                            att_rating = combo_rt.attacker.rating,
-                            def_rating = combo_rt.defender.rating,
-                            def_delayed_damage = combo_rt.defender.delayed_damage,
-                            value_ratio = value_ratio
+                            rating_table = combo_rt
                         })
                     end
                 end
@@ -1579,7 +1576,7 @@ return {
 
                 -- As the counter attack happens on the enemy's side next turn,
                 -- delayed damage also needs to be applied
-                hp = hp - combo.def_delayed_damage
+                hp = hp - combo.rating_table.defender.delayed_damage
 
                 -- This is probably not necessary, but just in case:
                 if (hp < 0) then hp = 0 end
@@ -1603,17 +1600,15 @@ return {
                     )
                     --DBG.dbms(counter_stats)
 
-                    local counter_rating = counter_stats.rating
-                    local counter_att_rating = counter_stats.att_rating
-                    local counter_def_rating = counter_stats.def_rating
-                    local counter_chance_to_die = counter_stats.hp_chance[0]
-                    --print_time('   counter ratings:', counter_rating, counter_att_rating, counter_def_rating, counter_chance_to_die)
+                    local counter_rating = counter_stats.rating_table.rating
+                    local counter_chance_to_die = counter_stats.def_stat.hp_chance[0]
+                    --print_time('   counter ratings:', counter_rating, counter_chance_to_die)
 
                     if (counter_rating > max_counter_rating) then
                         max_counter_rating = counter_rating
                     end
 
-                    local counter_min_hp = counter_stats.min_hp
+                    local counter_min_hp = counter_stats.def_stat.min_hp
 
                     -- We next check whether the counter attack is acceptable
                     -- This is different for the side leader and other units
@@ -1624,13 +1619,13 @@ return {
                     if (#combo.attackers > 1) or (attacker.moves > 0) then
                         -- If there's a chance of the leader getting poisoned, slowed or killed, don't do it
                         if attacker.canrecruit then
-                            --print('Leader: slowed, poisoned %', counter_stats.slowed, counter_stats.poisoned)
-                            if (counter_stats.slowed > 0.0) then
+                            --print('Leader: slowed, poisoned %', counter_stats.def_stat.slowed, counter_stats.def_stat.poisoned)
+                            if (counter_stats.def_stat.slowed > 0.0) then
                                 acceptable_counter = false
                                 break
                             end
 
-                            if (counter_stats.poisoned > 0.0) and (not attacker.regenerate) then
+                            if (counter_stats.def_stat.poisoned > 0.0) and (not attacker.regenerate) then
                                 acceptable_counter = false
                                 break
                             end
@@ -1661,9 +1656,9 @@ return {
                                 break
                             end
                         else  -- Or for normal units, evaluate whether the attack is worth it
-                            local damage_taken = - combo.att_rating + counter_def_rating
-                            local damage_done = combo.def_rating - counter_att_rating
-                            --print('     damage taken, done, value_ratio:', damage_taken, damage_done, combo.value_ratio)
+                            local damage_taken = - combo.rating_table.attacker.rating + counter_stats.rating_table.defender.rating
+                            local damage_done = combo.rating_table.defender.rating - counter_stats.rating_table.attacker.rating
+                            --print('     damage taken, done, value_ratio:', damage_taken, damage_done, damage_taken / damage_done, combo.rating_table.value_ratio)
 
     --                        if (counter_chance_to_die >= 0.5) then
     --                            acceptable_counter = false
@@ -1711,19 +1706,15 @@ return {
                         )
                         --DBG.dbms(counter_stats)
 
-                        local counter_rating = counter_stats.rating
-                        local counter_att_rating = counter_stats.att_rating
-                        local counter_def_rating = counter_stats.def_rating
-                        local counter_chance_to_die = counter_stats.hp_chance[0]
-                        --print_time('   counter ratings no attack:', counter_rating, counter_att_rating, counter_def_rating, counter_chance_to_die)
+                        --print_time('   counter ratings no attack:', counter_stats.rating_table.rating, counter_stats.def_stat.hp_chance[0])
 
                         -- Rating if no forward attack is done is done is only the counter attack rating
-                        local no_attack_rating = 0 - counter_rating
+                        local no_attack_rating = 0 - counter_stats.rating_table.rating
                         -- If an attack is done, it's the combined forward and counter attack rating
-                        local with_attack_rating = combo.rating - max_counter_rating
+                        local with_attack_rating = combo.rating_table.rating - max_counter_rating
 
-                        --print('    V1: no attack rating: ', no_attack_rating, '<---', 0, -counter_rating)
-                        --print('    V2: with attack rating:', with_attack_rating, '<---', combo.rating, -max_counter_rating)
+                        --print('    V1: no attack rating: ', no_attack_rating, '<---', 0, -counter_stats.rating_table.rating)
+                        --print('    V2: with attack rating:', with_attack_rating, '<---', combo.rating_table.rating, -max_counter_rating)
 
                         if (with_attack_rating < no_attack_rating) then
                             acceptable_counter = false
@@ -1734,9 +1725,9 @@ return {
 
                 --print_time('  acceptable_counter', acceptable_counter)
                 if acceptable_counter then
-                    local total_rating = combo.rating - max_counter_rating
-                    --print('    Acceptable counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating)
-                    --print('    rating, counter_rating, total_rating', combo.rating, max_counter_rating, total_rating)
+                    local total_rating = combo.rating_table.rating - max_counter_rating
+                    --print('    Acceptable counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating_table.rating)
+                    --print('    rating, counter_rating, total_rating', combo.rating_table.rating, max_counter_rating, total_rating)
 
                     if (total_rating > max_total_rating) then
                         max_total_rating = total_rating
@@ -2189,22 +2180,22 @@ return {
                     -- taking a stance on bad terrain might not be worth it
                     -- TODO: what value is good here?
                     if (hit_chance > 0.5) then -- bad terrain
-                        if (counter_stats.hp_chance[0] > 0) then
-                            --print('  not acceptable because chance to die too high:', counter_stats.hp_chance[0])
+                        if (counter_stats.def_stat.hp_chance[0] > 0) then
+                            --print('  not acceptable because chance to die too high:', counter_stats.def_stat.hp_chance[0])
                             is_acceptable = false
                             break
                         end
                         -- TODO: not sure yet if this should be used
                         -- Also if the relative loss is more than X HP (X/12 the
                         -- value of a grunt) for any single attack
-                        if (counter_stats.rating >= 9) then
-                            --print('  not acceptable because chance to die too high:', counter_stats.hp_chance[0])
+                        if (counter_stats.rating_table.rating >= 9) then
+                            --print('  not acceptable because chance to die too high:', counter_stats.def_stat.hp_chance[0])
                             is_acceptable = false
                             break
                         end
                     else -- at least 50% defense
-                        if (counter_stats.hp_chance[0] >= 0.25) then
-                            --print('  not acceptable because chance to die too high:', counter_stats.hp_chance[0])
+                        if (counter_stats.def_stat.hp_chance[0] >= 0.25) then
+                            --print('  not acceptable because chance to die too high:', counter_stats.def_stat.hp_chance[0])
                             is_acceptable = false
                             break
                         end
@@ -2241,7 +2232,7 @@ return {
                     -- often varies by .01 or so
                     -- Important: the counter_stats rating is the rating of the
                     -- counter attack. We want this to be as *bad* as possible
-                    counter_attack_rating = - counter_stats.rating / 1000.
+                    counter_attack_rating = - counter_stats.rating_table.rating / 1000.
                     --print('      --> counter_attack_rating', counter_attack_rating)
 
                     rating = rating + enemy_rating + counter_attack_rating
@@ -2498,20 +2489,20 @@ return {
                                 -- taking a stance on bad terrain might not be worth it
                                 -- TODO: what value is good here?
                                 if (hit_chance > 0.5) then -- bad terrain
-                                    if (counter_stats.hp_chance[0] > 0) then
-                                        --print('  not acceptable because chance to die too high (bad terrain):', counter_stats.hp_chance[0])
+                                    if (counter_stats.def_stat.hp_chance[0] > 0) then
+                                        --print('  not acceptable because chance to die too high (bad terrain):', counter_stats.def_stat.hp_chance[0])
                                         is_acceptable = false
                                     end
                                     -- TODO: not sure yet if this should be used
                                     -- Also if the relative loss is more than X HP (X/12 the
                                     -- value of a grunt) for any single attack
-                                    if (counter_stats.rating >= 9) then
-                                        --print('  not acceptable because counter attack rating too bad:', counter_stats.rating)
+                                    if (counter_stats.rating_table.rating >= 9) then
+                                        --print('  not acceptable because counter attack rating too bad:', counter_stats.rating_table.rating)
                                         is_acceptable = false
                                     end
                                 else -- at least 50% defense
-                                    if (counter_stats.hp_chance[0] >= 0.25) then
-                                        --print('  not acceptable because chance to die too high (good terrain):', counter_stats.hp_chance[0])
+                                    if (counter_stats.def_stat.hp_chance[0] >= 0.25) then
+                                        --print('  not acceptable because chance to die too high (good terrain):', counter_stats.def_stat.hp_chance[0])
                                         is_acceptable = false
                                     end
                                 end
