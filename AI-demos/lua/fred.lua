@@ -1656,9 +1656,17 @@ return {
                                 break
                             end
                         else  -- Or for normal units, evaluate whether the attack is worth it
-                            local damage_taken = - combo.rating_table.attacker.rating + counter_stats.rating_table.defender.rating
-                            local damage_done = combo.rating_table.defender.rating - counter_stats.rating_table.attacker.rating
+                            --local damage_taken = - combo.rating_table.attacker.rating + counter_stats.rating_table.defender.rating
+                            --local damage_done = combo.rating_table.defender.rating - counter_stats.rating_table.attacker.rating
                             --print('     damage taken, done, value_ratio:', damage_taken, damage_done, damage_taken / damage_done, combo.rating_table.value_ratio)
+
+                            -- The total damage through attack + counter attack should use for
+                            -- forward attack: attacker damage rating and defender total rating
+                            -- counter attack: attacker total rating and defender damage rating
+                            -- as that is how the delayed damage is applied
+                            local damage_taken = - combo.rating_table.attacker.damage_rating + counter_stats.rating_table.defender.rating
+                            local damage_done = combo.rating_table.defender.rating - counter_stats.rating_table.attacker.damage_rating
+                            --print('     new damage taken, done, value_ratio:', damage_takenb, damage_doneb, damage_takenb / damage_doneb, combo.rating_table.value_ratio)
 
     --                        if (counter_chance_to_die >= 0.5) then
     --                            acceptable_counter = false
