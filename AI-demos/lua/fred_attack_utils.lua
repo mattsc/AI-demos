@@ -1,7 +1,7 @@
 local H = wesnoth.require "lua/helper.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FGUI = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
---local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
+local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 -- Functions to perform fast evaluation of attacks and attack combinations.
 -- The emphasis with all of this is on speed, not elegance.
@@ -1083,6 +1083,7 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
         combo_def_stat.min_hp = min_hp
 
         counter_attack_stat = {
+            att_stats = combo_att_stats,
             def_stat = combo_def_stat,
             rating_table = rating_table
         }

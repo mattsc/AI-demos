@@ -1587,7 +1587,7 @@ return {
 
                 local acceptable_counter = true
 
-                local max_counter_rating = -9e99
+                local max_damage_rating = -9e99
                 for i_a,attacker in ipairs(combo.attackers) do
                     --print_time('  by', attacker.id, combo.dsts[i_a][1], combo.dsts[i_a][2])
 
@@ -1600,12 +1600,19 @@ return {
                     )
                     --DBG.dbms(counter_stats)
 
-                    local counter_rating = counter_stats.rating_table.rating
-                    local counter_chance_to_die = counter_stats.def_stat.hp_chance[0]
-                    --print_time('   counter ratings:', counter_rating, counter_chance_to_die)
+                    -- The total damage through attack + counter attack should use for
+                    -- forward attack: attacker damage rating and defender total rating
+                    -- counter attack: attacker total rating and defender damage rating
+                    -- as that is how the delayed damage is applied
+                    -- That is then the damage that is used for the overall rating
+                    local damage_taken = - combo.rating_table.attacker.damage_rating + counter_stats.rating_table.defender.rating
+                    local damage_done = combo.rating_table.defender.rating - counter_stats.rating_table.attacker.damage_rating
+                    local damage_rating = - damage_taken * combo.rating_table.value_ratio + damage_done
+                    --print('  damage_taken, damage_done, value_ratio:', damage_taken, damage_done, combo.rating_table.value_ratio)
+                    --print('     --> damage_rating:', damage_rating)
 
-                    if (counter_rating > max_counter_rating) then
-                        max_counter_rating = counter_rating
+                    if (damage_rating > max_damage_rating) then
+                        max_damage_rating = damage_rating
                     end
 
                     local counter_min_hp = counter_stats.def_stat.min_hp
@@ -1656,24 +1663,7 @@ return {
                                 break
                             end
                         else  -- Or for normal units, evaluate whether the attack is worth it
-                            --local damage_taken = - combo.rating_table.attacker.rating + counter_stats.rating_table.defender.rating
-                            --local damage_done = combo.rating_table.defender.rating - counter_stats.rating_table.attacker.rating
-                            --print('     damage taken, done, value_ratio:', damage_taken, damage_done, damage_taken / damage_done, combo.rating_table.value_ratio)
-
-                            -- The total damage through attack + counter attack should use for
-                            -- forward attack: attacker damage rating and defender total rating
-                            -- counter attack: attacker total rating and defender damage rating
-                            -- as that is how the delayed damage is applied
-                            local damage_taken = - combo.rating_table.attacker.damage_rating + counter_stats.rating_table.defender.rating
-                            local damage_done = combo.rating_table.defender.rating - counter_stats.rating_table.attacker.damage_rating
-                            --print('     new damage taken, done, value_ratio:', damage_takenb, damage_doneb, damage_takenb / damage_doneb, combo.rating_table.value_ratio)
-
-    --                        if (counter_chance_to_die >= 0.5) then
-    --                            acceptable_counter = false
-    --                            break
-    --                        end
-
-                            if (not FAU.is_acceptable_attack(damage_taken, damage_done, combo.value_ratio)) then
+                            if (not FAU.is_acceptable_attack(damage_taken, damage_done, combo.rating_table.value_ratio)) then
                                 acceptable_counter = false
                                 break
                             end
@@ -1719,10 +1709,10 @@ return {
                         -- Rating if no forward attack is done is done is only the counter attack rating
                         local no_attack_rating = 0 - counter_stats.rating_table.rating
                         -- If an attack is done, it's the combined forward and counter attack rating
-                        local with_attack_rating = combo.rating_table.rating - max_counter_rating
+                        local with_attack_rating = max_damage_rating
 
                         --print('    V1: no attack rating: ', no_attack_rating, '<---', 0, -counter_stats.rating_table.rating)
-                        --print('    V2: with attack rating:', with_attack_rating, '<---', combo.rating_table.rating, -max_counter_rating)
+                        --print('    V2: with attack rating:', with_attack_rating, '<---', combo.rating_table.rating, max_damage_rating)
 
                         if (with_attack_rating < no_attack_rating) then
                             acceptable_counter = false
@@ -1733,9 +1723,9 @@ return {
 
                 --print_time('  acceptable_counter', acceptable_counter)
                 if acceptable_counter then
-                    local total_rating = combo.rating_table.rating - max_counter_rating
+                    local total_rating = max_damage_rating
                     --print('    Acceptable counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating_table.rating)
-                    --print('    rating, counter_rating, total_rating', combo.rating_table.rating, max_counter_rating, total_rating)
+                    --print('      --> total_rating', total_rating)
 
                     if (total_rating > max_total_rating) then
                         max_total_rating = total_rating
