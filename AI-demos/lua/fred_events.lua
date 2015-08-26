@@ -46,20 +46,9 @@ function fred_events.fred_setup()
             end
         end
 
-        -- Check whether enemy is Undead, which Fred still has problems with
-        wesnoth.set_variable('fred_enemy_warning', '')
+        -- Check whether fog is set
         local fog_set = false
         for _,side_info in ipairs(wesnoth.sides) do
-            local side = side_info.side
-            if wesnoth.is_enemy(side, wesnoth.current.side) then
-                for i,r in ipairs(wesnoth.sides[side].recruit) do
-                    if (r == 'Skeleton') then
-                        wesnoth.set_variable('fred_enemy_warning', '\n<i> </i>\n<i>Note that I still have problems playing against the undead.</i>')
-                        break
-                    end
-                end
-            end
-
             if side_info.fog then
                 fog_set = true
             end
