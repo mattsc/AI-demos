@@ -163,7 +163,6 @@ function fred_gamestate_utils.single_unit_info(unit_proxy)
     -- Information about the attacks indexed by weapon number,
     -- including specials (e.g. 'poison = true')
     single_unit_info.attacks = {}
-    single_unit_info.max_damage = 0
     for attack in H.child_range(unit_cfg, 'attack') do
         -- Extract information for specials; we do this first because some
         -- custom special might have the same name as one of the default scalar fields
@@ -192,11 +191,6 @@ function fred_gamestate_utils.single_unit_info(unit_proxy)
             if (type(v) == 'number') or (type(v) == 'string') then
                 a[k] = v
             end
-        end
-
-        local damage = (a.number or 0) * (a.damage or 0)
-        if (damage > single_unit_info.max_damage) then
-            single_unit_info.max_damage = damage
         end
 
         table.insert(single_unit_info.attacks, a)
