@@ -367,6 +367,15 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack)
         total_damage = math.floor(total_damage * 1.25)
     end
 
+    -- Count berserk as additional 100% on total damage
+    -- This is not exact at all and should, in principle, also be applied if
+    -- the opponent has berserk.  However, since it is only used to find the
+    -- strongest weapon, it's good enough.  (It is unlikely that an attacker
+    -- would choose to attack an opponent with the opponents berserk attack
+    -- if that is not the attacker's strongest weapon.)
+    if attack.berserk then
+        total_damage = math.floor(total_damage * 2)
+    end
     return total_damage
 end
 
