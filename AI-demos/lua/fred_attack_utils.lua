@@ -434,7 +434,7 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
                             -- This is a bit wasteful the first time around, but shouldn't be too bad overall
                             local _, _, _, def_weapon = wesnoth.simulate_combat(attacker_copy, i_a, defender_proxy, i_d)
 
-                            local total_damage_defense = def_weapon.num_blows * def_weapon.damage
+                            local total_damage_defense = fred_attack_utils.get_total_damage_attack(def_weapon, def)
 
                             if (total_damage_defense > best_def) then
                                 best_def = total_damage_defense
