@@ -173,15 +173,6 @@ function fred_utils.unit_power(unit_info, cfg)
     return power
 end
 
-function fred_utils.unit_damage_rating(hp, max_hp, max_damage, tod_mod)
-    -- Use sqrt() here so that just missing a few HP does not matter much
-    local hp_mod = math.sqrt(hp / max_hp)
-
-    local power = max_damage * hp_mod * tod_mod
-
-    return power
-end
-
 function fred_utils.get_influence_maps(my_attack_map, enemy_attack_map)
     -- For now, we use combined unit_power as the influence
 
