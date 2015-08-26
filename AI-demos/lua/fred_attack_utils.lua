@@ -360,6 +360,13 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack)
         total_damage = total_damage + 4
     end
 
+    -- Count drains as additional 25% on total damage
+    -- Don't use the full 50% healing that drains provides, as we want to
+    -- emphasize the actual damage done over the benefit received
+    if attack.drains then
+        total_damage = math.floor(total_damage * 1.25)
+    end
+
     return total_damage
 end
 
