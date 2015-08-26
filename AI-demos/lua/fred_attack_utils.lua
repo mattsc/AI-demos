@@ -338,6 +338,31 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     return rating_table
 end
 
+function fred_attack_utils.get_total_damage_attack(weapon, attack)
+    -- Get the (approximate) total damage an attack will do
+    --
+    -- @weapon: the weapon information as returned by wesnoth.simulate_combat()
+    -- @attack: the attack information as returned by fred_attack_utils.single_unit_info()
+
+    local total_damage = weapon.num_blows * weapon.damage
+
+    -- Give bonus for weapon specials.  This is not exactly what those specials
+    -- do in all cases, but that's okay since this is only used to determine
+    -- the strongest weapons.
+
+    -- Count poison as additional 8 HP on total damage
+    if attack.poison then
+        total_damage = total_damage + 8
+    end
+
+    -- Count slow as additional 4 HP on total damage
+    if attack.slow then
+        total_damage = total_damage + 4
+    end
+
+    return total_damage
+end
+
 function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, attacker_info, defender_info, gamedata, move_cache, cfg)
     -- Calculate the stats of a combat by @attacker_copy vs. @defender_proxy at location @dst
     -- We use wesnoth.simulate_combat for this, but cache results when possible
@@ -394,17 +419,8 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
                 -- This is a bit wasteful the first time around, but shouldn't be too bad overall
                 local _, _, att_weapon, _ = wesnoth.simulate_combat(attacker_copy, i_a, defender_proxy)
 
-                local total_damage_attack = att_weapon.num_blows * att_weapon.damage
-
-                -- Give bonus for poison and slow
-                if att.poison then
-                    total_damage_attack = total_damage_attack + 8
-                end
-                if att.slow then
-                    total_damage_attack = total_damage_attack + 4
-                end
-
                 --print('  i_a:', i_a, total_damage_attack)
+                local total_damage_attack = fred_attack_utils.get_total_damage_attack(att_weapon, att)
 
                 if (total_damage_attack > best_att) then
                     best_att = total_damage_attack
