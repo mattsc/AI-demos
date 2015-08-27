@@ -465,8 +465,8 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
                 -- This is a bit wasteful the first time around, but shouldn't be too bad overall
                 local _, _, att_weapon, _ = wesnoth.simulate_combat(attacker_copy, i_a, defender_proxy)
 
-                --print('  i_a:', i_a, total_damage_attack)
                 local total_damage_attack = fred_attack_utils.get_total_damage_attack(att_weapon, att, true, defender_info)
+                --print('  i_a:', i_a, total_damage_attack)
 
                 if (total_damage_attack > best_att) then
                     best_att = total_damage_attack
