@@ -143,7 +143,6 @@ function fred_gamestate_utils.single_unit_info(unit_proxy)
         max_experience = unit_proxy.max_experience,
 
         alignment = unit_cfg.alignment,
-        tod_mod = FU.get_unit_time_of_day_bonus(unit_cfg.alignment, wesnoth.get_time_of_day().lawful_bonus),
         cost = unit_cfg.cost,
         level = unit_cfg.level
     }
@@ -211,6 +210,13 @@ function fred_gamestate_utils.single_unit_info(unit_proxy)
     single_unit_info.resistances = {}
     for _,attack_type in ipairs(attack_types) do
         single_unit_info.resistances[attack_type] = wesnoth.unit_resistance(unit_proxy, attack_type) / 100.
+    end
+
+    -- Time of day modifier (need to be done after traits are extracted)
+    if (not single_unit_info.traits.fearless) then
+        single_unit_info.tod_mod = FU.get_unit_time_of_day_bonus(unit_cfg.alignment, wesnoth.get_time_of_day().lawful_bonus)
+    else
+        single_unit_info.tod_mod = 1
     end
 
     -- This needs to be at the very end, as it needs some of the other
