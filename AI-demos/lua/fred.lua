@@ -1950,6 +1950,9 @@ return {
                                 if (hit_chance < 0) then hit_chance = 0 end
                             end
 
+                            -- TODO: This ignores steadfast and marksman, might be added later
+                            -- That also applies in other places.  Search for 'hit_chance'.
+
                             local unit_rating = indep_rating_map[x][y].rating - hit_chance^2
 
                             if (not unit_rating_maps[id][x]) then unit_rating_maps[id][x] = {} end
