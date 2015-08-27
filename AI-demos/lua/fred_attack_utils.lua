@@ -383,6 +383,12 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack)
         total_damage = total_damage *2
     end
 
+    -- Marksman, magical and plague don't really change the damage. We just give
+    -- a small bonus here as a tie breaker.
+    if attack.marksman or attack.magical or attack.plague then
+        total_damage = total_damage + 2
+    end
+
     return total_damage
 end
 
