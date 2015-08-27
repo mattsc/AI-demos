@@ -410,7 +410,7 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
 
     -- Get enemy attack and reach maps
     -- These are for max MP of enemy units, and after taking all AI units with MP off the map
-    local enemy_attack_map, enemy_turn_maps = {}, {}
+    local enemy_attack_map, enemy_turn_maps, trapped_enemies = {}, {}, {}
 
     for i = 1,additional_turns+1 do
         enemy_attack_map[i] = {}
@@ -435,6 +435,7 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
         unit_copies[enemy_id].moves = old_moves
 
         reach_maps[enemy_id], enemy_turn_maps[enemy_id] = {}, {}
+        local is_trapped = true
         local attack_range = {}
         for _,loc in ipairs(reach) do
             -- reach_map:
@@ -445,6 +446,9 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
                 reach_maps[enemy_id][loc[1]][loc[2]] = { moves_left = loc[3] - (max_moves * additional_turns) }
             end
 
+            -- We count all enemies that can not move more than 1 hex from their
+            -- current location (for whatever reason) as trapped
+
             -- turn_map:
             local turns = (additional_turns + 1) - loc[3] / max_moves
             if (not enemy_turn_maps[enemy_id][loc[1]]) then enemy_turn_maps[enemy_id][loc[1]] = {} end
@@ -453,6 +457,12 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
             -- attack_range: for attack_map
             local int_turns = math.ceil(turns)
             if (int_turns == 0) then int_turns = 1 end
+
+            if is_trapped and (int_turns == 1) then
+                if (H.distance_between(loc[1], loc[2], unit_copies[enemy_id].x, unit_copies[enemy_id].y) > 1) then
+                    is_trapped = nil
+                end
+            end
 
             if (not attack_range[loc[1]]) then attack_range[loc[1]] = {} end
             if (not attack_range[loc[1]][loc[2]]) or (attack_range[loc[1]][loc[2]] > int_turns) then
@@ -466,6 +476,10 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
                     attack_range[xa][ya] = int_turns
                 end
             end
+        end
+
+        if is_trapped then
+            trapped_enemies[enemy_id] = true
         end
 
         for x,arr in pairs(attack_range) do
@@ -489,6 +503,7 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
 
     mapstate.enemy_attack_map = enemy_attack_map
     mapstate.enemy_turn_maps = enemy_turn_maps
+    mapstate.trapped_enemies = trapped_enemies
 
     return mapstate, reach_maps, unit_copies
 end
