@@ -128,7 +128,6 @@ function fred_utils.cfg_default(parm)
 
         leveling_weight = 1.,
 
-        defender_starting_damage_weight = 0.33,
         terrain_defense_weight = 0.1,
         distance_leader_weight = 0.002,
         occupied_hex_penalty = 0.001,

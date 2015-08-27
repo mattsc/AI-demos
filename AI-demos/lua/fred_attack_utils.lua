@@ -218,10 +218,6 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     -- but not for, e.g., evaluating counter attacks (which should be entirely damage based)
     local extra_rating = 0.
 
-    -- Prefer to attack already damaged enemies
-    local defender_starting_damage = defender_info.max_hitpoints - defender_info.hitpoints
-    extra_rating = extra_rating + defender_starting_damage * defender_starting_damage_weight
-
     -- If defender is on a village, add a bonus rating (we want to get rid of those preferentially)
     -- This is in addition to the damage bonus already included above (but as an extra rating)
     local defender_on_village = gamedata.village_map[defender_x] and gamedata.village_map[defender_x][defender_y]
