@@ -81,7 +81,7 @@ function fred_attack_utils.delayed_damage(unit_info, att_stat, hp_before, x, y, 
         delayed_damage = delayed_damage - 8 * (1 - att_stat.hp_chance[0])
     -- Otherwise only: if unit can regenerate, this is an 8 HP bonus (negative damage)
     -- multiplied by the chance to survive
-    elseif unit_info.regenerate then
+    elseif unit_info.abilities.regenerate then
         delayed_damage = delayed_damage - 8 * (1 - att_stat.hp_chance[0])
     end
 

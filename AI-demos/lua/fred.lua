@@ -1257,7 +1257,7 @@ return {
                 local target_proxy = wesnoth.get_unit(target_loc[1], target_loc[2])
 
                 local is_trappable_enemy = true
-                if gamedata.unit_infos[target_id].skirmisher then
+                if gamedata.unit_infos[target_id].abilities.skirmisher then
                     is_trappable_enemy = false
                 end
                 --print(target_id, '  trappable:', is_trappable_enemy, target_loc[1], target_loc[2])
@@ -1349,7 +1349,7 @@ return {
                                     break
                                 end
 
-                                if (att_stat.poisoned > 0.0) and (not sorted_atts[k].regenerate) then
+                                if (att_stat.poisoned > 0.0) and (not sorted_atts[k].abilities.regenerate) then
                                     do_attack = false
                                     break
                                 end
@@ -1632,7 +1632,7 @@ return {
                                 break
                             end
 
-                            if (counter_stats.def_stat.poisoned > 0.0) and (not attacker.regenerate) then
+                            if (counter_stats.def_stat.poisoned > 0.0) and (not attacker.abilities.regenerate) then
                                 acceptable_counter = false
                                 break
                             end

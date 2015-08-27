@@ -148,10 +148,11 @@ function fred_gamestate_utils.single_unit_info(unit_proxy)
     }
 
     -- Include the ability type, such as: hides, heals, regenerate, skirmisher (set up as 'hides = true')
+    single_unit_info.abilities = {}
     local abilities = H.get_child(unit_proxy.__cfg, "abilities")
     if abilities then
         for _,ability in ipairs(abilities) do
-            single_unit_info[ability[1]] = true
+            single_unit_info.abilities[ability[1]] = true
         end
     end
 
