@@ -85,6 +85,14 @@ function fred_attack_utils.delayed_damage(unit_info, att_stat, hp_before, x, y, 
         delayed_damage = delayed_damage - 8 * (1 - att_stat.hp_chance[0])
     end
 
+    -- Units with healthy trait get an automatic 2 HP healing
+    -- We don't need to check whether a unit is resting otherwise, as this
+    -- is for attack calculations (meaning: they won't be resting)
+    if unit_info.traits.healthy then
+print(unit_info.id, 'healthy')
+        delayed_damage = delayed_damage + 2
+    end
+
     -- Positive damage needs to be capped at the amount of (HP - 1) (can't lose more than that)
     delayed_damage = math.min(delayed_damage, hp_before - 1)
 
