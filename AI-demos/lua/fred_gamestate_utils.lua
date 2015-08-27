@@ -156,11 +156,12 @@ function fred_gamestate_utils.single_unit_info(unit_proxy)
         end
     end
 
-    -- Also add poisoned and slowed status
-    single_unit_info.status = {
-        poisoned = unit_proxy.status.poisoned,
-        slowed = unit_proxy.status.slowed
-    }
+    -- Also add all the statuses
+    single_unit_info.status = {}
+    local status = H.get_child(unit_cfg, "status")
+    for k,_ in pairs(status) do
+        single_unit_info.status[k] = true
+    end
 
     -- Information about the attacks indexed by weapon number,
     -- including specials (e.g. 'poison = true')
