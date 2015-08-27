@@ -342,7 +342,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     return rating_table
 end
 
-function fred_attack_utils.get_total_damage_attack(weapon, attack, is_attacker)
+function fred_attack_utils.get_total_damage_attack(weapon, attack, is_attacker, opponent_info)
     -- Get the (approximate) total damage an attack will do
     --
     -- @weapon: the weapon information as returned by wesnoth.simulate_combat()
@@ -356,7 +356,7 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack, is_attacker)
     -- the strongest weapons.
 
     -- Count poison as additional 8 HP on total damage
-    if attack.poison then
+    if attack.poison and (not opponent_info.status.unpoisonable) then
         total_damage = total_damage + 8
     end
 
@@ -368,7 +368,7 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack, is_attacker)
     -- Count drains as additional 25% on total damage
     -- Don't use the full 50% healing that drains provides, as we want to
     -- emphasize the actual damage done over the benefit received
-    if attack.drains then
+    if attack.drains and (not opponent_info.status.undrainable) then
         total_damage = math.floor(total_damage * 1.25)
     end
 
@@ -394,7 +394,10 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack, is_attacker)
     if is_attacker and attack.marksman then
         total_damage = total_damage + 2
     end
-    if attack.magical or attack.plague then
+    if attack.magical then
+        total_damage = total_damage + 2
+    end
+    if attack.plague and (not opponent_info.status.unplagueable) then
         total_damage = total_damage + 2
     end
 
@@ -462,8 +465,8 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
                 -- This is a bit wasteful the first time around, but shouldn't be too bad overall
                 local _, _, att_weapon, _ = wesnoth.simulate_combat(attacker_copy, i_a, defender_proxy)
 
-                local total_damage_attack = fred_attack_utils.get_total_damage_attack(att_weapon, att, true)
                 --print('  i_a:', i_a, total_damage_attack)
+                local total_damage_attack = fred_attack_utils.get_total_damage_attack(att_weapon, att, true, defender_info)
 
                 if (total_damage_attack > best_att) then
                     best_att = total_damage_attack
@@ -477,7 +480,7 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
                             -- This is a bit wasteful the first time around, but shouldn't be too bad overall
                             local _, _, _, def_weapon = wesnoth.simulate_combat(attacker_copy, i_a, defender_proxy, i_d)
 
-                            local total_damage_defense = fred_attack_utils.get_total_damage_attack(def_weapon, def, false)
+                            local total_damage_defense = fred_attack_utils.get_total_damage_attack(def_weapon, def, false, attacker_info)
 
                             if (total_damage_defense > best_def) then
                                 best_def = total_damage_defense
