@@ -156,11 +156,18 @@ function fred_gamestate_utils.single_unit_info(unit_proxy)
         end
     end
 
-    -- Also add all the statuses
+    -- Add all the statuses
     single_unit_info.status = {}
     local status = H.get_child(unit_cfg, "status")
     for k,_ in pairs(status) do
         single_unit_info.status[k] = true
+    end
+
+    -- Traits
+    single_unit_info.traits = {}
+    local mods = H.get_child(unit_cfg, "modifications")
+    for trait in H.child_range(mods, 'trait') do
+        single_unit_info.traits[trait.id] = true
     end
 
     -- Information about the attacks indexed by weapon number,
