@@ -61,6 +61,8 @@ function fred_attack_utils.delayed_damage(unit_info, att_stat, hp_before, x, y, 
     -- Count poisoned as additional 8 HP damage times probability of being poisoned
     -- but only if the unit is not already poisoned
     -- HP=0 case counts as poisoned in the att_stats, so that needs to be subtracted
+    -- Note: this includes unpoisonable units (e.g. undead) as att_stat.poisoned
+    -- is always zero for them
     if (att_stat.poisoned ~= 0) and (not unit_info.status.poisoned) then
         delayed_damage = delayed_damage + 8 * (att_stat.poisoned - att_stat.hp_chance[0])
     end
