@@ -93,7 +93,7 @@ function fred_attack_utils.delayed_damage(unit_info, att_stat, hp_before, x, y, 
     local neg_hp_to_max = hp_before - unit_info.max_hitpoints
     delayed_damage = math.max(delayed_damage, neg_hp_to_max)
 
-    -- Convert to fraction units
+    -- Convert to fractional unit value rating
     local delayed_damage_rating = delayed_damage / unit_info.max_hitpoints * unit_info.cost
 
     return delayed_damage_rating, delayed_damage
@@ -346,7 +346,7 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack)
 
     local total_damage = weapon.num_blows * weapon.damage
 
-    -- Give bonus for weapon specials.  This is not exactly what those specials
+    -- Give bonus for weapon specials. This is not exactly what those specials
     -- do in all cases, but that's okay since this is only used to determine
     -- the strongest weapons.
 
@@ -370,7 +370,7 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack)
     -- Count berserk as additional 100% on total damage
     -- This is not exact at all and should, in principle, also be applied if
     -- the opponent has berserk.  However, since it is only used to find the
-    -- strongest weapon, it's good enough.  (It is unlikely that an attacker
+    -- strongest weapon, it's good enough. (It is unlikely that an attacker
     -- would choose to attack an opponent with the opponents berserk attack
     -- if that is not the attacker's strongest weapon.)
     if attack.berserk then
