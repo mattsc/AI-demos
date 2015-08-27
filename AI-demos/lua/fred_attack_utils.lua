@@ -376,6 +376,13 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack)
     if attack.berserk then
         total_damage = math.floor(total_damage * 2)
     end
+
+    -- Double damage for backstab, but only if it was not active in the
+    -- weapon table determination by wesnoth.simulate_combat()
+    if attack.backstab and (not weapon.backstabs) then
+        total_damage = total_damage *2
+    end
+
     return total_damage
 end
 
