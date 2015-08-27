@@ -9,7 +9,7 @@ local W = H.set_wml_action_metatable {}
 
 local function debug_CA()
     -- Edit manually whether you want debug_CA mode or not
-    return false
+    return true
 end
 
 local function wrong_side(side)
