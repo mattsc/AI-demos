@@ -389,6 +389,11 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack)
         total_damage = total_damage + 2
     end
 
+    -- Notes on other weapons specials:
+    --  - charge is automatically taken into account
+    --  - swarm is automatically taken into account
+    --  - first strike does not affect maximum damage
+
     return total_damage
 end
 
