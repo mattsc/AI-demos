@@ -1265,8 +1265,7 @@ return {
                 if gamedata.trapped_enemies[target_id] then
                     is_trappable_enemy = false
                 end
-
-                print(target_id, '  trappable:', is_trappable_enemy, target_loc[1], target_loc[2])
+                --print(target_id, '  trappable:', is_trappable_enemy, target_loc[1], target_loc[2])
 
                 local attack_combos = FAU.get_attack_combos(
                     zonedata.zone_units_attacks, target, gamedata.reach_maps, false, move_cache, cfg_attack
