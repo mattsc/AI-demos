@@ -3223,12 +3223,16 @@ return {
                 -- Add units_used to status table
                 if unit and unit.valid then
                     fred.data.analysis.status.units_used[unit.id] = fred.data.zone_action.zone_id or 'other'
+                else
+                    -- If an AI unit died in the attack, we stop and reconsider
+                    -- This is not so much because this is an unfavorable outcome,
+                    -- but because that hex might be useful to another AI unit now.
+                    fred.data.zone_action.units = nil
                 end
             end
 
             fred.data.zone_action = nil
         end
-
 
         return fred
     end
