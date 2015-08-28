@@ -1,3 +1,28 @@
+----- 0.14.1 -----
+
+- Fred (Freelands AI for Northerners, Side 1):
+  - Refinements to the attack / counter attack evaluations:
+    - Most notably, we now take the time when "delayed damage" (poison, slow,
+      but also healing etc.) are applied into account correctly
+    - Add or improve consideration of the following in max damage calculations:
+      - Berserk, backstab, drain, magical, marksman, plague
+      - Immunities to poison, drain, plague
+      - Also apply these to the defender (previously was done only for attacker)
+    - Remove enemy starting damage bonus
+    - Do not give trapping bonus for already trapped enemies
+    - Do not discard a potential attack based on the forward attack rating alone
+    - Take fearless trait into account for time of day modifier
+    - Take healthy trait into account for delayed damage calculation
+    - Stop and reconsider attack combo execution if an attacker dies
+  - Fred scenario:
+    - Remove warning when playing against undead
+    - Use random start time
+    - Remove "kill unit" custom menu item
+    - No scrolling to Fred for end-of-scenario message
+- Miscellaneous:
+  - Quite a bit of internal reorganization of functions and tables
+
+
 ----- 0.14.0, 22 August 2014 -----
 
 - Fred (Freelands AI for Northerners, Side 1):
