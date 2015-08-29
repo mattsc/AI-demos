@@ -346,7 +346,6 @@ return {
                     fred.data.analysis.status.units_used[id] = nil
                 end
             end
-            --DBG.dbms(stage_status)
 
 
             -- T1 threats: those enemies that can attack the leader directly.
@@ -407,6 +406,7 @@ return {
             -- Everything else is done without resource limit
             stage_status[raw_cfg.zone_id].power_needed = power_needed
             stage_status[raw_cfg.zone_id].power_missing = power_missing
+            --DBG.dbms(stage_status)
 
 
             -- We also get all units that are in the zone but not T1 threats
