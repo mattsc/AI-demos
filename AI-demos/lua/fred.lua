@@ -450,7 +450,8 @@ return {
                 stage_id = stage_id,
                 actions = { advance = true },
                 ignore_villages = true, -- main goal is to get toward the leader
-                value_ratio = 0.5  -- and need to do so very aggressively
+                ignore_counter = true,  -- and need to do so very aggressively
+                value_ratio = 0.5
             }
 
 
@@ -2475,7 +2476,7 @@ return {
                             -- All priority villages need to be considered, as they
                             -- are re-evaluated later
                             local is_acceptable = true
-                            if rating and ((rating > max_rating) or is_priority_village) then
+                            if (not zonedata.cfg.ignore_counter) and rating and ((rating > max_rating) or is_priority_village) then
                                 --print('Checking if location is acceptable', x, y)
 
                                 local old_locs = { { loc[1], loc[2] } }
