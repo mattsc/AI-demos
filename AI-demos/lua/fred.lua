@@ -432,7 +432,7 @@ return {
                 stage_id = stage_id,
                 targets = {},
                 actions = { attack = true },
-                value_ratio = 0.75, -- more aggressive for direct leader threats
+                value_ratio = 0.5, -- more aggressive for direct leader threats
                 ignore_resource_limit = true
             }
 
