@@ -305,19 +305,7 @@ return {
             --print('\n--------------- ' .. stage_id .. ' ------------------------')
 
             -- Start with an analysis of the threat to the AI leader
-            local leader_x = gamedata.leaders[wesnoth.current.side][1]
-            local leader_y = gamedata.leaders[wesnoth.current.side][2]
-            --print(leader_x, leader_y)
-
-            local leader_proxy = wesnoth.get_unit(leader_x, leader_y)
-
-            local enemy_leader_loc = {}
-            for side,loc in ipairs(gamedata.leaders) do
-                if wesnoth.is_enemy(side, wesnoth.current.side) then
-                    enemy_leader_loc = loc
-                    break
-                end
-            end
+            local leader_proxy = wesnoth.get_unit(gamedata.leader_x, gamedata.leader_y)
 
             local raw_cfg = fred:get_raw_cfgs('leader')
             --DBG.dbms(raw_cfg)
@@ -1845,16 +1833,8 @@ return {
             end
 
             -- Need a map with the distances to the enemy and own leaders
-            local leader_cx, leader_cy = AH.cartesian_coords(gamedata.leaders[wesnoth.current.side][1], gamedata.leaders[wesnoth.current.side][2])
-
-            local enemy_leader_loc = {}
-            for side,loc in ipairs(gamedata.leaders) do
-                if wesnoth.is_enemy(side, wesnoth.current.side) then
-                    enemy_leader_loc = loc
-                    break
-                end
-            end
-            local enemy_leader_cx, enemy_leader_cy = AH.cartesian_coords(enemy_leader_loc[1], enemy_leader_loc[2])
+            local leader_cx, leader_cy = AH.cartesian_coords(gamedata.leader_x, gamedata.leader_y)
+            local enemy_leader_cx, enemy_leader_cy = AH.cartesian_coords(gamedata.enemy_leader_x, gamedata.enemy_leader_y)
 
             local dist_btw_leaders = math.sqrt( (enemy_leader_cx - leader_cx)^2 + (enemy_leader_cy - leader_cy)^2 )
 
@@ -2727,14 +2707,7 @@ return {
 
             local leader_copy = fred.data.gamedata.unit_copies[leader.id]
 
-            local enemy_leader_loc = {}
-            for side,loc in ipairs(fred.data.gamedata.leaders) do
-                if wesnoth.is_enemy(side, wesnoth.current.side) then
-                    enemy_leader_loc = loc
-                    break
-                end
-            end
-            local enemy_leader_cx, enemy_leader_cy = AH.cartesian_coords(enemy_leader_loc[1], enemy_leader_loc[2])
+            local enemy_leader_cx, enemy_leader_cy = AH.cartesian_coords(fred.data.gamedata.enemy_leader_x, fred.data.gamedata.enemy_leader_y)
 
             local width,height,border = wesnoth.get_map_size()
             local keeps = wesnoth.get_locations {
