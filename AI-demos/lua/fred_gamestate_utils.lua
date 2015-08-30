@@ -405,12 +405,57 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
         end
     end
 
+    -- Leader distance maps. These are calculated using wesnoth.find_cost_map() for
+    -- each unit type from the position of the leader. This is not ideal, as it is
+    -- in the wrong direction (and terrain changes are not symmetric), but it
+    -- is good enough for the purpose of finding the best way to the leader
+    -- TODO: do this correctly, if needed
+    local leader_distance_maps, enemy_leader_distance_maps = {}, {}
+    for id,_ in pairs(my_units) do
+        local typ = unit_infos[id].type -- can't use type, that's reserved
+
+        -- Do this only once for each unit type; not needed for the leader
+        if (not leader_distance_maps[typ]) and (not unit_infos[id].canrecruit) then
+            leader_distance_maps[typ] = {}
+
+            cost_map = wesnoth.find_cost_map(
+                { x = -1 }, -- SUF not matching any unit
+                { { mapstate.leader_x, mapstate.leader_y, wesnoth.current.side, typ } },
+                { ignore_units = true } -- this is the default, I think, but just in case
+            )
+
+            for _,cost in pairs(cost_map) do
+                if (cost[3] > -1) then
+                    FU.set_fgumap_value(leader_distance_maps[typ], cost[1], cost[2], 'cost', cost[3])
+                end
+            end
+
+            enemy_leader_distance_maps[typ] = {}
+
+            cost_map = wesnoth.find_cost_map(
+                { x = -1 }, -- SUF not matching any unit
+                { { mapstate.enemy_leader_x, mapstate.enemy_leader_y, wesnoth.current.side, typ } },
+                { ignore_units = true } -- this is the default, I think, but just in case
+            )
+
+            for _,cost in pairs(cost_map) do
+                local x, y, c = cost[1], cost[2], cost[3]
+                if (cost[3] > -1) then
+                    FU.set_fgumap_value(enemy_leader_distance_maps[typ], cost[1], cost[2], 'cost', cost[3])
+                end
+            end
+        end
+    end
+
+
     mapstate.units = units
     mapstate.my_units = my_units
     mapstate.my_units_MP = my_units_MP
     mapstate.my_units_noMP = my_units_noMP
     mapstate.enemies = enemies
     mapstate.leaders = leaders
+    mapstate.leader_distance_maps = leader_distance_maps
+    mapstate.enemy_leader_distance_maps = enemy_leader_distance_maps
 
     mapstate.my_unit_map = my_unit_map
     mapstate.my_unit_map_MP = my_unit_map_MP
