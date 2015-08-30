@@ -271,13 +271,11 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     -- Get a very small bonus for hexes in between defender and AI leader
     -- 'relative_distances' is larger for attack hexes closer to the side leader (possible values: -1 .. 1)
     if gamedata.leaders[attacker_infos[1].side] then
-        local leader_x, leader_y = gamedata.leaders[attacker_infos[1].side][1], gamedata.leaders[attacker_infos[1].side][2]
-
         local rel_dist_rating = 0.
         for _,dst in ipairs(dsts) do
             local relative_distance =
-                H.distance_between(defender_x, defender_y, leader_x, leader_y)
-                - H.distance_between(dst[1], dst[2], leader_x, leader_y)
+                H.distance_between(defender_x, defender_y, gamedata.leader_x, gamedata.leader_y)
+                - H.distance_between(dst[1], dst[2], gamedata.leader_x, gamedata.leader_y)
             rel_dist_rating = rel_dist_rating + relative_distance
         end
         rel_dist_rating = rel_dist_rating / #dsts * distance_leader_weight
