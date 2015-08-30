@@ -142,6 +142,7 @@ function fred_gamestate_utils.single_unit_info(unit_proxy)
         experience = unit_proxy.experience,
         max_experience = unit_proxy.max_experience,
 
+        type = unit_proxy.type,
         alignment = unit_cfg.alignment,
         cost = unit_cfg.cost,
         level = unit_cfg.level
