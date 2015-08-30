@@ -395,6 +395,16 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
         end
     end
 
+    -- Leader and enemy leader coordinates. These are needed often enough that
+    -- it is worth not extracting them from the leaders table every time
+    for side,leader in ipairs(leaders) do
+        if (side == wesnoth.current.side) then
+            mapstate.leader_x, mapstate.leader_y = leader[1], leader[2]
+        else
+            mapstate.enemy_leader_x, mapstate.enemy_leader_y = leader[1], leader[2]
+        end
+    end
+
     mapstate.units = units
     mapstate.my_units = my_units
     mapstate.my_units_MP = my_units_MP
