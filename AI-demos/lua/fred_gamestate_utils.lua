@@ -415,7 +415,7 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
         local typ = unit_infos[id].type -- can't use type, that's reserved
 
         -- Do this only once for each unit type; not needed for the leader
-        if (not leader_distance_maps[typ]) and (not unit_infos[id].canrecruit) then
+        if (not leader_distance_maps[typ]) then
             leader_distance_maps[typ] = {}
 
             cost_map = wesnoth.find_cost_map(
