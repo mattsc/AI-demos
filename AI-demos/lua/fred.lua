@@ -1518,6 +1518,7 @@ return {
             --print_time('#combo_ratings', #combo_ratings)
 
             -- Now check whether counter attacks are acceptable
+            local show_debug = false
             local max_total_rating, action = -9e99
             for count,combo in ipairs(combo_ratings) do
                 if (count > 50) and action then break end
@@ -1532,6 +1533,11 @@ return {
 
                 local old_locs, old_HP_attackers = {}, {}
                 for i_a,attacker_info in ipairs(combo.attackers) do
+                    if show_debug then
+                        local id, x, y = attacker_info.id, combo.dsts[i_a][1], combo.dsts[i_a][2]
+                        W.label { x = x, y = y, text = attacker_info.id }
+                    end
+
                     table.insert(old_locs, gamedata.my_units[attacker_info.id])
 
                     -- Apply average hitpoints from the forward attack as starting point
@@ -1552,6 +1558,14 @@ return {
                     if gamedata.my_units_noMP[attacker_info.id] then
                         local unit_proxy = wesnoth.get_unit(old_locs[i_a][1], old_locs[i_a][2])
                         unit_proxy.hitpoints = hp
+                    end
+                end
+
+                if show_debug then
+                    W.message { speaker = 'narrator', message = 'Attack combo ' .. count }
+                    for i_a,attacker_info in ipairs(combo.attackers) do
+                        local id, x, y = attacker_info.id, combo.dsts[i_a][1], combo.dsts[i_a][2]
+                        W.label { x = x, y = y, text = "" }
                     end
                 end
 
