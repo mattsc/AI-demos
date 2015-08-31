@@ -1540,234 +1540,234 @@ return {
                 end
                 --print('  is_disqualified', is_disqualified)
 
-              if (not is_disqualified) then -- **** start fix indenting ****
-                -- TODO: the following is slightly inefficient, as it places units and
-                -- takes them off again several times for the same attack combo.
-                -- This could be streamlined if it becomes an issue, but at the expense
-                -- of either duplicating code or adding parameters to FAU.calc_counter_attack()
-                -- I don't think that it is the bottleneck, so we leave it as it is for now.
+                if (not is_disqualified) then
+                    -- TODO: the following is slightly inefficient, as it places units and
+                    -- takes them off again several times for the same attack combo.
+                    -- This could be streamlined if it becomes an issue, but at the expense
+                    -- of either duplicating code or adding parameters to FAU.calc_counter_attack()
+                    -- I don't think that it is the bottleneck, so we leave it as it is for now.
 
-                local old_locs, old_HP_attackers = {}, {}
-                for i_a,attacker_info in ipairs(combo.attackers) do
-                    if show_debug then
-                        local id, x, y = attacker_info.id, combo.dsts[i_a][1], combo.dsts[i_a][2]
-                        W.label { x = x, y = y, text = attacker_info.id }
-                    end
-
-                    table.insert(old_locs, gamedata.my_units[attacker_info.id])
-
-                    -- Apply average hitpoints from the forward attack as starting point
-                    -- for the counter attack. This isn't entirely accurate, but
-                    -- doing it correctly is too expensive, and this is better than doing nothing.
-                    -- TODO: It also sometimes overrates poisoned or slowed, as it might be
-                    -- counted for both attack and counter attack. This could be done more
-                    -- accurately by using a combined chance of getting poisoned/slowed, but
-                    -- for now we use this as good enough.
-                    table.insert(old_HP_attackers, gamedata.unit_infos[attacker_info.id].hitpoints)
-
-                    local hp = combo.att_stats[i_a].average_hp
-                    if (hp < 1) then hp = 1 end
-                    gamedata.unit_infos[attacker_info.id].hitpoints = hp
-                    gamedata.unit_copies[attacker_info.id].hitpoints = hp
-
-                    -- If the unit is on the map, it also needs to be applied to the unit proxy
-                    if gamedata.my_units_noMP[attacker_info.id] then
-                        local unit_proxy = wesnoth.get_unit(old_locs[i_a][1], old_locs[i_a][2])
-                        unit_proxy.hitpoints = hp
-                    end
-                end
-
-                if show_debug then
-                    W.message { speaker = 'narrator', message = 'Attack combo ' .. count }
+                    local old_locs, old_HP_attackers = {}, {}
                     for i_a,attacker_info in ipairs(combo.attackers) do
-                        local id, x, y = attacker_info.id, combo.dsts[i_a][1], combo.dsts[i_a][2]
-                        W.label { x = x, y = y, text = "" }
-                    end
-                end
+                        if show_debug then
+                            local id, x, y = attacker_info.id, combo.dsts[i_a][1], combo.dsts[i_a][2]
+                            W.label { x = x, y = y, text = attacker_info.id }
+                        end
 
-                -- Also set the hitpoints for the defender
-                local target_id, target_loc = next(combo.target)
-                local target_proxy = wesnoth.get_unit(target_loc[1], target_loc[2])
-                local old_HP_target = target_proxy.hitpoints
-                local hp = combo.def_stat.average_hp
+                        table.insert(old_locs, gamedata.my_units[attacker_info.id])
 
-                -- As the counter attack happens on the enemy's side next turn,
-                -- delayed damage also needs to be applied
-                hp = hp - combo.rating_table.defender.delayed_damage
+                        -- Apply average hitpoints from the forward attack as starting point
+                        -- for the counter attack. This isn't entirely accurate, but
+                        -- doing it correctly is too expensive, and this is better than doing nothing.
+                        -- TODO: It also sometimes overrates poisoned or slowed, as it might be
+                        -- counted for both attack and counter attack. This could be done more
+                        -- accurately by using a combined chance of getting poisoned/slowed, but
+                        -- for now we use this as good enough.
+                        table.insert(old_HP_attackers, gamedata.unit_infos[attacker_info.id].hitpoints)
 
-                -- This is probably not necessary, but just in case:
-                if (hp < 0) then hp = 0 end
+                        local hp = combo.att_stats[i_a].average_hp
+                        if (hp < 1) then hp = 1 end
+                        gamedata.unit_infos[attacker_info.id].hitpoints = hp
+                        gamedata.unit_copies[attacker_info.id].hitpoints = hp
 
-                gamedata.unit_infos[target_id].hitpoints = hp
-                gamedata.unit_copies[target_id].hitpoints = hp
-                target_proxy.hitpoints = hp
-
-                local acceptable_counter = true
-
-                local max_damage_rating = -9e99
-                for i_a,attacker in ipairs(combo.attackers) do
-                    --print_time('  by', attacker.id, combo.dsts[i_a][1], combo.dsts[i_a][2])
-
-                    -- Now calculate the counter attack outcome
-                    local attacker_moved = {}
-                    attacker_moved[attacker.id] = { combo.dsts[i_a][1], combo.dsts[i_a][2] }
-
-                    local counter_stats = FAU.calc_counter_attack(
-                        attacker_moved, old_locs, combo.dsts, gamedata, move_cache, cfg_attack
-                    )
-                    --DBG.dbms(counter_stats)
-
-                    -- The total damage through attack + counter attack should use for
-                    -- forward attack: attacker damage rating and defender total rating
-                    -- counter attack: attacker total rating and defender damage rating
-                    -- as that is how the delayed damage is applied
-                    -- That is then the damage that is used for the overall rating
-                    local damage_taken = - combo.rating_table.attacker.damage_rating + counter_stats.rating_table.defender.rating
-                    local damage_done = combo.rating_table.defender.rating - counter_stats.rating_table.attacker.damage_rating
-                    local damage_rating = - damage_taken * combo.rating_table.value_ratio + damage_done
-                    --print('  damage_taken, damage_done, value_ratio:', damage_taken, damage_done, combo.rating_table.value_ratio)
-                    --print('     --> damage_rating:', damage_rating)
-
-                    if (damage_rating > max_damage_rating) then
-                        max_damage_rating = damage_rating
-                    end
-
-                    local counter_min_hp = counter_stats.def_stat.min_hp
-
-                    -- We next check whether the counter attack is acceptable
-                    -- This is different for the side leader and other units
-                    -- Also, it is different for attacks by individual units without MP;
-                    -- for those it simply matters whether the attack makes things
-                    -- better or worse, since there isn't a coice of moving someplace else
-
-                    if (#combo.attackers > 1) or (attacker.moves > 0) then
-                        -- If there's a chance of the leader getting poisoned, slowed or killed, don't do it
-                        if attacker.canrecruit then
-                            --print('Leader: slowed, poisoned %', counter_stats.def_stat.slowed, counter_stats.def_stat.poisoned)
-                            if (counter_stats.def_stat.slowed > 0.0) then
-                                acceptable_counter = false
-                                FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
-                                break
-                            end
-
-                            if (counter_stats.def_stat.poisoned > 0.0) and (not attacker.abilities.regenerate) then
-                                acceptable_counter = false
-                                FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
-                                break
-                            end
-
-                            -- Add max damages from this turn and counter-attack
-                            local min_hp = 0
-                            for hp = 0,attacker.hitpoints do
-                                if combo.att_stats[i_a].hp_chance[hp] and (combo.att_stats[i_a].hp_chance[hp] > 0) then
-                                    min_hp = hp
-                                    break
-                                end
-                            end
-
-                            -- Note that this is not really the maximum damage from the attack, as
-                            -- attacker.hitpoints is reduced to the average HP outcome of the attack
-                            -- However, min_hp for the counter also contains this reduction, so
-                            -- min_outcome below has the correct value (except for rounding errors,
-                            -- that's why it is compared ot 0.5 instead of 0)
-                            local max_damage_attack = attacker.hitpoints - min_hp
-                            --print('max_damage_attack, attacker.hitpoints, min_hp', max_damage_attack, attacker.hitpoints, min_hp)
-
-                            -- Add damage from attack and counter attack
-                            local min_outcome = counter_min_hp - max_damage_attack
-                            --print('Leader: min_outcome, counter_min_hp, max_damage_attack', min_outcome, counter_min_hp, max_damage_attack)
-
-                            if (min_outcome < 0.5) then
-                                acceptable_counter = false
-                                FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
-                                break
-                            end
-                        else  -- Or for normal units, evaluate whether the attack is worth it
-                            if (not FAU.is_acceptable_attack(damage_taken, damage_done, combo.rating_table.value_ratio)) then
-                                acceptable_counter = false
-                                FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
-                                break
-                            end
+                        -- If the unit is on the map, it also needs to be applied to the unit proxy
+                        if gamedata.my_units_noMP[attacker_info.id] then
+                            local unit_proxy = wesnoth.get_unit(old_locs[i_a][1], old_locs[i_a][2])
+                            unit_proxy.hitpoints = hp
                         end
                     end
-                end
 
-                -- Now reset the hitpoints for attackers and defender
-                for i_a,attacker_info in ipairs(combo.attackers) do
-                    gamedata.unit_infos[attacker_info.id].hitpoints = old_HP_attackers[i_a]
-                    gamedata.unit_copies[attacker_info.id].hitpoints = old_HP_attackers[i_a]
-                    if gamedata.my_units_noMP[attacker_info.id] then
-                        local unit_proxy = wesnoth.get_unit(old_locs[i_a][1], old_locs[i_a][2])
-                        unit_proxy.hitpoints = old_HP_attackers[i_a]
+                    if show_debug then
+                        W.message { speaker = 'narrator', message = 'Attack combo ' .. count }
+                        for i_a,attacker_info in ipairs(combo.attackers) do
+                            local id, x, y = attacker_info.id, combo.dsts[i_a][1], combo.dsts[i_a][2]
+                            W.label { x = x, y = y, text = "" }
+                        end
                     end
-                end
 
-                gamedata.unit_infos[target_id].hitpoints = old_HP_target
-                gamedata.unit_copies[target_id].hitpoints = old_HP_target
-                target_proxy.hitpoints = old_HP_target
+                    -- Also set the hitpoints for the defender
+                    local target_id, target_loc = next(combo.target)
+                    local target_proxy = wesnoth.get_unit(target_loc[1], target_loc[2])
+                    local old_HP_target = target_proxy.hitpoints
+                    local hp = combo.def_stat.average_hp
 
+                    -- As the counter attack happens on the enemy's side next turn,
+                    -- delayed damage also needs to be applied
+                    hp = hp - combo.rating_table.defender.delayed_damage
 
-                -- Now we add the check for attacks by individual units with
-                -- no MP. Here we simply compare the rating of not attacking
-                -- vs. attacking. If attacking results in a better rating, we do it.
-                if (#combo.attackers == 1) then
-                    local attacker = combo.attackers[1]
+                    -- This is probably not necessary, but just in case:
+                    if (hp < 0) then hp = 0 end
 
-                    if (attacker.moves == 0) then
-                        --print_time('  by', attacker.id, combo.dsts[1][1], combo.dsts[1][2])
+                    gamedata.unit_infos[target_id].hitpoints = hp
+                    gamedata.unit_copies[target_id].hitpoints = hp
+                    target_proxy.hitpoints = hp
+
+                    local acceptable_counter = true
+
+                    local max_damage_rating = -9e99
+                    for i_a,attacker in ipairs(combo.attackers) do
+                        --print_time('  by', attacker.id, combo.dsts[i_a][1], combo.dsts[i_a][2])
 
                         -- Now calculate the counter attack outcome
                         local attacker_moved = {}
-                        attacker_moved[attacker.id] = { combo.dsts[1][1], combo.dsts[1][2] }
+                        attacker_moved[attacker.id] = { combo.dsts[i_a][1], combo.dsts[i_a][2] }
 
                         local counter_stats = FAU.calc_counter_attack(
                             attacker_moved, old_locs, combo.dsts, gamedata, move_cache, cfg_attack
                         )
                         --DBG.dbms(counter_stats)
 
-                        --print_time('   counter ratings no attack:', counter_stats.rating_table.rating, counter_stats.def_stat.hp_chance[0])
+                        -- The total damage through attack + counter attack should use for
+                        -- forward attack: attacker damage rating and defender total rating
+                        -- counter attack: attacker total rating and defender damage rating
+                        -- as that is how the delayed damage is applied
+                        -- That is then the damage that is used for the overall rating
+                        local damage_taken = - combo.rating_table.attacker.damage_rating + counter_stats.rating_table.defender.rating
+                        local damage_done = combo.rating_table.defender.rating - counter_stats.rating_table.attacker.damage_rating
+                        local damage_rating = - damage_taken * combo.rating_table.value_ratio + damage_done
+                        --print('  damage_taken, damage_done, value_ratio:', damage_taken, damage_done, combo.rating_table.value_ratio)
+                        --print('     --> damage_rating:', damage_rating)
 
-                        -- Rating if no forward attack is done is done is only the counter attack rating
-                        local no_attack_rating = 0 - counter_stats.rating_table.rating
-                        -- If an attack is done, it's the combined forward and counter attack rating
-                        local with_attack_rating = max_damage_rating
-
-                        --print('    V1: no attack rating: ', no_attack_rating, '<---', 0, -counter_stats.rating_table.rating)
-                        --print('    V2: with attack rating:', with_attack_rating, '<---', combo.rating_table.rating, max_damage_rating)
-
-                        if (with_attack_rating < no_attack_rating) then
-                            acceptable_counter = false
-                            -- Note the '1': (since this is a single-unit attack)
-                            FAU.add_disqualified_attack(combo, 1, disqualified_attacks)
-                        end
-                        --print('acceptable_counter', acceptable_counter)
-                    end
-                end
-
-                --print_time('  acceptable_counter', acceptable_counter)
-                if acceptable_counter then
-                    local total_rating = max_damage_rating
-                    --print('    Acceptable counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating_table.rating)
-                    --print('      --> total_rating', total_rating)
-
-                    if (total_rating > max_total_rating) then
-                        max_total_rating = total_rating
-
-                        action = { units = {}, dsts = {}, enemy = combo.target }
-
-                        -- This is done simply so that the table is shorter when
-                        -- displayed. We could also simply use combo.attackers
-                        for _,attacker in ipairs(combo.attackers) do
-                            local tmp_unit = gamedata.my_units[attacker.id]
-                            tmp_unit.id = attacker.id
-                            table.insert(action.units, tmp_unit)
+                        if (damage_rating > max_damage_rating) then
+                            max_damage_rating = damage_rating
                         end
 
-                        action.dsts = combo.dsts
-                        action.action = 'attack'
+                        local counter_min_hp = counter_stats.def_stat.min_hp
+
+                        -- We next check whether the counter attack is acceptable
+                        -- This is different for the side leader and other units
+                        -- Also, it is different for attacks by individual units without MP;
+                        -- for those it simply matters whether the attack makes things
+                        -- better or worse, since there isn't a coice of moving someplace else
+
+                        if (#combo.attackers > 1) or (attacker.moves > 0) then
+                            -- If there's a chance of the leader getting poisoned, slowed or killed, don't do it
+                            if attacker.canrecruit then
+                                --print('Leader: slowed, poisoned %', counter_stats.def_stat.slowed, counter_stats.def_stat.poisoned)
+                                if (counter_stats.def_stat.slowed > 0.0) then
+                                    acceptable_counter = false
+                                    FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
+                                    break
+                                end
+
+                                if (counter_stats.def_stat.poisoned > 0.0) and (not attacker.abilities.regenerate) then
+                                    acceptable_counter = false
+                                    FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
+                                    break
+                                end
+
+                                -- Add max damages from this turn and counter-attack
+                                local min_hp = 0
+                                for hp = 0,attacker.hitpoints do
+                                    if combo.att_stats[i_a].hp_chance[hp] and (combo.att_stats[i_a].hp_chance[hp] > 0) then
+                                        min_hp = hp
+                                        break
+                                    end
+                                end
+
+                                -- Note that this is not really the maximum damage from the attack, as
+                                -- attacker.hitpoints is reduced to the average HP outcome of the attack
+                                -- However, min_hp for the counter also contains this reduction, so
+                                -- min_outcome below has the correct value (except for rounding errors,
+                                -- that's why it is compared ot 0.5 instead of 0)
+                                local max_damage_attack = attacker.hitpoints - min_hp
+                                --print('max_damage_attack, attacker.hitpoints, min_hp', max_damage_attack, attacker.hitpoints, min_hp)
+
+                                -- Add damage from attack and counter attack
+                                local min_outcome = counter_min_hp - max_damage_attack
+                                --print('Leader: min_outcome, counter_min_hp, max_damage_attack', min_outcome, counter_min_hp, max_damage_attack)
+
+                                if (min_outcome < 0.5) then
+                                    acceptable_counter = false
+                                    FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
+                                    break
+                                end
+                            else  -- Or for normal units, evaluate whether the attack is worth it
+                                if (not FAU.is_acceptable_attack(damage_taken, damage_done, combo.rating_table.value_ratio)) then
+                                    acceptable_counter = false
+                                    FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
+                                    break
+                                end
+                            end
+                        end
+                    end
+
+                    -- Now reset the hitpoints for attackers and defender
+                    for i_a,attacker_info in ipairs(combo.attackers) do
+                        gamedata.unit_infos[attacker_info.id].hitpoints = old_HP_attackers[i_a]
+                        gamedata.unit_copies[attacker_info.id].hitpoints = old_HP_attackers[i_a]
+                        if gamedata.my_units_noMP[attacker_info.id] then
+                            local unit_proxy = wesnoth.get_unit(old_locs[i_a][1], old_locs[i_a][2])
+                            unit_proxy.hitpoints = old_HP_attackers[i_a]
+                        end
+                    end
+
+                    gamedata.unit_infos[target_id].hitpoints = old_HP_target
+                    gamedata.unit_copies[target_id].hitpoints = old_HP_target
+                    target_proxy.hitpoints = old_HP_target
+
+
+                    -- Now we add the check for attacks by individual units with
+                    -- no MP. Here we simply compare the rating of not attacking
+                    -- vs. attacking. If attacking results in a better rating, we do it.
+                    if (#combo.attackers == 1) then
+                        local attacker = combo.attackers[1]
+
+                        if (attacker.moves == 0) then
+                            --print_time('  by', attacker.id, combo.dsts[1][1], combo.dsts[1][2])
+
+                            -- Now calculate the counter attack outcome
+                            local attacker_moved = {}
+                            attacker_moved[attacker.id] = { combo.dsts[1][1], combo.dsts[1][2] }
+
+                            local counter_stats = FAU.calc_counter_attack(
+                                attacker_moved, old_locs, combo.dsts, gamedata, move_cache, cfg_attack
+                            )
+                            --DBG.dbms(counter_stats)
+
+                            --print_time('   counter ratings no attack:', counter_stats.rating_table.rating, counter_stats.def_stat.hp_chance[0])
+
+                            -- Rating if no forward attack is done is done is only the counter attack rating
+                            local no_attack_rating = 0 - counter_stats.rating_table.rating
+                            -- If an attack is done, it's the combined forward and counter attack rating
+                            local with_attack_rating = max_damage_rating
+
+                            --print('    V1: no attack rating: ', no_attack_rating, '<---', 0, -counter_stats.rating_table.rating)
+                            --print('    V2: with attack rating:', with_attack_rating, '<---', combo.rating_table.rating, max_damage_rating)
+
+                            if (with_attack_rating < no_attack_rating) then
+                                acceptable_counter = false
+                                -- Note the '1': (since this is a single-unit attack)
+                                FAU.add_disqualified_attack(combo, 1, disqualified_attacks)
+                            end
+                            --print('acceptable_counter', acceptable_counter)
+                        end
+                    end
+
+                    --print_time('  acceptable_counter', acceptable_counter)
+                    if acceptable_counter then
+                        local total_rating = max_damage_rating
+                        --print('    Acceptable counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating_table.rating)
+                        --print('      --> total_rating', total_rating)
+
+                        if (total_rating > max_total_rating) then
+                            max_total_rating = total_rating
+
+                            action = { units = {}, dsts = {}, enemy = combo.target }
+
+                            -- This is done simply so that the table is shorter when
+                            -- displayed. We could also simply use combo.attackers
+                            for _,attacker in ipairs(combo.attackers) do
+                                local tmp_unit = gamedata.my_units[attacker.id]
+                                tmp_unit.id = attacker.id
+                                table.insert(action.units, tmp_unit)
+                            end
+
+                            action.dsts = combo.dsts
+                            action.action = 'attack'
+                        end
                     end
                 end
-              end  -- **** end fix indenting ****
             end
 
             --DBG.dbms(disqualified_attacks)
