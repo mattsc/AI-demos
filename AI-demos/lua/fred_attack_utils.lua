@@ -1162,4 +1162,110 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
     return counter_attack_stat, counter_attack
 end
 
+function fred_attack_utils.get_disqualified_attack(combo)
+    -- Set up a sub-table from @combo in the format needed by
+    -- add_disqualified_attack() below
+    local att_table = {}
+
+    -- This add all attackers in the combo to the sub-table
+    -- Note that these keys are different from the key identifying the sub-table as a whole
+    for i_a,attacker_info in ipairs(combo.attackers) do
+        local id, x, y = combo.attackers[i_a].id, combo.dsts[i_a][1], combo.dsts[i_a][2]
+        local key = x * 1000 + y -- only position for this, no id
+        att_table[key] = true
+    end
+
+    return att_table
+end
+
+function fred_attack_utils.is_disqualified_attack(combo, disqualified_attacks_this_key)
+    -- Check whether a @combo has previously been identified as disqualified
+    -- already in @disqualified_attacks_this_key
+    --
+    -- @disqualified_attacks_this_key: is only the table for this unit at this
+    -- hex, not the entire disqualified_attacks table
+    --
+    -- Returns:
+    --   true: if previously identified
+    --   false, att_table: if this is new; here, att_table is the table to
+    --      be inserted into disqualified_attacks_this_key; this is returned
+    --      in order to avoid code duplication below
+
+    -- The attack table for the new attack
+    local att_table = fred_attack_utils.get_disqualified_attack(combo)
+
+    -- Go through all the existing attack tables
+    for _,disatt in ipairs(disqualified_attacks_this_key) do
+        local exists_already = true
+
+        -- Find whether there is an element in the new table that does not already
+        -- exist in an old one
+        for k,_ in pairs(att_table) do
+            if (not disatt[k]) then
+                exists_already = false
+                break
+            end
+        end
+
+        -- If we got to here with exists_already still set, that means that we
+        -- found an existing attack that includes the new one -> return true
+        if exists_already then
+            return true
+        end
+    end
+
+    -- If we got here, this means no existing combo was found
+    return false, att_table
+end
+
+function fred_attack_utils.add_disqualified_attack(combo, i_a, disqualified_attacks)
+    -- Add an attack combo to a table of disqualified attacks.  The array structure
+    -- is as follows:
+    --  {
+    --      Orcish Grunt-14627016 = {
+    --          [1] = {
+    --                      [27016] = true
+    --                },
+    --          [2] = {
+    --                      [27016] = true,
+    --                      [28015] = true
+    --                 }
+    --      },
+    --      Orcish Assassin-34817013 = {
+    --          [1] = {
+    --                      [17013] = true
+    --          }
+    --      }
+    --  }
+    --
+    -- In other words, an attack is disqualified, if the counter attack no the
+    -- unit described by the key (incl. its location) was found to be unacceptable.
+    -- For that case, we save the locations of all units in the attack combination,
+    -- as that has an effect on the possible counter attacks. Other attacks using
+    -- that same combination, or a subset thereof, will expose the unit to the
+    -- same counter attack
+    -- TODO: this breaks down to some extent if
+    --   1. the forward attack is stronger for follow-up attack,
+    --   2. there are L0 units involved.
+    --
+    -- @combo: an array of the attack combo as used in get_attack_combos()
+    -- @i_a: the number of the attacker in the combo that was disqualified
+    -- @disqualified_attacks: the table in which disq. attacks are stored
+
+    local id, x, y = combo.attackers[i_a].id, combo.dsts[i_a][1], combo.dsts[i_a][2]
+    local key = id .. (x * 1000 + y)
+
+    local exists_already, tmp = false
+    if not disqualified_attacks[key] then
+        disqualified_attacks[key] = {}
+        tmp = fred_attack_utils.get_disqualified_attack(combo)
+    else
+        exists_already, tmp = fred_attack_utils.is_disqualified_attack(combo, disqualified_attacks[key])
+    end
+
+    if (not exists_already) then
+        table.insert(disqualified_attacks[key], tmp)
+    end
+end
+
 return fred_attack_utils
