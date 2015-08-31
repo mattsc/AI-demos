@@ -1520,11 +1520,27 @@ return {
             -- Now check whether counter attacks are acceptable
             local show_debug = false
             local max_total_rating, action = -9e99
+            local disqualified_attacks = {}
             for count,combo in ipairs(combo_ratings) do
                 if (count > 50) and action then break end
                 --print_time('\nChecking counter attack for attack on', count, next(combo.target), combo.rating_table.value_ratio, combo.rating, action)
 
+                -- Check whether an position in this combo was previously disqualified
+                local is_disqualified = false
+                for i_a,attacker_info in ipairs(combo.attackers) do
+                    local id, x, y = attacker_info.id, combo.dsts[i_a][1], combo.dsts[i_a][2]
+                    local key = id .. (x * 1000 + y)
 
+                    if disqualified_attacks[key] then
+                        is_disqualified = FAU.is_disqualified_attack(combo, disqualified_attacks[key])
+                        if is_disqualified then
+                            break
+                        end
+                    end
+                end
+                --print('  is_disqualified', is_disqualified)
+
+              if (not is_disqualified) then -- **** start fix indenting ****
                 -- TODO: the following is slightly inefficient, as it places units and
                 -- takes them off again several times for the same attack combo.
                 -- This could be streamlined if it becomes an issue, but at the expense
@@ -1630,11 +1646,13 @@ return {
                             --print('Leader: slowed, poisoned %', counter_stats.def_stat.slowed, counter_stats.def_stat.poisoned)
                             if (counter_stats.def_stat.slowed > 0.0) then
                                 acceptable_counter = false
+                                FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                                 break
                             end
 
                             if (counter_stats.def_stat.poisoned > 0.0) and (not attacker.abilities.regenerate) then
                                 acceptable_counter = false
+                                FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                                 break
                             end
 
@@ -1661,11 +1679,13 @@ return {
 
                             if (min_outcome < 0.5) then
                                 acceptable_counter = false
+                                FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                                 break
                             end
                         else  -- Or for normal units, evaluate whether the attack is worth it
                             if (not FAU.is_acceptable_attack(damage_taken, damage_done, combo.rating_table.value_ratio)) then
                                 acceptable_counter = false
+                                FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                                 break
                             end
                         end
@@ -1717,6 +1737,8 @@ return {
 
                         if (with_attack_rating < no_attack_rating) then
                             acceptable_counter = false
+                            -- Note the '1': (since this is a single-unit attack)
+                            FAU.add_disqualified_attack(combo, 1, disqualified_attacks)
                         end
                         --print('acceptable_counter', acceptable_counter)
                     end
@@ -1745,7 +1767,10 @@ return {
                         action.action = 'attack'
                     end
                 end
+              end  -- **** end fix indenting ****
             end
+
+            --DBG.dbms(disqualified_attacks)
 
             return action  -- returns nil is no acceptable attack was found
         end
