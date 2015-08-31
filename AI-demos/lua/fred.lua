@@ -30,7 +30,7 @@ return {
         end
 
 
-        function fred:zone_advance_rating(zone_id, x, y, gamedata)
+        function fred:zone_advance_rating(zone_id, x, y, gamedata, unit_type)
             local rating
 
             if (wesnoth.current.side == 1) then
@@ -105,20 +105,16 @@ return {
                 end
 
                 if (zone_id == 'leader') then
-                    if (y > 8) then
-                        rating = -y - 100
+                    -- Rating is minimum distance from leader, but excluding the leader hex itself.
+                    -- Add a very minor rating to minimize distance to enemy leader also,
+                    -- to select hexes in between the two leaders all else being equal.
+                    -- This rating needs to be this small, as some of the secondary ratings
+                    -- of advancing are of order 1/1000 to 1/100.
+                    if (x == gamedata.leader_x) and (y == gamedata.leader_y) then
+                        rating = -1000
                     else
-                        rating = - H.distance_between(x, y, 18, 4)
-                    end
-
-                    -- But don't displace the leader from his hex
-                    for side,loc in ipairs(gamedata.leaders) do
-                        if (side == wesnoth.current.side) then
-                            if (x == loc[1]) and (y == loc[2]) then
-                                rating = -1000
-                                break
-                            end
-                        end
+                        rating = - FU.get_fgumap_value(gamedata.leader_distance_maps[unit_type], x, y, 'cost')
+                            - FU.get_fgumap_value(gamedata.enemy_leader_distance_maps[unit_type], x, y, 'cost') / 100000
                     end
                 end
 
@@ -2327,7 +2323,7 @@ return {
                         -- only consider unthreatened hexes
                         --local threat = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'power')
 
-                        local zone_rating = fred:zone_advance_rating(zonedata.cfg.zone_id, x, y, gamedata)
+                        local zone_rating = fred:zone_advance_rating(zonedata.cfg.zone_id, x, y, gamedata, gamedata.unit_infos[id].type)
                         if zone_rating then
                             local rating
 
