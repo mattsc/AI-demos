@@ -1521,8 +1521,8 @@ return {
             local max_total_rating, action = -9e99
             for count,combo in ipairs(combo_ratings) do
                 if (count > 50) and action then break end
+                --print_time('\nChecking counter attack for attack on', count, next(combo.target), combo.rating_table.value_ratio, combo.rating, action)
 
-                --print_time('\nChecking counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating)
 
                 -- TODO: the following is slightly inefficient, as it places units and
                 -- takes them off again several times for the same attack combo.
