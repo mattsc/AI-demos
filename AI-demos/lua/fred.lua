@@ -119,11 +119,8 @@ return {
                 end
 
                 if (zone_id == 'all_map') then
-                    if (y < 17) then
-                        rating = y - 100
-                    else
-                        rating = - H.distance_between(x, y, 20, 20)
-                    end
+                    -- all_map advancing is toward the enemy leader
+                    rating = - FU.get_fgumap_value(gamedata.enemy_leader_distance_maps[unit_type], x, y, 'cost')
                 end
             end
 
