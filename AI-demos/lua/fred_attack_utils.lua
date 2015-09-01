@@ -91,7 +91,6 @@ function fred_attack_utils.delayed_damage(unit_info, att_stat, hp_before, x, y, 
     -- We don't need to check whether a unit is resting otherwise, as this
     -- is for attack calculations (meaning: they won't be resting)
     if unit_info.traits.healthy then
-print(unit_info.id, 'healthy')
         delayed_damage = delayed_damage + 2
     end
 
