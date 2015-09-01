@@ -1628,10 +1628,23 @@ return {
                         -- forward attack: attacker damage rating and defender total rating
                         -- counter attack: attacker total rating and defender damage rating
                         -- as that is how the delayed damage is applied
+                        -- In addition, the counter attack damage needs to be multiplied
+                        -- by the chance of each unit to survive, otherwise units close
+                        -- to dying are much overrated
                         -- That is then the damage that is used for the overall rating
-                        local damage_taken = - combo.rating_table.attacker.damage_rating + counter_stats.rating_table.defender.rating
-                        local damage_done = combo.rating_table.defender.rating - counter_stats.rating_table.attacker.damage_rating
+                        local damage_taken_forward = - combo.rating_table.attacker.damage_rating
+                        local damage_taken_counter = counter_stats.rating_table.defender.rating * (1 - combo.att_stats[i_a].hp_chance[0])
+
+                        local damage_done_forward = combo.rating_table.defender.rating
+                        local damage_done_counter = - counter_stats.rating_table.attacker.damage_rating * (1 - combo.def_stat.hp_chance[0])
+
+                        local damage_taken = damage_taken_forward + damage_taken_counter
+                        local damage_done = damage_done_forward + damage_done_counter
+
                         local damage_rating = - damage_taken * combo.rating_table.value_ratio + damage_done
+
+                        --print('  damage taken forward, counter:', damage_taken_forward, damage_taken_counter)
+                        --print('  damage done forward, counter :', damage_done_forward, damage_done_counter)
                         --print('  damage_taken, damage_done, value_ratio:', damage_taken, damage_done, combo.rating_table.value_ratio)
                         --print('     --> damage_rating:', damage_rating)
 
