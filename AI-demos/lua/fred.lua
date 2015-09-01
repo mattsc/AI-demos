@@ -2225,9 +2225,10 @@ return {
                             break
                         end
                         -- TODO: not sure yet if this should be used
+                        -- TODO: might have to depend on enemy faction
                         -- Also if the relative loss is more than X HP (X/12 the
                         -- value of a grunt) for any single attack
-                        if (counter_stats.rating_table.rating >= 9) then
+                        if (counter_stats.rating_table.rating >= 6) then
                             --print('  not acceptable because chance to die too high:', counter_stats.def_stat.hp_chance[0])
                             is_acceptable = false
                             break
@@ -2533,9 +2534,10 @@ return {
                                         is_acceptable = false
                                     end
                                     -- TODO: not sure yet if this should be used
+                                    -- TODO: might have to depend on enemy faction
                                     -- Also if the relative loss is more than X HP (X/12 the
                                     -- value of a grunt) for any single attack
-                                    if (counter_stats.rating_table.rating >= 9) then
+                                    if (counter_stats.rating_table.rating >= 6) then
                                         --print('  not acceptable because counter attack rating too bad:', counter_stats.rating_table.rating)
                                         is_acceptable = false
                                     end
