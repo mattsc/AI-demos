@@ -3,7 +3,13 @@
 - Fred (Freelands AI for Northerners, Side 1):
   - Refinements to the attack / counter attack evaluations:
     - Most notably, we now take the time when "delayed damage" (poison, slow,
-      but also healing etc.) are applied into account correctly
+      but also healing etc.) are applied into account correctly, and do not
+      double count the chance to die of units (both own and enemy). These
+      changes result in a significant improvement to the accuracy of the
+      attack evaluation.
+    - Significantly decrease evaluation time in situations when there are
+      many AI and enemy units close to each other
+    - Defend leader more aggressively
     - Add or improve consideration of the following in max damage calculations:
       - Berserk, backstab, drain, magical, marksman, plague
       - Immunities to poison, drain, plague
@@ -14,6 +20,12 @@
     - Take fearless trait into account for time of day modifier
     - Take healthy trait into account for delayed damage calculation
     - Stop and reconsider attack combo execution if an attacker dies
+  - Do not abandon leader in face of large enemy force
+  - Improve advancing (rating and direction) toward own and enemy leader
+  - Evaluate acceptable holding/advancing positions slightly more conservatively
+  - Add 'remove_MP' candidate action: this sometimes makes Fred execute a few
+    more attacks at turn end, as attacks are evaluated differently for units
+    with and without MP
   - Fred scenario:
     - Remove warning when playing against undead
     - Use random start time
