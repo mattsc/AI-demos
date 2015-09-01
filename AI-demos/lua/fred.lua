@@ -3248,6 +3248,37 @@ return {
             fred.data.zone_action = nil
         end
 
+
+        ----- CA: Remove MP from all units (max_score: 900) -----
+        -- This serves the purpose that attacks are evaluated differently for
+        -- units without MP. They might still attack in this case (such as
+        -- unanswerable attacks), while they do not if they can still move
+        function fred:remove_MP_eval()
+            local score = 900
+
+            local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'remove_MP'
+            if debug_eval then print_time('     - Evaluating remove_MP CA:') end
+
+            local id,_ = next(fred.data.gamedata.my_units_MP)
+
+            if id then
+                AH.done_eval_messages(start_time, ca_name)
+                return score
+            end
+
+            AH.done_eval_messages(start_time, ca_name)
+            return 0
+        end
+
+        function fred:remove_MP_exec()
+            if debug_exec then print_time('====> Executing remove_MP CA') end
+
+            local id,loc = next(fred.data.gamedata.my_units_MP)
+
+            AH.checked_stopunit_moves(ai, fred.data.gamedata.unit_copies[id])
+        end
+
+
         return fred
     end
 }
