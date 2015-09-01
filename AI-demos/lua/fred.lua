@@ -1526,15 +1526,23 @@ return {
                 --print_time('\nChecking counter attack for attack on', count, next(combo.target), combo.rating_table.value_ratio, combo.rating, action)
 
                 -- Check whether an position in this combo was previously disqualified
+                -- Only do so for large numbers of combos though; there is a small
+                -- chance of a later attack that uses the same hexes being qualified
+                -- because the hexes the units are on work better for the forward attack.
+                -- So if there are not too many combos, we calculated all of them.
+                -- As forward attacks are rated by their attack score, this is
+                -- pretty unlikely though.
                 local is_disqualified = false
-                for i_a,attacker_info in ipairs(combo.attackers) do
-                    local id, x, y = attacker_info.id, combo.dsts[i_a][1], combo.dsts[i_a][2]
-                    local key = id .. (x * 1000 + y)
+                if (#combo_ratings > 100) then
+                    for i_a,attacker_info in ipairs(combo.attackers) do
+                        local id, x, y = attacker_info.id, combo.dsts[i_a][1], combo.dsts[i_a][2]
+                        local key = id .. (x * 1000 + y)
 
-                    if disqualified_attacks[key] then
-                        is_disqualified = FAU.is_disqualified_attack(combo, disqualified_attacks[key])
-                        if is_disqualified then
-                            break
+                        if disqualified_attacks[key] then
+                            is_disqualified = FAU.is_disqualified_attack(combo, disqualified_attacks[key])
+                            if is_disqualified then
+                                break
+                            end
                         end
                     end
                 end
