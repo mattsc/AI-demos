@@ -1140,7 +1140,6 @@ return {
             }
 
             table.insert(fred.data.zone_cfgs, retreat_cfg)
-
         end
 
 
