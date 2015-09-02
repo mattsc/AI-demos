@@ -1,11 +1,11 @@
------ 0.14.1 -----
+----- 0.14.1, 2 September 2015 -----
 
 - Fred (Freelands AI for Northerners, Side 1):
   - Refinements to the attack / counter attack evaluations:
     - Most notably, we now take the time when "delayed damage" (poison, slow,
       but also healing etc.) are applied into account correctly, and do not
       double count the chance to die of units (both own and enemy). These
-      changes result in a significant improvement to the accuracy of the
+      changes result in a significant improvement of the accuracy of the
       attack evaluation.
     - Significantly decrease evaluation time in situations when there are
       many AI and enemy units close to each other
@@ -35,7 +35,7 @@
   - Quite a bit of internal reorganization of functions and tables
 
 
------ 0.14.0, 22 August 2014 -----
+----- 0.14.0, 22 August 2015 -----
 
 - Fred (Freelands AI for Northerners, Side 1):
   - Complete overhaul with huge changes to both the overall strategy and the
