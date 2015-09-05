@@ -2797,16 +2797,16 @@ return {
                 end
             end
 
-            -- If the leader can reach the keep, but there's a unit on it: wait
-            if fred.data.gamedata.reach_maps[leader.id][best_keep[1]]
-                and fred.data.gamedata.reach_maps[leader.id][best_keep[1]][best_keep[2]]
-                and fred.data.gamedata.my_unit_map_MP[best_keep[1]]
-                and fred.data.gamedata.my_unit_map_MP[best_keep[1]][best_keep[2]]
-            then
-                return 0
-            end
-
             if best_keep then
+                -- If the leader can reach the keep, but there's a unit on it: wait
+                if fred.data.gamedata.reach_maps[leader.id][best_keep[1]]
+                    and fred.data.gamedata.reach_maps[leader.id][best_keep[1]][best_keep[2]]
+                    and fred.data.gamedata.my_unit_map_MP[best_keep[1]]
+                    and fred.data.gamedata.my_unit_map_MP[best_keep[1]][best_keep[2]]
+                then
+                    return 0
+                end
+
                 local next_hop = AH.next_hop(leader_copy, best_keep[1], best_keep[2])
 
                 -- Only move the leader if he'd actually move
