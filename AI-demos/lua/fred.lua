@@ -2683,7 +2683,7 @@ return {
 
         function fred:stats_exec()
             local tod = wesnoth.get_time_of_day()
-            print('\n***********************************************************')
+            print('\n**** Fred ' .. wesnoth.dofile('~/add-ons/AI-demos/version.lua') .. ' *******************************************************')
             AH.print_ts('Beginning of Turn ' .. wesnoth.current.turn .. ' (' .. tod.name ..') stats')
 
             local sides = {}
@@ -2720,7 +2720,7 @@ return {
                     .. sides[side].leader_type .. ', ' .. side_info.gold .. ' gold)'
                 )
             end
-            print('***********************************************************')
+            print('************************************************************************')
         end
 
         ----- CA: Clear self.data table at end of turn (max_score: 1) -----
