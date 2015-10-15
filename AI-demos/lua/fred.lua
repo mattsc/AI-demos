@@ -10,6 +10,7 @@ return {
         local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
         local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
         local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
+        local FHU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_hold_utils.lua"
         local LS = wesnoth.require "lua/location_set.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
         local R = wesnoth.require "~/add-ons/AI-demos/lua/retreat.lua"
@@ -2212,35 +2213,8 @@ return {
 
                     --print('  ' .. id, x, y, hit_chance)
 
-                    -- If chance to die is too large, also do not use this position
-                    -- This is dependent on how good the terrain is
-                    -- For better terrain we allow a higher hit_chance than for bad terrain
-                    -- The argument is that we want to be on the good terrain, whereas
-                    -- taking a stance on bad terrain might not be worth it
-                    -- TODO: what value is good here?
-                    if (hit_chance > 0.5) then -- bad terrain
-                        --print('  bad terrain', counter_stats.def_stat.hp_chance[0], counter_stats.rating_table.rating)
-                        if (counter_stats.def_stat.hp_chance[0] > 0) then
-                            --print('  not acceptable because chance to die too high:', counter_stats.def_stat.hp_chance[0])
-                            is_acceptable = false
-                            break
-                        end
-                        -- TODO: not sure yet if this should be used
-                        -- TODO: might have to depend on enemy faction
-                        -- Also if the relative loss is more than X HP (X/12 the
-                        -- value of a grunt) for any single attack
-                        if (counter_stats.rating_table.rating >= 6) then
-                            --print('  not acceptable because chance to die too high:', counter_stats.def_stat.hp_chance[0])
-                            is_acceptable = false
-                            break
-                        end
-                    else -- at least 50% defense
-                        --print('  good terrain', counter_stats.def_stat.hp_chance[0], counter_stats.rating_table.rating)
-                        if (counter_stats.def_stat.hp_chance[0] >= 0.25) then
-                            --print('  not acceptable because chance to die too high:', counter_stats.def_stat.hp_chance[0])
-                            is_acceptable = false
-                            break
-                        end
+                    if (not FHU.is_acceptable_location(hit_chance, counter_stats)) then
+                        is_acceptable = false
                     end
 
                     local enemy_rating, count = 0, 0
@@ -2524,30 +2498,8 @@ return {
                                 local counter_stats, counter_attack = FAU.calc_counter_attack(target, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
                                 --DBG.dbms(counter_stats)
 
-                                -- If chance to die is too large, do not use this position
-                                -- This is dependent on how good the terrain is
-                                -- For better terrain we allow a higher chance to die than for bad terrain
-                                -- The rationale is that we want to be on the good terrain, whereas
-                                -- taking a stance on bad terrain might not be worth it
-                                -- TODO: what value is good here?
-                                if (hit_chance > 0.5) then -- bad terrain
-                                    if (counter_stats.def_stat.hp_chance[0] > 0) then
-                                        --print('  not acceptable because chance to die too high (bad terrain):', counter_stats.def_stat.hp_chance[0])
-                                        is_acceptable = false
-                                    end
-                                    -- TODO: not sure yet if this should be used
-                                    -- TODO: might have to depend on enemy faction
-                                    -- Also if the relative loss is more than X HP (X/12 the
-                                    -- value of a grunt) for any single attack
-                                    if (counter_stats.rating_table.rating >= 6) then
-                                        --print('  not acceptable because counter attack rating too bad:', counter_stats.rating_table.rating)
-                                        is_acceptable = false
-                                    end
-                                else -- at least 50% defense
-                                    if (counter_stats.def_stat.hp_chance[0] >= 0.25) then
-                                        --print('  not acceptable because chance to die too high (good terrain):', counter_stats.def_stat.hp_chance[0])
-                                        is_acceptable = false
-                                    end
+                                if (not FHU.is_acceptable_location(hit_chance, counter_stats)) then
+                                    is_acceptable = false
                                 end
                             end
 
