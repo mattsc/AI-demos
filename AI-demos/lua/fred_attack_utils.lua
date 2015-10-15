@@ -811,7 +811,8 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
                     )
 
                     -- It's okay to use the full rating here, rather than just damage_rating
-                    rating = rating_table.defender.rating + (rating_table.attacker.rating + rating_table.extra.rating) / 100
+                    --rating = rating_table.defender.rating + (rating_table.attacker.rating + rating_table.extra.rating) / 100
+                    rating = rating_table.rating
                     --print(xa, ya, rating, rating_table.attacker.rating, rating_table.defender.rating, rating_table.extra.rating)
                 end
 
