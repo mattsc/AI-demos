@@ -2219,6 +2219,7 @@ return {
                     -- taking a stance on bad terrain might not be worth it
                     -- TODO: what value is good here?
                     if (hit_chance > 0.5) then -- bad terrain
+                        --print('  bad terrain', counter_stats.def_stat.hp_chance[0], counter_stats.rating_table.rating)
                         if (counter_stats.def_stat.hp_chance[0] > 0) then
                             --print('  not acceptable because chance to die too high:', counter_stats.def_stat.hp_chance[0])
                             is_acceptable = false
@@ -2234,6 +2235,7 @@ return {
                             break
                         end
                     else -- at least 50% defense
+                        --print('  good terrain', counter_stats.def_stat.hp_chance[0], counter_stats.rating_table.rating)
                         if (counter_stats.def_stat.hp_chance[0] >= 0.25) then
                             --print('  not acceptable because chance to die too high:', counter_stats.def_stat.hp_chance[0])
                             is_acceptable = false
