@@ -1,7 +1,11 @@
+local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
+
 local fred_hold_utils = {}
 
 function fred_hold_utils.is_acceptable_location(hit_chance, counter_stats)
     -- Check whether are holding/advancing location has acceptable expected losses
+
+    local show_debug = true
 
     -- If chance to die is too large, do not use this position
     -- This is dependent on how good the terrain is
@@ -10,9 +14,9 @@ function fred_hold_utils.is_acceptable_location(hit_chance, counter_stats)
     -- taking a stance on bad terrain might not be worth it
     -- TODO: what value is good here?
     if (hit_chance > 0.5) then -- bad terrain
-        --print('  bad terrain', counter_stats.def_stat.hp_chance[0], counter_stats.rating_table.rating)
+        FU.print_debug(show_debug, '    bad terrain', counter_stats.def_stat.hp_chance[0], counter_stats.rating_table.rating)
         if (counter_stats.def_stat.hp_chance[0] > 0) then
-            --print('  not acceptable because chance to die too high:', counter_stats.def_stat.hp_chance[0])
+            FU.print_debug(show_debug, '      not acceptable because chance to die too high:', counter_stats.def_stat.hp_chance[0])
             return false
         end
         -- TODO: not sure yet if this should be used
@@ -20,13 +24,13 @@ function fred_hold_utils.is_acceptable_location(hit_chance, counter_stats)
         -- Also if the relative loss is more than X HP (X/12 the
         -- value of a grunt) for any single attack
         if (counter_stats.rating_table.rating >= 6) then
-            --print('  not acceptable because chance to die too high:', counter_stats.def_stat.hp_chance[0])
+            FU.print_debug(show_debug, '      not acceptable because chance to die too high:', counter_stats.def_stat.hp_chance[0])
             return false
         end
     else -- at least 50% defense
-        --print('  good terrain', counter_stats.def_stat.hp_chance[0], counter_stats.rating_table.rating)
+        FU.print_debug(show_debug, '    good terrain', counter_stats.def_stat.hp_chance[0], counter_stats.rating_table.rating)
         if (counter_stats.def_stat.hp_chance[0] >= 0.25) then
-            --print('  not acceptable because chance to die too high:', counter_stats.def_stat.hp_chance[0])
+            FU.print_debug(show_debug, '      not acceptable because chance to die too high:', counter_stats.def_stat.hp_chance[0])
             return false
         end
     end
