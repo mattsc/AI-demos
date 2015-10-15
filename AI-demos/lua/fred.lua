@@ -1979,18 +1979,7 @@ return {
                         )
 
                         if adj_count and (adj_count > 0) then
-                            local hit_chance = FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
-                            hit_chance = 1 - hit_chance
-
-                            -- If this is a village, give a bonus
-                            -- TODO: do this more quantitatively
-                            if gamedata.village_map[x] and gamedata.village_map[x][y] then
-                                hit_chance = hit_chance - 0.15
-                                if (hit_chance < 0) then hit_chance = 0 end
-                            end
-
-                            -- TODO: This ignores steadfast and marksman, might be added later
-                            -- That also applies in other places.  Search for 'hit_chance'.
+                            local hit_chance = FU.get_hit_chance(id, x, y, gamedata)
 
                             local unit_rating = indep_rating_map[x][y].rating - hit_chance^2
 
@@ -2201,16 +2190,7 @@ return {
                         break
                     end
 
-                    local hit_chance = FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
-                    hit_chance = 1 - hit_chance
-
-                    -- If this is a village, give a bonus
-                    -- TODO: do this more quantitatively
-                    if gamedata.village_map[x] and gamedata.village_map[x][y] then
-                        hit_chance = hit_chance - 0.15
-                        if (hit_chance < 0) then hit_chance = 0 end
-                    end
-
+                    local hit_chance = FU.get_hit_chance(id, x, y, gamedata)
                     --print('  ' .. id, x, y, hit_chance)
 
                     if (not FHU.is_acceptable_location(hit_chance, counter_stats)) then
@@ -2360,16 +2340,7 @@ return {
                         if zone_rating then
                             local rating
 
-                            local hit_chance = FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
-                            hit_chance = 1 - hit_chance
-                            --print('  ' .. id, x, y, hit_chance)
-
-                            -- If this is a village, give a bonus
-                            -- TODO: do this more quantitatively
-                            if gamedata.village_map[x] and gamedata.village_map[x][y] then
-                                hit_chance = hit_chance - 0.15
-                                if (hit_chance < 0) then hit_chance = 0 end
-                            end
+                            local hit_chance = FU.get_hit_chance(id, x, y, gamedata)
 
                             -- Village owner; set to 0 for unowned villages
                             local owner = FU.get_fgumap_value(gamedata.village_map, x, y, 'owner')
