@@ -7,6 +7,10 @@ local FGUI = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_utils_increm
 
 local fred_utils = {}
 
+function fred_utils.print_debug(show_debug, ...)
+    if show_debug then print(...) end
+end
+
 function fred_utils.clear_labels()
     -- Clear all labels on a map
     local width, height = wesnoth.get_map_size()
