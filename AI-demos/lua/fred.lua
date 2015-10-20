@@ -566,6 +566,20 @@ return {
                 end
             end
 
+            -- Count how many units (with MP and without) are in the zone already
+            -- This will be used to figure out whether we need to advance toward
+            -- this zone
+            local power_in_zone = {}
+            for _,cfg in ipairs(raw_cfgs) do
+                power_in_zone[cfg.zone_id] = 0
+                for id,loc in pairs(gamedata.my_units) do
+                    if wesnoth.match_unit(gamedata.unit_copies[id], cfg.zone_filter) then
+                        power_in_zone[cfg.zone_id] = power_in_zone[cfg.zone_id] + gamedata.unit_infos[id].power
+                    end
+                end
+            end
+            --DBG.dbms(power_in_zone)
+
 
             -- T1 threats: those enemies that can attack a key hex in one move
             -- Enemy units that are T1 threats in several zones are counted
@@ -713,6 +727,8 @@ return {
                 -- And finally, save it all in the threats table
                 MAZ[cfg.zone_id].my_power2 = my_power2
                 MAZ[cfg.zone_id].my_units2 = my_power_zone
+
+                MAZ[cfg.zone_id].power_in_zone = power_in_zone[cfg.zone_id]
             end
             --DBG.dbms(my_power1_all_zones)
             --DBG.dbms(my_power2_all_zones)
@@ -776,6 +792,7 @@ return {
                 --print('  T1:', data.my_power1, -data.enemy_power1, dpower1)
                 --print('  T2:', data.my_power2, -data.enemy_power2, dpower2)
                 --print('  All:', data.my_power1+data.my_power2, -data.enemy_power1-data.enemy_power2, data.my_power1 + data.my_power2 - data.enemy_power1 - data.enemy_power2)
+                --print('  power_in_zone:', data.power_in_zone)
 
                 local vul1 = data.my_power1 + data.enemy_power1 - math.abs(data.my_power1 - data.enemy_power1)
                 local vul2 = data.my_power2 + data.enemy_power2 - math.abs(data.my_power2 - data.enemy_power2)
@@ -916,16 +933,21 @@ return {
 
                 -- And for advancing, it's very similar, but number of units
                 -- needed plays the most important role here
-                rating = hold[zone_id].rating / 1000
-                    + stage_status[zone_id].n_units_needed - stage_status[zone_id].n_units_used
 
-                local cfg = {
-                    zone_id = zone_id,
-                    stage_id = stage_id,
-                    actions = { advance = true },
-                    rating = rating
-                }
-                table.insert(tmp_cfgs_advance, cfg)
+                -- However, do not advance, if we already have
+                -- at least twice the power needed in the zone
+                if (data.power_in_zone < power_needed * 2) then
+                    rating = hold[zone_id].rating / 1000
+                        + stage_status[zone_id].n_units_needed - stage_status[zone_id].n_units_used
+
+                    local cfg = {
+                        zone_id = zone_id,
+                        stage_id = stage_id,
+                        actions = { advance = true },
+                        rating = rating
+                    }
+                    table.insert(tmp_cfgs_advance, cfg)
+                end
             end
 
             table.sort(tmp_cfgs_hold, function(a, b) return a.rating > b.rating end)
