@@ -920,7 +920,8 @@ return {
                 table.insert(tmp_cfgs_hold, cfg)
 
                 -- Don't hold if the enemy does not have any T1 power
-                if (data.enemy_power1 > 0) then
+                -- Also, if we have way more power than the enemy here
+                if (data.enemy_power1 > 0) and (data.power_in_zone < power_needed * 2) then
                     local cfg = {
                         zone_id = zone_id,
                         stage_id = stage_id,
