@@ -238,6 +238,7 @@ return {
                 zone_filter = { x = '4-14', y = '7-15' },
                 unit_filter_advance = { x = '1-20,1-14', y = '1-6,7-13' },
                 hold_slf = { x = '1-15', y = '6-14' },
+                hold_core_slf = { x = '1-15,11', y = '6-8,9' },
                 villages = {
                     slf = { x = '1-14', y = '1-10' },
                     villages_per_unit = 2
@@ -251,6 +252,7 @@ return {
                 zone_filter = { x = '15-24', y = '8-16' },
                 unit_filter_advance = { x = '15-23,', y = '1-13' },
                 hold_slf = { x = '16-24,16-23', y = '7-10,11-14' },
+                hold_core_slf = { x = '16-24', y = '7-10' },
                 villages = {
                     slf = { x = '16-21', y = '7-10' },
                     villages_per_unit = 2
@@ -264,6 +266,7 @@ return {
                 zone_filter = { x = '24-34', y = '9-17' },
                 unit_filter_advance = { x = '17-34,24-34', y = '1-8,9-16' },
                 hold_slf = { x = '24-34', y = '9-18' },
+                hold_core_slf = { x = '24-34', y = '9-12' },
                 villages = {
                     slf = { x = '22-34', y = '1-10' },
                     villages_per_unit = 2
@@ -2139,7 +2142,7 @@ return {
                     local hit_chance = FU.get_hit_chance(id, x, y, gamedata)
                     --print('  ' .. id, x, y, hit_chance)
 
-                    if (not FHU.is_acceptable_location(hit_chance, counter_stats)) then
+                    if (not FHU.is_acceptable_location(id, x, y, hit_chance, counter_stats, raw_cfg)) then
                         is_acceptable = false
                     end
 
@@ -2415,7 +2418,7 @@ return {
                                 local counter_stats, counter_attack = FAU.calc_counter_attack(target, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
                                 --DBG.dbms(counter_stats)
 
-                                if (not FHU.is_acceptable_location(hit_chance, counter_stats)) then
+                                if (not FHU.is_acceptable_location(id, x, y, hit_chance, counter_stats, raw_cfg)) then
                                     is_acceptable = false
                                 end
                             end
