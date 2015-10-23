@@ -571,7 +571,7 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
     return att_stat, def_stat
 end
 
-function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy, tmp_dsts, tmp_attacker_infos, defender_info, gamedata, move_cache, cfg)
+function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy, tmp_dsts, tmp_attacker_infos, defender_info, gamedata, move_cache, cfg, ctd_limit)
     -- Calculate attack combination outcomes using
     -- @tmp_attacker_copies: array of attacker unit copies (must be copies, does not work with the proxy table)
     -- @defender_proxy: the unit being attacked (must be a unit proxy table on the map, does not work with a copy)
@@ -583,15 +583,22 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
     --    see fred_attack_utils.battle_outcome() for descriptions
     --
     -- Optional inputs:
-    --  @cfg: configuration parameters to be passed through the battle_outcome, attack_rating
+    --  @cfg: configuration parameters to be passed through to battle_outcome, attack_rating
+    --  @ctd_limit: limiting chance to die (0..1) for when to include an individual attack in the combo
+    --      This is usually not used, but should be limited for counter attack evaluations
     --
     -- Return values (in this order):
+    --   Note: the function returns nil if no acceptable attacks are found based
+    --         on the ctd_limit value described above
     --   - att_stats: an array of stats for each attacker, in the order found for the "best attack",
     --       which is generally different from the order of @tmp_attacker_copies
     --   - defender combo stats: one set of stats containing the defender stats after the attack combination
     --   - The attacker_infos and dsts arrays, sorted in order of the individual attacks
     --   - The rating for this attack combination calculated from fred_attack_utils.attack_rating() results
     --   - The (summed up) attacker and (combined) defender rating, as well as the extra rating separately
+
+    -- Chance to die limit is 100%, if not given
+    ctd_limit = ctd_limit or 1.0
 
     -- We first simulate and rate the individual attacks
     local ratings, tmp_att_stats, tmp_def_stats = {}, {}, {}
@@ -609,8 +616,14 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
                 { tmp_att_stats[i] }, tmp_def_stats[i], gamedata, cfg
             )
 
+        --print(attacker_copy.id .. ' --> ' .. defender_proxy.id)
+        --print('  CTD att, def:', tmp_att_stats[i].hp_chance[0], tmp_def_stats[i].hp_chance[0])
+        --DBG.dbms(rating_table)
+
         -- Need the i here in order to specify the order of attackers, dsts below
-        ratings[i] = { i, rating_table }
+        if (tmp_att_stats[i].hp_chance[0] < ctd_limit) or (rating_table.damage_rating > 0) then
+            table.insert(ratings, { i, rating_table })
+        end
     end
 
     -- Sort all the arrays based on this rating
@@ -627,6 +640,8 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
         dsts[i] = tmp_dsts[rating[1]]
         attacker_infos[i] = tmp_attacker_infos[rating[1]]
     end
+
+    if (#attacker_copies == 0) then return end
 
     -- Only keep the stats/ratings for the first attacker, the rest needs to be recalculated
     local att_stats, def_stats = {}, {}
@@ -1072,7 +1087,56 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
     )
 
     local counter_attack_stat
-    if (not next(counter_attack)) then
+    if (next(counter_attack)) then
+        -- Otherwise calculate the attack combo statistics
+        local enemy_map = {}
+        for id,loc in pairs(gamedata.enemies) do
+            enemy_map[loc[1] * 1000 + loc[2]] = id
+        end
+
+        local attacker_copies, dsts, attacker_infos = {}, {}, {}
+        for src,dst in pairs(counter_attack) do
+            table.insert(attacker_copies, gamedata.unit_copies[enemy_map[src]])
+            table.insert(attacker_infos, gamedata.unit_infos[enemy_map[src]])
+            table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
+        end
+
+        local combo_att_stats, combo_def_stat, sorted_atts, sorted_dsts, rating_table =
+            fred_attack_utils.attack_combo_eval(
+                attacker_copies, target_proxy, dsts,
+                attacker_infos, gamedata.unit_infos[target_id],
+                gamedata, move_cache, cfg, FU.cfg_default('ctd_limit')
+            )
+
+        -- The above function returns nil if none of the units satisfies
+        -- the ctd_limit criterion
+
+        if combo_att_stats then
+            --combo_def_stat.rating = rating_table.rating
+            --combo_def_stat.def_rating = rating_table.defender.rating
+            --combo_def_stat.att_rating = rating_table.attacker.rating
+            --combo_def_stat.def_delayed_damage_rating = rating_table.defender.delayed_damage_rating
+            --combo_def_stat.att_delayed_damage_rating = rating_table.attacker.delayed_damage_rating
+
+            -- Add min_hp field
+            local min_hp = 0
+            for hp = 0,target_proxy.hitpoints do
+                if combo_def_stat.hp_chance[hp] and (combo_def_stat.hp_chance[hp] > 0) then
+                    min_hp = hp
+                    break
+                end
+            end
+            combo_def_stat.min_hp = min_hp
+
+            counter_attack_stat = {
+                att_stats = combo_att_stats,
+                def_stat = combo_def_stat,
+                rating_table = rating_table
+            }
+        end
+    end
+
+    if (not counter_attack_stat) then
         -- If no attacks are found, we're done; use stats of unit as is
         local hp_chance = {}
         hp_chance[target_proxy.hitpoints] = 1
@@ -1106,48 +1170,6 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
                     rating = 0
                 }
             }
-        }
-    else
-        -- Otherwise calculate the attack combo statistics
-        local enemy_map = {}
-        for id,loc in pairs(gamedata.enemies) do
-            enemy_map[loc[1] * 1000 + loc[2]] = id
-        end
-
-        local attacker_copies, dsts, attacker_infos = {}, {}, {}
-        for src,dst in pairs(counter_attack) do
-            table.insert(attacker_copies, gamedata.unit_copies[enemy_map[src]])
-            table.insert(attacker_infos, gamedata.unit_infos[enemy_map[src]])
-            table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
-        end
-
-        local combo_att_stats, combo_def_stat, sorted_atts, sorted_dsts, rating_table =
-            fred_attack_utils.attack_combo_eval(
-                attacker_copies, target_proxy, dsts,
-                attacker_infos, gamedata.unit_infos[target_id],
-                gamedata, move_cache, cfg
-            )
-
-        --combo_def_stat.rating = rating_table.rating
-        --combo_def_stat.def_rating = rating_table.defender.rating
-        --combo_def_stat.att_rating = rating_table.attacker.rating
-        --combo_def_stat.def_delayed_damage_rating = rating_table.defender.delayed_damage_rating
-        --combo_def_stat.att_delayed_damage_rating = rating_table.attacker.delayed_damage_rating
-
-        -- Add min_hp field
-        local min_hp = 0
-        for hp = 0,target_proxy.hitpoints do
-            if combo_def_stat.hp_chance[hp] and (combo_def_stat.hp_chance[hp] > 0) then
-                min_hp = hp
-                break
-            end
-        end
-        combo_def_stat.min_hp = min_hp
-
-        counter_attack_stat = {
-            att_stats = combo_att_stats,
-            def_stat = combo_def_stat,
-            rating_table = rating_table
         }
     end
 
