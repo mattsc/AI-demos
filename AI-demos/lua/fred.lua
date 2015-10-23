@@ -404,7 +404,7 @@ return {
             end
             --DBG.dbms(threats2)
 
-            -- Add up the power of all T1 threats on this zone
+            -- Add up the power of all T2 threats on this zone
             local enemy_power2 = 0
             for id,power in pairs(threats2) do
                 enemy_power2 = enemy_power2 + power
