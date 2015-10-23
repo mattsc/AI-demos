@@ -360,6 +360,59 @@ return {
             end
             --DBG.dbms(threats1)
 
+            -- If these units are too weak, we eliminate them as threats
+            local max_total_loss, av_total_loss = 0, 0
+            for id,_ in pairs(threats1) do
+                --print(id)
+
+                -- TODO: for now, just use the hex adjacent to the leader with
+                -- the highest defense rating for the attacker
+                -- This might be good enough, or need to be refined later
+                local dst
+                local max_defense = 0
+                for xa,ya in H.adjacent_tiles(gamedata.leader_x, gamedata.leader_y) do
+                    local defense = FGUI.get_unit_defense(gamedata.unit_copies[id], xa, ya, gamedata.defense_maps)
+
+                    if (defense > max_defense) then
+                        max_defense = defense
+                        dst = { xa, ya }
+                    end
+                end
+
+                local att_stat, def_stat = FAU.battle_outcome(
+                    gamedata.unit_copies[id], leader_proxy,
+                    dst,
+                    gamedata.unit_infos[id], gamedata.unit_infos[leader_proxy.id],
+                    gamedata, fred.data.move_cache
+                )
+                --DBG.dbms(att_stat)
+                --DBG.dbms(def_stat)
+
+                local min_hp = 9e99
+                for hp,hc in pairs(def_stat.hp_chance) do
+                    if (hc > 0) and (hp < min_hp) then
+                        min_hp = hp
+                    end
+                end
+
+                local max_loss = leader_proxy.hitpoints - min_hp
+                local av_loss = leader_proxy.hitpoints - def_stat.average_hp
+                max_total_loss = max_total_loss + max_loss
+                av_total_loss = av_total_loss + av_loss
+            end
+            --print('max_total_loss, av_total_loss', max_total_loss, av_total_loss)
+
+            -- We only consider these leader threats, if they either have a chance
+            -- to kill the AI leader, or if their average expected damage is
+            -- more than his total max_hitpoints
+            if (max_total_loss >= leader_proxy.hitpoints) or (av_total_loss >= leader_proxy.max_hitpoints / 2) then
+                --print('Combined threat on leader is large, needs to be considered.')
+            else
+                --print('Combined threat on leader is small, can be ignored.')
+                threats1 = {}
+            end
+            --DBG.dbms(threats1)
+
             local my_power = {}
             -- Count units that have already moved in the zone
             for id,power in pairs(stage_status[raw_cfg.zone_id].units_used) do
@@ -373,7 +426,6 @@ return {
                 enemy_power1 = enemy_power1 + power
             end
             --print('  enemy_power1:', enemy_power1)
-
 
             -- Also want to set up an action to pull units back toward the
             -- leader, if there are too many enemies around him.
