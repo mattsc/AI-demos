@@ -1584,7 +1584,7 @@ return {
 
                     local acceptable_counter = true
 
-                    local max_damage_rating = -9e99
+                    local min_total_damage_rating = 9e99
                     for i_a,attacker in ipairs(combo.attackers) do
                         --print_time('  by', attacker.id, combo.dsts[i_a][1], combo.dsts[i_a][2])
 
@@ -1621,8 +1621,8 @@ return {
                         --print('  damage_taken, damage_done, value_ratio:', damage_taken, damage_done, combo.rating_table.value_ratio)
                         --print('     --> damage_rating:', damage_rating)
 
-                        if (damage_rating > max_damage_rating) then
-                            max_damage_rating = damage_rating
+                        if (damage_rating < min_total_damage_rating) then
+                            min_total_damage_rating = damage_rating
                         end
 
                         local counter_min_hp = counter_stats.def_stat.min_hp
@@ -1723,10 +1723,10 @@ return {
                             -- Rating if no forward attack is done is done is only the counter attack rating
                             local no_attack_rating = 0 - counter_stats.rating_table.rating
                             -- If an attack is done, it's the combined forward and counter attack rating
-                            local with_attack_rating = max_damage_rating
+                            local with_attack_rating = min_total_damage_rating
 
                             --print('    V1: no attack rating: ', no_attack_rating, '<---', 0, -counter_stats.rating_table.rating)
-                            --print('    V2: with attack rating:', with_attack_rating, '<---', combo.rating_table.rating, max_damage_rating)
+                            --print('    V2: with attack rating:', with_attack_rating, '<---', combo.rating_table.rating, min_total_damage_rating)
 
                             if (with_attack_rating < no_attack_rating) then
                                 acceptable_counter = false
@@ -1739,9 +1739,9 @@ return {
 
                     --print_time('  acceptable_counter', acceptable_counter)
                     if acceptable_counter then
-                        local total_rating = max_damage_rating
                         --print('    Acceptable counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating_table.rating)
                         --print('      --> total_rating', total_rating)
+                        local total_rating = min_total_damage_rating
 
                         if (total_rating > max_total_rating) then
                             max_total_rating = total_rating
