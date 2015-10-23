@@ -334,16 +334,19 @@ return {
             end
 
 
-            -- T1 threats: those enemies that can attack the leader directly.
-            -- And enemies who can reach the key hexes (if leader is not there)
-
+            -- T1 threats:
+            --   1. Those enemies that can attack the leader directly (only if leader has no MP).
+            --   2.And enemies who can reach the key hexes
+            -- TODO: do we need key hexes?
             local threats1 = {}
             local my_power1 = {}
-            local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], leader_x, leader_y, 'ids', {})
 
+            if (leader_proxy.moves == 0) then
+                local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], gamedata.leader_x, gamedata.leader_y, 'ids', {})
 
-            for _,id in pairs(ids) do
-                threats1[id] = gamedata.unit_infos[id].power
+                for _,id in pairs(ids) do
+                    threats1[id] = gamedata.unit_infos[id].power
+                end
             end
 
             for _,hex in pairs(raw_cfg.key_hexes) do
