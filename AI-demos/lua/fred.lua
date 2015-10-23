@@ -19,6 +19,7 @@ return {
         ----- Debug output flags -----
         local debug_eval = false    -- top-level evaluation information
         local debug_exec = true     -- top-level executiuon information
+        local show_debug_attack = false
 
 
         ------- Utility functions -------
@@ -1185,7 +1186,7 @@ return {
                     end
                 end
             end
-            --print('  #targets', #targets)
+            FU.print_debug(show_debug_attack, '  #targets', #targets)
             --DBG.dbms(targets)
 
             local attacker_map = {}
@@ -1219,7 +1220,7 @@ return {
                 if gamedata.trapped_enemies[target_id] then
                     is_trappable_enemy = false
                 end
-                --print(target_id, '  trappable:', is_trappable_enemy, target_loc[1], target_loc[2])
+                FU.print_debug(show_debug_attack, target_id, '  trappable:', is_trappable_enemy, target_loc[1], target_loc[2])
 
                 local attack_combos = FAU.get_attack_combos(
                     zonedata.zone_units_attacks, target, gamedata.reach_maps, false, move_cache, cfg_attack
@@ -1487,15 +1488,14 @@ return {
             end
             table.sort(combo_ratings, function(a, b) return a.rating > b.rating end)
             --DBG.dbms(combo_ratings)
-            --print_time('#combo_ratings', #combo_ratings)
+            FU.print_debug(show_debug_attack, '#combo_ratings', #combo_ratings)
 
             -- Now check whether counter attacks are acceptable
-            local show_debug = false
             local max_total_rating, action = -9e99
             local disqualified_attacks = {}
             for count,combo in ipairs(combo_ratings) do
                 if (count > 50) and action then break end
-                --print_time('\nChecking counter attack for attack on', count, next(combo.target), combo.rating_table.value_ratio, combo.rating, action)
+                FU.print_debug(show_debug_attack, '\nChecking counter attack for attack on', count, next(combo.target), combo.rating_table.value_ratio, combo.rating, action)
 
                 -- Check whether an position in this combo was previously disqualified
                 -- Only do so for large numbers of combos though; there is a small
@@ -1529,7 +1529,7 @@ return {
 
                     local old_locs, old_HP_attackers = {}, {}
                     for i_a,attacker_info in ipairs(combo.attackers) do
-                        if show_debug then
+                        if show_debug_attack then
                             local id, x, y = attacker_info.id, combo.dsts[i_a][1], combo.dsts[i_a][2]
                             W.label { x = x, y = y, text = attacker_info.id }
                         end
@@ -1557,14 +1557,6 @@ return {
                         end
                     end
 
-                    if show_debug then
-                        W.message { speaker = 'narrator', message = 'Attack combo ' .. count }
-                        for i_a,attacker_info in ipairs(combo.attackers) do
-                            local id, x, y = attacker_info.id, combo.dsts[i_a][1], combo.dsts[i_a][2]
-                            W.label { x = x, y = y, text = "" }
-                        end
-                    end
-
                     -- Also set the hitpoints for the defender
                     local target_id, target_loc = next(combo.target)
                     local target_proxy = wesnoth.get_unit(target_loc[1], target_loc[2])
@@ -1586,7 +1578,7 @@ return {
 
                     local min_total_damage_rating = 9e99
                     for i_a,attacker in ipairs(combo.attackers) do
-                        --print_time('  by', attacker.id, combo.dsts[i_a][1], combo.dsts[i_a][2])
+                        FU.print_debug(show_debug_attack, '  by', attacker.id, combo.dsts[i_a][1], combo.dsts[i_a][2])
 
                         -- Now calculate the counter attack outcome
                         local attacker_moved = {}
@@ -1616,10 +1608,10 @@ return {
 
                         local damage_rating = - damage_taken * combo.rating_table.value_ratio + damage_done
 
-                        --print('  damage taken forward, counter:', damage_taken_forward, damage_taken_counter)
-                        --print('  damage done forward, counter :', damage_done_forward, damage_done_counter)
-                        --print('  damage_taken, damage_done, value_ratio:', damage_taken, damage_done, combo.rating_table.value_ratio)
-                        --print('     --> damage_rating:', damage_rating)
+                        FU.print_debug(show_debug_attack, '  damage taken forward, counter:', damage_taken_forward, damage_taken_counter)
+                        FU.print_debug(show_debug_attack, '  damage done forward, counter :', damage_done_forward, damage_done_counter)
+                        FU.print_debug(show_debug_attack, '  damage_taken, damage_done, value_ratio:', damage_taken, damage_done, combo.rating_table.value_ratio)
+                        FU.print_debug(show_debug_attack, '     --> damage_rating:', damage_rating)
 
                         if (damage_rating < min_total_damage_rating) then
                             min_total_damage_rating = damage_rating
@@ -1739,9 +1731,9 @@ return {
 
                     --print_time('  acceptable_counter', acceptable_counter)
                     if acceptable_counter then
-                        --print('    Acceptable counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating_table.rating)
-                        --print('      --> total_rating', total_rating)
                         local total_rating = min_total_damage_rating
+                        FU.print_debug(show_debug_attack, '    Acceptable counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating_table.rating)
+                        FU.print_debug(show_debug_attack, '      --> total_rating', total_rating)
 
                         if (total_rating > max_total_rating) then
                             max_total_rating = total_rating
@@ -1758,6 +1750,15 @@ return {
 
                             action.dsts = combo.dsts
                             action.action = 'attack'
+                        end
+                    end
+
+                    if show_debug_attack then
+                        wesnoth.scroll_to_tile(target_loc[1], target_loc[2])
+                        W.message { speaker = 'narrator', message = 'Attack combo ' .. count .. ': ' .. combo.rating}
+                        for i_a,attacker_info in ipairs(combo.attackers) do
+                            local id, x, y = attacker_info.id, combo.dsts[i_a][1], combo.dsts[i_a][2]
+                            W.label { x = x, y = y, text = "" }
                         end
                     end
                 end
