@@ -1598,7 +1598,7 @@ return {
 
                     -- As the counter attack happens on the enemy's side next turn,
                     -- delayed damage also needs to be applied
-                    hp = hp - combo.rating_table.defender.delayed_damage
+                    hp = H.round(hp - combo.rating_table.defender.delayed_damage)
 
                     -- This is probably not necessary, but just in case:
                     if (hp < 0) then hp = 0 end
