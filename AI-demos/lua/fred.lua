@@ -1034,30 +1034,7 @@ return {
 
             fred.data.zone_cfgs = {}
 
-            --print(' --- my units all_map')
-            local my_power = 0
-            for id,loc in pairs(gamedata.my_units) do
-                --print(id, gamedata.unit_infos[id].power)
-                my_power = my_power + gamedata.unit_infos[id].power
-            end
-            --print(' --- enemy units all_map')
-            local enemy_power = 0
-            for id,loc in pairs(gamedata.enemies) do
-                --print(id, gamedata.unit_infos[id].power)
-                enemy_power = enemy_power + gamedata.unit_infos[id].power
-            end
-            local power_ratio = enemy_power / my_power
-            --print(' -----> my_power, enemy_power, power_ratio', my_power, enemy_power, power_ratio)
-
-            local value_ratio = FU.cfg_default('value_ratio')
-            --print('value_ratio', value_ratio)
-
-            if (power_ratio < 0.75) then value_ratio = power_ratio end
-            --print('value_ratio', value_ratio)
-
-            if (value_ratio < 0.5) then value_ratio = 0.5 end
-            --print('value_ratio', value_ratio)
-
+            local value_ratio = FU.get_value_ratio(gamedata)
 
             ----- Attack all remaining valid targets -----
 
