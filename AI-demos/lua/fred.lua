@@ -1643,7 +1643,7 @@ return {
 
                         FU.print_debug(show_debug_attack, '  damage taken forward, counter:', damage_taken_forward, damage_taken_counter)
                         FU.print_debug(show_debug_attack, '  damage done forward, counter :', damage_done_forward, damage_done_counter)
-                        FU.print_debug(show_debug_attack, '  damage_taken, damage_done, value_ratio:', damage_taken, damage_done, combo.rating_table.value_ratio)
+                        FU.print_debug(show_debug_attack, '  damage_taken, damage_done, ratio, value_ratio:', damage_done .. '/' .. damage_taken .. ' = ' .. damage_done / damage_taken .. '  <->  ' .. combo.rating_table.value_ratio)
                         FU.print_debug(show_debug_attack, '     --> damage_rating:', damage_rating)
 
                         if (damage_rating < min_total_damage_rating) then
@@ -2473,7 +2473,7 @@ return {
                                 local target = {}
                                 target[id] = { x, y }
                                 local counter_stats, counter_attack = FAU.calc_counter_attack(target, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
-                                --DBG.dbms(counter_stats)
+                                --DBG.dbms(counter_stats.def_stat)
 
                                 if (not FHU.is_acceptable_location(id, x, y, hit_chance, counter_stats, raw_cfg)) then
                                     is_acceptable = false
