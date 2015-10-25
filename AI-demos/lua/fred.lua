@@ -20,6 +20,7 @@ return {
         local debug_eval = false    -- top-level evaluation information
         local debug_exec = true     -- top-level executiuon information
         local show_debug_attack = false
+        local show_debug_advance = false
 
 
         ------- Utility functions -------
@@ -2327,12 +2328,12 @@ return {
                 local not_leader_or_leader_on_keep =
                     (not is_leader)
                     or wesnoth.get_terrain_info(wesnoth.get_terrain(gamedata.units[id][1], gamedata.units[id][2])).keep
-                --print(id, is_leader, not_leader_or_leader_on_keep)
+                FU.print_debug(show_debug_advance, id, is_leader, not_leader_or_leader_on_keep)
 
                 -- TODO: change retreat.lua so that it uses the gamedata tables
                 local min_hp = R.min_hp(gamedata.unit_copies[id])
                 local must_retreat = gamedata.unit_copies[id].hitpoints < min_hp
-                --print(id, min_hp, must_retreat)
+                FU.print_debug(show_debug_advance, id, min_hp, must_retreat)
 
                 local unit_rating_map = {}
                 for x,tmp in pairs(gamedata.reach_maps[id]) do
@@ -2505,8 +2506,8 @@ return {
                     end
                 end
 
-                show_debug = false
-                if show_debug then
+                if show_debug_advance then
+                    wesnoth.scroll_to_tile(gamedata.units[id][1], gamedata.units[id][2])
                     FU.put_fgumap_labels(unit_rating_map, 'rating')
                     wesnoth.add_tile_overlay(gamedata.units[id][1], gamedata.units[id][2], { image = "items/orcish-flag.png" })
                     W.message { speaker = 'narrator', message = 'Advance zone: unit-specific rating map: ' .. id }
