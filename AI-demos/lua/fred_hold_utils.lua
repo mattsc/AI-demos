@@ -4,8 +4,9 @@ local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local fred_hold_utils = {}
 
-function fred_hold_utils.is_acceptable_location(id, x, y, hit_chance, counter_stats, raw_cfg)
+function fred_hold_utils.is_acceptable_location(id, x, y, hit_chance, counter_stats, value_ratio, raw_cfg)
     -- Check whether are holding/advancing location has acceptable expected losses
+    -- TODO: simplify the function call, fewer parameters
 
     local show_debug = false
 
@@ -24,6 +25,29 @@ function fred_hold_utils.is_acceptable_location(id, x, y, hit_chance, counter_st
     local defend_hard = is_core_hex and is_good_terrain
     FU.print_debug(show_debug, '  --> defend_hard:', defend_hard)
 
+    -- When defend_hard=false, make the acceptable limits dependable on value_ratio
+    -- TODO: these are pretty arbitrary values at this time; refine
+    value_ratio = value_ratio or FU.cfg_default('value_ratio')
+    FU.print_debug(show_debug, '  value_ratio:', value_ratio)
+
+    local acceptable_hit_chance, acceptable_rating = 0, 2
+    FU.print_debug(show_debug, '  default acceptable_hit_chance, acceptable_rating:', acceptable_hit_chance, acceptable_rating)
+
+
+    if (value_ratio < 1) then
+        -- acceptable_hit_chance: 0 at vr = 1, 0.25 at vr = 0.5
+        acceptable_hit_chance = (1 - value_ratio) / 2.
+
+        -- acceptable_rating: 2 at vr = 1, 6 at vr = 0.5
+        acceptable_rating = 2 + (1 - value_ratio) * 8.
+
+        -- Just in case (should not be necessary under most circumstances)
+        if (acceptable_hit_chance < 0) then acceptable_hit_chance = 0 end
+        if (acceptable_hit_chance > 0.25) then acceptable_hit_chance = 0.25 end
+        if (acceptable_rating < 2) then acceptable_rating = 2 end
+        if (acceptable_rating > 6) then acceptable_rating = 6 end
+    end
+    FU.print_debug(show_debug, '  -> acceptable_hit_chance, acceptable_rating:', acceptable_hit_chance, acceptable_rating)
 
     -- If chance to die is too large, do not use this position
     -- This is dependent on how good the terrain is
@@ -48,7 +72,7 @@ function fred_hold_utils.is_acceptable_location(id, x, y, hit_chance, counter_st
         -- Also if the relative loss is more than X HP (X/12 the
         -- value of a grunt) for any single attack
         if (counter_stats.rating_table.rating >= 2) then
-            FU.print_debug(show_debug, '      not acceptable because chance to die too high:', counter_stats.def_stat.hp_chance[0])
+            FU.print_debug(show_debug, '      not acceptable because rating too bad:', counter_stats.rating_table.rating)
             return false
         end
     end

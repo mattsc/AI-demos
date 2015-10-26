@@ -2199,7 +2199,7 @@ return {
                     local hit_chance = FU.get_hit_chance(id, x, y, gamedata)
                     --print('  ' .. id, x, y, hit_chance)
 
-                    if (not FHU.is_acceptable_location(id, x, y, hit_chance, counter_stats, raw_cfg)) then
+                    if (not FHU.is_acceptable_location(id, x, y, hit_chance, counter_stats, zonedata.cfg.value_ratio, raw_cfg)) then
                         is_acceptable = false
                     end
 
@@ -2475,7 +2475,7 @@ return {
                                 local counter_stats, counter_attack = FAU.calc_counter_attack(target, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
                                 --DBG.dbms(counter_stats.def_stat)
 
-                                if (not FHU.is_acceptable_location(id, x, y, hit_chance, counter_stats, raw_cfg)) then
+                                if (not FHU.is_acceptable_location(id, x, y, hit_chance, counter_stats, zonedata.cfg.value_ratio, raw_cfg)) then
                                     is_acceptable = false
                                 end
                             end
