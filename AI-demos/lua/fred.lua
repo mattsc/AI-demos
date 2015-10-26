@@ -828,8 +828,8 @@ return {
             end
             --print('my_power:', MA.my_power1, MA.my_power2, MA.my_power1 + MA.my_power2)
 
-            MA.value_ratio = FU.cfg_default('value_ratio')
-            MA.power_needed = (MA.enemy_power1 + MA.enemy_power2) * MA.value_ratio
+            local value_ratio = FU.get_value_ratio(gamedata)
+            MA.power_needed = (MA.enemy_power1 + MA.enemy_power2) * value_ratio
             MA.contingency = (MA.my_power1 + MA.my_power2) - MA.power_needed
             if (MA.contingency < 0) then MA.contingency = 0 end
             --print('power_needed, contingency', MA.power_needed, MA.contingency)
@@ -872,6 +872,7 @@ return {
                 zone_cfg.rating = data.rating1
                 zone_cfg.stage_id = stage_id
                 zone_cfg.targets = {}
+                zone_cfg.value_ratio = value_ratio
 
                 -- Also add in the targets, but now use only those that are inside cfg.target_zone
                 for id,_ in pairs(data.raw_targets) do
@@ -883,7 +884,7 @@ return {
                 end
 
                 -- This is the sum of both T1 and T2!!
-                local power_needed = (data.enemy_power1 + data.enemy_power2) * MA.value_ratio
+                local power_needed = (data.enemy_power1 + data.enemy_power2) * value_ratio
                 stage_status[zone_id].power_needed = power_needed
 
                 if (data.my_power1 > 0) then
@@ -970,6 +971,7 @@ return {
                     zone_id = zone_id,
                     stage_id = stage_id,
                     actions = { advance = true },
+                    value_ratio = value_ratio,
                     rating = hold[zone_id].rating + 0.001, -- as there's a sorting later
                     ignore_resource_limit = true,
                     villages_only = true
@@ -983,6 +985,7 @@ return {
                         zone_id = zone_id,
                         stage_id = stage_id,
                         actions = { hold = true },
+                        value_ratio = value_ratio,
                         rating = hold[zone_id].rating,
                         holders = hold[zone_id].units
                     }
@@ -1002,6 +1005,7 @@ return {
                         zone_id = zone_id,
                         stage_id = stage_id,
                         actions = { advance = true },
+                        value_ratio = value_ratio,
                         rating = rating
                     }
                     table.insert(tmp_cfgs_advance, cfg)
