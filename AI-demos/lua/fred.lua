@@ -1647,7 +1647,7 @@ return {
 
                         FU.print_debug(show_debug_attack, '  damage taken forward, counter:', damage_taken_forward, damage_taken_counter)
                         FU.print_debug(show_debug_attack, '  damage done forward, counter :', damage_done_forward, damage_done_counter)
-                        FU.print_debug(show_debug_attack, '  damage_taken, damage_done, ratio, value_ratio:', damage_done .. '/' .. damage_taken .. ' = ' .. damage_done / damage_taken .. '  <->  ' .. combo.rating_table.value_ratio)
+                        FU.print_debug(show_debug_attack, '  damage_done / damage_taken = ratio, value_ratio:', damage_done .. ' / ' .. damage_taken .. ' = ' .. damage_done / damage_taken .. '  <->  ' .. combo.rating_table.value_ratio)
                         FU.print_debug(show_debug_attack, '     --> damage_rating:', damage_rating)
 
                         if (damage_rating < min_total_damage_rating) then
