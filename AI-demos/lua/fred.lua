@@ -3128,7 +3128,10 @@ return {
                     -- move of this combination is now in the way again and cannot move any more.
                     -- We also need to stop execution in that case.
                     -- Just checking for moves > 0 is not always sufficient.
-                    local unit_in_way = wesnoth.get_unit(dst[1], dst[2])
+                    local unit_in_way
+                    if (unit.x ~= dst[1]) or (unit.y ~= dst[2]) then
+                        unit_in_way = wesnoth.get_unit(dst[1], dst[2])
+                    end
                     if unit_in_way then
                         uiw_reach = wesnoth.find_reach(unit_in_way)
 
