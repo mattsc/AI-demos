@@ -1635,10 +1635,10 @@ return {
                         -- to dying are much overrated
                         -- That is then the damage that is used for the overall rating
                         local damage_taken_forward = - combo.rating_table.attacker.damage_rating
-                        local damage_taken_counter = counter_stats.rating_table.defender.rating * (1 - combo.att_stats[i_a].hp_chance[0])
+                        local damage_taken_counter = counter_stats.rating_table.defender.rating
 
                         local damage_done_forward = combo.rating_table.defender.rating
-                        local damage_done_counter = - counter_stats.rating_table.attacker.damage_rating * (1 - combo.def_stat.hp_chance[0])
+                        local damage_done_counter = - counter_stats.rating_table.attacker.damage_rating
 
                         local damage_taken = damage_taken_forward + damage_taken_counter
                         local damage_done = damage_done_forward + damage_done_counter
