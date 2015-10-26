@@ -108,7 +108,7 @@ function fred_attack_utils.delayed_damage(unit_info, att_stat, hp_before, x, y, 
     return delayed_damage_rating, delayed_damage
 end
 
-function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_stat, def_stat, cfg)
+function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_stat, def_ctd, cfg)
     -- Calculate the rating for the damage received by a single attacker on a defender.
     -- The attack att_stat both for the attacker and the defender need to be precalculated for this.
     -- Unit information is passed in unit_infos format, rather than as unit proxy tables for speed reasons.
@@ -117,7 +117,8 @@ function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_
     --
     -- Input parameters:
     --  @attacker_info, @defender_info: unit_info tables produced by fred_gamestate_utils.single_unit_info()
-    --  @att_stat, @def_stat: attack statistics for the two units
+    --  @att_stat: attack statistics for the two units
+    --  @def_ctd: chance to die of the defender in this individual attack (as opposed to an entire attack combo)
     --
     -- Optional parameters:
     --  @cfg: the optional different weights listed right below
@@ -144,7 +145,7 @@ function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_
     -- Otherwise, if a kill is needed, the bonus is the chance of the defender
     -- dying times the attacker NOT dying
     elseif (attacker_info.max_experience - attacker_info.experience <= defender_level * 8) then
-        level_bonus = (1. - att_stat.hp_chance[0]) * def_stat.hp_chance[0]
+        level_bonus = (1. - att_stat.hp_chance[0]) * def_ctd
     end
 
     fractional_damage = fractional_damage - level_bonus * leveling_weight
@@ -158,7 +159,7 @@ function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_
     return rating
 end
 
-function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, att_stats, def_stat, gamedata, cfg)
+function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, att_stats, def_stats, gamedata, cfg)
     -- Returns a common (but configurable) rating for attacks of one or several attackers against one defender
     --
     -- Inputs:
@@ -167,7 +168,8 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     --  @dsts: array of attack locations in form { x, y } (must be an array even for single unit attacks)
     --  @att_stats: array of the attack stats of the attack combination(!) of the attackers
     --    (must be an array even for single unit attacks)
-    --  @def_stat: the combat stats of the defender after facing the combination of the attackers
+    --  @def_stats: the combat stats of the defender after facing the combination of the attackers
+    --    (must be an array even for single unit attacks)
     --  @gamedata: table with the game state as produced by fred_gamestate_utils.gamedata()
     --
     -- Optional inputs:
@@ -193,10 +195,17 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     local occupied_hex_penalty = (cfg and cfg.occupied_hex_penalty) or FU.cfg_default('occupied_hex_penalty')
     local value_ratio = (cfg and cfg.value_ratio) or FU.cfg_default('value_ratio')
 
+    local total_def_stat = def_stats[#attacker_infos]
+
     local attacker_damage_rating, attacker_delayed_damage_rating, attacker_delayed_damage = 0, 0, 0
     for i,attacker_info in ipairs(attacker_infos) do
+        local def_ctd = def_stats[i].hp_chance[0]
+        if (i > 1) then
+            def_ctd = def_ctd - def_stats[i-1].hp_chance[0]
+        end
+
         attacker_damage_rating = attacker_damage_rating - fred_attack_utils.damage_rating_unit(
-            attacker_info, defender_info, att_stats[i], def_stat, cfg
+            attacker_info, defender_info, att_stats[i], def_ctd, cfg
         )
 
         -- Add in the delayed damage
@@ -212,11 +221,11 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     -- TODO: This is only works for the first attacker in a combo at the moment
     local defender_x, defender_y = gamedata.units[defender_info.id][1], gamedata.units[defender_info.id][2]
     local defender_damage_rating = fred_attack_utils.damage_rating_unit(
-        defender_info, attacker_infos[1], def_stat, att_stats[1], cfg
+        defender_info, attacker_infos[1], total_def_stat, att_stats[1].hp_chance[0], cfg
     )
 
     -- Add in the delayed damage
-    local defender_delayed_damage_rating, defender_delayed_damage = fred_attack_utils.delayed_damage(defender_info, def_stat, def_stat.average_hp, defender_x, defender_y, gamedata)
+    local defender_delayed_damage_rating, defender_delayed_damage = fred_attack_utils.delayed_damage(defender_info, total_def_stat, total_def_stat.average_hp, defender_x, defender_y, gamedata)
 
     -- Delayed damage for the defender is a positive rating
     local defender_rating = defender_damage_rating + defender_delayed_damage_rating
@@ -317,7 +326,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     local rating_table = {
         rating = rating,
         damage_rating = damage_rating,
-        delayed_damage = delayed_damage,
+        delayed_damage_rating = delayed_damage_rating,
         attacker = {
             rating = attacker_rating,
             damage_rating = attacker_damage_rating,
@@ -613,7 +622,7 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
         local rating_table =
             fred_attack_utils.attack_rating(
                 { tmp_attacker_infos[i] }, defender_info, { tmp_dsts[i] },
-                { tmp_att_stats[i] }, tmp_def_stats[i], gamedata, cfg
+                { tmp_att_stats[i] }, { tmp_def_stats[i] }, gamedata, cfg
             )
 
         --print(attacker_copy.id .. ' --> ' .. defender_proxy.id)
@@ -704,7 +713,7 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
     local rating_table =
         fred_attack_utils.attack_rating(
             attacker_infos, defender_info, dsts,
-            att_stats, def_stats[#attacker_infos], gamedata, cfg
+            att_stats, def_stats, gamedata, cfg
         )
 
     return att_stats, def_stats[#attacker_infos], attacker_infos, dsts, rating_table
@@ -821,7 +830,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
                     -- so that good terrain for the attacker will be preferred
                     local rating_table = fred_attack_utils.attack_rating(
                         { gamedata.unit_infos[attacker_id] }, gamedata.unit_infos[defender_id], { { xa, ya } },
-                        { att_stat }, def_stat,
+                        { att_stat }, { def_stat },
                         gamedata, cfg
                     )
 
