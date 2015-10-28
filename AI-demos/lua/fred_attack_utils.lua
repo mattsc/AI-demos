@@ -42,6 +42,26 @@ function fred_attack_utils.is_acceptable_attack(damage_to_ai, damage_to_enemy, v
     return (damage_to_enemy / damage_to_ai) >= value_ratio
 end
 
+function fred_attack_utils.levelup_chance(unit_info, unit_stat, enemy_ctd, enemy_level)
+    -- In addition, potentially leveling up in this attack is a huge bonus.
+    -- Note: this can make the fractional damage negative (as it should)
+    if (enemy_level == 0) then enemy_level = 0.5 end  -- L0 units
+
+    -- If missing XP is <= level of attacker, it's a guaranteed level-up as long as the unit does not die
+    -- This does work even for L0 units (with enemy_level = 0.5)
+    local levelup_chance = 0.
+
+    if (unit_info.max_experience - unit_info.experience <= enemy_level) then
+        levelup_chance = 1. - unit_stat.hp_chance[0]
+    -- Otherwise, if a kill is needed, the bonus is the chance of the defender
+    -- dying times the attacker NOT dying
+    elseif (unit_info.max_experience - unit_info.experience <= enemy_level * 8) then
+        levelup_chance = enemy_ctd
+    end
+
+    return levelup_chance
+end
+
 function fred_attack_utils.delayed_damage(unit_info, att_stat, hp_before, x, y, gamedata)
     -- Returns the damage the unit gets from delayed actions, both positive and negative
     --  - Positive damage: poison, slow (counting slow as damage)
