@@ -1331,12 +1331,6 @@ return {
                     -- Don't attack if the leader is involved and has chance to die > 0
                     local do_attack = true
 
-                    --print('     damage taken, done, value_ratio:', combo_rt.attacker.rating, combo_rt.defender.rating, value_ratio)
-                    -- Note: att_rating is the negative of the damage taken
-                    --if (not FAU.is_acceptable_attack(-combo_rt.attacker.rating, combo_rt.defender.rating, value_ratio)) then
-                    --    do_attack = false
-                    --end
-
                     -- Don't do this attack if the leader has a chance to get killed, poisoned or slowed
                     if do_attack then
                         for k,att_stat in ipairs(combo_att_stats) do
