@@ -418,7 +418,7 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
         if (not leader_distance_maps[typ]) then
             leader_distance_maps[typ] = {}
 
-            cost_map = wesnoth.find_cost_map(
+            local cost_map = wesnoth.find_cost_map(
                 { x = -1 }, -- SUF not matching any unit
                 { { mapstate.leader_x, mapstate.leader_y, wesnoth.current.side, typ } },
                 { ignore_units = true } -- this is the default, I think, but just in case
@@ -432,7 +432,7 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
 
             enemy_leader_distance_maps[typ] = {}
 
-            cost_map = wesnoth.find_cost_map(
+            local cost_map = wesnoth.find_cost_map(
                 { x = -1 }, -- SUF not matching any unit
                 { { mapstate.enemy_leader_x, mapstate.enemy_leader_y, wesnoth.current.side, typ } },
                 { ignore_units = true } -- this is the default, I think, but just in case
