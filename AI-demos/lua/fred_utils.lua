@@ -131,8 +131,6 @@ function fred_utils.cfg_default(parm)
         -- TODO: come up with a more exact measure of this
         xp_weight = 0.75,
 
-        leveling_weight = 1.,
-
         terrain_defense_weight = 0.1,
         distance_leader_weight = 0.002,
         occupied_hex_penalty = 0.001,

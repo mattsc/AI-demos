@@ -128,53 +128,40 @@ function fred_attack_utils.delayed_damage(unit_info, att_stat, hp_before, x, y, 
     return delayed_damage_rating, delayed_damage
 end
 
-function fred_attack_utils.damage_rating_unit(attacker_info, defender_info, att_stat, def_ctd, cfg)
-    -- Calculate the rating for the damage received by a single attacker on a defender.
-    -- The attack att_stat both for the attacker and the defender need to be precalculated for this.
+function fred_attack_utils.damage_rating_unit(attacker_info, att_stat, cfg)
+    -- Calculate the rating for the damage received by a single unit in an attack.
+    -- The attack att_stat for the attacker need to be precalculated for this.
     -- Unit information is passed in unit_infos format, rather than as unit proxy tables for speed reasons.
-    -- Note: this is _only_ the damage rating for the attacker, not both units
     -- Note: damage is damage TO the attacker, not damage done BY the attacker
     --
     -- Input parameters:
-    --  @attacker_info, @defender_info: unit_info tables produced by fred_gamestate_utils.single_unit_info()
-    --  @att_stat: attack statistics for the two units
-    --  @def_ctd: chance to die of the defender in this individual attack (as opposed to an entire attack combo)
+    --  @attacker_info: unit_info table produced by fred_gamestate_utils.single_unit_info()
+    --  @att_stat: attack statistics for the attackers as from battle_outcome or attack_combo_eval
     --
     -- Optional parameters:
     --  @cfg: the optional different weights listed right below
 
-    local leveling_weight = (cfg and cfg.leveling_weight) or FU.cfg_default('leveling_weight')
+    -- Note: levelup chance is included in hp_chance and does not need to be considered separately
+    -- TODO: that's not a great way of doing that, needs to be refined
 
+    --print(attacker_info.id)
     local damage = attacker_info.hitpoints - att_stat.average_hp
+    --print('  damage:', damage)
 
     -- Fractional damage (= fractional value of the attacker)
     local fractional_damage = damage / attacker_info.max_hitpoints
+    --print('  fractional_damage:', fractional_damage)
 
-    -- Additionally, add the chance to die, in order to (de)emphasize units that might die
+    -- Additionally, add the chance to die, in order to emphasize units that might die
+    -- This might result in fractional_damage > 1 in some cases, although usually not by much
     fractional_damage = fractional_damage + att_stat.hp_chance[0]
-
-    -- In addition, potentially leveling up in this attack is a huge bonus.
-    -- Note: this can make the fractional damage negative (as it should)
-    local defender_level = defender_info.level
-    if (defender_level == 0) then defender_level = 0.5 end  -- L0 units
-
-    local level_bonus = 0.
-    -- If missing XP is <= level of attacker, it's a guaranteed level-up as long as the unit does not die
-    if (attacker_info.max_experience - attacker_info.experience <= defender_level) then
-        level_bonus = 1. - att_stat.hp_chance[0]
-    -- Otherwise, if a kill is needed, the bonus is the chance of the defender
-    -- dying times the attacker NOT dying
-    elseif (attacker_info.max_experience - attacker_info.experience <= defender_level * 8) then
-        level_bonus = (1. - att_stat.hp_chance[0]) * def_ctd
-    end
-
-    fractional_damage = fractional_damage - level_bonus * leveling_weight
+    --print('  fractional_damage + CTD:', fractional_damage, att_stat.hp_chance[0])
 
     -- Now convert this into gold-equivalent value
     local unit_value = FU.unit_value(attacker_info, cfg)
 
     local rating = fractional_damage * unit_value
-    --print('damage, fractional_damage, unit_value, rating', attacker_info.id, damage, fractional_damage, unit_value, rating)
+    --print('damage, fractional_damage, unit_value, rating', damage, fractional_damage, unit_value, rating)
 
     return rating
 end
@@ -219,13 +206,8 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
 
     local attacker_damage_rating, attacker_delayed_damage_rating, attacker_delayed_damage = 0, 0, 0
     for i,attacker_info in ipairs(attacker_infos) do
-        local def_ctd = def_stats[i].hp_chance[0]
-        if (i > 1) then
-            def_ctd = def_ctd - def_stats[i-1].hp_chance[0]
-        end
-
         attacker_damage_rating = attacker_damage_rating - fred_attack_utils.damage_rating_unit(
-            attacker_info, defender_info, att_stats[i], def_ctd, cfg
+            attacker_info, att_stats[i], cfg
         )
 
         -- Add in the delayed damage
@@ -237,11 +219,9 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     -- Delayed damage for the attacker is a negative rating
     local attacker_rating = attacker_damage_rating - attacker_delayed_damage_rating
 
-    -- attacker_info is passed only to figure out whether the attacker might level up
-    -- TODO: This is only works for the first attacker in a combo at the moment
     local defender_x, defender_y = gamedata.units[defender_info.id][1], gamedata.units[defender_info.id][2]
     local defender_damage_rating = fred_attack_utils.damage_rating_unit(
-        defender_info, attacker_infos[1], total_def_stat, att_stats[1].hp_chance[0], cfg
+        defender_info, total_def_stat, cfg
     )
 
     -- Add in the delayed damage
@@ -552,7 +532,7 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
     -- up attack combination calculations
     local att_stat = {
         hp_chance = {},
-        average_hp = tmp_att_stat.average_hp,
+        --average_hp = tmp_att_stat.average_hp,
         poisoned = tmp_att_stat.poisoned,
         slowed = tmp_att_stat.slowed
     }
@@ -566,7 +546,7 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
 
     local def_stat = {
         hp_chance = {},
-        average_hp = tmp_def_stat.average_hp,
+        --average_hp = tmp_def_stat.average_hp,
         poisoned = tmp_def_stat.poisoned,
         slowed = tmp_def_stat.slowed
     }
@@ -577,6 +557,36 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
             def_stat.hp_chance[i] = tmp_def_stat.hp_chance[i]
         end
     end
+
+    -- Add another field 'levelup_chance' to the stats
+    local att_luc = fred_attack_utils.levelup_chance(attacker_info, att_stat, def_stat.hp_chance[0], defender_info.level)
+    local def_luc = fred_attack_utils.levelup_chance(defender_info, def_stat, att_stat.hp_chance[0], attacker_info.level)
+
+    att_stat.levelup_chance = att_luc
+    def_stat.levelup_chance = def_luc
+
+    -- Treat leveling up as 1.5 times the max hitpoints
+    -- TODO: refine this?
+    if (att_luc > 0) then
+        local att_lu_hp = H.round(attacker_info.max_hitpoints * 1.5)
+        att_stat.hp_chance[att_lu_hp] = att_luc
+        att_stat.hp_chance[attacker_info.max_hitpoints] = att_stat.hp_chance[attacker_info.max_hitpoints] - att_luc
+    end
+
+    if (def_luc > 0) then
+        local def_lu_hp = H.round(defender_info.max_hitpoints * 1.5)
+        def_stat.hp_chance[def_lu_hp] = def_luc
+        def_stat.hp_chance[defender_info.max_hitpoints] = def_stat.hp_chance[defender_info.max_hitpoints] - def_luc
+    end
+
+    -- Need to recalculate average HP after this
+    local av_hp = 0
+    for hp,prob in pairs(att_stat.hp_chance) do av_hp = av_hp + hp * prob end
+    att_stat.average_hp = av_hp
+
+    local av_hp = 0
+    for hp,prob in pairs(def_stat.hp_chance) do av_hp = av_hp + hp * prob end
+    def_stat.average_hp = av_hp
 
     if (not move_cache[attacker_info.id]) then
         move_cache[attacker_info.id] = {}
@@ -681,8 +691,9 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
     -- Then we go through all the other attacks and calculate the outcomes
     -- based on all the possible outcomes of the previous attacks
     for i = 2,#attacker_infos do
-        att_stats[i] = { hp_chance = {} }
-        def_stats[i] = { hp_chance = {} }
+        att_stats[i] = { hp_chance = {}, levelup_chance = 0 }
+        -- Levelup chance carries through from previous
+        def_stats[i] = { hp_chance = {}, levelup_chance = def_stats[i-1].levelup_chance }
 
         for hp1,prob1 in pairs(def_stats[i-1].hp_chance) do -- Note: need pairs(), not ipairs() !!
             if (hp1 == 0) then
@@ -710,6 +721,9 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
                     def_stats[i].hp_chance[hp2] = (def_stats[i].hp_chance[hp2] or 0) + prob1 * prob2
                 end
 
+                att_stats[i].levelup_chance = att_stats[i].levelup_chance + ast.levelup_chance * prob1
+                def_stats[i].levelup_chance = def_stats[i].levelup_chance + dst.levelup_chance * prob1
+
                 -- Also do poisoned, slowed
                 if (not att_stats[i].poisoned) then
                     att_stats[i].poisoned = ast.poisoned
@@ -718,6 +732,13 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
                     def_stats[i].slowed = 1. - (1. - dst.slowed) * (1. - def_stats[i-1].slowed)
                 end
             end
+        end
+
+        -- TODO: the levelup_chance for the defender is wrong, needs to be redone
+        -- For now, we at least make sure that the LU_chance is not larger than
+        -- the chance to survive
+        if (def_stats[i].levelup_chance > (1 - def_stats[i].hp_chance[0])) then
+            def_stats[i].levelup_chance = 1 - def_stats[i].hp_chance[0]
         end
 
         -- Get the average HP
