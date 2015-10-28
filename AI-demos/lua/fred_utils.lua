@@ -161,10 +161,21 @@ function fred_utils.unit_value(unit_info, cfg)
     -- Being closer to leveling makes the unit more valuable
     -- Square so that a few XP don't matter, but being close to leveling is important
     -- TODO: consider using a more precise measure here
-    local xp_bonus = (unit_info.experience / unit_info.max_experience)^2
+
+    local xp_diff = unit_info.max_experience - unit_info.experience
+
+    local xp_bonus
+    if (xp_diff <= 1) then
+        xp_bonus = 1.33
+    elseif (xp_diff <= 8) then
+        xp_bonus = 1.2
+    else
+        xp_bonus = (unit_info.experience / (unit_info.max_experience - 4))^2
+    end
+
     unit_value = unit_value * (1. + xp_bonus * xp_weight)
 
-    --print('FU.unit_value:', unit_info.id, unit_value)
+    --print('FU.unit_value:', unit_info.id, unit_value, xp_bonus, xp_diff)
 
     return unit_value
 end
