@@ -106,6 +106,14 @@ function fred_utils.set_fgumap_value(map, x, y, key, value)
     map[x][y][key] = value
 end
 
+function fred_utils.weight_s(x)
+    if (x >= 0.5) then
+        return 0.5 + math.sqrt((x - 0.5) * 2) / 2
+    else
+        return 0.5 - math.sqrt((0.5 - x) * 2) / 2
+    end
+end
+
 function fred_utils.get_unit_time_of_day_bonus(alignment, lawful_bonus)
     local multiplier = 1
     if (lawful_bonus ~= 0) then

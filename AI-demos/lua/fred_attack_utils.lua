@@ -144,24 +144,45 @@ function fred_attack_utils.damage_rating_unit(attacker_info, att_stat, cfg)
     -- Note: levelup chance is included in hp_chance and does not need to be considered separately
     -- TODO: that's not a great way of doing that, needs to be refined
 
-    --print(attacker_info.id)
-    local damage = attacker_info.hitpoints - att_stat.average_hp
-    --print('  damage:', damage)
+    --print(attacker_info.id, attacker_info.hitpoints, attacker_info.max_hitpoints)
+
+    local average_damage = attacker_info.hitpoints - att_stat.average_hp
+    --print('  average_damage raw:', average_damage)
+
+    -- This includes healing due to drain etc., but not leveling up
+    if (att_stat.levelup_chance > 0) then
+        average_damage = 0
+        -- Note: the probabilities here do not add up to 1
+        for hp,prob in pairs(att_stat.hp_chance) do
+            if (hp <= attacker_info.max_hitpoints) then
+                average_damage = average_damage + (attacker_info.hitpoints - hp) * prob
+            end
+        end
+    end
+    --print('  average_damage:', average_damage)
 
     -- Fractional damage (= fractional value of the attacker)
-    local fractional_damage = damage / attacker_info.max_hitpoints
-    --print('  fractional_damage:', fractional_damage)
+    local fractional_damage = average_damage / attacker_info.max_hitpoints
+    local fractional_rating = FU.weight_s(fractional_damage)
+
+    --print('  fractional_damage, fractional_rating:', fractional_damage, fractional_rating)
 
     -- Additionally, add the chance to die, in order to emphasize units that might die
     -- This might result in fractional_damage > 1 in some cases, although usually not by much
-    fractional_damage = fractional_damage + att_stat.hp_chance[0]
-    --print('  fractional_damage + CTD:', fractional_damage, att_stat.hp_chance[0])
+    local ctd_rating = FU.weight_s(att_stat.hp_chance[0])
+    fractional_rating = fractional_rating + ctd_rating
+    --print('  ctd, ctd_rating, fractional_rating:', att_stat.hp_chance[0], ctd_rating, fractional_rating)
+
+    -- Levelup chance
+    local lu_rating = - att_stat.levelup_chance^2
+    fractional_rating = fractional_rating + lu_rating
+    --print('  lu_chance, lu_rating, fractional_rating:', att_stat.levelup_chance, lu_rating, fractional_rating)
 
     -- Now convert this into gold-equivalent value
     local unit_value = FU.unit_value(attacker_info, cfg)
 
-    local rating = fractional_damage * unit_value
-    --print('damage, fractional_damage, unit_value, rating', damage, fractional_damage, unit_value, rating)
+    local rating = fractional_rating * unit_value
+    --print('  -> unit_value, fractional_rating, rating', unit_value, fractional_rating, rating)
 
     return rating
 end
