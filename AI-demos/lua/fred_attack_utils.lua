@@ -123,7 +123,7 @@ function fred_attack_utils.delayed_damage(unit_info, att_stat, hp_before, x, y, 
     delayed_damage = math.max(delayed_damage, neg_hp_to_max)
 
     -- Convert to fractional unit value rating
-    local delayed_damage_rating = delayed_damage / unit_info.max_hitpoints * unit_info.cost
+    local delayed_damage_rating = FU.weight_s(delayed_damage / unit_info.max_hitpoints) * unit_info.cost
 
     return delayed_damage_rating, delayed_damage
 end
