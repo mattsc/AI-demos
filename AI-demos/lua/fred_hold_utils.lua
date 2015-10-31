@@ -30,7 +30,7 @@ function fred_hold_utils.is_acceptable_location(id, x, y, hit_chance, counter_st
     value_ratio = value_ratio or FU.cfg_default('value_ratio')
     FU.print_debug(show_debug, '  value_ratio:', value_ratio)
 
-    local acceptable_hit_chance, acceptable_rating = 0, 2
+    local acceptable_hit_chance, acceptable_rating = 0, 0
     FU.print_debug(show_debug, '  default acceptable_hit_chance, acceptable_rating:', acceptable_hit_chance, acceptable_rating)
 
 
@@ -38,14 +38,14 @@ function fred_hold_utils.is_acceptable_location(id, x, y, hit_chance, counter_st
         -- acceptable_hit_chance: 0 at vr = 1, 0.25 at vr = 0.5
         acceptable_hit_chance = (1 - value_ratio) / 2.
 
-        -- acceptable_rating: 2 at vr = 1, 6 at vr = 0.5
-        acceptable_rating = 2 + (1 - value_ratio) * 8.
+        -- acceptable_rating: 0 at vr = 1, 4 at vr = 0.5
+        acceptable_rating = (1 - value_ratio) * 8.
 
         -- Just in case (should not be necessary under most circumstances)
         if (acceptable_hit_chance < 0) then acceptable_hit_chance = 0 end
         if (acceptable_hit_chance > 0.25) then acceptable_hit_chance = 0.25 end
-        if (acceptable_rating < 2) then acceptable_rating = 2 end
-        if (acceptable_rating > 6) then acceptable_rating = 6 end
+        if (acceptable_rating < 0) then acceptable_rating = 0 end
+        if (acceptable_rating > 4) then acceptable_rating = 4 end
     end
     FU.print_debug(show_debug, '  -> acceptable_hit_chance, acceptable_rating:', acceptable_hit_chance, acceptable_rating)
 
@@ -63,7 +63,7 @@ function fred_hold_utils.is_acceptable_location(id, x, y, hit_chance, counter_st
         end
     else -- at least 50% defense
         FU.print_debug(show_debug, '    do not defend hard', counter_stats.def_stat.hp_chance[0], counter_stats.rating_table.rating)
-        if (counter_stats.def_stat.hp_chance[0] > 0) then
+        if (counter_stats.def_stat.hp_chance[0] > acceptable_hit_chance) then
             FU.print_debug(show_debug, '      not acceptable because chance to die too high:', counter_stats.def_stat.hp_chance[0])
             return false
         end
@@ -71,7 +71,7 @@ function fred_hold_utils.is_acceptable_location(id, x, y, hit_chance, counter_st
         -- TODO: might have to depend on enemy faction
         -- Also if the relative loss is more than X HP (X/12 the
         -- value of a grunt) for any single attack
-        if (counter_stats.rating_table.rating >= 2) then
+        if (counter_stats.rating_table.rating >= acceptable_rating) then
             FU.print_debug(show_debug, '      not acceptable because rating too bad:', counter_stats.rating_table.rating)
             return false
         end
