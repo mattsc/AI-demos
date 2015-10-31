@@ -20,6 +20,7 @@ return {
         local debug_eval = false    -- top-level evaluation information
         local debug_exec = true     -- top-level executiuon information
         local show_debug_attack = false
+        local show_debug_hold = false
         local show_debug_advance = false
 
 
@@ -1930,8 +1931,8 @@ return {
                 end
             end
 
-            local show_debug = false
-            if show_debug then
+            local show_debug_local = false
+            if show_debug_local then
                 FU.put_fgumap_labels(enemy_rating_map, 'rating')
                 W.message{ speaker = 'narrator', message = zonedata.cfg.zone_id .. ': enemy_rating_map' }
             end
@@ -1956,8 +1957,8 @@ return {
                 end
             end
 
-            local show_debug = false
-            if show_debug then
+            local show_debug_local = false
+            if show_debug_local then
                 FU.put_fgumap_labels(leader_distance_map, 'distance')
                 W.message{ speaker = 'narrator', message = zonedata.cfg.zone_id .. ': leader_distance_map' }
             end
@@ -2000,12 +2001,11 @@ return {
                 end
             end
 
-            local show_debug = false
-            if show_debug then
+            if show_debug_hold then
                 FU.put_fgumap_labels(indep_rating_map, 'rating')
                 W.message { speaker = 'narrator', message = 'Hold zone ' .. zonedata.cfg.zone_id .. ': unit-independent rating map: rating' }
-                FU.put_fgumap_labels(indep_rating_map, 'adj_count')
-                W.message { speaker = 'narrator', message = 'Hold zone ' .. zonedata.cfg.zone_id .. ': unit-independent rating map: adjacent count' }
+                --FU.put_fgumap_labels(indep_rating_map, 'adj_count')
+                --W.message { speaker = 'narrator', message = 'Hold zone ' .. zonedata.cfg.zone_id .. ': unit-independent rating map: adjacent count' }
             end
 
 
@@ -2040,10 +2040,11 @@ return {
                     end
                 end
 
-                show_debug = false
-                if show_debug then
+                if show_debug_hold then
+                    wesnoth.scroll_to_tile(gamedata.units[id][1], gamedata.units[id][2])
                     FU.put_fgumap_labels(unit_rating_maps[id], 'rating')
                     wesnoth.add_tile_overlay(gamedata.units[id][1], gamedata.units[id][2], { image = "items/orcish-flag.png" })
+                    W.redraw()
                     W.message { speaker = 'narrator', message = 'Hold zone: unit-specific rating map: ' .. id }
                     wesnoth.remove_tile_overlay(gamedata.units[id][1], gamedata.units[id][2], { image = "items/orcish-flag.png" })
                 end
