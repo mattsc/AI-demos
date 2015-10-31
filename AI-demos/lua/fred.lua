@@ -1226,6 +1226,30 @@ return {
             FU.print_debug(show_debug_attack, '  #targets', #targets)
             --DBG.dbms(targets)
 
+            -- Determine whether we need to keep a keep hex open for the leader
+            local available_keeps = {}
+            local leader = fred.data.gamedata.leaders[wesnoth.current.side]
+            local leader_info = gamedata.unit_infos[leader.id]
+
+            -- If the leader cannot move, don't do anything
+            if (leader_info.moves > 0) then
+                local width,height,border = wesnoth.get_map_size()
+                local keeps = wesnoth.get_locations {
+                    terrain = 'K*,K*^*,*^K*', -- Keeps
+                    x = '1-'..width,
+                    y = '1-'..height
+                }
+
+                for _,keep in ipairs(keeps) do
+                    local leader_can_reach = FU.get_fgumap_value(gamedata.reach_maps[leader_info.id], keep[1], keep[2], 'moves_left')
+                    if leader_can_reach then
+                        table.insert(available_keeps, keep)
+                    end
+                end
+
+            end
+            --DBG.dbms(available_keeps)
+
             local attacker_map = {}
             for id,loc in pairs(zonedata.zone_units_attacks) do
                 attacker_map[loc[1] * 1000 + loc[2]] = id
@@ -1330,6 +1354,29 @@ return {
 
                     -- Don't attack if the leader is involved and has chance to die > 0
                     local do_attack = true
+
+                    -- Don't do if this would take all the keep hexes away from the leader
+                    -- TODO: this is a double loop; do this for now, because both arrays
+                    -- are small, but optimize later
+                    if do_attack and (#available_keeps > 0) then
+                        do_attack = false
+                        for _,keep in ipairs(available_keeps) do
+                            local keep_taken = false
+                            for i_d,dst in ipairs(dsts) do
+                                if (not attacker_copies[i_d].canrecruit)
+                                    and (keep[1] == dst[1]) and (keep[2] == dst[2])
+                                then
+                                    keep_taken = true
+                                    break
+                                end
+                            end
+                            if (not keep_taken) then
+                                do_attack = true
+                                break
+                            end
+                        end
+                    end
+                    --print('  ******* do_attack after keep check:', do_attack)
 
                     -- Don't do this attack if the leader has a chance to get killed, poisoned or slowed
                     if do_attack then
