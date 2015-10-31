@@ -108,9 +108,9 @@ end
 
 function fred_utils.weight_s(x)
     if (x >= 0.5) then
-        return 0.5 + math.sqrt((x - 0.5) * 2) / 2
+        return 0.5 + ((x - 0.5) * 2)^0.67 / 2
     else
-        return 0.5 - math.sqrt((0.5 - x) * 2) / 2
+        return 0.5 - ((0.5 - x) * 2)^0.67 / 2
     end
 end
 
