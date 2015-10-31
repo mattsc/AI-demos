@@ -4,14 +4,13 @@ local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local fred_hold_utils = {}
 
-function fred_hold_utils.is_acceptable_location(id, x, y, hit_chance, counter_stats, value_ratio, raw_cfg)
+function fred_hold_utils.is_acceptable_location(unit_info, x, y, hit_chance, counter_stats, value_ratio, raw_cfg)
     -- Check whether are holding/advancing location has acceptable expected losses
     -- TODO: simplify the function call, fewer parameters
 
     local show_debug = false
 
-    FU.print_debug(show_debug, x, y)
-
+    FU.print_debug(show_debug, x, y, unit_info.id, unit_info.tod_mod)
     --DBG.dbms(raw_cfg.hold_core_slf)
     local is_core_hex = false
     if raw_cfg.hold_core_slf then
@@ -47,6 +46,14 @@ function fred_hold_utils.is_acceptable_location(id, x, y, hit_chance, counter_st
         if (acceptable_rating < 0) then acceptable_rating = 0 end
         if (acceptable_rating > 4) then acceptable_rating = 4 end
     end
+
+    -- We raise the limit at good time of day
+    if (unit_info.tod_mod == 1) then
+        acceptable_rating = acceptable_rating + 1
+    elseif (unit_info.tod_mod > 1) then
+        acceptable_rating = acceptable_rating + 2
+    end
+
     FU.print_debug(show_debug, '  -> acceptable_hit_chance, acceptable_rating:', acceptable_hit_chance, acceptable_rating)
 
     -- If chance to die is too large, do not use this position
