@@ -19,6 +19,7 @@ return {
         ----- Debug output flags -----
         local debug_eval = false    -- top-level evaluation information
         local debug_exec = true     -- top-level executiuon information
+        local show_debug_analysis = true
         local show_debug_attack = false
         local show_debug_hold = false
         local show_debug_advance = false
@@ -550,6 +551,7 @@ return {
             -- Some pointers just for convenience
             local stage_id = fred.data.analysis.stage_ids[fred.data.analysis.stage_counter]
             local stage_status = fred.data.analysis.status[stage_id]
+            FU.print_debug(show_debug_analysis, '\nAnalysis of stage ' .. stage_id)
 
             local raw_cfgs = fred:get_raw_cfgs()
             --DBG.dbms(raw_cfgs)
@@ -580,10 +582,7 @@ return {
             local MA = map_analysis -- just for convenience
             local MAZ = map_analysis.zones -- just for convenience
 
-            -- First calculate power that has been used for the zone already
-            --DBG.dbms(gamedata.my_move_map[2])
-            --print('power_used:')
-
+            FU.print_debug(show_debug_analysis, '  #villages, units needed for villages:')
             for _,cfg in ipairs(raw_cfgs) do
                 local village_count = 0  -- unowned and enemy-owned villages
                 for x,tmp in pairs(gamedata.village_map) do
@@ -598,7 +597,7 @@ return {
                 end
 
                 local n_units_needed = math.ceil(village_count / cfg.villages.villages_per_unit)
-                --print('  units needed for villages: ' .. cfg.zone_id, village_count, n_units_needed)
+                FU.print_debug(show_debug_analysis, '    ' .. cfg.zone_id, village_count, n_units_needed)
 
 
                 stage_status[cfg.zone_id] = {
@@ -609,9 +608,9 @@ return {
                 }
             end
 
+            -- Go through status.units_used and make sure those units exist and have MP=0
+            -- This is a safeguard against "unusual stuff"
             for id,zone_id in pairs(fred.data.analysis.status.units_used) do
-                -- Check whether unit still exists and has no MP left
-                -- This is a safeguard against "unusual stuff"
                 if gamedata.my_units_noMP[id] then
                     if stage_status[zone_id] and (not gamedata.unit_infos[id].canrecruit) then
                         local power = gamedata.unit_infos[id].power
@@ -627,6 +626,7 @@ return {
             -- Count how many units (with MP and without) are in the zone already
             -- This will be used to figure out whether we need to advance toward
             -- this zone
+            FU.print_debug(show_debug_analysis, '  power already in zone (with or without MP):')
             local power_in_zone = {}
             for _,cfg in ipairs(raw_cfgs) do
                 power_in_zone[cfg.zone_id] = 0
@@ -635,18 +635,18 @@ return {
                         power_in_zone[cfg.zone_id] = power_in_zone[cfg.zone_id] + gamedata.unit_infos[id].power
                     end
                 end
+                FU.print_debug(show_debug_analysis, '    ' .. cfg.zone_id, power_in_zone[cfg.zone_id])
             end
-            --DBG.dbms(power_in_zone)
 
 
             -- T1 threats: those enemies that can attack a key hex in one move
             -- Enemy units that are T1 threats in several zones are counted
             -- multiple times by this. That is intentional.
 
+            FU.print_debug(show_debug_analysis, '  T1 power (my, enemy):')
             local threats1_all_zones = {}
             local my_power1_all_zones = {}
             for _,cfg in ipairs(raw_cfgs) do
-                --print(cfg.zone_id)
                 local threats1_zone = {}  -- This is just for this zone
                 local my_power_zone = {}  -- This is just for this zone
                 for _,hex in pairs(cfg.key_hexes) do
@@ -683,13 +683,13 @@ return {
                 for id,power in pairs(threats1_zone) do
                     enemy_power1 = enemy_power1 + power
                 end
-                --print('  enemy_power1:', enemy_power1)
 
                 local my_power1 = 0
                 for id,power in pairs(my_power_zone) do
                     my_power1 = my_power1 + power
                 end
-                --print('  my_power1:', my_power1)
+
+                FU.print_debug(show_debug_analysis, '    ' .. cfg.zone_id, my_power1, enemy_power1)
 
                 -- And finally, save it all in the threats table
                 MAZ[cfg.zone_id] = {
@@ -715,6 +715,7 @@ return {
             -- Own units that have moves but can get to the zone next turn are
             -- included in my_move_map[2] automatically
 
+            FU.print_debug(show_debug_analysis, '  T2 power (my, enemy):')
             local threats2_by_zone = {} -- This is to collect T2 threats for all zones first
             for _,cfg in ipairs(raw_cfgs) do
                 threats2_by_zone[cfg.zone_id] = {}
@@ -787,12 +788,15 @@ return {
                 MAZ[cfg.zone_id].my_units2 = my_power_zone
 
                 MAZ[cfg.zone_id].power_in_zone = power_in_zone[cfg.zone_id]
+
+                FU.print_debug(show_debug_analysis, '    ' .. cfg.zone_id, my_power2, MAZ[cfg.zone_id].enemy_power2)
             end
             --DBG.dbms(my_power1_all_zones)
             --DBG.dbms(my_power2_all_zones)
 
             -- Calculate vulnerability for the zones
             -- TODO: currently this is not used; either use or remove
+            FU.print_debug(show_debug_analysis, '  vulnerability:')
             for _,cfg in ipairs(raw_cfgs) do
                 local max_vul = 0
                 for _,hex in pairs(cfg.key_hexes) do
@@ -805,14 +809,17 @@ return {
                 end
 
                 MAZ[cfg.zone_id].vulnerability = max_vul
+
+                FU.print_debug(show_debug_analysis, '    ' .. cfg.zone_id, max_vul)
             end
 
+            FU.print_debug(show_debug_analysis, '  power all zones (T1, T2, T1+T2)')
             MA.enemy_power1, MA.enemy_power2 = 0, 0
             for zone_id,power in pairs(MAZ) do
                 MA.enemy_power1 = MA.enemy_power1 + power.enemy_power1
                 MA.enemy_power2 = MA.enemy_power2 + power.enemy_power2
             end
-            --print('enemy_power:', MA.enemy_power1, MA.enemy_power2, MA.enemy_power1 + MA.enemy_power2)
+            FU.print_debug(show_debug_analysis, '    enemy:', MA.enemy_power1, MA.enemy_power2, MA.enemy_power1 + MA.enemy_power2)
 
 
             -- What does AI have:
@@ -827,30 +834,30 @@ return {
                     MA.my_power2 = MA.my_power2 + power
                 end
             end
-            --print('my_power:', MA.my_power1, MA.my_power2, MA.my_power1 + MA.my_power2)
+            FU.print_debug(show_debug_analysis, '    my:   ', MA.my_power1, MA.my_power2, MA.my_power1 + MA.my_power2)
 
             local value_ratio = FU.get_value_ratio(gamedata)
             MA.power_needed = (MA.enemy_power1 + MA.enemy_power2) * value_ratio
             MA.contingency = (MA.my_power1 + MA.my_power2) - MA.power_needed
             if (MA.contingency < 0) then MA.contingency = 0 end
-            --print('power_needed, contingency', MA.power_needed, MA.contingency)
+            FU.print_debug(show_debug_analysis, '  power needed, contingency', MA.power_needed, MA.contingency)
 
 
 
             ----- Start the zone analysis comparison -----
             -- TODO: should be possible to combine some of these steps
             -- Leave them separate for now for clarity
-            --print('---- Zone evaluation ----')
+            FU.print_debug(show_debug_analysis, '\n  Zone evaluation')
 
             for zone_id,data in pairs(MAZ) do
-                --print(zone_id .. ':')
+                FU.print_debug(show_debug_analysis, '  ' .. zone_id .. ':')
 
                 local dpower1 = data.my_power1 - data.enemy_power1
                 local dpower2 = data.my_power2 - data.enemy_power2
-                --print('  T1:', data.my_power1, -data.enemy_power1, dpower1)
-                --print('  T2:', data.my_power2, -data.enemy_power2, dpower2)
-                --print('  All:', data.my_power1+data.my_power2, -data.enemy_power1-data.enemy_power2, data.my_power1 + data.my_power2 - data.enemy_power1 - data.enemy_power2)
-                --print('  power_in_zone:', data.power_in_zone)
+                FU.print_debug(show_debug_analysis, '    T1:', data.my_power1, -data.enemy_power1, dpower1)
+                FU.print_debug(show_debug_analysis, '    T2:', data.my_power2, -data.enemy_power2, dpower2)
+                FU.print_debug(show_debug_analysis, '    All:', data.my_power1+data.my_power2, -data.enemy_power1-data.enemy_power2, data.my_power1 + data.my_power2 - data.enemy_power1 - data.enemy_power2)
+                FU.print_debug(show_debug_analysis, '    power_in_zone:', data.power_in_zone)
 
                 local vul1 = data.my_power1 + data.enemy_power1 - math.abs(data.my_power1 - data.enemy_power1)
                 local vul2 = data.my_power2 + data.enemy_power2 - math.abs(data.my_power2 - data.enemy_power2)
@@ -858,7 +865,7 @@ return {
 
                 data.rating1 = -dpower1 -- + vul1 TODO: reconsider this rating
                 data.rating2 = -dpower2 -- + vul2
-                --print('rating 1 & 2', data.rating1, data.rating2)
+                FU.print_debug(show_debug_analysis, '    rating 1 & 2', data.rating1, data.rating2)
 
                 stage_status[zone_id].rating = data.rating1
                 stage_status.contingency = MA.contingency
@@ -866,6 +873,7 @@ return {
 
 --DBG.dbms(MAZ)
             -- Get action config for T1
+            FU.print_debug(show_debug_analysis, '\n  Attack evaluation:')
             local attack_cfgs = {}
             for zone_id,data in pairs(MAZ) do
                 local zone_cfg = { zone_id = zone_id }
@@ -910,7 +918,7 @@ return {
             --DBG.dbms(fred.data.zone_cfgs)
 
 
-            --print('\nSend units to:')
+            FU.print_debug(show_debug_analysis, '\n  Hold evaluation:')
 
             local tmp_cfgs_hold = {}
             local tmp_cfgs_advance = {}
@@ -925,11 +933,12 @@ return {
             end
             stage_status.power_fac = power_fac
 
+            FU.print_debug(show_debug_analysis, '  total power (available, needed, ratio):')
+            FU.print_debug(show_debug_analysis, '    ' .. hold.total_available, hold.total_needed, power_fac)
+            FU.print_debug(show_debug_analysis, '  by zone (used, needed, missing*pow_fac):')
+            FU.print_debug(show_debug_analysis, '          (available, rating):')
 
             for zone_id,data in pairs(MAZ) do
-                --print(zone_id)
-
---DBG.dbms(stage_status[zone_id])
                 local power_needed = stage_status[zone_id].power_needed
                 local power_used = stage_status[zone_id].power_used
                 local power_missing = (power_needed - power_used) * power_fac
@@ -939,8 +948,7 @@ return {
                     units = {}
                 }
 
-                --print('  power needed, used, missing:')
-                --print(power_needed, power_used, power_missing)
+                FU.print_debug(show_debug_analysis, '    ' .. zone_id, power_used, power_needed, power_missing)
                 for id,power in pairs(data.my_units1) do
                     if (not stage_status[zone_id].units_used[id]) then
                         --print('  1: ' .. id, power)
@@ -967,7 +975,9 @@ return {
                 end
                 hold[zone_id].power_available = power_available
                 hold[zone_id].rating = power_missing - power_available
+                FU.print_debug(show_debug_analysis, '        ', power_available, hold[zone_id].rating)
 
+                -- Advancing toward villages
                 local cfg = {
                     zone_id = zone_id,
                     stage_id = stage_id,
