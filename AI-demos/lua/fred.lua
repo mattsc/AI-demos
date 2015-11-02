@@ -3029,10 +3029,8 @@ return {
                 local stage_id = FDA.stage_ids[FDA.stage_counter]
                 if debug_eval then print('\nStage: ' .. stage_id) end
 
-
                 fred:analyze_map(fred.data.gamedata)
                 --DBG.dbms(FDA.status)
-
                 --DBG.dbms(fred.data.zone_cfgs)
 
                 for i_c,cfg in ipairs(fred.data.zone_cfgs) do
