@@ -851,13 +851,16 @@ return {
             end
             FU.print_debug(show_debug_analysis, '    my:   ', MA.my_power1, MA.my_power2, MA.my_power1 + MA.my_power2)
 
-            local value_ratio = FU.get_value_ratio(gamedata)
+            local value_ratio, my_total_power, enemy_total_power = FU.get_value_ratio(gamedata)
             MA.power_needed = (MA.enemy_power1 + MA.enemy_power2) * value_ratio
             MA.contingency = (MA.my_power1 + MA.my_power2) - MA.power_needed
             if (MA.contingency < 0) then MA.contingency = 0 end
+
             FU.print_debug(show_debug_analysis, '  power needed, contingency', MA.power_needed, MA.contingency)
+            FU.print_debug(show_debug_analysis, '  value_ratio, my_total_power, enemy_total_power', value_ratio, my_total_power, enemy_total_power)
 
-
+            local hold_core_only = (enemy_total_power > my_total_power)
+            FU.print_debug(show_debug_analysis, '  hold_core_only', hold_core_only)
 
             ----- Start the zone analysis comparison -----
             -- TODO: should be possible to combine some of these steps
@@ -1011,6 +1014,7 @@ return {
                         zone_id = zone_id,
                         stage_id = stage_id,
                         actions = { hold = true },
+                        hold_core_only = hold_core_only,
                         value_ratio = value_ratio,
                         rating = hold[zone_id].rating,
                         holders = hold[zone_id].units
@@ -1906,7 +1910,14 @@ return {
             -- calculation
 
             -- TODO: do this overall, rather than for this action?
-            local zone = wesnoth.get_locations(raw_cfg.hold_slf)
+            local hold_slf = raw_cfg.hold_slf
+            if zonedata.cfg.hold_core_only then
+                --print('holding core only', zonedata.cfg.zone_id)
+                hold_slf = raw_cfg.hold_core_slf
+            end
+
+
+            local zone = wesnoth.get_locations(hold_slf)
             local zone_map = {}
             for _,loc in ipairs(zone) do
                 if (not zone_map[loc[1]]) then
