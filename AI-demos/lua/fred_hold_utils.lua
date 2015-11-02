@@ -4,9 +4,12 @@ local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local fred_hold_utils = {}
 
-function fred_hold_utils.is_acceptable_location(unit_info, x, y, hit_chance, counter_stats, value_ratio, raw_cfg)
+function fred_hold_utils.is_acceptable_location(unit_info, x, y, hit_chance, counter_stats, counter_attack, value_ratio, raw_cfg)
     -- Check whether are holding/advancing location has acceptable expected losses
     -- TODO: simplify the function call, fewer parameters
+
+    -- If enemy cannot attack here, it's an acceptable location by default
+    if (not next(counter_attack)) then return true end
 
     local show_debug = false
 
