@@ -19,7 +19,7 @@ return {
         ----- Debug output flags -----
         local debug_eval = false    -- top-level evaluation information
         local debug_exec = true     -- top-level executiuon information
-        local show_debug_analysis = true
+        local show_debug_analysis = false
         local show_debug_attack = false
         local show_debug_hold = false
         local show_debug_advance = false
@@ -640,13 +640,13 @@ return {
 
 
             -- T1 threats: those enemies that can attack a key hex in one move
-            -- Enemy units that are T1 threats in several zones are counted
-            -- multiple times by this. That is intentional.
 
             FU.print_debug(show_debug_analysis, '  T1 power (my, enemy):')
             local threats1_all_zones = {}
             local my_power1_all_zones = {}
+            local threats1_by_zone = {} -- This is to collect T1 threats for all zones first
             for _,cfg in ipairs(raw_cfgs) do
+                threats1_by_zone[cfg.zone_id] = {}
                 local threats1_zone = {}  -- This is just for this zone
                 local my_power_zone = {}  -- This is just for this zone
                 for _,hex in pairs(cfg.key_hexes) do
@@ -655,6 +655,7 @@ return {
                     -- Enemies that can attack a key hex
                     local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids', {})
                     for _,id in pairs(ids) do
+                        threats1_by_zone[cfg.zone_id][id] = gamedata.unit_infos[id].power
                         threats1_zone[id] = gamedata.unit_infos[id].power
                         threats1_all_zones[id] = true
                     end
@@ -678,28 +679,42 @@ return {
                     my_power1_all_zones[id] = power
                 end
 
-                -- Now add up the power of all T1 threats on this zone
-                local enemy_power1 = 0
-                for id,power in pairs(threats1_zone) do
-                    enemy_power1 = enemy_power1 + power
-                end
-
                 local my_power1 = 0
                 for id,power in pairs(my_power_zone) do
                     my_power1 = my_power1 + power
                 end
 
-                FU.print_debug(show_debug_analysis, '    ' .. cfg.zone_id, my_power1, enemy_power1)
-
                 -- And finally, save it all in the threats table
                 MAZ[cfg.zone_id] = {
-                    enemy_power1 = enemy_power1,
                     my_power1 = my_power1,
                     my_units1 = my_power_zone,
                     raw_cfg = cfg,
                     raw_targets = threats1_zone
                 }
             end
+
+            -- Count how many times each of the T1 threats appears across all zones
+            local threats1_all_zones = {}
+            for _,ids in pairs(threats1_by_zone) do
+                for id,_ in pairs(ids) do
+                    threats1_all_zones[id] = (threats1_all_zones[id] or 0) + 1
+                end
+            end
+            --DBG.dbms(threats1_all_zones)
+
+            -- Then divide the power for each zone by that count
+            for zone_id,ids in pairs(threats1_by_zone) do
+                local enemy_power1 = 0
+                for id,power in pairs(ids) do
+                    enemy_power1 = enemy_power1 + power / threats1_all_zones[id]
+                end
+
+                MAZ[zone_id].enemy_power1 = enemy_power1
+
+                FU.print_debug(show_debug_analysis, '    ' .. zone_id, MAZ[zone_id].my_power1, MAZ[zone_id].enemy_power1)
+            end
+
+
             --DBG.dbms(threats1_all_zones)
             --DBG.dbms(my_power1_all_zones)
             --DBG.dbms(MAZ['west'])
