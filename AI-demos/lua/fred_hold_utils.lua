@@ -12,6 +12,10 @@ function fred_hold_utils.is_acceptable_location(unit_info, x, y, hit_chance, cou
     if (not next(counter_attack)) then return true end
 
     local show_debug = false
+    if (x == 18) and (y == 11) and (unit_info.type == 'Troll Whelp') then
+        show_debug = false
+        --DBG.dbms(counter_stats)
+    end
 
     FU.print_debug(show_debug, x, y, unit_info.id, unit_info.tod_mod)
     --DBG.dbms(raw_cfg.hold_core_slf)
