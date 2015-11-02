@@ -3011,8 +3011,6 @@ return {
             end
             local FDA = fred.data.analysis -- just for convenience
 
-            FDA.stage_counter = 1
-
             while 1 do
                 if (FDA.stage_counter > #FDA.stage_ids) then
                     --print(FDA.stage_counter, #FDA.stage_ids)
