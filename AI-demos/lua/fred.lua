@@ -2083,6 +2083,7 @@ return {
                     W.redraw()
                     W.message { speaker = 'narrator', message = 'Hold zone: unit-specific rating map: ' .. id }
                     wesnoth.remove_tile_overlay(gamedata.units[id][1], gamedata.units[id][2], { image = "items/orcish-flag.png" })
+                    W.redraw()
                 end
             end
 
@@ -2592,8 +2593,10 @@ return {
                     wesnoth.scroll_to_tile(gamedata.units[id][1], gamedata.units[id][2])
                     FU.put_fgumap_labels(unit_rating_map, 'rating')
                     wesnoth.add_tile_overlay(gamedata.units[id][1], gamedata.units[id][2], { image = "items/orcish-flag.png" })
+                    W.redraw()
                     W.message { speaker = 'narrator', message = 'Advance zone: unit-specific rating map: ' .. id }
                     wesnoth.remove_tile_overlay(gamedata.units[id][1], gamedata.units[id][2], { image = "items/orcish-flag.png" })
+                    W.redraw()
                 end
             end
 
