@@ -2374,7 +2374,14 @@ return {
 
         ----- Advance: -----
         function fred:get_advance_action(zonedata, gamedata, move_cache)
-            if debug_eval then print_time('  --> advance evaluation: ' .. zonedata.cfg.zone_id) end
+            if debug_eval then
+                local txt = '  --> advance evaluation: '
+                if zonedata.cfg.villages_only then
+                    txt = '  --> advance evaluation (villages_only): '
+                end
+                print_time(txt .. zonedata.cfg.zone_id)
+            end
+
             --DBG.dbms(zonedata.cfg)
             local raw_cfg = fred:get_raw_cfgs(zonedata.cfg.zone_id)
             --DBG.dbms(raw_cfg)
@@ -2546,7 +2553,7 @@ return {
                             -- are re-evaluated later
                             local is_acceptable = true
                             if (not zonedata.cfg.ignore_counter) and rating and ((rating > max_rating) or is_priority_village) then
-                                --print('Checking if location is acceptable', x, y)
+                                --print('    Checking if location is acceptable', x, y)
 
                                 local old_locs = { { loc[1], loc[2] } }
                                 local new_locs = { { x, y } }
@@ -2556,11 +2563,12 @@ return {
                                 local target = {}
                                 target[id] = { x, y }
                                 local counter_stats, counter_attack = FAU.calc_counter_attack(target, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
-                                --DBG.dbms(counter_stats.def_stat)
+                                --DBG.dbms(counter_attack)
 
                                 if (not FHU.is_acceptable_location(gamedata.unit_infos[id], x, y, hit_chance, counter_stats, counter_attack, zonedata.cfg.value_ratio, raw_cfg)) then
                                     is_acceptable = false
                                 end
+                                --print('      --> is_acceptable', is_acceptable)
                             end
 
                             -- If this is an enemy owned or unowned village, we need to
