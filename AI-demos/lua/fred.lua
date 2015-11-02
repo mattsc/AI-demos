@@ -265,7 +265,7 @@ return {
 
             local cfg_east = {
                 zone_id = 'east',
-                key_hexes = { { 25,12 }, { 27,11 }, { 29,11 }, { 32,10 } },
+                key_hexes = { { 27,11 }, { 29,11 } },
                 target_zone = { x = '24-34,22-34', y = '9-17,18-23' },
                 zone_filter = { x = '24-34', y = '9-17' },
                 unit_filter_advance = { x = '17-34,24-34', y = '1-8,9-16' },
