@@ -243,7 +243,7 @@ function fred_utils.get_value_ratio(gamedata)
 
     --print('value_ratio', value_ratio)
 
-    return value_ratio
+    return value_ratio, my_power, enemy_power
 end
 
 function fred_utils.get_hit_chance(id, x, y, gamedata)
