@@ -62,16 +62,14 @@ function fred_attack_utils.levelup_chance(unit_info, unit_stat, enemy_ctd, enemy
     return levelup_chance
 end
 
-function fred_attack_utils.delayed_damage(unit_info, att_stat, hp_before, x, y, gamedata)
+function fred_attack_utils.delayed_damage(unit_info, att_stat, dst, gamedata)
     -- Returns the damage the unit gets from delayed actions, both positive and negative
     --  - Positive damage: poison, slow (counting slow as damage)
     --  - Negative damage: villages, regenerate
     -- TODO: add healers, rest healing
-    -- This damage is in the same units (fractional gold) as the damage rating
+    -- Return value is in units of hitpoints
     --
-    -- @hp_before: HP of the unit before the delayed damage is applied; this might
-    --   be different from unit_info.hitpoints. It is used to cap the amount of damage, if needed.
-    -- @x,@y: location of the unit for which to calculate this; this might or
+    -- @dst: location of the unit for which to calculate this; this might or
     --   might not be the current location of the unit
 
     local delayed_damage = 0
@@ -95,7 +93,7 @@ function fred_attack_utils.delayed_damage(unit_info, att_stat, hp_before, x, y, 
     end
 
     -- Negative delayed damage (healing)
-    local is_village = gamedata.village_map[x] and gamedata.village_map[x][y]
+    local is_village = gamedata.village_map[dst[1]] and gamedata.village_map[dst[1]][dst[2]]
 
     -- If unit is on a village, we count that as an 8 HP bonus (negative damage)
     -- multiplied by the chance to survive
@@ -114,80 +112,114 @@ function fred_attack_utils.delayed_damage(unit_info, att_stat, hp_before, x, y, 
         delayed_damage = delayed_damage + 2
     end
 
-    -- Positive damage needs to be capped at the amount of (HP - 1) (can't lose more than that)
-    delayed_damage = math.min(delayed_damage, hp_before - 1)
+    -- Positive damage needs to be capped at the amount of HP (can't lose more than that)
+    -- Note: in principle, this is (HP-1), but that might cause a negative damage
+    -- rating for units with average_HP < 1.  TODO: fix this? probably not necessary.
+    -- Calculated with respect to average hitpoints
+    local hp_before = unit_info.hitpoints - average_damage
+    delayed_damage = math.min(delayed_damage, hp_before)
 
     -- Negative damage needs to be capped at amount by which hitpoints are below max_hitpoints
     -- Note that neg_hp_to_max is negative; delayed_damage cannot be smaller than that
+    -- Calculated with respect to average hitpoints
     local neg_hp_to_max = hp_before - unit_info.max_hitpoints
     delayed_damage = math.max(delayed_damage, neg_hp_to_max)
 
-    -- Convert to fractional unit value rating
-    local delayed_damage_rating = FU.weight_s(delayed_damage / unit_info.max_hitpoints) * unit_info.cost
-
-    return delayed_damage_rating, delayed_damage
+    return delayed_damage
 end
 
-function fred_attack_utils.damage_rating_unit(attacker_info, att_stat, cfg)
-    -- Calculate the rating for the damage received by a single unit in an attack.
+function fred_attack_utils.unit_damage(unit_info, att_stat, dst, gamedata, cfg)
+    -- Return a table with the different contributions to damage a unit is
+    -- expected to experience in an attack.
     -- The attack att_stat for the attacker need to be precalculated for this.
     -- Unit information is passed in unit_infos format, rather than as unit proxy tables for speed reasons.
     -- Note: damage is damage TO the attacker, not damage done BY the attacker
     --
+    -- Returns a table with different information about the damage.  Not all of these
+    -- are in the same units (some are damage in HP, other percentage chances etc.
+    -- Most of this information is also easily available otherwise.  The purpose here
+    -- is to collect only the essential information for attack ratings in one table
+    --
     -- Input parameters:
-    --  @attacker_info: unit_info table produced by fred_gamestate_utils.single_unit_info()
+    --  @unit_info: unit_info table produced by fred_gamestate_utils.single_unit_info()
     --  @att_stat: attack statistics for the attackers as from battle_outcome or attack_combo_eval
+    --  @dst: location of the unit for which to calculate this; this might or
+    --   might not be the current location of the unit
     --
     -- Optional parameters:
     --  @cfg: the optional different weights listed right below
 
-    -- Note: levelup chance is included in hp_chance and does not need to be considered separately
-    -- TODO: that's not a great way of doing that, needs to be refined
+    --print(unit_info.id, unit_info.hitpoints, unit_info.max_hitpoints)
+    local damage = {}
 
-    --print(attacker_info.id, attacker_info.hitpoints, attacker_info.max_hitpoints)
-
-    local average_damage = attacker_info.hitpoints - att_stat.average_hp
+    -- Average damage from the attack.  This cannot be simplt the average_hp field
+    -- of att_stat, as that accounts for leveling up differently than needed here
+    -- Start with that as the default though:
+    average_damage = unit_info.hitpoints - att_stat.average_hp
     --print('  average_damage raw:', average_damage)
 
-    -- This includes healing due to drain etc., but not leveling up
+    -- This includes healing due to drain etc., but not leveling up, so if there
+    -- is a chance to level up, we need to do that differently.
     if (att_stat.levelup_chance > 0) then
         average_damage = 0
-        -- Note: the probabilities here do not add up to 1
+        -- Note: the probabilities here do not add up to 1 -- that's intentional
         for hp,prob in pairs(att_stat.hp_chance) do
-            if (hp <= attacker_info.max_hitpoints) then
-                average_damage = average_damage + (attacker_info.hitpoints - hp) * prob
+            if (hp <= unit_info.max_hitpoints) then
+                average_damage = average_damage + (unit_info.hitpoints - hp) * prob
             end
         end
     end
     --print('  average_damage:', average_damage)
 
-    -- Fractional damage (= fractional value of the attacker)
-    local fractional_damage = average_damage / attacker_info.max_hitpoints
-    local fractional_rating = FU.weight_s(fractional_damage)
+    -- Now add some of the other contributions
+    damage.damage = average_damage
+    damage.die_chance = att_stat.hp_chance[0]
+    damage.levelup_chance = att_stat.levelup_chance
+    damage.delayed_damage = fred_attack_utils.delayed_damage(unit_info, att_stat, dst, gamedata)
 
+    -- Finally, add some info about the unit, just for convenience
+    damage.id = unit_info.id
+    damage.max_hitpoints = unit_info.max_hitpoints
+    damage.unit_value = FU.unit_value(unit_info, cfg)
+
+    --local rating = fractional_rating * unit_value
+    --print('  -> unit_value, fractional_rating, rating', unit_value, fractional_rating, rating)
+
+    return damage
+end
+
+function fred_attack_utils.damage_rating_unit(damage)
+    -- Calculate a damage rating for a unit from the table returned by
+    -- fred_attack_utils.unit_damage()
+    --
+    -- !!!! Note !!!!: unlike some previous versions, we count damage as negative
+    -- in this rating
+
+    local fractional_damage = (damage.damage + damage.delayed_damage) / damage.max_hitpoints
+    local fractional_rating = - FU.weight_s(fractional_damage)
     --print('  fractional_damage, fractional_rating:', fractional_damage, fractional_rating)
 
     -- Additionally, add the chance to die, in order to emphasize units that might die
     -- This might result in fractional_damage > 1 in some cases, although usually not by much
-    local ctd_rating = FU.weight_s(att_stat.hp_chance[0])
+    local ctd_rating = - FU.weight_s(damage.die_chance)
     fractional_rating = fractional_rating + ctd_rating
-    --print('  ctd, ctd_rating, fractional_rating:', att_stat.hp_chance[0], ctd_rating, fractional_rating)
+    --print('  ctd, ctd_rating, fractional_rating:', damage.die_chance, ctd_rating, fractional_rating)
 
-    -- Levelup chance
-    local lu_rating = - att_stat.levelup_chance^2
+    -- Levelup chance: we use square rating here, as opposed to S-curve rating
+    -- for the other contributions
+    -- TODO: does that make sense?
+    local lu_rating = damage.levelup_chance^2
     fractional_rating = fractional_rating + lu_rating
-    --print('  lu_chance, lu_rating, fractional_rating:', att_stat.levelup_chance, lu_rating, fractional_rating)
+    --print('  lu_chance, lu_rating, fractional_rating:', damage.levelup_chance, lu_rating, fractional_rating)
 
-    -- Now convert this into gold-equivalent value
-    local unit_value = FU.unit_value(attacker_info, cfg)
-
-    local rating = fractional_rating * unit_value
-    --print('  -> unit_value, fractional_rating, rating', unit_value, fractional_rating, rating)
+    -- Convert all the fractional ratings before to one in "gold units"
+    local rating = fractional_rating * damage.unit_value
+    --print('  unit_value, rating:', damage.unit_value, rating)
 
     return rating
 end
 
-function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, att_stats, def_stats, gamedata, cfg)
+function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, att_stats, def_stat, gamedata, cfg)
     -- Returns a common (but configurable) rating for attacks of one or several attackers against one defender
     --
     -- Inputs:
@@ -196,8 +228,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     --  @dsts: array of attack locations in form { x, y } (must be an array even for single unit attacks)
     --  @att_stats: array of the attack stats of the attack combination(!) of the attackers
     --    (must be an array even for single unit attacks)
-    --  @def_stats: the combat stats of the defender after facing the combination of the attackers
-    --    (must be an array even for single unit attacks)
+    --  @def_stat: the combat stats of the defender after facing the combination of all attackers
     --  @gamedata: table with the game state as produced by fred_gamestate_utils.gamedata()
     --
     -- Optional inputs:
@@ -223,33 +254,16 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     local occupied_hex_penalty = (cfg and cfg.occupied_hex_penalty) or FU.cfg_default('occupied_hex_penalty')
     local value_ratio = (cfg and cfg.value_ratio) or FU.cfg_default('value_ratio')
 
-    local total_def_stat = def_stats[#attacker_infos]
-
-    local attacker_damage_rating, attacker_delayed_damage_rating, attacker_delayed_damage = 0, 0, 0
+    local attacker_rating = 0
     for i,attacker_info in ipairs(attacker_infos) do
-        attacker_damage_rating = attacker_damage_rating - fred_attack_utils.damage_rating_unit(
-            attacker_info, att_stats[i], cfg
-        )
-
-        -- Add in the delayed damage
-        local tmp_addr, tmp_add = fred_attack_utils.delayed_damage(attacker_info, att_stats[i], att_stats[i].average_hp, dsts[i][1], dsts[i][2], gamedata)
-        attacker_delayed_damage_rating = attacker_delayed_damage_rating + tmp_addr
-        attacker_delayed_damage = attacker_delayed_damage + tmp_add
+        local attacker_damage = fred_attack_utils.unit_damage(attacker_info, att_stats[i], dsts[i], gamedata, cfg)
+        attacker_rating = attacker_rating + fred_attack_utils.damage_rating_unit(attacker_damage)
     end
 
-    -- Delayed damage for the attacker is a negative rating
-    local attacker_rating = attacker_damage_rating - attacker_delayed_damage_rating
-
     local defender_x, defender_y = gamedata.units[defender_info.id][1], gamedata.units[defender_info.id][2]
-    local defender_damage_rating = fred_attack_utils.damage_rating_unit(
-        defender_info, total_def_stat, cfg
-    )
-
-    -- Add in the delayed damage
-    local defender_delayed_damage_rating, defender_delayed_damage = fred_attack_utils.delayed_damage(defender_info, total_def_stat, total_def_stat.average_hp, defender_x, defender_y, gamedata)
-
-    -- Delayed damage for the defender is a positive rating
-    local defender_rating = defender_damage_rating + defender_delayed_damage_rating
+    local defender_damage = fred_attack_utils.unit_damage(defender_info, def_stat, { defender_x, defender_y }, gamedata, cfg)
+    -- Rating for the defender is negative damage rating (as in, damage is good)
+    local defender_rating = - fred_attack_utils.damage_rating_unit(defender_damage)
 
     -- Now we add some extra ratings. They are positive for attacks that should be preferred
     -- and expressed in fraction of the defender maximum hitpoints
@@ -337,8 +351,6 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     end
 
     local rating = defender_rating * defender_weight + attacker_rating * attacker_weight + extra_rating
-    local damage_rating = defender_damage_rating * defender_weight + attacker_damage_rating * attacker_weight + extra_rating
-    local delayed_damage_rating = defender_delayed_damage_rating * defender_weight + attacker_delayed_damage_rating * attacker_weight + extra_rating
 
     --print('rating, attacker_rating, defender_rating, extra_rating:', rating, attacker_rating, defender_rating, extra_rating)
 
@@ -346,24 +358,9 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     -- defender tables do not
     local rating_table = {
         rating = rating,
-        damage_rating = damage_rating,
-        delayed_damage_rating = delayed_damage_rating,
-        attacker = {
-            rating = attacker_rating,
-            damage_rating = attacker_damage_rating,
-            delayed_damage = attacker_delayed_damage,
-            delayed_damage_rating = attacker_delayed_damage_rating
-        },
-        defender = {
-            rating = defender_rating,
-            damage_rating = defender_damage_rating,
-            delayed_damage = defender_delayed_damage,
-            delayed_damage_rating = defender_delayed_damage_rating
-        },
-        extra = {
-            rating = extra_rating
-            -- TODO: add the details? Not sure if there's a use for that
-        },
+        attacker_rating = attacker_rating,
+        defender_rating = defender_rating,
+        extra_rating = extra_rating,
         value_ratio = value_ratio
     }
     --DBG.dbms(rating_table)
@@ -673,15 +670,15 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
         local rating_table =
             fred_attack_utils.attack_rating(
                 { tmp_attacker_infos[i] }, defender_info, { tmp_dsts[i] },
-                { tmp_att_stats[i] }, { tmp_def_stats[i] }, gamedata, cfg
+                { tmp_att_stats[i] }, tmp_def_stats[i], gamedata, cfg
             )
 
         --print(attacker_copy.id .. ' --> ' .. defender_proxy.id)
         --print('  CTD att, def:', tmp_att_stats[i].hp_chance[0], tmp_def_stats[i].hp_chance[0])
         --DBG.dbms(rating_table)
 
-        -- Need the i here in order to specify the order of attackers, dsts below
-        if (tmp_att_stats[i].hp_chance[0] < ctd_limit) or (rating_table.damage_rating > 0) then
+        -- Need the 'i' here in order to specify the order of attackers, dsts below
+        if (tmp_att_stats[i].hp_chance[0] < ctd_limit) or (rating_table.rating > 0) then
             table.insert(ratings, { i, rating_table })
         end
     end
@@ -775,7 +772,7 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
     local rating_table =
         fred_attack_utils.attack_rating(
             attacker_infos, defender_info, dsts,
-            att_stats, def_stats, gamedata, cfg
+            att_stats, def_stats[#attacker_infos], gamedata, cfg
         )
 
     return att_stats, def_stats[#attacker_infos], attacker_infos, dsts, rating_table
@@ -892,7 +889,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
                     -- so that good terrain for the attacker will be preferred
                     local rating_table = fred_attack_utils.attack_rating(
                         { gamedata.unit_infos[attacker_id] }, gamedata.unit_infos[defender_id], { { xa, ya } },
-                        { att_stat }, { def_stat },
+                        { att_stat }, def_stat,
                         gamedata, cfg
                     )
 
@@ -1224,22 +1221,9 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
             },
             rating_table = {
                 rating = 0,
-                damage_rating = 0,
-                attacker = {
-                    delayed_damage = 0,
-                    delayed_damage_rating = 0,
-                    rating = 0,
-                    damage_rating = 0
-                },
-                defender = {
-                    delayed_damage = 0,
-                    delayed_damage_rating = 0,
-                    rating = 0,
-                    damage_rating = 0
-                },
-                extra = {
-                    rating = 0
-                }
+                attacker_rating = 0,
+                defender_rating = 0,
+                extra_rating = 0
             }
         }
     end

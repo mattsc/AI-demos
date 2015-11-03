@@ -1603,7 +1603,7 @@ return {
             local disqualified_attacks = {}
             for count,combo in ipairs(combo_ratings) do
                 if (count > 50) and action then break end
-                FU.print_debug(show_debug_attack, '\nChecking counter attack for attack on', count, next(combo.target), combo.rating_table.value_ratio, combo.rating, action)
+                FU.print_debug(show_debug_attack, '\nChecking counter attack for attack on', count, next(combo.target), combo.rating_table.value_ratio, combo.rating_table.rating, action)
 
                 -- Check whether an position in this combo was previously disqualified
                 -- Only do so for large numbers of combos though; there is a small
@@ -1669,14 +1669,15 @@ return {
                     local target_id, target_loc = next(combo.target)
                     local target_proxy = wesnoth.get_unit(target_loc[1], target_loc[2])
                     local old_HP_target = target_proxy.hitpoints
-                    local hp = combo.def_stat.average_hp
+                    local hp_org = combo.def_stat.average_hp
+
+                    local defender_damage = FAU.unit_damage(gamedata.unit_infos[target_id], combo.def_stat, target_loc, gamedata, cfg_attack)
 
                     -- As the counter attack happens on the enemy's side next turn,
                     -- delayed damage also needs to be applied
-                    hp = H.round(hp - combo.rating_table.defender.delayed_damage)
+                    hp = H.round(hp_org - defender_damage.delayed_damage)
 
-                    -- This is probably not necessary, but just in case:
-                    if (hp < 0) then hp = 0 end
+                    if (hp < 1) then hp = math.min(1, H.round(hp_org)) end
 
                     gamedata.unit_infos[target_id].hitpoints = hp
                     gamedata.unit_copies[target_id].hitpoints = hp
@@ -1705,11 +1706,11 @@ return {
                         -- by the chance of each unit to survive, otherwise units close
                         -- to dying are much overrated
                         -- That is then the damage that is used for the overall rating
-                        local damage_taken_forward = - combo.rating_table.attacker.damage_rating
-                        local damage_taken_counter = counter_stats.rating_table.defender.rating
+                        local damage_taken_forward = - combo.rating_table.attacker_rating
+                        local damage_taken_counter = counter_stats.rating_table.defender_rating
 
-                        local damage_done_forward = combo.rating_table.defender.rating
-                        local damage_done_counter = - counter_stats.rating_table.attacker.damage_rating
+                        local damage_done_forward = combo.rating_table.defender_rating
+                        local damage_done_counter = - counter_stats.rating_table.attacker_rating
 
                         local damage_taken = damage_taken_forward + damage_taken_counter
                         local damage_done = damage_done_forward + damage_done_counter
