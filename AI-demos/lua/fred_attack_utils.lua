@@ -17,7 +17,6 @@ function fred_attack_utils.is_acceptable_attack(damage_to_ai, damage_to_enemy, v
     -- As an example, if value_ratio = 0.5 -> it is okay to do only half the damage
     -- to the enemy as is received. In other words, value own units only half of
     -- enemy units. The smaller value_ratio, the more aggressive the AI gets.
-    -- Default is 0.8, meaning the AI is slightly more aggressive than even terms.
     --
     -- Inputs:
     -- @damage_to_ai, @damage_to_enemy: should be in gold units as returned by fred_attack_utils.
