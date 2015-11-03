@@ -248,7 +248,6 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     --          side, and to 1 for the other side
 
     -- Set up the config parameters for the rating
-    local defender_starting_damage_weight = (cfg and cfg.defender_starting_damage_weight) or FU.cfg_default('defender_starting_damage_weight')
     local terrain_defense_weight = (cfg and cfg.terrain_defense_weight) or FU.cfg_default('terrain_defense_weight')
     local distance_leader_weight = (cfg and cfg.distance_leader_weight) or FU.cfg_default('distance_leader_weight')
     local occupied_hex_penalty = (cfg and cfg.occupied_hex_penalty) or FU.cfg_default('occupied_hex_penalty')
