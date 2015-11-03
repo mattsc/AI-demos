@@ -586,15 +586,27 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
     if (att_luc > 0) then
         local att_lu_hp = H.round(attacker_info.max_hitpoints * 1.5)
         att_stat.hp_chance[att_lu_hp] = att_luc
-        att_stat.hp_chance[attacker_info.max_hitpoints] = att_stat.hp_chance[attacker_info.max_hitpoints] - att_luc
         att_stat.levelup_hp = att_lu_hp
+
+        local max_hp_chance = att_stat.hp_chance[attacker_info.max_hitpoints] - att_luc
+        if (max_hp_chance == 0) then
+            att_stat.hp_chance[attacker_info.max_hitpoints] = nil
+        else
+            att_stat.hp_chance[attacker_info.max_hitpoints] = max_hp_chance
+        end
     end
 
     if (def_luc > 0) then
         local def_lu_hp = H.round(defender_info.max_hitpoints * 1.5)
         def_stat.hp_chance[def_lu_hp] = def_luc
-        def_stat.hp_chance[defender_info.max_hitpoints] = def_stat.hp_chance[defender_info.max_hitpoints] - def_luc
         def_stat.levelup_hp = def_lu_hp
+
+        local max_hp_chance = def_stat.hp_chance[defender_info.max_hitpoints] - def_luc
+        if (max_hp_chance == 0) then
+            def_stat.hp_chance[defender_info.max_hitpoints] = nil
+        else
+            def_stat.hp_chance[defender_info.max_hitpoints] = max_hp_chance
+        end
     end
 
     -- Need to recalculate average HP after this
@@ -705,7 +717,7 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
     att_stats[1], def_stats[1] = tmp_att_stats[ratings[1][1]], tmp_def_stats[ratings[1][1]]
 
     tmp_att_stats, tmp_def_stats, ratings = nil, nil, nil
-
+DBG.dbms(def_stats[1])
     -- Then we go through all the other attacks and calculate the outcomes
     -- based on all the possible outcomes of the previous attacks
     for i = 2,#attacker_infos do
