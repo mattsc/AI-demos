@@ -107,10 +107,27 @@ function fred_utils.set_fgumap_value(map, x, y, key, value)
 end
 
 function fred_utils.weight_s(x)
-    if (x >= 0.5) then
-        return 0.5 + ((x - 0.5) * 2)^0.67 / 2
+    -- S curve weighting of a variable that is meant as a fraction of a total,
+    -- that is, that for the most part varies from 0 (or -1) to 1.
+    -- Properties:
+    --   f(0) = 0
+    --   f(0.5) = 0.5
+    --   f(1) = 1
+    --   f(-x) = -f(x)
+
+    local abs_x = math.abs(x)
+
+    local weight
+    if (abs_x >= 0.5) then
+        weight = 0.5 + ((abs_x - 0.5) * 2)^0.67 / 2
     else
-        return 0.5 - ((0.5 - x) * 2)^0.67 / 2
+        weight = 0.5 - ((0.5 - abs_x) * 2)^0.67 / 2
+    end
+
+    if (x > 0) then
+        return weight
+    else
+        return - weight
     end
 end
 
