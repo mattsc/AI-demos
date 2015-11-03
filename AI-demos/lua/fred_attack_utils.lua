@@ -1,4 +1,5 @@
 local H = wesnoth.require "lua/helper.lua"
+local W = H.set_wml_action_metatable {}
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FGUI = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
@@ -157,15 +158,13 @@ function fred_attack_utils.unit_damage(unit_info, att_stat, dst, gamedata, cfg)
     average_damage = unit_info.hitpoints - att_stat.average_hp
     --print('  average_damage raw:', average_damage)
 
-    -- This includes healing due to drain etc., but not leveling up, so if there
-    -- is a chance to level up, we need to do that differently.
-    if (att_stat.levelup_chance > 0) then
+    -- We want to include healing due to drain etc. in this damage, but not
+    -- leveling up, so if there is a chance to level up, we need to do that differently.
+    if (att_stat.levelup) then
         average_damage = 0
         -- Note: the probabilities here do not add up to 1 -- that's intentional
         for hp,prob in pairs(att_stat.hp_chance) do
-            if (hp <= unit_info.max_hitpoints) then
-                average_damage = average_damage + (unit_info.hitpoints - hp) * prob
-            end
+            average_damage = average_damage + (unit_info.hitpoints - hp) * prob
         end
     end
     --print('  average_damage:', average_damage)
@@ -173,7 +172,17 @@ function fred_attack_utils.unit_damage(unit_info, att_stat, dst, gamedata, cfg)
     -- Now add some of the other contributions
     damage.damage = average_damage
     damage.die_chance = att_stat.hp_chance[0]
-    damage.levelup_chance = att_stat.levelup_chance
+
+    local levelup_chance = 0
+    if (att_stat.levelup) then
+        for _,prob in pairs(att_stat.levelup.hp_chance) do
+            levelup_chance = levelup_chance + prob
+        end
+    end
+    --print('  levelup_chance', levelup_chance)
+
+    damage.levelup_chance = levelup_chance
+
     damage.delayed_damage = fred_attack_utils.delayed_damage(unit_info, att_stat, dst, gamedata)
 
     -- Finally, add some info about the unit, just for convenience
@@ -453,7 +462,8 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
     local defender_defense = FGUI.get_unit_defense(defender_proxy, defender_proxy.x, defender_proxy.y, gamedata.defense_maps)
     local attacker_defense = FGUI.get_unit_defense(attacker_copy, dst[1], dst[2], gamedata.defense_maps)
 
-    if move_cache[attacker_info.id]
+-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! remove false
+    if false and move_cache[attacker_info.id]
         and move_cache[attacker_info.id][defender_info.id]
         and move_cache[attacker_info.id][defender_info.id][attacker_defense]
         and move_cache[attacker_info.id][defender_info.id][attacker_defense][defender_defense]
@@ -574,35 +584,38 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
         end
     end
 
-    -- Add another field 'levelup_chance' to the stats
+    -- Add another table 'levelup' to the stats, containing the
+    -- HP distribution and levelup_chance of the leveled unit
+    -- This could be done with a scalar field for the individual attack,
+    -- but makes things more consistent for when it comes to attack combos
     local att_luc = fred_attack_utils.levelup_chance(attacker_info, att_stat, def_stat.hp_chance[0], defender_info.level)
-    local def_luc = fred_attack_utils.levelup_chance(defender_info, def_stat, att_stat.hp_chance[0], attacker_info.level)
-
-    att_stat.levelup_chance = att_luc
-    def_stat.levelup_chance = def_luc
-
-    -- Treat leveling up as 1.5 times the max hitpoints
-    -- TODO: refine this?
     if (att_luc > 0) then
+        att_stat.levelup = { hp_chance = {} }
+
+        -- Treat leveling up as 1.5 times the max hitpoints
+        -- TODO: refine this?
         local att_lu_hp = H.round(attacker_info.max_hitpoints * 1.5)
-        att_stat.hp_chance[att_lu_hp] = att_luc
-        att_stat.levelup_hp = att_lu_hp
+        att_stat.levelup.hp_chance[att_lu_hp] = att_luc
 
         local max_hp_chance = att_stat.hp_chance[attacker_info.max_hitpoints] - att_luc
-        if (max_hp_chance == 0) then
+        if (math.abs(max_hp_chance) < 1e-6) then
             att_stat.hp_chance[attacker_info.max_hitpoints] = nil
         else
             att_stat.hp_chance[attacker_info.max_hitpoints] = max_hp_chance
         end
     end
 
+    local def_luc = fred_attack_utils.levelup_chance(defender_info, def_stat, att_stat.hp_chance[0], attacker_info.level)
     if (def_luc > 0) then
+        def_stat.levelup = { hp_chance = {} }
+
+        -- Treat leveling up as 1.5 times the max hitpoints
+        -- TODO: refine this?
         local def_lu_hp = H.round(defender_info.max_hitpoints * 1.5)
-        def_stat.hp_chance[def_lu_hp] = def_luc
-        def_stat.levelup_hp = def_lu_hp
+        def_stat.levelup.hp_chance[def_lu_hp] = def_luc
 
         local max_hp_chance = def_stat.hp_chance[defender_info.max_hitpoints] - def_luc
-        if (max_hp_chance == 0) then
+        if (math.abs(max_hp_chance) < 1e-6) then
             def_stat.hp_chance[defender_info.max_hitpoints] = nil
         else
             def_stat.hp_chance[defender_info.max_hitpoints] = max_hp_chance
@@ -610,12 +623,19 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
     end
 
     -- Need to recalculate average HP after this
+    -- This includes both leveled and unleveled HP
     local av_hp = 0
     for hp,prob in pairs(att_stat.hp_chance) do av_hp = av_hp + hp * prob end
+    if att_stat.levelup then
+        for hp,prob in pairs(att_stat.levelup.hp_chance) do av_hp = av_hp + hp * prob end
+    end
     att_stat.average_hp = av_hp
 
     local av_hp = 0
     for hp,prob in pairs(def_stat.hp_chance) do av_hp = av_hp + hp * prob end
+    if def_stat.levelup then
+        for hp,prob in pairs(def_stat.levelup.hp_chance) do av_hp = av_hp + hp * prob end
+    end
     def_stat.average_hp = av_hp
 
     if (not move_cache[attacker_info.id]) then
@@ -717,7 +737,10 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
     att_stats[1], def_stats[1] = tmp_att_stats[ratings[1][1]], tmp_def_stats[ratings[1][1]]
 
     tmp_att_stats, tmp_def_stats, ratings = nil, nil, nil
-DBG.dbms(def_stats[1])
+
+    local defender_xp = defender_info.experience
+    defender_xp = defender_xp + attacker_infos[1].level
+
     -- Then we go through all the other attacks and calculate the outcomes
     -- based on all the possible outcomes of the previous attacks
     for i = 2,#attacker_infos do
@@ -725,7 +748,9 @@ DBG.dbms(def_stats[1])
         -- Levelup chance carries through from previous
         def_stats[i] = { hp_chance = {}, levelup_chance = def_stats[i-1].levelup_chance }
 
+        -- The HP distribution without leveling
         for hp1,prob1 in pairs(def_stats[i-1].hp_chance) do -- Note: need pairs(), not ipairs() !!
+            --print('  not leveled: ', hp1,prob1)
             if (hp1 == 0) then
                 att_stats[i].hp_chance[attacker_infos[i].hitpoints] =
                     (att_stats[i].hp_chance[attacker_infos[i].hitpoints] or 0) + prob1
@@ -735,6 +760,10 @@ DBG.dbms(def_stats[1])
                 defender_proxy.hitpoints = hp1  -- Yes, we need both here. It speeds up other parts.
                 defender_info.hitpoints = hp1
 
+                local org_xp = defender_info.experience
+                defender_proxy.experience = defender_xp
+                defender_info.experience = defender_xp
+
                 local ast, dst = fred_attack_utils.battle_outcome(
                     attacker_copies[i], defender_proxy, dsts[i],
                     attacker_infos[i], defender_info,
@@ -743,16 +772,32 @@ DBG.dbms(def_stats[1])
 
                 defender_proxy.hitpoints = org_hp
                 defender_info.hitpoints = org_hp
+                defender_proxy.experience = org_xp
+                defender_info.experience = org_xp
 
                 for hp2,prob2 in pairs(ast.hp_chance) do
                     att_stats[i].hp_chance[hp2] = (att_stats[i].hp_chance[hp2] or 0) + prob1 * prob2
                 end
+                if ast.levelup then
+                    if (not att_stats[i].levelup) then
+                        att_stats[i].levelup = { hp_chance = {} }
+                    end
+                    for hp2,prob2 in pairs(ast.levelup.hp_chance) do
+                        att_stats[i].levelup.hp_chance[hp2] = (att_stats[i].levelup.hp_chance[hp2] or 0) + prob1 * prob2
+                    end
+                end
+
                 for hp2,prob2 in pairs(dst.hp_chance) do
                     def_stats[i].hp_chance[hp2] = (def_stats[i].hp_chance[hp2] or 0) + prob1 * prob2
                 end
-
-                att_stats[i].levelup_chance = att_stats[i].levelup_chance + ast.levelup_chance * prob1
-                def_stats[i].levelup_chance = def_stats[i].levelup_chance + dst.levelup_chance * prob1
+                if dst.levelup then
+                    if (not def_stats[i].levelup) then
+                        def_stats[i].levelup = { hp_chance = {} }
+                    end
+                    for hp2,prob2 in pairs(dst.levelup.hp_chance) do
+                        def_stats[i].levelup.hp_chance[hp2] = (def_stats[i].levelup.hp_chance[hp2] or 0) + prob1 * prob2
+                    end
+                end
 
                 -- Also do poisoned, slowed
                 if (not att_stats[i].poisoned) then
@@ -764,21 +809,149 @@ DBG.dbms(def_stats[1])
             end
         end
 
-        -- TODO: the levelup_chance for the defender is wrong, needs to be redone
-        -- For now, we at least make sure that the LU_chance is not larger than
-        -- the chance to survive
-        if (def_stats[i].levelup_chance > (1 - def_stats[i].hp_chance[0])) then
-            def_stats[i].levelup_chance = 1 - def_stats[i].hp_chance[0]
+        -- The HP distribution after leveling
+        -- TODO: this is a lot of code duplication for now, might be simplified later
+        if def_stats[i-1].levelup then
+            for hp1,prob1 in pairs(def_stats[i-1].levelup.hp_chance) do -- Note: need pairs(), not ipairs() !!
+                --print('  leveled: ', hp1,prob1)
+
+                -- levelup.hp_chance should never contain a HP=0 entry
+                if (hp1 == 0) then
+                    print('***** HP = 0 in levelup stats entcountered *****')
+                else
+                    local org_hp = defender_info.hitpoints
+                    local org_max_hp = defender_info.max_hitpoints
+                    local org_xp = defender_info.experience
+
+                    defender_info.hitpoints = hp1
+                    local new_max_hp = H.round(defender_info.max_hitpoints * 1.5)
+                    defender_info.max_hitpoints = new_max_hp
+                    defender_info.experience = 0
+
+                    -- max_hitpoints cannot be modified directly
+                    -- TODO: this is likely slow, maybe use more efficient method later
+                    --   but should not happen all that often
+                    W.modify_unit({
+                        { "filter", { id = defender_proxy.id } },
+                        hitpoints = hp1,
+                        max_hitpoints = new_max_hp,
+                        experience = 0
+                    })
+                    defender_proxy = wesnoth.get_unit(defender_proxy.x, defender_proxy.y)
+
+                    -- Setting XP to 0, as it is extremely unlikely that a
+                    -- defender will level twice in a single attack combo
+                    -- TODO: could refine the actual XP
+                    -- TODO: this does not increase defender attacks etc.
+                    --   (that could even be desirable, not sure yet)
+
+
+                    local ast, dst = fred_attack_utils.battle_outcome(
+                        attacker_copies[i], defender_proxy, dsts[i],
+                        attacker_infos[i], defender_info,
+                        gamedata, move_cache, cfg
+                    )
+
+                    defender_info.hitpoints = org_hp
+                    defender_info.max_hitpoints = org_max_hp
+                    defender_info.experience = org_xp
+
+                    W.modify_unit({
+                        { "filter", { id = defender_proxy.id } },
+                        hitpoints = org_hp,
+                        max_hitpoints = org_max_hp,
+                        experience = org_xp
+                    })
+                    defender_proxy = wesnoth.get_unit(defender_proxy.x, defender_proxy.y)
+
+                    -- Attacker stats are the same as for not leveled up case
+                    for hp2,prob2 in pairs(ast.hp_chance) do
+                        att_stats[i].hp_chance[hp2] = (att_stats[i].hp_chance[hp2] or 0) + prob1 * prob2
+                    end
+                    if ast.levelup then
+                        if (not att_stats[i].levelup) then
+                            att_stats[i].levelup = { hp_chance = {} }
+                        end
+                        for hp2,prob2 in pairs(ast.levelup.hp_chance) do
+                            att_stats[i].levelup.hp_chance[hp2] = (att_stats[i].levelup.hp_chance[hp2] or 0) + prob1 * prob2
+                        end
+                    end
+
+                    -- By contrast, everything here gets added to the leveled-up case
+                    -- except for the HP=0 case, which always goes into hp_chance directly
+                    if (not def_stats[i].levelup) then
+                        def_stats[i].levelup = { hp_chance = {} }
+                    end
+                    for hp2,prob2 in pairs(dst.hp_chance) do
+                        if (hp2 == 0) then
+                            def_stats[i].hp_chance[hp2] = (def_stats[i].hp_chance[hp2] or 0) + prob1 * prob2
+                        else
+                            def_stats[i].levelup.hp_chance[hp2] = (def_stats[i].levelup.hp_chance[hp2] or 0) + prob1 * prob2
+                        end
+                    end
+                    if dst.levelup then  -- I think this doesn't happen, but just in case
+                        for hp2,prob2 in pairs(dst.levelup.hp_chance) do
+                            def_stats[i].levelup.hp_chance[hp2] = (def_stats[i].levelup.hp_chance[hp2] or 0) + prob1 * prob2
+                        end
+                    end
+
+                    -- Also do poisoned, slowed
+                    -- TODO: this is definitely not right, I think ...
+                    if (not att_stats[i].poisoned) then
+                        att_stats[i].poisoned = ast.poisoned
+                        att_stats[i].slowed = ast.slowed
+                        def_stats[i].poisoned = 1. - (1. - dst.poisoned) * (1. - def_stats[i-1].poisoned)
+                        def_stats[i].slowed = 1. - (1. - dst.slowed) * (1. - def_stats[i-1].slowed)
+                    end
+                end
+            end
         end
 
         -- Get the average HP
         local av_hp = 0
         for hp,prob in pairs(att_stats[i].hp_chance) do av_hp = av_hp + hp * prob end
+        if att_stats[i].levelup then
+            for hp,prob in pairs(att_stats[i].levelup.hp_chance) do av_hp = av_hp + hp * prob end
+        end
         att_stats[i].average_hp = av_hp
 
         local av_hp = 0
         for hp,prob in pairs(def_stats[i].hp_chance) do av_hp = av_hp + hp * prob end
+        if def_stats[i].levelup then
+            for hp,prob in pairs(def_stats[i].levelup.hp_chance) do av_hp = av_hp + hp * prob end
+        end
         def_stats[i].average_hp = av_hp
+
+        -- Also add to the defender XP. Leveling up does not need to be considered
+        -- here, as it is caught separately by the levelup_chance field in def_stat
+        defender_xp = defender_xp + attacker_infos[i].level
+    end
+
+    -- TODO: the following is just a sanity check for now, disable later
+    for i,att_stat in ipairs(att_stats) do
+        local sum_a, sum_d = 0, 0
+        for _,prob in pairs(att_stat.hp_chance) do
+            sum_a = sum_a + prob
+        end
+        if att_stat.levelup then
+            for _,prob in pairs(att_stat.levelup.hp_chance) do
+                sum_a = sum_a + prob
+            end
+        end
+
+        for _,prob in pairs(def_stats[i].hp_chance) do
+            sum_d = sum_d + prob
+        end
+        if def_stats[i].levelup then
+            for _,prob in pairs(def_stats[i].levelup.hp_chance) do
+                sum_d = sum_d + prob
+            end
+        end
+        --print('sum stats (att, def):', sum_a, sum_d)
+
+        if (math.abs(sum_a - 1) > 0.0001) or (math.abs(sum_d - 1) > 0.0001) then
+            print('***** sum stats (att, def): *****', sum_a, sum_d, i)
+        end
     end
 
     local rating_table =
