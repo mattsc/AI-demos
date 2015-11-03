@@ -587,12 +587,14 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
         local att_lu_hp = H.round(attacker_info.max_hitpoints * 1.5)
         att_stat.hp_chance[att_lu_hp] = att_luc
         att_stat.hp_chance[attacker_info.max_hitpoints] = att_stat.hp_chance[attacker_info.max_hitpoints] - att_luc
+        att_stat.levelup_hp = att_lu_hp
     end
 
     if (def_luc > 0) then
         local def_lu_hp = H.round(defender_info.max_hitpoints * 1.5)
         def_stat.hp_chance[def_lu_hp] = def_luc
         def_stat.hp_chance[defender_info.max_hitpoints] = def_stat.hp_chance[defender_info.max_hitpoints] - def_luc
+        def_stat.levelup_hp = def_lu_hp
     end
 
     -- Need to recalculate average HP after this
