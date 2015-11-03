@@ -462,16 +462,20 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
     local defender_defense = FGUI.get_unit_defense(defender_proxy, defender_proxy.x, defender_proxy.y, gamedata.defense_maps)
     local attacker_defense = FGUI.get_unit_defense(attacker_copy, dst[1], dst[2], gamedata.defense_maps)
 
--- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! remove false
-    if false and move_cache[attacker_info.id]
-        and move_cache[attacker_info.id][defender_info.id]
-        and move_cache[attacker_info.id][defender_info.id][attacker_defense]
-        and move_cache[attacker_info.id][defender_info.id][attacker_defense][defender_defense]
-        and move_cache[attacker_info.id][defender_info.id][attacker_defense][defender_defense][attacker_info.hitpoints]
-        and move_cache[attacker_info.id][defender_info.id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints]
+    -- Units need to be identified by id and XP
+    -- There is a very small chance that this could be ambiguous, ignore that for now
+    local cache_att_id = attacker_info.id .. '-' .. attacker_info.experience
+    local cache_def_id = defender_info.id .. '-' .. defender_info.experience
+
+    if move_cache[cache_att_id]
+        and move_cache[cache_att_id][cache_def_id]
+        and move_cache[cache_att_id][cache_def_id][attacker_defense]
+        and move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense]
+        and move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints]
+        and move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints]
     then
-        return move_cache[attacker_info.id][defender_info.id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints].att_stat,
-            move_cache[attacker_info.id][defender_info.id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints].def_stat
+        return move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints].att_stat,
+            move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints].def_stat
     end
 
     local old_x, old_y = attacker_copy.x, attacker_copy.y
@@ -484,11 +488,11 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
             or (not move_cache.best_weapons[attacker_info.id])
             or (not move_cache.best_weapons[attacker_info.id][defender_info.id])
         then
-            if (not move_cache[attacker_info.id]) then
-                move_cache[attacker_info.id] = {}
+            if (not move_cache[cache_att_id]) then
+                move_cache[cache_att_id] = {}
             end
-            if (not move_cache[attacker_info.id][defender_info.id]) then
-                move_cache[attacker_info.id][defender_info.id] = {}
+            if (not move_cache[cache_att_id][cache_def_id]) then
+                move_cache[cache_att_id][cache_def_id] = {}
             end
 
             --print(' Finding highest-damage weapons: ', attacker_info.id, defender_proxy.id)
@@ -543,7 +547,7 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
         else
             att_weapon_i = move_cache.best_weapons[attacker_info.id][defender_info.id].att_weapon_i
             def_weapon_i = move_cache.best_weapons[attacker_info.id][defender_info.id].def_weapon_i
-            --print(' Reusing weapons: ', attacker_info.id, defender_proxy.id, att_weapon_i, def_weapon_i)
+            --print(' Reusing weapons: ', cache_att_id, defender_proxy.id, att_weapon_i, def_weapon_i)
         end
 
         tmp_att_stat, tmp_def_stat = wesnoth.simulate_combat(attacker_copy, att_weapon_i, defender_proxy, def_weapon_i)
@@ -638,23 +642,23 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
     end
     def_stat.average_hp = av_hp
 
-    if (not move_cache[attacker_info.id]) then
-        move_cache[attacker_info.id] = {}
+    if (not move_cache[cache_att_id]) then
+        move_cache[cache_att_id] = {}
     end
-    if (not move_cache[attacker_info.id][defender_info.id]) then
-        move_cache[attacker_info.id][defender_info.id] = {}
+    if (not move_cache[cache_att_id][cache_def_id]) then
+        move_cache[cache_att_id][cache_def_id] = {}
     end
-    if (not move_cache[attacker_info.id][defender_info.id][attacker_defense]) then
-        move_cache[attacker_info.id][defender_info.id][attacker_defense] = {}
+    if (not move_cache[cache_att_id][cache_def_id][attacker_defense]) then
+        move_cache[cache_att_id][cache_def_id][attacker_defense] = {}
     end
-    if (not move_cache[attacker_info.id][defender_info.id][attacker_defense][defender_defense]) then
-        move_cache[attacker_info.id][defender_info.id][attacker_defense][defender_defense] = {}
+    if (not move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense]) then
+        move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense] = {}
     end
-    if (not move_cache[attacker_info.id][defender_info.id][attacker_defense][defender_defense][attacker_info.hitpoints]) then
-        move_cache[attacker_info.id][defender_info.id][attacker_defense][defender_defense][attacker_info.hitpoints] = {}
+    if (not move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints]) then
+        move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints] = {}
     end
 
-    move_cache[attacker_info.id][defender_info.id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints]
+    move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints]
         = { att_stat = att_stat, def_stat = def_stat }
 
     return att_stat, def_stat
