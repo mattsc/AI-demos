@@ -261,10 +261,11 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     local occupied_hex_penalty = (cfg and cfg.occupied_hex_penalty) or FU.cfg_default('occupied_hex_penalty')
     local value_ratio = (cfg and cfg.value_ratio) or FU.cfg_default('value_ratio')
 
+    local attacker_damages = {}
     local attacker_rating = 0
     for i,attacker_info in ipairs(attacker_infos) do
-        local attacker_damage = fred_attack_utils.unit_damage(attacker_info, att_stats[i], dsts[i], gamedata, cfg)
-        attacker_rating = attacker_rating + fred_attack_utils.damage_rating_unit(attacker_damage)
+        attacker_damages[i] = fred_attack_utils.unit_damage(attacker_info, att_stats[i], dsts[i], gamedata, cfg)
+        attacker_rating = attacker_rating + fred_attack_utils.damage_rating_unit(attacker_damages[i])
     end
 
     local defender_x, defender_y = gamedata.units[defender_info.id][1], gamedata.units[defender_info.id][2]
@@ -372,7 +373,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     }
     --DBG.dbms(rating_table)
 
-    return rating_table
+    return rating_table, attacker_damages, defender_damage
 end
 
 function fred_attack_utils.get_total_damage_attack(weapon, attack, is_attacker, opponent_info)
@@ -958,13 +959,13 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
         end
     end
 
-    local rating_table =
+    local rating_table, attacker_damages, defender_damage =
         fred_attack_utils.attack_rating(
             attacker_infos, defender_info, dsts,
             att_stats, def_stats[#attacker_infos], gamedata, cfg
         )
 
-    return att_stats, def_stats[#attacker_infos], attacker_infos, dsts, rating_table
+    return att_stats, def_stats[#attacker_infos], attacker_infos, dsts, rating_table, attacker_damages, defender_damage
 end
 
 function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, get_strongest_attack, gamedata, move_cache, cfg)
@@ -1358,7 +1359,7 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
             table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
         end
 
-        local combo_att_stats, combo_def_stat, sorted_atts, sorted_dsts, rating_table =
+        local combo_att_stats, combo_def_stat, sorted_atts, sorted_dsts, rating_table, attacker_damages, defender_damage =
             fred_attack_utils.attack_combo_eval(
                 attacker_copies, target_proxy, dsts,
                 attacker_infos, gamedata.unit_infos[target_id],
@@ -1388,7 +1389,9 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
             counter_attack_stat = {
                 att_stats = combo_att_stats,
                 def_stat = combo_def_stat,
-                rating_table = rating_table
+                rating_table = rating_table,
+                attacker_damages = attacker_damages,
+                defender_damage = defender_damage
             }
         end
     end

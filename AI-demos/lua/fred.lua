@@ -1371,7 +1371,7 @@ return {
                     end
 
 
-                    local combo_att_stats, combo_def_stat, sorted_atts, sorted_dsts, combo_rt =
+                    local combo_att_stats, combo_def_stat, sorted_atts, sorted_dsts, combo_rt, combo_attacker_damages, combo_defender_damage =
                         FAU.attack_combo_eval(
                             attacker_copies, target_proxy, dsts,
                             attacker_infos, gamedata.unit_infos[target_id],
@@ -1379,7 +1379,7 @@ return {
                     )
                     local combo_rating = combo_rt.rating
 
-                    --DBG.dbms(combo_def_stat)
+                    --DBG.dbms(combo_rt)
                     --print('   combo ratings: ', combo_rt.rating, combo_rt.attacker.rating, combo_rt.defender.rating)
 
                     -- Don't attack if the leader is involved and has chance to die > 0
@@ -1589,8 +1589,12 @@ return {
                             target = target,
                             att_stats = combo_att_stats,
                             def_stat = combo_def_stat,
-                            rating_table = combo_rt
+                            rating_table = combo_rt,
+                            attacker_damages = combo_attacker_damages,
+                            defender_damage = combo_defender_damage
                         })
+
+                        --DBG.dbms(combo_ratings)
                     end
                 end
             end
@@ -1669,15 +1673,14 @@ return {
                     local target_id, target_loc = next(combo.target)
                     local target_proxy = wesnoth.get_unit(target_loc[1], target_loc[2])
                     local old_HP_target = target_proxy.hitpoints
-                    local hp_org = combo.def_stat.average_hp
-
-                    local defender_damage = FAU.unit_damage(gamedata.unit_infos[target_id], combo.def_stat, target_loc, gamedata, cfg_attack)
+                    local hp_org = old_HP_target - combo.defender_damage.damage
 
                     -- As the counter attack happens on the enemy's side next turn,
                     -- delayed damage also needs to be applied
-                    hp = H.round(hp_org - defender_damage.delayed_damage)
+                    hp = H.round(hp_org - combo.defender_damage.delayed_damage)
 
                     if (hp < 1) then hp = math.min(1, H.round(hp_org)) end
+                    --print('hp before, after:', old_HP_target, hp_org, hp)
 
                     gamedata.unit_infos[target_id].hitpoints = hp
                     gamedata.unit_copies[target_id].hitpoints = hp
@@ -1706,21 +1709,139 @@ return {
                         -- by the chance of each unit to survive, otherwise units close
                         -- to dying are much overrated
                         -- That is then the damage that is used for the overall rating
-                        local damage_taken_forward = - combo.rating_table.attacker_rating
-                        local damage_taken_counter = counter_stats.rating_table.defender_rating
 
-                        local damage_done_forward = combo.rating_table.defender_rating
-                        local damage_done_counter = - counter_stats.rating_table.attacker_rating
+                        -- Damages to AI units (needs to be done for each counter attack
+                        -- as tables change upwards also)
+                        -- Delayed damages do not apply for attackers
 
-                        local damage_taken = damage_taken_forward + damage_taken_counter
-                        local damage_done = damage_done_forward + damage_done_counter
+                        -- This is the damage on the AI attacker considered here
+                        -- in the counter attack
+                        local dam2 = counter_stats.defender_damage
+                        --DBG.dbms(dam2)
 
-                        local damage_rating = - damage_taken * combo.rating_table.value_ratio + damage_done
+                        local damages_my_units = {}
+                        for i_d,dam1 in ipairs(combo.attacker_damages) do
+                            local dam = {}
 
-                        FU.print_debug(show_debug_attack, '  damage taken forward, counter:', damage_taken_forward, damage_taken_counter)
-                        FU.print_debug(show_debug_attack, '  damage done forward, counter :', damage_done_forward, damage_done_counter)
-                        FU.print_debug(show_debug_attack, '  damage_done / damage_taken = ratio, value_ratio:', damage_done .. ' / ' .. damage_taken .. ' = ' .. damage_done / damage_taken .. '  <->  ' .. combo.rating_table.value_ratio)
+                            -- First, take all the values as are from the forward combo outcome
+                            for k,v in pairs(dam1) do
+                                dam[k] = v
+                            end
+
+                            -- For the unit considered here, combine the results
+                            -- For all other units they remain unchanged
+                            if dam2 and (dam1.id == dam2.id) then
+                                --print('-- my units --', dam1.id)
+                                -- Unchanged: unit_value, max_hitpoints, id
+
+                                --  damage: just add up the two
+                                dam.damage = dam1.damage + dam2.damage
+                                --print('  damage:', dam1.damage, dam2.damage, dam.damage)
+
+                                local normal_damage_chance1 = 1 - dam1.die_chance - dam1.levelup_chance
+                                local normal_damage_chance2 = 1 - dam2.die_chance - dam2.levelup_chance
+                                --print('  normal_damage_chance (1, 2)', normal_damage_chance1,normal_damage_chance2)
+
+                                --  - delayed_damage: only take that from the counter attack
+                                --  TODO: this might underestimate poison etc.
+                                dam.delayed_damage = dam2.delayed_damage
+                                --print('  delayed_damage:', dam1.delayed_damage, dam2.delayed_damage, dam.delayed_damage)
+
+                                --  - die_chance
+                                dam.die_chance = dam1.die_chance + dam2.die_chance * normal_damage_chance1
+                                --print('  die_chance:', dam1.die_chance, dam2.die_chance, dam.die_chance)
+
+                                --  - levelup_chance
+                                dam.levelup_chance = dam1.levelup_chance + dam2.levelup_chance * normal_damage_chance1
+                                --print('  levelup_chance:', dam1.levelup_chance, dam2.levelup_chance, dam.levelup_chance)
+                            end
+
+                            damages_my_units[i_d] = dam
+                        end
+                        --DBG.dbms(damages_my_units)
+
+
+                        -- Same for all the enemy units in the counter attack
+                        -- Delayed damages do not apply for same reason
+                        local dam1 = combo.defender_damage
+                        --DBG.dbms(dam1)
+
+                        local damages_enemy_units = {}
+                        if counter_stats.attacker_damages then
+                            for i_d,dam2 in ipairs(counter_stats.attacker_damages) do
+                                local dam = {}
+
+                                -- First, take all the values as are from the counter attack outcome
+                                for k,v in pairs(dam2) do
+                                    dam[k] = v
+                                end
+
+                                -- For the unit considered here, combine the results
+                                -- For all other units they remain unchanged
+                                if dam1 and (dam1.id == dam2.id) then
+                                    --print('-- enemy units --', dam2.id)
+                                    -- Unchanged: unit_value, max_hitpoints, id
+
+                                    --  damage: just add up the two
+                                    dam.damage = dam1.damage + dam2.damage
+                                    --print('  damage:', dam1.damage, dam2.damage, dam.damage)
+
+                                    local normal_damage_chance1 = 1 - dam1.die_chance - dam1.levelup_chance
+                                    local normal_damage_chance2 = 1 - dam2.die_chance - dam2.levelup_chance
+                                    --print('  normal_damage_chance (1, 2)', normal_damage_chance1,normal_damage_chance2)
+
+                                    --  - delayed_damage: only take that from the forward attack
+                                    --  TODO: this might underestimate poison etc.
+                                    dam.delayed_damage = dam1.delayed_damage
+                                    --print('  delayed_damage:', dam1.delayed_damage, dam2.delayed_damage, dam.delayed_damage)
+
+                                    --  - die_chance
+                                    dam.die_chance = dam1.die_chance + dam2.die_chance * normal_damage_chance1
+                                    --print('  die_chance:', dam1.die_chance, dam2.die_chance, dam.die_chance)
+
+                                    --  - levelup_chance
+                                    dam.levelup_chance = dam1.levelup_chance + dam2.levelup_chance * normal_damage_chance1
+                                    --print('  levelup_chance:', dam1.levelup_chance, dam2.levelup_chance, dam.levelup_chance)
+                                end
+
+                                damages_enemy_units[i_d] = dam
+                            end
+                        else
+                            -- If there is no counter attack, the forward attack defender stats are taken as they are
+                            damages_enemy_units[1] = dam1
+                        end
+                        --DBG.dbms(damages_enemy_units)
+                        --DBG.dbms(combo)
+
+                        --print('\nratings my units:')
+                        local my_rating = 0
+                        for _,damage in ipairs(damages_my_units) do
+                            local unit_rating = FAU.damage_rating_unit(damage)
+                            my_rating = my_rating + unit_rating
+                            --print('  ' .. damage.id, unit_rating)
+                        end
+                        FU.print_debug(show_debug_attack, '  --> total my unit rating:', my_rating)
+
+
+                        --print('ratings enemy units:')
+                        local enemy_rating = 0
+                        for _,damage in ipairs(damages_enemy_units) do
+                            -- Enemy damage rating is negative!
+                            local unit_rating = - FAU.damage_rating_unit(damage)
+                            enemy_rating = enemy_rating + unit_rating
+                            --print('  ' .. damage.id, unit_rating)
+                        end
+                        FU.print_debug(show_debug_attack, '  --> total enemy unit rating:', enemy_rating)
+
+                        local extra_rating = combo.rating_table.extra_rating
+                        FU.print_debug(show_debug_attack, '  --> extra rating:', extra_rating)
+
+                        local value_ratio = combo.rating_table.value_ratio
+                        FU.print_debug(show_debug_attack, '  --> value_ratio:', value_ratio)
+
+                        local damage_rating = my_rating * value_ratio + enemy_rating + extra_rating
                         FU.print_debug(show_debug_attack, '     --> damage_rating:', damage_rating)
+
 
                         if (damage_rating < min_total_damage_rating) then
                             min_total_damage_rating = damage_rating
@@ -1777,7 +1898,9 @@ return {
                                     break
                                 end
                             else  -- Or for normal units, evaluate whether the attack is worth it
-                                if (not FAU.is_acceptable_attack(damage_taken, damage_done, combo.rating_table.value_ratio)) then
+                                -- is_acceptable_attack takes the damage to the side, so it needs
+                                -- to be the negative of the rating for own units
+                                if (not FAU.is_acceptable_attack(-my_rating, enemy_rating, value_ratio)) then
                                     acceptable_counter = false
                                     FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                                     break
