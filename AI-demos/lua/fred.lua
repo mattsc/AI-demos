@@ -1767,6 +1767,7 @@ return {
                         --DBG.dbms(dam1)
 
                         local damages_enemy_units = {}
+                        local target_included = false
                         if counter_stats.attacker_damages then
                             for i_d,dam2 in ipairs(counter_stats.attacker_damages) do
                                 local dam = {}
@@ -1779,6 +1780,8 @@ return {
                                 -- For the unit considered here, combine the results
                                 -- For all other units they remain unchanged
                                 if dam1 and (dam1.id == dam2.id) then
+                                    target_included = true
+
                                     --print('-- enemy units --', dam2.id)
                                     -- Unchanged: unit_value, max_hitpoints, id
 
@@ -1806,10 +1809,14 @@ return {
 
                                 damages_enemy_units[i_d] = dam
                             end
-                        else
-                            -- If there is no counter attack, the forward attack defender stats are taken as they are
-                            damages_enemy_units[1] = dam1
                         end
+
+                        -- The following covers both the case when there is no counter attack
+                        -- and when the target unit is not included in the counter attack
+                        if (not target_included) then
+                            table.insert(damages_enemy_units, dam1)
+                        end
+
                         --DBG.dbms(damages_enemy_units)
                         --DBG.dbms(combo)
 
