@@ -1379,6 +1379,8 @@ return {
                     )
                     local combo_rating = combo_rt.rating
 
+                    local bonus_rating = 0
+
                     --DBG.dbms(combo_rt)
                     --print('   combo ratings: ', combo_rt.rating, combo_rt.attacker.rating, combo_rt.defender.rating)
 
@@ -1469,8 +1471,8 @@ return {
                             local unit_value = FU.unit_value(gamedata.unit_infos[target_id])
                             local penalty = 10. / gamedata.unit_infos[target_id].max_hitpoints * unit_value
                             penalty = penalty * adj_unocc_village
-                            --print('Applying village penalty', combo_rating, penalty)
-                            combo_rating = combo_rating - penalty
+                            --print('Applying village penalty', bonus_rating, penalty)
+                            bonus_rating = bonus_rating - penalty
 
                             -- In that case, also don't give the trapping bonus
                             attempt_trapping = false
@@ -1550,8 +1552,8 @@ return {
                             if trapping_bonus then
                                 local unit_value = FU.unit_value(gamedata.unit_infos[target_id])
                                 local bonus = 8. / gamedata.unit_infos[target_id].max_hitpoints * unit_value
-                                --print('Applying trapping bonus', combo_rating, bonus)
-                                combo_rating = combo_rating + bonus
+                                --print('Applying trapping bonus', bonus_rating, bonus)
+                                bonus_rating = bonus_rating + bonus
                             end
                         end
 
@@ -1575,15 +1577,16 @@ return {
                                 local unit_value = FU.unit_value(gamedata.unit_infos[target_id])
                                 local penalty = 8. / gamedata.unit_infos[target_id].max_hitpoints * unit_value
                                 penalty = penalty * number_poisoners
-                                --print('Applying poisoner penalty', combo_rating, penalty)
-                                combo_rating = combo_rating - penalty
+                                --print('Applying poisoner penalty', bonus_rating, penalty)
+                                bonus_rating = bonus_rating - penalty
                             end
                         end
 
-                        --print_time(' -----------------------> rating', combo_rating)
+                        --print_time(' -----------------------> rating', combo_rating, bonus_rating)
 
                         table.insert(combo_ratings, {
-                            rating = combo_rating,
+                            rating = combo_rating + bonus_rating,
+                            bonus_rating = bonus_rating,
                             attackers = sorted_atts,
                             dsts = sorted_dsts,
                             target = target,
@@ -1842,11 +1845,18 @@ return {
 
                         local extra_rating = combo.rating_table.extra_rating
                         FU.print_debug(show_debug_attack, '  --> extra rating:', extra_rating)
+                        FU.print_debug(show_debug_attack, '  --> bonus rating:', combo.bonus_rating)
 
                         local value_ratio = combo.rating_table.value_ratio
                         FU.print_debug(show_debug_attack, '  --> value_ratio:', value_ratio)
 
                         local damage_rating = my_rating * value_ratio + enemy_rating + extra_rating
+
+                        -- Also add in the bonus and extra ratings. They are
+                        -- used to select the best attack, but not to determine
+                        -- whether an attack is acceptable
+                        local damage_rating = damage_rating + extra_rating + combo.bonus_rating
+
                         FU.print_debug(show_debug_attack, '     --> damage_rating:', damage_rating)
 
 
