@@ -238,8 +238,8 @@ return {
             local cfg_west = {
                 zone_id = 'west',
                 key_hexes = { { 8,8 }, { 11,9 }, { 14,8 } },
-                target_zone = { x = '1-15', y = '7-19' },
-                zone_filter = { x = '4-14', y = '7-15' },
+                target_zone = { x = '1-15,1-13', y = '7-11,12-19' },
+                zone_filter = { x = '4-14,4-13', y = '7-11,12-15' },
                 unit_filter_advance = { x = '1-20,1-14', y = '1-6,7-13' },
                 hold_slf = { x = '1-15', y = '6-14' },
                 hold_core_slf = { x = '1-15,11', y = '6-8,9' },
