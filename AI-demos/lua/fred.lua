@@ -2414,6 +2414,8 @@ return {
                     --DBG.dbms(counter_attack)
 
                     -- If this is a shielded position, don't use this combo
+                    -- We want to exclude combinations where one unit is out of attack range
+                    -- as this is for holding a zone, not protecting units.
                     if (not (next(counter_attack))) then
                         --print('  not acceptable because unit cannot be reached by enemy')
                         is_acceptable = false
@@ -2476,8 +2478,6 @@ return {
 
                 --print('      is_acceptable', is_acceptable)
 
-                -- We want to exclude combinations where one unit is out of attack range
-                -- as this is for holding a zone, not protecting units.
                 if is_acceptable and (rating > best_combos[n_holders].max_rating) then
                     best_combos[n_holders].max_rating = rating
                     best_combos[n_holders].best_hexes = new_locs
