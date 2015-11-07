@@ -1039,6 +1039,7 @@ return {
                         stage_id = stage_id,
                         actions = { advance = true },
                         value_ratio = value_ratio,
+                        unthreatened_only = true,
                         rating = rating
                     }
                     table.insert(tmp_cfgs_advance, cfg)
@@ -2585,11 +2586,23 @@ return {
                 local unit_rating_map = {}
                 for x,tmp in pairs(gamedata.reach_maps[id]) do
                     for y,_ in pairs(tmp) do
-                        -- TODO: remove this once we know that it is really not needed any more
-                        -- only consider unthreatened hexes
-                        --local threat = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'power')
+                        local threat
+                        if zonedata.cfg.unthreatened_only then
+                            threat = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'power')
+                        end
 
-                        local zone_rating = fred:zone_advance_rating(zonedata.cfg.zone_id, x, y, gamedata, gamedata.unit_infos[id].type)
+                        -- Threat will be nil if:
+                        --   - zonedata.cfg.unthreatened_only = nil
+                        --   - or no threat exists on the hex
+                        -- -> zone_rating will only be set in these two cases
+                        --    Specifically that means that it will NOT be set if
+                        --    there is a threat and unthreatened_only is set
+
+                        local zone_rating
+                        if (not threat) then
+                            zone_rating = fred:zone_advance_rating(zonedata.cfg.zone_id, x, y, gamedata, gamedata.unit_infos[id].type)
+                        end
+
                         if zone_rating then
                             local rating
 
