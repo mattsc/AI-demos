@@ -241,8 +241,9 @@ return {
                 target_zone = { x = '1-15,1-13', y = '7-11,12-19' },
                 zone_filter = { x = '4-14,4-13', y = '7-11,12-15' },
                 unit_filter_advance = { x = '1-20,1-14', y = '1-6,7-13' },
-                hold_slf = { x = '1-15', y = '6-14' },
+                hold_slf = { x = '1-15,1-13', y = '6-11,12-14' },
                 hold_core_slf = { x = '1-15,11', y = '6-8,9' },
+                hold_forward_slf = { x = '1-10,11-15,1-15,1-13', y = '9,9,10-11,12-14' },
                 villages = {
                     slf = { x = '1-14', y = '1-10' },
                     villages_per_unit = 2
@@ -257,6 +258,7 @@ return {
                 unit_filter_advance = { x = '15-23,', y = '1-13' },
                 hold_slf = { x = '16-24,16-23', y = '7-10,11-14' },
                 hold_core_slf = { x = '16-24', y = '7-10' },
+                hold_forward_slf = { x = '16-23', y = '11-14' },
                 villages = {
                     slf = { x = '16-21', y = '7-10' },
                     villages_per_unit = 2
@@ -271,6 +273,7 @@ return {
                 unit_filter_advance = { x = '17-34,24-34', y = '1-8,9-16' },
                 hold_slf = { x = '24-34', y = '9-18' },
                 hold_core_slf = { x = '24-34', y = '9-12' },
+                hold_forward_slf = { x = '24-34', y = '13-18' },
                 villages = {
                     slf = { x = '22-34', y = '1-10' },
                     villages_per_unit = 2
@@ -2403,6 +2406,7 @@ return {
                 local n_holders = 0
                 local is_acceptable = true
                 local rating, counter_attack_rating = 0, 0
+                local combo_stats = {}
                 for xy,id in pairs(combo) do
                     n_holders = n_holders + 1
                     local target = {}
@@ -2464,8 +2468,20 @@ return {
                     --print('      --> counter_attack_rating', counter_attack_rating)
 
                     rating = rating + enemy_rating + counter_attack_rating
+
+                    local combo_stat = {
+                        x = x, y = y,
+                        id = id,
+                        counter_rating = counter_stats.rating_table.rating
+                    }
+                    table.insert(combo_stats, combo_stat)
                 end
                 --print('  --> rating:', rating)
+
+                -- Now check whether the hold combination is acceptable
+                if is_acceptable then
+                    is_acceptable = FHU.is_acceptable_hold(combo_stats, raw_cfg)
+                end
 
                 -- If this has negative rating, check whether it is acceptable after all
                 -- For now we always consider these unacceptable

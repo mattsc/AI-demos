@@ -94,4 +94,55 @@ function fred_hold_utils.is_acceptable_location(unit_info, x, y, hit_chance, cou
     return true
 end
 
+function fred_hold_utils.is_acceptable_hold(combo_stats, raw_cfg)
+    --DBG.dbms(combo_stats)
+
+    local show_debug = false
+    if (x == 18) and (y == 12) and (unit_info.type == 'Orcish Grunt') then
+        show_debug = false
+    end
+
+    FU.print_debug(show_debug, '\nfred_hold_utils.is_acceptable_hold')
+
+    local n_core, n_forward = 0, 0
+
+    for _,cs in ipairs(combo_stats) do
+        FU.print_debug(show_debug, '  ' .. cs.id, cs.x, cs.y)
+        --DBG.dbms(raw_cfg.hold_core_slf)
+        local is_core_hex = false
+        if raw_cfg.hold_core_slf then
+            is_core_hex = wesnoth.match_location(cs.x, cs.y, raw_cfg.hold_core_slf)
+        end
+        if is_core_hex then n_core = n_core + 1 end
+        FU.print_debug(show_debug, '    is_core_hex:', is_core_hex)
+
+        local is_forward_hex = false
+        if raw_cfg.hold_forward_slf then
+            is_forward_hex = wesnoth.match_location(cs.x, cs.y, raw_cfg.hold_forward_slf)
+        end
+        if is_forward_hex then n_forward = n_forward + 1 end
+        FU.print_debug(show_debug, '    is_forward_hex:', is_forward_hex)
+    end
+
+    FU.print_debug(show_debug, '    n_core, n_forward:', n_core, n_forward)
+
+    -- Forward hexes are only accepted if:
+    --  - there are no core hexes being held
+    --  - or: the rating is positive
+    if (n_core > 0) or (n_forward == 1) then -- This is a place_holder for now
+        if (n_forward > 0) then
+            for _,cs in ipairs(combo_stats) do
+                FU.print_debug(show_debug, '  ' .. cs.id, cs.counter_rating)
+                -- Note: this is the counter attack rating -> negative is good
+                if (cs.counter_rating > 0) then
+                    FU.print_debug(show_debug, '    forward hex not acceptable:', cs.id, cs.counter_rating)
+                    return false
+                end
+            end
+        end
+    end
+
+    return true
+end
+
 return fred_hold_utils
