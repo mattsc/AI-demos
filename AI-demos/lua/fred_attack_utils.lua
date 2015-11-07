@@ -1086,7 +1086,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
                     -- It's okay to use the full rating here, rather than just damage_rating
                     --rating = rating_table.defender.rating + (rating_table.attacker.rating + rating_table.extra.rating) / 100
                     rating = rating_table.rating
-                    --print(xa, ya, rating, rating_table.attacker.rating, rating_table.defender.rating, rating_table.extra.rating)
+                    --print(xa, ya, attacker_id, rating, rating_table.attacker_rating, rating_table.defender_rating, rating_table.extra_rating)
                 end
 
                 if (not tmp_attacks_dst_src[dst]) then
@@ -1149,12 +1149,11 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
                         -- Only keep attacks with the maximum number of units
                         local tmp_count = 0
                         for _,_ in pairs(combo) do tmp_count = tmp_count + 1 end
-                        -- If this is less than current max_count, don't use this attack
-                        if (tmp_count < max_count) then rating = -9e99 end
-                        -- If it is more, reset the max_rating (forcing this combo to be taken)
+                        -- If this is more than current max_count, reset the max_rating (forcing this combo to be taken)
                         if (tmp_count > max_count) then max_rating = -9e99 end
 
-                        if (rating > max_rating) then
+                        -- If this is less than current max_count, don't use this attack
+                        if (rating > max_rating) and (tmp_count >= max_count) then
                             max_rating = rating
                             max_count = tmp_count
                             best_combo = {}
@@ -1186,12 +1185,11 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
                 -- This also automatically excludes the empty combo
                 local tmp_count = 0
                 for _,_ in pairs(combo) do tmp_count = tmp_count + 1 end
-                -- If this is less than current max_count, don't use this attack
-                if (tmp_count < max_count) then rating = -9e99 end
-                -- If it is more, reset the max_rating (forcing this combo to be taken)
+                -- If this is more than current max_count, reset the max_rating (forcing this combo to be taken)
                 if (tmp_count > max_count) then max_rating = -9e99 end
 
-                if (rating > max_rating) then
+                -- If this is less than current max_count, don't use this attack
+                if (rating > max_rating) and (tmp_count >= max_count)then
                     max_rating = rating
                     max_count = tmp_count
                     best_combo = {}
