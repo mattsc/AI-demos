@@ -2072,11 +2072,29 @@ return {
             end
             --DBG.dbms(zone_map)
 
+            -- For the enemy rating, we need to put a 1-hex buffer around this
+            local buffered_zone_map = {}
+            for x,tmp in pairs(zone_map) do
+                for y,_ in pairs(tmp) do
+                    if (not buffered_zone_map[x]) then
+                        buffered_zone_map[x] = {}
+                    end
+                    buffered_zone_map[x][y] = true
+
+                    for xa,ya in H.adjacent_tiles(x, y) do
+                        if (not buffered_zone_map[xa]) then
+                            buffered_zone_map[xa] = {}
+                        end
+                        buffered_zone_map[xa][ya] = true
+                    end
+                end
+            end
+            --DBG.dbms(buffered_zone_map)
 
             -- Enemy rating map: get the sum of the squares of the (modified)
             -- defense ratings of all enemies that can reach a hex
             local enemy_rating_map = {}
-            for x,tmp in pairs(zone_map) do
+            for x,tmp in pairs(buffered_zone_map) do
                 for y,_ in pairs(tmp) do
                     local enemy_rating, count = 0, 0
                     for enemy_id,etm in pairs(gamedata.enemy_turn_maps) do
@@ -2166,7 +2184,6 @@ return {
                                 rating = rating + def_rating
                                 adj_count = adj_count + 1
                             end
-
                         end
                     end
 
