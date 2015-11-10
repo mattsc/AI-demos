@@ -25,7 +25,7 @@ function fred_hold_utils.is_acceptable_location(unit_info, x, y, hit_chance, cou
     end
     FU.print_debug(show_debug, '  is_core_hex:', is_core_hex)
 
-    local is_good_terrain = (hit_chance <= 0.5)
+    local is_good_terrain = (hit_chance <= unit_info.good_terrain_hit_chance)
     FU.print_debug(show_debug, '  is_good_terrain:', is_good_terrain)
 
     local defend_hard = is_core_hex and is_good_terrain
