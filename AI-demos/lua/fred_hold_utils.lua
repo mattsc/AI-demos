@@ -36,20 +36,20 @@ function fred_hold_utils.is_acceptable_location(unit_info, x, y, hit_chance, cou
     value_ratio = value_ratio or FU.cfg_default('value_ratio')
     FU.print_debug(show_debug, '  value_ratio:', value_ratio)
 
-    local acceptable_hit_chance, acceptable_rating = 0, 0
-    FU.print_debug(show_debug, '  default acceptable_hit_chance, acceptable_rating:', acceptable_hit_chance, acceptable_rating)
+    local acceptable_die_chance, acceptable_rating = 0, 0
+    FU.print_debug(show_debug, '  default acceptable_die_chance, acceptable_rating:', acceptable_die_chance, acceptable_rating)
 
 
     if (value_ratio < 1) then
-        -- acceptable_hit_chance: 0 at vr = 1, 0.25 at vr = 0.5
-        acceptable_hit_chance = (1 - value_ratio) / 2.
+        -- acceptable_die_chance: 0 at vr = 1, 0.25 at vr = 0.5
+        acceptable_die_chance = (1 - value_ratio) / 2.
 
         -- acceptable_rating: 0 at vr = 1, 4 at vr = 0.5
         acceptable_rating = (1 - value_ratio) * 8.
 
         -- Just in case (should not be necessary under most circumstances)
-        if (acceptable_hit_chance < 0) then acceptable_hit_chance = 0 end
-        if (acceptable_hit_chance > 0.25) then acceptable_hit_chance = 0.25 end
+        if (acceptable_die_chance < 0) then acceptable_die_chance = 0 end
+        if (acceptable_die_chance > 0.25) then acceptable_die_chance = 0.25 end
         if (acceptable_rating < 0) then acceptable_rating = 0 end
         if (acceptable_rating > 4) then acceptable_rating = 4 end
     end
@@ -61,7 +61,7 @@ function fred_hold_utils.is_acceptable_location(unit_info, x, y, hit_chance, cou
         acceptable_rating = acceptable_rating + 2
     end
 
-    FU.print_debug(show_debug, '  -> acceptable_hit_chance, acceptable_rating:', acceptable_hit_chance, acceptable_rating)
+    FU.print_debug(show_debug, '  -> acceptable_die_chance, acceptable_rating:', acceptable_die_chance, acceptable_rating)
 
     -- If chance to die is too large, do not use this position
     -- This is dependent on how good the terrain is
@@ -77,7 +77,7 @@ function fred_hold_utils.is_acceptable_location(unit_info, x, y, hit_chance, cou
         end
     else -- at least 50% defense
         FU.print_debug(show_debug, '    do not defend hard', counter_stats.def_stat.hp_chance[0], counter_stats.rating_table.rating)
-        if (counter_stats.def_stat.hp_chance[0] > acceptable_hit_chance) then
+        if (counter_stats.def_stat.hp_chance[0] > acceptable_die_chance) then
             FU.print_debug(show_debug, '      not acceptable because chance to die too high:', counter_stats.def_stat.hp_chance[0])
             return false
         end
