@@ -221,6 +221,36 @@ function fred_gamestate_utils.single_unit_info(unit_proxy)
         single_unit_info.tod_mod = 1
     end
 
+    -- Define what "good terrain" means for a unit
+    local defense = H.get_child(unit_proxy.__cfg, "defense")
+
+    -- Get the hit chances for all terrains and sort (best = lowest hit chance first)
+    local hit_chances = {}
+    for _,hit_chance in pairs(defense) do
+        table.insert(hit_chances, { hit_chance = math.abs(hit_chance) })
+    end
+    table.sort(hit_chances, function(a, b) return a.hit_chance < b.hit_chance end)
+
+    -- As "normal" we use the hit chance on "flat equivalent" terrain.
+    -- That means on flat for most units, on cave for dwarves etc.
+    -- and on shallow water for mermen, nagas etc.
+    -- Use the best of those
+    local flat_hc = math.min(defense.flat, defense.cave, defense.shallow_water)
+    --print('best hit chance on flat, cave, shallow water:', flat_hc)
+    --print(defense.flat, defense.cave, defense.shallow_water)
+
+    -- Good terrain is now defined as 10% lesser hit chance than that, except
+    -- when this is better than the third best terrain for the unit. An example
+    -- are ghosts, which have 50% on all terrains.
+    -- I have tested this for most mainline level 1 units and it seems to work pretty well.
+    local good_terrain_hit_chance = flat_hc - 10
+    if (good_terrain_hit_chance < hit_chances[3].hit_chance) then
+        good_terrain_hit_chance = flat_hc
+    end
+    --print('good_terrain_hit_chance', good_terrain_hit_chance)
+
+    single_unit_info.good_terrain_hit_chance = good_terrain_hit_chance / 100.
+
     -- This needs to be at the very end, as it needs some of the other
     -- information in single_unit_info as input
     local power = FU.unit_power(single_unit_info)
