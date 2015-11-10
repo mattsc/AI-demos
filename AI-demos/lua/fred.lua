@@ -1486,7 +1486,7 @@ return {
                         -- except if the target is down to less than half of its hitpoints
                         if (gamedata.unit_infos[target_id].hitpoints >= gamedata.unit_infos[target_id].max_hitpoints/2) then
                             local defense = FGUI.get_unit_defense(gamedata.unit_copies[target_id], target_loc[1], target_loc[2], gamedata.defense_maps)
-                            if (defense >= 0.5) then
+                            if (defense >= (1 - gamedata.unit_infos[target_id].good_terrain_hit_chance)) then
                                 attempt_trapping = false
                             end
                         end
@@ -1526,7 +1526,7 @@ return {
                                     for xa,ya in H.adjacent_tiles(target_loc[1], target_loc[2]) do
                                         if (not adj_occ_hex_map[xa]) or (not adj_occ_hex_map[xa][ya]) then
                                             local defense = FGUI.get_unit_defense(gamedata.unit_copies[target_id], xa, ya, gamedata.defense_maps)
-                                            if (defense >= 0.5) then
+                                            if (defense >= (1 - gamedata.unit_infos[target_id].good_terrain_hit_chance)) then
                                                 trapping_bonus = false
                                                 break
                                             end
