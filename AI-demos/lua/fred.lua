@@ -2064,14 +2064,28 @@ return {
 
 
             local zone = wesnoth.get_locations(hold_slf)
-            local zone_map = {}
+            local full_zone_map = {}
             for _,loc in ipairs(zone) do
-                if (not zone_map[loc[1]]) then
-                    zone_map[loc[1]] = {}
+                if (not full_zone_map[loc[1]]) then
+                    full_zone_map[loc[1]] = {}
                 end
-                zone_map[loc[1]][loc[2]] = true
+                full_zone_map[loc[1]][loc[2]] = { flag = true }
             end
             --DBG.dbms(zone_map)
+
+            local zone_map = {}
+            for x,tmp in pairs(full_zone_map) do
+                for y,_ in pairs(tmp) do
+                    for enemy_id,etm in pairs(gamedata.enemy_turn_maps) do
+                        local turns = etm[x] and etm[x][y] and etm[x][y].turns
+
+                        if turns and (turns <= 1) then
+                            FU.set_fgumap_value(zone_map, x, y, 'flag', true)
+                        end
+                    end
+                end
+            end
+            --FU.put_fgumap_labels(zone_map, 'flag')
 
             -- For the enemy rating, we need to put a 1-hex buffer around this
             local buffered_zone_map = {}
