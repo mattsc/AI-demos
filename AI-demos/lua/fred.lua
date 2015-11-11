@@ -2490,7 +2490,8 @@ return {
                     local combo_stat = {
                         x = x, y = y,
                         id = id,
-                        counter_rating = counter_stats.rating_table.rating
+                        counter_rating = counter_stats.rating_table.rating,
+                        hit_chance = hit_chance
                     }
                     table.insert(combo_stats, combo_stat)
                 end
@@ -2498,7 +2499,7 @@ return {
 
                 -- Now check whether the hold combination is acceptable
                 if is_acceptable then
-                    is_acceptable = FHU.is_acceptable_hold(combo_stats, raw_cfg)
+                    is_acceptable = FHU.is_acceptable_hold(combo_stats, raw_cfg, zonedata.cfg, gamedata)
                 end
 
                 -- If this has negative rating, check whether it is acceptable after all

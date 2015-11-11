@@ -88,7 +88,7 @@ function fred_hold_utils.is_acceptable_location(unit_info, x, y, hit_chance, cou
     return true
 end
 
-function fred_hold_utils.is_acceptable_hold(combo_stats, raw_cfg)
+function fred_hold_utils.is_acceptable_hold(combo_stats, raw_cfg, zone_cfg, gamedata)
     --DBG.dbms(combo_stats)
 
     local show_debug = false
@@ -103,11 +103,24 @@ function fred_hold_utils.is_acceptable_hold(combo_stats, raw_cfg)
     for _,cs in ipairs(combo_stats) do
         FU.print_debug(show_debug, '  ' .. cs.id, cs.x, cs.y)
         --DBG.dbms(raw_cfg.hold_core_slf)
+
+        local is_good_terrain = (cs.hit_chance <= gamedata.unit_infos[cs.id].good_terrain_hit_chance)
+        FU.print_debug(show_debug, '    is_good_terrain:', is_good_terrain, cs.hit_chance)
+
         local is_core_hex = false
         if raw_cfg.hold_core_slf then
             is_core_hex = wesnoth.match_location(cs.x, cs.y, raw_cfg.hold_core_slf)
         end
-        if is_core_hex then n_core = n_core + 1 end
+
+        -- Only good terrain hexes count into the core hex count here
+        -- TODO: this is preliminary for testing right now
+        if is_core_hex then
+            if is_good_terrain then
+                n_core = n_core + 1
+            else
+                n_forward = n_forward + 1
+            end
+        end
         FU.print_debug(show_debug, '    is_core_hex:', is_core_hex)
 
         local is_forward_hex = false
