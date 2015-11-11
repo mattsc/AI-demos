@@ -171,13 +171,13 @@ end
 function fred_utils.unit_value(unit_info, cfg)
     -- Get a gold-equivalent value for the unit
 
-    local leader_weight = (cfg and cfg.leader_weight) or fred_utils.cfg_default('leader_weight')
     local xp_weight = (cfg and cfg.xp_weight) or fred_utils.cfg_default('xp_weight')
 
     local unit_value = unit_info.cost
 
     -- If this is the side leader, make damage to it much more important
-    if unit_info.canrecruit then
+    if unit_info.canrecruit and (unit_info.side == wesnoth.current.side) then
+        local leader_weight = (cfg and cfg.leader_weight) or fred_utils.cfg_default('leader_weight')
         unit_value = unit_value * leader_weight
     end
 
