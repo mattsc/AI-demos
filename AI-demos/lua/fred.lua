@@ -1893,12 +1893,14 @@ return {
                             if attacker.canrecruit then
                                 --print('Leader: slowed, poisoned %', counter_stats.def_stat.slowed, counter_stats.def_stat.poisoned)
                                 if (counter_stats.def_stat.slowed > 0.0) then
+                                    FU.print_debug(show_debug_attack, '       leader: counter attack slow chance too high', counter_stats.def_stat.slowed)
                                     acceptable_counter = false
                                     FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                                     break
                                 end
 
                                 if (counter_stats.def_stat.poisoned > 0.0) and (not attacker.abilities.regenerate) then
+                                    FU.print_debug(show_debug_attack, '       leader: counter attack poison chance too high', counter_stats.def_stat.poisoned)
                                     acceptable_counter = false
                                     FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                                     break
@@ -1926,6 +1928,7 @@ return {
                                 --print('Leader: min_outcome, counter_min_hp, max_damage_attack', min_outcome, counter_min_hp, max_damage_attack)
 
                                 if (min_outcome < 0.5) then
+                                    FU.print_debug(show_debug_attack, '       leader: counter attack min_outcome too low', min_outcome)
                                     acceptable_counter = false
                                     FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                                     break
@@ -1934,6 +1937,7 @@ return {
                                 -- is_acceptable_attack takes the damage to the side, so it needs
                                 -- to be the negative of the rating for own units
                                 if (not FAU.is_acceptable_attack(-my_rating, enemy_rating, value_ratio)) then
+                                    FU.print_debug(show_debug_attack, '       non-leader: counter attack rating too low', my_rating, enemy_rating, value_ratio)
                                     acceptable_counter = false
                                     FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                                     break
