@@ -1478,16 +1478,22 @@ return {
 
                         -- For each such village found, we give a penalty eqivalent to 10 HP of the target
                         if (adj_unocc_village > 0) then
-                            local unit_value = FU.unit_value(gamedata.unit_infos[target_id])
-                            local penalty = 10. / gamedata.unit_infos[target_id].max_hitpoints * unit_value
-                            penalty = penalty * adj_unocc_village
-                            --print('Applying village penalty', bonus_rating, penalty)
-                            bonus_rating = bonus_rating - penalty
+                            if (combo_def_stat.hp_chance[0] < 0.5) then
+                                do_attack = false
+                            else
+                                local unit_value = FU.unit_value(gamedata.unit_infos[target_id])
+                                local penalty = 10. / gamedata.unit_infos[target_id].max_hitpoints * unit_value
+                                penalty = penalty * adj_unocc_village
+                                --print('Applying village penalty', bonus_rating, penalty)
+                                bonus_rating = bonus_rating - penalty
 
-                            -- In that case, also don't give the trapping bonus
-                            attempt_trapping = false
+                                -- In that case, also don't give the trapping bonus
+                                attempt_trapping = false
+                            end
                         end
+                    end
 
+                    if do_attack then
                         -- Do not attempt trapping if the unit is on good terrain,
                         -- except if the target is down to less than half of its hitpoints
                         if (gamedata.unit_infos[target_id].hitpoints >= gamedata.unit_infos[target_id].max_hitpoints/2) then
