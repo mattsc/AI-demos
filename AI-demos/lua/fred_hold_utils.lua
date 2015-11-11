@@ -99,6 +99,7 @@ function fred_hold_utils.is_acceptable_hold(combo_stats, raw_cfg, zone_cfg, game
     FU.print_debug(show_debug, '\nfred_hold_utils.is_acceptable_hold')
 
     local n_core, n_forward = 0, 0
+    local n_total = #combo_stats
 
     for _,cs in ipairs(combo_stats) do
         FU.print_debug(show_debug, '  ' .. cs.id, cs.x, cs.y)
@@ -131,12 +132,12 @@ function fred_hold_utils.is_acceptable_hold(combo_stats, raw_cfg, zone_cfg, game
         FU.print_debug(show_debug, '    is_forward_hex:', is_forward_hex)
     end
 
-    FU.print_debug(show_debug, '    n_core, n_forward:', n_core, n_forward)
+    FU.print_debug(show_debug, '    n_total, n_core, n_forward:', n_total, n_core, n_forward)
 
     -- Forward hexes are only accepted if:
     --  - there are no core hexes being held
     --  - or: the rating is positive
-    if (n_core > 0) or (n_forward == 1) then -- This is a place_holder for now
+    if (n_forward < n_total) or (n_forward == 1) then -- This is a place_holder for now
         if (n_forward > 0) then
             for _,cs in ipairs(combo_stats) do
                 FU.print_debug(show_debug, '  ' .. cs.id, cs.counter_rating)
