@@ -537,7 +537,8 @@ return {
                 stage_id = stage_id,
                 actions = { attack = true },
                 value_ratio = 2.0, -- only very favorable attacks will pass this
-                ignore_resource_limit = true
+                ignore_resource_limit = true,
+                max_attackers = 2
             }
 
             fred.data.zone_cfgs = {}
@@ -1342,14 +1343,18 @@ return {
                 for j = #attack_combos,1,-1 do
                     local combo = attack_combos[j]
                     local total_power = 0
+                    local n_attackers = 0
                     for src,dst in pairs(combo) do
                         --print('    attacker power:', gamedata.unit_infos[attacker_map[src]].id, gamedata.unit_infos[attacker_map[src]].power)
                         total_power = total_power + gamedata.unit_infos[attacker_map[src]].power
+                        n_attackers = n_attackers + 1
                     end
                     --print('      total_power: ', j, total_power)
 
                     -- TODO: table.remove() can be slow
-                    if (total_power > allowable_power) then
+                    if (total_power > allowable_power)
+                        or (n_attackers > (zonedata.cfg.max_attackers or 99))
+                    then
                         --print('      ----> eliminating this attack')
                         table.remove(attack_combos, j)
                     end
