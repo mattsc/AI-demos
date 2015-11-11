@@ -2066,12 +2066,10 @@ return {
             local zone = wesnoth.get_locations(hold_slf)
             local full_zone_map = {}
             for _,loc in ipairs(zone) do
-                if (not full_zone_map[loc[1]]) then
-                    full_zone_map[loc[1]] = {}
-                end
-                full_zone_map[loc[1]][loc[2]] = { flag = true }
+                FU.set_fgumap_value(full_zone_map, loc[1], loc[2], 'flag', true)
             end
             --DBG.dbms(zone_map)
+            --FU.put_fgumap_labels(full_zone_map, 'flag')
 
             local zone_map = {}
             for x,tmp in pairs(full_zone_map) do
