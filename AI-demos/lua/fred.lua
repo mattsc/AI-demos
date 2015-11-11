@@ -499,7 +499,7 @@ return {
                 actions = { advance = true },
                 ignore_villages = true, -- main goal is to get toward the leader
                 ignore_counter = true,  -- and need to do so very aggressively
-                value_ratio = 0.5
+                value_ratio = 0.67
             }
 
 

@@ -254,8 +254,8 @@ function fred_utils.get_value_ratio(gamedata)
         value_ratio = tmp_value_ratio
     end
 
-    if (value_ratio < 0.5) then
-        value_ratio = 0.5
+    if (value_ratio < 0.67) then
+        value_ratio = 0.67
     end
 
     --print('value_ratio', value_ratio)
