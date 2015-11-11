@@ -1020,7 +1020,8 @@ return {
                         hold_core_only = hold_core_only,
                         value_ratio = value_ratio,
                         rating = hold[zone_id].rating,
-                        holders = hold[zone_id].units
+                        holders = hold[zone_id].units,
+                        power_threats = power_needed
                     }
                     table.insert(tmp_cfgs_hold, cfg)
                 end

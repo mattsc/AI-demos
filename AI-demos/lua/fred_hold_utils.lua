@@ -90,6 +90,7 @@ end
 
 function fred_hold_utils.is_acceptable_hold(combo_stats, raw_cfg, zone_cfg, gamedata)
     --DBG.dbms(combo_stats)
+    --DBG.dbms(zone_cfg)
 
     local show_debug = false
     if (x == 18) and (y == 12) and (unit_info.type == 'Orcish Grunt') then
@@ -99,6 +100,7 @@ function fred_hold_utils.is_acceptable_hold(combo_stats, raw_cfg, zone_cfg, game
     FU.print_debug(show_debug, '\nfred_hold_utils.is_acceptable_hold')
 
     local n_core, n_forward = 0, 0
+    local power_forward = 0
     local n_total = #combo_stats
 
     for _,cs in ipairs(combo_stats) do
@@ -120,6 +122,7 @@ function fred_hold_utils.is_acceptable_hold(combo_stats, raw_cfg, zone_cfg, game
                 n_core = n_core + 1
             else
                 n_forward = n_forward + 1
+                power_forward = power_forward + gamedata.unit_infos[cs.id].power
             end
         end
         FU.print_debug(show_debug, '    is_core_hex:', is_core_hex)
@@ -128,11 +131,19 @@ function fred_hold_utils.is_acceptable_hold(combo_stats, raw_cfg, zone_cfg, game
         if raw_cfg.hold_forward_slf then
             is_forward_hex = wesnoth.match_location(cs.x, cs.y, raw_cfg.hold_forward_slf)
         end
-        if is_forward_hex then n_forward = n_forward + 1 end
+        if is_forward_hex then
+            n_forward = n_forward + 1
+            power_forward = power_forward + gamedata.unit_infos[cs.id].power
+        end
         FU.print_debug(show_debug, '    is_forward_hex:', is_forward_hex)
     end
 
     FU.print_debug(show_debug, '    n_total, n_core, n_forward:', n_total, n_core, n_forward)
+    FU.print_debug(show_debug, '    power_forward, power_threats:', power_forward, zone_cfg.power_threats)
+
+    if (n_forward > 0) and (power_forward < zone_cfg.power_threats) then
+        return false
+    end
 
     -- Forward hexes are only accepted if:
     --  - there are no core hexes being held
