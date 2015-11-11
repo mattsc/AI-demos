@@ -262,7 +262,8 @@ return {
                 villages = {
                     slf = { x = '16-21', y = '7-10' },
                     villages_per_unit = 2
-                }
+                },
+                priority = 0.5
             }
 
             local cfg_east = {
@@ -711,8 +712,7 @@ return {
                 for id,power in pairs(ids) do
                     enemy_power1 = enemy_power1 + power / threats1_all_zones[id]
                 end
-
-                MAZ[zone_id].enemy_power1 = enemy_power1
+                MAZ[zone_id].enemy_power1 = enemy_power1 * (MAZ[zone_id].raw_cfg.priority or 1)
 
                 FU.print_debug(show_debug_analysis, '    ' .. zone_id, MAZ[zone_id].my_power1, MAZ[zone_id].enemy_power1)
             end
@@ -768,7 +768,7 @@ return {
                     enemy_power2 = enemy_power2 + power / threats2_all_zones[id]
                 end
 
-                MAZ[zone_id].enemy_power2 = enemy_power2
+                MAZ[zone_id].enemy_power2 = enemy_power2 * (MAZ[zone_id].raw_cfg.priority or 1)
             end
 
             -- For the own units, we do T2 the same way as T1, that is, we do
