@@ -580,6 +580,7 @@ return {
                 W.message{ speaker = 'narrator', message = 'tension' }
                 FU.put_fgumap_labels(influence_maps, 'vulnerability')
                 W.message{ speaker = 'narrator', message = 'vulnerability' }
+                FU.clear_labels()
             end
 
 
@@ -2273,6 +2274,7 @@ return {
                     W.redraw()
                     W.message { speaker = 'narrator', message = 'Hold zone: unit-specific rating map: ' .. id }
                     wesnoth.remove_tile_overlay(gamedata.units[id][1], gamedata.units[id][2], { image = "items/orcish-flag.png" })
+                    FU.clear_labels()
                     W.redraw()
                 end
             end
@@ -2436,9 +2438,9 @@ return {
             -- Need to make sure that the same weapons are used for all counter attack calculations
             local cfg_counter_attack = { use_max_damage_weapons = true }
 
-            for _,combo in ipairs(combos) do
+            for i_c,combo in ipairs(combos) do
                 local old_locs, new_locs = {}, {}
-                --print('Combo ' .. _)
+                --print('Combo ' .. i_c)
                 for xy,id in pairs(combo) do
                     local x, y =  math.floor(xy / 1000), xy % 1000
                     --print('  ', id, x, y)
@@ -2548,6 +2550,20 @@ return {
                     best_combos[n_holders].best_units = {}
                     for xy,id in pairs(combo) do
                         table.insert(best_combos[n_holders].best_units, gamedata.unit_infos[id])
+                    end
+                end
+
+                if show_debug_hold then
+                    local x, y
+                    for xy,id in pairs(combo) do
+                        x, y =  math.floor(xy / 1000), xy % 1000
+                        W.label { x = x, y = y, text = id }
+                    end
+                    wesnoth.scroll_to_tile(x, y)
+                    W.message { speaker = 'narrator', message = 'Hold combo ' .. i_c .. '  is_acceptable: ' .. tostring(is_acceptable)}
+                    for xy,id in pairs(combo) do
+                        x, y =  math.floor(xy / 1000), xy % 1000
+                        W.label { x = x, y = y, text = "" }
                     end
                 end
             end
