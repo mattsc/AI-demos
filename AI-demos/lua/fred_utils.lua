@@ -314,7 +314,6 @@ function fred_utils.get_influence_maps(my_attack_map, enemy_attack_map)
             influence_map[x][y].enemy_influence = enemy_influence
             influence_map[x][y].influence = influence_map[x][y].influence - enemy_influence
             influence_map[x][y].tension = influence_map[x][y].tension + enemy_influence
-
         end
     end
 
@@ -324,7 +323,6 @@ function fred_utils.get_influence_maps(my_attack_map, enemy_attack_map)
             influence_map[x][y].vulnerability = vulnerability
         end
     end
-
 
     return influence_map
 end
