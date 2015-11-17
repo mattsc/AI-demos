@@ -12,7 +12,7 @@ function fred_hold_utils.is_acceptable_location(unit_info, x, y, hit_chance, cou
     if (not next(counter_attack)) then return true end
 
     local show_debug = false
-    if (x == 18) and (y == 11) and (unit_info.type == 'Troll Whelp') then
+    if (x == 9918) and (y == 11) and (unit_info.type == 'Troll Whelp') then
         show_debug = false
         --DBG.dbms(counter_stats)
     end
@@ -139,11 +139,11 @@ function fred_hold_utils.is_acceptable_hold(combo_stats, raw_cfg, zone_cfg, game
     end
 
     FU.print_debug(show_debug, '    n_total, n_core, n_forward:', n_total, n_core, n_forward)
-    FU.print_debug(show_debug, '    power_forward, power_threats:', power_forward, zone_cfg.power_threats)
+    --FU.print_debug(show_debug, '    power_forward, power_threats:', power_forward, zone_cfg.power_threats)
 
-    if (n_forward > 0) and (power_forward < zone_cfg.power_threats) then
-        return false
-    end
+    --if (n_forward > 0) and (power_forward < zone_cfg.power_threats) then
+    --    return false
+    --end
 
     -- Forward hexes are only accepted if:
     --  - there are no core hexes being held
