@@ -707,22 +707,28 @@ return {
                 value_ratio = 0.67
             }
 
+            -- We also add in other units in the zone for attacks, but
+            -- with a less aggressive value_ratio
 
--- Commented out for now, because threats2 is not populated
---            local attack2_cfg = {
---                zone_id = raw_cfg.zone_id,
---                stage_id = stage_id,
---                targets = {},
---                actions = { attack = true },
---                ignore_resource_limit = true
---            }
 
---            for id,_ in pairs(threats2) do
---                local target = {}
---                target[id] = gamedata.enemies[id]
---                table.insert(attack2_cfg.targets, target)
---            end
---            --DBG.dbms(attack2_cfg)
+            local attack2_cfg = {
+                zone_id = raw_cfg.zone_id,
+                stage_id = stage_id,
+                targets = {},
+                actions = { attack = true },
+                ignore_resource_limit = true
+            }
+
+            for id,loc in pairs(gamedata.enemies) do
+                if (not threats[id])
+                    and wesnoth.match_unit(gamedata.unit_copies[id], raw_cfg.threat_slf)
+                then
+                    local target = {}
+                    target[id] = loc
+                    table.insert(attack2_cfg.targets, target)
+                end
+            end
+            --DBG.dbms(attack2_cfg)
 
             -- Favorable attacks can be done at any time after threats to
             -- the AI leader are dealt with
