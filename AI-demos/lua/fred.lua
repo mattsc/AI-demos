@@ -521,11 +521,12 @@ return {
             -- zones. They are ignored below. They might get reassigned to the
             -- 4 main zones at some points.
 
+            -- Note: status.units_used[id] = zone_id while
+            --  status[zone_id].units_used[id] = power
             for id,zone_id in pairs(status.units_used) do
                 if gamedata.my_units_noMP[id] and (not gamedata.unit_infos[id].canrecruit) then
-                    local power = gamedata.unit_infos[id].power
-                    status.units_used[id] = power
                     if status[zone_id]  then
+                        local power = gamedata.unit_infos[id].power
                         status[zone_id].power_used = status[zone_id].power_used + power
                         status[zone_id].n_units_used = status[zone_id].n_units_used + 1
                         status[zone_id].units_used[id] = power
