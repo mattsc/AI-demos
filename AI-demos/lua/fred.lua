@@ -889,7 +889,7 @@ return {
                 local tmp = {
                     zone_id = zone_id,
                     power_needed = behavior.power_needed[zone_id],
-                    power_used = status[zone_id].power_needed
+                    power_used = status[zone_id].power_used
                 }
                 tmp.power_missing = tmp.power_needed - tmp.power_used
 
