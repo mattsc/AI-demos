@@ -963,18 +963,16 @@ return {
                 --DBG.dbms(zone_cfg)
                 table.insert(fred.data.zone_cfgs, zone_cfg)
 
-                -- Don't hold if the enemy does not have any T1 power
-                if (zone_power.power_needed > 0) then
-                    local zone_cfg = {
-                        zone_id = zone_power.zone_id,
-                        stage_id = stage_id,
-                        actions = { hold = true },
-                        --hold_core_only = hold_core_only,
-                        value_ratio = value_ratio
-                    }
-                    --DBG.dbms(zone_cfg)
-                    table.insert(fred.data.zone_cfgs, zone_cfg)
-                end
+                -- Holding
+                local zone_cfg = {
+                    zone_id = zone_power.zone_id,
+                    stage_id = stage_id,
+                    actions = { hold = true },
+                    --hold_core_only = hold_core_only,
+                    value_ratio = value_ratio
+                }
+                --DBG.dbms(zone_cfg)
+                table.insert(fred.data.zone_cfgs, zone_cfg)
 
                 -- And for advancing, it's very similar, but number of units
                 -- needed plays the most important role here
