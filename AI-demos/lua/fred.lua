@@ -984,7 +984,6 @@ return {
                     stage_id = stage_id,
                     actions = { advance = true },
                     value_ratio = value_ratio,
-                    unthreatened_only = true
                     use_secondary_rating = true
                 }
                 --DBG.dbms(zone_cfg)
