@@ -2764,6 +2764,11 @@ return {
                 FU.print_debug(show_debug_advance, '  best advance rating 2:', best_unit2.id, best_hex2[1], best_hex2[2])
             end
 
+            if zonedata.cfg.use_secondary_rating and (not best_unit) and best_unit2 then
+                best_unit = best_unit2
+                best_hex = best_hex2
+            end
+
             if best_unit then
                 --print('****** Found advance action:')
                 local action = { units = { best_unit }, dsts = { best_hex } }
