@@ -985,6 +985,7 @@ return {
                     actions = { advance = true },
                     value_ratio = value_ratio,
                     unthreatened_only = true
+                    use_secondary_rating = true
                 }
                 --DBG.dbms(zone_cfg)
                 table.insert(fred.data.zone_cfgs, zone_cfg)
