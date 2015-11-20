@@ -2725,6 +2725,7 @@ return {
                     W.message { speaker = 'narrator', message = 'Advance zone: unit-specific rating map (backup rating): ' .. id }
 
                     wesnoth.remove_tile_overlay(gamedata.units[id][1], gamedata.units[id][2], { image = "items/orcish-flag.png" })
+                    FU.clear_labels()
                     W.redraw()
                 end
             end
@@ -2756,6 +2757,13 @@ return {
             if best_unit_vill then
                 best_unit = best_unit_vill
                 best_hex = best_hex_vill
+            end
+
+            if best_unit then
+                FU.print_debug(show_debug_advance, '  best advance rating 1:', best_unit.id, best_hex[1], best_hex[2])
+            end
+            if best_unit2 then
+                FU.print_debug(show_debug_advance, '  best advance rating 2:', best_unit2.id, best_hex2[1], best_hex2[2])
             end
 
             if best_unit then
