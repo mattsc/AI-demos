@@ -2501,6 +2501,7 @@ return {
             -- unit at a time. It will be checked before the action is called.
 
             local max_rating, best_unit, best_hex = -9e99
+            local max_rating2, best_unit2, best_hex2 = -9e99
             local reachable_villages = {}
             for id,loc in pairs(advance_units) do
                 reachable_villages[id] = {}
@@ -2518,7 +2519,7 @@ return {
                 local must_retreat = gamedata.unit_copies[id].hitpoints < min_hp
                 FU.print_debug(show_debug_advance, id, min_hp, must_retreat)
 
-                local unit_rating_map = {}
+                local unit_rating_map, unit_rating_map2 = {}, {}
                 for x,tmp in pairs(gamedata.reach_maps[id]) do
                     for y,_ in pairs(tmp) do
                         local threat
@@ -2539,7 +2540,7 @@ return {
                         end
 
                         if zone_rating then
-                            local rating
+                            local rating, rating2
 
                             local hit_chance = FU.get_hit_chance(id, x, y, gamedata)
 
@@ -2668,7 +2669,8 @@ return {
                                 local target = {}
                                 target[id] = { x, y }
                                 local counter_stats, counter_attack = FAU.calc_counter_attack(target, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
-                                --DBG.dbms(counter_attack)
+                                --DBG.dbms(counter_stats)
+                                rating2 = -counter_stats.rating_table.rating
 
                                 if (not FHU.is_acceptable_location(gamedata.unit_infos[id], x, y, hit_chance, counter_stats, counter_attack, zonedata.cfg.value_ratio, raw_cfg)) then
                                     is_acceptable = false
@@ -2695,8 +2697,18 @@ return {
                                 best_hex = { x, y }
                             end
 
+                            if rating2 and (rating2 > max_rating2) then
+                                max_rating2 = rating2
+                                best_unit2 = gamedata.my_units[id]
+                                best_unit2.id = id
+                                best_hex2 = { x, y }
+                            end
+
                             if rating then
                                 FU.set_fgumap_value(unit_rating_map, x, y, 'rating', rating)
+                            end
+                            if rating2 then
+                                FU.set_fgumap_value(unit_rating_map2, x, y, 'rating', rating2)
                             end
                         end
                     end
@@ -2708,6 +2720,10 @@ return {
                     wesnoth.add_tile_overlay(gamedata.units[id][1], gamedata.units[id][2], { image = "items/orcish-flag.png" })
                     W.redraw()
                     W.message { speaker = 'narrator', message = 'Advance zone: unit-specific rating map: ' .. id }
+
+                    FU.put_fgumap_labels(unit_rating_map2, 'rating')
+                    W.message { speaker = 'narrator', message = 'Advance zone: unit-specific rating map (backup rating): ' .. id }
+
                     wesnoth.remove_tile_overlay(gamedata.units[id][1], gamedata.units[id][2], { image = "items/orcish-flag.png" })
                     W.redraw()
                 end
