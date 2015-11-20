@@ -878,7 +878,6 @@ return {
             end
             --DBG.dbms(behavior)
 
-
             -- The zones get sorted by power_needed, that is, the overall urgency for
             -- the zone, rather than what is currently still missing after previous moves
             local status = fred.data.analysis.status
@@ -976,9 +975,6 @@ return {
 
                 -- And for advancing, it's very similar, but number of units
                 -- needed plays the most important role here
-
-                -- However, do not advance, if we already have
-                -- at least twice the power needed in the zone
                 local zone_cfg = {
                     zone_id = zone_power.zone_id,
                     stage_id = stage_id,
@@ -2110,7 +2106,7 @@ return {
 
             -- Now we go on to the unit-dependent rating part
             -- This is the same type of rating as for enemies, but done individually
-            -- for each AI unit, rather than averaged of all units for each hex
+            -- for each AI unit, rather than averaged over all units for each hex
 
             -- This will hold the rating maps for all units
             local unit_rating_maps = {}
