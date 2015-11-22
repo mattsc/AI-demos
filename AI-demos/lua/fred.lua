@@ -2170,17 +2170,18 @@ return {
                 table.sort(unit_ratings[id], function(a, b) return a.rating > b.rating end)
 
                 -- We also identify the best units; which are those with the highest
-                -- sum of the best ratings (only those to be used for the next step)
                 -- TODO: possibly refine this?
                 local sum_best_ratings = 0
+                -- average of the best ratings (only those to be used for the next step)
                 n_hexes = math.min(max_hexes, #unit_ratings[id])
                 for i = 1,n_hexes do
                     --print(id, unit_ratings[id][i].rating, unit_ratings[id][i].x, unit_ratings[id][i].y)
-                    sum_best_ratings = sum_best_ratings + unit_ratings[id][i].rating
+                    av_best_ratings = av_best_ratings - unit_ratings[id][i].rating
                 end
-                --print('  total rating: ', sum_best_ratings, id)
+                av_best_ratings = av_best_ratings / n_hexes
+                --print('  total rating: ', av_best_ratings, id)
 
-                table.insert(rated_units, { id = id, rating = sum_best_ratings })
+                table.insert(rated_units, { id = id, rating = av_best_ratings })
             end
 
             -- Exclude units that have no reachable qualified hexes
