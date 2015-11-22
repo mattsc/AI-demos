@@ -2170,13 +2170,24 @@ return {
                 table.sort(unit_ratings[id], function(a, b) return a.rating > b.rating end)
 
                 -- We also identify the best units; which are those with the highest
-                -- TODO: possibly refine this?
-                local sum_best_ratings = 0
                 -- average of the best ratings (only those to be used for the next step)
+                -- The previous rating is only used to identify the best hexes though.
+                -- The units are rated based on counter attack stats (single unit on that
+                -- hex only), otherwise a 1HP assassin will be chosen over a full HP whelp.
+                local av_best_ratings = 0
                 n_hexes = math.min(max_hexes, #unit_ratings[id])
                 for i = 1,n_hexes do
-                    --print(id, unit_ratings[id][i].rating, unit_ratings[id][i].x, unit_ratings[id][i].y)
-                    av_best_ratings = av_best_ratings - unit_ratings[id][i].rating
+                    local old_locs = { { gamedata.unit_copies[id].x, gamedata.unit_copies[id].y } }
+                    local new_locs = { { unit_ratings[id][i].x, unit_ratings[id][i].y } }
+                    local target = {}
+                    target[id] = { unit_ratings[id][i].x, unit_ratings[id][i].y }
+
+                    local cfg_counter_attack = { use_max_damage_weapons = true }
+                    local counter_stats, counter_attack = FAU.calc_counter_attack(target, old_locs, new_locs, gamedata, move_cache, cfg_counter_attack)
+                    ---DBG.dbms(counter_stats)
+
+                    av_best_ratings = av_best_ratings - counter_stats.rating_table.rating
+                    --print(id, unit_ratings[id][i].rating, - counter_stats.rating_table.rating, unit_ratings[id][i].x, unit_ratings[id][i].y)
                 end
                 av_best_ratings = av_best_ratings / n_hexes
                 --print('  total rating: ', av_best_ratings, id)
