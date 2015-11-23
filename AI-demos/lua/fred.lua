@@ -39,6 +39,23 @@ return {
             local rating
 
             if (wesnoth.current.side == 1) then
+                if (zone_id == 'all_map') then
+                    -- all_map advancing is toward the enemy leader
+                    rating = - FU.get_fgumap_value(gamedata.enemy_leader_distance_maps[unit_type], x, y, 'cost')
+
+                    -- Discourage advancing through center or in west
+                    -- TODO: refine this a little
+                    if (x >= 17) and (x <= 24) and (y >= 10) and (y <= 15) then
+                        rating = rating - 5
+                    elseif (x >= 18) and (x <= 23) and (y >= 8) and (y <= 9) then
+                        rating = rating - 5
+                    elseif (x >= 17) and (x <= 20) and (y <= 15) then
+                        rating = rating - 5
+                    elseif (x <= 16) and (y <= 9) then
+                        rating = rating - 5
+                    end
+                end
+
                 if (zone_id == 'west') then
                     -- Return nil for being outside certain areas
                     if (x > 19) then return end
@@ -121,11 +138,6 @@ return {
                         rating = - FU.get_fgumap_value(gamedata.leader_distance_maps[unit_type], x, y, 'cost')
                             - FU.get_fgumap_value(gamedata.enemy_leader_distance_maps[unit_type], x, y, 'cost') / 100000
                     end
-                end
-
-                if (zone_id == 'all_map') then
-                    -- all_map advancing is toward the enemy leader
-                    rating = - FU.get_fgumap_value(gamedata.enemy_leader_distance_maps[unit_type], x, y, 'cost')
                 end
             end
 
