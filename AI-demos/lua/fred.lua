@@ -631,7 +631,7 @@ return {
             -- to kill the AI leader, or if their average expected damage is
             -- more than half his total max_hitpoints
             --DBG.dbms(threats1)
-            if (max_total_loss >= leader_proxy.hitpoints) or (av_total_loss >= leader_proxy.max_hitpoints / 2) then
+            if (max_total_loss >= leader_proxy.hitpoints / 2.) or (av_total_loss >= leader_proxy.max_hitpoints / 4.) then
                 --print('Combined threat on leader is large, needs to be considered.')
             else
                 --print('Combined threat on leader is small, can be ignored.')
