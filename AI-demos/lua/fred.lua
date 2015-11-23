@@ -191,16 +191,6 @@ return {
                 end
             end
 
-            -- For these zones, advancing is toward the enemy leader
-            if (zone_id == 'enemy_leader') or (zone_id == 'full_map') then
-                for side,loc in ipairs(gamedata.leaders) do
-                    if wesnoth.is_enemy(side, wesnoth.current.side) then
-                        rating = - H.distance_between(x, y, loc[1], loc[2])
-                        break
-                    end
-                end
-            end
-
             return rating -- return nil if we got here
         end
 
