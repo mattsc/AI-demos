@@ -878,7 +878,9 @@ return {
                 local tmp = {
                     zone_id = zone_id,
                     power_needed = behavior.power_needed[zone_id],
-                    power_used = status[zone_id].power_used
+                    power_used = status[zone_id].power_used,
+                    n_units_needed = status[zone_id].n_units_needed;
+                    n_units_used = status[zone_id].n_units_used
                 }
                 tmp.power_missing = tmp.power_needed - tmp.power_used
 
@@ -892,12 +894,14 @@ return {
                 -- Only deal with this zone if power missing is positive
                 -- or small
                 -- TODO: is 2 the correct value here?
-                if (tmp.power_missing >= 2) then
+                if (tmp.power_missing >= 2) or (tmp.n_units_needed > tmp.n_units_used) then
                     table.insert(zone_powers, tmp)
                 end
             end
 
-            table.sort(zone_powers, function(a, b) return a.power_needed > b.power_needed end)
+            table.sort(zone_powers, function(a, b)
+                return a.power_needed + a.n_units_needed / 10. > b.power_needed + b.n_units_needed / 10.
+            end)
             --DBG.dbms(zone_powers)
             --DBG.dbms(status)
 
