@@ -951,7 +951,12 @@ return {
             --DBG.dbms(fred.data.zone_cfgs)
 
 
-            FU.print_debug(show_debug_analysis, '\n  Hold evaluation:')
+            FU.print_debug(show_debug_analysis, '\n  Hold/advance evaluation:')
+
+            local unthreatened_only = falso
+            if behavior.overall == 'defensive' then
+                unthreatened_only = true
+            end
 
             for _,zone_power in pairs(zone_powers) do
                 local raw_cfg = raw_cfgs[zone_power.zone_id]
@@ -986,7 +991,8 @@ return {
                     stage_id = stage_id,
                     actions = { advance = true },
                     value_ratio = value_ratio,
-                    use_secondary_rating = true
+                    use_secondary_rating = true,
+                    unthreatened_only = unthreatened_only
                 }
                 --DBG.dbms(zone_cfg)
                 table.insert(fred.data.zone_cfgs, zone_cfg)
