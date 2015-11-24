@@ -284,9 +284,10 @@ function fred_utils.get_influence_maps(my_attack_map, enemy_attack_map)
 
     local influence_map = {}
 
+    -- Exclude the leader for the AI side, but not for the enemy side
     for x,arr in pairs(my_attack_map) do
         for y,data in pairs(arr) do
-            local my_influence = data.power
+            local my_influence = data.power_no_leader
 
             if (not influence_map[x]) then influence_map[x] = {} end
             influence_map[x][y] = {
