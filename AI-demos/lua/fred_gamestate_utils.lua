@@ -382,6 +382,13 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
                     local power = unit_infos[id].power
                     my_attack_map[int_turns][x][y].power = (my_attack_map[int_turns][x][y].power or 0) + power
 
+                    if (not my_attack_map[int_turns][x][y].power_no_leader) then
+                        my_attack_map[int_turns][x][y].power_no_leader = 0
+                    end
+                    if (not unit_copy.canrecruit) then
+                        my_attack_map[int_turns][x][y].power_no_leader = my_attack_map[int_turns][x][y].power_no_leader + power
+                    end
+
                     table.insert(my_attack_map[int_turns][x][y].ids, id)
                 end
             end
