@@ -209,6 +209,50 @@ return {
 
         ------ Map analysis at beginning of turn -----------
 
+        function fred:go_here_map()
+            local show_debug = true
+
+            fred.data.analysis.go_here_map = {}
+
+            local go_here_slf = {
+                x = '1-15,11,16-24,17,21-23,25-34,25,   27,29',
+                y = '1-8, 9, 1-9,  10,10,   1-10, 11-12,11,11'
+            }
+
+            local influence_maps = FU.get_influence_maps(fred.data.gamedata.my_attack_map[1], fred.data.gamedata.enemy_attack_map[1])
+
+            fred.data.analysis.go_here_map = {}
+
+            for x,arr in pairs(influence_maps) do
+                for y,data in pairs(arr) do
+                    local influence = data['influence']
+
+                    if (influence > -10)
+                       or wesnoth.match_location(x, y, go_here_slf)
+                    then
+                        FU.set_fgumap_value(fred.data.analysis.go_here_map, x, y, 'go_here', true)
+                    end
+                end
+            end
+
+            local show_debug = false
+            if show_debug then
+                FU.put_fgumap_labels(influence_maps, 'my_influence')
+                W.message{ speaker = 'narrator', message = 'my_influence' }
+                FU.put_fgumap_labels(influence_maps, 'enemy_influence')
+                W.message{ speaker = 'narrator', message = 'enemy_influence' }
+                FU.put_fgumap_labels(influence_maps, 'influence')
+                W.message{ speaker = 'narrator', message = 'influence' }
+                FU.put_fgumap_labels(influence_maps, 'tension')
+                W.message{ speaker = 'narrator', message = 'tension' }
+                FU.put_fgumap_labels(influence_maps, 'vulnerability')
+                W.message{ speaker = 'narrator', message = 'vulnerability' }
+                FU.put_fgumap_labels(fred.data.analysis.go_here_map, 'go_here')
+                W.message{ speaker = 'narrator', message = 'go here' }
+--                FU.clear_labels()
+            end
+        end
+
         function fred:get_raw_cfgs(zone_id)
             local cfg_leader = {
                 zone_id = 'leader',
@@ -492,6 +536,7 @@ return {
             -- fir k,v in pairs(gamedata) do print k end
             --DBG.dbms(raw_cfgs)
 
+            fred:go_here_map()
 
             -- status: reset the 'used' tables for the zones
             -- This is done only for 'leader' and the three map zones
@@ -768,24 +813,6 @@ return {
             --DBG.dbms(raw_cfgs)
 
             fred.data.zone_cfgs = {}
-
-            local show_debug = false
-            if show_debug then
-                local influence_maps = FU.get_influence_maps(gamedata.my_attack_map[1], gamedata.enemy_attack_map[1])
-
-                FU.put_fgumap_labels(influence_maps, 'my_influence')
-                W.message{ speaker = 'narrator', message = 'my_influence' }
-                FU.put_fgumap_labels(influence_maps, 'enemy_influence')
-                W.message{ speaker = 'narrator', message = 'enemy_influence' }
-                FU.put_fgumap_labels(influence_maps, 'influence')
-                W.message{ speaker = 'narrator', message = 'influence' }
-                FU.put_fgumap_labels(influence_maps, 'tension')
-                W.message{ speaker = 'narrator', message = 'tension' }
-                FU.put_fgumap_labels(influence_maps, 'vulnerability')
-                W.message{ speaker = 'narrator', message = 'vulnerability' }
-                FU.clear_labels()
-            end
-
 
             local map_analysis = { zones = {} }
             local MA = map_analysis -- just for convenience
