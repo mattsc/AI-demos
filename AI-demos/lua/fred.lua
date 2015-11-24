@@ -2594,8 +2594,11 @@ return {
                         --    Specifically that means that it will NOT be set if
                         --    there is a threat and unthreatened_only is set
 
+                        -- Also exclude hexes in the no-go zone
+                       local go_here = FU.get_fgumap_value(fred.data.analysis.go_here_map, x, y, 'go_here')
+
                         local zone_rating
-                        if (not threat) then
+                        if (not threat) and go_here then
                             zone_rating = fred:zone_advance_rating(zonedata.cfg.zone_id, x, y, gamedata, gamedata.unit_infos[id].type)
                         end
 
