@@ -980,7 +980,7 @@ return {
 
             FU.print_debug(show_debug_analysis, '\n  Hold/advance evaluation:')
 
-            local unthreatened_only = falso
+            local unthreatened_only = false
             if behavior.overall == 'defensive' then
                 unthreatened_only = true
             end
