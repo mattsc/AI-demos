@@ -249,7 +249,7 @@ return {
                 W.message{ speaker = 'narrator', message = 'vulnerability' }
                 FU.put_fgumap_labels(fred.data.analysis.go_here_map, 'go_here')
                 W.message{ speaker = 'narrator', message = 'go here' }
---                FU.clear_labels()
+                FU.clear_labels()
             end
         end
 
