@@ -2735,7 +2735,12 @@ return {
                                 --DBG.dbms(counter_stats)
                                 rating2 = -counter_stats.rating_table.rating
 
-                                if (not FHU.is_acceptable_location(gamedata.unit_infos[id], x, y, hit_chance, counter_stats, counter_attack, zonedata.cfg.value_ratio, raw_cfg)) then
+                                local cfg_acc = {
+                                    defend_hard = false,
+                                    acceptable_rating = 0
+                                }
+
+                                if (not FHU.is_acceptable_location(gamedata.unit_infos[id], x, y, hit_chance, counter_stats, counter_attack, zonedata.cfg.value_ratio, raw_cfg, cfg_acc)) then
                                     is_acceptable = false
                                 end
                                 --print('      --> is_acceptable', is_acceptable)
