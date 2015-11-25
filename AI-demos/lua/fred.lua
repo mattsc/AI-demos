@@ -519,6 +519,7 @@ return {
             --   status (also reset the zone tables)
             --   threats
             --   my_units_by_zone
+            --   behavior
             -- This means updating the power and deleting units from the tables if
             -- they have died. It does NOT mean removing/adding units from the
             -- tables because they cannot reach certain hexes any more
@@ -617,6 +618,41 @@ return {
                 end
             end
             --DBG.dbms(my_units_by_zone)
+
+            -- Make some behavior strategic decision
+            local my_total_power = 0
+            for id,loc in pairs(gamedata.my_units) do
+                if (not gamedata.unit_infos[id].canrecruit) then
+                    my_total_power = my_total_power + gamedata.unit_infos[id].power
+                end
+            end
+
+            local enemy_total_power = 0
+            for id,loc in pairs(gamedata.enemies) do
+                if (not gamedata.unit_infos[id].canrecruit) then
+                    enemy_total_power = enemy_total_power + gamedata.unit_infos[id].power
+                end
+            end
+
+            FU.print_debug(show_debug_analysis, '  Total power: (my, enemy, ratio)', my_total_power, enemy_total_power)
+
+            fred.data.analysis.behavior = {}
+            local behavior = fred.data.analysis.behavior
+            behavior.total = {
+                my_total_power = my_total_power,
+                enemy_total_power = enemy_total_power,
+                ratio = my_total_power / enemy_total_power
+            }
+
+            -- Overall behavior: aggressive if power is roughly equal
+            -- TODO: this is arbitrarily set to being down by now more than one new grunt
+            -- TODO: do we want to do this each move, or just once per turn?
+            if (enemy_total_power < my_total_power + 12) then
+                behavior.total.behavior = 'aggressive'
+            else
+                behavior.total.behavior = 'defensive'
+            end
+            --DBG.dbms(behavior)
         end
 
 
@@ -866,42 +902,10 @@ return {
             end
             --DBG.dbms(my_power)
 
-            -- All units
-            local my_overall_power = 0
-            for id,loc in pairs(gamedata.my_units) do
-                if (not gamedata.unit_infos[id].canrecruit) then
-                    my_overall_power = my_overall_power + gamedata.unit_infos[id].power
-                end
-            end
 
-            local enemy_overall_power = 0
-            for id,loc in pairs(gamedata.enemies) do
-                if (not gamedata.unit_infos[id].canrecruit) then
-                    enemy_overall_power = enemy_overall_power + gamedata.unit_infos[id].power
-                end
-            end
-
-            FU.print_debug(show_debug_analysis, '  Overall power: (my, enemy)  [AI units might be double counted for zones]')
-            FU.print_debug(show_debug_analysis, '    all map (excl. leaders): ', my_overall_power, enemy_overall_power)
-            for zone_id,cfg in pairs(raw_cfgs) do
-                FU.print_debug(show_debug_analysis, '    ' .. zone_id, my_power[zone_id], enemy_power[zone_id])
-            end
-
-            local behavior = {
-                overall_ratio = my_overall_power / enemy_overall_power
-            }
-
-            -- Overall behavior: aggressive if power is roughly equal
-            -- TODO: this is arbitrarily set to being down by now more than one new grunt
-            -- TODO: do we want to do this each move, or just once per turn?
-            if (enemy_overall_power < my_overall_power + 12) then
-                behavior.overall = 'aggressive'
-            else
-                behavior.overall = 'defensive'
-            end
-
+            local behavior = fred.data.analysis.behavior
             behavior.power_needed = {}
-            behavior.factor = math.min(1, behavior.overall_ratio)
+            behavior.factor = math.min(1, behavior.total.ratio)
             for zone_id,cfg in pairs(raw_cfgs) do
                 behavior.power_needed[zone_id] = enemy_power[zone_id] * behavior.factor
             end
@@ -981,7 +985,7 @@ return {
             FU.print_debug(show_debug_analysis, '\n  Hold/advance evaluation:')
 
             local unthreatened_only = false
-            if behavior.overall == 'defensive' then
+            if behavior.total.behavior == 'defensive' then
                 unthreatened_only = true
             end
 
@@ -3203,7 +3207,7 @@ return {
             if debug_eval then print_time('     - Evaluating zone_control CA:') end
 
             fred:analyze_map_update_tables()
-
+--if 1 then return 0 end
             local FDA = fred.data.analysis -- just for convenience
             --DBG.dbms(FDA)
 
