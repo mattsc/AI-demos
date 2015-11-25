@@ -4,8 +4,13 @@ local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local fred_hold_utils = {}
 
-function fred_hold_utils.is_acceptable_location(unit_info, x, y, hit_chance, counter_stats, counter_attack, value_ratio, raw_cfg)
+function fred_hold_utils.is_acceptable_location(unit_info, x, y, hit_chance, counter_stats, counter_attack, value_ratio, raw_cfg, cfg)
     -- Check whether are holding/advancing location has acceptable expected losses
+    --
+    -- Optional parameters:
+    --  @cfg: override the default settings/calculations for these parameters:
+    --    - defend_hard
+    --    - acceptable_rating
     -- TODO: simplify the function call, fewer parameters
 
     -- If enemy cannot attack here, it's an acceptable location by default
@@ -29,6 +34,14 @@ function fred_hold_utils.is_acceptable_location(unit_info, x, y, hit_chance, cou
     FU.print_debug(show_debug, '  is_good_terrain:', is_good_terrain)
 
     local defend_hard = is_core_hex and is_good_terrain
+
+    -- TODO: this is inefficient, clean up later
+    -- Note, need to check vs. 'nil' as 'false' is a possible value
+    if cfg and (cfg.defend_hard ~= nil) then
+        FU.print_debug(show_debug, '  overriding defend_hard fron cfg:', cfg.defend_hard)
+        defend_hard = cfg.defend_hard
+    end
+
     FU.print_debug(show_debug, '  --> defend_hard:', defend_hard)
 
     -- When defend_hard=false, make the acceptable limits dependable on value_ratio
@@ -60,6 +73,13 @@ function fred_hold_utils.is_acceptable_location(unit_info, x, y, hit_chance, cou
     elseif (unit_info.tod_mod > 1) then
         acceptable_rating = acceptable_rating + 2
     end
+
+    -- TODO: this is inefficient, clean up later
+    if cfg and cfg.acceptable_rating then
+        FU.print_debug(show_debug, '  overriding acceptable_rating fron cfg:', cfg.acceptable_rating)
+        acceptable_rating = cfg.acceptable_rating
+    end
+
 
     FU.print_debug(show_debug, '  -> acceptable_die_chance, acceptable_rating:', acceptable_die_chance, acceptable_rating)
 
