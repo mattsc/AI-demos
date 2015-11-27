@@ -3469,7 +3469,11 @@ return {
                 local r = math.sqrt(dx * dx + dy * dy)
                 if (r ~= 0) then dx, dy = dx / r, dy / r end
 
-                AH.movefull_outofway_stopunit(ai, unit, dst[1], dst[2], { dx = dx, dy = dy })
+                if fred.data.zone_action.partial_move then
+                    AH.movepartial_outofway_stopunit(ai, unit, dst[1], dst[2], { dx = dx, dy = dy })
+                else
+                    AH.movefull_outofway_stopunit(ai, unit, dst[1], dst[2], { dx = dx, dy = dy })
+                end
                 gamestate_changed = true
 
                 -- Remove these from the table
