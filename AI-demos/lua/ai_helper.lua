@@ -1105,7 +1105,7 @@ function ai_helper.move_unit_out_of_way(ai, unit, cfg)
     end
 end
 
-function ai_helper.move_unit_core(ai, unit, x, y, cfg, move_unit_out_of_way)
+function ai_helper.move_unit_core(ai, unit, x, y, cfg, move_unit_out_of_way, partial_move)
     -- This the core function combining common code from the different unit moving
     -- functions below. It can be called individually, but generally it is
     -- easier to call those functions below.
@@ -1114,6 +1114,8 @@ function ai_helper.move_unit_core(ai, unit, x, y, cfg, move_unit_out_of_way)
     --  @move_unit_out_of_way: try to move unit out of the way, if possible
     --    If not set, this step is skipped, which might cause errors if not
     --    it is not checked beforehand that there is no unit in the way
+    --  @partial_move: by default, a move is a full move (or a stopunit command).
+    --    If this is set, we do a partial move only
 
     if (type(x) ~= 'number') then
         if x[1] then
@@ -1137,7 +1139,11 @@ function ai_helper.move_unit_core(ai, unit, x, y, cfg, move_unit_out_of_way)
 
     local next_hop = ai_helper.next_hop(unit, x, y)
     if next_hop and ((next_hop[1] ~= unit.x) or (next_hop[2] ~= unit.y)) then
-        ai_helper.checked_move_full(ai, unit, next_hop[1], next_hop[2])
+        if partial_move then
+            ai_helper.checked_move(ai, unit, next_hop[1], next_hop[2])
+        else
+            ai_helper.checked_move_full(ai, unit, next_hop[1], next_hop[2])
+        end
     else
         ai_helper.checked_stopunit_moves(ai, unit)
     end
@@ -1148,14 +1154,23 @@ function ai_helper.movefull_stopunit(ai, unit, x, y)
     -- Uses ai_helper.next_hop(), so that it works if unit cannot get there in one move
     -- Coordinates can be given as x and y components, or as a 2-element table { x, y } or { x = x, y = y }
 
-    ai_helper.move_unit_core(ai, unit, x, y, nil, false)
+    ai_helper.move_unit_core(ai, unit, x, y, nil, false, false)
 end
 
 function ai_helper.movefull_outofway_stopunit(ai, unit, x, y, cfg)
     -- Same as ai_help.movefull_stopunit(), but also moves a unit out of the way if there is one
     -- Additional input: @cfg for ai_helper.move_unit_out_of_way()
 
-    ai_helper.move_unit_core(ai, unit, x, y, cfg, true)
+    ai_helper.move_unit_core(ai, unit, x, y, cfg, true, false)
+end
+
+function ai_helper.movepartial_outofway_stopunit(ai, unit, x, y, cfg)
+    -- Same as ai_help.movefull_outofway_stopunit(), except that it only does
+    -- a partial move if the unit moves. Note, however, that it does do a
+    -- stopunit if the unit would not otherwise move, because if it does not
+    -- it might otherwise lead to the calling CA to be blacklisted
+
+    ai_helper.move_unit_core(ai, unit, x, y, cfg, true, true)
 end
 
 ---------- Attack related helper functions --------------
