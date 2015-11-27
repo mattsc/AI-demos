@@ -2976,7 +2976,10 @@ return {
 
 
         ----- CA: Move leader to keep (max_score: 4800000) -----
-        function fred:move_leader_to_keep_eval()
+        function fred:move_leader_to_keep_eval(move_unit_away)
+            -- @move_unit_away: if set, try to move own unit out of way
+            --   Default is not to do this.
+
             local score = 480000
             local low_score = 1000
 
@@ -3037,7 +3040,9 @@ return {
 
             if best_keep then
                 -- If the leader can reach the keep, but there's a unit on it: wait
-                if fred.data.gamedata.reach_maps[leader.id][best_keep[1]]
+                -- Except when move_unit_away is set
+                if (not move_unit_away)
+                    and fred.data.gamedata.reach_maps[leader.id][best_keep[1]]
                     and fred.data.gamedata.reach_maps[leader.id][best_keep[1]][best_keep[2]]
                     and fred.data.gamedata.my_unit_map_MP[best_keep[1]]
                     and fred.data.gamedata.my_unit_map_MP[best_keep[1]][best_keep[2]]
@@ -3045,7 +3050,9 @@ return {
                     return 0
                 end
 
-                local next_hop = AH.next_hop(leader_copy, best_keep[1], best_keep[2])
+                -- We can always use 'ignore_own_units = true', as the if block
+                -- above catches the case when that should not be done.
+                local next_hop = AH.next_hop(leader_copy, best_keep[1], best_keep[2], { ignore_own_units = true })
 
                 -- Only move the leader if he'd actually move
                 if (next_hop[1] ~= leader_copy.x) or (next_hop[2] ~= leader_copy.y) then
