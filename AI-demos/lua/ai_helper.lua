@@ -911,7 +911,7 @@ function ai_helper.next_hop(unit, x, y, cfg)
     -- Finds the next "hop" of @unit on its way to (@x,@y)
     -- Returns coordinates of the endpoint of the hop (or nil if no path to
     -- (x,y) is found for the unit), and movement cost to get there.
-    -- Only unoccupied hexes are considered
+    -- Only unoccupied hexes are considered (except if @ignore_own_units is set)
     -- @cfg: standard extra options for wesnoth.find_path()
     --   plus:
     --     ignore_own_units: if set to true, then own units that can move out of the way are ignored
