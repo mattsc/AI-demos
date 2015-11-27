@@ -3218,6 +3218,19 @@ return {
                 end
             end
 
+            -- **** Force leader to go to keep if needed ****
+            -- TODO: This should be consolidated at some point into one
+            -- CA, but for simplicity we keep it like this for now until
+            -- we know whether it works as desired
+            if (cfg.actions.move_leader_to_keep) then
+                print_time('  ' .. cfg.zone_id .. ': move_leader_to_keep eval')
+                local score, action = fred:move_leader_to_keep_eval(true)
+                if action then
+                    print_time(action.action)
+                    return action
+                end
+            end
+
             return nil  -- This is technically unnecessary, just for clarity
         end
 
