@@ -3065,9 +3065,16 @@ return {
                     -- This is done with high priority if the leader can get to the keep,
                     -- otherwise with very low priority
                     if (next_hop[1] == best_keep[1]) and (next_hop[2] == best_keep[2]) then
-                        return score
+                        local action = {
+                            units = { { id = leader.id } },
+                            dsts = { { next_hop[1], next_hop[2] } },
+                            action = 'move leader to keep',
+                            partial_move = true
+                        }
+
+                        return score, action
                     else
-                        return low_score
+                        return low_score  -- Do not return action in this case
                     end
                 end
             end
