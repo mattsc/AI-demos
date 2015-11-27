@@ -1105,15 +1105,33 @@ function ai_helper.move_unit_out_of_way(ai, unit, cfg)
     end
 end
 
-function ai_helper.movefull_stopunit(ai, unit, x, y)
-    -- Does ai.move_full for @unit if not at (@x,@y), otherwise ai.stopunit_moves
-    -- Uses ai_helper.next_hop(), so that it works if unit cannot get there in one move
-    -- Coordinates can be given as x and y components, or as a 2-element table { x, y } or { x = x, y = y }
+function ai_helper.move_unit_core(ai, unit, x, y, cfg, move_unit_out_of_way)
+    -- This the core function combining common code from the different unit moving
+    -- functions below. It can be called individually, but generally it is
+    -- easier to call those functions below.
+    --
+    -- Optional parameters:
+    --  @move_unit_out_of_way: try to move unit out of the way, if possible
+    --    If not set, this step is skipped, which might cause errors if not
+    --    it is not checked beforehand that there is no unit in the way
+
     if (type(x) ~= 'number') then
         if x[1] then
             x, y = x[1], x[2]
         else
             x, y = x.x, x.y
+        end
+    end
+
+    -- Only move unit out of way if the main unit can get there
+    if move_unit_out_of_way then
+        local path, cost = wesnoth.find_path(unit, x, y)
+        if (cost <= unit.moves) then
+            local unit_in_way = wesnoth.get_unit(x, y)
+            if unit_in_way and ((unit_in_way.x ~= unit.x) or (unit_in_way.y ~= unit.y)) then
+                --W.message { speaker = 'narrator', message = 'Moving out of way' }
+                ai_helper.move_unit_out_of_way(ai, unit_in_way, cfg)
+            end
         end
     end
 
@@ -1125,33 +1143,19 @@ function ai_helper.movefull_stopunit(ai, unit, x, y)
     end
 end
 
+function ai_helper.movefull_stopunit(ai, unit, x, y)
+    -- Does ai.move_full for @unit if not at (@x,@y), otherwise ai.stopunit_moves
+    -- Uses ai_helper.next_hop(), so that it works if unit cannot get there in one move
+    -- Coordinates can be given as x and y components, or as a 2-element table { x, y } or { x = x, y = y }
+
+    ai_helper.move_unit_core(ai, unit, x, y, nil, false)
+end
+
 function ai_helper.movefull_outofway_stopunit(ai, unit, x, y, cfg)
     -- Same as ai_help.movefull_stopunit(), but also moves a unit out of the way if there is one
     -- Additional input: @cfg for ai_helper.move_unit_out_of_way()
-    if (type(x) ~= 'number') then
-        if x[1] then
-            x, y = x[1], x[2]
-        else
-            x, y = x.x, x.y
-        end
-    end
 
-    -- Only move unit out of way if the main unit can get there
-    local path, cost = wesnoth.find_path(unit, x, y)
-    if (cost <= unit.moves) then
-        local unit_in_way = wesnoth.get_unit(x, y)
-        if unit_in_way and ((unit_in_way.x ~= unit.x) or (unit_in_way.y ~= unit.y)) then
-            --W.message { speaker = 'narrator', message = 'Moving out of way' }
-            ai_helper.move_unit_out_of_way(ai, unit_in_way, cfg)
-        end
-    end
-
-    local next_hop = ai_helper.next_hop(unit, x, y)
-    if next_hop and ((next_hop[1] ~= unit.x) or (next_hop[2] ~= unit.y)) then
-        ai_helper.checked_move_full(ai, unit, next_hop[1], next_hop[2])
-    else
-        ai_helper.checked_stopunit_moves(ai, unit)
-    end
+    ai_helper.move_unit_core(ai, unit, x, y, cfg, true)
 end
 
 ---------- Attack related helper functions --------------
