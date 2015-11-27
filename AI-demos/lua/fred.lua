@@ -3004,7 +3004,7 @@ return {
 
             local enemy_leader_cx, enemy_leader_cy = AH.cartesian_coords(fred.data.gamedata.enemy_leader_x, fred.data.gamedata.enemy_leader_y)
 
-            local width,height,border = wesnoth.get_map_size()
+            local width, height, border = wesnoth.get_map_size()
             local keeps = wesnoth.get_locations {
                 terrain = 'K*,K*^*,*^K*', -- Keeps
                 x = '1-'..width,
