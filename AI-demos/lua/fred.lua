@@ -2876,7 +2876,7 @@ return {
                 local allowable_retreat_threat = zonedata.cfg.allowable_retreat_threat or 0
                 --print_time('Found unit to retreat:', unit.id, enemy_threat, allowable_retreat_threat)
                 -- Is this a healing location?
-                local action = { units = { unit }, dsts = { dest }, type = 'village' }
+                local action = { units = { unit }, dsts = { dest } }
                 action.action = zonedata.cfg.zone_id .. ': ' .. 'retreat severely injured units'
                 return action
             end
