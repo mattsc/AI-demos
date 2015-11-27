@@ -2858,8 +2858,16 @@ return {
 
             -- This is a placeholder for when (if) retreat.lua gets adapted to the new
             -- tables also. It might not be necessary, it's fast enough the way it is
+            --print('consider retreat for:')
+
             local retreat_units = {}
-            for id,_ in pairs(zonedata.zone_units_MP) do
+
+            -- By default, use all units in the zone with MP
+            -- but override if zondedata.cfg.retreaters is set
+            local retreaters = zonedata.cfg.retreaters or zonedata.zone_units_MP
+
+            for id,_ in pairs(retreaters) do
+                --print('  ' .. id)
                 table.insert(retreat_units, gamedata.unit_copies[id])
             end
 
