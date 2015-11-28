@@ -3226,7 +3226,9 @@ return {
                 print_time('  ' .. cfg.zone_id .. ': move_leader_to_keep eval')
                 local score, action = fred:move_leader_to_keep_eval(true)
                 if action then
-                    print_time(action.action)
+                    --print_time(action.action)
+                    -- Also force recruiting after this
+                    action.recruit_after = true
                     return action
                 end
             end
@@ -3432,6 +3434,7 @@ return {
                         if (not fred:recruit_rushers_exec(nil, avoid_map)) then
                             break
                         else
+                            -- Note (TODO?): these units do not get counted as used in any zone
                             have_recruited = true
                             gamestate_changed = true
                         end
@@ -3502,6 +3505,22 @@ return {
                     AH.movefull_outofway_stopunit(ai, unit, dst[1], dst[2], { dx = dx, dy = dy })
                 end
                 gamestate_changed = true
+
+                -- If recruit_after is set, we do that
+                -- This only happens if the leader was moved to the keep here
+                if fred.data.zone_action.recruit_after then
+                    while (fred:recruit_rushers_eval() > 0) do
+                        local _, recruit_proxy = fred:recruit_rushers_exec()
+                        if (not recruit_proxy) then
+                            break
+                        else
+                            -- Unlike for the recruit loop above, these units do
+                            -- get counted into the current zone (which should
+                            -- always be the leader zone)
+                            fred.data.analysis.status.units_used[recruit_proxy.id] = fred.data.zone_action.zone_id or 'other'
+                        end
+                    end
+                end
 
                 -- Remove these from the table
                 table.remove(fred.data.zone_action.units, next_unit_ind)
