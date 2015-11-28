@@ -2986,10 +2986,11 @@ return {
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'move_leader_to_keep'
             if debug_eval then print_time('     - Evaluating move_leader_to_keep CA:') end
 
-            local leader = fred.data.gamedata.leaders[wesnoth.current.side]
+            local gamedata = fred.data.gamedata
+            local leader = gamedata.leaders[wesnoth.current.side]
 
             -- If the leader cannot move, don't do anything
-            if fred.data.gamedata.my_units_noMP[leader.id] then
+            if gamedata.my_units_noMP[leader.id] then
                 AH.done_eval_messages(start_time, ca_name)
                 return 0
             end
@@ -3000,9 +3001,9 @@ return {
                 return 0
             end
 
-            local leader_copy = fred.data.gamedata.unit_copies[leader.id]
+            local leader_copy = gamedata.unit_copies[leader.id]
 
-            local enemy_leader_cx, enemy_leader_cy = AH.cartesian_coords(fred.data.gamedata.enemy_leader_x, fred.data.gamedata.enemy_leader_y)
+            local enemy_leader_cx, enemy_leader_cy = AH.cartesian_coords(gamedata.enemy_leader_x, gamedata.enemy_leader_y)
 
             local width, height, border = wesnoth.get_map_size()
             local keeps = wesnoth.get_locations {
@@ -3014,8 +3015,8 @@ return {
             local max_rating, best_keep = -10  -- Intentionally not set to less than this!!
                                                -- so that the leader does not try to get to unreachable locations
             for _,keep in ipairs(keeps) do
-                local unit_in_way = fred.data.gamedata.my_unit_map_noMP[keep[1]]
-                    and fred.data.gamedata.my_unit_map_noMP[keep[1]][keep[2]]
+                local unit_in_way = gamedata.my_unit_map_noMP[keep[1]]
+                    and gamedata.my_unit_map_noMP[keep[1]][keep[2]]
 
                 if (not unit_in_way) then
                     local path, cost = wesnoth.find_path(leader_copy, keep[1], keep[2])
@@ -3042,10 +3043,10 @@ return {
                 -- If the leader can reach the keep, but there's a unit on it: wait
                 -- Except when move_unit_away is set
                 if (not move_unit_away)
-                    and fred.data.gamedata.reach_maps[leader.id][best_keep[1]]
-                    and fred.data.gamedata.reach_maps[leader.id][best_keep[1]][best_keep[2]]
-                    and fred.data.gamedata.my_unit_map_MP[best_keep[1]]
-                    and fred.data.gamedata.my_unit_map_MP[best_keep[1]][best_keep[2]]
+                    and gamedata.reach_maps[leader.id][best_keep[1]]
+                    and gamedata.reach_maps[leader.id][best_keep[1]][best_keep[2]]
+                    and gamedata.my_unit_map_MP[best_keep[1]]
+                    and gamedata.my_unit_map_MP[best_keep[1]][best_keep[2]]
                 then
                     return 0
                 end
