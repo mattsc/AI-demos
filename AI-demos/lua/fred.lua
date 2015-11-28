@@ -3015,10 +3015,17 @@ return {
             local max_rating, best_keep = -10  -- Intentionally not set to less than this!!
                                                -- so that the leader does not try to get to unreachable locations
             for _,keep in ipairs(keeps) do
+                -- Count keep closer to the enemy leader as belonging to the enemy
+                local dist_leader = H.distance_between(keep[1], keep[2], leader[1], leader[2])
+                local dist_enemy_leader = H.distance_between(keep[1], keep[2], gamedata.enemy_leader_x, gamedata.enemy_leader_y)
+                local is_enemy_keep = dist_enemy_leader < dist_leader
+                --print(keep[1], keep[2], dist_leader, dist_enemy_leader, is_enemy_keep)
+
+                -- Is there a unit on the keep that cannot move any more?
                 local unit_in_way = gamedata.my_unit_map_noMP[keep[1]]
                     and gamedata.my_unit_map_noMP[keep[1]][keep[2]]
 
-                if (not unit_in_way) then
+                if (not is_enemy_keep) and (not unit_in_way) then
                     local path, cost = wesnoth.find_path(leader_copy, keep[1], keep[2])
 
                     cost = cost + leader_copy.max_moves - leader_copy.moves
