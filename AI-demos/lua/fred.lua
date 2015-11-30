@@ -3516,9 +3516,17 @@ return {
 
                 -- If recruit_after is set, we do that
                 -- This only happens if the leader was moved to the keep here
+                -- In this case, we also allow units to be moved out of the way
                 if fred.data.zone_action.recruit_after then
-                    while (fred:recruit_rushers_eval() > 0) do
-                        local _, recruit_proxy = fred:recruit_rushers_exec()
+                    local outofway_units = {}
+                    for id,_ in pairs(fred.data.gamedata.my_units_MP) do
+                        if (not fred.data.gamedata.unit_infos[id].canrecruit) then
+                            outofway_units[id] = true
+                        end
+                    end
+
+                    while (fred:recruit_rushers_eval(outofway_units) > 0) do
+                        local _, recruit_proxy = fred:recruit_rushers_exec(nil, nil, outofway_units)
                         if (not recruit_proxy) then
                             break
                         else
