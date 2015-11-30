@@ -16,6 +16,14 @@ return {
     --          (default always returns false)
     --      leader_takes_village: function that returns true if and only if the leader is going to move to capture a village this turn
     --          (default always returns true)
+    -- params to eval/exec functions:
+    --      avoid_map: location set listing hexes on which we should
+    --          not recruit, unless no other hexes are available
+    --      outofway_units: a table of type { id = true } listing units that
+    --          can move out of the way to make place for recruiting. It
+    --          must be checked beforehand that these units are able to move,
+    --          away. This is not done here.
+
     init = function(ai, ai_cas, params)
         if not params then
             params = {}
@@ -338,7 +346,7 @@ return {
             return hp_ratio
         end
 
-        function do_recruit_eval(data)
+        function do_recruit_eval(data, outofway_units)
             -- Check if leader exists
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
             if not leader then
@@ -382,7 +390,7 @@ return {
             local no_space = true
             for i,c in ipairs(data.castle.locs) do
                 local unit = wesnoth.get_unit(c[1], c[2])
-                if (not unit) then
+                if (not unit) or (outofway_units[unit.id] and (not unit.canrecruit)) then
                     no_space = false
                     break
                 end
@@ -453,11 +461,11 @@ return {
             return data
         end
 
-        function ai_cas:recruit_rushers_eval()
+        function ai_cas:recruit_rushers_eval(outofway_units)
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'recruit_rushers'
             if AH.print_eval() then print_time('     - Evaluating recruit_rushers CA:') end
 
-            local score = do_recruit_eval(recruit_data)
+            local score = do_recruit_eval(recruit_data, outofway_units)
             if score == 0 then
                 -- We're done for the turn, discard data
                 recruit_data.recruit = nil
@@ -468,7 +476,7 @@ return {
         end
 
         -- Select a unit and hex to recruit to.
-        function select_recruit(leader, avoid_map)
+        function select_recruit(leader, avoid_map, outofway_units)
             local enemy_counts = recruit_data.recruit.enemy_counts
             local enemy_types = recruit_data.recruit.enemy_types
             local num_enemies =  recruit_data.recruit.num_enemies
@@ -582,7 +590,7 @@ return {
             local recruit_type = nil
 
             repeat
-                recruit_data.recruit.best_hex, recruit_data.recruit.target_hex = ai_cas:find_best_recruit_hex(leader, recruit_data, avoid_map)
+                recruit_data.recruit.best_hex, recruit_data.recruit.target_hex = ai_cas:find_best_recruit_hex(leader, recruit_data, avoid_map, outofway_units)
                 if recruit_data.recruit.best_hex == nil or recruit_data.recruit.best_hex[1] == nil then
                     return nil
                 end
@@ -645,7 +653,7 @@ return {
         end
 
         -- recruit a unit
-        function ai_cas:recruit_rushers_exec(ai_local, avoid_map)
+        function ai_cas:recruit_rushers_exec(ai_local, avoid_map, outofway_units)
             if ai_local then ai = ai_local end
 
             if AH.show_messages() then W.message { speaker = 'narrator', message = 'Recruiting' } end
@@ -667,7 +675,7 @@ return {
                 end
                 recruit_data.recruit.prerecruit.total_cost = recruit_data.recruit.prerecruit.total_cost - wesnoth.unit_types[recruit_type].cost
             else
-                recruit_type = select_recruit(leader, avoid_map)
+                recruit_type = select_recruit(leader, avoid_map, outofway_units)
                 if recruit_type == nil then
                     return false
                 end
@@ -682,6 +690,13 @@ return {
             end
 
             if wesnoth.unit_types[recruit_type].cost <= max_cost then
+                -- It is possible that there's a unit on the recruit hex if a
+                -- outofway_units table is passed.
+                local unit_in_way = wesnoth.get_unit(recruit_hex[1], recruit_hex[2])
+                if unit_in_way then
+                    AH.move_unit_out_of_way(ai, unit_in_way)
+                end
+
                 AH.checked_recruit(ai, recruit_type, recruit_hex[1], recruit_hex[2])
 
                 local unit = wesnoth.get_unit(recruit_hex[1], recruit_hex[2])
@@ -736,12 +751,17 @@ return {
             end
         end
 
-        function ai_cas:find_best_recruit_hex(leader, data, avoid_map)
+        function ai_cas:find_best_recruit_hex(leader, data, avoid_map, outofway_units)
             -- Find the best recruit hex
             -- First choice: a hex that can reach an unowned village
             -- Second choice: a hex close to the enemy
-            -- @avoid_map: optional location set listing hexes on which we should
-            --   not recruit, unless no other hexes are available
+            --
+            -- Optional inputs:
+            --  @avoid_map: location set listing hexes on which we should
+            --    not recruit, unless no other hexes are available
+            --  @outofway_units: a table of type { id = true } listing units that
+            --    can move out of the way to make place for recruiting
+
             get_current_castle(leader, data)
 
             local best_hex, village = get_village_target(leader, data)
@@ -761,11 +781,20 @@ return {
                 for i,c in ipairs(data.castle.locs) do
                     local rating = 0
                     local unit = wesnoth.get_unit(c[1], c[2])
-                    if (not unit) then
+                    if (not unit) or (outofway_units[unit.id] and (not unit.canrecruit)) then
                         for j,e in ipairs(enemy_leaders) do
                             rating = rating + 1 / H.distance_between(c[1], c[2], e.x, e.y) ^ 2.
                         end
                         rating = rating + 1 / H.distance_between(c[1], c[2], closest_enemy_location.x, closest_enemy_location.y) ^ 2.
+
+                        -- If there's a unit on the hex (that is marked as being able
+                        -- to move out of the way, otherwise we don't get here), give
+                        -- a pretty stiff penalty, but make it possible to recruit here
+                        if unit then
+                            --print('Out of way penalty', c[1], c[2], unit.id)
+                            rating = rating - 100.
+                        end
+
                         if avoid_map and avoid_map:get(c[1], c[2]) then
                             --print('Avoid hex for recruiting:', c[1], c[2])
                             rating = rating - 1000.
