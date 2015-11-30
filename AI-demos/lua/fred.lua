@@ -663,7 +663,7 @@ return {
             -- Some pointers just for convenience
             local stage_id = fred.data.analysis.stage_ids[fred.data.analysis.stage_counter]
 
-            --print('\n--------------- ' .. stage_id .. ' ------------------------')
+            FU.print_debug(show_debug_analysis, '\nAnalysis of stage ' .. stage_id)
 
             -- Start with an analysis of the threat to the AI leader
             local leader_proxy = wesnoth.get_unit(gamedata.leader_x, gamedata.leader_y)
@@ -671,18 +671,56 @@ return {
             local raw_cfg = fred:get_raw_cfgs('leader')
             --DBG.dbms(raw_cfg)
 
-
             local zone_status = fred.data.analysis.status[raw_cfg.zone_id]
             --DBG.dbms(zone_status)
+            --DBG.dbms(fred.data.analysis.status)
 
             local threats = fred.data.analysis.threats[raw_cfg.zone_id]
-            --DBG.dbms(threats)
+            --DBG.dbms(fred.data.analysis.threats)
 
-            -- If these units are too weak, we eliminate them as threats
+            -- Add up the power of all threats on this zone
+            local enemy_power = 0
+            for id,power in pairs(threats) do
+                enemy_power = enemy_power + power
+            end
+
+            FU.print_debug(show_debug_analysis, '  enemy_power in direct threats: ', enemy_power)
+
+            -- Power missing (which is not equal to power_needed - power_used!)
+            -- TODO: check whether these hard-coded values are right
+            local power_needed = enemy_power
+            local power_used = zone_status.power_used
+            FU.print_debug(show_debug_analysis, '  power_needed, power_used: ', power_needed, power_used)
+
+            -- We count a fraction of the leader's power as available in the leader zone
+            -- This is done independently of whether the leader has moved or not
+            local leader_power_fraction = 0.5
+            local leader_power = gamedata.unit_infos[leader_proxy.id].power
+            FU.print_debug(show_debug_analysis, '  leader_power: ', leader_power * leader_power_fraction .. ' = ' .. leader_power .. ' * ' .. leader_power_fraction)
+
+            local power_missing = power_needed - power_used
+            power_missing = power_missing - leader_power * leader_power_fraction
+            FU.print_debug(show_debug_analysis, '  power_missing: ', power_missing)
+
+            -- This is set for the entire stage, but only applies to advancing
+            -- Everything else is done without resource limit
+            zone_status.power_needed = power_needed
+            zone_status.power_missing = power_missing
+            --DBG.dbms(zone_status)
+
+
+            -- If the threats are significant, leader should retreat (or have
+            -- MP taken away) and recruit after no more attacks are advisable
+
+            -- Find all units that can actually attack the leader
+            -- Note: this is different from those stored in 'threats'
+            --print('  leader at', gamedata.leader_x, gamedata.leader_y)
+            local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], gamedata.leader_x, gamedata.leader_y, 'ids', {})
+
+            -- Check out how much of a threat these units pose in combination
             local max_total_loss, av_total_loss = 0, 0
-            for id,_ in pairs(threats) do
-                --print(id)
-
+            --print('    possible damage by enemies in reach (average, max):')
+            for _,id in ipairs(ids) do
                 -- TODO: for now, just use the hex adjacent to the leader with
                 -- the highest defense rating for the attacker
                 -- This might be good enough, or need to be refined later
@@ -715,53 +753,23 @@ return {
 
                 local max_loss = leader_proxy.hitpoints - min_hp
                 local av_loss = leader_proxy.hitpoints - def_stat.average_hp
+
+                --print('    ', id, av_loss, max_loss)
+
                 max_total_loss = max_total_loss + max_loss
                 av_total_loss = av_total_loss + av_loss
             end
-            --print('max_total_loss, av_total_loss', max_total_loss, av_total_loss)
+            FU.print_debug(show_debug_analysis, '\n  leader: max_total_loss, av_total_loss', max_total_loss, av_total_loss)
 
-            -- We only consider these leader threats, if they either have a chance
-            -- to kill the AI leader, or if their average expected damage is
-            -- more than half his total max_hitpoints
-            --DBG.dbms(threats1)
+            -- We only consider these leader threats, if they either
+            --   - reduce current HP by more than 50%
+            --   - are more than 25% of max HP
+            local significant_threat = false
             if (max_total_loss >= leader_proxy.hitpoints / 2.) or (av_total_loss >= leader_proxy.max_hitpoints / 4.) then
-                --print('Combined threat on leader is large, needs to be considered.')
-            else
-                --print('Combined threat on leader is small, can be ignored.')
-                threats = {}
+                significant_threat = true
             end
-            --DBG.dbms(threats)
+            FU.print_debug(show_debug_analysis, '    significant_threat', significant_threat)
 
-            -- Count units that have already moved in the zone
-            local my_power = zone_status.power_used
-            --print('  my_power:', my_power)
-
-            -- Add up the power of all threats on this zone
-            local enemy_power = 0
-            for id,power in pairs(threats) do
-                enemy_power = enemy_power + power
-            end
-            --print('  enemy_power:', enemy_power)
-
-
-            -- Power missing (which is not equal to power_needed - power_used!)
-            -- TODO: check whether these hard-coded values are right
-            local leader_advance_value_ratio = 1.0
-            local leader_power_fraction = 0.5
-
-            local power_needed = enemy_power * leader_advance_value_ratio
-            local power_used = zone_status.power_used
-            local leader_power = gamedata.unit_infos[leader_proxy.id].power
-
-            -- We count a fraction of the leader's power as available in the leader zone
-            local power_missing = power_needed - power_used
-            power_missing = power_missing - leader_power * leader_power_fraction
-
-            -- This is set for the entire stage, but only applies to advancing
-            -- Everything else is done without resource limit
-            zone_status.power_needed = power_needed
-            zone_status.power_missing = power_missing
-            --DBG.dbms(zone_status)
 
 
             -- Attacks on threats is with unlimited resources
@@ -781,6 +789,38 @@ return {
             end
             --DBG.dbms(attack1_cfg)
 
+            fred.data.zone_cfgs = {}
+            table.insert(fred.data.zone_cfgs, attack1_cfg)
+
+            -- Retreat the leader if the threat is significant,
+            -- or take his MP away
+            if significant_threat then
+                local zone_id = 'leader'
+                local move_leader_to_keep_cfg = {
+                    zone_id = zone_id,
+                    stage_id = stage_id,
+                    actions = { move_leader_to_keep = true },
+                    ignore_resource_limit = true
+                }
+
+                table.insert(fred.data.zone_cfgs, move_leader_to_keep_cfg)
+
+
+                local zone_id = 'leader'
+                local retreat_cfg = {
+                    zone_id = zone_id,
+                    stage_id = stage_id,
+                    actions = { retreat = true },
+                    retreaters = {},
+                    ignore_resource_limit = true
+                }
+
+                retreat_cfg.retreaters[leader_proxy.id] = true
+
+                table.insert(fred.data.zone_cfgs, retreat_cfg)
+            end
+
+
             -- Move unit toward leader if there's power missing
             local advance1_cfg = {
                 zone_id = raw_cfg.zone_id,
@@ -790,11 +830,10 @@ return {
                 ignore_counter = true,  -- and need to do so very aggressively
                 value_ratio = 0.67
             }
+            table.insert(fred.data.zone_cfgs, advance1_cfg)
 
             -- We also add in other units in the zone for attacks, but
             -- with a less aggressive value_ratio
-
-
             local attack2_cfg = {
                 zone_id = raw_cfg.zone_id,
                 stage_id = stage_id,
@@ -813,6 +852,7 @@ return {
                 end
             end
             --DBG.dbms(attack2_cfg)
+            table.insert(fred.data.zone_cfgs, attack2_cfg)
 
             -- Favorable attacks can be done at any time after threats to
             -- the AI leader are dealt with
@@ -827,12 +867,8 @@ return {
                 ignore_resource_limit = true,
                 max_attackers = 2
             }
-
-            fred.data.zone_cfgs = {}
-            table.insert(fred.data.zone_cfgs, attack1_cfg)
-            table.insert(fred.data.zone_cfgs, advance1_cfg)
-            table.insert(fred.data.zone_cfgs, attack2_cfg)
             table.insert(fred.data.zone_cfgs, favorable_attacks_cfg)
+
             --DBG.dbms(fred.data.zone_cfgs)
         end
 
@@ -3111,7 +3147,7 @@ return {
         ----- CA: Recruitment (max_score: 461000; default score: 181000) -----
 
         local params = {score_function = function () return 181000 end}
-        wesnoth.require("~add-ons/AI-demos/lua/generic_recruit_engine.lua").init(ai, fred, params)
+        wesnoth.dofile("~add-ons/AI-demos/lua/generic_recruit_engine.lua").init(ai, fred, params)
 
 
         ----- CA: Zone control (max_score: 350000) -----
