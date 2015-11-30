@@ -347,6 +347,8 @@ return {
         end
 
         function do_recruit_eval(data, outofway_units)
+            outofway_units = outofway_units or {}
+
             -- Check if leader exists
             local leader = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
             if not leader then
