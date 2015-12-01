@@ -3291,7 +3291,7 @@ return {
             -- CA, but for simplicity we keep it like this for now until
             -- we know whether it works as desired
             if (cfg.actions.move_leader_to_keep) then
-                print_time('  ' .. cfg.zone_id .. ': move_leader_to_keep eval')
+                --print_time('  ' .. cfg.zone_id .. ': move_leader_to_keep eval')
                 local score, action = fred:move_leader_to_keep_eval(true)
                 if action then
                     --print_time(action.action)
@@ -3302,7 +3302,7 @@ return {
             -- **** Recruit evaluation ****
             -- TODO: does it make sense to keep this also as a separate CA?
             if (cfg.actions.recruit) then
-                print_time('  ' .. cfg.zone_id .. ': recruit eval')
+                --print_time('  ' .. cfg.zone_id .. ': recruit eval')
                 -- Important: we cannot check recruiting here, as the units
                 -- are taken off the map at this time, so it needs to be checked
                 -- by the function setting up the cfg
