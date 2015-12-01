@@ -19,7 +19,7 @@ return {
         ----- Debug output flags -----
         local debug_eval = false    -- top-level evaluation information
         local debug_exec = true     -- top-level executiuon information
-        local show_debug_analysis = false
+        local show_debug_analysis = true
         local show_debug_attack = false
         local show_debug_hold = false
         local show_debug_advance = false
@@ -804,6 +804,30 @@ return {
                 }
 
                 table.insert(fred.data.zone_cfgs, move_leader_to_keep_cfg)
+
+
+                -- Check whether recruiting can be done; this needs to be done here
+                -- as units are taken off the map during get_zone_action()
+                -- It also cannot be left to the exec function or the whole CA
+                -- might get blacklisted
+                local outofway_units = {}
+                for id,_ in pairs(fred.data.gamedata.my_units_MP) do
+                    if (not fred.data.gamedata.unit_infos[id].canrecruit) then
+                        outofway_units[id] = true
+                    end
+                end
+
+                if (fred:recruit_rushers_eval(outofway_units) > 0) then
+                    local zone_id = 'leader'
+                    local recruit_cfg = {
+                        zone_id = zone_id,
+                        stage_id = stage_id,
+                        actions = { recruit = true },
+                        outofway_units = outofway_units
+                    }
+
+                    table.insert(fred.data.zone_cfgs, recruit_cfg)
+                end
 
 
                 local zone_id = 'leader'
@@ -3271,8 +3295,6 @@ return {
                 local score, action = fred:move_leader_to_keep_eval(true)
                 if action then
                     --print_time(action.action)
-                    -- Also force recruiting after this
-                    action.recruit_after = true
                     return action
                 end
             end
@@ -3387,7 +3409,24 @@ return {
             local action = fred.data.zone_action.zone_id .. ': ' .. fred.data.zone_action.action
             --DBG.dbms(fred.data.zone_action)
 
-            -- Same for the enemy in an attack, which is returned in { id = { x, y } } format.
+            -- If recruiting is set, we just do that, nothing else needs to be checked:
+            if (fred.data.zone_action.id == 'recruit') then
+                while (fred:recruit_rushers_eval(fred.data.zone_action.outofway_units) > 0) do
+                    local _, recruit_proxy = fred:recruit_rushers_exec(nil, nil, fred.data.zone_action.outofway_units)
+                    if (not recruit_proxy) then
+                        break
+                    else
+                        -- Unlike for the recruit loop above, these units do
+                        -- get counted into the current zone (which should
+                        -- always be the leader zone)
+                        fred.data.analysis.status.units_used[recruit_proxy.id] = fred.data.zone_action.zone_id or 'other'
+                    end
+                end
+
+                return
+            end
+
+
             local enemy_proxy
             if fred.data.zone_action.enemy then
                 enemy_proxy = wesnoth.get_units { id = next(fred.data.zone_action.enemy) }[1]
@@ -3550,29 +3589,6 @@ return {
                 end
                 gamestate_changed = true
 
-                -- If recruit_after is set, we do that
-                -- This only happens if the leader was moved to the keep here
-                -- In this case, we also allow units to be moved out of the way
-                if fred.data.zone_action.recruit_after then
-                    local outofway_units = {}
-                    for id,_ in pairs(fred.data.gamedata.my_units_MP) do
-                        if (not fred.data.gamedata.unit_infos[id].canrecruit) then
-                            outofway_units[id] = true
-                        end
-                    end
-
-                    while (fred:recruit_rushers_eval(outofway_units) > 0) do
-                        local _, recruit_proxy = fred:recruit_rushers_exec(nil, nil, outofway_units)
-                        if (not recruit_proxy) then
-                            break
-                        else
-                            -- Unlike for the recruit loop above, these units do
-                            -- get counted into the current zone (which should
-                            -- always be the leader zone)
-                            fred.data.analysis.status.units_used[recruit_proxy.id] = fred.data.zone_action.zone_id or 'other'
-                        end
-                    end
-                end
 
                 -- Remove these from the table
                 table.remove(fred.data.zone_action.units, next_unit_ind)
