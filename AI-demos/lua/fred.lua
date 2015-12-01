@@ -19,7 +19,7 @@ return {
         ----- Debug output flags -----
         local debug_eval = false    -- top-level evaluation information
         local debug_exec = true     -- top-level executiuon information
-        local show_debug_analysis = true
+        local show_debug_analysis = false
         local show_debug_attack = false
         local show_debug_hold = false
         local show_debug_advance = false
