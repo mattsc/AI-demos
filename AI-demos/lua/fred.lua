@@ -3299,6 +3299,21 @@ return {
                 end
             end
 
+            -- **** Recruit evaluation ****
+            -- TODO: does it make sense to keep this also as a separate CA?
+            if (cfg.actions.recruit) then
+                print_time('  ' .. cfg.zone_id .. ': recruit eval')
+                -- Important: we cannot check recruiting here, as the units
+                -- are taken off the map at this time, so it needs to be checked
+                -- by the function setting up the cfg
+                local action = {
+                    action = zonedata.cfg.zone_id .. ': ' .. 'recruit',
+                    id = 'recruit',
+                    outofway_units = cfg.outofway_units
+                }
+                return action
+            end
+
             return nil  -- This is technically unnecessary, just for clarity
         end
 
