@@ -764,6 +764,8 @@ return {
             --  @outofway_units: a table of type { id = true } listing units that
             --    can move out of the way to make place for recruiting
 
+            outofway_units = outofway_units or {}
+
             get_current_castle(leader, data)
 
             local best_hex, village = get_village_target(leader, data)
