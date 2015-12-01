@@ -3147,7 +3147,7 @@ return {
         ----- CA: Recruitment (max_score: 461000; default score: 181000) -----
 
         local params = {score_function = function () return 181000 end}
-        wesnoth.dofile("~add-ons/AI-demos/lua/generic_recruit_engine.lua").init(ai, fred, params)
+        wesnoth.require("~add-ons/AI-demos/lua/generic_recruit_engine.lua").init(ai, fred, params)
 
 
         ----- CA: Zone control (max_score: 350000) -----
