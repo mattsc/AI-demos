@@ -3426,6 +3426,9 @@ return {
 
             -- If recruiting is set, we just do that, nothing else needs to be checked:
             if (fred.data.zone_action.id == 'recruit') then
+                if debug_exec then print_time('====> Executing zone_control CA ' .. action) end
+                if AH.show_messages() then W.message { speaker = unit.id, message = 'Zone action ' .. action } end
+
                 while (fred:recruit_rushers_eval(fred.data.zone_action.outofway_units) > 0) do
                     local _, recruit_proxy = fred:recruit_rushers_exec(nil, nil, fred.data.zone_action.outofway_units)
                     if (not recruit_proxy) then
