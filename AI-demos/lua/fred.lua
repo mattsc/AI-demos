@@ -771,7 +771,6 @@ return {
             FU.print_debug(show_debug_analysis, '    significant_threat', significant_threat)
 
 
-
             -- Attacks on threats is with unlimited resources
             local attack1_cfg = {
                 zone_id = raw_cfg.zone_id,
@@ -832,20 +831,25 @@ return {
                 end
 
 
-                local zone_id = 'leader'
-                local retreat_cfg = {
-                    zone_id = zone_id,
-                    stage_id = stage_id,
-                    actions = { retreat = true },
-                    retreaters = {},
-                    ignore_resource_limit = true,
-                    retreat_all = true,
-                    enemy_count_weight = 5
-                }
+                -- We also want to retreat or immobilize the leader at this time,
+                -- so that we don't protect him first, and then he moves out of the cover
+                if (leader_proxy.moves > 0) then
+                    local zone_id = 'leader'
+                    local retreat_cfg = {
+                        zone_id = zone_id,
+                        stage_id = stage_id,
+                        actions = { retreat = true },
+                        retreaters = {},
+                        ignore_resource_limit = true,
+                        retreat_all = true,
+                        enemy_count_weight = 5,
+                        stop_unit = true
+                    }
 
-                retreat_cfg.retreaters[leader_proxy.id] = true
+                    retreat_cfg.retreaters[leader_proxy.id] = true
 
-                table.insert(fred.data.zone_cfgs, retreat_cfg)
+                    table.insert(fred.data.zone_cfgs, retreat_cfg)
+                end
             end
 
 
@@ -2930,7 +2934,7 @@ return {
             -- but override if zondedata.cfg.retreaters is set
             local retreaters = zonedata.cfg.retreaters or zonedata.zone_units_MP
 
-            for id,_ in pairs(retreaters) do
+            for id in pairs(retreaters) do
                 --print('  ' .. id)
                 table.insert(retreat_units, gamedata.unit_copies[id])
             end
@@ -2939,10 +2943,24 @@ return {
             if unit then
                 local allowable_retreat_threat = zonedata.cfg.allowable_retreat_threat or 0
                 --print_time('Found unit to retreat:', unit.id, enemy_threat, allowable_retreat_threat)
-                -- Is this a healing location?
-                local action = { units = { unit }, dsts = { dest } }
+                local action = {
+                    units = { unit },
+                    dsts = { dest }
+                }
                 action.action = zonedata.cfg.zone_id .. ': ' .. 'retreat severely injured units'
                 return action
+            elseif zonedata.cfg.retreaters and zonedata.cfg.stop_unit then
+                for id in pairs(zonedata.cfg.retreaters) do
+                    if (gamedata.unit_infos[id].moves > 0) then
+                        --print('Immobilizing unit: ' .. id)
+                        local action = {
+                            units = { { id = id } },
+                            dsts = { { gamedata.my_units[id][1], gamedata.my_units[id][2] } }
+                        }
+                        action.action = zonedata.cfg.zone_id .. ': ' .. 'immobilize'
+                        return action
+                    end
+                end
             end
         end
 
