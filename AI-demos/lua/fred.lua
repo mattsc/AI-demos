@@ -795,15 +795,17 @@ return {
             -- Retreat the leader if the threat is significant,
             -- or take his MP away
             if significant_threat then
-                local zone_id = 'leader'
-                local move_leader_to_keep_cfg = {
-                    zone_id = zone_id,
-                    stage_id = stage_id,
-                    actions = { move_leader_to_keep = true },
-                    ignore_resource_limit = true
-                }
+                if (leader_proxy.moves > 0) then
+                    local zone_id = 'leader'
+                    local move_leader_to_keep_cfg = {
+                        zone_id = zone_id,
+                        stage_id = stage_id,
+                        actions = { move_leader_to_keep = true },
+                        ignore_resource_limit = true
+                    }
 
-                table.insert(fred.data.zone_cfgs, move_leader_to_keep_cfg)
+                    table.insert(fred.data.zone_cfgs, move_leader_to_keep_cfg)
+                end
 
 
                 -- Check whether recruiting can be done; this needs to be done here
