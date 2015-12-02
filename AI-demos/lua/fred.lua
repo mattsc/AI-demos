@@ -836,7 +836,9 @@ return {
                     stage_id = stage_id,
                     actions = { retreat = true },
                     retreaters = {},
-                    ignore_resource_limit = true
+                    ignore_resource_limit = true,
+                    retreat_all = true,
+                    enemy_count_weight = 5
                 }
 
                 retreat_cfg.retreaters[leader_proxy.id] = true
