@@ -2482,7 +2482,7 @@ return {
                     local hit_chance = FU.get_hit_chance(id, x, y, gamedata)
                     --print('  ' .. id, x, y, hit_chance)
 
-                    if is_acceptable and (not FHU.is_acceptable_location(gamedata.unit_infos[id], x, y, hit_chance, counter_stats, counter_attack, zonedata.cfg.value_ratio, raw_cfg)) then
+                    if is_acceptable and (not FHU.is_acceptable_location(gamedata.unit_infos[id], x, y, hit_chance, counter_stats, counter_attack, zonedata.cfg.value_ratio, raw_cfg, gamedata)) then
                         is_acceptable = false
                     end
 
@@ -2812,7 +2812,7 @@ return {
                                     acceptable_rating = 0
                                 }
 
-                                if (not FHU.is_acceptable_location(gamedata.unit_infos[id], x, y, hit_chance, counter_stats, counter_attack, zonedata.cfg.value_ratio, raw_cfg, cfg_acc)) then
+                                if (not FHU.is_acceptable_location(gamedata.unit_infos[id], x, y, hit_chance, counter_stats, counter_attack, zonedata.cfg.value_ratio, raw_cfg, gamedata, cfg_acc)) then
                                     is_acceptable = false
                                 end
                                 --print('      --> is_acceptable', is_acceptable)

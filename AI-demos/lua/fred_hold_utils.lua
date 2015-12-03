@@ -4,7 +4,7 @@ local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local fred_hold_utils = {}
 
-function fred_hold_utils.is_acceptable_location(unit_info, x, y, hit_chance, counter_stats, counter_attack, value_ratio, raw_cfg, cfg)
+function fred_hold_utils.is_acceptable_location(unit_info, x, y, hit_chance, counter_stats, counter_attack, value_ratio, raw_cfg, gamedata, cfg)
     -- Check whether are holding/advancing location has acceptable expected losses
     --
     -- Optional parameters:
@@ -17,8 +17,8 @@ function fred_hold_utils.is_acceptable_location(unit_info, x, y, hit_chance, cou
     if (not next(counter_attack)) then return true end
 
     local show_debug = false
-    if (x == 9918) and (y == 11) and (unit_info.type == 'Troll Whelp') then
-        show_debug = false
+    if (x == 18) and (y == 9) and (unit_info.type == 'Orcish Assassin') then
+        show_debug = true
         --DBG.dbms(counter_stats)
     end
 
@@ -84,9 +84,14 @@ function fred_hold_utils.is_acceptable_location(unit_info, x, y, hit_chance, cou
     FU.print_debug(show_debug, '  -> acceptable_die_chance, acceptable_rating:', acceptable_die_chance, acceptable_rating)
 
     if defend_hard then
+        local acceptable_die_chance = 0.25
+        if gamedata.village_map[x] and gamedata.village_map[x][y] then
+           acceptable_die_chance = 0.5
+        end
+
         FU.print_debug(show_debug, '    defend hard', counter_stats.def_stat.hp_chance[0], counter_stats.rating_table.rating)
-        if (counter_stats.def_stat.hp_chance[0] >= 0.25) then
-            FU.print_debug(show_debug, '      not acceptable because chance to die too high:', counter_stats.def_stat.hp_chance[0])
+        if (counter_stats.def_stat.hp_chance[0] > acceptable_die_chance) then
+            FU.print_debug(show_debug, '      not acceptable because chance to die too high:', counter_stats.def_stat.hp_chance[0] .. ' > ' .. acceptable_die_chance)
             return false
         end
     else
