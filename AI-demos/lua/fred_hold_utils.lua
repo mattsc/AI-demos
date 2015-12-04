@@ -23,6 +23,7 @@ function fred_hold_utils.is_acceptable_location(unit_info, x, y, hit_chance, cou
     end
 
     FU.print_debug(show_debug, x, y, unit_info.id, unit_info.tod_mod)
+    FU.print_debug(show_debug, '    rating, ctd:', counter_stats.rating_table.rating, counter_stats.def_stat.hp_chance[0])
     --DBG.dbms(raw_cfg.hold_core_slf)
     local is_core_hex = false
     if raw_cfg.hold_core_slf then
