@@ -283,6 +283,7 @@ return {
                 unit_filter_advance = { x = '1-20,1-14', y = '1-6,7-13' },
                 hold_slf = { x = '1-15,1-13', y = '6-11,12-14' },
                 hold_core_slf = { x = '12-17,1-15,11', y = '4-5,6-8,9' },
+                hold_desperate_slf = { x = '10-19,12', y = '3-6,2' },
                 hold_forward_slf = { x = '1-10,11-15,1-15,1-13', y = '9,9,10-11,12-14' },
                 villages = {
                     slf = { x = '1-14', y = '1-10' },
@@ -299,6 +300,7 @@ return {
                 unit_filter_advance = { x = '15-23,', y = '1-13' },
                 hold_slf = { x = '16-24,16-23', y = '4-10,11-14' },
                 hold_core_slf = { x = '16-24', y = '4-10' },
+                hold_desperate_slf = { x = '17-21,22', y = '3-5,2-5' },
                 hold_forward_slf = { x = '16-23', y = '11-14' },
                 villages = {
                     slf = { x = '16-21', y = '7-10' },
@@ -315,6 +317,7 @@ return {
                 unit_filter_advance = { x = '17-34,24-34', y = '1-8,9-16' },
                 hold_slf = { x = '24-34', y = '9-18' },
                 hold_core_slf = { x = '24-29,24-34', y = '4-8,9-12' },
+                hold_desperate_slf = { x = '19-21,22-29', y = '3-5,2-7' },
                 hold_forward_slf = { x = '24-34', y = '13-18' },
                 villages = {
                     slf = { x = '22-34', y = '1-10' },
