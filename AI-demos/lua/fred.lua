@@ -83,7 +83,7 @@ return {
 
                 if (zone_id == 'center') then
                     -- Return nil for being outside certain areas
-                    if (x < 15) or (x > 23) then return end
+                    if (x < 15) or (x > 24) then return end
 
                     rating = y
 
