@@ -1959,37 +1959,47 @@ return {
                     -- Now we add the check for attacks by individual units with
                     -- no MP. Here we simply compare the rating of not attacking
                     -- vs. attacking. If attacking results in a better rating, we do it.
+                    -- But only if the chance to die in the forward attack is not too
+                    -- large; otherwise the enemy might as well waste the resources.
                     if (#combo.attackers == 1) then
-                        local attacker = combo.attackers[1]
+                        if (combo.att_stats[1].hp_chance[0] < 0.25) then
+                            local attacker = combo.attackers[1]
 
-                        if (attacker.moves == 0) then
-                            --print_time('  by', attacker.id, combo.dsts[1][1], combo.dsts[1][2])
+                            if (attacker.moves == 0) then
+                                --print_time('  by', attacker.id, combo.dsts[1][1], combo.dsts[1][2])
 
-                            -- Now calculate the counter attack outcome
-                            local attacker_moved = {}
-                            attacker_moved[attacker.id] = { combo.dsts[1][1], combo.dsts[1][2] }
+                                -- Now calculate the counter attack outcome
+                                local attacker_moved = {}
+                                attacker_moved[attacker.id] = { combo.dsts[1][1], combo.dsts[1][2] }
 
-                            local counter_stats = FAU.calc_counter_attack(
-                                attacker_moved, old_locs, combo.dsts, gamedata, move_cache, cfg_attack
-                            )
-                            --DBG.dbms(counter_stats)
+                                local counter_stats = FAU.calc_counter_attack(
+                                    attacker_moved, old_locs, combo.dsts, gamedata, move_cache, cfg_attack
+                                )
+                                --DBG.dbms(counter_stats)
 
-                            --print_time('   counter ratings no attack:', counter_stats.rating_table.rating, counter_stats.def_stat.hp_chance[0])
+                                --print_time('   counter ratings no attack:', counter_stats.rating_table.rating, counter_stats.def_stat.hp_chance[0])
 
-                            -- Rating if no forward attack is done is done is only the counter attack rating
-                            local no_attack_rating = 0 - counter_stats.rating_table.rating
-                            -- If an attack is done, it's the combined forward and counter attack rating
-                            local with_attack_rating = min_total_damage_rating
+                                -- Rating if no forward attack is done is done is only the counter attack rating
+                                local no_attack_rating = 0 - counter_stats.rating_table.rating
+                                -- If an attack is done, it's the combined forward and counter attack rating
+                                local with_attack_rating = min_total_damage_rating
 
-                            --print('    V1: no attack rating: ', no_attack_rating, '<---', 0, -counter_stats.rating_table.rating)
-                            --print('    V2: with attack rating:', with_attack_rating, '<---', combo.rating_table.rating, min_total_damage_rating)
+                                --print('    V1: no attack rating: ', no_attack_rating, '<---', 0, -counter_stats.rating_table.rating)
+                                --print('    V2: with attack rating:', with_attack_rating, '<---', combo.rating_table.rating, min_total_damage_rating)
 
-                            if (with_attack_rating < no_attack_rating) then
-                                acceptable_counter = false
-                                -- Note the '1': (since this is a single-unit attack)
-                                FAU.add_disqualified_attack(combo, 1, disqualified_attacks)
+                                if (with_attack_rating < no_attack_rating) then
+                                    acceptable_counter = false
+                                    -- Note the '1': (since this is a single-unit attack)
+                                    FAU.add_disqualified_attack(combo, 1, disqualified_attacks)
+                                end
+                                --print('acceptable_counter', acceptable_counter)
                             end
-                            --print('acceptable_counter', acceptable_counter)
+                        else
+                            -- Otherwise this is only acceptable if the chance to die
+                            -- for the AI unit is not greater than for the enemy
+                            if (combo.att_stats[1].hp_chance[0] > combo.def_stat.hp_chance[0]) then
+                                acceptable_counter = false
+                            end
                         end
                     end
 
