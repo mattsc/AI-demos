@@ -1025,6 +1025,22 @@ return {
 
             local value_ratio = FU.get_value_ratio(gamedata)
 
+            for _,zone_power in pairs(zone_powers) do
+                local raw_cfg = raw_cfgs[zone_power.zone_id]
+
+                -- Advancing toward villages
+                local zone_cfg = {
+                    zone_id = zone_power.zone_id,
+                    stage_id = stage_id,
+                    actions = { advance = true },
+                    value_ratio = value_ratio,
+                    ignore_resource_limit = true,
+                    villages_only = true
+                }
+                --DBG.dbms(zone_cfg)
+                table.insert(fred.data.zone_cfgs, zone_cfg)
+            end
+
             -- Get action config for T1
             FU.print_debug(show_debug_analysis, '\n  Attack evaluation:')
             for _,zone_power in pairs(zone_powers) do
@@ -1060,21 +1076,8 @@ return {
                 unthreatened_only = true
             end
 
+
             for _,zone_power in pairs(zone_powers) do
-                local raw_cfg = raw_cfgs[zone_power.zone_id]
-
-                -- Advancing toward villages
-                local zone_cfg = {
-                    zone_id = zone_power.zone_id,
-                    stage_id = stage_id,
-                    actions = { advance = true },
-                    value_ratio = value_ratio,
-                    ignore_resource_limit = true,
-                    villages_only = true
-                }
-                --DBG.dbms(zone_cfg)
-                table.insert(fred.data.zone_cfgs, zone_cfg)
-
                 -- Holding
                 local zone_cfg = {
                     zone_id = zone_power.zone_id,
