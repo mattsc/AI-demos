@@ -301,7 +301,7 @@ function fred_utils.get_influence_maps(my_attack_map, enemy_attack_map)
 
     for x,arr in pairs(enemy_attack_map) do
         for y,data in pairs(arr) do
-            local enemy_influence = data.power
+            local enemy_influence = data.power_no_leader
 
             if (not influence_map[x]) then influence_map[x] = {} end
             if (not influence_map[x][y]) then
