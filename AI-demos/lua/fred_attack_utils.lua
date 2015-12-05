@@ -738,8 +738,9 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
     if (#attacker_copies == 0) then return end
 
     -- Only keep the stats/ratings for the first attacker, the rest needs to be recalculated
-    local att_stats, def_stats = {}, {}
+    local att_stats, def_stats, rating_progression = {}, {}, {}
     att_stats[1], def_stats[1] = tmp_att_stats[ratings[1][1]], tmp_def_stats[ratings[1][1]]
+    rating_progression[1] = ratings[1][2].rating
 
     tmp_att_stats, tmp_def_stats, ratings = nil, nil, nil
 
@@ -930,6 +931,19 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
         -- Also add to the defender XP. Leveling up does not need to be considered
         -- here, as it is caught separately by the levelup_chance field in def_stat
         defender_xp = defender_xp + attacker_infos[i].level
+
+        local tmp_ai, tmp_dsts, tmp_as = {}, {}, {}
+        for j = 1,i do
+            tmp_ai[j] = attacker_infos[j]
+            tmp_dsts[j] = dsts[j]
+            tmp_as[j] = att_stats[j]
+        end
+
+        local rating_table = fred_attack_utils.attack_rating(
+            tmp_ai, defender_info, tmp_dsts,
+            tmp_as, def_stats[i], gamedata, cfg
+        )
+        rating_progression[i] = rating_table.rating
     end
 
     -- TODO: the following is just a sanity check for now, disable later
@@ -964,6 +978,8 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
             attacker_infos, defender_info, dsts,
             att_stats, def_stats[#attacker_infos], gamedata, cfg
         )
+
+    rating_table.progression = rating_progression
 
     return att_stats, def_stats[#attacker_infos], attacker_infos, dsts, rating_table, attacker_damages, defender_damage
 end
