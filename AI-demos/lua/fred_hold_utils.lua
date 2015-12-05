@@ -17,7 +17,7 @@ function fred_hold_utils.is_acceptable_location(unit_info, x, y, hit_chance, cou
     if (not next(counter_attack)) then return true end
 
     local show_debug = false
-    if (x == 18) and (y == 9) and (unit_info.type == 'Orcish Assassin') then
+    if (x == 9918) and (y == 9) and (unit_info.type == 'Orcish Assassin') then
         show_debug = true
         --DBG.dbms(counter_stats)
     end
