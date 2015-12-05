@@ -1598,8 +1598,16 @@ return {
 
                         --print_time(' -----------------------> rating', combo_rating, bonus_rating)
 
+                        local full_rating = combo_rating + bonus_rating
+                        local pre_rating = full_rating
+
+                        if (full_rating > 0) and (#sorted_atts > 2) then
+                            pre_rating = pre_rating / ( #sorted_atts / 2)
+                        end
+
                         table.insert(combo_ratings, {
-                            rating = combo_rating + bonus_rating,
+                            rating = full_rating,
+                            pre_rating = pre_rating,
                             bonus_rating = bonus_rating,
                             attackers = sorted_atts,
                             dsts = sorted_dsts,
@@ -1615,7 +1623,7 @@ return {
                     end
                 end
             end
-            table.sort(combo_ratings, function(a, b) return a.rating > b.rating end)
+            table.sort(combo_ratings, function(a, b) return a.pre_rating > b.pre_rating end)
             --DBG.dbms(combo_ratings)
             FU.print_debug(show_debug_attack, '#combo_ratings', #combo_ratings)
 
@@ -2011,6 +2019,11 @@ return {
                         local total_rating = min_total_damage_rating
                         FU.print_debug(show_debug_attack, '    Acceptable counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating_table.rating)
                         FU.print_debug(show_debug_attack, '      --> total_rating', total_rating)
+
+                        if (total_rating > 0) and (#combo.dsts > 2) then
+                            total_rating = total_rating / ( #combo.dsts / 2)
+                        end
+                        FU.print_debug(show_debug_attack, '      --> total_rating adjusted', total_rating)
 
                         if (total_rating > max_total_rating) then
                             max_total_rating = total_rating
