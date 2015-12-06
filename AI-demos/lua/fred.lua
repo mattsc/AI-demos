@@ -819,7 +819,18 @@ return {
                 local outofway_units = {}
                 for id,_ in pairs(fred.data.gamedata.my_units_MP) do
                     if (not fred.data.gamedata.unit_infos[id].canrecruit) then
-                        outofway_units[id] = true
+                        -- Need to check whether units with MP actually have an
+                        -- empty hex to move to, as two units with MP might be
+                        -- blocking each other.
+                        for x,arr in pairs(gamedata.reach_maps[id]) do
+                            for y,_ in pairs(arr) do
+                                if (not wesnoth.get_unit(x, y)) then
+                                    outofway_units[id] = true
+                                    break
+                                end
+                            end
+                        end
+
                     end
                 end
 
