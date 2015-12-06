@@ -35,7 +35,7 @@ return {
         end
 
 
-        function fred:zone_advance_rating(zone_id, x, y, gamedata, unit_type)
+        function fred:zone_advance_rating(zone_id, x, y, gamedata, unit_type, straight_line)
             local rating
 
             if (wesnoth.current.side == 1) then
@@ -45,14 +45,16 @@ return {
 
                     -- Discourage advancing through center or in west
                     -- TODO: refine this a little
-                    if (x >= 17) and (x <= 24) and (y >= 10) and (y <= 15) then
-                        rating = rating - 5
-                    elseif (x >= 18) and (x <= 23) and (y >= 8) and (y <= 9) then
-                        rating = rating - 5
-                    elseif (x >= 17) and (x <= 20) and (y <= 15) then
-                        rating = rating - 5
-                    elseif (x <= 16) and (y <= 9) then
-                        rating = rating - 5
+                    if (not straight_line) then
+                        if (x >= 17) and (x <= 24) and (y >= 10) and (y <= 15) then
+                            rating = rating - 5
+                        elseif (x >= 18) and (x <= 23) and (y >= 8) and (y <= 9) then
+                            rating = rating - 5
+                        elseif (x >= 17) and (x <= 20) and (y <= 15) then
+                            rating = rating - 5
+                        elseif (x <= 16) and (y <= 9) then
+                            rating = rating - 5
+                        end
                     end
                 end
 
@@ -1023,7 +1025,12 @@ return {
             --local hold_core_only = (enemy_total_power > my_total_power)
             --FU.print_debug(show_debug_analysis, '  hold_core_only', hold_core_only)
 
-            local value_ratio = FU.get_value_ratio(gamedata)
+            local value_ratio, my_power, enemy_power = FU.get_value_ratio(gamedata)
+
+            local straight_line = false
+            if (my_power > enemy_power * 2) then
+                straight_line = true
+            end
 
             for _,zone_power in pairs(zone_powers) do
                 local raw_cfg = raw_cfgs[zone_power.zone_id]
@@ -1097,6 +1104,7 @@ return {
                     actions = { advance = true },
                     value_ratio = value_ratio,
                     use_secondary_rating = true,
+                    straight_line = true
 --                    unthreatened_only = unthreatened_only
                 }
                 --DBG.dbms(zone_cfg)
@@ -1118,7 +1126,12 @@ return {
 
             fred.data.zone_cfgs = {}
 
-            local value_ratio = FU.get_value_ratio(gamedata)
+            local value_ratio, my_power, enemy_power = FU.get_value_ratio(gamedata)
+
+            local straight_line = false
+            if (my_power > enemy_power * 2) then
+                straight_line = true
+            end
 
             ----- Attack all remaining valid targets -----
 
@@ -1155,7 +1168,8 @@ return {
                 stage_id = stage_id,
                 actions = {
 --                    hold = true,
-                    advance = true
+                    advance = true,
+                    straight_line = true
                 },
                 ignore_resource_limit = true,
                 value_ratio = value_ratio
@@ -2700,7 +2714,7 @@ return {
 
                         local zone_rating
                         if (not threat) and go_here then
-                            zone_rating = fred:zone_advance_rating(zonedata.cfg.zone_id, x, y, gamedata, gamedata.unit_infos[id].type)
+                            zone_rating = fred:zone_advance_rating(zonedata.cfg.zone_id, x, y, gamedata, gamedata.unit_infos[id].type, zonedata.cfg.straight_line)
                         end
 
                         if zone_rating then
