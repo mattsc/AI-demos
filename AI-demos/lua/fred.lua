@@ -834,7 +834,9 @@ return {
                     end
                 end
 
-                if (fred:recruit_rushers_eval(outofway_units) > 0) then
+                if (fred:recruit_rushers_eval(outofway_units) > 0)
+                    and fred:recruit_rushers_exec(nil, nil, outofway_units, true)
+                then
                     local zone_id = 'leader'
                     local recruit_cfg = {
                         zone_id = zone_id,

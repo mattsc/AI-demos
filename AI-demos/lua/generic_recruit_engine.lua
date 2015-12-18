@@ -655,7 +655,13 @@ return {
         end
 
         -- recruit a unit
-        function ai_cas:recruit_rushers_exec(ai_local, avoid_map, outofway_units)
+        function ai_cas:recruit_rushers_exec(ai_local, avoid_map, outofway_units, no_exec)
+            -- Optional input:
+            --  @no_exec: if set, only go through the calculation and return true,
+            --    but don't actually do anything. This is just a hack for now until
+            --    we know if this works as desired.
+            --    TODO: implement in a less awkward way later
+
             if ai_local then ai = ai_local end
 
             if AH.show_messages() then W.message { speaker = 'narrator', message = 'Recruiting' } end
@@ -694,10 +700,15 @@ return {
             if wesnoth.unit_types[recruit_type].cost <= max_cost then
                 -- It is possible that there's a unit on the recruit hex if a
                 -- outofway_units table is passed.
+
+                -- Placeholder: TODO: implement better way of doing this
+                if no_exec then return true end
+
                 local unit_in_way = wesnoth.get_unit(recruit_hex[1], recruit_hex[2])
                 if unit_in_way then
                     AH.move_unit_out_of_way(ai, unit_in_way)
                 end
+
 
                 AH.checked_recruit(ai, recruit_type, recruit_hex[1], recruit_hex[2])
 
