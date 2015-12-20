@@ -1,32 +1,35 @@
------ 0.14.1+dev -----
+----- 0.14.2, 20 December 2015 -----
 
 This release continues the refinements to Fred's evaluation functions that were
 started in v0.14.1. It fixes bugs and builds on top of the changes begun in that
-version to restore and surpass the v0.14.0 performance.
+version to restore (and surpass) the v0.14.0 performance.
 
 - Fred (Freelands AI for Northerners, Side 1):
   - Significant changes to the overall strategy layer, including:
     - Distribution of units into the different zones of the map
     - Force leader to return to keep if defensive actions are needed
-    - Force recruiting to help with protecting the leader
+    - Force recruiting to help protecting the leader
     - Move units out of the way for leader moving to keep and recruiting
   - Continued refinements to attack calculations, such as:
-    - Combined attack and counter attack damage is calculated before rating
+    - Several fixes of significant bugs introduced in v0.14.1
+    - Combined attack and counter attack damage is used as rating
     - Corrected evaluation of level-up calculations in attack combinations (but
       not yet in attack / counter attack evaluations)
     - Use of non-linear rating functions
     - Disallow blocking of leader from all keep hexes by units used in attacks
-    - Exclude enemy units from counter attacks if chance to die too high
+    - Exclude enemy units from counter attacks if their chance to die too high
+    - Prefer using fewer units if outcome is almost the same as with more units
     - Don't use too many units for favorable attacks
+    - Limit acceptable risk in attacks by units without MP
     - Don't use leader bonus weighting on enemy leader
     - Lower the limit for aggression in attacks when having advantage
     - More stringent condition on when not to attack from next to a village
-    - Several fixes of significant bugs introduced in v0.14.1
   - Improvements to holding and advancing evaluations:
     - Improved evaluation of where and when/if to hold
+    - Add a "desparate hold" action
     - Add a secondary rating to force advancing/retreating when no acceptable
       hexes are found otherwise
-    - Do not advance through the center zone
+    - Do not advance through the center zone, except when AI is clearly winning
     - Don't isolate individual units in enemy territory
     - Holding thresholds are now configurable and automatically adapt to the
       situation
