@@ -35,7 +35,8 @@ return {
         end
 
 
-        function fred:zone_advance_rating(zone_id, x, y, gamedata, unit_type, straight_line)
+        function fred:zone_advance_rating(zone_id, x, y, unit_type, straight_line)
+            local gamedata = fred.data.gamedata
             local rating
 
             if (wesnoth.current.side == 1) then
@@ -661,11 +662,11 @@ return {
         end
 
 
-        function fred:analyze_leader_threat(gamedata)
+        function fred:analyze_leader_threat()
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
             if debug_eval then print_time('     - Evaluating leader threat map analysis:') end
 
-            -- Some pointers just for convenience
+            local gamedata = fred.data.gamedata
             local stage_id = fred.data.analysis.stage_ids[fred.data.analysis.stage_counter]
 
             FU.print_debug(show_debug_analysis, '\nAnalysis of stage ' .. stage_id)
@@ -922,11 +923,11 @@ return {
             --DBG.dbms(fred.data.zone_cfgs)
         end
 
-        function fred:analyze_defend_zones(gamedata)
+        function fred:analyze_defend_zones()
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
             if debug_eval then print_time('     - Evaluating defend zones map analysis:') end
 
-            -- Some pointers just for convenience
+            local gamedata = fred.data.gamedata
             local stage_id = fred.data.analysis.stage_ids[fred.data.analysis.stage_counter]
             local status = fred.data.analysis.status
             FU.print_debug(show_debug_analysis, '\nAnalysis of stage ' .. stage_id)
@@ -1129,11 +1130,11 @@ return {
             --DBG.dbms(fred.data.zone_cfgs)
         end
 
-        function fred:analyze_all_map(gamedata)
+        function fred:analyze_all_map()
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'all_map'
             if debug_eval then print_time('     - Evaluating all_map CA:') end
 
-            -- Some pointers just for convenience
+            local gamedata = fred.data.gamedata
             local stage_id = fred.data.analysis.stage_ids[fred.data.analysis.stage_counter]
             local stage_status = fred.data.analysis.status[stage_id]
 
@@ -1208,7 +1209,7 @@ return {
         end
 
 
-        function fred:analyze_map(gamedata)
+        function fred:analyze_map()
             -- Some pointers just for convenience
             local status = fred.data.analysis.status
             local stage_id = fred.data.analysis.stage_ids[fred.data.analysis.stage_counter]
@@ -1216,17 +1217,17 @@ return {
             --print('Doing map analysis for stage: ' .. stage_id)
 
             if (stage_id == 'leader_threat') then
-                fred:analyze_leader_threat(gamedata)
+                fred:analyze_leader_threat()
                 return
             end
 
             if (stage_id == 'defend_zones') then
-                fred:analyze_defend_zones(gamedata)
+                fred:analyze_defend_zones()
                 return
             end
 
             if (stage_id == 'all_map') then
-                fred:analyze_all_map(gamedata)
+                fred:analyze_all_map()
                 return
             end
         end
@@ -1235,9 +1236,11 @@ return {
         ----- Functions for getting the best actions -----
 
         ----- Attack: -----
-        function fred:get_attack_action(zonedata, gamedata, move_cache)
+        function fred:get_attack_action(zonedata, move_cache)
             if debug_eval then print_time('  --> attack evaluation: ' .. zonedata.cfg.zone_id) end
             --DBG.dbms(zonedata.cfg)
+
+            local gamedata = fred.data.gamedata
 
             local targets = {}
             -- If cfg.attack.use_enemies_in_reach is set, we use all enemies that
@@ -2091,9 +2094,11 @@ return {
 
 
         ----- Hold: -----
-        function fred:get_hold_action(zonedata, gamedata, move_cache)
+        function fred:get_hold_action(zonedata, move_cache)
             if debug_eval then print_time('  --> hold evaluation: ' .. zonedata.cfg.zone_id) end
             --DBG.dbms(zonedata.cfg)
+
+            local gamedata = fred.data.gamedata
 
             --DBG.dbms(fred.data.analysis.status)
 
@@ -2654,7 +2659,7 @@ return {
 
 
         ----- Advance: -----
-        function fred:get_advance_action(zonedata, gamedata, move_cache)
+        function fred:get_advance_action(zonedata, move_cache)
             if debug_eval then
                 local txt = '  --> advance evaluation: '
                 if zonedata.cfg.villages_only then
@@ -2662,6 +2667,8 @@ return {
                 end
                 print_time(txt .. zonedata.cfg.zone_id)
             end
+
+            local gamedata = fred.data.gamedata
 
             --DBG.dbms(zonedata.cfg)
             local raw_cfg = fred:get_raw_cfgs(zonedata.cfg.zone_id)
@@ -2727,7 +2734,7 @@ return {
 
                         local zone_rating
                         if (not threat) and go_here then
-                            zone_rating = fred:zone_advance_rating(zonedata.cfg.zone_id, x, y, gamedata, gamedata.unit_infos[id].type, zonedata.cfg.straight_line)
+                            zone_rating = fred:zone_advance_rating(zonedata.cfg.zone_id, x, y, gamedata.unit_infos[id].type, zonedata.cfg.straight_line)
                         end
 
                         if zone_rating then
@@ -2977,8 +2984,10 @@ return {
 
 
         ----- Retreat: -----
-        function fred:get_retreat_action(zonedata, gamedata)
+        function fred:get_retreat_action(zonedata)
             if debug_eval then print_time('  --> retreat evaluation: ' .. zonedata.cfg.zone_id) end
+
+            local gamedata = fred.data.gamedata
 
             -- This is a placeholder for when (if) retreat.lua gets adapted to the new
             -- tables also. It might not be necessary, it's fast enough the way it is
@@ -3254,11 +3263,13 @@ return {
 
         ----- CA: Zone control (max_score: 350000) -----
         -- TODO: rename?
-        function fred:get_zone_action(cfg, gamedata, move_cache)
+        function fred:get_zone_action(cfg, move_cache)
             -- Find the best action to do in the zone described in 'cfg'
             -- This is all done together in one function, rather than in separate CAs so that
             --  1. Zones get done one at a time (rather than one CA at a time)
             --  2. Relative scoring of different types of moves is possible
+
+            local gamedata = fred.data.gamedata
 
             if (not next(cfg.actions)) then return end
 
@@ -3327,7 +3338,7 @@ return {
                 --print_time('  ' .. cfg.zone_id .. ': retreat_injured eval')
                 -- TODO: heal_loc and safe_loc are not used at this time
                 -- keep for now and see later if needed
-                local action = fred:get_retreat_action(zonedata, gamedata)
+                local action = fred:get_retreat_action(zonedata)
                 if action then
                     --print(action.action)
                     return action
@@ -3337,7 +3348,7 @@ return {
             -- **** Attack evaluation ****
             if (cfg.actions.attack) then
                 --print_time('  ' .. cfg.zone_id .. ': attack eval')
-                local action = fred:get_attack_action(zonedata, gamedata, move_cache)
+                local action = fred:get_attack_action(zonedata, move_cache)
                 if action then
                     --print(action.action)
                     return action
@@ -3347,7 +3358,7 @@ return {
             -- **** Hold position evaluation ****
             if (cfg.actions.hold) then
                 --print_time('  ' .. cfg.zone_id .. ': hold eval')
-                local action = fred:get_hold_action(zonedata, gamedata, move_cache)
+                local action = fred:get_hold_action(zonedata, move_cache)
                 if action then
                     --print_time(action.action)
                     return action
@@ -3357,7 +3368,7 @@ return {
             -- **** Advance in zone evaluation ****
             if (cfg.actions.advance) then
                 --print_time('  ' .. cfg.zone_id .. ': advance eval')
-                local action = fred:get_advance_action(zonedata, gamedata, move_cache)
+                local action = fred:get_advance_action(zonedata, move_cache)
                 if action then
                     --print_time(action.action)
                     return action
@@ -3425,7 +3436,7 @@ return {
                 local stage_id = FDA.stage_ids[FDA.stage_counter]
                 if debug_eval then print('\nStage: ' .. stage_id) end
 
-                fred:analyze_map(fred.data.gamedata)
+                fred:analyze_map()
                 --DBG.dbms(FDA.status)
 
                 --DBG.dbms(fred.data.zone_cfgs)
@@ -3468,7 +3479,7 @@ return {
                             table.insert(extracted_units, unit_proxy)  -- Not a proxy unit any more at this point
                         end
 
-                        local zone_action = fred:get_zone_action(cfg, fred.data.gamedata, fred.data.move_cache)
+                        local zone_action = fred:get_zone_action(cfg, fred.data.move_cache)
 
                         for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
 
