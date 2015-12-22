@@ -1236,11 +1236,12 @@ return {
         ----- Functions for getting the best actions -----
 
         ----- Attack: -----
-        function fred:get_attack_action(zonedata, move_cache)
+        function fred:get_attack_action(zonedata)
             if debug_eval then print_time('  --> attack evaluation: ' .. zonedata.cfg.zone_id) end
             --DBG.dbms(zonedata.cfg)
 
             local gamedata = fred.data.gamedata
+            local move_cache = fred.data.move_cache
 
             local targets = {}
             -- If cfg.attack.use_enemies_in_reach is set, we use all enemies that
@@ -2094,11 +2095,12 @@ return {
 
 
         ----- Hold: -----
-        function fred:get_hold_action(zonedata, move_cache)
+        function fred:get_hold_action(zonedata)
             if debug_eval then print_time('  --> hold evaluation: ' .. zonedata.cfg.zone_id) end
             --DBG.dbms(zonedata.cfg)
 
             local gamedata = fred.data.gamedata
+            local move_cache = fred.data.move_cache
 
             --DBG.dbms(fred.data.analysis.status)
 
@@ -2659,7 +2661,7 @@ return {
 
 
         ----- Advance: -----
-        function fred:get_advance_action(zonedata, move_cache)
+        function fred:get_advance_action(zonedata)
             if debug_eval then
                 local txt = '  --> advance evaluation: '
                 if zonedata.cfg.villages_only then
@@ -2669,6 +2671,7 @@ return {
             end
 
             local gamedata = fred.data.gamedata
+            local move_cache = fred.data.move_cache
 
             --DBG.dbms(zonedata.cfg)
             local raw_cfg = fred:get_raw_cfgs(zonedata.cfg.zone_id)
@@ -3263,7 +3266,7 @@ return {
 
         ----- CA: Zone control (max_score: 350000) -----
         -- TODO: rename?
-        function fred:get_zone_action(cfg, move_cache)
+        function fred:get_zone_action(cfg)
             -- Find the best action to do in the zone described in 'cfg'
             -- This is all done together in one function, rather than in separate CAs so that
             --  1. Zones get done one at a time (rather than one CA at a time)
@@ -3348,7 +3351,7 @@ return {
             -- **** Attack evaluation ****
             if (cfg.actions.attack) then
                 --print_time('  ' .. cfg.zone_id .. ': attack eval')
-                local action = fred:get_attack_action(zonedata, move_cache)
+                local action = fred:get_attack_action(zonedata)
                 if action then
                     --print(action.action)
                     return action
@@ -3358,7 +3361,7 @@ return {
             -- **** Hold position evaluation ****
             if (cfg.actions.hold) then
                 --print_time('  ' .. cfg.zone_id .. ': hold eval')
-                local action = fred:get_hold_action(zonedata, move_cache)
+                local action = fred:get_hold_action(zonedata)
                 if action then
                     --print_time(action.action)
                     return action
@@ -3368,7 +3371,7 @@ return {
             -- **** Advance in zone evaluation ****
             if (cfg.actions.advance) then
                 --print_time('  ' .. cfg.zone_id .. ': advance eval')
-                local action = fred:get_advance_action(zonedata, move_cache)
+                local action = fred:get_advance_action(zonedata)
                 if action then
                     --print_time(action.action)
                     return action
@@ -3479,7 +3482,7 @@ return {
                             table.insert(extracted_units, unit_proxy)  -- Not a proxy unit any more at this point
                         end
 
-                        local zone_action = fred:get_zone_action(cfg, fred.data.move_cache)
+                        local zone_action = fred:get_zone_action(cfg)
 
                         for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
 
