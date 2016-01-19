@@ -498,15 +498,13 @@ return {
 
 
             -- Secondary threats
-            -- First, we add units that are in a threat zone, but cannot reach a
-            -- key hex
-            -- Find units that can reach key hexes
             local threats2 = {}
             for zone_id,cfg in pairs(raw_cfgs) do
                 threats2[zone_id] = {}
             end
 
-
+            -- First, we add units that are in a threat zone, but cannot reach a
+            -- key hex
             for id,loc in pairs(gamedata.enemies) do
                 if (not all_threats[id]) and (not gamedata.unit_infos[id].canrecruit) then
                    --print(id, loc[1], loc[2])
@@ -521,6 +519,8 @@ return {
             end
             --DBG.dbms(threats2)
 
+            -- Second, distribute the rest of the units, as long as they are
+            -- within 2 turns of a key hex
             for id,loc in pairs(gamedata.enemies) do
                 if (not all_threats[id]) and (not gamedata.unit_infos[id].canrecruit) then
                     --print(id, loc[1], loc[2])
@@ -530,11 +530,12 @@ return {
                         --print('  ' .. zone_id)
                         for _,hex in ipairs(hexes) do
                             local _, cost = wesnoth.find_path(gamedata.unit_copies[id], hex[1], hex[2], { ignore_units = true })
-                            --print('    ' .. cost, hex[1], hex[2])
+                            local turns_needed = cost / gamedata.unit_infos[id].max_moves
+                            --print('    ' .. cost, turns_needed, hex[1], hex[2])
                             local rating = - cost * raw_cfgs[zone_id].threat_factor
                             --print('      rating:', rating)
 
-                            if (rating > best_rating) then
+                            if (turns_needed <= 2) and (rating > best_rating) then
                                 best_rating = rating
                                 best_zone_id = zone_id
                             end
@@ -542,8 +543,10 @@ return {
                     end
                     --print(' best:', best_rating, best_zone_id)
 
-                    threats2[best_zone_id][id] = gamedata.unit_infos[id].power
-                    all_threats[id] = true
+                    if best_zone_id then
+                        threats2[best_zone_id][id] = gamedata.unit_infos[id].power
+                        all_threats[id] = true
+                    end
                 end
             end
             --DBG.dbms(threats2)
