@@ -3,7 +3,11 @@ local H = wesnoth.require "lua/helper.lua"
 
 local ca_move_unittype = {}
 
-function ca_move_unittype:evaluation(ai, cfg)
+function ca_move_unittype:evaluation(cfg)
+-- Before 1.13.5, the syntax below was used. That still works,
+-- but the new version is the recommended syntax now.
+--function ca_move_unittype:evaluation(ai, cfg)
+
     local units = wesnoth.get_units {
         side = wesnoth.current.side,
         type = cfg.type,
@@ -14,7 +18,11 @@ function ca_move_unittype:evaluation(ai, cfg)
     return 0
 end
 
-function ca_move_unittype:execution(ai, cfg)
+function ca_move_unittype:execution(cfg)
+-- Before 1.13.5, the syntax below was used. That still works,
+-- but the new version is the recommended syntax now.
+--function ca_move_unittype:execution(ai, cfg)
+
     local unit = wesnoth.get_units {
         side = wesnoth.current.side,
         type = cfg.type,
