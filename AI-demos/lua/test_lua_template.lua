@@ -18,7 +18,6 @@ local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_increme
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
 local LS = wesnoth.dofile "lua/location_set.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
-H.set_wml_var_metatable(_G)
 
 -- Clean up the screen
 wesnoth.clear_messages()
