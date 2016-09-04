@@ -1,3 +1,9 @@
+----- 0.14.0, ? -----
+
+- Miscellaneous:
+  - Removed high_xp_attack CA and test scenario as this is in mainline now
+
+
 ----- 0.14.2, 20 December 2015 -----
 
 This release continues the refinements to Fred's evaluation functions that were
