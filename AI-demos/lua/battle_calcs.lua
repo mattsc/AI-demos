@@ -740,7 +740,7 @@ function battle_calcs.simulate_combat_fake()
     def_stats.hp_chance[0], def_stats.hp_chance[2], def_stats.hp_chance[10] = 0.09, 0.42, 0.49
     def_stats.poisoned, def_stats.slowed, def_stats.average_hp = 0, 0, 1.74
 
-    return att_stats, def_stats
+    return att_stats, def_stats, 1
 end
 
 function battle_calcs.simulate_combat_loc(attacker, dst, defender, weapon)
