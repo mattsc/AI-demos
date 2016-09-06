@@ -15,6 +15,7 @@ local MAISD = wesnoth.dofile "ai/micro_ais/micro_ai_self_data.lua"
 local BC = wesnoth.dofile "~/add-ons/AI-demos/lua/battle_calcs.lua"
 local FGU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils.lua"
 local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
+local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
 local LS = wesnoth.dofile "lua/location_set.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
@@ -31,11 +32,10 @@ if (not wesnoth.game_config.debug) then
 end
 
 -- Add shortcut to debug ai table
-local ai = wesnoth.debug_ai(wesnoth.current.side).ai
+local ai = wesnoth.debug_ai(wesnoth.current.side).ai -- not local in 1.13!
 --DBG.dbms(ai)
 
--- Load the custom AI into array 'my_ai'
-fn = "~add-ons/AI-demos/lua/fred.lua"
+local fn = "~add-ons/AI-demos/lua/fred.lua"
 fn = "ai/micro_ais/cas/ca_fast_move.lua"
 local self = { data = {} }
 
@@ -73,6 +73,8 @@ if test_CA then  -- Test a specific CA ...
 else  -- ... or do manual testing
     -- To initialize "old-style" AIs that do not use external CAs yet
     --local fred = wesnoth.dofile(fn).init()
+    --fred.data = {}
+    --fred:reset_vars_move_eval()  -- sets fred.data.gamedata and fred.data.move_cache
     --DBG.dbms(fred)
 
     local leader = wesnoth.get_units{ side = 1, canrecruit = 'yes' }[1]
