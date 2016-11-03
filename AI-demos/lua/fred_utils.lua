@@ -263,6 +263,24 @@ function fred_utils.get_value_ratio(gamedata)
     return value_ratio, my_power, enemy_power
 end
 
+function fred_utils.is_sufficient_power(my_power, enemy_power, value_ratio)
+    -- Not sure yet how useful this is, just want a consistent way of doing this for now
+
+    value_ratio = value_ratio or 1
+    local threshold_absolute = 6
+    local threshold_ratio = 0.1
+
+    local eff_enemy_power = enemy_power * value_ratio
+    local power_missing = eff_enemy_power - my_power
+
+    -- True if either of the criteria is met
+    if (power_missing <= threshold_absolute) or (power_missing / eff_enemy_power <= threshold_ratio) then
+        return true, power_missing
+    end
+
+    return false, power_missing
+end
+
 function fred_utils.get_hit_chance(id, x, y, gamedata)
     -- TODO: This ignores steadfast and marksman, might be added later
 
