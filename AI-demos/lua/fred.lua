@@ -2625,6 +2625,13 @@ return {
                     local hit_chance = FU.get_hit_chance(id, x, y, gamedata)
                     --print('  ' .. id, x, y, hit_chance)
 
+                    local is_village = false
+                    if gamedata.village_map[x] and gamedata.village_map[x][y] then
+                        hit_chance = hit_chance - 0.15
+                        if (hit_chance < 0) then hit_chance = 0 end
+                        is_village=true
+                    end
+
                     if is_acceptable and (not FHU.is_acceptable_location(gamedata.unit_infos[id], x, y, hit_chance, counter_stats, counter_attack, zonedata.cfg.value_ratio, raw_cfg, gamedata)) then
                         is_acceptable = false
                     end
@@ -2644,6 +2651,9 @@ return {
                         if gamedata.village_map[new[1]] and gamedata.village_map[new[1]][new[2]] then
                             enemy_hc = enemy_hc - 0.15
                             if (enemy_hc < 0) then enemy_hc = 0 end
+                        end
+                        if is_village then
+                            enemy_hc = enemy_hc + 0.15
                         end
 
                         --print('    enemy_hc:', enemy_hc)
