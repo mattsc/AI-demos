@@ -1615,25 +1615,24 @@ return {
 
                 -- TODO: check: table.remove might be slow
 
-
                 local allowable_power = zonedata.cfg.power_missing or 9e99
                 --print('  allowable_power', allowable_power)
 
                 for j = #attack_combos,1,-1 do
                     local combo = attack_combos[j]
-                    local total_power = 0
+                    --print('  combo #' .. j)
                     local n_attackers = 0
+                    local tmp_attackers = {}
                     for src,dst in pairs(combo) do
                         --print('    attacker power:', gamedata.unit_infos[attacker_map[src]].id, gamedata.unit_infos[attacker_map[src]].power)
-                        total_power = total_power + gamedata.unit_infos[attacker_map[src]].power
+                        table.insert(tmp_attackers, { id = gamedata.unit_infos[attacker_map[src]].id })
                         n_attackers = n_attackers + 1
                     end
-                    --print('      total_power: ', j, total_power)
+
+                    local is_good = fred:is_acceptable_resource_use(tmp_attackers, zonedata.cfg.zone_id, fred.data.analysis.behavior)
 
                     -- TODO: table.remove() can be slow
-                    if (total_power > allowable_power)
-                        or (n_attackers > (zonedata.cfg.max_attackers or 99))
-                    then
+                    if (not is_good) or (n_attackers > (zonedata.cfg.max_attackers or 99)) then
                         --print('      ----> eliminating this attack')
                         table.remove(attack_combos, j)
                     end
