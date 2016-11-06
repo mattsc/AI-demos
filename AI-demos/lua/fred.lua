@@ -2711,7 +2711,7 @@ return {
                         W.label { x = x, y = y, text = id }
                     end
                     wesnoth.scroll_to_tile(x, y)
-                    W.message { speaker = 'narrator', message = 'Hold combo ' .. i_c .. '  is_acceptable: ' .. tostring(is_acceptable)}
+                    W.message { speaker = 'narrator', message = 'Hold combo ' .. i_c .. '/' .. #combos .. '  is_acceptable: ' .. tostring(is_acceptable) .. ' ' .. rating}
                     for xy,id in pairs(combo) do
                         x, y =  math.floor(xy / 1000), xy % 1000
                         W.label { x = x, y = y, text = "" }
