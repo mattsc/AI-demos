@@ -375,6 +375,42 @@ return {
             end
         end
 
+        function fred:is_acceptable_resource_use(units, zone_id, behavior)
+            -- @units: array that only needs to contain the id= key
+            --print(zone_id, #units)
+            --DBG.dbms(behavior)
+
+            for z_id,other_units in pairs(behavior.other_units) do
+                if (z_id ~= zone_id) then
+                    local add_power_needed = other_units.add_power_needed
+                    --print('  checking', z_id,add_power_needed)
+                    if behavior.assigned_units[z_id] then
+                        add_power_needed = add_power_needed - behavior.assigned_units[z_id].power
+                    end
+                    --print('  checking', z_id,add_power_needed)
+
+                    local power_left_for_other_zone = other_units.power
+                    --print('    power_left_for_other_zone', power_left_for_other_zone)
+
+                    for _,unit in ipairs(units) do
+                        local id = unit.id
+                        --print('      id:', id)
+
+                        if other_units.units[id] then
+                            power_left_for_other_zone = power_left_for_other_zone - other_units.units[id]
+                            --print('        power_left_for_other_zone', power_left_for_other_zone)
+                        end
+                    end
+
+                    if (power_left_for_other_zone < add_power_needed) then
+                        return false
+                    end
+
+                end
+            end
+
+            return true
+        end
 
         function fred:analyze_map_set_tables_turn()
             FU.print_debug(show_debug_analysis, 'Setting (or resetting) the map analysis tables:')
@@ -2609,6 +2645,23 @@ return {
             table.sort(rated_units, function(a, b) return a.rating > b.rating end)
             --DBG.dbms(unit_ratings)
             --DBG.dbms(rated_units)
+
+            i_ru = 1
+            while (i_ru <= #rated_units) do
+                local tmp_holders = {}
+                for i=1,i_ru do tmp_holders[i] = rated_units[i] end
+                local is_good = fred:is_acceptable_resource_use(tmp_holders, zonedata.cfg.zone_id, fred.data.analysis.behavior)
+
+                if is_good then
+                    i_ru = i_ru + 1
+                else
+                    table.remove(rated_units, i_ru)
+                end
+            end
+
+            if (#rated_units == 0) then
+                return
+            end
 
 
             -- For holding, we are allowed to add units until we are above
