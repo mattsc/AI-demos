@@ -299,6 +299,8 @@ end
 
 function fred_utils.get_influence_maps(my_attack_map, enemy_attack_map)
     -- For now, we use combined unit_power as the influence
+    -- Note, these are somewhat different influence maps from those added in gamedata
+    -- TODO: decide if we need both and reconcile
 
     local influence_map = {}
 
