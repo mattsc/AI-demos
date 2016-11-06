@@ -2663,7 +2663,10 @@ return {
                     counter_attack_rating = - counter_stats.rating_table.rating / 1000.
                     --print('      --> counter_attack_rating', counter_attack_rating)
 
-                    rating = rating + enemy_rating + counter_attack_rating
+                    local new_rating = enemy_rating + counter_attack_rating
+                    new_rating = new_rating * FU.get_fgumap_value(gamedata.influence_map, x, y, 'vulnerability', 0)
+
+                    rating = rating + new_rating
 
                     local combo_stat = {
                         x = x, y = y,
