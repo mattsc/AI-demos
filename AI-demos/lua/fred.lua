@@ -1533,18 +1533,20 @@ return {
             --DBG.dbms(targets)
 
             -- Eliminate targets in the no-go zone
-            for i = #targets,1,-1 do
-                local id, loc = next(targets[i])
-
-                local go_here = FU.get_fgumap_value(fred.data.analysis.go_here_map, loc[1], loc[2], 'go_here')
-                --print(i, id, loc[1], loc[2], go_here)
-
-                if (not go_here) then
-                    --print('  removing target ' .. i, id)
-                    table.remove(targets, i)
-                end
-            end
-            FU.print_debug(show_debug_attack, '  #targets inside go_here zone', #targets)
+-- Disable this for now
+-- Todo: decide what to do with this
+--            for i = #targets,1,-1 do
+--                local id, loc = next(targets[i])
+--
+--                local go_here = FU.get_fgumap_value(fred.data.analysis.go_here_map, loc[1], loc[2], 'go_here')
+--                print(i, id, loc[1], loc[2], go_here)
+--
+--                if (not go_here) then
+--                    --print('  removing target ' .. i, id)
+--                    table.remove(targets, i)
+--                end
+--            end
+--            FU.print_debug(show_debug_attack, '  #targets inside go_here zone', #targets)
 
 
             -- Determine whether we need to keep a keep hex open for the leader
