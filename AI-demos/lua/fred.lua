@@ -299,7 +299,7 @@ return {
             local cfg_center = {
                 zone_id = 'center',
                 key_hexes = { { 17,10 }, { 18,9 }, { 20,9 }, { 22,10 }, { 21,9 }, { 23,10 } },
-                target_zone = { x = '15-23,13-23', y = '8-13,14-19' },
+                target_zone = { x = '15-24,13-23', y = '8-13,14-19' },
                 threat_slf = { x = '16-24,15-23', y = '9-10,11-15' },
                 threat_factor = 2,
                 zone_filter = { x = '16-26,15-24', y = '4-10,11-16' },
