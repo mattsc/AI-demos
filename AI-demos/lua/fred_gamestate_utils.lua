@@ -564,7 +564,6 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
                 local influence = (loc[3] + 1) / max_moves / 2.
                 influence = influence ^ 2
                 influence = influence * unit_infos[enemy_id].power
-print(enemy_id, loc[1], loc[2], influence)
                 influence_map[loc[1]][loc[2]].enemy = influence_map[loc[1]][loc[2]].enemy + influence
             end
 
