@@ -1529,7 +1529,7 @@ return {
                     end
                 end
             end
-            FU.print_debug(show_debug_attack, '  #targets', #targets)
+            FU.print_debug(show_debug_attack, '  #targets', #targets, zonedata.cfg.zone_id)
             --DBG.dbms(targets)
 
             -- Eliminate targets in the no-go zone
