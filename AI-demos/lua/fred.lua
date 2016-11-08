@@ -650,15 +650,15 @@ return {
                     if (best_turns <= 1) then
                         power_used.move1[best_zone_id].units[id] = gamedata.unit_infos[id].power
                         power_used.move1[best_zone_id].power = power_used.move1[best_zone_id].power + gamedata.unit_infos[id].power
+                        power_used.move1[best_zone_id].n_units = power_used.move1[best_zone_id].n_units + 1
                     else
                         power_used.move2[best_zone_id].units[id] = gamedata.unit_infos[id].power
                         power_used.move2[best_zone_id].power = power_used.move2[best_zone_id].power + gamedata.unit_infos[id].power
+                        power_used.move2[best_zone_id].n_units = power_used.move2[best_zone_id].n_units + 1
                     end
                 end
             end
             --DBG.dbms(power_used)
-
-
 
 
             -- Make some behavior strategic decision
@@ -700,27 +700,6 @@ return {
             if (acceptable_loss_ratio > 1) then acceptable_loss_ratio = 1 end
             FU.print_debug(show_debug_analysis, '    -> acceptable_loss_ratio:', acceptable_loss_ratio)
             behavior.total.acceptable_loss_ratio = acceptable_loss_ratio
-
-
-            -- How many units are needed in each zone for village grabbing
-            local n_units_needed = {}
-            FU.print_debug(show_debug_analysis, '\n  #villages, units needed for villages:')
-            for zone_id,cfg in pairs(raw_cfgs_main) do
-                local village_count = 0  -- unowned and enemy-owned villages
-                for x,tmp in pairs(gamedata.village_map) do
-                    for y,village in pairs(tmp) do
-
-                        if wesnoth.match_location(x, y, cfg.villages.slf) then
-                            if (village.owner ~= wesnoth.current.side) then
-                                village_count = village_count + 1
-                            end
-                        end
-                    end
-                end
-
-                n_units_needed[zone_id] = math.ceil(village_count / cfg.villages.villages_per_unit)
-                FU.print_debug(show_debug_analysis, '    ' .. zone_id, village_count, n_units_needed[zone_id])
-            end
 
             local enemy_power = {
                 threats_total = 0,
@@ -859,6 +838,38 @@ return {
             --DBG.dbms(behavior.assigned_units)
             --DBG.dbms(behavior.hold)
 
+
+            -- How many units are needed in each zone for village grabbing
+            behavior.villages = {
+                n_units_needed = {},
+                n_units_used = {}
+            }
+            FU.print_debug(show_debug_analysis, '\n  #villages, units needed, units already used:')
+            for zone_id,cfg in pairs(raw_cfgs_main) do
+                local village_count = 0  -- unowned and enemy-owned villages
+                for x,tmp in pairs(gamedata.village_map) do
+                    for y,village in pairs(tmp) do
+
+                        if wesnoth.match_location(x, y, cfg.villages.slf) then
+                            if (village.owner ~= wesnoth.current.side) then
+                                village_count = village_count + 1
+                            end
+                        end
+                    end
+                end
+                behavior.villages.n_units_needed[zone_id] = math.ceil(village_count / cfg.villages.villages_per_unit)
+
+                behavior.villages.n_units_used[zone_id]
+                    = (behavior.villages.n_units_used[zone_id] or 0)
+                    + power_used.move1[zone_id].n_units
+                    + power_used.move2[zone_id].n_units
+
+                FU.print_debug(show_debug_analysis, '    ' .. zone_id, village_count, behavior.villages.n_units_needed[zone_id], behavior.villages.n_units_used[zone_id])
+            end
+            --DBG.dbms(behavior.villages)
+
+
+
             --DBG.dbms(behavior)
             FU.print_debug(show_debug_analysis, '--- Done determining behavior ---\n')
 
@@ -870,16 +881,9 @@ return {
                     power_needed = enemy_power.threats[zone_id],
                     power_needed2 = enemy_power.threats[zone_id] + enemy_power.threats2[zone_id],
                     power_used = 0,
-                    n_units_needed = n_units_needed[zone_id];
-                    n_units_used = 0
+                    n_units_needed = behavior.villages.n_units_needed[zone_id],
+                    n_units_used = behavior.villages.n_units_used[zone_id]
                 }
-
-                for id,unit_used in pairs(fred.data.analysis.status.units_used) do
-                    if (unit_used.zone_id == zone_id) then
-                        tmp.power_used = tmp.power_used + gamedata.unit_infos[id].power
-                        tmp.n_units_used = tmp.n_units_used + 1
-                    end
-                end
 
                 table.insert(zone_powers, tmp)
             end
@@ -1300,7 +1304,7 @@ return {
 
             -- Action: Advancing toward villages
             for _,zone_power in pairs(zone_powers) do
-                if (zone_power.n_units_needed > 0) then
+                if (zone_power.n_units_needed > zone_power.n_units_used) then
                     local zone_cfg = {
                         zone_id = zone_power.zone_id,
                         stage_id = stage_id,
@@ -1313,7 +1317,6 @@ return {
                     table.insert(fred.data.zone_cfgs, zone_cfg)
                 end
             end
-
 
             -- Action: attack direct threats and hold against them
             -- Both of these are done based on the power in direct threats
