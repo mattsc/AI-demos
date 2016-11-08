@@ -561,7 +561,13 @@ return {
             -- Second, distribute the rest of the units, as long as they are
             -- within 2 turns of a key hex
             for id,loc in pairs(gamedata.enemies) do
-                if (not all_threats[id]) and (not gamedata.unit_infos[id].canrecruit) then
+                -- Is the unit still on the castle hex where it was recruited?
+                -- If so, exclude it.
+                -- TODO: this might not work on all maps
+                if (not all_threats[id])
+                    and (not gamedata.unit_infos[id].canrecruit)
+                    and (not FU.get_fgumap_value(gamedata.reachable_castles_map[gamedata.unit_copies[id].side], loc[1], loc[2], 'castle', false))
+                then
                     --print(id, loc[1], loc[2])
 
                     local best_rating, best_zone_id = -9e99
