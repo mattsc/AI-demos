@@ -880,9 +880,7 @@ return {
                     zone_id = zone_id,
                     power_needed = enemy_power.threats[zone_id],
                     power_needed2 = enemy_power.threats[zone_id] + enemy_power.threats2[zone_id],
-                    power_used = 0,
-                    n_units_needed = behavior.villages.n_units_needed[zone_id],
-                    n_units_used = behavior.villages.n_units_used[zone_id]
+                    power_used = 0
                 }
 
                 table.insert(zone_powers, tmp)
@@ -1259,6 +1257,7 @@ return {
             local stage_id = fred.data.analysis.stage_ids[fred.data.analysis.stage_counter]
             local status = fred.data.analysis.status
             local zone_powers = fred.data.zone_powers
+            local behavior = fred.data.behavior
             local threats = fred.data.analysis.threats
             local my_units_by_zone = fred.data.analysis.my_units_by_zone
             FU.print_debug(show_debug_analysis, '\nAnalysis of stage ' .. stage_id)
@@ -1292,7 +1291,7 @@ return {
             end
 
             local unthreatened_only = false
-            if fred.data.behavior.total.behavior == 'defensive' then
+            if behavior.total.behavior == 'defensive' then
                 unthreatened_only = true
             end
 
@@ -1304,14 +1303,14 @@ return {
 
             -- Action: Advancing toward villages
             for _,zone_power in pairs(zone_powers) do
-                if (zone_power.n_units_needed > zone_power.n_units_used) then
+                if (behavior.villages.n_units_needed[zone_power.zone_id] > behavior.villages.n_units_used[zone_power.zone_id]) then
                     local zone_cfg = {
                         zone_id = zone_power.zone_id,
                         stage_id = stage_id,
                         actions = { advance = true },
                         value_ratio = value_ratio,
                         villages_only = true,
-                        rating = base_ratings.village_grab + zone_power.n_units_needed
+                        rating = base_ratings.village_grab + behavior.villages.n_units_needed[zone_power.zone_id]
                     }
                     --DBG.dbms(zone_cfg)
                     table.insert(fred.data.zone_cfgs, zone_cfg)
