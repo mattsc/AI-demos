@@ -623,17 +623,17 @@ return {
 
             -- Assign power_used
             local power_used = { move1 = {}, move2 = {} }
-            for zone_id,hexes in pairs(key_hexes) do
-                power_used.move1[zone_id] = { units = {}, power = 0 }
-                power_used.move2[zone_id] = { units = {}, power = 0 }
+            for zone_id,cfg in pairs(raw_cfgs_main) do
+                power_used.move1[zone_id] = { units = {}, power = 0, n_units = 0 }
+                power_used.move2[zone_id] = { units = {}, power = 0, n_units = 0 }
             end
 
             for id,loc in pairs(gamedata.my_units_noMP) do
                 --print(id)
                 local best_turns, best_zone_id = 9e99
-                for zone_id,hexes in pairs(key_hexes) do
+                for zone_id,cfg in pairs(raw_cfgs_main) do
                     --print('  ' .. zone_id)
-                    for _,hex in ipairs(hexes) do
+                    for _,hex in ipairs(cfg.key_hexes) do
                         local _, cost = wesnoth.find_path(gamedata.unit_copies[id], hex[1], hex[2], { ignore_units = true })
                         local turns_needed = cost / gamedata.unit_infos[id].max_moves
                         --print('    ' .. cost, turns_needed, hex[1], hex[2])
