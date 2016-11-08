@@ -448,12 +448,52 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
 
     -- Leader and enemy leader coordinates. These are needed often enough that
     -- it is worth not extracting them from the leaders table every time
+    local reachable_keeps_map, reachable_castles_map = {}, {}
+    local width,height,border = wesnoth.get_map_size()
     for side,leader in ipairs(leaders) do
         if (side == wesnoth.current.side) then
             mapstate.leader_x, mapstate.leader_y = leader[1], leader[2]
         else
             mapstate.enemy_leader_x, mapstate.enemy_leader_y = leader[1], leader[2]
         end
+
+        -- Get closest keeps and connected castles
+        -- This might not work on weird maps
+        local leader_copy = unit_copies[leader.id]
+        local old_moves = leader_copy.moves
+        leader_copy.moves = leader_copy.max_moves
+        -- Hexes the enemy can reach in additional_turns+1 turns
+        local reach = wesnoth.find_reach(leader_copy, { ignore_units = true })
+        leader_copy.moves = old_moves
+
+        reachable_keeps_map[side], reachable_castles_map[side] = {}, {}
+        for _,loc in ipairs(reach) do
+            if wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).keep then
+                FU.set_fgumap_value(reachable_keeps_map[side], loc[1], loc[2], 'moves_left', loc[3])
+            end
+        end
+
+        -- Note that this is not strictly castle reachable by the leader, but
+        -- castles connected to keeps reachable by the leader
+        for x,arr in pairs(reachable_keeps_map[side]) do
+            for y,data in pairs(arr) do
+                local reachable_castles = wesnoth.get_locations {
+                    x = "1-"..width, y = "1-"..height,
+                    { "and", {
+                        x = x, y = y, radius = 200,
+                        { "filter_radius", { terrain = 'C*,K*,C*^*,K*^*,*^K*,*^C*' } }
+                    }}
+                }
+
+                for _,loc in ipairs(reachable_castles) do
+                    FU.set_fgumap_value(reachable_castles_map[side], loc[1], loc[2], 'castle', true)
+                    if wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).keep then
+                        reachable_castles_map[side][loc[1]][loc[2]].keep = true
+                    end
+                end
+            end
+        end
+
     end
 
     -- Leader distance maps. These are calculated using wesnoth.find_cost_map() for
@@ -505,6 +545,8 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
     mapstate.my_units_noMP = my_units_noMP
     mapstate.enemies = enemies
     mapstate.leaders = leaders
+    mapstate.reachable_keeps_map = reachable_keeps_map
+    mapstate.reachable_castles_map = reachable_castles_map
     mapstate.leader_distance_maps = leader_distance_maps
     mapstate.enemy_leader_distance_maps = enemy_leader_distance_maps
 
