@@ -887,25 +887,6 @@ return {
 
             --DBG.dbms(behavior)
             FU.print_debug(show_debug_analysis, '--- Done determining behavior ---\n')
-
-
-            local zone_powers = {}
-            for zone_id,cfg in pairs(raw_cfgs_main) do
-                local tmp = {
-                    zone_id = zone_id,
-                    power_needed = enemy_power.threats[zone_id],
-                    power_needed2 = enemy_power.threats[zone_id] + enemy_power.threats2[zone_id],
-                    power_used = 0
-                }
-
-                table.insert(zone_powers, tmp)
-            end
-            fred.data.zone_powers = zone_powers
-            --DBG.dbms(status)
-            --DBG.dbms(zone_powers)
-
-
-
             fred.data.behavior = behavior
             --DBG.dbms(behavior)
 --print('\n\n\n==============================================\n\n\n')
@@ -1271,7 +1252,6 @@ return {
             local gamedata = fred.data.gamedata
             local stage_id = fred.data.analysis.stage_ids[fred.data.analysis.stage_counter]
             local status = fred.data.analysis.status
-            local zone_powers = fred.data.zone_powers
             local behavior = fred.data.behavior
             local threats = fred.data.analysis.threats
             local my_units_by_zone = fred.data.analysis.my_units_by_zone
@@ -1334,24 +1314,25 @@ return {
 
             -- Action: attack direct threats and hold against them
             -- Both of these are done based on the power in direct threats
-            for _,zone_power in pairs(zone_powers) do
-                if (zone_power.power_needed - zone_power.power_used > power_missing_margin) then
-                    local raw_cfg = raw_cfgs_main[zone_power.zone_id]
+            for zone_id,hold in pairs(behavior.hold.zones) do
+                local power_missing = hold.power_needed - hold.power_used
+                if (power_missing > power_missing_margin) then
+                    local raw_cfg = raw_cfgs_main[zone_id]
 
                     -- Attack --
                     local zone_cfg = {
-                        zone_id = zone_power.zone_id,
+                        zone_id = zone_id,
                         actions = { attack = true },
                         target_zone = raw_cfg.target_zone,
                         stage_id = stage_id,
                         targets = {},
                         value_ratio = value_ratio,
-                        rating = base_ratings.attack + zone_power.power_needed,
-                        power_missing = zone_power.power_needed - zone_power.power_used
+                        rating = base_ratings.attack + hold.power_needed,
+                        power_missing = power_missing
                     }
 
                     -- Also add in the targets: use only those that are inside cfg.target_zone
-                    for id,_ in pairs(threats[zone_power.zone_id]) do
+                    for id,_ in pairs(threats[zone_id]) do
                         if wesnoth.match_unit(gamedata.unit_copies[id], raw_cfg.target_zone) then
                             local target = {}
                             target[id] = gamedata.enemies[id]
@@ -1363,13 +1344,13 @@ return {
 
                     -- Hold --
                     local zone_cfg = {
-                        zone_id = zone_power.zone_id,
+                        zone_id = zone_id,
                         stage_id = stage_id,
                         actions = { hold = true },
                         value_ratio = value_ratio,
-                        rating = base_ratings.hold + zone_power.power_needed,
-                        power_missing = zone_power.power_needed - zone_power.power_used,
-                        holders = my_units_by_zone[zone_power.zone_id]
+                        rating = base_ratings.hold + hold.power_needed,
+                        power_missing = power_missing,
+                        holders = my_units_by_zone[zone_id]
                     }
 
 
