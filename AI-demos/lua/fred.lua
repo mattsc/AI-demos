@@ -780,6 +780,20 @@ return {
                 behavior.hold.add_power_needed[zone_id] = behavior.hold.power_needed[zone_id] - behavior.hold.power_used[zone_id]
             end
 
+            -- For advancing, we just use the same as for holding for the moment
+            -- TODO: need to add other considerations, e.g.:
+            --   - threats farther away
+            --   - pulling in units from other zones if needed
+            behavior.advance = { zones = {} }
+            local advance_ratio = behavior.total.my_total_power / enemy_power.threats_total
+            behavior.advance.factor = math.min(1, advance_ratio)
+            for zone_id,cfg in pairs(raw_cfgs_main) do
+                behavior.advance.zones[zone_id] = {
+                    power_needed = enemy_power.threats[zone_id] * behavior.advance.factor,
+                    power_used = power_used.move1[zone_id].power
+                }
+            end
+
 
             FU.print_debug(show_debug_analysis, '\n--- Determining behavior ---')
 
@@ -843,6 +857,7 @@ return {
             --DBG.dbms(my_units_by_zone)
             --DBG.dbms(behavior.assigned_units)
             --DBG.dbms(behavior.hold)
+            DBG.dbms(behavior.advance)
 
 
             -- How many units are needed in each zone for village grabbing
@@ -1371,16 +1386,17 @@ return {
 
             -- Action: advance in a zone
             -- This takes both direct and indirect threats into account
-            for _,zone_power in pairs(zone_powers) do
-                if (zone_power.power_needed2 - zone_power.power_used > power_missing_margin) then
+            for zone_id,advance in pairs(behavior.advance.zones) do
+                local power_missing = advance.power_needed - advance.power_used
+                if (power_missing > power_missing_margin) then
                     local zone_cfg = {
-                        zone_id = zone_power.zone_id,
+                        zone_id = zone_id,
                         stage_id = stage_id,
                         actions = { advance = true },
                         value_ratio = value_ratio,
                         use_secondary_rating = true,
-                        rating = base_ratings.advance + zone_power.power_needed2,
-                        power_missing = zone_power.power_needed2 - zone_power.power_used
+                        rating = base_ratings.advance + power_missing,
+                        power_missing = power_missing
                     }
 
                     table.insert(fred.data.zone_cfgs, zone_cfg)
