@@ -853,7 +853,7 @@ return {
             --DBG.dbms(my_units_by_zone)
             --DBG.dbms(behavior.assigned_units)
             --DBG.dbms(behavior.hold)
-            DBG.dbms(behavior.advance)
+            --DBG.dbms(behavior.advance)
 
 
             -- How many units are needed in each zone for village grabbing
@@ -884,12 +884,10 @@ return {
             --DBG.dbms(behavior.villages)
 
 
-
-            --DBG.dbms(behavior)
-            FU.print_debug(show_debug_analysis, '--- Done determining behavior ---\n')
             fred.data.behavior = behavior
+
+            FU.print_debug(show_debug_analysis, '--- Done determining behavior ---\n')
             --DBG.dbms(behavior)
---print('\n\n\n==============================================\n\n\n')
         end
 
 
@@ -1382,7 +1380,7 @@ return {
             -- Now sort by the ratings embedded in the cfgs
             table.sort(fred.data.zone_cfgs, function(a, b) return a.rating > b.rating end)
 
-
+            --DBG.dbms(fred.data.zone_cfgs)
         end
 
         function fred:analyze_all_map()
