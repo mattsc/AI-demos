@@ -767,15 +767,14 @@ return {
 
             -- For attacking/holding, it's the power in the direct threats
             -- only that matters
-            behavior.hold = {
-                power_needed = {},
-                power_used = {}
-            }
+            behavior.hold = { zones = {} }
             local hold_ratio = behavior.total.my_total_power / enemy_power.threats_total
             behavior.hold.factor = math.min(1, hold_ratio)
             for zone_id,cfg in pairs(raw_cfgs_main) do
-                behavior.hold.power_needed[zone_id] = enemy_power.threats[zone_id] * behavior.hold.factor
-                behavior.hold.power_used[zone_id] = power_used.move1[zone_id].power
+                behavior.hold.zones[zone_id] = {
+                    power_needed = enemy_power.threats[zone_id] * behavior.hold.factor,
+                    power_used = power_used.move1[zone_id].power
+                }
             end
 
             -- For advancing, we just use the same as for holding for the moment
@@ -791,7 +790,6 @@ return {
                     power_used = power_used.move1[zone_id].power
                 }
             end
-
 
             FU.print_debug(show_debug_analysis, '\n--- Determining behavior ---')
 
@@ -842,7 +840,7 @@ return {
                             behavior.other_units[zone_id] = {
                                 units = {},
                                 power = 0,
-                                add_power_needed = behavior.hold.power_needed[zone_id] - behavior.hold.power_used[zone_id] }
+                                add_power_needed = behavior.hold.zones[zone_id].power_needed - behavior.hold.zones[zone_id].power_used }
                         end
 
                         behavior.other_units[zone_id].units[id] = tbl.power
