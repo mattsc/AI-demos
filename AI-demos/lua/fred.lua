@@ -769,7 +769,6 @@ return {
             -- only that matters
             behavior.hold = {
                 power_needed = {},
-                add_power_needed = {},
                 power_used = {}
             }
             local hold_ratio = behavior.total.my_total_power / enemy_power.threats_total
@@ -777,7 +776,6 @@ return {
             for zone_id,cfg in pairs(raw_cfgs_main) do
                 behavior.hold.power_needed[zone_id] = enemy_power.threats[zone_id] * behavior.hold.factor
                 behavior.hold.power_used[zone_id] = power_used.move1[zone_id].power
-                behavior.hold.add_power_needed[zone_id] = behavior.hold.power_needed[zone_id] - behavior.hold.power_used[zone_id]
             end
 
             -- For advancing, we just use the same as for holding for the moment
@@ -844,7 +842,7 @@ return {
                             behavior.other_units[zone_id] = {
                                 units = {},
                                 power = 0,
-                                add_power_needed = behavior.hold.add_power_needed[zone_id] }
+                                add_power_needed = behavior.hold.power_needed[zone_id] - behavior.hold.power_used[zone_id] }
                         end
 
                         behavior.other_units[zone_id].units[id] = tbl.power
