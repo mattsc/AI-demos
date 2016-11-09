@@ -1370,7 +1370,7 @@ return {
                         actions = { advance = true },
                         value_ratio = value_ratio,
                         use_secondary_rating = true,
-                        rating = base_ratings.advance + power_missing,
+                        rating = base_ratings.advance + advance.power_needed,
                         power_missing = power_missing
                     }
 
