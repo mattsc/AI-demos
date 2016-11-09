@@ -861,10 +861,7 @@ return {
 
 
             -- How many units are needed in each zone for village grabbing
-            behavior.villages = {
-                n_units_needed = {},
-                n_units_used = {}
-            }
+            behavior.villages = { zones = {} }
             FU.print_debug(show_debug_analysis, '\n  #villages, units needed, units already used:')
             for zone_id,cfg in pairs(raw_cfgs_main) do
                 local village_count = 0  -- unowned and enemy-owned villages
@@ -878,14 +875,15 @@ return {
                         end
                     end
                 end
-                behavior.villages.n_units_needed[zone_id] = math.ceil(village_count / cfg.villages.villages_per_unit)
 
-                behavior.villages.n_units_used[zone_id]
-                    = (behavior.villages.n_units_used[zone_id] or 0)
-                    + power_used.move1[zone_id].n_units
-                    + power_used.move2[zone_id].n_units
+                behavior.villages.zones[zone_id] = {
+                    n_units_needed = math.ceil(village_count / cfg.villages.villages_per_unit),
+                    n_units_used
+                        = power_used.move1[zone_id].n_units
+                        + power_used.move2[zone_id].n_units
+                }
 
-                FU.print_debug(show_debug_analysis, '    ' .. zone_id, village_count, behavior.villages.n_units_needed[zone_id], behavior.villages.n_units_used[zone_id])
+                FU.print_debug(show_debug_analysis, '    ' .. zone_id, village_count, behavior.villages.zones[zone_id].n_units_needed, behavior.villages.zones[zone_id].n_units_used)
             end
             --DBG.dbms(behavior.villages)
 
@@ -1323,15 +1321,15 @@ return {
             -- TODO: do not duplicate information between zone_cfg and raw_cfg
 
             -- Action: Advancing toward villages
-            for _,zone_power in pairs(zone_powers) do
-                if (behavior.villages.n_units_needed[zone_power.zone_id] > behavior.villages.n_units_used[zone_power.zone_id]) then
+            for zone_id,villages in pairs(behavior.villages.zones) do
+                if (villages.n_units_needed > villages.n_units_used) then
                     local zone_cfg = {
-                        zone_id = zone_power.zone_id,
+                        zone_id = zone_id,
                         stage_id = stage_id,
                         actions = { advance = true },
                         value_ratio = value_ratio,
                         villages_only = true,
-                        rating = base_ratings.village_grab + behavior.villages.n_units_needed[zone_power.zone_id]
+                        rating = base_ratings.village_grab + villages.n_units_needed
                     }
                     --DBG.dbms(zone_cfg)
                     table.insert(fred.data.zone_cfgs, zone_cfg)
