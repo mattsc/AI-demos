@@ -638,19 +638,43 @@ return {
                 power_used.move2[zone_id] = { units = {}, power = 0, n_units = 0 }
             end
 
+            local FDAS_units_used = fred.data.analysis.status.units_used
+
             for id,loc in pairs(gamedata.my_units_noMP) do
                 --print(id)
+
+                -- If the status table shows this unit as having been used in one
+                -- of the main zones, we use this assignment, otherwise we find
+                -- the closest key hexes. In the latter case, we only assign units
+                -- that are within 2 turns, in the former it is done no matter what
+                local unit_used = FDAS_units_used[id]
+
                 local best_turns, best_zone_id = 9e99
-                for zone_id,cfg in pairs(raw_cfgs_main) do
-                    --print('  ' .. zone_id)
-                    for _,hex in ipairs(cfg.key_hexes) do
+
+                if unit_used and raw_cfgs_main[unit_used.zone_id] then
+                    --print('  in_main_zone: ', unit_used.zone_id)
+                    for _,hex in ipairs(raw_cfgs_main[unit_used.zone_id].key_hexes) do
                         local _, cost = wesnoth.find_path(gamedata.unit_copies[id], hex[1], hex[2], { ignore_units = true })
                         local turns_needed = cost / gamedata.unit_infos[id].max_moves
                         --print('    ' .. cost, turns_needed, hex[1], hex[2])
 
-                        if (turns_needed <= 2) and (turns_needed < best_turns) then
+                        if (turns_needed < best_turns) then -- do not check for turns_needed < 2 here!
                             best_turns = turns_needed
-                            best_zone_id = zone_id
+                            best_zone_id = unit_used.zone_id
+                        end
+                    end
+                else
+                    for zone_id,cfg in pairs(raw_cfgs_main) do
+                        --print('  ' .. zone_id)
+                        for _,hex in ipairs(cfg.key_hexes) do
+                            local _, cost = wesnoth.find_path(gamedata.unit_copies[id], hex[1], hex[2], { ignore_units = true })
+                            local turns_needed = cost / gamedata.unit_infos[id].max_moves
+                            --print('    ' .. cost, turns_needed, hex[1], hex[2])
+
+                            if (turns_needed <= 2) and (turns_needed < best_turns) then
+                                best_turns = turns_needed
+                                best_zone_id = zone_id
+                            end
                         end
                     end
                 end
@@ -661,7 +685,7 @@ return {
                         power_used.move1[best_zone_id].units[id] = gamedata.unit_infos[id].power
                         power_used.move1[best_zone_id].power = power_used.move1[best_zone_id].power + gamedata.unit_infos[id].power
                         power_used.move1[best_zone_id].n_units = power_used.move1[best_zone_id].n_units + 1
-                    else
+                    else -- note that move2 also include >2 turns for units in status.units_used
                         power_used.move2[best_zone_id].units[id] = gamedata.unit_infos[id].power
                         power_used.move2[best_zone_id].power = power_used.move2[best_zone_id].power + gamedata.unit_infos[id].power
                         power_used.move2[best_zone_id].n_units = power_used.move2[best_zone_id].n_units + 1
