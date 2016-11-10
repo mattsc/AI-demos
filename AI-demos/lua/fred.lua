@@ -2869,7 +2869,7 @@ return {
             -- If that table is missing, it matches all units
             local advance_units = {}
             for id,loc in pairs(gamedata.my_units_MP) do
-                if wesnoth.match_unit(gamedata.unit_copies[id], raw_cfg.unit_filter_advance) then
+                if zonedata.cfg.from_other_zones or wesnoth.match_unit(gamedata.unit_copies[id], raw_cfg.unit_filter_advance) then
                     --print('  matches unit_filter_advance in zone ' .. zonedata.cfg.zone_id, id)
                     advance_units[id] = loc
                 end
