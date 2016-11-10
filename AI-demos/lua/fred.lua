@@ -427,8 +427,8 @@ return {
                 fred.data.analysis = {
                     turn = wesnoth.current.turn,
                     stage_counter = 1,
-                    --stage_ids = { 'leader_threat', 'defend_zones', 'all_map' },
-                    stage_ids = { 'defend_zones' },
+                    stage_ids = { 'leader_threat', 'defend_zones', 'all_map' },
+                    --stage_ids = { 'defend_zones' },
                     status = {
                         units_used = {}
                     }
