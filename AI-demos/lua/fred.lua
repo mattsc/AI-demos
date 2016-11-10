@@ -412,8 +412,8 @@ return {
             return true
         end
 
-        function fred:analyze_map_set_tables_turn()
-            FU.print_debug(show_debug_analysis, 'Setting (or resetting) the map analysis tables:')
+        function fred:analyze_map_update_tables()
+            FU.print_debug(show_debug_analysis, '\n\n\n\n-------------\nUpdating the map analysis tables:')
 
             -- At beginning of turn, reset fred.data.analysis and add new fields:
             --   turn
@@ -423,15 +423,19 @@ return {
             --   threats
             --   my_units_by_zone
 
-            fred.data.analysis = {
-                turn = wesnoth.current.turn,
-                stage_counter = 1,
-                stage_ids = { 'leader_threat', 'defend_zones', 'all_map' },
-                --stage_ids = { 'defend_zones' },
-                status = {
-                    units_used = {}
+            if (not fred.data.analysis) or (fred.data.analysis.turn ~= wesnoth.current.turn) then
+                fred.data.analysis = {
+                    turn = wesnoth.current.turn,
+                    stage_counter = 1,
+                    --stage_ids = { 'leader_threat', 'defend_zones', 'all_map' },
+                    stage_ids = { 'defend_zones' },
+                    status = {
+                        units_used = {}
+                    }
                 }
-            }
+            end
+
+            fred:go_here_map()
 
             local gamedata = fred.data.gamedata
             local raw_cfgs_all = fred:get_raw_cfgs('all')
@@ -888,96 +892,6 @@ return {
 
             FU.print_debug(show_debug_analysis, '--- Done determining behavior ---\n')
             --DBG.dbms(behavior)
-        end
-
-
-        function fred:analyze_map_update_tables()
-            FU.print_debug(show_debug_analysis, '\n\n\n\n-------------\nUpdating the map analysis tables:')
-
-            -- Before each move, update the following fields in fred.data.analysis:
-            --   threats, threats2
-            --   my_units_by_zone
-            --   behavior
-            -- This means updating the power and deleting units from the tables if
-            -- they have died. It does NOT mean removing/adding units from the
-            -- tables because they cannot reach certain hexes any more
-
-            local force_reset_tables = false  -- mostly just for debugging
------- xxxxxxxxx
---force_reset_tables = true
-
-            if force_reset_tables
-                or (not fred.data.analysis)
-                or (fred.data.analysis.turn ~= wesnoth.current.turn)
-            then
-                fred:analyze_map_set_tables_turn()
-            end
-
-            local gamedata = fred.data.gamedata
-            local raw_cfgs = fred:get_raw_cfgs('all')
-            --DBG.dbms(raw_cfgs)
-
-            fred:go_here_map()
-
-            -- Then go through the global units_used table and
-            --   1. make sure units still exist, has MP=0 and is not the AI leader
-            --        (TODO: consider whether leader should be included sometimes)
-            --   2. update their power
-            --   3. remove the AI leader from it (TODO: reconsider this?)
-            --   4. add the units to the zone tables
-
-
-            -- threats: just update the unit powers
-            local threats = fred.data.analysis.threats
-            --DBG.dbms(threats)
-
-            for _,powers in pairs(threats) do
-                for id,_ in pairs(powers) do
-                    if gamedata.enemies[id] then
-                        local power = gamedata.unit_infos[id].power
-                        powers[id] = power
-                    else
-                        powers[id] = nil
-                    end
-                end
-            end
-            --DBG.dbms(threats)
-
-
-            -- threats2: just update the unit powers
-            local threats2 = fred.data.analysis.threats2
-            --DBG.dbms(threats2)
-
-            for _,powers in pairs(threats2) do
-                for id,_ in pairs(powers) do
-                    if gamedata.enemies[id] then
-                        local power = gamedata.unit_infos[id].power
-                        powers[id] = power
-                    else
-                        powers[id] = nil
-                    end
-                end
-            end
-            --DBG.dbms(threats2)
-
-            -- my_units_by_zone: just update the unit powers
-            -- TODO: note, this means it stays the same even if a unit moved out
-            -- of the zone; this does not matter if the analysis is moved to
-            -- the beginning of turn code; TBD
-            local my_units_by_zone = fred.data.analysis.my_units_by_zone
-            --DBG.dbms(my_units_by_zone)
-
-            for _,powers in pairs(my_units_by_zone) do
-                for id,_ in pairs(powers) do
-                    if gamedata.my_units[id] then
-                        local power = gamedata.unit_infos[id].power
-                        powers[id] = power
-                    else
-                        powers[id] = nil
-                    end
-                end
-            end
-            --DBG.dbms(my_units_by_zone)
         end
 
 
