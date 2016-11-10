@@ -1281,6 +1281,7 @@ return {
                         stage_id = stage_id,
                         actions = { advance = true },
                         value_ratio = value_ratio,
+                        from_other_zones = true,
                         use_secondary_rating = true,
                         rating = base_ratings.advance + advance.power_needed,
                         power_missing = power_missing
