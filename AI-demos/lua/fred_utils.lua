@@ -244,11 +244,13 @@ function fred_utils.get_value_ratio(gamedata)
     -- unity, but we do want it to be larger than the power ratio
     -- TODO: this equation is experimental so far, needs to be tested
 
-    local tmp_value_ratio = my_power / (enemy_power + 1e-6) -- this is inverse of value_ratio
-    tmp_value_ratio = tmp_value_ratio - 0.25
-    if (tmp_value_ratio <= 0) then tmp_value_ratio = 0.01 end
-    tmp_value_ratio = 1. / tmp_value_ratio
+    --local tmp_value_ratio = my_power / (enemy_power + 1e-6) -- this is inverse of value_ratio
+    --tmp_value_ratio = tmp_value_ratio - 0.25
+    --if (tmp_value_ratio <= 0) then tmp_value_ratio = 0.01 end
+    --tmp_value_ratio = 1. / tmp_value_ratio
     --print('tmp_value_ratio', tmp_value_ratio)
+
+    local tmp_value_ratio = enemy_power / my_power
 
     if (tmp_value_ratio < value_ratio) then
         value_ratio = tmp_value_ratio
