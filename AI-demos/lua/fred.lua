@@ -1042,7 +1042,7 @@ return {
                 stage_id = stage_id,
                 targets = {},
                 actions = { attack = true },
-                value_ratio = 0.8 -- more aggressive for direct leader threats, but not too much
+                value_ratio = 0.7 -- more aggressive for direct leader threats, but not too much
             }
 
             for id,_ in pairs(threats) do

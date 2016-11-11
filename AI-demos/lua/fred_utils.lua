@@ -148,7 +148,7 @@ end
 
 function fred_utils.cfg_default(parm)
     local cfg = {
-        value_ratio = 1.0,  -- how valuable are own units compared to enemies
+        value_ratio = 0.8,  -- how valuable are own units compared to enemies
 
         leader_weight = 1.5,
 
@@ -254,8 +254,8 @@ function fred_utils.get_value_ratio(gamedata)
         value_ratio = tmp_value_ratio
     end
 
-    if (value_ratio < 0.67) then
-        value_ratio = 0.67
+    if (value_ratio < 0.6) then
+        value_ratio = 0.6
     end
 
     --print('value_ratio', value_ratio)
