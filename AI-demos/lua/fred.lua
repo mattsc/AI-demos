@@ -728,12 +728,8 @@ return {
                 behavior.total.behavior = 'defensive'
             end
 
-            -- Overall if we do this well, that's good:
-            -- This needs to be reconciled with value_ratio
-            acceptable_loss_ratio = behavior.total.my_total_power / behavior.total.enemy_total_power
-            if (acceptable_loss_ratio > 1) then acceptable_loss_ratio = 1 end
-            FU.print_debug(show_debug_analysis, '    -> acceptable_loss_ratio:', acceptable_loss_ratio)
-            behavior.total.acceptable_loss_ratio = acceptable_loss_ratio
+            behavior.total.value_ratio = FU.get_value_ratio(gamedata)
+            FU.print_debug(show_debug_analysis, '    -> value_ratio:', behavior.total.value_ratio)
 
             local enemy_power = {
                 threats_total = 0,
@@ -1214,10 +1210,8 @@ return {
             local power_missing_margin = 2
 
             ----- begin TODO: check which of these are actually needed
-            local value_ratio, my_power, enemy_power = FU.get_value_ratio(gamedata)
-
             local straight_line = false
-            if (my_power > enemy_power * 2) then
+            if (behavior.total.my_total_power > behavior.total.my_total_power * 2) then
                 straight_line = true
             end
 
@@ -1239,7 +1233,7 @@ return {
                         zone_id = zone_id,
                         stage_id = stage_id,
                         actions = { advance = true },
-                        value_ratio = value_ratio,
+                        value_ratio = behavior.total.value_ratio,
                         villages_only = true,
                         rating = base_ratings.village_grab + villages.n_units_needed
                     }
@@ -1262,7 +1256,7 @@ return {
                         target_zone = raw_cfg.target_zone,
                         stage_id = stage_id,
                         targets = {},
-                        value_ratio = value_ratio,
+                        value_ratio = behavior.total.value_ratio,
                         rating = base_ratings.attack + hold.power_needed,
                         power_missing = power_missing
                     }
@@ -1283,7 +1277,7 @@ return {
                         zone_id = zone_id,
                         stage_id = stage_id,
                         actions = { hold = true },
-                        value_ratio = value_ratio,
+                        value_ratio = behavior.total.value_ratio,
                         rating = base_ratings.hold + hold.power_needed,
                         power_missing = power_missing,
                         holders = my_units_by_zone[zone_id]
@@ -1304,7 +1298,7 @@ return {
                         zone_id = zone_id,
                         stage_id = stage_id,
                         actions = { advance = true },
-                        value_ratio = value_ratio,
+                        value_ratio = behavior.total.value_ratio,
                         from_other_zones = true,
                         use_secondary_rating = true,
                         rating = base_ratings.advance + advance.power_needed,
@@ -1329,13 +1323,12 @@ return {
             local gamedata = fred.data.gamedata
             local stage_id = fred.data.analysis.stage_ids[fred.data.analysis.stage_counter]
             local stage_status = fred.data.analysis.status[stage_id]
+            local behavior = fred.data.behavior
 
             fred.data.zone_cfgs = {}
 
-            local value_ratio, my_power, enemy_power = FU.get_value_ratio(gamedata)
-
             local straight_line = false
-            if (my_power > enemy_power * 2) then
+            if (behavior.total.my_total_power > behavior.total.my_total_power * 2) then
                 straight_line = true
             end
 
@@ -1346,7 +1339,7 @@ return {
                 zone_id = zone_id,
                 stage_id = stage_id,
                 actions = { attack = true },
-                value_ratio = value_ratio
+                value_ratio = behavior.total.value_ratio
             }
 
             table.insert(fred.data.zone_cfgs, attack_all_cfg)
@@ -1375,7 +1368,7 @@ return {
                     advance = true,
                     straight_line = true
                 },
-                value_ratio = value_ratio
+                value_ratio = behavior.total.value_ratio
             }
 
             table.insert(fred.data.zone_cfgs, advance_cfg)
