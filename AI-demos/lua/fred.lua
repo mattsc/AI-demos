@@ -719,15 +719,6 @@ return {
                 enemy_total_power = enemy_total_power
             }
 
-            -- Overall behavior: aggressive if power is roughly equal
-            -- TODO: this is arbitrarily set to being down by now more than one new grunt
-            -- TODO: do we want to do this each move, or just once per turn?
-            if (enemy_total_power < my_total_power + 12) then
-                behavior.total.behavior = 'aggressive'
-            else
-                behavior.total.behavior = 'defensive'
-            end
-
             behavior.total.value_ratio = FU.get_value_ratio(gamedata)
             FU.print_debug(show_debug_analysis, '    -> value_ratio:', behavior.total.value_ratio)
 
@@ -1213,11 +1204,6 @@ return {
             local straight_line = false
             if (behavior.total.my_total_power > behavior.total.my_total_power * 2) then
                 straight_line = true
-            end
-
-            local unthreatened_only = false
-            if behavior.total.behavior == 'defensive' then
-                unthreatened_only = true
             end
 
             --local hold_core_only = (enemy_total_power > my_total_power)
