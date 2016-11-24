@@ -818,15 +818,6 @@ return {
             --  - Are there units that must be used in a specific zone
             --  - Which is the highest priority zone?
 
-            ranking = {}
-            for zone_id,cfg in pairs(raw_cfgs_main) do
-                table.insert(ranking, { zone_id = zone_id, rating = enemy_power.threats[zone_id] })
-            end
-            table.sort(ranking, function(a, b) return a.rating > b.rating end)
-            FU.print_debug(show_debug_analysis, '    -> zone ranking (simply based on threat):')
-            --DBG.dbms(ranking)
-
-
             for id,tbl in pairs(units_for_zones) do
                 if (#tbl == 1) then
                     local zone_id = tbl[1]
