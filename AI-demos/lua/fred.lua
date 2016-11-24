@@ -818,17 +818,6 @@ return {
             --  - Are there units that must be used in a specific zone
             --  - Which is the highest priority zone?
 
-            FU.print_debug(show_debug_analysis, '  Sufficient power: (is_sufficient, missing)')
-            local sp, pm = FU.is_sufficient_power(behavior.total.my_total_power, behavior.total.enemy_total_power)
-            FU.print_debug(show_debug_analysis, '    total:', sp, pm)
-
-
-            FU.print_debug(show_debug_analysis, '    by zone, threats (double counting):')
-            for zone_id,cfg in pairs(raw_cfgs_main) do
-                local sp, pm = FU.is_sufficient_power(my_power[zone_id], enemy_power.threats[zone_id])
-                FU.print_debug(show_debug_analysis, '    ', zone_id, sp, pm)
-            end
-
             ranking = {}
             for zone_id,cfg in pairs(raw_cfgs_main) do
                 table.insert(ranking, { zone_id = zone_id, rating = enemy_power.threats[zone_id] })
@@ -867,6 +856,7 @@ return {
             --DBG.dbms(units_for_zones)
             --DBG.dbms(my_units_by_zone)
             --DBG.dbms(behavior.assigned_units)
+            --DBG.dbms(behavior.other_units)
             --DBG.dbms(behavior.hold)
             --DBG.dbms(behavior.advance)
 
@@ -1183,6 +1173,7 @@ return {
             -- These are only the raw_cfgs of the 3 main zones
             local raw_cfgs_main = fred:get_raw_cfgs()
             --DBG.dbms(raw_cfgs_main)
+            --DBG.dbms(fred.data.analysis)
 
 
             fred.data.zone_cfgs = {}
