@@ -1365,6 +1365,19 @@ return {
 
                     table.insert(fred.data.zone_cfgs, zone_cfg)
 
+                    local holders = {}
+                    if behavior.assigned_units[zone_id] then
+                        for id,power in pairs(behavior.assigned_units[zone_id].units) do
+                            holders[id] = power
+                        end
+                    end
+                    if behavior.other_units[zone_id] then
+                        for id,power in pairs(behavior.other_units[zone_id].units) do
+                            holders[id] = power
+                        end
+                    end
+                    DBG.dbms(holders)
+
                     -- Hold --
                     local zone_cfg = {
                         zone_id = zone_id,
@@ -1373,7 +1386,7 @@ return {
                         value_ratio = behavior.total.value_ratio,
                         rating = base_ratings.hold + hold.power_needed,
                         power_missing = power_missing,
-                        holders = my_units_by_zone[zone_id]
+                        holders = holders
                     }
 
 
