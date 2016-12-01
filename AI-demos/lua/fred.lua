@@ -787,8 +787,10 @@ return {
             behavior.hold.factor = math.min(1, hold_ratio)
             for zone_id,cfg in pairs(raw_cfgs_main) do
                 behavior.hold.zones[zone_id] = {
+                    raw_power_needed = enemy_power.threats[zone_id],
                     power_needed = enemy_power.threats[zone_id] * behavior.hold.factor,
-                    power_used = power_used.move1[zone_id].power
+                    power_used = power_used.move1[zone_id].power,
+                    fraction = enemy_power.threats[zone_id] / enemy_power.threats_total
                 }
             end
 
@@ -822,10 +824,10 @@ return {
                 if (#tbl == 1) then
                     local zone_id = tbl[1]
                     if (not behavior.assigned_units[zone_id]) then
-                        behavior.assigned_units[zone_id] = { power = 0 }
+                        behavior.assigned_units[zone_id] = { units = {}, power = 0 }
                     end
 
-                    table.insert(behavior.assigned_units[zone_id], id)
+                    behavior.assigned_units[zone_id].units[id] = tbl.power
                     behavior.assigned_units[zone_id].power = behavior.assigned_units[zone_id].power + tbl.power
 
                     --units_for_zones[id] = nil
@@ -851,6 +853,129 @@ return {
             --DBG.dbms(behavior.hold)
             --DBG.dbms(behavior.advance)
 
+            -- Extract all AI units with MP left (for enemy path finding, counter attack placement etc.)
+            local extracted_units = {}
+            for id,loc in pairs(fred.data.gamedata.my_units_MP) do
+                local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
+                wesnoth.extract_unit(unit_proxy)
+                table.insert(extracted_units, unit_proxy)  -- Not a proxy unit any more at this point
+            end
+
+            local ratings, ratings_by_zone = {}, {}
+            for zone_id,cfg in pairs(raw_cfgs_main) do
+                --print(zone_id)
+                local holders = behavior.other_units[zone_id] and behavior.other_units[zone_id].units or {}
+                local zone_ratings = FHU.get_hold_units(zone_id, holders, raw_cfgs_main[zone_id], gamedata, fred.data.move_cache, show_debug_hold)
+
+                --[[if zone_ratings then
+                    for id,rating in pairs(zone_ratings) do
+                        if (not ratings[id]) then ratings[id] = {} end
+                        ratings[id][zone_id] = rating
+                    end
+                end--]]
+
+                ratings_by_zone[zone_id] = zone_ratings or {}
+
+            end
+            --DBG.dbms(ratings)
+            --DBG.dbms(ratings_by_zone)
+
+            for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
+
+            print('Distributing other units')
+
+            local others = {}
+            for zone_id,cfg in pairs(raw_cfgs_main) do
+                others[zone_id] = { units = {}, power = 0 }
+            end
+
+            local keep_searching = true
+            while keep_searching do
+                keep_searching = false
+
+                local max_needed, best_zone = nil, nil
+                for zone_id,cfg in pairs(raw_cfgs_main) do
+                    if next(ratings_by_zone[zone_id]) then
+                        local fraction = behavior.hold.zones[zone_id].fraction
+                        --print('  ' .. zone_id .. '   fraction = ' .. fraction)
+
+                        local assigned_power = behavior.assigned_units[zone_id] and behavior.assigned_units[zone_id].ppower or 0
+
+                        local other_power_needed =
+                            behavior.hold.zones[zone_id].power_needed
+                            - behavior.hold.zones[zone_id].power_used
+                            - assigned_power
+                            - others[zone_id].power
+                        other_power_needed = math.max(other_power_needed, 0)
+                        --print('    other power needed', other_power_needed)
+
+                        local needed = other_power_needed * fraction
+                        --print('    needed next:', needed, max_needed, zone_id)
+
+                        if (needed > 0) and ((not max_needed) or (needed > max_needed)) then
+                            max_needed, best_zone = needed, zone_id
+                        end
+                    end
+                end
+                --print('  most in need:', best_zone, max_needed)
+
+                if best_zone then
+                    local max_rating, best_id
+                    for id,rating in pairs(ratings_by_zone[best_zone]) do
+                        if (not max_rating) or (rating > max_rating) then
+                            max_rating, best_id = rating,id
+                        end
+                    end
+                    --print('    best_unit:', best_id)
+
+                    if best_id then
+                        local power = behavior.other_units[best_zone].units[best_id]
+                        others[best_zone].power = others[best_zone].power + power
+                        others[best_zone].units[best_id] = power
+
+                        -- Remove this unit from the ratings table
+                        for zone_id,cfg in pairs(raw_cfgs_main) do
+                            ratings_by_zone[zone_id][best_id] = nil
+                        end
+
+                        keep_searching = true
+                    end
+                end
+            end
+            --DBG.dbms(others)
+
+            -- Now add these to assigned_units and remove them from other_units
+            -- Todo: consider doing this inside the loop above, but for now we
+            -- keep it separate as more analysis on this might need to be done
+
+            for zone_id,tbl in pairs(others) do
+                for id,power in pairs(tbl.units) do
+                    if (not behavior.assigned_units[zone_id]) then
+                        behavior.assigned_units[zone_id] = { units = {}, power = 0 }
+                    end
+
+                    behavior.assigned_units[zone_id].units[id] = power
+                    behavior.assigned_units[zone_id].power = behavior.assigned_units[zone_id].power + power
+
+                    for zone_id2,tbl2 in pairs(behavior.other_units) do
+                        for id2,power2 in pairs(tbl2.units) do
+                            if (id == id2) then
+                                tbl2.units[id] = nil
+                                tbl2.power = tbl2.power - power2
+
+                                -- If there's no unit left, remove the entire table
+                                if (not next(tbl2.units)) then
+                                    behavior.other_units[zone_id2] = nil
+                                end
+                            end
+                        end
+                    end
+
+
+                end
+            end
+            --DBG.dbms(behavior.assigned_units)
+            --DBG.dbms(behavior.other_units)
 
             -- How many units are needed in each zone for village grabbing
             behavior.villages = { zones = {} }
