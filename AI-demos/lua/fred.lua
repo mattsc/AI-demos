@@ -254,6 +254,27 @@ return {
                 W.message{ speaker = 'narrator', message = 'go here' }
                 FU.clear_labels()
             end
+
+            --[[
+            local blurred_vulnerability = {}
+            for x,arr in pairs(fred.data.gamedata.influence_map) do
+                for y,data in pairs(arr) do
+                    local v = data.vulnerability
+                    local count = 1
+                    for xa,ya in H.adjacent_tiles(x, y) do
+                        local va = FU.get_fgumap_value(fred.data.gamedata.influence_map, xa, ya, 'vulnerability')
+                        if va then
+                            v = v + va
+                            count = count + 1
+                        end
+                    end
+                    v = v / count
+
+                    FU.set_fgumap_value(blurred_vulnerability, x, y, 'value', v)
+                end
+            end
+            --]]
+
             -- Need a map with the distances to the enemy and own leaders
             local leader_cx, leader_cy = AH.cartesian_coords(fred.data.gamedata.leader_x, fred.data.gamedata.leader_y)
             local enemy_leader_cx, enemy_leader_cy = AH.cartesian_coords(fred.data.gamedata.enemy_leader_x, fred.data.gamedata.enemy_leader_y)
