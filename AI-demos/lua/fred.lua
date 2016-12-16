@@ -2603,29 +2603,9 @@ return {
                 W.message{ speaker = 'narrator', message = zonedata.cfg.zone_id .. ': enemy_rating_map' }
             end
 
-            -- Need a map with the distances to the enemy and own leaders
-            local leader_cx, leader_cy = AH.cartesian_coords(gamedata.leader_x, gamedata.leader_y)
-            local enemy_leader_cx, enemy_leader_cy = AH.cartesian_coords(gamedata.enemy_leader_x, gamedata.enemy_leader_y)
-
-            local dist_btw_leaders = math.sqrt( (enemy_leader_cx - leader_cx)^2 + (enemy_leader_cy - leader_cy)^2 )
-
-            local leader_distance_map = {}
-            local width, height = wesnoth.get_map_size()
-            for x = 1,width do
-                for y = 1,width do
-                    local cx, cy = AH.cartesian_coords(x, y)
-
-                    local leader_dist = math.sqrt( (leader_cx - cx)^2 + (leader_cy - cy)^2 )
-                    local enemy_leader_dist = math.sqrt( (enemy_leader_cx - cx)^2 + (enemy_leader_cy - cy)^2 )
-
-                    if (not leader_distance_map[x]) then leader_distance_map[x] = {} end
-                    leader_distance_map[x][y] = { distance = leader_dist - enemy_leader_dist }
-                end
-            end
-
             local show_debug_local = false
             if show_debug_local then
-                FU.put_fgumap_labels(leader_distance_map, 'distance')
+                FU.put_fgumap_labels(gamedata.leader_distance_map, 'distance')
                 W.message{ speaker = 'narrator', message = zonedata.cfg.zone_id .. ': leader_distance_map' }
             end
 
@@ -2642,7 +2622,7 @@ return {
                     local rating, adj_count = 0, 0
 
                     for xa,ya in H.adjacent_tiles(x, y) do
-                        if leader_distance_map[xa][ya].distance >= leader_distance_map[x][y].distance then
+                        if gamedata.leader_distance_map[xa][ya].distance >= gamedata.leader_distance_map[x][y].distance then
                             local def_rating = enemy_rating_map[xa]
                                 and enemy_rating_map[xa][ya]
                                 and enemy_rating_map[xa][ya].rating
