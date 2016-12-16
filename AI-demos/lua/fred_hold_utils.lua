@@ -126,9 +126,10 @@ function fred_hold_utils.is_acceptable_location(unit_info, x, y, hit_chance, cou
     return true
 end
 
-function fred_hold_utils.is_acceptable_hold(combo_stats, raw_cfg, zone_cfg, gamedata)
+function fred_hold_utils.is_acceptable_hold(combo_stats, raw_cfg, zone_cfg, hold_cfg, gamedata)
     --DBG.dbms(combo_stats)
     --DBG.dbms(zone_cfg)
+    --DBG.dbms(hold_cfg)
 
     local show_debug = false
     if (x == 18) and (y == 12) and (unit_info.type == 'Orcish Grunt') then
@@ -165,6 +166,7 @@ function fred_hold_utils.is_acceptable_hold(combo_stats, raw_cfg, zone_cfg, game
         end
         FU.print_debug(show_debug, '    is_core_hex:', is_core_hex)
 
+        --[[
         local is_forward_hex = false
         if raw_cfg.hold_forward_slf then
             is_forward_hex = wesnoth.match_location(cs.x, cs.y, raw_cfg.hold_forward_slf)
@@ -174,6 +176,14 @@ function fred_hold_utils.is_acceptable_hold(combo_stats, raw_cfg, zone_cfg, game
             power_forward = power_forward + gamedata.unit_infos[cs.id].power
         end
         FU.print_debug(show_debug, '    is_forward_hex:', is_forward_hex)
+        --]]
+
+        local dist_margin = 1
+        local dist = FU.get_fgumap_value(gamedata.leader_distance_map, cs.x, cs.y, 'distance')
+        if (dist > hold_cfg.max_forward_distance + dist_margin) then
+            FU.print_debug(show_debug, '    forward distance not acceptable:', cs.id, cs.x, cs.y, dist .. ' > ' .. hold_cfg.max_forward_distance .. ' + ' .. dist_margin)
+            return false
+        end
     end
 
     FU.print_debug(show_debug, '    n_total, n_core, n_forward:', n_total, n_core, n_forward)
@@ -186,6 +196,7 @@ function fred_hold_utils.is_acceptable_hold(combo_stats, raw_cfg, zone_cfg, game
     -- Forward hexes are only accepted if:
     --  - there are no core hexes being held
     --  - or: the rating is positive
+    --[[
     if (n_forward < n_total) or (n_forward == 1) then -- This is a place_holder for now
         if (n_forward > 0) then
             for _,cs in ipairs(combo_stats) do
@@ -198,6 +209,7 @@ function fred_hold_utils.is_acceptable_hold(combo_stats, raw_cfg, zone_cfg, game
             end
         end
     end
+    --]]
 
     return true
 end

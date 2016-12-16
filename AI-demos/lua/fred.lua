@@ -2985,7 +2985,7 @@ return {
 
                 -- Now check whether the hold combination is acceptable
                 if is_acceptable then
-                    is_acceptable = FHU.is_acceptable_hold(combo_stats, raw_cfg, zonedata.cfg, gamedata)
+                    is_acceptable = FHU.is_acceptable_hold(combo_stats, raw_cfg, zonedata.cfg, fred.data.analysis.behavior.hold.zones[zonedata.cfg.zone_id], gamedata)
                 end
 
                 -- If this has negative rating, check whether it is acceptable after all
