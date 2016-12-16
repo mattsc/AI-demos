@@ -297,6 +297,26 @@ return {
             end
             fred.data.gamedata.leader_distance_map = leader_distance_map
 
+            local show_debug = false
+            if show_debug then
+                FU.put_fgumap_labels(fred.data.gamedata.influence_map, 'my')
+                W.message{ speaker = 'narrator', message = 'my_influence' }
+                FU.put_fgumap_labels(fred.data.gamedata.influence_map, 'enemy')
+                W.message{ speaker = 'narrator', message = 'enemy_influence' }
+                FU.put_fgumap_labels(fred.data.gamedata.influence_map, 'influence')
+                W.message{ speaker = 'narrator', message = 'influence' }
+                FU.put_fgumap_labels(fred.data.gamedata.influence_map, 'tension')
+                W.message{ speaker = 'narrator', message = 'tension' }
+                FU.put_fgumap_labels(fred.data.gamedata.influence_map, 'vulnerability')
+                W.message{ speaker = 'narrator', message = 'vulnerability' }
+                --FU.put_fgumap_labels(blurred_vulnerability, 'value')
+                --W.message{ speaker = 'narrator', message = 'blurred vulnerability' }
+                FU.put_fgumap_labels(leader_distance_map, 'distance')
+                W.message{ speaker = 'narrator', message = 'leader_distance_map' }
+                FU.put_fgumap_labels(hold_here_map, 'hold_here')
+                W.message{ speaker = 'narrator', message = 'hold_here_map' }
+                FU.clear_labels()
+            end
         end
 
         function fred:get_raw_cfgs(zone_id)
