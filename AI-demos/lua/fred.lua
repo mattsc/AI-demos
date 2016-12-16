@@ -254,6 +254,28 @@ return {
                 W.message{ speaker = 'narrator', message = 'go here' }
                 FU.clear_labels()
             end
+            -- Need a map with the distances to the enemy and own leaders
+            local leader_cx, leader_cy = AH.cartesian_coords(fred.data.gamedata.leader_x, fred.data.gamedata.leader_y)
+            local enemy_leader_cx, enemy_leader_cy = AH.cartesian_coords(fred.data.gamedata.enemy_leader_x, fred.data.gamedata.enemy_leader_y)
+
+            local dist_btw_leaders = math.sqrt( (enemy_leader_cx - leader_cx)^2 + (enemy_leader_cy - leader_cy)^2 )
+
+            local leader_distance_map, hold_here_map = {}, {}
+            local width, height = wesnoth.get_map_size()
+            for x = 1,width do
+                for y = 1,width do
+                    local cx, cy = AH.cartesian_coords(x, y)
+
+                    local leader_dist = math.sqrt( (leader_cx - cx)^2 + (leader_cy - cy)^2 )
+                    local enemy_leader_dist = math.sqrt( (enemy_leader_cx - cx)^2 + (enemy_leader_cy - cy)^2 )
+
+                    if (not leader_distance_map[x]) then leader_distance_map[x] = {} end
+                    leader_distance_map[x][y] = { distance = leader_dist - enemy_leader_dist }
+
+                end
+            end
+            fred.data.gamedata.leader_distance_map = leader_distance_map
+
         end
 
         function fred:get_raw_cfgs(zone_id)
