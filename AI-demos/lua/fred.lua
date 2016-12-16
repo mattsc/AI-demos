@@ -1040,6 +1040,43 @@ return {
             --DBG.dbms(behavior.assigned_units)
             --DBG.dbms(behavior.other_units)
 
+
+            FU.print_debug(show_debug_analysis, '\nDetermining how far to advance: (leader_distance, hex)')
+            for zone_id,cfg in pairs(raw_cfgs_main) do
+                local zone = wesnoth.get_locations(cfg.hold_slf)
+
+                local max_vulnerability, best_leader_distance, best_hex = -9e99, -9e99
+                for _,loc in ipairs(zone) do
+                    local vulnerability = FU.get_fgumap_value(fred.data.gamedata.influence_map, loc[1], loc[2], 'vulnerability', -999)
+                    local leader_distance = FU.get_fgumap_value(fred.data.gamedata.leader_distance_map, loc[1], loc[2], 'distance', -999)
+                    --print(loc[1], loc[2], vulnerability)
+
+                    if (vulnerability > max_vulnerability)
+                       or ((vulnerability == max_vulnerability)) and (leader_distance > best_leader_distance)
+                    then
+                        max_vulnerability = vulnerability
+                        best_leader_distance = leader_distance
+                        best_hex = loc
+                    end
+                end
+                --print('    ' .. zone_id .. ': ', max_vulnerability, best_leader_distance, best_hex[1] .. ',' .. best_hex[2])
+
+                -- Except if this is behind the key hexes
+                for _,loc in ipairs(cfg.key_hexes) do
+                    local leader_distance = FU.get_fgumap_value(fred.data.gamedata.leader_distance_map, loc[1], loc[2], 'distance', -999)
+
+                    if (leader_distance > best_leader_distance) then
+                        best_leader_distance = leader_distance
+                        best_hex = loc
+                        --print('      Using key hex instead: ', best_leader_distance, best_hex[1] .. ',' .. best_hex[2])
+                    end
+                end
+
+                behavior.hold.zones[zone_id].max_forward_distance = best_leader_distance
+                FU.print_debug(show_debug_analysis, '  ' .. zone_id .. ': ', best_leader_distance, best_hex[1] .. ',' .. best_hex[2])
+            end
+            --DBG.dbms(behavior.hold)
+
             -- How many units are needed in each zone for village grabbing
             behavior.villages = { zones = {} }
             FU.print_debug(show_debug_analysis, '\n  #villages, units needed, units already used:')
