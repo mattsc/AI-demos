@@ -497,7 +497,7 @@ function fred_hold_utils.get_hold_units(zone_id, holders, raw_cfg, gamedata, mov
 
             local uiw = wesnoth.get_unit(x, y)
             if uiw then
-                print('    removing unit in way:', uiw.id)
+                --print('    removing unit in way:', uiw.id)
                 wesnoth.extract_unit(uiw)
             end
 
@@ -528,12 +528,6 @@ function fred_hold_utils.get_hold_units(zone_id, holders, raw_cfg, gamedata, mov
             for enemy_id,enemy_loc in pairs(best_defense) do
                 --print('    enemy', enemy_id, enemy_loc.x, enemy_loc.y)
 
-                local uiw_enemy = wesnoth.get_unit(enemy_loc.x, enemy_loc.y)
-                if uiw_enemy then
-                    print('    removing unit in way:', uiw_enemy.id)
-                    wesnoth.extract_unit(uiw_enemy)
-                end
-
                 -- Now we put the units on the map and do the attack calculation
                 local old_x = gamedata.unit_copies[id].x
                 local old_y = gamedata.unit_copies[id].y
@@ -542,6 +536,16 @@ function fred_hold_utils.get_hold_units(zone_id, holders, raw_cfg, gamedata, mov
 
                 local enemy_proxy = wesnoth.get_unit(old_x_enemy, old_y_enemy)
                 wesnoth.extract_unit(enemy_proxy)
+
+                -- Extract a potential other enemy in the way of the enemy to be checked here
+                -- Needs to be done here in case the old and new locations are the same
+                -- Todo: we could save the effort of moving the enemy in that case
+                local uiw_enemy = wesnoth.get_unit(enemy_loc.x, enemy_loc.y)
+                if uiw_enemy then
+                    print('    removing enemy in way:', uiw_enemy.id)
+                    wesnoth.extract_unit(uiw_enemy)
+                end
+
                 wesnoth.put_unit(enemy_loc.x, enemy_loc.y, enemy_proxy)
 
                 wesnoth.put_unit(x, y, gamedata.unit_copies[id])
