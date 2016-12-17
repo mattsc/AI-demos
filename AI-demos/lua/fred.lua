@@ -2528,13 +2528,15 @@ return {
             local zone_map = {}
             for x,tmp in pairs(full_zone_map) do
                 for y,_ in pairs(tmp) do
-                    for enemy_id,etm in pairs(gamedata.enemy_turn_maps) do
-                        local turns = etm[x] and etm[x][y] and etm[x][y].turns
+                    local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids')
+                    --for enemy_id,etm in pairs(gamedata.enemy_turn_maps) do
+                        --local turns = etm[x] and etm[x][y] and etm[x][y].turns
 
-                        if turns and (turns <= 1) then
+                        --if turns and (turns <= 1) then
+                        if ids then
                             FU.set_fgumap_value(zone_map, x, y, 'flag', true)
                         end
-                    end
+                    --end
                 end
             end
             --FU.put_fgumap_labels(zone_map, 'flag')
@@ -2564,10 +2566,14 @@ return {
             for x,tmp in pairs(buffered_zone_map) do
                 for y,_ in pairs(tmp) do
                     local enemy_rating, count = 0, 0
-                    for enemy_id,etm in pairs(gamedata.enemy_turn_maps) do
-                        local turns = etm[x] and etm[x][y] and etm[x][y].turns
+                    local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids', {})
 
-                        if turns and (turns <= 1) then
+                    for _,enemy_id in ipairs(ids) do
+                        --local turns = etm[x] and etm[x][y] and etm[x][y].turns
+                        local can_attack = true -- placeholder
+
+                        --if turns and (turns <= 1) then
+                        if can_attack then
                             local enemy_hc = FGUI.get_unit_defense(gamedata.unit_copies[enemy_id], x, y, gamedata.defense_maps)
                             enemy_hc = 1 - enemy_hc
 
