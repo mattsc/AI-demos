@@ -2940,9 +2940,10 @@ return {
                         is_village=true
                     end
 
-                    if is_acceptable and (not FHU.is_acceptable_location(gamedata.unit_infos[id], x, y, hit_chance, counter_stats, counter_attack, zonedata.cfg.value_ratio, raw_cfg, gamedata)) then
-                        is_acceptable = false
-                    end
+                    -- Todo: remove this or reinstate it in a weaker form?
+                    --if is_acceptable and (not FHU.is_acceptable_location(gamedata.unit_infos[id], x, y, hit_chance, counter_stats, counter_attack, zonedata.cfg.value_ratio, raw_cfg, gamedata)) then
+                    --    is_acceptable = false
+                    --end
 
                     local enemy_rating, count = 0, 0
                     for src,dst in pairs(counter_attack) do
