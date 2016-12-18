@@ -1419,7 +1419,11 @@ return {
 
             -- TODO: do not duplicate information between zone_cfg and raw_cfg
 
-            -- Action: Advancing toward villages
+            -- Action: Grab villages
+            -- Todo: this only moves units onto villages that can be grabbed, it does not
+            -- advance them toward those villages if they are out of reach. That's done
+            -- in the advance action below. Not sure yet whether it makes sense to
+            -- combine those.
             for zone_id,villages in pairs(behavior.villages.zones) do
                 if (villages.n_units_needed > villages.n_units_used) then
                     local zone_cfg = {
@@ -1499,7 +1503,10 @@ return {
             -- This takes both direct and indirect threats into account
             for zone_id,advance in pairs(behavior.advance.zones) do
                 local power_missing = advance.power_needed - advance.power_used
-                if (power_missing > power_missing_margin) then
+                -- Also provide units to advance toward villages to be grabbed
+                -- Todo: is this the best way to do this?
+                local units_missing = behavior.villages.zones[zone_id].n_units_needed - behavior.villages.zones[zone_id].n_units_used
+                if (power_missing > power_missing_margin) or (units_missing > 0) then
                     local zone_cfg = {
                         zone_id = zone_id,
                         stage_id = stage_id,
