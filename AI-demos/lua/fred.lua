@@ -323,7 +323,7 @@ return {
             local cfg_leader = {
                 zone_id = 'leader',
                 threat_slf = { x = '1-15,16-24,25-34', y = '1-6,1-8,1-9' },
-                threat_factor = 1,
+                --threat2_distance_factor = 1,
                 key_hexes = { { 18,4 }, { 19,4 } },
                 zone_filter = { x = '1-15,16-23,24-34', y = '1-6,1-7,1-8' },
             }
@@ -346,7 +346,8 @@ return {
                 key_hexes = { { 8,8 }, { 11,9 }, { 14,8 } },
                 target_zone = { x = '1-15,1-13', y = '7-11,12-19' },
                 threat_slf = { x = '1-15,1-13', y = '7-11,12-15' },
-                threat_factor = 1,
+                --threat2_distance_factor = 1,
+                zone_weight = 1,
                 zone_filter = { x = '4-14,4-13', y = '7-11,12-15' },
                 unit_filter_advance = { x = '1-20,1-14', y = '1-6,7-13' },
                 hold_slf = { x = '1-15,1-13', y = '6-11,12-14' },
@@ -364,7 +365,8 @@ return {
                 key_hexes = { { 17,10 }, { 18,9 }, { 20,9 }, { 22,10 }, { 21,9 }, { 23,10 } },
                 target_zone = { x = '15-24,13-23', y = '8-13,14-19' },
                 threat_slf = { x = '16-24,15-23', y = '9-10,11-15' },
-                threat_factor = 2,
+                --threat2_distance_factor = 2,
+                zone_weight = 0.5,
                 zone_filter = { x = '16-26,15-24', y = '4-10,11-16' },
                 unit_filter_advance = { x = '15-23,', y = '1-13' },
                 hold_slf = { x = '16-24,16-23', y = '4-10,11-14' },
@@ -382,7 +384,8 @@ return {
                 key_hexes = { { 27,11 }, { 29,11 } },
                 target_zone = { x = '24-34,22-34', y = '9-17,18-23' },
                 threat_slf = { x = '25-34,24-34', y = '10-13,14-23' },
-                threat_factor = 1.2,
+                --threat2_distance_factor = 1.2,
+                zone_weight = 1,
                 zone_filter = { x = '24-34', y = '9-17' },
                 unit_filter_advance = { x = '17-34,24-34', y = '1-8,9-16' },
                 hold_slf = { x = '24-34', y = '9-18' },
@@ -627,6 +630,10 @@ return {
 
             -- Second, distribute the rest of the units, as long as they are
             -- within 2 turns of a key hex
+
+            --[[ This version distributes them uniquely to the zones; going back to do
+            -- a fractional distribution instead for now, but I don't know yet which one is better,
+            -- so I am keeping this around for the time being.
             for id,loc in pairs(gamedata.enemies) do
                 -- Is the unit still on the castle hex where it was recruited?
                 -- If so, exclude it.
@@ -644,7 +651,7 @@ return {
                             local _, cost = wesnoth.find_path(gamedata.unit_copies[id], hex[1], hex[2], { ignore_units = true })
                             local turns_needed = cost / gamedata.unit_infos[id].max_moves
                             --print('    ' .. cost, turns_needed, hex[1], hex[2])
-                            local rating = - cost * raw_cfgs_all[zone_id].threat_factor
+                            local rating = - cost * raw_cfgs_all[zone_id].threat2_distance_factor
                             --print('      rating:', rating)
 
                             if (turns_needed <= 2) and (rating > best_rating) then
@@ -659,6 +666,51 @@ return {
                         threats2[best_zone_id][id] = gamedata.unit_infos[id].power
                         all_threats[id] = true
                     end
+                end
+            end
+            --]]
+
+
+--DBG.dbms(gamedata.enemy_turn_maps)
+            local tmp_threats2 = {}
+            for id,loc in pairs(gamedata.enemies) do
+                -- Is the unit still on the castle hex where it was recruited?
+                -- If so, exclude it.
+                -- TODO: this might not work on all maps
+                if (not all_threats[id])
+                    and (not gamedata.unit_infos[id].canrecruit)
+                    and (not FU.get_fgumap_value(gamedata.reachable_castles_map[gamedata.unit_copies[id].side], loc[1], loc[2], 'castle', false))
+                then
+                    print(id)
+                    for zone_id,hexes in pairs(key_hexes) do
+                        for _,hex in ipairs(hexes) do
+                            --TODO: this uses move maps, while 'threats' uses attack maps
+                            -- Need to decide whether that's good or not
+                            local turns = FU.get_fgumap_value(gamedata.enemy_turn_maps[id], hex[1], hex[2], 'turns', 999)
+
+                            if (turns <= 2) then
+                                if (not tmp_threats2[id]) then tmp_threats2[id] = {} end
+                                tmp_threats2[id][zone_id] = gamedata.unit_infos[id].power
+
+                                all_threats[id] = true
+                                break
+                            end
+                        end
+                    end
+                end
+            end
+            --DBG.dbms(tmp_threats2)
+
+            for id,data in pairs(tmp_threats2) do
+                local count, unit_power = 0
+                for zone_id,power in pairs(data) do
+                    count = count + 1
+                    unit_power = power
+                end
+                print(id, unit_power, count)
+
+                for zone_id,power in pairs(data) do
+                    threats2[zone_id][id] = unit_power / count
                 end
             end
             --DBG.dbms(threats2)
@@ -821,6 +873,7 @@ return {
                 end
             end
             --DBG.dbms(my_power)
+            --DBG.dbms(threats2)
             --DBG.dbms(enemy_power)
             --DBG.dbms(my_units_by_zone)
             --DBG.dbms(units_for_zones)
@@ -857,19 +910,31 @@ return {
                 }
             end
 
-            -- For advancing, we just use the same as for holding for the moment
-            -- TODO: need to add other considerations, e.g.:
-            --   - threats farther away
-            --   - pulling in units from other zones if needed
+            -- For advancing, we use the sum of the direct threats plus the
+            -- move-2 threats weighted by the zone priority for the latter
             behavior.advance = { zones = {} }
-            local advance_ratio = behavior.total.my_total_power / enemy_power.threats_total
+
+            local total_weighted_threat = enemy_power.threats_total
+            local weighted_threats = {}
+            for zone_id,cfg in pairs(raw_cfgs_main) do
+                -- Taking zone weight into account here
+                total_weighted_threat = total_weighted_threat + enemy_power.threats2[zone_id] * cfg.zone_weight
+                weighted_threats[zone_id] = enemy_power.threats[zone_id] + enemy_power.threats2[zone_id] * cfg.zone_weight
+            end
+            --print('total_weighted_threat:', total_weighted_threat)
+            --DBG.dbms(weighted_threats)
+
+            local advance_ratio = behavior.total.my_total_power / total_weighted_threat
             behavior.advance.factor = math.min(1, advance_ratio)
+            --print('advance_ratio, behavior.advance.factor', advance_ratio, behavior.advance.factor)
+
             for zone_id,cfg in pairs(raw_cfgs_main) do
                 behavior.advance.zones[zone_id] = {
-                    power_needed = enemy_power.threats[zone_id] * behavior.advance.factor,
+                    power_needed = weighted_threats[zone_id] * behavior.advance.factor,
                     power_used = power_used.move1[zone_id].power
                 }
             end
+            --DBG.dbms(behavior.advance)
 
             FU.print_debug(show_debug_analysis, '\n--- Determining behavior ---')
 
