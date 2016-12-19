@@ -889,12 +889,12 @@ return {
                 FU.print_debug(show_debug_analysis, '    ', zone_id, my_power[zone_id], enemy_power.threats[zone_id], my_power[zone_id] - enemy_power.threats[zone_id])
             end
 
-            local spare_power_threats = behavior.total.my_total_power - enemy_power.threats_total
-            local spare_power_threats2 = spare_power_threats - enemy_power.threats2_total
+            --local spare_power_threats = behavior.total.my_total_power - enemy_power.threats_total
+            --local spare_power_threats2 = spare_power_threats - enemy_power.threats2_total
 
-            FU.print_debug(show_debug_analysis, '  spare power:')
-            FU.print_debug(show_debug_analysis, '    threats: ', spare_power_threats)
-            FU.print_debug(show_debug_analysis, '    threats2:', spare_power_threats2)
+            --FU.print_debug(show_debug_analysis, '  spare power:')
+            --FU.print_debug(show_debug_analysis, '    threats: ', spare_power_threats)
+            --FU.print_debug(show_debug_analysis, '    threats2:', spare_power_threats2)
 
             -- For attacking/holding, it's the power in the direct threats
             -- only that matters
@@ -1545,7 +1545,7 @@ return {
                             holders[id] = power
                         end
                     end
-                    DBG.dbms(holders)
+                    --DBG.dbms(holders)
 
                     -- Hold --
                     local zone_cfg = {
@@ -2994,7 +2994,7 @@ return {
                         is_acceptable = false
                         break
                     end
-
+--print('is_acc 1', is_acceptable)
                     local hit_chance = FU.get_hit_chance(id, x, y, gamedata)
                     --print('  ' .. id, x, y, hit_chance)
 
@@ -3009,6 +3009,7 @@ return {
                     --if is_acceptable and (not FHU.is_acceptable_location(gamedata.unit_infos[id], x, y, hit_chance, counter_stats, counter_attack, zonedata.cfg.value_ratio, raw_cfg, gamedata)) then
                     --    is_acceptable = false
                     --end
+--print('is_acc 2', is_acceptable)
 
                     local enemy_rating, count = 0, 0
                     for src,dst in pairs(counter_attack) do
@@ -3066,6 +3067,7 @@ return {
                 if is_acceptable then
                     is_acceptable = FHU.is_acceptable_hold(combo_stats, raw_cfg, zonedata.cfg, fred.data.analysis.behavior.hold.zones[zonedata.cfg.zone_id], gamedata)
                 end
+--print('is_acc 3', is_acceptable)
 
                 -- If this has negative rating, check whether it is acceptable after all
                 -- For now we always consider these unacceptable
@@ -3075,6 +3077,7 @@ return {
                     --print('  Hold has negative rating; checking for acceptability')
                     is_acceptable = false
                 end
+--print('is_acc 4', is_acceptable)
 
                 --print('      is_acceptable', is_acceptable)
 
