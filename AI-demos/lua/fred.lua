@@ -1579,7 +1579,7 @@ return {
                         value_ratio = behavior.total.value_ratio,
                         from_other_zones = true,
                         use_secondary_rating = true,
-                        rating = base_ratings.advance + advance.power_needed,
+                        rating = base_ratings.advance + advance.power_needed - advance.power_used,
                         power_missing = power_missing
                     }
 
