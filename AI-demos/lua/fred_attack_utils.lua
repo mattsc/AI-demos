@@ -241,6 +241,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     --
     -- Optional inputs:
     --  @cfg: the different weights listed right below
+    --   - also: defender_loc if different from the position of the unit in the tables
     --
     -- Returns:
     --   - Overall rating for the attack or attack combo
@@ -268,7 +269,12 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
         attacker_rating = attacker_rating + fred_attack_utils.damage_rating_unit(attacker_damages[i])
     end
 
-    local defender_x, defender_y = gamedata.units[defender_info.id][1], gamedata.units[defender_info.id][2]
+    local defender_x, defender_y
+    if cfg and cfg.defender_loc then
+        defender_x, defender_y = cfg.defender_loc[1], cfg.defender_loc[2]
+    else
+        defender_x, defender_y = gamedata.units[defender_info.id][1], gamedata.units[defender_info.id][2]
+    end
     local defender_damage = fred_attack_utils.unit_damage(defender_info, def_stat, { defender_x, defender_y }, gamedata, cfg)
     -- Rating for the defender is negative damage rating (as in, damage is good)
     local defender_rating = - fred_attack_utils.damage_rating_unit(defender_damage)
