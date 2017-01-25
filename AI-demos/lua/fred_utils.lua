@@ -64,7 +64,11 @@ function fred_utils.put_fgumap_labels(map, key, cfg)
             end
 
             if (type(out) ~= 'string') then
-                out = tonumber(out) or 'nan'
+                if out then
+                    out = tonumber(out) or 'nan'
+                else
+                    out = 'nil'
+                end
             end
 
             local red_fac, green_fac, blue_fac = 1, 1, 1
