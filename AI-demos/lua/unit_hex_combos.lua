@@ -1,7 +1,9 @@
 local H = wesnoth.require "lua/helper.lua"
 local AH = wesnoth.require "ai/lua/ai_helper.lua"
 
-local function get_unit_hex_combos(dst_src)
+local UHC = {}
+
+function UHC.get_unit_hex_combos(dst_src)
     -- This is a function which recursively finds all combinations of distributing
     -- units on hexes. The number of units and hexes does not have to be the same.
     -- @dst_src lists all units which can reach each hex in format:
@@ -66,7 +68,7 @@ end
 
 local function make_dst_src(units, hexes)
     -- This functions determines which @units can reach which @hexes. It returns
-    -- and array of the form usable by get_unit_hex_combos(dst_src) [see above]
+    -- an array of the form usable by get_unit_hex_combos(dst_src) [see above]
     --
     -- We could be using location sets here also, but I prefer the 1000-based
     -- indices because they are easily human-readable. I don't think that the
@@ -179,3 +181,6 @@ local function get_best_combo(combos, min_units, cfg)
         return best_combo, max_rating
     end
 end
+
+return UHC
+
