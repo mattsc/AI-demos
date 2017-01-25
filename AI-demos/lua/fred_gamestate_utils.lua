@@ -174,6 +174,7 @@ function fred_gamestate_utils.single_unit_info(unit_proxy)
     -- Information about the attacks indexed by weapon number,
     -- including specials (e.g. 'poison = true')
     single_unit_info.attacks = {}
+    local max_damage = 0
     for attack in H.child_range(unit_cfg, 'attack') do
         -- Extract information for specials; we do this first because some
         -- custom special might have the same name as one of the default scalar fields
@@ -205,7 +206,18 @@ function fred_gamestate_utils.single_unit_info(unit_proxy)
         end
 
         table.insert(single_unit_info.attacks, a)
+
+        total_damage = a.damage * a.number
+
+        -- Just use blanket damage for poison and slow for now; might be refined later
+        if a.poison then total_damage = total_damage + 8 end
+        if a.slow then total_damage = total_damage + 4 end
+
+        if (total_damage > max_damage) then
+            max_damage = total_damage
+        end
     end
+    single_unit_info.max_damage = max_damage
 
     -- Resistances to the 6 default attack types
     local attack_types = { "arcane", "blade", "cold", "fire", "impact", "pierce" }
