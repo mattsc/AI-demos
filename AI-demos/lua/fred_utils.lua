@@ -135,6 +135,22 @@ function fred_utils.set_fgumap_value(map, x, y, key, value)
 end
 
 function fred_utils.weight_s(x)
+function fred_utils.fgumap_iter(map)
+    function each_hex(state)
+        while state.x ~= nil do
+            local child = map[state.x]
+            state.y = next(child, state.y)
+            if state.y == nil then
+                state.x = next(map, state.x)
+            else
+                return state.x, state.y, child[state.y]
+            end
+        end
+    end
+
+    return each_hex, { x = next(map) }
+end
+
     -- S curve weighting of a variable that is meant as a fraction of a total,
     -- that is, that for the most part varies from 0 (or -1) to 1.
     -- Properties:
