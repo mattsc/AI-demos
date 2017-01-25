@@ -224,6 +224,8 @@ function fred_utils.cfg_default(parm)
         distance_leader_weight = 0.002,
         occupied_hex_penalty = 0.001,
 
+        villages_per_unit = 2,
+
         use_max_damage_weapons = false,
 
         ctd_limit = 0.5 -- TODO: is this a good value?
