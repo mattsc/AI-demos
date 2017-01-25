@@ -295,7 +295,8 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
     --
     -- See above for the information returned
 
-    local mapstate, reach_maps, influence_map = {}, {}, {}
+    local mapstate, reach_maps = {}, {}
+    local unit_influence_maps = {}
 
     -- Villages
     local village_map = {}
@@ -342,6 +343,8 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
 
             reach_maps[unit_copy.id] = {}
             local attack_range = {}
+            unit_influence_maps[id] = {}
+
             for _,loc in ipairs(reach) do
                 -- reach_map:
                 -- Only first-turn moves counts toward reach_maps
@@ -354,23 +357,21 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
                 local turns = (additional_turns + 1) - loc[3] / max_moves
 
                 if (not unit_copy.canrecruit) then
-                    if (not influence_map[loc[1]]) then influence_map[loc[1]] = {} end
-                    if (not influence_map[loc[1]][loc[2]]) then influence_map[loc[1]][loc[2]] = {
-                        my  = 0,
-                        enemy = 0,
-                    }
-                    end
-
                     local influence = (loc[3] + 1) / max_moves / 2.
                     influence = influence ^ 2
                     influence = influence * unit_infos[id].power
-                    influence_map[loc[1]][loc[2]].my = influence_map[loc[1]][loc[2]].my + influence
                 end
+
+
+                local influence = FU.piecewise_influence(turns)
+                FU.set_fgumap_value(unit_influence_maps[id], loc[1], loc[2], 'influence', influence)
+
 
                 -- attack_range: for attack_map
                 local int_turns = math.ceil(turns)
-
                 if (int_turns == 0) then int_turns = 1 end
+
+
 
                 if (not my_move_map[int_turns][loc[1]]) then my_move_map[int_turns][loc[1]] = {} end
                 if (not my_move_map[int_turns][loc[1]][loc[2]]) then my_move_map[int_turns][loc[1]][loc[2]] = {} end
@@ -598,6 +599,7 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
         reach_maps[enemy_id], enemy_turn_maps[enemy_id] = {}, {}
         local is_trapped = true
         local attack_range = {}
+        unit_influence_maps[enemy_id] = {}
         for _,loc in ipairs(reach) do
             -- reach_map:
             -- Only first-turn moves counts toward reach_maps
@@ -608,17 +610,9 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
             end
 
             if (not unit_copies[enemy_id].canrecruit) then
-                if (not influence_map[loc[1]]) then influence_map[loc[1]] = {} end
-                if (not influence_map[loc[1]][loc[2]]) then influence_map[loc[1]][loc[2]] = {
-                    my  = 0,
-                    enemy = 0,
-                }
-                end
-
                 local influence = (loc[3] + 1) / max_moves / 2.
                 influence = influence ^ 2
                 influence = influence * unit_infos[enemy_id].power
-                influence_map[loc[1]][loc[2]].enemy = influence_map[loc[1]][loc[2]].enemy + influence
             end
 
             -- We count all enemies that can not move more than 1 hex from their
@@ -628,6 +622,11 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
             local turns = (additional_turns + 1) - loc[3] / max_moves
             if (not enemy_turn_maps[enemy_id][loc[1]]) then enemy_turn_maps[enemy_id][loc[1]] = {} end
             enemy_turn_maps[enemy_id][loc[1]][loc[2]] = { turns = turns }
+
+            local influence = FU.piecewise_influence(turns)
+            FU.set_fgumap_value(unit_influence_maps[enemy_id], loc[1], loc[2], 'influence', influence)
+
+
 
             -- attack_range: for attack_map
             local int_turns = math.ceil(turns)
@@ -687,19 +686,7 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
     mapstate.enemy_turn_maps = enemy_turn_maps
     mapstate.trapped_enemies = trapped_enemies
 
-    for x,arr in pairs(influence_map) do
-        for y,data in pairs(arr) do
-            local influence = influence_map[x][y].my - influence_map[x][y].enemy
-            influence_map[x][y].influence = influence
-            local tension = influence_map[x][y].my + influence_map[x][y].enemy
-            influence_map[x][y].tension = tension
-            local vulnerability = tension - math.abs(influence)
-            influence_map[x][y].vulnerability = vulnerability
-        end
-    end
-
-
-    mapstate.influence_map = influence_map
+    mapstate.unit_influence_maps = unit_influence_maps
 
     return mapstate, reach_maps, unit_copies
 end
