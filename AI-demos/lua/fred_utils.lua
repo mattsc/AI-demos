@@ -279,6 +279,36 @@ function fred_utils.unit_power(unit_info, cfg)
     return power
 end
 
+function fred_utils.unit_base_power(unit_info)
+    -- Use sqrt() here so that just missing a few HP does not matter much
+    local hp_mod = math.sqrt(unit_info.hitpoints / unit_info.max_hitpoints)
+
+    local power = unit_info.max_damage
+    power = power * hp_mod
+
+    return power
+end
+
+function fred_utils.unit_current_power(unit_info)
+    local power = fred_utils.unit_base_power(unit_info)
+    power = power * unit_info.tod_mod
+
+    return power
+end
+
+function fred_utils.unit_terrain_power(unit_info, x, y, gamedata)
+    local power = fred_utils.unit_current_power(unit_info)
+
+    local defense = FGUI.get_unit_defense(gamedata.unit_copies[unit_info.id], x, y, gamedata.defense_maps)
+    power = power * defense
+
+    if fred_utils.get_fgumap_value(gamedata.village_map, x, y, 'owner') then
+        power = power * 1.5
+    end
+
+    return power
+end
+
 function fred_utils.get_value_ratio(gamedata)
     -- TODO: not sure what the best values are yet
     -- TODO: also not sure if leaders should be included here
