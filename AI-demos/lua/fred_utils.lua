@@ -395,6 +395,24 @@ function fred_utils.get_hit_chance(id, x, y, gamedata)
     return hit_chance
 end
 
+function fred_utils.piecewise_influence(turns)
+    -- Piecewise function for unit infuence function
+    -- TODO: clean up the math, once we're done experimenting
+    local int_turns = math.ceil(turns)
+    local influence = 1  -- hex the unit is on needs special consideration
+
+    if (int_turns ~= 0) then
+        y0 = 1. / int_turns
+        y1 = (y0 + 1. / (int_turns + 1)) / 2.
+        -- Need to do it this way because ...
+        neg_dx = (int_turns - turns) % 1
+        influence = y1 + (y0 - y1) * neg_dx
+    end
+    influence = influence^2
+
+    return influence
+end
+
 function fred_utils.get_influence_maps(my_attack_map, enemy_attack_map)
     -- For now, we use combined unit_power as the influence
     -- Note, these are somewhat different influence maps from those added in gamedata
