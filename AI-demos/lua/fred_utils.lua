@@ -1,6 +1,7 @@
 local H = wesnoth.require "lua/helper.lua"
 local W = H.set_wml_action_metatable {}
 local FGUI = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
+local items = wesnoth.require "lua/wml/items.lua"
 
 -- TODO: Some functions are currently repeats of those in ai_helper
 -- Trying not to use ai_helper for now.
@@ -98,6 +99,29 @@ function fred_utils.put_fgumap_labels(map, key, cfg)
             }
         end
     end
+end
+
+function fred_utils.show_fgumap_with_message(map, key, text, cfg)
+    -- @cfg: optional table to contain x/y keys as coordinates and 'id' for the speaker
+    --   This can thus be a unit table
+
+    fred_utils.put_fgumap_labels(map, key)
+    if cfg and cfg.x and cfg.y then
+        wesnoth.scroll_to_tile(cfg.x,cfg.y)
+        items.place_halo(cfg.x, cfg.y, "halo/teleport-8.png")
+    end
+    W.redraw()
+    local id = cfg and cfg.id
+    if id then
+        W.message { speaker = 'narrator', message = text .. ': ' .. id }
+    else
+        W.message { speaker = 'narrator', message = text }
+    end
+    if cfg and cfg.x and cfg.y then
+        items.remove(cfg.x, cfg.y, "halo/teleport-8.png")
+    end
+    fred_utils.clear_labels()
+    W.redraw()
 end
 
 function fred_utils.get_fgumap_value(map, x, y, key, alt_value)
