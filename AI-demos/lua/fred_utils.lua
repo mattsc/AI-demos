@@ -183,6 +183,18 @@ function fred_utils.weight_s(x, exp)
     end
 end
 
+function fred_utils.print_weight_s(exp)
+    local s1, s2 = '', ''
+    for i=0,10 do
+        local x = 0.1 * i
+        y = fred_utils.weight_s(x, exp)
+        s1 = s1 .. string.format("%5.3f", x) .. '  '
+        s2 = s2 .. string.format("%5.3f", y) .. '  '
+    end
+    print(s1)
+    print(s2)
+end
+
 function fred_utils.get_unit_time_of_day_bonus(alignment, lawful_bonus)
     local multiplier = 1
     if (lawful_bonus ~= 0) then
