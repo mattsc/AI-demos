@@ -134,7 +134,6 @@ function fred_utils.set_fgumap_value(map, x, y, key, value)
     map[x][y][key] = value
 end
 
-function fred_utils.weight_s(x)
 function fred_utils.fgumap_iter(map)
     function each_hex(state)
         while state.x ~= nil do
@@ -151,21 +150,30 @@ function fred_utils.fgumap_iter(map)
     return each_hex, { x = next(map) }
 end
 
+function fred_utils.weight_s(x, exp)
     -- S curve weighting of a variable that is meant as a fraction of a total,
     -- that is, that for the most part varies from 0 (or -1) to 1.
-    -- Properties:
+    -- Properties independent of @exp:
     --   f(0) = 0
     --   f(0.5) = 0.5
     --   f(1) = 1
     --   f(-x) = -f(x)
 
+    -- Examples for different exponents:
+    -- exp:   0.000  0.100  0.200  0.300  0.400  0.500  0.600  0.700  0.800  0.900  1.000
+    -- 0.50:  0.000  0.053  0.113  0.184  0.276  0.500  0.724  0.816  0.887  0.947  1.000
+    -- 0.67:  0.000  0.069  0.145  0.229  0.330  0.500  0.670  0.771  0.855  0.931  1.000
+    -- 1.00:  0.000  0.100  0.200  0.300  0.400  0.500  0.600  0.700  0.800  0.900  1.000
+    -- 1.50:  0.000  0.142  0.268  0.374  0.455  0.500  0.545  0.626  0.732  0.858  1.000
+    -- 2.00:  0.000  0.180  0.320  0.420  0.480  0.500  0.520  0.580  0.680  0.820  1.000
+
     local abs_x = math.abs(x)
 
     local weight
     if (abs_x >= 0.5) then
-        weight = 0.5 + ((abs_x - 0.5) * 2)^0.67 / 2
+        weight = 0.5 + ((abs_x - 0.5) * 2)^exp / 2
     else
-        weight = 0.5 - ((0.5 - abs_x) * 2)^0.67 / 2
+        weight = 0.5 - ((0.5 - abs_x) * 2)^exp / 2
     end
 
     if (x > 0) then

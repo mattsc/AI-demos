@@ -204,7 +204,7 @@ function fred_attack_utils.damage_rating_unit(damage)
     -- in this rating
 
     local fractional_damage = (damage.damage + damage.delayed_damage) / damage.max_hitpoints
-    local fractional_rating = - FU.weight_s(fractional_damage)
+    local fractional_rating = - FU.weight_s(fractional_damage, 0.67)
     --print('  fractional_damage, fractional_rating:', fractional_damage, fractional_rating)
 
     -- Additionally, add the chance to die, in order to emphasize units that might die
