@@ -1540,6 +1540,44 @@ return {
                 --DBG.dbms(power_stats)
             end
 
+
+
+            -- At this point we have (TODO: decide which of those are to be kept):
+            -- IM: my_influence, enemy_influence, influence, tension, vulnerability, blurred_vulnerability
+            -- leader_distance_map
+            -- zone_maps
+            -- assigned_enemies, enemies_by_zone
+            -- assigned_units (incl. action if known)
+            -- zone_village_goals
+            -- protect_villages_maps
+            -- power_stats
+            -- goal_hexes
+            -- reserve_units (not used at the moment)
+            -- unit_attacks
+
+            --DBG.dbms(assigned_units)
+            --DBG.dbms(reserve_units)
+            --DBG.dbms(immediate_actions)
+            --DBG.dbms(goal_hexes)
+
+            fred.data.behavior.assigned_units = assigned_units
+            fred.data.behavior.immediate_actions = immediate_actions
+            --fred.data.behavior.power_stats = power_stats
+
+            fred.data.turn_data.IM = IM
+            fred.data.turn_data.unit_attacks = unit_attacks
+            fred.data.protect_villages_maps = protect_villages_maps
+
+            FU.print_debug(show_debug_analysis, '--- Done determining behavior ---\n')
+            --DBG.dbms(fred.data.behavior)
+        end
+
+
+        function fred:update_orders()
+            -- This gets called after each move (or set of moves)
+
+            local gamedata = fred.data.gamedata
+
             -- What needs to be protected
 
             local orders = {}
@@ -1547,7 +1585,7 @@ return {
             -- For now, every village on our side of the map that can be reached
             -- by an enemy needs to be protected
             --DBG.dbms(protect_villages_maps)
-            for zone_id,map in pairs(protect_villages_maps) do
+            for zone_id,map in pairs(fred.data.protect_villages_maps) do
                 orders[zone_id] = { protect_villages = false }
                 local max_ld
                 for x,y,_ in FU.fgumap_iter(map) do
@@ -1565,35 +1603,7 @@ return {
                 end
             end
             --DBG.dbms(orders)
-
-
-            -- At this point we have (TODO: decide which of those are to be kept):
-            -- IM: my_influence, enemy_influence, influence, tension, vulnerability, blurred_vulnerability
-            -- leader_distance_map
-            -- zone_maps
-            -- assigned_enemies, enemies_by_zone
-            -- assigned_units (incl. action if known)
-            -- zone_village_goals
-            -- power_stats
-            -- goal_hexes
-            -- reserve_units (not used at the moment)
-            -- unit_attacks
-
-            --DBG.dbms(assigned_units)
-            --DBG.dbms(reserve_units)
-            --DBG.dbms(immediate_actions)
-            --DBG.dbms(goal_hexes)
-
-            fred.data.behavior.assigned_units = assigned_units
-            fred.data.behavior.immediate_actions = immediate_actions
-            --fred.data.behavior.power_stats = power_stats
             fred.data.behavior.orders = orders
-
-            fred.data.turn_data.IM = IM
-            fred.data.turn_data.unit_attacks = unit_attacks
-
-            FU.print_debug(show_debug_analysis, '--- Done determining behavior ---\n')
-            --DBG.dbms(fred.data.behavior)
         end
 
 
@@ -3883,7 +3893,12 @@ return {
 -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 --fred.data.behavior = nil
 
+            -- Only executes when fred.data.behavior does per turn (that is, once per turn)
             fred:get_behavior_this_turn()
+
+            -- Executes once per zone_control_eval (that is, after each set of moves)
+            fred:update_orders()
+
             local behavior = fred.data.behavior
             --DBG.dbms(behavior.turn)
 
