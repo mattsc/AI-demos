@@ -3079,30 +3079,47 @@ return {
                             rating = rating + 1.2 * enemy_damage
 
                             -- Healing bonus for villages
+                            local village_bonus = 0
                             if FU.get_fgumap_value(gamedata.village_map, x, y, 'owner') then
-                                rating = rating + 8
+                                if gamedata.unit_infos[id].abilities.regenerate then
+                                    -- Still give a bit of a bonus, to prefer villages if no other unit can get there
+                                    village_bonus = 2
+                                else
+                                    village_bonus = 8
+                                end
                             end
+                            rating = rating + village_bonus
+
 
                             -- Penalty if behind the position to be held
+                            local hold_here = true
                             if hold_leader_distance then
                                 local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
                                 local dld = ld - hold_leader_distance
                                 if (dld < -2) then
                                     rating = rating + 5 * dld
                                 end
+                            else
+                                local net_outcome = enemy_damage - my_damage + village_bonus
+                                --print(x, y, my_damage ,enemy_damage, village_bonus, net_outcome)
+                                if (net_outcome < 0) then
+                                    hold_here = false
+                                end
                             end
 
 
                             --print('  ' .. my_damage, enemy_damage, rating)
 
-                            if (not new_unit_rating_maps[id]) then
-                                new_unit_rating_maps[id] = {}
+                            if hold_here then
+                                if (not new_unit_rating_maps[id]) then
+                                    new_unit_rating_maps[id] = {}
+                                end
+                                FU.set_fgumap_value(new_unit_rating_maps[id], x, y, 'rating', rating)
+                                new_unit_rating_maps[id][x][y].x = x
+                                new_unit_rating_maps[id][x][y].y = y
+                                new_unit_rating_maps[id][x][y].id = id
                             end
-     						FU.set_fgumap_value(new_unit_rating_maps[id], x, y, 'rating', rating)
-							new_unit_rating_maps[id][x][y].x = x
-							new_unit_rating_maps[id][x][y].y = y
-							new_unit_rating_maps[id][x][y].id = id
-     					end
+                         end
 
                     end
                 end
