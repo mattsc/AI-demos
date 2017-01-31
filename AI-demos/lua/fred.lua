@@ -245,7 +245,7 @@ return {
                     leader_distance_map[x][y] = {
                         my_leader_distance = leader_dist,
                         enemy_leader_distance = enemy_leader_dist,
-                        distance = enemy_leader_dist - leader_dist
+                        distance = leader_dist - enemy_leader_dist
                     }
 
                 end
@@ -511,6 +511,7 @@ return {
                     stage_ids = { 'defend_zones' }
                 }
             }
+            fred.data.turn_data = {}
 
             -- Get the needed cfgs
             local gamedata = fred.data.gamedata
@@ -524,7 +525,9 @@ return {
             local my_inf = {}
             for id,_ in pairs(gamedata.my_units) do
                 --print(id)
-                --FU.put_fgumap_labels(gamedata.unit_influence_maps[id], 'influence')
+                if false then
+                    FU.show_fgumap_with_message(gamedata.unit_influence_maps[id], 'influence', 'Unit influence', gamedata.unit_copies[id])
+                end
 
                 if (not gamedata.unit_infos[id].canrecruit) then
                     local unit_influence = FU.unit_current_power(gamedata.unit_infos[id])
@@ -609,11 +612,18 @@ return {
                 W.message{ speaker = 'narrator', message = 'vulnerability' }
                 FU.put_fgumap_labels(IM, 'blurred_vulnerability')
                 W.message{ speaker = 'narrator', message = 'blurred_vulnerability' }
+                FU.clear_labels()
+            end
+
+            if false then
+                --FU.put_fgumap_labels(gamedata.leader_distance_map, 'my_leader_distance')
+                --W.message{ speaker = 'narrator', message = 'my_leader_distance' }
+                --FU.put_fgumap_labels(gamedata.leader_distance_map, 'enemy_leader_distance')
+                --W.message{ speaker = 'narrator', message = 'enemy_leader_distance' }
                 FU.put_fgumap_labels(gamedata.leader_distance_map, 'distance')
                 W.message{ speaker = 'narrator', message = 'leader_distance_map' }
                 FU.clear_labels()
             end
-
 
             local zone_maps = {}
             for zone_id,cfg in pairs(raw_cfgs_main) do
@@ -686,11 +696,12 @@ return {
             -- We set those up as arrays, one for each zone
             --  - if a village is found that is not in a zone, assign it zone 'other'
             local zone_village_goals = {}
+            local protect_villages_maps = {}
             for x,y,village in FU.fgumap_iter(gamedata.village_map) do
                 local my_distance = H.distance_between(x, y, my_start_hex[1], my_start_hex[2])
                 local enemy_distance = H.distance_between(x, y, enemy_start_hex[1], enemy_start_hex[2])
 
-                if (my_distance <= enemy_distance) and (village.owner ~= wesnoth.current.side) then
+                if (my_distance <= enemy_distance) then
                     local village_zone
                     for zone_id,_ in pairs(zone_maps) do
                         if FU.get_fgumap_value(zone_maps[zone_id], x, y, 'in_zone') then
@@ -700,13 +711,21 @@ return {
                     end
                     if (not village_zone) then village_zone = 'other' end
 
-                    if (not zone_village_goals[village_zone]) then
-                        zone_village_goals[village_zone] = {}
+                    if (village.owner ~= wesnoth.current.side) then
+                        if (not zone_village_goals[village_zone]) then
+                            zone_village_goals[village_zone] = {}
+                        end
+                        table.insert(zone_village_goals[village_zone], { x = x, y = y, owner = village.owner })
                     end
-                    table.insert(zone_village_goals[village_zone], { x = x, y = y, owner = village.owner })
+
+                    if (not protect_villages_maps[village_zone]) then
+                        protect_villages_maps[village_zone] = {}
+                    end
+                    FU.set_fgumap_value(protect_villages_maps[village_zone], x, y, 'protect', true)
                 end
             end
             --DBG.dbms(zone_village_goals)
+            --DBG.dbms(protect_villages_maps)
 
             -- Find how many units are needed in each zone for village grabbing
             local units_needed_villages = {}
@@ -775,7 +794,7 @@ return {
                     base_rating = base_rating / #village.units
 
                     -- Prefer villages farther back
-                    local add_rating_village = FU.get_fgumap_value(gamedata.leader_distance_map, village.x, village.y, 'distance')
+                    local add_rating_village = - FU.get_fgumap_value(gamedata.leader_distance_map, village.x, village.y, 'distance')
 
                     for _,id in ipairs(village.units) do
                         local unit_rating = base_rating / (villages_in_reach.by_unit[id]^2)
@@ -1091,6 +1110,170 @@ return {
 
             local attack_locs = fred:get_attack_test_locs()
 
+            -- TODO: this is not generally required for all unit combinations
+            -- Make this a utility function that is called as needed
+            local unit_attacks = {}
+            for my_id,_ in pairs(gamedata.my_units) do
+                --print(my_id)
+                local tmp_attacks = {}
+
+
+                local old_x = gamedata.unit_copies[my_id].x
+                local old_y = gamedata.unit_copies[my_id].y
+                local my_x, my_y = attack_locs.attacker_loc[1], attack_locs.attacker_loc[2]
+
+                wesnoth.put_unit(my_x, my_y, gamedata.unit_copies[my_id])
+                local my_proxy = wesnoth.get_unit(my_x, my_y)
+
+                for enemy_id,_ in pairs(gamedata.enemies) do
+                    --print('    ' .. enemy_id)
+
+                    local old_x_enemy = gamedata.unit_copies[enemy_id].x
+                    local old_y_enemy = gamedata.unit_copies[enemy_id].y
+                    local enemy_x, enemy_y = attack_locs.defender_loc[1], attack_locs.defender_loc[2]
+
+                    wesnoth.put_unit(enemy_x, enemy_y, gamedata.unit_copies[enemy_id])
+                    local enemy_proxy = wesnoth.get_unit(enemy_x, enemy_y)
+
+
+                    local _, _, my_weapon, enemy_weapon = wesnoth.simulate_combat(my_proxy, enemy_proxy)
+                    local _, _, enemy_weapon_counter, my_weapon_counter = wesnoth.simulate_combat(enemy_proxy, my_proxy)
+                    --DBG.dbms(my_weapon)
+                    --DBG.dbms(enemy_weapon)
+                    --DBG.dbms(my_weapon_counter)
+                    --DBG.dbms(enemy_weapon_counter)
+
+                    gamedata.unit_copies[enemy_id] = wesnoth.copy_unit(enemy_proxy)
+                    wesnoth.put_unit(enemy_x, enemy_y)
+                    gamedata.unit_copies[enemy_id].x = old_x_enemy
+                    gamedata.unit_copies[enemy_id].y = old_y_enemy
+
+                    -- The rounding is going to be off for ToD modifier, but good enough for now
+                    -- In general, the following is pretty crude, but that does not really matter all that much
+                    local cth_enemy = enemy_weapon.chance_to_hit
+
+                    -- For now, the method only works for sums of positive ratings
+                    -- without arbitrary added constants
+                    -- TODO: see if this needs to be changed
+
+                    local rating_offense =
+                        my_weapon.damage * my_weapon.num_blows * my_weapon.chance_to_hit / 100 / gamedata.unit_infos[my_id].tod_mod
+
+                    --    - enemy_weapon.damage * enemy_weapon.num_blows * enemy_weapon.chance_to_hit / 100 / gamedata.unit_infos[enemy_id].tod_mod
+
+                    local rating_defense =
+                        my_weapon_counter.damage * my_weapon_counter.num_blows * my_weapon_counter.chance_to_hit / 100 / gamedata.unit_infos[my_id].tod_mod
+
+                    --    - enemy_weapon_counter.damage * enemy_weapon_counter.num_blows * enemy_weapon_counter.chance_to_hit / 100 / gamedata.unit_infos[enemy_id].tod_mod
+
+                    -- For now, we just categorically count poison, slow damage as constant, independent of CTH
+                    -- TODOs:
+                    --   - might be refined later
+                    --   - add drain
+                    --   - add to max_damage in unit_infos also?
+                    --   - should we cycle through all weapons?
+                    --   - make attack more important than defense?
+
+                    local bonus_poison = 8
+                    local bonus_slow = 4
+                    local bonus_regen = 8
+
+                    local poison_my, poison_enemy = 0, 0
+                    if my_weapon.poisons or my_weapon_counter.poisons then
+                        poison_my = bonus_poison
+                    end
+                    if enemy_weapon.poisons or enemy_weapon_counter.poisons then
+                        poison_enemy = bonus_poison
+                    end
+
+                    local slow_my, slow_enemy = 0, 0
+                    if my_weapon.slows or my_weapon_counter.slows then
+                        slow_my = bonus_slow
+                    end
+                    if enemy_weapon.slows or enemy_weapon_counter.slows then
+                        slow_enemy = bonus_slow
+                    end
+
+                    local regen_my, regen_enemy = 0, 0
+                    if gamedata.unit_infos[my_id].abilities.regenerate then
+                        regen_my = bonus_regen
+                    end
+                    if gamedata.unit_infos[enemy_id].abilities.regenerate then
+                        regen_enemy = bonus_regen
+                    end
+
+                    local rating = rating_offense + rating_defense
+                    rating = rating + poison_my - poison_enemy
+                    rating = rating + slow_my - slow_enemy
+                    rating = rating + regen_my - regen_enemy
+
+                    --print('      chance to hit my, enemy (off/def): ', my_weapon.chance_to_hit, enemy_weapon.chance_to_hit, my_weapon_counter.chance_to_hit, enemy_weapon_counter.chance_to_hit)
+                    --print('      rating_offense / defense:         ', rating_offense, rating_defense)
+                    --print('      poison damage my, enemy:', poison_my, poison_enemy)
+                    --print('      slow damage my, enemy:', slow_my, slow_enemy)
+                    --print('      regenerate my, enemy:   ', regen_my, regen_enemy)
+                    --print('      total rating:         ', rating)
+
+                    local my_bonus, enemy_bonus = 0, 0
+                    if my_weapon.poisons then my_bonus = my_bonus + bonus_poison end
+                    if my_weapon.slows then my_bonus = my_bonus + bonus_slow end
+                    if enemy_weapon.poisons then enemy_bonus = enemy_bonus + bonus_poison end
+                    if enemy_weapon.slows then enemy_bonus = enemy_bonus + bonus_slow end
+
+                    local my_bonus_counter, enemy_bonus_counter = 0, 0
+                    if my_weapon_counter.poisons then my_bonus_counter = my_bonus_counter + bonus_poison end
+                    if my_weapon_counter.slows then my_bonus_counter = my_bonus_counter + bonus_slow end
+                    if enemy_weapon_counter.poisons then enemy_bonus_counter = enemy_bonus_counter + bonus_poison end
+                    if enemy_weapon_counter.slows then enemy_bonus_counter = enemy_bonus_counter + bonus_slow end
+
+                    tmp_attacks[enemy_id] = {
+                        rating = rating,
+                        regen_my = regen_my,
+                        regen_enemy = regen_enemy,
+                        my_forward = {
+                            damage = my_weapon.damage,
+                            number = my_weapon.num_blows,
+                            chance_to_hit = my_weapon.chance_to_hit,
+                            bonus = my_bonus
+
+                        },
+                        enemy_forward = {
+                            damage = enemy_weapon.damage,
+                            number = enemy_weapon.num_blows,
+                            chance_to_hit = enemy_weapon.chance_to_hit,
+                            bonus = my_bonus
+                        },
+                        my_counter = {
+                            damage = my_weapon_counter.damage,
+                            number = my_weapon_counter.num_blows,
+                            chance_to_hit = my_weapon_counter.chance_to_hit,
+                            bonus = my_bonus_counter
+                        },
+                        enemy_counter = {
+                            damage = enemy_weapon_counter.damage,
+                            number = enemy_weapon_counter.num_blows,
+                            chance_to_hit = enemy_weapon_counter.chance_to_hit,
+                            bonus = enemy_bonus_counter
+                        }
+                    }
+                end
+
+
+                gamedata.unit_copies[my_id] = wesnoth.copy_unit(my_proxy)
+                wesnoth.put_unit(my_x, my_y)
+                gamedata.unit_copies[my_id].x = old_x
+                gamedata.unit_copies[my_id].y = old_y
+
+                unit_attacks[my_id] = tmp_attacks
+
+            end
+            --DBG.dbms(unit_attacks)
+
+
+
+
+
+----- !!!!!!!!! The code below is a partial duplication; remove/simplify !!!!!!!!
             local attacker_ratings = {}
 
             for my_id,_ in pairs(gamedata.my_units) do
@@ -1375,6 +1558,32 @@ return {
                 --DBG.dbms(power_stats)
             end
 
+            -- What needs to be protected
+
+            local orders = {}
+
+            -- For now, every village on our side of the map that can be reached
+            -- by an enemy needs to be protected
+            --DBG.dbms(protect_villages_maps)
+            for zone_id,map in pairs(protect_villages_maps) do
+                orders[zone_id] = { protect_villages = false }
+                local max_ld
+                for x,y,_ in FU.fgumap_iter(map) do
+                    for enemy_id,_ in pairs(gamedata.enemies) do
+                        if FU.get_fgumap_value(gamedata.reach_maps[enemy_id], x, y, 'moves_left') then
+                            orders[zone_id].protect_villages = true
+
+                            local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
+                            if (not max_ld) or (ld > max_ld) then
+                                max_ld = ld
+                            end
+                        end
+                    end
+                    orders[zone_id].hold_leader_distance = max_ld
+                end
+            end
+            --DBG.dbms(orders)
+
 
             -- At this point we have (TODO: decide which of those are to be kept):
             -- IM: my_influence, enemy_influence, influence, tension, vulnerability, blurred_vulnerability
@@ -1386,6 +1595,7 @@ return {
             -- power_stats
             -- goal_hexes
             -- reserve_units (not used at the moment)
+            -- unit_attacks
 
             --DBG.dbms(assigned_units)
             --DBG.dbms(reserve_units)
@@ -1394,7 +1604,11 @@ return {
 
             fred.data.behavior.assigned_units = assigned_units
             fred.data.behavior.immediate_actions = immediate_actions
-            fred.data.behavior.IM = IM
+            --fred.data.behavior.power_stats = power_stats
+            fred.data.behavior.orders = orders
+
+            fred.data.turn_data.IM = IM
+            fred.data.turn_data.unit_attacks = unit_attacks
 
             FU.print_debug(show_debug_analysis, '--- Done determining behavior ---\n')
             --DBG.dbms(fred.data.behavior)
@@ -2704,7 +2918,6 @@ return {
             local gamedata = fred.data.gamedata
             local move_cache = fred.data.move_cache
 
-
             -- Holders are those specified in zonedata, or all units except the leader otherwise
             local holders = {}
             if zonedata.cfg.zone_units then
@@ -2750,267 +2963,187 @@ return {
             --      is somewhat different from 'rating' (by necessity), so the two cannot
             --      be compared directly
 
-            local enemy_maps = {}
+            local enemy_zone_maps = {}
             for enemy_id,_ in pairs(gamedata.enemies) do
-                enemy_maps[enemy_id] = {}
+                enemy_zone_maps[enemy_id] = {}
 
                 for x,y,_ in FU.fgumap_iter(buffered_zone_map) do
                     local enemy_defense = FGUI.get_unit_defense(gamedata.unit_copies[enemy_id], x, y, gamedata.defense_maps)
-                    FU.set_fgumap_value(enemy_maps[enemy_id], x, y, 'hit_chance', 1 - enemy_defense)
-                end
+                    FU.set_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'hit_chance', 1 - enemy_defense)
 
-                for x,y,data in FU.fgumap_iter(gamedata.reach_maps[enemy_id]) do
-                    FU.set_fgumap_value(enemy_maps[enemy_id], x, y, 'moves_left', data.moves_left)
-                end
-
-                -- This could be moved to top level, so that it is only done once
-                local enemy_copy = gamedata.unit_copies[enemy_id]
-                local old_moves = enemy_copy.moves
-                enemy_copy.moves = enemy_copy.max_moves
-                local reach_2turns = wesnoth.find_reach(enemy_copy,
-                    { additional_turns = 1, ignore_units = true }
-                )
-                enemy_copy.moves = old_moves
-
-                for _,loc in ipairs(reach_2turns) do
-                    FU.set_fgumap_value(enemy_maps[enemy_id], loc[1], loc[2], 'moves_left_2turns', loc[3])
-                end
-
-                for x,y,_ in FU.fgumap_iter(zone_map) do
-                    local rating = 0
-                    local count = 0
-                    local impasse_count = 0
-
-                    for xa,ya in H.adjacent_tiles(x, y) do
-                        local ml = FU.get_fgumap_value(enemy_maps[enemy_id], xa, ya, 'moves_left')
-                        if ml then
-                            local hc = FU.get_fgumap_value(enemy_maps[enemy_id], xa, ya, 'hit_chance')
-                            local infl = (ml + 1) / enemy_copy.max_moves
-
-                            rating = rating + 1.5 * hc * infl^2
-                            count = count + infl^2
-                        else
-                            impasse_count = impasse_count + 1
-                        end
-                    end
-
-                    if (count > 0) then
-                        rating = rating / count
-                        rating = rating + impasse_count * 0.01
-
-                        FU.set_fgumap_value(enemy_maps[enemy_id], x, y, 'enemy_rating', rating)
+                    local moves_left = FU.get_fgumap_value(gamedata.reach_maps[enemy_id], x, y, 'moves_left')
+                    if moves_left then
+                        FU.set_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'moves_left', moves_left)
                     end
                 end
-
-                -- The secondary rating is similar in principle, but simpler
-                for x,y,_ in FU.fgumap_iter(zone_map) do
-                    local rating_2turns = 0
-                    local count_2turns = 0
-
-                    for xa,ya in H.adjacent_tiles(x, y) do
-                        local ml_2turns = FU.get_fgumap_value(enemy_maps[enemy_id], xa, ya, 'moves_left_2turns')
-                        if ml_2turns then
-                            local hc_2turns = FU.get_fgumap_value(enemy_maps[enemy_id], xa, ya, 'hit_chance')
-                            rating_2turns = rating_2turns + 1.5 * hc_2turns
-                            count_2turns = count_2turns + 1
-                        end
-                    end
-
-                    if (count_2turns > 0) then
-                        rating_2turns = rating_2turns / count_2turns
-
-                        FU.set_fgumap_value(enemy_maps[enemy_id], x, y, 'enemy_rating_2turns', rating_2turns)
-                    end
-
-                end
-
 
                 if false then
-                    --FU.show_fgumap_with_message(enemy_maps[enemy_id], 'hit_chance', 'Enemy hit chance', gamedata.unit_copies[enemy_id])
-                    --FU.show_fgumap_with_message(enemy_maps[enemy_id], 'moves_left', 'Enemy moves left', gamedata.unit_copies[enemy_id])
-                    --FU.show_fgumap_with_message(enemy_maps[enemy_id], 'moves_left_2turns', 'Enemy moves left 2 turns (ignoring units)', gamedata.unit_copies[enemy_id])
-                    FU.show_fgumap_with_message(enemy_maps[enemy_id], 'enemy_rating', 'Enemy rating', gamedata.unit_copies[enemy_id])
-                    FU.show_fgumap_with_message(enemy_maps[enemy_id], 'enemy_rating_2turns', 'Enemy rating 2 turns', gamedata.unit_copies[enemy_id])
+                    FU.show_fgumap_with_message(enemy_zone_maps[enemy_id], 'hit_chance', 'Enemy hit chance', gamedata.unit_copies[enemy_id])
+                    FU.show_fgumap_with_message(enemy_zone_maps[enemy_id], 'moves_left', 'Enemy moves left', gamedata.unit_copies[enemy_id])
                 end
             end
 
 
-            local village_bonus_maps = {}
+            -- Map of adjacent villages that can be reached by the enemy
+            local adjacent_village_map = {}
             for x,y,_ in FU.fgumap_iter(gamedata.village_map) do
                 if FU.get_fgumap_value(zone_map, x, y, 'flag') then
 
                     local can_reach = false
                     for enemy_id,_ in pairs(gamedata.enemies) do
-                        if FU.get_fgumap_value(enemy_maps[enemy_id], x, y, 'moves_left') then
+                        if FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'moves_left') then
                             can_reach = true
                             break
                         end
                     end
 
                     if can_reach then
-                        FU.set_fgumap_value(village_bonus_maps, x, y, 'village', 1)
-
                         for xa,ya in H.adjacent_tiles(x,y) do
                             -- TODO: this currently only works for one adjacent village
                             -- which is fine on the Freelands map, but might not be on oterhs
-                            FU.set_fgumap_value(village_bonus_maps, xa, ya, 'adj_village', 1000 * x + y)
+                            FU.set_fgumap_value(adjacent_village_map, xa, ya, 'village_xy', 1000 * x + y)
                         end
                     end
                 end
             end
+            --DBG.dbms(adjacent_village_map)
 
-            if false then
-                FU.show_fgumap_with_message(village_bonus_maps, 'village', 'Vulnerable villages')
-                FU.show_fgumap_with_message(village_bonus_maps, 'adj_village', 'Adjacent vulnerable villages')
+            if true then
+                FU.show_fgumap_with_message(adjacent_village_map, 'village_xy', 'Adjacent vulnerable villages')
             end
 
 
-            local function hold_rating(holders, enemy_rating_maps, key)
-                local unit_rating_maps = {}
+
+            local function hold_rating(holders)
+                local new_unit_rating_maps = {}
+                local hold_leader_distance = fred.data.behavior.orders[zonedata.cfg.zone_id].hold_leader_distance
+
                 for id,_ in pairs(holders) do
-                    unit_rating_maps[id] = {}
+                    print('\n' .. id, zonedata.cfg.zone_id,hold_leader_distance)
+                    --unit_rating_maps[id] = {}
 
                     for x,y,_ in FU.fgumap_iter(gamedata.reach_maps[id]) do
-                        local enemy_base_rating, enemy_mult, count = 0, 0, 0
+                        --print(x,y)
+                        local my_defense = FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
+                        local tmp_enemies = {}
                         for enemy_id,_ in pairs(gamedata.enemies) do
-                            -- The enemy_maps are restricted to the zone, so this is
-                            -- where the filtering for the zone comes in
-                            local enemy_rating = FU.get_fgumap_value(enemy_maps[enemy_id], x, y, key)
-                            if enemy_rating then
-                                enemy_base_rating = enemy_base_rating + enemy_rating
-                                enemy_mult = enemy_mult + FU.unit_current_power(gamedata.unit_infos[enemy_id])
-                                count = count + 1
+                            local enemy_hc = {}
+                            for xa,ya in H.adjacent_tiles(x, y) do
+                                -- Note: we check only the reach_map inside the zone here
+                                -- Todo: check whether that is the right thing to do
+                                local moves_left = FU.get_fgumap_value(enemy_zone_maps[enemy_id], xa, ya, 'moves_left')
+                                if moves_left then
+                                    local ehc = FU.get_fgumap_value(enemy_zone_maps[enemy_id], xa, ya, 'hit_chance')
+                                    --print('  ' .. enemy_id, xa, ya, ehc)
+                                    table.insert(enemy_hc, {
+                                        ehc = ehc, moves_left = moves_left
+                                    })
+                                end
+                            end
+                            table.sort(enemy_hc, function(a, b) return a.moves_left > b.moves_left end)
+                            --DBG.dbms(enemy_hc)
+
+                            local n = math.min(3, #enemy_hc)
+                            local min_enemy_hc
+                            for i = 1,n do
+                                if (not min_enemy_hc) or (enemy_hc[i].ehc < min_enemy_hc) then
+                                    min_enemy_hc = enemy_hc[i].ehc
+                                end
+                            end
+
+                            if min_enemy_hc then
+                                --print('    ', enemy_id, min_enemy_hc)
+                                local att = fred.data.turn_data.unit_attacks[id][enemy_id]
+
+                                local my_hc = 1 - my_defense
+                                local my_damage = att.enemy_counter.damage * att.enemy_counter.number * my_hc
+                                my_damage = my_damage + att.enemy_forward.damage * att.enemy_forward.number * my_hc / 10
+                                my_damage = my_damage + att.enemy_counter.bonus
+
+                                local enemy_damage = att.my_counter.damage * att.my_counter.number * min_enemy_hc
+                                enemy_damage = enemy_damage + att.my_counter.bonus
+                                enemy_damage = enemy_damage + att.my_forward.damage * att.my_forward.number * my_hc / 10
+
+                                -- Note: this is large for the strongest enemy (=bad for Fred)
+                                -- It is used to fond the strongest enemies for this hex
+                                local counter_rating = my_damage - enemy_damage
+                                table.insert(tmp_enemies, {
+                                    my_damage = my_damage,
+                                    enemy_damage = enemy_damage,
+                                    counter_rating = counter_rating,
+                                    enemy_id = enemy_id
+                                })
                             end
                         end
 
-                        if (count > 0) then
-                            enemy_base_rating = enemy_base_rating / count
-                            enemy_mult = enemy_mult / count
-
-                            local my_defense = FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
-                            local my_base_rating = my_defense
-
-                            local my_mult = FU.unit_current_power(gamedata.unit_infos[id])
-
-                            local my_village_bonus = 0.15 * (FU.get_fgumap_value(village_bonus_maps, x, y, 'village') or 0)
-                            -- Don't use this for this step
-                            --local enemy_village_bonus = -0.15 * 1.5 * (FU.get_fgumap_value(village_bonus_maps, x, y, 'adj_village') or 0)
-
-                            -- Note: multiplying MY rating with ENEMY mult and vice verse is NOT a typo
-                            local rating =
-                                (my_base_rating + my_village_bonus) * enemy_mult
-                                + enemy_base_rating * my_mult
-
-                            FU.set_fgumap_value(unit_rating_maps[id], x, y, 'rating', rating)
-                            unit_rating_maps[id][x][y].my_base_rating = my_base_rating
-                            unit_rating_maps[id][x][y].my_village_bonus = my_village_bonus
-                            unit_rating_maps[id][x][y].my_mult = my_mult
-                            unit_rating_maps[id][x][y].enemy_base_rating = enemy_base_rating
-                            unit_rating_maps[id][x][y].enemy_mult = enemy_mult
-                            unit_rating_maps[id][x][y].x = x
-                            unit_rating_maps[id][x][y].y = y
-                            unit_rating_maps[id][x][y].id = id
+                        -- Only keep the 3 strongest enemies (or fewer, if there are not 3)
+                        table.sort(tmp_enemies, function(a, b) return a.counter_rating > b.counter_rating end)
+                        local n = math.min(3, #tmp_enemies)
+                        for i = #tmp_enemies,n+1,-1 do
+                            table.remove(tmp_enemies, i)
                         end
+                        --DBG.dbms(tmp_enemies)
+
+                        if (#tmp_enemies > 0) then
+                            local my_damage, enemy_damage = 0, 0
+                            for _,enemy in pairs(tmp_enemies) do
+                                my_damage = my_damage + enemy.my_damage
+                                enemy_damage = enemy_damage + enemy.enemy_damage
+                            end
+                            --my_damage = my_damage / #tmp_enemies
+                            --enemy_damage = enemy_damage / #tmp_enemies
+
+                            local rating = gamedata.unit_infos[id].hitpoints - my_damage
+                            rating = rating + 1.2 * enemy_damage
+
+                            -- Healing bonus for villages
+                            if FU.get_fgumap_value(gamedata.village_map, x, y, 'owner') then
+                                rating = rating + 8
+                            end
+
+                            -- Penalty if behind the position to be held
+                            if hold_leader_distance then
+                                local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
+                                local dld = ld - hold_leader_distance
+                                if (dld < -2) then
+                                    rating = rating + 5 * dld
+                                end
+                            end
+
+
+                            --print('  ' .. my_damage, enemy_damage, rating)
+
+                            if (not new_unit_rating_maps[id]) then
+                                new_unit_rating_maps[id] = {}
+                            end
+     						FU.set_fgumap_value(new_unit_rating_maps[id], x, y, 'rating', rating)
+							new_unit_rating_maps[id][x][y].x = x
+							new_unit_rating_maps[id][x][y].y = y
+							new_unit_rating_maps[id][x][y].id = id
+     					end
+
                     end
                 end
-                return unit_rating_maps
+                return new_unit_rating_maps
             end
 
-            local unit_rating_maps = hold_rating(holders, enemy_maps, 'enemy_rating')
-            if false then
+            local unit_rating_maps = hold_rating(holders)
+
+            if true then
                 for id,unit_rating_map in pairs(unit_rating_maps) do
-                    --FU.show_fgumap_with_message(unit_rating_map, 'my_base_rating', 'my_base_rating', gamedata.unit_copies[id])
-                    --FU.show_fgumap_with_message(unit_rating_map, 'my_village_bonus', 'my_village_bonus', gamedata.unit_copies[id])
-                    --FU.show_fgumap_with_message(unit_rating_map, 'my_mult', 'my_mult', gamedata.unit_copies[id])
-                    --FU.show_fgumap_with_message(unit_rating_map, 'enemy_base_rating', 'enemy_base_rating', gamedata.unit_copies[id])
-                    --FU.show_fgumap_with_message(unit_rating_map, 'enemy_village_bonus', 'enemy_village_bonus', gamedata.unit_copies[id])
-                    --FU.show_fgumap_with_message(unit_rating_map, 'enemy_mult', 'enemy_mult', gamedata.unit_copies[id])
                     FU.show_fgumap_with_message(unit_rating_map, 'rating', 'Unit rating', gamedata.unit_copies[id])
                 end
             end
 
-            local unit_rating_maps_2turns = hold_rating(holders, enemy_maps, 'enemy_rating_2turns')
-            if false then
-                for id,unit_rating_map in pairs(unit_rating_maps_2turns) do
-                    --FU.show_fgumap_with_message(unit_rating_map, 'my_base_rating', 'my_base_rating 2 turns', gamedata.unit_copies[id])
-                    --FU.show_fgumap_with_message(unit_rating_map, 'my_village_bonus', 'my_village_bonus 2 turns', gamedata.unit_copies[id])
-                    --FU.show_fgumap_with_message(unit_rating_map, 'my_mult', 'my_mult 2 turns', gamedata.unit_copies[id])
-                    --FU.show_fgumap_with_message(unit_rating_map, 'enemy_base_rating', 'enemy_base_rating 2 turns', gamedata.unit_copies[id])
-                    --FU.show_fgumap_with_message(unit_rating_map, 'enemy_village_bonus', 'enemy_village_bonus 2 turns', gamedata.unit_copies[id])
-                    --FU.show_fgumap_with_message(unit_rating_map, 'enemy_mult', 'enemy_mult 2 turns', gamedata.unit_copies[id])
-                    FU.show_fgumap_with_message(unit_rating_map, 'rating', 'Unit rating 2 turns', gamedata.unit_copies[id])
-                end
-            end
 
+            -- The following (getting the combos) seems needlessly complicated
+            -- TODO: simplify at some point (for now, it works)
             local sorted_ratings = {}
             for id,unit_rating_map in pairs(unit_rating_maps) do
-                local count_hold = 0
-                for _,_,data in FU.fgumap_iter(unit_rating_map) do
-                    count_hold = count_hold + 1
+                sorted_ratings[id] = {}
+                for x,y,data in FU.fgumap_iter(unit_rating_map) do
+                    table.insert(sorted_ratings[id], data)
                 end
-
-                local count_reach = 0
-                for _,_,_ in FU.fgumap_iter(gamedata.reach_maps[id]) do
-                    count_reach = count_reach + 1
-                end
-
-                --print(id .. ': number of hold hexes found: ' .. count_hold .. '/' .. count_reach)
-                if (count_hold > 0) and (count_hold < count_reach * 0.25) then
-                    --print('    insufficient # of hexes --> secondary considerations')
-
-
-                    local count2 = 0
-                    local sorted_ratings2 = {}  -- sorted array
-                    local ratings2_junction = {} -- FGU_map
-                    for x,y,_ in FU.fgumap_iter(unit_rating_maps_2turns[id]) do
-                        count2 = count2 + 1
-                        local rating_2turns = unit_rating_maps_2turns[id][x][y].rating
-                        table.insert(sorted_ratings2, { rating_2turns = rating_2turns })
-
-                        -- Set 2-turn rating for all hexes that have 1-turn rating
-                        if FU.get_fgumap_value(unit_rating_map, x, y, 'rating') then
-                            FU.set_fgumap_value(ratings2_junction, x, y, 'rating_2turns', rating_2turns)
-                        end
-                    end
-                    table.sort(sorted_ratings2, function(a, b) return a.rating_2turns > b.rating_2turns end)
-                    --DBG.dbms(ratings2_junction)
-
-                    --[[
-                    percs = { 100, 90, 80, 75, 50, 0}
-                    for _,perc in ipairs(percs) do
-                        local ind = math.ceil(count2 * (100 - perc) / 100)
-                        if (ind == 0) then ind = 1 end
-                        print(perc, ind .. '/' .. count2, sorted_ratings2[ind].rating_2turns)
-                    end--]]
-
-                    local ind = math.ceil(count2 * 0.2)
-                    local rating_threshold = sorted_ratings2[ind].rating_2turns
-                    --print('  rating_threshold:', rating_threshold)
-
-                    local tmp_sorted_ratings = {}
-                    for x,y,data in FU.fgumap_iter(unit_rating_map) do
-                        local rating_2turn = FU.get_fgumap_value(ratings2_junction, x, y, 'rating_2turns')
-                        --print('    ' .. x .. ',' .. y, rating_2turn .. ' <-> ' .. rating_threshold)
-
-                        -- Alternate rating must be _better_ (equal does not count because
-                        -- there will be many equal ratings)
-                        if (rating_2turn > rating_threshold) then
-                            table.insert(tmp_sorted_ratings, data)
-                        end
-                    end
-
-                    if (#tmp_sorted_ratings > 0) then
-                        sorted_ratings[id] = tmp_sorted_ratings
-                    end
-                else
-                    if (count_hold > 0) then
-                        sorted_ratings[id] = {}
-                        for x,y,data in FU.fgumap_iter(unit_rating_map) do
-                            table.insert(sorted_ratings[id], data)
-                        end
-                    end
-                end
-
                 if sorted_ratings[id] then
                     table.sort(sorted_ratings[id], function(a, b) return a.rating > b.rating end)
                 end
@@ -3019,9 +3152,10 @@ return {
 
             if (not next(sorted_ratings)) then return end
 
+            --local start_time = wesnoth.get_time_stamp()
+
             local max_units = 3 -- number of units to be used per combo
             local max_hexes = 6 -- number of hexes per unit for placement combos
-
 
             local best_units = {}
             for id,sorted_rating in pairs(sorted_ratings) do
@@ -3040,11 +3174,9 @@ return {
 
             local n_units = math.min(max_units, #best_units)
 
-
             local use_units = {}
             for i = 1,n_units do use_units[i] = best_units[i] end
             --DBG.dbms(use_units)
-
 
             local ratings = {}
             for _,unit in ipairs(use_units) do
@@ -3095,7 +3227,7 @@ return {
                     x, y =  math.floor(dst / 1000), dst % 1000
 
                     -- If this is adjacent to a village that is not part of the combo, DQ this combo
-                    local adj_vill_xy = FU.get_fgumap_value(village_bonus_maps, x, y, 'adj_village')
+                    local adj_vill_xy = FU.get_fgumap_value(adjacent_village_map, x, y, 'village_xy')
                     --print(x, y, adj_vill_xy)
                     if adj_vill_xy then
                         is_dqed = true
@@ -3105,13 +3237,13 @@ return {
                                 break
                             end
                         end
-                        --print('  is_dqed', is_dqed)
+                        --print('  is_dqed', x, y, is_dqed)
 
                         if is_dqed then break end
                     end
 
 
-                    local vuln = FU.get_fgumap_value(fred.data.behavior.IM, x, y, 'vulnerability')
+                    local vuln = FU.get_fgumap_value(fred.data.turn_data.IM, x, y, 'vulnerability')
                     av_vuln = av_vuln + vuln
 
                     local min_dist = 999
@@ -3125,7 +3257,6 @@ return {
 
                     if (min_dist < min_min_dist) then min_min_dist = min_dist end
                     if (min_dist > max_min_dist) then max_min_dist = min_dist end
-
 
                     local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
                     if (not min_ld) or (ld < min_ld) then min_ld = ld end
@@ -3175,10 +3306,12 @@ return {
                             W.label { x = x, y = y, text = "" }
                         end
                     end
-
-
                 end
             end
+
+            --local end_time = wesnoth.get_time_stamp()
+            --print('Hold combo evaluation time: ' .. tostring(end_time - start_time) .. ' ms')
+
 
             if best_combo then
                 --DBG.dbms(best_combo)
@@ -3269,14 +3402,14 @@ return {
                 local hp_rating = FU.weight_s(fraction_hp_missing, 0.5)
                 hp_rating = hp_rating * 10
 
-                print(id, rating_moves, rating_power, fraction_hp_missing, hp_rating)
+                --print(id, rating_moves, rating_power, fraction_hp_missing, hp_rating)
 
                 for x,y,_ in FU.fgumap_iter(gamedata.reach_maps[id]) do
                     if FU.get_fgumap_value(advance_map, x, y, 'flag') then
 
                         local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'enemy_leader_distance')
 
-                        local rating = - ld + rating_moves + rating_power
+                        local rating = ld + rating_moves + rating_power
 
                         if FU.get_fgumap_value(gamedata.village_map, x, y, 'owner') then
                             rating = rating + hp_rating
