@@ -1061,13 +1061,6 @@ return {
                     }
                     --print('  ' .. zone_id .. ': \tleader distance ' .. gamedata.leader_distance_map[best_hex[1]][best_hex[2]].distance .. ' \t(' .. best_hex[1] .. ',' .. best_hex[2] .. ')')
                 end
-
-                local show_debug = false
-                if show_debug then
-                    FU.put_fgumap_labels(zone_vuln, 'blurred_vulnerability')
-                    W.message{ speaker = 'narrator', message = 'zone blurred_vulnerability: ' .. zone_id }
-                    FU.clear_labels()
-                end
             end
             --DBG.dbms(goal_hexes)
 
@@ -3008,7 +3001,7 @@ return {
             end
             --DBG.dbms(adjacent_village_map)
 
-            if true then
+            if false then
                 FU.show_fgumap_with_message(adjacent_village_map, 'village_xy', 'Adjacent vulnerable villages')
             end
 
@@ -3019,7 +3012,7 @@ return {
                 local hold_leader_distance = fred.data.behavior.orders[zonedata.cfg.zone_id].hold_leader_distance
 
                 for id,_ in pairs(holders) do
-                    print('\n' .. id, zonedata.cfg.zone_id,hold_leader_distance)
+                    --print('\n' .. id, zonedata.cfg.zone_id,hold_leader_distance)
                     --unit_rating_maps[id] = {}
 
                     for x,y,_ in FU.fgumap_iter(gamedata.reach_maps[id]) do
@@ -3129,7 +3122,7 @@ return {
 
             local unit_rating_maps = hold_rating(holders)
 
-            if true then
+            if false then
                 for id,unit_rating_map in pairs(unit_rating_maps) do
                     FU.show_fgumap_with_message(unit_rating_map, 'rating', 'Unit rating', gamedata.unit_copies[id])
                 end
