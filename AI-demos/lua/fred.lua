@@ -599,30 +599,19 @@ return {
             end
 
             local show_debug = false
-            if show_debug then
-                FU.put_fgumap_labels(my_inf, 'my_influence')
-                W.message{ speaker = 'narrator', message = 'my influence' }
-                FU.put_fgumap_labels(enemy_inf, 'enemy_influence')
-                W.message{ speaker = 'narrator', message = 'enemy influence' }
-                FU.put_fgumap_labels(IM, 'influence')
-                W.message{ speaker = 'narrator', message = 'influence' }
-                FU.put_fgumap_labels(IM, 'tension')
-                W.message{ speaker = 'narrator', message = 'tension' }
-                FU.put_fgumap_labels(IM, 'vulnerability')
-                W.message{ speaker = 'narrator', message = 'vulnerability' }
-                FU.put_fgumap_labels(IM, 'blurred_vulnerability')
-                W.message{ speaker = 'narrator', message = 'blurred_vulnerability' }
-                FU.clear_labels()
+            if false then
+                FU.show_fgumap_with_message(my_inf, 'my_influence', 'My influence')
+                FU.show_fgumap_with_message(enemy_inf, 'enemy_influence', 'Enemy influence')
+                FU.show_fgumap_with_message(IM, 'influence', 'Influence')
+                FU.show_fgumap_with_message(IM, 'tension', 'Tension')
+                FU.show_fgumap_with_message(IM, 'vulnerability', 'Vulnerability')
+                FU.show_fgumap_with_message(IM, 'blurred_vulnerability', 'Blurred vulnerability')
             end
 
             if false then
-                --FU.put_fgumap_labels(gamedata.leader_distance_map, 'my_leader_distance')
-                --W.message{ speaker = 'narrator', message = 'my_leader_distance' }
-                --FU.put_fgumap_labels(gamedata.leader_distance_map, 'enemy_leader_distance')
-                --W.message{ speaker = 'narrator', message = 'enemy_leader_distance' }
-                FU.put_fgumap_labels(gamedata.leader_distance_map, 'distance')
-                W.message{ speaker = 'narrator', message = 'leader_distance_map' }
-                FU.clear_labels()
+                FU.show_fgumap_with_message(gamedata.leader_distance_map, 'my_leader_distance', 'my_leader_distance')
+                FU.show_fgumap_with_message(gamedata.leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
+                FU.show_fgumap_with_message(gamedata.leader_distance_map, 'distance', 'leader_distance_map')
             end
 
             local zone_maps = {}
