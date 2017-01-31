@@ -313,6 +313,7 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
     local my_units, my_units_MP, my_units_noMP, enemies = {}, {}, {}, {}
     local my_unit_map, my_unit_map_MP, my_unit_map_noMP, enemy_map = {}, {}, {}, {}
     local my_attack_map, my_move_map = {}, {}
+    local unit_attack_maps = {}
     local unit_copies = {}
 
     local additional_turns = 1
@@ -325,6 +326,7 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
         local unit_copy = wesnoth.copy_unit(unit_proxy)
         local id = unit_proxy.id
         unit_copies[unit_copy.id] = unit_copy
+        unit_attack_maps[id] = {}
 
         units[unit_copy.id] = { unit_copy.x, unit_copy.y }
 
@@ -417,6 +419,11 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
                     end
 
                     table.insert(my_attack_map[int_turns][x][y].ids, id)
+
+                    if (int_turns <= 1) then
+                        local current_power = FU.unit_current_power(unit_infos[id])
+                        FU.set_fgumap_value(unit_attack_maps[id], x, y, 'current_power', current_power)
+                    end
                 end
             end
 
@@ -591,6 +598,8 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
         local old_moves = unit_copies[enemy_id].moves
         unit_copies[enemy_id].moves = unit_copies[enemy_id].max_moves
 
+        unit_attack_maps[enemy_id] = {}
+
         -- Hexes the enemy can reach in additional_turns+1 turns
         local reach = wesnoth.find_reach(unit_copies[enemy_id], { additional_turns = additional_turns })
 
@@ -675,6 +684,11 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
                 end
 
                 table.insert(enemy_attack_map[int_turns][x][y].ids, enemy_id)
+
+                if (int_turns <= 1) then
+                    local current_power = FU.unit_current_power(unit_infos[enemy_id])
+                    FU.set_fgumap_value(unit_attack_maps[enemy_id], x, y, 'current_power', current_power)
+                end
             end
         end
     end
@@ -687,6 +701,7 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
     mapstate.trapped_enemies = trapped_enemies
 
     mapstate.unit_influence_maps = unit_influence_maps
+    mapstate.unit_attack_maps = unit_attack_maps
 
     return mapstate, reach_maps, unit_copies
 end
