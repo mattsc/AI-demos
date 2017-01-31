@@ -3391,7 +3391,7 @@ return {
 
                         local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'enemy_leader_distance')
 
-                        local rating = ld + rating_moves + rating_power
+                        local rating = - ld + rating_moves + rating_power
 
                         if FU.get_fgumap_value(gamedata.village_map, x, y, 'owner') then
                             rating = rating + hp_rating
