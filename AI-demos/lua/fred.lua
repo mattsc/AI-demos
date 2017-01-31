@@ -216,10 +216,19 @@ return {
         function fred:get_leader_distance_map()
             local show_debug = true
 
+            local side_cfgs = fred:get_side_cfgs()
+            local leader_loc, enemy_leader_loc
+            for side,cfg in ipairs(side_cfgs) do
+                if (side == wesnoth.current.side) then
+                    leader_loc = cfg.start_hex
+                else
+                    enemy_leader_loc = cfg.start_hex
+                end
+            end
 
             -- Need a map with the distances to the enemy and own leaders
-            local leader_cx, leader_cy = AH.cartesian_coords(fred.data.gamedata.leader_x, fred.data.gamedata.leader_y)
-            local enemy_leader_cx, enemy_leader_cy = AH.cartesian_coords(fred.data.gamedata.enemy_leader_x, fred.data.gamedata.enemy_leader_y)
+            local leader_cx, leader_cy = AH.cartesian_coords(leader_loc[1], leader_loc[2])
+            local enemy_leader_cx, enemy_leader_cy = AH.cartesian_coords(enemy_leader_loc[1], enemy_leader_loc[2])
 
             local dist_btw_leaders = math.sqrt( (enemy_leader_cx - leader_cx)^2 + (enemy_leader_cy - leader_cy)^2 )
 
