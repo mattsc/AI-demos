@@ -613,6 +613,11 @@ return {
                 --FU.show_fgumap_with_message(gamedata.leader_distance_map, 'my_leader_distance', 'my_leader_distance')
                 FU.show_fgumap_with_message(gamedata.leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
                 FU.show_fgumap_with_message(gamedata.leader_distance_map, 'distance', 'leader_distance_map')
+
+                FU.show_fgumap_with_message(gamedata.enemy_leader_distance_maps['Orcish Grunt'], 'cost', 'cost Grunt')
+                FU.show_fgumap_with_message(gamedata.enemy_leader_distance_maps['Wolf Rider'], 'cost', 'cost Wolf Rider')
+
+
             end
 
 
@@ -2903,6 +2908,8 @@ return {
             for id,_ in pairs(holders) do
                 --print('\n' .. id, zonedata.cfg.zone_id)
 
+                local unit_type = gamedata.unit_infos[id].type
+
                 local min_eleader_distance
                 for x,y,_ in FU.fgumap_iter(gamedata.reach_maps[id]) do
                     --print(x,y)
@@ -2918,7 +2925,11 @@ return {
 
                     -- TODO: probably want to us an actual move-distance map, rather than cartesian distances
                     if (not can_hit) then
-                        local eld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'enemy_leader_distance')
+
+                        local eld1 = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'enemy_leader_distance')
+                        local eld2 = FU.get_fgumap_value(gamedata.enemy_leader_distance_maps[unit_type], x, y, 'cost')
+                        local eld = (eld1 + eld2) / 2
+
                         if (not min_eleader_distance) or (eld < min_eleader_distance) then
                             min_eleader_distance = eld
                         end
@@ -2933,7 +2944,9 @@ return {
                     -- unthreatened than this hold position, don't hold here
                     local move_here = true
                     if (not hold_leader_distance) then
-                        local eld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'enemy_leader_distance')
+                        local eld1 = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'enemy_leader_distance')
+                        local eld2 = FU.get_fgumap_value(gamedata.enemy_leader_distance_maps[unit_type], x, y, 'cost')
+                        local eld = (eld1 + eld2) / 2
 
                         if min_eleader_distance and (eld > min_eleader_distance) then
                             move_here = false
@@ -3463,10 +3476,15 @@ return {
 
                 --print(id, rating_moves, rating_power, fraction_hp_missing, hp_rating)
 
+                local unit_type = gamedata.unit_infos[id].type
+
+
                 for x,y,_ in FU.fgumap_iter(gamedata.reach_maps[id]) do
                     if FU.get_fgumap_value(advance_map, x, y, 'flag') then
 
-                        local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'enemy_leader_distance')
+                        local ld1 = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'enemy_leader_distance')
+                        local ld2 = FU.get_fgumap_value(gamedata.enemy_leader_distance_maps[unit_type], x, y, 'cost')
+                        local ld = (ld1 + ld2) / 2
 
                         local rating = - ld + rating_moves + rating_power
 
