@@ -1,5 +1,7 @@
 local H = wesnoth.require "lua/helper.lua"
 local AH = wesnoth.require "ai/lua/ai_helper.lua"
+local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
+local W = H.set_wml_action_metatable {}
 
 local UHC = {}
 
@@ -120,7 +122,7 @@ local function get_best_combo(combos, min_units, cfg)
     -- @min_units: minimum number of units needed to count as valid combo
 
     local hp_map = {}  -- Setting up hitpoint map for speed reasons
-    local max_rating, best_combo = -9e99
+    local max_rating, best_combo
     for _,combo in ipairs(combos) do
         local n_hexes = 0
         for dst,src in pairs(combo) do
@@ -170,7 +172,7 @@ local function get_best_combo(combos, min_units, cfg)
             end
             --print('Combo #' .. _ .. ': ', rating)
 
-            if (rating > max_rating) then
+            if (not max_rating) or (rating > max_rating) then
                 max_rating = rating
                 best_combo = combo
             end
@@ -182,5 +184,194 @@ local function get_best_combo(combos, min_units, cfg)
     end
 end
 
-return UHC
 
+function UHC.unit_rating_maps_to_dstsrc(unit_rating_maps, key, gamedata, cfg)
+    -- It's assumed that all individual unit_rating maps contain at least one rating
+
+    local max_units = (cfg and cfg.max_units) or 3 -- number of units to be used per combo
+    local max_hexes = (cfg and cfg.max_hexes) or 6 -- number of hexes per unit for placement combos
+
+
+    -- First, set up sorted arrays for each unit
+    local sorted_ratings = {}
+    for id,unit_rating_map in pairs(unit_rating_maps) do
+        sorted_ratings[id] = {}
+        for x,y,data in FU.fgumap_iter(unit_rating_map) do
+            table.insert(sorted_ratings[id], data)
+        end
+        table.sort(sorted_ratings[id], function(a, b) return a[key] > b[key] end)
+    end
+    --DBG.dbms(sorted_ratings)
+
+
+    -- The best units are those with the highest total rating
+    -- TODO: this does not make sense if everything is normalized
+
+    local best_units = {}
+    for id,sorted_rating in pairs(sorted_ratings) do
+        local count = math.min(max_hexes, #sorted_rating)
+
+        local top_ratings = 0
+        for i = 1,count do
+            top_ratings = top_ratings + sorted_rating[i][key]
+        end
+        top_ratings = top_ratings / count
+
+        table.insert(best_units, { id = id, top_ratings = top_ratings })
+    end
+    table.sort(best_units, function(a, b) return a.top_ratings > b.top_ratings end)
+    --DBG.dbms(best_units)
+
+
+    -- Units to be used
+    local n_units = math.min(max_units, #best_units)
+    local use_units = {}
+    for i = 1,n_units do use_units[i] = best_units[i] end
+    --DBG.dbms(use_units)
+
+
+    -- Finally, we need to set up the dst_src array in a way that can be used by get_unit_hex_combos()
+    local ratings = {}
+    for _,unit in ipairs(use_units) do
+        local src = gamedata.unit_copies[unit.id].x * 1000 + gamedata.unit_copies[unit.id].y
+        --print(unit.id, src)
+        local count = math.min(max_hexes, #sorted_ratings[unit.id])
+        for i = 1,count do
+            local dst = sorted_ratings[unit.id][i].x * 1000 + sorted_ratings[unit.id][i].y
+            --print('  ' .. dst, sorted_ratings[unit.id][i].rating)
+
+            if (not ratings[dst]) then
+                ratings[dst] = {}
+            end
+
+            ratings[dst][src] = sorted_ratings[unit.id][i]
+        end
+    end
+    --DBG.dbms(ratings)
+
+    local dst_src = {}
+    for dst,srcs in pairs(ratings) do
+        local tmp = { dst = dst }
+        for src,_ in pairs(srcs) do
+            table.insert(tmp, { src = src })
+        end
+        table.insert(dst_src, tmp)
+    end
+    --DBG.dbms(dst_src)
+
+    return dst_src, ratings
+end
+
+
+function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, gamedata, cfg)
+    -- This currently only returns a combo with the max number of units
+    -- TODO: does this need to be ammended?
+
+    local max_count = 0
+    local max_rating, best_combo
+    for i_c,combo in ipairs(combos) do
+        --print('combo ' .. i_c)
+        local rating = 0
+        local count = 0
+        local min_min_dist, max_min_dist = 999, 0
+        local min_ld, max_ld
+        local is_dqed = false
+
+        for src,dst in pairs(combo) do
+            rating = rating + ratings[dst][src][key]
+            count = count + 1
+
+            x, y =  math.floor(dst / 1000), dst % 1000
+
+            local id = ratings[dst][src].id
+
+            -- If this is adjacent to a village that is not part of the combo, DQ this combo
+            local adj_vill_xy = FU.get_fgumap_value(adjacent_village_map, x, y, 'village_xy')
+            --print(x, y, adj_vill_xy)
+            if adj_vill_xy then
+                is_dqed = true
+                for _,tmp_dst in pairs(combo) do
+                    if (adj_vill_xy == tmp_dst) then
+                        is_dqed = false
+                        break
+                    end
+                end
+                --print('  is_dqed', x, y, is_dqed)
+
+                if is_dqed then break end
+            end
+
+            local min_dist = 999
+            for src2,dst2 in pairs(combo) do
+                if (src2 ~= src) or (dst2 ~= dst) then
+                    x2, y2 =  math.floor(dst2 / 1000), dst2 % 1000
+                    local d = H.distance_between(x2, y2, x, y)
+                    if (d < min_dist) then min_dist = d end
+                end
+            end
+
+            if (min_dist < min_min_dist) then min_min_dist = min_dist end
+            if (min_dist > max_min_dist) then max_min_dist = min_dist end
+
+            local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
+            if (not min_ld) or (ld < min_ld) then min_ld = ld end
+            if (not max_ld) or (ld > max_ld) then max_ld = ld end
+        end
+
+
+        if (not is_dqed) and (count >= max_count) then
+            max_count = count
+
+            -- Bonus for distance of 2 or 3
+            if (min_min_dist >= 2) and (max_min_dist <= 3) then
+                rating = rating * 1.10
+            end
+
+            -- Penalty for too far apart
+            if (max_min_dist > 3) then
+                rating = rating / ( 1 + (max_min_dist - 3) / 10)
+            end
+
+
+            -- and we reduce lining them up "vertically" too far apart, but only
+            -- if the config parameter 'hold_perpendicular' is set
+            -- This is usually set for protects, not for "normal" holding
+            if cfg and cfg.hold_perpendicular then
+                local dld = max_ld - min_ld
+                if (dld > 2) then
+                    rating = rating * math.sqrt( 1 - dld / 20)
+                end
+            end
+
+
+            if (not max_rating) or (rating > max_rating) then
+                max_rating = rating
+                best_combo = combo
+            end
+
+
+            -- Display combo and rating, if desired
+            if false then
+                local x, y
+                for src,dst in pairs(combo) do
+                    x, y =  math.floor(dst / 1000), dst % 1000
+                    local id = ratings[dst][src].id
+                    W.label { x = x, y = y, text = id }
+                end
+                wesnoth.scroll_to_tile(x, y)
+                W.message { speaker = 'narrator',
+                    message = 'Hold combo ' .. i_c .. '/' .. #combos .. ' rating = ' .. rating }
+                for src,dst in pairs(combo) do
+                    x, y =  math.floor(dst / 1000), dst % 1000
+                    W.label { x = x, y = y, text = "" }
+                end
+            end
+        end
+    end
+    --print(' ===> max rating:         ' .. (max_rating or 'none'))
+
+    return best_combo
+end
+
+
+return UHC
