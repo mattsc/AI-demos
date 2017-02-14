@@ -11,6 +11,7 @@ return {
         local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
         local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
         local FHU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_hold_utils.lua"
+        local FVU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_village_utils.lua"
         local LS = wesnoth.require "lua/location_set.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
         local R = wesnoth.require "~/add-ons/AI-demos/lua/retreat.lua"
@@ -633,25 +634,6 @@ return {
 
 
 
-            local zone_maps = {}
-            for zone_id,cfg in pairs(raw_cfgs_main) do
-                zone_maps[zone_id] = {}
-                local zone = wesnoth.get_locations(cfg.ops_slf)
-                for _,loc in ipairs(zone) do
-                    FU.set_fgumap_value(zone_maps[zone_id], loc[1], loc[2], 'in_zone', true)
-                end
-            end
-
-            local my_start_hex, enemy_start_hex
-            for side,cfgs in ipairs(side_cfgs) do
-                if (side == wesnoth.current.side) then
-                    my_start_hex = cfgs.start_hex
-                else
-                    enemy_start_hex = cfgs.start_hex
-                end
-            end
-
-
             -- Attributing enemy and own units to zones
             -- Use base_power for this as it is not only for the current turn
             -- Use very simple tables here, as everything else might have to be
@@ -678,7 +660,6 @@ return {
             --DBG.dbms(enemies_by_zone)
 
             local assigned_units = {}
-            local immediate_actions = {}
             for id,_ in pairs(gamedata.my_units) do
                 local unit_copy = gamedata.unit_copies[id]
                 if (not unit_copy.canrecruit)
@@ -696,42 +677,8 @@ return {
 
 
             ----- Village goals -----
-            --DBG.dbms(gamedata.village_map)
+            local zone_village_goals, protect_villages_maps = FVU.village_goals(raw_cfgs_main, side_cfgs, gamedata)
 
-            -- Village goals are those that are:
-            --  - on my side of the map
-            --  - not owned by me
-            -- We set those up as arrays, one for each zone
-            --  - if a village is found that is not in a zone, assign it zone 'other'
-            local zone_village_goals = {}
-            local protect_villages_maps = {}
-            for x,y,village in FU.fgumap_iter(gamedata.village_map) do
-                local my_distance = H.distance_between(x, y, my_start_hex[1], my_start_hex[2])
-                local enemy_distance = H.distance_between(x, y, enemy_start_hex[1], enemy_start_hex[2])
-
-                if (my_distance <= enemy_distance) then
-                    local village_zone
-                    for zone_id,_ in pairs(zone_maps) do
-                        if FU.get_fgumap_value(zone_maps[zone_id], x, y, 'in_zone') then
-                            village_zone = zone_id
-                            break
-                        end
-                    end
-                    if (not village_zone) then village_zone = 'other' end
-
-                    if (village.owner ~= wesnoth.current.side) then
-                        if (not zone_village_goals[village_zone]) then
-                            zone_village_goals[village_zone] = {}
-                        end
-                        table.insert(zone_village_goals[village_zone], { x = x, y = y, owner = village.owner })
-                    end
-
-                    if (not protect_villages_maps[village_zone]) then
-                        protect_villages_maps[village_zone] = {}
-                    end
-                    FU.set_fgumap_value(protect_villages_maps[village_zone], x, y, 'protect', true)
-                end
-            end
             --DBG.dbms(zone_village_goals)
             --DBG.dbms(protect_villages_maps)
 
@@ -744,151 +691,15 @@ return {
             end
             --DBG.dbms(units_needed_villages)
 
-            -- Villages that can be reached are dealt with separately from others
-            -- Only go over those found above
-            local villages_in_reach = { by_village = {}, by_unit = {} }
+            local immediate_actions = {}
 
-            for zone_id,villages in pairs(zone_village_goals) do
-                for _,village in ipairs(villages) do
-                    local tmp_in_reach = {
-                        x = village.x, y = village.y,
-                        owner = village.owner, zone_id = zone_id,
-                        units = {}
-                    }
-
-                    local ids = FU.get_fgumap_value(gamedata.my_move_map[1], village.x, village.y, 'ids', {})
-
-                    for _,id in pairs(ids) do
-                        local loc = gamedata.my_units[id]
-                        -- Only include the leader if he's on the keep
-                        if (not gamedata.unit_infos[id].canrecruit)
-                            or wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).keep
-                        then
-                            --print(id, loc[1], loc[2])
-
-                            table.insert(tmp_in_reach.units, id)
-
-                            -- For this is sufficient to just count how many villages a unit can get to
-                            if (not villages_in_reach.by_unit[id]) then
-                                villages_in_reach.by_unit[id] = 1
-                            else
-                                villages_in_reach.by_unit[id] = villages_in_reach.by_unit[id] + 1
-                            end
-                        end
-                    end
-
-                    if (#tmp_in_reach.units > 0) then
-                        table.insert(villages_in_reach.by_village, tmp_in_reach)
-                    end
-                end
-            end
-            --DBG.dbms(villages_in_reach)
-
-
-            -- Now find best villages for those units
-            -- This is one where we need to do the full analysis at this layer,
-            -- as it determines which units goes into which zone
-            local best_captures = {}
-            local keep_trying = true
-            while keep_trying do
-                keep_trying = false
-
-                local max_rating, best_id, best_index
-                for i_v,village in ipairs(villages_in_reach.by_village) do
-                    local base_rating = 1000
-                    if (village.owner ~= 0) then
-                        base_rating = base_rating + 1200
-                    end
-                    base_rating = base_rating / #village.units
-
-                    -- Prefer villages farther back
-                    local add_rating_village = - FU.get_fgumap_value(gamedata.leader_distance_map, village.x, village.y, 'distance')
-
-                    for _,id in ipairs(village.units) do
-                        local unit_rating = base_rating / (villages_in_reach.by_unit[id]^2)
-
-                        -- Use most injured unit first (but less important than choice of village)
-                        local ui = gamedata.unit_infos[id]
-                        local add_rating_unit = (ui.max_hitpoints - ui.hitpoints) / ui.max_hitpoints
-                        if ui.status.poisoned then
-                            add_rating_unit = add_rating_unit + 8 / ui.max_hitpoints
-                        end
-
-                        -- And finally, prefer the fastest unit, but at an even lesser level
-                        add_rating_unit = add_rating_unit + ui.max_moves / 100.
-
-                        -- Finally, prefer the leader, if possible, but only in the minor ratings
-                        if ui.canrecruit then
-                            add_rating_unit = add_rating_unit * 2
-                        end
-
-                        local total_rating = unit_rating + add_rating_village + add_rating_unit
-                        --print(id, add_rating_unit, total_rating, ui.canrecruit)
-
-                        if (not max_rating) or (total_rating > max_rating) then
-                            max_rating = total_rating
-                            best_id, best_index = id, i_v
-                        end
-                    end
-                end
-
-                if best_id then
-                    table.insert(best_captures, {
-                        id = best_id ,
-                        x = villages_in_reach.by_village[best_index].x,
-                        y = villages_in_reach.by_village[best_index].y,
-                        zone_id = villages_in_reach.by_village[best_index].zone_id
-                    })
-
-                    -- We also need to delete both this village and unit from the list
-                    -- before considering the next village/unit
-                    -- 1. Each unit that could reach this village can reach one village less overall
-                    for _,id in ipairs(villages_in_reach.by_village[best_index].units) do
-                        villages_in_reach.by_unit[id] = villages_in_reach.by_unit[id] - 1
-                    end
-
-                    -- 2. Remove theis village
-                    table.remove(villages_in_reach.by_village, best_index)
-
-                    -- 3. Remove this unit
-                    villages_in_reach.by_unit[best_id] = nil
-
-                    -- 4. Remove this unit from all other villages
-                    for _,village in ipairs(villages_in_reach.by_village) do
-                        for i = #village.units,1,-1 do
-                            if (village.units[i] == best_id) then
-                                table.remove(village.units, i)
-                            end
-                        end
-                    end
-
-                    keep_trying = true
-                end
-            end
-            --DBG.dbms(best_captures)
-
-            for _,capture in ipairs(best_captures) do
-                assigned_units[capture.id] = {
-                    action = {
-                        action = 'grab village',
-                        x = capture.x, y = capture.y
-                    },
-                    zone_id = capture.zone_id
-                }
-
-                -- This currently only works for single-unit actions; can be expanded as needed
-                local unit = gamedata.my_units[capture.id]
-                unit.id = capture.id
-                table.insert(immediate_actions, {
-                    id = capture.id,
-                    units = { unit },
-                    dsts = { { capture.x, capture.y } },
-                    zone_id = capture.zone_id,
-                    action = capture.zone_id .. ': grab village'
-                })
-            end
+            local best_captures = FVU.assign_grabbers(zone_village_goals, assigned_units, immediate_actions, gamedata)
+            --DBG.dbms(immediate_actions)
             --DBG.dbms(assigned_units)
 
+
+            -- TODO: the following should be moved into fred_village_utils,
+            -- and it can probably be simplified somewhat
             local units_assigned_villages = {}
             for id,data in pairs(assigned_units) do
                 units_assigned_villages[data.zone_id] = (units_assigned_villages[data.zone_id] or 0) + 1
@@ -1541,7 +1352,6 @@ return {
             -- At this point we have (TODO: decide which of those are to be kept):
             -- IM: my_influence, enemy_influence, influence, tension, vulnerability, blurred_vulnerability
             -- leader_distance_map
-            -- zone_maps
             -- assigned_enemies, enemies_by_zone
             -- assigned_units (incl. action if known)
             -- zone_village_goals
@@ -1575,10 +1385,31 @@ return {
             -- This gets called after each move (or set of moves)
 
             local gamedata = fred.data.gamedata
+            local raw_cfgs_main = fred:get_raw_cfgs()
+            local side_cfgs = fred:get_side_cfgs()
 
             -- What needs to be protected
 
             local orders = {}
+
+            -- TODO: currently, the village grabber assignment is run twice at the
+            -- beginning of the turn; I don't think that's a problem, but it should be
+            -- cleaned up anyway
+            -- It does need to be rerun after each move, as a village might have opened up for grabbing
+            local zone_village_goals
+            zone_village_goals, fred.data.protect_villages_maps = FVU.village_goals(raw_cfgs_main, side_cfgs, gamedata)
+            --DBG.dbms(zone_village_goals)
+            --DBG.dbms(protect_villages_maps)
+
+            local best_captures = FVU.assign_grabbers(
+                zone_village_goals,
+                fred.data.behavior.assigned_units,
+                fred.data.behavior.immediate_actions,
+                gamedata
+            )
+            --DBG.dbms(fred.data.behavior.immediate_actions)
+
+
 
             -- For now, every village on our side of the map that can be reached
             -- by an enemy needs to be protected
