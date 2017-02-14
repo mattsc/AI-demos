@@ -3639,7 +3639,17 @@ return {
 
                         local rating = - ld + rating_moves + rating_power
 
-                        if FU.get_fgumap_value(gamedata.village_map, x, y, 'owner') then
+
+                        local owner = FU.get_fgumap_value(gamedata.village_map, x, y, 'owner')
+                        if owner and (owner ~= wesnoth.current.side) then
+                            if (owner == 0) then
+                                rating = rating + 100
+                            else
+                                rating = rating + 200
+                            end
+                        end
+
+                        if owner then
                             rating = rating + hp_rating
                         end
 
