@@ -2973,7 +2973,10 @@ return {
 
                                 local my_hc = 1 - my_defense
                                 local damage_taken = my_hc * att.counter.taken + att.counter.enemy_extra
+                                damage_taken = damage_taken + 0.1 * (my_hc * att.forward.taken + att.forward.enemy_extra)
+
                                 local damage_done = enemy_adj_hc * att.counter.done + att.counter.my_extra
+                                damage_done = damage_done + 0.1 * (enemy_adj_hc * att.forward.done + att.forward.my_extra)
 
                                 -- Note: this is small (negative) for the strongest enemy
                                 -- -> need to find minima the strongest enemies for this hex
