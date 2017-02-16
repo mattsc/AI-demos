@@ -342,6 +342,10 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, gamedat
             -- Bonus for distance of 2 or 3
             if (min_min_dist >= 2) and (max_min_dist <= 3) then
                 rating = rating * 1.10
+
+                if (max_min_dist == 2) then
+                    rating = rating + 0.0001
+                end
             end
 
             -- Penalty for too far apart
