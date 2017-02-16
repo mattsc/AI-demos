@@ -2845,7 +2845,8 @@ return {
                     -- Note that this will give a 'nil' on the hex the enemy is on,
                     -- but that's okay as the AI cannot reach that hex anyway
                     if (cum_weight > 0) then
-                        FU.set_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'adj_hit_chance', adj_hc / cum_weight)
+                        adj_hc = adj_hc / cum_weight
+                        FU.set_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'adj_hit_chance', adj_hc)
 
                         local enemy_count = FU.get_fgumap_value(holders_influence, x, y, 'enemy_count', 0) + 1
                         FU.set_fgumap_value(holders_influence, x, y, 'enemy_count', enemy_count)
@@ -2922,8 +2923,8 @@ return {
 
                     local can_hit = false
                     for enemy_id,_ in pairs(gamedata.enemies) do
-                        local enemy_hc = FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'adj_hit_chance')
-                        if enemy_hc then
+                        local enemy_adj_hc = FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'adj_hit_chance')
+                        if enemy_adj_hc then
                             can_hit = true
                             break
                         end
@@ -2964,15 +2965,15 @@ return {
                     local tmp_enemies = {}
                     if move_here then
                         for enemy_id,_ in pairs(gamedata.enemies) do
-                            local enemy_hc = FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'adj_hit_chance')
+                            local enemy_adj_hc = FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'adj_hit_chance')
 
-                            if enemy_hc then
                                 --print('    ', enemy_id, enemy_hc)
+                            if enemy_adj_hc then
                                 local att = fred.data.turn_data.unit_attacks[id][enemy_id]
 
                                 local my_hc = 1 - my_defense
                                 local damage_taken = my_hc * att.counter.taken + att.counter.enemy_extra
-                                local damage_done = enemy_hc * att.counter.done + att.counter.my_extra
+                                local damage_done = enemy_adj_hc * att.counter.done + att.counter.my_extra
 
                                 -- Note: this is small (negative) for the strongest enemy
                                 -- -> need to find minima the strongest enemies for this hex
@@ -3153,13 +3154,13 @@ return {
                     local my_hc = 1 - my_defense
 
                     for enemy_id,_ in pairs(gamedata.enemies) do
-                        local enemy_hc = FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'adj_hit_chance')
+                        local enemy_adj_hc = FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'adj_hit_chance')
 
-                        if enemy_hc then
+                        if enemy_adj_hc then
                             local enemy_weight = enemy_weights[id][enemy_id].weight
-                            --print('  hc: ' .. my_hc, enemy_hc, enemy_id, enemy_weight)
+                            --print('  hc: ' .. my_hc, enemy_adj_hc, enemy_id, enemy_weight)
 
-                            rating2 = rating2 + (enemy_hc + my_defense) * enemy_weight
+                            rating2 = rating2 + (enemy_adj_hc + my_defense) * enemy_weight
 
                             cum_weight = cum_weight + enemy_weight
                         end
