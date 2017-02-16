@@ -1421,7 +1421,7 @@ return {
             --DBG.dbms(protect_villages_maps)
             for zone_id,map in pairs(fred.data.protect_villages_maps) do
                 orders[zone_id] = { protect_villages = false }
-                local max_ld
+                local max_ld, loc
                 for x,y,_ in FU.fgumap_iter(map) do
                     for enemy_id,_ in pairs(gamedata.enemies) do
                         if FU.get_fgumap_value(gamedata.reach_maps[enemy_id], x, y, 'moves_left') then
@@ -1430,11 +1430,16 @@ return {
                             local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
                             if (not max_ld) or (ld > max_ld) then
                                 max_ld = ld
+                                loc = { x, y }
                             end
                         end
                     end
                 end
-                orders[zone_id].hold_leader_distance = max_ld
+
+                if max_ld then
+                    orders[zone_id].hold_leader_distance = max_ld
+                    orders[zone_id].protect_loc = loc
+                end
             end
             --DBG.dbms(orders)
             fred.data.behavior.orders = orders
@@ -2903,6 +2908,7 @@ return {
 
 
             local hold_leader_distance = fred.data.behavior.orders[zonedata.cfg.zone_id].hold_leader_distance
+            local protect_loc = fred.data.behavior.orders[zonedata.cfg.zone_id].protect_loc
 
             local pre_rating_maps = {}
             for id,_ in pairs(holders) do
@@ -3338,13 +3344,19 @@ return {
                 max_units = max_units,
                 max_hexes = max_hexes
             }
+            local cfg_best_combo_hold = {}
             local cfg_best_combo_protect = {
                 hold_perpendicular = true
             }
 
+            -- protect_loc is only set if there is a location to protect
+            cfg_best_combo_hold.protect_loc = protect_loc
+            cfg_best_combo_protect.protect_loc = protect_loc
+
 
             local best_hold_combo, hold_dst_src, hold_ratings
             if (next(hold_rating_maps)) then
+                --print('--> checking hold combos')
                 hold_dst_src, hold_ratings = UHC.unit_rating_maps_to_dstsrc(hold_rating_maps, 'vuln_rating', gamedata, cfg_combos)
                 local hold_combos = UHC.get_unit_hex_combos(hold_dst_src)
                 --DBG.dbms(hold_combos)
@@ -3353,15 +3365,23 @@ return {
                 best_hold_combo = UHC.find_best_combo(hold_combos, hold_ratings, 'vuln_rating', adjacent_village_map, gamedata, cfg_best_combo_hold)
             end
 
-            local best_protect_combo, protect_dst_src, protect_ratings
+            local best_protect_combo, unprotected_best_protect_combo, protect_dst_src, protect_ratings
             if hold_leader_distance then
+                --print('--> checking protect combos')
                 protect_dst_src, protect_ratings = UHC.unit_rating_maps_to_dstsrc(protect_rating_maps, 'protect_rating', gamedata, cfg_combos)
                 local protect_combos = UHC.get_unit_hex_combos(protect_dst_src)
                 --DBG.dbms(protect_combos)
                 --print('#protect_combos', #protect_combos)
 
-                best_protect_combo = UHC.find_best_combo(protect_combos, protect_ratings, 'protect_rating', adjacent_village_map, gamedata, cfg_best_combo_protect)
+                best_protect_combo, unprotected_best_protect_combo = UHC.find_best_combo(protect_combos, protect_ratings, 'protect_rating', adjacent_village_map, gamedata, cfg_best_combo_protect)
+
+                -- If no combo that protects the location was found, use the best of the others
+                if (not best_protect_combo) then
+                    best_protect_combo = unprotected_best_protect_combo
+                end
             end
+            --DBG.dbms(best_hold_combo)
+            --DBG.dbms(best_protect_combo)
 
             if (not best_hold_combo) and (not best_protect_combo) then
                 return
@@ -3432,6 +3452,7 @@ return {
                 table.insert(action.dsts, { dst_x, dst_y })
             end
             --DBG.dbms(action)
+
             return action
         end
 

@@ -272,6 +272,7 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, gamedat
     -- TODO: does this need to be ammended?
 
     local max_count = 0
+    local unprotected_max_rating, unprotected_best_combo
     local max_rating, best_combo
     for i_c,combo in ipairs(combos) do
         --print('combo ' .. i_c)
@@ -296,9 +297,8 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, gamedat
             count = count + 1
             cum_weight = cum_weight + weight
 
-            x, y =  math.floor(dst / 1000), dst % 1000
+            local x, y =  math.floor(dst / 1000), dst % 1000
 
-            local id = ratings[dst][src].id
 
             -- If this is adjacent to a village that is not part of the combo, DQ this combo
             local adj_vill_xy = FU.get_fgumap_value(adjacent_village_map, x, y, 'village_xy')
@@ -331,6 +331,73 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, gamedat
             local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
             if (not min_ld) or (ld < min_ld) then min_ld = ld end
             if (not max_ld) or (ld > max_ld) then max_ld = ld end
+        end
+        --print(i_c, is_dqed, count, max_count)
+
+        local is_protected = true
+
+        if (not is_dqed) and (count >= max_count) and cfg and cfg.protect_loc then
+            local loc = cfg.protect_loc
+            --print('*** need to check protection of ' .. loc[1] .. ',' .. loc[2])
+
+            -- First check (because it's quick): if there is a unit on the hex to be protected
+            is_protected = false
+            for src,dst in pairs(combo) do
+                local x, y =  math.floor(dst / 1000), dst % 1000
+                --print('  ' .. x , y)
+
+                if (x == loc[1]) and (y == loc[2]) then
+                    --print('    --> protected by having unit on hex')
+                    is_protected = true
+                    break
+                end
+            end
+
+
+            -- If that did not find anything, we do path_finding
+            if (not is_protected) then
+                --print('combo ' .. i_c, loc[1], loc[2])
+                for src,dst in pairs(combo) do
+                    local id = ratings[dst][src].id
+                    local x, y =  math.floor(dst / 1000), dst % 1000
+                    --print(id, src, x,y, gamedata.unit_copies[id].x, gamedata.unit_copies[id].y)
+
+                    wesnoth.put_unit(x, y, gamedata.unit_copies[id])
+                end
+
+                local can_reach = false
+                for enemy_id,_ in pairs(gamedata.enemies) do
+                    local moves_left = FU.get_fgumap_value(gamedata.reach_maps[enemy_id], loc[1], loc[2], 'moves_left')
+                    if moves_left then
+                        --print('  ' .. enemy_id, moves_left)
+                        local _, cost = wesnoth.find_path(gamedata.unit_copies[enemy_id], loc[1], loc[2])
+                        --print('  cost: ', cost)
+
+                        if (cost <= gamedata.unit_infos[enemy_id].max_moves) then
+                            --print('    can reach this!')
+                            can_reach = true
+                            break
+                        end
+                    end
+                end
+
+                for src,dst in pairs(combo) do
+                    local id = ratings[dst][src].id
+                    local x, y =  math.floor(dst / 1000), dst % 1000
+
+                    wesnoth.extract_unit(gamedata.unit_copies[id])
+
+                    local src_x, src_y =  math.floor(src / 1000), src % 1000
+                    gamedata.unit_copies[id].x, gamedata.unit_copies[id].y = src_x, src_y
+
+
+                    --print('  ' .. id, src, x,y, gamedata.unit_copies[id].x, gamedata.unit_copies[id].y)
+                end
+
+                if (not can_reach) then
+                    is_protected = true
+                end
+            end
         end
 
 
@@ -365,9 +432,16 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, gamedat
             end
 
 
-            if (not max_rating) or (rating > max_rating) then
-                max_rating = rating
-                best_combo = combo
+            if (not unprotected_max_rating) or (rating > unprotected_max_rating) then
+                unprotected_max_rating = rating
+                unprotected_best_combo = combo
+            end
+
+            if is_protected then
+                if (not max_rating) or (rating > max_rating) then
+                    max_rating = rating
+                    best_combo = combo
+                end
             end
 
 
@@ -389,9 +463,10 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, gamedat
             end
         end
     end
-    --print(' ===> max rating:         ' .. (max_rating or 'none'))
+    print(' ===> max rating:             ' .. (max_rating or 'none'))
+    print(' ===> max rating unprotected: ' .. (unprotected_max_rating or 'none'))
 
-    return best_combo
+    return best_combo, unprotected_best_combo
 end
 
 
