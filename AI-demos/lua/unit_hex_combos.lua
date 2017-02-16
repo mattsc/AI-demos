@@ -217,6 +217,10 @@ function UHC.unit_rating_maps_to_dstsrc(unit_rating_maps, key, gamedata, cfg)
         end
         top_ratings = top_ratings / count
 
+        -- Want highest HP units to be most important
+        local unit_weight = 1 + gamedata.unit_infos[id].hitpoints / 100
+        top_ratings = top_ratings * unit_weight
+
         table.insert(best_units, { id = id, top_ratings = top_ratings })
     end
     table.sort(best_units, function(a, b) return a.top_ratings > b.top_ratings end)
