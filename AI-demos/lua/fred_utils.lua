@@ -152,12 +152,13 @@ end
 
 function fred_utils.weight_s(x, exp)
     -- S curve weighting of a variable that is meant as a fraction of a total,
-    -- that is, that for the most part varies from 0 (or -1) to 1.
+    -- that is, that for the most part varies from 0 to 1, but it continues smoothly
+    -- outside those ranges
+    --
     -- Properties independent of @exp:
     --   f(0) = 0
     --   f(0.5) = 0.5
     --   f(1) = 1
-    --   f(-x) = -f(x)
 
     -- Examples for different exponents:
     -- exp:   0.000  0.100  0.200  0.300  0.400  0.500  0.600  0.700  0.800  0.900  1.000
@@ -167,25 +168,19 @@ function fred_utils.weight_s(x, exp)
     -- 1.50:  0.000  0.142  0.268  0.374  0.455  0.500  0.545  0.626  0.732  0.858  1.000
     -- 2.00:  0.000  0.180  0.320  0.420  0.480  0.500  0.520  0.580  0.680  0.820  1.000
 
-    local abs_x = math.abs(x)
-
     local weight
-    if (abs_x >= 0.5) then
-        weight = 0.5 + ((abs_x - 0.5) * 2)^exp / 2
+    if (x >= 0.5) then
+        weight = 0.5 + ((x - 0.5) * 2)^exp / 2
     else
-        weight = 0.5 - ((0.5 - abs_x) * 2)^exp / 2
+        weight = 0.5 - ((0.5 - x) * 2)^exp / 2
     end
 
-    if (x > 0) then
-        return weight
-    else
-        return - weight
-    end
+    return weight
 end
 
 function fred_utils.print_weight_s(exp)
     local s1, s2 = '', ''
-    for i=0,10 do
+    for i=-5,15 do
         local x = 0.1 * i
         y = fred_utils.weight_s(x, exp)
         s1 = s1 .. string.format("%5.3f", x) .. '  '
