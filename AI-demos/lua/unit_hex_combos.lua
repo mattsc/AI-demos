@@ -281,9 +281,20 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, gamedat
         local min_ld, max_ld
         local is_dqed = false
 
+        local cum_weight = 0
         for src,dst in pairs(combo) do
-            rating = rating + ratings[dst][src][key]
+            local id = ratings[dst][src].id
+
+            -- We want the unit with the lowest HP to have the highest weight
+            -- Also, additional weight for injured units
+            local weight = 2 - gamedata.unit_infos[id].hitpoints / 100
+            weight = weight + gamedata.unit_infos[id].max_hitpoints - gamedata.unit_infos[id].hitpoints
+            if (weight < 0.5) then weight = 0.5 end
+
+
+            rating = rating + ratings[dst][src][key] * cum_weight
             count = count + 1
+            cum_weight = cum_weight + weight
 
             x, y =  math.floor(dst / 1000), dst % 1000
 
@@ -325,6 +336,8 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, gamedat
 
         if (not is_dqed) and (count >= max_count) then
             max_count = count
+
+            rating = rating / cum_weight * count
 
             -- Bonus for distance of 2 or 3
             if (min_min_dist >= 2) and (max_min_dist <= 3) then
