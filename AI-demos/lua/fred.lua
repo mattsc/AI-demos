@@ -3012,8 +3012,8 @@ return {
                             local frac_done = enemy.damage_done - enemy.enemy_regen
                             frac_done = frac_done / gamedata.unit_infos[enemy.enemy_id].max_hitpoints
                             frac_done = FU.weight_s(frac_done, 0.5)
-                            if (frac_done > 1) then frac_done = 1 end
-                            if (frac_done < 0) then frac_done = 0 end
+                            --if (frac_done > 1) then frac_done = 1 end
+                            --if (frac_done < 0) then frac_done = 0 end
 
                             damage_done = damage_done + frac_done * gamedata.unit_infos[enemy.enemy_id].max_hitpoints
                             weighted_damage_done = weighted_damage_done + enemy_weight * frac_done * gamedata.unit_infos[enemy.enemy_id].max_hitpoints
@@ -3045,16 +3045,16 @@ return {
                         -- on units with reduced HP. Not sure if we'll keep it that way.
                         frac_taken = frac_taken / gamedata.unit_infos[id].hitpoints
                         frac_taken = FU.weight_s(frac_taken, 0.5)
-                        if (frac_taken > 1) then frac_taken = 1 end
-                        if (frac_taken < 0) then frac_taken = 0 end
+                        --if (frac_taken > 1) then frac_taken = 1 end
+                        --if (frac_taken < 0) then frac_taken = 0 end
                         damage_taken = frac_taken * gamedata.unit_infos[id].max_hitpoints
 
                         -- TODO: that division by sqrt(n_enemies) is pretty adhoc; decide whether to change that
                         weighted_damage_taken = (weighted_damage_taken - village_bonus - tmp_enemies[1].my_regen) * n_enemies
                         local frac_taken = weighted_damage_taken / gamedata.unit_infos[id].hitpoints
                         frac_taken = FU.weight_s(frac_taken, 0.5)
-                        if (frac_taken > 1) then frac_taken = 1 end
-                        if (frac_taken < 0) then frac_taken = 0 end
+                        --if (frac_taken > 1) then frac_taken = 1 end
+                        --if (frac_taken < 0) then frac_taken = 0 end
                         weighted_damage_taken = frac_taken / n_enemies * gamedata.unit_infos[id].max_hitpoints
 
 
