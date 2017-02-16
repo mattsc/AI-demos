@@ -2906,7 +2906,7 @@ return {
 
             local pre_rating_maps = {}
             for id,_ in pairs(holders) do
-                --print('\n' .. id, zonedata.cfg.zone_id)
+                print('\n' .. id, zonedata.cfg.zone_id)
 
                 local unit_type = gamedata.unit_infos[id].type
 
@@ -3012,11 +3012,13 @@ return {
                             damage_done = damage_done + frac_done * gamedata.unit_infos[enemy.enemy_id].max_hitpoints
                             weighted_damage_done = weighted_damage_done + enemy_weight * frac_done * gamedata.unit_infos[enemy.enemy_id].max_hitpoints
 
-                            --print('xxx', damage_taken, damage_done)
+                            --print(x, y, damage_taken, damage_done)
+                            --print('  ', weighted_damage_taken, weighted_damage_done, cum_weight)
                         end
 
                         weighted_damage_taken = weighted_damage_taken / cum_weight
                         weighted_damage_done = weighted_damage_done / cum_weight
+                        --print('  cum: ', weighted_damage_taken, weighted_damage_done, cum_weight)
 
                         -- Healing bonus for villages
                         local village_bonus = 0
@@ -3031,23 +3033,27 @@ return {
 
                         damage_taken = damage_taken - village_bonus
                         local frac_taken = damage_taken - tmp_enemies[1].my_regen
-                        frac_taken = frac_taken / gamedata.unit_infos[id].max_hitpoints
+
+                        -- This is (intentionally) taken as fraction of current hitpoints,
+                        -- and later multiplied with max_hitpoints, to emphasize the hit
+                        -- on units with reduced HP. Not sure if we'll keep it that way.
+                        frac_taken = frac_taken / gamedata.unit_infos[id].hitpoints
                         frac_taken = FU.weight_s(frac_taken, 0.5)
                         if (frac_taken > 1) then frac_taken = 1 end
                         if (frac_taken < 0) then frac_taken = 0 end
                         damage_taken = frac_taken * gamedata.unit_infos[id].max_hitpoints
 
                         -- TODO: that division by sqrt(n_enemies) is pretty adhoc; decide whether to change that
-                        weighted_damage_taken = weighted_damage_taken - (village_bonus + tmp_enemies[1].my_regen) / math.sqrt(n_enemies)
-                        local frac_taken = weighted_damage_taken / gamedata.unit_infos[id].max_hitpoints
+                        weighted_damage_taken = (weighted_damage_taken - village_bonus - tmp_enemies[1].my_regen) * n_enemies
+                        local frac_taken = weighted_damage_taken / gamedata.unit_infos[id].hitpoints
                         frac_taken = FU.weight_s(frac_taken, 0.5)
                         if (frac_taken > 1) then frac_taken = 1 end
                         if (frac_taken < 0) then frac_taken = 0 end
-                        weighted_damage_taken = frac_taken * gamedata.unit_infos[id].max_hitpoints
+                        weighted_damage_taken = frac_taken / n_enemies * gamedata.unit_infos[id].max_hitpoints
 
 
                         local net_outcome = enemy_value_ratio * damage_done - damage_taken
-                        --print(x, y, damage_taken ,damage_done, village_bonus, net_outcome)
+                        --print(x, y, damage_taken ,damage_done, village_bonus, net_outcome, enemy_value_ratio)
 
                         local av_outcome = enemy_value_ratio * weighted_damage_done - weighted_damage_taken
 
@@ -3073,7 +3079,7 @@ return {
                     FU.show_fgumap_with_message(pre_rating_map, 'net_outcome', 'Net outcome', gamedata.unit_copies[id])
                     FU.show_fgumap_with_message(pre_rating_map, 'av_outcome', 'Average outcome', gamedata.unit_copies[id])
                     --FU.show_fgumap_with_message(pre_rating_map, 'influence', 'Influence', gamedata.unit_copies[id])
-                    --FU.show_fgumap_with_message(pre_rating_map, 'exposure', 'Exposure', gamedata.unit_copies[id])
+                    FU.show_fgumap_with_message(pre_rating_map, 'exposure', 'Exposure', gamedata.unit_copies[id])
                 end
             end
 
@@ -3206,7 +3212,15 @@ return {
 
                     for x,y,map in FU.fgumap_iter(unit_rating_maps[id]) do
                         local base_rating = FU.get_fgumap_value(unit_rating_maps[id], x, y, 'base_rating')
-                        base_rating = (base_rating - min_rating) / dr
+--                        base_rating = (base_rating - min_rating) / dr
+
+                        local hp = gamedata.unit_infos[id].hitpoints
+                        --base_rating = base_rating + hp
+                        --if (base_rating < 0) then base_rating = 0 end
+                        base_rating = base_rating / gamedata.unit_infos[id].max_hitpoints
+                        base_rating = (base_rating + 1) / 2
+                        base_rating = FU.weight_s(base_rating, 0.5)
+
                         FU.set_fgumap_value(unit_rating_maps[id], x, y, 'base_rating', base_rating)
 
                         local vuln = FU.get_fgumap_value(fred.data.turn_data.IM, x, y, 'vulnerability')
@@ -3214,9 +3228,12 @@ return {
                         --v_fac = 0.5 + v_fac / 2
                         --v_fac = math.sqrt(v_fac)
 
+                        local v_fac = vuln / max_vuln / 10
+
+
                         local exposure = FU.get_fgumap_value(hold_maps[id], x, y, 'exposure')
                         if exposure then
-                            local vuln_rating = base_rating * vuln / max_vuln
+                            local vuln_rating = base_rating + v_fac
 
                             if (not hold_rating_maps[id]) then
                                 hold_rating_maps[id] = {}
@@ -3230,8 +3247,6 @@ return {
 
                         local protect_exposure = FU.get_fgumap_value(hold_maps[id], x, y, 'protect_exposure')
                         if protect_exposure then
-                            --local protect_rating = base_rating + vuln / max_vuln / 20
-
                             local rating2 = FU.get_fgumap_value(unit_rating_maps[id], x, y, 'rating2')
                             local protect_rating = rating2 + vuln / max_vuln / 20
 
@@ -3284,7 +3299,6 @@ return {
                     FU.show_fgumap_with_message(protect_rating_maps[id], 'protect_rating', 'protect_rating', gamedata.unit_copies[id])
                 end
             end
-
 
             if (not next(hold_rating_maps)) and (not next(protect_rating_maps)) then
                 return
