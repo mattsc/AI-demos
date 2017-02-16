@@ -493,7 +493,7 @@ return {
         end
 
         function fred:get_behavior_this_turn()
-            FU.print_debug(show_debug_analysis, '\n\n\n\n-------------\nUpdating the behavior table:')
+            FU.print_debug(show_debug_analysis, '\n------------- Updating the behavior table:')
 
             -- At beginning of turn, reset fred.data.behavior
 
@@ -2913,7 +2913,7 @@ return {
 
             local pre_rating_maps = {}
             for id,_ in pairs(holders) do
-                print('\n' .. id, zonedata.cfg.zone_id)
+                --print('\n' .. id, zonedata.cfg.zone_id)
 
                 local unit_type = gamedata.unit_infos[id].type
 
@@ -2967,11 +2967,13 @@ return {
                         for enemy_id,_ in pairs(gamedata.enemies) do
                             local enemy_adj_hc = FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'adj_hit_chance')
 
-                                --print('    ', enemy_id, enemy_hc)
                             if enemy_adj_hc then
+                                --print(x,y)
+                                --print('  ', enemy_id, enemy_adj_hc)
                                 local att = fred.data.turn_data.unit_attacks[id][enemy_id]
 
                                 local my_hc = 1 - my_defense
+
                                 local damage_taken = my_hc * att.counter.taken + att.counter.enemy_extra
                                 damage_taken = damage_taken + 0.1 * (my_hc * att.forward.taken + att.forward.enemy_extra)
 

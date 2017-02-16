@@ -467,6 +467,8 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, gamedat
     end
     print(' ===> max rating:             ' .. (max_rating or 'none'))
     print(' ===> max rating unprotected: ' .. (unprotected_max_rating or 'none'))
+    --print(' ===> max rating:             ' .. (max_rating or 'none'))
+    --print(' ===> max rating unprotected: ' .. (unprotected_max_rating or 'none'))
 
     return best_combo, unprotected_best_combo
 end
