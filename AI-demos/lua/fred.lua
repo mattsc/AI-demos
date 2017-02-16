@@ -2880,16 +2880,14 @@ return {
                     local rating2, cum_weight = 0, 0
 
                     local my_defense = FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
-                    local my_hc = 1 - my_defense
 
                     for enemy_id,_ in pairs(gamedata.enemies) do
                         local enemy_adj_hc = FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'adj_hit_chance')
-
                         if enemy_adj_hc then
                             local enemy_defense = 1 - FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'hit_chance')
 
                             local enemy_weight = enemy_weights[id][enemy_id].weight
-                            --print('  hc: ' .. my_hc, enemy_adj_hc, enemy_id, enemy_weight)
+                            --print('  hc: ' .. enemy_adj_hc, enemy_id, enemy_weight)
 
                             rating2 = rating2 + (enemy_adj_hc + my_defense + enemy_defense / 100) * enemy_weight
 
