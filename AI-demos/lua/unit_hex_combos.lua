@@ -406,28 +406,30 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, gamedat
 
             rating = rating / cum_weight * count
 
-            -- Bonus for distance of 2 or 3
-            if (min_min_dist >= 2) and (max_min_dist <= 3) then
-                rating = rating * 1.10
+            if (count > 1) then
+                -- Bonus for distance of 2 or 3
+                if (min_min_dist >= 2) and (max_min_dist <= 3) then
+                    rating = rating * 1.10
 
-                if (max_min_dist == 2) then
-                    rating = rating + 0.0001
+                    if (max_min_dist == 2) then
+                        rating = rating + 0.0001
+                    end
                 end
-            end
 
-            -- Penalty for too far apart
-            if (max_min_dist > 3) then
-                rating = rating / ( 1 + (max_min_dist - 3) / 10)
-            end
+                -- Penalty for too far apart
+                if (max_min_dist > 3) then
+                    rating = rating / ( 1 + (max_min_dist - 3) / 10)
+                end
 
 
-            -- and we reduce lining them up "vertically" too far apart, but only
-            -- if the config parameter 'hold_perpendicular' is set
-            -- This is usually set for protects, not for "normal" holding
-            if cfg and cfg.hold_perpendicular then
-                local dld = max_ld - min_ld
-                if (dld > 2) then
-                    rating = rating * math.sqrt( 1 - dld / 20)
+                -- and we reduce lining them up "vertically" too far apart, but only
+                -- if the config parameter 'hold_perpendicular' is set
+                -- This is usually set for protects, not for "normal" holding
+                if cfg and cfg.hold_perpendicular then
+                    local dld = max_ld - min_ld
+                    if (dld > 2) then
+                        rating = rating * math.sqrt( 1 - dld / 20)
+                    end
                 end
             end
 
