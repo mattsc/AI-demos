@@ -2693,6 +2693,11 @@ return {
 
                                 local my_hc = 1 - my_defense
 
+                                -- This is not directly a contribution to damage, it's just meant as a tiebreaker
+                                -- Taking away good terrain from the enemy
+                                local enemy_defense = 1 - FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'hit_chance')
+                                my_hc = my_hc - enemy_defense /100
+
                                 local damage_taken = my_hc * att.counter.taken + att.counter.enemy_extra
                                 damage_taken = damage_taken + 0.1 * (my_hc * att.forward.taken + att.forward.enemy_extra)
 
@@ -2881,10 +2886,12 @@ return {
                         local enemy_adj_hc = FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'adj_hit_chance')
 
                         if enemy_adj_hc then
+                            local enemy_defense = 1 - FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'hit_chance')
+
                             local enemy_weight = enemy_weights[id][enemy_id].weight
                             --print('  hc: ' .. my_hc, enemy_adj_hc, enemy_id, enemy_weight)
 
-                            rating2 = rating2 + (enemy_adj_hc + my_defense) * enemy_weight
+                            rating2 = rating2 + (enemy_adj_hc + my_defense + enemy_defense / 100) * enemy_weight
 
                             cum_weight = cum_weight + enemy_weight
                         end
