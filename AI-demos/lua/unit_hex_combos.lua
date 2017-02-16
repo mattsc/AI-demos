@@ -266,12 +266,83 @@ function UHC.unit_rating_maps_to_dstsrc(unit_rating_maps, key, gamedata, cfg)
     return dst_src, ratings
 end
 
+local function reachable_by_enemy(combo, ratings, gamedata)
+    -- If one or several of the units are now not reachable by the enemy any more, remove them
+    --print('--- Checking if reachable by enemy')
+
+    for src,dst in pairs(combo) do
+        local id = ratings[dst][src].id
+        local x, y =  math.floor(dst / 1000), dst % 1000
+        --print(id, src, x,y, gamedata.unit_copies[id].x, gamedata.unit_copies[id].y)
+
+        wesnoth.put_unit(x, y, gamedata.unit_copies[id])
+    end
+
+    local out_of_reach = {}
+    for src,dst in pairs(combo) do
+        local id = ratings[dst][src].id
+        local x, y =  math.floor(dst / 1000), dst % 1000
+        --print(x,y)
+
+        local can_reach = false
+        for enemy_id,loc in pairs(gamedata.enemies) do
+            local dist = H.distance_between(x, y, loc[1], loc[2])
+            --print('  ' .. enemy_id, dist)
+
+            if (dist <= gamedata.unit_infos[enemy_id].max_moves + 1) then
+                --print('    ' .. enemy_id .. ' is close enough')
+
+                local enemy_copy = gamedata.unit_copies[enemy_id]
+                local old_moves = enemy_copy.moves
+                enemy_copy.moves = enemy_copy.max_moves
+                local reach = wesnoth.find_reach(enemy_copy)
+                enemy_copy.moves = old_moves
+
+                for _,r in ipairs(reach) do
+                    local dist = H.distance_between(x, y, r[1], r[2])
+                    if (dist == 1) then
+                        can_reach = true
+                        --print('      can still reach')
+                        break
+                    end
+                end
+            end
+
+            -- No reason to keep trying if one enemy can get there
+            if can_reach then break end
+        end
+        --print('  can_reach', can_reach)
+
+        if (not can_reach) then
+            table.insert(out_of_reach, src)
+        end
+    end
+
+    for src,dst in pairs(combo) do
+        local id = ratings[dst][src].id
+        local x, y =  math.floor(dst / 1000), dst % 1000
+
+        wesnoth.extract_unit(gamedata.unit_copies[id])
+
+        local src_x, src_y =  math.floor(src / 1000), src % 1000
+        gamedata.unit_copies[id].x, gamedata.unit_copies[id].y = src_x, src_y
+
+        --print('  ' .. id, src, x,y, gamedata.unit_copies[id].x, gamedata.unit_copies[id].y)
+    end
+
+    for _,src in ipairs(out_of_reach) do
+        combo[src] = nil
+    end
+
+    return combo
+end
+
+
 
 function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, gamedata, cfg)
     -- This currently only returns a combo with the max number of units
     -- TODO: does this need to be ammended?
 
-    local max_count = 0
     local unprotected_max_rating, unprotected_best_combo
     local max_rating, best_combo
     for i_c,combo in ipairs(combos) do
@@ -332,11 +403,11 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, gamedat
             if (not min_ld) or (ld < min_ld) then min_ld = ld end
             if (not max_ld) or (ld > max_ld) then max_ld = ld end
         end
-        --print(i_c, is_dqed, count, max_count)
+        --print(i_c, is_dqed, count)
 
         local is_protected = true
 
-        if (not is_dqed) and (count >= max_count) and cfg and cfg.protect_loc then
+        if (not is_dqed) and cfg and cfg.protect_loc then
             local loc = cfg.protect_loc
             --print('*** need to check protection of ' .. loc[1] .. ',' .. loc[2])
 
@@ -401,9 +472,7 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, gamedat
         end
 
 
-        if (not is_dqed) and (count >= max_count) then
-            max_count = count
-
+        if (not is_dqed) then
             rating = rating / cum_weight * count
 
             if (count > 1) then
@@ -465,8 +534,24 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, gamedat
             end
         end
     end
-    print(' ===> max rating:             ' .. (max_rating or 'none'))
-    print(' ===> max rating unprotected: ' .. (unprotected_max_rating or 'none'))
+
+    if (best_combo) then
+        local count = 0
+        for src,dst in pairs(best_combo) do count = count + 1 end
+
+        if (count > 1) then
+            local best_combo = reachable_by_enemy(best_combo, ratings, gamedata)
+        end
+    end
+    if (unprotected_best_combo) then
+        local count = 0
+        for src,dst in pairs(unprotected_best_combo) do count = count + 1 end
+
+        if (count > 1) then
+            local unprotected_best_combo = reachable_by_enemy(unprotected_best_combo, ratings, gamedata)
+        end
+    end
+
     --print(' ===> max rating:             ' .. (max_rating or 'none'))
     --print(' ===> max rating unprotected: ' .. (unprotected_max_rating or 'none'))
 
