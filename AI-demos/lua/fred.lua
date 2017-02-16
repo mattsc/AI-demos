@@ -37,181 +37,6 @@ return {
         end
 
 
-        function fred:zone_advance_rating(zone_id, x, y, unit_type, straight_line)
-            local gamedata = fred.data.gamedata
-            local rating
-
-            if (wesnoth.current.side == 1) then
-                if (zone_id == 'all_map') then
-                    -- all_map advancing is toward the enemy leader
-                    rating = - FU.get_fgumap_value(gamedata.enemy_leader_distance_maps[unit_type], x, y, 'cost')
-
-                    -- Discourage advancing through center or in west
-                    -- TODO: refine this a little
-                    if (not straight_line) then
-                        if (x >= 17) and (x <= 24) and (y >= 10) and (y <= 15) then
-                            rating = rating - 5
-                        elseif (x >= 18) and (x <= 23) and (y >= 8) and (y <= 9) then
-                            rating = rating - 5
-                        elseif (x >= 17) and (x <= 20) and (y <= 15) then
-                            rating = rating - 5
-                        elseif (x <= 16) and (y <= 9) then
-                            rating = rating - 5
-                        end
-                    end
-                end
-
-                if (zone_id == 'west') then
-                    -- Return nil for being outside certain areas
-                    if (x > 19) then return end
-                    if (x > 14) and (y > 6) and (y < 15) then return end
-
-                    rating = y
-
-                    local x0 = 11
-                    local goal_x, goal_y = 12, 18
-                    if (y < 7)  then
-                        x0 = -1.0 * (y - 2) + 18
-                        goal_x, goal_y = 8, 8
-                    elseif (y > 15) then
-                        x0 = 2.0 * (y - 15) + 13
-                        goal_x, goal_y = 22, 22
-                    end
-
-                    local dx = math.abs(x - x0)
-                    if (dx > 2) then
-                        rating = rating - dx
-                    end
-
-                    rating = rating - H.distance_between(x, y, goal_x, goal_y) / 1000.
-                end
-
-                if (zone_id == 'center') then
-                    -- Return nil for being outside certain areas
-                    if (x < 15) or (x > 24) then return end
-
-                    rating = y
-
-                    local x0 = 19
-                    local dx = math.abs(x - x0)
-
-                    if (dx > 2) then
-                        rating = rating - dx
-                    end
-
-                    if (x < 15) and (y < 14) then
-                        rating = rating - H.distance_between(x, y, 19, 4) - 100.
-                    else
-                        rating = rating - H.distance_between(x, y, 19, 21) / 1000.
-                    end
-                end
-
-                if (zone_id == 'east') then
-                    -- Return nil for being outside certain areas
-                    if (x < 17) then return end
-                    if (x < 24) and (y > 8) and (y < 18) then return end
-
-                    rating = y
-
-                    local x0 = 27
-                    local goal_x, goal_y = 25, 19
-                    if (y < 11)  then
-                        x0 = 1.0 * (y - 2) + 18
-                        goal_x, goal_y = 31, 10
-                    elseif (y > 16) then
-                        x0 =  -2.0 * (y - 17) + 27
-                        goal_x, goal_y = 16, 22
-                    end
-
-                    local dx = math.abs(x - x0)
-                    if (dx > 2) then
-                        rating = rating - dx
-                    end
-
-                    rating = rating - H.distance_between(x, y, goal_x, goal_y) / 1000.
-                end
-
-                if (zone_id == 'leader') then
-                    -- Rating is minimum distance from leader, but excluding the leader hex itself.
-                    -- Add a very minor rating to minimize distance to enemy leader also,
-                    -- to select hexes in between the two leaders all else being equal.
-                    -- This rating needs to be this small, as some of the secondary ratings
-                    -- of advancing are of order 1/1000 to 1/100.
-                    if (x == gamedata.leader_x) and (y == gamedata.leader_y) then
-                        rating = -1000
-                    else
-                        rating = - FU.get_fgumap_value(gamedata.leader_distance_maps[unit_type], x, y, 'cost')
-                            - FU.get_fgumap_value(gamedata.enemy_leader_distance_maps[unit_type], x, y, 'cost') / 100000
-                    end
-                end
-            end
-
-            -- TODO: not set up for new method
-            if (wesnoth.current.side == '222xxx') then
-                if (zone_id == 'left') or (zone_id == 'rush_left') then
-                    rating = rating - y / 10.
-
-                    local x0 = 27
-                    local goal_x, goal_y = 26, 6
-                    if (y > 17)  then
-                        x0 = -1.0 * (23 - y) + 20
-                        goal_x, goal_y = 30, 16
-                    elseif (y < 10) then
-                        x0 = 2.0 * (10 - y) + 25
-                        goal_x, goal_y = 16, 2
-                    end
-
-                    local dx = math.abs(x - x0)
-                    if (dx > 2) then
-                        rating = rating - dx
-                    end
-
-                    rating = rating - H.distance_between(x, y, goal_x, goal_y) / 1000.
-                end
-
-                if (zone_id == 'center') or (zone_id == 'rush_center') then
-                    rating = rating - y / 10.
-
-                    local x0 = 19
-                    local dx = math.abs(x - x0)
-
-                    if (dx > 2) then
-                        rating = rating - dx
-                    end
-
-                    if (x > 23) and (y > 11) then
-                        rating = rating - H.distance_between(x, y, 19, 21) - 100.
-                    else
-                        rating = rating - H.distance_between(x, y, 19, 4) / 1000.
-                    end
-                end
-
-                if (zone_id == 'right') or (zone_id == 'rush_right') then
-                    rating = rating - y / 10.
-
-                    local x0 = 11
-                    local goal_x, goal_y = 13, 6
-                    if (y > 14)  then
-                        x0 = 1.0 * (23 - y) + 20
-                        goal_x, goal_y = 7, 15
-                    elseif (y < 9) then
-                        x0 =  -2.0 * (8 - y) + 11
-                        goal_x, goal_y = 22, 2
-                    end
-
-                    local dx = math.abs(x - x0)
-                    if (dx > 2) then
-                        rating = rating - dx
-                    end
-
-                    rating = rating - H.distance_between(x, y, goal_x, goal_y) / 1000.
-                end
-            end
-
-            return rating -- return nil if we got here
-        end
-
-
         ------ Map analysis at beginning of turn -----------
 
         function fred:get_leader_distance_map()
@@ -303,22 +128,6 @@ return {
                 ops_slf = { x = '1-15,1-14', y = '1-12,13-24' },
                 center_hex = { 10, 12 },
                 zone_weight = 1,
-
-                -- eliminate most everything below here?
-                --key_hexes = { { 8,8 }, { 11,9 }, { 14,8 } },
-                --target_zone = { x = '1-15,1-13', y = '7-11,12-19' },
-                --threat_slf = { x = '1-15,1-13', y = '7-11,12-15' },
-                --threat2_distance_factor = 1,
-                --zone_filter = { x = '4-14,4-13', y = '7-11,12-15' },
-                --unit_filter_advance = { x = '1-20,1-14', y = '1-6,7-13' },
-                --hold_slf = { x = '1-15,1-13', y = '6-11,12-14' },
-                --hold_core_slf = { x = '12-17,1-15,11', y = '4-5,6-8,9' },
-                --hold_desperate_slf = { x = '10-19,12', y = '3-6,2' },
-                --hold_forward_slf = { x = '1-10,12-15,1-15,1-13', y = '9,9,10-11,12-14' },
-                --villages = {
-                --    slf = { x = '1-14', y = '1-10' },
-                --    villages_per_unit = 2
-                --}
             }
 
             local cfg_center = {
@@ -326,21 +135,6 @@ return {
                 center_hex = { 19, 12 },
                 ops_slf = { x = '16-20,16-22,16-23,15-22,22', y = '6-7,8-9,10-12,13-18,2' },
                 zone_weight = 0.5,
-                -- eliminate most everything below here?
-                --key_hexes = { { 17,10 }, { 18,9 }, { 20,9 }, { 22,10 }, { 21,9 }, { 23,10 } },
-                --target_zone = { x = '15-24,13-23', y = '8-13,14-19' },
-                --threat_slf = { x = '16-24,15-23', y = '9-10,11-15' },
-                --threat2_distance_factor = 2,
-                --zone_filter = { x = '16-26,15-24', y = '4-10,11-16' },
-                --unit_filter_advance = { x = '15-23,', y = '1-13' },
-                --hold_slf = { x = '16-24,16-23', y = '4-10,11-14' },
-                --hold_core_slf = { x = '16-24', y = '4-10' },
-                --hold_desperate_slf = { x = '17-21,22', y = '3-5,2-5' },
-                --hold_forward_slf = { x = '16-23', y = '11-14' },
-                --villages = {
-                --    slf = { x = '16-21', y = '7-10' },
-                --    villages_per_unit = 2
-                --}
             }
 
             local cfg_east = {
@@ -348,20 +142,6 @@ return {
                 center_hex = { 28, 12 },
                 ops_slf = { x = '21-34,23-34,24-34,23-34', y = '1-7,8-9,10-12,13-24' },
                 zone_weight = 1,
-                -- eliminate most everything below here?
-                --target_zone = { x = '24-34,22-34', y = '9-17,18-23' },
-                --threat_slf = { x = '25-34,24-34', y = '10-13,14-23' },
-                --threat2_distance_factor = 1.2,
-                --zone_filter = { x = '24-34', y = '9-17' },
-                --unit_filter_advance = { x = '17-34,24-34', y = '1-8,9-16' },
-                --hold_slf = { x = '24-34', y = '9-18' },
-                --hold_core_slf = { x = '24-29,24-34', y = '4-8,9-12' },
-                --hold_desperate_slf = { x = '19-21,22-29', y = '3-5,2-7' },
-                --hold_forward_slf = { x = '24-34', y = '13-18' },
-                --villages = {
-                --    slf = { x = '22-34', y = '1-10' },
-                --    villages_per_unit = 2
-                --}
             }
 
             if (zone_id == 'leader') then
@@ -405,43 +185,6 @@ return {
                     end
                 end
             end
-        end
-
-        function fred:is_acceptable_resource_use(units, zone_id, behavior)
-            -- @units: array that only needs to contain the id= key
-            --print(zone_id, #units)
-            --DBG.dbms(behavior)
-
-            for z_id,other_units in pairs(behavior.other_units) do
-                if (z_id ~= zone_id) then
-                    local add_power_needed = other_units.add_power_needed
-                    --print('  checking', z_id,add_power_needed)
-                    if behavior.assigned_units[z_id] then
-                        add_power_needed = add_power_needed - behavior.assigned_units[z_id].power
-                    end
-                    --print('  checking', z_id,add_power_needed)
-
-                    local power_left_for_other_zone = other_units.power
-                    --print('    power_left_for_other_zone', power_left_for_other_zone)
-
-                    for _,unit in ipairs(units) do
-                        local id = unit.id
-                        --print('      id:', id)
-
-                        if other_units.units[id] then
-                            power_left_for_other_zone = power_left_for_other_zone - other_units.units[id]
-                            --print('        power_left_for_other_zone', power_left_for_other_zone)
-                        end
-                    end
-
-                    if (power_left_for_other_zone < add_power_needed) then
-                        return false
-                    end
-
-                end
-            end
-
-            return true
         end
 
         function fred:calc_power_stats(assigned_units, assigned_enemies, gamedata)
@@ -1928,22 +1671,6 @@ return {
             FU.print_debug(show_debug_attack, '  #targets', #targets, zonedata.cfg.zone_id)
             --DBG.dbms(targets)
 
-            -- Eliminate targets in the no-go zone
--- Disable this for now
--- Todo: decide what to do with this
---            for i = #targets,1,-1 do
---                local id, loc = next(targets[i])
---
---                local go_here = FU.get_fgumap_value(fred.data.analysis.go_here_map, loc[1], loc[2], 'go_here')
---                print(i, id, loc[1], loc[2], go_here)
---
---                if (not go_here) then
---                    --print('  removing target ' .. i, id)
---                    table.remove(targets, i)
---                end
---            end
---            FU.print_debug(show_debug_attack, '  #targets inside go_here zone', #targets)
-
 
             -- Determine whether we need to keep a keep hex open for the leader
             local available_keeps = {}
@@ -2026,14 +1753,6 @@ return {
                         table.insert(tmp_attackers, { id = gamedata.unit_infos[attacker_map[src]].id })
                         n_attackers = n_attackers + 1
                     end
-
-                    --local is_good = fred:is_acceptable_resource_use(tmp_attackers, zonedata.cfg.zone_id, fred.data.analysis.behavior)
-
-                    -- TODO: table.remove() can be slow
-                    --if (not is_good) or (n_attackers > (zonedata.cfg.max_attackers or 99)) then
-                        --print('      ----> eliminating this attack')
-                    --    table.remove(attack_combos, j)
-                    --end
                 end
                 --print_time('#attack_combos', #attack_combos)
                 --DBG.dbms(attack_combos)
