@@ -4212,7 +4212,13 @@ return {
                 end
                 --print_time('next_unit_ind', next_unit_ind)
 
-                local unit = wesnoth.get_unit(fred.data.zone_action.units[next_unit_ind][1], fred.data.zone_action.units[next_unit_ind][2])
+                local unit = wesnoth.get_units { id = fred.data.zone_action.units[next_unit_ind].id }[1]
+                if (not unit) then
+                    fred.data.zone_action = nil
+                    return
+                end
+
+
                 local dst = fred.data.zone_action.dsts[next_unit_ind]
 
                 -- If this is the leader (and he has MP left), recruit first
