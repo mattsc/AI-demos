@@ -293,7 +293,7 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, gamedat
             if (weight < 0.5) then weight = 0.5 end
 
 
-            rating = rating + ratings[dst][src][key] * cum_weight
+            rating = rating + ratings[dst][src][key] * weight
             count = count + 1
             cum_weight = cum_weight + weight
 
