@@ -2775,7 +2775,7 @@ return {
                         damage_taken = frac_taken * gamedata.unit_infos[id].max_hitpoints
 
                         -- TODO: that division by sqrt(n_enemies) is pretty adhoc; decide whether to change that
-                        weighted_damage_taken = (weighted_damage_taken - village_bonus - tmp_enemies[1].my_regen) * n_enemies
+                        weighted_damage_taken = weighted_damage_taken * n_enemies - village_bonus - tmp_enemies[1].my_regen
                         local frac_taken = weighted_damage_taken / gamedata.unit_infos[id].hitpoints
                         frac_taken = FU.weight_s(frac_taken, 0.5)
                         --if (frac_taken > 1) then frac_taken = 1 end
