@@ -942,10 +942,6 @@ return {
                         end
                     end
 
-                    local pre_assigned_rating = 0
-                    if pre_assigned_units[id] and (pre_assigned_units[id] == zone_id) then
-                        pre_assigned_rating = 1
-                    end
 
                     local total_rating = ratings.this_zone
                     if max_other_zone then
@@ -955,7 +951,6 @@ return {
                     -- currently don't think it's needed
 
                     unit_ratings[id][zone_id].max_other_zone = max_other_zone
-                    unit_ratings[id][zone_id].pre_assigned_rating = pre_assigned_rating
 
                     unit_ratings[id][zone_id].rating = total_rating
                 end
@@ -980,22 +975,26 @@ return {
                     --print(zone_id, data.power_missing .. '/' .. data.power_needed .. ' = ' .. ratio, zone_rating)
 
                     for id,unit_zone_ratings in pairs(unit_ratings) do
+                        local unit_rating = 0
+                        local unit_zone_rating = 1
                         if unit_zone_ratings[zone_id] and unit_zone_ratings[zone_id].rating then
-                            local unit_rating = unit_zone_ratings[zone_id].rating
-                            unit_rating = unit_rating * zone_rating
-
-                            local inertia = 0.5 * FU.unit_base_power(gamedata.unit_infos[id]) * unit_zone_ratings[zone_id].rating
-                            inertia = inertia * unit_zone_ratings[zone_id].pre_assigned_rating
-
-                            unit_rating = unit_rating + inertia
-
-                            if (not max_rating) or (unit_rating > max_rating) then
-                                max_rating = unit_rating
-                                best_zone = zone_id
-                                best_unit = id
-                            end
-                            --print('  ' .. id, inertia, unit_rating)
+                            unit_zone_rating = unit_zone_ratings[zone_id].rating
+                            unit_rating = unit_zone_rating * zone_rating
                         end
+
+                        local inertia = 0
+                        if pre_assigned_units[id] and (pre_assigned_units[id] == zone_id) then
+                            inertia = 0.5 * FU.unit_base_power(gamedata.unit_infos[id]) * unit_zone_rating
+                        end
+
+                        unit_rating = unit_rating + inertia
+
+                        if (unit_rating > 0) and ((not max_rating) or (unit_rating > max_rating)) then
+                            max_rating = unit_rating
+                            best_zone = zone_id
+                            best_unit = id
+                        end
+                        --print('  ' .. id, inertia, unit_rating)
                     end
                 end
 
