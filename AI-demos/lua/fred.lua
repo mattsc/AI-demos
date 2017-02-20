@@ -2740,7 +2740,7 @@ return {
                             weighted_damage_taken = weighted_damage_taken + enemy_weight * enemy.damage_taken
 
                             local frac_done = enemy.damage_done - enemy.enemy_regen
-                            frac_done = frac_done / gamedata.unit_infos[enemy.enemy_id].max_hitpoints
+                            frac_done = frac_done / gamedata.unit_infos[enemy.enemy_id].hitpoints
                             frac_done = FU.weight_s(frac_done, 0.5)
                             --if (frac_done > 1) then frac_done = 1 end
                             --if (frac_done < 0) then frac_done = 0 end
