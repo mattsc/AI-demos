@@ -965,7 +965,10 @@ return {
                 for zone_id,data in pairs(power_stats.zones) do
                     -- Base rating for the zone is the power missing times the ratio of
                     -- power missing to power needed
-                    local ratio = data.power_missing / data.power_needed
+                    local ratio = 1
+                    if (data.power_needed > 0) then
+                        ratio = data.power_missing / data.power_needed
+                    end
                     local zone_rating = data.power_missing * math.sqrt(ratio)
                     --print(zone_id, data.power_missing .. '/' .. data.power_needed .. ' = ' .. ratio, zone_rating)
 
