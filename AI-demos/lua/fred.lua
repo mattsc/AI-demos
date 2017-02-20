@@ -219,7 +219,10 @@ return {
 
             for id,data in pairs(assigned_units) do
                 local power = FU.unit_base_power(gamedata.unit_infos[id])
-                power_stats.zones[data.zone_id].my_power = power_stats.zones[data.zone_id].my_power + power
+
+                if (data.zone_id ~= 'other') then
+                    power_stats.zones[data.zone_id].my_power = power_stats.zones[data.zone_id].my_power + power
+                end
             end
             for id,data in pairs(assigned_enemies) do
                 local power = FU.unit_base_power(gamedata.unit_infos[id])
