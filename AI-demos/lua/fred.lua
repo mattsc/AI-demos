@@ -227,8 +227,11 @@ return {
             end
 
             for zone_id,_ in pairs(raw_cfgs_main) do
-                local power_missing = (power_stats.zones[zone_id].enemy_power - power_stats.zones[zone_id].my_power) * power_stats.total.ratio
+                -- Note: both power_needed and power_missing take ratio into account, the other values do not
+                local power_needed = power_stats.zones[zone_id].enemy_power * power_stats.total.ratio
+                local power_missing = power_needed - power_stats.zones[zone_id].my_power
                 if (power_missing < 0) then power_missing = 0 end
+                power_stats.zones[zone_id].power_needed = power_needed
                 power_stats.zones[zone_id].power_missing = power_missing
             end
 
@@ -346,7 +349,7 @@ return {
             if false then
                 --FU.show_fgumap_with_message(my_inf, 'my_influence', 'My influence')
                 --FU.show_fgumap_with_message(enemy_inf, 'enemy_influence', 'Enemy influence')
-                --FU.show_fgumap_with_message(IM, 'influence', 'Influence')
+                FU.show_fgumap_with_message(IM, 'influence', 'Influence')
                 --FU.show_fgumap_with_message(IM, 'tension', 'Tension')
                 FU.show_fgumap_with_message(IM, 'vulnerability', 'Vulnerability')
                 --FU.show_fgumap_with_message(IM, 'blurred_vulnerability', 'Blurred vulnerability')
@@ -381,11 +384,8 @@ return {
             end
 
 
-
             -- Attributing enemy and own units to zones
             -- Use base_power for this as it is not only for the current turn
-            -- Use very simple tables here, as everything else might have to be
-            -- recalculated several times and/or in different ways
             local assigned_enemies = {}
             local enemies_by_zone = {}
             for id,_ in pairs(gamedata.enemies) do
@@ -407,21 +407,19 @@ return {
             --DBG.dbms(assigned_enemies)
             --DBG.dbms(enemies_by_zone)
 
-            local assigned_units = {}
+            local pre_assigned_units = {}
             for id,_ in pairs(gamedata.my_units) do
                 local unit_copy = gamedata.unit_copies[id]
                 if (not unit_copy.canrecruit)
                     and (not FU.get_fgumap_value(gamedata.reachable_castles_map[unit_copy.side], unit_copy.x, unit_copy.y, 'castle', false))
                 then
                     local zone_id = FU.moved_toward_zone(unit_copy, raw_cfgs_main, side_cfgs)
-                    assigned_units[id] = {
-                        zone_id = zone_id
-                    }
+                    pre_assigned_units[id] =  zone_id
                 end
             end
-            --DBG.dbms(assigned_units)
+            --DBG.dbms(pre_assigned_units)
 
-
+            local assigned_units = {}
 
 
             ----- Village goals -----
@@ -599,37 +597,33 @@ return {
 
 
 
-
             -- Finding areas and units for attacking/defending in each zone
-
             local goal_hexes = {}
             --print('Move toward (highest blurred vulnerability):')
             for zone_id,cfg in pairs(raw_cfgs_main) do
-                local zone = wesnoth.get_locations(cfg.ops_slf)
 
-                local zone_vuln = {}
-                local best_vuln, best_hex
-                for _,loc in ipairs(zone) do
-                    local v = FU.get_fgumap_value(IM, loc[1], loc[2], 'blurred_vulnerability')
-                    if v then
-                        FU.set_fgumap_value(zone_vuln, loc[1], loc[2], 'blurred_vulnerability', v)
-
-                        if (not best_vuln) or (v > best_vuln) then
-                            best_vuln = v
-                            best_hex = { loc[1], loc[2] }
+                local max_ld, loc
+                for x,y,_ in FU.fgumap_iter(protect_villages_maps[zone_id]) do
+                    for enemy_id,_ in pairs(gamedata.enemies) do
+                        if FU.get_fgumap_value(gamedata.reach_maps[enemy_id], x, y, 'moves_left') then
+                            local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
+                            if (not max_ld) or (ld > max_ld) then
+                                max_ld = ld
+                                loc = { x, y }
+                            end
                         end
                     end
                 end
 
-                if best_hex then
-                    goal_hexes[zone_id] = {
-                        x = best_hex[1], y = best_hex[2],
-                        leader_distance = gamedata.leader_distance_map[best_hex[1]][best_hex[2]].distance
-                    }
-                    --print('  ' .. zone_id .. ': \tleader distance ' .. gamedata.leader_distance_map[best_hex[1]][best_hex[2]].distance .. ' \t(' .. best_hex[1] .. ',' .. best_hex[2] .. ')')
+                if max_ld then
+                    --print('max protect ld:', zone_id, max_ld, loc[1], loc[2])
+                    goal_hexes[zone_id] = { x = loc[1], y = loc[2] }
+                else
+                    goal_hexes[zone_id] = { x = cfg.center_hex[1], y = cfg.center_hex[2] }
                 end
             end
             --DBG.dbms(goal_hexes)
+
 
             local distance_from_front = {}
             for id,_ in pairs(gamedata.my_units) do
@@ -647,7 +641,6 @@ return {
             --DBG.dbms(distance_from_front)
 
 
-
             -- Extract all AI units
             --   - because no two units on the map can have the same underlying_id
             --   - so that we do not accidentally overwrite a unit
@@ -659,24 +652,13 @@ return {
                 table.insert(extracted_units, unit_proxy)  -- Not a proxy unit any more at this point
             end
 
-
-
             -- Find the effectiveness of each AI unit vs. each enemy unit
-            -- TODO: this uses the attack rating for the current time of day, while
-            -- ideally we'd use a neutral rating, or one averaged over all ToDs, or
-            -- possible looking a turn or two ahead.  In general, these will be
-            -- similar though, so for now we go with this as it takes all specials,
-            -- resistances etc. into account
-
             local attack_locs = fred:get_attack_test_locs()
 
-            -- TODO: this is not generally required for all unit combinations
-            -- Make this a utility function that is called as needed
             local unit_attacks = {}
             for my_id,_ in pairs(gamedata.my_units) do
                 --print(my_id)
                 local tmp_attacks = {}
-
 
                 local old_x = gamedata.unit_copies[my_id].x
                 local old_y = gamedata.unit_copies[my_id].y
@@ -723,7 +705,9 @@ return {
                                 done = done,
                                 taken = taken,
                                 my_extra = my_extra,
-                                enemy_extra = enemy_extra
+                                enemy_extra = enemy_extra,
+                                my_gen_hc = my_weapon.chance_to_hit / 100,
+                                enemy_gen_hc = enemy_weapon.chance_to_hit / 100
                             }
                         end
                     end
@@ -757,7 +741,9 @@ return {
                                 done = done,
                                 taken = taken,
                                 my_extra = my_extra,
-                                enemy_extra = enemy_extra
+                                enemy_extra = enemy_extra,
+                                my_gen_hc = my_weapon.chance_to_hit / 100,
+                                enemy_gen_hc = enemy_weapon.chance_to_hit / 100
                             }
                         end
                     end
@@ -785,7 +771,6 @@ return {
                         enemy_regen = 8
                     end
 
-
                     tmp_attacks[enemy_id] = {
                         rating = rating,
                         my_regen = my_regen,
@@ -795,248 +780,253 @@ return {
                     }
                 end
 
-
                 gamedata.unit_copies[my_id] = wesnoth.copy_unit(my_proxy)
                 wesnoth.put_unit(my_x, my_y)
                 gamedata.unit_copies[my_id].x = old_x
                 gamedata.unit_copies[my_id].y = old_y
 
                 unit_attacks[my_id] = tmp_attacks
-
-            end
-            --DBG.dbms(unit_attacks)
-
-
-
-
-
------ !!!!!!!!! The code below is a partial duplication; remove/simplify !!!!!!!!
-            local attacker_ratings = {}
-
-            for my_id,_ in pairs(gamedata.my_units) do
-                if (not gamedata.unit_infos[my_id].canrecruit)
-                    and (not assigned_units[my_id])
-                then
-                    --print(my_id)
-
-                    attacker_ratings[my_id] = {}
-
-                    local old_x = gamedata.unit_copies[my_id].x
-                    local old_y = gamedata.unit_copies[my_id].y
-                    local my_x, my_y = attack_locs.attacker_loc[1], attack_locs.attacker_loc[2]
-
-                    wesnoth.put_unit(my_x, my_y, gamedata.unit_copies[my_id])
-                    local my_proxy = wesnoth.get_unit(my_x, my_y)
-
-                    for zone_id,data in pairs(enemies_by_zone) do
-                        --print('  ' .. zone_id)
-
-                        local av_rating, count = 0, 0
-
-                        for enemy_id,_ in pairs(data) do
-                            --print('    ' .. enemy_id)
-
-                            local old_x_enemy = gamedata.unit_copies[enemy_id].x
-                            local old_y_enemy = gamedata.unit_copies[enemy_id].y
-                            local enemy_x, enemy_y = attack_locs.defender_loc[1], attack_locs.defender_loc[2]
-
-                            wesnoth.put_unit(enemy_x, enemy_y, gamedata.unit_copies[enemy_id])
-                            local enemy_proxy = wesnoth.get_unit(enemy_x, enemy_y)
-
-
-                            local _, _, my_weapon, enemy_weapon = wesnoth.simulate_combat(my_proxy, enemy_proxy)
-                            local _, _, enemy_weapon_counter, my_weapon_counter = wesnoth.simulate_combat(enemy_proxy, my_proxy)
-                            --DBG.dbms(my_weapon)
-                            --DBG.dbms(enemy_weapon)
-                            --DBG.dbms(my_weapon_counter)
-                            --DBG.dbms(enemy_weapon_counter)
-
-                            gamedata.unit_copies[enemy_id] = wesnoth.copy_unit(enemy_proxy)
-                            wesnoth.put_unit(enemy_x, enemy_y)
-                            gamedata.unit_copies[enemy_id].x = old_x_enemy
-                            gamedata.unit_copies[enemy_id].y = old_y_enemy
-
-
-                            --[[local rt = FAU.attack_rating(
-                                { gamedata.unit_infos[my_id] },
-                                gamedata.unit_infos[enemy_id],
-                                { { my_x, my_y }},
-                                { att_stat }, def_stat, gamedata,
-                                { defender_loc = { enemy_x, enemy_y } }
-                            )
-                            local rt2 = FAU.attack_rating(
-                                { gamedata.unit_infos[enemy_id] },
-                                gamedata.unit_infos[my_id],
-                                { { enemy_x, enemy_y }},
-                                { att_stat2 }, def_stat2, gamedata,
-                                { defender_loc = { my_x, my_y } }
-                            )
-                            -- Todo: is use of value_Ratio justified here?
-                            local value_ratio = FU.get_value_ratio(gamedata)
-                            local rating = rt.rating / value_ratio - rt2.rating
-                            print('      rating', rating .. ' = ' .. 1/value_ratio .. ' * ' .. rt.rating .. ' - ' .. rt2.rating)
-                            --]]
-
-                            -- The rounding is going to be off for ToD modifier, but good enough for now
-                            -- In general, the following is pretty crude, but that does not really matter all that much
-                            local cth_enemy = enemy_weapon.chance_to_hit
-
-                            -- For now, the method only works for sums of positive ratings
-                            -- without arbitrary added constants
-                            -- TODO: see if this needs to be changed
-
-                            local rating_offense =
-                                my_weapon.damage * my_weapon.num_blows * my_weapon.chance_to_hit / 100 / gamedata.unit_infos[my_id].tod_mod
-
-                            --    - enemy_weapon.damage * enemy_weapon.num_blows * enemy_weapon.chance_to_hit / 100 / gamedata.unit_infos[enemy_id].tod_mod
-
-                            local rating_defense =
-                                my_weapon_counter.damage * my_weapon_counter.num_blows * my_weapon_counter.chance_to_hit / 100 / gamedata.unit_infos[my_id].tod_mod
-
-                            --    - enemy_weapon_counter.damage * enemy_weapon_counter.num_blows * enemy_weapon_counter.chance_to_hit / 100 / gamedata.unit_infos[enemy_id].tod_mod
-
-                            -- For now, we just categorically count poison, slow damage as constant, independent of CTH
-                            -- TODOs:
-                            --   - might be refined later
-                            --   - add drain
-                            --   - add to max_damage in unit_infos also?
-                            --   - should we cycle through all weapons?
-                            --   - make attack more important than defense?
-
-                            local poison_my, poison_enemy = 0, 0
-                            if my_weapon.poisons or my_weapon_counter.poisons then
-                                poison_my = 8
-                            end
-                            if enemy_weapon.poisons or enemy_weapon_counter.poisons then
-                                poison_enemy = 8
-                            end
-
-                            local slow_my, slow_enemy = 0, 0
-                            if my_weapon.slows or my_weapon_counter.slows then
-                                slow_my = 4
-                            end
-                            if enemy_weapon.slows or enemy_weapon_counter.slows then
-                                slow_enemy = 4
-                            end
-
-                            local my_regen, enemy_regen = 0, 0
-                            if gamedata.unit_infos[my_id].abilities.regenerate then
-                                my_regen = 8
-                            end
-                            if gamedata.unit_infos[enemy_id].abilities.regenerate then
-                                enemy_regen = 8
-                            end
-
-                            local rating = rating_offense + rating_defense
-                            rating = rating + poison_my  -- - poison_enemy
-                            rating = rating + slow_my -- - slow_enemy
-                            rating = rating + my_regen -- - enemy_regen
-
-                            --print('      chance to hit my, enemy (off/def): ', my_weapon.chance_to_hit, enemy_weapon.chance_to_hit, my_weapon_counter.chance_to_hit, enemy_weapon_counter.chance_to_hit)
-                            --print('      rating_offense / defense:         ', rating_offense, rating_defense)
-                            --print('      poison damage my, enemy:', poison_my, poison_enemy)
-                            --print('      slow damage my, enemy:', slow_my, slow_enemy)
-                            --print('      regenerate my, enemy:   ', my_regen, enemy_regen)
-                            --print('      total rating:         ', rating)
-
-
-
-                            av_rating = av_rating + rating
-                            count = count + 1
-                        end
-
-
-                        attacker_ratings[my_id][zone_id] = av_rating / count / distance_from_front[my_id][zone_id]
-
-                        --print('--', av_rating , count , distance_from_front[my_id][zone_id], attacker_ratings[my_id][zone_id])
-                    end
-
-                    gamedata.unit_copies[my_id] = wesnoth.copy_unit(my_proxy)
-                    wesnoth.put_unit(my_x, my_y)
-                    gamedata.unit_copies[my_id].x = old_x
-                    gamedata.unit_copies[my_id].y = old_y
-                end
             end
 
             for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
 
-            --DBG.dbms(attacker_ratings)
-            --DBG.dbms(power_stats)
-            --DBG.dbms(assigned_units)
+            --DBG.dbms(unit_attacks)
 
-            -- Now find distance
+
+            local enemy_value_ratio = 1.25
+            local attacker_ratings = {}
+            local max_rating
+            for id,_ in pairs(gamedata.my_units) do
+                if (not gamedata.unit_infos[id].canrecruit)
+                    and (not assigned_units[d])
+                then
+                    --print(id)
+                    attacker_ratings[id] = {}
+                    for zone_id,data in pairs(enemies_by_zone) do
+                        --print('  ' .. zone_id)
+
+                        local tmp_enemies = {}
+                        for enemy_id,_ in pairs(data) do
+                            --print('    ' .. enemy_id)
+                            local att = unit_attacks[id][enemy_id]
+
+                            local damage_taken = att.counter.enemy_gen_hc * att.counter.taken + att.counter.enemy_extra
+                            damage_taken = damage_taken + att.forward.enemy_gen_hc * att.forward.taken + att.forward.enemy_extra
+
+                            local damage_done = att.counter.my_gen_hc * att.counter.done + att.counter.my_extra
+                            damage_done = damage_done + att.forward.my_gen_hc * att.forward.done + att.forward.my_extra
+
+                            local enemy_rating = enemy_value_ratio * damage_done - damage_taken
+                            table.insert(tmp_enemies, {
+                                damage_taken = damage_taken,
+                                damage_done = damage_done,
+                                enemy_rating = enemy_rating,
+                                enemy_id = enemy_id,
+                                my_regen = att.my_regen,
+                                enemy_regen = att.enemy_regen
+                            })
+                        end
+
+                        -- Only keep the 3 strongest enemies (or fewer, if there are not 3)
+                        table.sort(tmp_enemies, function(a, b) return a.enemy_rating < b.enemy_rating end)
+                        local n = math.min(3, #tmp_enemies)
+                        for i = #tmp_enemies,n+1,-1 do
+                            table.remove(tmp_enemies, i)
+                        end
+
+                        if (#tmp_enemies > 0) then
+                            local av_damage_taken, av_damage_done = 0, 0
+                            local cum_weight, n_enemies = 0, 0
+                            for _,enemy in pairs(tmp_enemies) do
+                                --print('    ' .. enemy.enemy_id)
+                                local enemy_weight = FU.unit_base_power(gamedata.unit_infos[id])
+                                cum_weight = cum_weight + enemy_weight
+                                n_enemies = n_enemies + 1
+
+                                --print('      taken, done:', enemy.damage_taken, enemy.damage_done)
+
+                                -- For this purpose, we use individual damage, rather than combined
+                                local frac_taken = enemy.damage_taken - enemy.my_regen
+                                frac_taken = frac_taken / gamedata.unit_infos[id].hitpoints
+                                --print('      frac_taken 1', frac_taken)
+                                frac_taken = FU.weight_s(frac_taken, 0.5)
+                                --print('      frac_taken 2', frac_taken)
+                                --if (frac_taken > 1) then frac_taken = 1 end
+                                --if (frac_taken < 0) then frac_taken = 0 end
+                                av_damage_taken = av_damage_taken + enemy_weight * frac_taken * gamedata.unit_infos[id].max_hitpoints
+
+                                local frac_done = enemy.damage_done - enemy.enemy_regen
+                                frac_done = frac_done / gamedata.unit_infos[enemy.enemy_id].hitpoints
+                                --print('      frac_done 1', frac_done)
+                                frac_done = FU.weight_s(frac_done, 0.5)
+                                --print('      frac_done 2', frac_done)
+                                --if (frac_done > 1) then frac_done = 1 end
+                                --if (frac_done < 0) then frac_done = 0 end
+                                av_damage_done = av_damage_done + enemy_weight * frac_done * gamedata.unit_infos[enemy.enemy_id].max_hitpoints
+
+                                --print('  ', av_damage_taken, av_damage_done, cum_weight)
+                            end
+
+                            --print('  cum: ', av_damage_taken, av_damage_done, cum_weight)
+                            av_damage_taken = av_damage_taken / cum_weight
+                            av_damage_done = av_damage_done / cum_weight
+                            --print('  av:  ', av_damage_taken, av_damage_done)
+
+                            -- We want the ToD-independent rating here.
+                            -- The rounding is going to be off for ToD modifier, but good enough for now
+                            av_damage_taken = av_damage_taken / gamedata.unit_infos[id].tod_mod
+                            av_damage_done = av_damage_done / gamedata.unit_infos[id].tod_mod
+
+                            -- The rating must be positive for the analysis below to work
+                            local av_hp_left = gamedata.unit_infos[id].max_hitpoints - av_damage_taken
+                            if (av_hp_left < 0) then av_hp_left = 0 end
+
+                            local attacker_rating = enemy_value_ratio * av_damage_done + av_hp_left
+                            attacker_ratings[id][zone_id] = attacker_rating
+
+                            if (not max_rating) or (attacker_rating > max_rating) then
+                                max_rating = attacker_rating
+                            end
+                            --print('  -->', attacker_rating)
+                        end
+                    end
+                end
+            end
+            --DBG.dbms(attacker_ratings)
+
+
+            -- Normalize the ratings
+            for id,zone_ratings in pairs(attacker_ratings) do
+                for zone_id,rating in pairs(zone_ratings) do
+                    zone_ratings[zone_id] = zone_ratings[zone_id] / max_rating
+                end
+            end
+            --DBG.dbms(attacker_ratings)
+
+
+            local unit_ratings = {}
+            for id,zone_ratings in pairs(attacker_ratings) do
+                unit_ratings[id] = {}
+
+                for zone_id,rating in pairs(zone_ratings) do
+                    local distance = distance_from_front[id][zone_id]
+                    if (distance < 1) then distance = 1 end
+                    local distance_rating = 1 / distance
+
+                    local unit_rating = rating * distance_rating
+                    unit_ratings[id][zone_id] = { this_zone = unit_rating }
+                end
+            end
+            --DBG.dbms(unit_ratings)
+
+            for id,zone_ratings in pairs(unit_ratings) do
+                for zone_id,ratings in pairs(zone_ratings) do
+
+                    local max_other_zone
+                    for zid2,ratings2 in pairs(zone_ratings) do
+                        if (zid2 ~= zone_id) then
+                            if (not max_other_zone) or (ratings2.this_zone > max_other_zone) then
+                                max_other_zone = ratings2.this_zone
+                            end
+                        end
+                    end
+
+                    local pre_assigned_rating = 0
+                    if pre_assigned_units[id] and (pre_assigned_units[id] == zone_id) then
+                        pre_assigned_rating = 1
+                    end
+
+                    if max_other_zone then
+                        local total_rating = ratings.this_zone / math.sqrt(max_other_zone / ratings.this_zone)
+                    end
+                    -- TODO: might or might not want to normalize this again
+                    -- currently don't think it's needed
+
+                    unit_ratings[id][zone_id].max_other_zone = max_other_zone
+                    unit_ratings[id][zone_id].pre_assigned_rating = pre_assigned_rating
+
+                    unit_ratings[id][zone_id].rating = total_rating
+                end
+            end
+
+            -- Remove any unit that is already assigned (e.g. for village grabbing)
+            for id,_ in pairs(assigned_units) do
+                unit_ratings[id] = nil
+            end
+            --DBG.dbms(unit_ratings)
+
 
             local keep_trying = true
             while keep_trying do
                 keep_trying = false
+                --print()
 
-                -- Pick the zone with the most power missing
-                local max_rating_zone, best_zone
+                local max_rating, best_zone, best_unit
                 for zone_id,data in pairs(power_stats.zones) do
-                    local rating = data.power_missing
-                    --print(zone_id, rating)
-                    if (not max_rating_zone) or (rating > max_rating_zone) then
-                        max_rating_zone, best_zone = rating, zone_id
+                    -- Base rating for the zone is the power missing times the ratio of
+                    -- power missing to power needed
+                    local ratio = data.power_missing / data.power_needed
+                    local zone_rating = data.power_missing * math.sqrt(ratio)
+                    --print(zone_id, data.power_missing .. '/' .. data.power_needed .. ' = ' .. ratio, zone_rating)
+
+                    for id,unit_zone_ratings in pairs(unit_ratings) do
+                        if unit_zone_ratings[zone_id] and unit_zone_ratings[zone_id].rating then
+                            local unit_rating = unit_zone_ratings[zone_id].rating
+                            unit_rating = unit_rating * zone_rating
+
+                            local inertia = 0.5 * FU.unit_base_power(gamedata.unit_infos[id]) * unit_zone_ratings[zone_id].rating
+                            inertia = inertia * unit_zone_ratings[zone_id].pre_assigned_rating
+
+                            unit_rating = unit_rating + inertia
+
+                            if (not max_rating) or (unit_rating > max_rating) then
+                                max_rating = unit_rating
+                                best_zone = zone_id
+                                best_unit = id
+                            end
+                            --print('  ' .. id, inertia, unit_rating)
+                        end
                     end
                 end
 
-                if max_rating_zone and (max_rating_zone > 0) then
-                    --print('best_zone', best_zone)
+                if best_unit then
+                    --print('--> ' .. best_zone, best_unit, gamedata.unit_copies[best_unit].x .. ',' .. gamedata.unit_copies[best_unit].y)
+                    assigned_units[best_unit] = { zone_id = best_zone }
+                    unit_ratings[best_unit] = nil
+                    power_stats = fred:calc_power_stats(assigned_units, assigned_enemies, gamedata)
 
-                    local max_rating_unit, best_unit
-                    for id,data in pairs(attacker_ratings) do
-                        if data[best_zone] then
-                            local rating = data[best_zone]
+                    --DBG.dbms(assigned_units)
+                    --DBG.dbms(unit_ratings)
+                    --DBG.dbms(power_stats)
 
-                            local best_other_zone_rating
-                            for zid2,r in pairs(data) do
-                                if (zid2 ~= best_zone) then
-                                    if (not best_other_zone_rating) or (r > best_other_zone_rating) then
-                                        best_other_zone_rating = r
-                                    end
-                                end
-                            end
-                            --print('  ' .. id, rating, best_other_zone_rating)
-
-                            local rating = rating + data[best_zone] - (best_other_zone_rating or 0)
-                            --print('        --->', rating)
-
-                            if (not max_rating_unit) or (rating > max_rating_unit) then
-                                max_rating_unit, best_unit = rating, id
-                            end
-                        end
-                    end
-                    --print('  best unit', best_unit)
-
-                    if best_unit then
-                        assigned_units[best_unit] = {
-                            zone_id = best_zone,
-                            action = { action = 'attack' }
-                        }
-                        attacker_ratings[best_unit] = nil
-                        power_stats = fred:calc_power_stats(assigned_units, assigned_enemies, gamedata)
-
-                        --DBG.dbms(assigned_units)
-                        --DBG.dbms(attacker_ratings)
-                        --DBG.dbms(power_stats)
-
-                        if (next(attacker_ratings)) then
-                            keep_trying = true
-                        end
-
+                    if (next(unit_ratings)) then
+                        keep_trying = true
                     end
                 end
             end
+            --DBG.dbms(assigned_units)
+            --DBG.dbms(power_stats)
+
+            local units_by_zone = {}
+            for id,tbl in pairs(assigned_units) do
+                local zone_id = tbl.zone_id
+
+                if (not units_by_zone[zone_id]) then
+                    units_by_zone[zone_id] = {}
+                end
+                units_by_zone[zone_id][id] = zone_id
+            end
+            --DBG.dbms(units_by_zone)
 
 
             -- Everybody left at this time goes on the reserve list
-            --DBG.dbms(attacker_ratings)
+            --DBG.dbms(unit_ratings)
             local reserve_units = {}
-            for id,_ in pairs(attacker_ratings) do
+            for id,_ in pairs(unit_ratings) do
                 reserve_units[id] = true
             end
             attacker_ratings = nil
-
+            unit_ratings = nil
 
             power_stats = fred:calc_power_stats(assigned_units, assigned_enemies, gamedata)
             --DBG.dbms(power_stats)
@@ -1045,7 +1035,7 @@ return {
 
             -- There will likely only be units on the reserve list at the very beginning
             -- or maybe when the AI is winning.  So for now, we'll just distribute
-            -- them between the zone.
+            -- them between the zones.
             -- TODO: reconsider later whether this is the best thing to do.
             local total_weight = 0
             for zone_id,cfg in pairs(raw_cfgs_main) do
@@ -1094,7 +1084,6 @@ return {
                 power_stats = fred:calc_power_stats(assigned_units, assigned_enemies, gamedata)
                 --DBG.dbms(power_stats)
             end
-
 
 
             -- At this point we have (TODO: decide which of those are to be kept):
@@ -1466,7 +1455,6 @@ return {
             --DBG.dbms(fred.data.analysis)
 
             fred.data.zone_cfgs = {}
-
             local units_for_zone = {}
 
             if behavior.assigned_units then
