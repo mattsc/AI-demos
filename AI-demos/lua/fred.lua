@@ -809,7 +809,7 @@ return {
             local max_rating
             for id,_ in pairs(gamedata.my_units) do
                 if (not gamedata.unit_infos[id].canrecruit)
-                    and (not assigned_units[d])
+                    and (not assigned_units[id])
                 then
                     --print(id)
                     attacker_ratings[id] = {}
@@ -959,11 +959,6 @@ return {
 
                     unit_ratings[id][zone_id].rating = total_rating
                 end
-            end
-
-            -- Remove any unit that is already assigned (e.g. for village grabbing)
-            for id,_ in pairs(assigned_units) do
-                unit_ratings[id] = nil
             end
             --DBG.dbms(unit_ratings)
 
