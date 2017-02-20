@@ -431,11 +431,18 @@ return {
             --DBG.dbms(zone_village_goals)
             --DBG.dbms(protect_villages_maps)
 
-            -- Find how many units are needed in each zone for village grabbing
+            -- Find how many units are needed in each zone for moving toward villages ('exploring')
             local units_needed_villages = {}
             local villages_per_unit = FU.cfg_default('villages_per_unit')
             for zone_id,villages in pairs(zone_village_goals) do
-                local n_units = math.ceil(#villages / villages_per_unit)
+                local n_villages = 0
+                for _,village in pairs(villages) do
+                    if (not village.grab_only) then
+                        n_villages = n_villages + 1
+                    end
+                end
+
+                local n_units = math.ceil(n_villages / villages_per_unit)
                 units_needed_villages[zone_id] = n_units
             end
             --DBG.dbms(units_needed_villages)
@@ -594,6 +601,7 @@ return {
             --DBG.dbms(units_needed_villages)
             --DBG.dbms(units_assigned_villages)
             --DBG.dbms(assigned_units)
+            --DBG.dbms(assigned_enemies)
 
             local power_stats = fred:calc_power_stats(assigned_units, assigned_enemies, gamedata)
             --DBG.dbms(power_stats)

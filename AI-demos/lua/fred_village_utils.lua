@@ -34,7 +34,9 @@ function fred_village_utils.village_goals(zone_cfgs, side_cfgs, gamedata)
         local my_distance = H.distance_between(x, y, my_start_hex[1], my_start_hex[2])
         local enemy_distance = H.distance_between(x, y, enemy_start_hex[1], enemy_start_hex[2])
 
-        if (my_distance <= enemy_distance) then
+        local threats = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids')
+
+        if (my_distance <= enemy_distance) or (not threats) then
             local village_zone
             for zone_id,_ in pairs(zone_maps) do
                 if FU.get_fgumap_value(zone_maps[zone_id], x, y, 'in_zone') then
@@ -48,7 +50,16 @@ function fred_village_utils.village_goals(zone_cfgs, side_cfgs, gamedata)
                 if (not zone_village_goals[village_zone]) then
                     zone_village_goals[village_zone] = {}
                 end
-                table.insert(zone_village_goals[village_zone], { x = x, y = y, owner = village.owner })
+
+                local grab_only = true
+                if (my_distance <= enemy_distance) then
+                    grab_only = false
+                end
+                table.insert(zone_village_goals[village_zone], {
+                    x = x, y = y,
+                    owner = village.owner,
+                    grab_only = grab_only
+                })
             end
 
             if (not protect_villages_maps[village_zone]) then
