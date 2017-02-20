@@ -947,8 +947,9 @@ return {
                         pre_assigned_rating = 1
                     end
 
+                    local total_rating = ratings.this_zone
                     if max_other_zone then
-                        local total_rating = ratings.this_zone / math.sqrt(max_other_zone / ratings.this_zone)
+                        total_rating = total_rating / math.sqrt(max_other_zone / ratings.this_zone)
                     end
                     -- TODO: might or might not want to normalize this again
                     -- currently don't think it's needed
