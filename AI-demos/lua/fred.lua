@@ -2667,12 +2667,15 @@ return {
                     -- unthreatened than this hold position, don't hold here
                     local move_here = true
                     if (not hold_leader_distance) then
-                        local eld1 = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'enemy_leader_distance')
-                        local eld2 = FU.get_fgumap_value(gamedata.enemy_leader_distance_maps[unit_type], x, y, 'cost')
-                        local eld = (eld1 + eld2) / 2
+                        local threats = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids')
 
-                        if min_eleader_distance and (eld > min_eleader_distance) then
-                            move_here = false
+                        if (not threats) then
+                            local eld1 = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'enemy_leader_distance')
+                            local eld2 = FU.get_fgumap_value(gamedata.enemy_leader_distance_maps[unit_type], x, y, 'cost')
+                            local eld = (eld1 + eld2) / 2
+                            if min_eleader_distance and (eld > min_eleader_distance) then
+                                move_here = false
+                            end
                         end
                     end
 
