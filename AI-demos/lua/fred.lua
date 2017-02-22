@@ -4047,11 +4047,33 @@ return {
                     end
                 end
 
-                -- Move out of way in direction of own leader
+
+                -- Generally, move out of way in direction of own leader
                 local leader_loc = fred.data.gamedata.leaders[wesnoth.current.side]
                 local dx, dy  = leader_loc[1] - dst[1], leader_loc[2] - dst[2]
                 local r = math.sqrt(dx * dx + dy * dy)
                 if (r ~= 0) then dx, dy = dx / r, dy / r end
+
+                -- However, if the unit in the way is part of the move combo, it needs to move in the
+                -- direction of its own goal, otherwise it might not be able to reach it later
+                local unit_in_way
+                if (unit.x ~= dst[1]) or (unit.y ~= dst[2]) then
+                    unit_in_way = wesnoth.get_unit(dst[1], dst[2])
+                end
+                if unit_in_way then
+                    for i_u,u in ipairs(fred.data.zone_action.units) do
+                        if (u.id == unit_in_way.id) then
+                            --print('  unit is part of the combo', unit_in_way.id, unit_in_way.x, , unit_in_way.y)
+                            local path, _ = wesnoth.find_path(unit_in_way, fred.data.zone_action.dsts[i_u][1], fred.data.zone_action.dsts[i_u][2])
+                            dx, dy = path[2][1] - path[1][1], path[2][2] - path[1][2]
+                            local r = math.sqrt(dx * dx + dy * dy)
+                            if (r ~= 0) then dx, dy = dx / r, dy / r end
+
+                            break
+                        end
+                    end
+                end
+
 
                 if fred.data.zone_action.partial_move then
                     AH.movepartial_outofway_stopunit(ai, unit, dst[1], dst[2], { dx = dx, dy = dy })
