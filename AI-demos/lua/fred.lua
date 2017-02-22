@@ -2608,6 +2608,8 @@ return {
                     local tension = influences.my_influence + influences.enemy_influence
                     local vulnerability = tension - math.abs(influence)
 
+                    local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
+                    vulnerability = vulnerability + ld / 25
 
                     FU.set_fgumap_value(holders_influence, x, y, 'tension', tension)
                     FU.set_fgumap_value(holders_influence, x, y, 'vulnerability', vulnerability)
