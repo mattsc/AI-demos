@@ -221,6 +221,8 @@ function fred_utils.cfg_default(parm)
 
         villages_per_unit = 2,
 
+        enemy_leader_derating = 0.5,
+
         use_max_damage_weapons = false,
 
         ctd_limit = 0.5 -- TODO: is this a good value?

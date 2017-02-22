@@ -370,11 +370,16 @@ return {
             end
 
 
+            local enemy_leader_derating = FU.cfg_default('enemy_leader_derating')
             local enemy_int_influence_map = {}
             for x,y,data in FU.fgumap_iter(gamedata.enemy_attack_map[1]) do
                 local enemy_influence, number = 0, 0
                 for _,enemy_id in pairs(data.ids) do
-                    enemy_influence = enemy_influence + FU.unit_terrain_power(gamedata.unit_infos[enemy_id], x, y, gamedata)
+                    local unit_influence = FU.unit_terrain_power(gamedata.unit_infos[enemy_id], x, y, gamedata)
+                    if gamedata.unit_infos[enemy_id].canrecruit then
+                        unit_influence = unit_influence * enemy_leader_derating
+                    end
+                    enemy_influence = enemy_influence + unit_influence
                     number = number + 1
                 end
                 FU.set_fgumap_value(enemy_int_influence_map, x, y, 'enemy_influence', enemy_influence)
@@ -2462,6 +2467,7 @@ return {
             local enemy_value_ratio = 1.25
             local max_units = 3
             local max_hexes = 6
+            local enemy_leader_derating = FU.cfg_default('enemy_leader_derating')
 
 
             local raw_cfg = fred:get_raw_cfgs(zonedata.cfg.zone_id)
@@ -2706,6 +2712,12 @@ return {
 
                                 -- Note: this is small (negative) for the strongest enemy
                                 -- -> need to find minima the strongest enemies for this hex
+
+                                if gamedata.unit_infos[enemy_id].canrecruit then
+                                    damage_done = damage_done / enemy_leader_derating
+                                    damage_taken = damage_taken * enemy_leader_derating
+                                end
+
                                 local counter_rating = enemy_value_ratio * damage_done - damage_taken
                                 table.insert(tmp_enemies, {
                                     damage_taken = damage_taken,
