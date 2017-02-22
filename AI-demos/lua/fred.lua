@@ -2602,12 +2602,26 @@ return {
                 end
             end
 
+            for x,y,influences in FU.fgumap_iter(holders_influence) do
+                if influences.influence then
+                    local influence = influences.influence
+                    local tension = influences.my_influence + influences.enemy_influence
+                    local vulnerability = tension - math.abs(influence)
+
+
+                    FU.set_fgumap_value(holders_influence, x, y, 'tension', tension)
+                    FU.set_fgumap_value(holders_influence, x, y, 'vulnerability', vulnerability)
+                end
+            end
+
             if false then
-                FU.show_fgumap_with_message(holders_influence, 'my_influence', 'Holders influence')
-                FU.show_fgumap_with_message(holders_influence, 'enemy_influence', 'Enemy influence')
+                --FU.show_fgumap_with_message(holders_influence, 'my_influence', 'Holders influence')
+                --FU.show_fgumap_with_message(holders_influence, 'enemy_influence', 'Enemy influence')
                 FU.show_fgumap_with_message(holders_influence, 'influence', 'Influence')
-                FU.show_fgumap_with_message(holders_influence, 'my_count', 'My count')
-                FU.show_fgumap_with_message(holders_influence, 'enemy_count', 'Enemy count')
+                --FU.show_fgumap_with_message(holders_influence, 'tension', 'tension')
+                FU.show_fgumap_with_message(holders_influence, 'vulnerability', 'vulnerability')
+                --FU.show_fgumap_with_message(holders_influence, 'my_count', 'My count')
+                --FU.show_fgumap_with_message(holders_influence, 'enemy_count', 'Enemy count')
             end
 
 
@@ -2917,7 +2931,8 @@ return {
                             max_rating = base_rating
                         end
 
-                        local vuln = FU.get_fgumap_value(fred.data.turn_data.IM, x, y, 'vulnerability')
+                        local vuln = FU.get_fgumap_value(holders_influence, x, y, 'vulnerability')
+
                         if (not min_vuln) or (vuln < min_vuln) then
                             min_vuln = vuln
                         end
@@ -2971,7 +2986,7 @@ return {
 
                         FU.set_fgumap_value(unit_rating_maps[id], x, y, 'base_rating', base_rating)
 
-                        local vuln = FU.get_fgumap_value(fred.data.turn_data.IM, x, y, 'vulnerability')
+                        local vuln = FU.get_fgumap_value(holders_influence, x, y, 'vulnerability')
                         --local v_fac = (vuln - min_vuln) / dv
                         --v_fac = 0.5 + v_fac / 2
                         --v_fac = math.sqrt(v_fac)
@@ -3036,7 +3051,7 @@ return {
             if false then
                 for id,unit_rating_map in pairs(unit_rating_maps) do
                     FU.show_fgumap_with_message(unit_rating_map, 'base_rating', 'base_rating', gamedata.unit_copies[id])
-                    FU.show_fgumap_with_message(unit_rating_map, 'rating2', 'rating2', gamedata.unit_copies[id])
+                    --FU.show_fgumap_with_message(unit_rating_map, 'rating2', 'rating2', gamedata.unit_copies[id])
                 end
             end
             if false then
@@ -3044,7 +3059,7 @@ return {
                     FU.show_fgumap_with_message(hold_rating_maps[id], 'vuln_rating', 'vuln_rating', gamedata.unit_copies[id])
                 end
                 for id,unit_rating_map in pairs(protect_rating_maps) do
-                    FU.show_fgumap_with_message(protect_rating_maps[id], 'protect_rating', 'protect_rating', gamedata.unit_copies[id])
+                    --FU.show_fgumap_with_message(protect_rating_maps[id], 'protect_rating', 'protect_rating', gamedata.unit_copies[id])
                 end
             end
 
