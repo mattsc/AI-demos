@@ -190,6 +190,15 @@ function fred_utils.print_weight_s(exp)
     print(s2)
 end
 
+function fred_utils.scaled_hitchance(hc)
+    local fac = 0.6
+    local x = hc * fac
+    local x0 = 0.5 * fac
+    local scaled_hc = fred_utils.weight_s(x, 0.75)
+    scaled_hc = scaled_hc / fred_utils.weight_s(x0, 0.75) * 0.5
+    return scaled_hc
+end
+
 function fred_utils.get_unit_time_of_day_bonus(alignment, lawful_bonus)
     local multiplier = 1
     if (lawful_bonus ~= 0) then
