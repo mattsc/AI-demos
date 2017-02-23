@@ -611,10 +611,10 @@ return {
 
 
             ----- Village goals -----
-            local zone_village_goals, protect_villages_maps = FVU.village_goals(raw_cfgs_main, side_cfgs, gamedata)
+            local zone_village_goals, villages_to_protect_maps = FVU.village_goals(raw_cfgs_main, side_cfgs, gamedata)
 
             --DBG.dbms(zone_village_goals)
-            --DBG.dbms(protect_villages_maps)
+            --DBG.dbms(villages_to_protect_maps)
 
             -- Find how many units are needed in each zone for moving toward villages ('exploring')
             local units_needed_villages = {}
@@ -799,7 +799,7 @@ return {
             for zone_id,cfg in pairs(raw_cfgs_main) do
 
                 local max_ld, loc
-                for x,y,_ in FU.fgumap_iter(protect_villages_maps[zone_id]) do
+                for x,y,_ in FU.fgumap_iter(villages_to_protect_maps[zone_id]) do
                     for enemy_id,_ in pairs(gamedata.enemies) do
                         if FU.get_fgumap_value(gamedata.reach_maps[enemy_id], x, y, 'moves_left') then
                             local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
@@ -1134,7 +1134,7 @@ return {
             -- assigned_enemies, enemies_by_zone
             -- assigned_units (incl. action if known)
             -- zone_village_goals
-            -- protect_villages_maps
+            -- villages_to_protect_maps
             -- power_stats
             -- goal_hexes
             -- reserve_units (not used at the moment)
@@ -1152,7 +1152,7 @@ return {
 
             fred.data.turn_data.IM = IM
             fred.data.turn_data.unit_attacks = unit_attacks
-            fred.data.protect_villages_maps = protect_villages_maps
+            fred.data.villages_to_protect_maps = villages_to_protect_maps
             fred.data.enemy_int_influence_map = enemy_int_influence_map
 
             FU.print_debug(show_debug_analysis, '--- Done determining behavior ---\n')
@@ -1176,9 +1176,9 @@ return {
             -- cleaned up anyway
             -- It does need to be rerun after each move, as a village might have opened up for grabbing
             local zone_village_goals
-            zone_village_goals, fred.data.protect_villages_maps = FVU.village_goals(raw_cfgs_main, side_cfgs, gamedata)
+            zone_village_goals, fred.data.villages_to_protect_maps = FVU.village_goals(raw_cfgs_main, side_cfgs, gamedata)
             --DBG.dbms(zone_village_goals)
-            --DBG.dbms(protect_villages_maps)
+            --DBG.dbms(villages_to_protect_maps)
 
             local best_captures = FVU.assign_grabbers(
                 zone_village_goals,
@@ -1193,8 +1193,8 @@ return {
 
             -- For now, every village on our side of the map that can be reached
             -- by an enemy needs to be protected
-            --DBG.dbms(protect_villages_maps)
-            for zone_id,map in pairs(fred.data.protect_villages_maps) do
+            --DBG.dbms(villages_to_protect_maps)
+            for zone_id,map in pairs(fred.data.villages_to_protect_maps) do
                 orders[zone_id] = { protect_villages = false }
                 local max_ld, loc
                 for x,y,_ in FU.fgumap_iter(map) do

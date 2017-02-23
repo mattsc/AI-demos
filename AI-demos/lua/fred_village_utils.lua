@@ -30,7 +30,7 @@ function fred_village_utils.village_goals(zone_cfgs, side_cfgs, gamedata)
         end
     end
 
-    local zone_village_goals, protect_villages_maps = {} , {}
+    local zone_village_goals, villages_to_protect_maps = {} , {}
     for x,y,village in FU.fgumap_iter(gamedata.village_map) do
         local my_distance = H.distance_between(x, y, my_start_hex[1], my_start_hex[2])
         local enemy_distance = H.distance_between(x, y, enemy_start_hex[1], enemy_start_hex[2])
@@ -65,15 +65,17 @@ function fred_village_utils.village_goals(zone_cfgs, side_cfgs, gamedata)
             })
         end
 
+        -- The following is simply a map of all villages that need to be protected
+        -- in principle. Whether an action is needed to do so is determined later.
         if (my_distance <= enemy_distance) then
-            if (not protect_villages_maps[village_zone]) then
-                protect_villages_maps[village_zone] = {}
+            if (not villages_to_protect_maps[village_zone]) then
+                villages_to_protect_maps[village_zone] = {}
             end
-            FU.set_fgumap_value(protect_villages_maps[village_zone], x, y, 'protect', true)
+            FU.set_fgumap_value(villages_to_protect_maps[village_zone], x, y, 'protect', true)
         end
     end
 
-    return zone_village_goals, protect_villages_maps
+    return zone_village_goals, villages_to_protect_maps
 end
 
 
