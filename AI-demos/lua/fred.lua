@@ -392,10 +392,8 @@ return {
                 FU.show_fgumap_with_message(gamedata.leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
                 FU.show_fgumap_with_message(gamedata.leader_distance_map, 'distance', 'leader_distance_map')
 
-                FU.show_fgumap_with_message(gamedata.enemy_leader_distance_maps['Orcish Grunt'], 'cost', 'cost Grunt')
-                FU.show_fgumap_with_message(gamedata.enemy_leader_distance_maps['Wolf Rider'], 'cost', 'cost Wolf Rider')
-
-
+                --FU.show_fgumap_with_message(gamedata.enemy_leader_distance_maps['Orcish Grunt'], 'cost', 'cost Grunt')
+                --FU.show_fgumap_with_message(gamedata.enemy_leader_distance_maps['Wolf Rider'], 'cost', 'cost Wolf Rider')
             end
 
 
@@ -3305,7 +3303,7 @@ return {
                 end
             end
             if false then
-                FU.show_fgumap_with_message(advance_map, 'flag', 'Advance map')
+                FU.show_fgumap_with_message(advance_map, 'flag', 'Advance map: ' .. zonedata.cfg.zone_id)
             end
 
             local unit_rating_maps = {}
