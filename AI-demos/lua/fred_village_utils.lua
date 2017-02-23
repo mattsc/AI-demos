@@ -121,6 +121,7 @@ function fred_village_utils.assign_grabbers(zone_village_goals, assigned_units, 
 
                     -- If the village is owned by the enemy, average damage is acceptable
                     -- If it is unowned, we use the mean of average and maximum damage
+                    -- Except for the leader, for which we are much more conservative
                     local applicable_damage = 0
                     if (village.my_distance > village.enemy_distance) then
                         if (village.owner == 0) then
@@ -128,6 +129,9 @@ function fred_village_utils.assign_grabbers(zone_village_goals, assigned_units, 
                         else
                             applicable_damage = av_damage
                         end
+                    end
+                    if gamedata.unit_infos[id].canrecruit then
+                        applicable_damage = max_damage * 2
                     end
                     --print('     ' .. applicable_damage, gamedata.unit_infos[id].hitpoints)
 
