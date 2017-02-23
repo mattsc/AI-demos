@@ -125,7 +125,7 @@ return {
 
             local cfg_west = {
                 zone_id = 'west',
-                ops_slf = { x = '1-15,1-14', y = '1-12,13-24' },
+                ops_slf = { x = '1-15,1-14,1-21', y = '1-12,13-17,18-24' },
                 center_hex = { 10, 12 },
                 zone_weight = 1,
             }
@@ -133,14 +133,14 @@ return {
             local cfg_center = {
                 zone_id = 'center',
                 center_hex = { 19, 12 },
-                ops_slf = { x = '16-20,16-22,16-23,15-22,22', y = '6-7,8-9,10-12,13-18,2' },
+                ops_slf = { x = '16-20,16-22,16-23,15-22,15-23', y = '6-7,8-9,10-12,13-17,18-24' },
                 zone_weight = 0.5,
             }
 
             local cfg_east = {
                 zone_id = 'east',
                 center_hex = { 28, 12 },
-                ops_slf = { x = '21-34,23-34,24-34,23-34', y = '1-7,8-9,10-12,13-24' },
+                ops_slf = { x = '21-34,23-34,24-34,23-34,17-34', y = '1-7,8-9,10-12,13-17,18-24' },
                 zone_weight = 1,
             }
 
