@@ -2645,6 +2645,15 @@ return {
                 end
             end
 
+            for x,y,map in FU.fgumap_iter(holders_influence, x, y) do
+                local my_inf = FU.get_fgumap_value(holders_influence, x, y, 'my_influence', 0)
+                local enemy_inf = FU.get_fgumap_value(holders_influence, x, y, 'enemy_influence', 0)
+                local inf_ratio = my_inf / (enemy_inf + 1)
+
+                FU.set_fgumap_value(holders_influence, x, y, 'inf_ratio', inf_ratio)
+            end
+
+
             if false then
                 --FU.show_fgumap_with_message(holders_influence, 'my_influence', 'Holders influence')
                 --FU.show_fgumap_with_message(holders_influence, 'enemy_influence', 'Enemy influence')
@@ -2653,7 +2662,19 @@ return {
                 FU.show_fgumap_with_message(holders_influence, 'vulnerability', 'vulnerability')
                 --FU.show_fgumap_with_message(holders_influence, 'my_count', 'My count')
                 --FU.show_fgumap_with_message(holders_influence, 'enemy_count', 'Enemy count')
+                FU.show_fgumap_with_message(holders_influence, 'inf_ratio', 'inf_ratio')
             end
+
+
+            local my_current_power, enemy_current_power = 0, 0
+            for id,_ in pairs(gamedata.my_units) do
+                my_current_power = my_current_power + FU.unit_current_power(gamedata.unit_infos[id])
+            end
+            for enemy_id,_ in pairs(gamedata.enemies) do
+                enemy_current_power = enemy_current_power + FU.unit_current_power(gamedata.unit_infos[enemy_id])
+            end
+            local current_power_ratio = my_current_power / (enemy_current_power + 0.001)
+            --print('current power:', my_current_power, enemy_current_power, current_power_ratio)
 
 
             local enemy_weights = {}
@@ -2749,11 +2770,25 @@ return {
                                 local enemy_defense = 1 - FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'hit_chance')
                                 my_hc = my_hc - enemy_defense /100
 
-                                local damage_taken = my_hc * att.counter.taken + att.counter.enemy_extra
-                                damage_taken = damage_taken + 0.1 * (my_hc * att.forward.taken + att.forward.enemy_extra)
 
-                                local damage_done = enemy_adj_hc * att.counter.done + att.counter.my_extra
-                                damage_done = damage_done + 0.1 * (enemy_adj_hc * att.forward.done + att.forward.my_extra)
+                                local ratio = FU.get_fgumap_value(holders_influence, x, y, 'inf_ratio', 1)
+                                if (ratio > current_power_ratio) then
+                                    ratio = (ratio + current_power_ratio) / 2
+                                end
+                                if (ratio < 1) then ratio = 1 end
+
+                                local uncropped_ratio = ratio
+                                if (ratio > 3) then ratio = 3 end
+
+                                local factor_forward = 0.1 + (ratio - 1) * 0.4
+                                local factor_counter = 1 - factor_forward
+                                --print(x .. ',' .. y, ratio, factor_forward, factor_counter)
+
+                                local damage_taken = factor_counter * (my_hc * att.counter.taken + att.counter.enemy_extra)
+                                damage_taken = damage_taken + factor_forward * (my_hc * att.forward.taken + att.forward.enemy_extra)
+
+                                local damage_done = factor_counter * (enemy_adj_hc * att.counter.done + att.counter.my_extra)
+                                damage_done = damage_done + factor_forward * (enemy_adj_hc * att.forward.done + att.forward.my_extra)
 
                                 -- Note: this is small (negative) for the strongest enemy
                                 -- -> need to find minima the strongest enemies for this hex
@@ -2770,7 +2805,8 @@ return {
                                     counter_rating = counter_rating,
                                     enemy_id = enemy_id,
                                     my_regen = att.my_regen,
-                                    enemy_regen = att.enemy_regen
+                                    enemy_regen = att.enemy_regen,
+                                    uncropped_ratio = uncropped_ratio
                                 })
                             end
                         end
@@ -2863,6 +2899,7 @@ return {
                         pre_rating_maps[id][x][y].av_outcome = av_outcome
                         pre_rating_maps[id][x][y].influence = influence
                         pre_rating_maps[id][x][y].exposure = exposure
+                        pre_rating_maps[id][x][y].uncropped_ratio = tmp_enemies[1].uncropped_ratio
                     end
                 end
             end
@@ -3050,6 +3087,13 @@ return {
                         local exposure = FU.get_fgumap_value(hold_maps[id], x, y, 'exposure')
                         if exposure then
                             local vuln_rating = base_rating + v_fac
+
+                            local uncropped_ratio = FU.get_fgumap_value(pre_rating_maps[id], x, y, 'uncropped_ratio')
+                            local eld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'enemy_leader_distance')
+                            local forward_rating = (uncropped_ratio - 1) * 0.01 * (-eld)
+                            vuln_rating = vuln_rating + forward_rating
+                            --print('uncropped_ratio', x, y, uncropped_ratio, eld, forward_rating)
+
 
                             if (not hold_rating_maps[id]) then
                                 hold_rating_maps[id] = {}
