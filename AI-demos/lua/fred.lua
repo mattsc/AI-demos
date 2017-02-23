@@ -607,7 +607,7 @@ return {
 
             local immediate_actions = {}
 
-            local best_captures = FVU.assign_grabbers(zone_village_goals, assigned_units, immediate_actions, gamedata)
+            local best_captures = FVU.assign_grabbers(zone_village_goals, assigned_units, immediate_actions, unit_attacks, gamedata)
             --DBG.dbms(immediate_actions)
             --DBG.dbms(assigned_units)
 
@@ -1157,6 +1157,7 @@ return {
                 zone_village_goals,
                 fred.data.behavior.assigned_units,
                 fred.data.behavior.immediate_actions,
+                fred.data.turn_data.unit_attacks,
                 gamedata
             )
             --DBG.dbms(fred.data.behavior.immediate_actions)

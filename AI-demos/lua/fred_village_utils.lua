@@ -1,6 +1,7 @@
 local H = wesnoth.require "lua/helper.lua"
 local W = H.set_wml_action_metatable {}
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
+local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 
 local fred_village_utils = {}
 
@@ -36,44 +37,45 @@ function fred_village_utils.village_goals(zone_cfgs, side_cfgs, gamedata)
 
         local threats = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids')
 
-        if (my_distance <= enemy_distance) or (not threats) then
-            local village_zone
-            for zone_id,_ in pairs(zone_maps) do
-                if FU.get_fgumap_value(zone_maps[zone_id], x, y, 'in_zone') then
-                    village_zone = zone_id
-                    break
-                end
+        local village_zone
+        for zone_id,_ in pairs(zone_maps) do
+            if FU.get_fgumap_value(zone_maps[zone_id], x, y, 'in_zone') then
+                village_zone = zone_id
+                break
             end
-            if (not village_zone) then village_zone = 'other' end
-
-            if (village.owner ~= wesnoth.current.side) then
-                if (not zone_village_goals[village_zone]) then
-                    zone_village_goals[village_zone] = {}
-                end
-
-                local grab_only = true
-                if (my_distance <= enemy_distance) then
-                    grab_only = false
-                end
-                table.insert(zone_village_goals[village_zone], {
-                    x = x, y = y,
-                    owner = village.owner,
-                    grab_only = grab_only
-                })
-            end
-
-            if (not protect_villages_maps[village_zone]) then
-                protect_villages_maps[village_zone] = {}
-            end
-            FU.set_fgumap_value(protect_villages_maps[village_zone], x, y, 'protect', true)
         end
+        if (not village_zone) then village_zone = 'other' end
+
+        if (village.owner ~= wesnoth.current.side) then
+            if (not zone_village_goals[village_zone]) then
+                zone_village_goals[village_zone] = {}
+            end
+
+            local grab_only = true
+            if (my_distance <= enemy_distance) then
+                grab_only = false
+            end
+            table.insert(zone_village_goals[village_zone], {
+                x = x, y = y,
+                owner = village.owner,
+                grab_only = grab_only,
+                threats = threats,
+                my_distance = my_distance,
+                enemy_distance = enemy_distance
+            })
+        end
+
+        if (not protect_villages_maps[village_zone]) then
+            protect_villages_maps[village_zone] = {}
+        end
+        FU.set_fgumap_value(protect_villages_maps[village_zone], x, y, 'protect', true)
     end
 
     return zone_village_goals, protect_villages_maps
 end
 
 
-function fred_village_utils.assign_grabbers(zone_village_goals, assigned_units, immediate_actions, gamedata)
+function fred_village_utils.assign_grabbers(zone_village_goals, assigned_units, immediate_actions, unit_attacks, gamedata)
     -- assigned_units and immediate_actions are modified directly in place
 
     -- Villages that can be reached are dealt with separately from others
@@ -82,13 +84,16 @@ function fred_village_utils.assign_grabbers(zone_village_goals, assigned_units, 
 
     for zone_id,villages in pairs(zone_village_goals) do
         for _,village in ipairs(villages) do
+            local x, y = village.x, village.y
+
             local tmp_in_reach = {
-                x = village.x, y = village.y,
+                x = x, y = y,
                 owner = village.owner, zone_id = zone_id,
                 units = {}
             }
+            --print(x, y)
 
-            local ids = FU.get_fgumap_value(gamedata.my_move_map[1], village.x, village.y, 'ids', {})
+            local ids = FU.get_fgumap_value(gamedata.my_move_map[1], x, y, 'ids', {})
 
             for _,id in pairs(ids) do
                 local loc = gamedata.my_units[id]
@@ -96,15 +101,45 @@ function fred_village_utils.assign_grabbers(zone_village_goals, assigned_units, 
                 if (not gamedata.unit_infos[id].canrecruit)
                     or wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).keep
                 then
-                    --print(id, loc[1], loc[2])
+                    --print('  ' .. id, loc[1], loc[2])
 
-                    table.insert(tmp_in_reach.units, id)
+                    local max_damage, av_damage = 0, 0
+                    if village.threats then
+                        for _,enemy_id in ipairs(village.threats) do
+                            local att = unit_attacks[id][enemy_id]
+                            local damage_taken = att.counter.taken
 
-                    -- For this is sufficient to just count how many villages a unit can get to
-                    if (not villages_in_reach.by_unit[id]) then
-                        villages_in_reach.by_unit[id] = 1
-                    else
-                        villages_in_reach.by_unit[id] = villages_in_reach.by_unit[id] + 1
+                            -- TODO: this does not take chance_to_hit specials into account
+                            local my_hc = 1 - FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
+                            --print('    ' .. enemy_id, damage_taken, my_hc)
+
+                            max_damage = max_damage + damage_taken
+                            av_damage = av_damage + damage_taken * my_hc
+                        end
+                    end
+                    --print('  -> ' .. av_damage, max_damage)
+
+                    -- If the village is owned by the enemy, average damage is acceptable
+                    -- If it is unowned, we use the mean of average and maximum damage
+                    local applicable_damage = 0
+                    if (village.my_distance > village.enemy_distance) then
+                        if (village.owner == 0) then
+                            applicable_damage = (max_damage + av_damage) / 2
+                        else
+                            applicable_damage = av_damage
+                        end
+                    end
+                    --print('     ' .. applicable_damage, gamedata.unit_infos[id].hitpoints)
+
+                    if (applicable_damage < gamedata.unit_infos[id].hitpoints) then
+                        table.insert(tmp_in_reach.units, id)
+
+                        -- For this is sufficient to just count how many villages a unit can get to
+                        if (not villages_in_reach.by_unit[id]) then
+                            villages_in_reach.by_unit[id] = 1
+                        else
+                            villages_in_reach.by_unit[id] = villages_in_reach.by_unit[id] + 1
+                        end
                     end
                 end
             end
