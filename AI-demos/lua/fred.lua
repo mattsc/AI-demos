@@ -79,6 +79,11 @@ return {
             fred.data.gamedata.leader_distance_map = leader_distance_map
 
 
+            -- Enemy leader distance maps. These are calculated using wesnoth.find_cost_map() for
+            -- each unit type from the start hex of the enemy leader. This is not ideal, as it is
+            -- in the wrong direction (and terrain changes are not symmetric), but it
+            -- is good enough for the purpose of finding the best way to the enemy leader
+            -- TODO: do this correctly, if needed
             local enemy_leader_distance_maps = {}
             for id,_ in pairs(fred.data.gamedata.my_units) do
                 local typ = fred.data.gamedata.unit_infos[id].type -- can't use type, that's reserved
