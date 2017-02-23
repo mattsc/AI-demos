@@ -77,6 +77,30 @@ return {
                 end
             end
             fred.data.gamedata.leader_distance_map = leader_distance_map
+
+
+            local enemy_leader_distance_maps = {}
+            for id,_ in pairs(fred.data.gamedata.my_units) do
+                local typ = fred.data.gamedata.unit_infos[id].type -- can't use type, that's reserved
+
+                if (not enemy_leader_distance_maps[typ]) then
+                    enemy_leader_distance_maps[typ] = {}
+
+                    local cost_map = wesnoth.find_cost_map(
+                        { x = -1 }, -- SUF not matching any unit
+                        { { enemy_leader_loc[1], enemy_leader_loc[2], wesnoth.current.side, typ } },
+                        { ignore_units = true }
+                    )
+
+                    for _,cost in pairs(cost_map) do
+                        local x, y, c = cost[1], cost[2], cost[3]
+                        if (cost[3] > -1) then
+                            FU.set_fgumap_value(enemy_leader_distance_maps[typ], cost[1], cost[2], 'cost', cost[3])
+                        end
+                    end
+                end
+            end
+            fred.data.gamedata.enemy_leader_distance_maps = enemy_leader_distance_maps
         end
 
         function fred:get_side_cfgs()

@@ -521,7 +521,7 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
     -- in the wrong direction (and terrain changes are not symmetric), but it
     -- is good enough for the purpose of finding the best way to the leader
     -- TODO: do this correctly, if needed
-    local leader_distance_maps, enemy_leader_distance_maps = {}, {}
+    local leader_distance_maps = {}
     for id,_ in pairs(my_units) do
         local typ = unit_infos[id].type -- can't use type, that's reserved
 
@@ -540,21 +540,6 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
                     FU.set_fgumap_value(leader_distance_maps[typ], cost[1], cost[2], 'cost', cost[3])
                 end
             end
-
-            enemy_leader_distance_maps[typ] = {}
-
-            local cost_map = wesnoth.find_cost_map(
-                { x = -1 }, -- SUF not matching any unit
-                { { mapstate.enemy_leader_x, mapstate.enemy_leader_y, wesnoth.current.side, typ } },
-                { ignore_units = true } -- this is the default, I think, but just in case
-            )
-
-            for _,cost in pairs(cost_map) do
-                local x, y, c = cost[1], cost[2], cost[3]
-                if (cost[3] > -1) then
-                    FU.set_fgumap_value(enemy_leader_distance_maps[typ], cost[1], cost[2], 'cost', cost[3])
-                end
-            end
         end
     end
 
@@ -568,7 +553,6 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
     mapstate.reachable_keeps_map = reachable_keeps_map
     mapstate.reachable_castles_map = reachable_castles_map
     mapstate.leader_distance_maps = leader_distance_maps
-    mapstate.enemy_leader_distance_maps = enemy_leader_distance_maps
 
     mapstate.my_unit_map = my_unit_map
     mapstate.my_unit_map_MP = my_unit_map_MP
