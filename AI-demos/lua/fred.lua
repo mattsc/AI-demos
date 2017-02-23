@@ -430,6 +430,159 @@ return {
             local assigned_units = {}
 
 
+
+            -- Extract all AI units
+            --   - because no two units on the map can have the same underlying_id
+            --   - so that we do not accidentally overwrite a unit
+            --   - so that we don't accidentally apply leadership, backstab or the like
+            local extracted_units = {}
+            for id,loc in pairs(fred.data.gamedata.units) do
+                local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
+                wesnoth.extract_unit(unit_proxy)
+                table.insert(extracted_units, unit_proxy)  -- Not a proxy unit any more at this point
+            end
+
+            -- Find the effectiveness of each AI unit vs. each enemy unit
+            local attack_locs = fred:get_attack_test_locs()
+
+            local unit_attacks = {}
+            for my_id,_ in pairs(gamedata.my_units) do
+                --print(my_id)
+                local tmp_attacks = {}
+
+                local old_x = gamedata.unit_copies[my_id].x
+                local old_y = gamedata.unit_copies[my_id].y
+                local my_x, my_y = attack_locs.attacker_loc[1], attack_locs.attacker_loc[2]
+
+                wesnoth.put_unit(my_x, my_y, gamedata.unit_copies[my_id])
+                local my_proxy = wesnoth.get_unit(my_x, my_y)
+
+                for enemy_id,_ in pairs(gamedata.enemies) do
+                    --print('    ' .. enemy_id)
+
+                    local old_x_enemy = gamedata.unit_copies[enemy_id].x
+                    local old_y_enemy = gamedata.unit_copies[enemy_id].y
+                    local enemy_x, enemy_y = attack_locs.defender_loc[1], attack_locs.defender_loc[2]
+
+                    wesnoth.put_unit(enemy_x, enemy_y, gamedata.unit_copies[enemy_id])
+                    local enemy_proxy = wesnoth.get_unit(enemy_x, enemy_y)
+
+                    local bonus_poison = 8
+                    local bonus_slow = 4
+                    local bonus_regen = 8
+
+                    local max_diff_forward, forward
+                    for i_w,_ in ipairs(gamedata.unit_infos[my_id].attacks) do
+                        --print('attack weapon: ' .. i_w)
+
+                        local _, _, my_weapon, enemy_weapon = wesnoth.simulate_combat(my_proxy, i_w, enemy_proxy)
+
+                        local done = my_weapon.damage * my_weapon.num_blows
+                        local taken = enemy_weapon.damage * enemy_weapon.num_blows
+
+                        local my_extra, enemy_extra = 0, 0
+                        if my_weapon.poisons then my_extra = my_extra + bonus_poison end
+                        if my_weapon.slows then my_extra = my_extra + bonus_slow end
+                        if enemy_weapon.poisons then enemy_extra = enemy_extra + bonus_poison end
+                        if enemy_weapon.slows then enemy_extra = enemy_extra + bonus_slow end
+
+                        local diff = done + my_extra - taken - enemy_extra
+                        --print('  ' .. done, taken, my_extra, enemy_extra, '-->', diff)
+
+                        if (not max_diff_forward) or (diff > max_diff_forward) then
+                            max_diff_forward = diff
+                            forward = {
+                                done = done,
+                                taken = taken,
+                                my_extra = my_extra,
+                                enemy_extra = enemy_extra,
+                                my_gen_hc = my_weapon.chance_to_hit / 100,
+                                enemy_gen_hc = enemy_weapon.chance_to_hit / 100
+                            }
+                        end
+                    end
+                    --DBG.dbms(forward)
+
+                    local min_diff_counter, counter
+                    for i_w,_ in ipairs(gamedata.unit_infos[enemy_id].attacks) do
+                        --print('counter weapon: ' .. i_w)
+
+                        local _, _, enemy_weapon, my_weapon = wesnoth.simulate_combat(enemy_proxy, i_w, my_proxy)
+
+                        local done = my_weapon.damage * my_weapon.num_blows
+                        local taken = enemy_weapon.damage * enemy_weapon.num_blows
+
+                        local my_extra, enemy_extra = 0, 0
+                        if my_weapon.poisons then my_extra = my_extra + bonus_poison end
+                        if my_weapon.slows then my_extra = my_extra + bonus_slow end
+                        if enemy_weapon.poisons then enemy_extra = enemy_extra + bonus_poison end
+                        if enemy_weapon.slows then enemy_extra = enemy_extra + bonus_slow end
+
+                        local diff = done + my_extra - taken - enemy_extra
+
+                        -- We add this as a tie breaker (e.g. equal units against each other)
+                        -- to choose the maximum damage weapon
+                        diff = diff - taken / 100
+                        --print('  ' .. done, taken, my_extra, enemy_extra, '-->', diff)
+
+                        if (not min_diff_counter) or (diff < min_diff_counter) then
+                            min_diff_counter = diff
+                            counter = {
+                                done = done,
+                                taken = taken,
+                                my_extra = my_extra,
+                                enemy_extra = enemy_extra,
+                                my_gen_hc = my_weapon.chance_to_hit / 100,
+                                enemy_gen_hc = enemy_weapon.chance_to_hit / 100
+                            }
+                        end
+                    end
+                    --DBG.dbms(counter)
+
+                    gamedata.unit_copies[enemy_id] = wesnoth.copy_unit(enemy_proxy)
+                    wesnoth.put_unit(enemy_x, enemy_y)
+                    gamedata.unit_copies[enemy_id].x = old_x_enemy
+                    gamedata.unit_copies[enemy_id].y = old_y_enemy
+
+
+                    -- For now, we just categorically count poison, slow damage as constant, independent of CTH
+                    -- TODOs:
+                    --   - might be refined later
+                    --   - add drain
+                    --   - add to max_damage in unit_infos also?
+                    --   - should we cycle through all weapons?
+                    --   - make attack more important than defense?
+
+                    local my_regen, enemy_regen = 0, 0
+                    if gamedata.unit_infos[my_id].abilities.regenerate then
+                        my_regen = 8
+                    end
+                    if gamedata.unit_infos[enemy_id].abilities.regenerate then
+                        enemy_regen = 8
+                    end
+
+                    tmp_attacks[enemy_id] = {
+                        rating = rating,
+                        my_regen = my_regen,
+                        enemy_regen = enemy_regen,
+                        forward = forward,
+                        counter = counter
+                    }
+                end
+
+                gamedata.unit_copies[my_id] = wesnoth.copy_unit(my_proxy)
+                wesnoth.put_unit(my_x, my_y)
+                gamedata.unit_copies[my_id].x = old_x
+                gamedata.unit_copies[my_id].y = old_y
+
+                unit_attacks[my_id] = tmp_attacks
+            end
+
+            for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
+
+            --DBG.dbms(unit_attacks)
+
+
             ----- Village goals -----
             local zone_village_goals, protect_villages_maps = FVU.village_goals(raw_cfgs_main, side_cfgs, gamedata)
 
@@ -655,158 +808,6 @@ return {
                 end
             end
             --DBG.dbms(distance_from_front)
-
-
-            -- Extract all AI units
-            --   - because no two units on the map can have the same underlying_id
-            --   - so that we do not accidentally overwrite a unit
-            --   - so that we don't accidentally apply leadership, backstab or the like
-            local extracted_units = {}
-            for id,loc in pairs(fred.data.gamedata.units) do
-                local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
-                wesnoth.extract_unit(unit_proxy)
-                table.insert(extracted_units, unit_proxy)  -- Not a proxy unit any more at this point
-            end
-
-            -- Find the effectiveness of each AI unit vs. each enemy unit
-            local attack_locs = fred:get_attack_test_locs()
-
-            local unit_attacks = {}
-            for my_id,_ in pairs(gamedata.my_units) do
-                --print(my_id)
-                local tmp_attacks = {}
-
-                local old_x = gamedata.unit_copies[my_id].x
-                local old_y = gamedata.unit_copies[my_id].y
-                local my_x, my_y = attack_locs.attacker_loc[1], attack_locs.attacker_loc[2]
-
-                wesnoth.put_unit(my_x, my_y, gamedata.unit_copies[my_id])
-                local my_proxy = wesnoth.get_unit(my_x, my_y)
-
-                for enemy_id,_ in pairs(gamedata.enemies) do
-                    --print('    ' .. enemy_id)
-
-                    local old_x_enemy = gamedata.unit_copies[enemy_id].x
-                    local old_y_enemy = gamedata.unit_copies[enemy_id].y
-                    local enemy_x, enemy_y = attack_locs.defender_loc[1], attack_locs.defender_loc[2]
-
-                    wesnoth.put_unit(enemy_x, enemy_y, gamedata.unit_copies[enemy_id])
-                    local enemy_proxy = wesnoth.get_unit(enemy_x, enemy_y)
-
-                    local bonus_poison = 8
-                    local bonus_slow = 4
-                    local bonus_regen = 8
-
-                    local max_diff_forward, forward
-                    for i_w,_ in ipairs(gamedata.unit_infos[my_id].attacks) do
-                        --print('attack weapon: ' .. i_w)
-
-                        local _, _, my_weapon, enemy_weapon = wesnoth.simulate_combat(my_proxy, i_w, enemy_proxy)
-
-                        local done = my_weapon.damage * my_weapon.num_blows
-                        local taken = enemy_weapon.damage * enemy_weapon.num_blows
-
-                        local my_extra, enemy_extra = 0, 0
-                        if my_weapon.poisons then my_extra = my_extra + bonus_poison end
-                        if my_weapon.slows then my_extra = my_extra + bonus_slow end
-                        if enemy_weapon.poisons then enemy_extra = enemy_extra + bonus_poison end
-                        if enemy_weapon.slows then enemy_extra = enemy_extra + bonus_slow end
-
-                        local diff = done + my_extra - taken - enemy_extra
-                        --print('  ' .. done, taken, my_extra, enemy_extra, '-->', diff)
-
-                        if (not max_diff_forward) or (diff > max_diff_forward) then
-                            max_diff_forward = diff
-                            forward = {
-                                done = done,
-                                taken = taken,
-                                my_extra = my_extra,
-                                enemy_extra = enemy_extra,
-                                my_gen_hc = my_weapon.chance_to_hit / 100,
-                                enemy_gen_hc = enemy_weapon.chance_to_hit / 100
-                            }
-                        end
-                    end
-                    --DBG.dbms(forward)
-
-                    local min_diff_counter, counter
-                    for i_w,_ in ipairs(gamedata.unit_infos[enemy_id].attacks) do
-                        --print('counter weapon: ' .. i_w)
-
-                        local _, _, enemy_weapon, my_weapon = wesnoth.simulate_combat(enemy_proxy, i_w, my_proxy)
-
-                        local done = my_weapon.damage * my_weapon.num_blows
-                        local taken = enemy_weapon.damage * enemy_weapon.num_blows
-
-                        local my_extra, enemy_extra = 0, 0
-                        if my_weapon.poisons then my_extra = my_extra + bonus_poison end
-                        if my_weapon.slows then my_extra = my_extra + bonus_slow end
-                        if enemy_weapon.poisons then enemy_extra = enemy_extra + bonus_poison end
-                        if enemy_weapon.slows then enemy_extra = enemy_extra + bonus_slow end
-
-                        local diff = done + my_extra - taken - enemy_extra
-
-                        -- We add this as a tie breaker (e.g. equal units against each other)
-                        -- to choose the maximum damage weapon
-                        diff = diff - taken / 100
-                        --print('  ' .. done, taken, my_extra, enemy_extra, '-->', diff)
-
-                        if (not min_diff_counter) or (diff < min_diff_counter) then
-                            min_diff_counter = diff
-                            counter = {
-                                done = done,
-                                taken = taken,
-                                my_extra = my_extra,
-                                enemy_extra = enemy_extra,
-                                my_gen_hc = my_weapon.chance_to_hit / 100,
-                                enemy_gen_hc = enemy_weapon.chance_to_hit / 100
-                            }
-                        end
-                    end
-                    --DBG.dbms(counter)
-
-                    gamedata.unit_copies[enemy_id] = wesnoth.copy_unit(enemy_proxy)
-                    wesnoth.put_unit(enemy_x, enemy_y)
-                    gamedata.unit_copies[enemy_id].x = old_x_enemy
-                    gamedata.unit_copies[enemy_id].y = old_y_enemy
-
-
-                    -- For now, we just categorically count poison, slow damage as constant, independent of CTH
-                    -- TODOs:
-                    --   - might be refined later
-                    --   - add drain
-                    --   - add to max_damage in unit_infos also?
-                    --   - should we cycle through all weapons?
-                    --   - make attack more important than defense?
-
-                    local my_regen, enemy_regen = 0, 0
-                    if gamedata.unit_infos[my_id].abilities.regenerate then
-                        my_regen = 8
-                    end
-                    if gamedata.unit_infos[enemy_id].abilities.regenerate then
-                        enemy_regen = 8
-                    end
-
-                    tmp_attacks[enemy_id] = {
-                        rating = rating,
-                        my_regen = my_regen,
-                        enemy_regen = enemy_regen,
-                        forward = forward,
-                        counter = counter
-                    }
-                end
-
-                gamedata.unit_copies[my_id] = wesnoth.copy_unit(my_proxy)
-                wesnoth.put_unit(my_x, my_y)
-                gamedata.unit_copies[my_id].x = old_x
-                gamedata.unit_copies[my_id].y = old_y
-
-                unit_attacks[my_id] = tmp_attacks
-            end
-
-            for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
-
-            --DBG.dbms(unit_attacks)
 
 
             local enemy_value_ratio = 1.25
