@@ -278,7 +278,7 @@ return {
             if fred.data.behavior and fred.data.behavior.turn
                 and (fred.data.behavior.turn.turn_number == wesnoth.current.turn)
             then
-                print('****** Behavior table already exists for this turn --> skipping ******')
+                --print('****** Behavior table already exists for this turn --> skipping ******')
                 return
             end
 
