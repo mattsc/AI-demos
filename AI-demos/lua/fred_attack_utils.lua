@@ -141,7 +141,7 @@ function fred_attack_utils.unit_damage(unit_info, att_stat, dst, gamedata, cfg)
     -- is to collect only the essential information for attack ratings in one table
     --
     -- Input parameters:
-    --  @unit_info: unit_info table produced by fred_gamestate_utils.single_unit_info()
+    --  @unit_info: unit_info table produced by fred_utils.single_unit_info()
     --  @att_stat: attack statistics for the attackers as from battle_outcome or attack_combo_eval
     --  @dst: location of the unit for which to calculate this; this might or
     --   might not be the current location of the unit
@@ -386,7 +386,7 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack, is_attacker, 
     -- Get the (approximate) total damage an attack will do
     --
     -- @weapon: the weapon information as returned by wesnoth.simulate_combat()
-    -- @attack: the attack information as returned by fred_attack_utils.single_unit_info()
+    -- @attack: the attack information as returned by fred_utils.single_unit_info()
     -- @is_attacker: set to 'true' if this is the attacker, 'false' for defender
 
     local total_damage = weapon.num_blows * weapon.damage

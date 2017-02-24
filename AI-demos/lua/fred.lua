@@ -4237,7 +4237,7 @@ return {
                     -- Need to reset the enemy information if there are more attacks in this combo
                     if fred.data.zone_action.units and fred.data.zone_action.units[1] then
                         fred.data.gamedata.unit_copies[enemy_proxy.id] = wesnoth.copy_unit(enemy_proxy)
-                        fred.data.gamedata.unit_infos[enemy_proxy.id] = FGU.single_unit_info(enemy_proxy)
+                        fred.data.gamedata.unit_infos[enemy_proxy.id] = FU.single_unit_info(enemy_proxy)
                     end
                 end
 
