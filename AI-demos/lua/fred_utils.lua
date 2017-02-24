@@ -315,6 +315,14 @@ function fred_utils.unit_terrain_power(unit_info, x, y, gamedata)
     return power
 end
 
+function fred_utils.unittype_base_power(unit_type)
+    local unittype_info = fred_utils.single_unit_info(wesnoth.unit_types[unit_type])
+    -- Need to set hitpoints manually
+    unittype_info.hitpoints = unittype_info.max_hitpoints
+
+    return fred_utils.unit_base_power(unittype_info)
+end
+
 function fred_utils.get_value_ratio(gamedata)
     -- TODO: not sure what the best values are yet
     -- TODO: also not sure if leaders should be included here
