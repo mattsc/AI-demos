@@ -3369,39 +3369,53 @@ return {
 
 
                 for x,y,_ in FU.fgumap_iter(gamedata.reach_maps[id]) do
-                    if FU.get_fgumap_value(advance_map, x, y, 'flag') then
+                    local rating = rating_moves + rating_power
 
+                    local dist
+                    if FU.get_fgumap_value(advance_map, x, y, 'flag') then
                         local ld1 = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'enemy_leader_distance')
                         local ld2 = FU.get_fgumap_value(gamedata.enemy_leader_distance_maps[unit_type], x, y, 'cost')
-                        local ld = (ld1 + ld2) / 2
+                        dist = (ld1 + ld2) / 2
+                    else
+                        -- This part is really just a backup, in case a unit cannot get to
+                        -- the zone it is assigned to. It's very crude, but it should not
+                        -- happen too often, so hopefully it's good enough.
+                        dist = H.distance_between(x, y, raw_cfg.center_hex[1], raw_cfg.center_hex[2])
 
-                        local rating = - ld + rating_moves + rating_power
-
-
-                        local owner = FU.get_fgumap_value(gamedata.village_map, x, y, 'owner')
-                        if owner and (owner ~= wesnoth.current.side) then
-                            if (owner == 0) then
-                                rating = rating + 100
-                            else
-                                rating = rating + 200
-                            end
+                        local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids')
+                        if ids then
+                            rating = rating - #ids -- allowed to stay ~1 hex back for each enemy
                         end
 
-                        if owner then
-                            rating = rating + hp_rating
+                        rating = rating - 10000 -- do not do this unless there is no other option
+                    end
+
+                    local rating = rating - dist
+
+
+                    local owner = FU.get_fgumap_value(gamedata.village_map, x, y, 'owner')
+                    if owner and (owner ~= wesnoth.current.side) then
+                        if (owner == 0) then
+                            rating = rating + 100
+                        else
+                            rating = rating + 200
                         end
+                    end
 
-                        -- Small bonus for the terrain
-                        local my_defense = FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
-                        rating = rating + my_defense / 10
+                    if owner then
+                        rating = rating + hp_rating
+                    end
 
-                        FU.set_fgumap_value(unit_rating_maps[id], x, y, 'rating', rating)
+                    -- Small bonus for the terrain
+                    local my_defense = FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
+                    rating = rating + my_defense / 10
 
-                        if (not max_rating) or (rating > max_rating) then
-                            max_rating = rating
-                            best_id = id
-                            best_hex = { x, y }
-                        end
+                    FU.set_fgumap_value(unit_rating_maps[id], x, y, 'rating', rating)
+
+                    if (not max_rating) or (rating > max_rating) then
+                        max_rating = rating
+                        best_id = id
+                        best_hex = { x, y }
                     end
                 end
             end
