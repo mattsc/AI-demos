@@ -504,6 +504,10 @@ function fred_utils.single_unit_info(unit_proxy)
     -- Note: Even accessing the directly readable fields of a unit proxy table
     -- is slower than reading from a Lua table; not even talking about unit_proxy.__cfg.
     --
+    -- This can also be used on a unit type entry from wesnoth.unit_types, but in that
+    -- case not all fields will be populated, of course, and anything depending on
+    -- traits and the like will not necessarily be correct for the individual unit
+    --
     -- Important: this is slow, so it should only be called once at the  beginning
     -- of each move, but it does need to be redone after each move, as it contains
     -- information like HP and XP (or the unit might have level up or been changed
@@ -539,20 +543,6 @@ function fred_utils.single_unit_info(unit_proxy)
         for _,ability in ipairs(abilities) do
             single_unit_info.abilities[ability[1]] = true
         end
-    end
-
-    -- Add all the statuses
-    single_unit_info.status = {}
-    local status = H.get_child(unit_cfg, "status")
-    for k,_ in pairs(status) do
-        single_unit_info.status[k] = true
-    end
-
-    -- Traits
-    single_unit_info.traits = {}
-    local mods = H.get_child(unit_cfg, "modifications")
-    for trait in H.child_range(mods, 'trait') do
-        single_unit_info.traits[trait.id] = true
     end
 
     -- Information about the attacks indexed by weapon number,
@@ -603,54 +593,72 @@ function fred_utils.single_unit_info(unit_proxy)
     end
     single_unit_info.max_damage = max_damage
 
-    -- Resistances to the 6 default attack types
-    local attack_types = { "arcane", "blade", "cold", "fire", "impact", "pierce" }
-    single_unit_info.resistances = {}
-    for _,attack_type in ipairs(attack_types) do
-        single_unit_info.resistances[attack_type] = wesnoth.unit_resistance(unit_proxy, attack_type) / 100.
+    -- Time of day modifier (done here so that it works on unit types also; the fearless trait is dealt with below)
+    single_unit_info.tod_mod = fred_utils.get_unit_time_of_day_bonus(unit_cfg.alignment, wesnoth.get_time_of_day().lawful_bonus)
+
+
+    -- The following can only be done on a real unit, not on a unit type
+    if (unit_proxy.x) then
+        single_unit_info.status = {}
+        local status = H.get_child(unit_cfg, "status")
+        for k,_ in pairs(status) do
+            single_unit_info.status[k] = true
+        end
+
+
+        single_unit_info.traits = {}
+        local mods = H.get_child(unit_cfg, "modifications")
+        for trait in H.child_range(mods, 'trait') do
+            single_unit_info.traits[trait.id] = true
+        end
+
+        if single_unit_info.traits.fearless then
+            single_unit_info.tod_mod = 1
+        end
+
+
+        local power = fred_utils.unit_power(single_unit_info)
+        single_unit_info.power = power
+
+
+        -- Define what "good terrain" means for a unit
+        local defense = H.get_child(unit_proxy.__cfg, "defense")
+
+        -- Get the hit chances for all terrains and sort (best = lowest hit chance first)
+        local hit_chances = {}
+        for _,hit_chance in pairs(defense) do
+            table.insert(hit_chances, { hit_chance = math.abs(hit_chance) })
+        end
+        table.sort(hit_chances, function(a, b) return a.hit_chance < b.hit_chance end)
+
+        -- As "normal" we use the hit chance on "flat equivalent" terrain.
+        -- That means on flat for most units, on cave for dwarves etc.
+        -- and on shallow water for mermen, nagas etc.
+        -- Use the best of those
+        local flat_hc = math.min(defense.flat, defense.cave, defense.shallow_water)
+        --print('best hit chance on flat, cave, shallow water:', flat_hc)
+        --print(defense.flat, defense.cave, defense.shallow_water)
+
+        -- Good terrain is now defined as 10% lesser hit chance than that, except
+        -- when this is better than the third best terrain for the unit. An example
+        -- are ghosts, which have 50% on all terrains.
+        -- I have tested this for most mainline level 1 units and it seems to work pretty well.
+        local good_terrain_hit_chance = flat_hc - 10
+        if (good_terrain_hit_chance < hit_chances[3].hit_chance) then
+            good_terrain_hit_chance = flat_hc
+        end
+        --print('good_terrain_hit_chance', good_terrain_hit_chance)
+
+        single_unit_info.good_terrain_hit_chance = good_terrain_hit_chance / 100.
+
+
+        -- Resistances to the 6 default attack types
+        local attack_types = { "arcane", "blade", "cold", "fire", "impact", "pierce" }
+        single_unit_info.resistances = {}
+        for _,attack_type in ipairs(attack_types) do
+            single_unit_info.resistances[attack_type] = wesnoth.unit_resistance(unit_proxy, attack_type) / 100.
+        end
     end
-
-    -- Time of day modifier (need to be done after traits are extracted)
-    if (not single_unit_info.traits.fearless) then
-        single_unit_info.tod_mod = fred_utils.get_unit_time_of_day_bonus(unit_cfg.alignment, wesnoth.get_time_of_day().lawful_bonus)
-    else
-        single_unit_info.tod_mod = 1
-    end
-
-    -- Define what "good terrain" means for a unit
-    local defense = H.get_child(unit_proxy.__cfg, "defense")
-
-    -- Get the hit chances for all terrains and sort (best = lowest hit chance first)
-    local hit_chances = {}
-    for _,hit_chance in pairs(defense) do
-        table.insert(hit_chances, { hit_chance = math.abs(hit_chance) })
-    end
-    table.sort(hit_chances, function(a, b) return a.hit_chance < b.hit_chance end)
-
-    -- As "normal" we use the hit chance on "flat equivalent" terrain.
-    -- That means on flat for most units, on cave for dwarves etc.
-    -- and on shallow water for mermen, nagas etc.
-    -- Use the best of those
-    local flat_hc = math.min(defense.flat, defense.cave, defense.shallow_water)
-    --print('best hit chance on flat, cave, shallow water:', flat_hc)
-    --print(defense.flat, defense.cave, defense.shallow_water)
-
-    -- Good terrain is now defined as 10% lesser hit chance than that, except
-    -- when this is better than the third best terrain for the unit. An example
-    -- are ghosts, which have 50% on all terrains.
-    -- I have tested this for most mainline level 1 units and it seems to work pretty well.
-    local good_terrain_hit_chance = flat_hc - 10
-    if (good_terrain_hit_chance < hit_chances[3].hit_chance) then
-        good_terrain_hit_chance = flat_hc
-    end
-    --print('good_terrain_hit_chance', good_terrain_hit_chance)
-
-    single_unit_info.good_terrain_hit_chance = good_terrain_hit_chance / 100.
-
-    -- This needs to be at the very end, as it needs some of the other
-    -- information in single_unit_info as input
-    local power = fred_utils.unit_power(single_unit_info)
-    single_unit_info.power = power
 
     return single_unit_info
 end
