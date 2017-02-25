@@ -922,7 +922,7 @@ return {
                             av_damage_done = av_damage_done / gamedata.unit_infos[id].tod_mod
 
                             -- The rating must be positive for the analysis below to work
-                            local av_hp_left = gamedata.unit_infos[id].max_hitpoints - av_damage_taken
+                            local av_hp_left = gamedata.unit_infos[id].hitpoints - av_damage_taken
                             if (av_hp_left < 0) then av_hp_left = 0 end
 
                             local attacker_rating = enemy_value_ratio * av_damage_done + av_hp_left
