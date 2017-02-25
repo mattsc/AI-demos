@@ -620,7 +620,7 @@ return {
             -- only track one prerecruit location at a time
             if recruit_data.recruit.prerecruit.loc == nil
             or from_loc[1] ~= recruit_data.recruit.prerecruit.loc[1]
-            or from_loc[1] ~= recruit_data.recruit.prerecruit.loc[1] then
+            or from_loc[2] ~= recruit_data.recruit.prerecruit.loc[2] then
                 recruit_data.recruit.prerecruit = {
                     loc = from_loc,
                     total_cost = 0,
