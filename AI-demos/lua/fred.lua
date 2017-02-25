@@ -3684,9 +3684,9 @@ return {
                             partial_move = true
                         }
 
-                        return score, action
+                        return score, action, next_hop, best_keep
                     else
-                        return low_score  -- Do not return action in this case
+                        return low_score, nil, next_hop, best_keep
                     end
                 end
             end
