@@ -796,7 +796,7 @@ return {
                 for i,c in ipairs(data.castle.locs) do
                     local rating = 0
                     local unit = wesnoth.get_unit(c[1], c[2])
-                    if (not unit) or (outofway_units[unit.id] and (not unit.canrecruit)) then
+                    if (not unit) or outofway_units[unit.id] then
                         for j,e in ipairs(enemy_leaders) do
                             rating = rating + 1 / H.distance_between(c[1], c[2], e.x, e.y) ^ 2.
                         end
