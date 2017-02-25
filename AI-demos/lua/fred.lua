@@ -284,10 +284,7 @@ return {
 
             fred.data.behavior = {
                 turn = {
-                    turn_number = wesnoth.current.turn,
-                    stage_counter = 1,
-                    --stage_ids = { 'leader_threat', 'defend_zones', 'all_map' },
-                    stage_ids = { 'defend_zones' }
+                    turn_number = wesnoth.current.turn
                 }
             }
             fred.data.turn_data = {}
@@ -1226,9 +1223,8 @@ return {
             if debug_eval then print_time('     - Evaluating leader threat map analysis:') end
 
             local gamedata = fred.data.gamedata
-            local stage_id = fred.data.analysis.stage_ids[fred.data.analysis.stage_counter]
 
-            FU.print_debug(show_debug_analysis, '\nAnalysis of stage ' .. stage_id)
+            FU.print_debug(show_debug_analysis, '\nAnalysis of leader threats')
 
             -- Start with an analysis of the threat to the AI leader
             local leader_proxy = wesnoth.get_unit(gamedata.leader_x, gamedata.leader_y)
@@ -1341,7 +1337,6 @@ return {
             -- Attacks on threats is with unlimited resources
             local attack1_cfg = {
                 zone_id = zone_id,
-                stage_id = stage_id,
                 targets = {},
                 actions = { attack = true },
                 value_ratio = 0.7 -- more aggressive for direct leader threats, but not too much
@@ -1364,7 +1359,6 @@ return {
                     local zone_id = 'leader'
                     local move_leader_to_keep_cfg = {
                         zone_id = zone_id,
-                        stage_id = stage_id,
                         actions = { move_leader_to_keep = true }
                     }
 
@@ -1400,7 +1394,6 @@ return {
                     local zone_id = 'leader'
                     local recruit_cfg = {
                         zone_id = zone_id,
-                        stage_id = stage_id,
                         actions = { recruit = true },
                         outofway_units = outofway_units
                     }
@@ -1415,7 +1408,6 @@ return {
                     local zone_id = 'leader'
                     local retreat_cfg = {
                         zone_id = zone_id,
-                        stage_id = stage_id,
                         actions = { retreat = true },
                         retreaters = {},
                         retreat_all = true,
@@ -1434,7 +1426,6 @@ return {
             if (power_missing > power_missing_margin) then
                 local advance1_cfg = {
                     zone_id = raw_cfg.zone_id,
-                    stage_id = stage_id,
                     actions = { advance = true },
                     ignore_villages = true, -- main goal is to get toward the leader
                     ignore_counter = true,  -- and need to do so very aggressively
@@ -1448,7 +1439,6 @@ return {
             -- with a less aggressive value_ratio
             local attack2_cfg = {
                 zone_id = raw_cfg.zone_id,
-                stage_id = stage_id,
                 targets = {},
                 actions = { attack = true }
             }
@@ -1472,7 +1462,6 @@ return {
 
             local favorable_attacks_cfg = {
                 zone_id = zone_id,
-                stage_id = stage_id,
                 actions = { attack = true },
                 value_ratio = 2.0, -- only very favorable attacks will pass this
                 max_attackers = 2
@@ -1488,9 +1477,7 @@ return {
             if debug_eval then print_time('     - Evaluating defend zones map analysis:') end
 
             local gamedata = fred.data.gamedata
-            local stage_id = fred.data.behavior.turn.stage_ids[fred.data.behavior.turn.stage_counter]
             local behavior = fred.data.behavior
-            FU.print_debug(show_debug_analysis, '\nAnalysis of stage ' .. stage_id)
 
             -- These are only the raw_cfgs of the 3 main zones
             local raw_cfgs_main = fred:get_raw_cfgs()
@@ -1524,7 +1511,6 @@ return {
                     -- Attack --
                     local zone_cfg_attack = {
                         zone_id = zone_id,
-                        stage_id = stage_id,
                         actions = { attack = true },
                         rating = base_ratings.attack
                     }
@@ -1533,7 +1519,6 @@ return {
                     -- Hold --
                     local zone_cfg_hold = {
                         zone_id = zone_id,
-                        stage_id = stage_id,
                         actions = { hold = true },
                         zone_units = zone_units,
                         rating = base_ratings.hold
@@ -1543,7 +1528,6 @@ return {
                     -- Advance --
                     local zone_cfg_advance = {
                         zone_id = zone_id,
-                        stage_id = stage_id,
                         actions = { advance = true },
                         zone_units = zone_units,
                         rating = base_ratings.advance
@@ -1563,8 +1547,6 @@ return {
             if debug_eval then print_time('     - Evaluating all_map CA:') end
 
             local gamedata = fred.data.gamedata
-            local stage_id = fred.data.analysis.stage_ids[fred.data.analysis.stage_counter]
-            local stage_status = fred.data.analysis.status[stage_id]
             local behavior = fred.data.behavior
 
             fred.data.zone_cfgs = {}
@@ -1579,7 +1561,6 @@ return {
             local zone_id = 'attack_all'
             local attack_all_cfg = {
                 zone_id = zone_id,
-                stage_id = stage_id,
                 actions = { attack = true },
                 value_ratio = behavior.total.value_ratio
             }
@@ -1593,7 +1574,6 @@ return {
             local zone_id = 'retreat'
             local retreat_cfg = {
                 zone_id = zone_id,
-                stage_id = stage_id,
                 actions = { retreat = true }
             }
 
@@ -1604,7 +1584,6 @@ return {
             local zone_id = 'all_map'
             local advance_cfg = {
                 zone_id = zone_id,
-                stage_id = stage_id,
                 actions = {
 --                    hold = true,
                     advance = true,
@@ -1619,7 +1598,6 @@ return {
             local zone_id = 'retreat_all'
             local retreat_cfg = {
                 zone_id = zone_id,
-                stage_id = stage_id,
                 actions = { retreat = true },
                 retreat_all = true,
                 -- The value of 5 below means it take preference over rest
@@ -1634,24 +1612,21 @@ return {
 
         function fred:analyze_map()
             -- Some pointers just for convenience
-            local stage_id = fred.data.behavior.turn.stage_ids[fred.data.behavior.turn.stage_counter]
 
-            --print('Doing map analysis for stage: ' .. stage_id)
-
-            if (stage_id == 'leader_threat') then
+            --[[if (stage_id == 'leader_threat') then
                 fred:analyze_leader_threat()
                 return
-            end
+            end--]]
 
-            if (stage_id == 'defend_zones') then
+            --if (stage_id == 'defend_zones') then
                 fred:analyze_defend_zones()
                 return
-            end
+            --end
 
-            if (stage_id == 'all_map') then
+            --[[if (stage_id == 'all_map') then
                 fred:analyze_all_map()
                 return
-            end
+            end--]]
         end
 
 
@@ -3937,68 +3912,34 @@ return {
             end
 
 
---if 1 then return 0 end
+            fred:analyze_map()
+            --DBG.dbms(fred.data.zone_cfgs)
 
+            for i_c,cfg in ipairs(fred.data.zone_cfgs) do
+                --DBG.dbms(cfg)
 
-
-
-            while 1 do
-                if (behavior.turn.stage_counter > #behavior.turn.stage_ids) then
-                    if debug_eval then print('--> done with all stages') end
-
-                    -- Reset stage counter for each evaluation
-                    -- This makes the stage system somewhat pointless
-                    -- TODO: reconsider if this should be done or not
-                    behavior.turn.stage_counter = 1
-
-                    return 0
+                -- Extract all AI units with MP left (for enemy path finding, counter attack placement etc.)
+                local extracted_units = {}
+                for id,loc in pairs(fred.data.gamedata.my_units_MP) do
+                    local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
+                    wesnoth.extract_unit(unit_proxy)
+                    table.insert(extracted_units, unit_proxy)  -- Not a proxy unit any more at this point
                 end
 
-                local stage_id = behavior.turn.stage_ids[behavior.turn.stage_counter]
-                if debug_eval then print('\nStage: ' .. stage_id) end
+                local zone_action = fred:get_zone_action(cfg)
 
-                fred:analyze_map()
-                --DBG.dbms(FDA.status)
+                for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
 
-                --DBG.dbms(fred.data.zone_cfgs)
-
-                for i_c,cfg in ipairs(fred.data.zone_cfgs) do
-                    --print()
-                    --print('-----------------------------------')
-                    --print_time('zone_control: ', cfg.zone_id, cfg.stage_id)
-                    --for action,_ in pairs(cfg.actions) do print('  --> ' .. action) end
-                    --DBG.dbms(cfg)
-
-                    -- Extract all AI units with MP left (for enemy path finding, counter attack placement etc.)
-                    local extracted_units = {}
-                    for id,loc in pairs(fred.data.gamedata.my_units_MP) do
-                        local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
-                        wesnoth.extract_unit(unit_proxy)
-                        table.insert(extracted_units, unit_proxy)  -- Not a proxy unit any more at this point
-                    end
-
-                    local zone_action = fred:get_zone_action(cfg)
-
-                    for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
-
-                    if zone_action then
-                        zone_action.zone_id = cfg.zone_id
-                        zone_action.stage_id = cfg.stage_id
-                        --DBG.dbms(zone_action)
-                        fred.data.zone_action = zone_action
-                        AH.done_eval_messages(start_time, ca_name)
-                        return score_zone_control
-                    end
+                if zone_action then
+                    zone_action.zone_id = cfg.zone_id
+                    --DBG.dbms(zone_action)
+                    fred.data.zone_action = zone_action
+                    AH.done_eval_messages(start_time, ca_name)
+                    return score_zone_control
                 end
-
-                -- If we get here, this means no action was found for this stage
-                -- --> reset the zone_cfgs, so that they will be recalculate
-                --     and up the counter
-                fred.data.zone_cfgs = nil
-                behavior.turn.stage_counter = behavior.turn.stage_counter + 1
-
-                if debug_eval then print('--> done with all cfgs of this stage') end
             end
+
+            if debug_eval then print('--> done with all cfgs') end
 
             AH.done_eval_messages(start_time, ca_name)
             return 0
