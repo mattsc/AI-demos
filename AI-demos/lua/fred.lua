@@ -1472,7 +1472,7 @@ return {
         end
 
 
-        function fred:analyze_defend_zones()
+        function fred:get_actions()
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
             if debug_eval then print_time('     - Evaluating defend zones map analysis:') end
 
@@ -1609,25 +1609,6 @@ return {
             table.insert(fred.data.zone_cfgs, retreat_cfg)
         end
 
-
-        function fred:analyze_map()
-            -- Some pointers just for convenience
-
-            --[[if (stage_id == 'leader_threat') then
-                fred:analyze_leader_threat()
-                return
-            end--]]
-
-            --if (stage_id == 'defend_zones') then
-                fred:analyze_defend_zones()
-                return
-            --end
-
-            --[[if (stage_id == 'all_map') then
-                fred:analyze_all_map()
-                return
-            end--]]
-        end
 
 
         ----- Functions for getting the best actions -----
@@ -3912,7 +3893,7 @@ return {
             end
 
 
-            fred:analyze_map()
+            fred:get_actions()
             --DBG.dbms(fred.data.zone_cfgs)
 
             for i_c,cfg in ipairs(fred.data.zone_cfgs) do
