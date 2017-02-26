@@ -3854,27 +3854,27 @@ return {
                 --DBG.dbms(cfg)
 
 
-                -- Execute any actions with eval_done = true right away
+                -- Execute any actions with an 'action' table already set right away.
                 -- We first need to validate that the existing actions are still doable
                 -- This is needed because individual actions might interfere with each other
                 -- We also delete executed actions here; it cannot be done right after setting
                 -- up the eval table, as not all action get executed right away by the
                 -- execution code (e.g. if an action involves the leader and recruiting has not
                 -- yet happened)
-                if cfg.eval_done then
+                if cfg.action then
                     if (not cfg.invalid) then
                         local is_good = true
 
-                        for _,u in ipairs(cfg.units) do
+                        for _,u in ipairs(cfg.action.units) do
                             local unit = wesnoth.get_units { id = u.id }[1]
                             --print(unit.id, unit.x, unit.y)
 
-                            if (not unit) or ((unit.x == cfg.dsts[1][1]) and (unit.y == cfg.dsts[1][2])) then
+                            if (not unit) or ((unit.x == cfg.action.dsts[1][1]) and (unit.y == cfg.action.dsts[1][2])) then
                                 is_good = false
                                 break
                             end
 
-                            local _, cost = wesnoth.find_path(unit, cfg.dsts[1][1], cfg.dsts[1][2])
+                            local _, cost = wesnoth.find_path(unit, cfg.action.dsts[1][1], cfg.action.dsts[1][2])
                             --print(cost)
 
                             if (cost > unit.moves) then
@@ -3883,14 +3883,14 @@ return {
                             end
                         end
 
-                        if (#cfg.units == 0) then
+                        if (#cfg.action.units == 0) then
                             is_good = false
                         end
                         --print('is_good:', is_good)
 
                         if is_good then
-                            print('Action to be executed immediately found: ' .. cfg.action_str)
-                            fred.data.zone_action = AH.table_copy(cfg)
+                            print('Action to be executed immediately found: ' .. cfg.action.action_str)
+                            fred.data.zone_action = AH.table_copy(cfg.action)
                             AH.done_eval_messages(start_time, ca_name)
                             return score_zone_control
                         else

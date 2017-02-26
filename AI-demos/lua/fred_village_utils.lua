@@ -253,11 +253,12 @@ function fred_village_utils.assign_grabbers(zone_village_goals, assigned_units, 
         local unit = gamedata.my_units[capture.id]
         unit.id = capture.id
         table.insert(village_actions, {
-            id = capture.id,
-            units = { unit },
-            dsts = { { capture.x, capture.y } },
-            zone_id = capture.zone_id,
-            action_str = capture.zone_id .. ': grab village'
+            action = {
+                zone_id = capture.zone_id,
+                action_str = capture.zone_id .. ': grab village',
+                units = { unit },
+                dsts = { { capture.x, capture.y } }
+            }
         })
     end
 
