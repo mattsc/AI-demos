@@ -79,8 +79,8 @@ function fred_village_utils.village_goals(zone_cfgs, side_cfgs, gamedata)
 end
 
 
-function fred_village_utils.assign_grabbers(zone_village_goals, assigned_units, immediate_actions, unit_attacks, gamedata)
-    -- assigned_units and immediate_actions are modified directly in place
+function fred_village_utils.assign_grabbers(zone_village_goals, assigned_units, village_actions, unit_attacks, gamedata)
+    -- assigned_units and village_actions are modified directly in place
 
     -- Villages that can be reached are dealt with separately from others
     -- Only go over those found above
@@ -252,7 +252,7 @@ function fred_village_utils.assign_grabbers(zone_village_goals, assigned_units, 
         -- This currently only works for single-unit actions; can be expanded as needed
         local unit = gamedata.my_units[capture.id]
         unit.id = capture.id
-        table.insert(immediate_actions, {
+        table.insert(village_actions, {
             id = capture.id,
             units = { unit },
             dsts = { { capture.x, capture.y } },

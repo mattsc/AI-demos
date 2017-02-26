@@ -629,10 +629,10 @@ return {
             end
             --DBG.dbms(units_needed_villages)
 
-            local immediate_actions = {}
+            local village_actions = {}
 
-            local best_captures = FVU.assign_grabbers(zone_village_goals, assigned_units, immediate_actions, unit_attacks, gamedata)
-            --DBG.dbms(immediate_actions)
+            local best_captures = FVU.assign_grabbers(zone_village_goals, assigned_units, village_actions, unit_attacks, gamedata)
+            --DBG.dbms(village_actions)
             --DBG.dbms(assigned_units)
 
 
@@ -1140,11 +1140,11 @@ return {
 
             --DBG.dbms(assigned_units)
             --DBG.dbms(reserve_units)
-            --DBG.dbms(immediate_actions)
+            --DBG.dbms(village_actions)
             --DBG.dbms(goal_hexes)
 
             fred.data.behavior.assigned_units = assigned_units
-            fred.data.behavior.immediate_actions = immediate_actions
+            fred.data.village_actions = village_actions
             --fred.data.behavior.power_stats = power_stats
 
             fred.data.turn_data.IM = IM
@@ -1180,11 +1180,11 @@ return {
             local best_captures = FVU.assign_grabbers(
                 zone_village_goals,
                 fred.data.behavior.assigned_units,
-                fred.data.behavior.immediate_actions,
+                fred.data.village_actions,
                 fred.data.turn_data.unit_attacks,
                 gamedata
             )
-            --DBG.dbms(fred.data.behavior.immediate_actions)
+            --DBG.dbms(fred.data.village_actions)
 
 
 
@@ -1486,12 +1486,12 @@ return {
 
             fred.data.zone_cfgs = {}
 
-            for i,action in ipairs(fred.data.behavior.immediate_actions) do
+            for i,action in ipairs(fred.data.village_actions) do
                 action.rating = 20000 - i
                 action.eval_done = true
                 table.insert(fred.data.zone_cfgs, action)
             end
-            fred.data.behavior.immediate_actions = nil
+            fred.data.village_actions = nil
 
 
             local units_for_zone = {}
