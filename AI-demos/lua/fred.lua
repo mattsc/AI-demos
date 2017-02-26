@@ -1485,6 +1485,15 @@ return {
             --DBG.dbms(fred.data.analysis)
 
             fred.data.zone_cfgs = {}
+
+            for i,action in ipairs(fred.data.behavior.immediate_actions) do
+                action.rating = 20000 - i
+                action.eval_done = true
+                table.insert(fred.data.zone_cfgs, action)
+            end
+            fred.data.behavior.immediate_actions = nil
+
+
             local units_for_zone = {}
 
             if behavior.assigned_units then
@@ -3840,83 +3849,76 @@ return {
             --DBG.dbms(behavior.turn)
 
 
-            -- Execute any immediate actions coming out of this
-            -- We first need to validate that the existing actions are still doable
-            -- This is needed because individual actions might interfere with each other
-            -- We also delete executed actions here; it cannot be done right after setting
-            -- up the eval table, as not all action get executed right away by the
-            -- execution code (e.g. if an action involves the leader and recruiting has not
-            -- yet happened)
-            --DBG.dbms(behavior.immediate_actions)
-
-            for i = #behavior.immediate_actions,1,-1 do
-                local action = behavior.immediate_actions[i]
-                local is_good = true
-
-                for _,u in ipairs(action.units) do
-                    local unit = wesnoth.get_units { id = u.id }[1]
-                    --print(unit.id, unit.x, unit.y)
-
-                    if (not unit) or ((unit.x == action.dsts[1][1]) and (unit.y == action.dsts[1][2])) then
-                        is_good = false
-                        break
-                    end
-
-                    local _, cost = wesnoth.find_path(unit, action.dsts[1][1], action.dsts[1][2])
-                    --print(cost)
-
-                    if (cost > unit.moves) then
-                        is_good = false
-                        break
-                    end
-                end
-
-                if (#action.units == 0) then
-                    is_good = false
-                end
-                --print('is_good:', is_good)
-
-                if (not is_good) then
-                    table.remove(behavior.immediate_actions, i)
-                end
-            end
-            --DBG.dbms(behavior.immediate_actions)
-
-            if behavior.immediate_actions and behavior.immediate_actions[1] then
-                print('Action to be executed immediately found: ' .. behavior.immediate_actions[1].action)
-
-                fred.data.zone_action = AH.table_copy(behavior.immediate_actions[1])
-                AH.done_eval_messages(start_time, ca_name)
-                --DBG.dbms(fred.data.zone_action)
-
-                return score_zone_control
-            end
-
-
             fred:get_actions()
             --DBG.dbms(fred.data.zone_cfgs)
 
             for i_c,cfg in ipairs(fred.data.zone_cfgs) do
                 --DBG.dbms(cfg)
 
-                -- Extract all AI units with MP left (for enemy path finding, counter attack placement etc.)
-                local extracted_units = {}
-                for id,loc in pairs(fred.data.gamedata.my_units_MP) do
-                    local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
-                    wesnoth.extract_unit(unit_proxy)
-                    table.insert(extracted_units, unit_proxy)  -- Not a proxy unit any more at this point
-                end
 
-                local zone_action = fred:get_zone_action(cfg)
+                -- Execute any actions with eval_done = true right away
+                -- We first need to validate that the existing actions are still doable
+                -- This is needed because individual actions might interfere with each other
+                -- We also delete executed actions here; it cannot be done right after setting
+                -- up the eval table, as not all action get executed right away by the
+                -- execution code (e.g. if an action involves the leader and recruiting has not
+                -- yet happened)
+                if cfg.eval_done then
+                    if (not cfg.invalid) then
+                        local is_good = true
 
-                for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
+                        for _,u in ipairs(cfg.units) do
+                            local unit = wesnoth.get_units { id = u.id }[1]
+                            --print(unit.id, unit.x, unit.y)
 
-                if zone_action then
-                    zone_action.zone_id = cfg.zone_id
-                    --DBG.dbms(zone_action)
-                    fred.data.zone_action = zone_action
-                    AH.done_eval_messages(start_time, ca_name)
-                    return score_zone_control
+                            if (not unit) or ((unit.x == cfg.dsts[1][1]) and (unit.y == cfg.dsts[1][2])) then
+                                is_good = false
+                                break
+                            end
+
+                            local _, cost = wesnoth.find_path(unit, cfg.dsts[1][1], cfg.dsts[1][2])
+                            --print(cost)
+
+                            if (cost > unit.moves) then
+                                is_good = false
+                                break
+                            end
+                        end
+
+                        if (#cfg.units == 0) then
+                            is_good = false
+                        end
+                        --print('is_good:', is_good)
+
+                        if is_good then
+                            print('Action to be executed immediately found: ' .. cfg.action)
+                            fred.data.zone_action = AH.table_copy(cfg)
+                            AH.done_eval_messages(start_time, ca_name)
+                            return score_zone_control
+                        else
+                            cfg.invalid = true
+                        end
+                    end
+                else
+                    -- Extract all AI units with MP left (for enemy path finding, counter attack placement etc.)
+                    local extracted_units = {}
+                    for id,loc in pairs(fred.data.gamedata.my_units_MP) do
+                        local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
+                        wesnoth.extract_unit(unit_proxy)
+                        table.insert(extracted_units, unit_proxy)  -- Not a proxy unit any more at this point
+                    end
+
+                    local zone_action = fred:get_zone_action(cfg)
+
+                    for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
+
+                    if zone_action then
+                        zone_action.zone_id = cfg.zone_id
+                        --DBG.dbms(zone_action)
+                        fred.data.zone_action = zone_action
+                        AH.done_eval_messages(start_time, ca_name)
+                        return score_zone_control
+                    end
                 end
             end
 
