@@ -1490,7 +1490,6 @@ return {
                 action.rating = 20000 - i
                 table.insert(fred.data.zone_cfgs, action)
             end
-            fred.data.village_actions = nil
 
 
             local units_for_zone = {}
