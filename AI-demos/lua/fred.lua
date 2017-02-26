@@ -1635,7 +1635,14 @@ return {
             -- such as that consisting only of the AI leader position, otherwise it
             -- might be very slow!!!)
             if zonedata.cfg.targets then
-                targets = zonedata.cfg.targets
+                for _,target in ipairs(zonedata.cfg.targets) do
+                    -- An enemy might have been killed in a previous attack,
+                    -- but is still on the target list
+                    local id,_ = next(target)
+                    if gamedata.enemies[id] then
+                        table.insert(targets, target)
+                    end
+                end
             elseif zonedata.cfg.use_enemies_in_reach then
                 for id,loc in pairs(gamedata.enemies) do
                     for x,tmp in pairs(zonedata.zone_map) do
