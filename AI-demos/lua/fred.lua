@@ -1520,7 +1520,7 @@ return {
                     -- Attack --
                     local zone_cfg_attack = {
                         zone_id = zone_id,
-                        actions = { attack = true },
+                        action_type = 'attack',
                         rating = base_ratings.attack
                     }
                     table.insert(fred.data.zone_cfgs, zone_cfg_attack)
@@ -1528,7 +1528,7 @@ return {
                     -- Hold --
                     local zone_cfg_hold = {
                         zone_id = zone_id,
-                        actions = { hold = true },
+                        action_type = 'hold',
                         zone_units = zone_units,
                         rating = base_ratings.hold
                     }
@@ -1537,7 +1537,7 @@ return {
                     -- Advance --
                     local zone_cfg_advance = {
                         zone_id = zone_id,
-                        actions = { advance = true },
+                        action_type = 'advance',
                         zone_units = zone_units,
                         rating = base_ratings.advance
                     }
@@ -3693,8 +3693,6 @@ return {
 
             local gamedata = fred.data.gamedata
 
-            if (not next(cfg.actions)) then return end
-
             local zonedata = {
                 zone_units = {},
                 zone_units_MP = {},
@@ -3756,7 +3754,7 @@ return {
             --DBG.dbms(zone)
 
             -- **** Retreat severely injured units evaluation ****
-            if (cfg.actions.retreat) then
+            if (cfg.action_type == 'retreat') then
                 --print_time('  ' .. cfg.zone_id .. ': retreat_injured eval')
                 -- TODO: heal_loc and safe_loc are not used at this time
                 -- keep for now and see later if needed
@@ -3768,7 +3766,7 @@ return {
             end
 
             -- **** Attack evaluation ****
-            if (cfg.actions.attack) then
+            if (cfg.action_type == 'attack') then
                 --print_time('  ' .. cfg.zone_id .. ': attack eval')
                 local action = fred:get_attack_action(zonedata)
                 if action then
@@ -3778,7 +3776,7 @@ return {
             end
 
             -- **** Hold position evaluation ****
-            if (cfg.actions.hold) then
+            if (cfg.action_type == 'hold') then
                 --print_time('  ' .. cfg.zone_id .. ': hold eval')
                 local action = fred:get_hold_action(zonedata)
                 if action then
@@ -3788,7 +3786,7 @@ return {
             end
 
             -- **** Advance in zone evaluation ****
-            if (cfg.actions.advance) then
+            if (cfg.action_type == 'advance') then
                 --print_time('  ' .. cfg.zone_id .. ': advance eval')
                 local action = fred:get_advance_action(zonedata)
                 if action then
@@ -3801,7 +3799,7 @@ return {
             -- TODO: This should be consolidated at some point into one
             -- CA, but for simplicity we keep it like this for now until
             -- we know whether it works as desired
-            if (cfg.actions.move_leader_to_keep) then
+            if (cfg.action_type == 'move_leader_to_keep') then
                 --print_time('  ' .. cfg.zone_id .. ': move_leader_to_keep eval')
                 local score, action = fred:move_leader_to_keep_eval(true)
                 if action then
@@ -3812,7 +3810,7 @@ return {
 
             -- **** Recruit evaluation ****
             -- TODO: does it make sense to keep this also as a separate CA?
-            if (cfg.actions.recruit) then
+            if (cfg.action_type == 'recruit') then
                 --print_time('  ' .. cfg.zone_id .. ': recruit eval')
                 -- Important: we cannot check recruiting here, as the units
                 -- are taken off the map at this time, so it needs to be checked
