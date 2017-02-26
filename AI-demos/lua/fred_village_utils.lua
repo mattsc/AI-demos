@@ -257,7 +257,7 @@ function fred_village_utils.assign_grabbers(zone_village_goals, assigned_units, 
             units = { unit },
             dsts = { { capture.x, capture.y } },
             zone_id = capture.zone_id,
-            action = capture.zone_id .. ': grab village'
+            action_str = capture.zone_id .. ': grab village'
         })
     end
 

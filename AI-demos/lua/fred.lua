@@ -2432,7 +2432,7 @@ return {
                             end
 
                             action.dsts = combo.dsts
-                            action.action = 'attack'
+                            action.action_str = 'attack'
                         end
                     end
 
@@ -3257,7 +3257,7 @@ return {
             end
 
             local action = {
-                action = zonedata.cfg.zone_id .. ': ' .. 'hold position',
+                action_str = zonedata.cfg.zone_id .. ': ' .. 'hold position',
                 units = {},
                 dsts = {}
             }
@@ -3398,7 +3398,7 @@ return {
                 best_unit.id = best_id
 
                 local action = { units = { best_unit }, dsts = { best_hex } }
-                action.action = zonedata.cfg.zone_id .. ': ' .. 'advance'
+                action.action_str = zonedata.cfg.zone_id .. ': ' .. 'advance'
                 return action
             end
         end
@@ -3433,7 +3433,7 @@ return {
                     units = { unit },
                     dsts = { dest }
                 }
-                action.action = zonedata.cfg.zone_id .. ': ' .. 'retreat severely injured units'
+                action.action_str = zonedata.cfg.zone_id .. ': ' .. 'retreat severely injured units'
                 return action
             elseif zonedata.cfg.retreaters and zonedata.cfg.stop_unit then
                 for id in pairs(zonedata.cfg.retreaters) do
@@ -3443,7 +3443,7 @@ return {
                             units = { { id = id } },
                             dsts = { { gamedata.my_units[id][1], gamedata.my_units[id][2] } }
                         }
-                        action.action = zonedata.cfg.zone_id .. ': ' .. 'immobilize'
+                        action.action_str = zonedata.cfg.zone_id .. ': ' .. 'immobilize'
                         return action
                     end
                 end
@@ -3645,7 +3645,7 @@ return {
                         local action = {
                             units = { { id = leader.id } },
                             dsts = { { next_hop[1], next_hop[2] } },
-                            action = 'move leader to keep',
+                            action_str = 'move leader to keep',
                             partial_move = true
                         }
 
@@ -3760,7 +3760,7 @@ return {
                 -- keep for now and see later if needed
                 local action = fred:get_retreat_action(zonedata)
                 if action then
-                    --print(action.action)
+                    --print(action.action_str)
                     return action
                 end
             end
@@ -3770,7 +3770,7 @@ return {
                 --print_time('  ' .. cfg.zone_id .. ': attack eval')
                 local action = fred:get_attack_action(zonedata)
                 if action then
-                    --print(action.action)
+                    --print(action.action_str)
                     return action
                 end
             end
@@ -3780,7 +3780,7 @@ return {
                 --print_time('  ' .. cfg.zone_id .. ': hold eval')
                 local action = fred:get_hold_action(zonedata)
                 if action then
-                    --print_time(action.action)
+                    --print_time(action.action_str)
                     return action
                 end
             end
@@ -3790,7 +3790,7 @@ return {
                 --print_time('  ' .. cfg.zone_id .. ': advance eval')
                 local action = fred:get_advance_action(zonedata)
                 if action then
-                    --print_time(action.action)
+                    --print_time(action.action_str)
                     return action
                 end
             end
@@ -3803,7 +3803,7 @@ return {
                 --print_time('  ' .. cfg.zone_id .. ': move_leader_to_keep eval')
                 local score, action = fred:move_leader_to_keep_eval(true)
                 if action then
-                    --print_time(action.action)
+                    --print_time(action.action_str)
                     return action
                 end
             end
@@ -3816,7 +3816,7 @@ return {
                 -- are taken off the map at this time, so it needs to be checked
                 -- by the function setting up the cfg
                 local action = {
-                    action = zonedata.cfg.zone_id .. ': ' .. 'recruit',
+                    action_str = zonedata.cfg.zone_id .. ': ' .. 'recruit',
                     id = 'recruit',
                     outofway_units = cfg.outofway_units
                 }
@@ -3889,7 +3889,7 @@ return {
                         --print('is_good:', is_good)
 
                         if is_good then
-                            print('Action to be executed immediately found: ' .. cfg.action)
+                            print('Action to be executed immediately found: ' .. cfg.action_str)
                             fred.data.zone_action = AH.table_copy(cfg)
                             AH.done_eval_messages(start_time, ca_name)
                             return score_zone_control
@@ -3927,7 +3927,7 @@ return {
         end
 
         function fred:zone_control_exec()
-            local action = fred.data.zone_action.zone_id .. ': ' .. fred.data.zone_action.action
+            local action = fred.data.zone_action.zone_id .. ': ' .. fred.data.zone_action.action_str
             --DBG.dbms(fred.data.zone_action)
 
             -- If recruiting is set, we just do that, nothing else needs to be checked:
@@ -3945,7 +3945,7 @@ return {
                         -- always be the leader zone)
                         --fred.data.analysis.status.units_used[recruit_proxy.id] = {
                         --    zone_id = fred.data.zone_action.zone_id or 'other',
-                        --    action = fred.data.zone_action.action or 'other'
+                        --    action = fred.data.zone_action.action_str or 'other'
                         --}
                     end
                 end
@@ -4167,7 +4167,7 @@ return {
                 if unit and unit.valid then
                 --    fred.data.analysis.status.units_used[unit.id] = {
                 --        zone_id = fred.data.zone_action.zone_id or 'other',
-                --        action = fred.data.zone_action.action or 'other'
+                --        action = fred.data.zone_action.action_str or 'other'
                 --    }
                 else
                     -- If an AI unit died in the attack, we stop and reconsider
