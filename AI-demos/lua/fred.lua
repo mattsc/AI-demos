@@ -1488,7 +1488,6 @@ return {
 
             for i,action in ipairs(fred.data.village_actions) do
                 action.rating = 20000 - i
-                action.eval_done = true
                 table.insert(fred.data.zone_cfgs, action)
             end
             fred.data.village_actions = nil
