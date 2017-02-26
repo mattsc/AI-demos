@@ -3817,7 +3817,7 @@ return {
                 -- by the function setting up the cfg
                 local action = {
                     action_str = zonedata.cfg.zone_id .. ': ' .. 'recruit',
-                    id = 'recruit',
+                    type = 'recruit',
                     outofway_units = cfg.outofway_units
                 }
                 return action
@@ -3931,7 +3931,7 @@ return {
             --DBG.dbms(fred.data.zone_action)
 
             -- If recruiting is set, we just do that, nothing else needs to be checked:
-            if (fred.data.zone_action.id == 'recruit') then
+            if (fred.data.zone_action.type == 'recruit') then
                 if debug_exec then print_time('====> Executing zone_control CA ' .. action) end
                 if AH.show_messages() then W.message { speaker = unit.id, message = 'Zone action ' .. action } end
 
