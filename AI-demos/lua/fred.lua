@@ -3865,7 +3865,7 @@ return {
                         local is_good = true
 
                         if (cfg.action.type == 'recruit') then
-                            local is_good = false
+                            is_good = false
                             -- All the recruiting is done in one call to exec, so
                             -- we simply check here if any one of the recruiting is possible
                             for _,recruit_unit in ipairs(cfg.action.recruit_units) do
