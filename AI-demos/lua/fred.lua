@@ -3865,31 +3865,55 @@ return {
                     if (not cfg.invalid) then
                         local is_good = true
 
-                        for _,u in ipairs(cfg.action.units) do
-                            local unit = wesnoth.get_units { id = u.id }[1]
-                            --print(unit.id, unit.x, unit.y)
+                        if (cfg.action.type == 'recruit') then
+                            local is_good = false
+                            -- All the recruiting is done in one call to exec, so
+                            -- we simply check here if any one of the recruiting is possible
+                            for _,recruit_unit in ipairs(cfg.action.recruit_units) do
+                                --print('  ' .. recruit_unit.recruit_type .. ' at ' .. recruit_unit.recruit_hex[1] .. ',' .. recruit_unit.recruit_hex[2])
+                                local uiw = wesnoth.get_unit(recruit_unit.recruit_hex[1], recruit_unit.recruit_hex[2])
+                                if (not uiw) then
+                                    -- If there is no unit in the way, we're good
+                                    is_good = true
+                                    break
+                                else
+                                    -- Otherwise we check whether it has an empty hex to move to
+                                    for x,y,_ in FU.fgumap_iter(fred.data.gamedata.reach_maps[uiw.id]) do
+                                        if (not FU.get_fgumap_value(fred.data.gamedata.my_unit_map, x, y, 'id')) then
+                                           is_good = true
+                                           break
+                                        end
+                                    end
+                                    if is_good then break end
+                                end
+                            end
+                        else
+                            for _,u in ipairs(cfg.action.units) do
+                                local unit = wesnoth.get_units { id = u.id }[1]
+                                --print(unit.id, unit.x, unit.y)
 
-                            if (not unit) or ((unit.x == cfg.action.dsts[1][1]) and (unit.y == cfg.action.dsts[1][2])) then
-                                is_good = false
-                                break
+                                if (not unit) or ((unit.x == cfg.action.dsts[1][1]) and (unit.y == cfg.action.dsts[1][2])) then
+                                    is_good = false
+                                    break
+                                end
+
+                                local _, cost = wesnoth.find_path(unit, cfg.action.dsts[1][1], cfg.action.dsts[1][2])
+                                --print(cost)
+
+                                if (cost > unit.moves) then
+                                    is_good = false
+                                    break
+                                end
                             end
 
-                            local _, cost = wesnoth.find_path(unit, cfg.action.dsts[1][1], cfg.action.dsts[1][2])
-                            --print(cost)
-
-                            if (cost > unit.moves) then
+                            if (#cfg.action.units == 0) then
                                 is_good = false
-                                break
                             end
+                            --print('is_good:', is_good)
                         end
-
-                        if (#cfg.action.units == 0) then
-                            is_good = false
-                        end
-                        --print('is_good:', is_good)
 
                         if is_good then
-                            print('Action to be executed immediately found: ' .. cfg.action.action_str)
+                            print('Pre-evaluated action found: ' .. cfg.action.action_str)
                             fred.data.zone_action = AH.table_copy(cfg.action)
                             AH.done_eval_messages(start_time, ca_name)
                             return score_zone_control
@@ -3930,23 +3954,49 @@ return {
             local action = fred.data.zone_action.zone_id .. ': ' .. fred.data.zone_action.action_str
             --DBG.dbms(fred.data.zone_action)
 
+
             -- If recruiting is set, we just do that, nothing else needs to be checked:
             if (fred.data.zone_action.type == 'recruit') then
                 if debug_exec then print_time('====> Executing zone_control CA ' .. action) end
                 if AH.show_messages() then W.message { speaker = unit.id, message = 'Zone action ' .. action } end
 
-                while (fred:recruit_rushers_eval(fred.data.zone_action.outofway_units) > 0) do
-                    local _, recruit_proxy = fred:recruit_rushers_exec(nil, nil, fred.data.zone_action.outofway_units)
-                    if (not recruit_proxy) then
-                        break
-                    else
-                        -- Unlike for the recruit loop above, these units do
-                        -- get counted into the current zone (which should
-                        -- always be the leader zone)
-                        --fred.data.analysis.status.units_used[recruit_proxy.id] = {
-                        --    zone_id = fred.data.zone_action.zone_id or 'other',
-                        --    action = fred.data.zone_action.action_str or 'other'
-                        --}
+                if fred.data.zone_action.recruit_units then
+                    --print('Recruiting pre-evaluated units')
+                    for _,recruit_unit in ipairs(fred.data.zone_action.recruit_units) do
+                        --print('  ' .. recruit_unit.recruit_type .. ' at ' .. recruit_unit.recruit_hex[1] .. ',' .. recruit_unit.recruit_hex[2])
+                        local uiw = wesnoth.get_unit(recruit_unit.recruit_hex[1], recruit_unit.recruit_hex[2])
+                        if uiw then
+                            -- Generally, move out of way in direction of own leader
+                            local leader_loc = fred.data.gamedata.leaders[wesnoth.current.side]
+                            local dx, dy  = leader_loc[1] - recruit_unit.recruit_hex[1], leader_loc[2] - recruit_unit.recruit_hex[2]
+                            local r = math.sqrt(dx * dx + dy * dy)
+                            if (r ~= 0) then dx, dy = dx / r, dy / r end
+
+                            --print('    uiw: ' .. uiw.id)
+                            AH.move_unit_out_of_way(ai, uiw, { dx = dx, dy = dy })
+
+                            -- Make sure the unit really is gone now
+                            uiw = wesnoth.get_unit(recruit_unit.recruit_hex[1], recruit_unit.recruit_hex[2])
+                        end
+
+                        if (not uiw) then
+                            AH.checked_recruit(ai, recruit_unit.recruit_type, recruit_unit.recruit_hex[1], recruit_unit.recruit_hex[2])
+                        end
+                    end
+                else
+                    while (fred:recruit_rushers_eval(fred.data.zone_action.outofway_units) > 0) do
+                        local _, recruit_proxy = fred:recruit_rushers_exec(nil, nil, fred.data.zone_action.outofway_units)
+                        if (not recruit_proxy) then
+                            break
+                        else
+                            -- Unlike for the recruit loop above, these units do
+                            -- get counted into the current zone (which should
+                            -- always be the leader zone)
+                            --fred.data.analysis.status.units_used[recruit_proxy.id] = {
+                            --    zone_id = fred.data.zone_action.zone_id or 'other',
+                            --    action = fred.data.zone_action.action_str or 'other'
+                            --}
+                        end
                     end
                 end
 
