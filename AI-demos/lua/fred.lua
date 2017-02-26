@@ -607,6 +607,10 @@ return {
             --DBG.dbms(unit_attacks)
 
 
+            ----- Leader threats -----
+            fred.data.leader_actions = fred:analyze_leader_threat(unit_attacks)
+
+
             ----- Village goals -----
             local zone_village_goals, villages_to_protect_maps = FVU.village_goals(raw_cfgs_main, side_cfgs, gamedata)
 
@@ -1218,75 +1222,96 @@ return {
         end
 
 
-        function fred:analyze_leader_threat()
+        function fred:analyze_leader_threat(unit_attacks)
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
-            if debug_eval then print_time('     - Evaluating leader threat map analysis:') end
+            if debug_eval then print_time('     - Evaluating leader threats:') end
 
             local gamedata = fred.data.gamedata
-
-            FU.print_debug(show_debug_analysis, '\nAnalysis of leader threats')
-
-            -- Start with an analysis of the threat to the AI leader
             local leader_proxy = wesnoth.get_unit(gamedata.leader_x, gamedata.leader_y)
 
-            local raw_cfg = fred:get_raw_cfgs('leader')
-            local zone_id = raw_cfg.zone_id
-            --DBG.dbms(raw_cfg)
 
-            local threats = fred.data.analysis.threats[zone_id]
-            --DBG.dbms(fred.data.analysis.threats)
-            --DBG.dbms(threats)
+            -- Locations to protect, and move goals for the leader
+            local max_ml, closest_keep, closest_village
+            for x,y,keep in FU.fgumap_iter(gamedata.reachable_keeps_map[wesnoth.current.side]) do
+                --print('keep:', x, y)
+                -- Note that reachable_keeps_map contains moves_left assuming max_mp for the leader
+                -- This should generally be the same at this stage as the real situation, but
+                -- might not work depending on how this is used in the future.
+                local ml = FU.get_fgumap_value(gamedata.reach_maps[leader_proxy.id], x, y, 'moves_left')
+                if ml then
+                    -- Can the leader get to any villages from here?
+                    local old_loc = { leader_proxy.x, leader_proxy.y }
+                    local old_moves = leader_proxy.moves
+                    local leader_copy = gamedata.unit_copies[leader_proxy.id]
+                    leader_copy.x, leader_copy.y = x, y
+                    leader_copy.moves = ml
+                    local reach_from_keep = wesnoth.find_reach(leader_copy)
+                    leader_copy.x, leader_copy.y = old_loc[1], old_loc[2]
+                    leader_copy.moves = old_moves
+                    --DBG.dbms(reach_from_keep)
 
-            -- Add up the power of all threats on this zone
-            local enemy_power = 0
-            for id,power in pairs(threats) do
-                enemy_power = enemy_power + power
-            end
+                    local max_ml_village = ml - 1000 -- penalty if no reachable village
+                    local closest_village_this_keep
+                    for _,loc in ipairs(reach_from_keep) do
+                        local owner = FU.get_fgumap_value(gamedata.village_map, loc[1], loc[2], 'owner')
 
-            FU.print_debug(show_debug_analysis, '  enemy_power in direct threats: ', enemy_power)
+                        if owner and (loc[3] > max_ml_village) then
+                            max_ml_village = loc[3]
+                            closest_village_this_keep = { loc[1], loc[2] }
+                        end
+                    end
+                    --print('    ' .. x, y, max_ml_village)
 
-            -- Power missing (which is not equal to power_needed - power_used!)
-            -- TODO: check whether these hard-coded values are right
-
-            local power_needed = enemy_power
-
-            local power_used = 0
-            for id,unit_used in pairs(fred.data.analysis.status.units_used) do
-                if (unit_used.zone_id == zone_id) then
-                    power_used = power_used + gamedata.unit_infos[id].power
+                    if (not max_ml) or (max_ml_village > max_ml) then
+                        max_ml = max_ml_village
+                        closest_keep = { x, y }
+                        closest_village = closest_village_this_keep
+                    end
                 end
             end
 
-            FU.print_debug(show_debug_analysis, '  power_needed, power_used: ', power_needed, power_used)
+            local protect_locs = {}
+            local next_hop
+            if closest_keep then
+                table.insert(protect_locs, closest_keep)
+                --print('closest keep: ' .. closest_keep[1] .. ',' .. closest_keep[2])
+            else
+                local _, _, nh, best_keep = fred:move_leader_to_keep_eval(true)
+                next_hop = nh
+                table.insert(protect_locs, nh)
+                table.insert(protect_locs, best_keep)
+                if nh then
+                    --print('next_hop to keep: ' .. nh[1] .. ',' .. nh[2])
+                end
+            end
+            if closest_village then
+                table.insert(protect_locs, closest_village)
+                --print('reachable village after keep: ' .. closest_village[1] .. ',' .. closest_village[2])
+            end
+            --DBG.dbms(protect_locs)
 
-            -- We count a fraction of the leader's power as available in the leader zone
-            -- This is done independently of whether the leader has moved or not
-            local leader_power_fraction = 0.5
-            local leader_power = gamedata.unit_infos[leader_proxy.id].power
-            FU.print_debug(show_debug_analysis, '  leader_power: ', leader_power * leader_power_fraction .. ' = ' .. leader_power .. ' * ' .. leader_power_fraction)
 
-            local power_missing = power_needed - power_used
-            power_missing = power_missing - leader_power * leader_power_fraction
-            FU.print_debug(show_debug_analysis, '  power_missing: ', power_missing)
+            -- Threat are all enemies that can attack the castle or any of the protect_locations
+            local threats = {}
+            for x,y,_ in FU.fgumap_iter(gamedata.reachable_castles_map[wesnoth.current.side]) do
+                local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids', {})
+                for _,id in ipairs(ids) do
+                    threats[id] = FU.unit_base_power(gamedata.unit_infos[id])
+                end
+            end
+            for _,loc in ipairs(protect_locs) do
+                local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], loc[1], loc[2], 'ids', {})
+                for _,id in ipairs(ids) do
+                    threats[id] = FU.unit_base_power(gamedata.unit_infos[id])
+                end
+            end
+            --DBG.dbms(threats)
 
-            local power_missing_margin = 2
-
-
-            -- If the threats are significant, leader should retreat (or have
-            -- MP taken away) and recruit after no more attacks are advisable
-
-            -- Find all units that can actually attack the leader
-            -- Note: this is different from those stored in 'threats'
-            --print('  leader at', gamedata.leader_x, gamedata.leader_y)
-            local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], gamedata.leader_x, gamedata.leader_y, 'ids', {})
 
             -- Check out how much of a threat these units pose in combination
             local max_total_loss, av_total_loss = 0, 0
             --print('    possible damage by enemies in reach (average, max):')
-            for _,id in ipairs(ids) do
-                -- TODO: for now, just use the hex adjacent to the leader with
-                -- the highest defense rating for the attacker
-                -- This might be good enough, or need to be refined later
+            for id,_ in pairs(threats) do
                 local dst
                 local max_defense = 0
                 for xa,ya in H.adjacent_tiles(gamedata.leader_x, gamedata.leader_y) do
@@ -1316,159 +1341,259 @@ return {
 
                 local max_loss = leader_proxy.hitpoints - min_hp
                 local av_loss = leader_proxy.hitpoints - def_stat.average_hp
-
                 --print('    ', id, av_loss, max_loss)
 
                 max_total_loss = max_total_loss + max_loss
                 av_total_loss = av_total_loss + av_loss
             end
-            FU.print_debug(show_debug_analysis, '\n  leader: max_total_loss, av_total_loss', max_total_loss, av_total_loss)
+            FU.print_debug(show_debug_analysis, '\nleader: max_total_loss, av_total_loss', max_total_loss, av_total_loss)
+
 
             -- We only consider these leader threats, if they either
-            --   - reduce current HP by more than 50%
-            --   - are more than 25% of max HP
+            --   - maximum damage reduces current HP by more than 50%
+            --   - average damage is more than 25% of max HP
+            -- Otherwise we assume the leader can deal with them alone
             local significant_threat = false
             if (max_total_loss >= leader_proxy.hitpoints / 2.) or (av_total_loss >= leader_proxy.max_hitpoints / 4.) then
                 significant_threat = true
             end
-            FU.print_debug(show_debug_analysis, '    significant_threat', significant_threat)
+            FU.print_debug(show_debug_analysis, '  significant_threat', significant_threat)
 
-
-            -- Attacks on threats is with unlimited resources
-            local attack1_cfg = {
-                zone_id = zone_id,
-                targets = {},
-                actions = { attack = true },
-                value_ratio = 0.7 -- more aggressive for direct leader threats, but not too much
-            }
-
-            for id,_ in pairs(threats) do
-                local target = {}
-                target[id] = gamedata.enemies[id]
-                table.insert(attack1_cfg.targets, target)
+            if (not significant_threat) then
+                return
             end
-            --DBG.dbms(attack1_cfg)
-
-            fred.data.zone_cfgs = {}
-            table.insert(fred.data.zone_cfgs, attack1_cfg)
-
-            -- Retreat the leader if the threat is significant,
-            -- or take his MP away
-            if significant_threat then
-                if (leader_proxy.moves > 0) then
-                    local zone_id = 'leader'
-                    local move_leader_to_keep_cfg = {
-                        zone_id = zone_id,
-                        actions = { move_leader_to_keep = true }
-                    }
-
-                    table.insert(fred.data.zone_cfgs, move_leader_to_keep_cfg)
-                end
 
 
-                -- Check whether recruiting can be done; this needs to be done here
-                -- as units are taken off the map during get_zone_action()
-                -- It also cannot be left to the exec function or the whole CA
-                -- might get blacklisted
+            local enemy_power = 0
+            for id,power in pairs(threats) do
+                enemy_power = enemy_power + power
+            end
+            FU.print_debug(show_debug_analysis, 'enemy_power: ', enemy_power)
+
+            local power_stats = fred:calc_power_stats({}, {}, gamedata)
+            --DBG.dbms(power_stats)
+
+            local power_ratio = power_stats.total.ratio
+            if (power_ratio > 1) then
+                power_ratio = 1
+            end
+            if (power_ratio < 1) then
+                power_ratio = (power_ratio + 1) / 2
+            end
+            --print('power_ratio', power_ratio)
+            local power_needed = enemy_power * power_ratio
+            --print('power_needed', power_needed)
+
+            -- Count a fraction of the leader's power as applicable in the leader zone
+            local leader_power_fraction = 0.5
+            local leader_power = FU.unit_base_power(gamedata.unit_infos[leader_proxy.id])
+            FU.print_debug(show_debug_analysis, '  leader_power: ', leader_power * leader_power_fraction .. ' = ' .. leader_power .. ' * ' .. leader_power_fraction)
+
+            local power_missing = power_needed - leader_power * leader_power_fraction
+            FU.print_debug(show_debug_analysis, '  power_missing after including leader: ', power_missing)
+
+
+            -- Check whether recruiting can be done, and how many units are available/needed
+            local prerecruit = { units = {} }
+            if closest_keep and (power_missing > 0) then
                 local outofway_units = {}
+                -- Note that the leader is included in the following, as he might
+                -- be on a castle hex other than a keep. His recruit location is
+                -- automatically excluded by the prerecruit code
                 for id,_ in pairs(fred.data.gamedata.my_units_MP) do
-                    if (not fred.data.gamedata.unit_infos[id].canrecruit) then
-                        -- Need to check whether units with MP actually have an
-                        -- empty hex to move to, as two units with MP might be
-                        -- blocking each other.
-                        for x,arr in pairs(gamedata.reach_maps[id]) do
-                            for y,_ in pairs(arr) do
-                                if (not wesnoth.get_unit(x, y)) then
-                                    outofway_units[id] = true
-                                    break
-                                end
+                    -- Need to check whether units with MP actually have an
+                    -- empty hex to move to, as two units with MP might be
+                    -- blocking each other.
+                    for x,arr in pairs(gamedata.reach_maps[id]) do
+                        for y,_ in pairs(arr) do
+                            if (not wesnoth.get_unit(x, y)) then
+                                outofway_units[id] = true
+                                break
                             end
                         end
-
                     end
                 end
 
-                if (fred:recruit_rushers_eval(outofway_units) > 0)
-                    and fred:recruit_rushers_exec(nil, nil, outofway_units, true)
-                then
-                    local zone_id = 'leader'
-                    local recruit_cfg = {
+                prerecruit = fred:prerecruit_units(closest_keep, outofway_units)
+            end
+            --DBG.dbms(prerecruit)
+
+            local recruit_units = {}
+            while (power_missing > 0) and (prerecruit.units[1]) do
+                local recruit_type = prerecruit.units[1].recruit_type
+                local power = FU.unittype_base_power(recruit_type)
+
+                table.insert(recruit_units, {
+                    recruit_hex = prerecruit.units[1].recruit_hex,
+                    recruit_type = recruit_type,
+                    power = power
+                })
+
+                power_missing = power_missing - power
+
+                table.remove(prerecruit.units, 1)
+            end
+            --DBG.dbms(recruit_units)
+            FU.print_debug(show_debug_analysis, '  power_missing after recruit: ', power_missing)
+
+
+            -- Now figure out how many more units are needed to protect the leader
+            local enemy_value_ratio = 1.25
+            local best_units = {}
+            for id,attacks in pairs(unit_attacks) do
+                if (not gamedata.unit_infos[id].canrecruit) then
+                    --print(id)
+                    local av_damage_taken, av_damage_done, count = 0, 0, 0
+                    for enemy_id,_ in pairs(threats) do
+                        local att = unit_attacks[id][enemy_id]
+
+                        local damage_taken = att.forward.enemy_gen_hc * att.forward.taken + att.forward.enemy_extra
+                        damage_taken = damage_taken + att.counter.enemy_gen_hc * att.counter.taken + att.counter.enemy_extra
+                        damage_taken = damage_taken - att.my_regen
+
+                        local damage_done = att.forward.my_gen_hc * att.forward.done + att.forward.my_extra
+                        damage_done = damage_done + att.counter.my_gen_hc * att.counter.done + att.counter.my_extra
+                        damage_done = damage_done - att.enemy_regen
+
+                        av_damage_taken = av_damage_taken + damage_taken
+                        av_damage_done = av_damage_done + damage_done
+                        count = count + 1
+                    end
+                    av_damage_taken = av_damage_taken / count
+                    av_damage_done = av_damage_done / count
+
+                    -- The rating must be positive for the analysis below to work
+                    local av_hp_left = gamedata.unit_infos[id].hitpoints - av_damage_taken
+                    if (av_hp_left < 0) then av_hp_left = 0 end
+
+                    local attack_rating = enemy_value_ratio * av_damage_done + av_hp_left
+
+                    local cost, count = 0, 0
+                    for _,ploc in ipairs(protect_locs) do
+                        local _, c = wesnoth.find_path(gamedata.unit_copies[id], ploc[1], ploc[2], { ignore_units = true })
+                        cost = cost + c
+                        count = count + 1
+                    end
+                    cost = cost / count
+
+                    local turns = cost / gamedata.unit_infos[id].max_moves
+                    if (turns < 1) then turns = 1 end
+                    local distance_rating = 1 / turns
+
+                    local rating = attack_rating * distance_rating
+                    --print('  ' .. attack_rating, distance_rating, rating)
+
+                    table.insert(best_units, { id = id, rating = rating })
+                end
+            end
+            table.sort(best_units, function(a, b) return a.rating > b.rating end)
+            --DBG.dbms(best_units)
+
+
+            local protect_units = {}
+            while (power_missing > 0) and (best_units[1]) do
+                local id = best_units[1].id
+                local power = FU.unit_base_power(gamedata.unit_infos[id])
+                protect_units[id] = power
+
+                power_missing = power_missing - power
+
+                table.remove(best_units, 1)
+            end
+            --DBG.dbms(protect_units)
+
+
+            -- So now we have the information we need in:
+            --   - closest_keep, next_hop, closest_village
+            --   - protect_locs
+            --   - threats
+            --   - recruit_units
+            --   - protect_units
+            -- Use these to determine which actions are needed
+
+            local leader_cfg = {}
+            local zone_id = 'leader_threat'
+
+            local unit = gamedata.my_units[leader_proxy.id]
+            unit.id = leader_proxy.id
+
+
+            -- Full move to next_hop
+            if next_hop
+                and ((next_hop[1] ~= leader_proxy.x) or (next_hop[2] ~= leader_proxy.y))
+            then
+                table.insert(leader_cfg, {
+                    action = {
                         zone_id = zone_id,
-                        actions = { recruit = true },
-                        outofway_units = outofway_units
+                        action_str = zone_id .. ': move leader toward keep',
+                        units = { unit },
+                        dsts = { next_hop }
                     }
+                })
+            end
 
-                    table.insert(fred.data.zone_cfgs, recruit_cfg)
-                end
-
-
-                -- We also want to retreat or immobilize the leader at this time,
-                -- so that we don't protect him first, and then he moves out of the cover
-                if (leader_proxy.moves > 0) then
-                    local zone_id = 'leader'
-                    local retreat_cfg = {
+            -- Partial move to keep
+            if closest_keep
+                and ((closest_keep[1] ~= leader_proxy.x) or (closest_keep[2] ~= leader_proxy.y))
+            then
+                table.insert(leader_cfg, {
+                    action = {
                         zone_id = zone_id,
-                        actions = { retreat = true },
-                        retreaters = {},
-                        retreat_all = true,
-                        enemy_count_weight = 5,
-                        stop_unit = true
+                        action_str = zone_id .. ': move leader to keep',
+                        units = { unit },
+                        dsts = { closest_keep },
+                        partial_move = true
                     }
-
-                    retreat_cfg.retreaters[leader_proxy.id] = true
-
-                    table.insert(fred.data.zone_cfgs, retreat_cfg)
-                end
+                })
             end
 
-
-            -- Move unit toward leader if there's power missing
-            if (power_missing > power_missing_margin) then
-                local advance1_cfg = {
-                    zone_id = raw_cfg.zone_id,
-                    actions = { advance = true },
-                    ignore_villages = true, -- main goal is to get toward the leader
-                    ignore_counter = true,  -- and need to do so very aggressively
-                    value_ratio = 0.67,
-                    power_missing = power_missing
-                }
-                table.insert(fred.data.zone_cfgs, advance1_cfg)
+            -- Recruiting
+            if recruit_units and recruit_units[1] then
+                table.insert(leader_cfg, {
+                    action = {
+                        zone_id = zone_id,
+                        action_str = zone_id .. ': recruit for leader protection',
+                        type = 'recruit',
+                        recruit_units = recruit_units
+                    }
+                })
             end
 
-            -- We also add in other units in the zone for attacks, but
-            -- with a less aggressive value_ratio
-            local attack2_cfg = {
-                zone_id = raw_cfg.zone_id,
-                targets = {},
-                actions = { attack = true }
-            }
-
-            for id,loc in pairs(gamedata.enemies) do
-                if (not threats[id])
-                    and wesnoth.match_unit(gamedata.unit_copies[id], raw_cfg.threat_slf)
-                then
-                    local target = {}
-                    target[id] = loc
-                    table.insert(attack2_cfg.targets, target)
-                end
-            end
-            --DBG.dbms(attack2_cfg)
-            table.insert(fred.data.zone_cfgs, attack2_cfg)
-
-            -- Favorable attacks can be done at any time after threats to
-            -- the AI leader are dealt with
-            local zone_id = 'favorable_attacks'
-            -- Don't set a status for this "zone"
-
-            local favorable_attacks_cfg = {
+            -- Attacks -- for the time being, this is always done
+            local attack_cfg = {
                 zone_id = zone_id,
-                actions = { attack = true },
-                value_ratio = 2.0, -- only very favorable attacks will pass this
-                max_attackers = 2
+                targets = {},
+                action_type = 'attack',
+                value_ratio = 0.7 -- more aggressive for direct leader threats, but not too much
             }
-            table.insert(fred.data.zone_cfgs, favorable_attacks_cfg)
+            for id,_ in pairs(threats) do
+                local target = {}
+                target[id] = gamedata.enemies[id]
+                table.insert(attack_cfg.targets, target)
+            end
+            --DBG.dbms(attack_cfg)
+            table.insert(leader_cfg, attack_cfg)
 
-            --DBG.dbms(fred.data.zone_cfgs)
+            -- If leader injured, full move to village
+            -- (this will automatically force more recruiting, if gold/castle hexes left)
+            if closest_village
+                and ((closest_village[1] ~= leader_proxy.x) or (closest_village[2] ~= leader_proxy.y))
+                and (gamedata.unit_infos[leader_proxy.id].hitpoints < gamedata.unit_infos[leader_proxy.id].max_hitpoints)
+            then
+                table.insert(leader_cfg, {
+                    action = {
+                        zone_id = zone_id,
+                        action_str = zone_id .. ': move leader to village',
+                        units = { unit },
+                        dsts = { closest_village }
+                    }
+                })
+            end
+
+            -- Protect
+
+
+            return leader_cfg
         end
 
 
@@ -1485,6 +1610,12 @@ return {
             --DBG.dbms(fred.data.analysis)
 
             fred.data.zone_cfgs = {}
+
+            for i,action in ipairs(fred.data.leader_actions or {}) do
+                action.rating = 30000 - i
+                table.insert(fred.data.zone_cfgs, action)
+            end
+
 
             for i,action in ipairs(fred.data.village_actions) do
                 action.rating = 20000 - i
