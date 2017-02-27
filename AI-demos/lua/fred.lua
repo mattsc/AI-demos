@@ -1647,13 +1647,16 @@ return {
                 advance = 1000
             }
 
+            -- TODO: might want to do something more complex (e.g using local info) in ops layer
+            local value_ratio = FU.get_value_ratio(gamedata)
 
             for zone_id,zone_units in pairs(units_for_zone) do
                     -- Attack --
                     local zone_cfg_attack = {
                         zone_id = zone_id,
                         action_type = 'attack',
-                        rating = base_ratings.attack
+                        rating = base_ratings.attack,
+                        value_ratio = value_ratio
                     }
                     table.insert(fred.data.zone_cfgs, zone_cfg_attack)
 
