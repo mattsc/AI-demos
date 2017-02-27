@@ -1252,12 +1252,15 @@ return {
 
                     local max_ml_village = ml - 1000 -- penalty if no reachable village
                     local closest_village_this_keep
-                    for _,loc in ipairs(reach_from_keep) do
-                        local owner = FU.get_fgumap_value(gamedata.village_map, loc[1], loc[2], 'owner')
 
-                        if owner and (loc[3] > max_ml_village) then
-                            max_ml_village = loc[3]
-                            closest_village_this_keep = { loc[1], loc[2] }
+                    if (not gamedata.unit_infos[leader_proxy.id].abilities.regenerate) then
+                        for _,loc in ipairs(reach_from_keep) do
+                            local owner = FU.get_fgumap_value(gamedata.village_map, loc[1], loc[2], 'owner')
+
+                            if owner and (loc[3] > max_ml_village) then
+                                max_ml_village = loc[3]
+                                closest_village_this_keep = { loc[1], loc[2] }
+                            end
                         end
                     end
                     --print('    ' .. x, y, max_ml_village)
