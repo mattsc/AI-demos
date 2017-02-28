@@ -5,13 +5,7 @@ local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_increme
 
 local fred_village_utils = {}
 
-function fred_village_utils.village_goals(zone_cfgs, side_cfgs, gamedata)
-    -- Village goals are those that are:
-    --  - on my side of the map
-    --  - not owned by me
-    -- We set those up as arrays, one for each zone
-    --  - if a village is found that is not in a zone, assign it zone 'other'
-
+function fred_village_utils.villages_to_protect(zone_cfgs, side_cfgs, gamedata)
     local my_start_hex, enemy_start_hex
     for side,cfgs in ipairs(side_cfgs) do
         if (side == wesnoth.current.side) then
@@ -21,6 +15,7 @@ function fred_village_utils.village_goals(zone_cfgs, side_cfgs, gamedata)
         end
     end
 
+    -- TODO: this is needed in several places, could be pulled into gamedata or something
     local zone_maps = {}
     for zone_id,cfg in pairs(zone_cfgs) do
         zone_maps[zone_id] = {}
@@ -30,12 +25,10 @@ function fred_village_utils.village_goals(zone_cfgs, side_cfgs, gamedata)
         end
     end
 
-    local zone_village_goals, villages_to_protect_maps = {} , {}
+    local villages_to_protect_maps = {}
     for x,y,village in FU.fgumap_iter(gamedata.village_map) do
         local my_distance = H.distance_between(x, y, my_start_hex[1], my_start_hex[2])
         local enemy_distance = H.distance_between(x, y, enemy_start_hex[1], enemy_start_hex[2])
-
-        local threats = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids')
 
         local village_zone
         for zone_id,_ in pairs(zone_maps) do
@@ -46,40 +39,59 @@ function fred_village_utils.village_goals(zone_cfgs, side_cfgs, gamedata)
         end
         if (not village_zone) then village_zone = 'other' end
 
-        if (village.owner ~= wesnoth.current.side) then
-            if (not zone_village_goals[village_zone]) then
-                zone_village_goals[village_zone] = {}
-            end
-
-            local grab_only = true
-            if (my_distance <= enemy_distance) then
-                grab_only = false
-            end
-            table.insert(zone_village_goals[village_zone], {
-                x = x, y = y,
-                owner = village.owner,
-                grab_only = grab_only,
-                threats = threats,
-                my_distance = my_distance,
-                enemy_distance = enemy_distance
-            })
+        if (not villages_to_protect_maps[village_zone]) then
+            villages_to_protect_maps[village_zone] = {}
         end
-
-        -- The following is simply a map of all villages that need to be protected
-        -- in principle. Whether an action is needed to do so is determined later.
         if (my_distance <= enemy_distance) then
-            if (not villages_to_protect_maps[village_zone]) then
-                villages_to_protect_maps[village_zone] = {}
-            end
             FU.set_fgumap_value(villages_to_protect_maps[village_zone], x, y, 'protect', true)
+        else
+            FU.set_fgumap_value(villages_to_protect_maps[village_zone], x, y, 'protect', false)
         end
     end
 
-    return zone_village_goals, villages_to_protect_maps
+    return villages_to_protect_maps
 end
 
 
-function fred_village_utils.assign_grabbers(zone_village_goals, assigned_units, village_actions, unit_attacks, gamedata)
+function fred_village_utils.village_goals(villages_to_protect_maps, gamedata)
+    -- Village goals are those that are:
+    --  - on my side of the map
+    --  - not owned by me
+    -- We set those up as arrays, one for each zone
+    --  - if a village is found that is not in a zone, assign it zone 'other'
+
+    local zone_village_goals = {}
+    for zone_id, villages in pairs(villages_to_protect_maps) do
+        for x,y,village in FU.fgumap_iter(villages) do
+            local owner = FU.get_fgumap_value(gamedata.village_map, x, y, 'owner')
+
+            if (owner ~= wesnoth.current.side) then
+                if (not zone_village_goals[zone_id]) then
+                    zone_village_goals[zone_id] = {}
+                end
+
+                local grab_only = true
+                if village.protect then
+                    grab_only = false
+                end
+
+                local threats = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids')
+
+                table.insert(zone_village_goals[zone_id], {
+                    x = x, y = y,
+                    owner = owner,
+                    grab_only = grab_only,
+                    threats = threats
+                })
+            end
+        end
+    end
+
+    return zone_village_goals
+end
+
+
+function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_protect_maps, assigned_units, village_actions, unit_attacks, gamedata)
     -- assigned_units and village_actions are modified directly in place
 
     -- Villages that can be reached are dealt with separately from others
@@ -127,7 +139,7 @@ function fred_village_utils.assign_grabbers(zone_village_goals, assigned_units, 
                     -- If it is unowned, we use the mean of average and maximum damage
                     -- Except for the leader, for which we are much more conservative
                     local applicable_damage = 0
-                    if (village.my_distance > village.enemy_distance) then
+                    if (not FU.get_fgumap_value(villages_to_protect_maps, x, y, 'protect')) then
                         if (village.owner == 0) then
                             applicable_damage = (max_damage + av_damage) / 2
                         else

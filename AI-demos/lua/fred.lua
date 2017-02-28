@@ -515,8 +515,9 @@ return {
 
 
             ----- Village goals -----
-            local zone_village_goals, villages_to_protect_maps = FVU.village_goals(raw_cfgs_main, side_cfgs, gamedata)
 
+            local villages_to_protect_maps = FVU.villages_to_protect(raw_cfgs_main, side_cfgs, gamedata)
+            local zone_village_goals = FVU.village_goals(villages_to_protect_maps, gamedata)
             --DBG.dbms(zone_village_goals)
             --DBG.dbms(villages_to_protect_maps)
 
@@ -538,7 +539,7 @@ return {
 
             local village_actions = {}
 
-            local best_captures = FVU.assign_grabbers(zone_village_goals, assigned_units, village_actions, unit_attacks, gamedata)
+            local best_captures = FVU.assign_grabbers(zone_village_goals, villages_to_protect_maps, assigned_units, village_actions, unit_attacks, gamedata)
             --DBG.dbms(village_actions)
             --DBG.dbms(assigned_units)
 
@@ -1077,13 +1078,15 @@ return {
             -- beginning of the turn; I don't think that's a problem, but it should be
             -- cleaned up anyway
             -- It does need to be rerun after each move, as a village might have opened up for grabbing
-            local zone_village_goals
-            zone_village_goals, fred.data.villages_to_protect_maps = FVU.village_goals(raw_cfgs_main, side_cfgs, gamedata)
+            local zone_village_goals = FVU.village_goals(fred.data.villages_to_protect_maps, gamedata)
+
+
             --DBG.dbms(zone_village_goals)
             --DBG.dbms(villages_to_protect_maps)
 
             local best_captures = FVU.assign_grabbers(
                 zone_village_goals,
+                fred.data.villages_to_protect_maps,
                 fred.data.turn_data.assigned_units,
                 fred.data.village_actions,
                 fred.data.turn_data.unit_attacks,
