@@ -537,12 +537,6 @@ return {
             end
             --DBG.dbms(units_needed_villages)
 
-            local village_actions = {}
-
-            local best_captures = FVU.assign_grabbers(zone_village_goals, villages_to_protect_maps, assigned_units, village_actions, unit_attacks, gamedata)
-            --DBG.dbms(village_actions)
-            --DBG.dbms(assigned_units)
-
 
             -- TODO: the following should be moved into fred_village_utils,
             -- and it can probably be simplified somewhat
@@ -552,30 +546,6 @@ return {
             end
             --DBG.dbms(units_needed_villages)
             --DBG.dbms(units_assigned_villages)
-
-
-
-            for zone_id,n_needed in pairs(units_needed_villages) do
-                if (n_needed <= (units_assigned_villages[zone_id] or 0)) then
-                    zone_village_goals[zone_id] = nil
-                end
-            end
-            --DBG.dbms(zone_village_goals)
-
-
-            -- Also remove them as village goals (they are considered taken at this point)
-            for _,village in ipairs(best_captures) do
-                if zone_village_goals[village.zone_id] then
-                    for i_v,v2 in ipairs(zone_village_goals[village.zone_id]) do
-                        if (v2.x == village.x) and (v2.y == village.y) then
-                            table.remove(zone_village_goals[village.zone_id], i_v)
-                            break
-                        end
-                    end
-                end
-
-            end
-            --DBG.dbms(zone_village_goals)
 
 
             -- Now check out what other units to send in this direction
@@ -1047,11 +1017,9 @@ return {
 
             --DBG.dbms(assigned_units)
             --DBG.dbms(reserve_units)
-            --DBG.dbms(village_actions)
             --DBG.dbms(goal_hexes)
 
             fred.data.turn_data.assigned_units = assigned_units
-            fred.data.village_actions = village_actions
             --fred.data.turn_data.power_stats = power_stats
 
             fred.data.turn_data.unit_attacks = unit_attacks
@@ -1074,16 +1042,14 @@ return {
 
             local orders = {}
 
-            -- TODO: currently, the village grabber assignment is run twice at the
-            -- beginning of the turn; I don't think that's a problem, but it should be
-            -- cleaned up anyway
-            -- It does need to be rerun after each move, as a village might have opened up for grabbing
+            -- This needs to be rerun after each move, as a village might have opened up for grabbing
             local zone_village_goals = FVU.village_goals(fred.data.villages_to_protect_maps, gamedata)
 
 
             --DBG.dbms(zone_village_goals)
             --DBG.dbms(villages_to_protect_maps)
 
+            fred.data.village_actions = {}
             local best_captures = FVU.assign_grabbers(
                 zone_village_goals,
                 fred.data.villages_to_protect_maps,
