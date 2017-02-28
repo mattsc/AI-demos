@@ -295,94 +295,6 @@ return {
             local side_cfgs = fred:get_side_cfgs()
 
 
-            -- Assemble the diverse influence maps
-
-
-            local my_inf = {}
-            for id,_ in pairs(gamedata.my_units) do
-                --print(id)
-                if false then
-                    FU.show_fgumap_with_message(gamedata.unit_influence_maps[id], 'influence', 'Unit influence', gamedata.unit_copies[id])
-                end
-
-                if (not gamedata.unit_infos[id].canrecruit) then
-                    local unit_influence = FU.unit_current_power(gamedata.unit_infos[id])
-
-                    for x,tmp in pairs(gamedata.unit_influence_maps[id]) do
-                        for y,inf in pairs(tmp) do
-                            local influence = inf.influence * unit_influence
-                            influence = influence + FU.get_fgumap_value(my_inf, x, y, 'my_influence', 0)
-                            FU.set_fgumap_value(my_inf, x, y, 'my_influence', influence)
-                        end
-                    end
-                end
-            end
-
-            local enemy_inf = {}
-            for id,_ in pairs(gamedata.enemies) do
-                --print(id)
-                --FU.put_fgumap_labels(gamedata.unit_influence_maps[id], 'influence')
-                if (not gamedata.unit_infos[id].canrecruit) then
-                    local unit_influence = FU.unit_current_power(gamedata.unit_infos[id])
-
-                    for x,tmp in pairs(gamedata.unit_influence_maps[id]) do
-                        for y,inf in pairs(tmp) do
-                            local influence = inf.influence * unit_influence
-                            influence = influence + FU.get_fgumap_value(enemy_inf, x, y, 'enemy_influence', 0)
-                            FU.set_fgumap_value(enemy_inf, x, y, 'enemy_influence', influence)
-                        end
-                    end
-                end
-            end
-
-            local IM = {}
-            local width, height = wesnoth.get_map_size()
-            for x = 1,width do
-                for y = 1,height do
-                    local my_inf = FU.get_fgumap_value(my_inf, x, y, 'my_influence')
-                    local enemy_inf = FU.get_fgumap_value(enemy_inf, x, y, 'enemy_influence')
-
-                    if my_inf or enemy_inf then
-                        my_inf = my_inf or 0
-                        enemy_inf = enemy_inf or 0
-
-                        local inf = my_inf - enemy_inf
-                        FU.set_fgumap_value(IM, x, y, 'influence', inf)
-
-                        local tension = my_inf + enemy_inf
-                        FU.set_fgumap_value(IM, x, y, 'tension', tension)
-
-                        local vulnerability = tension - math.abs(inf)
-                        FU.set_fgumap_value(IM, x, y, 'vulnerability', vulnerability)
-                    end
-                end
-            end
-
-            local blurred_vulnerability = {}
-            for x,arr in pairs(IM) do
-                for y,data in pairs(arr) do
-                    local v = data.vulnerability
-
-                    for xa,ya in H.adjacent_tiles(x, y) do
-                        local va = FU.get_fgumap_value(IM, xa, ya, 'vulnerability', 0)
-                        v = v + va
-                    end
-                    -- We intentionally count hexes on the edges as zero (instead of omitting them)
-                    v = v / 7
-
-                    FU.set_fgumap_value(IM, x, y, 'blurred_vulnerability', v)
-                end
-            end
-
-
-            if false then
-                --FU.show_fgumap_with_message(my_inf, 'my_influence', 'My influence')
-                --FU.show_fgumap_with_message(enemy_inf, 'enemy_influence', 'Enemy influence')
-                FU.show_fgumap_with_message(IM, 'influence', 'Influence')
-                --FU.show_fgumap_with_message(IM, 'tension', 'Tension')
-                FU.show_fgumap_with_message(IM, 'vulnerability', 'Vulnerability')
-                --FU.show_fgumap_with_message(IM, 'blurred_vulnerability', 'Blurred vulnerability')
-            end
 
             if false then
                 --FU.show_fgumap_with_message(gamedata.leader_distance_map, 'my_leader_distance', 'my_leader_distance')
@@ -1130,7 +1042,6 @@ return {
 
 
             -- At this point we have (TODO: decide which of those are to be kept):
-            -- IM: my_influence, enemy_influence, influence, tension, vulnerability, blurred_vulnerability
             -- leader_distance_map
             -- assigned_enemies, enemies_by_zone
             -- assigned_units (incl. action if known)
@@ -1151,7 +1062,6 @@ return {
             fred.data.village_actions = village_actions
             --fred.data.behavior.power_stats = power_stats
 
-            fred.data.turn_data.IM = IM
             fred.data.turn_data.unit_attacks = unit_attacks
             fred.data.villages_to_protect_maps = villages_to_protect_maps
             fred.data.enemy_int_influence_map = enemy_int_influence_map

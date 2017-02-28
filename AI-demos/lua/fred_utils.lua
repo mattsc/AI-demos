@@ -409,24 +409,6 @@ function fred_utils.get_hit_chance(id, x, y, gamedata)
     return hit_chance
 end
 
-function fred_utils.piecewise_influence(turns)
-    -- Piecewise function for unit infuence function
-    -- TODO: clean up the math, once we're done experimenting
-    local int_turns = math.ceil(turns)
-    local influence = 1  -- hex the unit is on needs special consideration
-
-    if (int_turns ~= 0) then
-        y0 = 1. / int_turns
-        y1 = (y0 + 1. / (int_turns + 1)) / 2.
-        -- Need to do it this way because ...
-        neg_dx = (int_turns - turns) % 1
-        influence = y1 + (y0 - y1) * neg_dx
-    end
-    influence = influence^2
-
-    return influence
-end
-
 function fred_utils.moved_toward_zone(unit_copy, zone_cfgs, side_cfgs)
     --print(unit_copy.id, unit_copy.x, unit_copy.y)
 
@@ -453,57 +435,6 @@ function fred_utils.moved_toward_zone(unit_copy, zone_cfgs, side_cfgs)
     end
 
     return to_zone_id
-end
-
-function fred_utils.get_influence_maps(my_attack_map, enemy_attack_map)
-    -- For now, we use combined unit_power as the influence
-    -- Note, these are somewhat different influence maps from those added in gamedata
-    -- TODO: decide if we need both and reconcile
-
-    local influence_map = {}
-
-    -- Exclude the leader for the AI side, but not for the enemy side
-    for x,arr in pairs(my_attack_map) do
-        for y,data in pairs(arr) do
-            local my_influence = data.power_no_leader
-
-            if (not influence_map[x]) then influence_map[x] = {} end
-            influence_map[x][y] = {
-                my_influence = my_influence,
-                enemy_influence = 0,
-                influence = my_influence,
-                tension = my_influence
-            }
-        end
-    end
-
-    for x,arr in pairs(enemy_attack_map) do
-        for y,data in pairs(arr) do
-            local enemy_influence = data.power_no_leader
-
-            if (not influence_map[x]) then influence_map[x] = {} end
-            if (not influence_map[x][y]) then
-                influence_map[x][y] = {
-                    my_influence = 0,
-                    influence = 0,
-                    tension = 0
-                }
-            end
-
-            influence_map[x][y].enemy_influence = enemy_influence
-            influence_map[x][y].influence = influence_map[x][y].influence - enemy_influence
-            influence_map[x][y].tension = influence_map[x][y].tension + enemy_influence
-        end
-    end
-
-    for x,arr in pairs(influence_map) do
-        for y,data in pairs(arr) do
-            local vulnerability = data.tension - math.abs(data.influence)
-            influence_map[x][y].vulnerability = vulnerability
-        end
-    end
-
-    return influence_map
 end
 
 function fred_utils.single_unit_info(unit_proxy)
