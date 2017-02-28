@@ -135,16 +135,13 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
                     end
                     --print('  -> ' .. av_damage, max_damage)
 
-                    -- If the village is owned by the enemy, average damage is acceptable
-                    -- If it is unowned, we use the mean of average and maximum damage
-                    -- Except for the leader, for which we are much more conservative
+                    -- applicable_damage: if this is smaller than the unit's hitpoints, the grabbing is acceptable
+                    -- For villages to be protected, we always grab than (i.e. applicable_damage = 0)
+                    -- Otherwise, use the mean between average and maximum damage,
+                    -- Except for the leader, for which we are much more conservative in both cases.
                     local applicable_damage = 0
                     if (not FU.get_fgumap_value(villages_to_protect_maps, x, y, 'protect')) then
-                        if (village.owner == 0) then
-                            applicable_damage = (max_damage + av_damage) / 2
-                        else
-                            applicable_damage = av_damage
-                        end
+                        applicable_damage = (max_damage + av_damage) / 2
                     end
                     if gamedata.unit_infos[id].canrecruit then
                         applicable_damage = max_damage * 2
