@@ -270,19 +270,10 @@ return {
             return power_stats
         end
 
-        function fred:get_behavior_this_turn()
-            FU.print_debug(show_debug_analysis, '\n------------- Updating the behavior table:')
+        function fred:set_turn_data()
+            FU.print_debug(show_debug_analysis, '\n------------- Updating the turn_data table:')
 
-            -- At beginning of turn, reset fred.data.behavior
-
-            if fred.data.behavior and fred.data.behavior.turn
-                and (fred.data.behavior.turn.turn_number == wesnoth.current.turn)
-            then
-                --print('****** Behavior table already exists for this turn --> skipping ******')
-                return
-            end
-
-            fred.data.behavior = {
+            fred.data.turn_data = {
                 turn = {
                     turn_number = wesnoth.current.turn
                 }
@@ -1058,20 +1049,20 @@ return {
             --DBG.dbms(village_actions)
             --DBG.dbms(goal_hexes)
 
-            fred.data.behavior.assigned_units = assigned_units
+            fred.data.turn_data.assigned_units = assigned_units
             fred.data.village_actions = village_actions
-            --fred.data.behavior.power_stats = power_stats
+            --fred.data.turn_data.power_stats = power_stats
 
             fred.data.turn_data.unit_attacks = unit_attacks
             fred.data.villages_to_protect_maps = villages_to_protect_maps
             fred.data.enemy_int_influence_map = enemy_int_influence_map
 
-            FU.print_debug(show_debug_analysis, '--- Done determining behavior ---\n')
-            --DBG.dbms(fred.data.behavior)
+            FU.print_debug(show_debug_analysis, '--- Done determining turn_data ---\n')
+            --DBG.dbms(fred.data.turn_data)
         end
 
 
-        function fred:update_orders()
+        function fred:set_orders()
             -- This gets called after each move (or set of moves)
 
             local gamedata = fred.data.gamedata
@@ -1093,7 +1084,7 @@ return {
 
             local best_captures = FVU.assign_grabbers(
                 zone_village_goals,
-                fred.data.behavior.assigned_units,
+                fred.data.turn_data.assigned_units,
                 fred.data.village_actions,
                 fred.data.turn_data.unit_attacks,
                 gamedata
@@ -1128,7 +1119,7 @@ return {
                 end
             end
             --DBG.dbms(orders)
-            fred.data.behavior.orders = orders
+            fred.data.turn_data.orders = orders
         end
 
 
@@ -1510,18 +1501,20 @@ return {
         end
 
 
-        function fred:get_actions()
+        function fred:get_action_cfgs()
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
             if debug_eval then print_time('     - Evaluating defend zones map analysis:') end
 
             local gamedata = fred.data.gamedata
-            local behavior = fred.data.behavior
+            local turn_data = fred.data.turn_data
 
             -- These are only the raw_cfgs of the 3 main zones
             local raw_cfgs_main = fred:get_raw_cfgs()
             --DBG.dbms(raw_cfgs_main)
             --DBG.dbms(fred.data.analysis)
 
+            -- TODO: we currently always set up the cfgs for all possible actions
+            -- Do some timing tests to see whether something like get_next_action_cfg() is better.
             fred.data.zone_cfgs = {}
 
             for i,action in ipairs(fred.data.leader_actions or {}) do
@@ -1538,8 +1531,8 @@ return {
 
             local units_for_zone = {}
 
-            if behavior.assigned_units then
-                for id,data in pairs(behavior.assigned_units) do
+            if turn_data.assigned_units then
+                for id,data in pairs(turn_data.assigned_units) do
                     if gamedata.my_units_MP[id] then
                         local zone_id = data.zone_id
                         if (not units_for_zone[zone_id]) then units_for_zone[zone_id] = {} end
@@ -1601,12 +1594,12 @@ return {
             if debug_eval then print_time('     - Evaluating all_map CA:') end
 
             local gamedata = fred.data.gamedata
-            local behavior = fred.data.behavior
+            local turn_data = fred.data.turn_data
 
             fred.data.zone_cfgs = {}
 
             local straight_line = false
-            if (behavior.total.my_total_power > behavior.total.my_total_power * 2) then
+            if (turn_data.total.my_total_power > turn_data.total.my_total_power * 2) then
                 straight_line = true
             end
 
@@ -1616,7 +1609,7 @@ return {
             local attack_all_cfg = {
                 zone_id = zone_id,
                 actions = { attack = true },
-                value_ratio = behavior.total.value_ratio
+                value_ratio = turn_data.total.value_ratio
             }
 
             table.insert(fred.data.zone_cfgs, attack_all_cfg)
@@ -1643,7 +1636,7 @@ return {
                     advance = true,
                     straight_line = true
                 },
-                value_ratio = behavior.total.value_ratio
+                value_ratio = turn_data.total.value_ratio
             }
 
             table.insert(fred.data.zone_cfgs, advance_cfg)
@@ -2713,8 +2706,8 @@ return {
             --DBG.dbms(enemy_weights)
 
 
-            local hold_leader_distance = fred.data.behavior.orders[zonedata.cfg.zone_id].hold_leader_distance
-            local protect_loc = fred.data.behavior.orders[zonedata.cfg.zone_id].protect_loc
+            local hold_leader_distance = fred.data.turn_data.orders[zonedata.cfg.zone_id].hold_leader_distance
+            local protect_loc = fred.data.turn_data.orders[zonedata.cfg.zone_id].protect_loc
 
             local pre_rating_maps = {}
             for id,_ in pairs(holders) do
@@ -3887,19 +3880,19 @@ return {
 
 
 -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
---fred.data.behavior = nil
+--fred.data.turn_data = nil
 
-            -- Only executes when fred.data.behavior does per turn (that is, once per turn)
-            fred:get_behavior_this_turn()
-
-            -- Executes once per zone_control_eval (that is, after each set of moves)
-            fred:update_orders()
-
-            local behavior = fred.data.behavior
-            --DBG.dbms(behavior.turn)
+            if (not fred.data.turn_data)
+                or (fred.data.turn_data.turn.turn_number ~= wesnoth.current.turn)
+            then
+                fred:set_turn_data()
+            end
 
 
-            fred:get_actions()
+            fred:set_orders()
+
+
+            fred:get_action_cfgs()
             --DBG.dbms(fred.data.zone_cfgs)
 
             for i_c,cfg in ipairs(fred.data.zone_cfgs) do
