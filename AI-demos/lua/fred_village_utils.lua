@@ -271,7 +271,6 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
         })
     end
 
-    return best_captures
 end
 
 
