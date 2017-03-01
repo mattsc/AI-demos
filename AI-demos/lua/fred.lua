@@ -521,104 +521,7 @@ return {
             --DBG.dbms(zone_village_goals)
             --DBG.dbms(villages_to_protect_maps)
 
-            -- Find how many units are needed in each zone for moving toward villages ('exploring')
-            local units_needed_villages = {}
-            local villages_per_unit = FU.cfg_default('villages_per_unit')
-            for zone_id,villages in pairs(zone_village_goals) do
-                local n_villages = 0
-                for _,village in pairs(villages) do
-                    if (not village.grab_only) then
-                        n_villages = n_villages + 1
-                    end
-                end
-
-                local n_units = math.ceil(n_villages / villages_per_unit)
-                units_needed_villages[zone_id] = n_units
-            end
-            --DBG.dbms(units_needed_villages)
-
-
-            -- TODO: the following should be moved into fred_village_utils,
-            -- and it can probably be simplified somewhat
-            local units_assigned_villages = {}
-            for id,data in pairs(assigned_units) do
-                units_assigned_villages[data.zone_id] = (units_assigned_villages[data.zone_id] or 0) + 1
-            end
-            --DBG.dbms(units_needed_villages)
-            --DBG.dbms(units_assigned_villages)
-
-
-            -- Now check out what other units to send in this direction
-            local scouts = {}
-
-
-            for zone_id,villages in pairs(zone_village_goals) do
-                --print(zone_id)
-                scouts[zone_id] = {}
-                for _,village in ipairs(villages) do
-                    --print('  ' .. village.x, village.y)
-                    for id,loc in pairs(gamedata.my_units) do
-                        -- The leader is always excluded here, plus any unit that has already been assigned
-                        -- TODO: set up an array of unassigned units?
-                        if (not gamedata.unit_infos[id].canrecruit) and (not assigned_units[id]) then
-                            local _, cost = wesnoth.find_path(gamedata.unit_copies[id], village.x, village.y)
-                            cost = cost + gamedata.unit_infos[id].max_moves - gamedata.unit_infos[id].moves
-                            --print('    ' .. id, cost)
-
-                            local unit_rating = - cost / #villages / gamedata.unit_infos[id].max_moves
-
-                            scouts[zone_id][id] = (scouts[zone_id][id] or 0) + unit_rating
-                        end
-                    end
-
-                end
-            end
-            --DBG.dbms(scouts)
-
-            local sorted_scouts = {}
-            for zone_id,units in pairs(scouts) do
-                sorted_scouts[zone_id] = {}
-                for id,rating in pairs(units) do
-                    table.insert(sorted_scouts[zone_id], {
-                        id = id,
-                        rating = rating,
-                        org_rating = rating
-                    })
-                end
-                table.sort(sorted_scouts[zone_id], function(a, b) return a.rating > b.rating end)
-            end
-            --DBG.dbms(sorted_scouts)
-
-            local keep_trying = true
-            local zone_id,units = next(sorted_scouts)
-            if (not zone_id) or (#units == 0) then
-                keep_trying = false
-            end
-
-            while keep_trying do
-                keep_trying = false
-
-                -- Set rating relative to the second highest rating in each zone
-                -- This is
-                --
-                -- Notes:
-                --  - If only one units is left, we use the original rating
-                --  - This is unnecessary when only one zone is left, but it works then too,
-                --    so we'll just keep it rather than adding yet another conditional
-                for zone_id,units in pairs(sorted_scouts) do
-                    if (#units > 1) then
-                        local second_rating = units[2].rating
-                        for _,scout in pairs(units) do
-                            scout.rating = scout.rating - second_rating
-                        end
-                    else
-                        units[1].rating = units[1].org_rating
-                    end
-                end
-
-                local max_rating, best_id, best_zone
-                for zone_id,units in pairs(sorted_scouts) do
-                    local rating = sorted_scouts[zone_id][1].rating
+            local assigned_units = {}
 
                     if (not max_rating) or (rating > max_rating) then
                         max_rating = rating
@@ -629,39 +532,13 @@ return {
                 --DBG.dbms(sorted_scouts)
                 --print('best:', best_zone, best_id)
 
-                for zone_id,units in pairs(sorted_scouts) do
-                    for i_u,data in ipairs(units) do
-                        if (data.id == best_id) then
-                            table.remove(units, i_u)
-                            break
-                        end
-                    end
-                end
-                --DBG.dbms(sorted_scouts)
+            FVU.assign_scouts(zone_village_goals, assigned_units, gamedata)
 
-                assigned_units[best_id] = {
-                    zone_id = best_zone,
-                    action = { action = 'explore' }
-                }
-                units_assigned_villages[best_zone] = (units_assigned_villages[best_zone] or 0) + 1
-
-                for zone_id,n_needed in pairs(units_needed_villages) do
-                    if (n_needed <= (units_assigned_villages[zone_id] or 0)) then
-                        sorted_scouts[zone_id] = nil
-                    end
-                end
-
-                -- Check whether we are done
-                local zone_id,units = next(sorted_scouts)
-                if zone_id and (#units > 0) then
-                    keep_trying = true
-                end
-
-            end
-            --DBG.dbms(units_needed_villages)
-            --DBG.dbms(units_assigned_villages)
-            --DBG.dbms(assigned_units)
+            DBG.dbms(assigned_units)
             --DBG.dbms(assigned_enemies)
+
+
+
 
             local power_stats = fred:calc_power_stats(assigned_units, assigned_enemies, gamedata)
             --DBG.dbms(power_stats)
