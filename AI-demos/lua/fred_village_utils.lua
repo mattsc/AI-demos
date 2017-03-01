@@ -288,43 +288,37 @@ function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, ga
         local n_units = math.ceil(n_villages / villages_per_unit)
         units_needed_villages[zone_id] = n_units
     end
-    --DBG.dbms(units_needed_villages)
 
-
-    -- TODO: the following should be moved into fred_village_utils,
-    -- and it can probably be simplified somewhat
     local units_assigned_villages = {}
     for id,data in pairs(assigned_units) do
         units_assigned_villages[data.zone_id] = (units_assigned_villages[data.zone_id] or 0) + 1
     end
-    --DBG.dbms(units_needed_villages)
-    --DBG.dbms(units_assigned_villages)
 
-
-    -- Now check out what other units to send in this direction
+    -- Check out what other units to send in this direction
     local scouts = {}
     for zone_id,villages in pairs(zone_village_goals) do
-        --print(zone_id)
-        scouts[zone_id] = {}
-        for _,village in ipairs(villages) do
-            --print('  ' .. village.x, village.y)
-            for id,loc in pairs(gamedata.my_units) do
-                -- The leader is always excluded here, plus any unit that has already been assigned
-                -- TODO: set up an array of unassigned units?
-                if (not gamedata.unit_infos[id].canrecruit) and (not assigned_units[id]) then
-                    local _, cost = wesnoth.find_path(gamedata.unit_copies[id], village.x, village.y)
-                    cost = cost + gamedata.unit_infos[id].max_moves - gamedata.unit_infos[id].moves
-                    --print('    ' .. id, cost)
+        if (units_needed_villages[zone_id] > (units_assigned_villages[zone_id] or 0)) then
+            --print(zone_id)
+            scouts[zone_id] = {}
+            for _,village in ipairs(villages) do
+                --print('  ' .. village.x, village.y)
+                for id,loc in pairs(gamedata.my_units) do
+                    -- The leader is always excluded here, plus any unit that has already been assigned
+                    -- TODO: set up an array of unassigned units?
+                    if (not gamedata.unit_infos[id].canrecruit) and (not assigned_units[id]) then
+                        local _, cost = wesnoth.find_path(gamedata.unit_copies[id], village.x, village.y)
+                        cost = cost + gamedata.unit_infos[id].max_moves - gamedata.unit_infos[id].moves
+                        --print('    ' .. id, cost)
 
-                    local unit_rating = - cost / #villages / gamedata.unit_infos[id].max_moves
+                        local unit_rating = - cost / #villages / gamedata.unit_infos[id].max_moves
 
-                    scouts[zone_id][id] = (scouts[zone_id][id] or 0) + unit_rating
+                        scouts[zone_id][id] = (scouts[zone_id][id] or 0) + unit_rating
+                    end
                 end
             end
 
         end
     end
-    --DBG.dbms(scouts)
 
     local sorted_scouts = {}
     for zone_id,units in pairs(scouts) do
@@ -338,7 +332,6 @@ function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, ga
         end
         table.sort(sorted_scouts[zone_id], function(a, b) return a.rating > b.rating end)
     end
-    --DBG.dbms(sorted_scouts)
 
     local keep_trying = true
     local zone_id,units = next(sorted_scouts)
@@ -377,7 +370,6 @@ function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, ga
                 best_zone = zone_id
             end
         end
-        --DBG.dbms(sorted_scouts)
         --print('best:', best_zone, best_id)
 
         for zone_id,units in pairs(sorted_scouts) do
@@ -388,7 +380,6 @@ function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, ga
                 end
             end
         end
-        --DBG.dbms(sorted_scouts)
 
         assigned_units[best_id] = {
             zone_id = best_zone,
@@ -408,9 +399,6 @@ function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, ga
             keep_trying = true
         end
     end
-
-    --DBG.dbms(units_assigned_villages)
-
 end
 
 
