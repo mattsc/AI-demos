@@ -608,9 +608,11 @@ return {
 
                             local damage_taken = att.counter.enemy_gen_hc * att.counter.taken + att.counter.enemy_extra
                             damage_taken = damage_taken + att.forward.enemy_gen_hc * att.forward.taken + att.forward.enemy_extra
+                            damage_taken = damage_taken / 2
 
                             local damage_done = att.counter.my_gen_hc * att.counter.done + att.counter.my_extra
                             damage_done = damage_done + att.forward.my_gen_hc * att.forward.done + att.forward.my_extra
+                            damage_done = damage_done / 2
 
                             local enemy_rating = enemy_value_ratio * damage_done - damage_taken
                             table.insert(tmp_enemies, {
@@ -624,6 +626,7 @@ return {
                         end
 
                         -- Only keep the 3 strongest enemies (or fewer, if there are not 3)
+                        -- which means we keep the 3 with the _worst_ rating
                         table.sort(tmp_enemies, function(a, b) return a.enemy_rating < b.enemy_rating end)
                         local n = math.min(3, #tmp_enemies)
                         for i = #tmp_enemies,n+1,-1 do
@@ -670,12 +673,14 @@ return {
 
                             -- We want the ToD-independent rating here.
                             -- The rounding is going to be off for ToD modifier, but good enough for now
-                            av_damage_taken = av_damage_taken / gamedata.unit_infos[id].tod_mod
-                            av_damage_done = av_damage_done / gamedata.unit_infos[id].tod_mod
+                            --av_damage_taken = av_damage_taken / gamedata.unit_infos[id].tod_mod
+                            --av_damage_done = av_damage_done / gamedata.unit_infos[id].tod_mod
+                            --print('  av:  ', av_damage_taken, av_damage_done)
 
                             -- The rating must be positive for the analysis below to work
                             local av_hp_left = gamedata.unit_infos[id].hitpoints - av_damage_taken
                             if (av_hp_left < 0) then av_hp_left = 0 end
+                            --print('    ' .. enemy_value_ratio, av_damage_done, av_hp_left)
 
                             local attacker_rating = enemy_value_ratio * av_damage_done + av_hp_left
                             attacker_ratings[id][zone_id] = attacker_rating
