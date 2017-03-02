@@ -473,6 +473,16 @@ return {
             local raw_cfgs_main = fred:get_raw_cfgs()
             local side_cfgs = fred:get_side_cfgs()
 
+
+            local villages_to_protect_maps = FVU.villages_to_protect(raw_cfgs_main, side_cfgs, gamedata)
+            local zone_village_goals = FVU.village_goals(villages_to_protect_maps, gamedata)
+            local protect_locs = FVU.protect_locs(villages_to_protect_maps, gamedata)
+            --DBG.dbms(zone_village_goals)
+            --DBG.dbms(villages_to_protect_maps)
+            --DBG.dbms(protect_locs)
+
+
+
             -- First: leader threats
             local leader_proxy = wesnoth.get_unit(gamedata.leader_x, gamedata.leader_y)
 
@@ -565,7 +575,47 @@ return {
                     leader_threats[id] = FU.unit_base_power(gamedata.unit_infos[id])
                 end
             end
-           --DBG.dbms(leader_threats)
+            --DBG.dbms(leader_threats)
+
+            -- Only enemies closer than the farther hex to be protected in each zone
+            -- count as leader threats. This is in order to prevent a disproportionate
+            -- response to individual scouts etc.
+            local threats_by_zone = {}
+            for id,_ in pairs(leader_threats) do
+                local unit_copy = gamedata.unit_copies[id]
+                local zone_id = FU.moved_toward_zone(unit_copy, raw_cfgs_main, side_cfgs)
+
+                if (not threats_by_zone[zone_id]) then
+                    threats_by_zone[zone_id] = {}
+                end
+
+                local loc = gamedata.enemies[id]
+                threats_by_zone[zone_id][id] = FU.get_fgumap_value(gamedata.leader_distance_map, loc[1], loc[2], 'distance')
+            end
+            --DBG.dbms(threats_by_zone)
+
+            for zone_id,threats in pairs(threats_by_zone) do
+                local hold_ld = protect_locs[zone_id].hold_leader_distance or 999
+                --print(zone_id, hold_ld)
+
+                local is_threat = false
+                for id,ld in pairs(threats) do
+                    --print('  ' .. id, ld)
+                    if (ld < hold_ld + 1) then
+                        is_threat = true
+                        break
+                    end
+                end
+                --print('    is_threat: ', is_threat)
+
+                if (not is_threat) then
+                    for id,_ in pairs(threats) do
+                        leader_threats[id] = nil
+                    end
+                end
+            end
+            --DBG.dbms(leader_threats)
+
 
             -- Check out how much of a threat these units pose in combination
             local max_total_loss, av_total_loss = 0, 0
@@ -672,13 +722,6 @@ return {
 
 
             ----- Village goals -----
-
-            local villages_to_protect_maps = FVU.villages_to_protect(raw_cfgs_main, side_cfgs, gamedata)
-            local zone_village_goals = FVU.village_goals(villages_to_protect_maps, gamedata)
-            local protect_locs = FVU.protect_locs(villages_to_protect_maps, gamedata)
-            --DBG.dbms(zone_village_goals)
-            --DBG.dbms(villages_to_protect_maps)
-            --DBG.dbms(protect_locs)
 
             local village_actions = {}
             local assigned_units = {}
