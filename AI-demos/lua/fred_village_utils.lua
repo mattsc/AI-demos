@@ -91,6 +91,40 @@ function fred_village_utils.village_goals(villages_to_protect_maps, gamedata)
 end
 
 
+function fred_village_utils.protect_locs(villages_to_protect_maps, gamedata)
+    -- For now, every village on our side of the map that can be reached
+    -- by an enemy needs to be protected
+
+    local protect_locs = {}
+    for zone_id,map in pairs(villages_to_protect_maps) do
+        protect_locs[zone_id] = { protect_villages = false }
+        local max_ld, loc
+        for x,y,village in FU.fgumap_iter(map) do
+            if village.protect then
+                for enemy_id,_ in pairs(gamedata.enemies) do
+                    if FU.get_fgumap_value(gamedata.reach_maps[enemy_id], x, y, 'moves_left') then
+                        protect_locs[zone_id].protect_villages = true
+
+                        local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
+                        if (not max_ld) or (ld > max_ld) then
+                            max_ld = ld
+                            loc = { x, y }
+                        end
+                    end
+                end
+            end
+        end
+
+        if max_ld then
+            protect_locs[zone_id].hold_leader_distance = max_ld
+            protect_locs[zone_id].protect_loc = loc
+        end
+    end
+
+    return protect_locs
+end
+
+
 function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_protect_maps, assigned_units, village_actions, unit_attacks, gamedata)
     -- assigned_units and village_actions are modified directly in place
 
@@ -250,13 +284,10 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
     end
 
     for _,capture in ipairs(best_captures) do
-        assigned_units[capture.id] = {
-            action = {
-                action = 'grab village',
-                x = capture.x, y = capture.y
-            },
-            zone_id = capture.zone_id
-        }
+        if (not assigned_units[capture.zone_id]) then
+            assigned_units[capture.zone_id] = {}
+        end
+        assigned_units[capture.zone_id][capture.id] = 'grab_village'
 
         -- This currently only works for single-unit actions; can be expanded as needed
         local unit = gamedata.my_units[capture.id]
@@ -264,7 +295,7 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
         table.insert(village_actions, {
             action = {
                 zone_id = capture.zone_id,
-                action_str = capture.zone_id .. ': grab village',
+                action_str = 'grab_village',
                 units = { unit },
                 dsts = { { capture.x, capture.y } }
             }
@@ -290,8 +321,12 @@ function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, ga
     end
 
     local units_assigned_villages = {}
-    for id,data in pairs(assigned_units) do
-        units_assigned_villages[data.zone_id] = (units_assigned_villages[data.zone_id] or 0) + 1
+    local used_ids = {}
+    for zone_id,units in pairs(assigned_units) do
+        for id,_ in pairs(units) do
+            units_assigned_villages[zone_id] = (units_assigned_villages[zone_id] or 0) + 1
+            used_ids[id] = true
+        end
     end
 
     -- Check out what other units to send in this direction
@@ -305,7 +340,7 @@ function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, ga
                 for id,loc in pairs(gamedata.my_units) do
                     -- The leader is always excluded here, plus any unit that has already been assigned
                     -- TODO: set up an array of unassigned units?
-                    if (not gamedata.unit_infos[id].canrecruit) and (not assigned_units[id]) then
+                    if (not gamedata.unit_infos[id].canrecruit) and (not used_ids[id]) then
                         local _, cost = wesnoth.find_path(gamedata.unit_copies[id], village.x, village.y)
                         cost = cost + gamedata.unit_infos[id].max_moves - gamedata.unit_infos[id].moves
                         --print('    ' .. id, cost)
@@ -381,10 +416,11 @@ function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, ga
             end
         end
 
-        assigned_units[best_id] = {
-            zone_id = best_zone,
-            action = { action = 'explore' }
-        }
+        if (not assigned_units[best_zone]) then
+            assigned_units[best_zone] = {}
+        end
+        assigned_units[best_zone][best_id] = 'explore'
+
         units_assigned_villages[best_zone] = (units_assigned_villages[best_zone] or 0) + 1
 
         for zone_id,n_needed in pairs(units_needed_villages) do
