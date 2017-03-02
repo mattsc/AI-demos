@@ -499,7 +499,9 @@ return {
                     local max_ml_village = ml - 1000 -- penalty if no reachable village
                     local closest_village_this_keep
 
-                    if (not gamedata.unit_infos[leader_proxy.id].abilities.regenerate) then
+                    if (not gamedata.unit_infos[leader_proxy.id].abilities.regenerate)
+                        and (gamedata.unit_infos[leader_proxy.id].hitpoints < gamedata.unit_infos[leader_proxy.id].max_hitpoints)
+                    then
                         for _,loc in ipairs(reach_from_keep) do
                             local owner = FU.get_fgumap_value(gamedata.village_map, loc[1], loc[2], 'owner')
 
@@ -1274,7 +1276,6 @@ return {
                 -- (this will automatically force more recruiting, if gold/castle hexes left)
                 if ops_data.leader_locs.closest_village
                     and ((ops_data.leader_locs.closest_village[1] ~= leader_proxy.x) or (ops_data.leader_locs.closest_village[2] ~= leader_proxy.y))
-                    and (gamedata.unit_infos[leader_proxy.id].hitpoints < gamedata.unit_infos[leader_proxy.id].max_hitpoints)
                 then
                     table.insert(fred.data.zone_cfgs, {
                         action = {
