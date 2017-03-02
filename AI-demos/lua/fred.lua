@@ -766,6 +766,8 @@ return {
                 end
 
                 prerecruit = fred:prerecruit_units(closest_keep, outofway_units)
+                -- Need to do this, or the recruit CA will try to recruit the same units again later
+                fred:clear_prerecruit_units()
             end
             --DBG.dbms(prerecruit)
 
@@ -1141,6 +1143,7 @@ return {
                 prerecruit = prerecruit
             }
             --DBG.dbms(fred.data.ops_data)
+            --DBG.dbms(fred.data.ops_data.prerecruit)
 
             FU.print_debug(show_debug_analysis, '--- Done determining turn_data ---\n')
         end

@@ -654,6 +654,14 @@ return {
             return recruit_data.recruit.prerecruit
         end
 
+        function ai_cas:clear_prerecruit_units()
+                recruit_data.recruit.prerecruit = {
+                    loc = from_loc,
+                    total_cost = 0,
+                    units = {}
+                }
+        end
+
         -- recruit a unit
         function ai_cas:recruit_rushers_exec(ai_local, avoid_map, outofway_units, no_exec)
             -- Optional input:
