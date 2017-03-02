@@ -139,19 +139,6 @@ return {
                 zone_filter = { x = '1-15,16-23,24-34', y = '1-6,1-7,1-8' },
             }
 
-            local cfg_all_map = {
-                zone_id = 'all_map',
-                --key_hexes = { { 25,12 }, { 27,11 }, { 29,11 }, { 32,10 } },
-                target_zone = { x = '1-34', y = '1-23' },
-                zone_filter = { x = '1-34', y = '1-23' },
-                unit_filter_advance = { x = '1-34', y = '1-23' },
-                hold_slf = { x = '1-34', y = '1-23' },
-                villages = {
-                    slf = { x = '1-34', y = '1-23' },
-                    villages_per_unit = 2
-                }
-            }
-
             local cfg_west = {
                 zone_id = 'west',
                 ops_slf = { x = '1-15,1-14,1-21', y = '1-12,13-17,18-24' },
@@ -177,10 +164,6 @@ return {
                 return cfg_leader_threat
             end
 
-            if (zone_id == 'all_map') then
-                return cfg_all_map
-            end
-
             if (not zone_id) then
                 local zone_cfgs = {
                     west = cfg_west,
@@ -190,7 +173,6 @@ return {
                return zone_cfgs
 
             elseif (zone_id == 'all') then
-                -- Note that 'all' includes the leader zone, but not the all_map zone
                 local all_cfgs = {
                     leader_threat = cfg_leader_threat,
                     west = cfg_west,
@@ -204,8 +186,7 @@ return {
                     leader_threat = cfg_leader_threat,
                     west = cfg_west,
                     center = cfg_center,
-                    east = cfg_east,
-                    all_map = cfg_all_map
+                    east = cfg_east
                 }
 
                 for _,cfg in pairs(cfgs) do
@@ -1379,74 +1360,6 @@ return {
 
             --DBG.dbms(fred.data.zone_cfgs)
         end
-
-        function fred:analyze_all_map()
-            local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'all_map'
-            if debug_eval then print_time('     - Evaluating all_map CA:') end
-
-            local gamedata = fred.data.gamedata
-            local turn_data = fred.data.turn_data
-
-            fred.data.zone_cfgs = {}
-
-            local straight_line = false
-            if (turn_data.total.my_total_power > turn_data.total.my_total_power * 2) then
-                straight_line = true
-            end
-
-            ----- Attack all remaining valid targets -----
-
-            local zone_id = 'attack_all'
-            local attack_all_cfg = {
-                zone_id = zone_id,
-                actions = { attack = true },
-                value_ratio = turn_data.total.value_ratio
-            }
-
-            table.insert(fred.data.zone_cfgs, attack_all_cfg)
-
-
-
-            ----- Retreat remaining injured units -----
-
-            local zone_id = 'retreat'
-            local retreat_cfg = {
-                zone_id = zone_id,
-                actions = { retreat = true }
-            }
-
-            table.insert(fred.data.zone_cfgs, retreat_cfg)
-
-
-            ----- Rush in east (hold and advance) -----
-            local zone_id = 'all_map'
-            local advance_cfg = {
-                zone_id = zone_id,
-                actions = {
---                    hold = true,
-                    advance = true,
-                    straight_line = true
-                },
-                value_ratio = turn_data.total.value_ratio
-            }
-
-            table.insert(fred.data.zone_cfgs, advance_cfg)
-
-
-            local zone_id = 'retreat_all'
-            local retreat_cfg = {
-                zone_id = zone_id,
-                actions = { retreat = true },
-                retreat_all = true,
-                -- The value of 5 below means it take preference over rest
-                -- healing (value of 2^2), but not over village or regeneration
-                -- healing (8^2)
-                enemy_count_weight = 5
-            }
-
-            table.insert(fred.data.zone_cfgs, retreat_cfg)
-        end
-
 
 
         ----- Functions for getting the best actions -----

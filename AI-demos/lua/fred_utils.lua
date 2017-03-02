@@ -327,7 +327,7 @@ function fred_utils.get_value_ratio(gamedata)
     -- TODO: not sure what the best values are yet
     -- TODO: also not sure if leaders should be included here
 
-    --print(' --- my units all_map')
+    --print(' --- my units all map:')
     local my_power = 0
     for id,loc in pairs(gamedata.my_units) do
         if (not gamedata.unit_infos[id].canrecruit) then
@@ -336,7 +336,7 @@ function fred_utils.get_value_ratio(gamedata)
         end
     end
 
-    --print(' --- enemy units all_map')
+    --print(' --- enemy units all map:')
     local enemy_power = 0
     for id,loc in pairs(gamedata.enemies) do
         if (not gamedata.unit_infos[id].canrecruit) then
