@@ -3666,22 +3666,26 @@ return {
                             is_good = false
                             -- All the recruiting is done in one call to exec, so
                             -- we simply check here if any one of the recruiting is possible
-                            for _,recruit_unit in ipairs(cfg.action.recruit_units) do
-                                --print('  ' .. recruit_unit.recruit_type .. ' at ' .. recruit_unit.recruit_hex[1] .. ',' .. recruit_unit.recruit_hex[2])
-                                local uiw = wesnoth.get_unit(recruit_unit.recruit_hex[1], recruit_unit.recruit_hex[2])
-                                if (not uiw) then
-                                    -- If there is no unit in the way, we're good
-                                    is_good = true
-                                    break
-                                else
-                                    -- Otherwise we check whether it has an empty hex to move to
-                                    for x,y,_ in FU.fgumap_iter(fred.data.gamedata.reach_maps[uiw.id]) do
-                                        if (not FU.get_fgumap_value(fred.data.gamedata.my_unit_map, x, y, 'id')) then
-                                           is_good = true
-                                           break
+
+                            local leader = fred.data.gamedata.leaders[wesnoth.current.side]
+                            if (wesnoth.get_terrain_info(wesnoth.get_terrain(leader[1], leader[2])).keep) then
+                                for _,recruit_unit in ipairs(cfg.action.recruit_units) do
+                                    --print('  ' .. recruit_unit.recruit_type .. ' at ' .. recruit_unit.recruit_hex[1] .. ',' .. recruit_unit.recruit_hex[2])
+                                    local uiw = wesnoth.get_unit(recruit_unit.recruit_hex[1], recruit_unit.recruit_hex[2])
+                                    if (not uiw) then
+                                        -- If there is no unit in the way, we're good
+                                        is_good = true
+                                        break
+                                    else
+                                        -- Otherwise we check whether it has an empty hex to move to
+                                        for x,y,_ in FU.fgumap_iter(fred.data.gamedata.reach_maps[uiw.id]) do
+                                            if (not FU.get_fgumap_value(fred.data.gamedata.my_unit_map, x, y, 'id')) then
+                                               is_good = true
+                                               break
+                                            end
                                         end
+                                        if is_good then break end
                                     end
-                                    if is_good then break end
                                 end
                             end
                         else
