@@ -407,8 +407,8 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, gamedat
 
         local is_protected = true
 
-        if (not is_dqed) and cfg and cfg.protect_loc then
-            local loc = cfg.protect_loc
+        if (not is_dqed) and cfg and cfg.protect_locs then
+            local loc = cfg.protect_locs[1]
             --print('*** need to check protection of ' .. loc[1] .. ',' .. loc[2])
 
             -- First check (because it's quick): if there is a unit on the hex to be protected

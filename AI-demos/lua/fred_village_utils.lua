@@ -116,8 +116,12 @@ function fred_village_utils.protect_locs(villages_to_protect_maps, gamedata)
         end
 
         if max_ld then
-            protect_locs[zone_id].hold_leader_distance = max_ld
-            protect_locs[zone_id].protect_loc = loc
+            -- In this case, we want both min and max to be the same
+            protect_locs[zone_id].hold_leader_distance = {
+                min = max_ld,
+                max = max_ld
+            }
+            protect_locs[zone_id].locs = { loc }
         end
     end
 
