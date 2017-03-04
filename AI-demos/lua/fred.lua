@@ -1178,7 +1178,7 @@ return {
                 if (not assigned_units[best_zone_id]) then
                     assigned_units[best_zone_id] = {}
                 end
-                assigned_units[best_zone_id][best_id] = gamedata.units[id]
+                assigned_units[best_zone_id][best_id] = gamedata.units[best_id]
                 reserve_units[best_id] = nil
 
                 power_stats = fred:calc_power_stats(assigned_units, assigned_enemies, prerecruit, gamedata)
