@@ -1331,8 +1331,10 @@ return {
             --DBG.dbms(raw_cfgs_main)
             --DBG.dbms(fred.data.analysis)
 
-            -- TODO: we currently always set up the cfgs for all possible actions
-            -- Do some timing tests to see whether something like get_next_action_cfg() is better.
+            local power_stats = fred:calc_power_stats(ops_data.assigned_units, ops_data.assigned_enemies, ops_data.assigned_recruits, gamedata)
+            --DBG.dbms(power_stats)
+
+
             fred.data.zone_cfgs = {}
 
             -- For all of the main zones, find assigned units that have moves left
@@ -1526,7 +1528,7 @@ return {
             local base_ratings = {
                 village_grab = 9000,
                 attack = 8000,
-                hold = 8000 - 0.01,
+                hold = 7000,
                 advance = 1000
             }
 
@@ -1542,7 +1544,7 @@ return {
                             action_type = 'attack',
                             zone_units = attackers_by_zone[zone_id],
                             targets = threats_by_zone[zone_id],
-                            rating = base_ratings.attack,
+                            rating = base_ratings.attack + power_stats.zones[zone_id].power_needed,
                             value_ratio = value_ratio
                         })
                     end
@@ -1553,7 +1555,7 @@ return {
                             zone_id = zone_id,
                             action_type = 'hold',
                             zone_units = holders_by_zone[zone_id],
-                            rating = base_ratings.hold
+                            rating = base_ratings.hold + power_stats.zones[zone_id].power_needed
                         })
 
                         -- Advance --
@@ -1561,7 +1563,7 @@ return {
                             zone_id = zone_id,
                             action_type = 'advance',
                             zone_units = holders_by_zone[zone_id],
-                            rating = base_ratings.advance
+                            rating = base_ratings.advance + power_stats.zones[zone_id].power_needed
                         })
                     end
                 end
