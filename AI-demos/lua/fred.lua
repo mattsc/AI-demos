@@ -106,6 +106,50 @@ return {
             fred.data.gamedata.enemy_leader_distance_maps = enemy_leader_distance_maps
         end
 
+
+        function fred:get_between_map(locs, units, gamedata)
+            local weights, cum_weight = {}, 0
+            for id,_ in pairs(units) do
+                if gamedata.units[id] then
+                    local weight = FU.unit_current_power(gamedata.unit_infos[id])
+                    weights[id] = weight
+                    cum_weight = cum_weight + weight
+                end
+            end
+            for id,weight in pairs(weights) do
+                weights[id] = weight / cum_weight / #locs
+            end
+            --DBG.dbms(weights)
+
+            local between_map = {}
+            for _,loc in ipairs(locs) do
+                local clx, cly = AH.cartesian_coords(loc[1], loc[2])
+
+                for id,_ in pairs(units) do
+                    local unit_loc = gamedata.units[id]
+                    local cux, cuy = AH.cartesian_coords(unit_loc[1], unit_loc[2])
+
+                    local dist_between = math.sqrt( (cux - clx)^2 + (cuy - cly)^2 )
+
+                    local width, height = wesnoth.get_map_size()
+                    for x = 1,width do
+                        for y = 1,height do
+                            local cx, cy = AH.cartesian_coords(x, y)
+
+                            local dist = math.sqrt( (cux - cx)^2 + (cuy - cy)^2 )
+
+                            local sum_dist = FU.get_fgumap_value(between_map, x, y, 'distance', 0)
+                            sum_dist = sum_dist + (dist_between - dist) * weights[id]
+                            FU.set_fgumap_value(between_map, x, y, 'distance', sum_dist)
+                        end
+                    end
+                end
+            end
+
+            return between_map
+        end
+
+
         function fred:get_side_cfgs()
             local cfgs = {
                 { start_hex = { 18, 4 }
