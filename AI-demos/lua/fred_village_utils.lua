@@ -289,7 +289,7 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
         if (not assigned_units[capture.zone_id]) then
             assigned_units[capture.zone_id] = {}
         end
-        assigned_units[capture.zone_id][capture.id] = 'grab_village'
+        assigned_units[capture.zone_id][capture.id] = gamedata.units[capture.id]
 
         -- This currently only works for single-unit actions; can be expanded as needed
         local unit = gamedata.my_units[capture.id]
@@ -421,7 +421,7 @@ function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, ga
         if (not assigned_units[best_zone]) then
             assigned_units[best_zone] = {}
         end
-        assigned_units[best_zone][best_id] = 'explore'
+        assigned_units[best_zone][best_id] = gamedata.units[best_id]
 
         units_assigned_villages[best_zone] = (units_assigned_villages[best_zone] or 0) + 1
 

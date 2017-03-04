@@ -618,26 +618,27 @@ return {
 
 
             -- Threat are all enemies that can attack the castle or any of the protect_locations
-            local leader_threats = {}
+            local assigned_enemies = { leader_threat = {} }
             for x,y,_ in FU.fgumap_iter(gamedata.reachable_castles_map[wesnoth.current.side]) do
                 local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids', {})
                 for _,id in ipairs(ids) do
-                    leader_threats[id] = FU.unit_base_power(gamedata.unit_infos[id])
+                    assigned_enemies.leader_threat[id] = gamedata.units[id]
                 end
             end
             for _,loc in ipairs(goal_hexes.leader_threat) do
                 local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], loc[1], loc[2], 'ids', {})
                 for _,id in ipairs(ids) do
-                    leader_threats[id] = FU.unit_base_power(gamedata.unit_infos[id])
+                    assigned_enemies.leader_threat[id] = gamedata.units[id]
                 end
             end
-            --DBG.dbms(leader_threats)
+            --DBG.dbms(assigned_enemies)
+
 
             -- Only enemies closer than the farther hex to be protected in each zone
             -- count as leader threats. This is in order to prevent a disproportionate
             -- response to individual scouts etc.
             local threats_by_zone = {}
-            for id,_ in pairs(leader_threats) do
+            for id,_ in pairs(assigned_enemies.leader_threat) do
                 local unit_copy = gamedata.unit_copies[id]
                 local zone_id = FU.moved_toward_zone(unit_copy, raw_cfgs_main, side_cfgs)
 
@@ -669,17 +670,17 @@ return {
 
                 if (not is_threat) then
                     for id,_ in pairs(threats) do
-                        leader_threats[id] = nil
+                        assigned_enemies.leader_threat[id] = nil
                     end
                 end
             end
-            --DBG.dbms(leader_threats)
+            --DBG.dbms(assigned_enemies)
 
 
             -- Check out how much of a threat these units pose in combination
             local max_total_loss, av_total_loss = 0, 0
             --print('    possible damage by enemies in reach (average, max):')
-            for id,_ in pairs(leader_threats) do
+            for id,_ in pairs(assigned_enemies.leader_threat) do
                 local dst
                 local max_defense = 0
                 for xa,ya in H.adjacent_tiles(gamedata.leader_x, gamedata.leader_y) do
@@ -727,8 +728,6 @@ return {
             FU.print_debug(show_debug_analysis, '  significant_threat', significant_threat)
 
 
-            local assigned_enemies = {}
-
             -- Attributing enemy units to zones
             -- Use base_power for this as it is not only for the current turn
             local enemies = {}
@@ -741,14 +740,13 @@ return {
             end
             --DBG.dbms(enemies)
 
-            -- Only count leader_threats if they are significant
+            -- Only count leader threats if they are significant
             if significant_threat then
-                local zone_id = 'leader_threat'
-                assigned_enemies[zone_id] = leader_threats
-
-                for id,_ in pairs(leader_threats) do
+                for id,_ in pairs(assigned_enemies.leader_threat) do
                     enemies[id] = nil
                 end
+            else
+                assigned_enemies.leader_threat = nil
             end
 
 
@@ -760,7 +758,7 @@ return {
                 if (not assigned_enemies[zone_id]) then
                     assigned_enemies[zone_id] = {}
                 end
-                assigned_enemies[zone_id][id] = FU.unit_base_power(gamedata.unit_infos[id])
+                assigned_enemies[zone_id][id] = gamedata.units[id]
             end
             enemies = nil
             --DBG.dbms(assigned_enemies)
@@ -1099,7 +1097,7 @@ return {
                     if (not assigned_units[best_zone]) then
                         assigned_units[best_zone] = {}
                     end
-                    assigned_units[best_zone][best_unit] = 'hold_power'
+                    assigned_units[best_zone][best_unit] = gamedata.units[best_unit]
 
                     unit_ratings[best_unit] = nil
                     power_stats = fred:calc_power_stats(assigned_units, assigned_enemies, prerecruit, gamedata)
@@ -1182,7 +1180,7 @@ return {
                 if (not assigned_units[best_zone_id]) then
                     assigned_units[best_zone_id] = {}
                 end
-                assigned_units[best_zone_id][best_id] = 'reserve'
+                assigned_units[best_zone_id][best_id] = gamedata.units[id]
                 reserve_units[best_id] = nil
 
                 power_stats = fred:calc_power_stats(assigned_units, assigned_enemies, prerecruit, gamedata)
@@ -1193,7 +1191,6 @@ return {
 
             fred.data.ops_data = {
                 leader_locs = leader_locs,
-                leader_threats = leader_threats,
                 significant_threat = significant_threat,
                 assigned_enemies = assigned_enemies,
                 assigned_units = assigned_units,
@@ -1332,7 +1329,7 @@ return {
                     value_ratio = 0.7, -- more aggressive for direct leader threats, but not too much
                     rating = leader_base_ratings.attack
                 }
-                for id,_ in pairs(ops_data.leader_threats) do
+                for id,_ in pairs(ops_data.assigned_enemies.leader_threat) do
                     local target = {}
                     target[id] = gamedata.enemies[id]
                     table.insert(attack_cfg.targets, target)
@@ -2539,7 +2536,7 @@ return {
 
             local between_map
             if protect_leader then
-                between_map = fred:get_between_map(protect_locs, fred.data.ops_data.leader_threats, gamedata)
+                between_map = fred:get_between_map(protect_locs, fred.data.ops_data.assigned_enemies.leader_threat, gamedata)
 
                 if false then
                     FU.show_fgumap_with_message(between_map, 'distance', 'Between map')
@@ -3618,6 +3615,7 @@ return {
                     else
                         zonedata.zone_units_noMP[id] = loc
                     end
+
 
                     if (gamedata.unit_copies[id].attacks_left > 0) then
                         -- The leader counts as one of the attackers, but only if he's on his keep
