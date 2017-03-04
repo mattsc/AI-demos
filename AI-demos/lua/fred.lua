@@ -1326,8 +1326,21 @@ return {
                             hold_units_by_zone[zone_id][id] = gamedata.units[id]
                         end
                         if (gamedata.unit_copies[id].attacks_left > 0) then
-                            if (not attack_units_by_zone[zone_id]) then attack_units_by_zone[zone_id] = {} end
-                            attack_units_by_zone[zone_id][id] = gamedata.units[id]
+                            local is_attacker = true
+                            if gamedata.my_units_noMP[id] then
+                                is_attacker = false
+                                for xa,ya in H.adjacent_tiles(gamedata.my_units_noMP[id][1], gamedata.my_units_noMP[id][2]) do
+                                    if FU.get_fgumap_value(gamedata.enemy_map, xa, ya, 'id') then
+                                        is_attacker = true
+                                        break
+                                    end
+                                end
+                            end
+
+                            if is_attacker then
+                                if (not attack_units_by_zone[zone_id]) then attack_units_by_zone[zone_id] = {} end
+                                attack_units_by_zone[zone_id][id] = gamedata.units[id]
+                            end
                         end
                     end
                 end
@@ -1337,9 +1350,22 @@ return {
             local leader_id = gamedata.leaders[wesnoth.current.side].id
             print('leader_id', leader_id)
             if (gamedata.unit_copies[leader_id].attacks_left > 0) then
-                for zone_id,_ in pairs(raw_cfgs) do
-                    if (not attack_units_by_zone[zone_id]) then attack_units_by_zone[zone_id] = {} end
-                    attack_units_by_zone[zone_id][leader_id] = gamedata.units[leader_id]
+                local is_attacker = true
+                if gamedata.my_units_noMP[leader_id] then
+                    is_attacker = false
+                    for xa,ya in H.adjacent_tiles(gamedata.my_units_noMP[leader_id][1], gamedata.my_units_noMP[leader_id][2]) do
+                        if FU.get_fgumap_value(gamedata.enemy_map, xa, ya, 'id') then
+                            is_attacker = true
+                            break
+                        end
+                    end
+                end
+
+                if is_attacker then
+                    for zone_id,_ in pairs(raw_cfgs) do
+                        if (not attack_units_by_zone[zone_id]) then attack_units_by_zone[zone_id] = {} end
+                        attack_units_by_zone[zone_id][leader_id] = gamedata.units[leader_id]
+                    end
                 end
             end
 
