@@ -1566,10 +1566,6 @@ return {
             local move_cache = fred.data.move_cache
 
             local targets = {}
-            -- If cfg.attack.use_enemies_in_reach is set, we use all enemies that
-            -- can get to the zone (Note: this should only be used for small zones,
-            -- such as that consisting only of the AI leader position, otherwise it
-            -- might be very slow!!!)
             if zonedata.cfg.targets then
                 for _,target in ipairs(zonedata.cfg.targets) do
                     -- An enemy might have been killed in a previous attack,
@@ -1579,21 +1575,6 @@ return {
                         table.insert(targets, target)
                     end
                 end
-            elseif zonedata.cfg.use_enemies_in_reach then
-                for id,loc in pairs(gamedata.enemies) do
-                    for x,tmp in pairs(zonedata.zone_map) do
-                        for y,_ in pairs(tmp) do
-                            if gamedata.enemy_attack_map[x]
-                                and gamedata.enemy_attack_map[x][y]
-                                and gamedata.enemy_attack_map[x][y][id]
-                            then
-                                local target = {}
-                                target[id] = loc
-                                table.insert(targets, target)
-                                break
-                            end
-                        end
-                    end
                 end
             -- Otherwise use all units inside the zone (or all units on the
             -- map if cfg.unit_filter is not set)
