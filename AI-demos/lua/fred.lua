@@ -1219,6 +1219,21 @@ return {
             --  - leader_locs
             --  - prerecruits
 
+
+            -- Reset the ops_data unit tables. All this does is remove a unit
+            -- from the respective lists in case it was killed ina previous action.
+            for zone_id,units in pairs(ops_data.assigned_units) do
+                for id,_ in pairs(units) do
+                    ops_data.assigned_units[zone_id][id] = gamedata.units[id]
+                end
+            end
+            for zone_id,units in pairs(ops_data.assigned_enemies) do
+                for id,_ in pairs(units) do
+                    ops_data.assigned_enemies[zone_id][id] = gamedata.units[id]
+                end
+            end
+
+
             local villages_to_protect_maps = FVU.villages_to_protect(raw_cfgs_main, side_cfgs, gamedata)
             local zone_village_goals = FVU.village_goals(villages_to_protect_maps, gamedata)
             --DBG.dbms(zone_village_goals)
