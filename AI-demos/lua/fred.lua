@@ -1369,8 +1369,25 @@ return {
                 end
             end
 
+            -- The following is done to simplify the cfg creation below, because
+            -- ops_data.assigned_enemies might contain empty tables for zones
+            -- Killed enemies should, in principle be already removed, but since
+            -- it's quick and easy, we just do it again.
+            local threats_by_zone = {}
+            for zone_id,_ in pairs(raw_cfgs) do
+                if ops_data.assigned_enemies[zone_id] then
+                    for enemy_id,_ in pairs(ops_data.assigned_enemies[zone_id]) do
+                        if gamedata.enemies[enemy_id] then
+                            if (not threats_by_zone[zone_id]) then threats_by_zone[zone_id] = {} end
+                            threats_by_zone[zone_id][enemy_id] = gamedata.units[enemy_id]
+                        end
+                    end
+                end
+            end
+
             --DBG.dbms(hold_units_by_zone)
-            DBG.dbms(attack_units_by_zone)
+            --DBG.dbms(attack_units_by_zone)
+            --DBG.dbms(threats_by_zone)
 
 
             ----- Leader threat actions -----
