@@ -175,10 +175,7 @@ return {
         function fred:get_raw_cfgs(zone_id)
             local cfg_leader_threat = {
                 zone_id = 'leader_threat',
-                threat_slf = { x = '1-15,16-24,25-34', y = '1-6,1-8,1-9' },
-                --threat2_distance_factor = 1,
-                key_hexes = { { 18,4 }, { 19,4 } },
-                zone_filter = { x = '1-15,16-23,24-34', y = '1-6,1-7,1-8' },
+                ops_slf = { x = '1-99', y = '1-99' },
             }
 
             local cfg_west = {
