@@ -406,7 +406,6 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, gamedat
         --print(i_c, is_dqed, count)
 
         local is_protected = true
-
         if (not is_dqed) and cfg and cfg.protect_locs then
             local loc = cfg.protect_locs[1]
             --print('*** need to check protection of ' .. loc[1] .. ',' .. loc[2])
@@ -477,11 +476,13 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, gamedat
 
             if (count > 1) then
                 -- Bonus for distance of 2 or 3
-                if (min_min_dist >= 2) and (max_min_dist <= 3) then
-                    rating = rating * 1.10
+                if (not cfg.protect_leader) then
+                    if (min_min_dist >= 2) and (max_min_dist <= 3) then
+                        rating = rating * 1.10
 
-                    if (max_min_dist == 2) then
-                        rating = rating + 0.0001
+                        if (max_min_dist == 2) then
+                            rating = rating + 0.0001
+                        end
                     end
                 end
 

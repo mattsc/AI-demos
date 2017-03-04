@@ -572,14 +572,18 @@ return {
 
             local leader_locs = {}
             local goal_hexes = { leader_threat = {} }
+            protect_locs.leader_threat = { locs = {} }
             if closest_keep then
                 table.insert(goal_hexes.leader_threat, closest_keep)
+                table.insert(protect_locs.leader_threat.locs, closest_keep)
                 leader_locs.closest_keep = closest_keep
                 FU.print_debug(show_debug_analysis, 'closest keep: ' .. closest_keep[1] .. ',' .. closest_keep[2])
             else
                 local _, _, next_hop, best_keep_for_hop = fred:move_leader_to_keep_eval(true)
                 table.insert(goal_hexes.leader_threat, next_hop)
                 table.insert(goal_hexes.leader_threat, best_keep_for_hop)
+                table.insert(protect_locs.leader_threat.locs, next_hop)
+                table.insert(protect_locs.leader_threat.locs, best_keep_for_hop)
                 leader_locs.next_hop = next_hop
                 leader_locs.best_keep_for_hop = best_keep_for_hop
                 if next_hop then
@@ -588,6 +592,7 @@ return {
             end
             if closest_village then
                 table.insert(goal_hexes.leader_threat, closest_village)
+                table.insert(protect_locs.leader_threat.locs, closest_village)
                 leader_locs.closest_village = closest_village
                 FU.print_debug(show_debug_analysis, 'reachable village after keep: ' .. closest_village[1] .. ',' .. closest_village[2])
             end
@@ -595,9 +600,21 @@ return {
             -- It is possible that no goal hex was found (e.g. if the leader cannot move)
             if (not goal_hexes.leader_threat[1]) then
                 goal_hexes.leader_threat = { { leader_proxy.x, leader_proxy.y } }
+                protect_locs.leader_threat.locs = { { leader_proxy.x, leader_proxy.y } }
             end
             --DBG.dbms(leader_locs)
             --DBG.dbms(goal_hexes)
+
+            local min_ld, max_ld
+            for _,loc in ipairs(protect_locs.leader_threat.locs) do
+                local ld = FU.get_fgumap_value(gamedata.leader_distance_map, loc[1], loc[2], 'distance')
+                if (not min_ld) or (ld < min_ld) then min_ld = ld end
+                if (not max_ld) or (ld > max_ld) then max_ld = ld end
+            end
+            protect_locs.leader_threat.hold_leader_distance = {
+                min = min_ld, max = max_ld
+            }
+            protect_locs.leader_threat.protect_leader = true
 
 
             -- Threat are all enemies that can attack the castle or any of the protect_locations
@@ -1264,7 +1281,12 @@ return {
 
             -- Also update the protect locations, as a location might not be threatened
             -- any more
-            ops_data.protect_locs = FVU.protect_locs(villages_to_protect_maps, gamedata)
+            local protect_locs = FVU.protect_locs(villages_to_protect_maps, gamedata)
+            -- Don't reset the leader_threat zone protect_locs
+            -- TODO: well, do this later
+            for zone_id,locs in pairs(protect_locs) do
+                ops_data.protect_locs[zone_id] = locs
+            end
         end
 
 
@@ -1276,7 +1298,7 @@ return {
             local ops_data = fred.data.ops_data
 
             -- These are only the raw_cfgs of the 3 main zones
-            local raw_cfgs_main = fred:get_raw_cfgs()
+            local raw_cfgs = fred:get_raw_cfgs('all')
             --DBG.dbms(raw_cfgs_main)
             --DBG.dbms(fred.data.analysis)
 
@@ -1289,10 +1311,12 @@ return {
 
             if ops_data.significant_threat then
                 local leader_base_ratings = {
-                    attack = 33000,
-                    move_to_keep = 32000,
-                    recruit = 31000,
-                    move_to_village = 30000
+                    attack = 35000,
+                    move_to_keep = 34000,
+                    recruit = 33000,
+                    move_to_village = 32000,
+                    hold = 31000,
+                    advance = 30000
                 }
 
                 local leader_proxy = wesnoth.get_unit(gamedata.leader_x, gamedata.leader_y)
@@ -1373,6 +1397,16 @@ return {
                             dsts = { ops_data.leader_locs.closest_village }
                         },
                         rating = leader_base_ratings.move_to_village
+                    })
+                end
+
+                -- Hold --
+                if zone_units and (next(zone_units)) then
+                    table.insert(fred.data.zone_cfgs, {
+                        zone_id = zone_id,
+                        action_type = 'hold',
+                        zone_units = zone_units,
+                        rating = leader_base_ratings.hold
                     })
                 end
 
@@ -2301,7 +2335,6 @@ return {
             local max_hexes = 6
             local enemy_leader_derating = FU.cfg_default('enemy_leader_derating')
 
-
             local raw_cfg = fred:get_raw_cfgs(zonedata.cfg.zone_id)
             --DBG.dbms(raw_cfg)
             --DBG.dbms(zonedata.cfg)
@@ -2389,11 +2422,13 @@ return {
                     end
 
                     local adj_hc, cum_weight = 0, 0
-                    local dd = max_dist - min_dist
-                    for _,data in ipairs(enemy_hcs) do
-                        local w = (max_dist - data.dist) / dd
-                        adj_hc = adj_hc + data.ehc * w
-                        cum_weight = cum_weight + w
+                    if max_dist then
+                        local dd = max_dist - min_dist
+                        for _,data in ipairs(enemy_hcs) do
+                            local w = (max_dist - data.dist) / dd
+                            adj_hc = adj_hc + data.ehc * w
+                            cum_weight = cum_weight + w
+                        end
                     end
 
                     -- Note that this will give a 'nil' on the hex the enemy is on,
@@ -2498,9 +2533,18 @@ return {
             end
             --DBG.dbms(enemy_weights)
 
-
             local hold_leader_distance = fred.data.ops_data.protect_locs[zonedata.cfg.zone_id].hold_leader_distance
+            local protect_leader = fred.data.ops_data.protect_locs[zonedata.cfg.zone_id].protect_leader
             local protect_locs = fred.data.ops_data.protect_locs[zonedata.cfg.zone_id].locs
+
+            local between_map
+            if protect_leader then
+                between_map = fred:get_between_map(protect_locs, fred.data.ops_data.leader_threats, gamedata)
+
+                if false then
+                    FU.show_fgumap_with_message(between_map, 'distance', 'Between map')
+                end
+            end
 
             local pre_rating_maps = {}
             for id,_ in pairs(holders) do
@@ -2921,6 +2965,16 @@ return {
                                 protect_rating = protect_rating - (dld - 2) / 20
                             end
 
+                            if protect_leader then
+                                local btw_dist = FU.get_fgumap_value(between_map, x, y, 'distance')
+                                local btw_rating = 0
+                                if (btw_dist < -1) then
+                                    btw_rating = btw_dist / 4
+                                end
+
+                                protect_rating = protect_rating + btw_rating
+                            end
+
                             if (not protect_rating_maps[id]) then
                                 protect_rating_maps[id] = {}
                             end
@@ -3003,7 +3057,8 @@ return {
             }
             local cfg_best_combo_hold = {}
             local cfg_best_combo_protect = {
-                hold_perpendicular = true
+                hold_perpendicular = true,
+                protect_leader = protect_leader
             }
 
             -- protect_locs is only set if there is a location to protect
