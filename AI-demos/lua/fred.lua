@@ -234,22 +234,22 @@ return {
             end
         end
 
-        function fred:calc_power_stats(assigned_units, assigned_enemies, prerecruit, gamedata)
+        function fred:calc_power_stats(assigned_units, assigned_enemies, assigned_recruits, gamedata)
             local power_stats = {
                 total = { my_power = 0, enemy_power = 0 },
                 zones = {}
             }
 
-            local prerecruit_weight = 0.5
+            local recruit_weight = 0.5
 
             for id,_ in pairs(gamedata.my_units) do
                 if (not gamedata.unit_infos[id].canrecruit) then
                     power_stats.total.my_power = power_stats.total.my_power + FU.unit_base_power(gamedata.unit_infos[id])
                 end
             end
-            for _,unit in ipairs(prerecruit.units) do
+            for _,unit in ipairs(assigned_recruits) do
                 local power = FU.unittype_base_power(unit.recruit_type)
-                power_stats.total.my_power = power_stats.total.my_power + prerecruit_weight * power
+                power_stats.total.my_power = power_stats.total.my_power + recruit_weight * power
             end
 
             for id,_ in pairs(gamedata.enemies) do
@@ -277,9 +277,9 @@ return {
                     power_stats.zones[zone_id].my_power = power_stats.zones[zone_id].my_power + power
                 end
             end
-            for _,unit in ipairs(prerecruit.units) do
+            for _,unit in ipairs(assigned_recruits) do
                 local power = FU.unittype_base_power(unit.recruit_type)
-                power_stats.zones['leader_threat'].my_power = power_stats.zones['leader_threat'].my_power + prerecruit_weight * power
+                power_stats.zones['leader_threat'].my_power = power_stats.zones['leader_threat'].my_power + recruit_weight * power
             end
 
             for zone_id,enemies in pairs(assigned_enemies) do
@@ -826,8 +826,16 @@ return {
             end
             --DBG.dbms(prerecruit)
 
+            -- This needs to be kept separately for power_stats calculations,
+            -- because prerecruit gets deleted after the recruiting is done
+            local assigned_recruits = {}
+            for _,unit in ipairs(prerecruit.units) do
+                table.insert(assigned_recruits, { recruit_type = unit.recruit_type })
+            end
+            --DBG.dbms(assigned_recruits)
 
-            local power_stats = fred:calc_power_stats(assigned_units, assigned_enemies, prerecruit, gamedata)
+
+            local power_stats = fred:calc_power_stats(assigned_units, assigned_enemies, assigned_recruits, gamedata)
             --DBG.dbms(power_stats)
 
             -- Finding areas and units for attacking/defending in each zone
@@ -1098,7 +1106,7 @@ return {
                     assigned_units[best_zone][best_unit] = gamedata.units[best_unit]
 
                     unit_ratings[best_unit] = nil
-                    power_stats = fred:calc_power_stats(assigned_units, assigned_enemies, prerecruit, gamedata)
+                    power_stats = fred:calc_power_stats(assigned_units, assigned_enemies, assigned_recruits, gamedata)
 
                     --DBG.dbms(assigned_units)
                     --DBG.dbms(unit_ratings)
@@ -1124,7 +1132,7 @@ return {
             attacker_ratings = nil
             unit_ratings = nil
 
-            power_stats = fred:calc_power_stats(assigned_units, assigned_enemies, prerecruit, gamedata)
+            power_stats = fred:calc_power_stats(assigned_units, assigned_enemies, assigned_recruits, gamedata)
             --DBG.dbms(power_stats)
             --DBG.dbms(reserve_units)
 
@@ -1181,7 +1189,7 @@ return {
                 assigned_units[best_zone_id][best_id] = gamedata.units[best_id]
                 reserve_units[best_id] = nil
 
-                power_stats = fred:calc_power_stats(assigned_units, assigned_enemies, prerecruit, gamedata)
+                power_stats = fred:calc_power_stats(assigned_units, assigned_enemies, assigned_recruits, gamedata)
                 --DBG.dbms(power_stats)
             end
             --DBG.dbms(power_stats)
@@ -1192,6 +1200,7 @@ return {
                 significant_threat = significant_threat,
                 assigned_enemies = assigned_enemies,
                 assigned_units = assigned_units,
+                assigned_recruits = assigned_recruits,
                 protect_locs = protect_locs,
                 village_actions = village_actions,
                 prerecruit = prerecruit
