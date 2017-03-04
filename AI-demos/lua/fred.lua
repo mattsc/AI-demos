@@ -1327,13 +1327,13 @@ return {
             fred.data.zone_cfgs = {}
 
             -- For all of the main zones, find assigned units that have moves left
-            local hold_units_by_zone, attack_units_by_zone = {}, {}
+            local holders_by_zone, attackers_by_zone = {}, {}
             for zone_id,_ in pairs(raw_cfgs) do
                 if ops_data.assigned_units[zone_id] then
                     for id,_ in pairs(ops_data.assigned_units[zone_id]) do
                         if gamedata.my_units_MP[id] then
-                            if (not hold_units_by_zone[zone_id]) then hold_units_by_zone[zone_id] = {} end
-                            hold_units_by_zone[zone_id][id] = gamedata.units[id]
+                            if (not holders_by_zone[zone_id]) then holders_by_zone[zone_id] = {} end
+                            holders_by_zone[zone_id][id] = gamedata.units[id]
                         end
                         if (gamedata.unit_copies[id].attacks_left > 0) then
                             local is_attacker = true
@@ -1348,22 +1348,24 @@ return {
                             end
 
                             if is_attacker then
-                                if (not attack_units_by_zone[zone_id]) then attack_units_by_zone[zone_id] = {} end
-                                attack_units_by_zone[zone_id][id] = gamedata.units[id]
+                                if (not attackers_by_zone[zone_id]) then attackers_by_zone[zone_id] = {} end
+                                attackers_by_zone[zone_id][id] = gamedata.units[id]
                             end
                         end
                     end
                 end
             end
 
-            -- We add the leader as a potential attacker to all zones
-            local leader_id = gamedata.leaders[wesnoth.current.side].id
-            print('leader_id', leader_id)
-            if (gamedata.unit_copies[leader_id].attacks_left > 0) then
+            -- We add the leader as a potential attacker to all zones but only if he's on the keep
+            local leader = gamedata.leaders[wesnoth.current.side]
+            --print('leader.id', leader.id)
+            if (gamedata.unit_copies[leader.id].attacks_left > 0)
+               and wesnoth.get_terrain_info(wesnoth.get_terrain(leader[1], leader[2])).keep
+            then
                 local is_attacker = true
-                if gamedata.my_units_noMP[leader_id] then
+                if gamedata.my_units_noMP[leader.id] then
                     is_attacker = false
-                    for xa,ya in H.adjacent_tiles(gamedata.my_units_noMP[leader_id][1], gamedata.my_units_noMP[leader_id][2]) do
+                    for xa,ya in H.adjacent_tiles(gamedata.my_units_noMP[leader.id][1], gamedata.my_units_noMP[leader.id][2]) do
                         if FU.get_fgumap_value(gamedata.enemy_map, xa, ya, 'id') then
                             is_attacker = true
                             break
@@ -1373,8 +1375,8 @@ return {
 
                 if is_attacker then
                     for zone_id,_ in pairs(raw_cfgs) do
-                        if (not attack_units_by_zone[zone_id]) then attack_units_by_zone[zone_id] = {} end
-                        attack_units_by_zone[zone_id][leader_id] = gamedata.units[leader_id]
+                        if (not attackers_by_zone[zone_id]) then attackers_by_zone[zone_id] = {} end
+                        attackers_by_zone[zone_id][leader.id] = gamedata.units[leader.id]
                     end
                 end
             end
@@ -1395,8 +1397,8 @@ return {
                 end
             end
 
-            --DBG.dbms(hold_units_by_zone)
-            --DBG.dbms(attack_units_by_zone)
+            --DBG.dbms(holders_by_zone)
+            --DBG.dbms(attackers_by_zone)
             --DBG.dbms(threats_by_zone)
 
 
@@ -1412,30 +1414,25 @@ return {
                     advance = 30000
                 }
 
-                local leader_proxy = wesnoth.get_unit(gamedata.leader_x, gamedata.leader_y)
-                local leader = gamedata.my_units[leader_proxy.id]
-                leader.id = leader_proxy.id
                 local zone_id = 'leader_threat'
+                --DBG.dbms(leader)
 
                 -- Attacks -- for the time being, this is always done, and always first
-                local attack_cfg = {
-                    zone_id = zone_id,
-                    action_type = 'attack',
-                    targets = {},
-                    value_ratio = 0.7, -- more aggressive for direct leader threats, but not too much
-                    rating = leader_base_ratings.attack
-                }
-                for id,_ in pairs(ops_data.assigned_enemies.leader_threat) do
-                    local target = {}
-                    target[id] = gamedata.enemies[id]
-                    table.insert(attack_cfg.targets, target)
+                if threats_by_zone[zone_id] and attackers_by_zone[zone_id] then
+                    table.insert(fred.data.zone_cfgs, {
+                        zone_id = zone_id,
+                        action_type = 'attack',
+                        zone_units = attackers_by_zone[zone_id],
+                        targets = threats_by_zone[zone_id],
+                        value_ratio = 0.7, -- more aggressive for direct leader threats, but not too much
+                        rating = leader_base_ratings.attack
+                    })
                 end
-                --DBG.dbms(attack_cfg)
-                table.insert(fred.data.zone_cfgs, attack_cfg)
 
                 -- Full move to next_hop
                 if ops_data.leader_locs.next_hop
-                    and ((ops_data.leader_locs.next_hop[1] ~= leader_proxy.x) or (ops_data.leader_locs.next_hop[2] ~= leader_proxy.y))
+                    and gamedata.my_units_MP[leader.id]
+                    and ((ops_data.leader_locs.next_hop[1] ~= leader[1]) or (ops_data.leader_locs.next_hop[2] ~= leader[2]))
                 then
                     table.insert(fred.data.zone_cfgs, {
                         action = {
@@ -1450,7 +1447,8 @@ return {
 
                 -- Partial move to keep
                 if ops_data.leader_locs.closest_keep
-                    and ((ops_data.leader_locs.closest_keep[1] ~= leader_proxy.x) or (ops_data.leader_locs.closest_keep[2] ~= leader_proxy.y))
+                    and gamedata.my_units_MP[leader.id]
+                    and ((ops_data.leader_locs.closest_keep[1] ~= leader[1]) or (ops_data.leader_locs.closest_keep[2] ~= leader[2]))
                 then
                     table.insert(fred.data.zone_cfgs, {
                         action = {
@@ -1480,7 +1478,8 @@ return {
                 -- If leader injured, full move to village
                 -- (this will automatically force more recruiting, if gold/castle hexes left)
                 if ops_data.leader_locs.closest_village
-                    and ((ops_data.leader_locs.closest_village[1] ~= leader_proxy.x) or (ops_data.leader_locs.closest_village[2] ~= leader_proxy.y))
+                    and gamedata.my_units_MP[leader.id]
+                    and ((ops_data.leader_locs.closest_village[1] ~= leader[1]) or (ops_data.leader_locs.closest_village[2] ~= leader[2]))
                 then
                     table.insert(fred.data.zone_cfgs, {
                         action = {
@@ -1494,17 +1493,14 @@ return {
                 end
 
                 -- Hold --
-                if zone_units and (next(zone_units)) then
+                if holders_by_zone[zone_id] then
                     table.insert(fred.data.zone_cfgs, {
                         zone_id = zone_id,
                         action_type = 'hold',
-                        zone_units = zone_units,
+                        zone_units = holders_by_zone[zone_id],
                         rating = leader_base_ratings.hold
                     })
                 end
-
-                -- Protect
-                -- TODO
             end
 
 
@@ -1528,33 +1524,38 @@ return {
             -- TODO: might want to do something more complex (e.g using local info) in ops layer
             local value_ratio = FU.get_value_ratio(gamedata)
 
-            for zone_id,zone_units in pairs(units_for_zone) do
-                    -- Attack --
-                    local zone_cfg_attack = {
-                        zone_id = zone_id,
-                        action_type = 'attack',
-                        rating = base_ratings.attack,
-                        value_ratio = value_ratio
-                    }
-                    table.insert(fred.data.zone_cfgs, zone_cfg_attack)
+            for zone_id,zone_units in pairs(holders_by_zone) do
+                if (zone_id ~= 'leader_threat') then
+                    if threats_by_zone[zone_id] and attackers_by_zone[zone_id] then
+                        -- Attack --
+                        table.insert(fred.data.zone_cfgs,  {
+                            zone_id = zone_id,
+                            action_type = 'attack',
+                            zone_units = attackers_by_zone[zone_id],
+                            targets = threats_by_zone[zone_id],
+                            rating = base_ratings.attack,
+                            value_ratio = value_ratio
+                        })
+                    end
 
-                    -- Hold --
-                    local zone_cfg_hold = {
-                        zone_id = zone_id,
-                        action_type = 'hold',
-                        zone_units = zone_units,
-                        rating = base_ratings.hold
-                    }
-                    table.insert(fred.data.zone_cfgs, zone_cfg_hold)
+                    if holders_by_zone[zone_id] then
+                        -- Hold --
+                        table.insert(fred.data.zone_cfgs, {
+                            zone_id = zone_id,
+                            action_type = 'hold',
+                            zone_units = holders_by_zone[zone_id],
+                            rating = base_ratings.hold
+                        })
 
-                    -- Advance --
-                    local zone_cfg_advance = {
-                        zone_id = zone_id,
-                        action_type = 'advance',
-                        zone_units = zone_units,
-                        rating = base_ratings.advance
-                    }
-                    table.insert(fred.data.zone_cfgs, zone_cfg_advance)
+                        -- Advance --
+                        table.insert(fred.data.zone_cfgs, {
+                            zone_id = zone_id,
+                            action_type = 'advance',
+                            zone_units = holders_by_zone[zone_id],
+                            rating = base_ratings.advance
+                        })
+                    end
+                end
             end
             --DBG.dbms(fred.data.zone_cfgs)
 
@@ -1577,27 +1578,10 @@ return {
 
             local targets = {}
             if zonedata.cfg.targets then
-                for _,target in ipairs(zonedata.cfg.targets) do
-                    -- An enemy might have been killed in a previous attack,
-                    -- but is still on the target list
-                    local id,_ = next(target)
-                    if gamedata.enemies[id] then
-                        table.insert(targets, target)
-                    end
-                end
-                end
-            -- Otherwise use all units inside the zone (or all units on the
-            -- map if cfg.unit_filter is not set)
+                targets = zonedata.cfg.targets
             else
-                for id,loc in pairs(gamedata.enemies) do
-                    if wesnoth.match_unit(gamedata.unit_copies[id], zonedata.cfg.unit_filter) then
-                        local target = {}
-                        target[id] = loc
-                        table.insert(targets, target)
-                    end
-                end
+                targets = gamedata.enemies
             end
-            FU.print_debug(show_debug_attack, '  #targets', #targets, zonedata.cfg.zone_id)
             --DBG.dbms(targets)
 
 
@@ -1625,8 +1609,19 @@ return {
             end
             --DBG.dbms(available_keeps)
 
+            local zone_units_attacks = zonedata.zone_units_attacks
+            if zonedata.cfg.zone_units then
+                zone_units_attacks = {}
+                for id,_ in pairs(zonedata.cfg.zone_units) do
+                    zone_units_attacks[id] = gamedata.units[id]
+                end
+
+            end
+            --DBG.dbms(zonedata.zone_units_attacks)
+            --DBG.dbms(zone_units_attacks)
+
             local attacker_map = {}
-            for id,loc in pairs(zonedata.zone_units_attacks) do
+            for id,loc in pairs(zone_units_attacks) do
                 attacker_map[loc[1] * 1000 + loc[2]] = id
             end
 
@@ -1643,8 +1638,9 @@ return {
             }
 
             local combo_ratings = {}
-            for _,target in pairs(targets) do
-                local target_id, target_loc = next(target)
+            for target_id, target_loc in pairs(targets) do
+                local target = {}
+                target[target_id]= target_loc
                 local target_proxy = wesnoth.get_unit(target_loc[1], target_loc[2])
 
                 local is_trappable_enemy = true
@@ -1659,7 +1655,7 @@ return {
                 FU.print_debug(show_debug_attack, target_id, '  trappable:', is_trappable_enemy, target_loc[1], target_loc[2])
 
                 local attack_combos = FAU.get_attack_combos(
-                    zonedata.zone_units_attacks, target, gamedata.reach_maps, false, move_cache, cfg_attack
+                    zone_units_attacks, target, gamedata.reach_maps, false, move_cache, cfg_attack
                 )
                 --print_time('#attack_combos', #attack_combos)
 
