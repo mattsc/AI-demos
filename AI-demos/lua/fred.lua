@@ -110,11 +110,9 @@ return {
         function fred:get_between_map(locs, units, gamedata)
             local weights, cum_weight = {}, 0
             for id,_ in pairs(units) do
-                if gamedata.units[id] then
-                    local weight = FU.unit_current_power(gamedata.unit_infos[id])
-                    weights[id] = weight
-                    cum_weight = cum_weight + weight
-                end
+                local weight = FU.unit_current_power(gamedata.unit_infos[id])
+                weights[id] = weight
+                cum_weight = cum_weight + weight
             end
             for id,weight in pairs(weights) do
                 weights[id] = weight / cum_weight / #locs
