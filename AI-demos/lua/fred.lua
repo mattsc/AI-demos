@@ -1318,6 +1318,36 @@ return {
             -- Do some timing tests to see whether something like get_next_action_cfg() is better.
             fred.data.zone_cfgs = {}
 
+            -- For all of the main zones, find assigned units that have moves left
+            local hold_units_by_zone, attack_units_by_zone = {}, {}
+            for zone_id,_ in pairs(raw_cfgs) do
+                if ops_data.assigned_units[zone_id] then
+                    for id,_ in pairs(ops_data.assigned_units[zone_id]) do
+                        if gamedata.my_units_MP[id] then
+                            if (not hold_units_by_zone[zone_id]) then hold_units_by_zone[zone_id] = {} end
+                            hold_units_by_zone[zone_id][id] = gamedata.units[id]
+                        end
+                        if (gamedata.unit_copies[id].attacks_left > 0) then
+                            if (not attack_units_by_zone[zone_id]) then attack_units_by_zone[zone_id] = {} end
+                            attack_units_by_zone[zone_id][id] = gamedata.units[id]
+                        end
+                    end
+                end
+            end
+
+            -- We add the leader as a potential attacker to all zones
+            local leader_id = gamedata.leaders[wesnoth.current.side].id
+            print('leader_id', leader_id)
+            if (gamedata.unit_copies[leader_id].attacks_left > 0) then
+                for zone_id,_ in pairs(raw_cfgs) do
+                    if (not attack_units_by_zone[zone_id]) then attack_units_by_zone[zone_id] = {} end
+                    attack_units_by_zone[zone_id][leader_id] = gamedata.units[leader_id]
+                end
+            end
+
+            --DBG.dbms(hold_units_by_zone)
+            DBG.dbms(attack_units_by_zone)
+
 
             ----- Leader threat actions -----
 
@@ -1436,19 +1466,6 @@ return {
 
 
             ----- Zone actions -----
-            -- For all of the main zones, find assigned units that have moves left
-            local units_for_zone = {}
-            for zone_id,_ in pairs(raw_cfgs_main) do
-                if ops_data.assigned_units[zone_id] then
-                    for id,_ in pairs(ops_data.assigned_units[zone_id]) do
-                        if gamedata.my_units_MP[id] then
-                            if (not units_for_zone[zone_id]) then units_for_zone[zone_id] = {} end
-                            units_for_zone[zone_id][id] = true
-                        end
-                    end
-                end
-            end
-            --DBG.dbms(units_for_zone)
 
             local base_ratings = {
                 village_grab = 9000,
