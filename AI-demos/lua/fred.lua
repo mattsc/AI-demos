@@ -1569,16 +1569,16 @@ return {
         ----- Functions for getting the best actions -----
 
         ----- Attack: -----
-        function fred:get_attack_action(zonedata)
-            if debug_eval then print_time('  --> attack evaluation: ' .. zonedata.cfg.zone_id) end
-            --DBG.dbms(zonedata.cfg)
+        function fred:get_attack_action(zone_cfg)
+            if debug_eval then print_time('  --> attack evaluation: ' .. zone_cfg.zone_id) end
+            --DBG.dbms(zone_cfg)
 
             local gamedata = fred.data.gamedata
             local move_cache = fred.data.move_cache
 
             local targets = {}
-            if zonedata.cfg.targets then
-                targets = zonedata.cfg.targets
+            if zone_cfg.targets then
+                targets = zone_cfg.targets
             else
                 targets = gamedata.enemies
             end
@@ -1609,15 +1609,26 @@ return {
             end
             --DBG.dbms(available_keeps)
 
-            local zone_units_attacks = zonedata.zone_units_attacks
-            if zonedata.cfg.zone_units then
-                zone_units_attacks = {}
-                for id,_ in pairs(zonedata.cfg.zone_units) do
-                    zone_units_attacks[id] = gamedata.units[id]
-                end
+            -- Attackers is everybody in zone_cfg.zone_units is set,
+            -- or all units with attacks left otherwise
+            local zone_units_attacks = zone_cfg.zone_units
+            if (not zone_units_attacks) then
+                for id,loc in pairs(gamedata.my_units) do
+                    local is_leader_and_off_keep = false
+                    if gamedata.unit_infos[id].canrecruit then
+                        if (not wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).keep) then
+                            is_leader_and_off_keep = true
+                        end
+                    end
 
+                    if (gamedata.unit_copies[id].attacks_left > 0) then
+                        -- The leader counts as one of the attackers, but only if he's on his keep
+                        if (not is_leader_and_off_keep) then
+                            zone_units_attacks[id] = loc
+                        end
+                    end
+                end
             end
-            --DBG.dbms(zonedata.zone_units_attacks)
             --DBG.dbms(zone_units_attacks)
 
             local attacker_map = {}
@@ -1627,8 +1638,8 @@ return {
 
             -- How much more valuable do we consider the enemy units than our own
             local value_ratio = FU.cfg_default('value_ratio')
-            if zonedata.cfg.value_ratio then
-                value_ratio = zonedata.cfg.value_ratio
+            if zone_cfg.value_ratio then
+                value_ratio = zone_cfg.value_ratio
             end
             --print_time('value_ratio', value_ratio)
 
@@ -1665,7 +1676,7 @@ return {
 
                 -- TODO: check: table.remove might be slow
 
-                local allowable_power = zonedata.cfg.power_missing or 9e99
+                local allowable_power = zone_cfg.power_missing or 9e99
                 --print('  allowable_power', allowable_power)
 
                 for j = #attack_combos,1,-1 do
@@ -2383,8 +2394,8 @@ return {
 
 
         ----- Hold: -----
-        function fred:get_hold_action(zonedata)
-            if debug_eval then print_time('  --> hold evaluation: ' .. zonedata.cfg.zone_id) end
+        function fred:get_hold_action(zone_cfg)
+            if debug_eval then print_time('  --> hold evaluation: ' .. zone_cfg.zone_id) end
 
 
             local enemy_value_ratio = 1.25
@@ -2392,17 +2403,17 @@ return {
             local max_hexes = 6
             local enemy_leader_derating = FU.cfg_default('enemy_leader_derating')
 
-            local raw_cfg = fred:get_raw_cfgs(zonedata.cfg.zone_id)
+            local raw_cfg = fred:get_raw_cfgs(zone_cfg.zone_id)
             --DBG.dbms(raw_cfg)
-            --DBG.dbms(zonedata.cfg)
+            --DBG.dbms(zone_cfg)
 
             local gamedata = fred.data.gamedata
             local move_cache = fred.data.move_cache
 
-            -- Holders are those specified in zonedata, or all units except the leader otherwise
+            -- Holders are those specified in zone_units, or all units except the leader otherwise
             local holders = {}
-            if zonedata.cfg.zone_units then
-                holders = zonedata.cfg.zone_units
+            if zone_cfg.zone_units then
+                holders = zone_cfg.zone_units
             else
                 for id,_ in pairs(gamedata.my_units_MP) do
                     if (not gamedata.unit_infos[id].canrecruit) then
@@ -2508,7 +2519,7 @@ return {
 
 
             for id,_ in pairs(holders) do
-                --print('\n' .. id, zonedata.cfg.zone_id)
+                --print('\n' .. id, zone_cfg.zone_id)
 
                 for x,y,_ in FU.fgumap_iter(gamedata.unit_attack_maps[id]) do
                     local unit_influence = FU.unit_terrain_power(gamedata.unit_infos[id], x, y, gamedata)
@@ -2590,9 +2601,9 @@ return {
             end
             --DBG.dbms(enemy_weights)
 
-            local hold_leader_distance = fred.data.ops_data.protect_locs[zonedata.cfg.zone_id].hold_leader_distance
-            local protect_leader = fred.data.ops_data.protect_locs[zonedata.cfg.zone_id].protect_leader
-            local protect_locs = fred.data.ops_data.protect_locs[zonedata.cfg.zone_id].locs
+            local hold_leader_distance = fred.data.ops_data.protect_locs[zone_cfg.zone_id].hold_leader_distance
+            local protect_leader = fred.data.ops_data.protect_locs[zone_cfg.zone_id].protect_leader
+            local protect_locs = fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs
 
             local between_map
             if protect_leader then
@@ -2605,7 +2616,7 @@ return {
 
             local pre_rating_maps = {}
             for id,_ in pairs(holders) do
-                --print('\n' .. id, zonedata.cfg.zone_id)
+                --print('\n' .. id, zone_cfg.zone_id)
 
                 local unit_type = gamedata.unit_infos[id].type
 
@@ -2869,7 +2880,7 @@ return {
             local hold_rating_maps, protect_rating_maps = {}, {}
 
             for id,hold_map in pairs(hold_maps) do
-                --print('\n' .. id, zonedata.cfg.zone_id,hold_leader_distance.min .. ' -- ' .. hold_leader_distance.max)
+                --print('\n' .. id, zone_cfg.zone_id,hold_leader_distance.min .. ' -- ' .. hold_leader_distance.max)
                 local min_rating, max_rating
                 local min_vuln, max_vuln
                 for x,y,_ in FU.fgumap_iter(hold_map) do
@@ -3207,7 +3218,7 @@ return {
             end
 
             local action = {
-                action_str = zonedata.cfg.zone_id .. ': ' .. 'hold position',
+                action_str = 'hold',
                 units = {},
                 dsts = {}
             }
@@ -3227,24 +3238,24 @@ return {
 
 
         ----- Advance: -----
-        function fred:get_advance_action(zonedata)
+        function fred:get_advance_action(zone_cfg)
             -- Advancing is now only moving onto unthreatened hexes; everything
             -- else should be covered by holding, village grabbing, protecting, etc.
 
-            if debug_eval then print_time('  --> advance evaluation: ' .. zonedata.cfg.zone_id) end
+            if debug_eval then print_time('  --> advance evaluation: ' .. zone_cfg.zone_id) end
 
-            --DBG.dbms(zonedata.cfg)
-            local raw_cfg = fred:get_raw_cfgs(zonedata.cfg.zone_id)
+            --DBG.dbms(zone_cfg)
+            local raw_cfg = fred:get_raw_cfgs(zone_cfg.zone_id)
             --DBG.dbms(raw_cfg)
 
             local gamedata = fred.data.gamedata
             local move_cache = fred.data.move_cache
 
 
-            -- Advancers are those specified in zonedata, or all units except the leader otherwise
+            -- Advancers are those specified in zone_units, or all units except the leader otherwise
             local advancers = {}
-            if zonedata.cfg.zone_units then
-                advancers = zonedata.cfg.zone_units
+            if zone_cfg.zone_units then
+                advancers = zone_cfg.zone_units
             else
                 for id,_ in pairs(gamedata.my_units_MP) do
                     if (not gamedata.unit_infos[id].canrecruit) then
@@ -3262,7 +3273,7 @@ return {
                 end
             end
             if false then
-                FU.show_fgumap_with_message(advance_map, 'flag', 'Advance map: ' .. zonedata.cfg.zone_id)
+                FU.show_fgumap_with_message(advance_map, 'flag', 'Advance map: ' .. zone_cfg.zone_id)
             end
 
             local unit_rating_maps = {}
@@ -3348,15 +3359,15 @@ return {
                 best_unit.id = best_id
 
                 local action = { units = { best_unit }, dsts = { best_hex } }
-                action.action_str = zonedata.cfg.zone_id .. ': ' .. 'advance'
+                action.action_str = 'advance'
                 return action
             end
         end
 
 
         ----- Retreat: -----
-        function fred:get_retreat_action(zonedata)
-            if debug_eval then print_time('  --> retreat evaluation: ' .. zonedata.cfg.zone_id) end
+        function fred:get_retreat_action(zone_cfg)
+            if debug_eval then print_time('  --> retreat evaluation: ' .. zone_cfg.zone_id) end
 
             local gamedata = fred.data.gamedata
 
@@ -3368,32 +3379,32 @@ return {
 
             -- By default, use all units in the zone with MP
             -- but override if zondedata.cfg.retreaters is set
-            local retreaters = zonedata.cfg.retreaters or zonedata.zone_units_MP
+            local retreaters = zone_cfg.retreaters or zone_cfg.zone_units
 
             for id in pairs(retreaters) do
                 --print('  ' .. id)
                 table.insert(retreat_units, gamedata.unit_copies[id])
             end
 
-            local unit, dest, enemy_threat = R.retreat_injured_units(retreat_units, zonedata.cfg.retreat_all, zonedata.cfg.enemy_count_weight)
+            local unit, dest, enemy_threat = R.retreat_injured_units(retreat_units, zone_cfg.retreat_all, zone_cfg.enemy_count_weight)
             if unit then
-                local allowable_retreat_threat = zonedata.cfg.allowable_retreat_threat or 0
+                local allowable_retreat_threat = zone_cfg.allowable_retreat_threat or 0
                 --print_time('Found unit to retreat:', unit.id, enemy_threat, allowable_retreat_threat)
                 local action = {
                     units = { unit },
                     dsts = { dest }
                 }
-                action.action_str = zonedata.cfg.zone_id .. ': ' .. 'retreat severely injured units'
+                action.action_str = 'retreat severely injured units'
                 return action
-            elseif zonedata.cfg.retreaters and zonedata.cfg.stop_unit then
-                for id in pairs(zonedata.cfg.retreaters) do
+            elseif zone_cfg.retreaters and zone_cfg.stop_unit then
+                for id in pairs(zone_cfg.retreaters) do
                     if (gamedata.unit_infos[id].moves > 0) then
                         --print('Immobilizing unit: ' .. id)
                         local action = {
                             units = { { id = id } },
                             dsts = { { gamedata.my_units[id][1], gamedata.my_units[id][2] } }
                         }
-                        action.action_str = zonedata.cfg.zone_id .. ': ' .. 'immobilize'
+                        action.action_str = 'immobilize'
                         return action
                     end
                 end
@@ -3641,75 +3652,12 @@ return {
             --  1. Zones get done one at a time (rather than one CA at a time)
             --  2. Relative scoring of different types of moves is possible
 
-            local gamedata = fred.data.gamedata
-
-            local zonedata = {
-                zone_units = {},
-                zone_units_MP = {},
-                zone_units_attacks = {},
-                zone_units_noMP = {},
-                cfg = cfg
-            }
-
-            -- TODO: currently cfg.unit_filter is not set -> this defaults to all units
-            for id,loc in pairs(gamedata.my_units) do
-                if wesnoth.match_unit(gamedata.unit_copies[id], cfg.unit_filter) then
-                    zonedata.zone_units[id] = loc
-
-                    -- The leader counts into the active zone_units if he's on his keep
-                    -- This applies to zone_units_MP and zone_units_attacks only.
-                    -- He always counts into zone_units_noMP (if he can't move) and zone_units.
-
-                    -- Flag set to true only if the unit is the side leader AND is NOT on the keep
-                    local is_leader_and_off_keep = false
-                    if gamedata.unit_infos[id].canrecruit then
-                        if (not wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).keep) then
-                            is_leader_and_off_keep = true
-                        end
-                    end
-
-                    if gamedata.my_units_MP[id] then
-                        if (not is_leader_and_off_keep) then
-                            zonedata.zone_units_MP[id] = loc
-                        end
-                    else
-                        zonedata.zone_units_noMP[id] = loc
-                    end
-
-
-                    if (gamedata.unit_copies[id].attacks_left > 0) then
-                        -- The leader counts as one of the attackers, but only if he's on his keep
-                        if (not is_leader_and_off_keep) then
-                            zonedata.zone_units_attacks[id] = loc
-                        end
-                    end
-                end
-            end
-
-            if (not next(zonedata.zone_units_MP)) and (not next(zonedata.zone_units_attacks)) then return end
-            --DBG.dbms(zonedata)
-
-            --local zone
-            --if (cfg.zone_filter == 'leader') then
-            --    zone = { gamedata.leaders[wesnoth.current.side] }
-            --else
-            --    zone = wesnoth.get_locations(cfg.zone_filter)
-            --end
-            --zonedata.zone_map = {}
-            --for _,loc in ipairs(zone) do
-            --    if (not zonedata.zone_map[loc[1]]) then
-            --        zonedata.zone_map[loc[1]] = {}
-            --    end
-            --    zonedata.zone_map[loc[1]][loc[2]] = true
-            --end
-            --DBG.dbms(zone)
-
             -- **** Retreat severely injured units evaluation ****
             if (cfg.action_type == 'retreat') then
                 --print_time('  ' .. cfg.zone_id .. ': retreat_injured eval')
                 -- TODO: heal_loc and safe_loc are not used at this time
                 -- keep for now and see later if needed
-                local action = fred:get_retreat_action(zonedata)
+                local action = fred:get_retreat_action(cfg)
                 if action then
                     --print(action.action_str)
                     return action
@@ -3719,7 +3667,7 @@ return {
             -- **** Attack evaluation ****
             if (cfg.action_type == 'attack') then
                 --print_time('  ' .. cfg.zone_id .. ': attack eval')
-                local action = fred:get_attack_action(zonedata)
+                local action = fred:get_attack_action(cfg)
                 if action then
                     --print(action.action_str)
                     return action
@@ -3729,7 +3677,7 @@ return {
             -- **** Hold position evaluation ****
             if (cfg.action_type == 'hold') then
                 --print_time('  ' .. cfg.zone_id .. ': hold eval')
-                local action = fred:get_hold_action(zonedata)
+                local action = fred:get_hold_action(cfg)
                 if action then
                     --print_time(action.action_str)
                     return action
@@ -3739,7 +3687,7 @@ return {
             -- **** Advance in zone evaluation ****
             if (cfg.action_type == 'advance') then
                 --print_time('  ' .. cfg.zone_id .. ': advance eval')
-                local action = fred:get_advance_action(zonedata)
+                local action = fred:get_advance_action(cfg)
                 if action then
                     --print_time(action.action_str)
                     return action
@@ -3767,7 +3715,7 @@ return {
                 -- are taken off the map at this time, so it needs to be checked
                 -- by the function setting up the cfg
                 local action = {
-                    action_str = zonedata.cfg.zone_id .. ': ' .. 'recruit',
+                    action_str = 'recruit',
                     type = 'recruit',
                     outofway_units = cfg.outofway_units
                 }
