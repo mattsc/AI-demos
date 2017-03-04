@@ -40,8 +40,6 @@ return {
         ------ Map analysis at beginning of turn -----------
 
         function fred:get_leader_distance_map()
-            local show_debug = true
-
             local side_cfgs = fred:get_side_cfgs()
             local leader_loc, enemy_leader_loc
             for side,cfg in ipairs(side_cfgs) do
@@ -58,7 +56,7 @@ return {
 
             local dist_btw_leaders = math.sqrt( (enemy_leader_cx - leader_cx)^2 + (enemy_leader_cy - leader_cy)^2 )
 
-            local leader_distance_map, hold_here_map = {}, {}
+            local leader_distance_map = {}
             local width, height = wesnoth.get_map_size()
             for x = 1,width do
                 for y = 1,height do
