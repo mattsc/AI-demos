@@ -1344,6 +1344,7 @@ return {
 
             -- These are only the raw_cfgs of the 3 main zones
             local raw_cfgs = fred:get_raw_cfgs('all')
+            local raw_cfgs_main = fred:get_raw_cfgs()
             --DBG.dbms(raw_cfgs_main)
             --DBG.dbms(fred.data.analysis)
 
@@ -1413,14 +1414,36 @@ return {
             -- Killed enemies should, in principle be already removed, but since
             -- it's quick and easy, we just do it again.
             local threats_by_zone = {}
+            local tmp_enemies = {}
             for zone_id,_ in pairs(raw_cfgs) do
                 if ops_data.assigned_enemies[zone_id] then
                     for enemy_id,_ in pairs(ops_data.assigned_enemies[zone_id]) do
                         if gamedata.enemies[enemy_id] then
                             if (not threats_by_zone[zone_id]) then threats_by_zone[zone_id] = {} end
                             threats_by_zone[zone_id][enemy_id] = gamedata.units[enemy_id]
+                            tmp_enemies[enemy_id] = true
                         end
                     end
+                end
+            end
+
+            -- Also add all other enemies to the three main zones
+            -- Mostly this will just be the leader and enemies on the keep, so
+            -- for the most part, they will be out of reach, but this is important
+            -- for late in the game
+            local other_enemies = {}
+            for enemy_id,loc in pairs(gamedata.enemies) do
+                if (not tmp_enemies[enemy_id]) then
+                    other_enemies[enemy_id] = loc
+                end
+            end
+            tmp_enemies = nil
+            --DBG.dbms(other_enemies)
+
+            for enemy_id,loc in pairs(other_enemies) do
+                for zone_id,_ in pairs(raw_cfgs_main) do
+                    if (not threats_by_zone[zone_id]) then threats_by_zone[zone_id] = {} end
+                    threats_by_zone[zone_id][enemy_id] = loc
                 end
             end
 
