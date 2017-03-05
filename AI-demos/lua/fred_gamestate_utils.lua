@@ -207,9 +207,6 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
                 if (not my_move_map[int_turns][loc[1]][loc[2]].ids) then my_move_map[int_turns][loc[1]][loc[2]].ids = {} end
                 my_move_map[int_turns][loc[1]][loc[2]].units = (my_move_map[int_turns][loc[1]][loc[2]].units or 0) + 1
 
-                local power = unit_infos[id].power
-                my_move_map[int_turns][loc[1]][loc[2]].power = (my_move_map[int_turns][loc[1]][loc[2]].power or 0) + power
-
                 table.insert(my_move_map[int_turns][loc[1]][loc[2]].ids, id)
 
 
@@ -234,16 +231,6 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
                     if (not my_attack_map[int_turns][x][y].ids) then my_attack_map[int_turns][x][y].ids = {} end
 
                     my_attack_map[int_turns][x][y].units = (my_attack_map[int_turns][x][y].units or 0) + 1
-
-                    local power = unit_infos[id].power
-                    my_attack_map[int_turns][x][y].power = (my_attack_map[int_turns][x][y].power or 0) + power
-
-                    if (not my_attack_map[int_turns][x][y].power_no_leader) then
-                        my_attack_map[int_turns][x][y].power_no_leader = 0
-                    end
-                    if (not unit_copy.canrecruit) then
-                        my_attack_map[int_turns][x][y].power_no_leader = my_attack_map[int_turns][x][y].power_no_leader + power
-                    end
 
                     table.insert(my_attack_map[int_turns][x][y].ids, id)
 
@@ -443,16 +430,6 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
                 if (not enemy_attack_map[int_turns][x][y].ids) then enemy_attack_map[int_turns][x][y].ids = {} end
 
                 enemy_attack_map[int_turns][x][y].units = (enemy_attack_map[int_turns][x][y].units or 0) + 1
-
-                local power = unit_infos[enemy_id].power
-                enemy_attack_map[int_turns][x][y].power = (enemy_attack_map[int_turns][x][y].power or 0) + power
-
-                if (not enemy_attack_map[int_turns][x][y].power_no_leader) then
-                    enemy_attack_map[int_turns][x][y].power_no_leader = 0
-                end
-                if (not unit_copies[enemy_id].canrecruit) then
-                    enemy_attack_map[int_turns][x][y].power_no_leader = enemy_attack_map[int_turns][x][y].power_no_leader + power
-                end
 
                 table.insert(enemy_attack_map[int_turns][x][y].ids, enemy_id)
 

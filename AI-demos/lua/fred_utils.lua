@@ -538,10 +538,6 @@ function fred_utils.single_unit_info(unit_proxy)
         end
 
 
-        local power = fred_utils.unit_power(single_unit_info)
-        single_unit_info.power = power
-
-
         -- Define what "good terrain" means for a unit
         local defense = H.get_child(unit_proxy.__cfg, "defense")
 

@@ -2479,7 +2479,7 @@ return {
             else
                 for id,_ in pairs(gamedata.my_units_MP) do
                     if (not gamedata.unit_infos[id].canrecruit) then
-                        holders[id] = gamedata.unit_infos[id].power
+                        holders[id] = FU.unit_base_power(gamedata.unit_infos[id])
                     end
                 end
             end
@@ -3321,7 +3321,7 @@ return {
             else
                 for id,_ in pairs(gamedata.my_units_MP) do
                     if (not gamedata.unit_infos[id].canrecruit) then
-                        advancers[id] = gamedata.unit_infos[id].power
+                        advancers[id] = FU.unit_base_power(gamedata.unit_infos[id])
                     end
                 end
             end
