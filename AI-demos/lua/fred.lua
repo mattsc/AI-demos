@@ -1528,8 +1528,9 @@ return {
             local base_ratings = {
                 village_grab = 9000,
                 attack = 8000,
-                hold = 7000,
-                advance = 1000
+                fav_attack = 7000,
+                hold = 3000,
+                advance = 2000
             }
 
             -- TODO: might want to do something more complex (e.g using local info) in ops layer
@@ -1568,6 +1569,16 @@ return {
                     end
                 end
             end
+
+            table.insert(fred.data.zone_cfgs, {
+                zone_id = 'all_map',
+
+                action_type = 'attack',
+                rating = base_ratings.fav_attack,
+                value_ratio = 2.0 -- only very favorable attacks will pass this
+            })
+
+
             --DBG.dbms(fred.data.zone_cfgs)
 
             -- Now sort by the ratings embedded in the cfgs
@@ -1622,8 +1633,10 @@ return {
 
             -- Attackers is everybody in zone_cfg.zone_units is set,
             -- or all units with attacks left otherwise
-            local zone_units_attacks = zone_cfg.zone_units
-            if (not zone_units_attacks) then
+            local zone_units_attacks = {}
+            if zone_cfg.zone_units then
+                zone_units_attacks = zone_cfg.zone_units
+            else
                 for id,loc in pairs(gamedata.my_units) do
                     local is_leader_and_off_keep = false
                     if gamedata.unit_infos[id].canrecruit then
