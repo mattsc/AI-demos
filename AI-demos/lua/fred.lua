@@ -1311,7 +1311,6 @@ return {
             for i = #ops_data.prerecruit.units,1,-1 do
                 local x, y = ops_data.prerecruit.units[i].recruit_hex[1], ops_data.prerecruit.units[i].recruit_hex[2]
                 local id = FU.get_fgumap_value(gamedata.my_unit_map, x, y, 'id')
-                print(x,y,id)
                 if id and gamedata.my_units_noMP[id] then
                     table.remove(ops_data.prerecruit.units, i)
                 end
