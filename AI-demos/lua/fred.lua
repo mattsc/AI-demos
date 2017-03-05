@@ -1234,9 +1234,20 @@ return {
                     ops_data.assigned_units[zone_id][id] = gamedata.units[id]
                 end
             end
-            for zone_id,units in pairs(ops_data.assigned_enemies) do
-                for id,_ in pairs(units) do
+            for zone_id,units in pairs(ops_data.assigned_units) do
+                if (not next(units)) then
+                    ops_data.assigned_units[zone_id] = nil
+                end
+            end
+
+            for zone_id,enemies in pairs(ops_data.assigned_enemies) do
+                for id,_ in pairs(enemies) do
                     ops_data.assigned_enemies[zone_id][id] = gamedata.units[id]
+                end
+            end
+            for zone_id,enemies in pairs(ops_data.assigned_enemies) do
+                if (not next(enemies)) then
+                    ops_data.assigned_enemies[zone_id] = nil
                 end
             end
 
@@ -1305,6 +1316,12 @@ return {
             -- TODO: well, do this later
             for zone_id,locs in pairs(protect_locs) do
                 ops_data.protect_locs[zone_id] = locs
+            end
+
+            -- However, remove the leader_threat protect_locs if no threats are left
+            -- TODO: can this be combined with the other zones?
+            if (not ops_data.assigned_enemies.leader_threat) then
+                ops_data.protect_locs.leader_threat = {}
             end
 
             -- Remove prerecruit actions, if the hexes are not available any more
