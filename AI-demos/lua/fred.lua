@@ -1474,7 +1474,7 @@ return {
                         action_type = 'attack',
                         zone_units = attackers_by_zone[zone_id],
                         targets = threats_by_zone[zone_id],
-                        value_ratio = 0.7, -- more aggressive for direct leader threats, but not too much
+                        value_ratio = 0.6, -- more aggressive for direct leader threats, but not too much
                         rating = leader_base_ratings.attack
                     })
                 end
