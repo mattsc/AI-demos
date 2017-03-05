@@ -331,8 +331,7 @@ function fred_utils.get_value_ratio(gamedata)
     local my_power = 0
     for id,loc in pairs(gamedata.my_units) do
         if (not gamedata.unit_infos[id].canrecruit) then
-            --print(id, gamedata.unit_infos[id].power)
-            my_power = my_power + gamedata.unit_infos[id].power
+            my_power = my_power + fred_utils.unit_current_power(gamedata.unit_infos[id])
         end
     end
 
@@ -340,25 +339,13 @@ function fred_utils.get_value_ratio(gamedata)
     local enemy_power = 0
     for id,loc in pairs(gamedata.enemies) do
         if (not gamedata.unit_infos[id].canrecruit) then
-            --print(id, gamedata.unit_infos[id].power)
-            enemy_power = enemy_power + gamedata.unit_infos[id].power
+            enemy_power = enemy_power + fred_utils.unit_current_power(gamedata.unit_infos[id])
         end
     end
-
     --print(' -----> enemy_power, my_power, enemy_power / my_power', enemy_power, my_power, enemy_power / my_power)
 
     local value_ratio = fred_utils.cfg_default('value_ratio')
     --print('default value_ratio', value_ratio)
-
-    -- If power_ratio is smaller than 0.8 (= 1/1.25), we can use a smaller than
-    -- unity, but we do want it to be larger than the power ratio
-    -- TODO: this equation is experimental so far, needs to be tested
-
-    --local tmp_value_ratio = my_power / (enemy_power + 1e-6) -- this is inverse of value_ratio
-    --tmp_value_ratio = tmp_value_ratio - 0.25
-    --if (tmp_value_ratio <= 0) then tmp_value_ratio = 0.01 end
-    --tmp_value_ratio = 1. / tmp_value_ratio
-    --print('tmp_value_ratio', tmp_value_ratio)
 
     local tmp_value_ratio = enemy_power / my_power
 
