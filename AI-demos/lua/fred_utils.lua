@@ -365,11 +365,6 @@ function fred_utils.get_value_ratio(gamedata)
     if (tmp_value_ratio < value_ratio) then
         value_ratio = tmp_value_ratio
     end
-
-    if (value_ratio < 0.6) then
-        value_ratio = 0.6
-    end
-
     --print('value_ratio', value_ratio)
 
     return value_ratio, my_power, enemy_power
