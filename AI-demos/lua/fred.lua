@@ -1437,8 +1437,8 @@ return {
                     move_to_keep = 34000,
                     recruit = 33000,
                     move_to_village = 32000,
-                    hold = 31000,
-                    advance = 30000
+                    hold = 4100,
+                    advance = 4000
                 }
 
                 local zone_id = 'leader_threat'
