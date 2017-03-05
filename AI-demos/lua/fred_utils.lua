@@ -275,16 +275,6 @@ function fred_utils.unit_value(unit_info, cfg)
     return unit_value
 end
 
-function fred_utils.unit_power(unit_info, cfg)
-    -- Use sqrt() here so that just missing a few HP does not matter much
-    local hp_mod = math.sqrt(unit_info.hitpoints / unit_info.max_hitpoints)
-
-    local power = fred_utils.unit_value(unit_info, cfg)
-    power = power * hp_mod * unit_info.tod_mod
-
-    return power
-end
-
 function fred_utils.unit_base_power(unit_info)
     -- Use sqrt() here so that just missing a few HP does not matter much
     local hp_mod = math.sqrt(unit_info.hitpoints / unit_info.max_hitpoints)
