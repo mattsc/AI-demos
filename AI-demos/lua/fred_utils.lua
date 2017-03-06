@@ -347,22 +347,6 @@ function fred_utils.get_value_ratio(gamedata)
     return value_ratio, my_power, enemy_power
 end
 
-function fred_utils.get_hit_chance(id, x, y, gamedata)
-    -- TODO: This ignores steadfast and marksman, might be added later
-
-    local hit_chance = FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
-    hit_chance = 1 - hit_chance
-
-    -- If this is a village, give a bonus
-    -- TODO: do this more quantitatively
-    if gamedata.village_map[x] and gamedata.village_map[x][y] then
-        hit_chance = hit_chance - 0.15
-        if (hit_chance < 0) then hit_chance = 0 end
-    end
-
-    return hit_chance
-end
-
 function fred_utils.moved_toward_zone(unit_copy, zone_cfgs, side_cfgs)
     --print(unit_copy.id, unit_copy.x, unit_copy.y)
 
