@@ -2343,8 +2343,11 @@ return {
                                 local min_outcome = counter_min_hp - max_damage_attack
                                 --print('Leader: min_outcome, counter_min_hp, max_damage_attack', min_outcome, counter_min_hp, max_damage_attack)
 
-                                if (min_outcome < 0.5) then
-                                    FU.print_debug(show_debug_attack, '       leader: counter attack min_outcome too low', min_outcome)
+                                local av_outcome = counter_stats.def_stat.average_hp
+                                --print('Leader: av_outcome', av_outcome)
+
+                                if (min_outcome < 0.5) or (av_outcome < attacker.max_hitpoints / 2) then
+                                    FU.print_debug(show_debug_attack, '       leader: counter attack outcome too low', min_outcome)
                                     acceptable_counter = false
                                     FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                                     break
