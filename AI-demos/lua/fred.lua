@@ -1069,6 +1069,7 @@ return {
                     end
                     local zone_rating = data.power_missing * math.sqrt(ratio)
                     --print(zone_id, data.power_missing .. '/' .. data.power_needed .. ' = ' .. ratio, zone_rating)
+                    --print('  zone_rating', zone_rating)
 
                     for id,unit_zone_ratings in pairs(unit_ratings) do
                         local unit_rating = 0
@@ -1076,6 +1077,7 @@ return {
                         if unit_zone_ratings[zone_id] and unit_zone_ratings[zone_id].rating then
                             unit_zone_rating = unit_zone_ratings[zone_id].rating
                             unit_rating = unit_zone_rating * zone_rating
+                            --print('  ' .. id, unit_zone_rating, zone_rating, unit_rating)
                         end
 
                         local inertia = 0
@@ -1083,7 +1085,11 @@ return {
                             inertia = 0.5 * FU.unit_base_power(gamedata.unit_infos[id]) * unit_zone_rating
                         end
                         -- Every unit also counts as pre-assigned in the leader_threat zone
-                        if (zone_id == 'leader_threat') and significant_threat then
+                        -- if there is power missing in that zone
+                        if (zone_id == 'leader_threat')
+                            and significant_threat
+                            and (data.power_missing > 0)
+                        then
                             inertia = 0.5 * FU.unit_base_power(gamedata.unit_infos[id]) * unit_zone_rating
                         end
 
@@ -1093,7 +1099,7 @@ return {
                             best_zone = zone_id
                             best_unit = id
                         end
-                        --print('  ' .. id, inertia, unit_rating)
+                        --print('  ' .. id, unit_rating, inertia)
                     end
                 end
 
