@@ -1317,7 +1317,22 @@ return {
                 ops_data.protect_locs[zone_id] = locs
             end
 
-            -- However, remove the leader_threat protect_locs if no threats are left
+            -- If the leader has no moves left, reset leader protect_locs to current position
+            -- This is in case the leader is used in an attack
+            -- TODO: we might also have to recalculate the assigned units in this case
+            if ops_data.protect_locs.leader_threat then
+                local leader = gamedata.leaders[wesnoth.current.side]
+                if (gamedata.unit_copies[leader.id].moves == 0) then
+                    local ld = FU.get_fgumap_value(gamedata.leader_distance_map, leader[1], leader[2], 'distance')
+                    ops_data.protect_locs.leader_threat = {
+                        protect_leader = true,
+                        hold_leader_distance = { min = ld, max = ld },
+                        locs = { { leader[1], leader[2] } }
+                    }
+                end
+            end
+
+            -- Remove the leader_threat protect_locs if no threats are left
             -- TODO: can this be combined with the other zones?
             if (not ops_data.assigned_enemies.leader_threat) then
                 ops_data.protect_locs.leader_threat = {}
