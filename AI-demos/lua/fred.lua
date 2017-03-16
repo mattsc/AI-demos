@@ -821,7 +821,7 @@ return {
 
                 prerecruit = fred:prerecruit_units(closest_keep, outofway_units)
                 -- Need to do this, or the recruit CA will try to recruit the same units again later
-                fred:clear_prerecruit_units()
+                fred:clear_prerecruit()
             end
             --DBG.dbms(prerecruit)
 

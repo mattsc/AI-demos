@@ -654,12 +654,8 @@ return {
             return recruit_data.recruit.prerecruit
         end
 
-        function ai_cas:clear_prerecruit_units()
-                recruit_data.recruit.prerecruit = {
-                    loc = from_loc,
-                    total_cost = 0,
-                    units = {}
-                }
+        function ai_cas:clear_prerecruit()
+                recruit_data = {}
         end
 
         -- recruit a unit
