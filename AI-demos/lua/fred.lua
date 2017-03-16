@@ -2700,6 +2700,12 @@ return {
                 end
             end
 
+            local leader = gamedata.leaders[wesnoth.current.side]
+            local leader_on_keep = false
+            if (wesnoth.get_terrain_info(wesnoth.get_terrain(leader[1], leader[2])).keep) then
+                leader_on_keep = true
+            end
+
             local pre_rating_maps = {}
             for id,_ in pairs(holders) do
                 --print('\n' .. id, zone_cfg.zone_id)
@@ -2719,9 +2725,15 @@ return {
                         end
                     end
 
-                    -- TODO: probably want to us an actual move-distance map, rather than cartesian distances
-                    if (not can_hit) then
+                    -- Do not move the leader out of the way, if he's on a keep
+                    -- TODO: this is duplicated below; better way of doing this?
+                    local moves_leader_off_keep = false
+                    if leader_on_keep and (id ~= leader.id) and (x == leader[1]) and (y == leader[2]) then
+                        moves_leader_off_keep = true
+                    end
 
+                    -- TODO: probably want to us an actual move-distance map, rather than cartesian distances
+                    if (not can_hit) and (not moves_leader_off_keep) then
                         local eld1 = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'enemy_leader_distance')
                         local eld2 = FU.get_fgumap_value(gamedata.enemy_leader_distance_maps[unit_type], x, y, 'cost')
                         local eld = (eld1 + eld2) / 2
@@ -2750,6 +2762,12 @@ return {
                                 move_here = false
                             end
                         end
+                    end
+
+                    -- Do not move the leader out of the way, if he's on a keep
+                    -- TODO: this is duplicated above; better way of doing this?
+                    if leader_on_keep and (id ~= leader.id) and (x == leader[1]) and (y == leader[2]) then
+                        move_here = false
                     end
 
                     local my_defense = FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
