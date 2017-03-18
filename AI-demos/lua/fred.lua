@@ -2692,11 +2692,13 @@ return {
             local protect_locs = fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs
 
             local between_map
-            if protect_leader then
-                between_map = fred:get_between_map(protect_locs, fred.data.ops_data.assigned_enemies.leader_threat, gamedata)
+            if protect_locs and fred.data.ops_data.assigned_enemies[zone_cfg.zone_id] then
+                between_map = fred:get_between_map(protect_locs, fred.data.ops_data.assigned_enemies[zone_cfg.zone_id], gamedata)
 
                 if false then
                     FU.show_fgumap_with_message(between_map, 'distance', 'Between map')
+                    FU.show_fgumap_with_message(fred.data.gamedata.leader_distance_map, 'distance', 'leader distance')
+                    FU.show_fgumap_with_message(fred.data.gamedata.leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
                 end
             end
 
@@ -2941,12 +2943,20 @@ return {
                     for x,y,data in FU.fgumap_iter(pre_rating_maps[id]) do
                         local hold_here = true
                         if hold_leader_distance then
-                            local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
-                            local dld = ld - hold_leader_distance.min
 
-                            -- TODO: this is likely too simplistic
-                            if (dld < -2) then
-                                hold_here = false
+                            if between_map then
+                                local btw_dist = FU.get_fgumap_value(between_map, x, y, 'distance')
+                                if (btw_dist < -2) then
+                                    hold_here = false
+                                end
+                            else
+                                local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
+                                local dld = ld - hold_leader_distance.min
+
+                                -- TODO: this is likely too simplistic
+                                if (dld < -2) then
+                                    hold_here = false
+                                end
                             end
                         end
 
@@ -3108,11 +3118,17 @@ return {
                             local vuln_rating = base_rating + v_fac
 
                             local uncropped_ratio = FU.get_fgumap_value(pre_rating_maps[id], x, y, 'uncropped_ratio')
-                            local eld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'enemy_leader_distance')
-                            local forward_rating = (uncropped_ratio - 1) * 0.01 * (-eld)
-                            vuln_rating = vuln_rating + forward_rating
-                            --print('uncropped_ratio', x, y, uncropped_ratio, eld, forward_rating)
 
+                            local dist
+                            if between_map then
+                                dist = FU.get_fgumap_value(between_map, x, y, 'distance')
+                            else
+                                dist = - FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'enemy_leader_distance')
+                            end
+
+                            local forward_rating = (uncropped_ratio - 1) * 0.01 * dist
+                            vuln_rating = vuln_rating + forward_rating
+                            --print('uncropped_ratio', x, y, uncropped_ratio, dist, forward_rating)
 
                             if (not hold_rating_maps[id]) then
                                 hold_rating_maps[id] = {}
@@ -3129,12 +3145,17 @@ return {
                             local rating2 = FU.get_fgumap_value(unit_rating_maps[id], x, y, 'rating2')
                             local protect_rating = rating2 + vuln / max_vuln / 20
 
-                            local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
-                            local dld = ld - hold_leader_distance.max
+                            local d_dist
+                            if between_map then
+                                d_dist = FU.get_fgumap_value(between_map, x, y, 'distance')
+                            else
+                                local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
+                                d_dist = ld - hold_leader_distance.max
+                            end
 
                             -- TODO: this is likely too simplistic
-                            if (dld > 2) then
-                                protect_rating = protect_rating - (dld - 2) / 20
+                            if (d_dist > 2) then
+                                protect_rating = protect_rating - (d_dist - 2) / 20
                             end
 
                             if protect_leader then
@@ -3246,7 +3267,7 @@ return {
                 --DBG.dbms(hold_combos)
                 --print('#hold_combos', #hold_combos)
 
-                best_hold_combo = UHC.find_best_combo(hold_combos, hold_ratings, 'vuln_rating', adjacent_village_map, gamedata, cfg_best_combo_hold)
+                best_hold_combo = UHC.find_best_combo(hold_combos, hold_ratings, 'vuln_rating', adjacent_village_map, between_map, gamedata, cfg_best_combo_hold)
             end
 
             local best_protect_combo, unprotected_best_protect_combo, protect_dst_src, protect_ratings
@@ -3257,7 +3278,7 @@ return {
                 --DBG.dbms(protect_combos)
                 --print('#protect_combos', #protect_combos)
 
-                best_protect_combo, unprotected_best_protect_combo = UHC.find_best_combo(protect_combos, protect_ratings, 'protect_rating', adjacent_village_map, gamedata, cfg_best_combo_protect)
+                best_protect_combo, unprotected_best_protect_combo = UHC.find_best_combo(protect_combos, protect_ratings, 'protect_rating', adjacent_village_map, between_map, gamedata, cfg_best_combo_protect)
 
                 -- If no combo that protects the location was found, use the best of the others
                 if (not best_protect_combo) then

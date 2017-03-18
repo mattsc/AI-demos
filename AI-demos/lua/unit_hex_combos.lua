@@ -339,7 +339,7 @@ end
 
 
 
-function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, gamedata, cfg)
+function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, between_map, gamedata, cfg)
     -- This currently only returns a combo with the max number of units
     -- TODO: does this need to be ammended?
 
@@ -399,7 +399,13 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, gamedat
             if (min_dist < min_min_dist) then min_min_dist = min_dist end
             if (min_dist > max_min_dist) then max_min_dist = min_dist end
 
-            local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
+
+            local ld
+            if between_map then
+                ld = FU.get_fgumap_value(between_map, x, y, 'distance')
+            else
+                ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
+            end
             if (not min_ld) or (ld < min_ld) then min_ld = ld end
             if (not max_ld) or (ld > max_ld) then max_ld = ld end
         end
