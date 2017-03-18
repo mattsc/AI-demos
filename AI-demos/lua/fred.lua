@@ -3390,12 +3390,13 @@ return {
             end
             if (not next(advancers)) then return end
 
-            local advance_map = {}
+            local advance_map, zone_map = {}, {}
             local zone = wesnoth.get_locations(raw_cfg.ops_slf)
             for _,loc in ipairs(zone) do
                 if (not FU.get_fgumap_value(gamedata.enemy_attack_map[1], loc[1], loc[2], 'ids')) then
                     FU.set_fgumap_value(advance_map, loc[1], loc[2], 'flag', true)
                 end
+                FU.set_fgumap_value(zone_map, loc[1], loc[2], 'flag', true)
             end
             if false then
                 FU.show_fgumap_with_message(advance_map, 'flag', 'Advance map: ' .. zone_cfg.zone_id)
@@ -3418,6 +3419,18 @@ return {
 
                 local unit_type = gamedata.unit_infos[id].type
 
+                -- If unit cannot reach the zone, it is allowed to stay ~1 hex back
+                -- for each enemy. in this case, a unit gets pulled in from far away
+                -- and should try to get there quickly.
+                -- If it can reach the zone, avoiding enemies is much more important,
+                -- as confronting the enemy is covered by holding
+                local enemy_mult = 1
+                for x,y,_ in FU.fgumap_iter(gamedata.reach_maps[id]) do
+                    if FU.get_fgumap_value(zone_map, x, y, 'flag') then
+                        enemy_mult = 10
+                        break
+                    end
+                end
 
                 for x,y,_ in FU.fgumap_iter(gamedata.reach_maps[id]) do
                     local rating = rating_moves + rating_power
@@ -3435,10 +3448,10 @@ return {
 
                         local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids')
                         if ids then
-                            rating = rating - #ids -- allowed to stay ~1 hex back for each enemy
+                            rating = rating - #ids  * enemy_mult
                         end
 
-                        rating = rating - 10000 -- do not do this unless there is no other option
+                        rating = rating - 1000 -- do not do this unless there is no other option
                     end
 
                     local rating = rating - dist
