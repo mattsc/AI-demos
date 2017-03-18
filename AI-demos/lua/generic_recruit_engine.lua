@@ -656,6 +656,7 @@ return {
 
         function ai_cas:clear_prerecruit()
                 recruit_data = {}
+                recruit_data.recruit = init_data()
         end
 
         -- recruit a unit
