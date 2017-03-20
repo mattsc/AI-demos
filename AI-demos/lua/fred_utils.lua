@@ -354,21 +354,23 @@ function fred_utils.moved_toward_zone(unit_copy, zone_cfgs, side_cfgs)
 
     local to_zone_id, score
     for zone_id,cfg in pairs(zone_cfgs) do
-        local _,cost_new = wesnoth.find_path(unit_copy, cfg.center_hex[1], cfg.center_hex[2], { ignore_units = true })
+        for _,center_hex in ipairs(cfg.center_hexes) do
+            local _,cost_new = wesnoth.find_path(unit_copy, center_hex[1], center_hex[2], { ignore_units = true })
 
-        local old_hex = { unit_copy.x, unit_copy.y }
-        unit_copy.x, unit_copy.y = start_hex[1], start_hex[2]
+            local old_hex = { unit_copy.x, unit_copy.y }
+            unit_copy.x, unit_copy.y = start_hex[1], start_hex[2]
 
-        local _,cost_start = wesnoth.find_path(unit_copy, cfg.center_hex[1], cfg.center_hex[2], { ignore_units = true })
+            local _,cost_start = wesnoth.find_path(unit_copy, center_hex[1], center_hex[2], { ignore_units = true })
 
-        unit_copy.x, unit_copy.y = old_hex[1], old_hex[2]
+            unit_copy.x, unit_copy.y = old_hex[1], old_hex[2]
 
-        local rating = cost_start - cost_new
+            local rating = cost_start - cost_new
 
-        --print('  ' .. zone_id, cost_start, cost_new, rating)
+            --print('  ' .. zone_id, cost_start, cost_new, rating)
 
-        if (not score) or (rating > score) then
-            to_zone_id, score = zone_id, rating
+            if (not score) or (rating > score) then
+               to_zone_id, score = zone_id, rating
+            end
         end
     end
 

@@ -178,20 +178,20 @@ return {
             local cfg_west = {
                 zone_id = 'west',
                 ops_slf = { x = '1-15,1-14,1-21', y = '1-12,13-17,18-24' },
-                center_hex = { 10, 12 },
+                center_hexes = { { 10, 13 } },
                 zone_weight = 1,
             }
 
             local cfg_center = {
                 zone_id = 'center',
-                center_hex = { 19, 12 },
+                center_hexes = { { 18, 12 }, { 20, 12 } },
                 ops_slf = { x = '16-20,16-22,16-23,15-22,15-23', y = '6-7,8-9,10-12,13-17,18-24' },
                 zone_weight = 0.5,
             }
 
             local cfg_east = {
                 zone_id = 'east',
-                center_hex = { 28, 12 },
+                center_hexes = { { 28, 13 } },
                 ops_slf = { x = '21-34,23-34,24-34,23-34,17-34', y = '1-7,8-9,10-12,13-17,18-24' },
                 zone_weight = 1,
             }
@@ -859,7 +859,7 @@ return {
                     --print('max protect ld:', zone_id, max_ld, loc[1], loc[2])
                     goal_hexes[zone_id] = { loc }
                 else
-                    goal_hexes[zone_id] = { cfg.center_hex }
+                    goal_hexes[zone_id] = cfg.center_hexes
                 end
             end
             --DBG.dbms(goal_hexes)
@@ -1169,22 +1169,23 @@ return {
                 --print('most in need: ' .. best_zone_id)
 
                 -- Find the best unit for this zone
-                local x, y = raw_cfgs_main[best_zone_id].center_hex[1], raw_cfgs_main[best_zone_id].center_hex[2]
                 local max_rating, best_id
                 for id,_ in pairs(reserve_units) do
-                    local _, cost = wesnoth.find_path(gamedata.unit_copies[id], x, y, { ignore_units = true })
-                    local turns = math.ceil(cost / gamedata.unit_infos[id].max_moves)
+                    for _,center_hex in ipairs(raw_cfgs_main[best_zone_id].center_hexes) do
+                        local _, cost = wesnoth.find_path(gamedata.unit_copies[id], center_hex[1], center_hex[2], { ignore_units = true })
+                        local turns = math.ceil(cost / gamedata.unit_infos[id].max_moves)
 
-                    -- Significant difference in power can override difference in turns to get there
-                    local power_rating = FU.unit_base_power(gamedata.unit_infos[id])
-                    power_rating = power_rating / 10
+                        -- Significant difference in power can override difference in turns to get there
+                        local power_rating = FU.unit_base_power(gamedata.unit_infos[id])
+                        power_rating = power_rating / 10
 
-                    local rating = - turns + power_rating
-                    --print(id, cost, turns, power_rating)
-                    --print('  --> rating: ' .. rating)
+                        local rating = - turns + power_rating
+                        --print(id, cost, turns, power_rating)
+                        --print('  --> rating: ' .. rating)
 
-                    if (not max_rating) or (rating > max_rating) then
-                        max_rating, best_id = rating, id
+                        if (not max_rating) or (rating > max_rating) then
+                            max_rating, best_id = rating, id
+                        end
                     end
                 end
                 --print('best:', best_zone_id, best_id)
@@ -1211,7 +1212,7 @@ return {
                 prerecruit = prerecruit
             }
             --DBG.dbms(fred.data.ops_data)
-            --DBG.dbms(fred.data.ops_data.prerecruit)
+            --DBG.dbms(fred.data.ops_data.assigned_units)
 
             FU.print_debug(show_debug_analysis, '--- Done determining turn_data ---\n')
         end
@@ -3444,7 +3445,14 @@ return {
                         -- This part is really just a backup, in case a unit cannot get to
                         -- the zone it is assigned to. It's very crude, but it should not
                         -- happen too often, so hopefully it's good enough.
-                        dist = H.distance_between(x, y, raw_cfg.center_hex[1], raw_cfg.center_hex[2])
+                        local min_dist
+                        for _,center_hex in ipairs(raw_cfg.center_hexes) do
+                            d = H.distance_between(x, y, center_hex[1], center_hex[2])
+                            if (not min_dist) or (d < min_dist) then
+                                min_dist = d
+                            end
+                        end
+                        dist = min_dist
 
                         local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids')
                         if ids then
