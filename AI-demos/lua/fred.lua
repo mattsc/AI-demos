@@ -3529,6 +3529,7 @@ return {
                     end
                 end
 
+                local cost_map
                 for x,y,_ in FU.fgumap_iter(gamedata.reach_maps[id]) do
                     local rating = rating_moves + rating_power
 
@@ -3539,16 +3540,30 @@ return {
                         dist = (ld1 + ld2) / 2
                     else
                         -- This part is really just a backup, in case a unit cannot get to
-                        -- the zone it is assigned to. It's very crude, but it should not
-                        -- happen too often, so hopefully it's good enough.
-                        local min_dist
-                        for _,center_hex in ipairs(raw_cfg.center_hexes) do
-                            d = H.distance_between(x, y, center_hex[1], center_hex[2])
-                            if (not min_dist) or (d < min_dist) then
-                                min_dist = d
+                        -- the zone it is assigned to.
+                        local hexes = raw_cfg.center_hexes
+                        if not cost_map then
+                            cost_map = {}
+                            for _,hex in ipairs(hexes) do
+                                local cm = wesnoth.find_cost_map(
+                                    { x = -1 }, -- SUF not matching any unit
+                                    { { hex[1], hex[2], wesnoth.current.side, fred.data.gamedata.unit_infos[id].type } },
+                                    { ignore_units = true }
+                                )
+
+                                for _,cost in pairs(cm) do
+                                    if (cost[3] > -1) then
+                                       local c = FU.get_fgumap_value(cost_map, cost[1], cost[2], 'cost', 0)
+                                       FU.set_fgumap_value(cost_map, cost[1], cost[2], 'cost', c + cost[3])
+                                    end
+                                end
+                            end
+                            if false then
+                                FU.show_fgumap_with_message(cost_map, 'cost', 'cost_map')
                             end
                         end
-                        dist = min_dist
+
+                        dist = FU.get_fgumap_value(cost_map, x, y, 'cost')
 
                         local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids')
                         if ids then
