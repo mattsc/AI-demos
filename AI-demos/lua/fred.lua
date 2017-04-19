@@ -1008,7 +1008,7 @@ return {
                                 --print('      frac_taken 2', frac_taken)
                                 --if (frac_taken > 1) then frac_taken = 1 end
                                 --if (frac_taken < 0) then frac_taken = 0 end
-                                av_damage_taken = av_damage_taken + enemy_weight * frac_taken * gamedata.unit_infos[id].max_hitpoints
+                                av_damage_taken = av_damage_taken + enemy_weight * frac_taken * gamedata.unit_infos[id].hitpoints
 
                                 local frac_done = enemy.damage_done - enemy.enemy_regen
                                 frac_done = frac_done / gamedata.unit_infos[enemy.enemy_id].hitpoints
@@ -1017,7 +1017,7 @@ return {
                                 --print('      frac_done 2', frac_done)
                                 --if (frac_done > 1) then frac_done = 1 end
                                 --if (frac_done < 0) then frac_done = 0 end
-                                av_damage_done = av_damage_done + enemy_weight * frac_done * gamedata.unit_infos[enemy.enemy_id].max_hitpoints
+                                av_damage_done = av_damage_done + enemy_weight * frac_done * gamedata.unit_infos[enemy.enemy_id].hitpoints
 
                                 --print('  ', av_damage_taken, av_damage_done, cum_weight)
                             end
@@ -1089,8 +1089,8 @@ return {
                     end
 
                     local total_rating = ratings.this_zone
-                    if max_other_zone then
-                        total_rating = total_rating / math.sqrt(max_other_zone / ratings.this_zone)
+                    if max_other_zone and (total_rating > max_other_zone) then
+                        total_rating = total_rating / math.sqrt(max_other_zone / total_rating)
                     end
                     -- TODO: might or might not want to normalize this again
                     -- currently don't think it's needed
@@ -1102,10 +1102,30 @@ return {
             --DBG.dbms(unit_ratings)
 
 
+            local n_enemies = {}
+            for zone_id,enemies in pairs(assigned_enemies) do
+                local n = 0
+                for _,_ in pairs(enemies) do
+                    n = n + 1
+                end
+                n_enemies[zone_id] = n
+            end
+            --DBG.dbms(n_enemies)
+
             local keep_trying = true
             while keep_trying do
                 keep_trying = false
                 --print()
+
+                local n_units = {}
+                for zone_id,units in pairs(assigned_units) do
+                    local n = 0
+                    for _,_ in pairs(units) do
+                        n = n + 1
+                    end
+                    n_units[zone_id] = n
+                end
+                --DBG.dbms(n_units)
 
                 local max_rating, best_zone, best_unit
                 for zone_id,data in pairs(power_stats.zones) do
@@ -1115,7 +1135,11 @@ return {
                     if (data.power_needed > 0) then
                         ratio = data.power_missing / data.power_needed
                     end
-                    local zone_rating = data.power_missing * math.sqrt(ratio)
+
+                    local zone_rating = data.power_missing
+                    if ((n_units[zone_id] or 0) + 1 >= (n_enemies[zone_id] or 0)) then
+                        zone_rating = zone_rating * math.sqrt(ratio)
+                    end
                     --print(zone_id, data.power_missing .. '/' .. data.power_needed .. ' = ' .. ratio, zone_rating)
                     --print('  zone_rating', zone_rating)
 
