@@ -3542,6 +3542,12 @@ return {
                         -- This part is really just a backup, in case a unit cannot get to
                         -- the zone it is assigned to.
                         local hexes = raw_cfg.center_hexes
+                        if fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs
+                            and fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs[1]
+                        then
+                            hexes = fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs
+                        end
+
                         if not cost_map then
                             cost_map = {}
                             for _,hex in ipairs(hexes) do
