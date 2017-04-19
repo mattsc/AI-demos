@@ -3591,7 +3591,7 @@ return {
                         end
                     end
 
-                    if owner then
+                    if owner and (not gamedata.unit_infos[id].abilities.regenerate) then
                         rating = rating + hp_rating
                     end
 
