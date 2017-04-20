@@ -245,8 +245,16 @@ return {
             -- Combine 'east' and 'center' zones, if needed
             -- TODO: not sure whether it is better to do this earlier
             -- TODO: set this up to be configurable by the cfgs
+            local raw_cfgs_main = fred:get_raw_cfgs()
             local raw_cfg_top = fred:get_raw_cfgs('top')
             --DBG.dbms(raw_cfg_top)
+
+            actions.hold_zones = {}
+            for zone_id,_ in pairs(raw_cfgs_main) do
+                if assigned_units[zone_id] then
+                    actions.hold_zones[zone_id] = true
+                end
+            end
 
             local replace_zones = false
             for _,zone_id in ipairs(raw_cfg_top.replace_zones) do
@@ -1277,14 +1285,7 @@ return {
             --DBG.dbms(power_stats)
 
 
-            actions.hold_zones = {}
-            for zone_id,_ in pairs(assigned_units) do
-                actions.hold_zones[zone_id] = true
-            end
-
-
             fred:replace_zones(assigned_units, assigned_enemies, protect_locs, actions)
-
 
 
             fred.data.ops_data = {
