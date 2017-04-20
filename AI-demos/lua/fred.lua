@@ -1412,9 +1412,18 @@ return {
             -- Also update the protect locations, as a location might not be threatened
             -- any more
             ops_data.protect_locs = FVU.protect_locs(villages_to_protect_maps, gamedata)
-            end
-
             fred:replace_zones(ops_data.assigned_units, ops_data.assigned_enemies, ops_data.protect_locs, ops_data.actions)
+
+
+            -- Once the leader has no MP left, we reconsider the leader threats
+            local leader_proxy = wesnoth.get_unit(gamedata.leader_x, gamedata.leader_y)
+            if (leader_proxy.moves == 0) then
+                print('---- leader has moved ----')
+                ops_data.leader_threats.leader_locs = {}
+                ops_data.leader_threats.protect_locs = { { leader_proxy.x, leader_proxy.y } }
+
+                fred:assess_leader_threats(ops_data.leader_threats, ops_data.protect_locs, leader_proxy, raw_cfgs_main, side_cfgs, gamedata)
+            end
 
 
             -- Remove prerecruit actions, if the hexes are not available any more
