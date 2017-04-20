@@ -3553,15 +3553,39 @@ return {
                     else
                         -- This part is really just a backup, in case a unit cannot get to
                         -- the zone it is assigned to.
-                        local hexes = raw_cfg.center_hexes
-                        if fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs
-                            and fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs[1]
-                        then
-                            hexes = fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs
-                        end
 
                         if not cost_map then
                             cost_map = {}
+
+                            local hexes = {}
+                            -- Cannot just assign here, as we do not want to change the input tables later
+                            if fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs
+                                and fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs[1]
+                            then
+                                for _,loc in ipairs(fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs) do
+                                    table.insert(hexes, loc)
+                                end
+                            else
+                                for _,loc in ipairs(raw_cfg.center_hexes) do
+                                    table.insert(hexes, loc)
+                                end
+                            end
+
+                            local include_leader_locs = false
+                            if fred.data.ops_data.assigned_enemies[zone_cfg.zone_id] and fred.data.ops_data.leader_threats.enemies then
+                                for enemy_id,_ in pairs(fred.data.ops_data.assigned_enemies[zone_cfg.zone_id]) do
+                                    if fred.data.ops_data.leader_threats.enemies[enemy_id] then
+                                        include_leader_locs = true
+                                        break
+                                    end
+                                end
+                            end
+                            if include_leader_locs then
+                                for _,loc in ipairs(fred.data.ops_data.leader_threats.protect_locs) do
+                                    table.insert(hexes, loc)
+                                end
+                            end
+
                             for _,hex in ipairs(hexes) do
                                 local cm = wesnoth.find_cost_map(
                                     { x = -1 }, -- SUF not matching any unit
