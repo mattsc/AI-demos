@@ -1411,9 +1411,7 @@ return {
 
             -- Also update the protect locations, as a location might not be threatened
             -- any more
-            local protect_locs = FVU.protect_locs(villages_to_protect_maps, gamedata)
-            for zone_id,locs in pairs(protect_locs) do
-                ops_data.protect_locs[zone_id] = locs
+            ops_data.protect_locs = FVU.protect_locs(villages_to_protect_maps, gamedata)
             end
 
             fred:replace_zones(ops_data.assigned_units, ops_data.assigned_enemies, ops_data.protect_locs, ops_data.actions)
