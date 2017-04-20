@@ -379,6 +379,125 @@ return {
         end
 
 
+        function fred:assess_leader_threats(leader_threats, protect_locs, leader_proxy, raw_cfgs_main, side_cfgs, gamedata)
+            -- Threat are all enemies that can attack the castle or any of the protect_locations
+            leader_threats.enemies = {}
+            for x,y,_ in FU.fgumap_iter(gamedata.reachable_castles_map[wesnoth.current.side]) do
+                local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids', {})
+                for _,id in ipairs(ids) do
+                    leader_threats.enemies[id] = gamedata.units[id]
+                end
+            end
+            for _,loc in ipairs(leader_threats.protect_locs) do
+                local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], loc[1], loc[2], 'ids', {})
+                for _,id in ipairs(ids) do
+                    leader_threats.enemies[id] = gamedata.units[id]
+                end
+            end
+            --DBG.dbms(leader_threats)
+
+            -- Only enemies closer than the farther hex to be protected in each zone
+            -- count as leader threats. This is in order to prevent a disproportionate
+            -- response to individual scouts etc.
+            local threats_by_zone = {}
+            for id,_ in pairs(leader_threats.enemies) do
+                local unit_copy = gamedata.unit_copies[id]
+                local zone_id = FU.moved_toward_zone(unit_copy, raw_cfgs_main, side_cfgs)
+
+                if (not threats_by_zone[zone_id]) then
+                    threats_by_zone[zone_id] = {}
+                end
+
+                local loc = gamedata.enemies[id]
+                threats_by_zone[zone_id][id] = FU.get_fgumap_value(gamedata.leader_distance_map, loc[1], loc[2], 'distance')
+            end
+            --DBG.dbms(threats_by_zone)
+
+            for zone_id,threats in pairs(threats_by_zone) do
+                local hold_ld = 9999
+                if protect_locs[zone_id].hold_leader_distance then
+                    hold_ld = protect_locs[zone_id].hold_leader_distance.max
+                end
+                --print(zone_id, hold_ld)
+
+                local is_threat = false
+                for id,ld in pairs(threats) do
+                    --print('  ' .. id, ld)
+                    if (ld < hold_ld + 1) then
+                        is_threat = true
+                        break
+                    end
+                end
+                --print('    is_threat: ', is_threat)
+
+                if (not is_threat) then
+                    for id,_ in pairs(threats) do
+                        leader_threats.enemies[id] = nil
+                    end
+                end
+            end
+            threats_by_zone = nil
+            --DBG.dbms(leader_threats)
+
+
+            -- Check out how much of a threat these units pose in combination
+            local max_total_loss, av_total_loss = 0, 0
+            --print('    possible damage by enemies in reach (average, max):')
+            for id,_ in pairs(leader_threats.enemies) do
+                local dst
+                local max_defense = 0
+                for xa,ya in H.adjacent_tiles(gamedata.leader_x, gamedata.leader_y) do
+                    local defense = FGUI.get_unit_defense(gamedata.unit_copies[id], xa, ya, gamedata.defense_maps)
+
+                    if (defense > max_defense) then
+                        max_defense = defense
+                        dst = { xa, ya }
+                    end
+                end
+
+                local att_stat, def_stat = FAU.battle_outcome(
+                    gamedata.unit_copies[id], leader_proxy,
+                    dst,
+                    gamedata.unit_infos[id], gamedata.unit_infos[leader_proxy.id],
+                    gamedata, fred.data.move_cache
+                )
+                --DBG.dbms(att_stat)
+                --DBG.dbms(def_stat)
+
+                local min_hp = 9e99
+                for hp,hc in pairs(def_stat.hp_chance) do
+                    if (hc > 0) and (hp < min_hp) then
+                        min_hp = hp
+                    end
+                end
+
+                local max_loss = leader_proxy.hitpoints - min_hp
+                local av_loss = leader_proxy.hitpoints - def_stat.average_hp
+                --print('    ', id, av_loss, max_loss)
+
+                max_total_loss = max_total_loss + max_loss
+                av_total_loss = av_total_loss + av_loss
+            end
+            FU.print_debug(show_debug_analysis, '\nleader: max_total_loss, av_total_loss', max_total_loss, av_total_loss)
+
+            -- We only consider these leader threats, if they either
+            --   - maximum damage reduces current HP by more than 50%
+            --   - average damage is more than 25% of max HP
+            -- Otherwise we assume the leader can deal with them alone
+            leader_threats.significant_threat = false
+            if (max_total_loss >= leader_proxy.hitpoints / 2.) or (av_total_loss >= leader_proxy.max_hitpoints / 4.) then
+                leader_threats.significant_threat = true
+            end
+            FU.print_debug(show_debug_analysis, '  significant_threat', leader_threats.significant_threat)
+
+            -- Only count leader threats if they are significant
+            if (not leader_threats.significant_threat) then
+                leader_threats.enemies = nil
+            end
+            --DBG.dbms(leader_threats)
+        end
+
+
         function fred:set_turn_data()
             FU.print_debug(show_debug_analysis, '\n------------- Setting the turn_data table:')
 
@@ -672,122 +791,7 @@ return {
             end
             --DBG.dbms(leader_threats)
 
-            -- Threat are all enemies that can attack the castle or any of the protect_locations
-            leader_threats.enemies = {}
-            for x,y,_ in FU.fgumap_iter(gamedata.reachable_castles_map[wesnoth.current.side]) do
-                local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids', {})
-                for _,id in ipairs(ids) do
-                    leader_threats.enemies[id] = gamedata.units[id]
-                end
-            end
-            for _,loc in ipairs(leader_threats.protect_locs) do
-                local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], loc[1], loc[2], 'ids', {})
-                for _,id in ipairs(ids) do
-                    leader_threats.enemies[id] = gamedata.units[id]
-                end
-            end
-            --DBG.dbms(leader_threats)
-
-            -- Only enemies closer than the farther hex to be protected in each zone
-            -- count as leader threats. This is in order to prevent a disproportionate
-            -- response to individual scouts etc.
-            local threats_by_zone = {}
-            for id,_ in pairs(leader_threats.enemies) do
-                local unit_copy = gamedata.unit_copies[id]
-                local zone_id = FU.moved_toward_zone(unit_copy, raw_cfgs_main, side_cfgs)
-
-                if (not threats_by_zone[zone_id]) then
-                    threats_by_zone[zone_id] = {}
-                end
-
-                local loc = gamedata.enemies[id]
-                threats_by_zone[zone_id][id] = FU.get_fgumap_value(gamedata.leader_distance_map, loc[1], loc[2], 'distance')
-            end
-            --DBG.dbms(threats_by_zone)
-
-            for zone_id,threats in pairs(threats_by_zone) do
-                local hold_ld = 9999
-                if protect_locs[zone_id].hold_leader_distance then
-                    hold_ld = protect_locs[zone_id].hold_leader_distance.max
-                end
-                --print(zone_id, hold_ld)
-
-                local is_threat = false
-                for id,ld in pairs(threats) do
-                    --print('  ' .. id, ld)
-                    if (ld < hold_ld + 1) then
-                        is_threat = true
-                        break
-                    end
-                end
-                --print('    is_threat: ', is_threat)
-
-                if (not is_threat) then
-                    for id,_ in pairs(threats) do
-                        leader_threats.enemies[id] = nil
-                    end
-                end
-            end
-            threats_by_zone = nil
-            --DBG.dbms(leader_threats)
-
-
-            -- Check out how much of a threat these units pose in combination
-            local max_total_loss, av_total_loss = 0, 0
-            --print('    possible damage by enemies in reach (average, max):')
-            for id,_ in pairs(leader_threats.enemies) do
-                local dst
-                local max_defense = 0
-                for xa,ya in H.adjacent_tiles(gamedata.leader_x, gamedata.leader_y) do
-                    local defense = FGUI.get_unit_defense(gamedata.unit_copies[id], xa, ya, gamedata.defense_maps)
-
-                    if (defense > max_defense) then
-                        max_defense = defense
-                        dst = { xa, ya }
-                    end
-                end
-
-                local att_stat, def_stat = FAU.battle_outcome(
-                    gamedata.unit_copies[id], leader_proxy,
-                    dst,
-                    gamedata.unit_infos[id], gamedata.unit_infos[leader_proxy.id],
-                    gamedata, fred.data.move_cache
-                )
-                --DBG.dbms(att_stat)
-                --DBG.dbms(def_stat)
-
-                local min_hp = 9e99
-                for hp,hc in pairs(def_stat.hp_chance) do
-                    if (hc > 0) and (hp < min_hp) then
-                        min_hp = hp
-                    end
-                end
-
-                local max_loss = leader_proxy.hitpoints - min_hp
-                local av_loss = leader_proxy.hitpoints - def_stat.average_hp
-                --print('    ', id, av_loss, max_loss)
-
-                max_total_loss = max_total_loss + max_loss
-                av_total_loss = av_total_loss + av_loss
-            end
-            FU.print_debug(show_debug_analysis, '\nleader: max_total_loss, av_total_loss', max_total_loss, av_total_loss)
-
-            -- We only consider these leader threats, if they either
-            --   - maximum damage reduces current HP by more than 50%
-            --   - average damage is more than 25% of max HP
-            -- Otherwise we assume the leader can deal with them alone
-            local actions = {}
-            actions.significant_threat = false
-            if (max_total_loss >= leader_proxy.hitpoints / 2.) or (av_total_loss >= leader_proxy.max_hitpoints / 4.) then
-                actions.significant_threat = true
-            end
-            FU.print_debug(show_debug_analysis, '  significant_threat', actions.significant_threat)
-
-            -- Only count leader threats if they are significant
-            if (not actions.significant_threat) then
-                leader_threats.enemies = nil
-            end
-            --DBG.dbms(leader_threats)
+            fred:assess_leader_threats(leader_threats, protect_locs, leader_proxy, raw_cfgs_main, side_cfgs, gamedata)
 
 
             -- Attributing enemy units to zones
@@ -824,7 +828,7 @@ return {
 
             ----- Village goals -----
 
-            actions.villages = {}
+            local actions = { villages = {} }
             local assigned_units = {}
 
             FVU.assign_grabbers(
@@ -847,7 +851,7 @@ return {
             -- certain fraction of their power into the available power in the
             -- leader_threat zone.
             local prerecruit = { units = {} }
-            if actions.significant_threat and closest_keep then
+            if leader_threats.significant_threat and closest_keep then
                 local outofway_units = {}
                 -- Note that the leader is included in the following, as he might
                 -- be on a castle hex other than a keep. His recruit location is
@@ -1159,7 +1163,7 @@ return {
                         -- Every unit also counts as pre-assigned in the leader_threat zone
                         -- if there is power missing in that zone
                         --if (zone_id == 'leader_threat')
-                        --    and actions.significant_threat
+                        --    and leader_threats.significant_threat
                         --    and (data.power_missing > 0)
                         --then
                         --    inertia = 0.5 * FU.unit_base_power(gamedata.unit_infos[id]) * unit_zone_rating
@@ -1561,7 +1565,7 @@ return {
 
             ----- Leader threat actions -----
 
-            if ops_data.actions.significant_threat then
+            if ops_data.leader_threats.significant_threat then
                 local leader_base_ratings = {
                     attack = 35000,
                     move_to_keep = 34000,
