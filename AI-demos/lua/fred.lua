@@ -2660,7 +2660,7 @@ return {
             for enemy_id,_ in pairs(gamedata.enemies) do
                 local xe, ye = gamedata.unit_copies[enemy_id].x, gamedata.unit_copies[enemy_id].y
 
-                for x,y,_ in FU.fgumap_iter(buffered_zone_map) do
+                for x,y,_ in FU.fgumap_iter(zone_map) do
                     --print(x,y)
 
                     local enemy_hcs = {}
