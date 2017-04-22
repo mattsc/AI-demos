@@ -107,6 +107,9 @@ return {
 
 
         function fred:get_between_map(locs, units, gamedata)
+            local add_turns = 0
+            local perp_dist_weight = 0.5
+
             local weights, cum_weight = {}, 0
             for id,_ in pairs(units) do
                 local weight = FU.unit_current_power(gamedata.unit_infos[id])
@@ -119,28 +122,48 @@ return {
             --DBG.dbms(weights)
 
             local between_map = {}
-            for _,loc in ipairs(locs) do
-                local clx, cly = AH.cartesian_coords(loc[1], loc[2])
+            for id,_ in pairs(units) do
+                -- Need reach maps for each unit from its current position
+                -- and from each of the locs
+                local unit_copy = gamedata.unit_copies[id]
+                local old_moves = unit_copy.moves
+                local old_x, old_y = unit_copy.x, unit_copy.y
+                local total_mp = (add_turns + 1) * gamedata.unit_infos[id].max_moves
 
-                for id,_ in pairs(units) do
-                    local unit_loc = gamedata.units[id]
-                    local cux, cuy = AH.cartesian_coords(unit_loc[1], unit_loc[2])
+                unit_copy.moves = unit_copy.max_moves
+                local reach = wesnoth.find_reach(unit_copy, { additional_turns = add_turns, ignore_units = true })
 
-                    local dist_between = math.sqrt( (cux - clx)^2 + (cuy - cly)^2 )
+                for _,loc in ipairs(locs) do
+                    unit_copy.x, unit_copy.y = loc[1], loc[2]
+                    local reach_loc = wesnoth.find_reach(unit_copy, { additional_turns = add_turns, ignore_units = true })
+                    local reach_loc_map = {}
+                    for _,rl in ipairs(reach_loc) do
+                        FU.set_fgumap_value(reach_loc_map, rl[1], rl[2], 'reach_loc', total_mp - rl[3])
+                    end
 
-                    local width, height = wesnoth.get_map_size()
-                    for x = 1,width do
-                        for y = 1,height do
-                            local cx, cy = AH.cartesian_coords(x, y)
+                    local dist_ul
+                    for _,r in ipairs(reach) do
+                        if (r[1] == loc[1]) and (r[2] == loc[2]) then
+                            dist_ul = total_mp - r[3]
+                            break
+                        end
+                    end
 
-                            local dist = math.sqrt( (cux - cx)^2 + (cuy - cy)^2 )
+                    if dist_ul then
+                        for _,r in ipairs(reach) do
+                            local dist_ux = total_mp - r[3]
+                            local dist_lx = FU.get_fgumap_value(reach_loc_map, r[1], r[2], 'reach_loc', total_mp * 2)
 
-                            local sum_dist = FU.get_fgumap_value(between_map, x, y, 'distance', 0)
-                            sum_dist = sum_dist + (dist_between - dist) * weights[id]
-                            FU.set_fgumap_value(between_map, x, y, 'distance', sum_dist)
+                            local rating = dist_ul - dist_ux
+                            rating = rating - perp_dist_weight * (dist_ux + dist_lx - dist_ul)
+                            rating = rating * weights[id]
+                            FU.fgumap_add(between_map, r[1], r[2], 'distance', rating)
                         end
                     end
                 end
+
+                unit_copy.moves = old_moves
+                unit_copy.x, unit_copy.y = old_x, old_y
             end
 
             return between_map
