@@ -134,6 +134,11 @@ function fred_utils.set_fgumap_value(map, x, y, key, value)
     map[x][y][key] = value
 end
 
+function fred_utils.fgumap_add(map, x, y, key, value)
+    local old_value = fred_utils.get_fgumap_value(map, x, y, key, 0)
+    fred_utils.set_fgumap_value(map, x, y, key, old_value + value)
+end
+
 function fred_utils.fgumap_iter(map)
     function each_hex(state)
         while state.x ~= nil do
