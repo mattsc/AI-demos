@@ -1602,7 +1602,7 @@ return {
                     move_to_keep = 34000,
                     recruit = 33000,
                     move_to_village = 32000,
-                    hold = 4100
+                    hold = 3000
                 }
 
                 local zone_id = 'leader_threat'
@@ -1684,6 +1684,14 @@ return {
                         rating = leader_base_ratings.move_to_village
                     })
                 end
+
+                -- Hold: done by all units, protecting the leader --
+                table.insert(fred.data.zone_cfgs, {
+                    zone_id = zone_id,
+                    action_type = 'hold',
+                    protect_leader = true,
+                    rating = leader_base_ratings.hold
+                })
             end
 
             ----- Village actions -----
@@ -1700,7 +1708,7 @@ return {
                 village_grab = 9000,
                 attack = 8000,
                 fav_attack = 7000,
-                hold = 3000,
+                hold = 4000,
                 advance = 2000
             }
 
@@ -2819,18 +2827,34 @@ return {
             end
             --DBG.dbms(enemy_weights)
 
-            local hold_leader_distance = fred.data.ops_data.protect_locs[zone_cfg.zone_id].hold_leader_distance
-            local protect_leader = fred.data.ops_data.protect_locs[zone_cfg.zone_id].protect_leader
-            local protect_locs = fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs
+
+            -- TODO: in the end, this might be combined so that it can be dealt with
+            -- in the same way. For now, it is intentionally kept separate.
+            local protect_leader = zone_cfg.protect_leader
+            local min_btw_dist, perp_dist_weight
+            local hold_leader_distance, protect_locs, assigned_enemies
+            if protect_leader then
+                local lx, ly = gamedata.leader_x, gamedata.leader_y
+                local ld = FU.get_fgumap_value(gamedata.leader_distance_map, lx, ly, 'distance')
+                hold_leader_distance = { min = ld, max = ld }
+                protect_locs = { { lx, ly } }
+                assigned_enemies = fred.data.ops_data.leader_threats.enemies
+                min_btw_dist, perp_dist_weight = 0, 0.5
+            else
+                hold_leader_distance = fred.data.ops_data.protect_locs[zone_cfg.zone_id].hold_leader_distance
+                protect_locs = fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs
+                assigned_enemies = fred.data.ops_data.assigned_enemies[zone_cfg.zone_id]
+                min_btw_dist, perp_dist_weight = -2, 0.05
+            end
 
             local between_map
-            if protect_locs and fred.data.ops_data.assigned_enemies[zone_cfg.zone_id] then
-                between_map = fred:get_between_map(protect_locs, fred.data.ops_data.assigned_enemies[zone_cfg.zone_id], gamedata)
+            if protect_locs and assigned_enemies then
+                between_map = fred:get_between_map(protect_locs, assigned_enemies, gamedata, perp_dist_weight)
 
                 if false then
                     FU.show_fgumap_with_message(between_map, 'distance', 'Between map')
-                    FU.show_fgumap_with_message(fred.data.gamedata.leader_distance_map, 'distance', 'leader distance')
-                    FU.show_fgumap_with_message(fred.data.gamedata.leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
+                    --FU.show_fgumap_with_message(fred.data.gamedata.leader_distance_map, 'distance', 'leader distance')
+                    --FU.show_fgumap_with_message(fred.data.gamedata.leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
                 end
             end
 
@@ -3077,8 +3101,8 @@ return {
                         if hold_leader_distance then
 
                             if between_map then
-                                local btw_dist = FU.get_fgumap_value(between_map, x, y, 'distance')
-                                if (btw_dist < -2) then
+                                local btw_dist = FU.get_fgumap_value(between_map, x, y, 'distance', -99)
+                                if (btw_dist < min_btw_dist) then
                                     hold_here = false
                                 end
                             else
