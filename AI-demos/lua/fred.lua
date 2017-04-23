@@ -106,9 +106,9 @@ return {
         end
 
 
-        function fred:get_between_map(locs, units, gamedata)
-            local add_turns = 0
-            local perp_dist_weight = 0.5
+        function fred:get_between_map(locs, units, gamedata, perp_dist_weight, add_turns)
+            perp_dist_weight = perp_dist_weight or 0.5
+            add_turns = add_turns or 0
 
             local weights, cum_weight = {}, 0
             for id,_ in pairs(units) do
