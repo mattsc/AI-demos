@@ -3344,7 +3344,7 @@ return {
                                 protect_rating = protect_rating - (d_dist - 2) / 20
                             end
 
-                            if protect_leader then
+                            if protect_leader and between_map then
                                 local btw_dist = FU.get_fgumap_value(between_map, x, y, 'distance')
                                 local btw_rating = 0
                                 if (btw_dist < -1) then
