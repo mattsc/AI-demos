@@ -1396,9 +1396,7 @@ return {
                         valid_action = false
                         break
                     else
-                        local _,cost = wesnoth.find_path(gamedata.unit_copies[unit.id], action.dsts[i_u][1],  action.dsts[i_u][2])
-                        --print('cost', cost, gamedata.unit_infos[unit.id].moves)
-                        if (cost > gamedata.unit_infos[unit.id].moves) then
+                        if (not FU.get_fgumap_value(gamedata.reach_maps[unit.id], action.dsts[i_u][1],  action.dsts[i_u][2], 'moves_left')) then
                             --print(unit.id .. ' cannot get to village goal any more')
                             valid_action = false
                             break
