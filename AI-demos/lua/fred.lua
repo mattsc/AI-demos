@@ -1382,6 +1382,36 @@ return {
             --DBG.dbms(zone_village_goals)
             --DBG.dbms(villages_to_protect_maps)
 
+            -- Remove existing village actions that are not possible any more because
+            -- 1. the reserved unit has moved
+            -- 2. the reserved unit cannot get to the goal any more
+            -- This can happen if the units were used in other actions, moves
+            -- to get out of the way for another unit or possibly due to a WML event
+            for i_a=#ops_data.actions.villages,1,-1 do
+                local valid_action = true
+                local action = ops_data.actions.villages[i_a].action
+                for i_u,unit in ipairs(action.units) do
+                    if (gamedata.units[unit.id][1] ~= unit[1]) or (gamedata.units[unit.id][2] ~= unit[2]) then
+                        --print(unit.id .. ' has moved')
+                        valid_action = false
+                        break
+                    else
+                        local _,cost = wesnoth.find_path(gamedata.unit_copies[unit.id], action.dsts[i_u][1],  action.dsts[i_u][2])
+                        --print('cost', cost, gamedata.unit_infos[unit.id].moves)
+                        if (cost > gamedata.unit_infos[unit.id].moves) then
+                            --print(unit.id .. ' cannot get to village goal any more')
+                            valid_action = false
+                            break
+                        end
+                    end
+                end
+
+                if (not valid_action) then
+                    --print('deleting village action:', i_a)
+                    table.remove(ops_data.actions.villages, i_a)
+                end
+            end
+
             local actions = { villages = {} }
             local assigned_units = {}
 
