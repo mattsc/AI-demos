@@ -3140,7 +3140,7 @@ return {
                                 local dld = ld - hold_leader_distance.min
 
                                 -- TODO: this is likely too simplistic
-                                if (dld < -2) then
+                                if (dld < min_btw_dist) then
                                     hold_here = false
                                 end
                             end
