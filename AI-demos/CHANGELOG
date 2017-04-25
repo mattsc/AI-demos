@@ -1,7 +1,20 @@
------ 0.14.0, ? -----
+----- 0.14.3, 25 Apr 2017 -----
 
+- Fred (Freelands AI for Northerners, Side 1):
+  - Massive reworking of many parts of the AI, the highlights being:
+    - Significant extension of the operations layer
+    - Significant modifications to holding, advancing and village actions
+    - Some changes to the AI setup and internal structure
+  - Minor changes to attacks, recruiting and retreating
+- Fred test scenario:
+  - Modify for consistency with MP game:
+    - Give side 2 a village at scenario start
+    - Set village_gold=2
 - Miscellaneous:
-  - Removed high_xp_attack CA and test scenario as this is in mainline now
+  - Remove high_xp_attack CA and test scenario as this is in mainline now
+  - Add Invisible Unit for testing
+  - Modify test scenarios to work in both 1.12 and 1.13, or add comments if
+    they only work in one or the other version
 
 
 ----- 0.14.2, 20 December 2015 -----
