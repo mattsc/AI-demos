@@ -1468,9 +1468,9 @@ return {
 
 
             -- Once the leader has no MP left, we reconsider the leader threats
+            -- TODO: we might want to handle reassessing leader locs and threats differently
             local leader_proxy = wesnoth.get_unit(gamedata.leader_x, gamedata.leader_y)
             if (leader_proxy.moves == 0) then
-                print('---- leader has moved ----')
                 ops_data.leader_threats.leader_locs = {}
                 ops_data.leader_threats.protect_locs = { { leader_proxy.x, leader_proxy.y } }
 
