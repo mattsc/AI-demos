@@ -413,7 +413,18 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, between
 
         local is_protected = true
         if (not is_dqed) and cfg and cfg.protect_locs then
-            local loc = cfg.protect_locs[1]
+
+            -- For now, simply use the protect_loc with the largest forward distance
+            -- TODO: think about how to deal with several simultaneously
+            local max_ld, loc
+            for _,protect_loc in ipairs(cfg.protect_locs) do
+                local ld = FU.get_fgumap_value(gamedata.leader_distance_map, protect_loc[1], protect_loc[2], 'distance')
+                if (not max_ld) or (ld > max_ld) then
+                    max_ld = ld
+                    loc = protect_loc
+                end
+            end
+
             --print('*** need to check protection of ' .. loc[1] .. ',' .. loc[2])
 
             -- First check (because it's quick): if there is a unit on the hex to be protected
