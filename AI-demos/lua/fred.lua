@@ -3986,7 +3986,7 @@ return {
         end
 
         function fred:move_leader_to_keep_exec()
-            if debug_exec then print_time('====> Executing move_leader_to_keep CA') end
+            if debug_exec then print_time('=> exec: move_leader_to_keep CA') end
             if AH.show_messages() then W.message { speaker = fred.data.MLK_leader.id, message = 'Moving back to keep' } end
 
             -- If leader can get to the keep, make this a partial move, otherwise a full move
@@ -4181,7 +4181,7 @@ return {
                         end
 
                         if is_good then
-                            print('  Pre-evaluated action found: ' .. cfg.action.action_str)
+                            --print('  Pre-evaluated action found: ' .. cfg.action.action_str)
                             fred.data.zone_action = AH.table_copy(cfg.action)
                             AH.done_eval_messages(start_time, ca_name)
                             return score_zone_control
@@ -4225,7 +4225,7 @@ return {
 
             -- If recruiting is set, we just do that, nothing else needs to be checked:
             if (fred.data.zone_action.type == 'recruit') then
-                if debug_exec then print_time('====> Executing zone_control CA ' .. action) end
+                if debug_exec then print_time('=> exec: ' .. action) end
                 if AH.show_messages() then W.message { speaker = unit.id, message = 'Zone action ' .. action } end
 
                 if fred.data.zone_action.recruit_units then
@@ -4376,7 +4376,7 @@ return {
                     if have_recruited then break end
                 end
 
-                if debug_exec then print_time('====> Executing zone_control CA ' .. action) end
+                if debug_exec then print_time('=> exec: ' .. action) end
                 if AH.show_messages() then W.message { speaker = unit.id, message = 'Zone action ' .. action } end
 
                 -- The following are some tests to make sure the intended move is actually
@@ -4521,7 +4521,7 @@ return {
         end
 
         function fred:remove_MP_exec()
-            if debug_exec then print_time('====> Executing remove_MP CA') end
+            if debug_exec then print_time('=> exec: remove_MP CA') end
 
             local id,loc = next(fred.data.gamedata.my_units_MP)
 
