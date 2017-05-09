@@ -915,9 +915,6 @@ return {
             end
             --DBG.dbms(assigned_recruits)
 
-            local power_stats = fred:calc_power_stats(raw_cfgs_main, assigned_units, assigned_enemies, assigned_recruits, gamedata)
-            --DBG.dbms(power_stats)
-
             -- Finding areas and units for attacking/defending in each zone
             --print('Move toward (highest blurred vulnerability):')
             local goal_hexes = {}
@@ -1146,6 +1143,9 @@ return {
                 n_enemies[zone_id] = n
             end
             --DBG.dbms(n_enemies)
+
+            local power_stats = fred:calc_power_stats(raw_cfgs_main, assigned_units, assigned_enemies, assigned_recruits, gamedata)
+            --DBG.dbms(power_stats)
 
             local keep_trying = true
             while keep_trying do
