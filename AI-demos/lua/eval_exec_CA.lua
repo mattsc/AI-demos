@@ -186,6 +186,7 @@ return {
         else
             W.clear_menu_item { id = 'm01_eval' }
             W.clear_menu_item { id = 'm02_exec' }
+            W.clear_menu_item { id = 'm02a_units_info' }
             W.clear_menu_item { id = 'm03_choose_ca' }
             W.clear_menu_item { id = 'm04_highest_score_CA' }
             W.clear_menu_item { id = 'm05_play_turn' }
@@ -204,6 +205,21 @@ return {
         if wrong_side(1) then return end
         local score = eval_CA(ai)
         if (score > 0) then exec_CA(ai) end
+    end,
+
+    units_info = function()
+        -- Shows some information for all units
+        -- Specifically, this links the unit id to its position, name etc. for easier identification
+        local tmp_units = wesnoth.get_units()
+        local str = ''
+        for _,u in ipairs(tmp_units) do
+            str = str .. u.id .. ':    ' .. u.x .. ',' .. u.y
+            str = str .. '    HP: ' .. u.hitpoints .. '/' .. u.max_hitpoints
+            str = str .. '    XP: ' .. u.experience .. '/' .. u.max_experience
+            str = str .. '    ' .. tostring(u.name)
+            str = str .. '\n'
+        end
+        wesnoth.message(str)
     end,
 
     choose_CA = function()
