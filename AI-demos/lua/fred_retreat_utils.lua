@@ -70,7 +70,12 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, game
             local healer_values = healing_locs:get(x, y) or { 0, 0 }
             heal_amount = math.max(heal_amount, healer_values[1])
 
-            if (x == loc[1]) and (y == loc[2]) and (not gamedata.unit_infos[id].status.poisoned) then
+            -- Note: cannot use 'resting' parameter in unit_proxy to assess rest healing.
+            -- At least in 1.12 it does not seem to get unset when the unit moves
+            if (x == loc[1]) and (y == loc[2])
+                and (gamedata.unit_infos[id].moves == gamedata.unit_infos[id].max_moves)
+                and (not gamedata.unit_infos[id].status.poisoned)
+            then
                 heal_amount = heal_amount + 2
             end
 
