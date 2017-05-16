@@ -195,7 +195,7 @@ return {
         function fred:get_raw_cfgs(zone_id)
             local cfg_leader_threat = {
                 zone_id = 'leader_threat',
-                ops_slf = { x = '1-99', y = '1-99' },
+                ops_slf = {},
             }
 
             local cfg_west = {
