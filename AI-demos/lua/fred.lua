@@ -518,6 +518,8 @@ return {
             leader_threats.significant_threat = false
             if (max_total_loss >= leader_proxy.hitpoints / 2.) or (av_total_loss >= leader_proxy.max_hitpoints / 4.) then
                 leader_threats.significant_threat = true
+            else
+                leader_threats.significant_threat = false
             end
             FU.print_debug(show_debug_analysis, '  significant_threat', leader_threats.significant_threat)
 
@@ -1373,6 +1375,7 @@ return {
                 end
                 if (not next(ops_data.leader_threats.enemies)) then
                     ops_data.leader_threats.enemies = nil
+                    ops_data.leader_threats.significant_threat = false
                 end
             end
 
