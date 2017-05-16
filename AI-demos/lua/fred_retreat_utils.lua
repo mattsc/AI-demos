@@ -88,11 +88,26 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, game
     end
     --DBG.dbms(heal_maps)
 
+    -- TODO: There is a built-in inefficiency here, in that we always assess all
+    -- units before returnning the result, while the score is mostly based on the
+    -- retreat_utilities. However, the plan is to add assessment of all units in
+    -- combination, so that they do not take retreat hexes away from each other.
+    -- So for the time being, we leave this as is unless computing time will turn
+    -- out to be a problem.
+    -- However, we should likely at least be able to separate regenerating from
+    -- non-regenerating units again.
+
     local max_rating, best_loc, best_id
     for id,heal_map in pairs(heal_maps) do
+        local base_factor = 1000
         local base_rating = retreat_utilities[id]
-        base_rating = base_rating * 1000
+        base_rating = base_rating * base_factor
         --print(id, 'base_rating: ' .. base_rating)
+
+        -- We want non-regenerating units to retreat before regenerating units
+        if (not gamedata.unit_infos[id].abilities.regenerate) then
+            base_rating = base_rating + base_factor
+        end
 
         local rating_map = {}
         for x,y,data in FU.fgumap_iter(heal_map) do
