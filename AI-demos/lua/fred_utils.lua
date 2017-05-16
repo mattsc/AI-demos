@@ -318,6 +318,61 @@ function fred_utils.unittype_base_power(unit_type)
     return fred_utils.unit_base_power(unittype_info)
 end
 
+function fred_utils.retreat_utilities(gamedata)
+    -- Desire of each unit to retreat
+    local retreat_utility = {}
+    for id,loc in pairs(gamedata.my_units) do
+        --print(id, gamedata.unit_infos[id].hitpoints .. '/' .. gamedata.unit_infos[id].max_hitpoints .. '   ' .. gamedata.unit_infos[id].experience .. '/' .. gamedata.unit_infos[id].max_experience)
+
+        local hp_eff = gamedata.unit_infos[id].hitpoints
+        if gamedata.unit_infos[id].abilities.regenerate then
+            hp_eff = hp_eff + 8
+        end
+        if gamedata.unit_infos[id].status.poisoned then
+            hp_eff = hp_eff - 8
+        end
+        if (hp_eff > gamedata.unit_infos[id].max_hitpoints) then
+            hp_eff = gamedata.unit_infos[id].max_hitpoints
+        end
+        if (hp_eff < 1) then
+            hp_eff = 1
+        end
+
+        -- Main criterion is simply the absolute HP
+        local hp_inflection = 20
+
+        local max_hp_mult = math.sqrt(gamedata.unit_infos[id].max_hitpoints / (hp_inflection * 2))
+        hp_inflection = hp_inflection * max_hp_mult
+
+
+        local xp_mult = 1 + 0.5 * gamedata.unit_infos[id].experience / gamedata.unit_infos[id].max_experience
+        hp_inflection = hp_inflection * xp_mult
+
+        hp_inflection = hp_inflection * xp_mult
+
+        if (hp_inflection > 0.75 * gamedata.unit_infos[id].max_hitpoints) then
+            hp_inflection = 0.75 * gamedata.unit_infos[id].max_hitpoints
+        end
+
+        -- This must be done after the check vs. max_hp above
+        --print(id, hp_inflection, xp_mult)
+
+        local w_remain = 1
+        if (hp_eff <= hp_inflection) then
+            w_remain = fred_utils.weight_s(hp_eff / (hp_inflection * 2), 0.75)
+        else
+            w_remain = fred_utils.weight_s((hp_eff - hp_inflection) / ((gamedata.unit_infos[id].max_hitpoints - hp_inflection) * 2) + 0.5, 0.75)
+        end
+
+        w_retreat = 1 - w_remain
+        --print('  ' .. w_retreat)
+
+        retreat_utility[id] = w_retreat
+    end
+
+    return retreat_utility
+end
+
 function fred_utils.get_value_ratio(gamedata)
     -- TODO: not sure what the best values are yet
     -- TODO: also not sure if leaders should be included here

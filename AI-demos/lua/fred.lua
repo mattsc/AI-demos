@@ -13,7 +13,7 @@ return {
         local FVU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_village_utils.lua"
         local LS = wesnoth.require "lua/location_set.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
-        local R = wesnoth.require "~/add-ons/AI-demos/lua/retreat.lua"
+        local R = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_retreat_utils.lua"
         local UHC = wesnoth.dofile "~/add-ons/AI-demos/lua/unit_hex_combos.lua"
 
 
@@ -1149,6 +1149,8 @@ return {
             local power_stats = fred:calc_power_stats(raw_cfgs_main, assigned_units, assigned_enemies, assigned_recruits, gamedata)
             --DBG.dbms(power_stats)
 
+            local retreat_utilities = FU.retreat_utilities(gamedata)
+
             local keep_trying = true
             while keep_trying do
                 keep_trying = false
@@ -1163,6 +1165,15 @@ return {
                     n_units[zone_id] = n
                 end
                 --DBG.dbms(n_units)
+
+                local hold_utility = {}
+                for zone_id,data in pairs(power_stats.zones) do
+                    local frac_needed = data.power_missing / data.power_needed
+                    --print(zone_id, frac_needed, data.power_missing, data.power_needed)
+                    local utility = math.sqrt(frac_needed)
+                    hold_utility[zone_id] = utility
+                end
+                --DBG.dbms(hold_utility)
 
                 local max_rating, best_zone, best_unit
                 for zone_id,data in pairs(power_stats.zones) do
@@ -1203,12 +1214,18 @@ return {
                         --end
 
                         unit_rating = unit_rating + inertia
+
+                        --print('    ' .. zone_id .. ' ' .. id, retreat_utilities[id], hold_utility[zone_id])
+                        if (retreat_utilities[id] > hold_utility[zone_id]) then
+                            unit_rating = -1
+                        end
+
                         if (unit_rating > 0) and ((not max_rating) or (unit_rating > max_rating)) then
                             max_rating = unit_rating
                             best_zone = zone_id
                             best_unit = id
                         end
-                        --print('  ' .. id, unit_rating, inertia)
+                        --print('  ' .. id .. '  ' .. gamedata.unit_infos[id].hitpoints .. '/' .. gamedata.unit_infos[id].max_hitpoints, unit_rating, inertia)
                     end
                 end
 
@@ -1235,6 +1252,16 @@ return {
             --DBG.dbms(assigned_units)
             --DBG.dbms(power_stats)
 
+
+            -- All units with non-zero retreat utility are put on the list of possible retreaters
+            local retreaters = {}
+            for id,_ in pairs(unit_ratings) do
+                if (retreat_utilities[id] > 0) then
+                    retreaters[id] = gamedata.units[id]
+                    unit_ratings[id] = nil
+                end
+            end
+            --DBG.dbms(retreaters)
 
 
             -- Everybody left at this time goes on the reserve list
@@ -1317,6 +1344,7 @@ return {
                 leader_threats = leader_threats,
                 assigned_enemies = assigned_enemies,
                 assigned_units = assigned_units,
+                retreaters = retreaters,
                 assigned_recruits = assigned_recruits,
                 protect_locs = protect_locs,
                 actions = actions,
@@ -1741,6 +1769,7 @@ return {
                 fav_attack = 7000,
                 hold = 4000,
                 advance = 2000
+                retreat = 2100,
             }
 
             -- TODO: might want to do something more complex (e.g using local info) in ops layer
@@ -1771,6 +1800,30 @@ return {
                     end
                 end
             end
+
+
+            -- Retreating is done zone independently
+            local retreaters
+            if ops_data.retreaters then
+                for id,_ in pairs(ops_data.retreaters) do
+                    if gamedata.my_units_MP[id] then
+                        if (not retreaters) then retreaters = {} end
+                        retreaters[id] = gamedata.units[id]
+                    end
+                end
+            end
+            --DBG.dbms(retreaters)
+
+
+            if retreaters then
+                table.insert(fred.data.zone_cfgs, {
+                    zone_id = 'all_map',
+                    action_type = 'retreat',
+                    retreaters = retreaters,
+                    rating = base_ratings.retreat
+                })
+            end
+
 
             -- Advancing is still done in the old zones
             local raw_cfgs_main = fred:get_raw_cfgs()
@@ -3738,43 +3791,21 @@ return {
 
             local gamedata = fred.data.gamedata
 
-            -- This is a placeholder for when (if) retreat.lua gets adapted to the new
-            -- tables also. It might not be necessary, it's fast enough the way it is
-            --print('consider retreat for:')
+            local retreat_utilities = FU.retreat_utilities(gamedata)
 
-            local retreat_units = {}
+            local id, dest = R.find_best_retreat(zone_cfg.retreaters, retreat_utilities, gamedata)
+            if id then
+                FU.print_debug(show_debug_advance, '  retreat:', id, dest[1], dest[2])
 
-            -- By default, use all units in the zone with MP
-            -- but override if zondedata.cfg.retreaters is set
-            local retreaters = zone_cfg.retreaters or zone_cfg.zone_units
+                local unit = gamedata.my_units[id]
+                unit.id = id
 
-            for id in pairs(retreaters) do
-                --print('  ' .. id)
-                table.insert(retreat_units, gamedata.unit_copies[id])
-            end
-
-            local unit, dest, enemy_threat = R.retreat_injured_units(retreat_units, zone_cfg.retreat_all, zone_cfg.enemy_count_weight)
-            if unit then
-                local allowable_retreat_threat = zone_cfg.allowable_retreat_threat or 0
-                --print_time('Found unit to retreat:', unit.id, enemy_threat, allowable_retreat_threat)
                 local action = {
                     units = { unit },
                     dsts = { dest }
                 }
-                action.action_str = 'retreat severely injured units'
+                action.action_str = 'retreat'
                 return action
-            elseif zone_cfg.retreaters and zone_cfg.stop_unit then
-                for id in pairs(zone_cfg.retreaters) do
-                    if (gamedata.unit_infos[id].moves > 0) then
-                        --print('Immobilizing unit: ' .. id)
-                        local action = {
-                            units = { { id = id } },
-                            dsts = { { gamedata.my_units[id][1], gamedata.my_units[id][2] } }
-                        }
-                        action.action_str = 'immobilize'
-                        return action
-                    end
-                end
             end
         end
 
