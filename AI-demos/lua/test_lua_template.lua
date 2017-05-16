@@ -77,9 +77,9 @@ else  -- ... or do manual testing
     --fred:reset_vars_move_eval()  -- sets fred.data.gamedata and fred.data.move_cache
     --DBG.dbms(fred)
 
-    local leader = wesnoth.get_units{ side = 1, canrecruit = 'yes' }[1]
-    local units = wesnoth.get_units{ side = 1, canrecruit = 'no' }
-    local enemies = wesnoth.get_units{ side = 2, canrecruit = 'no' }
+    local leader = wesnoth.get_units { side = 1, canrecruit = 'yes' }[1]
+    local units = wesnoth.get_units { side = 1, canrecruit = 'no' }
+    local enemies = wesnoth.get_units { side = 2, canrecruit = 'no' }
     print(#units, #enemies)
     local unit = units[1]
     local enemy = enemies[1]

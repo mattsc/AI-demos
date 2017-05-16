@@ -172,10 +172,8 @@ return {
 
         function fred:get_side_cfgs()
             local cfgs = {
-                { start_hex = { 18, 4 }
-                },
-                { start_hex = { 20, 20 }
-                }
+                { start_hex = { 18, 4 } },
+                { start_hex = { 20, 20 } }
             }
 
             return cfgs
@@ -2704,7 +2702,7 @@ return {
 
                     if show_debug_attack then
                         wesnoth.scroll_to_tile(target_loc[1], target_loc[2])
-                        W.message { speaker = 'narrator', message = 'Attack combo ' .. count .. ': ' .. combo.rating}
+                        W.message { speaker = 'narrator', message = 'Attack combo ' .. count .. ': ' .. combo.rating }
                         for i_a,attacker_info in ipairs(combo.attackers) do
                             local id, x, y = attacker_info.id, combo.dsts[i_a][1], combo.dsts[i_a][2]
                             W.label { x = x, y = y, text = "" }
@@ -3581,7 +3579,7 @@ return {
                     W.label { x = x, y = y, text = id }
                 end
                 wesnoth.scroll_to_tile(x, y)
-                W.message { speaker = 'narrator', message = 'Best hold combo: '  .. max_rating}
+                W.message { speaker = 'narrator', message = 'Best hold combo: '  .. max_rating }
                 for src,dst in pairs(best_combo) do
                     x, y =  math.floor(dst / 1000), dst % 1000
                     W.label { x = x, y = y, text = "" }
@@ -4055,7 +4053,7 @@ return {
 
         ----- CA: Recruitment (max_score: 461000; default score: 181000) -----
 
-        local params = {score_function = function () return 181000 end}
+        local params = { score_function = function () return 181000 end }
         wesnoth.require("~add-ons/AI-demos/lua/generic_recruit_engine.lua").init(ai, fred, params)
 
 

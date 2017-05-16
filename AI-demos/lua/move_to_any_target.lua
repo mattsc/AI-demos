@@ -19,7 +19,7 @@ return {
             local unit, destination
             -- Find a unit that has a path to an space close to an enemy
             for i,u in ipairs(units) do
-                local distance, target = AH.get_closest_enemy({u.x, u.y})
+                local distance, target = AH.get_closest_enemy({ u.x, u.y })
                 if target.x then
                     unit = u
 

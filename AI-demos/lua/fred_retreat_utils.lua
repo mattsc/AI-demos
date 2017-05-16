@@ -13,7 +13,7 @@ local retreat_functions = {}
 
 function retreat_functions.get_healing_locations()
     local possible_healer_proxies = AH.get_live_units {
-        { "filter_side", {{ "allied_with", {side = wesnoth.current.side } }} }
+        { "filter_side", {{ "allied_with", { side = wesnoth.current.side } }} }
     }
 
     local healing_locs = LS.create()
@@ -33,10 +33,10 @@ function retreat_functions.get_healing_locations()
             end
             if heal_amount + cure > 0 then
                 for x, y in H.adjacent_tiles(u.x, u.y) do
-                    local old_values = healing_locs:get(x, y) or {0, 0}
+                    local old_values = healing_locs:get(x, y) or { 0, 0 }
                     local best_heal = math.max(old_values[1], heal_amount)
                     local best_cure = math.max(old_values[2], cure)
-                    healing_locs:insert(x, y, {best_heal, best_cure})
+                    healing_locs:insert(x, y, { best_heal, best_cure })
                 end
             end
         end
@@ -48,7 +48,7 @@ end
 function retreat_functions.find_best_retreat(retreaters, retreat_utilities, gamedata)
     -- Only retreat to safe locations
     local enemie_proxies = AH.get_live_units {
-        { "filter_side", {{ "enemy_of", { side = wesnoth.current.side }} } }
+        { "filter_side", {{ "enemy_of", { side = wesnoth.current.side } }} }
     }
     local enemy_attack_map = BC.get_attack_map(enemie_proxies)
 
@@ -67,7 +67,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, game
             end
 
             -- TODO: curing is currently not evaluated (even though it is added for healers)
-            local healer_values = healing_locs:get(x, y) or {0, 0}
+            local healer_values = healing_locs:get(x, y) or { 0, 0 }
             heal_amount = math.max(heal_amount, healer_values[1])
 
             if (x == loc[1]) and (y == loc[2]) and (not gamedata.unit_infos[id].status.poisoned) then

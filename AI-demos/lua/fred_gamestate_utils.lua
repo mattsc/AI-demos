@@ -316,7 +316,7 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
                     { "and", {
                         x = x, y = y, radius = 200,
                         { "filter_radius", { terrain = 'C*,K*,C*^*,K*^*,*^K*,*^C*' } }
-                    }}
+                    } }
                 }
 
                 for _,loc in ipairs(reachable_castles) do

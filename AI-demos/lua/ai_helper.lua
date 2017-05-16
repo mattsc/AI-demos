@@ -441,7 +441,7 @@ function ai_helper.find_opposite_hex(hex, center_hex)
     local opp_y = yc_sq + (yc_sq - y_sq)
     opp_y = math.floor((opp_y + 1) / 2)
 
-    return {opp_x, opp_y}
+    return { opp_x, opp_y }
 end
 
 function ai_helper.is_opposite_adjacent(hex1, hex2, center_hex)
@@ -513,7 +513,7 @@ function ai_helper.get_passable_locations(location_filter, unit)
 
     -- All hexes that are not on the map border
     local width, height = wesnoth.get_map_size()
-    local all_locs = wesnoth.get_locations{
+    local all_locs = wesnoth.get_locations {
         x = '1-' .. width,
         y = '1-' .. height,
         { "and", location_filter }
@@ -754,7 +754,7 @@ function ai_helper.get_closest_enemy(loc)
 
     local x, y
     local enemies = ai_helper.get_live_units {
-        { "filter_side", { { "enemy_of", { side = wesnoth.current.side } } } }
+        { "filter_side", {{ "enemy_of", { side = wesnoth.current.side } }} }
     }
 
     if not loc then
@@ -769,7 +769,7 @@ function ai_helper.get_closest_enemy(loc)
         enemy_distance = H.distance_between(x, y, enemy.x, enemy.y)
         if (enemy_distance < closest_distance) then
             closest_distance = enemy_distance
-            location = { x = enemy.x, y = enemy.y}
+            location = { x = enemy.x, y = enemy.y }
         end
     end
 
@@ -862,7 +862,7 @@ function ai_helper.get_enemy_dst_src(enemies)
 
     if (not enemies) then
         enemies = wesnoth.get_units {
-            { "filter_side", { { "enemy_of", { side = wesnoth.current.side} } } }
+            { "filter_side", {{ "enemy_of", { side = wesnoth.current.side} }} }
         }
     end
 
@@ -879,8 +879,8 @@ function ai_helper.my_moves()
     local my_moves = {}
     for key,value in pairs(dstsrc) do
         table.insert( my_moves,
-            {   src = { x = value[1].x , y = value[1].y },
-                dst = { x = key.x , y = key.y }
+            { src = { x = value[1].x , y = value[1].y },
+              dst = { x = key.x , y = key.y }
             }
         )
     end
@@ -898,8 +898,8 @@ function ai_helper.enemy_moves()
     local enemy_moves = {}
     for key,value in pairs(dstsrc) do
         table.insert( enemy_moves,
-            {   src = { x = value[1].x , y = value[1].y },
-                dst = { x = key.x , y = key.y }
+            { src = { x = value[1].x , y = value[1].y },
+              dst = { x = key.x , y = key.y }
             }
         )
     end

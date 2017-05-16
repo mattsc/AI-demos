@@ -543,8 +543,10 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, between
                     W.label { x = x, y = y, text = id }
                 end
                 wesnoth.scroll_to_tile(x, y)
-                W.message { speaker = 'narrator',
-                    message = 'Hold combo ' .. i_c .. '/' .. #combos .. ' rating = ' .. rating }
+                W.message {
+                    speaker = 'narrator',
+                    message = 'Hold combo ' .. i_c .. '/' .. #combos .. ' rating = ' .. rating
+                }
                 for src,dst in pairs(combo) do
                     x, y =  math.floor(dst / 1000), dst % 1000
                     W.label { x = x, y = y, text = "" }

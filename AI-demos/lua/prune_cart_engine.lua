@@ -58,7 +58,7 @@ return {
             -- Returns all enemies on or next to the path of the next step of 'unit' toward goal_x,goal_y
             -- Returns an empty table if no enemies were found (or the path is not possible etc.)
 
-            local path, cost = wesnoth.find_path(unit, goal_x, goal_y, {ignore_units = true})
+            local path, cost = wesnoth.find_path(unit, goal_x, goal_y, { ignore_units = true })
 
             -- If unit cannot get there (ignoring units):
             if cost >= 42424242 then return {} end
@@ -70,15 +70,16 @@ return {
 
             -- Find units on hexes adjacent to the path
             for i, p in ipairs(path) do
-                local sub_path, sub_cost = wesnoth.find_path( unit, p[1], p[2], {ignore_units = true})
+                local sub_path, sub_cost = wesnoth.find_path( unit, p[1], p[2], { ignore_units = true })
 
                 if sub_cost <= unit.moves then
                     --print(i,p[1],p[2],sub_cost)
 
                     -- Check for enemy units on one of the adjacent hexes? (which includes hexes on path too)
                     for x, y in H.adjacent_tiles(p[1], p[2]) do
-                        local enemy = wesnoth.get_units { x = x, y = y,
-                            { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+                        local enemy = wesnoth.get_units {
+                            x = x, y = y,
+                            { "filter_side", {{ "enemy_of", { side = wesnoth.current.side } }} }
                         }[1]
                         if enemy then
                             --print('  enemy next to path hex:',enemy.id)
@@ -107,13 +108,13 @@ return {
             -- 3. Once we're into the "end game", all enemies are considered here
 
             local enemies = wesnoth.get_units {
-                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+                { "filter_side", {{ "enemy_of", { side = wesnoth.current.side } }} }
             }
 
             -- First, need distance (in moves) of closest AI unit to 'unit'
             -- (assuming full MP)
             -- This is an emergency thing, so we include healers and leaders
-            local my_units = wesnoth.get_units{ side = wesnoth.current.side, { "not", { id = unit.id } } }
+            local my_units = wesnoth.get_units { side = wesnoth.current.side, { "not", { id = unit.id } } }
             local intercept_units = {}
             local my_HP, enemy_HP = 0, 0
             for i,u in ipairs(my_units) do
@@ -137,7 +138,7 @@ return {
             local tmp = unit.moves
             unit.moves = unit.max_moves
 
-            local next_hop_unit = AH.next_hop(unit, goal_x, goal_y, {ignore_units = true})
+            local next_hop_unit = AH.next_hop(unit, goal_x, goal_y, { ignore_units = true })
             unit.moves = tmp
 
             local closest_my_unit = 9999
@@ -161,7 +162,7 @@ return {
                 -- and distance to 'unit' after its next move
                 local tmp = e.moves
                 e.moves = e.max_moves
-                local path, cost = wesnoth.find_path(e, next_hop_unit[1], next_hop_unit[2], {ignore_units = true})
+                local path, cost = wesnoth.find_path(e, next_hop_unit[1], next_hop_unit[2], { ignore_units = true })
                 e.moves = tmp
 
                 -- First, check if this unit is closer than any of the AI units
@@ -173,7 +174,7 @@ return {
                     -- need to do this for max_moves of unit (moves on current turn most likely = 0)
                     local tmp = e.moves
                     e.moves = e.max_moves
-                    local reach = wesnoth.find_reach(e, {ignore_units = true})
+                    local reach = wesnoth.find_reach(e, { ignore_units = true })
                     e.moves = tmp
                     for j,r in ipairs(reach) do
                         if (H.distance_between(unit.x, unit.y, r[1], r[2]) <= max_enemy_distance ) then
@@ -201,9 +202,12 @@ return {
 
             -- Find all units that have attacks left
             -- Exclude healers and leaders
-            local my_units = wesnoth.get_units{ side = wesnoth.current.side, formula = '$this_unit.attacks_left > 0',
-                canrecruit = 'no', { "not", { id = unit.id } },
-                {"not", { ability = "healing" } }
+            local my_units = wesnoth.get_units {
+                side = wesnoth.current.side,
+                formula = '$this_unit.attacks_left > 0',
+                canrecruit = 'no',
+                { "not", { id = unit.id } },
+                { "not", { ability = "healing" } }
             }
             --print('#my_units', #my_units)
             if (not my_units[1]) then return end
@@ -272,7 +276,7 @@ return {
                     local attacker = wesnoth.get_unit(attack.src.x, attack.src.y)
                     local defender = wesnoth.get_unit(attack.target.x, attack.target.y)
 
-                    --W.message {speaker=attacker.id, message="Attacking" }
+                    --W.message { speaker=attacker.id, message="Attacking" }
                     AH.movefull_stopunit(ai, attacker, attack.dst.x, attack.dst.y)
                     --print('Attacking',attacker.id, defender.id, attack.dst.x, attack.dst.y)
                     local def_id = defender.id -- This is in case the defender dies on this attack
@@ -282,7 +286,7 @@ return {
                     deal_with_threats = true
                     threats_dealt_with[def_id] = (threats_dealt_with[def_id] or 0) + 1
                     if attacker.valid then  -- make sure attacker wasn't killed here
-                        table.insert(self.data.protecting_units, {attacker.x, attacker.y})
+                        table.insert(self.data.protecting_units, { attacker.x, attacker.y })
                     end
                 else  -- If no viable attack was found, we move the closest units toward each enemy (up to 2)
 
@@ -298,7 +302,9 @@ return {
                     for i,t in ipairs(threats) do
                         for m = (threats_dealt_with[t.id] or 0), 1 do
                             -- Include healers and leaders
-                            local my_units = wesnoth.get_units{ side = wesnoth.current.side, formula = '$this_unit.moves > 0',
+                            local my_units = wesnoth.get_units {
+                                side = wesnoth.current.side,
+                                formula = '$this_unit.moves > 0',
                                 { "not", { id = unit.id } }
                             }
 
@@ -317,7 +323,7 @@ return {
                                 local next_hop = AH.next_hop(best_unit, x, y)
                                 --print('best unit',best_unit.id, x, y, next_hop[1], next_hop[2] )
                                 AH.movefull_stopunit(ai, best_unit, next_hop)
-                                table.insert(self.data.protecting_units, {best_unit.x, best_unit.y})
+                                table.insert(self.data.protecting_units, { best_unit.x, best_unit.y })
                             end
                         end
                     end
@@ -331,7 +337,7 @@ return {
             -- Find if there's a move out of the way for 'unit'
             -- not_id: exclude unit with this id (that's the one for which we consider the move)
             -- dist_map: distance map: unit will only move in direction of equal or decreasing distance
-            -- Returns {x, y} of best move, or nil
+            -- Returns { x, y } of best move, or nil
 
            if (unit.id == not_id) then return end
 
@@ -360,7 +366,7 @@ return {
                    score = 100 * r[3] - dist_map:get(r[1], r[2])
                    if (score > max_score) then
                        max_score = score
-                       best_move = {r[1], r[2]}
+                       best_move = { r[1], r[2] }
                    end
                end
            end
@@ -376,10 +382,10 @@ return {
             -- special_rating: the rating that is particular to this kind of unit
             --   (the rest of the rating is done here)
 
-            local cart = wesnoth.get_units{ id = id }[1]
-            local dist_cart = AH.distance_map({cart})
+            local cart = wesnoth.get_units { id = id }[1]
+            local dist_cart = AH.distance_map({ cart })
 
-            local units_MP = wesnoth.get_units{ side = wesnoth.current.side, formula = '$this_unit.moves > 0' }
+            local units_MP = wesnoth.get_units { side = wesnoth.current.side, formula = '$this_unit.moves > 0' }
             -- Take all units with moves left off the map, for enemy path finding
             for i,u in ipairs(units_MP) do wesnoth.extract_unit(u) end
             -- Get an enemy_reach_map taking only AI units that cannot move into account
@@ -425,7 +431,7 @@ return {
 
                     if (rating > max_rating) then
                         max_rating = rating
-                        best_hex = {r[1], r[2]}
+                        best_hex = { r[1], r[2] }
                     end
                 end
             end
@@ -478,8 +484,8 @@ return {
             --   weight: weighting function for hex that is minimum on "enemy side" (LS: same hexes as 'map)
 
             -- Get all units with and without MP left; do not use 'formula = ' (slow)
-            --local units = wesnoth.get_units{ id = ids }
-            local my_units = wesnoth.get_units{ side = wesnoth.current.side, { "not", { id = ids } } }
+            --local units = wesnoth.get_units { id = ids }
+            local my_units = wesnoth.get_units { side = wesnoth.current.side, { "not", { id = ids } } }
             local units_MP , units_noMP = {}, {}
             for i,u in ipairs(my_units) do
                 if (u.moves == 0) then
@@ -493,7 +499,7 @@ return {
 
             -- Also need all enemies
             local enemies = wesnoth.get_units {
-                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+                { "filter_side", {{ "enemy_of", { side = wesnoth.current.side } }} }
             }
             --print('#enemies', #enemies)
 
@@ -543,13 +549,13 @@ return {
 
             -- Also get defense rating; currently only use the leader unit as example
             -- Cheap workaround for now .... -----
-            local u1 = wesnoth.get_units{ side = wesnoth.current.side, canrecruit = 'yes'}
+            local u1 = wesnoth.get_units { side = wesnoth.current.side, canrecruit = 'yes' }
             if not u1[1] then
-                u1 = wesnoth.get_units{ side = wesnoth.current.side, { "not", { id = ids } } }
+                u1 = wesnoth.get_units { side = wesnoth.current.side, { "not", { id = ids } } }
             end
             u1 = u1[1]
             local eu1 = wesnoth.get_units { canrecruit = 'yes',
-                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+                { "filter_side", {{ "enemy_of", { side = wesnoth.current.side } }} }
             }[1]
 
             local my_defense = LS.create()
@@ -612,7 +618,7 @@ return {
                 -- Currently this is done for formations of 5; can be replaced by whatever is desired later
 
                 local max_f = -9999
-                local best_f ={ {x,y}, {x,y}, {x,y}, {x,y}, {x,y}}  -- Need to have the right format set up from beginning
+                local best_f = { { x, y }, { x, y }, { x, y }, { x, y }, { x, y } }  -- Need to have the right format set up from beginning
                 for o1u = -1, 1 do  -- hex "1 up"; 3 orientations total: ori-1, ori, ori+1
                     for o2u = -1, 1 do  -- hex "2 up"
                         local x1u, y1u = AH.xyoff(x, y, o1u+ori, 'u')
@@ -831,7 +837,7 @@ return {
                                     --tmp:insert(xb1d,yb1d,-11)
                                     --tmp:insert(xb2d,yb2d,-22)
                                     --AH.put_labels(tmp)
-                                    --W.message{ speaker = 'narrator', message = 'This formation:' .. f }
+                                    --W.message { speaker = 'narrator', message = 'This formation:' .. f }
                                 end
                             end
                         end
@@ -845,7 +851,7 @@ return {
                 --tmp:insert(best_f[4][1], best_f[4][2], max_f)
                 --tmp:insert(best_f[5][1], best_f[5][2], max_f)
                 --AH.put_labels(tmp)
-                --W.message{ speaker = 'narrator', message = 'Best formation for this hex' }
+                --W.message { speaker = 'narrator', message = 'Best formation for this hex' }
 
                 -- If this best formation for this center hex is all occupied already
                 -- or cannot be reached by at least 3 units, we give it a low rating
@@ -886,13 +892,13 @@ return {
                 --tmp:insert(best_formation[4][1], best_formation[4][2], max_rating)
                 --tmp:insert(best_formation[5][1], best_formation[5][2], max_rating)
                 --AH.put_labels(tmp)
-                --W.message{ speaker = 'narrator', message = 'Best formation' }
+                --W.message { speaker = 'narrator', message = 'Best formation' }
             end
 
             --print("Best formation score:", max_rating)
             --DBG.dbms(best_formation,false,"variable",false)
             --AH.put_labels(rating)
-            --W.message{ speaker = 'narrator', message = 'Formation rating' }
+            --W.message { speaker = 'narrator', message = 'Formation rating' }
 
             return best_formation, max_rating
         end
@@ -905,8 +911,8 @@ return {
             -- The value of each hex is the number of enemy units it blocks *2
 
             -- Get all units with MP left; do not use 'formula = ' (slow)
-            local units = wesnoth.get_units{ id = ids }
-            local my_units = wesnoth.get_units{ side = wesnoth.current.side, { "not", { id = ids } } }
+            local units = wesnoth.get_units { id = ids }
+            local my_units = wesnoth.get_units { side = wesnoth.current.side, { "not", { id = ids } } }
             local MP_units = {}
             for i,u in ipairs(my_units) do
                 if (u.moves > 0) then table.insert(MP_units, u) end
@@ -916,7 +922,7 @@ return {
 
             -- Also need all enemies
             local enemies = wesnoth.get_units {
-                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+                { "filter_side", {{ "enemy_of", { side = wesnoth.current.side } }} }
             }
 
             -- Take all units with moves left off the map, for enemy path finding
@@ -948,7 +954,7 @@ return {
 
                 -- Path from enemy to 'units', with or without blocking by AI units
                 local path, cost = wesnoth.find_path(e, unit.x, unit.y)
-                local path_noblock, cost_noblock = wesnoth.find_path(e, unit.x, unit.y, {ignore_units = true})
+                local path_noblock, cost_noblock = wesnoth.find_path(e, unit.x, unit.y, { ignore_units = true })
                 --print(e.id,cost,cost_noblock,e.max_moves)
 
                 -- If path gets one move or more longer for unit, we consider it
@@ -1001,7 +1007,7 @@ return {
         for i2,unit in ipairs(units) do
                 -- Path from enemy to 'unit'
                 local path, cost = wesnoth.find_path(e, unit.x, unit.y)
-                local path_noblock, cost_noblock = wesnoth.find_path(e, unit.x, unit.y, {ignore_units = true})
+                local path_noblock, cost_noblock = wesnoth.find_path(e, unit.x, unit.y, { ignore_units = true })
                 --print(e.id,cost,cost_noblock,e.max_moves)
 
                 -- If path gets more than one move longer for unit, it is
@@ -1061,7 +1067,7 @@ return {
             -- way of the cart and moving units toward enemy units that are potential threats to the cart
             -- It is all done in one CA, because only a certain number of units participate, even if more could
 
-            local cart = wesnoth.get_units{ id = id, side = wesnoth.current.side, formula = '$this_unit.moves > 0' }[1]
+            local cart = wesnoth.get_units { id = id, side = wesnoth.current.side, formula = '$this_unit.moves > 0' }[1]
 
             if cart then
                 return 290000
@@ -1072,8 +1078,8 @@ return {
 
         function prune_cart:cart_move_exec(id, goal_x, goal_y)
 
-            local cart = wesnoth.get_units{ id = id, side = wesnoth.current.side, formula = '$this_unit.moves > 0' }[1]
-            --W.message{ speaker = cart.id, message = 'Executing cart move' }
+            local cart = wesnoth.get_units { id = id, side = wesnoth.current.side, formula = '$this_unit.moves > 0' }[1]
+            --W.message { speaker = cart.id, message = 'Executing cart move' }
 
             -- First, deal with enemies in way of cart
             -- This is done before we move the cart
@@ -1084,7 +1090,7 @@ return {
             local x, y = wesnoth.find_vacant_tile(goal_x, goal_y, cart)
             -- Find the next hop the cart can get to
             -- Ignore units in way, as a single unit far away could otherwise block the path,
-            local next_hop = AH.next_hop(cart, x, y, {ignore_units = true})
+            local next_hop = AH.next_hop(cart, x, y, { ignore_units = true })
             -- but need to be careful with that, as it could yield an unreachable hex
             next_hop = AH.next_hop(cart, next_hop[1], next_hop[2])
 
@@ -1102,7 +1108,7 @@ return {
             -- Finally, we find enemies that are close to the cart
             self:deal_with_threats(cart, 'close_enemies', goal_x, goal_y, threats_dealt_with)
 
-            --W.message{ speaker = cart.id, message = 'Done cart move' }
+            --W.message { speaker = cart.id, message = 'Done cart move' }
         end
 
         ----------------
@@ -1110,9 +1116,10 @@ return {
         function prune_cart:defensive_formation_eval(ids)
 
             -- Exclude leaders and healers
-            local my_units = wesnoth.get_units{ side = wesnoth.current.side,
+            local my_units = wesnoth.get_units { side = wesnoth.current.side,
                 formula = '($this_unit.moves > 0) and ($this_unit.hitpoints >= $this_unit.max_hitpoints / 2)',
-                canrecruit = 'no', { "not", { id = ids } },
+                canrecruit = 'no',
+                { "not", { id = ids } },
                 { "not", { ability = "healing" } }
             }
 
@@ -1144,10 +1151,10 @@ return {
                 -- Get any unit that cannot move any more and can be reached by an enemy
                 -- and make it a center of a potential formation
 
-                local my_units_noMP = wesnoth.get_units{ side = wesnoth.current.side, formula = '$this_unit.moves <= 0' }
+                local my_units_noMP = wesnoth.get_units { side = wesnoth.current.side, formula = '$this_unit.moves <= 0' }
                 --print('#my_units_noMP', #my_units_noMP)
 
-                local units_MP = wesnoth.get_units{ side = wesnoth.current.side, formula = '$this_unit.moves > 0' }
+                local units_MP = wesnoth.get_units { side = wesnoth.current.side, formula = '$this_unit.moves > 0' }
                 -- Take all units with moves left off the map, for enemy path finding
                 for i,u in ipairs(units_MP) do wesnoth.extract_unit(u) end
                 -- Get an enemy_reach_map taking only AI units that cannot move into account
@@ -1166,7 +1173,7 @@ return {
                 end
 
                 local enemies = wesnoth.get_units {
-                    { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+                    { "filter_side", {{ "enemy_of", { side = wesnoth.current.side } }} }
                 }
                 distance_map = AH.distance_map(enemies)
                 distance_map:iter( function(x, y, v)
@@ -1186,7 +1193,7 @@ return {
             -- Get units to be considered for moving into a formation
             -- Get all units first, except for the 'units'
             -- Don't use 'formula = ': too slow
-            local my_units = wesnoth.get_units{ side = wesnoth.current.side, { "not", { id = ids } } }
+            local my_units = wesnoth.get_units { side = wesnoth.current.side, { "not", { id = ids } } }
             -- Then select units with MP, enough hitpoints etc.
             local form_units = {}
             for i,u in ipairs(my_units) do
@@ -1214,7 +1221,7 @@ return {
 
             -- Find if a level-up attack is possible from any of the formation hexes
             local enemies = wesnoth.get_units {
-                { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+                { "filter_side", {{ "enemy_of", { side = wesnoth.current.side } }} }
             }
             local enemy_map = LS.create()
             for i,e in ipairs(enemies) do enemy_map:insert(e.x, e.y, 1) end
@@ -1234,13 +1241,13 @@ return {
                                 local attacker = wesnoth.get_unit(u.x, u.y)
                                 local target = wesnoth.get_unit(x, y)
                                 --print(f[1], f[2], attacker.id, target.id)
-                                local rating, weapon = self:get_level_up_attack_rating(attacker, target, {f[1], f[2]})
+                                local rating, weapon = self:get_level_up_attack_rating(attacker, target, { f[1], f[2] })
                                 if (rating > max_rating) then
                                     max_rating = rating
                                     best_weapon = weapon
                                     best_attacker = attacker
                                     best_target = target
-                                    best_loc = {f[1], f[2]}
+                                    best_loc = { f[1], f[2] }
                                     best_i = i
                                 end
                             end
@@ -1256,7 +1263,7 @@ return {
 
                 local unit_in_way = wesnoth.get_unit(best_loc[1], best_loc[2])
                 if unit_in_way then
-                    local units = wesnoth.get_units{ id = ids }
+                    local units = wesnoth.get_units { id = ids }
                     local dist_units = AH.distance_map(units)  -- if  ids == '' this will return zeros everywhere
                     local move_away = self:find_move_out_of_way(unit_in_way, best_attacker.id, dist_units, best_formation)
                     if move_away then
@@ -1334,7 +1341,7 @@ return {
                             >= best_unit.hitpoints + sign * best_unit.experience / 5.) then
                             AH.checked_stopunit_moves(ai, unit_in_way)  -- this is change of gamestate
                         else
-                            local units = wesnoth.get_units{ id = ids }
+                            local units = wesnoth.get_units { id = ids }
                             local dist_units = AH.distance_map(units)  -- if  ids == '' this will return zeros everywhere
                             local move_away = self:find_move_out_of_way(unit_in_way, best_unit.id, dist_units, best_formation)
                             if move_away then
@@ -1420,8 +1427,11 @@ return {
                 local best_unit = {}
                 local best_hop = {}
                 local max_score = -9999
-                local units = wesnoth.get_units{ side = wesnoth.current.side, formula = '$this_unit.moves > 0',
-                    canrecruit = 'no', { "not", { id = id } },
+                local units = wesnoth.get_units {
+                    side = wesnoth.current.side,
+                    formula = '$this_unit.moves > 0',
+                    canrecruit = 'no',
+                    { "not", { id = id } },
                     {"not", { ability = "healing" } }
                 }
                 for j,u in ipairs(units) do
@@ -1444,14 +1454,18 @@ return {
             end
          end
 
-            --W.message{ speaker = narrator, message = 'Done formation move' }
+            --W.message { speaker = narrator, message = 'Done formation move' }
         end
 
         ---------------
 
         function prune_cart:healer_eval(id)
-            local healers = wesnoth.get_units { side = wesnoth.current.side, ability = "healing",
-                formula = '$this_unit.moves > 0', canrecruit = 'no', { "not", { id = id } }
+            local healers = wesnoth.get_units {
+                side = wesnoth.current.side,
+                ability = "healing",
+                formula = '$this_unit.moves > 0',
+                canrecruit = 'no',
+                { "not", { id = id } }
             }
 
             if healers[1] then
@@ -1463,7 +1477,7 @@ return {
         end
 
         function prune_cart:healer_exec(id)
-            --W.message{ speaker = 'narrator', message = 'Executing healer move' }
+            --W.message { speaker = 'narrator', message = 'Executing healer move' }
 
             AH.clear_labels()
 
@@ -1471,17 +1485,23 @@ return {
 
             -- Simply move the first healer first
             -- Others will be found the next time around for this CA
-            local healer = wesnoth.get_units { side = wesnoth.current.side, ability = "healing",
-                formula = '$this_unit.moves > 0', canrecruit = 'no', { "not", { id = id } }
+            local healer = wesnoth.get_units {
+                side = wesnoth.current.side,
+                ability = "healing",
+                formula = '$this_unit.moves > 0',
+                canrecruit = 'no',
+                { "not", { id = id } }
             }[1]
 
             -- healer specific rating:
-            local my_units_noMP = wesnoth.get_units{ side = wesnoth.current.side, formula = '$this_unit.moves <= 0',
+            local my_units_noMP = wesnoth.get_units {
+                side = wesnoth.current.side,
+                formula = '$this_unit.moves <= 0',
                 { "not", { id = id } }
             }
             --print('#my_units_noMP', #my_units_noMP)
 
-            local units_MP = wesnoth.get_units{ side = wesnoth.current.side, formula = '$this_unit.moves > 0' }
+            local units_MP = wesnoth.get_units { side = wesnoth.current.side, formula = '$this_unit.moves > 0' }
             -- Take all units with moves left off the map, for enemy path finding
             for i,u in ipairs(units_MP) do wesnoth.extract_unit(u) end
             -- Get an enemy_reach_map taking only AI units that cannot move into account
@@ -1509,13 +1529,14 @@ return {
             -------- All the rest is common to special-unit moves --------
             self:move_special_unit(healer, id, special)
 
-            --W.message{ speaker = cart.id, message = 'Done healer move' }
+            --W.message { speaker = cart.id, message = 'Done healer move' }
         end
 
         ----
 
         function prune_cart:healing_eval(id)
-            local healees = wesnoth.get_units { side = wesnoth.current.side,
+            local healees = wesnoth.get_units {
+                side = wesnoth.current.side,
                 formula = '($this_unit.moves > 0) and ($this_unit.hitpoints < $this_unit.max_hitpoints - 10)',
                 { "not", { id = id } }
             }
@@ -1529,11 +1550,12 @@ return {
         end
 
         function prune_cart:healing_exec(id)
-            --W.message{ speaker = 'narrator', message = 'Executing healing move' }
+            --W.message { speaker = 'narrator', message = 'Executing healing move' }
 
             -------- Do the healing specific parts first --------
 
-            local healees = wesnoth.get_units { side = wesnoth.current.side,
+            local healees = wesnoth.get_units {
+                side = wesnoth.current.side,
                 formula = '($this_unit.moves > 0) and ($this_unit.hitpoints < $this_unit.max_hitpoints - 10)',
                 { "not", { id = id } }
             }
@@ -1567,13 +1589,15 @@ return {
             -------- All the rest is common to special-unit moves --------
             self:move_special_unit(healing, id, special)
 
-            --W.message{ speaker = cart.id, message = 'Done healing move' }
+            --W.message { speaker = cart.id, message = 'Done healing move' }
         end
 
         ----
 
         function prune_cart:leader_eval(id)
-            local leader = wesnoth.get_units { side = wesnoth.current.side, formula = '$this_unit.moves > 0',
+            local leader = wesnoth.get_units {
+                side = wesnoth.current.side,
+                formula = '$this_unit.moves > 0',
                 canrecruit = 'yes'
             }[1]
 
@@ -1586,11 +1610,13 @@ return {
         end
 
         function prune_cart:leader_exec(id)
-            --W.message{ speaker = 'narrator', message = 'Executing leader move' }
+            --W.message { speaker = 'narrator', message = 'Executing leader move' }
 
             -------- Do the leader specific parts first --------
 
-            local leader = wesnoth.get_units { side = wesnoth.current.side, formula = '$this_unit.moves > 0',
+            local leader = wesnoth.get_units {
+                side = wesnoth.current.side,
+                formula = '$this_unit.moves > 0',
                 canrecruit = 'yes'
             }[1]
             --print('Leader:', leader.id, wesnoth.unit_types[leader.type].level, wesnoth.sides[wesnoth.current.side].gold)
@@ -1604,12 +1630,14 @@ return {
 
             -- Leader specific rating:
             local leader_level = wesnoth.unit_types[leader.type].level
-            local my_units_noMP = wesnoth.get_units{ side = wesnoth.current.side, formula = '$this_unit.moves <= 0',
+            local my_units_noMP = wesnoth.get_units {
+                side = wesnoth.current.side,
+                formula = '$this_unit.moves <= 0',
                 { "not", { id = id } }
             }
             --print('#my_units_noMP', #my_units_noMP)
 
-            local units_MP = wesnoth.get_units{ side = wesnoth.current.side, formula = '$this_unit.moves > 0' }
+            local units_MP = wesnoth.get_units { side = wesnoth.current.side, formula = '$this_unit.moves > 0' }
             -- Take all units with moves left off the map, for enemy path finding
             for i,u in ipairs(units_MP) do wesnoth.extract_unit(u) end
             -- Get an enemy_reach_map taking only AI units that cannot move into account
@@ -1639,7 +1667,7 @@ return {
             -------- All the rest is common to special-unit moves --------
             self:move_special_unit(leader, id, special)
 
-            --W.message{ speaker = cart.id, message = 'Done leader move' }
+            --W.message { speaker = cart.id, message = 'Done leader move' }
         end
 
         function prune_cart:others_eval(id)
@@ -1655,7 +1683,7 @@ return {
         end
 
         function prune_cart:others_exec(id)
-            --W.message{ speaker = 'narrator', message = 'Executing others move' }
+            --W.message { speaker = 'narrator', message = 'Executing others move' }
 
             -------- Do the others specific parts first --------
 
@@ -1666,7 +1694,9 @@ return {
             local next_unit = others[1]
 
             -- Others specific rating:
-            local my_units_noMP = wesnoth.get_units{ side = wesnoth.current.side, formula = '$this_unit.moves <= 0',
+            local my_units_noMP = wesnoth.get_units {
+                side = wesnoth.current.side,
+                formula = '$this_unit.moves <= 0',
                 { "not", { id = id } }
             }
             local special = AH.inverse_distance_map(my_units_noMP)
@@ -1675,7 +1705,7 @@ return {
             -------- All the rest is common to special-unit moves --------
             self:move_special_unit(next_unit, id, special)
 
-            --W.message{ speaker = cart.id, message = 'Done others move' }
+            --W.message { speaker = cart.id, message = 'Done others move' }
         end
 
         function prune_cart:more_defensive_formation_eval()

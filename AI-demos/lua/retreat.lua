@@ -82,7 +82,7 @@ end
 
 function retreat_functions.get_healing_locations()
     local possible_healers = AH.get_live_units {
-        { "filter_side", {{"allied_with", {side = wesnoth.current.side} }} }
+        { "filter_side", {{ "allied_with", { side = wesnoth.current.side } }} }
     }
 
     local healing_locs = LS.create()
@@ -102,10 +102,10 @@ function retreat_functions.get_healing_locations()
             end
             if heal_amount + cure > 0 then
                 for x, y in H.adjacent_tiles(u.x, u.y) do
-                    local old_values = healing_locs:get(x, y) or {0, 0}
+                    local old_values = healing_locs:get(x, y) or { 0, 0 }
                     local best_heal = math.max(old_values[1], heal_amount)
                     local best_cure = math.max(old_values[2], cure)
-                    healing_locs:insert(x, y, {best_heal, best_cure})
+                    healing_locs:insert(x, y, { best_heal, best_cure })
                 end
             end
         end
@@ -117,7 +117,7 @@ end
 function retreat_functions.get_retreat_injured_units(healees, regenerates, enemy_count_weight)
     -- Only retreat to safe locations
     local enemies = AH.get_live_units {
-        { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
+        { "filter_side", {{ "enemy_of", { side = wesnoth.current.side } }} }
     }
     local enemy_attack_map = BC.get_attack_map(enemies)
 
@@ -144,10 +144,10 @@ function retreat_functions.get_retreat_injured_units(healees, regenerates, enemy
                 if heal_amount > 0 then
                     curing = 2
                 end
-                local healer_values = healing_locs:get(loc[1], loc[2]) or {0, 0}
+                local healer_values = healing_locs:get(loc[1], loc[2]) or { 0, 0 }
                 heal_amount = math.max(heal_amount, healer_values[1])
                 curing = math.max(curing, healer_values[2])
-                table.insert(location_subset, {loc[1], loc[2], heal_amount, curing})
+                table.insert(location_subset, { loc[1], loc[2], heal_amount, curing })
             end
 
             possible_locations = location_subset
