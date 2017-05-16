@@ -103,8 +103,8 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, game
                 rating = rating + 1
             end
 
-            -- Penalty based on (bad) terrain defense for unit
-            rating = rating - wesnoth.unit_defense(gamedata.unit_copies[id], wesnoth.get_terrain(x, y))/100.
+            -- Small bonus for terrain defense
+            rating = rating + (1 - wesnoth.unit_defense(gamedata.unit_copies[id], wesnoth.get_terrain(x, y))/100.)
 
             -- Penalty if a unit has to move out of the way
             -- Small base penalty plus damage of moving unit
@@ -135,7 +135,144 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, game
         end
     end
 
-    return best_id, best_loc
+    if best_id then
+        return best_id, best_loc
+    end
+
+
+    -- If we got here, then no direct retreat locations were found.
+    -- Try to find some farther away
+    -- This only makes sense for non-regenerating units.
+
+    local retreaters_regen, retreaters_no_regen = {}, {}
+    for id,loc in pairs(retreaters) do
+        if gamedata.unit_infos[id].abilities.regenerate then
+            retreaters_regen[id] = loc
+        else
+            retreaters_no_regen[id] = loc
+        end
+    end
+    --DBG.dbms(retreaters_no_regen)
+
+    if next(retreaters_no_regen) then
+        local unthreatened_villages_map = {}
+        for x,y,_ in FU.fgumap_iter(gamedata.village_map) do
+            if (not enemy_attack_map.units:get(x, y)) then
+                FU.set_fgumap_value(unthreatened_villages_map, x, y, 'flag', true)
+            end
+        end
+        --DBG.dbms(unthreatened_villages_map)
+
+        local max_rating, best_loc, best_id
+        for id,loc in pairs(retreaters_no_regen) do
+            -- First find all goal villages.  These are:
+            --  - unthreatened
+            --  - more than 1 turn away
+            --  - no more than 3 turns away
+            --  - worth moving that far (based on retreat_utility)
+            local villages, min_turns = {}
+            for x,y,_ in FU.fgumap_iter(unthreatened_villages_map) do
+                local _,cost = wesnoth.find_path(gamedata.unit_copies[id], x, y)
+                local int_turns = math.ceil(cost / gamedata.unit_infos[id].max_moves)
+
+                -- Exclude 1-turn hexes as these might be occupied by a friendly unit ot something
+                if (int_turns > 1) and (int_turns <= 3) then
+                    -- This is really the required utility to make it worth it, rather than the utility of the village
+                    local distance_utility = 1 - 1 / int_turns
+                    if (retreat_utilities[id] >= distance_utility) then
+                        --print(id, x, y, int_turns, distance_utility, retreat_utilities[id])
+                        if (not min_turns) or (int_turns < min_turns) then
+                            min_turns = int_turns
+                        end
+
+                        table.insert(villages, {
+                            loc = { x, y },
+                            int_turns = int_turns,
+                            cost = cost
+                        })
+                    end
+                end
+            end
+            --DBG.dbms(villages)
+
+            if (not min_turns) then break end
+
+            -- Only keep those that are no more than the closest of those away (in integer turns)
+            -- That is, a region with 2 villages 2 turns away is better than one with one village
+            -- But a region with 1 village at 2 turns and 1 at 3 turns is no better than that
+            local goal_villages = {}
+            for _,v in ipairs(villages) do
+                if (v.int_turns == min_turns) then
+                    FU.set_fgumap_value(goal_villages, v.loc[1], v.loc[2], 'int_turns', v.int_turns)
+                    goal_villages[v.loc[1]][v.loc[2]].cost = v.cost
+                end
+            end
+            --DBG.dbms(goal_villages)
+
+            local rating_map = {}
+            for x,y,_ in FU.fgumap_iter(gamedata.reach_maps[id]) do
+                -- Consider only unthreatened hexes
+                -- and only those that reduce the number of turns needed to get to the goal villages
+                if (not enemy_attack_map.units:get(x, y)) then
+                    local rating = 0
+
+                    -- TODO: possibly find a more efficient way to do the following?
+                    for xv,yv,v in FU.fgumap_iter(goal_villages) do
+                        local old_x, old_y = gamedata.unit_copies[id].x, gamedata.unit_copies[id].y
+                        local old_moves = gamedata.unit_copies[id].moves
+                        gamedata.unit_copies[id].x, gamedata.unit_copies[id].y = x, y
+                        gamedata.unit_copies[id].moves = gamedata.unit_infos[id].max_moves
+                        local _,cost = wesnoth.find_path(gamedata.unit_copies[id], xv, yv)
+                        local int_turns = math.ceil(cost / gamedata.unit_infos[id].max_moves)
+                        gamedata.unit_copies[id].x, gamedata.unit_copies[id].y = old_x, old_y
+                        gamedata.unit_copies[id].moves = old_moves
+                        --print(id, x, y, xv, yv, int_turns, v.int_turns)
+
+                        -- Base rating is the reduction of moves needed to get there
+                        -- This is additive for all villages for this is true
+                        if (int_turns < v.int_turns) then
+                            rating = rating + v.cost - cost
+                        end
+                    end
+
+                    if (rating > 0) then
+                        -- Small bonus for terrain defense
+                        rating = rating + (1 - wesnoth.unit_defense(gamedata.unit_copies[id], wesnoth.get_terrain(x, y))/100.)
+
+                        -- Penalty if a unit has to move out of the way
+                        -- Small base penalty plus damage of moving unit
+                        -- Both of these are small though, really just meant as tie breakers
+                        -- Units with MP are taken off the map at this point, so cannot just check the map
+                        local uiw_id = FU.get_fgumap_value(gamedata.my_unit_map_MP, x, y, 'id')
+                        --print(id, x, y, uiw_id)
+                        if uiw_id and (uiw_id ~= id) then
+                            rating = rating - 0.01
+                            rating = rating + (gamedata.unit_infos[uiw_id].hitpoints - gamedata.unit_infos[uiw_id].max_hitpoints) / 100.
+                        end
+
+                        -- We also add in the retreat_utility, but in this case it's only the tie breaker
+                        rating = rating + retreat_utilities[id]
+
+                        FU.set_fgumap_value(rating_map, x, y, 'rating', rating)
+
+                        if (not max_rating) or (rating > max_rating) then
+                            max_rating = rating
+                            best_loc = { x, y }
+                            best_id = id
+                        end
+                    end
+                end
+            end
+
+            if false then
+                FU.show_fgumap_with_message(rating_map, 'rating', 'Retreat rating map (far villages)', gamedata.unit_copies[id])
+            end
+        end
+
+        if best_id then
+            return best_id, best_loc
+        end
+    end
 end
 
 return retreat_functions
