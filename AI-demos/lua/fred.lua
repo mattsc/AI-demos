@@ -577,7 +577,7 @@ return {
             end
 
 
-            -- Now find the unit-vs-unit ratings
+            -- Find the unit-vs-unit ratings
             -- Extract all AI units
             --   - because no two units on the map can have the same underlying_id
             --   - so that we do not accidentally overwrite a unit
@@ -1864,7 +1864,6 @@ return {
             -- These are cross-zone
             table.insert(fred.data.zone_cfgs, {
                 zone_id = 'all_map',
-
                 action_type = 'attack',
                 rating = base_ratings.fav_attack,
                 value_ratio = 2.0 -- only very favorable attacks will pass this
