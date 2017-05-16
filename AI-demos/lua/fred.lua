@@ -225,6 +225,13 @@ return {
                 replace_zones = { 'center', 'east' }
             }
 
+            local cfg_all_map = {
+                zone_id = 'all_map',
+                ops_slf = {},
+                center_hexes = { { 20, 20 } }
+            }
+
+
             if (zone_id == 'leader_threat') then
                 return cfg_leader_threat
             end
@@ -252,7 +259,8 @@ return {
                     west = cfg_west,
                     center = cfg_center,
                     east = cfg_east,
-                    top = cfg_top
+                    top = cfg_top,
+                    all_map = cfg_all_map
                 }
 
                 for _,cfg in pairs(cfgs) do
@@ -1768,8 +1776,9 @@ return {
                 attack = 8000,
                 fav_attack = 7000,
                 hold = 4000,
-                advance = 2000
                 retreat = 2100,
+                advance = 2000,
+                advance_all = 1000
             }
 
             -- TODO: might want to do something more complex (e.g using local info) in ops layer
@@ -1861,6 +1870,14 @@ return {
                 value_ratio = 2.0 -- only very favorable attacks will pass this
             })
 
+
+            -- TODO: this is a catch all action, that moves all units that were
+            -- missed. Ideally, there will be no need for this in the end.
+            table.insert(fred.data.zone_cfgs, {
+                zone_id = 'all_map',
+                action_type = 'advance',
+                rating = base_ratings.advance_all
+            })
 
             --DBG.dbms(fred.data.zone_cfgs)
 
@@ -3680,7 +3697,8 @@ return {
 
                             local hexes = {}
                             -- Cannot just assign here, as we do not want to change the input tables later
-                            if fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs
+                            if fred.data.ops_data.protect_locs[zone_cfg.zone_id]
+                                and fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs
                                 and fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs[1]
                             then
                                 for _,loc in ipairs(fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs) do
