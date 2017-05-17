@@ -4,12 +4,33 @@ Functions to support the retreat of injured units
 
 local H = wesnoth.require "lua/helper.lua"
 local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
-local BC = wesnoth.require "~/add-ons/AI-demos/lua/battle_calcs.lua"
 local LS = wesnoth.require "lua/location_set.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local retreat_functions = {}
+
+function retreat_functions.damages(id, x, y, hitchance, unit_attacks, gamedata)
+    -- For now, we add up the maximum damage from all enemies that can reach the
+    -- hex, and if it is less than the unit's HP, consider this a valid retreat location
+    -- TODO: possible improvements:
+    --   - Don't use max_damage, or a better evaluation thereof
+    --   - Only consider the number of units that can attack on the same turn
+
+    local enemy_ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids')
+    local max_damage, av_damage = 0, 0
+    if enemy_ids then
+        for _,enemy_id in ipairs(enemy_ids) do
+            local damage = unit_attacks[id][enemy_id].counter.taken
+            --print('  ' .. x, y, enemy_id, damage, hitchance)
+            max_damage = max_damage + damage
+            av_damage = av_damage + damage * hitchance
+        end
+    end
+    --print('    ' .. max_damage, av_damage)
+
+    return max_damage, av_damage
+end
 
 function retreat_functions.get_healing_locations()
     local possible_healer_proxies = AH.get_live_units {
@@ -45,13 +66,11 @@ function retreat_functions.get_healing_locations()
     return healing_locs
 end
 
-function retreat_functions.find_best_retreat(retreaters, retreat_utilities, gamedata)
+function retreat_functions.find_best_retreat(retreaters, retreat_utilities, unit_attacks, gamedata)
     -- Only retreat to safe locations
     local enemie_proxies = AH.get_live_units {
         { "filter_side", {{ "enemy_of", { side = wesnoth.current.side } }} }
     }
-    local enemy_attack_map = BC.get_attack_map(enemie_proxies)
-
     local healing_locs = retreat_functions.get_healing_locations()
 
     local heal_maps = {}
@@ -124,7 +143,8 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, game
             end
 
             -- Small bonus for terrain defense
-            rating = rating + (1 - wesnoth.unit_defense(gamedata.unit_copies[id], wesnoth.get_terrain(x, y))/100.)
+            local hitchance = wesnoth.unit_defense(gamedata.unit_copies[id], wesnoth.get_terrain(x, y)) / 100.
+            rating = rating + (1 - hitchance)
 
             -- Penalty if a unit has to move out of the way
             -- Small base penalty plus damage of moving unit
@@ -137,9 +157,10 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, game
                 rating = rating + (gamedata.unit_infos[uiw_id].hitpoints - gamedata.unit_infos[uiw_id].max_hitpoints) / 100.
             end
 
-            -- For now, we only consider safe hexes (no enemy threat at all)
-            local enemy_count = enemy_attack_map.units:get(x, y) or 0
-            if (enemy_count == 0) then
+            local max_damage, av_damage = retreat_functions.damages(id, x, y, hitchance, unit_attacks, gamedata)
+            if (max_damage < gamedata.unit_infos[id].hitpoints) then
+                rating = rating - av_damage
+
                 FU.set_fgumap_value(rating_map, x, y, 'rating', rating)
 
                 if (not max_rating) or (rating > max_rating) then
@@ -177,7 +198,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, game
     if next(retreaters_no_regen) then
         local unthreatened_villages_map = {}
         for x,y,_ in FU.fgumap_iter(gamedata.village_map) do
-            if (not enemy_attack_map.units:get(x, y)) then
+            if (not FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids')) then
                 FU.set_fgumap_value(unthreatened_villages_map, x, y, 'flag', true)
             end
         end
@@ -231,9 +252,13 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, game
 
             local rating_map = {}
             for x,y,_ in FU.fgumap_iter(gamedata.reach_maps[id]) do
-                -- Consider only unthreatened hexes
-                -- and only those that reduce the number of turns needed to get to the goal villages
-                if (not enemy_attack_map.units:get(x, y)) then
+                -- Consider only hexes with acceptable threats
+                -- and only those that reduce the number of turns needed to get to the goal villages.
+                -- Acceptable threats in this case are based on av_damage, not max_damage as above
+                local hitchance = wesnoth.unit_defense(gamedata.unit_copies[id], wesnoth.get_terrain(x, y)) / 100.
+                local max_damage, av_damage = retreat_functions.damages(id, x, y, hitchance, unit_attacks, gamedata)
+
+                if (av_damage < gamedata.unit_infos[id].hitpoints) then
                     local rating = 0
 
                     -- TODO: possibly find a more efficient way to do the following?
@@ -246,7 +271,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, game
                         local int_turns = math.ceil(cost / gamedata.unit_infos[id].max_moves)
                         gamedata.unit_copies[id].x, gamedata.unit_copies[id].y = old_x, old_y
                         gamedata.unit_copies[id].moves = old_moves
-                        --print(id, x, y, xv, yv, int_turns, v.int_turns)
+                        --print('  ' .. id, x, y, xv, yv, int_turns, v.int_turns)
 
                         -- Base rating is the reduction of moves needed to get there
                         -- This is additive for all villages for this is true
@@ -257,7 +282,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, game
 
                     if (rating > 0) then
                         -- Small bonus for terrain defense
-                        rating = rating + (1 - wesnoth.unit_defense(gamedata.unit_copies[id], wesnoth.get_terrain(x, y))/100.)
+                        rating = rating + (1 - hitchance)
 
                         -- Penalty if a unit has to move out of the way
                         -- Small base penalty plus damage of moving unit

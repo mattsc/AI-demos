@@ -3808,7 +3808,7 @@ return {
 
             local retreat_utilities = FU.retreat_utilities(gamedata)
 
-            local id, dest = R.find_best_retreat(zone_cfg.retreaters, retreat_utilities, gamedata)
+            local id, dest = R.find_best_retreat(zone_cfg.retreaters, retreat_utilities, fred.data.turn_data.unit_attacks, gamedata)
             if id then
                 FU.print_debug(show_debug_advance, '  retreat:', id, dest[1], dest[2])
 
