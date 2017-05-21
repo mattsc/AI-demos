@@ -106,9 +106,12 @@ return {
         end
 
 
-        function fred:get_between_map(locs, units, gamedata, perp_dist_weight, add_turns)
+        function fred:get_between_map(locs, units, gamedata, perp_dist_weight)
+            -- Note: this function ignores enemies and distance of the units
+            -- from the locs. Whether this makes sense to use all these units needs
+            -- to be checked in the calling function
+
             perp_dist_weight = perp_dist_weight or 0.5
-            add_turns = add_turns or 0
 
             local weights, cum_weight = {}, 0
             for id,_ in pairs(units) do
@@ -122,48 +125,48 @@ return {
             --DBG.dbms(weights)
 
             local between_map = {}
-            for id,_ in pairs(units) do
-                -- Need reach maps for each unit from its current position
-                -- and from each of the locs
-                local unit_copy = gamedata.unit_copies[id]
-                local old_moves = unit_copy.moves
-                local old_x, old_y = unit_copy.x, unit_copy.y
-                local total_mp = (add_turns + 1) * gamedata.unit_infos[id].max_moves
+            for id,unit_loc in pairs(units) do
+                --print(id, unit_loc[1], unit_loc[2])
+                local unit = {}
+                unit[id] = unit_loc
 
-                unit_copy.moves = unit_copy.max_moves
-                local reach = wesnoth.find_reach(unit_copy, { additional_turns = add_turns, ignore_units = true })
-
-                for _,loc in ipairs(locs) do
-                    unit_copy.x, unit_copy.y = loc[1], loc[2]
-                    local reach_loc = wesnoth.find_reach(unit_copy, { additional_turns = add_turns, ignore_units = true })
-                    local reach_loc_map = {}
-                    for _,rl in ipairs(reach_loc) do
-                        FU.set_fgumap_value(reach_loc_map, rl[1], rl[2], 'reach_loc', total_mp - rl[3])
-                    end
-
-                    local dist_ul
-                    for _,r in ipairs(reach) do
-                        if (r[1] == loc[1]) and (r[2] == loc[2]) then
-                            dist_ul = total_mp - r[3]
-                            break
-                        end
-                    end
-
-                    if dist_ul then
-                        for _,r in ipairs(reach) do
-                            local dist_ux = total_mp - r[3]
-                            local dist_lx = FU.get_fgumap_value(reach_loc_map, r[1], r[2], 'reach_loc', total_mp * 2)
-
-                            local rating = dist_ul - dist_ux
-                            rating = rating - perp_dist_weight * (dist_ux + dist_lx - dist_ul)
-                            rating = rating * weights[id]
-                            FU.fgumap_add(between_map, r[1], r[2], 'distance', rating)
-                        end
+                local cm = wesnoth.find_cost_map(
+                    { x = -1 }, -- SUF not matching any unit
+                    { { unit_loc[1], unit_loc[2], gamedata.unit_infos[id].side, gamedata.unit_infos[id].type } },
+                    { ignore_units = true }
+                )
+                local cost_map = {}
+                for _,cost in pairs(cm) do
+                    if (cost[3] > -1) then
+                       FU.set_fgumap_value(cost_map, cost[1], cost[2], 'cost', cost[3])
                     end
                 end
 
-                unit_copy.moves = old_moves
-                unit_copy.x, unit_copy.y = old_x, old_y
+                if false then
+                    FU.show_fgumap_with_message(cost_map, 'cost', 'cost_map', gamedata.unit_copies[id])
+                end
+
+                for _,loc in ipairs(locs) do
+                    --print('  loc:', loc[1], loc[2])
+                    local inv_cost_map = FU.inverse_cost_map(unit, loc, gamedata)
+
+                    if false then
+                        FU.show_fgumap_with_message(inv_cost_map, 'cost', 'inv_cost_map', gamedata.unit_copies[id])
+                    end
+
+                    local cost_full = FU.get_fgumap_value(cost_map, loc[1], loc[2], 'cost')
+
+                    for x,y,data in FU.fgumap_iter(cost_map) do
+                        local cost = data.cost
+                        local inv_cost = FU.get_fgumap_value(inv_cost_map, x, y, 'cost')
+
+                        local rating = (cost + inv_cost) / 2
+                        rating = cost_full - math.max(cost, inv_cost)
+                        rating = rating - perp_dist_weight * (cost + inv_cost - cost_full)
+                        rating = rating * weights[id]
+                        FU.fgumap_add(between_map, x, y, 'distance', rating)
+                    end
+                end
             end
 
             return between_map
