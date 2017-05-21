@@ -275,7 +275,7 @@ function fred_utils.unit_value(unit_info, cfg)
 
     unit_value = unit_value * (1. + xp_bonus * xp_weight)
 
-    --print('FU.unit_value:', unit_info.id, unit_value, xp_bonus, xp_diff)
+    --print('fred_utils.unit_value:', unit_info.id, unit_value, xp_bonus, xp_diff)
 
     return unit_value
 end
