@@ -234,6 +234,19 @@ function UHC.unit_rating_maps_to_dstsrc(unit_rating_maps, key, gamedata, cfg)
     --DBG.dbms(use_units)
 
 
+    -- Show the units and hexes to be used
+    if false then
+        for _,unit in ipairs(use_units) do
+            local tmp_map = {}
+            local count = math.min(max_hexes, #sorted_ratings[unit.id])
+            for i = 1,count do
+                FU.set_fgumap_value(tmp_map, sorted_ratings[unit.id][i].x, sorted_ratings[unit.id][i].y, 'protect_rating', sorted_ratings[unit.id][i].protect_rating)
+            end
+            FU.show_fgumap_with_message(tmp_map, 'protect_rating', 'Best protect_rating', gamedata.unit_copies[unit.id])
+        end
+    end
+
+
     -- Finally, we need to set up the dst_src array in a way that can be used by get_unit_hex_combos()
     local ratings = {}
     for _,unit in ipairs(use_units) do
