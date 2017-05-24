@@ -1778,34 +1778,32 @@ return {
             local value_ratio = FU.get_value_ratio(gamedata)
 
             for zone_id,zone_units in pairs(holders_by_zone) do
-                if (zone_id ~= 'leader_threat') then
-                    if threats_by_zone[zone_id] and attackers_by_zone[zone_id] then
-                        -- Attack --
-                        table.insert(fred.data.zone_cfgs,  {
-                            zone_id = zone_id,
-                            action_type = 'attack',
-                            zone_units = attackers_by_zone[zone_id],
-                            targets = threats_by_zone[zone_id],
-                            rating = base_ratings.attack + power_stats.zones[zone_id].power_needed,
-                            value_ratio = value_ratio
-                        })
+                if threats_by_zone[zone_id] and attackers_by_zone[zone_id] then
+                    -- Attack --
+                    table.insert(fred.data.zone_cfgs,  {
+                        zone_id = zone_id,
+                        action_type = 'attack',
+                        zone_units = attackers_by_zone[zone_id],
+                        targets = threats_by_zone[zone_id],
+                        rating = base_ratings.attack + power_stats.zones[zone_id].power_needed,
+                        value_ratio = value_ratio
+                    })
+                end
+
+                if holders_by_zone[zone_id] then
+                    local protect_leader = false
+                    if leader_threats_by_zone[zone_id] and next(leader_threats_by_zone[zone_id]) then
+                        protect_leader = true
                     end
 
-                    if holders_by_zone[zone_id] then
-                        local protect_leader = false
-                        if leader_threats_by_zone[zone_id] and next(leader_threats_by_zone[zone_id]) then
-                            protect_leader = true
-                        end
-
-                        -- Hold --
-                        table.insert(fred.data.zone_cfgs, {
-                            zone_id = zone_id,
-                            action_type = 'hold',
-                            zone_units = holders_by_zone[zone_id],
-                            rating = base_ratings.hold + power_stats.zones[zone_id].power_needed,
-                            protect_leader = protect_leader
-                        })
-                    end
+                    -- Hold --
+                    table.insert(fred.data.zone_cfgs, {
+                        zone_id = zone_id,
+                        action_type = 'hold',
+                        zone_units = holders_by_zone[zone_id],
+                        rating = base_ratings.hold + power_stats.zones[zone_id].power_needed,
+                        protect_leader = protect_leader
+                    })
                 end
             end
 
