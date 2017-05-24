@@ -1,7 +1,9 @@
 local H = wesnoth.require "lua/helper.lua"
 local AH = wesnoth.require "ai/lua/ai_helper.lua"
+local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local W = H.set_wml_action_metatable {}
+--local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local UHC = {}
 
@@ -352,9 +354,31 @@ end
 
 
 
-function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, between_map, gamedata, cfg)
+function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, between_map, gamedata, move_cache, cfg)
     -- This currently only returns a combo with the max number of units
     -- TODO: does this need to be ammended?
+
+    local leader_id = gamedata.leaders[wesnoth.current.side].id
+    local leader_protect_base_rating
+
+    if cfg.protect_leader then
+        local leader_target = {}
+        leader_target[leader_id] = { gamedata.leader_x, gamedata.leader_y }
+        local old_locs = { { gamedata.leader_x, gamedata.leader_y } }
+        local new_locs = { { gamedata.leader_x, gamedata.leader_y } }
+
+        local counter_stats = FAU.calc_counter_attack(
+            leader_target, old_locs, new_locs, gamedata, move_cache, cfg_attack
+        )
+
+        -- TODO: poisoned, slowed
+        leader_protect_base_rating = counter_stats.def_stat.average_hp / gamedata.unit_infos[leader_id].max_hitpoints
+        leader_protect_base_rating = leader_protect_base_rating + (1 - counter_stats.def_stat.hp_chance[0])
+        leader_protect_base_rating = 1 + leader_protect_base_rating / 2
+        --print('base', counter_stats.def_stat.average_hp, counter_stats.def_stat.hp_chance[0], leader_protect_base_rating)
+        --DBG.dbms(counter_stats)
+    end
+
 
     local unprotected_max_rating, unprotected_best_combo
     local max_rating, best_combo
@@ -424,82 +448,113 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, between
         end
         --print(i_c, is_dqed, count)
 
+
         local is_protected = true
+        local leader_protect_mult = 0
         if (not is_dqed) and cfg and cfg.protect_locs then
+            if cfg.protect_leader then
+                local leader_target = {}
+                leader_target[leader_id] = { gamedata.leader_x, gamedata.leader_y }
+                local old_locs = { { gamedata.leader_x, gamedata.leader_y } }
+                local new_locs = { { gamedata.leader_x, gamedata.leader_y } }
 
-            -- For now, simply use the protect_loc with the largest forward distance
-            -- TODO: think about how to deal with several simultaneously
-            local max_ld, loc
-            for _,protect_loc in ipairs(cfg.protect_locs) do
-                local ld = FU.get_fgumap_value(gamedata.leader_distance_map, protect_loc[1], protect_loc[2], 'distance')
-                if (not max_ld) or (ld > max_ld) then
-                    max_ld = ld
-                    loc = protect_loc
-                end
-            end
-
-            --print('*** need to check protection of ' .. loc[1] .. ',' .. loc[2])
-
-            -- First check (because it's quick): if there is a unit on the hex to be protected
-            is_protected = false
-            for src,dst in pairs(combo) do
-                local x, y =  math.floor(dst / 1000), dst % 1000
-                --print('  ' .. x , y)
-
-                if (x == loc[1]) and (y == loc[2]) then
-                    --print('    --> protected by having unit on hex')
-                    is_protected = true
-                    break
-                end
-            end
-
-
-            -- If that did not find anything, we do path_finding
-            if (not is_protected) then
-                --print('combo ' .. i_c, loc[1], loc[2])
                 for src,dst in pairs(combo) do
-                    local id = ratings[dst][src].id
-                    local x, y =  math.floor(dst / 1000), dst % 1000
-                    --print(id, src, x,y, gamedata.unit_copies[id].x, gamedata.unit_copies[id].y)
-
-                    wesnoth.put_unit(x, y, gamedata.unit_copies[id])
+                    local dst_x, dst_y =  math.floor(dst / 1000), dst % 1000
+                    local src_x, src_y =  math.floor(src / 1000), src % 1000
+                    table.insert(old_locs, { src_x, src_y })
+                    table.insert(new_locs, { dst_x, dst_y })
                 end
 
-                local can_reach = false
-                for enemy_id,_ in pairs(gamedata.enemies) do
-                    local moves_left = FU.get_fgumap_value(gamedata.reach_maps[enemy_id], loc[1], loc[2], 'moves_left')
-                    if moves_left then
-                        --print('  ' .. enemy_id, moves_left)
-                        local _, cost = wesnoth.find_path(gamedata.unit_copies[enemy_id], loc[1], loc[2])
-                        --print('  cost: ', cost)
+                local counter_stats = FAU.calc_counter_attack(
+                    leader_target, old_locs, new_locs, gamedata, move_cache, cfg_attack
+                )
 
-                        if (cost <= gamedata.unit_infos[enemy_id].max_moves) then
-                            --print('    can reach this!')
-                            can_reach = true
-                            break
-                        end
+                -- TODO: poisoned, slowed
+                local leader_protect_rating = counter_stats.def_stat.average_hp / gamedata.unit_infos[leader_id].max_hitpoints
+                leader_protect_rating = leader_protect_rating + (1 - counter_stats.def_stat.hp_chance[0])
+                leader_protect_rating = 1 + leader_protect_rating / 2
+                leader_protect_mult = leader_protect_rating / leader_protect_base_rating
+                --print(i_c, counter_stats.def_stat.average_hp, counter_stats.def_stat.hp_chance[0], leader_protect_rating, leader_protect_mult)
+                --DBG.dbms(counter_stats)
+
+                if (leader_protect_mult < 1.001) then
+                    is_protected = false
+                end
+            else
+                -- For now, simply use the protect_loc with the largest forward distance
+                -- TODO: think about how to deal with several simultaneously
+                local max_ld, loc
+                for _,protect_loc in ipairs(cfg.protect_locs) do
+                    local ld = FU.get_fgumap_value(gamedata.leader_distance_map, protect_loc[1], protect_loc[2], 'distance')
+                    if (not max_ld) or (ld > max_ld) then
+                        max_ld = ld
+                        loc = protect_loc
                     end
                 end
 
+                --print('*** need to check protection of ' .. loc[1] .. ',' .. loc[2])
+
+                -- First check (because it's quick): if there is a unit on the hex to be protected
+                is_protected = false
                 for src,dst in pairs(combo) do
-                    local id = ratings[dst][src].id
                     local x, y =  math.floor(dst / 1000), dst % 1000
+                    --print('  ' .. x , y)
 
-                    wesnoth.extract_unit(gamedata.unit_copies[id])
-
-                    local src_x, src_y =  math.floor(src / 1000), src % 1000
-                    gamedata.unit_copies[id].x, gamedata.unit_copies[id].y = src_x, src_y
-
-
-                    --print('  ' .. id, src, x,y, gamedata.unit_copies[id].x, gamedata.unit_copies[id].y)
+                    if (x == loc[1]) and (y == loc[2]) then
+                        --print('    --> protected by having unit on hex')
+                        is_protected = true
+                        break
+                    end
                 end
 
-                if (not can_reach) then
-                    is_protected = true
+
+                -- If that did not find anything, we do path_finding
+                if (not is_protected) then
+                    --print('combo ' .. i_c, loc[1], loc[2])
+                    for src,dst in pairs(combo) do
+                        local id = ratings[dst][src].id
+                        local x, y =  math.floor(dst / 1000), dst % 1000
+                        --print(id, src, x,y, gamedata.unit_copies[id].x, gamedata.unit_copies[id].y)
+
+                        wesnoth.put_unit(x, y, gamedata.unit_copies[id])
+                    end
+
+                    local can_reach = false
+                    for enemy_id,_ in pairs(gamedata.enemies) do
+                        local moves_left = FU.get_fgumap_value(gamedata.reach_maps[enemy_id], loc[1], loc[2], 'moves_left')
+                        if moves_left then
+                            --print('  ' .. enemy_id, moves_left)
+                            local _, cost = wesnoth.find_path(gamedata.unit_copies[enemy_id], loc[1], loc[2])
+                            --print('  cost: ', cost)
+
+                            if (cost <= gamedata.unit_infos[enemy_id].max_moves) then
+                                --print('    can reach this!')
+                                can_reach = true
+                                break
+                            end
+                        end
+                    end
+
+                    for src,dst in pairs(combo) do
+                        local id = ratings[dst][src].id
+                        local x, y =  math.floor(dst / 1000), dst % 1000
+
+                        wesnoth.extract_unit(gamedata.unit_copies[id])
+
+                        local src_x, src_y =  math.floor(src / 1000), src % 1000
+                        gamedata.unit_copies[id].x, gamedata.unit_copies[id].y = src_x, src_y
+
+
+                        --print('  ' .. id, src, x,y, gamedata.unit_copies[id].x, gamedata.unit_copies[id].y)
+                    end
+
+                    if (not can_reach) then
+                        is_protected = true
+                    end
                 end
             end
         end
-
+        --print('is_protected', is_protected, is_dqed)
 
         if (not is_dqed) then
             rating = rating / cum_weight * count
@@ -533,6 +588,9 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, between
                 end
             end
 
+            if cfg.protect_leader then
+                rating = rating * leader_protect_mult
+            end
 
             if (not unprotected_max_rating) or (rating > unprotected_max_rating) then
                 unprotected_max_rating = rating
@@ -549,6 +607,8 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, between
 
             -- Display combo and rating, if desired
             if false then
+                local protected_str = 'no'
+                if is_protected then protected_str = 'yes' end
                 local x, y
                 for src,dst in pairs(combo) do
                     x, y =  math.floor(dst / 1000), dst % 1000
@@ -558,7 +618,7 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, between
                 wesnoth.scroll_to_tile(x, y)
                 W.message {
                     speaker = 'narrator',
-                    message = 'Hold combo ' .. i_c .. '/' .. #combos .. ' rating = ' .. rating
+                    message = 'Hold combo ' .. i_c .. '/' .. #combos .. ' rating = ' .. rating .. ' is_protected = ' .. protected_str
                 }
                 for src,dst in pairs(combo) do
                     x, y =  math.floor(dst / 1000), dst % 1000

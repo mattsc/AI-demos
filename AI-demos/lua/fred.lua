@@ -2720,7 +2720,6 @@ return {
         function fred:get_hold_action(zone_cfg)
             if debug_eval then print_time('  --> hold evaluation: ' .. zone_cfg.zone_id) end
 
-
             local enemy_value_ratio = 1.25
             local max_units = 3
             local max_hexes = 6
@@ -2946,14 +2945,15 @@ return {
                 local ld = FU.get_fgumap_value(gamedata.leader_distance_map, lx, ly, 'distance')
                 hold_leader_distance = { min = ld, max = ld }
                 protect_locs = { { lx, ly } }
-                assigned_enemies = fred.data.ops_data.leader_threats.enemies
-                min_btw_dist, perp_dist_weight = 0, 0.5
+                min_btw_dist, perp_dist_weight = -0.5, 0.2
             else
                 hold_leader_distance = fred.data.ops_data.protect_locs[zone_cfg.zone_id].hold_leader_distance
                 protect_locs = fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs
-                assigned_enemies = fred.data.ops_data.assigned_enemies[zone_cfg.zone_id]
                 min_btw_dist, perp_dist_weight = -2, 0.05
             end
+
+            assigned_enemies = fred.data.ops_data.assigned_enemies[zone_cfg.zone_id]
+            --DBG.dbms(assigned_enemies)
 
             local between_map
             if protect_locs and assigned_enemies then
@@ -3518,7 +3518,7 @@ return {
                 --DBG.dbms(hold_combos)
                 --print('#hold_combos', #hold_combos)
 
-                best_hold_combo = UHC.find_best_combo(hold_combos, hold_ratings, 'vuln_rating', adjacent_village_map, between_map, gamedata, cfg_best_combo_hold)
+                best_hold_combo = UHC.find_best_combo(hold_combos, hold_ratings, 'vuln_rating', adjacent_village_map, between_map, gamedata, move_cache, cfg_best_combo_hold)
             end
 
             local best_protect_combo, unprotected_best_protect_combo, protect_dst_src, protect_ratings
@@ -3529,7 +3529,7 @@ return {
                 --DBG.dbms(protect_combos)
                 --print('#protect_combos', #protect_combos)
 
-                best_protect_combo, unprotected_best_protect_combo = UHC.find_best_combo(protect_combos, protect_ratings, 'protect_rating', adjacent_village_map, between_map, gamedata, cfg_best_combo_protect)
+                best_protect_combo, unprotected_best_protect_combo = UHC.find_best_combo(protect_combos, protect_ratings, 'protect_rating', adjacent_village_map, between_map, gamedata, move_cache, cfg_best_combo_protect)
 
                 -- If no combo that protects the location was found, use the best of the others
                 if (not best_protect_combo) then
