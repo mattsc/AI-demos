@@ -3142,14 +3142,11 @@ return {
                         damage_taken = damage_taken - village_bonus
                         local frac_taken = damage_taken - tmp_enemies[1].my_regen
 
-                        -- This is (intentionally) taken as fraction of current hitpoints,
-                        -- and later multiplied with max_hitpoints, to emphasize the hit
-                        -- on units with reduced HP. Not sure if we'll keep it that way.
                         frac_taken = frac_taken / gamedata.unit_infos[id].hitpoints
                         frac_taken = FU.weight_s(frac_taken, 0.5)
                         --if (frac_taken > 1) then frac_taken = 1 end
                         --if (frac_taken < 0) then frac_taken = 0 end
-                        damage_taken = frac_taken * gamedata.unit_infos[id].max_hitpoints
+                        damage_taken = frac_taken * gamedata.unit_infos[id].hitpoints
 
                         -- TODO: that division by sqrt(n_enemies) is pretty adhoc; decide whether to change that
                         weighted_damage_taken = weighted_damage_taken * n_enemies - village_bonus - tmp_enemies[1].my_regen
@@ -3157,7 +3154,7 @@ return {
                         frac_taken = FU.weight_s(frac_taken, 0.5)
                         --if (frac_taken > 1) then frac_taken = 1 end
                         --if (frac_taken < 0) then frac_taken = 0 end
-                        weighted_damage_taken = frac_taken / n_enemies * gamedata.unit_infos[id].max_hitpoints
+                        weighted_damage_taken = frac_taken / n_enemies * gamedata.unit_infos[id].hitpoints
 
 
                         local net_outcome = enemy_value_ratio * damage_done - damage_taken
