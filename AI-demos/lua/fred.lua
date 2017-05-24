@@ -1670,8 +1670,7 @@ return {
                     attack = 35000,
                     move_to_keep = 34000,
                     recruit = 33000,
-                    move_to_village = 32000,
-                    hold = 3000
+                    move_to_village = 32000
                 }
 
                 local zone_id = 'leader_threat'
@@ -1753,14 +1752,6 @@ return {
                         rating = leader_base_ratings.move_to_village
                     })
                 end
-
-                -- Hold: done by all units, protecting the leader --
-                table.insert(fred.data.zone_cfgs, {
-                    zone_id = zone_id,
-                    action_type = 'hold',
-                    protect_leader = true,
-                    rating = leader_base_ratings.hold
-                })
             end
 
             ----- Village actions -----
@@ -1801,12 +1792,18 @@ return {
                     end
 
                     if holders_by_zone[zone_id] then
+                        local protect_leader = false
+                        if leader_threats_by_zone[zone_id] and next(leader_threats_by_zone[zone_id]) then
+                            protect_leader = true
+                        end
+
                         -- Hold --
                         table.insert(fred.data.zone_cfgs, {
                             zone_id = zone_id,
                             action_type = 'hold',
                             zone_units = holders_by_zone[zone_id],
-                            rating = base_ratings.hold + power_stats.zones[zone_id].power_needed
+                            rating = base_ratings.hold + power_stats.zones[zone_id].power_needed,
+                            protect_leader = protect_leader
                         })
                     end
                 end
