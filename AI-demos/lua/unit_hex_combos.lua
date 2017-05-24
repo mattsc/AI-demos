@@ -415,7 +415,7 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, between
 
             local ld
             if between_map then
-                ld = FU.get_fgumap_value(between_map, x, y, 'distance')
+                ld = FU.get_fgumap_value(between_map, x, y, 'inv_cost')
             else
                 ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
             end

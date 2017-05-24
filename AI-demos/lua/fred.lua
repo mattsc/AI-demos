@@ -165,6 +165,7 @@ return {
                         rating = rating - perp_dist_weight * (cost + inv_cost - cost_full)
                         rating = rating * weights[id]
                         FU.fgumap_add(between_map, x, y, 'distance', rating)
+                        FU.fgumap_add(between_map, x, y, 'inv_cost', inv_cost * weights[id])
                     end
                 end
             end
@@ -3378,7 +3379,7 @@ return {
 
                             local dist
                             if between_map then
-                                dist = FU.get_fgumap_value(between_map, x, y, 'distance')
+                                dist = FU.get_fgumap_value(between_map, x, y, 'inv_cost')
                             else
                                 dist = - FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'enemy_leader_distance')
                             end
@@ -3404,7 +3405,7 @@ return {
 
                             local d_dist
                             if between_map then
-                                d_dist = FU.get_fgumap_value(between_map, x, y, 'distance')
+                                d_dist = FU.get_fgumap_value(between_map, x, y, 'inv_cost')
                             else
                                 local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
                                 d_dist = ld - hold_leader_distance.max
