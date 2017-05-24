@@ -2752,8 +2752,20 @@ return {
             if (not next(holders)) then return end
             --DBG.dbms(holders)
 
+            local protect_leader = zone_cfg.protect_leader
+            --print('protect_leader', protect_leader)
+
             local zone_map = {}
-            local zone = wesnoth.get_locations(raw_cfg.ops_slf)
+            local zone
+            if protect_leader then
+                zone = wesnoth.get_locations {
+                    { "and", raw_cfg.ops_slf },
+                    { "or", { x = gamedata.leader_x, y = gamedata.leader_y, radius = 3 } }
+                }
+            else
+                zone = wesnoth.get_locations(raw_cfg.ops_slf)
+            end
+
             for _,loc in ipairs(zone) do
                 FU.set_fgumap_value(zone_map, loc[1], loc[2], 'flag', true)
             end
@@ -2932,7 +2944,6 @@ return {
 
             -- TODO: in the end, this might be combined so that it can be dealt with
             -- in the same way. For now, it is intentionally kept separate.
-            local protect_leader = zone_cfg.protect_leader
             local min_btw_dist, perp_dist_weight
             local hold_leader_distance, protect_locs, assigned_enemies
             if protect_leader then
