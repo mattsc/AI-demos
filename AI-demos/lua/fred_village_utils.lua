@@ -306,7 +306,11 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
 end
 
 
-function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, gamedata)
+function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, retreat_utilities, gamedata)
+    -- Potential TODOs:
+    --  - Add threat assessment for scout routes; it might in fact make sense to use
+    --    injured units to scout in unthreatened areas
+    --  - Actually assigning scouting actions
     -- Find how many units are needed in each zone for moving toward villages ('exploring')
     local units_needed_villages = {}
     local villages_per_unit = FU.cfg_default('villages_per_unit')
@@ -346,26 +350,44 @@ function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, ga
                         local _, cost = wesnoth.find_path(gamedata.unit_copies[id], village.x, village.y)
                         cost = cost + gamedata.unit_infos[id].max_moves - gamedata.unit_infos[id].moves
                         --print('    ' .. id, cost)
+                        local _, cost_ign = wesnoth.find_path(gamedata.unit_copies[id], village.x, village.y, { ignore_units = true })
+                        cost_ign = cost_ign + gamedata.unit_infos[id].max_moves - gamedata.unit_infos[id].moves
 
                         local unit_rating = - cost / #villages / gamedata.unit_infos[id].max_moves
 
-                        scouts[zone_id][id] = (scouts[zone_id][id] or 0) + unit_rating
+                        -- Scout utility to compare to retreat utility
+                        local int_turns = math.ceil(cost / gamedata.unit_infos[id].max_moves)
+                        local int_turns_ign = math.ceil(cost_ign / gamedata.unit_infos[id].max_moves)
+                        local scout_utility = math.sqrt(1 / math.max(1, int_turns - 1))
+                        scout_utility = scout_utility * int_turns_ign / int_turns
+
+                        if scouts[zone_id][id] then
+                            unit_rating = unit_rating + scouts[zone_id][id].rating
+                        end
+                        scouts[zone_id][id] = { rating = unit_rating }
+
+                        if (not scouts[zone_id][id].utility) or (scout_utiltiy > scouts[zone_id][id].utility) then
+                            scouts[zone_id][id].utility = scout_utility
+                        end
                     end
                 end
             end
-
         end
     end
 
     local sorted_scouts = {}
     for zone_id,units in pairs(scouts) do
         sorted_scouts[zone_id] = {}
-        for id,rating in pairs(units) do
-            table.insert(sorted_scouts[zone_id], {
-                id = id,
-                rating = rating,
-                org_rating = rating
-            })
+        for id,data in pairs(units) do
+            if (data.utility > retreat_utilities[id]) then
+                table.insert(sorted_scouts[zone_id], {
+                    id = id,
+                    rating = data.rating,
+                    org_rating = data.rating
+                })
+            else
+                --print('needs to retreat instead:', id)
+            end
         end
         table.sort(sorted_scouts[zone_id], function(a, b) return a.rating > b.rating end)
     end

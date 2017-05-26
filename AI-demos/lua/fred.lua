@@ -869,6 +869,10 @@ return {
             --DBG.dbms(pre_assigned_units)
 
 
+            local retreat_utilities = FU.retreat_utilities(gamedata)
+            DBG.dbms(retreat_utilities)
+
+
             ----- Village goals -----
 
             local actions = { villages = {} }
@@ -883,8 +887,8 @@ return {
                 gamedata
             )
 
-            FVU.assign_scouts(zone_village_goals, assigned_units, gamedata)
             --DBG.dbms(assigned_units)
+            FVU.assign_scouts(zone_village_goals, assigned_units, retreat_utilities, gamedata)
             --DBG.dbms(actions.villages)
             --DBG.dbms(assigned_enemies)
 
@@ -1158,8 +1162,6 @@ return {
 
             local power_stats = fred:calc_power_stats(raw_cfgs_main, assigned_units, assigned_enemies, assigned_recruits, gamedata)
             --DBG.dbms(power_stats)
-
-            local retreat_utilities = FU.retreat_utilities(gamedata)
 
             local keep_trying = true
             while keep_trying do
@@ -1451,6 +1453,10 @@ return {
                 end
             end
 
+            local retreat_utilities = FU.retreat_utilities(gamedata)
+            DBG.dbms(retreat_utilities)
+
+
             local actions = { villages = {} }
             local assigned_units = {}
 
@@ -1462,7 +1468,7 @@ return {
                 fred.data.turn_data.unit_attacks,
                 gamedata
             )
-            FVU.assign_scouts(zone_village_goals, assigned_units, gamedata)
+            FVU.assign_scouts(zone_village_goals, assigned_units, retreat_utilities, gamedata)
             --DBG.dbms(assigned_units)
             --DBG.dbms(ops_data.assigned_units)
             --DBG.dbms(actions.villages)
