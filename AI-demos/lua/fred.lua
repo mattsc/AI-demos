@@ -870,7 +870,7 @@ return {
 
 
             local retreat_utilities = FU.retreat_utilities(gamedata)
-            DBG.dbms(retreat_utilities)
+            --DBG.dbms(retreat_utilities)
 
 
             ----- Village goals -----
@@ -1454,7 +1454,7 @@ return {
             end
 
             local retreat_utilities = FU.retreat_utilities(gamedata)
-            DBG.dbms(retreat_utilities)
+            --DBG.dbms(retreat_utilities)
 
 
             local actions = { villages = {} }
