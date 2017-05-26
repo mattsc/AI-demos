@@ -342,32 +342,34 @@ function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, re
             --print(zone_id)
             scouts[zone_id] = {}
             for _,village in ipairs(villages) do
-                --print('  ' .. village.x, village.y)
-                for id,loc in pairs(gamedata.my_units) do
-                    -- The leader is always excluded here, plus any unit that has already been assigned
-                    -- TODO: set up an array of unassigned units?
-                    if (not gamedata.unit_infos[id].canrecruit) and (not used_ids[id]) then
-                        local _, cost = wesnoth.find_path(gamedata.unit_copies[id], village.x, village.y)
-                        cost = cost + gamedata.unit_infos[id].max_moves - gamedata.unit_infos[id].moves
-                        --print('    ' .. id, cost)
-                        local _, cost_ign = wesnoth.find_path(gamedata.unit_copies[id], village.x, village.y, { ignore_units = true })
-                        cost_ign = cost_ign + gamedata.unit_infos[id].max_moves - gamedata.unit_infos[id].moves
+                if (not village.grab_only) then
+                    --print('  ' .. village.x, village.y)
+                    for id,loc in pairs(gamedata.my_units) do
+                        -- The leader is always excluded here, plus any unit that has already been assigned
+                        -- TODO: set up an array of unassigned units?
+                        if (not gamedata.unit_infos[id].canrecruit) and (not used_ids[id]) then
+                            local _, cost = wesnoth.find_path(gamedata.unit_copies[id], village.x, village.y)
+                            cost = cost + gamedata.unit_infos[id].max_moves - gamedata.unit_infos[id].moves
+                            --print('    ' .. id, cost)
+                            local _, cost_ign = wesnoth.find_path(gamedata.unit_copies[id], village.x, village.y, { ignore_units = true })
+                            cost_ign = cost_ign + gamedata.unit_infos[id].max_moves - gamedata.unit_infos[id].moves
 
-                        local unit_rating = - cost / #villages / gamedata.unit_infos[id].max_moves
+                            local unit_rating = - cost / #villages / gamedata.unit_infos[id].max_moves
 
-                        -- Scout utility to compare to retreat utility
-                        local int_turns = math.ceil(cost / gamedata.unit_infos[id].max_moves)
-                        local int_turns_ign = math.ceil(cost_ign / gamedata.unit_infos[id].max_moves)
-                        local scout_utility = math.sqrt(1 / math.max(1, int_turns - 1))
-                        scout_utility = scout_utility * int_turns_ign / int_turns
+                            -- Scout utility to compare to retreat utility
+                            local int_turns = math.ceil(cost / gamedata.unit_infos[id].max_moves)
+                            local int_turns_ign = math.ceil(cost_ign / gamedata.unit_infos[id].max_moves)
+                            local scout_utility = math.sqrt(1 / math.max(1, int_turns - 1))
+                            scout_utility = scout_utility * int_turns_ign / int_turns
 
-                        if scouts[zone_id][id] then
-                            unit_rating = unit_rating + scouts[zone_id][id].rating
-                        end
-                        scouts[zone_id][id] = { rating = unit_rating }
+                            if scouts[zone_id][id] then
+                                unit_rating = unit_rating + scouts[zone_id][id].rating
+                            end
+                            scouts[zone_id][id] = { rating = unit_rating }
 
-                        if (not scouts[zone_id][id].utility) or (scout_utiltiy > scouts[zone_id][id].utility) then
-                            scouts[zone_id][id].utility = scout_utility
+                            if (not scouts[zone_id][id].utility) or (scout_utiltiy > scouts[zone_id][id].utility) then
+                                scouts[zone_id][id].utility = scout_utility
+                            end
                         end
                     end
                 end
