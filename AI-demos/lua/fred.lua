@@ -2951,14 +2951,15 @@ return {
                 local ld = FU.get_fgumap_value(gamedata.leader_distance_map, lx, ly, 'distance')
                 hold_leader_distance = { min = ld, max = ld }
                 protect_locs = { { lx, ly } }
-                min_btw_dist, perp_dist_weight = -0.5, 0.2
+                assigned_enemies = fred.data.ops_data.leader_threats.enemies
+                min_btw_dist, perp_dist_weight = -1.001, 0.2
             else
                 hold_leader_distance = fred.data.ops_data.protect_locs[zone_cfg.zone_id].hold_leader_distance
                 protect_locs = fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs
                 min_btw_dist, perp_dist_weight = -2, 0.05
+                assigned_enemies = fred.data.ops_data.assigned_enemies[zone_cfg.zone_id]
             end
 
-            assigned_enemies = fred.data.ops_data.assigned_enemies[zone_cfg.zone_id]
             --DBG.dbms(assigned_enemies)
 
             local between_map
