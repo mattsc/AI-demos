@@ -579,8 +579,11 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, between
                     end
                 end
 
+                local thresh_dist = 3
+                if cfg.protect_leader then thresh_dist = 2 end
+
                 -- Penalty for too far apart
-                if (max_min_dist > 3) then
+                if (max_min_dist > thresh_dist) then
                     rating = rating / ( 1 + (max_min_dist - 3) / 10)
                 end
 
@@ -598,6 +601,7 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, between
 
             if cfg.protect_leader then
                 rating = rating * leader_protect_mult
+                --print(i_c, rating, leader_protect_mult, rating / leader_protect_mult)
             end
 
             if (not unprotected_max_rating) or (rating > unprotected_max_rating) then

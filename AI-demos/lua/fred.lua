@@ -537,6 +537,12 @@ return {
             if (not leader_threats.significant_threat) then
                 leader_threats.enemies = nil
             end
+
+            local power_stats = fred:calc_power_stats({}, {}, {}, {}, gamedata)
+            --DBG.dbms(power_stats)
+
+            leader_threats.power_ratio = power_stats.total.ratio
+
             --DBG.dbms(leader_threats)
         end
 
@@ -2967,7 +2973,8 @@ return {
                 between_map = fred:get_between_map(protect_locs, assigned_enemies, gamedata, perp_dist_weight)
 
                 if false then
-                    FU.show_fgumap_with_message(between_map, 'distance', 'Between map')
+                    FU.show_fgumap_with_message(between_map, 'distance', 'Between map: distance')
+                    FU.show_fgumap_with_message(between_map, 'inv_cost', 'Between map: inv_cost')
                     --FU.show_fgumap_with_message(fred.data.gamedata.leader_distance_map, 'distance', 'leader distance')
                     --FU.show_fgumap_with_message(fred.data.gamedata.leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
                 end
@@ -3428,6 +3435,16 @@ return {
 
                             if (not protect_rating_maps[id]) then
                                 protect_rating_maps[id] = {}
+                            end
+
+                            if protect_leader then
+                                local mult = 0
+                                local power_ratio = fred.data.ops_data.leader_threats.power_ratio
+                                if (power_ratio < 1) then
+                                    mult = (1 / power_ratio - 1)
+                                end
+
+                                protect_rating = protect_rating * (1 - mult * (d_dist / 100))
                             end
 
                             FU.set_fgumap_value(protect_rating_maps[id], x, y, 'protect_rating', protect_rating)
