@@ -371,11 +371,15 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, between
             leader_target, old_locs, new_locs, gamedata, move_cache, cfg_attack
         )
 
-        -- TODO: poisoned, slowed
-        leader_protect_base_rating = counter_stats.def_stat.average_hp / gamedata.unit_infos[leader_id].max_hitpoints
+        local remainging_hp = counter_stats.def_stat.average_hp
+        remainging_hp = remainging_hp - counter_stats.def_stat.poisoned * 8
+        remainging_hp = remainging_hp - counter_stats.def_stat.slowed * 4
+        if (remainging_hp < 0) then remainging_hp = 0 end
+
+        leader_protect_base_rating = remainging_hp / gamedata.unit_infos[leader_id].max_hitpoints
         leader_protect_base_rating = leader_protect_base_rating + (1 - counter_stats.def_stat.hp_chance[0])
         leader_protect_base_rating = 1 + leader_protect_base_rating / 2
-        --print('base', counter_stats.def_stat.average_hp, counter_stats.def_stat.hp_chance[0], leader_protect_base_rating)
+        --print('base', remainging_hp, counter_stats.def_stat.hp_chance[0], leader_protect_base_rating)
         --DBG.dbms(counter_stats)
     end
 
@@ -469,12 +473,16 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, between
                     leader_target, old_locs, new_locs, gamedata, move_cache, cfg_attack
                 )
 
-                -- TODO: poisoned, slowed
-                local leader_protect_rating = counter_stats.def_stat.average_hp / gamedata.unit_infos[leader_id].max_hitpoints
+                local remainging_hp = counter_stats.def_stat.average_hp
+                remainging_hp = remainging_hp - counter_stats.def_stat.poisoned * 8
+                remainging_hp = remainging_hp - counter_stats.def_stat.slowed * 4
+                if (remainging_hp < 0) then remainging_hp = 0 end
+
+                local leader_protect_rating = remainging_hp / gamedata.unit_infos[leader_id].max_hitpoints
                 leader_protect_rating = leader_protect_rating + (1 - counter_stats.def_stat.hp_chance[0])
                 leader_protect_rating = 1 + leader_protect_rating / 2
                 leader_protect_mult = leader_protect_rating / leader_protect_base_rating
-                --print(i_c, counter_stats.def_stat.average_hp, counter_stats.def_stat.hp_chance[0], leader_protect_rating, leader_protect_mult)
+                --print(i_c, remainging_hp, counter_stats.def_stat.hp_chance[0], leader_protect_rating, leader_protect_mult)
                 --DBG.dbms(counter_stats)
 
                 if (leader_protect_mult < 1.001) then
