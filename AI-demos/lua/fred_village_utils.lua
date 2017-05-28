@@ -379,9 +379,12 @@ function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, re
 
     local sorted_scouts = {}
     for zone_id,units in pairs(scouts) do
-        sorted_scouts[zone_id] = {}
         for id,data in pairs(units) do
             if (data.utility > retreat_utilities[id]) then
+                if (not sorted_scouts[zone_id]) then
+                    sorted_scouts[zone_id] = {}
+                end
+
                 table.insert(sorted_scouts[zone_id], {
                     id = id,
                     rating = data.rating,
@@ -391,7 +394,9 @@ function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, re
                 --print('needs to retreat instead:', id)
             end
         end
-        table.sort(sorted_scouts[zone_id], function(a, b) return a.rating > b.rating end)
+        if sorted_scouts[zone_id] then
+            table.sort(sorted_scouts[zone_id], function(a, b) return a.rating > b.rating end)
+        end
     end
 
     local keep_trying = true
