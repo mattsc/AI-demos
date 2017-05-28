@@ -1737,15 +1737,22 @@ return {
 
                 -- Recruiting
                 if ops_data.prerecruit.units[1] then
-                    table.insert(fred.data.zone_cfgs, {
-                        action = {
-                            zone_id = zone_id,
-                            action_str = zone_id .. ': recruit for leader protection',
-                            type = 'recruit',
-                            recruit_units = ops_data.prerecruit.units
-                        },
-                        rating = leader_base_ratings.recruit
-                    })
+                    -- TODO: This check should not be necessary, but something can
+                    -- go wrong occasionally. Will eventually have to check why, for
+                    -- now I just put in this workaround.
+                    local current_gold = wesnoth.sides[wesnoth.current.side].gold
+                    local cost = wesnoth.unit_types[ops_data.prerecruit.units[1].recruit_type].cost
+                    if (current_gold >= cost) then
+                        table.insert(fred.data.zone_cfgs, {
+                            action = {
+                                zone_id = zone_id,
+                                action_str = zone_id .. ': recruit for leader protection',
+                                type = 'recruit',
+                                recruit_units = ops_data.prerecruit.units
+                            },
+                            rating = leader_base_ratings.recruit
+                        })
+                    end
                 end
 
                 -- If leader injured, full move to village
