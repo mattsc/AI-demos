@@ -3314,7 +3314,7 @@ return {
                             cum_weight = cum_weight + enemy_weight
 
                             if false then
-                                print(enemy_id, x, y)
+                                print(id, enemy_id, x, y)
                                 print('  hc:  ' .. my_hc, enemy_hc, enemy_adj_hc)
                                 print('  shc: ' .. scaled_my_hc, scaled_enemy_hc, scaled_enemy_adj_hc)
                                 print('    r2:', r2, scaled_r2)
@@ -3343,7 +3343,7 @@ return {
 
 
                         local rating2 = rating2 / cum_weight
-                        --print('    rating, rating2: ' .. rating, rating2, cum_weight)
+                        --print('    base_rating, rating2: ' .. base_rating, rating2, cum_weight)
 
                         if FU.get_fgumap_value(gamedata.village_map, x, y, 'owner') then
                             -- We give a general bonus here for a village, to protect it from the enemy
