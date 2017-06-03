@@ -1222,14 +1222,6 @@ return {
                         if pre_assigned_units[id] and (pre_assigned_units[id] == zone_id) then
                             inertia = 0.5 * FU.unit_base_power(gamedata.unit_infos[id]) * unit_zone_rating
                         end
-                        -- Every unit also counts as pre-assigned in the leader_threat zone
-                        -- if there is power missing in that zone
-                        --if (zone_id == 'leader_threat')
-                        --    and leader_threats.significant_threat
-                        --    and (data.power_missing > 0)
-                        --then
-                        --    inertia = 0.5 * FU.unit_base_power(gamedata.unit_infos[id]) * unit_zone_rating
-                        --end
 
                         unit_rating = unit_rating + inertia
 
