@@ -1,1 +1,1 @@
-return '0.14.3+dev'
+return '0.14.4'
