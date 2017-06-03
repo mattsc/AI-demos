@@ -3345,17 +3345,15 @@ return {
                         local rating2 = rating2 / cum_weight
                         --print('    base_rating, rating2: ' .. base_rating, rating2, cum_weight)
 
+                        -- TODO: the village bonuses are huge, check for better values?
                         if FU.get_fgumap_value(gamedata.village_map, x, y, 'owner') then
-                            -- We give a general bonus here for a village, to protect it from the enemy
-                            -- We also give an additional bonus for non-generating units (for healing)
-                            -- TODO: these bonuses are huge, determine correct value?
-                            rating2 = rating2 + 0.11
+                            -- Prefer strongest unit on village (for protection)
+                            -- TODO: we might want this condition on the threat to the village
+                            rating2 = rating2 + 0.1 * gamedata.unit_infos[id].hitpoints / 25
 
+                            -- For non-regenerating units, we also give a heal bonus
                             if (not gamedata.unit_infos[id].abilities.regenerate) then
-                                -- TODO: this equation is entirely pulled out of thin air, need something better?
-                                local heal_bonus = 8 / gamedata.unit_infos[id].max_hitpoints * my_defense
-                                heal_bonus = 1 + heal_bonus / 2
-                                rating2 = rating2 * heal_bonus
+                                rating2 = rating2 + 0.1 * 8 / 25
                             end
                         end
 
