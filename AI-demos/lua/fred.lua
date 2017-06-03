@@ -1203,9 +1203,10 @@ return {
                     end
 
                     local zone_rating = data.power_missing
-                    if ((n_units[zone_id] or 0) + 1 >= (n_enemies[zone_id] or 0)) then
-                        zone_rating = zone_rating * math.sqrt(ratio)
-                    end
+                    --if ((n_units[zone_id] or 0) + 1 >= (n_enemies[zone_id] or 0)) then
+                    --    zone_rating = zone_rating * math.sqrt(ratio)
+                    --    print('    -- decreasing zone_rating by factor ' .. math.sqrt(ratio), zone_rating)
+                    --end
                     --print(zone_id, data.power_missing .. '/' .. data.power_needed .. ' = ' .. ratio, zone_rating)
                     --print('  zone_rating', zone_rating)
 
@@ -1220,7 +1221,7 @@ return {
 
                         local inertia = 0
                         if pre_assigned_units[id] and (pre_assigned_units[id] == zone_id) then
-                            inertia = 0.5 * FU.unit_base_power(gamedata.unit_infos[id]) * unit_zone_rating
+                            inertia = 0.1 * FU.unit_base_power(gamedata.unit_infos[id]) * unit_zone_rating
                         end
 
                         unit_rating = unit_rating + inertia
