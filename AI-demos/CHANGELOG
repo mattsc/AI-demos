@@ -1,4 +1,29 @@
------ 0.14.3, 25 Apr 2017 -----
+----- 0.14.4, 3 June 2017 -----
+
+- Fred (Freelands AI for Northerners, Side 1):
+  - Redo retreat action:
+    - This uses a very different evaluation method from the previous version
+    - It now includes multi-move retreats
+  - Holding
+    - Improve holding for leader protection:
+      - Evaluation now mostly based on reduction of threat to leader
+      - Combine this with zone holding (overlapping holding zones don't work)
+    - Prefer stronger units for village protection
+    - Better implementation of the "between map"
+    - Some adjustments to other evaluation functions
+  - Operations:
+    - Reduce resistance to moving units between zones
+    - Use utility functions to balance retreating vs. holding vs. scouting
+    - Add an all-map unconditional advance action
+    - Reset significant_threat mid-turn if needed
+  - A variety of small rating adjustments and bug fixes
+  - Fred utils: new function inverse_cost_map
+  - Fred debug utils: add a menu option to show units info
+- Miscellaneous:
+  - ai_helper checked actions: output error message only to stdout
+
+
+----- 0.14.3, 25 April 2017 -----
 
 - Fred (Freelands AI for Northerners, Side 1):
   - Massive reworking of many parts of the AI, the highlights being:
