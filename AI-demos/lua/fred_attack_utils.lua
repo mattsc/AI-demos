@@ -62,8 +62,8 @@ function fred_attack_utils.levelup_chance(unit_info, unit_stat, enemy_ctd, enemy
     return levelup_chance
 end
 
-function fred_attack_utils.delayed_damage(unit_info, att_stat, dst, gamedata)
     -- Returns the damage the unit gets from delayed actions, both positive and negative
+function fred_attack_utils.delayed_damage(unit_info, att_stat, average_damage, dst, gamedata)
     --  - Positive damage: poison, slow (counting slow as damage)
     --  - Negative damage: villages, regenerate
     -- TODO: add healers, rest healing
@@ -155,7 +155,7 @@ function fred_attack_utils.unit_damage(unit_info, att_stat, dst, gamedata, cfg)
     -- Average damage from the attack.  This cannot be simplt the average_hp field
     -- of att_stat, as that accounts for leveling up differently than needed here
     -- Start with that as the default though:
-    average_damage = unit_info.hitpoints - att_stat.average_hp
+    local average_damage = unit_info.hitpoints - att_stat.average_hp
     --print('  average_damage raw:', average_damage)
 
     -- We want to include healing due to drain etc. in this damage, but not
@@ -183,7 +183,7 @@ function fred_attack_utils.unit_damage(unit_info, att_stat, dst, gamedata, cfg)
 
     damage.levelup_chance = levelup_chance
 
-    damage.delayed_damage = fred_attack_utils.delayed_damage(unit_info, att_stat, dst, gamedata)
+    damage.delayed_damage = fred_attack_utils.delayed_damage(unit_info, att_stat, average_damage, dst, gamedata)
 
     -- Finally, add some info about the unit, just for convenience
     damage.id = unit_info.id
