@@ -47,14 +47,13 @@ function fred_attack_utils.levelup_chance(unit_info, unit_stat, enemy_ctd, enemy
     -- Note: this can make the fractional damage negative (as it should)
     if (enemy_level == 0) then enemy_level = 0.5 end  -- L0 units
 
-    -- If missing XP is <= level of attacker, it's a guaranteed level-up as long as the unit does not die
-    -- This does work even for L0 units (with enemy_level = 0.5)
     local levelup_chance = 0.
 
+    -- If missing XP is <= level of attacker, it's a guaranteed level-up as long as the unit does not die
+    -- This does work even for L0 units (with enemy_level = 0.5)
     if (unit_info.max_experience - unit_info.experience <= enemy_level) then
         levelup_chance = 1. - unit_stat.hp_chance[0]
-    -- Otherwise, if a kill is needed, the bonus is the chance of the defender
-    -- dying times the attacker NOT dying
+    -- Otherwise, if a kill is needed, the level-up chance is that of the enemy dying
     elseif (unit_info.max_experience - unit_info.experience <= enemy_level * 8) then
         levelup_chance = enemy_ctd
     end
@@ -62,11 +61,14 @@ function fred_attack_utils.levelup_chance(unit_info, unit_stat, enemy_ctd, enemy
     return levelup_chance
 end
 
-    -- Returns the damage the unit gets from delayed actions, both positive and negative
 function fred_attack_utils.delayed_damage(unit_info, att_stat, average_damage, dst, gamedata)
+    -- Returns the damage the unit is expected to get from delayed effects, both
+    -- positive and negative. The value returned is the actual damage times the
+    -- probability of the effect.
     --  - Positive damage: poison, slow (counting slow as damage)
-    --  - Negative damage: villages, regenerate
-    -- TODO: add healers, rest healing
+    --  - Negative damage: villages, regenerate, healthy trait
+    --      Rest healing is not considered, as this is for attack evaluation.
+    -- TODO: add healers
     -- Return value is in units of hitpoints
     --
     -- @dst: location of the unit for which to calculate this; this might or
@@ -79,8 +81,8 @@ function fred_attack_utils.delayed_damage(unit_info, att_stat, average_damage, d
     -- Count poisoned as additional 8 HP damage times probability of being poisoned
     -- but only if the unit is not already poisoned
     -- HP=0 case counts as poisoned in the att_stats, so that needs to be subtracted
-    -- Note: this includes unpoisonable units (e.g. undead) as att_stat.poisoned
-    -- is always zero for them
+    -- Note: no special treatment is needed for  unpoisonable units (e.g. undead)
+    -- as att_stat.poisoned is always zero for them
     if (att_stat.poisoned ~= 0) and (not unit_info.status.poisoned) then
         delayed_damage = delayed_damage + 8 * (att_stat.poisoned - att_stat.hp_chance[0])
     end
@@ -114,7 +116,7 @@ function fred_attack_utils.delayed_damage(unit_info, att_stat, average_damage, d
 
     -- Positive damage needs to be capped at the amount of HP (can't lose more than that)
     -- Note: in principle, this is (HP-1), but that might cause a negative damage
-    -- rating for units with average_HP < 1.  TODO: fix this? probably not necessary.
+    -- rating for units with average_HP < 1.
     -- Calculated with respect to average hitpoints
     local hp_before = unit_info.hitpoints - average_damage
     delayed_damage = math.min(delayed_damage, hp_before)
@@ -133,7 +135,7 @@ function fred_attack_utils.unit_damage(unit_info, att_stat, dst, gamedata, cfg)
     -- expected to experience in an attack.
     -- The attack att_stat for the attacker need to be precalculated for this.
     -- Unit information is passed in unit_infos format, rather than as unit proxy tables for speed reasons.
-    -- Note: damage is damage TO the attacker, not damage done BY the attacker
+    -- Note: damage is damage TO the unit, not damage done BY the unit
     --
     -- Returns a table with different information about the damage.  Not all of these
     -- are in the same units (some are damage in HP, other percentage chances etc.
@@ -147,12 +149,12 @@ function fred_attack_utils.unit_damage(unit_info, att_stat, dst, gamedata, cfg)
     --   might not be the current location of the unit
     --
     -- Optional parameters:
-    --  @cfg: the optional different weights listed right below
+    --  @cfg: table with the optional weights needed by fred_utils.unit_value
 
     --print(unit_info.id, unit_info.hitpoints, unit_info.max_hitpoints)
     local damage = {}
 
-    -- Average damage from the attack.  This cannot be simplt the average_hp field
+    -- Average damage from the attack.  This cannot be simply the average_hp field
     -- of att_stat, as that accounts for leveling up differently than needed here
     -- Start with that as the default though:
     local average_damage = unit_info.hitpoints - att_stat.average_hp
@@ -173,6 +175,7 @@ function fred_attack_utils.unit_damage(unit_info, att_stat, dst, gamedata, cfg)
     damage.damage = average_damage
     damage.die_chance = att_stat.hp_chance[0]
 
+    -- TODO: add total level-up chance in att_stat
     local levelup_chance = 0
     if (att_stat.levelup) then
         for _,prob in pairs(att_stat.levelup.hp_chance) do
@@ -190,9 +193,6 @@ function fred_attack_utils.unit_damage(unit_info, att_stat, dst, gamedata, cfg)
     damage.max_hitpoints = unit_info.max_hitpoints
     damage.unit_value = FU.unit_value(unit_info, cfg)
 
-    --local rating = fractional_rating * unit_value
-    --print('  -> unit_value, fractional_rating, rating', unit_value, fractional_rating, rating)
-
     return damage
 end
 
@@ -209,7 +209,7 @@ function fred_attack_utils.damage_rating_unit(damage)
 
     -- Additionally, add the chance to die, in order to emphasize units that might die
     -- This might result in fractional_damage > 1 in some cases, although usually not by much
-    local ctd_rating = -1.5 * damage.die_chance^1.5
+    local ctd_rating = - 1.5 * damage.die_chance^1.5
     fractional_rating = fractional_rating + ctd_rating
     --print('  ctd, ctd_rating, fractional_rating:', damage.die_chance, ctd_rating, fractional_rating)
 
@@ -389,6 +389,8 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack, is_attacker, 
     -- @attack: the attack information as returned by fred_utils.single_unit_info()
     -- @is_attacker: set to 'true' if this is the attacker, 'false' for defender
 
+    -- TODO: a lot of the values used here are approximate. Are they good enough?
+
     local total_damage = weapon.num_blows * weapon.damage
 
     -- Give bonus for weapon specials. This is not exactly what those specials
@@ -474,6 +476,7 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
     local cache_att_id = attacker_info.id .. '-' .. attacker_info.experience
     local cache_def_id = defender_info.id .. '-' .. defender_info.experience
 
+    -- TODO: this does not include differences due to leadership, illumination etc.
     if move_cache[cache_att_id]
         and move_cache[cache_att_id][cache_def_id]
         and move_cache[cache_att_id][cache_def_id][attacker_defense]
@@ -1238,7 +1241,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
 end
 
 function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamedata, move_cache, cfg)
-    -- Get counter-attack statistics of an AI unit in a hypothetical maps situation
+    -- Get counter-attack statistics of an AI unit in a hypothetical map situation
     -- Units are placed on the map and the gamedata tables are adjusted inside this
     -- function in order to avoid code duplication and ensure consistency
     --
