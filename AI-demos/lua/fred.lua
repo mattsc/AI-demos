@@ -505,14 +505,7 @@ return {
                 --DBG.dbms(att_stat)
                 --DBG.dbms(def_stat)
 
-                local min_hp = 9e99
-                for hp,hc in pairs(def_stat.hp_chance) do
-                    if (hc > 0) and (hp < min_hp) then
-                        min_hp = hp
-                    end
-                end
-
-                local max_loss = leader_proxy.hitpoints - min_hp
+                local max_loss = leader_proxy.hitpoints - def_stat.min_hp
                 local av_loss = leader_proxy.hitpoints - def_stat.average_hp
                 --print('    ', id, av_loss, max_loss)
 
@@ -2578,21 +2571,13 @@ return {
                                 end
 
                                 -- Add max damages from this turn and counter-attack
-                                local min_hp = 0
-                                for hp = 0,attacker.hitpoints do
-                                    if combo.att_stats[i_a].hp_chance[hp] and (combo.att_stats[i_a].hp_chance[hp] > 0) then
-                                        min_hp = hp
-                                        break
-                                    end
-                                end
-
                                 -- Note that this is not really the maximum damage from the attack, as
                                 -- attacker.hitpoints is reduced to the average HP outcome of the attack
                                 -- However, min_hp for the counter also contains this reduction, so
                                 -- min_outcome below has the correct value (except for rounding errors,
                                 -- that's why it is compared ot 0.5 instead of 0)
-                                local max_damage_attack = attacker.hitpoints - min_hp
-                                --print('max_damage_attack, attacker.hitpoints, min_hp', max_damage_attack, attacker.hitpoints, min_hp)
+                                local max_damage_attack = attacker.hitpoints - combo.att_stats[i_a].min_hp
+                                --print('max_damage_attack, attacker.hitpoints, min_hp', max_damage_attack, attacker.hitpoints, combo.att_stats[i_a].min_hp)
 
                                 -- Add damage from attack and counter attack
                                 local min_outcome = counter_min_hp - max_damage_attack

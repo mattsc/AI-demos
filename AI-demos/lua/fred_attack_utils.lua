@@ -1423,16 +1423,6 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
             --combo_def_stat.def_delayed_damage_rating = rating_table.defender.delayed_damage_rating
             --combo_def_stat.att_delayed_damage_rating = rating_table.attacker.delayed_damage_rating
 
-            -- Add min_hp field
-            local min_hp = 0
-            for hp = 0,target_proxy.hitpoints do
-                if combo_def_stat.hp_chance[hp] and (combo_def_stat.hp_chance[hp] > 0) then
-                    min_hp = hp
-                    break
-                end
-            end
-            combo_def_stat.min_hp = min_hp
-
             counter_attack_stat = {
                 att_stats = combo_att_stats,
                 def_stat = combo_def_stat,
