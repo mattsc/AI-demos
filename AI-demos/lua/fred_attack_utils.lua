@@ -767,6 +767,7 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
         attacker_infos[i] = tmp_attacker_infos[rating[1]]
     end
 
+    -- Return nil when no units match the ctd_limit criterion
     if (#attacker_copies == 0) then return end
 
     -- Only keep the stats/ratings for the first attacker, the rest needs to be recalculated
@@ -1417,9 +1418,7 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
                 gamedata, move_cache, cfg, FU.cfg_default('ctd_limit')
             )
 
-        -- The above function returns nil if none of the units satisfies
-        -- the ctd_limit criterion
-
+        -- attack_combo_eval returns nil if none of the units satisfies the ctd_limit criterion
         if combo_att_stats then
             counter_attack_stat = {
                 att_stats = combo_att_stats,
