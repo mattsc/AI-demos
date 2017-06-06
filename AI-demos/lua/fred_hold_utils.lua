@@ -5,9 +5,9 @@ local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local W = H.set_wml_action_metatable {}
 --local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
-local UHC = {}
+local fred_hold_utils = {}
 
-function UHC.unit_rating_maps_to_dstsrc(unit_rating_maps, key, gamedata, cfg)
+function fred_hold_utils.unit_rating_maps_to_dstsrc(unit_rating_maps, key, gamedata, cfg)
     -- It's assumed that all individual unit_rating maps contain at least one rating
 
     local max_units = (cfg and cfg.max_units) or 3 -- number of units to be used per combo
@@ -173,8 +173,7 @@ local function reachable_by_enemy(combo, ratings, gamedata)
 end
 
 
-
-function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, between_map, gamedata, move_cache, cfg)
+function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_map, between_map, gamedata, move_cache, cfg)
     -- This currently only returns a combo with the max number of units
     -- TODO: does this need to be ammended?
 
@@ -484,4 +483,4 @@ function UHC.find_best_combo(combos, ratings, key, adjacent_village_map, between
 end
 
 
-return UHC
+return fred_hold_utils

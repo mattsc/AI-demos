@@ -14,7 +14,7 @@ return {
         local LS = wesnoth.require "lua/location_set.lua"
         local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
         local R = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_retreat_utils.lua"
-        local UHC = wesnoth.dofile "~/add-ons/AI-demos/lua/unit_hex_combos.lua"
+        local FHU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_hold_utils.lua"
 
 
         ----- Debug output flags -----
@@ -3523,23 +3523,23 @@ return {
             local best_hold_combo, hold_dst_src, hold_ratings
             if (next(hold_rating_maps)) then
                 --print('--> checking hold combos')
-                hold_dst_src, hold_ratings = UHC.unit_rating_maps_to_dstsrc(hold_rating_maps, 'vuln_rating', gamedata, cfg_combos)
+                hold_dst_src, hold_ratings = FHU.unit_rating_maps_to_dstsrc(hold_rating_maps, 'vuln_rating', gamedata, cfg_combos)
                 local hold_combos = FU.get_unit_hex_combos(hold_dst_src)
                 --DBG.dbms(hold_combos)
                 --print('#hold_combos', #hold_combos)
 
-                best_hold_combo = UHC.find_best_combo(hold_combos, hold_ratings, 'vuln_rating', adjacent_village_map, between_map, gamedata, move_cache, cfg_best_combo_hold)
+                best_hold_combo = FHU.find_best_combo(hold_combos, hold_ratings, 'vuln_rating', adjacent_village_map, between_map, gamedata, move_cache, cfg_best_combo_hold)
             end
 
             local best_protect_combo, unprotected_best_protect_combo, protect_dst_src, protect_ratings
             if hold_leader_distance then
                 --print('--> checking protect combos')
-                protect_dst_src, protect_ratings = UHC.unit_rating_maps_to_dstsrc(protect_rating_maps, 'protect_rating', gamedata, cfg_combos)
+                protect_dst_src, protect_ratings = FHU.unit_rating_maps_to_dstsrc(protect_rating_maps, 'protect_rating', gamedata, cfg_combos)
                 local protect_combos = FU.get_unit_hex_combos(protect_dst_src)
                 --DBG.dbms(protect_combos)
                 --print('#protect_combos', #protect_combos)
 
-                best_protect_combo, unprotected_best_protect_combo = UHC.find_best_combo(protect_combos, protect_ratings, 'protect_rating', adjacent_village_map, between_map, gamedata, move_cache, cfg_best_combo_protect)
+                best_protect_combo, unprotected_best_protect_combo = FHU.find_best_combo(protect_combos, protect_ratings, 'protect_rating', adjacent_village_map, between_map, gamedata, move_cache, cfg_best_combo_protect)
 
                 -- If no combo that protects the location was found, use the best of the others
                 if (not best_protect_combo) then
