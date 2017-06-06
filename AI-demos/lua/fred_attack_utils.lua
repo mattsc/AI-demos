@@ -1421,12 +1421,6 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
         -- the ctd_limit criterion
 
         if combo_att_stats then
-            --combo_def_stat.rating = rating_table.rating
-            --combo_def_stat.def_rating = rating_table.defender.rating
-            --combo_def_stat.att_rating = rating_table.attacker.rating
-            --combo_def_stat.def_delayed_damage_rating = rating_table.defender.delayed_damage_rating
-            --combo_def_stat.att_delayed_damage_rating = rating_table.attacker.delayed_damage_rating
-
             counter_attack_stat = {
                 att_stats = combo_att_stats,
                 def_stat = combo_def_stat,
