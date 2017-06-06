@@ -1968,6 +1968,7 @@ return {
             end
             --print_time('value_ratio', value_ratio)
 
+            -- TODO: is max_damage_Weapon the right thing to do here?
             local cfg_attack = {
                 value_ratio = value_ratio,
                 use_max_damage_weapons = true
