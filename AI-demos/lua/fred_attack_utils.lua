@@ -13,6 +13,39 @@ local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local fred_attack_utils = {}
 
+function fred_attack_utils.init_att_stat(unit_info)
+    -- Initialize the attack statistics table, to make sure all fields are present
+    --
+    -- OPTIONAL INPUT:
+    --  @unit_info: if given, initialize the table with the correct values for
+    --    this unit before combat. Otherwise, set everything to zero.
+
+    local function single_level_table(unit_info)
+        local hp_chance = {}
+        hp_chance[0] = 0
+        if unit_info then hp_chance[unit_info.hitpoints] = 1 end
+
+        local att_stat = {
+            average_hp = unit_info and unit_info.hitpoints or 0,
+            poisoned = 0,
+            slowed = 0,
+            hp_chance = hp_chance,
+            min_hp = unit_info and unit_info.hitpoints or 0
+        }
+
+        if unit_info and unit_info.status.poisoned then att_stat.poisoned = 1 end
+        if unit_info and unit_info.status.slowed then att_stat.slowed = 1 end
+
+        return att_stat
+    end
+
+    local att_stat = single_level_table(unit_info)
+    att_stat.levelup = single_level_table()
+    att_stat.levelup_chance = 0
+
+    return att_stat
+end
+
 function fred_attack_utils.is_acceptable_attack(damage_to_ai, damage_to_enemy, value_ratio)
     -- Evaluate whether an attack is acceptable, based on the damage to_enemy/to_ai ratio
     -- As an example, if value_ratio = 0.5 -> it is okay to do only half the damage
