@@ -195,7 +195,7 @@ function fred_attack_utils.unit_damage(unit_info, att_stat, dst, gamedata, cfg)
 
     -- We want to include healing due to drain etc. in this damage, but not
     -- leveling up, so if there is a chance to level up, we need to do that differently.
-    if (att_stat.levelup) then
+    if (att_stat.levelup_chance > 0) then
         average_damage = 0
         -- Note: the probabilities here do not add up to 1 -- that's intentional
         for hp,prob in pairs(att_stat.hp_chance) do
@@ -208,16 +208,8 @@ function fred_attack_utils.unit_damage(unit_info, att_stat, dst, gamedata, cfg)
     damage.damage = average_damage
     damage.die_chance = att_stat.hp_chance[0]
 
-    -- TODO: add total level-up chance in att_stat
-    local levelup_chance = 0
-    if (att_stat.levelup) then
-        for _,prob in pairs(att_stat.levelup.hp_chance) do
-            levelup_chance = levelup_chance + prob
-        end
-    end
-    --print('  levelup_chance', levelup_chance)
-
-    damage.levelup_chance = levelup_chance
+    damage.levelup_chance = att_stat.levelup_chance
+    --print('  levelup_chance', damage.levelup_chance)
 
     damage.delayed_damage = fred_attack_utils.delayed_damage(unit_info, att_stat, average_damage, dst, gamedata)
 
@@ -600,49 +592,46 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
 
     attacker_copy.x, attacker_copy.y = old_x, old_y
 
-    -- Extract only those hp_chances that are non-zero (except for hp_chance[0]
-    -- which is always needed). This slows down this step a little, but significantly speeds
+    -- Extract only those hp_chances that are non-zero (hp_chance[0] is always needed and
+    -- provided by init function). This slows down this step a little, but significantly speeds
     -- up attack combination calculations
-    local att_stat = {
-        hp_chance = {},
-        --average_hp = tmp_att_stat.average_hp,
-        poisoned = tmp_att_stat.poisoned,
-        slowed = tmp_att_stat.slowed
-    }
-
-    att_stat.hp_chance[0] = tmp_att_stat.hp_chance[0]
-    for i = 1,#tmp_att_stat.hp_chance do
+    local att_stat = fred_attack_utils.init_att_stat()
+    local att_min_hp = attacker_info.hitpoints
+    for i = 0,#tmp_att_stat.hp_chance do
         if (tmp_att_stat.hp_chance[i] ~= 0) then
             att_stat.hp_chance[i] = tmp_att_stat.hp_chance[i]
+            if (i < att_min_hp) then att_min_hp = i end
         end
     end
+    att_stat.min_hp = att_min_hp
+    att_stat.poisoned = tmp_att_stat.poisoned
+    att_stat.slowed = tmp_att_stat.slowed
 
-    local def_stat = {
-        hp_chance = {},
-        --average_hp = tmp_def_stat.average_hp,
-        poisoned = tmp_def_stat.poisoned,
-        slowed = tmp_def_stat.slowed
-    }
-
-    def_stat.hp_chance[0] = tmp_def_stat.hp_chance[0]
-    for i = 1,#tmp_def_stat.hp_chance do
+    local def_stat = fred_attack_utils.init_att_stat()
+    local def_min_hp = defender_info.hitpoints
+    for i = 0,#tmp_def_stat.hp_chance do
         if (tmp_def_stat.hp_chance[i] ~= 0) then
             def_stat.hp_chance[i] = tmp_def_stat.hp_chance[i]
+            if (i < def_min_hp) then def_min_hp = i end
         end
     end
+    def_stat.min_hp = def_min_hp
+    def_stat.poisoned = tmp_def_stat.poisoned
+    def_stat.slowed = tmp_def_stat.slowed
 
-    -- Add another table 'levelup' to the stats, containing the
+    -- Populate the 'levelup' table, containing the
     -- HP distribution and levelup_chance of the leveled unit
     -- This could be done with a scalar field for the individual attack,
     -- but makes things more consistent for when it comes to attack combos
     local att_luc = fred_attack_utils.levelup_chance(attacker_info, att_stat, def_stat.hp_chance[0], defender_info.level)
     if (att_luc > 0) then
-        att_stat.levelup = { hp_chance = {} }
+        att_stat.levelup_chance = att_luc
 
         -- Treat leveling up as 1.5 times the max hitpoints
         -- TODO: refine this?
         local att_lu_hp = H.round(attacker_info.max_hitpoints * 1.5)
         att_stat.levelup.hp_chance[att_lu_hp] = att_luc
+        att_stat.levelup.min_hp = att_lu_hp
 
         local max_hp_chance = att_stat.hp_chance[attacker_info.max_hitpoints] - att_luc
         if (math.abs(max_hp_chance) < 1e-6) then
@@ -654,12 +643,13 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
 
     local def_luc = fred_attack_utils.levelup_chance(defender_info, def_stat, att_stat.hp_chance[0], attacker_info.level)
     if (def_luc > 0) then
-        def_stat.levelup = { hp_chance = {} }
+        def_stat.levelup_chance = def_luc
 
         -- Treat leveling up as 1.5 times the max hitpoints
         -- TODO: refine this?
         local def_lu_hp = H.round(defender_info.max_hitpoints * 1.5)
         def_stat.levelup.hp_chance[def_lu_hp] = def_luc
+        def_stat.levelup.min_hp = def_lu_hp
 
         local max_hp_chance = def_stat.hp_chance[defender_info.max_hitpoints] - def_luc
         if (math.abs(max_hp_chance) < 1e-6) then
@@ -673,14 +663,14 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
     -- This includes both leveled and unleveled HP
     local av_hp = 0
     for hp,prob in pairs(att_stat.hp_chance) do av_hp = av_hp + hp * prob end
-    if att_stat.levelup then
+    if (att_stat.levelup_chance > 0) then
         for hp,prob in pairs(att_stat.levelup.hp_chance) do av_hp = av_hp + hp * prob end
     end
     att_stat.average_hp = av_hp
 
     local av_hp = 0
     for hp,prob in pairs(def_stat.hp_chance) do av_hp = av_hp + hp * prob end
-    if def_stat.levelup then
+    if (def_stat.levelup_chance > 0) then
         for hp,prob in pairs(def_stat.levelup.hp_chance) do av_hp = av_hp + hp * prob end
     end
     def_stat.average_hp = av_hp
@@ -792,9 +782,10 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
     -- Then we go through all the other attacks and calculate the outcomes
     -- based on all the possible outcomes of the previous attacks
     for i = 2,#attacker_infos do
-        att_stats[i] = { hp_chance = {}, levelup_chance = 0 }
+        att_stats[i] = fred_attack_utils.init_att_stat()
         -- Levelup chance carries through from previous
-        def_stats[i] = { hp_chance = {}, levelup_chance = def_stats[i-1].levelup_chance }
+        def_stats[i] = fred_attack_utils.init_att_stat()
+        def_stats[i].levelup_chance = def_stats[i-1].levelup_chance
 
         -- The HP distribution without leveling
         for hp1,prob1 in pairs(def_stats[i-1].hp_chance) do -- Note: need pairs(), not ipairs() !!
@@ -826,8 +817,8 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
                 for hp2,prob2 in pairs(ast.hp_chance) do
                     att_stats[i].hp_chance[hp2] = (att_stats[i].hp_chance[hp2] or 0) + prob1 * prob2
                 end
-                if ast.levelup then
-                    if (not att_stats[i].levelup) then
+                if (ast.levelup_chance > 0) then
+                    if (att_stats[i].levelup_chance == 0) then
                         att_stats[i].levelup = { hp_chance = {} }
                     end
                     for hp2,prob2 in pairs(ast.levelup.hp_chance) do
@@ -838,8 +829,8 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
                 for hp2,prob2 in pairs(dst.hp_chance) do
                     def_stats[i].hp_chance[hp2] = (def_stats[i].hp_chance[hp2] or 0) + prob1 * prob2
                 end
-                if dst.levelup then
-                    if (not def_stats[i].levelup) then
+                if (dst.levelup_chance > 0) then
+                    if (def_stats[i].levelup_chance == 0) then
                         def_stats[i].levelup = { hp_chance = {} }
                     end
                     for hp2,prob2 in pairs(dst.levelup.hp_chance) do
@@ -859,13 +850,13 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
 
         -- The HP distribution after leveling
         -- TODO: this is a lot of code duplication for now, might be simplified later
-        if def_stats[i-1].levelup then
+        if (def_stats[i-1].levelup_chance > 0) then
             for hp1,prob1 in pairs(def_stats[i-1].levelup.hp_chance) do -- Note: need pairs(), not ipairs() !!
                 --print('  leveled: ', hp1,prob1)
 
-                -- levelup.hp_chance should never contain a HP=0 entry
+                -- TODO: this is not true any more: levelup.hp_chance should never contain a HP=0 entry
                 if (hp1 == 0) then
-                    print('***** HP = 0 in levelup stats entcountered *****')
+                    --print('***** HP = 0 in levelup stats entcountered *****')
                 else
                     local org_hp = defender_info.hitpoints
                     local org_max_hp = defender_info.max_hitpoints
@@ -916,8 +907,8 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
                     for hp2,prob2 in pairs(ast.hp_chance) do
                         att_stats[i].hp_chance[hp2] = (att_stats[i].hp_chance[hp2] or 0) + prob1 * prob2
                     end
-                    if ast.levelup then
-                        if (not att_stats[i].levelup) then
+                    if (ast.levelup_chance > 0) then
+                        if (att_stats[i].levelup_chance == 0) then
                             att_stats[i].levelup = { hp_chance = {} }
                         end
                         for hp2,prob2 in pairs(ast.levelup.hp_chance) do
@@ -927,7 +918,7 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
 
                     -- By contrast, everything here gets added to the leveled-up case
                     -- except for the HP=0 case, which always goes into hp_chance directly
-                    if (not def_stats[i].levelup) then
+                    if (def_stats[i].levelup_chance == 0) then
                         def_stats[i].levelup = { hp_chance = {} }
                     end
                     for hp2,prob2 in pairs(dst.hp_chance) do
@@ -937,7 +928,7 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
                             def_stats[i].levelup.hp_chance[hp2] = (def_stats[i].levelup.hp_chance[hp2] or 0) + prob1 * prob2
                         end
                     end
-                    if dst.levelup then  -- I think this doesn't happen, but just in case
+                    if (dst.levelup_chance > 0) then  -- I think this doesn't happen, but just in case
                         for hp2,prob2 in pairs(dst.levelup.hp_chance) do
                             def_stats[i].levelup.hp_chance[hp2] = (def_stats[i].levelup.hp_chance[hp2] or 0) + prob1 * prob2
                         end
@@ -958,14 +949,14 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
         -- Get the average HP
         local av_hp = 0
         for hp,prob in pairs(att_stats[i].hp_chance) do av_hp = av_hp + hp * prob end
-        if att_stats[i].levelup then
+        if (att_stats[i].levelup_chance > 0) then
             for hp,prob in pairs(att_stats[i].levelup.hp_chance) do av_hp = av_hp + hp * prob end
         end
         att_stats[i].average_hp = av_hp
 
         local av_hp = 0
         for hp,prob in pairs(def_stats[i].hp_chance) do av_hp = av_hp + hp * prob end
-        if def_stats[i].levelup then
+        if (def_stats[i].levelup_chance > 0) then
             for hp,prob in pairs(def_stats[i].levelup.hp_chance) do av_hp = av_hp + hp * prob end
         end
         def_stats[i].average_hp = av_hp
@@ -994,7 +985,7 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
         for _,prob in pairs(att_stat.hp_chance) do
             sum_a = sum_a + prob
         end
-        if att_stat.levelup then
+        if (att_stat.levelup_chance > 0) then
             for _,prob in pairs(att_stat.levelup.hp_chance) do
                 sum_a = sum_a + prob
             end
@@ -1003,7 +994,7 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
         for _,prob in pairs(def_stats[i].hp_chance) do
             sum_d = sum_d + prob
         end
-        if def_stats[i].levelup then
+        if (def_stats[i].levelup_chance > 0) then
             for _,prob in pairs(def_stats[i].levelup.hp_chance) do
                 sum_d = sum_d + prob
             end
@@ -1454,19 +1445,8 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
 
     if (not counter_attack_stat) then
         -- If no attacks are found, we're done; use stats of unit as is
-        local hp_chance = {}
-        hp_chance[target_proxy.hitpoints] = 1
-        hp_chance[0] = 0  -- hp_chance[0] is always assumed to be included, even when 0
-
         counter_attack_stat = {
-            def_stat = {
-                average_hp = target_proxy.hitpoints,
-                min_hp = target_proxy.hitpoints,
-                hp_chance = hp_chance,
-                slowed = 0,
-                poisoned = 0
-
-            },
+            def_stat = fred_attack_utils.init_att_stat(gamedata.unit_infos[target_id]),
             rating_table = {
                 rating = 0,
                 attacker_rating = 0,
