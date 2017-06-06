@@ -2400,7 +2400,7 @@ return {
 
                         -- This is the damage on the AI attacker considered here
                         -- in the counter attack
-                        local dam2 = counter_stats.defender_damage
+                        local dam2 = counter_stats and counter_stats.defender_damage
                         --DBG.dbms(dam2)
 
                         local damages_my_units = {}
@@ -2452,7 +2452,7 @@ return {
 
                         local damages_enemy_units = {}
                         local target_included = false
-                        if counter_stats.attacker_damages then
+                        if counter_stats then
                             for i_d,dam2 in ipairs(counter_stats.attacker_damages) do
                                 local dam = {}
 
@@ -2545,15 +2545,14 @@ return {
                             min_total_damage_rating = damage_rating
                         end
 
-                        local counter_min_hp = counter_stats.def_stat.min_hp
 
                         -- We next check whether the counter attack is acceptable
                         -- This is different for the side leader and other units
                         -- Also, it is different for attacks by individual units without MP;
                         -- for those it simply matters whether the attack makes things
                         -- better or worse, since there isn't a coice of moving someplace else
-
-                        if (#combo.attackers > 1) or (attacker.moves > 0) then
+                        if counter_stats and ((#combo.attackers > 1) or (attacker.moves > 0)) then
+                            local counter_min_hp = counter_stats.def_stat.min_hp
                             -- If there's a chance of the leader getting poisoned, slowed or killed, don't do it
                             if attacker.canrecruit then
                                 --print('Leader: slowed, poisoned %', counter_stats.def_stat.slowed, counter_stats.def_stat.poisoned)
@@ -2645,7 +2644,10 @@ return {
                                 --print_time('   counter ratings no attack:', counter_stats.rating_table.rating, counter_stats.def_stat.hp_chance[0])
 
                                 -- Rating if no forward attack is done is done is only the counter attack rating
-                                local no_attack_rating = 0 - counter_stats.rating_table.rating
+                                local no_attack_rating = 0
+                                if counter_stats then
+                                    no_attack_rating = no_attack_rating - counter_stats.rating_table.rating
+                                end
                                 -- If an attack is done, it's the combined forward and counter attack rating
                                 local with_attack_rating = min_total_damage_rating
 

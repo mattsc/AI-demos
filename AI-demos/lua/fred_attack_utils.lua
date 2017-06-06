@@ -1297,6 +1297,10 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
         -- @store_units_in_way (boolean): whether to store the locations of the units in the way. Needs to
         -- be set to 'true' when moving the units into their new locations, needs to be set to
         -- 'false' when moving them back, in which case the stored information will be used.
+        --
+        -- Output:
+        -- Returns nil if no counter attacks were found, otherwise a table with a
+        -- variety of attack stats and ratings
 
         -- If any of the hexes marked in @new_locs is occupied, we
         -- need to store that information as it otherwise will be overwritten.
@@ -1431,19 +1435,6 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
                 defender_damage = defender_damage
             }
         end
-    end
-
-    if (not counter_attack_stat) then
-        -- If no attacks are found, we're done; use stats of unit as is
-        counter_attack_stat = {
-            def_stat = fred_attack_utils.init_att_stat(gamedata.unit_infos[target_id]),
-            rating_table = {
-                rating = 0,
-                attacker_rating = 0,
-                defender_rating = 0,
-                extra_rating = 0
-            }
-        }
     end
 
     -- Extract the units from the map
