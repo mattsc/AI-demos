@@ -3524,7 +3524,7 @@ return {
             if (next(hold_rating_maps)) then
                 --print('--> checking hold combos')
                 hold_dst_src, hold_ratings = UHC.unit_rating_maps_to_dstsrc(hold_rating_maps, 'vuln_rating', gamedata, cfg_combos)
-                local hold_combos = UHC.get_unit_hex_combos(hold_dst_src)
+                local hold_combos = FU.get_unit_hex_combos(hold_dst_src)
                 --DBG.dbms(hold_combos)
                 --print('#hold_combos', #hold_combos)
 
@@ -3535,7 +3535,7 @@ return {
             if hold_leader_distance then
                 --print('--> checking protect combos')
                 protect_dst_src, protect_ratings = UHC.unit_rating_maps_to_dstsrc(protect_rating_maps, 'protect_rating', gamedata, cfg_combos)
-                local protect_combos = UHC.get_unit_hex_combos(protect_dst_src)
+                local protect_combos = FU.get_unit_hex_combos(protect_dst_src)
                 --DBG.dbms(protect_combos)
                 --print('#protect_combos', #protect_combos)
 
