@@ -671,7 +671,7 @@ function fred_utils.single_unit_info(unit_proxy)
     return single_unit_info
 end
 
-function fred_utils.get_unit_hex_combos(dst_src)
+function fred_utils.get_unit_hex_combos(dst_src, get_best_combo)
     -- This is a function which recursively finds all combinations of distributing
     -- units on hexes. The number of units and hexes does not have to be the same.
     -- @dst_src lists all units which can reach each hex in format:
@@ -686,10 +686,30 @@ function fred_utils.get_unit_hex_combos(dst_src)
     --      [2] = { src = 16027 },
     --      dst = 20026
     --  },
+    --
+    -- OPTIONAL INPUTS:
+    --  @get_best_combo: find the highest rated combo; in this case, @dst_src needs to
+    --    contain a rating key:
+    --  [2] = {
+    --      [1] = { src = 17028, rating = 0.91 },
+    --      [2] = { src = 16027, rating = 0.87 },
+    --      dst = 20026
+    --  }
+    --    The combo rating is then the sum of all the individual ratings entering a combo.
 
     local all_combos, combo = {}, {}
     local num_hexes = #dst_src
     local hex = 0
+
+    -- If get_best_combo is set, we cap this at 1,000 combos, assuming
+    -- that we will have found something close to the strongest by then,
+    -- esp. given that the method is only approximate anyway.
+    -- Also, if get_best_combo is set, we only take combos that have
+    -- the maximum number of attackers. Otherwise the comparison is not fair
+    local max_count = 1 -- Note: must be 1, not 0
+    local count = 0
+    local max_rating, best_combo
+    local rating = 0
 
     -- This is the recursive function adding units to each hex
     -- It is defined here so that we can use the variables above by closure
@@ -698,17 +718,44 @@ function fred_utils.get_unit_hex_combos(dst_src)
 
         for _,ds in ipairs(dst_src[hex]) do
             if (not combo[ds.src]) then  -- If that unit has not been used yet, add it
+                count = count + 1
+
                 combo[ds.src] = dst_src[hex].dst
+
+                if get_best_combo then
+                    if (count > 1000) then break end
+                    rating = rating + ds.rating  -- Rating is simply the sum of the individual ratings
+                end
 
                 if (hex < num_hexes) then
                     add_combos()
                 else
-                    local new_combo = {}
-                    for k,v in pairs(combo) do new_combo[k] = v end
-                    table.insert(all_combos, new_combo)
+                    if get_best_combo then
+                        -- Only keep combos with the maximum number of units
+                        local tmp_count = 0
+                        for _,_ in pairs(combo) do tmp_count = tmp_count + 1 end
+                        -- If this is more than current max_count, reset the max_rating (forcing this combo to be taken)
+                        if (tmp_count > max_count) then max_rating = nil end
+
+                        -- If this is less than current max_count, don't use this combo
+                        if ((not max_rating) or (rating > max_rating)) and (tmp_count >= max_count) then
+                            max_rating = rating
+                            max_count = tmp_count
+                            best_combo = {}
+                            for k,v in pairs(combo) do best_combo[k] = v end
+                        end
+                    else
+                        local new_combo = {}
+                        for k,v in pairs(combo) do new_combo[k] = v end
+                        table.insert(all_combos, new_combo)
+                    end
                 end
 
                 -- Remove this element from the table again
+                if get_best_combo then
+                    rating = rating - ds.rating
+                end
+
                 combo[ds.src] = nil
             end
         end
@@ -718,15 +765,37 @@ function fred_utils.get_unit_hex_combos(dst_src)
         if (hex < num_hexes) then
             add_combos()
         else
-            local new_combo = {}
-            for k,v in pairs(combo) do new_combo[k] = v end
-            table.insert(all_combos, new_combo)
+            if get_best_combo then
+                -- Only keep attacks with the maximum number of units
+                -- This also automatically excludes the empty combo
+                local tmp_count = 0
+                for _,_ in pairs(combo) do tmp_count = tmp_count + 1 end
+                -- If this is more than current max_count, reset the max_rating (forcing this combo to be taken)
+                if (tmp_count > max_count) then max_rating = nil end
+
+                -- If this is less than current max_count, don't use this attack
+                if ((not max_rating) or (rating > max_rating)) and (tmp_count >= max_count)then
+                    max_rating = rating
+                    max_count = tmp_count
+                    best_combo = {}
+                    for k,v in pairs(combo) do best_combo[k] = v end
+                end
+            else
+                local new_combo = {}
+                for k,v in pairs(combo) do new_combo[k] = v end
+                table.insert(all_combos, new_combo)
+            end
         end
 
         hex = hex - 1
     end
 
     add_combos()
+
+
+    if get_best_combo then
+        return best_combo
+    end
 
     -- The last combo is always the empty combo -> remove it
     all_combos[#all_combos] = nil
