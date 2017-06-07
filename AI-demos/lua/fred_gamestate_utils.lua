@@ -153,7 +153,7 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
     -- Unit locations and copies
     local units, leaders = {}, {}
     local my_units, my_units_MP, my_units_noMP, enemies = {}, {}, {}, {}
-    local my_unit_map, my_unit_map_MP, my_unit_map_noMP, enemy_map = {}, {}, {}, {}
+    local unit_map, my_unit_map, my_unit_map_MP, my_unit_map_noMP, enemy_map = {}, {}, {}, {}, {}
     local my_attack_map, my_move_map = {}, {}
     local unit_attack_maps = {}
     local unit_copies = {}
@@ -177,6 +177,9 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
         end
 
         if (unit_copy.side == wesnoth.current.side) then
+            if (not unit_map[unit_copy.x]) then unit_map[unit_copy.x] = {} end
+            unit_map[unit_copy.x][unit_copy.y] = { id = unit_copy.id }
+
             if (not my_unit_map[unit_copy.x]) then my_unit_map[unit_copy.x] = {} end
             my_unit_map[unit_copy.x][unit_copy.y] = { id = unit_copy.id }
 
@@ -258,6 +261,9 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
             end
         else
             if wesnoth.is_enemy(unit_copy.side, wesnoth.current.side) then
+                if (not unit_map[unit_copy.x]) then unit_map[unit_copy.x] = {} end
+                unit_map[unit_copy.x][unit_copy.y] = { id = unit_copy.id }
+
                 if (not enemy_map[unit_copy.x]) then enemy_map[unit_copy.x] = {} end
                 enemy_map[unit_copy.x][unit_copy.y] = { id = unit_copy.id }
 
@@ -339,6 +345,7 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
     mapstate.reachable_keeps_map = reachable_keeps_map
     mapstate.reachable_castles_map = reachable_castles_map
 
+    mapstate.unit_map = unit_map
     mapstate.my_unit_map = my_unit_map
     mapstate.my_unit_map_MP = my_unit_map_MP
     mapstate.my_unit_map_noMP = my_unit_map_noMP
