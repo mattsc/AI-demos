@@ -697,8 +697,8 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
     return att_stat, def_stat
 end
 
-function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy, tmp_dsts, tmp_attacker_infos, defender_info, gamedata, move_cache, cfg, ctd_limit)
-    -- Calculate attack combination outcomes using
+function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cache, cfg, ctd_limit)
+    -- Evaluate attack combination outcomes using
     -- @tmp_attacker_copies: array of attacker unit copies (must be copies, does not work with the proxy table)
     -- @defender_proxy: the unit being attacked (must be a unit proxy table on the map, does not work with a copy)
     -- @tmp_dsts: array of the hexes (format { x, y }) from which the attackers attack
@@ -725,6 +725,24 @@ function fred_attack_utils.attack_combo_eval(tmp_attacker_copies, defender_proxy
 
     -- Chance to die limit is 100%, if not given
     ctd_limit = ctd_limit or 1.0
+
+    local tmp_attacker_copies, tmp_attacker_infos, tmp_dsts = {}, {}, {}
+    for src,dst in pairs(combo) do
+        local src_x, src_y = math.floor(src / 1000), src % 1000
+        attacker_id = gamedata.unit_map[src_x][src_y].id
+        --print(src_x, src_y, attacker_id)
+        table.insert(tmp_attacker_infos, gamedata.unit_infos[attacker_id])
+        table.insert(tmp_attacker_copies, gamedata.unit_copies[attacker_id])
+
+        table.insert(tmp_dsts, { math.floor(dst / 1000), dst % 1000 } )
+    end
+    --DBG.dbms(tmp_dsts)
+    --DBG.dbms(tmp_attacker_infos)
+
+    local defender_id, defender_loc = next(defender)
+    local defender_proxy = wesnoth.get_unit(defender_loc[1], defender_loc[2])
+    local defender_info = gamedata.unit_infos[defender_id]
+    --DBG.dbms(defender_info)
 
     -- We first simulate and rate the individual attacks
     local ratings, tmp_att_stats, tmp_def_stats = {}, {}, {}
@@ -1285,7 +1303,6 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
     end
 
     local target_id, target_loc = next(target)
-    local target_proxy = wesnoth.get_unit(target_loc[1], target_loc[2])
 
     -- reach_maps must not be given here, as this is for a hypothetical situation
     -- on the map. Needs to be recalculated for that situation.
@@ -1303,19 +1320,8 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
             enemy_map[loc[1] * 1000 + loc[2]] = id
         end
 
-        local attacker_copies, dsts, attacker_infos = {}, {}, {}
-        for src,dst in pairs(counter_attack) do
-            table.insert(attacker_copies, gamedata.unit_copies[enemy_map[src]])
-            table.insert(attacker_infos, gamedata.unit_infos[enemy_map[src]])
-            table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
-        end
-
-        local combo_att_stats, combo_def_stat, sorted_atts, sorted_dsts, rating_table, attacker_damages, defender_damage =
-            fred_attack_utils.attack_combo_eval(
-                attacker_copies, target_proxy, dsts,
-                attacker_infos, gamedata.unit_infos[target_id],
-                gamedata, move_cache, cfg, FU.cfg_default('ctd_limit')
-            )
+        local combo_att_stats, combo_def_stat, sorted_atts, sorted_dsts, rating_table, attacker_damages, defender_damage
+            = fred_attack_utils.attack_combo_eval(counter_attack, target, gamedata, move_cache, cfg, FU.cfg_default('ctd_limit'))
 
         -- attack_combo_eval returns nil if none of the units satisfies the ctd_limit criterion
         if combo_att_stats then

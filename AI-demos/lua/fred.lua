@@ -1978,7 +1978,6 @@ return {
             for target_id, target_loc in pairs(targets) do
                 local target = {}
                 target[target_id]= target_loc
-                local target_proxy = wesnoth.get_unit(target_loc[1], target_loc[2])
 
                 local is_trappable_enemy = true
                 if gamedata.unit_infos[target_id].abilities.skirmisher then
@@ -2030,20 +2029,8 @@ return {
 
                     local attempt_trapping = is_trappable_enemy
 
-                    local attacker_copies, dsts, attacker_infos = {}, {}, {}
-                    for src,dst in pairs(combo) do
-                        table.insert(attacker_copies, gamedata.unit_copies[attacker_map[src]])
-                        table.insert(attacker_infos, gamedata.unit_infos[attacker_map[src]])
-                        table.insert(dsts, { math.floor(dst / 1000), dst % 1000 } )
-                    end
-
-
-                    local combo_att_stats, combo_def_stat, sorted_atts, sorted_dsts, combo_rt, combo_attacker_damages, combo_defender_damage =
-                        FAU.attack_combo_eval(
-                            attacker_copies, target_proxy, dsts,
-                            attacker_infos, gamedata.unit_infos[target_id],
-                            gamedata, move_cache, cfg_attack
-                    )
+                    local combo_att_stats, combo_def_stat, sorted_atts, sorted_dsts, combo_rt, combo_attacker_damages, combo_defender_damage
+                        = FAU.attack_combo_eval(combo, target, gamedata, move_cache, cfg_attack)
                     local combo_rating = combo_rt.rating
 
                     local bonus_rating = 0
@@ -2061,8 +2048,8 @@ return {
                         do_attack = false
                         for _,keep in ipairs(available_keeps) do
                             local keep_taken = false
-                            for i_d,dst in ipairs(dsts) do
-                                if (not attacker_copies[i_d].canrecruit)
+                            for i_d,dst in ipairs(sorted_dsts) do
+                                if (not sorted_atts[i_d].canrecruit)
                                     and (keep[1] == dst[1]) and (keep[2] == dst[2])
                                 then
                                     keep_taken = true
@@ -4351,20 +4338,19 @@ return {
                 if enemy_proxy and fred.data.zone_action.units[2] then
                     -- Only do this if CTK for overall attack combo is > 0
                     local attacker_copies, attacker_infos = {}, {}
+                    local combo = {}
                     for i,unit in ipairs(fred.data.zone_action.units) do
                         table.insert(attacker_copies, fred.data.gamedata.unit_copies[unit.id])
                         table.insert(attacker_infos, fred.data.gamedata.unit_infos[unit.id])
+
+                        combo[unit[1] * 1000 + unit[2]] = fred.data.zone_action.dsts[i][1] * 1000 + fred.data.zone_action.dsts[i][2]
                     end
 
                     local defender_info = fred.data.gamedata.unit_infos[enemy_proxy.id]
 
                     -- Don't use cfg_attack = { use_max_damage_weapons = true } here
-                    local _, combo_def_stat = FAU.attack_combo_eval(
-                        attacker_copies, enemy_proxy,
-                        fred.data.zone_action.dsts,
-                        attacker_infos, defender_info,
-                        fred.data.gamedata, fred.data.move_cache
-                    )
+                    local _, combo_def_stat
+                        = FAU.attack_combo_eval(combo, fred.data.zone_action.enemy, fred.data.gamedata, fred.data.move_cache)
 
                     -- Disable reordering of attacks for the time being
                     -- TODO: this needs to be completely redone
