@@ -496,7 +496,7 @@ return {
                     end
                 end
 
-                local att_stat, def_stat = FAU.battle_outcome(
+                local att_stat, def_stat = FAU.attack_outcome(
                     gamedata.unit_copies[id], leader_proxy,
                     dst,
                     gamedata.unit_infos[id], gamedata.unit_infos[leader_proxy.id],
@@ -4372,7 +4372,7 @@ return {
                         local unit = fred.data.zone_action.units[best_ind]
                         --print_time('Most advanced unit:', unit.id, unit.experience, best_ind)
 
-                        local att_stat, def_stat = FAU.battle_outcome(
+                        local att_stat, def_stat = FAU.attack_outcome(
                             attacker_copies[best_ind], enemy_proxy,
                             fred.data.zone_action.dsts[best_ind],
                             attacker_infos[best_ind], defender_info,

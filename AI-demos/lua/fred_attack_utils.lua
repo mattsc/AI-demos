@@ -158,7 +158,7 @@ function fred_attack_utils.unit_damage(unit_info, att_stat, dst, gamedata, cfg)
     --
     -- Input parameters:
     --  @unit_info: unit_info table produced by fred_utils.single_unit_info()
-    --  @att_stat: attack statistics for the attackers as from battle_outcome or attack_combo_eval
+    --  @att_stat: attack statistics for the attackers as from attack_outcome or attack_combo_eval
     --  @dst: location of the unit for which to calculate this; this might or
     --   might not be the current location of the unit
     --
@@ -457,7 +457,7 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack, is_attacker, 
     return total_damage
 end
 
-function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, attacker_info, defender_info, gamedata, move_cache, cfg)
+function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, attacker_info, defender_info, gamedata, move_cache, cfg)
     -- Calculate the stats of a combat by @attacker_copy vs. @defender_proxy at location @dst
     -- We use wesnoth.simulate_combat for this, but cache results when possible
     -- Inputs:
@@ -473,7 +473,7 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
     -- @cfg: configuration parameters (only use_max_damage_weapons so far, possibly to be extended)
 
     local function attstat_to_outcome(unit_info, stat, enemy_ctd, enemy_level)
-        -- Convert att_stat as returned by wesnoth.simulate_combat to battle_outcome
+        -- Convert att_stat as returned by wesnoth.simulate_combat to attack_outcome
         -- format. In addition to extracting information from att_stat, this includes:
         --  - Only keep non-zero hp_chance values, except hp_chance[0] which is always needed
         --  - Setting up level-up information (and recalculating average_hp)
@@ -682,10 +682,10 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
     -- @tmp_attacker_infos, @defender_info: unit info for the attackers and defenders (needed in addition to the units
     --   themselves in order to speed things up)
     -- @gamedata, @move_cache: only needed to pass to the functions being called
-    --    see fred_attack_utils.battle_outcome() for descriptions
+    --    see fred_attack_utils.attack_outcome() for descriptions
     --
     -- Optional inputs:
-    --  @cfg: configuration parameters to be passed through to battle_outcome, attack_rating
+    --  @cfg: configuration parameters to be passed through to attack_outcome, attack_rating
     --  @ctd_limit: limiting chance to die (0..1) for when to include an individual attack in the combo
     --      This is usually not used, but should be limited for counter attack evaluations
     --
@@ -724,7 +724,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
     local ratings, tmp_att_stats, tmp_def_stats = {}, {}, {}
     for i,attacker_copy in ipairs(tmp_attacker_copies) do
         tmp_att_stats[i], tmp_def_stats[i] =
-            fred_attack_utils.battle_outcome(
+            fred_attack_utils.attack_outcome(
                 attacker_copy, defender_proxy, tmp_dsts[i],
                 tmp_attacker_infos[i], defender_info,
                 gamedata, move_cache, cfg
@@ -806,7 +806,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
                 defender_proxy.experience = defender_xp
                 defender_info.experience = defender_xp
 
-                local ast, dst = fred_attack_utils.battle_outcome(
+                local ast, dst = fred_attack_utils.attack_outcome(
                     attacker_copies[i], defender_proxy, dsts[i],
                     attacker_infos[i], defender_info,
                     gamedata, move_cache, cfg
@@ -885,7 +885,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
                     --   (that could even be desirable, not sure yet)
 
 
-                    local ast, dst = fred_attack_utils.battle_outcome(
+                    local ast, dst = fred_attack_utils.attack_outcome(
                         attacker_copies[i], defender_proxy, dsts[i],
                         attacker_infos[i], defender_info,
                         gamedata, move_cache, cfg
@@ -1061,7 +1061,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
     --     cannot move out of the way
     -- @get_strongest_attack (boolean): if set to 'true', don't return all attacks, but only the
     --   one deemed strongest as described above. If this is set, @gamedata and @move_cache nust be provided
-    --  @cfg: configuration parameters to be passed through the battle_outcome, attack_rating
+    --  @cfg: configuration parameters to be passed through the attack_outcome, attack_rating
     --
     -- Return value: attack combinations (either a single one or an array) of form { src = dst }, e.g.:
     -- {
@@ -1136,7 +1136,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
             if reach_maps[attacker_id][xa] and reach_maps[attacker_id][xa][ya] then
                 local _, rating
                 if get_strongest_attack then
-                    local att_stat, def_stat = fred_attack_utils.battle_outcome(
+                    local att_stat, def_stat = fred_attack_utils.attack_outcome(
                         gamedata.unit_copies[attacker_id], defender_proxy, { xa, ya },
                         gamedata.unit_infos[attacker_id], gamedata.unit_infos[defender_id],
                         gamedata, move_cache, cfg
@@ -1200,7 +1200,7 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
     --   involved in an attack combination
     --
     -- Optional inputs:
-    --  @cfg: configuration parameters to be passed through the battle_outcome, attack_rating
+    --  @cfg: configuration parameters to be passed through the attack_outcome, attack_rating
 
     -- Two array to be made available below via closure
     local stored_units, ids = {}, {}
