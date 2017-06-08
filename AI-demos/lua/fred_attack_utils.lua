@@ -11,9 +11,8 @@ local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 -- Note to self: working with Lua tables is generally much faster than with unit proxy tables.
 -- Also, creating tables takes time, indexing by number is faster than by string, etc.
 
-local fred_attack_utils = {}
 
-function fred_attack_utils.init_attack_outcome(unit_info)
+local function init_attack_outcome(unit_info)
     -- Initialize the attack outcome table, to make sure all fields are present
     --
     -- OPTIONAL INPUT:
@@ -46,6 +45,9 @@ function fred_attack_utils.init_attack_outcome(unit_info)
     return attack_outcome
 end
 
+
+local fred_attack_utils = {}
+
 function fred_attack_utils.is_acceptable_attack(damage_to_ai, damage_to_enemy, value_ratio)
     -- Evaluate whether an attack is acceptable, based on the damage to_enemy/to_ai ratio
     -- As an example, if value_ratio = 0.5 -> it is okay to do only half the damage
@@ -75,75 +77,6 @@ function fred_attack_utils.is_acceptable_attack(damage_to_ai, damage_to_enemy, v
     return (damage_to_enemy / damage_to_ai) >= value_ratio
 end
 
-function fred_attack_utils.delayed_damage(unit_info, att_outcome, average_damage, dst, gamedata)
-    -- Returns the damage the unit is expected to get from delayed effects, both
-    -- positive and negative. The value returned is the actual damage times the
-    -- probability of the effect.
-    --  - Positive damage: poison, slow (counting slow as damage)
-    --  - Negative damage: villages, regenerate, healthy trait
-    --      Rest healing is not considered, as this is for attack evaluation.
-    -- TODO: add healers
-    -- Return value is in units of hitpoints
-    --
-    -- @dst: location of the unit for which to calculate this; this might or
-    --   might not be the current location of the unit
-
-    local delayed_damage = 0
-
-    -- Positive delayed damage (poison etc.)
-
-    -- Count poisoned as additional 8 HP damage times probability of being poisoned
-    -- but only if the unit is not already poisoned
-    -- HP=0 case counts as poisoned in att_outcome, so that needs to be subtracted
-    -- Note: no special treatment is needed for  unpoisonable units (e.g. undead)
-    -- as att_outcome.poisoned is always zero for them
-    if (att_outcome.poisoned ~= 0) and (not unit_info.status.poisoned) then
-        delayed_damage = delayed_damage + 8 * (att_outcome.poisoned - att_outcome.hp_chance[0])
-    end
-
-    -- Count slowed as additional 4 HP damage times probability of being slowed
-    -- but only if the unit is not already slowed
-    -- HP=0 case counts as slowed in att_outcome, so that needs to be subtracted
-    if (att_outcome.slowed ~= 0) and (not unit_info.status.slowed) then
-        delayed_damage = delayed_damage + 4 * (att_outcome.slowed - att_outcome.hp_chance[0])
-    end
-
-    -- Negative delayed damage (healing)
-    local is_village = gamedata.village_map[dst[1]] and gamedata.village_map[dst[1]][dst[2]]
-
-    -- If unit is on a village, we count that as an 8 HP bonus (negative damage)
-    -- multiplied by the chance to survive
-    if is_village then
-        delayed_damage = delayed_damage - 8 * (1 - att_outcome.hp_chance[0])
-    -- Otherwise only: if unit can regenerate, this is an 8 HP bonus (negative damage)
-    -- multiplied by the chance to survive
-    elseif unit_info.abilities.regenerate then
-        delayed_damage = delayed_damage - 8 * (1 - att_outcome.hp_chance[0])
-    end
-
-    -- Units with healthy trait get an automatic 2 HP healing
-    -- We don't need to check whether a unit is resting otherwise, as this
-    -- is for attack calculations (meaning: they won't be resting)
-    if unit_info.traits.healthy then
-        delayed_damage = delayed_damage + 2
-    end
-
-    -- Positive damage needs to be capped at the amount of HP (can't lose more than that)
-    -- Note: in principle, this is (HP-1), but that might cause a negative damage
-    -- rating for units with average_HP < 1.
-    -- Calculated with respect to average hitpoints
-    local hp_before = unit_info.hitpoints - average_damage
-    delayed_damage = math.min(delayed_damage, hp_before)
-
-    -- Negative damage needs to be capped at amount by which hitpoints are below max_hitpoints
-    -- Note that neg_hp_to_max is negative; delayed_damage cannot be smaller than that
-    -- Calculated with respect to average hitpoints
-    local neg_hp_to_max = hp_before - unit_info.max_hitpoints
-    delayed_damage = math.max(delayed_damage, neg_hp_to_max)
-
-    return delayed_damage
-end
-
 function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, gamedata, cfg)
     -- Return a table with the different contributions to damage a unit is
     -- expected to experience in an attack.
@@ -164,6 +97,79 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, gamedata, cf
     --
     -- Optional parameters:
     --  @cfg: table with the optional weights needed by fred_utils.unit_value
+
+
+    -- This does, in principle, not have to be a separate function, as it is only
+    -- called once, but this way it can be made accessible from outside again, if needed.
+    local function get_delayed_damage(unit_info, att_outcome, average_damage, dst, gamedata)
+        -- Returns the damage the unit is expected to get from delayed effects, both
+        -- positive and negative. The value returned is the actual damage times the
+        -- probability of the effect.
+        --  - Positive damage: poison, slow (counting slow as damage)
+        --  - Negative damage: villages, regenerate, healthy trait
+        --      Rest healing is not considered, as this is for attack evaluation.
+        -- TODO: add healers
+        -- Return value is in units of hitpoints
+        --
+        -- @dst: location of the unit for which to calculate this; this might or
+        --   might not be the current location of the unit
+
+        local delayed_damage = 0
+
+        -- Positive delayed damage (poison etc.)
+
+        -- Count poisoned as additional 8 HP damage times probability of being poisoned
+        -- but only if the unit is not already poisoned
+        -- HP=0 case counts as poisoned in att_outcome, so that needs to be subtracted
+        -- Note: no special treatment is needed for  unpoisonable units (e.g. undead)
+        -- as att_outcome.poisoned is always zero for them
+        if (att_outcome.poisoned ~= 0) and (not unit_info.status.poisoned) then
+            delayed_damage = delayed_damage + 8 * (att_outcome.poisoned - att_outcome.hp_chance[0])
+        end
+
+        -- Count slowed as additional 4 HP damage times probability of being slowed
+        -- but only if the unit is not already slowed
+        -- HP=0 case counts as slowed in att_outcome, so that needs to be subtracted
+        if (att_outcome.slowed ~= 0) and (not unit_info.status.slowed) then
+            delayed_damage = delayed_damage + 4 * (att_outcome.slowed - att_outcome.hp_chance[0])
+        end
+
+        -- Negative delayed damage (healing)
+        local is_village = gamedata.village_map[dst[1]] and gamedata.village_map[dst[1]][dst[2]]
+
+        -- If unit is on a village, we count that as an 8 HP bonus (negative damage)
+        -- multiplied by the chance to survive
+        if is_village then
+            delayed_damage = delayed_damage - 8 * (1 - att_outcome.hp_chance[0])
+        -- Otherwise only: if unit can regenerate, this is an 8 HP bonus (negative damage)
+        -- multiplied by the chance to survive
+        elseif unit_info.abilities.regenerate then
+            delayed_damage = delayed_damage - 8 * (1 - att_outcome.hp_chance[0])
+        end
+
+        -- Units with healthy trait get an automatic 2 HP healing
+        -- We don't need to check whether a unit is resting otherwise, as this
+        -- is for attack calculations (meaning: they won't be resting)
+        if unit_info.traits.healthy then
+            delayed_damage = delayed_damage + 2
+        end
+
+        -- Positive damage needs to be capped at the amount of HP (can't lose more than that)
+        -- Note: in principle, this is (HP-1), but that might cause a negative damage
+        -- rating for units with average_HP < 1.
+        -- Calculated with respect to average hitpoints
+        local hp_before = unit_info.hitpoints - average_damage
+        delayed_damage = math.min(delayed_damage, hp_before)
+
+        -- Negative damage needs to be capped at amount by which hitpoints are below max_hitpoints
+        -- Note that neg_hp_to_max is negative; delayed_damage cannot be smaller than that
+        -- Calculated with respect to average hitpoints
+        local neg_hp_to_max = hp_before - unit_info.max_hitpoints
+        delayed_damage = math.max(delayed_damage, neg_hp_to_max)
+
+        return delayed_damage
+    end
+
 
     --print(unit_info.id, unit_info.hitpoints, unit_info.max_hitpoints)
     local damage = {}
@@ -192,7 +198,7 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, gamedata, cf
     damage.levelup_chance = att_outcome.levelup_chance
     --print('  levelup_chance', damage.levelup_chance)
 
-    damage.delayed_damage = fred_attack_utils.delayed_damage(unit_info, att_outcome, average_damage, dst, gamedata)
+    damage.delayed_damage = get_delayed_damage(unit_info, att_outcome, average_damage, dst, gamedata)
 
     -- Finally, add some info about the unit, just for convenience
     damage.id = unit_info.id
@@ -479,7 +485,7 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
         --  - Setting up level-up information (and recalculating average_hp)
         --  - Setting min_hp
 
-        local outcome = fred_attack_utils.init_attack_outcome()
+        local outcome = init_attack_outcome()
         for hp,chance in pairs(stat.hp_chance) do
             if (chance ~= 0) then
                 outcome.hp_chance[hp] = chance
@@ -785,9 +791,9 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
     -- Then we go through all the other attacks and calculate the outcomes
     -- based on all the possible outcomes of the previous attacks
     for i = 2,#attacker_infos do
-        att_outcomes[i] = fred_attack_utils.init_attack_outcome()
+        att_outcomes[i] = init_attack_outcome()
         -- Levelup chance carries through from previous
-        def_outcomes[i] = fred_attack_utils.init_attack_outcome()
+        def_outcomes[i] = init_attack_outcome()
         def_outcomes[i].levelup_chance = def_outcomes[i-1].levelup_chance
 
         -- The HP distribution without leveling
