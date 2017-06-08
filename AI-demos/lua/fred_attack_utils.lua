@@ -959,20 +959,42 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
             end
         end
 
-        -- Get the average HP
-        local av_hp = 0
-        for hp,prob in pairs(att_stats[i].hp_chance) do av_hp = av_hp + hp * prob end
+        -- Get the average and minimum HP
+        local av_hp, min_hp = 0
+        for hp,prob in pairs(att_stats[i].hp_chance) do
+            av_hp = av_hp + hp * prob
+            if (not min_hp) or ((hp < min_hp) and (prob > 0)) then
+                min_hp = hp
+            end
+        end
         if (att_stats[i].levelup_chance > 0) then
-            for hp,prob in pairs(att_stats[i].levelup.hp_chance) do av_hp = av_hp + hp * prob end
+            for hp,prob in pairs(att_stats[i].levelup.hp_chance) do
+                av_hp = av_hp + hp * prob
+                if (not min_hp) or ((hp < min_hp) and (prob > 0)) then
+                    min_hp = hp
+                end
+            end
         end
         att_stats[i].average_hp = av_hp
+        att_stats[i].min_hp = min_hp
 
-        local av_hp = 0
-        for hp,prob in pairs(def_stats[i].hp_chance) do av_hp = av_hp + hp * prob end
+        local av_hp, min_hp = 0
+        for hp,prob in pairs(def_stats[i].hp_chance) do
+            av_hp = av_hp + hp * prob
+            if (not min_hp) or ((hp < min_hp) and (prob > 0)) then
+                min_hp = hp
+            end
+        end
         if (def_stats[i].levelup_chance > 0) then
-            for hp,prob in pairs(def_stats[i].levelup.hp_chance) do av_hp = av_hp + hp * prob end
+            for hp,prob in pairs(def_stats[i].levelup.hp_chance) do
+                av_hp = av_hp + hp * prob
+                if (not min_hp) or ((hp < min_hp) and (prob > 0)) then
+                    min_hp = hp
+                end
+            end
         end
         def_stats[i].average_hp = av_hp
+        def_stats[i].min_hp = min_hp
 
         -- Also add to the defender XP. Leveling up does not need to be considered
         -- here, as it is caught separately by the levelup_chance field in def_stat
