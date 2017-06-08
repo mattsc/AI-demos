@@ -857,13 +857,10 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
                     end
                 end
 
-                -- Also do poisoned, slowed
-                if (not att_stats[i].poisoned) then
-                    att_stats[i].poisoned = ast.poisoned
-                    att_stats[i].slowed = ast.slowed
-                    def_stats[i].poisoned = 1. - (1. - dst.poisoned) * (1. - def_stats[i-1].poisoned)
-                    def_stats[i].slowed = 1. - (1. - dst.slowed) * (1. - def_stats[i-1].slowed)
-                end
+                att_stats[i].poisoned = ast.poisoned
+                att_stats[i].slowed = ast.slowed
+                def_stats[i].poisoned = 1. - (1. - dst.poisoned) * (1. - def_stats[i-1].poisoned)
+                def_stats[i].slowed = 1. - (1. - dst.slowed) * (1. - def_stats[i-1].slowed)
             end
         end
 
@@ -953,14 +950,11 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
                         end
                     end
 
-                    -- Also do poisoned, slowed
                     -- TODO: this is definitely not right, I think ...
-                    if (not att_stats[i].poisoned) then
-                        att_stats[i].poisoned = ast.poisoned
-                        att_stats[i].slowed = ast.slowed
-                        def_stats[i].poisoned = 1. - (1. - dst.poisoned) * (1. - def_stats[i-1].poisoned)
-                        def_stats[i].slowed = 1. - (1. - dst.slowed) * (1. - def_stats[i-1].slowed)
-                    end
+                    att_stats[i].poisoned = ast.poisoned
+                    att_stats[i].slowed = ast.slowed
+                    def_stats[i].poisoned = 1. - (1. - dst.poisoned) * (1. - def_stats[i-1].poisoned)
+                    def_stats[i].slowed = 1. - (1. - dst.slowed) * (1. - def_stats[i-1].slowed)
                 end
             end
         end
