@@ -13,8 +13,8 @@ local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local fred_attack_utils = {}
 
-function fred_attack_utils.init_att_stat(unit_info)
-    -- Initialize the attack statistics table, to make sure all fields are present
+function fred_attack_utils.init_attack_outcome(unit_info)
+    -- Initialize the attack outcome table, to make sure all fields are present
     --
     -- OPTIONAL INPUT:
     --  @unit_info: if given, initialize the table with the correct values for
@@ -25,7 +25,7 @@ function fred_attack_utils.init_att_stat(unit_info)
         hp_chance[0] = 0
         if unit_info then hp_chance[unit_info.hitpoints] = 1 end
 
-        local att_stat = {
+        local outcome = {
             average_hp = unit_info and unit_info.hitpoints or 0,
             poisoned = 0,
             slowed = 0,
@@ -33,17 +33,17 @@ function fred_attack_utils.init_att_stat(unit_info)
             min_hp = unit_info and unit_info.hitpoints or 0
         }
 
-        if unit_info and unit_info.status.poisoned then att_stat.poisoned = 1 end
-        if unit_info and unit_info.status.slowed then att_stat.slowed = 1 end
+        if unit_info and unit_info.status.poisoned then outcome.poisoned = 1 end
+        if unit_info and unit_info.status.slowed then outcome.slowed = 1 end
 
-        return att_stat
+        return outcome
     end
 
-    local att_stat = single_level_table(unit_info)
-    att_stat.levelup = single_level_table()
-    att_stat.levelup_chance = 0
+    local attack_outcome = single_level_table(unit_info)
+    attack_outcome.levelup = single_level_table()
+    attack_outcome.levelup_chance = 0
 
-    return att_stat
+    return attack_outcome
 end
 
 function fred_attack_utils.is_acceptable_attack(damage_to_ai, damage_to_enemy, value_ratio)
@@ -479,7 +479,7 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
         --  - Setting up level-up information (and recalculating average_hp)
         --  - Setting min_hp
 
-        local outcome = fred_attack_utils.init_att_stat()
+        local outcome = fred_attack_utils.init_attack_outcome()
         for hp,chance in pairs(stat.hp_chance) do
             if (chance ~= 0) then
                 outcome.hp_chance[hp] = chance
@@ -785,9 +785,9 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
     -- Then we go through all the other attacks and calculate the outcomes
     -- based on all the possible outcomes of the previous attacks
     for i = 2,#attacker_infos do
-        att_stats[i] = fred_attack_utils.init_att_stat()
+        att_stats[i] = fred_attack_utils.init_attack_outcome()
         -- Levelup chance carries through from previous
-        def_stats[i] = fred_attack_utils.init_att_stat()
+        def_stats[i] = fred_attack_utils.init_attack_outcome()
         def_stats[i].levelup_chance = def_stats[i-1].levelup_chance
 
         -- The HP distribution without leveling
