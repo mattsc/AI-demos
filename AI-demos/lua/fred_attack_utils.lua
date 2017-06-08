@@ -75,25 +75,6 @@ function fred_attack_utils.is_acceptable_attack(damage_to_ai, damage_to_enemy, v
     return (damage_to_enemy / damage_to_ai) >= value_ratio
 end
 
-function fred_attack_utils.levelup_chance(unit_info, unit_stat, enemy_ctd, enemy_level)
-    -- In addition, potentially leveling up in this attack is a huge bonus.
-    -- Note: this can make the fractional damage negative (as it should)
-    if (enemy_level == 0) then enemy_level = 0.5 end  -- L0 units
-
-    local levelup_chance = 0.
-
-    -- If missing XP is <= level of attacker, it's a guaranteed level-up as long as the unit does not die
-    -- This does work even for L0 units (with enemy_level = 0.5)
-    if (unit_info.max_experience - unit_info.experience <= enemy_level) then
-        levelup_chance = 1. - unit_stat.hp_chance[0]
-    -- Otherwise, if a kill is needed, the level-up chance is that of the enemy dying
-    elseif (unit_info.max_experience - unit_info.experience <= enemy_level * 8) then
-        levelup_chance = enemy_ctd
-    end
-
-    return levelup_chance
-end
-
 function fred_attack_utils.delayed_damage(unit_info, att_stat, average_damage, dst, gamedata)
     -- Returns the damage the unit is expected to get from delayed effects, both
     -- positive and negative. The value returned is the actual damage times the
@@ -508,7 +489,18 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
         outcome.poisoned = stat.poisoned
         outcome.slowed = stat.slowed
 
-        local levelup_chance = fred_attack_utils.levelup_chance(unit_info, outcome, enemy_ctd, enemy_level)
+
+        if (enemy_level == 0) then enemy_level = 0.5 end  -- L0 units
+        local levelup_chance = 0.
+        -- If missing XP is <= level of attacker, it's a guaranteed level-up as long as the unit does not die
+        -- This does work even for L0 units (with enemy_level = 0.5)
+        if (unit_info.max_experience - unit_info.experience <= enemy_level) then
+            levelup_chance = 1. - outcome.hp_chance[0]
+        -- Otherwise, if a kill is needed, the level-up chance is that of the enemy dying
+        elseif (unit_info.max_experience - unit_info.experience <= enemy_level * 8) then
+            levelup_chance = enemy_ctd
+        end
+
         if (levelup_chance > 0) then
             outcome.levelup_chance = levelup_chance
 
