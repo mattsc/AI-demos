@@ -771,6 +771,14 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
 
     tmp_att_stats, tmp_def_stats, ratings = nil, nil, nil
 
+    -- TODO: For now, we just increase the defender experience by the level of the attacker,
+    -- both here and in the loop below. This works when there is no chance to level up, and
+    -- when the unit levels up during the current attack. It is inaccurate when, for example,
+    -- the defender is 9 HP from leveling, and in the first attack against an L1 unit there
+    -- is a non-zero and non-unity chance to kill the attacker. In that case, the defender
+    -- might end up with +1 or +8 XP, in some cases even for the same final HP. This would
+    -- then cause very different outcomes for the next attack(s). However, doing this
+    -- correctly is prohibitively expensive, so we go with this approximation for now.
     local defender_xp = defender_info.experience
     defender_xp = defender_xp + attacker_infos[1].level
 
