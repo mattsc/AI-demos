@@ -496,17 +496,17 @@ return {
                     end
                 end
 
-                local att_stat, def_stat = FAU.attack_outcome(
+                local att_outcome, def_outcome = FAU.attack_outcome(
                     gamedata.unit_copies[id], leader_proxy,
                     dst,
                     gamedata.unit_infos[id], gamedata.unit_infos[leader_proxy.id],
                     gamedata, fred.data.move_cache
                 )
-                --DBG.dbms(att_stat)
-                --DBG.dbms(def_stat)
+                --DBG.dbms(att_outcome)
+                --DBG.dbms(def_outcome)
 
-                local max_loss = leader_proxy.hitpoints - def_stat.min_hp
-                local av_loss = leader_proxy.hitpoints - def_stat.average_hp
+                local max_loss = leader_proxy.hitpoints - def_outcome.min_hp
+                local av_loss = leader_proxy.hitpoints - def_outcome.average_hp
                 --print('    ', id, av_loss, max_loss)
 
                 max_total_loss = max_total_loss + max_loss
@@ -2025,11 +2025,11 @@ return {
                     -- Only check out the first 1000 attack combos to keep evaluation time reasonable
                     if (j > 1000) then break end
 
-                    -- attackers and dsts arrays for stats calculation
+                    -- attackers and dsts arrays for attack outcome calculation
 
                     local attempt_trapping = is_trappable_enemy
 
-                    local combo_att_stats, combo_def_stat, sorted_atts, sorted_dsts, combo_rt, combo_attacker_damages, combo_defender_damage
+                    local combo_att_outcomes, combo_def_outcome, sorted_atts, sorted_dsts, combo_rt, combo_attacker_damages, combo_defender_damage
                         = FAU.attack_combo_eval(combo, target, gamedata, move_cache, cfg_attack)
                     local combo_rating = combo_rt.rating
 
@@ -2066,14 +2066,14 @@ return {
 
                     -- Don't do this attack if the leader has a chance to get killed, poisoned or slowed
                     if do_attack then
-                        for k,att_stat in ipairs(combo_att_stats) do
+                        for k,att_outcome in ipairs(combo_att_outcomes) do
                             if (sorted_atts[k].canrecruit) then
-                                if (att_stat.hp_chance[0] > 0.0) or (att_stat.slowed > 0.0) then
+                                if (att_outcome.hp_chance[0] > 0.0) or (att_outcome.slowed > 0.0) then
                                     do_attack = false
                                     break
                                 end
 
-                                if (att_stat.poisoned > 0.0) and (not sorted_atts[k].abilities.regenerate) then
+                                if (att_outcome.poisoned > 0.0) and (not sorted_atts[k].abilities.regenerate) then
                                     do_attack = false
                                     break
                                 end
@@ -2122,7 +2122,7 @@ return {
 
                         -- For each such village found, we give a penalty eqivalent to 10 HP of the target
                         if (adj_unocc_village > 0) then
-                            if (combo_def_stat.hp_chance[0] < 0.5) then
+                            if (combo_def_outcome.hp_chance[0] < 0.5) then
                                 do_attack = false
                             else
                                 local unit_value = FU.unit_value(gamedata.unit_infos[target_id])
@@ -2220,7 +2220,7 @@ return {
                         -- Discourage use of poisoners in attacks that have a
                         -- high chance to result in kill
                         -- TODO: does the value of 0.33 make sense?
-                        if (combo_def_stat.hp_chance[0] > 0.33) then
+                        if (combo_def_outcome.hp_chance[0] > 0.33) then
                             local number_poisoners = 0
                             for i_a,attacker in ipairs(sorted_atts) do
                                 local is_poisoner = false
@@ -2258,8 +2258,8 @@ return {
                             attackers = sorted_atts,
                             dsts = sorted_dsts,
                             target = target,
-                            att_stats = combo_att_stats,
-                            def_stat = combo_def_stat,
+                            att_outcomes = combo_att_outcomes,
+                            def_outcome = combo_def_outcome,
                             rating_table = combo_rt,
                             attacker_damages = combo_attacker_damages,
                             defender_damage = combo_defender_damage
@@ -2328,7 +2328,7 @@ return {
                         -- for now we use this as good enough.
                         table.insert(old_HP_attackers, gamedata.unit_infos[attacker_info.id].hitpoints)
 
-                        local hp = combo.att_stats[i_a].average_hp
+                        local hp = combo.att_outcomes[i_a].average_hp
                         if (hp < 1) then hp = 1 end
                         gamedata.unit_infos[attacker_info.id].hitpoints = hp
                         gamedata.unit_copies[attacker_info.id].hitpoints = hp
@@ -2367,10 +2367,10 @@ return {
                         local attacker_moved = {}
                         attacker_moved[attacker.id] = { combo.dsts[i_a][1], combo.dsts[i_a][2] }
 
-                        local counter_stats = FAU.calc_counter_attack(
+                        local counter_outcomes = FAU.calc_counter_attack(
                             attacker_moved, old_locs, combo.dsts, gamedata, move_cache, cfg_attack
                         )
-                        --DBG.dbms(counter_stats)
+                        --DBG.dbms(counter_outcomes)
 
                         -- The total damage through attack + counter attack should use for
                         -- forward attack: attacker damage rating and defender total rating
@@ -2387,7 +2387,7 @@ return {
 
                         -- This is the damage on the AI attacker considered here
                         -- in the counter attack
-                        local dam2 = counter_stats and counter_stats.defender_damage
+                        local dam2 = counter_outcomes and counter_outcomes.defender_damage
                         --DBG.dbms(dam2)
 
                         local damages_my_units = {}
@@ -2439,8 +2439,8 @@ return {
 
                         local damages_enemy_units = {}
                         local target_included = false
-                        if counter_stats then
-                            for i_d,dam2 in ipairs(counter_stats.attacker_damages) do
+                        if counter_outcomes then
+                            for i_d,dam2 in ipairs(counter_outcomes.attacker_damages) do
                                 local dam = {}
 
                                 -- First, take all the values as are from the counter attack outcome
@@ -2538,20 +2538,20 @@ return {
                         -- Also, it is different for attacks by individual units without MP;
                         -- for those it simply matters whether the attack makes things
                         -- better or worse, since there isn't a coice of moving someplace else
-                        if counter_stats and ((#combo.attackers > 1) or (attacker.moves > 0)) then
-                            local counter_min_hp = counter_stats.def_stat.min_hp
+                        if counter_outcomes and ((#combo.attackers > 1) or (attacker.moves > 0)) then
+                            local counter_min_hp = counter_outcomes.def_outcome.min_hp
                             -- If there's a chance of the leader getting poisoned, slowed or killed, don't do it
                             if attacker.canrecruit then
-                                --print('Leader: slowed, poisoned %', counter_stats.def_stat.slowed, counter_stats.def_stat.poisoned)
-                                if (counter_stats.def_stat.slowed > 0.0) then
-                                    FU.print_debug(show_debug_attack, '       leader: counter attack slow chance too high', counter_stats.def_stat.slowed)
+                                --print('Leader: slowed, poisoned %', counter_outcomes.def_outcome.slowed, counter_outcomes.def_outcome.poisoned)
+                                if (counter_outcomes.def_outcome.slowed > 0.0) then
+                                    FU.print_debug(show_debug_attack, '       leader: counter attack slow chance too high', counter_outcomes.def_outcome.slowed)
                                     acceptable_counter = false
                                     FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                                     break
                                 end
 
-                                if (counter_stats.def_stat.poisoned > 0.0) and (not attacker.abilities.regenerate) then
-                                    FU.print_debug(show_debug_attack, '       leader: counter attack poison chance too high', counter_stats.def_stat.poisoned)
+                                if (counter_outcomes.def_outcome.poisoned > 0.0) and (not attacker.abilities.regenerate) then
+                                    FU.print_debug(show_debug_attack, '       leader: counter attack poison chance too high', counter_outcomes.def_outcome.poisoned)
                                     acceptable_counter = false
                                     FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                                     break
@@ -2563,14 +2563,14 @@ return {
                                 -- However, min_hp for the counter also contains this reduction, so
                                 -- min_outcome below has the correct value (except for rounding errors,
                                 -- that's why it is compared ot 0.5 instead of 0)
-                                local max_damage_attack = attacker.hitpoints - combo.att_stats[i_a].min_hp
-                                --print('max_damage_attack, attacker.hitpoints, min_hp', max_damage_attack, attacker.hitpoints, combo.att_stats[i_a].min_hp)
+                                local max_damage_attack = attacker.hitpoints - combo.att_outcomes[i_a].min_hp
+                                --print('max_damage_attack, attacker.hitpoints, min_hp', max_damage_attack, attacker.hitpoints, combo.att_outcomes[i_a].min_hp)
 
                                 -- Add damage from attack and counter attack
                                 local min_outcome = counter_min_hp - max_damage_attack
                                 --print('Leader: min_outcome, counter_min_hp, max_damage_attack', min_outcome, counter_min_hp, max_damage_attack)
 
-                                local av_outcome = counter_stats.def_stat.average_hp
+                                local av_outcome = counter_outcomes.def_outcome.average_hp
                                 --print('Leader: av_outcome', av_outcome)
 
                                 if (min_outcome < 0.5) or (av_outcome < attacker.max_hitpoints / 2) then
@@ -2613,7 +2613,7 @@ return {
                     -- But only if the chance to die in the forward attack is not too
                     -- large; otherwise the enemy might as well waste the resources.
                     if (#combo.attackers == 1) then
-                        if (combo.att_stats[1].hp_chance[0] < 0.25) then
+                        if (combo.att_outcomes[1].hp_chance[0] < 0.25) then
                             local attacker = combo.attackers[1]
 
                             if (attacker.moves == 0) then
@@ -2623,22 +2623,22 @@ return {
                                 local attacker_moved = {}
                                 attacker_moved[attacker.id] = { combo.dsts[1][1], combo.dsts[1][2] }
 
-                                local counter_stats = FAU.calc_counter_attack(
+                                local counter_outcomes = FAU.calc_counter_attack(
                                     attacker_moved, old_locs, combo.dsts, gamedata, move_cache, cfg_attack
                                 )
-                                --DBG.dbms(counter_stats)
+                                --DBG.dbms(counter_outcomes)
 
-                                --print_time('   counter ratings no attack:', counter_stats.rating_table.rating, counter_stats.def_stat.hp_chance[0])
+                                --print_time('   counter ratings no attack:', counter_outcomes.rating_table.rating, counter_outcomes.def_outcome.hp_chance[0])
 
                                 -- Rating if no forward attack is done is done is only the counter attack rating
                                 local no_attack_rating = 0
-                                if counter_stats then
-                                    no_attack_rating = no_attack_rating - counter_stats.rating_table.rating
+                                if counter_outcomes then
+                                    no_attack_rating = no_attack_rating - counter_outcomes.rating_table.rating
                                 end
                                 -- If an attack is done, it's the combined forward and counter attack rating
                                 local with_attack_rating = min_total_damage_rating
 
-                                --print('    V1: no attack rating: ', no_attack_rating, '<---', 0, -counter_stats.rating_table.rating)
+                                --print('    V1: no attack rating: ', no_attack_rating, '<---', 0, -counter_outcomes.rating_table.rating)
                                 --print('    V2: with attack rating:', with_attack_rating, '<---', combo.rating_table.rating, min_total_damage_rating)
 
                                 if (with_attack_rating < no_attack_rating) then
@@ -2651,7 +2651,7 @@ return {
                         else
                             -- Otherwise this is only acceptable if the chance to die
                             -- for the AI unit is not greater than for the enemy
-                            if (combo.att_stats[1].hp_chance[0] > combo.def_stat.hp_chance[0]) then
+                            if (combo.att_outcomes[1].hp_chance[0] > combo.def_outcome.hp_chance[0]) then
                                 acceptable_counter = false
                             end
                         end
@@ -4349,12 +4349,12 @@ return {
                     local defender_info = fred.data.gamedata.unit_infos[enemy_proxy.id]
 
                     -- Don't use cfg_attack = { use_max_damage_weapons = true } here
-                    local _, combo_def_stat
+                    local _, combo_def_outcome
                         = FAU.attack_combo_eval(combo, fred.data.zone_action.enemy, fred.data.gamedata, fred.data.move_cache)
 
                     -- Disable reordering of attacks for the time being
                     -- TODO: this needs to be completely redone
-                    if (combo_def_stat.hp_chance[0] > 100) then
+                    if (combo_def_outcome.hp_chance[0] > 100) then
                         --print_time('Reordering units for attack to maximize XP gain')
 
                         local min_XP_diff, best_ind = 9e99
@@ -4372,14 +4372,14 @@ return {
                         local unit = fred.data.zone_action.units[best_ind]
                         --print_time('Most advanced unit:', unit.id, unit.experience, best_ind)
 
-                        local att_stat, def_stat = FAU.attack_outcome(
+                        local att_outcome, def_outcome = FAU.attack_outcome(
                             attacker_copies[best_ind], enemy_proxy,
                             fred.data.zone_action.dsts[best_ind],
                             attacker_infos[best_ind], defender_info,
                             fred.data.gamedata, fred.data.move_cache
                         )
 
-                        local kill_rating = def_stat.hp_chance[0] - att_stat.hp_chance[0]
+                        local kill_rating = def_outcome.hp_chance[0] - att_outcome.hp_chance[0]
                         --print_time('kill_rating:', kill_rating)
 
                         if (kill_rating >= 0.5) then

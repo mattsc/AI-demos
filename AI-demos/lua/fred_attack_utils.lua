@@ -75,7 +75,7 @@ function fred_attack_utils.is_acceptable_attack(damage_to_ai, damage_to_enemy, v
     return (damage_to_enemy / damage_to_ai) >= value_ratio
 end
 
-function fred_attack_utils.delayed_damage(unit_info, att_stat, average_damage, dst, gamedata)
+function fred_attack_utils.delayed_damage(unit_info, att_outcome, average_damage, dst, gamedata)
     -- Returns the damage the unit is expected to get from delayed effects, both
     -- positive and negative. The value returned is the actual damage times the
     -- probability of the effect.
@@ -94,18 +94,18 @@ function fred_attack_utils.delayed_damage(unit_info, att_stat, average_damage, d
 
     -- Count poisoned as additional 8 HP damage times probability of being poisoned
     -- but only if the unit is not already poisoned
-    -- HP=0 case counts as poisoned in the att_stats, so that needs to be subtracted
+    -- HP=0 case counts as poisoned in att_outcome, so that needs to be subtracted
     -- Note: no special treatment is needed for  unpoisonable units (e.g. undead)
-    -- as att_stat.poisoned is always zero for them
-    if (att_stat.poisoned ~= 0) and (not unit_info.status.poisoned) then
-        delayed_damage = delayed_damage + 8 * (att_stat.poisoned - att_stat.hp_chance[0])
+    -- as att_outcome.poisoned is always zero for them
+    if (att_outcome.poisoned ~= 0) and (not unit_info.status.poisoned) then
+        delayed_damage = delayed_damage + 8 * (att_outcome.poisoned - att_outcome.hp_chance[0])
     end
 
     -- Count slowed as additional 4 HP damage times probability of being slowed
     -- but only if the unit is not already slowed
-    -- HP=0 case counts as slowed in the att_stats, so that needs to be subtracted
-    if (att_stat.slowed ~= 0) and (not unit_info.status.slowed) then
-        delayed_damage = delayed_damage + 4 * (att_stat.slowed - att_stat.hp_chance[0])
+    -- HP=0 case counts as slowed in att_outcome, so that needs to be subtracted
+    if (att_outcome.slowed ~= 0) and (not unit_info.status.slowed) then
+        delayed_damage = delayed_damage + 4 * (att_outcome.slowed - att_outcome.hp_chance[0])
     end
 
     -- Negative delayed damage (healing)
@@ -114,11 +114,11 @@ function fred_attack_utils.delayed_damage(unit_info, att_stat, average_damage, d
     -- If unit is on a village, we count that as an 8 HP bonus (negative damage)
     -- multiplied by the chance to survive
     if is_village then
-        delayed_damage = delayed_damage - 8 * (1 - att_stat.hp_chance[0])
+        delayed_damage = delayed_damage - 8 * (1 - att_outcome.hp_chance[0])
     -- Otherwise only: if unit can regenerate, this is an 8 HP bonus (negative damage)
     -- multiplied by the chance to survive
     elseif unit_info.abilities.regenerate then
-        delayed_damage = delayed_damage - 8 * (1 - att_stat.hp_chance[0])
+        delayed_damage = delayed_damage - 8 * (1 - att_outcome.hp_chance[0])
     end
 
     -- Units with healthy trait get an automatic 2 HP healing
@@ -144,10 +144,10 @@ function fred_attack_utils.delayed_damage(unit_info, att_stat, average_damage, d
     return delayed_damage
 end
 
-function fred_attack_utils.unit_damage(unit_info, att_stat, dst, gamedata, cfg)
+function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, gamedata, cfg)
     -- Return a table with the different contributions to damage a unit is
     -- expected to experience in an attack.
-    -- The attack att_stat for the attacker need to be precalculated for this.
+    -- The attack att_outcome for the attacker need to be precalculated for this.
     -- Unit information is passed in unit_infos format, rather than as unit proxy tables for speed reasons.
     -- Note: damage is damage TO the unit, not damage done BY the unit
     --
@@ -158,7 +158,7 @@ function fred_attack_utils.unit_damage(unit_info, att_stat, dst, gamedata, cfg)
     --
     -- Input parameters:
     --  @unit_info: unit_info table produced by fred_utils.single_unit_info()
-    --  @att_stat: attack statistics for the attackers as from attack_outcome or attack_combo_eval
+    --  @att_outcome: attack outcomes for the attackers as from attack_outcome or attack_combo_eval
     --  @dst: location of the unit for which to calculate this; this might or
     --   might not be the current location of the unit
     --
@@ -169,17 +169,17 @@ function fred_attack_utils.unit_damage(unit_info, att_stat, dst, gamedata, cfg)
     local damage = {}
 
     -- Average damage from the attack.  This cannot be simply the average_hp field
-    -- of att_stat, as that accounts for leveling up differently than needed here
+    -- of att_outcome, as that accounts for leveling up differently than needed here
     -- Start with that as the default though:
-    local average_damage = unit_info.hitpoints - att_stat.average_hp
+    local average_damage = unit_info.hitpoints - att_outcome.average_hp
     --print('  average_damage raw:', average_damage)
 
     -- We want to include healing due to drain etc. in this damage, but not
     -- leveling up, so if there is a chance to level up, we need to do that differently.
-    if (att_stat.levelup_chance > 0) then
+    if (att_outcome.levelup_chance > 0) then
         average_damage = 0
         -- Note: the probabilities here do not add up to 1 -- that's intentional
-        for hp,prob in pairs(att_stat.hp_chance) do
+        for hp,prob in pairs(att_outcome.hp_chance) do
             average_damage = average_damage + (unit_info.hitpoints - hp) * prob
         end
     end
@@ -187,12 +187,12 @@ function fred_attack_utils.unit_damage(unit_info, att_stat, dst, gamedata, cfg)
 
     -- Now add some of the other contributions
     damage.damage = average_damage
-    damage.die_chance = att_stat.hp_chance[0]
+    damage.die_chance = att_outcome.hp_chance[0]
 
-    damage.levelup_chance = att_stat.levelup_chance
+    damage.levelup_chance = att_outcome.levelup_chance
     --print('  levelup_chance', damage.levelup_chance)
 
-    damage.delayed_damage = fred_attack_utils.delayed_damage(unit_info, att_stat, average_damage, dst, gamedata)
+    damage.delayed_damage = fred_attack_utils.delayed_damage(unit_info, att_outcome, average_damage, dst, gamedata)
 
     -- Finally, add some info about the unit, just for convenience
     damage.id = unit_info.id
@@ -233,16 +233,16 @@ function fred_attack_utils.damage_rating_unit(damage)
     return rating
 end
 
-function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, att_stats, def_stat, gamedata, cfg)
+function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, att_outcomes, def_outcome, gamedata, cfg)
     -- Returns a common (but configurable) rating for attacks of one or several attackers against one defender
     --
     -- Inputs:
     --  @attackers_infos: input array of attacker unit_info tables (must be an array even for single unit attacks)
     --  @defender_info: defender unit_info
     --  @dsts: array of attack locations in form { x, y } (must be an array even for single unit attacks)
-    --  @att_stats: array of the attack stats of the attack combination(!) of the attackers
+    --  @att_outcomes: array of the attack outcomes of the attack combination(!) of the attackers
     --    (must be an array even for single unit attacks)
-    --  @def_stat: the combat stats of the defender after facing the combination of all attackers
+    --  @def_outcome: the combat outcome of the defender after facing the combination of all attackers
     --  @gamedata: table with the game state as produced by fred_gamestate_utils.gamedata()
     --
     -- Optional inputs:
@@ -271,7 +271,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     local attacker_damages = {}
     local attacker_rating = 0
     for i,attacker_info in ipairs(attacker_infos) do
-        attacker_damages[i] = fred_attack_utils.unit_damage(attacker_info, att_stats[i], dsts[i], gamedata, cfg)
+        attacker_damages[i] = fred_attack_utils.unit_damage(attacker_info, att_outcomes[i], dsts[i], gamedata, cfg)
         attacker_rating = attacker_rating + fred_attack_utils.damage_rating_unit(attacker_damages[i])
     end
 
@@ -281,7 +281,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     else
         defender_x, defender_y = gamedata.units[defender_info.id][1], gamedata.units[defender_info.id][2]
     end
-    local defender_damage = fred_attack_utils.unit_damage(defender_info, def_stat, { defender_x, defender_y }, gamedata, cfg)
+    local defender_damage = fred_attack_utils.unit_damage(defender_info, def_outcome, { defender_x, defender_y }, gamedata, cfg)
     -- Rating for the defender is negative damage rating (as in, damage is good)
     local defender_rating = - fred_attack_utils.damage_rating_unit(defender_damage)
 
@@ -458,7 +458,7 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack, is_attacker, 
 end
 
 function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, attacker_info, defender_info, gamedata, move_cache, cfg)
-    -- Calculate the stats of a combat by @attacker_copy vs. @defender_proxy at location @dst
+    -- Calculate the outcome of a combat by @attacker_copy vs. @defender_proxy at location @dst
     -- We use wesnoth.simulate_combat for this, but cache results when possible
     -- Inputs:
     -- @attacker_copy: private unit copy of the attacker (must be a copy, does not work with the proxy table)
@@ -473,8 +473,8 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
     -- @cfg: configuration parameters (only use_max_damage_weapons so far, possibly to be extended)
 
     local function attstat_to_outcome(unit_info, stat, enemy_ctd, enemy_level)
-        -- Convert att_stat as returned by wesnoth.simulate_combat to attack_outcome
-        -- format. In addition to extracting information from att_stat, this includes:
+        -- Convert @stat as returned by wesnoth.simulate_combat to attack_outcome
+        -- format. In addition to extracting information from @stat, this includes:
         --  - Only keep non-zero hp_chance values, except hp_chance[0] which is always needed
         --  - Setting up level-up information (and recalculating average_hp)
         --  - Setting min_hp
@@ -563,8 +563,8 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
         and move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints]
         and move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints]
     then
-        return move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints].att_stat,
-            move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints].def_stat
+        return move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints].att_outcome,
+            move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints].def_outcome
     end
 
     local old_x, old_y = attacker_copy.x, attacker_copy.y
@@ -647,8 +647,8 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
     attacker_copy.x, attacker_copy.y = old_x, old_y
 
 
-    local att_stat = attstat_to_outcome(attacker_info, tmp_att_stat, tmp_def_stat.hp_chance[0], defender_info.level)
-    local def_stat = attstat_to_outcome(defender_info, tmp_def_stat, tmp_att_stat.hp_chance[0], attacker_info.level)
+    local att_outcome = attstat_to_outcome(attacker_info, tmp_att_stat, tmp_def_stat.hp_chance[0], defender_info.level)
+    local def_outcome = attstat_to_outcome(defender_info, tmp_def_stat, tmp_att_stat.hp_chance[0], attacker_info.level)
 
 
     if (not move_cache[cache_att_id]) then
@@ -668,9 +668,9 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
     end
 
     move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints]
-        = { att_stat = att_stat, def_stat = def_stat }
+        = { att_outcome = att_outcome, def_outcome = def_outcome }
 
-    return att_stat, def_stat
+    return att_outcome, def_outcome
 end
 
 function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cache, cfg, ctd_limit)
@@ -692,9 +692,9 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
     -- Return values (in this order):
     --   Note: the function returns nil if no acceptable attacks are found based
     --         on the ctd_limit value described above
-    --   - att_stats: an array of stats for each attacker, in the order found for the "best attack",
+    --   - att_outcomes: an array of outcomes for each attacker, in the order found for the "best attack",
     --       which is generally different from the order of @tmp_attacker_copies
-    --   - defender combo stats: one set of stats containing the defender stats after the attack combination
+    --   - defender combo outcomes: one set of outcomes containing the defender outcome after the attack combination
     --   - The attacker_infos and dsts arrays, sorted in order of the individual attacks
     --   - The rating for this attack combination calculated from fred_attack_utils.attack_rating() results
     --   - The (summed up) attacker and (combined) defender rating, as well as the extra rating separately
@@ -721,9 +721,9 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
     --DBG.dbms(defender_info)
 
     -- We first simulate and rate the individual attacks
-    local ratings, tmp_att_stats, tmp_def_stats = {}, {}, {}
+    local ratings, tmp_att_outcomes, tmp_def_outcomes = {}, {}, {}
     for i,attacker_copy in ipairs(tmp_attacker_copies) do
-        tmp_att_stats[i], tmp_def_stats[i] =
+        tmp_att_outcomes[i], tmp_def_outcomes[i] =
             fred_attack_utils.attack_outcome(
                 attacker_copy, defender_proxy, tmp_dsts[i],
                 tmp_attacker_infos[i], defender_info,
@@ -733,15 +733,15 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
         local rating_table =
             fred_attack_utils.attack_rating(
                 { tmp_attacker_infos[i] }, defender_info, { tmp_dsts[i] },
-                { tmp_att_stats[i] }, tmp_def_stats[i], gamedata, cfg
+                { tmp_att_outcomes[i] }, tmp_def_outcomes[i], gamedata, cfg
             )
 
         --print(attacker_copy.id .. ' --> ' .. defender_proxy.id)
-        --print('  CTD att, def:', tmp_att_stats[i].hp_chance[0], tmp_def_stats[i].hp_chance[0])
+        --print('  CTD att, def:', tmp_att_outcomes[i].hp_chance[0], tmp_def_outcomes[i].hp_chance[0])
         --DBG.dbms(rating_table)
 
         -- Need the 'i' here in order to specify the order of attackers, dsts below
-        if (tmp_att_stats[i].hp_chance[0] < ctd_limit) or (rating_table.rating > 0) then
+        if (tmp_att_outcomes[i].hp_chance[0] < ctd_limit) or (rating_table.rating > 0) then
             table.insert(ratings, { i, rating_table })
         end
     end
@@ -764,12 +764,12 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
     -- Return nil when no units match the ctd_limit criterion
     if (#attacker_copies == 0) then return end
 
-    -- Only keep the stats/ratings for the first attacker, the rest needs to be recalculated
-    local att_stats, def_stats, rating_progression = {}, {}, {}
-    att_stats[1], def_stats[1] = tmp_att_stats[ratings[1][1]], tmp_def_stats[ratings[1][1]]
+    -- Only keep the outcomes/ratings for the first attacker, the rest needs to be recalculated
+    local att_outcomes, def_outcomes, rating_progression = {}, {}, {}
+    att_outcomes[1], def_outcomes[1] = tmp_att_outcomes[ratings[1][1]], tmp_def_outcomes[ratings[1][1]]
     rating_progression[1] = ratings[1][2].rating
 
-    tmp_att_stats, tmp_def_stats, ratings = nil, nil, nil
+    tmp_att_outcomes, tmp_def_outcomes, ratings = nil, nil, nil
 
     -- TODO: For now, we just increase the defender experience by the level of the attacker,
     -- both here and in the loop below. This works when there is no chance to level up, and
@@ -785,18 +785,18 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
     -- Then we go through all the other attacks and calculate the outcomes
     -- based on all the possible outcomes of the previous attacks
     for i = 2,#attacker_infos do
-        att_stats[i] = fred_attack_utils.init_attack_outcome()
+        att_outcomes[i] = fred_attack_utils.init_attack_outcome()
         -- Levelup chance carries through from previous
-        def_stats[i] = fred_attack_utils.init_attack_outcome()
-        def_stats[i].levelup_chance = def_stats[i-1].levelup_chance
+        def_outcomes[i] = fred_attack_utils.init_attack_outcome()
+        def_outcomes[i].levelup_chance = def_outcomes[i-1].levelup_chance
 
         -- The HP distribution without leveling
-        for hp1,prob1 in pairs(def_stats[i-1].hp_chance) do -- Note: need pairs(), not ipairs() !!
+        for hp1,prob1 in pairs(def_outcomes[i-1].hp_chance) do -- Note: need pairs(), not ipairs() !!
             --print('  not leveled: ', hp1,prob1)
             if (hp1 == 0) then
-                att_stats[i].hp_chance[attacker_infos[i].hitpoints] =
-                    (att_stats[i].hp_chance[attacker_infos[i].hitpoints] or 0) + prob1
-                def_stats[i].hp_chance[0] = (def_stats[i].hp_chance[0] or 0) + prob1
+                att_outcomes[i].hp_chance[attacker_infos[i].hitpoints] =
+                    (att_outcomes[i].hp_chance[attacker_infos[i].hitpoints] or 0) + prob1
+                def_outcomes[i].hp_chance[0] = (def_outcomes[i].hp_chance[0] or 0) + prob1
             else
                 local org_hp = defender_info.hitpoints
                 defender_proxy.hitpoints = hp1  -- Yes, we need both here. It speeds up other parts.
@@ -806,7 +806,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
                 defender_proxy.experience = defender_xp
                 defender_info.experience = defender_xp
 
-                local ast, dst = fred_attack_utils.attack_outcome(
+                local aoc, doc = fred_attack_utils.attack_outcome(
                     attacker_copies[i], defender_proxy, dsts[i],
                     attacker_infos[i], defender_info,
                     gamedata, move_cache, cfg
@@ -817,46 +817,46 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
                 defender_proxy.experience = org_xp
                 defender_info.experience = org_xp
 
-                for hp2,prob2 in pairs(ast.hp_chance) do
-                    att_stats[i].hp_chance[hp2] = (att_stats[i].hp_chance[hp2] or 0) + prob1 * prob2
+                for hp2,prob2 in pairs(aoc.hp_chance) do
+                    att_outcomes[i].hp_chance[hp2] = (att_outcomes[i].hp_chance[hp2] or 0) + prob1 * prob2
                 end
-                if (ast.levelup_chance > 0) then
-                    if (att_stats[i].levelup_chance == 0) then
-                        att_stats[i].levelup = { hp_chance = {} }
+                if (aoc.levelup_chance > 0) then
+                    if (att_outcomes[i].levelup_chance == 0) then
+                        att_outcomes[i].levelup = { hp_chance = {} }
                     end
-                    for hp2,prob2 in pairs(ast.levelup.hp_chance) do
-                        att_stats[i].levelup.hp_chance[hp2] = (att_stats[i].levelup.hp_chance[hp2] or 0) + prob1 * prob2
-                    end
-                end
-
-                for hp2,prob2 in pairs(dst.hp_chance) do
-                    def_stats[i].hp_chance[hp2] = (def_stats[i].hp_chance[hp2] or 0) + prob1 * prob2
-                end
-                if (dst.levelup_chance > 0) then
-                    if (def_stats[i].levelup_chance == 0) then
-                        def_stats[i].levelup = { hp_chance = {} }
-                    end
-                    for hp2,prob2 in pairs(dst.levelup.hp_chance) do
-                        def_stats[i].levelup.hp_chance[hp2] = (def_stats[i].levelup.hp_chance[hp2] or 0) + prob1 * prob2
+                    for hp2,prob2 in pairs(aoc.levelup.hp_chance) do
+                        att_outcomes[i].levelup.hp_chance[hp2] = (att_outcomes[i].levelup.hp_chance[hp2] or 0) + prob1 * prob2
                     end
                 end
 
-                att_stats[i].poisoned = ast.poisoned
-                att_stats[i].slowed = ast.slowed
-                def_stats[i].poisoned = 1. - (1. - dst.poisoned) * (1. - def_stats[i-1].poisoned)
-                def_stats[i].slowed = 1. - (1. - dst.slowed) * (1. - def_stats[i-1].slowed)
+                for hp2,prob2 in pairs(doc.hp_chance) do
+                    def_outcomes[i].hp_chance[hp2] = (def_outcomes[i].hp_chance[hp2] or 0) + prob1 * prob2
+                end
+                if (doc.levelup_chance > 0) then
+                    if (def_outcomes[i].levelup_chance == 0) then
+                        def_outcomes[i].levelup = { hp_chance = {} }
+                    end
+                    for hp2,prob2 in pairs(doc.levelup.hp_chance) do
+                        def_outcomes[i].levelup.hp_chance[hp2] = (def_outcomes[i].levelup.hp_chance[hp2] or 0) + prob1 * prob2
+                    end
+                end
+
+                att_outcomes[i].poisoned = aoc.poisoned
+                att_outcomes[i].slowed = aoc.slowed
+                def_outcomes[i].poisoned = 1. - (1. - doc.poisoned) * (1. - def_outcomes[i-1].poisoned)
+                def_outcomes[i].slowed = 1. - (1. - doc.slowed) * (1. - def_outcomes[i-1].slowed)
             end
         end
 
         -- The HP distribution after leveling
         -- TODO: this is a lot of code duplication for now, might be simplified later
-        if (def_stats[i-1].levelup_chance > 0) then
-            for hp1,prob1 in pairs(def_stats[i-1].levelup.hp_chance) do -- Note: need pairs(), not ipairs() !!
+        if (def_outcomes[i-1].levelup_chance > 0) then
+            for hp1,prob1 in pairs(def_outcomes[i-1].levelup.hp_chance) do -- Note: need pairs(), not ipairs() !!
                 --print('  leveled: ', hp1,prob1)
 
                 -- TODO: this is not true any more: levelup.hp_chance should never contain a HP=0 entry
                 if (hp1 == 0) then
-                    --print('***** HP = 0 in levelup stats entcountered *****')
+                    --print('***** HP = 0 in levelup outcomes entcountered *****')
                 else
                     local org_hp = defender_info.hitpoints
                     local org_max_hp = defender_info.max_hitpoints
@@ -885,7 +885,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
                     --   (that could even be desirable, not sure yet)
 
 
-                    local ast, dst = fred_attack_utils.attack_outcome(
+                    local aoc, doc = fred_attack_utils.attack_outcome(
                         attacker_copies[i], defender_proxy, dsts[i],
                         attacker_infos[i], defender_info,
                         gamedata, move_cache, cfg
@@ -903,137 +903,137 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
                     })
                     defender_proxy = wesnoth.get_unit(defender_proxy.x, defender_proxy.y)
 
-                    -- Attacker stats are the same as for not leveled up case
-                    for hp2,prob2 in pairs(ast.hp_chance) do
-                        att_stats[i].hp_chance[hp2] = (att_stats[i].hp_chance[hp2] or 0) + prob1 * prob2
+                    -- Attacker outcomes are the same as for not leveled up case
+                    for hp2,prob2 in pairs(aoc.hp_chance) do
+                        att_outcomes[i].hp_chance[hp2] = (att_outcomes[i].hp_chance[hp2] or 0) + prob1 * prob2
                     end
-                    if (ast.levelup_chance > 0) then
-                        if (att_stats[i].levelup_chance == 0) then
-                            att_stats[i].levelup = { hp_chance = {} }
+                    if (aoc.levelup_chance > 0) then
+                        if (att_outcomes[i].levelup_chance == 0) then
+                            att_outcomes[i].levelup = { hp_chance = {} }
                         end
-                        for hp2,prob2 in pairs(ast.levelup.hp_chance) do
-                            att_stats[i].levelup.hp_chance[hp2] = (att_stats[i].levelup.hp_chance[hp2] or 0) + prob1 * prob2
+                        for hp2,prob2 in pairs(aoc.levelup.hp_chance) do
+                            att_outcomes[i].levelup.hp_chance[hp2] = (att_outcomes[i].levelup.hp_chance[hp2] or 0) + prob1 * prob2
                         end
                     end
 
                     -- By contrast, everything here gets added to the leveled-up case
                     -- except for the HP=0 case, which always goes into hp_chance directly
-                    if (def_stats[i].levelup_chance == 0) then
-                        def_stats[i].levelup = { hp_chance = {} }
+                    if (def_outcomes[i].levelup_chance == 0) then
+                        def_outcomes[i].levelup = { hp_chance = {} }
                     end
-                    for hp2,prob2 in pairs(dst.hp_chance) do
+                    for hp2,prob2 in pairs(doc.hp_chance) do
                         if (hp2 == 0) then
-                            def_stats[i].hp_chance[hp2] = (def_stats[i].hp_chance[hp2] or 0) + prob1 * prob2
+                            def_outcomes[i].hp_chance[hp2] = (def_outcomes[i].hp_chance[hp2] or 0) + prob1 * prob2
                         else
-                            def_stats[i].levelup.hp_chance[hp2] = (def_stats[i].levelup.hp_chance[hp2] or 0) + prob1 * prob2
+                            def_outcomes[i].levelup.hp_chance[hp2] = (def_outcomes[i].levelup.hp_chance[hp2] or 0) + prob1 * prob2
                         end
                     end
-                    if (dst.levelup_chance > 0) then  -- I think this doesn't happen, but just in case
-                        for hp2,prob2 in pairs(dst.levelup.hp_chance) do
-                            def_stats[i].levelup.hp_chance[hp2] = (def_stats[i].levelup.hp_chance[hp2] or 0) + prob1 * prob2
+                    if (doc.levelup_chance > 0) then  -- I think this doesn't happen, but just in case
+                        for hp2,prob2 in pairs(doc.levelup.hp_chance) do
+                            def_outcomes[i].levelup.hp_chance[hp2] = (def_outcomes[i].levelup.hp_chance[hp2] or 0) + prob1 * prob2
                         end
                     end
 
                     -- TODO: this is definitely not right, I think ...
-                    att_stats[i].poisoned = ast.poisoned
-                    att_stats[i].slowed = ast.slowed
-                    def_stats[i].poisoned = 1. - (1. - dst.poisoned) * (1. - def_stats[i-1].poisoned)
-                    def_stats[i].slowed = 1. - (1. - dst.slowed) * (1. - def_stats[i-1].slowed)
+                    att_outcomes[i].poisoned = aoc.poisoned
+                    att_outcomes[i].slowed = aoc.slowed
+                    def_outcomes[i].poisoned = 1. - (1. - doc.poisoned) * (1. - def_outcomes[i-1].poisoned)
+                    def_outcomes[i].slowed = 1. - (1. - doc.slowed) * (1. - def_outcomes[i-1].slowed)
                 end
             end
         end
 
         -- Get the average and minimum HP
         local av_hp, min_hp = 0
-        for hp,prob in pairs(att_stats[i].hp_chance) do
+        for hp,prob in pairs(att_outcomes[i].hp_chance) do
             av_hp = av_hp + hp * prob
             if (not min_hp) or ((hp < min_hp) and (prob > 0)) then
                 min_hp = hp
             end
         end
-        if (att_stats[i].levelup_chance > 0) then
-            for hp,prob in pairs(att_stats[i].levelup.hp_chance) do
+        if (att_outcomes[i].levelup_chance > 0) then
+            for hp,prob in pairs(att_outcomes[i].levelup.hp_chance) do
                 av_hp = av_hp + hp * prob
                 if (not min_hp) or ((hp < min_hp) and (prob > 0)) then
                     min_hp = hp
                 end
             end
         end
-        att_stats[i].average_hp = av_hp
-        att_stats[i].min_hp = min_hp
+        att_outcomes[i].average_hp = av_hp
+        att_outcomes[i].min_hp = min_hp
 
         local av_hp, min_hp = 0
-        for hp,prob in pairs(def_stats[i].hp_chance) do
+        for hp,prob in pairs(def_outcomes[i].hp_chance) do
             av_hp = av_hp + hp * prob
             if (not min_hp) or ((hp < min_hp) and (prob > 0)) then
                 min_hp = hp
             end
         end
-        if (def_stats[i].levelup_chance > 0) then
-            for hp,prob in pairs(def_stats[i].levelup.hp_chance) do
+        if (def_outcomes[i].levelup_chance > 0) then
+            for hp,prob in pairs(def_outcomes[i].levelup.hp_chance) do
                 av_hp = av_hp + hp * prob
                 if (not min_hp) or ((hp < min_hp) and (prob > 0)) then
                     min_hp = hp
                 end
             end
         end
-        def_stats[i].average_hp = av_hp
-        def_stats[i].min_hp = min_hp
+        def_outcomes[i].average_hp = av_hp
+        def_outcomes[i].min_hp = min_hp
 
         -- Also add to the defender XP. Leveling up does not need to be considered
-        -- here, as it is caught separately by the levelup_chance field in def_stat
+        -- here, as it is caught separately by the levelup_chance field in def_outcome
         defender_xp = defender_xp + attacker_infos[i].level
 
         local tmp_ai, tmp_dsts, tmp_as = {}, {}, {}
         for j = 1,i do
             tmp_ai[j] = attacker_infos[j]
             tmp_dsts[j] = dsts[j]
-            tmp_as[j] = att_stats[j]
+            tmp_as[j] = att_outcomes[j]
         end
 
         local rating_table = fred_attack_utils.attack_rating(
             tmp_ai, defender_info, tmp_dsts,
-            tmp_as, def_stats[i], gamedata, cfg
+            tmp_as, def_outcomes[i], gamedata, cfg
         )
         rating_progression[i] = rating_table.rating
     end
 
     -- TODO: the following is just a sanity check for now, disable later
-    for i,att_stat in ipairs(att_stats) do
+    for i,att_outcome in ipairs(att_outcomes) do
         local sum_a, sum_d = 0, 0
-        for _,prob in pairs(att_stat.hp_chance) do
+        for _,prob in pairs(att_outcome.hp_chance) do
             sum_a = sum_a + prob
         end
-        if (att_stat.levelup_chance > 0) then
-            for _,prob in pairs(att_stat.levelup.hp_chance) do
+        if (att_outcome.levelup_chance > 0) then
+            for _,prob in pairs(att_outcome.levelup.hp_chance) do
                 sum_a = sum_a + prob
             end
         end
 
-        for _,prob in pairs(def_stats[i].hp_chance) do
+        for _,prob in pairs(def_outcomes[i].hp_chance) do
             sum_d = sum_d + prob
         end
-        if (def_stats[i].levelup_chance > 0) then
-            for _,prob in pairs(def_stats[i].levelup.hp_chance) do
+        if (def_outcomes[i].levelup_chance > 0) then
+            for _,prob in pairs(def_outcomes[i].levelup.hp_chance) do
                 sum_d = sum_d + prob
             end
         end
-        --print('sum stats (att, def):', sum_a, sum_d)
+        --print('sum outcomes (att, def):', sum_a, sum_d)
 
         if (math.abs(sum_a - 1) > 0.0001) or (math.abs(sum_d - 1) > 0.0001) then
-            print('***** sum stats (att, def): *****', sum_a, sum_d, i)
+            print('***** sum outcomes (att, def): *****', sum_a, sum_d, i)
         end
     end
 
     local rating_table, attacker_damages, defender_damage =
         fred_attack_utils.attack_rating(
             attacker_infos, defender_info, dsts,
-            att_stats, def_stats[#attacker_infos], gamedata, cfg
+            att_outcomes, def_outcomes[#attacker_infos], gamedata, cfg
         )
 
     rating_table.progression = rating_progression
 
-    return att_stats, def_stats[#attacker_infos], attacker_infos, dsts, rating_table, attacker_damages, defender_damage
+    return att_outcomes, def_outcomes[#attacker_infos], attacker_infos, dsts, rating_table, attacker_damages, defender_damage
 end
 
 function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, get_strongest_attack, gamedata, move_cache, cfg)
@@ -1136,7 +1136,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
             if reach_maps[attacker_id][xa] and reach_maps[attacker_id][xa][ya] then
                 local _, rating
                 if get_strongest_attack then
-                    local att_stat, def_stat = fred_attack_utils.attack_outcome(
+                    local att_outcome, def_outcome = fred_attack_utils.attack_outcome(
                         gamedata.unit_copies[attacker_id], defender_proxy, { xa, ya },
                         gamedata.unit_infos[attacker_id], gamedata.unit_infos[defender_id],
                         gamedata, move_cache, cfg
@@ -1147,7 +1147,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
                     -- so that good terrain for the attacker will be preferred
                     local rating_table = fred_attack_utils.attack_rating(
                         { gamedata.unit_infos[attacker_id] }, gamedata.unit_infos[defender_id], { { xa, ya } },
-                        { att_stat }, def_stat,
+                        { att_outcome }, def_outcome,
                         gamedata, cfg
                     )
 
@@ -1183,7 +1183,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
 end
 
 function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamedata, move_cache, cfg)
-    -- Get counter-attack statistics of an AI unit in a hypothetical map situation
+    -- Get counter-attack outcomes of an AI unit in a hypothetical map situation
     -- Units are placed on the map and the gamedata tables are adjusted inside this
     -- function in order to avoid code duplication and ensure consistency
     --
@@ -1194,7 +1194,7 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
     --  - All enemy units are on the map
     --
     -- INPUTS:
-    -- @target: id and location of the unit for which to calculated the counter attack stats; syntax: { id = { x, y } }
+    -- @target: id and location of the unit for which to calculated the counter attack outcomes; syntax: { id = { x, y } }
     -- @old_locs, @new_locs: arrays of locations of the current and goal locations
     --   of all AI units to be moved into different positions, such as all units
     --   involved in an attack combination
@@ -1218,7 +1218,7 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
         --
         -- Output:
         -- Returns nil if no counter attacks were found, otherwise a table with a
-        -- variety of attack stats and ratings
+        -- variety of attack outcomes and ratings
 
         -- If any of the hexes marked in @new_locs is occupied, we
         -- need to store that information as it otherwise will be overwritten.
@@ -1312,22 +1312,22 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
         nil, true, gamedata, move_cache, cfg
     )
 
-    local counter_attack_stat
+    local counter_attack_outcome
     if (next(counter_attack)) then
-        -- Otherwise calculate the attack combo statistics
+        -- Otherwise calculate the attack combo outcome
         local enemy_map = {}
         for id,loc in pairs(gamedata.enemies) do
             enemy_map[loc[1] * 1000 + loc[2]] = id
         end
 
-        local combo_att_stats, combo_def_stat, sorted_atts, sorted_dsts, rating_table, attacker_damages, defender_damage
+        local combo_att_outcomes, combo_def_outcome, sorted_atts, sorted_dsts, rating_table, attacker_damages, defender_damage
             = fred_attack_utils.attack_combo_eval(counter_attack, target, gamedata, move_cache, cfg, FU.cfg_default('ctd_limit'))
 
         -- attack_combo_eval returns nil if none of the units satisfies the ctd_limit criterion
-        if combo_att_stats then
-            counter_attack_stat = {
-                att_stats = combo_att_stats,
-                def_stat = combo_def_stat,
+        if combo_att_outcomes then
+            counter_attack_outcome = {
+                att_outcomes = combo_att_outcomes,
+                def_outcome = combo_def_outcome,
                 rating_table = rating_table,
                 attacker_damages = attacker_damages,
                 defender_damage = defender_damage
@@ -1343,7 +1343,7 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
     -- And put them back into their original locations
     adjust_gamedata_tables(new_locs, old_locs)
 
-    return counter_attack_stat, counter_attack
+    return counter_attack_outcome, counter_attack
 end
 
 function fred_attack_utils.get_disqualified_attack(combo)

@@ -186,15 +186,15 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         local old_locs = { { gamedata.leader_x, gamedata.leader_y } }
         local new_locs = { { gamedata.leader_x, gamedata.leader_y } }
 
-        local counter_stats = FAU.calc_counter_attack(
+        local counter_outcomes = FAU.calc_counter_attack(
             leader_target, old_locs, new_locs, gamedata, move_cache, cfg_attack
         )
 
         local remainging_hp = gamedata.unit_infos[leader_id].hitpoints
-        if counter_stats then
-            remainging_hp = counter_stats.def_stat.average_hp
-            remainging_hp = remainging_hp - counter_stats.def_stat.poisoned * 8
-            remainging_hp = remainging_hp - counter_stats.def_stat.slowed * 4
+        if counter_outcomes then
+            remainging_hp = counter_outcomes.def_outcome.average_hp
+            remainging_hp = remainging_hp - counter_outcomes.def_outcome.poisoned * 8
+            remainging_hp = remainging_hp - counter_outcomes.def_outcome.slowed * 4
             if (remainging_hp < 0) then remainging_hp = 0 end
         end
 
@@ -202,9 +202,9 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
         -- Plus chance of survival
         leader_protect_base_rating = leader_protect_base_rating + 1
-        if counter_stats then
-            leader_protect_base_rating = leader_protect_base_rating - counter_stats.def_stat.hp_chance[0]
-            --print('  ' .. counter_stats.def_stat.hp_chance[0])
+        if counter_outcomes then
+            leader_protect_base_rating = leader_protect_base_rating - counter_outcomes.def_outcome.hp_chance[0]
+            --print('  ' .. counter_outcomes.def_outcome.hp_chance[0])
         end
 
         leader_protect_base_rating = 1 + leader_protect_base_rating / 2
@@ -297,15 +297,15 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                     table.insert(new_locs, { dst_x, dst_y })
                 end
 
-                local counter_stats = FAU.calc_counter_attack(
+                local counter_outcomes = FAU.calc_counter_attack(
                     leader_target, old_locs, new_locs, gamedata, move_cache, cfg_attack
                 )
 
                 local remainging_hp = gamedata.unit_infos[leader_id].hitpoints
-                if counter_stats then
-                    remainging_hp = counter_stats.def_stat.average_hp
-                    remainging_hp = remainging_hp - counter_stats.def_stat.poisoned * 8
-                    remainging_hp = remainging_hp - counter_stats.def_stat.slowed * 4
+                if counter_outcomes then
+                    remainging_hp = counter_outcomes.def_outcome.average_hp
+                    remainging_hp = remainging_hp - counter_outcomes.def_outcome.poisoned * 8
+                    remainging_hp = remainging_hp - counter_outcomes.def_outcome.slowed * 4
                     if (remainging_hp < 0) then remainging_hp = 0 end
                 end
 
@@ -313,9 +313,9 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
                 -- Plus chance of survival
                 leader_protect_rating = leader_protect_rating + 1
-                if counter_stats then
-                    leader_protect_rating = leader_protect_rating - counter_stats.def_stat.hp_chance[0]
-                    --print('  ' .. counter_stats.def_stat.hp_chance[0])
+                if counter_outcomes then
+                    leader_protect_rating = leader_protect_rating - counter_outcomes.def_outcome.hp_chance[0]
+                    --print('  ' .. counter_outcomes.def_outcome.hp_chance[0])
                 end
 
                 leader_protect_rating = 1 + leader_protect_rating / 2
