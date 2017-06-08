@@ -491,6 +491,68 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
     --  Optional inputs:
     -- @cfg: configuration parameters (only use_max_damage_weapons so far, possibly to be extended)
 
+    local function attstat_to_outcome(unit_info, stat, enemy_ctd, enemy_level)
+        -- Convert att_stat as returned by wesnoth.simulate_combat to battle_outcome
+        -- format. In addition to extracting information from att_stat, this includes:
+        --  - Only keep non-zero hp_chance values, except hp_chance[0] which is always needed
+        --  - Setting up level-up information (and recalculating average_hp)
+        --  - Setting min_hp
+
+        local outcome = fred_attack_utils.init_att_stat()
+        for hp,chance in pairs(stat.hp_chance) do
+            if (chance ~= 0) then
+                outcome.hp_chance[hp] = chance
+            end
+        end
+        outcome.average_hp = stat.average_hp
+        outcome.poisoned = stat.poisoned
+        outcome.slowed = stat.slowed
+
+        local levelup_chance = fred_attack_utils.levelup_chance(unit_info, outcome, enemy_ctd, enemy_level)
+        if (levelup_chance > 0) then
+            outcome.levelup_chance = levelup_chance
+
+            -- Treat leveling up as 1.5 times the max hitpoints
+            -- TODO: refine this?
+            local lu_hp = H.round(unit_info.max_hitpoints * 1.5)
+            outcome.levelup.hp_chance[lu_hp] = levelup_chance
+            outcome.levelup.min_hp = lu_hp
+
+            -- wesnoth.simulate_combat returns the level-up chance as part of the
+            -- maximum hitpoints in the stats -> need to reset that
+            local max_hp_chance = outcome.hp_chance[unit_info.max_hitpoints] - levelup_chance
+            if (math.abs(max_hp_chance) < 1e-6) then
+                outcome.hp_chance[unit_info.max_hitpoints] = nil
+            else
+                outcome.hp_chance[unit_info.max_hitpoints] = max_hp_chance
+            end
+
+            -- Need to reset average HP in this case
+            local av_hp = 0
+            for hp,prob in pairs(outcome.hp_chance) do av_hp = av_hp + hp * prob end
+            if (outcome.levelup_chance > 0) then
+                for hp,prob in pairs(outcome.levelup.hp_chance) do av_hp = av_hp + hp * prob end
+            end
+            outcome.average_hp = av_hp
+        end
+
+        local min_hp
+        for hp,chance in pairs(outcome.hp_chance) do
+            if (chance ~= 0) then
+                if (not min_hp) or (hp < min_hp) then min_hp = hp end
+            end
+        end
+        for hp,chance in pairs(outcome.levelup.hp_chance) do
+            if (chance ~= 0) then
+                if (not min_hp) or (hp < min_hp) then min_hp = hp end
+            end
+        end
+        outcome.min_hp = min_hp
+
+        return outcome
+    end
+
+
     local use_max_damage_weapons = (cfg and cfg.use_max_damage_weapons) or FU.cfg_default('use_max_damage_weapons')
 
     local defender_defense = FGUI.get_unit_defense(defender_proxy, defender_proxy.x, defender_proxy.y, gamedata.defense_maps)
@@ -592,88 +654,10 @@ function fred_attack_utils.battle_outcome(attacker_copy, defender_proxy, dst, at
 
     attacker_copy.x, attacker_copy.y = old_x, old_y
 
-    -- Extract only those hp_chances that are non-zero (hp_chance[0] is always needed and
-    -- provided by init function). This slows down this step a little, but significantly speeds
-    -- up attack combination calculations
-    local att_stat = fred_attack_utils.init_att_stat()
-    local att_min_hp = attacker_info.hitpoints
-    for i = 0,#tmp_att_stat.hp_chance do
-        if (tmp_att_stat.hp_chance[i] ~= 0) then
-            att_stat.hp_chance[i] = tmp_att_stat.hp_chance[i]
-            if (i < att_min_hp) then att_min_hp = i end
-        end
-    end
-    att_stat.min_hp = att_min_hp
-    att_stat.poisoned = tmp_att_stat.poisoned
-    att_stat.slowed = tmp_att_stat.slowed
 
-    local def_stat = fred_attack_utils.init_att_stat()
-    local def_min_hp = defender_info.hitpoints
-    for i = 0,#tmp_def_stat.hp_chance do
-        if (tmp_def_stat.hp_chance[i] ~= 0) then
-            def_stat.hp_chance[i] = tmp_def_stat.hp_chance[i]
-            if (i < def_min_hp) then def_min_hp = i end
-        end
-    end
-    def_stat.min_hp = def_min_hp
-    def_stat.poisoned = tmp_def_stat.poisoned
-    def_stat.slowed = tmp_def_stat.slowed
+    local att_stat = attstat_to_outcome(attacker_info, tmp_att_stat, tmp_def_stat.hp_chance[0], defender_info.level)
+    local def_stat = attstat_to_outcome(defender_info, tmp_def_stat, tmp_att_stat.hp_chance[0], attacker_info.level)
 
-    -- Populate the 'levelup' table, containing the
-    -- HP distribution and levelup_chance of the leveled unit
-    -- This could be done with a scalar field for the individual attack,
-    -- but makes things more consistent for when it comes to attack combos
-    local att_luc = fred_attack_utils.levelup_chance(attacker_info, att_stat, def_stat.hp_chance[0], defender_info.level)
-    if (att_luc > 0) then
-        att_stat.levelup_chance = att_luc
-
-        -- Treat leveling up as 1.5 times the max hitpoints
-        -- TODO: refine this?
-        local att_lu_hp = H.round(attacker_info.max_hitpoints * 1.5)
-        att_stat.levelup.hp_chance[att_lu_hp] = att_luc
-        att_stat.levelup.min_hp = att_lu_hp
-
-        local max_hp_chance = att_stat.hp_chance[attacker_info.max_hitpoints] - att_luc
-        if (math.abs(max_hp_chance) < 1e-6) then
-            att_stat.hp_chance[attacker_info.max_hitpoints] = nil
-        else
-            att_stat.hp_chance[attacker_info.max_hitpoints] = max_hp_chance
-        end
-    end
-
-    local def_luc = fred_attack_utils.levelup_chance(defender_info, def_stat, att_stat.hp_chance[0], attacker_info.level)
-    if (def_luc > 0) then
-        def_stat.levelup_chance = def_luc
-
-        -- Treat leveling up as 1.5 times the max hitpoints
-        -- TODO: refine this?
-        local def_lu_hp = H.round(defender_info.max_hitpoints * 1.5)
-        def_stat.levelup.hp_chance[def_lu_hp] = def_luc
-        def_stat.levelup.min_hp = def_lu_hp
-
-        local max_hp_chance = def_stat.hp_chance[defender_info.max_hitpoints] - def_luc
-        if (math.abs(max_hp_chance) < 1e-6) then
-            def_stat.hp_chance[defender_info.max_hitpoints] = nil
-        else
-            def_stat.hp_chance[defender_info.max_hitpoints] = max_hp_chance
-        end
-    end
-
-    -- Need to recalculate average HP after this
-    -- This includes both leveled and unleveled HP
-    local av_hp = 0
-    for hp,prob in pairs(att_stat.hp_chance) do av_hp = av_hp + hp * prob end
-    if (att_stat.levelup_chance > 0) then
-        for hp,prob in pairs(att_stat.levelup.hp_chance) do av_hp = av_hp + hp * prob end
-    end
-    att_stat.average_hp = av_hp
-
-    local av_hp = 0
-    for hp,prob in pairs(def_stat.hp_chance) do av_hp = av_hp + hp * prob end
-    if (def_stat.levelup_chance > 0) then
-        for hp,prob in pairs(def_stat.levelup.hp_chance) do av_hp = av_hp + hp * prob end
-    end
-    def_stat.average_hp = av_hp
 
     if (not move_cache[cache_att_id]) then
         move_cache[cache_att_id] = {}
