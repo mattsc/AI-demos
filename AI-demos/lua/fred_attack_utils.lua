@@ -48,12 +48,12 @@ end
 local function calc_stats_attack_outcome(outcome)
     -- Calculate and set the summary statistics values in an attack outcome table.
     -- The input table is manipulated directly for this, there is no return value.
-
     -- Values in the main table: stats for both main and levelup combined
     -- Values in levelup table: stats for levelup only
 
     local min_hp, min_hp_levelup
     local average_hp, average_hp_levelup, levelup_chance = 0, 0, 0
+
     for hp,chance in pairs(outcome.hp_chance) do
         average_hp = average_hp + hp * chance
         if (chance ~= 0) then
@@ -79,6 +79,18 @@ local function calc_stats_attack_outcome(outcome)
         outcome.levelup.average_hp = average_hp_levelup / levelup_chance
     end
     if min_hp_levelup then outcome.levelup.min_hp = min_hp_levelup end
+
+
+    -- TODO: the following is just a sanity check for now, disable later
+    local sum_chances = 0
+    for _,prob in pairs(outcome.hp_chance) do
+        sum_chances = sum_chances + prob
+    end
+    sum_chances = sum_chances + outcome.levelup_chance
+
+    if (math.abs(sum_chances - 1) > 0.0001) then
+        print('***** sum outcomes (att, def): *****', sum_chances)
+    end
 end
 
 
@@ -1018,32 +1030,6 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
         rating_progression[i] = rating_table.rating
     end
 
-    -- TODO: the following is just a sanity check for now, disable later
-    for i,att_outcome in ipairs(att_outcomes) do
-        local sum_a, sum_d = 0, 0
-        for _,prob in pairs(att_outcome.hp_chance) do
-            sum_a = sum_a + prob
-        end
-        if (att_outcome.levelup_chance > 0) then
-            for _,prob in pairs(att_outcome.levelup.hp_chance) do
-                sum_a = sum_a + prob
-            end
-        end
-
-        for _,prob in pairs(def_outcomes[i].hp_chance) do
-            sum_d = sum_d + prob
-        end
-        if (def_outcomes[i].levelup_chance > 0) then
-            for _,prob in pairs(def_outcomes[i].levelup.hp_chance) do
-                sum_d = sum_d + prob
-            end
-        end
-        --print('sum outcomes (att, def):', sum_a, sum_d)
-
-        if (math.abs(sum_a - 1) > 0.0001) or (math.abs(sum_d - 1) > 0.0001) then
-            print('***** sum outcomes (att, def): *****', sum_a, sum_d, i)
-        end
-    end
 
     local rating_table, attacker_damages, defender_damage =
         fred_attack_utils.attack_rating(
