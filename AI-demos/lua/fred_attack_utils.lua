@@ -45,6 +45,42 @@ local function init_attack_outcome(unit_info)
     return attack_outcome
 end
 
+local function calc_stats_attack_outcome(outcome)
+    -- Calculate and set the summary statistics values in an attack outcome table.
+    -- The input table is manipulated directly for this, there is no return value.
+
+    -- Values in the main table: stats for both main and levelup combined
+    -- Values in levelup table: stats for levelup only
+
+    local min_hp, min_hp_levelup
+    local average_hp, average_hp_levelup, levelup_chance = 0, 0, 0
+    for hp,chance in pairs(outcome.hp_chance) do
+        average_hp = average_hp + hp * chance
+        if (chance ~= 0) then
+            if (not min_hp) or (hp < min_hp) then min_hp = hp end
+        end
+    end
+
+    for hp,chance in pairs(outcome.levelup.hp_chance) do
+        average_hp = average_hp + hp * chance
+        average_hp_levelup = average_hp_levelup + hp * chance
+        levelup_chance = levelup_chance + chance
+        if (chance ~= 0) then
+            if (not min_hp) or (hp < min_hp) then min_hp = hp end
+            if (not min_hp_levelup) or (hp < min_hp_levelup) then min_hp_levelup = hp end
+        end
+    end
+
+    outcome.average_hp = average_hp
+    outcome.min_hp = min_hp
+    outcome.levelup_chance = levelup_chance
+
+    if (levelup_chance > 0) then
+        outcome.levelup.average_hp = average_hp_levelup / levelup_chance
+    end
+    if min_hp_levelup then outcome.levelup.min_hp = min_hp_levelup end
+end
+
 
 local fred_attack_utils = {}
 
@@ -491,7 +527,6 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
                 outcome.hp_chance[hp] = chance
             end
         end
-        outcome.average_hp = stat.average_hp
         outcome.poisoned = stat.poisoned
         outcome.slowed = stat.slowed
 
@@ -508,13 +543,10 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
         end
 
         if (levelup_chance > 0) then
-            outcome.levelup_chance = levelup_chance
-
             -- Treat leveling up as 1.5 times the max hitpoints
             -- TODO: refine this?
             local lu_hp = H.round(unit_info.max_hitpoints * 1.5)
             outcome.levelup.hp_chance[lu_hp] = levelup_chance
-            outcome.levelup.min_hp = lu_hp
 
             -- wesnoth.simulate_combat returns the level-up chance as part of the
             -- maximum hitpoints in the stats -> need to reset that
@@ -525,27 +557,9 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
                 outcome.hp_chance[unit_info.max_hitpoints] = max_hp_chance
             end
 
-            -- Need to reset average HP in this case
-            local av_hp = 0
-            for hp,prob in pairs(outcome.hp_chance) do av_hp = av_hp + hp * prob end
-            if (outcome.levelup_chance > 0) then
-                for hp,prob in pairs(outcome.levelup.hp_chance) do av_hp = av_hp + hp * prob end
-            end
-            outcome.average_hp = av_hp
         end
 
-        local min_hp
-        for hp,chance in pairs(outcome.hp_chance) do
-            if (chance ~= 0) then
-                if (not min_hp) or (hp < min_hp) then min_hp = hp end
-            end
-        end
-        for hp,chance in pairs(outcome.levelup.hp_chance) do
-            if (chance ~= 0) then
-                if (not min_hp) or (hp < min_hp) then min_hp = hp end
-            end
-        end
-        outcome.min_hp = min_hp
+        calc_stats_attack_outcome(outcome)
 
         return outcome
     end
