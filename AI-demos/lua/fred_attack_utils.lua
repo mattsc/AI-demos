@@ -856,9 +856,6 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
                     att_outcomes[i].hp_chance[hp2] = (att_outcomes[i].hp_chance[hp2] or 0) + prob1 * prob2
                 end
                 if (aoc.levelup_chance > 0) then
-                    if (att_outcomes[i].levelup_chance == 0) then
-                        att_outcomes[i].levelup = { hp_chance = {} }
-                    end
                     for hp2,prob2 in pairs(aoc.levelup.hp_chance) do
                         att_outcomes[i].levelup.hp_chance[hp2] = (att_outcomes[i].levelup.hp_chance[hp2] or 0) + prob1 * prob2
                     end
@@ -868,9 +865,6 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
                     def_outcomes[i].hp_chance[hp2] = (def_outcomes[i].hp_chance[hp2] or 0) + prob1 * prob2
                 end
                 if (doc.levelup_chance > 0) then
-                    if (def_outcomes[i].levelup_chance == 0) then
-                        def_outcomes[i].levelup = { hp_chance = {} }
-                    end
                     for hp2,prob2 in pairs(doc.levelup.hp_chance) do
                         def_outcomes[i].levelup.hp_chance[hp2] = (def_outcomes[i].levelup.hp_chance[hp2] or 0) + prob1 * prob2
                     end
@@ -889,9 +883,10 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
             for hp1,prob1 in pairs(def_outcomes[i-1].levelup.hp_chance) do -- Note: need pairs(), not ipairs() !!
                 --print('  leveled: ', hp1,prob1)
 
-                -- TODO: this is not true any more: levelup.hp_chance should never contain a HP=0 entry
                 if (hp1 == 0) then
-                    --print('***** HP = 0 in levelup outcomes entcountered *****')
+                    -- levelup.hp_chance should never contain a HP=0 entry, as those are
+                    -- put directely into hp_chance at the top level
+                    print('***** HP = 0 in levelup outcomes entcountered *****')
                 else
                     local org_hp = defender_info.hitpoints
                     local org_max_hp = defender_info.max_hitpoints
@@ -943,19 +938,13 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
                         att_outcomes[i].hp_chance[hp2] = (att_outcomes[i].hp_chance[hp2] or 0) + prob1 * prob2
                     end
                     if (aoc.levelup_chance > 0) then
-                        if (att_outcomes[i].levelup_chance == 0) then
-                            att_outcomes[i].levelup = { hp_chance = {} }
-                        end
                         for hp2,prob2 in pairs(aoc.levelup.hp_chance) do
                             att_outcomes[i].levelup.hp_chance[hp2] = (att_outcomes[i].levelup.hp_chance[hp2] or 0) + prob1 * prob2
                         end
                     end
 
-                    -- By contrast, everything here gets added to the leveled-up case
+                    -- By contrast, everything for the defender gets added to the leveled-up case
                     -- except for the HP=0 case, which always goes into hp_chance directly
-                    if (def_outcomes[i].levelup_chance == 0) then
-                        def_outcomes[i].levelup = { hp_chance = {} }
-                    end
                     for hp2,prob2 in pairs(doc.hp_chance) do
                         if (hp2 == 0) then
                             def_outcomes[i].hp_chance[hp2] = (def_outcomes[i].hp_chance[hp2] or 0) + prob1 * prob2
@@ -963,7 +952,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
                             def_outcomes[i].levelup.hp_chance[hp2] = (def_outcomes[i].levelup.hp_chance[hp2] or 0) + prob1 * prob2
                         end
                     end
-                    if (doc.levelup_chance > 0) then  -- I think this doesn't happen, but just in case
+                    if (doc.levelup_chance > 0) then  -- This should rarely ever happen, but just in case
                         for hp2,prob2 in pairs(doc.levelup.hp_chance) do
                             def_outcomes[i].levelup.hp_chance[hp2] = (def_outcomes[i].levelup.hp_chance[hp2] or 0) + prob1 * prob2
                         end
