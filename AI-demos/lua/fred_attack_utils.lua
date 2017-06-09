@@ -207,7 +207,7 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, gamedata, cf
 
         -- Positive damage needs to be capped at the amount of HP (can't lose more than that)
         -- Note: in principle, this is (HP-1), but that might cause a negative damage
-        -- rating for units with average_HP < 1.
+        -- rating for units with average_hp < 1.
         -- Calculated with respect to average hitpoints
         local hp_before = unit_info.hitpoints - average_damage
         delayed_damage = math.min(delayed_damage, hp_before)
@@ -1137,7 +1137,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
     -- If no attacks are found, return empty table
     if (not next(tmp_attacks_dst_src)) then return {} end
 
-    -- Because of the way how the recursive function below works, we want this to
+    -- Because of the way how get_unit_hex_combos works, we want this to
     -- be an array, not a table with dsts as keys
     local attacks_dst_src = {}
     for _,dst in pairs(tmp_attacks_dst_src) do
