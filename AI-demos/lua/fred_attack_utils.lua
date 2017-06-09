@@ -19,9 +19,12 @@ local function init_attack_outcome(unit_info)
     --  @unit_info: if given, initialize the table with the correct values for
     --    this unit before combat. Otherwise, set everything to zero.
 
-    local function single_level_table(unit_info)
+    local function single_level_table(unit_info, levelup)
+        -- @levelup: boolean indicating whether this is the levelup table
+        --   The one difference is that the levelup table should not contain
+        --   hp_chance[0], which should always be added to the top level table.
         local hp_chance = {}
-        hp_chance[0] = 0
+        if (not levelup) then hp_chance[0] = 0 end
         if unit_info then hp_chance[unit_info.hitpoints] = 1 end
 
         local outcome = {
@@ -38,8 +41,8 @@ local function init_attack_outcome(unit_info)
         return outcome
     end
 
-    local attack_outcome = single_level_table(unit_info)
-    attack_outcome.levelup = single_level_table()
+    local attack_outcome = single_level_table(unit_info, false)
+    attack_outcome.levelup = single_level_table(nil, true)
     attack_outcome.levelup_chance = 0
 
     return attack_outcome
