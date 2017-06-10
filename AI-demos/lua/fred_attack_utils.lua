@@ -1063,23 +1063,18 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
 
         -- Poison/slow chances for the defender need to be calculated now.  As for other
         -- parameters, the base table contains both the level-up and the base chance.
-        def_outcomes[i].poisoned = 0
-        for hp,chance in pairs(def_poisoned.base) do
-            def_outcomes[i].poisoned = def_outcomes[i].poisoned + chance
+        local function sum_status(status, def_status_table)
+            def_outcomes[i][status] = 0
+            for hp,chance in pairs(def_status_table.base) do
+                def_outcomes[i][status] = def_outcomes[i][status] + chance
+            end
+            for hp,chance in pairs(def_status_table.levelup) do
+                def_outcomes[i][status] = def_outcomes[i][status] + chance
+                def_outcomes[i].levelup[status] = def_outcomes[i].levelup[status] + chance
+            end
         end
-        for hp,chance in pairs(def_poisoned.levelup) do
-            def_outcomes[i].poisoned = def_outcomes[i].poisoned + chance
-            def_outcomes[i].levelup.poisoned = def_outcomes[i].levelup.poisoned + chance
-        end
-
-        def_outcomes[i].slowed = 0
-        for hp,chance in pairs(def_slowed.base) do
-            def_outcomes[i].slowed = def_outcomes[i].slowed + chance
-        end
-        for hp,chance in pairs(def_slowed.levelup) do
-            def_outcomes[i].slowed = def_outcomes[i].slowed + chance
-            def_outcomes[i].levelup.slowed = def_outcomes[i].levelup.slowed + chance
-        end
+        sum_status('poisoned', def_poisoned)
+        sum_status('slowed', def_slowed)
 
 
         calc_stats_attack_outcome(att_outcomes[i])
