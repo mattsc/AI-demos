@@ -535,6 +535,7 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
         --  - Only keep non-zero hp_chance values, except hp_chance[0] which is always needed
         --  - Setting up level-up information (and recalculating average_hp)
         --  - Setting min_hp
+        --  - Poison/slow: correctly account for level-up and do not count HP=0
 
         local outcome = init_attack_outcome()
         for hp,chance in pairs(stat.hp_chance) do
@@ -542,9 +543,6 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
                 outcome.hp_chance[hp] = chance
             end
         end
-        outcome.poisoned = stat.poisoned
-        outcome.slowed = stat.slowed
-
 
         if (enemy_level == 0) then enemy_level = 0.5 end  -- L0 units
         local levelup_chance = 0.
@@ -571,7 +569,28 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
             else
                 outcome.hp_chance[unit_info.max_hitpoints] = max_hp_chance
             end
+        end
 
+        -- We also need to adjust poison and slow for two reasons:
+        --  1. If a level-up is involved, wesnoth.simulate_combat does not "heal" the unit
+        --  2. We want the case of HP=0 to count as not poisoned/slowed
+        outcome.poisoned = 0
+        if (stat.poisoned > 0) then
+            for hp,chance in pairs(outcome.hp_chance) do
+                -- TODO: this will not always work 100% correctly with drain; others?
+                if (hp < unit_info.hitpoints) and (hp ~= 0) then
+                    outcome.poisoned = outcome.poisoned + chance
+                end
+            end
+        end
+        outcome.slowed = 0
+        if (stat.slowed > 0) then
+            for hp,chance in pairs(outcome.hp_chance) do
+                -- TODO: this will not always work 100% correctly with drain; others?
+                if (hp < unit_info.hitpoints) and (hp ~= 0) then
+                    outcome.slowed = outcome.slowed + chance
+                end
+            end
         end
 
         calc_stats_attack_outcome(outcome)
