@@ -86,8 +86,8 @@ local function calc_stats_attack_outcome(outcome)
 
     -- TODO: the following is just a sanity check for now, disable later
     local sum_chances = 0
-    for _,prob in pairs(outcome.hp_chance) do
-        sum_chances = sum_chances + prob
+    for _,chance in pairs(outcome.hp_chance) do
+        sum_chances = sum_chances + chance
     end
     sum_chances = sum_chances + outcome.levelup_chance
 
@@ -236,8 +236,8 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, gamedata, cf
     if (att_outcome.levelup_chance > 0) then
         average_damage = 0
         -- Note: the probabilities here do not add up to 1 -- that's intentional
-        for hp,prob in pairs(att_outcome.hp_chance) do
-            average_damage = average_damage + (unit_info.hitpoints - hp) * prob
+        for hp,chance in pairs(att_outcome.hp_chance) do
+            average_damage = average_damage + (unit_info.hitpoints - hp) * chance
         end
     end
     --print('  average_damage:', average_damage)
@@ -874,12 +874,12 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
         def_slowed = { base = {}, levelup = {} }
 
         -- The HP distribution without leveling
-        for hp1,prob1 in pairs(def_outcomes[i-1].hp_chance) do -- Note: need pairs(), not ipairs() !!
-            --print('  not leveled: ', hp1,prob1)
+        for hp1,chance1 in pairs(def_outcomes[i-1].hp_chance) do -- Note: need pairs(), not ipairs() !!
+            --print('  not leveled: ', hp1,chance1)
             if (hp1 == 0) then
                 att_outcomes[i].hp_chance[attacker_infos[i].hitpoints] =
-                    (att_outcomes[i].hp_chance[attacker_infos[i].hitpoints] or 0) + prob1
-                def_outcomes[i].hp_chance[0] = (def_outcomes[i].hp_chance[0] or 0) + prob1
+                    (att_outcomes[i].hp_chance[attacker_infos[i].hitpoints] or 0) + chance1
+                def_outcomes[i].hp_chance[0] = (def_outcomes[i].hp_chance[0] or 0) + chance1
             else
                 local org_hp = defender_info.hitpoints
                 defender_proxy.hitpoints = hp1  -- Yes, we need both here. It speeds up other parts.
@@ -900,49 +900,49 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
                 defender_proxy.experience = org_xp
                 defender_info.experience = org_xp
 
-                for hp2,prob2 in pairs(aoc.hp_chance) do
-                    att_outcomes[i].hp_chance[hp2] = (att_outcomes[i].hp_chance[hp2] or 0) + prob1 * prob2
+                for hp2,chance2 in pairs(aoc.hp_chance) do
+                    att_outcomes[i].hp_chance[hp2] = (att_outcomes[i].hp_chance[hp2] or 0) + chance1 * chance2
                 end
                 if (aoc.levelup_chance > 0) then
-                    for hp2,prob2 in pairs(aoc.levelup.hp_chance) do
-                        att_outcomes[i].levelup.hp_chance[hp2] = (att_outcomes[i].levelup.hp_chance[hp2] or 0) + prob1 * prob2
+                    for hp2,chance2 in pairs(aoc.levelup.hp_chance) do
+                        att_outcomes[i].levelup.hp_chance[hp2] = (att_outcomes[i].levelup.hp_chance[hp2] or 0) + chance1 * chance2
                     end
                 end
-                att_outcomes[i].poisoned = att_outcomes[i].poisoned + prob1 * aoc.poisoned
-                att_outcomes[i].slowed = att_outcomes[i].slowed + prob1 * aoc.slowed
+                att_outcomes[i].poisoned = att_outcomes[i].poisoned + chance1 * aoc.poisoned
+                att_outcomes[i].slowed = att_outcomes[i].slowed + chance1 * aoc.slowed
 
-                for hp2,prob2 in pairs(doc.hp_chance) do
-                    def_outcomes[i].hp_chance[hp2] = (def_outcomes[i].hp_chance[hp2] or 0) + prob1 * prob2
+                for hp2,chance2 in pairs(doc.hp_chance) do
+                    def_outcomes[i].hp_chance[hp2] = (def_outcomes[i].hp_chance[hp2] or 0) + chance1 * chance2
 
                     -- HP=0 does not count as poisoned/slowed
                     if (hp2 ~= 0) then
                         -- If HP did not change (no hit made), the poison/slow chance carries through as it was
                         -- We also include an increase in HP here, to account approximately for drain
                         if (hp2 >= hp1) then
-                            def_poisoned.base[hp2] = (def_poisoned.base[hp2] or 0) + (old_def_poisoned.base[hp2] or 0) * prob2
-                            def_slowed.base[hp2] = (def_slowed.base[hp2] or 0) + (old_def_slowed.base[hp2] or 0) * prob2
+                            def_poisoned.base[hp2] = (def_poisoned.base[hp2] or 0) + (old_def_poisoned.base[hp2] or 0) * chance2
+                            def_slowed.base[hp2] = (def_slowed.base[hp2] or 0) + (old_def_slowed.base[hp2] or 0) * chance2
                         -- Otherwise, if a hit was made:
                         else
                             -- If the attacker is a poisoner, the defender is poisoned for this case
                             if (doc.poisoned > 0) then
-                                def_poisoned.base[hp2] = (def_poisoned.base[hp2] or 0) + prob1 * prob2
+                                def_poisoned.base[hp2] = (def_poisoned.base[hp2] or 0) + chance1 * chance2
                             -- If the attacker is not a poisoner, the previous poison chance carries through
                             else
-                                def_poisoned.base[hp2] = (def_poisoned.base[hp2] or 0) + (old_def_poisoned.base[hp1] or 0) * prob2
+                                def_poisoned.base[hp2] = (def_poisoned.base[hp2] or 0) + (old_def_poisoned.base[hp1] or 0) * chance2
                             end
                             -- If the attacker slows, the defender is slowed for this case
                             if (doc.slowed > 0) then
-                                def_slowed.base[hp2] = (def_slowed.base[hp2] or 0) + prob1 * prob2
+                                def_slowed.base[hp2] = (def_slowed.base[hp2] or 0) + chance1 * chance2
                             -- If the attacker does not slow, the previous slow chance carries through
                             else
-                                def_slowed.base[hp2] = (def_slowed.base[hp2] or 0) + (old_def_slowed.base[hp1] or 0) * prob2
+                                def_slowed.base[hp2] = (def_slowed.base[hp2] or 0) + (old_def_slowed.base[hp1] or 0) * chance2
                             end
                         end
                     end
                 end
                 if (doc.levelup_chance > 0) then
-                    for hp2,prob2 in pairs(doc.levelup.hp_chance) do
-                        def_outcomes[i].levelup.hp_chance[hp2] = (def_outcomes[i].levelup.hp_chance[hp2] or 0) + prob1 * prob2
+                    for hp2,chance2 in pairs(doc.levelup.hp_chance) do
+                        def_outcomes[i].levelup.hp_chance[hp2] = (def_outcomes[i].levelup.hp_chance[hp2] or 0) + chance1 * chance2
                     end
                 end
             end
@@ -952,8 +952,8 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
         -- The HP distribution after leveling
         -- TODO: this is a lot of code duplication for now, might be simplified later
         if (def_outcomes[i-1].levelup_chance > 0) then
-            for hp1,prob1 in pairs(def_outcomes[i-1].levelup.hp_chance) do -- Note: need pairs(), not ipairs() !!
-                --print('  leveled: ', hp1,prob1)
+            for hp1,chance1 in pairs(def_outcomes[i-1].levelup.hp_chance) do -- Note: need pairs(), not ipairs() !!
+                --print('  leveled: ', hp1,chance1)
 
                 if (hp1 == 0) then
                     -- levelup.hp_chance should never contain a HP=0 entry, as those are
@@ -1007,54 +1007,54 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
 
                     -- Attacker outcomes are the same as for not leveled up case, since an attacker
                     -- only does one fight -> everything goes into its base-level rating table
-                    for hp2,prob2 in pairs(aoc.hp_chance) do
-                        att_outcomes[i].hp_chance[hp2] = (att_outcomes[i].hp_chance[hp2] or 0) + prob1 * prob2
+                    for hp2,chance2 in pairs(aoc.hp_chance) do
+                        att_outcomes[i].hp_chance[hp2] = (att_outcomes[i].hp_chance[hp2] or 0) + chance1 * chance2
                     end
                     if (aoc.levelup_chance > 0) then
-                        for hp2,prob2 in pairs(aoc.levelup.hp_chance) do
-                            att_outcomes[i].levelup.hp_chance[hp2] = (att_outcomes[i].levelup.hp_chance[hp2] or 0) + prob1 * prob2
+                        for hp2,chance2 in pairs(aoc.levelup.hp_chance) do
+                            att_outcomes[i].levelup.hp_chance[hp2] = (att_outcomes[i].levelup.hp_chance[hp2] or 0) + chance1 * chance2
                         end
                     end
-                    att_outcomes[i].poisoned = att_outcomes[i].poisoned + prob1 * aoc.poisoned
-                    att_outcomes[i].slowed = att_outcomes[i].slowed + prob1 * aoc.slowed
+                    att_outcomes[i].poisoned = att_outcomes[i].poisoned + chance1 * aoc.poisoned
+                    att_outcomes[i].slowed = att_outcomes[i].slowed + chance1 * aoc.slowed
 
                     -- By contrast, everything for the defender gets added to the leveled-up case
                     -- except for the HP=0 case, which always goes into hp_chance directly and
                     -- does not count as poisoned or slowed
-                    for hp2,prob2 in pairs(doc.hp_chance) do
+                    for hp2,chance2 in pairs(doc.hp_chance) do
                         if (hp2 == 0) then
-                            def_outcomes[i].hp_chance[hp2] = (def_outcomes[i].hp_chance[hp2] or 0) + prob1 * prob2
+                            def_outcomes[i].hp_chance[hp2] = (def_outcomes[i].hp_chance[hp2] or 0) + chance1 * chance2
                         else
-                            def_outcomes[i].levelup.hp_chance[hp2] = (def_outcomes[i].levelup.hp_chance[hp2] or 0) + prob1 * prob2
+                            def_outcomes[i].levelup.hp_chance[hp2] = (def_outcomes[i].levelup.hp_chance[hp2] or 0) + chance1 * chance2
 
                             -- If HP did not change (no hit made), the poison/slow chance carries through as it was
                             -- We also include an increase in HP here, to account approximately for drain
                             if (hp2 >= hp1) then
-                                def_poisoned.levelup[hp2] = (def_poisoned.levelup[hp2] or 0) + (old_def_poisoned.levelup[hp2] or 0) * prob2
-                                def_slowed.levelup[hp2] = (def_slowed.levelup[hp2] or 0) + (old_def_slowed.levelup[hp2] or 0) * prob2
+                                def_poisoned.levelup[hp2] = (def_poisoned.levelup[hp2] or 0) + (old_def_poisoned.levelup[hp2] or 0) * chance2
+                                def_slowed.levelup[hp2] = (def_slowed.levelup[hp2] or 0) + (old_def_slowed.levelup[hp2] or 0) * chance2
                             -- Otherwise, if a hit was made:
                             else
                                 -- If the attacker is a poisoner, the defender is poisoned for this case
                                 if (doc.poisoned > 0) then
-                                    def_poisoned.levelup[hp2] = (def_poisoned.levelup[hp2] or 0) + prob1 * prob2
+                                    def_poisoned.levelup[hp2] = (def_poisoned.levelup[hp2] or 0) + chance1 * chance2
                                 -- If the attacker is not a poisoner, the previous poison chance carries through
                                 else
-                                    def_poisoned.levelup[hp2] = (def_poisoned.levelup[hp2] or 0) + (old_def_poisoned.levelup[hp1] or 0) * prob2
+                                    def_poisoned.levelup[hp2] = (def_poisoned.levelup[hp2] or 0) + (old_def_poisoned.levelup[hp1] or 0) * chance2
                                 end
                                 -- If the attacker slows, the defender is slowed for this case
                                 if (doc.slowed > 0) then
-                                    def_slowed.levelup[hp2] = (def_slowed.levelup[hp2] or 0) + prob1 * prob2
+                                    def_slowed.levelup[hp2] = (def_slowed.levelup[hp2] or 0) + chance1 * chance2
                                 -- If the attacker does not slow, the previous slow chance carries through
                                 else
-                                    def_slowed.levelup[hp2] = (def_slowed.levelup[hp2] or 0) + (old_def_slowed.levelup[hp1] or 0) * prob2
+                                    def_slowed.levelup[hp2] = (def_slowed.levelup[hp2] or 0) + (old_def_slowed.levelup[hp1] or 0) * chance2
                                 end
                             end
 
                         end
                     end
                     if (doc.levelup_chance > 0) then  -- This should rarely ever happen, but just in case
-                        for hp2,prob2 in pairs(doc.levelup.hp_chance) do
-                            def_outcomes[i].levelup.hp_chance[hp2] = (def_outcomes[i].levelup.hp_chance[hp2] or 0) + prob1 * prob2
+                        for hp2,chance2 in pairs(doc.levelup.hp_chance) do
+                            def_outcomes[i].levelup.hp_chance[hp2] = (def_outcomes[i].levelup.hp_chance[hp2] or 0) + chance1 * chance2
                         end
                     end
                 end
