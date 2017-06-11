@@ -472,12 +472,12 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack, is_attacker, 
     -- the strongest weapons.
 
     -- Count poison as additional 8 HP on total damage
-    if attack.poison and (not opponent_info.status.unpoisonable) then
+    if attack.poison and (not opponent_info.status.poisoned) and (not opponent_info.status.unpoisonable) then
         total_damage = total_damage + 8
     end
 
     -- Count slow as additional 4 HP on total damage
-    if attack.slow then
+    if attack.slow and (not opponent_info.status.slowed) then
         total_damage = total_damage + 4
     end
 
