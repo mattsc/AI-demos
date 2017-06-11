@@ -569,10 +569,14 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
         end
 
         if (levelup_chance > 0) then
-            -- Treat leveling up as 1.5 times the max hitpoints
-            -- TODO: refine this?
-            local lu_hp = H.round(unit_info.max_hitpoints * 1.5)
-            outcome.levelup.hp_chance[lu_hp] = levelup_chance
+            if unit_info.advances_to then
+                outcome.levelup.type = unit_info.advances_to
+                outcome.levelup.max_hp = wesnoth.unit_types[unit_info.advances_to].max_hitpoints
+            else
+                outcome.levelup.type = unit_info.type
+                outcome.levelup.max_hp = unit_info.max_hitpoints + 3 -- Default AMLA
+            end
+            outcome.levelup.hp_chance[outcome.levelup.max_hp] = levelup_chance
 
             -- wesnoth.simulate_combat returns the level-up chance as part of the
             -- maximum hitpoints in the stats -> need to reset that
