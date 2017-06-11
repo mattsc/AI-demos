@@ -949,6 +949,8 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
         -- Levelup chance carries through from previous
         def_outcomes[i] = init_attack_outcome()
         def_outcomes[i].levelup_chance = def_outcomes[i-1].levelup_chance
+        def_outcomes[i].levelup.max_hp = def_outcomes[i-1].levelup.max_hp
+        def_outcomes[i].levelup.type = def_outcomes[i-1].levelup.type
 
         local old_def_poisoned = def_poisoned
         def_poisoned = { base = {}, levelup = {} }
@@ -1001,50 +1003,32 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
                     -- put directely into hp_chance at the top level
                     print('***** error: HP = 0 in levelup outcomes entcountered *****')
                 else
-                    local org_hp = defender_info.hitpoints
-                    local org_max_hp = defender_info.max_hitpoints
-                    local org_xp = defender_info.experience
-
-                    defender_info.hitpoints = hp1
-                    local new_max_hp = H.round(defender_info.max_hitpoints * 1.5)
-                    defender_info.max_hitpoints = new_max_hp
-                    defender_info.experience = 0
-
-                    -- max_hitpoints cannot be modified directly
-                    -- TODO: this is likely slow, maybe use more efficient method later
-                    --   but should not happen all that often
-                    W.modify_unit({
-                        { "filter", { id = defender_proxy.id } },
-                        hitpoints = hp1,
-                        max_hitpoints = new_max_hp,
-                        experience = 0
-                    })
-                    defender_proxy = wesnoth.get_unit(defender_proxy.x, defender_proxy.y)
+                    -- We create an entirely new unit in this case, replacing the
+                    -- original defender_proxy by one of the correct advanced type
+                    wesnoth.extract_unit(defender_proxy)
 
                     -- Setting XP to 0, as it is extremely unlikely that a
                     -- defender will level twice in a single attack combo
-                    -- TODO: could refine the actual XP
-                    -- TODO: this does not increase defender attacks etc.
-                    --   (that could even be desirable, not sure yet)
-
+                    wesnoth.put_unit(defender_loc[1], defender_loc[2], {
+                        id = 'adv_' .. defender_info.id,  -- To distinguish from defender for caching
+                        side = defender_info.side,
+                        hitpoints = hp1,
+                        type = def_outcomes[i-1].levelup.type,
+                        random_traits = false,  -- The rest is needed to avoid OOS errors
+                        name = "X",
+                        random_gender = false
+                    })
+                    local adv_defender_proxy = wesnoth.get_unit(defender_loc[1], defender_loc[2])
+                    local adv_defender_info = FU.single_unit_info(adv_defender_proxy)
 
                     local aoc, doc = fred_attack_utils.attack_outcome(
-                        attacker_copies[i], defender_proxy, dsts[i],
-                        attacker_infos[i], defender_info,
+                        attacker_copies[i], adv_defender_proxy, dsts[i],
+                        attacker_infos[i], adv_defender_info,
                         gamedata, move_cache, cfg
                     )
 
-                    defender_info.hitpoints = org_hp
-                    defender_info.max_hitpoints = org_max_hp
-                    defender_info.experience = org_xp
-
-                    W.modify_unit({
-                        { "filter", { id = defender_proxy.id } },
-                        hitpoints = org_hp,
-                        max_hitpoints = org_max_hp,
-                        experience = org_xp
-                    })
-                    defender_proxy = wesnoth.get_unit(defender_proxy.x, defender_proxy.y)
+                    wesnoth.put_unit(defender_loc[1], defender_loc[2])
+                    wesnoth.put_unit(defender_proxy)
 
                     -- Attacker outcomes are the same as for the not leveled-up case, since an attacker
                     -- only does one fight -> everything goes into its base-level rating table
