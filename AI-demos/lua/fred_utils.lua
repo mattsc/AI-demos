@@ -548,6 +548,9 @@ function fred_utils.single_unit_info(unit_proxy)
         level = unit_cfg.level
     }
 
+    -- Pick the first of the advances_to types, nil when there is none
+    single_unit_info.advances_to = unit_proxy.advances_to[1]
+
     -- Include the ability type, such as: hides, heals, regenerate, skirmisher (set up as 'hides = true')
     single_unit_info.abilities = {}
     local abilities = H.get_child(unit_proxy.__cfg, "abilities")
