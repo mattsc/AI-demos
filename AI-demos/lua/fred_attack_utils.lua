@@ -753,15 +753,14 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
     --  @ctd_limit: limiting chance to die (0..1) for when to include an individual attack in the combo
     --      This is usually not used, but should be limited for counter attack evaluations
     --
-    -- Return values (in this order):
-    --   Note: the function returns nil if no acceptable attacks are found based
-    --         on the ctd_limit value described above
+    -- Return value: table containing the following fields (or nil if no acceptable attacks
+    --         are found based on the ctd_limit value described above
     --   - att_outcomes: an array of outcomes for each attacker, in the order found for the "best attack",
     --       which is generally different from the order of @tmp_attacker_copies
-    --   - defender combo outcomes: one set of outcomes containing the defender outcome after the attack combination
-    --   - The attacker_infos and dsts arrays, sorted in order of the individual attacks
-    --   - The rating for this attack combination calculated from fred_attack_utils.attack_rating() results
-    --   - The (summed up) attacker and (combined) defender rating, as well as the extra rating separately
+    --   - def_outcome: one set of outcomes containing the defender outcome after the attack combination
+    --   - rating_table: rating for this attack combination calculated from fred_attack_utils.attack_rating() results
+    --   - attacker_damages, defender_damage: damage table for all attackers, and the combined damage for the defender
+    --   - attacker_infos, dsts: attacker_infos and dsts arrays, sorted in order of the individual attacks
 
 
     ----- Begin combine_outcomes() -----
@@ -1108,7 +1107,17 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
 
     rating_table.progression = rating_progression
 
-    return att_outcomes, def_outcomes[#attacker_infos], attacker_infos, dsts, rating_table, attacker_damages, defender_damage
+    local combo_outcome = {
+        att_outcomes = att_outcomes,
+        def_outcome = def_outcomes[#attacker_infos],
+        rating_table = rating_table,
+        attacker_damages = attacker_damages,
+        defender_damage = defender_damage,
+        attacker_infos = attacker_infos,
+        dsts = dsts
+    }
+
+    return combo_outcome
 end
 
 function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, get_strongest_attack, gamedata, move_cache, cfg)
@@ -1406,19 +1415,7 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
             enemy_map[loc[1] * 1000 + loc[2]] = id
         end
 
-        local combo_att_outcomes, combo_def_outcome, sorted_atts, sorted_dsts, rating_table, attacker_damages, defender_damage
-            = fred_attack_utils.attack_combo_eval(counter_attack, target, gamedata, move_cache, cfg, FU.cfg_default('ctd_limit'))
-
-        -- attack_combo_eval returns nil if none of the units satisfies the ctd_limit criterion
-        if combo_att_outcomes then
-            counter_attack_outcome = {
-                att_outcomes = combo_att_outcomes,
-                def_outcome = combo_def_outcome,
-                rating_table = rating_table,
-                attacker_damages = attacker_damages,
-                defender_damage = defender_damage
-            }
-        end
+        counter_attack_outcome = fred_attack_utils.attack_combo_eval(counter_attack, target, gamedata, move_cache, cfg, FU.cfg_default('ctd_limit'))
     end
 
     -- Extract the units from the map

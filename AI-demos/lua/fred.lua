@@ -2029,14 +2029,13 @@ return {
 
                     local attempt_trapping = is_trappable_enemy
 
-                    local combo_att_outcomes, combo_def_outcome, sorted_atts, sorted_dsts, combo_rt, combo_attacker_damages, combo_defender_damage
-                        = FAU.attack_combo_eval(combo, target, gamedata, move_cache, cfg_attack)
-                    local combo_rating = combo_rt.rating
+                    local combo_outcome = FAU.attack_combo_eval(combo, target, gamedata, move_cache, cfg_attack)
+                    local combo_rating = combo_outcome.rating_table.rating
 
                     local bonus_rating = 0
 
-                    --DBG.dbms(combo_rt)
-                    --print('   combo ratings: ', combo_rt.rating, combo_rt.attacker.rating, combo_rt.defender.rating)
+                    --DBG.dbms(combo_outcome.rating_table)
+                    --print('   combo ratings: ', combo_outcome.rating_table.rating, combo_outcome.rating_table.attacker.rating, combo_outcome.rating_table.defender.rating)
 
                     -- Don't attack if the leader is involved and has chance to die > 0
                     local do_attack = true
@@ -2048,8 +2047,8 @@ return {
                         do_attack = false
                         for _,keep in ipairs(available_keeps) do
                             local keep_taken = false
-                            for i_d,dst in ipairs(sorted_dsts) do
-                                if (not sorted_atts[i_d].canrecruit)
+                            for i_d,dst in ipairs(combo_outcome.dsts) do
+                                if (not combo_outcome.attacker_infos[i_d].canrecruit)
                                     and (keep[1] == dst[1]) and (keep[2] == dst[2])
                                 then
                                     keep_taken = true
@@ -2066,14 +2065,14 @@ return {
 
                     -- Don't do this attack if the leader has a chance to get killed, poisoned or slowed
                     if do_attack then
-                        for k,att_outcome in ipairs(combo_att_outcomes) do
-                            if (sorted_atts[k].canrecruit) then
+                        for k,att_outcome in ipairs(combo_outcome.att_outcomes) do
+                            if (combo_outcome.attacker_infos[k].canrecruit) then
                                 if (att_outcome.hp_chance[0] > 0.0) or (att_outcome.slowed > 0.0) then
                                     do_attack = false
                                     break
                                 end
 
-                                if (att_outcome.poisoned > 0.0) and (not sorted_atts[k].abilities.regenerate) then
+                                if (att_outcome.poisoned > 0.0) and (not combo_outcome.attacker_infos[k].abilities.regenerate) then
                                     do_attack = false
                                     break
                                 end
@@ -2087,7 +2086,7 @@ return {
                         -- except if it's the hex the target is on, of course
 
                         local adj_villages_map = {}
-                        for _,dst in ipairs(sorted_dsts) do
+                        for _,dst in ipairs(combo_outcome.dsts) do
                             for xa,ya in H.adjacent_tiles(dst[1], dst[2]) do
                                 if gamedata.village_map[xa] and gamedata.village_map[xa][ya]
                                    and ((xa ~= target_loc[1]) or (ya ~= target_loc[2]))
@@ -2109,7 +2108,7 @@ return {
                                     --print('Village is occupied')
                                     adj_unocc_village = adj_unocc_village - 1
                                 else
-                                    for _,dst in ipairs(sorted_dsts) do
+                                    for _,dst in ipairs(combo_outcome.dsts) do
                                         if (dst[1] == x) and (dst[2] == y) then
                                             --print('Village is used in attack')
                                             adj_unocc_village = adj_unocc_village - 1
@@ -2122,7 +2121,7 @@ return {
 
                         -- For each such village found, we give a penalty eqivalent to 10 HP of the target
                         if (adj_unocc_village > 0) then
-                            if (combo_def_outcome.hp_chance[0] < 0.5) then
+                            if (combo_outcome.def_outcome.hp_chance[0] < 0.5) then
                                 do_attack = false
                             else
                                 local unit_value = FU.unit_value(gamedata.unit_infos[target_id])
@@ -2154,7 +2153,7 @@ return {
                             -- or used in the attack
                             local adj_occ_hex_map = {}
                             local count = 0
-                            for _,dst in ipairs(sorted_dsts) do
+                            for _,dst in ipairs(combo_outcome.dsts) do
                                 if (not adj_occ_hex_map[dst[1]]) then adj_occ_hex_map[dst[1]] = {} end
                                 adj_occ_hex_map[dst[1]][dst[2]] = true
                                 count = count + 1
@@ -2220,9 +2219,9 @@ return {
                         -- Discourage use of poisoners in attacks that have a
                         -- high chance to result in kill
                         -- TODO: does the value of 0.33 make sense?
-                        if (combo_def_outcome.hp_chance[0] > 0.33) then
+                        if (combo_outcome.def_outcome.hp_chance[0] > 0.33) then
                             local number_poisoners = 0
-                            for i_a,attacker in ipairs(sorted_atts) do
+                            for i_a,attacker in ipairs(combo_outcome.attacker_infos) do
                                 local is_poisoner = false
                                 for _,weapon in ipairs(attacker.attacks) do
                                     if weapon.poison then
@@ -2247,22 +2246,22 @@ return {
                         local full_rating = combo_rating + bonus_rating
                         local pre_rating = full_rating
 
-                        if (full_rating > 0) and (#sorted_atts > 2) then
-                            pre_rating = pre_rating / ( #sorted_atts / 2)
+                        if (full_rating > 0) and (#combo_outcome.attacker_infos > 2) then
+                            pre_rating = pre_rating / ( #combo_outcome.attacker_infos / 2)
                         end
 
                         table.insert(combo_ratings, {
                             rating = full_rating,
                             pre_rating = pre_rating,
                             bonus_rating = bonus_rating,
-                            attackers = sorted_atts,
-                            dsts = sorted_dsts,
+                            attackers = combo_outcome.attacker_infos,
+                            dsts = combo_outcome.dsts,
                             target = target,
-                            att_outcomes = combo_att_outcomes,
-                            def_outcome = combo_def_outcome,
-                            rating_table = combo_rt,
-                            attacker_damages = combo_attacker_damages,
-                            defender_damage = combo_defender_damage
+                            att_outcomes = combo_outcome.att_outcomes,
+                            def_outcome = combo_outcome.def_outcome,
+                            rating_table = combo_outcome.rating_table,
+                            attacker_damages = combo_outcome.attacker_damages,
+                            defender_damage = combo_outcome.defender_damage
                         })
 
                         --DBG.dbms(combo_ratings)
@@ -4349,12 +4348,11 @@ return {
                     local defender_info = fred.data.gamedata.unit_infos[enemy_proxy.id]
 
                     -- Don't use cfg_attack = { use_max_damage_weapons = true } here
-                    local _, combo_def_outcome
-                        = FAU.attack_combo_eval(combo, fred.data.zone_action.enemy, fred.data.gamedata, fred.data.move_cache)
+                    local combo_outcome = FAU.attack_combo_eval(combo, fred.data.zone_action.enemy, fred.data.gamedata, fred.data.move_cache)
 
                     -- Disable reordering of attacks for the time being
                     -- TODO: this needs to be completely redone
-                    if (combo_def_outcome.hp_chance[0] > 100) then
+                    if (combo_outcome.def_outcome.hp_chance[0] > 100) then
                         --print_time('Reordering units for attack to maximize XP gain')
 
                         local min_XP_diff, best_ind = 9e99
