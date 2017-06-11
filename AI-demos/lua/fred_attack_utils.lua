@@ -177,18 +177,22 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, gamedata, cf
 
         -- Count poisoned as additional 8 HP damage times probability of being poisoned
         -- but only if the unit is not already poisoned
-        -- HP=0 case counts as poisoned in att_outcome, so that needs to be subtracted
-        -- Note: no special treatment is needed for  unpoisonable units (e.g. undead)
-        -- as att_outcome.poisoned is always zero for them
+        -- Notes:
+        --  - Unlike wesnoth.simulate_combat, attack_outcome does not count the
+        --    HP=0 case counts as poisoned
+        --  - No special treatment is needed for  unpoisonable units (e.g. undead)
+        --    as att_outcome.poisoned is always zero for them
         if (att_outcome.poisoned ~= 0) and (not unit_info.status.poisoned) then
-            delayed_damage = delayed_damage + 8 * (att_outcome.poisoned - att_outcome.hp_chance[0])
+            delayed_damage = delayed_damage + 8 * att_outcome.poisoned
         end
 
         -- Count slowed as additional 4 HP damage times probability of being slowed
         -- but only if the unit is not already slowed
-        -- HP=0 case counts as slowed in att_outcome, so that needs to be subtracted
+        -- Notes:
+        --  - Unlike wesnoth.simulate_combat, attack_outcome does not count the
+        --    HP=0 case counts as slowed
         if (att_outcome.slowed ~= 0) and (not unit_info.status.slowed) then
-            delayed_damage = delayed_damage + 4 * (att_outcome.slowed - att_outcome.hp_chance[0])
+            delayed_damage = delayed_damage + 4 * att_outcome.slowed
         end
 
         -- Negative delayed damage (healing)
