@@ -19,6 +19,8 @@ local function init_attack_outcome(unit_info)
     --  @unit_info: if given, initialize the table with the correct values for
     --    this unit before combat. Otherwise, set everything to zero.
 
+
+    ----- Begin single_level_table() -----
     local function single_level_table(unit_info, levelup)
         -- @levelup: boolean indicating whether this is the levelup table
         --   The one difference is that the levelup table should not contain
@@ -40,6 +42,8 @@ local function init_attack_outcome(unit_info)
 
         return outcome
     end
+    ----- End single_level_table() -----
+
 
     local attack_outcome = single_level_table(unit_info, false)
     attack_outcome.levelup = single_level_table(nil, true)
@@ -150,9 +154,11 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, gamedata, cf
     --  @cfg: table with the optional weights needed by fred_utils.unit_value
 
 
-    -- This does, in principle, not have to be a separate function, as it is only
-    -- called once, but this way it can be made accessible from outside again, if needed.
+    ----- Begin get_delayed_damage() -----
     local function get_delayed_damage(unit_info, att_outcome, average_damage, dst, gamedata)
+        -- This does, in principle, not have to be a separate function, as it is only
+        -- called once, but this way it can be made accessible from outside again, if needed.
+        --
         -- Returns the damage the unit is expected to get from delayed effects, both
         -- positive and negative. The value returned is the actual damage times the
         -- probability of the effect.
@@ -220,6 +226,7 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, gamedata, cf
 
         return delayed_damage
     end
+    ----- End get_delayed_damage() -----
 
 
     --print(unit_info.id, unit_info.hitpoints, unit_info.max_hitpoints)
@@ -529,6 +536,8 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
     --  Optional inputs:
     -- @cfg: configuration parameters (only use_max_damage_weapons so far, possibly to be extended)
 
+
+    ----- Begin attstat_to_outcome() -----
     local function attstat_to_outcome(unit_info, stat, enemy_ctd, enemy_level)
         -- Convert @stat as returned by wesnoth.simulate_combat to attack_outcome
         -- format. In addition to extracting information from @stat, this includes:
@@ -597,6 +606,7 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
 
         return outcome
     end
+    ----- End attstat_to_outcome() -----
 
 
     local use_max_damage_weapons = (cfg and cfg.use_max_damage_weapons) or FU.cfg_default('use_max_damage_weapons')
@@ -754,6 +764,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
     --   - The (summed up) attacker and (combined) defender rating, as well as the extra rating separately
 
 
+    ----- Begin combine_outcomes() -----
     local function combine_outcomes(hp1, chance1, att_outcome, def_outcome, att_combo_table, def_combo_table, def_combo_table_base, def_poisoned, def_slowed, old_def_poisoned, old_def_slowed)
         -- This function combines the outcomes for an attacker/defender pair that is
         -- not first in an attack combination with the statistics of the previous
@@ -814,6 +825,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
             end
         end
     end
+    ----- End combine_outcomes() -----
 
 
     -- Chance to die limit is 100%, if not given
@@ -1045,8 +1057,8 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
             end
         end
 
-        -- Poison/slow chances for the defender need to be calculated now.  As for other
-        -- parameters, the base table contains both the level-up and the base chance.
+
+        ----- Begin sum_status() -----
         local function sum_status(status, def_status_table)
             def_outcomes[i][status] = 0
             for hp,chance in pairs(def_status_table.base) do
@@ -1057,9 +1069,13 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
                 def_outcomes[i].levelup[status] = def_outcomes[i].levelup[status] + chance
             end
         end
+        ----- End sum_status() -----
+
+
+        -- Poison/slow chances for the defender need to be calculated now.  As for other
+        -- parameters, the base table contains both the level-up and the base chance.
         sum_status('poisoned', def_poisoned)
         sum_status('slowed', def_slowed)
-
 
         calc_stats_attack_outcome(att_outcomes[i])
         calc_stats_attack_outcome(def_outcomes[i])
@@ -1261,8 +1277,9 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
     -- Optional inputs:
     --  @cfg: configuration parameters to be passed through the attack_outcome, attack_rating
 
-    -- Two array to be made available below via closure
+    -- Two arrays to be made available below via closure
     local stored_units, ids = {}, {}
+
 
     ----- Begin adjust_gamedata_tables() -----
     local function adjust_gamedata_tables(old_locs, new_locs, store_units_in_way)
@@ -1351,6 +1368,7 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
         end
     end
     ----- End adjust_gamedata_tables() -----
+
 
     -- Mark the new positions of the units in the gamedata tables
     adjust_gamedata_tables(old_locs, new_locs, true)
