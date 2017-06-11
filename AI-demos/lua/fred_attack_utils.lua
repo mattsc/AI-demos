@@ -92,7 +92,7 @@ local function calc_stats_attack_outcome(outcome)
     sum_chances = sum_chances + outcome.levelup_chance
 
     if (math.abs(sum_chances - 1) > 0.0001) then
-        print('***** sum outcomes (att, def): *****', sum_chances)
+        print('***** error: sum over outcomes not equal to 1: *****', sum_chances)
     end
 end
 
@@ -981,7 +981,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
                 if (hp1 == 0) then
                     -- levelup.hp_chance should never contain a HP=0 entry, as those are
                     -- put directely into hp_chance at the top level
-                    print('***** HP = 0 in levelup outcomes entcountered *****')
+                    print('***** error: HP = 0 in levelup outcomes entcountered *****')
                 else
                     local org_hp = defender_info.hitpoints
                     local org_max_hp = defender_info.max_hitpoints
