@@ -1363,11 +1363,20 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
 
     local target_id, target_loc = next(target)
 
+    -- The unit being attacked is included here and might have HP=0. Need to
+    -- use only valid units.
+    local attackers = {}
+    for id,loc in pairs(gamedata.enemies) do
+        if (gamedata.unit_infos[id].hitpoints > 0) then
+            attackers[id] = loc
+        end
+    end
+
     -- reach_maps must not be given here, as this is for a hypothetical situation
     -- on the map. Needs to be recalculated for that situation.
     -- Only want the best attack combo for this.
     local counter_attack = fred_attack_utils.get_attack_combos(
-        gamedata.enemies, target,
+        attackers, target,
         nil, true, gamedata, move_cache, cfg
     )
 
