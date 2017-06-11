@@ -753,6 +753,69 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
     --   - The rating for this attack combination calculated from fred_attack_utils.attack_rating() results
     --   - The (summed up) attacker and (combined) defender rating, as well as the extra rating separately
 
+
+    local function combine_outcomes(hp1, chance1, att_outcome, def_outcome, att_combo_table, def_combo_table, def_combo_table_base, def_poisoned, def_slowed, old_def_poisoned, old_def_slowed)
+        -- This function combines the outcomes for an attacker/defender pair that is
+        -- not first in an attack combination with the statistics of the previous
+        -- attacks. This gets called by both the "normal" and the level-up part of
+        -- the combo evaluation code and is almost identical for the two versions.
+        -- That plus the fact that it is a b-t complex are the reason why this is
+        -- put into a function.
+
+        -- Attacker outcome
+        for hp2,chance2 in pairs(att_outcome.hp_chance) do
+            att_combo_table.hp_chance[hp2] = (att_combo_table.hp_chance[hp2] or 0) + chance1 * chance2
+        end
+        if (att_outcome.levelup_chance > 0) then
+            for hp2,chance2 in pairs(att_outcome.levelup.hp_chance) do
+                att_combo_table.levelup.hp_chance[hp2] = (att_combo_table.levelup.hp_chance[hp2] or 0) + chance1 * chance2
+            end
+        end
+        att_combo_table.poisoned = att_combo_table.poisoned + chance1 * att_outcome.poisoned
+        att_combo_table.slowed = att_combo_table.slowed + chance1 * att_outcome.slowed
+
+        -- Defender outcome
+        for hp2,chance2 in pairs(def_outcome.hp_chance) do
+            def_combo_table.hp_chance[hp2] = (def_combo_table.hp_chance[hp2] or 0) + chance1 * chance2
+
+            -- HP=0 does not count as poisoned/slowed
+            if (hp2 ~= 0) then
+                -- If HP did not change (no hit made), the poison/slow chance carries through as it was
+                -- We also include an increase in HP here, to account approximately for drain
+                if (hp2 >= hp1) then
+                    def_poisoned[hp2] = (def_poisoned[hp2] or 0) + (old_def_poisoned[hp2] or 0) * chance2
+                    def_slowed[hp2] = (def_slowed[hp2] or 0) + (old_def_slowed[hp2] or 0) * chance2
+                -- Otherwise, if a hit was made:
+                else
+                    -- If the attacker is a poisoner, the defender is poisoned for this case
+                    if (def_outcome.poisoned > 0) then
+                        def_poisoned[hp2] = (def_poisoned[hp2] or 0) + chance1 * chance2
+                    -- If the attacker is not a poisoner, the previous poison chance carries through
+                    else
+                        def_poisoned[hp2] = (def_poisoned[hp2] or 0) + (old_def_poisoned[hp1] or 0) * chance2
+                    end
+                    -- If the attacker slows, the defender is slowed for this case
+                    if (def_outcome.slowed > 0) then
+                        def_slowed[hp2] = (def_slowed[hp2] or 0) + chance1 * chance2
+                    -- If the attacker does not slow, the previous slow chance carries through
+                    else
+                        def_slowed[hp2] = (def_slowed[hp2] or 0) + (old_def_slowed[hp1] or 0) * chance2
+                    end
+                end
+            end
+        end
+
+        -- Note: we put the following into the levelup table both for the base table and
+        -- for the levelup table. A second levelup during the same attack combo is rather
+        -- unlikely, so this is an acceptable approximation.
+        if (def_outcome.levelup_chance > 0) then
+            for hp2,chance2 in pairs(def_outcome.levelup.hp_chance) do
+                def_combo_table_base.levelup.hp_chance[hp2] = (def_combo_table_base.levelup.hp_chance[hp2] or 0) + chance1 * chance2
+            end
+        end
+    end
+
+
     -- Chance to die limit is 100%, if not given
     ctd_limit = ctd_limit or 1.0
 
@@ -900,51 +963,11 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
                 defender_proxy.experience = org_xp
                 defender_info.experience = org_xp
 
-                for hp2,chance2 in pairs(aoc.hp_chance) do
-                    att_outcomes[i].hp_chance[hp2] = (att_outcomes[i].hp_chance[hp2] or 0) + chance1 * chance2
-                end
-                if (aoc.levelup_chance > 0) then
-                    for hp2,chance2 in pairs(aoc.levelup.hp_chance) do
-                        att_outcomes[i].levelup.hp_chance[hp2] = (att_outcomes[i].levelup.hp_chance[hp2] or 0) + chance1 * chance2
-                    end
-                end
-                att_outcomes[i].poisoned = att_outcomes[i].poisoned + chance1 * aoc.poisoned
-                att_outcomes[i].slowed = att_outcomes[i].slowed + chance1 * aoc.slowed
-
-                for hp2,chance2 in pairs(doc.hp_chance) do
-                    def_outcomes[i].hp_chance[hp2] = (def_outcomes[i].hp_chance[hp2] or 0) + chance1 * chance2
-
-                    -- HP=0 does not count as poisoned/slowed
-                    if (hp2 ~= 0) then
-                        -- If HP did not change (no hit made), the poison/slow chance carries through as it was
-                        -- We also include an increase in HP here, to account approximately for drain
-                        if (hp2 >= hp1) then
-                            def_poisoned.base[hp2] = (def_poisoned.base[hp2] or 0) + (old_def_poisoned.base[hp2] or 0) * chance2
-                            def_slowed.base[hp2] = (def_slowed.base[hp2] or 0) + (old_def_slowed.base[hp2] or 0) * chance2
-                        -- Otherwise, if a hit was made:
-                        else
-                            -- If the attacker is a poisoner, the defender is poisoned for this case
-                            if (doc.poisoned > 0) then
-                                def_poisoned.base[hp2] = (def_poisoned.base[hp2] or 0) + chance1 * chance2
-                            -- If the attacker is not a poisoner, the previous poison chance carries through
-                            else
-                                def_poisoned.base[hp2] = (def_poisoned.base[hp2] or 0) + (old_def_poisoned.base[hp1] or 0) * chance2
-                            end
-                            -- If the attacker slows, the defender is slowed for this case
-                            if (doc.slowed > 0) then
-                                def_slowed.base[hp2] = (def_slowed.base[hp2] or 0) + chance1 * chance2
-                            -- If the attacker does not slow, the previous slow chance carries through
-                            else
-                                def_slowed.base[hp2] = (def_slowed.base[hp2] or 0) + (old_def_slowed.base[hp1] or 0) * chance2
-                            end
-                        end
-                    end
-                end
-                if (doc.levelup_chance > 0) then
-                    for hp2,chance2 in pairs(doc.levelup.hp_chance) do
-                        def_outcomes[i].levelup.hp_chance[hp2] = (def_outcomes[i].levelup.hp_chance[hp2] or 0) + chance1 * chance2
-                    end
-                end
+                combine_outcomes(
+                    hp1, chance1,
+                    aoc, doc, att_outcomes[i], def_outcomes[i], def_outcomes[i],
+                    def_poisoned.base, def_slowed.base, old_def_poisoned.base, old_def_slowed.base
+                )
             end
         end
 
@@ -1005,57 +1028,18 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
                     })
                     defender_proxy = wesnoth.get_unit(defender_proxy.x, defender_proxy.y)
 
-                    -- Attacker outcomes are the same as for not leveled up case, since an attacker
+                    -- Attacker outcomes are the same as for the not leveled-up case, since an attacker
                     -- only does one fight -> everything goes into its base-level rating table
-                    for hp2,chance2 in pairs(aoc.hp_chance) do
-                        att_outcomes[i].hp_chance[hp2] = (att_outcomes[i].hp_chance[hp2] or 0) + chance1 * chance2
-                    end
-                    if (aoc.levelup_chance > 0) then
-                        for hp2,chance2 in pairs(aoc.levelup.hp_chance) do
-                            att_outcomes[i].levelup.hp_chance[hp2] = (att_outcomes[i].levelup.hp_chance[hp2] or 0) + chance1 * chance2
-                        end
-                    end
-                    att_outcomes[i].poisoned = att_outcomes[i].poisoned + chance1 * aoc.poisoned
-                    att_outcomes[i].slowed = att_outcomes[i].slowed + chance1 * aoc.slowed
-
-                    -- By contrast, everything for the defender gets added to the leveled-up case
-                    -- except for the HP=0 case, which always goes into hp_chance directly and
-                    -- does not count as poisoned or slowed
-                    for hp2,chance2 in pairs(doc.hp_chance) do
-                        if (hp2 == 0) then
-                            def_outcomes[i].hp_chance[hp2] = (def_outcomes[i].hp_chance[hp2] or 0) + chance1 * chance2
-                        else
-                            def_outcomes[i].levelup.hp_chance[hp2] = (def_outcomes[i].levelup.hp_chance[hp2] or 0) + chance1 * chance2
-
-                            -- If HP did not change (no hit made), the poison/slow chance carries through as it was
-                            -- We also include an increase in HP here, to account approximately for drain
-                            if (hp2 >= hp1) then
-                                def_poisoned.levelup[hp2] = (def_poisoned.levelup[hp2] or 0) + (old_def_poisoned.levelup[hp2] or 0) * chance2
-                                def_slowed.levelup[hp2] = (def_slowed.levelup[hp2] or 0) + (old_def_slowed.levelup[hp2] or 0) * chance2
-                            -- Otherwise, if a hit was made:
-                            else
-                                -- If the attacker is a poisoner, the defender is poisoned for this case
-                                if (doc.poisoned > 0) then
-                                    def_poisoned.levelup[hp2] = (def_poisoned.levelup[hp2] or 0) + chance1 * chance2
-                                -- If the attacker is not a poisoner, the previous poison chance carries through
-                                else
-                                    def_poisoned.levelup[hp2] = (def_poisoned.levelup[hp2] or 0) + (old_def_poisoned.levelup[hp1] or 0) * chance2
-                                end
-                                -- If the attacker slows, the defender is slowed for this case
-                                if (doc.slowed > 0) then
-                                    def_slowed.levelup[hp2] = (def_slowed.levelup[hp2] or 0) + chance1 * chance2
-                                -- If the attacker does not slow, the previous slow chance carries through
-                                else
-                                    def_slowed.levelup[hp2] = (def_slowed.levelup[hp2] or 0) + (old_def_slowed.levelup[hp1] or 0) * chance2
-                                end
-                            end
-
-                        end
-                    end
-                    if (doc.levelup_chance > 0) then  -- This should rarely ever happen, but just in case
-                        for hp2,chance2 in pairs(doc.levelup.hp_chance) do
-                            def_outcomes[i].levelup.hp_chance[hp2] = (def_outcomes[i].levelup.hp_chance[hp2] or 0) + chance1 * chance2
-                        end
+                    -- By contrast, everything for the defender gets added to the leveled-up table
+                    -- except for the HP=0 case, which always goes into the base hp_chance directly.
+                    combine_outcomes(
+                        hp1, chance1,
+                        aoc, doc, att_outcomes[i], def_outcomes[i].levelup, def_outcomes[i],
+                        def_poisoned.levelup, def_slowed.levelup, old_def_poisoned.levelup, old_def_slowed.levelup
+                    )
+                    if def_outcomes[i].levelup.hp_chance[0] then
+                        def_outcomes[i].hp_chance[0] = def_outcomes[i].hp_chance[0] + def_outcomes[i].levelup.hp_chance[0]
+                        def_outcomes[i].levelup.hp_chance[0] = nil
                     end
                 end
             end
