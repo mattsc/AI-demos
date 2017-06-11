@@ -579,6 +579,7 @@ return {
 
 
             -- Find the unit-vs-unit ratings
+            -- TODO: can functions in attack_utils be used for this?
             -- Extract all AI units
             --   - because no two units on the map can have the same underlying_id
             --   - so that we do not accidentally overwrite a unit
@@ -628,6 +629,8 @@ return {
                         local done = my_weapon.damage * my_weapon.num_blows
                         local taken = enemy_weapon.damage * enemy_weapon.num_blows
 
+                        -- TODO: this should not be applied if a unit is already poisoned/slowed
+                        --   Might have to be recalculated mid-turn
                         local my_extra, enemy_extra = 0, 0
                         if my_weapon.poisons then my_extra = my_extra + bonus_poison end
                         if my_weapon.slows then my_extra = my_extra + bonus_slow end
@@ -660,6 +663,7 @@ return {
                         local done = my_weapon.damage * my_weapon.num_blows
                         local taken = enemy_weapon.damage * enemy_weapon.num_blows
 
+                        -- TODO: this should not be applied if a unit is already poisoned/slowed
                         local my_extra, enemy_extra = 0, 0
                         if my_weapon.poisons then my_extra = my_extra + bonus_poison end
                         if my_weapon.slows then my_extra = my_extra + bonus_slow end
@@ -2064,6 +2068,7 @@ return {
                     --print('  ******* do_attack after keep check:', do_attack)
 
                     -- Don't do this attack if the leader has a chance to get killed, poisoned or slowed
+                    -- TODO: unless he is already?
                     if do_attack then
                         for k,att_outcome in ipairs(combo_outcome.att_outcomes) do
                             if (combo_outcome.attacker_infos[k].canrecruit) then
@@ -2540,6 +2545,7 @@ return {
                         if counter_outcomes and ((#combo.attackers > 1) or (attacker.moves > 0)) then
                             local counter_min_hp = counter_outcomes.def_outcome.min_hp
                             -- If there's a chance of the leader getting poisoned, slowed or killed, don't do it
+                            -- TODO: unless he is so already?
                             if attacker.canrecruit then
                                 --print('Leader: slowed, poisoned %', counter_outcomes.def_outcome.slowed, counter_outcomes.def_outcome.poisoned)
                                 if (counter_outcomes.def_outcome.slowed > 0.0) then

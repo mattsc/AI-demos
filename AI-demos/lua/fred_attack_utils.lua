@@ -984,7 +984,6 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
 
 
         -- The HP distribution after leveling
-        -- TODO: this is a lot of code duplication for now, might be simplified later
         if (def_outcomes[i-1].levelup_chance > 0) then
             for hp1,chance1 in pairs(def_outcomes[i-1].levelup.hp_chance) do -- Note: need pairs(), not ipairs() !!
                 --print('  leveled: ', hp1,chance1)
