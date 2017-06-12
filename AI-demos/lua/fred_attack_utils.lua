@@ -459,7 +459,8 @@ end
 function fred_attack_utils.get_total_damage_attack(weapon, attack, is_attacker, opponent_info)
     -- Get the (approximate) total damage an attack will do
     --
-    -- @weapon: the weapon information as returned by wesnoth.simulate_combat()
+    -- @weapon: the weapon information as returned by wesnoth.simulate_combat(), that is,
+    --   taking resistances etc. into account
     -- @attack: the attack information as returned by fred_utils.single_unit_info()
     -- @is_attacker: set to 'true' if this is the attacker, 'false' for defender
 
