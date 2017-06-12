@@ -506,10 +506,13 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack, is_attacker, 
         total_damage = total_damage * 1.8
     end
 
-    -- Marksman, magical and plague don't really change the damage. We just give
+    -- Marksman, firststrike, magical and plague don't really change the damage. We just give
     -- a small bonus here as a tie breaker.
-    -- Marksman is only active on attack
+    -- Marksman and firststrike are only active on attack
     if is_attacker and attack.marksman then
+        total_damage = total_damage + 2
+    end
+    if is_attacker and attack.firststrike then
         total_damage = total_damage + 2
     end
     if attack.magical then
@@ -522,7 +525,6 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack, is_attacker, 
     -- Notes on other weapons specials:
     --  - charge is automatically taken into account
     --  - swarm is automatically taken into account
-    --  - first strike does not affect maximum damage
 
     return total_damage
 end
