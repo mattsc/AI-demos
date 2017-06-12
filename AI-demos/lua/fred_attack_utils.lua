@@ -1221,9 +1221,6 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
                         gamedata, move_cache, cfg
                     )
 
-                    -- We mostly want the defender rating
-                    -- However, we add attacker rating as a small contribution,
-                    -- so that good terrain for the attacker will be preferred
                     local rating_table = fred_attack_utils.attack_rating(
                         { gamedata.unit_infos[attacker_id] }, gamedata.unit_infos[defender_id], { { xa, ya } },
                         { att_outcome }, def_outcome,
@@ -1231,7 +1228,6 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
                     )
 
                     -- It's okay to use the full rating here, rather than just damage_rating
-                    --rating = rating_table.defender.rating + (rating_table.attacker.rating + rating_table.extra.rating) / 100
                     rating = rating_table.rating
                     --print(xa, ya, attacker_id, rating, rating_table.attacker_rating, rating_table.defender_rating, rating_table.extra_rating)
                 end
