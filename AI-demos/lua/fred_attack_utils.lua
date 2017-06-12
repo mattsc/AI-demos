@@ -501,8 +501,9 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack, is_attacker, 
 
     -- Double damage for backstab, but only if it was not active in the
     -- weapon table determination by wesnoth.simulate_combat()
+    -- We do not quite give the full factor 2 though, as it is not active on all attacks.
     if is_attacker and attack.backstab and (not weapon.backstabs) then
-        total_damage = total_damage *2
+        total_damage = total_damage * 1.8
     end
 
     -- Marksman, magical and plague don't really change the damage. We just give
