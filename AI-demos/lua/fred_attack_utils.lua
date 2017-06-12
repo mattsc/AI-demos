@@ -212,7 +212,7 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, gamedata, cf
         -- We don't need to check whether a unit is resting otherwise, as this
         -- is for attack calculations (meaning: they won't be resting)
         if unit_info.traits.healthy then
-            delayed_damage = delayed_damage + 2
+            delayed_damage = delayed_damage - 2
         end
 
         -- Positive damage needs to be capped at the amount of HP (can't lose more than that)
