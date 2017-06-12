@@ -464,8 +464,6 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack, is_attacker, 
     -- @attack: the attack information as returned by fred_utils.single_unit_info()
     -- @is_attacker: set to 'true' if this is the attacker, 'false' for defender
 
-    -- TODO: a lot of the values used here are approximate. Are they good enough?
-
     local total_damage = weapon.num_blows * weapon.damage
 
     -- Give bonus for weapon specials. This is not exactly what those specials
@@ -1496,7 +1494,7 @@ function fred_attack_utils.add_disqualified_attack(combo, i_a, disqualified_atta
     --      }
     --  }
     --
-    -- In other words, an attack is disqualified, if the counter attack no the
+    -- In other words, an attack is disqualified, if the counter attack on the
     -- unit described by the key (incl. its location) was found to be unacceptable.
     -- For that case, we save the locations of all units in the attack combination,
     -- as that has an effect on the possible counter attacks. Other attacks using
