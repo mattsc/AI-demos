@@ -2040,16 +2040,27 @@ return {
                     --print('  ******* do_attack after keep check:', do_attack)
 
                     -- Don't do this attack if the leader has a chance to get killed, poisoned or slowed
-                    -- TODO: unless he is already?
+                    -- If the leader is poisoned/slowed already, he should be assigned to retreat,
+                    -- but sometimes that is not possible. In that case, it might be better to fight.
                     if do_attack then
                         for k,att_outcome in ipairs(combo_outcome.att_outcomes) do
                             if (combo_outcome.attacker_infos[k].canrecruit) then
-                                if (att_outcome.hp_chance[0] > 0.0) or (att_outcome.slowed > 0.0) then
+                                if (att_outcome.hp_chance[0] > 0.0) then
                                     do_attack = false
                                     break
                                 end
 
-                                if (att_outcome.poisoned > 0.0) and (not combo_outcome.attacker_infos[k].abilities.regenerate) then
+                                if (att_outcome.slowed > 0.0)
+                                    and (not combo_outcome.attacker_infos[k].status.slowed)
+                                then
+                                    do_attack = false
+                                    break
+                                end
+
+                                if (att_outcome.poisoned > 0.0)
+                                    and (not combo_outcome.attacker_infos[k].status.poisoned)
+                                    and (not combo_outcome.attacker_infos[k].abilities.regenerate)
+                                then
                                     do_attack = false
                                     break
                                 end
@@ -2524,14 +2535,14 @@ return {
                             -- unless he is poisoned/slowed already
                             if attacker.canrecruit then
                                 --print('Leader: slowed, poisoned %', counter_outcomes.def_outcome.slowed, counter_outcomes.def_outcome.poisoned)
-                                if (counter_outcomes.def_outcome.slowed > 0.0) then
+                                if (counter_outcomes.def_outcome.slowed > 0.0) and (not attacker.status.slowed) then
                                     FU.print_debug(show_debug_attack, '       leader: counter attack slow chance too high', counter_outcomes.def_outcome.slowed)
                                     acceptable_counter = false
                                     FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                                     break
                                 end
 
-                                if (counter_outcomes.def_outcome.poisoned > 0.0) and (not attacker.abilities.regenerate) then
+                                if (counter_outcomes.def_outcome.poisoned > 0.0) and (not attacker.status.poisoned) and (not attacker.abilities.regenerate) then
                                     FU.print_debug(show_debug_attack, '       leader: counter attack poison chance too high', counter_outcomes.def_outcome.poisoned)
                                     acceptable_counter = false
                                     FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
