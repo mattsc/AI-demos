@@ -1966,13 +1966,10 @@ return {
             end
 
             -- How much more valuable do we consider the enemy units than our own
-            local value_ratio = FU.cfg_default('value_ratio')
-            if zone_cfg.value_ratio then
-                value_ratio = zone_cfg.value_ratio
-            end
-            --print_time('value_ratio', value_ratio)
+            local value_ratio = zone_cfg.value_ratio or FU.cfg_default('value_ratio')
+            print_time('value_ratio', value_ratio)
 
-            -- TODO: is max_damage_Weapon the right thing to do here?
+            -- TODO: is max_damage_weapon the right thing to do here?
             local cfg_attack = {
                 value_ratio = value_ratio,
                 use_max_damage_weapons = true
@@ -1999,37 +1996,12 @@ return {
                 )
                 --print_time('#attack_combos', #attack_combos)
 
-                -- Check if this exceeds allowable resources
-                -- For attacks, we allow use of power up to power_missing
-                -- TODO: might need to add some margin or contingency to this
-
-                -- TODO: check: table.remove might be slow
-
-                local allowable_power = zone_cfg.power_missing or 9e99
-                --print('  allowable_power', allowable_power)
-
-                for j = #attack_combos,1,-1 do
-                    local combo = attack_combos[j]
-                    --print('  combo #' .. j)
-                    local n_attackers = 0
-                    local tmp_attackers = {}
-                    for src,dst in pairs(combo) do
-                        --print('    attacker power:', gamedata.unit_infos[attacker_map[src]].id, gamedata.unit_infos[attacker_map[src]].power)
-                        table.insert(tmp_attackers, { id = gamedata.unit_infos[attacker_map[src]].id })
-                        n_attackers = n_attackers + 1
-                    end
-                end
-                --print_time('#attack_combos', #attack_combos)
-                --DBG.dbms(attack_combos)
-
 
                 for j,combo in ipairs(attack_combos) do
                     --print_time('combo ' .. j)
 
                     -- Only check out the first 1000 attack combos to keep evaluation time reasonable
                     if (j > 1000) then break end
-
-                    -- attackers and dsts arrays for attack outcome calculation
 
                     local attempt_trapping = is_trappable_enemy
 
@@ -2127,6 +2099,8 @@ return {
                         -- For each such village found, we give a penalty eqivalent to 10 HP of the target
                         if (adj_unocc_village > 0) then
                             if (combo_outcome.def_outcome.hp_chance[0] < 0.5) then
+                                -- TODO: this condition should maybe only apply when the target is
+                                -- can reach the village after the attack?
                                 do_attack = false
                             else
                                 local unit_value = FU.unit_value(gamedata.unit_infos[target_id])
@@ -2223,7 +2197,6 @@ return {
 
                         -- Discourage use of poisoners in attacks that have a
                         -- high chance to result in kill
-                        -- TODO: does the value of 0.33 make sense?
                         if (combo_outcome.def_outcome.hp_chance[0] > 0.33) then
                             local number_poisoners = 0
                             for i_a,attacker in ipairs(combo_outcome.attacker_infos) do
@@ -2245,6 +2218,9 @@ return {
                                 bonus_rating = bonus_rating - penalty
                             end
                         end
+
+                        -- TOOO: discourage use of more than one poisoner in general
+                        -- TODO: discourage use of poisoners on regenerating units
 
                         --print_time(' -----------------------> rating', combo_rating, bonus_rating)
 
@@ -2278,7 +2254,7 @@ return {
             FU.print_debug(show_debug_attack, '#combo_ratings', #combo_ratings)
 
             -- Now check whether counter attacks are acceptable
-            local max_total_rating, action = -9e99
+            local max_total_rating, action
             local disqualified_attacks = {}
             for count,combo in ipairs(combo_ratings) do
                 if (count > 50) and action then break end
@@ -2545,7 +2521,7 @@ return {
                         if counter_outcomes and ((#combo.attackers > 1) or (attacker.moves > 0)) then
                             local counter_min_hp = counter_outcomes.def_outcome.min_hp
                             -- If there's a chance of the leader getting poisoned, slowed or killed, don't do it
-                            -- TODO: unless he is so already?
+                            -- unless he is poisoned/slowed already
                             if attacker.canrecruit then
                                 --print('Leader: slowed, poisoned %', counter_outcomes.def_outcome.slowed, counter_outcomes.def_outcome.poisoned)
                                 if (counter_outcomes.def_outcome.slowed > 0.0) then
@@ -2673,7 +2649,7 @@ return {
                         end
                         FU.print_debug(show_debug_attack, '      --> total_rating adjusted', total_rating)
 
-                        if (total_rating > max_total_rating) then
+                        if (not max_total_rating) or (total_rating > max_total_rating) then
                             max_total_rating = total_rating
 
                             action = { units = {}, dsts = {}, enemy = combo.target }
