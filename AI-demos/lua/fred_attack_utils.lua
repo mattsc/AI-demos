@@ -472,7 +472,11 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack, is_attacker, 
 
     -- Count poison as additional 8 HP on total damage
     if attack.poison and (not opponent_info.status.poisoned) and (not opponent_info.status.unpoisonable) then
-        total_damage = total_damage + 8
+        local poison_damage = 8
+        if opponent_info.traits.healthy then
+           poison_damage = poison_damage * 0.75
+        end
+        total_damage = total_damage + poison_damage
     end
 
     -- Count slow as additional 4 HP on total damage
@@ -523,6 +527,19 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack, is_attacker, 
     -- Notes on other weapons specials:
     --  - charge is automatically taken into account
     --  - swarm is automatically taken into account
+
+    -- The following two are the same for the same opponent. That is, they make
+    -- no difference for selecting the best weapon for a given attacker/defender
+    -- pair, but they do matter if this is use to compare attacks between
+    -- different units pairs
+
+    if opponent_info.abilities.regenerate then
+        total_damage = total_damage - 8
+    end
+
+    if opponent_info.traits.healthy then
+        total_damage = total_damage - 2
+    end
 
     return total_damage
 end
