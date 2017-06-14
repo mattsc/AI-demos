@@ -226,11 +226,25 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
             for _,id in ipairs(village.units) do
                 local unit_rating = base_rating / (villages_in_reach.by_unit[id]^2)
 
-                -- Use most injured unit first (but less important than choice of village)
                 local ui = gamedata.unit_infos[id]
-                local add_rating_unit = (ui.max_hitpoints - ui.hitpoints) / ui.max_hitpoints
-                if ui.status.poisoned then
-                    add_rating_unit = add_rating_unit + 8 / ui.max_hitpoints
+
+                -- Use most injured unit first (but less important than choice of village)
+                -- Don't give an injured bonus for regenerating units
+                local add_rating_unit = 0
+                if (not ui.abilities.regenerate) then
+                    add_rating_unit = add_rating_unit + (ui.max_hitpoints - ui.hitpoints) / ui.max_hitpoints
+
+                    if ui.status.poisoned then
+                        local poison_damage = 8
+                        if ui.traits.healthy then
+                            poison_damage = poison_damage * 0.75
+                        end
+                        add_rating_unit = add_rating_unit + poison_damage / ui.max_hitpoints
+                    end
+                end
+
+                if ui.traits.healthy then
+                    add_rating_unit = add_rating_unit - 2 / ui.max_hitpoints
                 end
 
                 -- And finally, prefer the fastest unit, but at an even lesser level
@@ -238,6 +252,7 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
 
                 -- Finally, prefer the leader, if possible, but only in the minor ratings
                 if ui.canrecruit then
+                    -- Note that add_rating_unit can be negative, but that's okay here
                     add_rating_unit = add_rating_unit * 2
                 end
 
