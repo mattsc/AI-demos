@@ -225,9 +225,7 @@ function fred_utils.cfg_default(parm)
 
         leader_weight = 1.5,
 
-        -- On average, next level unit costs ~1.75 times more than current unit
-        -- TODO: come up with a more exact measure of this
-        xp_weight = 0.75,
+        xp_weight = 1.0,
 
         terrain_defense_weight = 0.1,
         distance_leader_weight = 0.002,
@@ -258,22 +256,28 @@ function fred_utils.unit_value(unit_info, cfg)
         unit_value = unit_value * leader_weight
     end
 
-    -- Being closer to leveling makes the unit more valuable
-    -- Square so that a few XP don't matter, but being close to leveling is important
-    -- TODO: consider using a more precise measure here
+    -- Being closer to leveling makes the unit more valuable, proportional to
+    -- the difference between the unit and the leveled unit
+    local cost_factor = 1.5
+    if unit_info.advances_to then
+        local advanced_cost = wesnoth.unit_types[unit_info.advances_to].cost
+        cost_factor = advanced_cost / unit_info.cost
+    end
 
     local xp_diff = unit_info.max_experience - unit_info.experience
 
+    -- Square so that a few XP don't matter, but being close to leveling is important
+    -- Unit very close to leveling is considered even more valuable than leveled unit
     local xp_bonus
     if (xp_diff <= 1) then
         xp_bonus = 1.33
     elseif (xp_diff <= 8) then
         xp_bonus = 1.2
     else
-        xp_bonus = (unit_info.experience / (unit_info.max_experience - 4))^2
+        xp_bonus = (unit_info.experience / (unit_info.max_experience - 6))^2
     end
 
-    unit_value = unit_value * (1. + xp_bonus * xp_weight)
+    unit_value = unit_value * (1. + xp_bonus * (cost_factor - 1) * xp_weight)
 
     --print('fred_utils.unit_value:', unit_info.id, unit_value, xp_bonus, xp_diff)
 
