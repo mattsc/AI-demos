@@ -329,7 +329,14 @@ function fred_utils.retreat_utilities(gamedata)
             hp_eff = hp_eff + 8
         end
         if gamedata.unit_infos[id].status.poisoned then
-            hp_eff = hp_eff - 8
+            local poison_damage = 8
+            if gamedata.unit_infos[id].traits.healthy then
+                poison_damage = poison_damage * 0.75
+            end
+            hp_eff = hp_eff - poison_damage
+        end
+        if gamedata.unit_infos[id].traits.healthy then
+            hp_eff = hp_eff + 2
         end
         if (hp_eff > gamedata.unit_infos[id].max_hitpoints) then
             hp_eff = gamedata.unit_infos[id].max_hitpoints
