@@ -523,6 +523,9 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack, is_attacker, 
     if attack.plague and (not opponent_info.status.unplagueable) then
         total_damage = total_damage + 2
     end
+    if attack.petrifies then
+        total_damage = total_damage + 2
+    end
 
     -- Notes on other weapons specials:
     --  - charge is automatically taken into account
