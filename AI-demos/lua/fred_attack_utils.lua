@@ -180,10 +180,14 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, gamedata, cf
         -- Notes:
         --  - Unlike wesnoth.simulate_combat, attack_outcome does not count the
         --    HP=0 case counts as poisoned
-        --  - No special treatment is needed for  unpoisonable units (e.g. undead)
+        --  - No special treatment is needed for unpoisonable units (e.g. undead)
         --    as att_outcome.poisoned is always zero for them
         if (att_outcome.poisoned ~= 0) and (not unit_info.status.poisoned) then
-            delayed_damage = delayed_damage + 8 * att_outcome.poisoned
+            local poison_damage = 8
+            if unit_info.traits.healthy then
+                poison_damage = poison_damage * 0.75
+            end
+            delayed_damage = delayed_damage + poison_damage * att_outcome.poisoned
         end
 
         -- Count slowed as additional 4 HP damage times probability of being slowed
@@ -203,9 +207,13 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, gamedata, cf
         if is_village then
             delayed_damage = delayed_damage - 8 * (1 - att_outcome.hp_chance[0])
         -- Otherwise only: if unit can regenerate, this is an 8 HP bonus (negative damage)
-        -- multiplied by the chance to survive
+        -- multiplied by the chance to survive and not be poisoned
         elseif unit_info.abilities.regenerate then
-            delayed_damage = delayed_damage - 8 * (1 - att_outcome.hp_chance[0])
+            delayed_damage = delayed_damage - 8 * (1 - att_outcome.hp_chance[0] - att_outcome.poisoned)
+        end
+
+        if unit_info.traits.healthy then
+            delayed_damage = delayed_damage - 2
         end
 
         -- Units with healthy trait get an automatic 2 HP healing
