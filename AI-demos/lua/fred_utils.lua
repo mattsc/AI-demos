@@ -607,11 +607,18 @@ function fred_utils.single_unit_info(unit_proxy)
 
         table.insert(single_unit_info.attacks, a)
 
+        -- TODO: potentially use FAU.get_total_damage_attack for this later, but for
+        -- the time being these are too different, and have too different a purpose.
         total_damage = a.damage * a.number
 
         -- Just use blanket damage for poison and slow for now; might be refined later
         if a.poison then total_damage = total_damage + 8 end
         if a.slow then total_damage = total_damage + 4 end
+
+        -- Also give some bonus for drain and backstab, but not to the full extent
+        -- of what they can achieve
+        if a.drains then total_damage = total_damage * 1.25 end
+        if a.backstab then total_damage = total_damage * 1.33 end
 
         if (total_damage > max_damage) then
             max_damage = total_damage
