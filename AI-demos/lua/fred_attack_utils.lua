@@ -869,6 +869,13 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
             for hp2,chance2 in pairs(def_outcome.levelup.hp_chance) do
                 def_combo_table_base.levelup.hp_chance[hp2] = (def_combo_table_base.levelup.hp_chance[hp2] or 0) + chance1 * chance2
             end
+
+            -- Also, it is possible that no type/max_hp are set in the levelup table,
+            -- if this is an attack combo with >2 units
+            if (not def_combo_table_base.levelup.type) then
+                def_combo_table_base.levelup.type = def_outcome.levelup.type
+                def_combo_table_base.levelup.max_hp = def_outcome.levelup.max_hp
+            end
         end
     end
     ----- End combine_outcomes() -----
