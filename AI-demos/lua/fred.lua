@@ -2206,32 +2206,60 @@ return {
                             end
                         end
 
-                        -- Discourage use of poisoners in attacks that have a
-                        -- high chance to result in kill
-                        if (combo_outcome.def_outcome.hp_chance[0] > 0.33) then
-                            local number_poisoners = 0
-                            for i_a,attacker in ipairs(combo_outcome.attacker_infos) do
-                                local is_poisoner = false
-                                for _,weapon in ipairs(attacker.attacks) do
-                                    if weapon.poison then
-                                        number_poisoners = number_poisoners + 1
-                                        break
-                                    end
+                        -- Discourage use of poisoners:
+                        --  - In attacks that have a high chance to result in kill
+                        --  - Against unpoisonable units and units which are already poisoned
+                        --  - Against regenerating units
+                        --  - More than one poisoner
+                        -- These are independent of whether the poison attack is actually used in
+                        -- this attack combo, the motivation being that it takes away poison use
+                        -- from other attack where it may be more useful, rather than the use of
+                        -- it in this attack, as that is already taken care of in the attack outcome
+                        local number_poisoners = 0
+                        for i_a,attacker in ipairs(combo_outcome.attacker_infos) do
+                            local is_poisoner = false
+                            for _,weapon in ipairs(attacker.attacks) do
+                                if weapon.poison then
+                                    number_poisoners = number_poisoners + 1
+                                    break
                                 end
-                            end
-
-                            -- For each poisoner in such an attack, we give a penalty eqivalent to 8 HP of the target
-                            if (number_poisoners > 0) then
-                                local unit_value = FU.unit_value(gamedata.unit_infos[target_id])
-                                local penalty = 8. / gamedata.unit_infos[target_id].max_hitpoints * unit_value
-                                penalty = penalty * number_poisoners
-                                --print('Applying poisoner penalty', bonus_rating, penalty)
-                                bonus_rating = bonus_rating - penalty
                             end
                         end
 
-                        -- TOOO: discourage use of more than one poisoner in general
-                        -- TODO: discourage use of poisoners on regenerating units
+                        if (number_poisoners > 0) then
+                            local poison_penalty = 0
+                            local target_info = gamedata.unit_infos[target_id]
+
+                            -- Attack with chance to kill, penalty equivalent to 8 HP of the target times CTK
+                            if (combo_outcome.def_outcome.hp_chance[0] > 0) then
+                                poison_penalty = poison_penalty + 8. * combo_outcome.def_outcome.hp_chance[0] * number_poisoners
+                            end
+
+                            -- Already poisoned or unpoisonable unit
+                            if target_info.status.poisoned or target_info.status.unpoisonable then
+                                poison_penalty = poison_penalty + 8. * number_poisoners
+                            end
+
+                            -- Regenerating unit, but to a lesser degree, as poison is still useful here
+                            if target_info.abilities.regenerate then
+                                poison_penalty = poison_penalty + 4. * number_poisoners
+                            end
+
+                            -- More than one poisoner: don't quite use full amount as there's
+                            -- a higher chance to poison target when several poisoners are used
+                            -- In principle, one could could calculate the progressive chance
+                            -- to poison here, but that seems overkill given the approximate nature
+                            -- of the whole calculation in the first place
+                            if (number_poisoners > 1) then
+                                poison_penalty = poison_penalty + 6. * (number_poisoners - 1)
+                            end
+
+                            poison_penalty = poison_penalty / target_info.max_hitpoints * FU.unit_value(target_info)
+                            bonus_rating = bonus_rating - poison_penalty
+                        end
+                            end
+                        end
+
 
                         --print_time(' -----------------------> rating', combo_rating, bonus_rating)
 
