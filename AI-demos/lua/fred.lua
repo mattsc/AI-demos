@@ -2257,8 +2257,46 @@ return {
                             poison_penalty = poison_penalty / target_info.max_hitpoints * FU.unit_value(target_info)
                             bonus_rating = bonus_rating - poison_penalty
                         end
+
+                        -- Discourage use of slow:
+                        --  - In attacks that have a high chance to result in kill
+                        --  - Against units which are already slowed
+                        --  - More than one slower
+                        local number_slowers = 0
+                        for i_a,attacker in ipairs(combo_outcome.attacker_infos) do
+                            local is_slower = false
+                            for _,weapon in ipairs(attacker.attacks) do
+DBG.dbms(weapon)
+                                if weapon.slow then
+                                    number_slowers = number_slowers + 1
+                                    break
+                                end
                             end
                         end
+
+                        if (number_slowers > 0) then
+                            local slow_penalty = 0
+                            local target_info = gamedata.unit_infos[target_id]
+
+                            -- Attack with chance to kill, penalty equivalent to 4 HP of the target times CTK
+                            if (combo_outcome.def_outcome.hp_chance[0] > 0) then
+                                slow_penalty = slow_penalty + 4. * combo_outcome.def_outcome.hp_chance[0] * number_slowers
+                            end
+
+                            -- Already slowed unit
+                            if target_info.status.slowed then
+                                slow_penalty = slow_penalty + 4. * number_slowers
+                            end
+
+                            -- More than one slower
+                            if (number_slowers > 1) then
+                                slow_penalty = slow_penalty + 3. * (number_slowers - 1)
+                            end
+
+                            slow_penalty = slow_penalty / target_info.max_hitpoints * FU.unit_value(target_info)
+                            bonus_rating = bonus_rating - slow_penalty
+                        end
+
 
 
                         --print_time(' -----------------------> rating', combo_rating, bonus_rating)
