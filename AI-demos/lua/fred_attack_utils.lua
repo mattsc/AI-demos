@@ -272,6 +272,7 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, gamedata, cf
 
     -- Finally, add some info about the unit, just for convenience
     damage.id = unit_info.id
+    damage.hitpoints = unit_info.hitpoints
     damage.max_hitpoints = unit_info.max_hitpoints
     damage.unit_value = FU.unit_value(unit_info, cfg)
 
@@ -285,7 +286,15 @@ function fred_attack_utils.damage_rating_unit(damage)
     -- !!!! Note !!!!: unlike some previous versions, we count damage as negative
     -- in this rating
 
-    local fractional_damage = (damage.damage + damage.delayed_damage) / damage.max_hitpoints
+    -- In principle, damage is a fraction of max_hitpoints. However, it should be
+    -- more important for units already injured. Making it a fraction of hitpoints
+    -- would overemphasize units close to dying, as that is also factored in. Thus,
+    -- we use an effective HP value that's a weighted average of the two.
+    -- TODO: splitting it 50/50 seems okay for now, but might have to be fine-tuned.
+    local injured_fraction = 0.5
+    local hp_eff = injured_fraction * damage.hitpoints + (1 - injured_fraction) * damage.max_hitpoints
+
+    local fractional_damage = (damage.damage + damage.delayed_damage) / hp_eff
     local fractional_rating = - FU.weight_s(fractional_damage, 0.67)
     --print('  fractional_damage, fractional_rating:', fractional_damage, fractional_rating)
 
