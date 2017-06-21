@@ -2793,7 +2793,6 @@ return {
             local protect_leader = zone_cfg.protect_leader
             --print('protect_leader', protect_leader)
 
-            local zone_map = {}
             local zone
             if protect_leader then
                 zone = wesnoth.get_locations {
@@ -2804,8 +2803,22 @@ return {
                 zone = wesnoth.get_locations(raw_cfg.ops_slf)
             end
 
+            -- For what it is right now, the following could simply be included in the
+            -- filter above. However, this opens up the option of including [avoid] tags
+            -- or similar functionality later.
+            local avoid_map = {}
+            -- If the leader is to be protected, the leader location needs to be excluded
+            -- from the hexes to consider, otherwise the check whether the leader is better
+            -- protected by a hold doesn't work and causes the AI to crash.
+            if protect_leader then
+                FU.set_fgumap_value(avoid_map, gamedata.leader_x, gamedata.leader_y, 'flag', true)
+            end
+
+            local zone_map = {}
             for _,loc in ipairs(zone) do
-                FU.set_fgumap_value(zone_map, loc[1], loc[2], 'flag', true)
+                if (not FU.get_fgumap_value(avoid_map, loc[1], loc[2], 'flag')) then
+                    FU.set_fgumap_value(zone_map, loc[1], loc[2], 'flag', true)
+                end
             end
             if false then
                 FU.show_fgumap_with_message(zone_map, 'flag', 'Zone map')
