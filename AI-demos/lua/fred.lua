@@ -1967,7 +1967,7 @@ return {
 
             -- How much more valuable do we consider the enemy units than our own
             local value_ratio = zone_cfg.value_ratio or FU.cfg_default('value_ratio')
-            print_time('value_ratio', value_ratio)
+            --print_time('value_ratio', value_ratio)
 
             -- TODO: is max_damage_weapon the right thing to do here?
             local cfg_attack = {
@@ -2266,7 +2266,6 @@ return {
                         for i_a,attacker in ipairs(combo_outcome.attacker_infos) do
                             local is_slower = false
                             for _,weapon in ipairs(attacker.attacks) do
-DBG.dbms(weapon)
                                 if weapon.slow then
                                     number_slowers = number_slowers + 1
                                     break
