@@ -162,7 +162,7 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, gamedata, cf
         -- Returns the damage the unit is expected to get from delayed effects, both
         -- positive and negative. The value returned is the actual damage times the
         -- probability of the effect.
-        --  - Positive damage: poison, slow (counting slow as damage)
+        --  - Positive damage: poison
         --  - Negative damage: villages, regenerate, healthy trait
         --      Rest healing is not considered, as this is for attack evaluation.
         -- TODO: add healers
@@ -188,15 +188,6 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, gamedata, cf
                 poison_damage = poison_damage * 0.75
             end
             delayed_damage = delayed_damage + poison_damage * att_outcome.poisoned
-        end
-
-        -- Count slowed as additional 4 HP damage times probability of being slowed
-        -- but only if the unit is not already slowed
-        -- Notes:
-        --  - Unlike wesnoth.simulate_combat, attack_outcome does not count the
-        --    HP=0 case counts as slowed
-        if (att_outcome.slowed ~= 0) and (not unit_info.status.slowed) then
-            delayed_damage = delayed_damage + 4 * att_outcome.slowed
         end
 
         -- Negative delayed damage (healing)
@@ -270,6 +261,14 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, gamedata, cf
 
     damage.delayed_damage = get_delayed_damage(unit_info, att_outcome, average_damage, dst, gamedata)
 
+    -- Slow is somewhat harder to account for correctly. It sort of takes half the
+    -- unit away, but since it's temporary, we assign only half of that as "damage".
+    -- We also separate it out, as it wears off at the end of the respective side turn.
+    damage.slowed_damage = 0
+    if (att_outcome.slowed ~= 0) and (not unit_info.status.slowed) then
+        damage.slowed_damage = unit_info.max_hitpoints / 4 * att_outcome.slowed
+    end
+
     -- Finally, add some info about the unit, just for convenience
     damage.id = unit_info.id
     damage.hitpoints = unit_info.hitpoints
@@ -282,6 +281,8 @@ end
 function fred_attack_utils.damage_rating_unit(damage)
     -- Calculate a damage rating for a unit from the table returned by
     -- fred_attack_utils.unit_damage()
+    -- This is a total rating, adding up direct, delayed and slow damage.
+    -- TODO: if needed, the function could return a table with separate ratings
     --
     -- !!!! Note !!!!: unlike some previous versions, we count damage as negative
     -- in this rating
@@ -294,7 +295,7 @@ function fred_attack_utils.damage_rating_unit(damage)
     local injured_fraction = 0.5
     local hp_eff = injured_fraction * damage.hitpoints + (1 - injured_fraction) * damage.max_hitpoints
 
-    local fractional_damage = (damage.damage + damage.delayed_damage) / hp_eff
+    local fractional_damage = (damage.damage + damage.delayed_damage + damage.slowed_damage) / hp_eff
     local fractional_rating = - FU.weight_s(fractional_damage, 0.67)
     --print('  fractional_damage, fractional_rating:', fractional_damage, fractional_rating)
 
