@@ -191,6 +191,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         )
 
         local remainging_hp = gamedata.unit_infos[leader_id].hitpoints
+        -- TODO: add healthy, regenerate.  Use fred_attack_utils functions?
         if counter_outcomes then
             remainging_hp = counter_outcomes.def_outcome.average_hp
             remainging_hp = remainging_hp - counter_outcomes.def_outcome.poisoned * 8

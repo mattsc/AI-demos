@@ -1969,7 +1969,10 @@ return {
             local value_ratio = zone_cfg.value_ratio or FU.cfg_default('value_ratio')
             --print_time('value_ratio', value_ratio)
 
-            -- TODO: is max_damage_weapon the right thing to do here?
+            -- We need to make sure the units always use the same weapon below, otherwise
+            -- the comparison is not fair.
+            -- TODO: check whether using max_damage_weapon is the correct criterion, or
+            -- if some other "best" weapon criterion is better.
             local cfg_attack = {
                 value_ratio = value_ratio,
                 use_max_damage_weapons = true
@@ -2006,6 +2009,11 @@ return {
                     local attempt_trapping = is_trappable_enemy
 
                     local combo_outcome = FAU.attack_combo_eval(combo, target, gamedata, move_cache, cfg_attack)
+
+                    -- For this first assessment, we use the full rating, that is, including
+                    -- all types of damage, extra rating, etc. While this is not accurate for
+                    -- the state at the end of the attack, it gives a good overall rating
+                    -- for the attacker/defender pairings involved.
                     local combo_rating = combo_outcome.rating_table.rating
 
                     local bonus_rating = 0
@@ -2428,10 +2436,10 @@ return {
                         )
                         --DBG.dbms(counter_outcomes)
 
-                        -- The total damage through attack + counter attack should use for
+
                         -- forward attack: attacker damage rating and defender total rating
                         -- counter attack: attacker total rating and defender damage rating
-                        -- as that is how the delayed damage is applied
+                        -- as that is how the delayed damage is applied in game
                         -- In addition, the counter attack damage needs to be multiplied
                         -- by the chance of each unit to survive, otherwise units close
                         -- to dying are much overrated
