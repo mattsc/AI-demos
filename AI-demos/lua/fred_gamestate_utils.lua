@@ -128,7 +128,7 @@ function fred_gamestate_utils.unit_infos()
     return unit_infos
 end
 
-function fred_gamestate_utils.get_gamestate(unit_infos)
+function fred_gamestate_utils.get_gamedata()
     -- Returns:
     --   - State of villages and units on the map (all in one variable: gamestate)
     --   - Reach maps for all the AI's units (in separate variable: reach_maps)
@@ -137,6 +137,8 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
     -- They can also be retrieved all in one table using get_gamedata()
     --
     -- See above for the information returned
+
+    local unit_infos = fred_gamestate_utils.unit_infos()
 
     local mapstate, reach_maps = {}, {}
 
@@ -457,16 +459,7 @@ function fred_gamestate_utils.get_gamestate(unit_infos)
 
     mapstate.unit_attack_maps = unit_attack_maps
 
-    return mapstate, reach_maps, unit_copies
-end
-
-function fred_gamestate_utils.get_gamedata()
-    -- Combine all the game data tables into one wrapper table
-    -- See above for the information included
-
-    local unit_infos = fred_gamestate_utils.unit_infos()
-
-    local gamedata, reach_maps, unit_copies = fred_gamestate_utils.get_gamestate(unit_infos)
+    local gamedata = mapstate
 
     gamedata.reach_maps = reach_maps
     gamedata.unit_copies = unit_copies
