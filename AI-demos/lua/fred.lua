@@ -2304,6 +2304,38 @@ return {
                             bonus_rating = bonus_rating - slow_penalty
                         end
 
+                        -- Discourage use of plaguers:
+                        --  - Against unplagueable units
+                        --  - More than one plaguer
+                        local number_plaguers = 0
+                        for i_a,attacker in ipairs(combo_outcome.attacker_infos) do
+                            local is_plaguer = false
+                            for _,weapon in ipairs(attacker.attacks) do
+                                if weapon.plague then
+                                    number_plaguers = number_plaguers + 1
+                                    break
+                                end
+                            end
+                        end
+
+                        if (number_plaguers > 0) then
+                            local plague_penalty = 0
+                            local target_info = gamedata.unit_infos[target_id]
+
+                            -- Unplagueable unit
+                            if target_info.status.unplagueable then
+                                plague_penalty = plague_penalty + 8. * number_plaguers
+                            end
+
+                            -- More than one plaguer: don't quite use full amount as there's
+                            -- a higher chance to plague target when several plaguers are used
+                            if (number_plaguers > 1) then
+                                plague_penalty = plague_penalty + 6. * (number_plaguers - 1)
+                            end
+
+                            plague_penalty = plague_penalty / target_info.max_hitpoints * FU.unit_value(target_info)
+                            bonus_rating = bonus_rating - plague_penalty
+                        end
 
 
                         --print_time(' -----------------------> rating', combo_rating, bonus_rating)
