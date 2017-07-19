@@ -2614,7 +2614,7 @@ return {
                         local value_ratio = combo.rating_table.value_ratio
                         FU.print_debug(show_debug_attack, '  --> value_ratio:', value_ratio)
 
-                        local damage_rating = my_rating * value_ratio + enemy_rating + extra_rating
+                        local damage_rating = my_rating * value_ratio + enemy_rating
 
                         -- Also add in the bonus and extra ratings. They are
                         -- used to select the best attack, but not to determine
