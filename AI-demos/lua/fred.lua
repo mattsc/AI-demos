@@ -2343,8 +2343,21 @@ return {
                         local full_rating = combo_rating + bonus_rating
                         local pre_rating = full_rating
 
-                        if (full_rating > 0) and (#combo_outcome.attacker_infos > 2) then
-                            pre_rating = pre_rating / ( #combo_outcome.attacker_infos / 2)
+
+                        -- Derate combo if it uses too many units for diminishing return
+                        local derating = 1
+                        local n_att = #combo_outcome.attacker_infos
+                        if (full_rating > 0) and (n_att > 2) then
+                            local progression = combo_outcome.rating_table.progression
+                            -- dim_return is 1 if the last units adds exactly 1/n_att to the overall rating
+                            -- It is s<1 if less value is added, >1 if more is added
+                            local dim_return = (progression[n_att] - progression[n_att - 1]) / progression[n_att] * n_att
+                            if (dim_return < 1) then
+                                derating = math.sqrt(dim_return)
+                            end
+                            --print('derating', n_att, dim_return, derating)
+
+                            pre_rating = pre_rating * derating
                         end
 
                         table.insert(combo_ratings, {
@@ -2760,8 +2773,8 @@ return {
                         FU.print_debug(show_debug_attack, '    Acceptable counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating_table.rating)
                         FU.print_debug(show_debug_attack, '      --> total_rating', total_rating)
 
-                        if (total_rating > 0) and (#combo.dsts > 2) then
-                            total_rating = total_rating / ( #combo.dsts / 2)
+                        if (total_rating > 0) then
+                            total_rating = total_rating * combo.derating
                         end
                         FU.print_debug(show_debug_attack, '      --> total_rating adjusted', total_rating)
 
