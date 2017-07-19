@@ -2364,6 +2364,7 @@ return {
                             rating = full_rating,
                             pre_rating = pre_rating,
                             bonus_rating = bonus_rating,
+                            derating = derating,
                             attackers = combo_outcome.attacker_infos,
                             dsts = combo_outcome.dsts,
                             target = target,
