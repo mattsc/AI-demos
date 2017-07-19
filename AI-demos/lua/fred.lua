@@ -2619,7 +2619,7 @@ return {
                         -- Also add in the bonus and extra ratings. They are
                         -- used to select the best attack, but not to determine
                         -- whether an attack is acceptable
-                        local damage_rating = damage_rating + extra_rating + combo.bonus_rating
+                        damage_rating = damage_rating + extra_rating + combo.bonus_rating
 
                         FU.print_debug(show_debug_attack, '     --> damage_rating:', damage_rating)
 
