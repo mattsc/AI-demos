@@ -2209,6 +2209,14 @@ return {
                             if trapping_bonus then
                                 local unit_value = FU.unit_value(gamedata.unit_infos[target_id])
                                 local bonus = 8. / gamedata.unit_infos[target_id].max_hitpoints * unit_value
+
+                                -- Trapping is pointless if the target dies
+                                bonus = bonus * (1 - combo_outcome.def_outcome.hp_chance[0])
+                                -- Potential TODO: the same is true if one of the attackers needed for
+                                -- trapping dies, but that already has a large penalty, and we'd have
+                                -- to check that the unit is not trapped any more in combos with more
+                                -- than 2 attackers. This is likely not worth the effort.
+
                                 --print('Applying trapping bonus', bonus_rating, bonus)
                                 bonus_rating = bonus_rating + bonus
                             end
