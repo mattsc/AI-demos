@@ -371,6 +371,49 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     -- Rating for the defender is negative damage rating (as in, damage is good)
     local defender_rating = - fred_attack_utils.damage_rating_unit(defender_damage)
 
+
+    -- Bonus for turning enemy into walking corpse with plague.
+    -- This is a large value as it directly creates an 8-gold unit, that is, it
+    -- is not divided by the max_hp of the unit.
+    -- TODO: this does not consider whether the plague weapon is actually the weapon used
+    for i,attacker_info in ipairs(attacker_infos) do
+        for _,weapon in ipairs(attacker_info.attacks) do
+            if weapon.plague then
+                --print('attacker #' .. i .. ' ' .. attacker_info.id ..' has plague special')
+                local ctk
+                if (#attacker_infos == 1) then
+                    ctk = def_outcome.hp_chance[0]
+                else
+                    ctk = def_outcome.ctd_progression[i] - (def_outcome.ctd_progression[i - 1] or 0)
+                end
+                local plague_bonus = 8 * ctk
+
+                -- Converting the defender is positive rating for attacker side (new WC)
+                --print('  applying attacker plague bonus', plague_bonus, ctk)
+                attacker_rating = attacker_rating + plague_bonus
+
+                break
+            end
+        end
+    end
+
+    for _,weapon in ipairs(defender_info.attacks) do
+        if weapon.plague then
+            --print('defender ' .. defender_info.id ..' has plague special')
+            for i,att_outcome in ipairs(att_outcomes) do
+                local ctk = att_outcome.hp_chance[0]
+                local plague_penalty = 8 * ctk
+
+                -- Converting the attacker is (negative) contribution to the defender rating
+                --print('  applying attacker #' .. i .. ' plague plague_penalty', plague_penalty, ctk)
+                defender_rating = defender_rating - plague_penalty
+            end
+
+            break
+        end
+    end
+
+
     -- Now we add some extra ratings. They are positive for attacks that should be preferred
     -- and expressed in fraction of the defender maximum hitpoints
     -- They should be used to help decide which attack to pick all else being equal,
