@@ -2330,18 +2330,25 @@ return {
                             local plague_penalty = 0
                             local target_info = gamedata.unit_infos[target_id]
 
+                            -- This is a large penalty, as it is the equivalent of the gold value
+                            -- of a walking corpse (that is, unlike other contributions, this
+                            -- is not multiplied by unit_value / max_hitpoints).  However, as it
+                            -- is not guaranteed that another attack would result in a new WC, we
+                            -- only use half that value
+
                             -- Unplagueable unit
                             if target_info.status.unplagueable then
-                                plague_penalty = plague_penalty + 8. * number_plaguers
+                                plague_penalty = plague_penalty + 0.5 * 8. * number_plaguers
                             end
 
                             -- More than one plaguer: don't quite use full amount as there's
                             -- a higher chance to plague target when several plaguers are used
                             if (number_plaguers > 1) then
-                                plague_penalty = plague_penalty + 6. * (number_plaguers - 1)
+                                plague_penalty = plague_penalty + 0.5 * 6. * (number_plaguers - 1)
                             end
 
-                            plague_penalty = plague_penalty / target_info.max_hitpoints * FU.unit_value(target_info)
+                            print('Applying plague penalty', bonus_rating, plague_penalty)
+
                             bonus_rating = bonus_rating - plague_penalty
                         end
 
