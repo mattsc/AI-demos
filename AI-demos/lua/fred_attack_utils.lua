@@ -421,7 +421,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     local extra_rating = 0.
 
     -- If defender is on a village, add a bonus rating (we want to get rid of those preferentially)
-    -- This is in addition to the damage bonus already included above (but as an extra rating)
+    -- This is in addition to the damage bonus (penalty, if enemy) already included above (but as an extra rating)
     local defender_on_village = gamedata.village_map[defender_x] and gamedata.village_map[defender_x][defender_y]
     if defender_on_village then
         extra_rating = extra_rating + 10.

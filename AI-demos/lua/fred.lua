@@ -2116,6 +2116,8 @@ return {
                         end
 
                         -- For each such village found, we give a penalty eqivalent to 10 HP of the target
+                        -- and we do not do the attack at all if the CTD of the defender is low
+                        -- TODO: refine this?
                         if (adj_unocc_village > 0) then
                             if (combo_outcome.def_outcome.hp_chance[0] < 0.5) then
                                 -- TODO: this condition should maybe only apply when the target is
@@ -2205,7 +2207,7 @@ return {
                             end
 
                             -- If this is a valid trapping attack, we give a
-                            -- bonus eqivalent to 8 HP of the target
+                            -- bonus eqivalent to 8 HP * (1 - CTD) of the target
                             if trapping_bonus then
                                 local unit_value = FU.unit_value(gamedata.unit_infos[target_id])
                                 local bonus = 8. / gamedata.unit_infos[target_id].max_hitpoints * unit_value
@@ -2409,7 +2411,7 @@ return {
                 -- Only do so for large numbers of combos though; there is a small
                 -- chance of a later attack that uses the same hexes being qualified
                 -- because the hexes the units are on work better for the forward attack.
-                -- So if there are not too many combos, we calculated all of them.
+                -- So if there are not too many combos, we calculate all of them.
                 -- As forward attacks are rated by their attack score, this is
                 -- pretty unlikely though.
                 local is_disqualified = false
