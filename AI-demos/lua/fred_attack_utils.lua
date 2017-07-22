@@ -806,6 +806,8 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
     --   - att_outcomes: an array of outcomes for each attacker, in the order found for the "best attack",
     --       which is generally different from the order of @tmp_attacker_copies
     --   - def_outcome: one set of outcomes containing the defender outcome after the attack combination
+    --       However, compared to the single-attacker def_outcome, this has an added table 'ctd_progression',
+    --       which contains the chance to die in each of the attacks
     --   - rating_table: rating for this attack combination calculated from fred_attack_utils.attack_rating() results
     --   - attacker_damages, defender_damage: damage table for all attackers, and the combined damage for the defender
     --   - attacker_infos, dsts: attacker_infos and dsts arrays, sorted in order of the individual attacks
@@ -1116,6 +1118,13 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
 
         calc_stats_attack_outcome(att_outcomes[i])
         calc_stats_attack_outcome(def_outcomes[i])
+
+        -- We also add the progression of the chance to die through
+        -- the attacks. this is needed for the plague rating.
+        def_outcomes[i].ctd_progression = {}
+        for j = 1,i do
+            def_outcomes[i].ctd_progression[j] = def_outcomes[j].hp_chance[0]
+        end
 
 
         -- Also add to the defender XP. Leveling up does not need to be considered
