@@ -2775,7 +2775,7 @@ return {
                     -- vs. attacking. If attacking results in a better rating, we do it.
                     -- But only if the chance to die in the forward attack is not too
                     -- large; otherwise the enemy might as well waste the resources.
-                    if (#combo.attackers == 1) then
+                    if acceptable_counter and (#combo.attackers == 1) then
                         if (combo.att_outcomes[1].hp_chance[0] < 0.25) then
                             local attacker = combo.attackers[1]
 
