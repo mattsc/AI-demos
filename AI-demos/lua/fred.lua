@@ -2724,7 +2724,23 @@ return {
                         -- there is a significant change to kill and value of kill is much
                         -- larger than chance to die.
                         -- Again single unit attacks of MP=0 units are dealt with separately
-                        if counter_outcomes
+                        local check_exposure = true
+
+                        -- If one of the attack hexes ia adjacent to a unit with no MP
+                        -- left, we count this as not exposed
+                        for _,dst in pairs(combo.dsts) do
+                            for xa,ya in H.adjacent_tiles(dst[1], dst[2]) do
+                                if gamedata.my_unit_map_noMP[xa] and gamedata.my_unit_map_noMP[xa][ya] then
+                                    check_exposure = false
+                                    break
+                                end
+                            end
+
+                            if (not check_exposure) then break end
+                        end
+                        --print('check_exposure', check_exposure)
+
+                        if check_exposure and counter_outcomes
                             and (#combo.attackers < 3) and (1.5 * #combo.attackers < #damages_enemy_units)
                             and ((#combo.attackers > 1) or (combo.attackers[1].moves > 0))
                         then
