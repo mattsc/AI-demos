@@ -741,7 +741,9 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
 
             --print(' Finding highest-damage weapons: ', attacker_info.id, defender_proxy.id)
 
-            local best_att, best_def = 0, 0
+            local best_att, best_def
+
+-- TODO: if there is only one weapon, don't need to simulate?
 
             for i_a,att in ipairs(attacker_info.attacks) do
                 -- This is a bit wasteful the first time around, but shouldn't be too bad overall
@@ -750,12 +752,12 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
                 local total_damage_attack = fred_attack_utils.get_total_damage_attack(att_weapon, att, true, defender_info)
                 --print('  i_a:', i_a, total_damage_attack)
 
-                if (total_damage_attack > best_att) then
+                if (not best_att) or (total_damage_attack > best_att) then
                     best_att = total_damage_attack
                     att_weapon_i = i_a
 
                     -- Only for this attack do we need to check out the defender attacks
-                    best_def, def_weapon_i = 0, nil -- need to reset these again
+                    best_def, def_weapon_i = nil, nil -- need to reset these again
 
                     for i_d,def in ipairs(defender_info.attacks) do
                         if (att.range == def.range) then
@@ -764,7 +766,7 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
 
                             local total_damage_defense = fred_attack_utils.get_total_damage_attack(def_weapon, def, false, attacker_info)
 
-                            if (total_damage_defense > best_def) then
+                            if (not best_def) or (total_damage_defense > best_def) then
                                 best_def = total_damage_defense
                                 def_weapon_i = i_d
                             end
