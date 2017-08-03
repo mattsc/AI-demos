@@ -2726,17 +2726,28 @@ return {
                         -- Again single unit attacks of MP=0 units are dealt with separately
                         local check_exposure = true
 
+                        -- If this is a leader threat, we do not check for exposure
+                        if fred.data.ops_data.leader_threats
+                            and fred.data.ops_data.leader_threats.enemies
+                            and fred.data.ops_data.leader_threats.enemies[target_id]
+                        then
+                            check_exposure = false
+                        end
+                        --print('check_exposure', check_exposure)
+
                         -- If one of the attack hexes ia adjacent to a unit with no MP
                         -- left, we count this as not exposed
-                        for _,dst in pairs(combo.dsts) do
-                            for xa,ya in H.adjacent_tiles(dst[1], dst[2]) do
-                                if gamedata.my_unit_map_noMP[xa] and gamedata.my_unit_map_noMP[xa][ya] then
-                                    check_exposure = false
-                                    break
+                        if check_exposure then
+                            for _,dst in pairs(combo.dsts) do
+                                for xa,ya in H.adjacent_tiles(dst[1], dst[2]) do
+                                    if gamedata.my_unit_map_noMP[xa] and gamedata.my_unit_map_noMP[xa][ya] then
+                                        check_exposure = false
+                                        break
+                                    end
                                 end
-                            end
 
-                            if (not check_exposure) then break end
+                                if (not check_exposure) then break end
+                            end
                         end
                         --print('check_exposure', check_exposure)
 
