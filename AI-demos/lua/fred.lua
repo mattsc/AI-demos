@@ -1971,8 +1971,6 @@ return {
 
             -- We need to make sure the units always use the same weapon below, otherwise
             -- the comparison is not fair.
-            -- TODO: check whether using max_damage_weapon is the correct criterion, or
-            -- if some other "best" weapon criterion is better.
             local cfg_attack = {
                 value_ratio = value_ratio,
                 use_max_damage_weapons = true
@@ -2004,6 +2002,7 @@ return {
                     --print_time('combo ' .. j)
 
                     -- Only check out the first 1000 attack combos to keep evaluation time reasonable
+                    -- TODO: can we have these ordered with likely good rating first?
                     if (j > 1000) then break end
 
                     local attempt_trapping = is_trappable_enemy
@@ -2117,10 +2116,9 @@ return {
 
                         -- For each such village found, we give a penalty eqivalent to 10 HP of the target
                         -- and we do not do the attack at all if the CTD of the defender is low
-                        -- TODO: refine this?
                         if (adj_unocc_village > 0) then
                             if (combo_outcome.def_outcome.hp_chance[0] < 0.5) then
-                                -- TODO: this condition should maybe only apply when the target is
+                                -- TODO: this condition should maybe only apply when the target
                                 -- can reach the village after the attack?
                                 do_attack = false
                             else
@@ -2353,8 +2351,6 @@ return {
 
                             bonus_rating = bonus_rating - plague_penalty
                         end
-
-
                         --print_time(' -----------------------> rating', combo_rating, bonus_rating)
 
 
@@ -2435,6 +2431,15 @@ return {
                     -- of either duplicating code or adding parameters to FAU.calc_counter_attack()
                     -- I don't think that it is the bottleneck, so we leave it as it is for now.
 
+					-- TODO: Need to apply correctly:
+					--   - attack locs
+					--   - new HP - use average
+					--   - just apply level of opponent?
+					--   - potential level-up
+					--   - delayed damage
+					--   - slow for defender (wear of for attacker at the end of the side turn)
+					--   - plague
+
                     local old_locs, old_HP_attackers = {}, {}
                     for i_a,attacker_info in ipairs(combo.attackers) do
                         if show_debug_attack then
@@ -2455,6 +2460,8 @@ return {
 
                         local hp = combo.att_outcomes[i_a].average_hp
                         if (hp < 1) then hp = 1 end
+                        --print('attacker hp before, after:', old_HP_attackers[i_a], hp)
+
                         gamedata.unit_infos[attacker_info.id].hitpoints = hp
                         gamedata.unit_copies[attacker_info.id].hitpoints = hp
 
@@ -2476,7 +2483,7 @@ return {
                     hp = H.round(hp_org - combo.defender_damage.delayed_damage)
 
                     if (hp < 1) then hp = math.min(1, H.round(hp_org)) end
-                    --print('hp before, after:', old_HP_target, hp_org, hp)
+                    --print('target hp before, after:', old_HP_target, hp_org, hp)
 
                     gamedata.unit_infos[target_id].hitpoints = hp
                     gamedata.unit_copies[target_id].hitpoints = hp
