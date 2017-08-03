@@ -2357,14 +2357,13 @@ return {
 
                         --print_time(' -----------------------> rating', combo_rating, bonus_rating)
 
-                        local full_rating = combo_rating + bonus_rating
-                        local pre_rating = full_rating
 
+                        local pre_rating = combo_rating + bonus_rating
 
                         -- Derate combo if it uses too many units for diminishing return
                         local derating = 1
                         local n_att = #combo_outcome.attacker_infos
-                        if (full_rating > 0) and (n_att > 2) then
+                        if (pre_rating > 0) and (n_att > 2) then
                             local progression = combo_outcome.rating_table.progression
                             -- dim_return is 1 if the last units adds exactly 1/n_att to the overall rating
                             -- It is s<1 if less value is added, >1 if more is added
@@ -2378,7 +2377,6 @@ return {
                         end
 
                         table.insert(combo_ratings, {
-                            rating = full_rating,
                             pre_rating = pre_rating,
                             bonus_rating = bonus_rating,
                             derating = derating,
@@ -2848,8 +2846,9 @@ return {
                     end
 
                     --print_time('  acceptable_counter', acceptable_counter)
+                    local total_rating = -9999
                     if acceptable_counter then
-                        local total_rating = min_total_damage_rating
+                        total_rating = min_total_damage_rating
                         FU.print_debug(show_debug_attack, '    Acceptable counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating_table.rating)
                         FU.print_debug(show_debug_attack, '      --> total_rating', total_rating)
 
@@ -2878,7 +2877,7 @@ return {
 
                     if show_debug_attack then
                         wesnoth.scroll_to_tile(target_loc[1], target_loc[2])
-                        W.message { speaker = 'narrator', message = 'Attack combo ' .. count .. ': ' .. combo.rating }
+                        W.message { speaker = 'narrator', message = 'Attack combo ' .. count .. ': ' .. total_rating .. ' / ' .. (max_total_rating or 0) .. '    (pre-rating: ' .. combo.pre_rating .. ')' }
                         for i_a,attacker_info in ipairs(combo.attackers) do
                             local id, x, y = attacker_info.id, combo.dsts[i_a][1], combo.dsts[i_a][2]
                             W.label { x = x, y = y, text = "" }
