@@ -123,6 +123,7 @@ function fred_attack_utils.is_acceptable_attack(damage_to_ai, damage_to_enemy, v
     -- Otherwise it depends on whether the numbers are positive or negative
     -- Negative damage means that one or several of the units are likely to level up
     if (damage_to_ai < 0) and (damage_to_enemy < 0) then
+        -- Note that this is the inverse of the ratio for positive damages
         return (damage_to_ai / damage_to_enemy) >= value_ratio
     end
 

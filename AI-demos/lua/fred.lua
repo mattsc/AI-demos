@@ -2431,14 +2431,14 @@ return {
                     -- of either duplicating code or adding parameters to FAU.calc_counter_attack()
                     -- I don't think that it is the bottleneck, so we leave it as it is for now.
 
-					-- TODO: Need to apply correctly:
-					--   - attack locs
-					--   - new HP - use average
-					--   - just apply level of opponent?
-					--   - potential level-up
-					--   - delayed damage
-					--   - slow for defender (wear of for attacker at the end of the side turn)
-					--   - plague
+                    -- TODO: Need to apply correctly:
+                    --   - attack locs
+                    --   - new HP - use average
+                    --   - just apply level of opponent?
+                    --   - potential level-up
+                    --   - delayed damage
+                    --   - slow for defender (wear of for attacker at the end of the side turn)
+                    --   - plague
 
                     local old_locs, old_HP_attackers = {}, {}
                     for i_a,attacker_info in ipairs(combo.attackers) do
