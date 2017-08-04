@@ -1787,6 +1787,8 @@ return {
             local value_ratio = FU.get_value_ratio(gamedata)
 
             for zone_id,zone_units in pairs(holders_by_zone) do
+                local power_rating = power_stats.zones[zone_id].power_needed - power_stats.zones[zone_id].my_power / 1000
+
                 if threats_by_zone[zone_id] and attackers_by_zone[zone_id] then
                     -- Attack --
                     table.insert(fred.data.zone_cfgs,  {
@@ -1794,7 +1796,7 @@ return {
                         action_type = 'attack',
                         zone_units = attackers_by_zone[zone_id],
                         targets = threats_by_zone[zone_id],
-                        rating = base_ratings.attack + power_stats.zones[zone_id].power_needed,
+                        rating = base_ratings.attack + power_rating,
                         value_ratio = value_ratio
                     })
                 end
@@ -1810,7 +1812,7 @@ return {
                         zone_id = zone_id,
                         action_type = 'hold',
                         zone_units = holders_by_zone[zone_id],
-                        rating = base_ratings.hold + power_stats.zones[zone_id].power_needed,
+                        rating = base_ratings.hold + power_rating,
                         protect_leader = protect_leader
                     })
                 end
@@ -1856,12 +1858,18 @@ return {
             --DBG.dbms(advancers_by_zone)
 
             for zone_id,zone_units in pairs(advancers_by_zone) do
+                local power_rating = 0
+                for id,_ in pairs(zone_units) do
+                    power_rating = power_rating - FU.unit_base_power(gamedata.unit_infos[id])
+                end
+                power_rating = power_rating / 1000
+
                 -- Advance --
                 table.insert(fred.data.zone_cfgs, {
                     zone_id = zone_id,
                     action_type = 'advance',
                     zone_units = advancers_by_zone[zone_id],
-                    rating = base_ratings.advance
+                    rating = base_ratings.advance + power_rating
                 })
             end
 
