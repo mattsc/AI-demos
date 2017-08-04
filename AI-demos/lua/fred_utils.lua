@@ -436,6 +436,8 @@ function fred_utils.moved_toward_zone(unit_copy, zone_cfgs, side_cfgs)
             unit_copy.x, unit_copy.y = old_hex[1], old_hex[2]
 
             local rating = cost_start - cost_new
+            -- As a tie breaker, prefer zone that is originally farther away
+            rating = rating + cost_start / 1000
 
             --print('  ' .. zone_id, cost_start, cost_new, rating)
 
