@@ -1774,7 +1774,6 @@ return {
             ----- Zone actions -----
 
             local base_ratings = {
-                village_grab = 9000,
                 attack = 8000,
                 fav_attack = 7000,
                 hold = 4000,
