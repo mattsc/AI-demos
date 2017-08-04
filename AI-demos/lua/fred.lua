@@ -4543,9 +4543,12 @@ return {
 
             while fred.data.zone_action.units and (table.maxn(fred.data.zone_action.units) > 0) do
                 local next_unit_ind = 1
-                -- If this is an attack combo, reorder units to give maximum XP to unit closest to advancing
+
+                -- If this is an attack combo, reorder units to
+                --   - Use unit with best rating
+                --   - Maximize chance of leveling up
+                --   - Give maximum XP to unit closest to advancing
                 if enemy_proxy and fred.data.zone_action.units[2] then
-                    -- Only do this if CTK for overall attack combo is > 0
                     local attacker_copies, attacker_infos = {}, {}
                     local combo = {}
                     for i,unit in ipairs(fred.data.zone_action.units) do
@@ -4559,45 +4562,111 @@ return {
 
                     -- Don't use cfg_attack = { use_max_damage_weapons = true } here
                     local combo_outcome = FAU.attack_combo_eval(combo, fred.data.zone_action.enemy, fred.data.gamedata, fred.data.move_cache)
+                    --print('\noverall kill chance: ', combo_outcome.defender_damage.die_chance)
 
-                    -- Disable reordering of attacks for the time being
-                    -- TODO: this needs to be completely redone
-                    if (combo_outcome.def_outcome.hp_chance[0] > 100) then
-                        --print_time('Reordering units for attack to maximize XP gain')
+                    local enemy_level = defender_info.level
+                    if (enemy_level == 0) then enemy_level = 0.5 end
+                    --print('enemy level', enemy_level)
 
-                        local min_XP_diff, best_ind = 9e99
-                        for ind,unit in ipairs(fred.data.zone_action.units) do
-                            local unit_info = fred.data.gamedata.unit_infos[unit.id]
-                            local XP_diff = unit_info.max_experience - unit_info.experience
-                            -- Add HP as minor rating
-                            XP_diff = XP_diff + unit_info.hitpoints / 100.
+                    -- Check if any unit has a chance to level up
+                    local levelups = { anybody = false }
+                    for ind,unit in ipairs(fred.data.zone_action.units) do
+                        local unit_info = fred.data.gamedata.unit_infos[unit.id]
+                        local XP_diff = unit_info.max_experience - unit_info.experience
 
-                            if (XP_diff < min_XP_diff) then
-                                min_XP_diff, best_ind = XP_diff, ind
-                            end
+                        local levelup_possible, levelup_certain = false, false
+                        if (XP_diff <= enemy_level) then
+                            levelup_certain = true
+                            levelups.anybody = true
+                        elseif (XP_diff <= enemy_level * 8) then
+                            levelup_possible = true
+                            levelups.anybody = true
                         end
+                        --print('  ' .. unit_info.id, XP_diff, levelup_possible, levelup_certain)
 
-                        local unit = fred.data.zone_action.units[best_ind]
-                        --print_time('Most advanced unit:', unit.id, unit.experience, best_ind)
+                        levelups[ind] = { certain = levelup_certain, possible = levelup_possible}
+                    end
+                    --DBG.dbms(levelups)
+
+
+                    --print_time('Reordering units for attack')
+                    local max_rating
+                    for ind,unit in ipairs(fred.data.zone_action.units) do
+                        local unit_info = fred.data.gamedata.unit_infos[unit.id]
 
                         local att_outcome, def_outcome = FAU.attack_outcome(
-                            attacker_copies[best_ind], enemy_proxy,
-                            fred.data.zone_action.dsts[best_ind],
-                            attacker_infos[best_ind], defender_info,
+                            attacker_copies[ind], enemy_proxy,
+                            fred.data.zone_action.dsts[ind],
+                            attacker_infos[ind], defender_info,
                             fred.data.gamedata, fred.data.move_cache
                         )
+                        local rating_table, att_damage, def_damage =
+                            FAU.attack_rating({ unit_info }, defender_info, { fred.data.zone_action.dsts[ind] }, { att_outcome }, def_outcome, fred.data.gamedata)
 
-                        local kill_rating = def_outcome.hp_chance[0] - att_outcome.hp_chance[0]
-                        --print_time('kill_rating:', kill_rating)
+                        -- The base rating is the individual attack rating
+                        local rating = rating_table.rating
+                        --print('  base_rating ' .. unit_info.id, rating)
 
-                        if (kill_rating >= 0.5) then
-                            --print_time('Pulling unit to front')
-                            next_unit_ind = best_ind
-                        elseif (best_ind == 1) then
-                            --print_time('Moving unit back')
-                            next_unit_ind = 2
+                        -- If the target can die, we might want to reorder, in order
+                        -- to maximize the chance to level up and give the most XP
+                        -- to the most appropriate unit
+                        if (combo_outcome.def_outcome.hp_chance[0] > 0) then
+                            local XP_diff = unit_info.max_experience - unit_info.experience
+
+                            local extra_rating
+                            if levelups.anybody then
+                                -- If any of the units has a chance to level up, the
+                                -- main rating is maximizing this chance
+                                if levelups[ind].possible then
+                                    local utility = def_outcome.hp_chance[0] * (1 - att_outcome.hp_chance[0])
+                                    -- Want least advanced and most valuable unit to go first
+                                    extra_rating = 100 * utility + XP_diff / 10
+                                    extra_rating = extra_rating + att_damage[1].unit_value / 100
+                                elseif levelups[ind].certain then
+                                    -- use square on CTD, to be really careful with these units
+                                    local utility = (1 - att_outcome.hp_chance[0])^2
+                                    -- Want least advanced and most valuable unit to go first
+                                    extra_rating = 100 * utility + XP_diff / 10
+                                    extra_rating = extra_rating + att_damage[1].unit_value / 100
+                                else
+                                    local utility = (1 - def_outcome.hp_chance[0]) * (1 - att_outcome.hp_chance[0])
+                                    -- Want most advanced and least valuable  unit to go last
+                                    extra_rating = 90 * utility + XP_diff / 10
+                                    extra_rating = extra_rating - att_damage[1].unit_value / 100
+                                end
+                                --print('    levelup utility', utility)
+                            else
+                                -- If no unit has a chance to level up, giving the
+                                -- most XP to the most advanced unit is desirable, but
+                                -- should not entirely dominate the attack rating
+                                local xp_fraction = unit_info.experience / (unit_info.max_experience - 8)
+                                if (xp_fraction > 1) then xp_fraction = 1 end
+                                local x = 2 * (xp_fraction - 0.5)
+                                local y = 2 * (def_outcome.hp_chance[0] - 0.5)
+
+                                -- The following prefers units with low XP and no chance to kill
+                                -- as well as units with high XP and high chance to kill
+                                -- It is normalized to [0..1]
+                                local utility = (x * y + 1) / 2
+                                --print('      ' .. xp_fraction, def_outcome.hp_chance[0])
+                                --print('      ' .. x, y, utility)
+
+                                extra_rating = 10 * utility * (1 - att_outcome.hp_chance[0])^2
+
+                                -- Also want most valuable unit to go first
+                                extra_rating = extra_rating + att_damage[1].unit_value / 1000
+                                --print('    XP gain utility', utility)
+                            end
+
+                            rating = rating + extra_rating
+                            --print('    rating', rating)
+                        end
+
+                        if (not max_rating) or (rating > max_rating) then
+                            max_rating, next_unit_ind = rating, ind
                         end
                     end
+                    --print_time('Best unit to go next:', fred.data.zone_action.units[next_unit_ind].id, max_rating, next_unit_ind)
                 end
                 --print_time('next_unit_ind', next_unit_ind)
 
