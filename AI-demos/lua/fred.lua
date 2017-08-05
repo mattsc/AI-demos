@@ -2802,23 +2802,16 @@ return {
                             and ((#combo.attackers > 1) or (combo.attackers[1].moves > 0))
                         then
                             --print('       outnumbered in counter attack: ' .. #combo.attackers .. ' vs. ' .. #damages_enemy_units)
-                            local max_die_value = 0
-                            for _,my_damage in ipairs(damages_my_units) do
-                                local die_value = my_damage.die_chance * my_damage.unit_value
-                                --print('           die value ' .. my_damage.id .. ': ', die_value, my_damage.unit_value)
-                                if (die_value > max_die_value) then
-                                    max_die_value = die_value
-                                end
-                            end
-                            --print('         max_die_value', max_die_value)
+                            local die_value = damages_my_units[i_a].die_chance * damages_my_units[i_a].unit_value
+                            --print('           die value ' .. damages_my_units[i_a].id .. ': ', die_value, damages_my_units[i_a].unit_value)
 
-                            if (max_die_value > 0) then
+                            if (die_value > 0) then
                                 local kill_chance = combo.def_outcome.hp_chance[0]
                                 local kill_value = kill_chance * FU.unit_value(gamedata.unit_infos[target_id])
                                 --print('         kill chance, kill_value: ', kill_chance, kill_value)
 
-                                if (kill_chance < 0.33) or (kill_value < max_die_value * 2) then
-                                    FU.print_debug(show_debug_attack, '       non-leader: counter attack too exposed', max_die_value, kill_value, kill_chance)
+                                if (kill_chance < 0.33) or (kill_value < die_value * 2) then
+                                    FU.print_debug(show_debug_attack, '       non-leader: counter attack too exposed', die_value, kill_value, kill_chance)
                                     acceptable_counter = false
                                     FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                                     break
