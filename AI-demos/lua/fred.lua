@@ -2737,6 +2737,7 @@ return {
                         -- larger than chance to die.
                         -- Again single unit attacks of MP=0 units are dealt with separately
                         local check_exposure = true
+                        local is_leader_threat = false
 
                         -- If this is a leader threat, we do not check for exposure
                         if fred.data.ops_data.leader_threats
@@ -2744,10 +2745,43 @@ return {
                             and fred.data.ops_data.leader_threats.enemies[target_id]
                         then
                             check_exposure = false
+                            is_leader_threat = true
                         end
                         --print('check_exposure', check_exposure)
 
-                        -- If one of the attack hexes ia adjacent to a unit with no MP
+
+                        -- Check whether die chance for units with high XP values is too high.
+                        -- This might not be sufficiently taken into account in the rating,
+                        -- especially if value_ratio is low.
+                        -- TODO: the equations used are pretty ad hoc at the moment. Refine?
+                        if (not is_leader_threat) and (damages_my_units[i_a].die_chance > 0) then
+                            local id = damages_my_units[i_a].id
+                            local xp = gamedata.unit_infos[id].experience
+                            local max_xp = gamedata.unit_infos[id].max_experience
+                            local min_xp = math.min(max_xp - 16, max_xp / 2)
+                            if (min_xp < 0) then min_xp = 0 end
+
+                            local xp_thresh = 0
+                            if (xp > max_xp - 8) then
+                                xp_thresh = 0.8 + 0.2 * (1 - (max_xp - xp) / 8)
+                            elseif (xp > min_xp) then
+                                xp_thresh = 0.8 * (xp - min_xp) / (max_xp - 8 - min_xp)
+                            end
+
+                            local survival_chance = 1 - damages_my_units[i_a].die_chance
+                            --print(id, xp, min_xp, max_xp)
+                            --print('  ' .. xp_thresh, survival_chance)
+
+                            if (survival_chance < xp_thresh) then
+                                FU.print_debug(show_debug_attack, '       non-leader: counter attack too dangerous for high-XP unit', survival_chance, xp_thresh, xp)
+                                acceptable_counter = false
+                                FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
+                                break
+                            end
+                        end
+
+
+                        -- If one of the attack hexes is adjacent to a unit with no MP
                         -- left, we count this as not exposed
                         if check_exposure then
                             for _,dst in pairs(combo.dsts) do
