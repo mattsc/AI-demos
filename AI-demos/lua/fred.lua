@@ -1873,8 +1873,7 @@ return {
             end
 
 
-            -- Finally, favorable attacks, so that nothing gets left hanging
-            -- These are cross-zone
+            -- Favorable attacks. These are cross-zone
             table.insert(fred.data.zone_cfgs, {
                 zone_id = 'all_map',
                 action_type = 'attack',
