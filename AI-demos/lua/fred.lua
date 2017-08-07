@@ -4115,6 +4115,7 @@ return {
             AH.print_ts('Beginning of Turn ' .. wesnoth.current.turn .. ' (' .. tod.name ..') stats')
 
             local sides = {}
+            local leveled_units
             for id,_ in pairs(fred.data.gamedata.units) do
                 local unit_side = fred.data.gamedata.unit_infos[id].side
                 if (not sides[unit_side]) then sides[unit_side] = {} end
@@ -4124,6 +4125,13 @@ return {
 
                 if fred.data.gamedata.unit_infos[id].canrecruit then
                     sides[unit_side].leader_type = fred.data.gamedata.unit_copies[id].type
+                else
+                    if (unit_side == wesnoth.current.side) and (fred.data.gamedata.unit_infos[id].level > 1) then
+                        if (not leveled_units) then leveled_units = '' end
+                        leveled_units = leveled_units
+                            .. fred.data.gamedata.unit_infos[id].type .. ' ('
+                            .. fred.data.gamedata.unit_infos[id].hitpoints .. '/' .. fred.data.gamedata.unit_infos[id].max_hitpoints .. ')  '
+                    end
                 end
             end
 
@@ -4148,6 +4156,9 @@ return {
                     .. sides[side].leader_type .. ', ' .. side_info.gold .. ' gold)'
                 )
             end
+
+            if leveled_units then print('    Leveled units: ' .. leveled_units) end
+
             print('************************************************************************')
         end
 
