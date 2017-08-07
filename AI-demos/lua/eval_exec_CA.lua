@@ -203,7 +203,7 @@ return {
         if (score > 0) then exec_CA(ai) end
     end,
 
-    units_info = function()
+    units_info = function(stdout_only)
         -- Shows some information for all units
         -- Specifically, this links the unit id to its position, name etc. for easier identification
         local tmp_units = wesnoth.get_units()
@@ -215,7 +215,9 @@ return {
             str = str .. '    ' .. tostring(u.name)
             str = str .. '\n'
         end
-        wesnoth.message(str)
+
+        print(str)
+        if (not stdout_only) then wesnoth.message(str) end
     end,
 
     choose_CA = function()
