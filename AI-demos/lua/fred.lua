@@ -160,6 +160,17 @@ return {
                         local cost = data.cost
                         local inv_cost = FU.get_fgumap_value(inv_cost_map, x, y, 'cost')
 
+                        -- TODO: for debugging only; remove later
+                        if (not inv_cost) then
+                            print('!!!!!!!! Trying to find source of error !!!!!!!!')
+                            print(id, x, y, cost_full, cost)
+                            DBG.dbms(unit_loc, -1)
+                            DBG.dbms(loc, -1)
+                            DBG.dbms(data, -1)
+                            DBG.dbms(cost_map, -1)
+                            DBG.dbms(inv_cost_map, -1)
+                        end
+
                         local rating = (cost + inv_cost) / 2
                         rating = cost_full - math.max(cost, inv_cost)
                         rating = rating - perp_dist_weight * (cost + inv_cost - cost_full)
