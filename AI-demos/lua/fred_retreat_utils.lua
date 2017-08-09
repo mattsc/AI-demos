@@ -21,7 +21,7 @@ function retreat_functions.damages(id, x, y, hitchance, unit_attacks, gamedata)
     local max_damage, av_damage = 0, 0
     if enemy_ids then
         for _,enemy_id in ipairs(enemy_ids) do
-            local damage = unit_attacks[id][enemy_id].counter.taken
+            local damage = unit_attacks[id][enemy_id].damage_counter.base_taken
             --print('  ' .. x, y, enemy_id, damage, hitchance)
             max_damage = max_damage + damage
             av_damage = av_damage + damage * hitchance

@@ -620,70 +620,73 @@ return {
                     local bonus_slow = 4
                     local bonus_regen = 8
 
-                    local max_diff_forward, forward
-                    for i_w,_ in ipairs(gamedata.unit_infos[my_id].attacks) do
+                    local max_diff_forward
+                    for i_w,attack in ipairs(gamedata.unit_infos[my_id].attacks) do
                         --print('attack weapon: ' .. i_w)
 
                         local _, _, my_weapon, enemy_weapon = wesnoth.simulate_combat(my_proxy, i_w, enemy_proxy)
+                        local _, my_base_damage, my_extra_damage, my_regen_damage
+                            = FAU.get_total_damage_attack(my_weapon, attack, true, gamedata.unit_infos[enemy_id])
 
-                        local done = my_weapon.damage * my_weapon.num_blows
-                        local taken = enemy_weapon.damage * enemy_weapon.num_blows
+                        -- If the enemy has no weapon at this range, attack_num=-1 and enemy_attack
+                        -- will be nil; this is handled just fine by FAU.get_total_damage_attack
+                        -- Note: attack_num starts at 0, not 1 !!!!
+                        --print('  enemy weapon: ' .. enemy_weapon.attack_num + 1)
+                        local enemy_attack = gamedata.unit_infos[enemy_id].attacks[enemy_weapon.attack_num + 1]
+                        local _, enemy_base_damage, enemy_extra_damage, enemy_regen_damage
+                            = FAU.get_total_damage_attack(enemy_weapon, enemy_attack, false, gamedata.unit_infos[my_id])
 
-                        -- TODO: this should not be applied if a unit is already poisoned/slowed
-                        --   Might have to be recalculated mid-turn
-                        local my_extra, enemy_extra = 0, 0
-                        if my_weapon.poisons then my_extra = my_extra + bonus_poison end
-                        if my_weapon.slows then my_extra = my_extra + bonus_slow end
-                        if enemy_weapon.poisons then enemy_extra = enemy_extra + bonus_poison end
-                        if enemy_weapon.slows then enemy_extra = enemy_extra + bonus_slow end
-
-                        local diff = done + my_extra - taken - enemy_extra
-                        --print('  ' .. done, taken, my_extra, enemy_extra, '-->', diff)
+                        -- TODO: the factor of 2 is somewhat arbitrary and serves to emphasize
+                        -- the strongest attack weapon. Might be changed later. Use 1/value_ratio?
+                        local diff = 2 * (my_base_damage + my_extra_damage) - enemy_base_damage - enemy_extra_damage
+                        --print('  ' .. my_base_damage, enemy_base_damage, my_extra_damage, enemy_extra_damage, '-->', diff)
 
                         if (not max_diff_forward) or (diff > max_diff_forward) then
                             max_diff_forward = diff
-                            forward = {
-                                done = done,
-                                taken = taken,
-                                my_extra = my_extra,
-                                enemy_extra = enemy_extra,
-                                my_gen_hc = my_weapon.chance_to_hit / 100,
-                                enemy_gen_hc = enemy_weapon.chance_to_hit / 100
+                            tmp_attacks[enemy_id] = {
+                                my_regen = - enemy_regen_damage, -- not that this is (must be) backwards as this is
+                                enemy_regen = - my_regen_damage, -- regeneration "damage" to the _opponent_
+                                damage_forward = {
+                                    base_done = my_base_damage,
+                                    base_taken = enemy_base_damage,
+                                    extra_done = my_extra_damage,
+                                    extra_taken = enemy_extra_damage,
+                                    my_gen_hc = my_weapon.chance_to_hit / 100,
+                                    enemy_gen_hc = enemy_weapon.chance_to_hit / 100
+                                }
                             }
                         end
                     end
-                    --DBG.dbms(forward)
+                    --DBG.dbms(tmp_attacks[enemy_id])
 
-                    local min_diff_counter, counter
-                    for i_w,_ in ipairs(gamedata.unit_infos[enemy_id].attacks) do
+                    local max_diff_counter
+                    for i_w,attack in ipairs(gamedata.unit_infos[enemy_id].attacks) do
                         --print('counter weapon: ' .. i_w)
 
                         local _, _, enemy_weapon, my_weapon = wesnoth.simulate_combat(enemy_proxy, i_w, my_proxy)
+                        local _, enemy_base_damage, enemy_extra_damage, _
+                            = FAU.get_total_damage_attack(enemy_weapon, attack, true, gamedata.unit_infos[my_id])
 
-                        local done = my_weapon.damage * my_weapon.num_blows
-                        local taken = enemy_weapon.damage * enemy_weapon.num_blows
+                        -- If the AI unit has no weapon at this range, attack_num=-1 and my_attack
+                        -- will be nil; this is handled just fine by FAU.get_total_damage_attack
+                        -- Note: attack_num starts at 0, not 1 !!!!
+                        --print('  my weapon: ' .. my_weapon.attack_num + 1)
+                        local my_attack = gamedata.unit_infos[my_id].attacks[my_weapon.attack_num + 1]
+                        local _, my_base_damage, my_extra_damage, _
+                            = FAU.get_total_damage_attack(my_weapon, my_attack, false, gamedata.unit_infos[enemy_id])
 
-                        -- TODO: this should not be applied if a unit is already poisoned/slowed
-                        local my_extra, enemy_extra = 0, 0
-                        if my_weapon.poisons then my_extra = my_extra + bonus_poison end
-                        if my_weapon.slows then my_extra = my_extra + bonus_slow end
-                        if enemy_weapon.poisons then enemy_extra = enemy_extra + bonus_poison end
-                        if enemy_weapon.slows then enemy_extra = enemy_extra + bonus_slow end
+                        -- TODO: the factor of 2 is somewhat arbitrary and serves to emphasize
+                        -- the strongest attack weapon. Might be changed later. Use 1/value_ratio?
+                        local diff = 2 * (enemy_base_damage + enemy_extra_damage) - my_base_damage - my_extra_damage
+                        --print('  ' .. enemy_base_damage, my_base_damage, enemy_extra_damage, my_extra_damage, '-->', diff)
 
-                        local diff = done + my_extra - taken - enemy_extra
-
-                        -- We add this as a tie breaker (e.g. equal units against each other)
-                        -- to choose the maximum damage weapon
-                        diff = diff - taken / 100
-                        --print('  ' .. done, taken, my_extra, enemy_extra, '-->', diff)
-
-                        if (not min_diff_counter) or (diff < min_diff_counter) then
-                            min_diff_counter = diff
-                            counter = {
-                                done = done,
-                                taken = taken,
-                                my_extra = my_extra,
-                                enemy_extra = enemy_extra,
+                        if (not max_diff_counter) or (diff > max_diff_counter) then
+                            max_diff_counter = diff
+                            tmp_attacks[enemy_id].damage_counter = {
+                                base_done = my_base_damage,
+                                base_taken = enemy_base_damage,
+                                extra_done = my_extra_damage,
+                                extra_taken = enemy_extra_damage,
                                 my_gen_hc = my_weapon.chance_to_hit / 100,
                                 enemy_gen_hc = enemy_weapon.chance_to_hit / 100
                             }
@@ -695,31 +698,6 @@ return {
                     wesnoth.put_unit(enemy_x, enemy_y)
                     gamedata.unit_copies[enemy_id].x = old_x_enemy
                     gamedata.unit_copies[enemy_id].y = old_y_enemy
-
-
-                    -- For now, we just categorically count poison, slow damage as constant, independent of CTH
-                    -- TODOs:
-                    --   - might be refined later
-                    --   - add drain
-                    --   - add to max_damage in unit_infos also?
-                    --   - should we cycle through all weapons?
-                    --   - make attack more important than defense?
-
-                    local my_regen, enemy_regen = 0, 0
-                    if gamedata.unit_infos[my_id].abilities.regenerate then
-                        my_regen = 8
-                    end
-                    if gamedata.unit_infos[enemy_id].abilities.regenerate then
-                        enemy_regen = 8
-                    end
-
-                    tmp_attacks[enemy_id] = {
-                        rating = rating,
-                        my_regen = my_regen,
-                        enemy_regen = enemy_regen,
-                        forward = forward,
-                        counter = counter
-                    }
                 end
 
                 gamedata.unit_copies[my_id] = wesnoth.copy_unit(my_proxy)
@@ -739,7 +717,6 @@ return {
                 enemy_int_influence_map = enemy_int_influence_map,
                 unit_attacks = unit_attacks
             }
-            --DBG.dbms(fred.data.turn_data.unit_attacks)
         end
 
 
@@ -1013,12 +990,12 @@ return {
                             --print('    ' .. enemy_id)
                             local att = fred.data.turn_data.unit_attacks[id][enemy_id]
 
-                            local damage_taken = att.counter.enemy_gen_hc * att.counter.taken + att.counter.enemy_extra
-                            damage_taken = damage_taken + att.forward.enemy_gen_hc * att.forward.taken + att.forward.enemy_extra
+                            local damage_taken = att.damage_counter.enemy_gen_hc * att.damage_counter.base_taken + att.damage_counter.extra_taken
+                            damage_taken = damage_taken + att.damage_forward.enemy_gen_hc * att.damage_forward.base_taken + att.damage_forward.extra_taken
                             damage_taken = damage_taken / 2
 
-                            local damage_done = att.counter.my_gen_hc * att.counter.done + att.counter.my_extra
-                            damage_done = damage_done + att.forward.my_gen_hc * att.forward.done + att.forward.my_extra
+                            local damage_done = att.damage_counter.my_gen_hc * att.damage_counter.base_done + att.damage_counter.extra_done
+                            damage_done = damage_done + att.damage_forward.my_gen_hc * att.damage_forward.base_done + att.damage_forward.extra_done
                             damage_done = damage_done / 2
 
                             local enemy_rating = enemy_value_ratio * damage_done - damage_taken
@@ -3153,10 +3130,10 @@ return {
                     local att = fred.data.turn_data.unit_attacks[id][enemy_id]
                     --DBG.dbms(att)
 
-                    local weight = att.counter.taken + att.counter.enemy_extra
+                    local weight = att.damage_counter.base_taken + att.damage_counter.extra_taken
                     -- TODO: there's no reason for the value of 0.5, other than that
                     -- we want to rate the enemy attack stronger than the AI unit attack
-                    weight = weight - 0.5 * (att.counter.done + att.counter.my_extra)
+                    weight = weight - 0.5 * (att.damage_counter.base_done + att.damage_counter.extra_done)
                     if (weight < 1) then weight = 1 end
 
                     enemy_weights[id][enemy_id] = { weight = weight }
@@ -3300,11 +3277,11 @@ return {
                                 local factor_counter = 1 - factor_forward
                                 --print(x .. ',' .. y, ratio, factor_forward, factor_counter)
 
-                                local damage_taken = factor_counter * (my_hc * att.counter.taken + att.counter.enemy_extra)
-                                damage_taken = damage_taken + factor_forward * (my_hc * att.forward.taken + att.forward.enemy_extra)
+                                local damage_taken = factor_counter * (my_hc * att.damage_counter.base_taken + att.damage_counter.extra_taken)
+                                damage_taken = damage_taken + factor_forward * (my_hc * att.damage_forward.base_taken + att.damage_forward.extra_taken)
 
-                                local damage_done = factor_counter * (enemy_adj_hc * att.counter.done + att.counter.my_extra)
-                                damage_done = damage_done + factor_forward * (enemy_adj_hc * att.forward.done + att.forward.my_extra)
+                                local damage_done = factor_counter * (enemy_adj_hc * att.damage_counter.base_done + att.damage_counter.extra_taken)
+                                damage_done = damage_done + factor_forward * (enemy_adj_hc * att.damage_forward.base_done + att.damage_forward.extra_taken)
 
                                 -- Note: this is small (negative) for the strongest enemy
                                 -- -> need to find minima the strongest enemies for this hex

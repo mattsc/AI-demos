@@ -159,7 +159,7 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
                     if village.threats then
                         for _,enemy_id in ipairs(village.threats) do
                             local att = unit_attacks[id][enemy_id]
-                            local damage_taken = att.counter.taken
+                            local damage_taken = att.damage_counter.base_taken
 
                             -- TODO: this does not take chance_to_hit specials into account
                             local my_hc = 1 - FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
