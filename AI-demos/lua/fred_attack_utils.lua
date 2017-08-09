@@ -519,18 +519,21 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
 end
 
 function fred_attack_utils.get_total_damage_attack(weapon, attack, is_attacker, opponent_info)
-    -- Get the (approximate) total damage an attack will do
+    -- Get the (approximate) total damage an attack will do, as well as its three
+    -- components: base_damage, extra_damage, regen_damage
     --
     -- @weapon: the weapon information as returned by wesnoth.simulate_combat(), that is,
     --   taking resistances etc. into account
     -- @attack: the attack information as returned by fred_utils.single_unit_info()
     -- @is_attacker: set to 'true' if this is the attacker, 'false' for defender
 
-    local total_damage = weapon.num_blows * weapon.damage
+    local base_damage = weapon.num_blows * weapon.damage
 
     -- Give bonus for weapon specials. This is not exactly what those specials
     -- do in all cases, but that's okay since this is only used to determine
-    -- the strongest weapons.
+    -- the strongest weapons or most effective attacks/units.
+
+    local extra_damage = 0
 
     -- Count poison as additional 8 HP on total damage
     if attack.poison and (not opponent_info.status.poisoned) and (not opponent_info.status.unpoisonable) then
@@ -538,19 +541,19 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack, is_attacker, 
         if opponent_info.traits.healthy then
            poison_damage = poison_damage * 0.75
         end
-        total_damage = total_damage + poison_damage
+        extra_damage = extra_damage + poison_damage
     end
 
     -- Count slow as additional 4 HP on total damage
     if attack.slow and (not opponent_info.status.slowed) then
-        total_damage = total_damage + 4
+        extra_damage = extra_damage + 4
     end
 
     -- Count drains as additional 25% on total damage
     -- Don't use the full 50% healing that drains provides, as we want to
     -- emphasize the actual damage done over the benefit received
     if attack.drains and (not opponent_info.status.undrainable) then
-        total_damage = math.floor(total_damage * 1.25)
+        extra_damage = math.floor(extra_damage * 1.25)
     end
 
     -- Count berserk as additional 100% on total damage
@@ -560,33 +563,33 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack, is_attacker, 
     -- would choose to attack an opponent with the opponents berserk attack
     -- if that is not the attacker's strongest weapon.)
     if attack.berserk then
-        total_damage = math.floor(total_damage * 2)
+        extra_damage = math.floor(extra_damage * 2)
     end
 
     -- Double damage for backstab, but only if it was not active in the
     -- weapon table determination by wesnoth.simulate_combat()
     -- We do not quite give the full factor 2 though, as it is not active on all attacks.
     if is_attacker and attack.backstab and (not weapon.backstabs) then
-        total_damage = total_damage * 1.8
+        extra_damage = extra_damage * 1.8
     end
 
     -- Marksman, firststrike, magical and plague don't really change the damage. We just give
     -- a small bonus here as a tie breaker.
     -- Marksman and firststrike are only active on attack
     if is_attacker and attack.marksman then
-        total_damage = total_damage + 2
+        extra_damage = extra_damage + 2
     end
     if is_attacker and attack.firststrike then
-        total_damage = total_damage + 2
+        extra_damage = extra_damage + 2
     end
     if attack.magical then
-        total_damage = total_damage + 2
+        extra_damage = extra_damage + 2
     end
     if attack.plague and (not opponent_info.status.unplagueable) then
-        total_damage = total_damage + 2
+        extra_damage = extra_damage + 2
     end
     if attack.petrifies then
-        total_damage = total_damage + 2
+        extra_damage = extra_damage + 2
     end
 
     -- Notes on other weapons specials:
@@ -597,16 +600,17 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack, is_attacker, 
     -- no difference for selecting the best weapon for a given attacker/defender
     -- pair, but they do matter if this is use to compare attacks between
     -- different units pairs
-
+    local regen_damage = 0
     if opponent_info.abilities.regenerate then
-        total_damage = total_damage - 8
+        regen_damage = regen_damage - 8
     end
-
     if opponent_info.traits.healthy then
-        total_damage = total_damage - 2
+        regen_damage = regen_damage - 2
     end
 
-    return total_damage
+    local total_damage = base_damage + extra_damage + regen_damage
+
+    return total_damage, base_damage, extra_damage, regen_damage
 end
 
 function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, attacker_info, defender_info, gamedata, move_cache, cfg)
