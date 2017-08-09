@@ -525,7 +525,29 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack, is_attacker, 
     -- @weapon: the weapon information as returned by wesnoth.simulate_combat(), that is,
     --   taking resistances etc. into account
     -- @attack: the attack information as returned by fred_utils.single_unit_info()
+    --   If @attack == nil, that is, if the unit has no weapon at the range,
+    --   it still returns values: zeros for normal damages, and the real regeneration
+    --   values for the opponent. This is useful for when the defender does not have
+    --   a weapon at the range, but the regeneration values for the attacker are
+    --   needed in a unified way (as opposed to duplicating the code elsewhere).
     -- @is_attacker: set to 'true' if this is the attacker, 'false' for defender
+
+    -- The following two are the same for the same opponent. That is, they make
+    -- no difference for selecting the best weapon for a given attacker/defender
+    -- pair, but they do matter if this is use to compare attacks between
+    -- different units pairs
+    local regen_damage = 0
+    if opponent_info.abilities.regenerate then
+        regen_damage = regen_damage - 8
+    end
+    if opponent_info.traits.healthy then
+        regen_damage = regen_damage - 2
+    end
+
+    if (not attack) then
+        return regen_damage, 0, 0, regen_damage
+    end
+
 
     local base_damage = weapon.num_blows * weapon.damage
 
@@ -595,18 +617,6 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack, is_attacker, 
     -- Notes on other weapons specials:
     --  - charge is automatically taken into account
     --  - swarm is automatically taken into account
-
-    -- The following two are the same for the same opponent. That is, they make
-    -- no difference for selecting the best weapon for a given attacker/defender
-    -- pair, but they do matter if this is use to compare attacks between
-    -- different units pairs
-    local regen_damage = 0
-    if opponent_info.abilities.regenerate then
-        regen_damage = regen_damage - 8
-    end
-    if opponent_info.traits.healthy then
-        regen_damage = regen_damage - 2
-    end
 
     local total_damage = base_damage + extra_damage + regen_damage
 
