@@ -734,13 +734,14 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
         and move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints]
     then
         return move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints].att_outcome,
-            move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints].def_outcome
+            move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints].def_outcome,
+            move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints].att_weapon_i
     end
 
     local old_x, old_y = attacker_copy.x, attacker_copy.y
     attacker_copy.x, attacker_copy.y = dst[1], dst[2]
 
-    local tmp_att_stat, tmp_def_stat
+    local tmp_att_stat, tmp_def_stat, att_weapon
     local att_weapon_i, def_weapon_i = nil, nil
     if use_max_damage_weapons then
         if (not move_cache.best_weapons)
@@ -811,10 +812,15 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
             --print(' Reusing weapons: ', cache_att_id, defender_proxy.id, att_weapon_i, def_weapon_i)
         end
 
-        tmp_att_stat, tmp_def_stat = wesnoth.simulate_combat(attacker_copy, att_weapon_i, defender_proxy, def_weapon_i)
+        tmp_att_stat, tmp_def_stat, att_weapon = wesnoth.simulate_combat(attacker_copy, att_weapon_i, defender_proxy, def_weapon_i)
     else
-        tmp_att_stat, tmp_def_stat = wesnoth.simulate_combat(attacker_copy, defender_proxy)
+        tmp_att_stat, tmp_def_stat, att_weapon = wesnoth.simulate_combat(attacker_copy, defender_proxy)
     end
+
+    if (not att_weapon_i) then
+        att_weapon_i = att_weapon.attack_num + 1
+    end
+    --print(att_weapon_i)
 
     attacker_copy.x, attacker_copy.y = old_x, old_y
 
@@ -840,9 +846,9 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
     end
 
     move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints]
-        = { att_outcome = att_outcome, def_outcome = def_outcome }
+        = { att_outcome = att_outcome, def_outcome = def_outcome, att_weapon_i = att_weapon_i }
 
-    return att_outcome, def_outcome
+    return att_outcome, def_outcome, att_weapon_i
 end
 
 function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cache, cfg, ctd_limit)
@@ -966,9 +972,9 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
     --DBG.dbms(defender_info)
 
     -- We first simulate and rate the individual attacks
-    local ratings, tmp_att_outcomes, tmp_def_outcomes = {}, {}, {}
+    local ratings, tmp_att_outcomes, tmp_def_outcomes, tmp_att_weapons_i = {}, {}, {}, {}
     for i,attacker_copy in ipairs(tmp_attacker_copies) do
-        tmp_att_outcomes[i], tmp_def_outcomes[i] =
+        tmp_att_outcomes[i], tmp_def_outcomes[i], tmp_att_weapons_i[i] =
             fred_attack_utils.attack_outcome(
                 attacker_copy, defender_proxy, tmp_dsts[i],
                 tmp_attacker_infos[i], defender_info,
@@ -999,11 +1005,12 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
     table.sort(ratings, function(a, b) return a[2].rating > b[2].rating end)
 
     -- Reorder attackers, dsts in this order
-    local attacker_copies, attacker_infos, dsts = {}, {}, {}
+    local attacker_copies, attacker_infos, att_weapons_i, dsts = {}, {}, {}, {}
     for i,rating in ipairs(ratings) do
         attacker_copies[i] = tmp_attacker_copies[rating[1]]
         dsts[i] = tmp_dsts[rating[1]]
         attacker_infos[i] = tmp_attacker_infos[rating[1]]
+        att_weapons_i[i] = tmp_att_weapons_i[rating[1]]
     end
 
     -- Return nil when no units match the ctd_limit criterion
@@ -1217,6 +1224,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
     local combo_outcome = {
         att_outcomes = att_outcomes,
         def_outcome = def_outcomes[#attacker_infos],
+        att_weapons_i = att_weapons_i,
         rating_table = rating_table,
         attacker_damages = attacker_damages,
         defender_damage = defender_damage,

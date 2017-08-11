@@ -2372,6 +2372,7 @@ return {
                             derating = derating,
                             attackers = combo_outcome.attacker_infos,
                             dsts = combo_outcome.dsts,
+                            weapons = combo_outcome.att_weapons_i,
                             target = target,
                             att_outcomes = combo_outcome.att_outcomes,
                             def_outcome = combo_outcome.def_outcome,
@@ -2899,6 +2900,7 @@ return {
                             end
 
                             action.dsts = combo.dsts
+                            action.weapons = combo.weapons
                             action.action_str = 'attack'
                         end
                     end
@@ -4592,8 +4594,8 @@ return {
 
                     local defender_info = fred.data.gamedata.unit_infos[enemy_proxy.id]
 
-                    -- Don't use cfg_attack = { use_max_damage_weapons = true } here
-                    local combo_outcome = FAU.attack_combo_eval(combo, fred.data.zone_action.enemy, fred.data.gamedata, fred.data.move_cache)
+                    local cfg_attack = { use_max_damage_weapons = true }
+                    local combo_outcome = FAU.attack_combo_eval(combo, fred.data.zone_action.enemy, fred.data.gamedata, fred.data.move_cache, cfg_attack)
                     --print('\noverall kill chance: ', combo_outcome.defender_damage.die_chance)
 
                     local enemy_level = defender_info.level
@@ -4630,7 +4632,7 @@ return {
                             attacker_copies[ind], enemy_proxy,
                             fred.data.zone_action.dsts[ind],
                             attacker_infos[ind], defender_info,
-                            fred.data.gamedata, fred.data.move_cache
+                            fred.data.gamedata, fred.data.move_cache, cfg_attack
                         )
                         local rating_table, att_damage, def_damage =
                             FAU.attack_rating({ unit_info }, defender_info, { fred.data.zone_action.dsts[ind] }, { att_outcome }, def_outcome, fred.data.gamedata)
@@ -4828,7 +4830,10 @@ return {
 
                 -- Then do the attack, if there is one to do
                 if enemy_proxy and (H.distance_between(unit.x, unit.y, enemy_proxy.x, enemy_proxy.y) == 1) then
-                    AH.checked_attack(ai, unit, enemy_proxy)
+                    local weapon = fred.data.zone_action.weapons[next_unit_ind]
+                    table.remove(fred.data.zone_action.weapons, next_unit_ind)
+
+                    AH.checked_attack(ai, unit, enemy_proxy, weapon)
 
                     -- If enemy got killed, we need to stop here
                     if (not enemy_proxy.valid) then
