@@ -1518,7 +1518,12 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
             enemy_map[loc[1] * 1000 + loc[2]] = id
         end
 
-        counter_attack_outcome = fred_attack_utils.attack_combo_eval(counter_attack, target, gamedata, move_cache, cfg, FU.cfg_default('ctd_limit'))
+        local ctd_limit = FU.cfg_default('ctd_limit')
+        if gamedata.unit_infos[target_id].canrecruit then
+            ctd_limit = 1
+        end
+
+        counter_attack_outcome = fred_attack_utils.attack_combo_eval(counter_attack, target, gamedata, move_cache, cfg, ctd_limit)
     end
 
     -- Extract the units from the map
