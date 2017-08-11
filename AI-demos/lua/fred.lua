@@ -2041,8 +2041,10 @@ return {
                     --print('  ******* do_attack after keep check:', do_attack)
 
                     -- Don't do this attack if the leader has a chance to get killed, poisoned or slowed
-                    -- If the leader is poisoned/slowed already, he should be assigned to retreat,
-                    -- but sometimes that is not possible. In that case, it might be better to fight.
+                    -- This is only the chance of poison/slow in this attack, if he is already
+                    -- poisoned/slowed, this is handled by the retreat code.
+                    -- Also don't do the attack if the leader ends up having low stats, unless he
+                    -- cannot move in the first place.
                     if do_attack then
                         for k,att_outcome in ipairs(combo_outcome.att_outcomes) do
                             if (combo_outcome.attacker_infos[k].canrecruit) then
@@ -2065,6 +2067,14 @@ return {
                                     do_attack = false
                                     break
                                 end
+
+                                if (combo_outcome.attacker_infos[k].moves > 0) then
+                                    if (att_outcome.average_hp < combo_outcome.attacker_infos[k].max_hitpoints / 2) then
+                                        do_attack = false
+                                        break
+                                    end
+                                end
+
                             end
                         end
                     end
