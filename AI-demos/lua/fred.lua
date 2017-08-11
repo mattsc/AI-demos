@@ -1938,7 +1938,7 @@ return {
             else
                 for id,loc in pairs(gamedata.my_units) do
                     local is_leader_and_off_keep = false
-                    if gamedata.unit_infos[id].canrecruit then
+                    if gamedata.unit_infos[id].canrecruit and (gamedata.unit_infos[id].moves > 0) then
                         if (not wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).keep) then
                             is_leader_and_off_keep = true
                         end
