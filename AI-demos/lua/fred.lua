@@ -130,11 +130,16 @@ return {
                 local unit = {}
                 unit[id] = unit_loc
 
-                local cm = wesnoth.find_cost_map(
-                    { x = -1 }, -- SUF not matching any unit
-                    { { unit_loc[1], unit_loc[2], gamedata.unit_infos[id].side, gamedata.unit_infos[id].type } },
-                    { ignore_units = true }
-                )
+                -- wesnoth.find_cost_map() requires the unit to be on the map, and it needs to
+                -- have full moves. We cannot use the unit_type version of wesnoth.find_cost_map()
+                -- here as some specific units (e.g walking corpses or customized units) might have
+                -- movecosts different from their generic unit type.
+                local unit_proxy = wesnoth.get_unit(unit_loc[1], unit_loc[2])
+                local old_moves = unit_proxy.moves
+                unit_proxy.moves = unit_proxy.max_moves
+                local cm = wesnoth.find_cost_map(unit_loc[1], unit_loc[2], { ignore_units = true })
+                unit_proxy.moves = old_moves
+
                 local cost_map = {}
                 for _,cost in pairs(cm) do
                     if (cost[3] > -1) then
@@ -159,17 +164,6 @@ return {
                     for x,y,data in FU.fgumap_iter(cost_map) do
                         local cost = data.cost
                         local inv_cost = FU.get_fgumap_value(inv_cost_map, x, y, 'cost')
-
-                        -- TODO: for debugging only; remove later
-                        if (not inv_cost) then
-                            print('!!!!!!!! Trying to find source of error !!!!!!!!')
-                            print(id, x, y, cost_full, cost)
-                            DBG.dbms(unit_loc, -1)
-                            DBG.dbms(loc, -1)
-                            DBG.dbms(data, -1)
-                            DBG.dbms(cost_map, -1)
-                            DBG.dbms(inv_cost_map, -1)
-                        end
 
                         local rating = (cost + inv_cost) / 2
                         rating = cost_full - math.max(cost, inv_cost)
