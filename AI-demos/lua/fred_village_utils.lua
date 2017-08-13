@@ -420,10 +420,8 @@ function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, re
         keep_trying = false
     end
 
-    local count = 0
     while keep_trying do
         keep_trying = false
-        count = count + 1
 
         -- Set rating relative to the second highest rating in each zone
         -- This is
@@ -439,12 +437,6 @@ function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, re
                     scout.rating = scout.rating - second_rating
                 end
             else
-                if (not units) or (not units[1]) then
-                    print('!!!!!!!! Trying to find source of error !!!!!!!!')
-                    print(zone_id, #units, count)
-                    DBG.dbms(units, -1)
-                    DBG.dbms(sorted_scouts, -1)
-                end
                 units[1].rating = units[1].org_rating
             end
         end
