@@ -1,3 +1,58 @@
+----- 0.14.5, 13 Aug 2017 -----
+
+The majority of this release is dedicated to Fred's attack evaluation code. It
+contains many changes to the attack evaluation and execution code, only the more
+important of which are mentioned here.
+
+- Fred (Freelands AI for Northerners, Side 1):
+  - Attacks:
+    - Attack rating:
+      - Improve accounting for weapon specials and traits in attack ratings
+      - Rating now takes into account whether unit is injured already
+      - Improve accounting for XP in rating
+      - Do not count slow as a delayed damage
+    - Attack evaluation
+      - Better protection of high-XP units when used in attacks (this does not
+        protect them for holding/advancing/retreating ...)
+      - Improve evaluation of danger to AI leader when used in attacks
+      - Correctly calculate poison/slow in attack outcomes
+      - Correctly account for leveling up through attack combos
+      - Use actual next-level unit information in level-up evaluation
+      - Correctly account for poison/slow propagation through attack combos
+      - Improve accounting for weapon specials and traits in best weapon
+        selection
+      - Be more careful about exposure when attacking with one or two units
+      - Consider plague in the attack evaluation
+      - Discourage use of poison, slow and plague attacks under certain
+        circumstances
+      - Reduce trapping bonus if target has chance to die
+      - Improve attack resource limitation criteria
+    - Attack execution:
+      - Reorder units used in attack to maximize XP gain and leveling up
+      - Pass weapon choice from evaluation to execution function
+    - Operations:
+      - Use fred_attack_utils functions for some evaluations for consistency
+      - Disambiguate zone and action ratings, to make them uniquely repeatable
+    - Lots of internal changes, renaming and refactoring, such as:
+      - Poison/slow percentages do not include the HP=0 case any more
+      - Rename stat -> outcome, prob -> chance etc. for consistency
+      - Simplify function calls, arguments, return values
+      - Remove some functions from the globally accessible tables, making them
+        local if only needed locally
+      - Add unit_map to gamedata
+      - calc_counter_attack now returns nil if no counter attacks found
+      - attack_combo_eval: combine return values into one table
+      - Lots of bug fixes
+  - Misc. not attack related changes:
+    - Improve accounting for weapon specials and traits in village grabbing and
+      retreat evaluations
+    - Fix a rare bug in the holding code that could crash the AI in some cases
+      when the leader is blocked from returning to the keep
+    - Add list of leveled AI units to Stats CA output
+    - Rename unit_hex_combos.lua -> fred_hold_utils.lua and move some
+      functions into other libraries
+
+
 ----- 0.14.4, 3 June 2017 -----
 
 - Fred (Freelands AI for Northerners, Side 1):
