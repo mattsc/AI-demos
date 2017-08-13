@@ -469,6 +469,11 @@ function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, re
                 end
             end
         end
+        for zone_id,units in pairs(sorted_scouts) do
+            if (#units == 0) then
+                sorted_scouts[zone_id] = nil
+            end
+        end
 
         if (not assigned_units[best_zone]) then
             assigned_units[best_zone] = {}
