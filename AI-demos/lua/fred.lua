@@ -1412,6 +1412,12 @@ return {
                 local valid_action = true
                 local action = ops_data.actions.villages[i_a].action
                 for i_u,unit in ipairs(action.units) do
+                    if (not unit) then
+                        print('Trying to identify error !!!!!!!!')
+                        print(i_a, i_u)
+                        DBG.dbms(ops_data.actions.villages, -1)
+                        DBG.dbms(action)
+                    end
                     if (gamedata.units[unit.id][1] ~= unit[1]) or (gamedata.units[unit.id][2] ~= unit[2]) then
                         --print(unit.id .. ' has moved')
                         valid_action = false
