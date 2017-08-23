@@ -68,9 +68,6 @@ end
 
 function retreat_functions.find_best_retreat(retreaters, retreat_utilities, unit_attacks, gamedata)
     -- Only retreat to safe locations
-    local enemie_proxies = AH.get_live_units {
-        { "filter_side", {{ "enemy_of", { side = wesnoth.current.side } }} }
-    }
     local healing_locs = retreat_functions.get_healing_locations()
 
     local heal_maps = {}
