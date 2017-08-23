@@ -231,7 +231,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, unit
         end
 
         if false then
-            FU.show_fgumap_with_message(rating_map, 'rating', 'Retreat rating map', gamedata.unit_copies[best_id])
+            FU.show_fgumap_with_message(rating_map, 'rating', 'Retreat rating map (regen unit)', gamedata.unit_copies[best_id])
         end
 
         if best_loc then
