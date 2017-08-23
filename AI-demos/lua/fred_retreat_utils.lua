@@ -10,28 +10,6 @@ local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local retreat_functions = {}
 
-function retreat_functions.damages(id, x, y, hitchance, unit_attacks, gamedata)
-    -- For now, we add up the maximum damage from all enemies that can reach the
-    -- hex, and if it is less than the unit's HP, consider this a valid retreat location
-    -- TODO: possible improvements:
-    --   - Don't use max_damage, or a better evaluation thereof
-    --   - Only consider the number of units that can attack on the same turn
-
-    local enemy_ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids')
-    local max_damage, av_damage = 0, 0
-    if enemy_ids then
-        for _,enemy_id in ipairs(enemy_ids) do
-            local damage = unit_attacks[id][enemy_id].damage_counter.max_taken_any_weapon
-            --print('  ' .. x, y, enemy_id, damage, hitchance)
-            max_damage = max_damage + damage
-            av_damage = av_damage + damage * hitchance
-        end
-    end
-    --print('    ' .. max_damage, av_damage)
-
-    return max_damage, av_damage
-end
-
 function retreat_functions.get_healing_locations()
     local possible_healer_proxies = AH.get_live_units {
         { "filter_side", {{ "allied_with", { side = wesnoth.current.side } }} }
@@ -68,10 +46,34 @@ end
 
 function retreat_functions.find_best_retreat(retreaters, retreat_utilities, unit_attacks, gamedata)
 
+    ----- Begin retreat_damages() -----
+	local function retreat_damages(id, x, y, hitchance, unit_attacks, gamedata)
+		-- For now, we add up the maximum damage from all enemies that can reach the
+		-- hex, and if it is less than the unit's HP, consider this a valid retreat location
+		-- TODO: possible improvements:
+		--   - Don't use max_damage, or a better evaluation thereof
+		--   - Only consider the number of units that can attack on the same turn
+
+		local enemy_ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids')
+		local max_damage, av_damage = 0, 0
+		if enemy_ids then
+			for _,enemy_id in ipairs(enemy_ids) do
+				local damage = unit_attacks[id][enemy_id].damage_counter.max_taken_any_weapon
+				--print('  ' .. x, y, enemy_id, damage, hitchance)
+				max_damage = max_damage + damage
+				av_damage = av_damage + damage * hitchance
+			end
+		end
+		--print('    ' .. max_damage, av_damage)
+
+		return max_damage, av_damage
+	end
+    ----- End retreat_damages() -----
+
     ----- Begin retreat_rating() -----
     local function retreat_rating(id, x, y, heal_amount)
         local hitchance = wesnoth.unit_defense(gamedata.unit_copies[id], wesnoth.get_terrain(x, y)) / 100.
-        local max_damage, av_damage = retreat_functions.damages(id, x, y, hitchance, unit_attacks, gamedata)
+        local max_damage, av_damage = retreat_damages(id, x, y, hitchance, unit_attacks, gamedata)
 
         if (max_damage < gamedata.unit_infos[id].hitpoints) then
             local rating = (heal_amount - av_damage) * 100
@@ -320,7 +322,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, unit
                 -- and only those that reduce the number of turns needed to get to the goal villages.
                 -- Acceptable threats in this case are based on av_damage, not max_damage as above
                 local hitchance = wesnoth.unit_defense(gamedata.unit_copies[id], wesnoth.get_terrain(x, y)) / 100.
-                local max_damage, av_damage = retreat_functions.damages(id, x, y, hitchance, unit_attacks, gamedata)
+                local max_damage, av_damage = retreat_damages(id, x, y, hitchance, unit_attacks, gamedata)
 
                 if (av_damage < gamedata.unit_infos[id].hitpoints) then
                     local rating = 0
