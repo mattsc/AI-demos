@@ -4817,11 +4817,31 @@ return {
                 if unit_in_way then
                     for i_u,u in ipairs(fred.data.zone_action.units) do
                         if (u.id == unit_in_way.id) then
-                            --print('  unit is part of the combo', unit_in_way.id, unit_in_way.x, , unit_in_way.y)
+                            --print('  unit is part of the combo', unit_in_way.id, unit_in_way.x, unit_in_way.y)
                             local path, _ = wesnoth.find_path(unit_in_way, fred.data.zone_action.dsts[i_u][1], fred.data.zone_action.dsts[i_u][2])
-                            dx, dy = path[2][1] - path[1][1], path[2][2] - path[1][2]
-                            local r = math.sqrt(dx * dx + dy * dy)
-                            if (r ~= 0) then dx, dy = dx / r, dy / r end
+
+                            -- If we can find an unoccupied hex along the path, move the
+                            -- unit_in_way there, in order to maximize the chances of it
+                            -- making it to its goal. However, do not move all the way and
+                            -- do partial move only, in case something changes as result of
+                            -- the original unit's action.
+                            local moveto
+                            for i = 2,#path do
+                                local uiw_uiw = wesnoth.get_unit(path[i][1], path[i][2])
+                                if (not uiw_uiw) then
+                                    moveto = { path[i][1], path[i][2] }
+                                    break
+                                end
+                            end
+
+                            if moveto then
+                                --print('    ' .. unit_in_way.id .. ': moving out of way to:', moveto[1], moveto[2])
+                                AH.checked_move(ai, unit_in_way, moveto[1], moveto[2])
+                            else
+                                dx, dy = path[2][1] - path[1][1], path[2][2] - path[1][2]
+                                local r = math.sqrt(dx * dx + dy * dy)
+                                if (r ~= 0) then dx, dy = dx / r, dy / r end
+                            end
 
                             break
                         end
