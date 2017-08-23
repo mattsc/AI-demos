@@ -1090,8 +1090,14 @@ function ai_helper.move_unit_out_of_way(ai, unit, cfg)
         if (not unit_in_way) then  -- also excludes current hex
             local rating = loc[3]  -- also disfavors hexes next to enemy units for which loc[3] = 0
 
-            if cfg.dx then rating = rating + (loc[1] - unit.x) * cfg.dx * 0.01 end
-            if cfg.dy then rating = rating + (loc[2] - unit.y) * cfg.dy * 0.01 end
+            if cfg.dx and cfg.dy then
+                local dx, dy = loc[1] - unit.x, loc[2] - unit.y
+                local r = math.sqrt(dx * dx + dy * dy)
+                if (r ~= 0) then dx, dy = dx / r, dy / r end
+
+                local wrong_direction_penalty = math.abs(dx - cfg.dx) + math.abs(dy - cfg.dy)
+                rating = rating - wrong_direction_penalty * 0.01
+            end
 
             if cfg.labels then reach_map:insert(loc[1], loc[2], rating) end
 
