@@ -50,9 +50,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, unit
 	local function retreat_damages(id, x, y, hitchance, unit_attacks, gamedata)
 		-- For now, we add up the maximum damage from all enemies that can reach the
 		-- hex, and if it is less than the unit's HP, consider this a valid retreat location
-		-- TODO: possible improvements:
-		--   - Don't use max_damage, or a better evaluation thereof
-		--   - Only consider the number of units that can attack on the same turn
+		-- Potential TODO: do actual counter attack evaluation
 
 		local enemy_ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids')
 		local max_damage, av_damage = 0, 0
@@ -78,9 +76,9 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, unit
         if (max_damage < gamedata.unit_infos[id].hitpoints) then
             local rating = (heal_amount - av_damage) * 100
 
-            -- TODO: should also check that the location actually cures
             -- Give small bonus for poison, but that should already be covered in
             -- retreat_utilities, so this is really just a tie breaker
+            -- Potential TODO: also check that the location actually cures
             if gamedata.unit_infos[id].status.poisoned then
                 rating = rating + 1
             end
@@ -88,7 +86,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, unit
             -- Small bonus for terrain defense
             rating = rating + (1 - hitchance)
 
-            -- TODO: it' not a priori clear whether the av_damage contribution should be
+            -- Potential TODO: it' not a priori clear whether the av_damage contribution should be
             -- multiplied by 1/retreat_utility instead. Depending on the point of view,
             -- both make some sense. Reconsider more carefully later.
             rating = rating * retreat_utilities[id]
@@ -134,7 +132,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, unit
                 heal_amount = wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).healing or 0
             end
 
-            -- TODO: curing is currently not evaluated (even though it is added for healers)
+            -- Potential TODO: curing is currently not evaluated (even though it is added for healers)
             local healer_values = healing_locs:get(x, y) or { 0, 0 }
             heal_amount = math.max(heal_amount, healer_values[1])
 
@@ -164,7 +162,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, unit
 
     -- No-regenerating units are dealt with first, and need to be considered
     -- together, as there are generally only a few healing locations available.
-    -- TODO: For now we always consider all units in one calculation. This might
+    -- Potential TODO: For now we always consider all units in one calculation. This might
     -- take too long on larger maps. Reconsider later if this becomes a problem.
     local tmp_dst_src, rating_map = {}, {}
     for id,heal_map in pairs(heal_maps_no_regen) do
