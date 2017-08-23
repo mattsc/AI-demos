@@ -664,7 +664,7 @@ return {
                     end
                     --DBG.dbms(tmp_attacks[enemy_id])
 
-                    local max_diff_counter
+                    local max_diff_counter, max_damage_counter
                     for i_w,attack in ipairs(gamedata.unit_infos[enemy_id].attacks) do
                         --print('counter weapon: ' .. i_w)
 
@@ -696,8 +696,17 @@ return {
                                 enemy_gen_hc = enemy_weapon.chance_to_hit / 100
                             }
                         end
+
+                        -- Also add the maximum damage either from any of the enemies weapons
+                        -- in the counter attack. This is needed, for example, in the retreat
+                        -- evaluation
+                        if (not max_damage_counter) or (enemy_base_damage > max_damage_counter) then
+                            max_damage_counter = enemy_base_damage
+                        end
+
                     end
-                    --DBG.dbms(counter)
+                    tmp_attacks[enemy_id].damage_counter.max_taken_any_weapon = max_damage_counter
+
 
                     gamedata.unit_copies[enemy_id] = wesnoth.copy_unit(enemy_proxy)
                     wesnoth.put_unit(enemy_x, enemy_y)
