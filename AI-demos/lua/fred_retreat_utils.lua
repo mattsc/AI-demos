@@ -67,12 +67,62 @@ function retreat_functions.get_healing_locations()
 end
 
 function retreat_functions.find_best_retreat(retreaters, retreat_utilities, unit_attacks, gamedata)
+
+    ----- Begin retreat_rating() -----
+    local function retreat_rating(id, x, y, heal_amount)
+        local hitchance = wesnoth.unit_defense(gamedata.unit_copies[id], wesnoth.get_terrain(x, y)) / 100.
+        local max_damage, av_damage = retreat_functions.damages(id, x, y, hitchance, unit_attacks, gamedata)
+
+        if (max_damage < gamedata.unit_infos[id].hitpoints) then
+            local rating = (heal_amount - av_damage) * 100
+
+            -- TODO: should also check that the location actually cures
+            -- Give small bonus for poison, but that should already be covered in
+            -- retreat_utilities, so this is really just a tie breaker
+            if gamedata.unit_infos[id].status.poisoned then
+                rating = rating + 1
+            end
+
+            -- Small bonus for terrain defense
+            rating = rating + (1 - hitchance)
+
+            -- TODO: it' not a priori clear whether the av_damage contribution should be
+            -- multiplied by 1/retreat_utility instead. Depending on the point of view,
+            -- both make some sense. Reconsider more carefully later.
+            rating = rating * retreat_utilities[id]
+
+            -- Penalty if a unit has to move out of the way
+            -- Small base penalty plus damage of moving unit
+            -- Both of these are small though, really just meant as tie breakers
+            -- Units with MP are taken off the map at this point, so cannot just check the map
+            local uiw_id = FU.get_fgumap_value(gamedata.my_unit_map_MP, x, y, 'id')
+            --print(id, x, y, uiw_id)
+            if uiw_id and (uiw_id ~= id) then
+                rating = rating - 0.01
+                rating = rating + (gamedata.unit_infos[uiw_id].hitpoints - gamedata.unit_infos[uiw_id].max_hitpoints) / 100.
+            end
+
+            -- Finally, all else being equal, retreat toward the leader
+            local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
+            rating = rating - ld / 1000
+
+            return rating
+        end
+    end
+    ----- End retreat_rating() -----
+
+
     -- Only retreat to safe locations
     local healing_locs = retreat_functions.get_healing_locations()
 
-    local heal_maps = {}
+    local heal_maps_regen, heal_maps_no_regen = {}, {}
     for id,loc in pairs(retreaters) do
-        heal_maps[id] = {}
+        if gamedata.unit_infos[id].abilities.regenerate then
+            heal_maps_regen[id] = {}
+        else
+            heal_maps_no_regen[id] = {}
+        end
+
         for x,y,_ in FU.fgumap_iter(gamedata.reach_maps[id]) do
             local heal_amount = 0
 
@@ -98,83 +148,100 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, unit
             heal_amount = math.min(heal_amount, gamedata.unit_infos[id].max_hitpoints - gamedata.unit_infos[id].hitpoints)
 
             if (heal_amount > 0) then
-                FU.set_fgumap_value(heal_maps[id], x, y, 'heal_amount', heal_amount)
+                if gamedata.unit_infos[id].abilities.regenerate then
+                    FU.set_fgumap_value(heal_maps_regen[id], x, y, 'heal_amount', heal_amount)
+                else
+                    FU.set_fgumap_value(heal_maps_no_regen[id], x, y, 'heal_amount', heal_amount)
+                end
             end
         end
     end
-    --DBG.dbms(heal_maps)
+    --DBG.dbms(heal_maps_regen)
+    --DBG.dbms(heal_maps_no_regen)
 
-    -- TODO: There is a built-in inefficiency here, in that we always assess all
-    -- units before returnning the result, while the score is mostly based on the
-    -- retreat_utilities. However, the plan is to add assessment of all units in
-    -- combination, so that they do not take retreat hexes away from each other.
-    -- So for the time being, we leave this as is unless computing time will turn
-    -- out to be a problem.
-    -- However, we should likely at least be able to separate regenerating from
-    -- non-regenerating units again.
 
-    local max_rating, best_loc, best_id
-    for id,heal_map in pairs(heal_maps) do
-        local base_factor = 1000
-        local base_rating = retreat_utilities[id]
-        base_rating = base_rating * base_factor
-        --print(id, 'base_rating: ' .. base_rating)
+    -- No-regenerating units are dealt with first, and need to be considered
+    -- together, as there are generally only a few healing locations available.
+    -- TODO: For now we always consider all units in one calculation. This might
+    -- take too long on larger maps. Reconsider later if this becomes a problem.
+    local tmp_dst_src, rating_map = {}, {}
+    for id,heal_map in pairs(heal_maps_no_regen) do
+        local unit_loc = gamedata.units[id]
+        local src = unit_loc[1] * 1000 + unit_loc[2]
 
-        -- We want non-regenerating units to retreat before regenerating units
-        if (not gamedata.unit_infos[id].abilities.regenerate) then
-            base_rating = base_rating + base_factor
+        for x,y,data in FU.fgumap_iter(heal_map) do
+            local dst = x * 1000 + y
+            --print(id, x, y, src, dst)
+
+            local rating = retreat_rating(id, x, y, data.heal_amount)
+
+            if rating then
+                FU.set_fgumap_value(rating_map, x, y, 'rating', rating)
+
+                if (not tmp_dst_src[dst]) then tmp_dst_src[dst] = { dst = dst } end
+                table.insert(tmp_dst_src[dst], { src = src, rating = rating })
+            end
         end
 
+        if false then
+            FU.show_fgumap_with_message(rating_map, 'rating', 'Retreat rating map (no-regen unit)', gamedata.unit_copies[id])
+        end
+    end
+
+    if next(tmp_dst_src) then
+        local dst_src = {}
+        for _,data in pairs(tmp_dst_src) do
+            table.insert(dst_src, data)
+        end
+        --DBG.dbms(dst_src)
+
+        local combos = FU.get_unit_hex_combos(dst_src, true)
+        --DBG.dbms(combos)
+
+        return combos
+    end
+
+
+    -- Now deal with regenerating units. As these each have many locations to
+    -- choose from, they can be dealt with one at a time, prioritized by
+    -- their retreat_utility
+    local best_id, max_utility
+    for id,_ in pairs(heal_maps_regen) do
+        if (not max_utility) or (retreat_utilities[id] > max_utility) then
+            best_id = id
+            max_utility = retreat_utilities[id]
+        end
+    end
+
+    if best_id then
+        local max_rating, best_loc
         local rating_map = {}
-        for x,y,data in FU.fgumap_iter(heal_map) do
-            --print(id, x, y)
-            local rating = base_rating
+        for x,y,data in FU.fgumap_iter(heal_maps_regen[best_id]) do
+            local rating = retreat_rating(best_id, x, y, data.heal_amount)
+            --print(best_id, x, y, rating)
 
-            rating = rating + data.heal_amount
-
-            -- TODO: should also check that the location actually cures
-            -- Give small bonus for poison, but that should already be covered in
-            -- retreat_utilities, so this is really just a tie breaker
-            if gamedata.unit_infos[id].status.poisoned then
-                rating = rating + 1
-            end
-
-            -- Small bonus for terrain defense
-            local hitchance = wesnoth.unit_defense(gamedata.unit_copies[id], wesnoth.get_terrain(x, y)) / 100.
-            rating = rating + (1 - hitchance)
-
-            -- Penalty if a unit has to move out of the way
-            -- Small base penalty plus damage of moving unit
-            -- Both of these are small though, really just meant as tie breakers
-            -- Units with MP are taken off the map at this point, so cannot just check the map
-            local uiw_id = FU.get_fgumap_value(gamedata.my_unit_map_MP, x, y, 'id')
-            --print(id, x, y, uiw_id)
-            if uiw_id and (uiw_id ~= id) then
-                rating = rating - 0.01
-                rating = rating + (gamedata.unit_infos[uiw_id].hitpoints - gamedata.unit_infos[uiw_id].max_hitpoints) / 100.
-            end
-
-            local max_damage, av_damage = retreat_functions.damages(id, x, y, hitchance, unit_attacks, gamedata)
-            if (max_damage < gamedata.unit_infos[id].hitpoints) then
-                rating = rating - av_damage
-
+            if rating then
                 FU.set_fgumap_value(rating_map, x, y, 'rating', rating)
 
                 if (not max_rating) or (rating > max_rating) then
                     max_rating = rating
                     best_loc = { x, y }
-                    best_id = id
                 end
             end
         end
 
         if false then
-            FU.show_fgumap_with_message(rating_map, 'rating', 'Retreat rating map', gamedata.unit_copies[id])
+            FU.show_fgumap_with_message(rating_map, 'rating', 'Retreat rating map', gamedata.unit_copies[best_id])
         end
-    end
 
-    if best_id then
-        return best_id, best_loc
+        if best_loc then
+            local unit_loc = gamedata.units[best_id]
+            local src = unit_loc[1] * 1000 + unit_loc[2]
+            local combo = {}
+            combo[src] = best_loc[1] * 1000 + best_loc[2]
+
+            return combo
+        end
     end
 
 
@@ -312,7 +379,12 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, unit
         end
 
         if best_id then
-            return best_id, best_loc
+            local unit_loc = gamedata.units[best_id]
+            local src = unit_loc[1] * 1000 + unit_loc[2]
+            local combo = {}
+            combo[src] = best_loc[1] * 1000 + best_loc[2]
+
+            return combo
         end
     end
 end

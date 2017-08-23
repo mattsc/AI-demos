@@ -4051,21 +4051,24 @@ return {
             if debug_eval then print_time('  --> retreat evaluation: ' .. zone_cfg.zone_id) end
 
             local gamedata = fred.data.gamedata
-
             local retreat_utilities = FU.retreat_utilities(gamedata)
+            local retreat_combo = R.find_best_retreat(zone_cfg.retreaters, retreat_utilities, fred.data.turn_data.unit_attacks, gamedata)
 
-            local id, dest = R.find_best_retreat(zone_cfg.retreaters, retreat_utilities, fred.data.turn_data.unit_attacks, gamedata)
-            if id then
-                FU.print_debug(show_debug_advance, '  retreat:', id, dest[1], dest[2])
-
-                local unit = gamedata.my_units[id]
-                unit.id = id
-
+            if retreat_combo then
                 local action = {
-                    units = { unit },
-                    dsts = { dest }
+                    units = {},
+                    dsts = {},
+                    action_str = 'retreat'
                 }
-                action.action_str = 'retreat'
+
+                for src,dst in pairs(retreat_combo) do
+                    local src_x, src_y = math.floor(src / 1000), src % 1000
+                    local dst_x, dst_y = math.floor(dst / 1000), dst % 1000
+                    local unit = { src_x, src_y, id = gamedata.my_unit_map[src_x][src_y].id }
+                    table.insert(action.units, unit)
+                    table.insert(action.dsts, { dst_x, dst_y })
+                end
+
                 return action
             end
         end
