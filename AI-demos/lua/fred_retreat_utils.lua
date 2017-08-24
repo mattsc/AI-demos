@@ -69,11 +69,11 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, unit
     ----- End retreat_damages() -----
 
     ----- Begin retreat_rating() -----
-    local function retreat_rating(id, x, y, heal_amount)
+    local function retreat_rating(id, x, y, heal_amount, no_damage_limit)
         local hitchance = wesnoth.unit_defense(gamedata.unit_copies[id], wesnoth.get_terrain(x, y)) / 100.
         local max_damage, av_damage = retreat_damages(id, x, y, hitchance, unit_attacks, gamedata)
 
-        if (max_damage < gamedata.unit_infos[id].hitpoints) then
+        if no_damage_limit or (max_damage < gamedata.unit_infos[id].hitpoints) then
             local rating = (heal_amount - av_damage) * 100
 
             -- Give small bonus for poison, but that should already be covered in
@@ -260,42 +260,41 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, unit
     --DBG.dbms(retreaters_no_regen)
 
     if next(retreaters_no_regen) then
-        local unthreatened_villages_map = {}
-        for x,y,_ in FU.fgumap_iter(gamedata.village_map) do
-            if (not FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids')) then
-                FU.set_fgumap_value(unthreatened_villages_map, x, y, 'flag', true)
-            end
-        end
-        --DBG.dbms(unthreatened_villages_map)
-
         local max_rating, best_loc, best_id
         for id,loc in pairs(retreaters_no_regen) do
             -- First find all goal villages.  These are:
-            --  - unthreatened
+            --  - low threat
             --  - more than 1 turn away
             --  - no more than 3 turns away
             --  - worth moving that far (based on retreat_utility)
+
             local villages, min_turns = {}
-            for x,y,_ in FU.fgumap_iter(unthreatened_villages_map) do
-                local _,cost = wesnoth.find_path(gamedata.unit_copies[id], x, y)
-                local int_turns = math.ceil(cost / gamedata.unit_infos[id].max_moves)
+            for x,y,_ in FU.fgumap_iter(gamedata.village_map) do
+                local hitchance = wesnoth.unit_defense(gamedata.unit_copies[id], wesnoth.get_terrain(x, y)) / 100.
+                local max_damage, av_damage = retreat_damages(id, x, y, hitchance, unit_attacks, gamedata)
 
-                -- Exclude 1-turn hexes as these might be occupied by a friendly unit ot something
-                if (int_turns > 1) and (int_turns <= 3) then
-                    -- This is really the required utility to make it worth it, rather than the utility of the village
-                    local distance_utility = 1 - 1 / int_turns
-                    if (retreat_utilities[id] >= distance_utility) then
-                        --print(id, x, y, int_turns, distance_utility, retreat_utilities[id])
-                        if (not min_turns) or (int_turns < min_turns) then
-                            min_turns = int_turns
-                        end
+                if (av_damage < gamedata.unit_infos[id].hitpoints) then
+					local _,cost = wesnoth.find_path(gamedata.unit_copies[id], x, y)
+					local int_turns = math.ceil(cost / gamedata.unit_infos[id].max_moves)
 
-                        table.insert(villages, {
-                            loc = { x, y },
-                            int_turns = int_turns,
-                            cost = cost
-                        })
-                    end
+					-- Exclude 1-turn hexes as these might be occupied by a friendly unit ot something
+					if (int_turns > 1) and (int_turns <= 3) then
+						-- This is really the required utility to make it worth it, rather than the utility of the village
+						local distance_utility = 1 - 1 / int_turns
+						if (retreat_utilities[id] >= distance_utility) then
+							--print(id, x, y, int_turns, distance_utility, retreat_utilities[id])
+							if (not min_turns) or (int_turns < min_turns) then
+								min_turns = int_turns
+							end
+
+							table.insert(villages, {
+								loc = { x, y },
+								int_turns = int_turns,
+								cost = cost,
+								av_damage = av_damage
+							})
+						end
+					end
                 end
             end
             --DBG.dbms(villages)
@@ -337,7 +336,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, unit
                         gamedata.unit_copies[id].moves = old_moves
                         --print('  ' .. id, x, y, xv, yv, int_turns, v.int_turns)
 
-                        -- Base rating is the reduction of moves needed to get there
+                        -- Distance rating is the reduction of moves needed to get there
                         -- This is additive for all villages for this is true
                         if (int_turns < v.int_turns) then
                             rating = rating + v.cost - cost
@@ -345,22 +344,16 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, unit
                     end
 
                     if (rating > 0) then
-                        -- Small bonus for terrain defense
-                        rating = rating + (1 - hitchance)
+                        -- Main rating, as above, is the damage rating
+                        local heal_amount = FU.get_fgumap_value(heal_maps_no_regen[id], x, y, 'heal_amount', 0)
+                        rating = rating + retreat_rating(id, x, y, heal_amount, true)
 
-                        -- Penalty if a unit has to move out of the way
-                        -- Small base penalty plus damage of moving unit
-                        -- Both of these are small though, really just meant as tie breakers
-                        -- Units with MP are taken off the map at this point, so cannot just check the map
-                        local uiw_id = FU.get_fgumap_value(gamedata.my_unit_map_MP, x, y, 'id')
-                        --print(id, x, y, uiw_id)
-                        if uiw_id and (uiw_id ~= id) then
-                            rating = rating - 0.01
-                            rating = rating + (gamedata.unit_infos[uiw_id].hitpoints - gamedata.unit_infos[uiw_id].max_hitpoints) / 100.
+                        -- However, if there is a chance to die, we give a huge penalty,
+                        -- larger than any healing benefit could be. In other words, we
+                        -- prefer no healing but no chance to die over the opposite.
+                        if (max_damage > gamedata.unit_infos[id].hitpoints) then
+                            rating = rating - 1000
                         end
-
-                        -- We also add in the retreat_utility, but in this case it's only the tie breaker
-                        rating = rating + retreat_utilities[id]
 
                         FU.set_fgumap_value(rating_map, x, y, 'rating', rating)
 
