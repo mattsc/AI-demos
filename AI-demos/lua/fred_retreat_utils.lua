@@ -343,9 +343,15 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, unit
                         end
                     end
 
-                    if (rating > 0) then
+                    local heal_amount = FU.get_fgumap_value(heal_maps_no_regen[id], x, y, 'heal_amount', 0)
+
+                    -- We allow hexes that either pass the previous criterion, or that
+                    -- are healing locations within one move that were previously
+                    -- excluded because max_damage was too large.
+                    -- The latter has a lower rating all else being equal (rating=0 so far),
+                    -- as the former has other villahes in close reach.
+                    if (rating > 0) or (heal_amount > 0) then
                         -- Main rating, as above, is the damage rating
-                        local heal_amount = FU.get_fgumap_value(heal_maps_no_regen[id], x, y, 'heal_amount', 0)
                         rating = rating + retreat_rating(id, x, y, heal_amount, true)
 
                         -- However, if there is a chance to die, we give a huge penalty,
