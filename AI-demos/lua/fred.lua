@@ -4094,7 +4094,34 @@ return {
                                 --print(next(combo))
                                 --DBG.dbms(combo_outcome.rating_table)
 
-                                if (not max_attack_rating) or (combo_outcome.rating_table.rating > max_attack_rating) then
+                                local do_attack = true
+
+                                -- Don't attack if chance of leveling up the enemy is higher than the kill chance
+                                if (combo_outcome.def_outcome.levelup_chance > combo_outcome.def_outcome.hp_chance[0]) then
+                                    do_attack = false
+                                end
+
+                                -- If there's no chance to kill the enemy, don't do the attack if it ...
+                                if do_attack and (combo_outcome.def_outcome.hp_chance[0] == 0) then
+                                    local unit_level = gamedata.unit_infos[id].level
+                                    local enemy_dxp = gamedata.unit_infos[enemy_id].max_experience - gamedata.unit_infos[enemy_id].experience
+
+                                    -- .. will get the enemy a certain level-up on the counter
+                                    if (enemy_dxp <= 2 * unit_level) then
+                                        do_attack = false
+                                    end
+
+                                    -- .. will give the enemy a level-up with a kill on the counter,
+                                    -- unless that would be the case even without the attack
+                                    if do_attack then
+                                        if (unit_level == 0) then unit_level = 0.5 end  -- L0 units
+                                        if (enemy_dxp > unit_level * 8) and (enemy_dxp <= unit_level * 9) then
+                                            do_attack = false
+                                        end
+                                    end
+                                end
+
+                                if do_attack and ((not max_attack_rating) or (combo_outcome.rating_table.rating > max_attack_rating)) then
                                     max_attack_rating = combo_outcome.rating_table.rating
                                     best_attacker_id = id
                                     local _, dst = next(combo)
