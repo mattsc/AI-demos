@@ -3883,7 +3883,7 @@ return {
             else
                 for id,_ in pairs(gamedata.my_units_MP) do
                     if (not gamedata.unit_infos[id].canrecruit) then
-                        advancers[id] = FU.unit_base_power(gamedata.unit_infos[id])
+                        advancers[id] = { gamedata.my_units[id][1], gamedata.my_units[id][2] }
                     end
                 end
             end
@@ -3901,9 +3901,10 @@ return {
                 FU.show_fgumap_with_message(advance_map, 'flag', 'Advance map: ' .. zone_cfg.zone_id)
             end
 
+            local safe_loc = false
             local unit_rating_maps = {}
             local max_rating, best_id, best_hex
-            for id,_ in pairs(advancers) do
+            for id,unit_loc in pairs(advancers) do
                 unit_rating_maps[id] = {}
 
                 -- Fastest unit first, after that strongest unit first
@@ -3998,9 +3999,27 @@ return {
 
                         dist = FU.get_fgumap_value(cost_map, x, y, 'cost')
 
-                        local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids')
-                        if ids then
-                            rating = rating - #ids  * enemy_mult
+                        local enemy_ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids')
+                        if enemy_ids then
+                            rating = rating - #enemy_ids  * enemy_mult
+                        end
+                        --print(x,y,#enemy_ids,enemy_mult)
+
+                        -- Counter attack outcome
+                        -- Potential TODO: counter attack calculations are expensive. We might be able
+                        --   to do a faster pre-evaluation if this turns out to be problematic
+                        local unit_moved = {}
+                        unit_moved[id] = { x, y }
+                        local old_locs = { { unit_loc[1], unit_loc[2] } }
+                        local new_locs = { { x, y } }
+                        local counter_outcomes = FAU.calc_counter_attack(
+                            unit_moved, old_locs, new_locs, gamedata, move_cache
+                        )
+                        --DBG.dbms(counter_outcomes.def_outcome.ctd_progression)
+                        --print('  die_chance', counter_outcomes.def_outcome.hp_chance[0])
+
+                        if (not counter_outcomes) or (counter_outcomes.def_outcome.hp_chance[0] < 0.85) then
+                            safe_loc = true
                         end
 
                         rating = rating - 1000 -- do not do this unless there is no other option
@@ -4035,6 +4054,7 @@ return {
                     end
                 end
             end
+            --print('best unit: ' .. best_id, best_hex[1], best_hex[2])
 
             if false then
                 for id,unit_rating_map in pairs(unit_rating_maps) do
@@ -4042,14 +4062,73 @@ return {
                 end
             end
 
+
+            -- If no safe location is found, check for desparate attack
+            local best_target, best_weapons, action_str
+            if (not safe_loc) then
+                --print('----- no safe advance location found -----')
+
+                local cfg_attack = {
+                    value_ratio = 0.2, -- mostly based on damage done to enemy
+                    use_max_damage_weapons = true
+                }
+
+                local max_attack_rating, best_attacker_id, best_attack_hex
+                for id,unit_loc in pairs(advancers) do
+                    --print('checking desparate attacks for ' .. id)
+
+                    local attacker = {}
+                    attacker[id] = unit_loc
+                    for enemy_id,enemy_loc in pairs(gamedata.enemies) do
+                        if FU.get_fgumap_value(gamedata.unit_attack_maps[id], enemy_loc[1], enemy_loc[2], 'current_power') then
+                            --print('    potential target:' .. enemy_id)
+
+                            local target = {}
+                            target[enemy_id] = enemy_loc
+                            local attack_combos = FAU.get_attack_combos(
+                                attacker, target, gamedata.reach_maps, false, move_cache, cfg_attack
+                            )
+
+                            for _,combo in ipairs(attack_combos) do
+                                local combo_outcome = FAU.attack_combo_eval(combo, target, gamedata, move_cache, cfg_attack)
+                                --print(next(combo))
+                                --DBG.dbms(combo_outcome.rating_table)
+
+                                if (not max_attack_rating) or (combo_outcome.rating_table.rating > max_attack_rating) then
+                                    max_attack_rating = combo_outcome.rating_table.rating
+                                    best_attacker_id = id
+                                    local _, dst = next(combo)
+                                    best_attack_hex = { math.floor(dst / 1000), dst % 1000 }
+                                    best_target = {}
+                                    best_target[enemy_id] = enemy_loc
+                                    best_weapons = combo_outcome.att_weapons_i
+                                    action_str = 'desperate attack'
+                                end
+                            end
+                        end
+                    end
+                end
+                if best_attacker_id then
+                    --print('best desparate attack: ' .. best_attacker_id, best_attack_hex[1], best_attack_hex[2], next(best_target))
+                    best_id = best_attacker_id
+                    best_hex = best_attack_hex
+                end
+            end
+
+
             if best_id then
                 FU.print_debug(show_debug_advance, '  best advance:', best_id, best_hex[1], best_hex[2])
 
                 local best_unit = gamedata.my_units[best_id]
                 best_unit.id = best_id
 
-                local action = { units = { best_unit }, dsts = { best_hex } }
-                action.action_str = 'advance'
+                local action = {
+                    units = { best_unit },
+                    dsts = { best_hex },
+                    enemy = best_target,
+                    weapons = best_weapons,
+                    action_str = action_str or 'advance'
+                }
                 return action
             end
         end
