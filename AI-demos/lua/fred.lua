@@ -3889,6 +3889,19 @@ return {
             end
             if (not next(advancers)) then return end
 
+            -- Maps of hexes to be avoided for each unit
+            -- Currently this is only the location of the leader, if on a keep
+            local avoid_maps = {}
+            local leader = gamedata.leaders[wesnoth.current.side]
+            for id,_ in pairs(advancers) do
+                avoid_maps[id] = {}
+                if (id ~= leader.id) then
+                    if (wesnoth.get_terrain_info(wesnoth.get_terrain(leader[1], leader[2])).keep) then
+                        FU.set_fgumap_value(avoid_maps[id], leader[1], leader[2], 'avoid', true)
+                    end
+                end
+            end
+
             -- advance_map covers all hexes in the zone which are not threatened by enemies
             local advance_map, zone_map = {}, {}
             local zone = wesnoth.get_locations(raw_cfg.ops_slf)
@@ -3921,134 +3934,136 @@ return {
 
                 local cost_map
                 for x,y,_ in FU.fgumap_iter(gamedata.reach_maps[id]) do
-                    local rating = rating_moves + rating_power
+                    if (not FU.get_fgumap_value(avoid_maps[id], x, y, 'avoid')) then
 
-                    local dist
-                    if FU.get_fgumap_value(advance_map, x, y, 'flag') then
-                        -- For unthreatened hexes in the zone, the main criterion is the "forward distance"
-                        local ld1 = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'enemy_leader_distance')
-                        local ld2 = FU.get_fgumap_value(gamedata.enemy_leader_distance_maps[gamedata.unit_infos[id].type], x, y, 'cost')
-                        dist = (ld1 + ld2) / 2
-                    else
-                        -- When no unthreatened hexes inside the zone can be found,
-                        -- the enemy threat needs to be taken into account
-                        if not cost_map then
-                            cost_map = {}
+                        local rating = rating_moves + rating_power
 
-                            local hexes = {}
-                            -- Cannot just assign here, as we do not want to change the input tables later
-                            if fred.data.ops_data.protect_locs[zone_cfg.zone_id]
-                                and fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs
-                                and fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs[1]
-                            then
-                                for _,loc in ipairs(fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs) do
-                                    table.insert(hexes, loc)
-                                end
-                            else
-                                for _,loc in ipairs(raw_cfg.center_hexes) do
-                                    table.insert(hexes, loc)
-                                end
-                            end
-
-                            local include_leader_locs = false
-                            if fred.data.ops_data.assigned_enemies[zone_cfg.zone_id] and fred.data.ops_data.leader_threats.enemies then
-                                for enemy_id,_ in pairs(fred.data.ops_data.assigned_enemies[zone_cfg.zone_id]) do
-                                    if fred.data.ops_data.leader_threats.enemies[enemy_id] then
-                                        include_leader_locs = true
-                                        break
-                                    end
-                                end
-                            end
-                            if include_leader_locs then
-                                for _,loc in ipairs(fred.data.ops_data.leader_threats.protect_locs) do
-                                    table.insert(hexes, loc)
-                                end
-                            end
-
-                            for _,hex in ipairs(hexes) do
-                                local cm = wesnoth.find_cost_map(
-                                    { x = -1 }, -- SUF not matching any unit
-                                    { { hex[1], hex[2], wesnoth.current.side, fred.data.gamedata.unit_infos[id].type } },
-                                    { ignore_units = true }
-                                )
-
-                                for _,cost in pairs(cm) do
-                                    if (cost[3] > -1) then
-                                       local c = FU.get_fgumap_value(cost_map, cost[1], cost[2], 'cost', 0)
-                                       FU.set_fgumap_value(cost_map, cost[1], cost[2], 'cost', c + cost[3])
-                                    end
-                                end
-                            end
-                            if false then
-                                FU.show_fgumap_with_message(cost_map, 'cost', 'cost_map')
-                            end
-                        end
-
-                        dist = FU.get_fgumap_value(cost_map, x, y, 'cost')
-
-                        -- Counter attack outcome
-                        local unit_moved = {}
-                        unit_moved[id] = { x, y }
-                        local old_locs = { { unit_loc[1], unit_loc[2] } }
-                        local new_locs = { { x, y } }
-                        local counter_outcomes = FAU.calc_counter_attack(
-                            unit_moved, old_locs, new_locs, gamedata, move_cache
-                        )
-                        --DBG.dbms(counter_outcomes.def_outcome.ctd_progression)
-                        --print('  die_chance', counter_outcomes.def_outcome.hp_chance[0])
-
-                        if counter_outcomes then
-                            local counter_rating = - counter_outcomes.rating_table.rating
-                            -- Use cost here, rather than value, as we want to be more careful with high XP units
-                            counter_rating = counter_rating / gamedata.unit_infos[id].cost
-                            counter_rating = 2 * counter_rating * gamedata.unit_infos[id].max_moves
-
-                            -- The die chance is already included in the rating, but we
-                            -- want it to have even more importance here
-                            local die_rating = - counter_outcomes.def_outcome.hp_chance[0]
-                            die_rating = 2 * die_rating * gamedata.unit_infos[id].max_moves
-
-                            rating = rating + counter_rating + die_rating
-                        end
-
-                        if (not counter_outcomes) or (counter_outcomes.def_outcome.hp_chance[0] < 0.85) then
-                            safe_loc = true
-                        end
-
-                        -- Do not do this unless there is no unthreatened hex in the zone
-                        rating = rating - 1000
-                    end
-
-                    local rating = rating - dist
-
-                    -- Small preference for villages we don't own (although this
-                    -- should mostly be covered by the village grabbing action already)
-                    local owner = FU.get_fgumap_value(gamedata.village_map, x, y, 'owner')
-                    if owner and (owner ~= wesnoth.current.side) then
-                        if (owner == 0) then
-                            rating = rating + 1
+                        local dist
+                        if FU.get_fgumap_value(advance_map, x, y, 'flag') then
+                            -- For unthreatened hexes in the zone, the main criterion is the "forward distance"
+                            local ld1 = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'enemy_leader_distance')
+                            local ld2 = FU.get_fgumap_value(gamedata.enemy_leader_distance_maps[gamedata.unit_infos[id].type], x, y, 'cost')
+                            dist = (ld1 + ld2) / 2
                         else
-                            rating = rating + 2
+                            -- When no unthreatened hexes inside the zone can be found,
+                            -- the enemy threat needs to be taken into account
+                            if not cost_map then
+                                cost_map = {}
+
+                                local hexes = {}
+                                -- Cannot just assign here, as we do not want to change the input tables later
+                                if fred.data.ops_data.protect_locs[zone_cfg.zone_id]
+                                    and fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs
+                                    and fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs[1]
+                                then
+                                    for _,loc in ipairs(fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs) do
+                                        table.insert(hexes, loc)
+                                    end
+                                else
+                                    for _,loc in ipairs(raw_cfg.center_hexes) do
+                                        table.insert(hexes, loc)
+                                    end
+                                end
+
+                                local include_leader_locs = false
+                                if fred.data.ops_data.assigned_enemies[zone_cfg.zone_id] and fred.data.ops_data.leader_threats.enemies then
+                                    for enemy_id,_ in pairs(fred.data.ops_data.assigned_enemies[zone_cfg.zone_id]) do
+                                        if fred.data.ops_data.leader_threats.enemies[enemy_id] then
+                                            include_leader_locs = true
+                                            break
+                                        end
+                                    end
+                                end
+                                if include_leader_locs then
+                                    for _,loc in ipairs(fred.data.ops_data.leader_threats.protect_locs) do
+                                        table.insert(hexes, loc)
+                                    end
+                                end
+
+                                for _,hex in ipairs(hexes) do
+                                    local cm = wesnoth.find_cost_map(
+                                        { x = -1 }, -- SUF not matching any unit
+                                        { { hex[1], hex[2], wesnoth.current.side, fred.data.gamedata.unit_infos[id].type } },
+                                        { ignore_units = true }
+                                    )
+
+                                    for _,cost in pairs(cm) do
+                                        if (cost[3] > -1) then
+                                           local c = FU.get_fgumap_value(cost_map, cost[1], cost[2], 'cost', 0)
+                                           FU.set_fgumap_value(cost_map, cost[1], cost[2], 'cost', c + cost[3])
+                                        end
+                                    end
+                                end
+                                if false then
+                                    FU.show_fgumap_with_message(cost_map, 'cost', 'cost_map')
+                                end
+                            end
+
+                            dist = FU.get_fgumap_value(cost_map, x, y, 'cost')
+
+                            -- Counter attack outcome
+                            local unit_moved = {}
+                            unit_moved[id] = { x, y }
+                            local old_locs = { { unit_loc[1], unit_loc[2] } }
+                            local new_locs = { { x, y } }
+                            local counter_outcomes = FAU.calc_counter_attack(
+                                unit_moved, old_locs, new_locs, gamedata, move_cache
+                            )
+                            --DBG.dbms(counter_outcomes.def_outcome.ctd_progression)
+                            --print('  die_chance', counter_outcomes.def_outcome.hp_chance[0])
+
+                            if counter_outcomes then
+                                local counter_rating = - counter_outcomes.rating_table.rating
+                                -- Use cost here, rather than value, as we want to be more careful with high XP units
+                                counter_rating = counter_rating / gamedata.unit_infos[id].cost
+                                counter_rating = 2 * counter_rating * gamedata.unit_infos[id].max_moves
+
+                                -- The die chance is already included in the rating, but we
+                                -- want it to have even more importance here
+                                local die_rating = - counter_outcomes.def_outcome.hp_chance[0]
+                                die_rating = 2 * die_rating * gamedata.unit_infos[id].max_moves
+
+                                rating = rating + counter_rating + die_rating
+                            end
+
+                            if (not counter_outcomes) or (counter_outcomes.def_outcome.hp_chance[0] < 0.85) then
+                                safe_loc = true
+                            end
+
+                            -- Do not do this unless there is no unthreatened hex in the zone
+                            rating = rating - 1000
                         end
-                    end
+
+                        local rating = rating - dist
+
+                        -- Small preference for villages we don't own (although this
+                        -- should mostly be covered by the village grabbing action already)
+                        local owner = FU.get_fgumap_value(gamedata.village_map, x, y, 'owner')
+                        if owner and (owner ~= wesnoth.current.side) then
+                            if (owner == 0) then
+                                rating = rating + 1
+                            else
+                                rating = rating + 2
+                            end
+                        end
 
                     -- Somewhat larger preference for villages for injured units
-                    if owner and (not gamedata.unit_infos[id].abilities.regenerate) then
                         rating = rating + hp_rating
                     end
 
-                    -- Small bonus for the terrain; this does not really matter for
-                    -- unthreatened hexes and is already taken into account in the
-                    -- counter attack calculation for others. Just a tie breaker.
-                    local my_defense = FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
-                    rating = rating + my_defense / 10
+                        -- Small bonus for the terrain; this does not really matter for
+                        -- unthreatened hexes and is already taken into account in the
+                        -- counter attack calculation for others. Just a tie breaker.
+                        local my_defense = FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
+                        rating = rating + my_defense / 10
 
-                    FU.set_fgumap_value(unit_rating_maps[id], x, y, 'rating', rating)
+                        FU.set_fgumap_value(unit_rating_maps[id], x, y, 'rating', rating)
 
-                    if (not max_rating) or (rating > max_rating) then
-                        max_rating = rating
-                        best_id = id
-                        best_hex = { x, y }
+                        if (not max_rating) or (rating > max_rating) then
+                            max_rating = rating
+                            best_id = id
+                            best_hex = { x, y }
+                        end
                     end
                 end
             end
