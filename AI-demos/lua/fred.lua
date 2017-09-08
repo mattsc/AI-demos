@@ -3999,7 +3999,8 @@ return {
 
                         if counter_outcomes then
                             local counter_rating = - counter_outcomes.rating_table.rating
-                            counter_rating = counter_rating / FU.unit_value(gamedata.unit_infos[id])
+                            -- Use cost here, rather than value, as we want to be more careful with high XP units
+                            counter_rating = counter_rating / gamedata.unit_infos[id].cost
                             counter_rating = 2 * counter_rating * gamedata.unit_infos[id].max_moves
 
                             -- The die chance is already included in the rating, but we
