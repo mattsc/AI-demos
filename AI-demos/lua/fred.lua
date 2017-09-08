@@ -4047,9 +4047,10 @@ return {
                             end
                         end
 
-                    -- Somewhat larger preference for villages for injured units
-                        rating = rating + hp_rating
-                    end
+                        -- Somewhat larger preference for villages for injured units
+                        if owner and (not gamedata.unit_infos[id].abilities.regenerate) then
+                            rating = rating + hp_rating
+                        end
 
                         -- Small bonus for the terrain; this does not really matter for
                         -- unthreatened hexes and is already taken into account in the
