@@ -3889,6 +3889,7 @@ return {
             end
             if (not next(advancers)) then return end
 
+            -- advance_map covers all hexes in the zone which are not threatened by enemies
             local advance_map, zone_map = {}, {}
             local zone = wesnoth.get_locations(raw_cfg.ops_slf)
             for _,loc in ipairs(zone) do
@@ -3911,26 +3912,12 @@ return {
                 local rating_moves = gamedata.unit_infos[id].moves / 10
                 local rating_power = FU.unit_current_power(gamedata.unit_infos[id]) / 1000
 
+                -- If a village is involved, we prefer injured units
                 local fraction_hp_missing = (gamedata.unit_infos[id].max_hitpoints - gamedata.unit_infos[id].hitpoints) / gamedata.unit_infos[id].max_hitpoints
                 local hp_rating = FU.weight_s(fraction_hp_missing, 0.5)
                 hp_rating = hp_rating * 10
 
                 --print(id, rating_moves, rating_power, fraction_hp_missing, hp_rating)
-
-                local unit_type = gamedata.unit_infos[id].type
-
-                -- If unit cannot reach the zone, it is allowed to stay ~1 hex back
-                -- for each enemy. in this case, a unit gets pulled in from far away
-                -- and should try to get there quickly.
-                -- If it can reach the zone, avoiding enemies is much more important,
-                -- as confronting the enemy is covered by holding
-                local enemy_mult = 1
-                for x,y,_ in FU.fgumap_iter(gamedata.reach_maps[id]) do
-                    if FU.get_fgumap_value(zone_map, x, y, 'flag') then
-                        enemy_mult = 10
-                        break
-                    end
-                end
 
                 local cost_map
                 for x,y,_ in FU.fgumap_iter(gamedata.reach_maps[id]) do
@@ -3938,13 +3925,13 @@ return {
 
                     local dist
                     if FU.get_fgumap_value(advance_map, x, y, 'flag') then
+                        -- For unthreatened hexes in the zone, the main criterion is the "forward distance"
                         local ld1 = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'enemy_leader_distance')
-                        local ld2 = FU.get_fgumap_value(gamedata.enemy_leader_distance_maps[unit_type], x, y, 'cost')
+                        local ld2 = FU.get_fgumap_value(gamedata.enemy_leader_distance_maps[gamedata.unit_infos[id].type], x, y, 'cost')
                         dist = (ld1 + ld2) / 2
                     else
-                        -- This part is really just a backup, in case a unit cannot get to
-                        -- the zone it is assigned to.
-
+                        -- When no unthreatened hexes inside the zone can be found,
+                        -- the enemy threat needs to be taken into account
                         if not cost_map then
                             cost_map = {}
 
@@ -4000,8 +3987,6 @@ return {
                         dist = FU.get_fgumap_value(cost_map, x, y, 'cost')
 
                         -- Counter attack outcome
-                        -- Potential TODO: counter attack calculations are expensive. We might be able
-                        --   to do a faster pre-evaluation if this turns out to be problematic
                         local unit_moved = {}
                         unit_moved[id] = { x, y }
                         local old_locs = { { unit_loc[1], unit_loc[2] } }
@@ -4017,6 +4002,8 @@ return {
                             counter_rating = counter_rating / FU.unit_value(gamedata.unit_infos[id])
                             counter_rating = 2 * counter_rating * gamedata.unit_infos[id].max_moves
 
+                            -- The die chance is already included in the rating, but we
+                            -- want it to have even more importance here
                             local die_rating = - counter_outcomes.def_outcome.hp_chance[0]
                             die_rating = 2 * die_rating * gamedata.unit_infos[id].max_moves
 
@@ -4027,12 +4014,14 @@ return {
                             safe_loc = true
                         end
 
-                        rating = rating - 1000 -- do not do this unless there is no other option
+                        -- Do not do this unless there is no unthreatened hex in the zone
+                        rating = rating - 1000
                     end
 
                     local rating = rating - dist
 
-
+                    -- Small preference for villages we don't own (although this
+                    -- should mostly be covered by the village grabbing action already)
                     local owner = FU.get_fgumap_value(gamedata.village_map, x, y, 'owner')
                     if owner and (owner ~= wesnoth.current.side) then
                         if (owner == 0) then
@@ -4042,11 +4031,14 @@ return {
                         end
                     end
 
+                    -- Somewhat larger preference for villages for injured units
                     if owner and (not gamedata.unit_infos[id].abilities.regenerate) then
                         rating = rating + hp_rating
                     end
 
-                    -- Small bonus for the terrain
+                    -- Small bonus for the terrain; this does not really matter for
+                    -- unthreatened hexes and is already taken into account in the
+                    -- counter attack calculation for others. Just a tie breaker.
                     local my_defense = FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
                     rating = rating + my_defense / 10
 
