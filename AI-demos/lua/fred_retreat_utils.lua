@@ -102,9 +102,12 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, unit
                 rating = rating + (gamedata.unit_infos[uiw_id].hitpoints - gamedata.unit_infos[uiw_id].max_hitpoints) / 100.
             end
 
-            -- Finally, all else being equal, retreat toward the leader
+            -- Finally, all else being equal, retreat toward the leader when there is
+            -- a threat, or away from the leader when there is not
+            local retreat_direction = 1
+            if (av_damage > 0) then retreat_direction = -1 end
             local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
-            rating = rating - ld / 1000
+            rating = rating + retreat_direction * ld / 1000
 
             return rating
         end
