@@ -3999,12 +3999,6 @@ return {
 
                         dist = FU.get_fgumap_value(cost_map, x, y, 'cost')
 
-                        local enemy_ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids')
-                        if enemy_ids then
-                            rating = rating - #enemy_ids  * enemy_mult
-                        end
-                        --print(x,y,#enemy_ids,enemy_mult)
-
                         -- Counter attack outcome
                         -- Potential TODO: counter attack calculations are expensive. We might be able
                         --   to do a faster pre-evaluation if this turns out to be problematic
@@ -4017,6 +4011,17 @@ return {
                         )
                         --DBG.dbms(counter_outcomes.def_outcome.ctd_progression)
                         --print('  die_chance', counter_outcomes.def_outcome.hp_chance[0])
+
+                        if counter_outcomes then
+                            local counter_rating = - counter_outcomes.rating_table.rating
+                            counter_rating = counter_rating / FU.unit_value(gamedata.unit_infos[id])
+                            counter_rating = 2 * counter_rating * gamedata.unit_infos[id].max_moves
+
+                            local die_rating = - counter_outcomes.def_outcome.hp_chance[0]
+                            die_rating = 2 * die_rating * gamedata.unit_infos[id].max_moves
+
+                            rating = rating + counter_rating + die_rating
+                        end
 
                         if (not counter_outcomes) or (counter_outcomes.def_outcome.hp_chance[0] < 0.85) then
                             safe_loc = true
@@ -4031,9 +4036,9 @@ return {
                     local owner = FU.get_fgumap_value(gamedata.village_map, x, y, 'owner')
                     if owner and (owner ~= wesnoth.current.side) then
                         if (owner == 0) then
-                            rating = rating + 100
+                            rating = rating + 1
                         else
-                            rating = rating + 200
+                            rating = rating + 2
                         end
                     end
 
