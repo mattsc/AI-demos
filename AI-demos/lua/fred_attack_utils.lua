@@ -851,7 +851,7 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
     return att_outcome, def_outcome, att_weapon_i
 end
 
-function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cache, cfg, ctd_limit)
+function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cache, cfg)
     -- Evaluate attack combination outcomes using
     -- @tmp_attacker_copies: array of attacker unit copies (must be copies, does not work with the proxy table)
     -- @defender_proxy: the unit being attacked (must be a unit proxy table on the map, does not work with a copy)
@@ -864,11 +864,8 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
     --
     -- Optional inputs:
     --  @cfg: configuration parameters to be passed through to attack_outcome, attack_rating
-    --  @ctd_limit: limiting chance to die (0..1) for when to include an individual attack in the combo
-    --      This is usually not used, but should be limited for counter attack evaluations
     --
-    -- Return value: table containing the following fields (or nil if no acceptable attacks
-    --         are found based on the ctd_limit value described above
+    -- Return value: table containing the following fields (or nil if no acceptable attacks are found)
     --   - att_outcomes: an array of outcomes for each attacker, in the order found for the "best attack",
     --       which is generally different from the order of @tmp_attacker_copies
     --   - def_outcome: one set of outcomes containing the defender outcome after the attack combination
@@ -950,9 +947,6 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
     ----- End combine_outcomes() -----
 
 
-    -- Chance to die limit is 100%, if not given
-    ctd_limit = ctd_limit or 1.0
-
     local tmp_attacker_copies, tmp_attacker_infos, tmp_dsts = {}, {}, {}
     for src,dst in pairs(combo) do
         local src_x, src_y = math.floor(src / 1000), src % 1000
@@ -992,9 +986,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
         --DBG.dbms(rating_table)
 
         -- Need the 'i' here in order to specify the order of attackers, dsts below
-        if (tmp_att_outcomes[i].hp_chance[0] < ctd_limit) or (rating_table.rating > 0) then
-            table.insert(ratings, { i, rating_table })
-        end
+        table.insert(ratings, { i, rating_table })
     end
 
     -- Sort all the arrays based on this rating
@@ -1013,7 +1005,8 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
         att_weapons_i[i] = tmp_att_weapons_i[rating[1]]
     end
 
-    -- Return nil when no units match the ctd_limit criterion
+    -- Return nil when no units left
+    -- TOOD: after removing ctd_limit, this should not happen any more. Verify and remove.
     if (#attacker_copies == 0) then return end
 
     -- Only keep the outcomes/ratings for the first attacker, the rest needs to be recalculated
@@ -1526,12 +1519,7 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
             enemy_map[loc[1] * 1000 + loc[2]] = id
         end
 
-        local ctd_limit = FU.cfg_default('ctd_limit')
-        if gamedata.unit_infos[target_id].canrecruit then
-            ctd_limit = 1
-        end
-
-        counter_attack_outcome = fred_attack_utils.attack_combo_eval(counter_attack, target, gamedata, move_cache, cfg, ctd_limit)
+        counter_attack_outcome = fred_attack_utils.attack_combo_eval(counter_attack, target, gamedata, move_cache, cfg)
     end
 
     -- Extract the units from the map
