@@ -2652,6 +2652,17 @@ return {
                         for _,damage in ipairs(damages_enemy_units) do
                             -- Enemy damage rating is negative!
                             local unit_rating = - FAU.damage_rating_unit(damage)
+
+                            -- Derate the enemy rating by the CTD of the enemy. This is meant
+                            -- to take into account that the enemy might or might not attack
+                            -- when the CTD is high, so that the evaluation does not overrate
+                            -- enemy units close to dying (which might never attack).
+                            -- TODO: this is currently only done for the enemy rating, not the
+                            -- AI unit rating. It might result in the AI being to timid.
+                            local survival_weight = FU.weight_s(1 - damage.die_chance, 0.75)
+                            --print(unit_rating, 1 - damage.die_chance, survival_weight)
+                            unit_rating = unit_rating * survival_weight
+
                             enemy_rating = enemy_rating + unit_rating
                             --print('  ' .. damage.id, unit_rating)
                         end
