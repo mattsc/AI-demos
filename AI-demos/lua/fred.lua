@@ -2474,6 +2474,9 @@ return {
 
                         local hp = combo.att_outcomes[i_a].average_hp
                         if (hp < 1) then hp = 1 end
+
+                        -- Need to round, otherwise the poison calculation might be wrong
+                        hp = H.round(hp)
                         --print('attacker hp before, after:', old_HP_attackers[i_a], hp)
 
                         gamedata.unit_infos[attacker_info.id].hitpoints = hp
