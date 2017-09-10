@@ -2600,13 +2600,24 @@ return {
                                 -- For the unit considered here, combine the results
                                 -- For all other units they remain unchanged
                                 if dam1 and (dam1.id == dam2.id) then
+                                    --DBG.dbms(dam2)
+
                                     target_included = true
 
                                     --print('-- enemy units --', dam2.id)
                                     -- Unchanged: unit_value, max_hitpoints, id
 
+                                    -- Derate the counter enemy rating by the CTD of the enemy. This is meant
+                                    -- to take into account that the enemy might or might not counter attack
+                                    -- when the CTD is high, so that the evaluation does not overrate
+                                    -- enemy units close to dying.
+                                    -- TODO: this is currently only done for the enemy rating, not the
+                                    -- AI unit rating. It might result in the AI being to timid.
+                                    local survival_weight = FU.weight_s(1 - dam2.die_chance, 0.75)
+                                    --print('  survival_weight, counter die chance', survival_weight, dam2.die_chance)
+
                                     --  damage: just add up the two
-                                    dam.damage = dam1.damage + dam2.damage
+                                    dam.damage = dam1.damage + dam2.damage * survival_weight
                                     --print('  damage:', dam1.damage, dam2.damage, dam.damage)
 
                                     local normal_damage_chance1 = 1 - dam1.die_chance - dam1.levelup_chance
@@ -2619,11 +2630,11 @@ return {
                                     --print('  delayed_damage:', dam1.delayed_damage, dam2.delayed_damage, dam.delayed_damage)
 
                                     --  - die_chance
-                                    dam.die_chance = dam1.die_chance + dam2.die_chance * normal_damage_chance1
+                                    dam.die_chance = dam1.die_chance + dam2.die_chance * normal_damage_chance1 * survival_weight
                                     --print('  die_chance:', dam1.die_chance, dam2.die_chance, dam.die_chance)
 
                                     --  - levelup_chance
-                                    dam.levelup_chance = dam1.levelup_chance + dam2.levelup_chance * normal_damage_chance1
+                                    dam.levelup_chance = dam1.levelup_chance + dam2.levelup_chance * normal_damage_chance1 * survival_weight
                                     --print('  levelup_chance:', dam1.levelup_chance, dam2.levelup_chance, dam.levelup_chance)
                                 end
 
@@ -2655,17 +2666,6 @@ return {
                         for _,damage in ipairs(damages_enemy_units) do
                             -- Enemy damage rating is negative!
                             local unit_rating = - FAU.damage_rating_unit(damage)
-
-                            -- Derate the enemy rating by the CTD of the enemy. This is meant
-                            -- to take into account that the enemy might or might not attack
-                            -- when the CTD is high, so that the evaluation does not overrate
-                            -- enemy units close to dying (which might never attack).
-                            -- TODO: this is currently only done for the enemy rating, not the
-                            -- AI unit rating. It might result in the AI being to timid.
-                            local survival_weight = FU.weight_s(1 - damage.die_chance, 0.75)
-                            --print(unit_rating, 1 - damage.die_chance, survival_weight)
-                            unit_rating = unit_rating * survival_weight
-
                             enemy_rating = enemy_rating + unit_rating
                             --print('  ' .. damage.id, unit_rating)
                         end
