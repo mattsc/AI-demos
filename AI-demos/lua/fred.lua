@@ -106,7 +106,7 @@ return {
         end
 
 
-        function fred:get_between_map(locs, toward_loc, units, gamedata, perp_dist_weight)
+        function fred:get_between_map(locs, toward_loc, units, gamedata)
             -- Calculate the "between-ness" of map hexes between @locs and @units
             -- @toward_loc: the direction of the main gradient of the map. Usually
             --   this is toward the AI leader, but any hex can be passed.
@@ -114,8 +114,6 @@ return {
             -- Note: this function ignores enemies and distance of the units
             -- from the hexes. Whether this makes sense to use all these units needs
             -- to be checked in the calling function
-
-            perp_dist_weight = perp_dist_weight or 0.5
 
             local weights, cum_weight = {}, 0
             for id,_ in pairs(units) do
@@ -3225,7 +3223,7 @@ return {
 
             -- TODO: in the end, this might be combined so that it can be dealt with
             -- in the same way. For now, it is intentionally kept separate.
-            local min_btw_dist, perp_dist_weight
+            local min_btw_dist
             local hold_leader_distance, protect_locs, assigned_enemies
             if protect_leader then
                 local lx, ly = gamedata.leader_x, gamedata.leader_y
@@ -3233,11 +3231,11 @@ return {
                 hold_leader_distance = { min = ld, max = ld }
                 protect_locs = { { lx, ly } }
                 assigned_enemies = fred.data.ops_data.leader_threats.enemies
-                min_btw_dist, perp_dist_weight = -1.001, 0.2
+                min_btw_dist = -1.001
             else
                 hold_leader_distance = fred.data.ops_data.protect_locs[zone_cfg.zone_id].hold_leader_distance
                 protect_locs = fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs
-                min_btw_dist, perp_dist_weight = -2, 0.05
+                min_btw_dist = -2
                 assigned_enemies = fred.data.ops_data.assigned_enemies[zone_cfg.zone_id]
             end
 
@@ -3251,7 +3249,7 @@ return {
                 for _,ploc in ipairs(protect_locs) do
                     table.insert(locs, ploc)
                 end
-                between_map = fred:get_between_map(locs, leader, assigned_enemies, gamedata, perp_dist_weight)
+                between_map = fred:get_between_map(locs, leader, assigned_enemies, gamedata)
 
                 if false then
                     FU.show_fgumap_with_message(between_map, 'distance', 'Between map: distance')
