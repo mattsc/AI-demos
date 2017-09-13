@@ -106,9 +106,13 @@ return {
         end
 
 
-        function fred:get_between_map(locs, units, gamedata, perp_dist_weight)
+        function fred:get_between_map(locs, toward_loc, units, gamedata, perp_dist_weight)
+            -- Calculate the "between-ness" of map hexes between @locs and @units
+            -- @toward_loc: the direction of the main gradient of the map. Usually
+            --   this is toward the AI leader, but any hex can be passed.
+            --
             -- Note: this function ignores enemies and distance of the units
-            -- from the locs. Whether this makes sense to use all these units needs
+            -- from the hexes. Whether this makes sense to use all these units needs
             -- to be checked in the calling function
 
             perp_dist_weight = perp_dist_weight or 0.5
@@ -147,30 +151,61 @@ return {
                     end
                 end
 
+                local inv_cost_map = FU.inverse_cost_map(unit, toward_loc, gamedata)
+
                 if false then
                     FU.show_fgumap_with_message(cost_map, 'cost', 'cost_map', gamedata.unit_copies[id])
+                    FU.show_fgumap_with_message(inv_cost_map, 'cost', 'inv_cost_map', gamedata.unit_copies[id])
                 end
 
+                local cost_full = FU.get_fgumap_value(cost_map, toward_loc[1], toward_loc[2], 'cost')
+                local inv_cost_full = FU.get_fgumap_value(inv_cost_map, unit_loc[1], unit_loc[2], 'cost')
+
+                local unit_map = {}
                 for _,loc in ipairs(locs) do
-                    --print('  loc:', loc[1], loc[2])
-                    local inv_cost_map = FU.inverse_cost_map(unit, loc, gamedata)
-
-                    if false then
-                        FU.show_fgumap_with_message(inv_cost_map, 'cost', 'inv_cost_map', gamedata.unit_copies[id])
-                    end
-
-                    local cost_full = FU.get_fgumap_value(cost_map, loc[1], loc[2], 'cost')
-
                     for x,y,data in FU.fgumap_iter(cost_map) do
                         local cost = data.cost
                         local inv_cost = FU.get_fgumap_value(inv_cost_map, x, y, 'cost')
 
-                        local rating = (cost + inv_cost) / 2
-                        rating = cost_full - math.max(cost, inv_cost)
-                        rating = rating - perp_dist_weight * (cost + inv_cost - cost_full)
+                        -- This gives a rating that is a slanted plane, from the unit to toward_loc
+                        local rating = (inv_cost - cost) / 2
+                        if (cost > cost_full) then
+                            rating = rating + (cost_full - cost)
+                        end
+                        if (inv_cost > inv_cost_full) then
+                            rating = rating + (inv_cost - inv_cost_full)
+                        end
+
                         rating = rating * weights[id]
-                        FU.fgumap_add(between_map, x, y, 'distance', rating)
+
+                        local perp_distance = cost + inv_cost - (cost_full + inv_cost_full) / 2
+
+                        FU.fgumap_add(unit_map, x, y, 'rating', rating)
+                        FU.fgumap_add(unit_map, x, y, 'perp_distance', perp_distance)
                         FU.fgumap_add(between_map, x, y, 'inv_cost', inv_cost * weights[id])
+                    end
+
+                    local loc_value = FU.get_fgumap_value(unit_map, loc[1], loc[2], 'rating')
+                    local unit_value = FU.get_fgumap_value(unit_map, unit_loc[1], unit_loc[2], 'rating')
+                    local max_value = (loc_value + unit_value) / 2
+                    --print(loc[1], loc[2], loc_value, unit_value, max_value)
+
+                    for x,y,data in FU.fgumap_iter(unit_map) do
+                        local rating = data.rating
+
+                        -- Set rating to maximum at midpoint between unit and loc
+                        -- Decrease values in excess of that by that excess
+                        if (rating > max_value) then
+                            rating = rating - 2 * (rating - max_value)
+                        end
+
+                        -- Set rating to zero at loc (and therefore also at unit)
+                        rating = rating - loc_value
+
+                        -- Rating falls off in perpendicular direction
+                        rating = rating - (data.perp_distance / gamedata.unit_infos[id].max_moves)^2
+
+                        FU.fgumap_add(between_map, x, y, 'distance', rating)
                     end
                 end
             end
@@ -3208,9 +3243,15 @@ return {
 
             --DBG.dbms(assigned_enemies)
 
+            local leader = gamedata.leaders[wesnoth.current.side]
+
             local between_map
             if protect_locs and assigned_enemies then
-                between_map = fred:get_between_map(protect_locs, assigned_enemies, gamedata, perp_dist_weight)
+                local locs = {}
+                for _,ploc in ipairs(protect_locs) do
+                    table.insert(locs, ploc)
+                end
+                between_map = fred:get_between_map(locs, leader, assigned_enemies, gamedata, perp_dist_weight)
 
                 if false then
                     FU.show_fgumap_with_message(between_map, 'distance', 'Between map: distance')
@@ -3220,7 +3261,6 @@ return {
                 end
             end
 
-            local leader = gamedata.leaders[wesnoth.current.side]
             local leader_on_keep = false
             if (wesnoth.get_terrain_info(wesnoth.get_terrain(leader[1], leader[2])).keep) then
                 leader_on_keep = true
