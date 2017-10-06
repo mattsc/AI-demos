@@ -230,6 +230,7 @@ return {
                         rating = rating * weights[id]
 
                         local perp_distance = cost + inv_cost - (cost_full + inv_cost_full) / 2
+                        perp_distance = perp_distance * FU.get_fgumap_value(path_map, x, y, 'sign')
 
                         FU.fgumap_add(unit_map, x, y, 'rating', rating)
                         FU.fgumap_add(unit_map, x, y, 'perp_distance', perp_distance)
@@ -254,7 +255,7 @@ return {
                         rating = rating - loc_value
 
                         -- Rating falls off in perpendicular direction
-                        rating = rating - (data.perp_distance / gamedata.unit_infos[id].max_moves)^2
+                        rating = rating - math.abs((data.perp_distance / gamedata.unit_infos[id].max_moves)^2)
 
                         FU.fgumap_add(between_map, x, y, 'distance', rating)
                     end
