@@ -3824,14 +3824,12 @@ return {
             if false then
                 for id,unit_rating_map in pairs(unit_rating_maps) do
                     FU.show_fgumap_with_message(unit_rating_map, 'base_rating', 'base_rating', gamedata.unit_copies[id])
-                    FU.show_fgumap_with_message(unit_rating_map, 'rating2', 'rating2', gamedata.unit_copies[id])
+                    FU.show_fgumap_with_message(hold_rating_maps[id] or {}, 'vuln_rating', 'vuln_rating', gamedata.unit_copies[id])
                 end
             end
             if false then
-                for id,unit_rating_map in pairs(hold_rating_maps) do
-                    FU.show_fgumap_with_message(hold_rating_maps[id], 'vuln_rating', 'vuln_rating', gamedata.unit_copies[id])
-                end
-                for id,unit_rating_map in pairs(protect_rating_maps) do
+                for id,unit_rating_map in pairs(unit_rating_maps) do
+                    FU.show_fgumap_with_message(unit_rating_map, 'rating2', 'rating2', gamedata.unit_copies[id])
                     FU.show_fgumap_with_message(protect_rating_maps[id], 'protect_rating', 'protect_rating', gamedata.unit_copies[id])
                 end
             end
