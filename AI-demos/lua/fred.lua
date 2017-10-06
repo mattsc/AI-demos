@@ -131,12 +131,65 @@ return {
                 --print(id, unit_loc[1], unit_loc[2])
                 local unit = {}
                 unit[id] = unit_loc
+                local unit_proxy = wesnoth.get_unit(unit_loc[1], unit_loc[2])
+
+                -- For the perpendicular distance, we need a map denoting which
+                -- hexes are on the "left" and "right" of the path of the unit
+                -- to toward_loc. 'path_map' is set to be zero on the path, +1
+                -- on one side (nominally the right) and -1 on the other side.
+                local path = wesnoth.find_path(unit_proxy, toward_loc[1], toward_loc[2], { ignore_units = true })
+
+                local path_map = {}
+                for _,loc in ipairs(path) do
+                    FU.set_fgumap_value(path_map, loc[1], loc[2], 'sign', 0)
+                end
+
+                local new_hexes = {}
+                for i_p=1,#path-1 do
+                    p1, p2 = path[i_p], path[i_p+1]
+                    local rad_path = AH.get_angle(p1, p2)
+                    --print(p1[1] .. ',' .. p1[2], p2[1] .. ',' .. p2[2], rad_path)
+
+                    for xa,ya in H.adjacent_tiles(p1[1], p1[2]) do
+                        local rad = AH.get_angle(p1, { xa, ya })
+                        local drad = rad - rad_path
+                        --print('  ' .. xa .. ',' .. ya .. ':', rad, drad)
+
+                        if (not FU.get_fgumap_value(path_map, xa, ya, 'sign')) then
+                            if (drad > 0) and (drad < 3.14) or (drad < -3.14) then
+                                table.insert(new_hexes, { xa, ya, 1 })
+                                FU.set_fgumap_value(path_map, xa, ya, 'sign', 1)
+                            else
+                                table.insert(new_hexes, { xa, ya, -1 })
+                                FU.set_fgumap_value(path_map, xa, ya, 'sign', -1)
+                            end
+                        end
+                    end
+                end
+
+                while (#new_hexes > 0) do
+                    local old_hexes = AH.table_copy(new_hexes)
+                    new_hexes = {}
+
+                    for _,hex in ipairs(old_hexes) do
+                        for xa,ya in H.adjacent_tiles(hex[1], hex[2]) do
+                            if (not FU.get_fgumap_value(path_map, xa, ya, 'sign')) then
+                                table.insert(new_hexes, { xa, ya, hex[3] })
+                                FU.set_fgumap_value(path_map, xa, ya, 'sign', hex[3])
+                            end
+                        end
+                    end
+                end
+
+                if false then
+                    FU.show_fgumap_with_message(path_map, 'sign', 'path_map: sign')
+                end
+
 
                 -- wesnoth.find_cost_map() requires the unit to be on the map, and it needs to
                 -- have full moves. We cannot use the unit_type version of wesnoth.find_cost_map()
                 -- here as some specific units (e.g walking corpses or customized units) might have
                 -- movecosts different from their generic unit type.
-                local unit_proxy = wesnoth.get_unit(unit_loc[1], unit_loc[2])
                 local old_moves = unit_proxy.moves
                 unit_proxy.moves = unit_proxy.max_moves
                 local cm = wesnoth.find_cost_map(unit_loc[1], unit_loc[2], { ignore_units = true })
