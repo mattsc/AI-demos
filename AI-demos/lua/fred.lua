@@ -3325,6 +3325,9 @@ return {
 
                 if false then
                     FU.show_fgumap_with_message(between_map, 'distance', 'Between map: distance')
+                    FU.show_fgumap_with_message(between_map, 'blurred_distance', 'Between map: blurred distance')
+                    FU.show_fgumap_with_message(between_map, 'perp_distance', 'Between map: perp_distance')
+                    FU.show_fgumap_with_message(between_map, 'blurred_perp_distance', 'Between map: blurred blurred_perp_distance')
                     FU.show_fgumap_with_message(between_map, 'inv_cost', 'Between map: inv_cost')
                     --FU.show_fgumap_with_message(fred.data.gamedata.leader_distance_map, 'distance', 'leader distance')
                     --FU.show_fgumap_with_message(fred.data.gamedata.leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
