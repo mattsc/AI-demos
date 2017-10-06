@@ -258,6 +258,7 @@ return {
                         rating = rating - math.abs((data.perp_distance / gamedata.unit_infos[id].max_moves)^2)
 
                         FU.fgumap_add(between_map, x, y, 'distance', rating)
+                        FU.fgumap_add(between_map, x, y, 'perp_distance', data.perp_distance)
                     end
                 end
             end
