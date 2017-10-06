@@ -212,8 +212,8 @@ return {
                 local cost_full = FU.get_fgumap_value(cost_map, toward_loc[1], toward_loc[2], 'cost')
                 local inv_cost_full = FU.get_fgumap_value(inv_cost_map, unit_loc[1], unit_loc[2], 'cost')
 
-                local unit_map = {}
                 for _,loc in ipairs(locs) do
+                    local unit_map = {}
                     for x,y,data in FU.fgumap_iter(cost_map) do
                         local cost = data.cost
                         local inv_cost = FU.get_fgumap_value(inv_cost_map, x, y, 'cost')
@@ -232,8 +232,8 @@ return {
                         local perp_distance = cost + inv_cost - (cost_full + inv_cost_full) / 2
                         perp_distance = perp_distance * FU.get_fgumap_value(path_map, x, y, 'sign')
 
-                        FU.fgumap_add(unit_map, x, y, 'rating', rating)
-                        FU.fgumap_add(unit_map, x, y, 'perp_distance', perp_distance)
+                        FU.set_fgumap_value(unit_map, x, y, 'rating', rating)
+                        FU.set_fgumap_value(unit_map, x, y, 'perp_distance', perp_distance * weights[id])
                         FU.fgumap_add(between_map, x, y, 'inv_cost', inv_cost * weights[id])
                     end
 
