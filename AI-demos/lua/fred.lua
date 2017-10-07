@@ -3821,6 +3821,74 @@ return {
                 end
             end
 
+
+            -- Add bonus for other strong hexes aligned *across* the direction
+            -- of advancement of the enemies
+            for id,protect_rating_map in pairs(protect_rating_maps) do
+                for x,y,map in FU.fgumap_iter(protect_rating_map) do
+                    local bd = FU.get_fgumap_value(between_map, x, y, 'blurred_distance')
+                    local bpd = FU.get_fgumap_value(between_map, x, y, 'blurred_perp_distance')
+                    --print(id, x .. ',' .. y, bd, bpd)
+
+                    local convs = {}
+                    for x2=x-3,x+3 do
+                        for y2=y-3,y+3 do
+                            if ((x2 ~= x) or (y2 ~= y)) then
+                                -- This is faster than filtering by radius
+                                local dist = H.distance_between(x, y, x2, y2)
+                                if (dist <= 3) then
+                                    local bd2 = FU.get_fgumap_value(between_map, x2, y2, 'blurred_distance', -999)
+                                    local bpd2 = FU.get_fgumap_value(between_map, x2, y2, 'blurred_perp_distance', 0)
+                                    --print(bd2, bpd2, dx, dy, angle_fac)
+
+                                    dx = math.abs(bpd - bpd2)
+                                    dy = math.abs(bd - bd2)
+                                    -- Note, this must be x/y, not y/x!  We want the angle from the toward-leader direction
+                                    local angle_fac = math.atan2(dx, dy) / 1.5708
+                                    angle_fac = FU.weight_s(angle_fac, 0.5)
+                                    --print(bd2, bpd2, dx, dy, angle_fac)
+
+                                    -- We want to know how strong the other hexes are for the other units
+                                    local conv_sum_units, count = 0, 0
+                                    for id2,protect_rating_map2 in pairs(protect_rating_maps) do
+                                        if (id ~= id2) then
+                                            local pr = FU.get_fgumap_value(protect_rating_map2, x2, y2, 'protect_rating')
+                                            if pr then
+                                                conv_sum_units = conv_sum_units + pr * angle_fac
+                                                count = count + 1
+                                            end
+                                        end
+                                    end
+                                    if (count > 0) then
+                                        conv_sum_units = conv_sum_units / count
+                                        table.insert(convs, { rating = conv_sum_units })
+                                    end
+                                end
+                            end
+                        end
+                    end
+
+                    table.sort(convs, function(a, b) return a.rating > b.rating end)
+                    local conv = 0
+                    -- If we do the sum (or average) over all of the hexes, locations at
+                    -- the edges are penalized too much.
+                    for i=1,math.min(5,#convs) do
+                        conv = conv + convs[i].rating
+                    end
+
+                    FU.set_fgumap_value(protect_rating_map, x, y, 'conv', conv)
+                end
+
+                for x,y,data in FU.fgumap_iter(protect_rating_map) do
+                    data.protect_rating_org = data.protect_rating
+                    data.protect_rating = data.protect_rating * data.conv
+                end
+
+                FU.fgumap_normalize(protect_rating_map, 'protect_rating_org')
+                FU.fgumap_normalize(protect_rating_map, 'conv')
+                FU.fgumap_normalize(protect_rating_map, 'protect_rating')
+            end
+
             if false then
                 for id,unit_rating_map in pairs(unit_rating_maps) do
                     FU.show_fgumap_with_message(unit_rating_map, 'base_rating', 'base_rating', gamedata.unit_copies[id])
@@ -3829,7 +3897,9 @@ return {
             end
             if false then
                 for id,unit_rating_map in pairs(unit_rating_maps) do
-                    FU.show_fgumap_with_message(unit_rating_map, 'rating2', 'rating2', gamedata.unit_copies[id])
+                    --FU.show_fgumap_with_message(unit_rating_map, 'rating2', 'rating2', gamedata.unit_copies[id])
+                    FU.show_fgumap_with_message(protect_rating_maps[id], 'protect_rating_org', 'protect_rating_org', gamedata.unit_copies[id])
+                    FU.show_fgumap_with_message(protect_rating_maps[id], 'conv', 'conv', gamedata.unit_copies[id])
                     FU.show_fgumap_with_message(protect_rating_maps[id], 'protect_rating', 'protect_rating', gamedata.unit_copies[id])
                 end
             end
