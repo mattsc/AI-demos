@@ -219,9 +219,6 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     for i_c,combo in ipairs(combos) do
         --print('combo ' .. i_c)
         local rating = 0
-        local count = 0
-        local min_min_dist, max_min_dist = 999, 0
-        local min_ld, max_ld
         local is_dqed = false
 
         local cum_weight = 0
@@ -236,7 +233,6 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
 
             rating = rating + ratings[dst][src][key] * weight
-            count = count + 1
             cum_weight = cum_weight + weight
 
             local x, y =  math.floor(dst / 1000), dst % 1000
@@ -258,38 +254,14 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 if is_dqed then break end
             end
 
-            local min_dist = 999
-            for src2,dst2 in pairs(combo) do
-                if (src2 ~= src) or (dst2 ~= dst) then
-                    x2, y2 =  math.floor(dst2 / 1000), dst2 % 1000
-                    local d = H.distance_between(x2, y2, x, y)
-                    if (d < min_dist) then min_dist = d end
-                end
-            end
-
-            if (min_dist < min_min_dist) then min_min_dist = min_dist end
-            if (min_dist > max_min_dist) then max_min_dist = min_dist end
-
-
-            local ld
-            if between_map then
-                ld = FU.get_fgumap_value(between_map, x, y, 'inv_cost')
-            else
-                ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
-            end
-            if (not min_ld) or (ld < min_ld) then min_ld = ld end
-            if (not max_ld) or (ld > max_ld) then max_ld = ld end
         end
-        --print(i_c, is_dqed, count)
+        --print(i_c, rating, is_dqed)
 
         if (not is_dqed) then
             table.insert(valid_combos, {
                 combo = combo,
                 rating = rating,
-                count = count,
-                cum_weight = cum_weight,
-                max_min_dist = max_min_dist,
-                max_ld = max_ld, min_ld = min_ld
+                cum_weight = cum_weight
             })
         end
     end
@@ -419,9 +391,46 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         end
         --print('is_protected', is_protected)
 
-        rating = combo.rating / combo.cum_weight * combo.count
+        local count = 0
+        for src,dst in pairs(combo) do
+            count = count + 1
+        end
 
-        if (combo.count > 1) then
+
+        rating = combo.rating / combo.cum_weight * count
+        --print('  weighted:', rating)
+
+        if (count > 1) then
+            local min_min_dist, max_min_dist = 999, 0
+            local min_ld, max_ld
+
+            for src,dst in pairs(combo.combo) do
+                local x, y =  math.floor(dst / 1000), dst % 1000
+
+                local min_dist = 999
+                for src2,dst2 in pairs(combo.combo) do
+                    if (src2 ~= src) or (dst2 ~= dst) then
+                        x2, y2 =  math.floor(dst2 / 1000), dst2 % 1000
+                        local d = H.distance_between(x2, y2, x, y)
+                        if (d < min_dist) then min_dist = d end
+                    end
+                end
+
+                if (min_dist < min_min_dist) then min_min_dist = min_dist end
+                if (min_dist > max_min_dist) then max_min_dist = min_dist end
+
+
+                local ld
+                if between_map then
+                    ld = FU.get_fgumap_value(between_map, x, y, 'inv_cost')
+                else
+                    ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
+                end
+                if (not min_ld) or (ld < min_ld) then min_ld = ld end
+                if (not max_ld) or (ld > max_ld) then max_ld = ld end
+            end
+
+
             -- Bonus for distance of 2 or 3
             if (not cfg.protect_leader) then
                 if (min_min_dist >= 2) and (max_min_dist <= 3) then
@@ -437,7 +446,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             if cfg.protect_leader then thresh_dist = 2 end
 
             -- Penalty for too far apart
-            if (combo.max_min_dist > thresh_dist) then
+            if (max_min_dist > thresh_dist) then
                 rating = rating / ( 1 + (max_min_dist - 3) / 10)
             end
 
@@ -446,7 +455,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             -- if the config parameter 'hold_perpendicular' is set
             -- This is usually set for protects, not for "normal" holding
             if cfg and cfg.hold_perpendicular then
-                local dld = combo.max_ld - combo.min_ld
+                local dld = max_ld - min_ld
                 if (dld > 2) then
                     rating = rating * math.sqrt( 1 - dld / 20)
                 end
