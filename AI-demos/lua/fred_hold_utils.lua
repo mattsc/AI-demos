@@ -215,6 +215,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
     local unprotected_max_rating, unprotected_best_combo
     local max_rating, best_combo
+    local valid_combos = {}
     for i_c,combo in ipairs(combos) do
         --print('combo ' .. i_c)
         local rating = 0
@@ -281,10 +282,26 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         end
         --print(i_c, is_dqed, count)
 
+        if (not is_dqed) then
+            table.insert(valid_combos, {
+                combo = combo,
+                rating = rating,
+                count = count,
+                cum_weight = cum_weight,
+                max_min_dist = max_min_dist,
+                max_ld = max_ld, min_ld = min_ld
+            })
+        end
+    end
 
+    table.sort(valid_combos, function(a, b) return a.rating > b.rating end)
+    --DBG.dbms(valid_combos)
+
+
+    for i_c,combo in ipairs(valid_combos) do
         local is_protected = true
         local leader_protect_mult = 0
-        if (not is_dqed) and cfg and cfg.protect_locs then
+        if cfg and cfg.protect_locs then
             if cfg.protect_leader then
                 local leader_target = {}
                 leader_target[leader_id] = { gamedata.leader_x, gamedata.leader_y }
@@ -342,7 +359,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
                 -- First check (because it's quick): if there is a unit on the hex to be protected
                 is_protected = false
-                for src,dst in pairs(combo) do
+                for src,dst in pairs(combo.combo) do
                     local x, y =  math.floor(dst / 1000), dst % 1000
                     --print('  ' .. x , y)
 
@@ -357,7 +374,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 -- If that did not find anything, we do path_finding
                 if (not is_protected) then
                     --print('combo ' .. i_c, loc[1], loc[2])
-                    for src,dst in pairs(combo) do
+                    for src,dst in pairs(combo.combo) do
                         local id = ratings[dst][src].id
                         local x, y =  math.floor(dst / 1000), dst % 1000
                         --print(id, src, x,y, gamedata.unit_copies[id].x, gamedata.unit_copies[id].y)
@@ -381,7 +398,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                         end
                     end
 
-                    for src,dst in pairs(combo) do
+                    for src,dst in pairs(combo.combo) do
                         local id = ratings[dst][src].id
                         local x, y =  math.floor(dst / 1000), dst % 1000
 
@@ -400,59 +417,80 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 end
             end
         end
-        --print('is_protected', is_protected, is_dqed)
+        --print('is_protected', is_protected)
 
-        if (not is_dqed) then
-            rating = rating / cum_weight * count
+        rating = combo.rating / combo.cum_weight * combo.count
 
-            if (count > 1) then
-                -- Bonus for distance of 2 or 3
-                if (not cfg.protect_leader) then
-                    if (min_min_dist >= 2) and (max_min_dist <= 3) then
-                        rating = rating * 1.10
+        if (combo.count > 1) then
+            -- Bonus for distance of 2 or 3
+            if (not cfg.protect_leader) then
+                if (min_min_dist >= 2) and (max_min_dist <= 3) then
+                    rating = rating * 1.10
 
-                        if (max_min_dist == 2) then
-                            rating = rating + 0.0001
-                        end
-                    end
-                end
-
-                local thresh_dist = 3
-                if cfg.protect_leader then thresh_dist = 2 end
-
-                -- Penalty for too far apart
-                if (max_min_dist > thresh_dist) then
-                    rating = rating / ( 1 + (max_min_dist - 3) / 10)
-                end
-
-
-                -- and we reduce lining them up "vertically" too far apart, but only
-                -- if the config parameter 'hold_perpendicular' is set
-                -- This is usually set for protects, not for "normal" holding
-                if cfg and cfg.hold_perpendicular then
-                    local dld = max_ld - min_ld
-                    if (dld > 2) then
-                        rating = rating * math.sqrt( 1 - dld / 20)
+                    if (max_min_dist == 2) then
+                        rating = rating + 0.0001
                     end
                 end
             end
 
-            if cfg.protect_leader then
-                rating = rating * leader_protect_mult
-                --print(i_c, rating, leader_protect_mult, rating / leader_protect_mult)
+            local thresh_dist = 3
+            if cfg.protect_leader then thresh_dist = 2 end
+
+            -- Penalty for too far apart
+            if (combo.max_min_dist > thresh_dist) then
+                rating = rating / ( 1 + (max_min_dist - 3) / 10)
             end
 
-            if (not unprotected_max_rating) or (rating > unprotected_max_rating) then
-                unprotected_max_rating = rating
-                unprotected_best_combo = combo
-            end
 
-            if is_protected then
-                if (not max_rating) or (rating > max_rating) then
-                    max_rating = rating
-                    best_combo = combo
+            -- and we reduce lining them up "vertically" too far apart, but only
+            -- if the config parameter 'hold_perpendicular' is set
+            -- This is usually set for protects, not for "normal" holding
+            if cfg and cfg.hold_perpendicular then
+                local dld = combo.max_ld - combo.min_ld
+                if (dld > 2) then
+                    rating = rating * math.sqrt( 1 - dld / 20)
                 end
             end
+        end
+
+        if cfg.protect_leader then
+            rating = rating * leader_protect_mult
+            --print(i_c, rating, leader_protect_mult, rating / leader_protect_mult)
+        end
+
+       if (not unprotected_max_rating) or (rating > unprotected_max_rating) then
+           unprotected_max_rating = rating
+           unprotected_best_combo = combo
+       end
+
+       if is_protected then
+           if (not max_rating) or (rating > max_rating) then
+               max_rating = rating
+               best_combo = combo
+           end
+       end
+
+
+        if true then
+            local protected_str = 'no'
+            if is_protected then protected_str = 'yes' end
+            local x, y
+            for src,dst in pairs(combo.combo) do
+                x, y =  math.floor(dst / 1000), dst % 1000
+                W.label { x = x, y = y, text = ratings[dst][src].id }
+            end
+            wesnoth.scroll_to_tile(x, y)
+            local rating_str = string.format("%.4f / %.4f", rating, max_rating or -9999)
+            W.message {
+                speaker = 'narrator',
+                message = 'Hold combo ' .. i_c .. '/' .. #valid_combos .. ' rating = ' .. rating_str .. '   is_protected = ' .. protected_str
+            }
+            for src,dst in pairs(combo.combo) do
+                x, y =  math.floor(dst / 1000), dst % 1000
+                W.label { x = x, y = y, text = "" }
+            end
+        end
+    end
 
 
             -- Display combo and rating, if desired
@@ -483,7 +521,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         for src,dst in pairs(best_combo) do count = count + 1 end
 
         if (count > 1) then
-            local best_combo = reachable_by_enemy(best_combo, ratings, gamedata)
+            local best_combo = reachable_by_enemy(best_combo.combo, ratings, gamedata)
         end
     end
     if (unprotected_best_combo) then
@@ -491,14 +529,14 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         for src,dst in pairs(unprotected_best_combo) do count = count + 1 end
 
         if (count > 1) then
-            local unprotected_best_combo = reachable_by_enemy(unprotected_best_combo, ratings, gamedata)
+            local unprotected_best_combo = reachable_by_enemy(unprotected_best_combo.combo, ratings, gamedata)
         end
     end
 
     --print(' ===> max rating:             ' .. (max_rating or 'none'))
     --print(' ===> max rating unprotected: ' .. (unprotected_max_rating or 'none'))
 
-    return best_combo, unprotected_best_combo
+    return best_combo.combo, unprotected_best_combo.combo
 end
 
 
