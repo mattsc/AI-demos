@@ -221,7 +221,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         local rating = 0
         local is_dqed = false
 
-        local cum_weight = 0
+        local cum_weight, count = 0, 0
         for src,dst in pairs(combo) do
             local id = ratings[dst][src].id
 
@@ -234,6 +234,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
             rating = rating + ratings[dst][src][key] * weight
             cum_weight = cum_weight + weight
+            count = count + 1
 
             local x, y =  math.floor(dst / 1000), dst % 1000
 
@@ -255,13 +256,16 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             end
 
         end
+
+        rating = rating / cum_weight * count
+
         --print(i_c, rating, is_dqed)
 
         if (not is_dqed) then
             table.insert(valid_combos, {
                 combo = combo,
                 rating = rating,
-                cum_weight = cum_weight
+                count = count
             })
         end
     end
@@ -391,16 +395,10 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         end
         --print('is_protected', is_protected)
 
-        local count = 0
-        for src,dst in pairs(combo) do
-            count = count + 1
-        end
-
-
-        rating = combo.rating / combo.cum_weight * count
+        local rating = combo.rating
         --print('  weighted:', rating)
 
-        if (count > 1) then
+        if (combo.count > 1) then
             local min_min_dist, max_min_dist = 999, 0
             local min_ld, max_ld
 
