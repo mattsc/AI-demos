@@ -489,7 +489,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 W.label { x = x, y = y, text = ratings[dst][src].id }
             end
             wesnoth.scroll_to_tile(x, y)
-            local rating_str = string.format("%.4f / %.4f", rating, max_rating or -9999)
+            local rating_str = string.format("%.4f / %.4f (%.4f)", rating, max_rating, combo.rating or -9999)
             W.message {
                 speaker = 'narrator',
                 message = 'Hold combo ' .. i_c .. '/' .. #valid_combos .. ' rating = ' .. rating_str .. '   is_protected = ' .. protected_str
