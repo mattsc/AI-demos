@@ -3879,14 +3879,11 @@ return {
                     FU.set_fgumap_value(protect_rating_map, x, y, 'conv', conv)
                 end
 
+                FU.fgumap_normalize(protect_rating_map, 'conv')
                 for x,y,data in FU.fgumap_iter(protect_rating_map) do
                     data.protect_rating_org = data.protect_rating
                     data.protect_rating = data.protect_rating * data.conv
                 end
-
-                FU.fgumap_normalize(protect_rating_map, 'protect_rating_org')
-                FU.fgumap_normalize(protect_rating_map, 'conv')
-                FU.fgumap_normalize(protect_rating_map, 'protect_rating')
             end
 
             if false then
