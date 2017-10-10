@@ -523,9 +523,10 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         value_ratio = 1, -- mostly based on damage received
         use_max_damage_weapons = true
     }
-    local max_n_combos = 20
+    local max_n_combos, max_n_combos_reduced = 20, 50
 
     local max_rating, best_combo
+    local max_rating_reduced, best_combo_reduced
     for i_c,combo in pairs(good_combos) do
         --print('combo ' .. i_c)
 
@@ -540,7 +541,8 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             table.insert(ids, FU.get_fgumap_value(gamedata.my_unit_map, src[1], src[2], 'id'))
         end
 
-        local new_rating, rel_rating, count = 0, 0, 0
+        local new_rating, rel_rating, count, full_count = 0, 0, 0, 0
+        local remove_src = {}
         for i_l,loc in pairs(old_locs) do
             local target = {}
             target[ids[i_l]] = { new_locs[i_l][1], new_locs[i_l][2] }
@@ -565,17 +567,36 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 --print('    ' .. unit_rel_rating, unit_value)
                 rel_rating = rel_rating + unit_rel_rating
                 count = count + 1
+            else
+                table.insert(remove_src, old_locs[i_l])
             end
+
+            full_count = full_count + 1
         end
+        --print(i_c, count, full_count)
 
         if (count > 0) then
             rel_rating = rel_rating / count
             new_rating = combo.rating * rel_rating
             --print('  ---> ' .. combo.rating, rel_rating, combo.rating * rel_rating)
 
-            if (not max_rating) or (new_rating > max_rating) then
-                max_rating = new_rating
-                best_combo = combo
+            if (count == full_count) then
+                if (not max_rating) or (new_rating > max_rating) then
+                    max_rating = new_rating
+                    best_combo = combo
+                    --DBG.dbms(best_combo)
+                end
+            else
+                if (not max_rating_reduced) or (new_rating > max_rating_reduced) then
+                    max_rating_reduced = new_rating
+                    best_combo_reduced = combo
+
+                    for _,s in ipairs(remove_src) do
+                        -- Note: this also removes it from the parent table, but that is okay here
+                        best_combo_reduced.combo[s[1] * 1000 + s[2]] = nil
+                    end
+                    --DBG.dbms(best_combo_reduced)
+                end
             end
         end
 
@@ -596,27 +617,15 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             end
         end
 
-        if (i_c >= max_n_combos) then
+        if ((i_c >= max_n_combos) and best_combo) or (i_c >= max_n_combos_reduced) then
             break
         end
     end
 
-    if (best_combo) then
-        local count = 0
-        for src,dst in pairs(best_combo) do count = count + 1 end
-
-        if (count > 1) then
-            local best_combo = reachable_by_enemy(best_combo.combo, ratings, gamedata)
-        end
+    if (not best_combo) then
+       best_combo = best_combo_reduced
     end
-    if (unprotected_best_combo) then
-        local count = 0
-        for src,dst in pairs(unprotected_best_combo) do count = count + 1 end
 
-        if (count > 1) then
-            local unprotected_best_combo = reachable_by_enemy(unprotected_best_combo.combo, ratings, gamedata)
-        end
-    end
 
     --print(' ===> max rating:             ' .. (max_rating or 'none'))
     --print(' ===> max rating unprotected: ' .. (unprotected_max_rating or 'none'))
