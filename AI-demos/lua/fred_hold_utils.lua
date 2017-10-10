@@ -216,6 +216,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     local unprotected_max_rating, unprotected_best_combo
     local max_rating, best_combo
     local valid_combos = {}
+    local weights = {}
     for i_c,combo in ipairs(combos) do
         --print('combo ' .. i_c)
         local rating = 0
@@ -227,10 +228,15 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
             -- We want the unit with the lowest HP to have the highest weight
             -- Also, additional weight for injured units
-            local weight = 2 - gamedata.unit_infos[id].hitpoints / 100
-            weight = weight + gamedata.unit_infos[id].max_hitpoints - gamedata.unit_infos[id].hitpoints
-            if (weight < 0.5) then weight = 0.5 end
-
+            local weight
+            if (not weights[id]) then
+                weight = 2 - gamedata.unit_infos[id].hitpoints / 100
+                weight = weight + gamedata.unit_infos[id].max_hitpoints - gamedata.unit_infos[id].hitpoints
+                if (weight < 0.5) then weight = 0.5 end
+                weights[id] = weight
+            else
+                weight = weights[id]
+            end
 
             rating = rating + ratings[dst][src][key] * weight
             cum_weight = cum_weight + weight
