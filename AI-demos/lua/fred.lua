@@ -3944,7 +3944,6 @@ return {
             }
             local cfg_best_combo_hold = {}
             local cfg_best_combo_protect = {
-                hold_perpendicular = true,
                 protect_leader = protect_leader
             }
 
