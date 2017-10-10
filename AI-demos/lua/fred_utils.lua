@@ -155,6 +155,18 @@ function fred_utils.fgumap_iter(map)
     return each_hex, { x = next(map) }
 end
 
+function fred_utils.fgumap_normalize(map, key)
+    local mx
+    for _,_,data in fred_utils.fgumap_iter(map) do
+        if (not mx) or (data[key] > mx) then
+            mx = data[key]
+        end
+    end
+    for _,_,data in fred_utils.fgumap_iter(map) do
+        data[key] = data[key] / mx
+    end
+end
+
 function fred_utils.weight_s(x, exp)
     -- S curve weighting of a variable that is meant as a fraction of a total,
     -- that is, that for the most part varies from 0 to 1, but it continues smoothly
