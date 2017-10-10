@@ -47,25 +47,25 @@ end
 function retreat_functions.find_best_retreat(retreaters, retreat_utilities, unit_attacks, gamedata)
 
     ----- Begin retreat_damages() -----
-	local function retreat_damages(id, x, y, hitchance, unit_attacks, gamedata)
-		-- For now, we add up the maximum damage from all enemies that can reach the
-		-- hex, and if it is less than the unit's HP, consider this a valid retreat location
-		-- Potential TODO: do actual counter attack evaluation
+    local function retreat_damages(id, x, y, hitchance, unit_attacks, gamedata)
+        -- For now, we add up the maximum damage from all enemies that can reach the
+        -- hex, and if it is less than the unit's HP, consider this a valid retreat location
+        -- Potential TODO: do actual counter attack evaluation
 
-		local enemy_ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids')
-		local max_damage, av_damage = 0, 0
-		if enemy_ids then
-			for _,enemy_id in ipairs(enemy_ids) do
-				local damage = unit_attacks[id][enemy_id].damage_counter.max_taken_any_weapon
-				--print('  ' .. x, y, enemy_id, damage, hitchance)
-				max_damage = max_damage + damage
-				av_damage = av_damage + damage * hitchance
-			end
-		end
-		--print('    ' .. max_damage, av_damage)
+        local enemy_ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids')
+        local max_damage, av_damage = 0, 0
+        if enemy_ids then
+            for _,enemy_id in ipairs(enemy_ids) do
+                local damage = unit_attacks[id][enemy_id].damage_counter.max_taken_any_weapon
+                --print('  ' .. x, y, enemy_id, damage, hitchance)
+                max_damage = max_damage + damage
+                av_damage = av_damage + damage * hitchance
+            end
+        end
+        --print('    ' .. max_damage, av_damage)
 
-		return max_damage, av_damage
-	end
+        return max_damage, av_damage
+    end
     ----- End retreat_damages() -----
 
     ----- Begin retreat_rating() -----
@@ -277,27 +277,27 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, unit
                 local max_damage, av_damage = retreat_damages(id, x, y, hitchance, unit_attacks, gamedata)
 
                 if (av_damage < gamedata.unit_infos[id].hitpoints) then
-					local _,cost = wesnoth.find_path(gamedata.unit_copies[id], x, y)
-					local int_turns = math.ceil(cost / gamedata.unit_infos[id].max_moves)
+                    local _,cost = wesnoth.find_path(gamedata.unit_copies[id], x, y)
+                    local int_turns = math.ceil(cost / gamedata.unit_infos[id].max_moves)
 
-					-- Exclude 1-turn hexes as these might be occupied by a friendly unit ot something
-					if (int_turns > 1) and (int_turns <= 3) then
-						-- This is really the required utility to make it worth it, rather than the utility of the village
-						local distance_utility = 1 - 1 / int_turns
-						if (retreat_utilities[id] >= distance_utility) then
-							--print(id, x, y, int_turns, distance_utility, retreat_utilities[id])
-							if (not min_turns) or (int_turns < min_turns) then
-								min_turns = int_turns
-							end
+                    -- Exclude 1-turn hexes as these might be occupied by a friendly unit ot something
+                    if (int_turns > 1) and (int_turns <= 3) then
+                        -- This is really the required utility to make it worth it, rather than the utility of the village
+                        local distance_utility = 1 - 1 / int_turns
+                        if (retreat_utilities[id] >= distance_utility) then
+                            --print(id, x, y, int_turns, distance_utility, retreat_utilities[id])
+                            if (not min_turns) or (int_turns < min_turns) then
+                                min_turns = int_turns
+                            end
 
-							table.insert(villages, {
-								loc = { x, y },
-								int_turns = int_turns,
-								cost = cost,
-								av_damage = av_damage
-							})
-						end
-					end
+                            table.insert(villages, {
+                                loc = { x, y },
+                                int_turns = int_turns,
+                                cost = cost,
+                                av_damage = av_damage
+                            })
+                        end
+                    end
                 end
             end
             --DBG.dbms(villages)
