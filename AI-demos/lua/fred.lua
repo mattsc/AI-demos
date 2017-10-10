@@ -3798,7 +3798,7 @@ return {
                                 protect_rating = protect_rating * (1 - mult * (d_dist / 100))
                             end
 
-                            FU.set_fgumap_value(protect_rating_maps[id], x, y, 'protect_rating', protect_rating)
+                            FU.set_fgumap_value(protect_rating_maps[id], x, y, 'protect_rating_org', protect_rating)
                             protect_rating_maps[id][x][y].x = x
                             protect_rating_maps[id][x][y].y = y
                             protect_rating_maps[id][x][y].id = id
@@ -3852,7 +3852,7 @@ return {
                                     local conv_sum_units, count = 0, 0
                                     for id2,protect_rating_map2 in pairs(protect_rating_maps) do
                                         if (id ~= id2) then
-                                            local pr = FU.get_fgumap_value(protect_rating_map2, x2, y2, 'protect_rating')
+                                            local pr = FU.get_fgumap_value(protect_rating_map2, x2, y2, 'protect_rating_org')
                                             if pr then
                                                 conv_sum_units = conv_sum_units + pr * angle_fac
                                                 count = count + 1
@@ -3881,8 +3881,7 @@ return {
 
                 FU.fgumap_normalize(protect_rating_map, 'conv')
                 for x,y,data in FU.fgumap_iter(protect_rating_map) do
-                    data.protect_rating_org = data.protect_rating
-                    data.protect_rating = data.protect_rating * data.conv
+                    data.protect_rating = data.protect_rating_org * data.conv
                 end
             end
 
