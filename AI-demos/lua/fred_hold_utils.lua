@@ -474,23 +474,23 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             --print(i_c, rating, leader_protect_mult, rating / leader_protect_mult)
         end
 
-       if (not unprotected_max_rating) or (rating > unprotected_max_rating) then
-           unprotected_max_rating = rating
-           unprotected_best_combo = combo
-       end
+        if (not unprotected_max_rating) or (rating > unprotected_max_rating) then
+            unprotected_max_rating = rating
+            unprotected_best_combo = combo
+        end
 
-       if is_protected then
-           if (not max_rating) or (rating > max_rating) then
-               max_rating = rating
-               best_combo = combo
-           end
-       end
+        if is_protected then
+            if (not max_rating) or (rating > max_rating) then
+                max_rating = rating
+                best_combo = combo
+            end
+        end
 
-       table.insert(good_combos, {
-           rating = rating,
-           combo = combo.combo,
-           is_protected = is_protected
-       })
+        table.insert(good_combos, {
+            rating = rating,
+            combo = combo.combo,
+            is_protected = is_protected
+        })
 
 
         if false then
