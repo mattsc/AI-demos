@@ -277,6 +277,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     --DBG.dbms(valid_combos)
 
 
+    local good_combos = {}
     for i_c,combo in ipairs(valid_combos) do
         local is_protected = true
         local leader_protect_mult = 0
@@ -485,8 +486,14 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
            end
        end
 
+       table.insert(good_combos, {
+           rating = rating,
+           combo = combo.combo,
+           is_protected = is_protected
+       })
 
-        if true then
+
+        if false then
             local protected_str = 'no'
             if is_protected then protected_str = 'yes' end
             local x, y
@@ -507,27 +514,90 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         end
     end
 
+    table.sort(good_combos, function(a, b) return a.rating > b.rating end)
+    --DBG.dbms(good_combos)
 
-            -- Display combo and rating, if desired
-            if false then
-                local protected_str = 'no'
-                if is_protected then protected_str = 'yes' end
-                local x, y
-                for src,dst in pairs(combo) do
-                    x, y =  math.floor(dst / 1000), dst % 1000
-                    local id = ratings[dst][src].id
-                    W.label { x = x, y = y, text = id }
+
+    -- Full counter attack analysis for the best combos
+    local cfg_attack = {
+        value_ratio = 1, -- mostly based on damage received
+        use_max_damage_weapons = true
+    }
+    local max_n_combos = 20
+
+    local max_rating, best_combo
+    for i_c,combo in pairs(good_combos) do
+        --print('combo ' .. i_c)
+
+        local old_locs, new_locs, ids = {}, {}, {}
+        for s,d in pairs(combo.combo) do
+            local src =  { math.floor(s / 1000), s % 1000 }
+            local dst =  { math.floor(d / 1000), d % 1000 }
+            --print('  ' .. src[1] .. ',' .. src[2] .. '  -->  ' .. dst[1] .. ',' .. dst[2])
+
+            table.insert(old_locs, src)
+            table.insert(new_locs, dst)
+            table.insert(ids, FU.get_fgumap_value(gamedata.my_unit_map, src[1], src[2], 'id'))
+        end
+
+        local new_rating, rel_rating, count = 0, 0, 0
+        for i_l,loc in pairs(old_locs) do
+            local target = {}
+            target[ids[i_l]] = { new_locs[i_l][1], new_locs[i_l][2] }
+
+            local counter_outcomes = FAU.calc_counter_attack(
+                target, old_locs, new_locs, gamedata, move_cache, cfg_attack
+            )
+            if counter_outcomes then
+                --DBG.dbms(counter_outcomes.rating_table)
+                local unit_rating = - counter_outcomes.rating_table.rating
+
+                local unit_value = FU.unit_value(gamedata.unit_infos[ids[i_l]])
+                local unit_rel_rating = unit_rating / unit_value
+                if (unit_rel_rating < 0) then
+                    unit_rel_rating = - unit_rel_rating^2
+                else
+                    unit_rel_rating = unit_rel_rating^2
                 end
-                wesnoth.scroll_to_tile(x, y)
-                W.message {
-                    speaker = 'narrator',
-                    message = 'Hold combo ' .. i_c .. '/' .. #combos .. ' rating = ' .. rating .. ' is_protected = ' .. protected_str
-                }
-                for src,dst in pairs(combo) do
-                    x, y =  math.floor(dst / 1000), dst % 1000
-                    W.label { x = x, y = y, text = "" }
-                end
+                unit_rel_rating = 1 + unit_rel_rating / 10
+
+                --print('  ' .. ids[i_l], unit_rating)
+                --print('    ' .. unit_rel_rating, unit_value)
+                rel_rating = rel_rating + unit_rel_rating
+                count = count + 1
             end
+        end
+
+        if (count > 0) then
+            rel_rating = rel_rating / count
+            new_rating = combo.rating * rel_rating
+            --print('  ---> ' .. combo.rating, rel_rating, combo.rating * rel_rating)
+
+            if (not max_rating) or (new_rating > max_rating) then
+                max_rating = new_rating
+                best_combo = combo
+            end
+        end
+
+        if false then
+            local protected_str = 'no'
+            if combo.is_protected then protected_str = 'yes' end
+            for i_l,loc in pairs(new_locs) do
+                W.label { x = loc[1], y = loc[2], text = ids[i_l] }
+            end
+            wesnoth.scroll_to_tile(new_locs[1][1], new_locs[1][2])
+            local rating_str = string.format("%.4f / %.4f (%.4f)", new_rating, max_rating, combo.rating or -9999)
+            W.message {
+                speaker = 'narrator',
+                message = 'Hold combo ' .. i_c .. '/' .. #combos .. ' rating = ' .. rating_str .. '   is_protected = ' .. protected_str
+            }
+            for i_l,loc in pairs(new_locs) do
+                W.label { x = loc[1], y = loc[2], text = "" }
+            end
+        end
+
+        if (i_c >= max_n_combos) then
+            break
         end
     end
 
