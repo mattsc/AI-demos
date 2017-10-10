@@ -398,13 +398,14 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         local rating = combo.rating
         --print('  weighted:', rating)
 
+        local angle_fac
         if (combo.count > 1) then
-            local min_min_dist, max_min_dist = 999, 0
-            local min_ld, max_ld
-
+            local max_min_dist = 0
+            local hexes = {}
             for src,dst in pairs(combo.combo) do
                 local x, y =  math.floor(dst / 1000), dst % 1000
 
+                -- Find the maximum distance between any two closest hexes
                 local min_dist = 999
                 for src2,dst2 in pairs(combo.combo) do
                     if (src2 ~= src) or (dst2 ~= dst) then
@@ -413,50 +414,54 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                         if (d < min_dist) then min_dist = d end
                     end
                 end
-
-                if (min_dist < min_min_dist) then min_min_dist = min_dist end
                 if (min_dist > max_min_dist) then max_min_dist = min_dist end
 
-
-                local ld
+                -- Set up an array of the between_map distances for all hexes
+                local dist, perp_dist
                 if between_map then
-                    ld = FU.get_fgumap_value(between_map, x, y, 'inv_cost')
+                    dist = FU.get_fgumap_value(between_map, x, y, 'blurred_distance')
+                    perp_dist = FU.get_fgumap_value(between_map, x, y, 'blurred_perp_distance')
                 else
-                    ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
+                    -- TODO
                 end
-                if (not min_ld) or (ld < min_ld) then min_ld = ld end
-                if (not max_ld) or (ld > max_ld) then max_ld = ld end
+
+                table.insert(hexes, {
+                    x = x, y = y,
+                    dist = dist,
+                    perp_dist = perp_dist
+                })
+            end
+            -- TODO: there might be cases when this sort does not work, e.g. when there
+            -- are more than 3 hexes across with the same perp_dist value (before blurring)
+            table.sort(hexes, function(a, b) return a.perp_dist < b.perp_dist end)
+            --DBG.dbms(hexes)
+
+            local min_angle
+            for i_h=1,#hexes-1 do
+                dx = math.abs(hexes[i_h + 1].perp_dist - hexes[i_h].perp_dist)
+                dy = math.abs(hexes[i_h + 1].dist - hexes[i_h].dist)
+                -- Note, this must be x/y, not y/x!  We want the angle from the toward-leader direction
+                local angle = math.atan2(dx, dy) / 1.5708
+                --print(i_h, angle)
+
+                if (not min_angle) or (angle < min_angle) then
+                    min_angle = angle
+                end
             end
 
+            -- TODO: this might undervalue combinations incl. adjacent hexes
+            local scaled_angle = FU.weight_s(min_angle, 0.5)
+            -- Make this a 20% maximum range effect
+            angle_fac = (1 + scaled_angle / 5)
+            --print('  -> min_angle: ' .. min_angle, scaled_angle, angle_fac)
 
-            -- Bonus for distance of 2 or 3
-            if (not cfg.protect_leader) then
-                if (min_min_dist >= 2) and (max_min_dist <= 3) then
-                    rating = rating * 1.10
-
-                    if (max_min_dist == 2) then
-                        rating = rating + 0.0001
-                    end
-                end
-            end
-
-            local thresh_dist = 3
-            if cfg.protect_leader then thresh_dist = 2 end
+            rating = rating * angle_fac
 
             -- Penalty for too far apart
+            local thresh_dist = 3
+            if cfg.protect_leader then thresh_dist = 2 end
             if (max_min_dist > thresh_dist) then
-                rating = rating / ( 1 + (max_min_dist - 3) / 10)
-            end
-
-
-            -- and we reduce lining them up "vertically" too far apart, but only
-            -- if the config parameter 'hold_perpendicular' is set
-            -- This is usually set for protects, not for "normal" holding
-            if cfg and cfg.hold_perpendicular then
-                local dld = max_ld - min_ld
-                if (dld > 2) then
-                    rating = rating * math.sqrt( 1 - dld / 20)
-                end
+                rating = rating / ( 1 + (max_min_dist - thresh_dist) / 10)
             end
         end
 
