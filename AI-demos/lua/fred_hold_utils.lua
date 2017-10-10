@@ -226,13 +226,10 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         for src,dst in pairs(combo) do
             local id = ratings[dst][src].id
 
-            -- We want the unit with the lowest HP to have the highest weight
-            -- Also, additional weight for injured units
+            -- Prefer tanks, i.e. the highest-HP units
             local weight
             if (not weights[id]) then
-                weight = 2 - gamedata.unit_infos[id].hitpoints / 100
-                weight = weight + gamedata.unit_infos[id].max_hitpoints - gamedata.unit_infos[id].hitpoints
-                if (weight < 0.5) then weight = 0.5 end
+                weight = gamedata.unit_infos[id].hitpoints
                 weights[id] = weight
             else
                 weight = weights[id]
