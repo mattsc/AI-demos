@@ -559,7 +559,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     --print(' ===> max rating:             ' .. (max_rating or 'none'))
     --print(' ===> max rating unprotected: ' .. (unprotected_max_rating or 'none'))
 
-    return best_combo.combo, unprotected_best_combo.combo
+    return best_combo and best_combo.combo, unprotected_best_combo.combo
 end
 
 
