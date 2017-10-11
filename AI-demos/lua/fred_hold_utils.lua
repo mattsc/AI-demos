@@ -8,6 +8,22 @@ local W = H.set_wml_action_metatable {}
 local fred_hold_utils = {}
 
 function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, gamedata)
+    local count = 0
+    for id,_ in pairs(rating_maps) do
+        count = count + 1
+    end
+
+    if (count== 1) then
+        for id,rating_map in pairs(rating_maps) do
+            for x,y,data in FU.fgumap_iter(rating_map) do
+                data.conv = 1
+                data[key] = data[key .. '_org']
+            end
+        end
+
+        return
+    end
+
     for id,rating_map in pairs(rating_maps) do
         for x,y,map in FU.fgumap_iter(rating_map) do
             local dist, perp_dist
