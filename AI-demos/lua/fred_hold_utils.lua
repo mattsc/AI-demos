@@ -25,7 +25,7 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, gam
     end
 
     for id,rating_map in pairs(rating_maps) do
-        for x,y,map in FU.fgumap_iter(rating_map) do
+        for x,y,_ in FU.fgumap_iter(rating_map) do
             local dist, perp_dist
             if between_map then
                 dist = FU.get_fgumap_value(between_map, x, y, 'blurred_distance')
