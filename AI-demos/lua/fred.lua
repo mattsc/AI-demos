@@ -3760,7 +3760,7 @@ return {
                                 hold_rating_maps[id] = {}
                             end
 
-                            FU.set_fgumap_value(hold_rating_maps[id], x, y, 'vuln_rating', vuln_rating)
+                            FU.set_fgumap_value(hold_rating_maps[id], x, y, 'vuln_rating_org', vuln_rating)
                             hold_rating_maps[id][x][y].x = x
                             hold_rating_maps[id][x][y].y = y
                             hold_rating_maps[id][x][y].id = id
@@ -3824,11 +3824,14 @@ return {
 
             -- Add bonus for other strong hexes aligned *across* the direction
             -- of advancement of the enemies
-            FHU.convolve_rating_maps(protect_rating_maps, between_map)
+            FHU.convolve_rating_maps(hold_rating_maps, 'vuln_rating', between_map)
+            FHU.convolve_rating_maps(protect_rating_maps, 'protect_rating', between_map)
 
             if false then
                 for id,unit_rating_map in pairs(unit_rating_maps) do
-                    FU.show_fgumap_with_message(unit_rating_map, 'base_rating', 'base_rating', gamedata.unit_copies[id])
+                    --FU.show_fgumap_with_message(unit_rating_map, 'base_rating', 'base_rating', gamedata.unit_copies[id])
+                    FU.show_fgumap_with_message(hold_rating_maps[id] or {}, 'vuln_rating_org', 'vuln_rating_org', gamedata.unit_copies[id])
+                    FU.show_fgumap_with_message(hold_rating_maps[id] or {}, 'conv', 'conv', gamedata.unit_copies[id])
                     FU.show_fgumap_with_message(hold_rating_maps[id] or {}, 'vuln_rating', 'vuln_rating', gamedata.unit_copies[id])
                 end
             end

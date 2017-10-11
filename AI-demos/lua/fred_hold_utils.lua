@@ -7,7 +7,7 @@ local W = H.set_wml_action_metatable {}
 
 local fred_hold_utils = {}
 
-function fred_hold_utils.convolve_rating_maps(rating_maps, between_map)
+function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map)
     for id,rating_map in pairs(rating_maps) do
         for x,y,map in FU.fgumap_iter(rating_map) do
             local bd = FU.get_fgumap_value(between_map, x, y, 'blurred_distance')
@@ -36,7 +36,7 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, between_map)
                             local conv_sum_units, count = 0, 0
                             for id2,rating_map2 in pairs(rating_maps) do
                                 if (id ~= id2) then
-                                    local pr = FU.get_fgumap_value(rating_map2, x2, y2, 'protect_rating_org')
+                                    local pr = FU.get_fgumap_value(rating_map2, x2, y2, key ..'_org')
                                     if pr then
                                         conv_sum_units = conv_sum_units + pr * angle_fac
                                         count = count + 1
@@ -65,7 +65,7 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, between_map)
 
         FU.fgumap_normalize(rating_map, 'conv')
         for x,y,data in FU.fgumap_iter(rating_map) do
-            data.protect_rating = data.protect_rating_org * data.conv
+            data[key] = data[key .. '_org'] * data.conv
         end
     end
 end
