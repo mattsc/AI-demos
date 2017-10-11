@@ -370,7 +370,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                     perp_dist = FU.get_fgumap_value(between_map, x, y, 'blurred_perp_distance')
                 else
                     -- In this case we do not have the perpendicular distance
-                    dist = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance') / 2
+                    dist = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
                 end
 
                 table.insert(dists, {

@@ -221,7 +221,7 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
             base_rating = base_rating / #village.units
 
             -- Prefer villages farther back
-            local add_rating_village = - FU.get_fgumap_value(gamedata.leader_distance_map, village.x, village.y, 'distance')
+            local add_rating_village = -2 * FU.get_fgumap_value(gamedata.leader_distance_map, village.x, village.y, 'distance')
 
             for _,id in ipairs(village.units) do
                 local unit_rating = base_rating / (villages_in_reach.by_unit[id]^2)

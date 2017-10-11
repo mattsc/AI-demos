@@ -68,7 +68,7 @@ return {
                     leader_distance_map[x][y] = {
                         my_leader_distance = leader_dist,
                         enemy_leader_distance = enemy_leader_dist,
-                        distance = leader_dist - enemy_leader_dist
+                        distance = (leader_dist - enemy_leader_dist) / 2
                     }
 
                 end
@@ -3235,7 +3235,7 @@ return {
                     local vulnerability = tension - math.abs(influence)
 
                     local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
-                    vulnerability = vulnerability + ld / 25
+                    vulnerability = vulnerability + ld / 10
 
                     FU.set_fgumap_value(holders_influence, x, y, 'tension', tension)
                     FU.set_fgumap_value(holders_influence, x, y, 'vulnerability', vulnerability)
@@ -3307,7 +3307,7 @@ return {
             else
                 hold_leader_distance = fred.data.ops_data.protect_locs[zone_cfg.zone_id].hold_leader_distance
                 protect_locs = fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs
-                min_btw_dist = -2
+                min_btw_dist = -1
                 assigned_enemies = fred.data.ops_data.assigned_enemies[zone_cfg.zone_id]
             end
 
@@ -3780,7 +3780,7 @@ return {
                             end
 
                             -- TODO: this is likely too simplistic
-                            if (d_dist > 2) then
+                            if (d_dist > 4) then
                                 protect_rating = protect_rating - (d_dist - 2) / 20
                             end
 
