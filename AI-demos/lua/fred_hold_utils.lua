@@ -65,7 +65,12 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map)
 
         FU.fgumap_normalize(rating_map, 'conv')
         for x,y,data in FU.fgumap_iter(rating_map) do
-            data[key] = data[key .. '_org'] * data.conv
+            -- It is possible for this value to be zero if no other units
+            -- can get to surrounding hexes. While it is okay to derate this
+            -- hex then, it should not be set to zero
+            local conv = data.conv
+            if (conv < 0.5) then conv = 0.5 end
+            data[key] = data[key .. '_org'] * conv
         end
     end
 end
