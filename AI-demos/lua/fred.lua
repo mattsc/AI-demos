@@ -3959,7 +3959,7 @@ return {
                 best_hold_combo = FHU.find_best_combo(hold_combos, hold_ratings, 'vuln_rating', adjacent_village_map, between_map, gamedata, move_cache, cfg_best_combo_hold)
             end
 
-            local best_protect_combo, unprotected_best_protect_combo, protect_dst_src, protect_ratings
+            local best_protect_combo, all_best_protect_combo, protect_dst_src, protect_ratings
             if hold_leader_distance then
                 --print('--> checking protect combos')
                 protect_dst_src, protect_ratings = FHU.unit_rating_maps_to_dstsrc(protect_rating_maps, 'protect_rating', gamedata, cfg_combos)
@@ -3967,11 +3967,11 @@ return {
                 --DBG.dbms(protect_combos)
                 --print('#protect_combos', #protect_combos)
 
-                best_protect_combo, unprotected_best_protect_combo = FHU.find_best_combo(protect_combos, protect_ratings, 'protect_rating', adjacent_village_map, between_map, gamedata, move_cache, cfg_best_combo_protect)
+                best_protect_combo, all_best_protect_combo = FHU.find_best_combo(protect_combos, protect_ratings, 'protect_rating', adjacent_village_map, between_map, gamedata, move_cache, cfg_best_combo_protect)
 
                 -- If no combo that protects the location was found, use the best of the others
                 if (not best_protect_combo) then
-                    best_protect_combo = unprotected_best_protect_combo
+                    best_protect_combo = all_best_protect_combo
                 end
             end
             --DBG.dbms(best_hold_combo)
