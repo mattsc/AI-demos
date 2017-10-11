@@ -56,7 +56,7 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, gam
                             if between_map then
                                 local dx = math.abs(perp_dist - perp_dist2)
                                 -- Note, this must be x/y, not y/x!  We want the angle from the toward-leader direction
-                                local angle = math.atan2(dx, dy) / 1.5708
+                                angle = math.atan2(dx, dy) / 1.5708
                             else
                                 -- Note, this must be y/r, not x/r!  We want the angle from the toward-leader direction
                                 if (dy > dr) then
