@@ -7,30 +7,51 @@ local W = H.set_wml_action_metatable {}
 
 local fred_hold_utils = {}
 
-function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map)
+function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, gamedata)
     for id,rating_map in pairs(rating_maps) do
         for x,y,map in FU.fgumap_iter(rating_map) do
-            local bd = FU.get_fgumap_value(between_map, x, y, 'blurred_distance')
-            local bpd = FU.get_fgumap_value(between_map, x, y, 'blurred_perp_distance')
-            --print(id, x .. ',' .. y, bd, bpd)
+            local dist, perp_dist
+            if between_map then
+                dist = FU.get_fgumap_value(between_map, x, y, 'blurred_distance')
+                perp_dist = FU.get_fgumap_value(between_map, x, y, 'blurred_perp_distance')
+            else
+                -- In this case we do not have the perpendicular distance
+                dist = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
+            end
+            --print(id, x .. ',' .. y, dist, perp_dist)
 
             local convs = {}
             for x2=x-3,x+3 do
                 for y2=y-3,y+3 do
                     if ((x2 ~= x) or (y2 ~= y)) then
                         -- This is faster than filtering by radius
-                        local dist = H.distance_between(x, y, x2, y2)
-                        if (dist <= 3) then
-                            local bd2 = FU.get_fgumap_value(between_map, x2, y2, 'blurred_distance', -999)
-                            local bpd2 = FU.get_fgumap_value(between_map, x2, y2, 'blurred_perp_distance', 0)
-                            --print(bd2, bpd2, dx, dy, angle_fac)
+                        local dr = H.distance_between(x, y, x2, y2)
+                        if (dr <= 3) then
+                            local dist2, perp_dist2
+                            if between_map then
+                                dist2 = FU.get_fgumap_value(between_map, x2, y2, 'blurred_distance', -999)
+                                perp_dist2 = FU.get_fgumap_value(between_map, x2, y2, 'blurred_perp_distance', 0)
+                            else
+                                dist2 = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance', -999)
+                            end
 
-                            dx = math.abs(bpd - bpd2)
-                            dy = math.abs(bd - bd2)
-                            -- Note, this must be x/y, not y/x!  We want the angle from the toward-leader direction
-                            local angle_fac = math.atan2(dx, dy) / 1.5708
-                            angle_fac = FU.weight_s(angle_fac, 0.5)
-                            --print(bd2, bpd2, dx, dy, angle_fac)
+                            local dy = math.abs(dist - dist2)
+                            local angle
+                            if between_map then
+                                local dx = math.abs(perp_dist - perp_dist2)
+                                -- Note, this must be x/y, not y/x!  We want the angle from the toward-leader direction
+                                local angle = math.atan2(dx, dy) / 1.5708
+                            else
+                                -- Note, this must be y/r, not x/r!  We want the angle from the toward-leader direction
+                                if (dy > dr) then
+                                    angle = 0
+                                else
+                                    angle = math.acos(dy / dr) / 1.5708
+                                end
+                            end
+
+                            local angle_fac = FU.weight_s(angle, 0.5)
+                            --print('  ' .. x2 .. ',' .. y2, angle, angle_fac)
 
                             -- We want to know how strong the other hexes are for the other units
                             local conv_sum_units, count = 0, 0

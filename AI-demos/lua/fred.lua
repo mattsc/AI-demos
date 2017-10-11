@@ -3824,8 +3824,8 @@ return {
 
             -- Add bonus for other strong hexes aligned *across* the direction
             -- of advancement of the enemies
-            FHU.convolve_rating_maps(hold_rating_maps, 'vuln_rating', between_map)
-            FHU.convolve_rating_maps(protect_rating_maps, 'protect_rating', between_map)
+            FHU.convolve_rating_maps(hold_rating_maps, 'vuln_rating', between_map, gamedata)
+            FHU.convolve_rating_maps(protect_rating_maps, 'protect_rating', between_map, gamedata)
 
             if false then
                 for id,unit_rating_map in pairs(unit_rating_maps) do
