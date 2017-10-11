@@ -3838,9 +3838,11 @@ return {
             if false then
                 for id,unit_rating_map in pairs(unit_rating_maps) do
                     --FU.show_fgumap_with_message(unit_rating_map, 'rating2', 'rating2', gamedata.unit_copies[id])
-                    FU.show_fgumap_with_message(protect_rating_maps[id], 'protect_rating_org', 'protect_rating_org', gamedata.unit_copies[id])
-                    FU.show_fgumap_with_message(protect_rating_maps[id], 'conv', 'conv', gamedata.unit_copies[id])
-                    FU.show_fgumap_with_message(protect_rating_maps[id], 'protect_rating', 'protect_rating', gamedata.unit_copies[id])
+                    if protect_rating_maps[id] then
+                        FU.show_fgumap_with_message(protect_rating_maps[id], 'protect_rating_org', 'protect_rating_org', gamedata.unit_copies[id])
+                        FU.show_fgumap_with_message(protect_rating_maps[id], 'conv', 'conv', gamedata.unit_copies[id])
+                        FU.show_fgumap_with_message(protect_rating_maps[id], 'protect_rating', 'protect_rating', gamedata.unit_copies[id])
+                    end
                 end
             end
 
