@@ -3628,7 +3628,7 @@ return {
                 for x,y,_ in FU.fgumap_iter(hold_map) do
                     --print(x,y)
 
-                    local rating2, cum_weight = 0, 0
+                    local protect_base_rating, cum_weight = 0, 0
 
                     local my_defense = FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
 
@@ -3642,8 +3642,8 @@ return {
 
                             local enemy_weight = enemy_weights[id][enemy_id].weight
 
-                            local r2 = (scaled_enemy_adj_hc + scaled_my_defense + scaled_enemy_defense / 100)
-                            rating2 = rating2 + r2 * enemy_weight
+                            local rating = (scaled_enemy_adj_hc + scaled_my_defense + scaled_enemy_defense / 100)
+                            protect_base_rating = protect_base_rating + rating * enemy_weight
 
                             cum_weight = cum_weight + enemy_weight
                         end
@@ -3669,18 +3669,18 @@ return {
                         end
 
 
-                        local rating2 = rating2 / cum_weight
-                        --print('    base_rating, rating2: ' .. base_rating, rating2, cum_weight)
+                        local protect_base_rating = protect_base_rating / cum_weight
+                        --print('    base_rating, protect_base_rating: ' .. base_rating, protect_base_rating, cum_weight)
 
                         -- TODO: the village bonuses are huge, check for better values?
                         if FU.get_fgumap_value(gamedata.village_map, x, y, 'owner') then
                             -- Prefer strongest unit on village (for protection)
                             -- TODO: we might want this condition on the threat to the village
-                            rating2 = rating2 + 0.1 * gamedata.unit_infos[id].hitpoints / 25
+                            protect_base_rating = protect_base_rating + 0.1 * gamedata.unit_infos[id].hitpoints / 25
 
                             -- For non-regenerating units, we also give a heal bonus
                             if (not gamedata.unit_infos[id].abilities.regenerate) then
-                                rating2 = rating2 + 0.1 * 8 / 25
+                                protect_base_rating = protect_base_rating + 0.1 * 8 / 25
                             end
                         end
 
@@ -3688,7 +3688,7 @@ return {
                             unit_rating_maps[id] = {}
                         end
                         FU.set_fgumap_value(unit_rating_maps[id], x, y, 'base_rating', base_rating)
-                        FU.set_fgumap_value(unit_rating_maps[id], x, y, 'rating2', rating2)
+                        FU.set_fgumap_value(unit_rating_maps[id], x, y, 'protect_base_rating', protect_base_rating)
                     end
                 end
 
@@ -3749,8 +3749,8 @@ return {
 
                         local protect_exposure = FU.get_fgumap_value(hold_maps[id], x, y, 'protect_exposure')
                         if protect_exposure then
-                            local rating2 = FU.get_fgumap_value(unit_rating_maps[id], x, y, 'rating2')
-                            local protect_rating = rating2 + vuln / max_vuln / 20
+                            local protect_base_rating = FU.get_fgumap_value(unit_rating_maps[id], x, y, 'protect_base_rating')
+                            local protect_rating = protect_base_rating + vuln / max_vuln / 20
 
                             local d_dist
                             if between_map then
@@ -3818,7 +3818,7 @@ return {
             end
             if false then
                 for id,unit_rating_map in pairs(unit_rating_maps) do
-                    --FU.show_fgumap_with_message(unit_rating_map, 'rating2', 'rating2', gamedata.unit_copies[id])
+                    FU.show_fgumap_with_message(unit_rating_map, 'protect_base_rating', 'protect_base_rating', gamedata.unit_copies[id])
                     if protect_rating_maps[id] then
                         FU.show_fgumap_with_message(protect_rating_maps[id], 'protect_rating_org', 'protect_rating_org', gamedata.unit_copies[id])
                         FU.show_fgumap_with_message(protect_rating_maps[id], 'conv', 'conv', gamedata.unit_copies[id])
