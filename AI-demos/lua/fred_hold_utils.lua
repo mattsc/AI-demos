@@ -48,7 +48,7 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, gam
                                 dist2 = FU.get_fgumap_value(between_map, x2, y2, 'blurred_distance', -999)
                                 perp_dist2 = FU.get_fgumap_value(between_map, x2, y2, 'blurred_perp_distance', 0)
                             else
-                                dist2 = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance', -999)
+                                dist2 = FU.get_fgumap_value(gamedata.leader_distance_map, x2, y2, 'distance', -999)
                             end
 
                             local dy = math.abs(dist - dist2)
