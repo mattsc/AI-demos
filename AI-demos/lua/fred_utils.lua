@@ -208,11 +208,7 @@ function fred_utils.print_weight_s(exp)
 end
 
 function fred_utils.scaled_hitchance(hc)
-    local fac = 0.6
-    local x = hc * fac
-    local x0 = 0.5 * fac
-    local scaled_hc = fred_utils.weight_s(x, 0.75)
-    scaled_hc = scaled_hc / fred_utils.weight_s(x0, 0.75) * 0.5
+    local scaled_hc = hc^1.5 * math.sqrt(2)
     return scaled_hc
 end
 
