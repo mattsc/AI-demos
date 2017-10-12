@@ -3635,36 +3635,17 @@ return {
                     for enemy_id,_ in pairs(gamedata.enemies) do
                         local enemy_adj_hc = FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'adj_hit_chance')
                         if enemy_adj_hc then
-                            local my_hc = 1 - my_defense
-                            local enemy_hc = FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'hit_chance')
-                            local enemy_defense = 1 - enemy_hc
+                            local scaled_my_defense = FU.scaled_hitchance(my_defense)
+                            local enemy_defense = 1 - FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'hit_chance')
+                            local scaled_enemy_defense = FU.scaled_hitchance(enemy_defense)
+                            local scaled_enemy_adj_hc = FU.scaled_hitchance(enemy_adj_hc)
 
                             local enemy_weight = enemy_weights[id][enemy_id].weight
 
-
-                            -- The scaled hit_chances here can be > 1 for hc > 0.8, but we ignored that for now
-                            local scaled_my_hc = FU.scaled_hitchance(my_hc)
-                            local scaled_my_defense = 1 - scaled_my_hc
-
-                            local scaled_enemy_adj_hc = FU.scaled_hitchance(enemy_adj_hc)
-
-                            local scaled_enemy_hc = FU.scaled_hitchance(enemy_hc)
-                            local scaled_enemy_defense = 1 - scaled_enemy_hc
-
-
-
-                            local r2 = (enemy_adj_hc + my_defense + enemy_defense / 100)
-                            local scaled_r2 = (scaled_enemy_adj_hc + scaled_my_defense + scaled_enemy_defense / 100)
-                            rating2 = rating2 + scaled_r2 * enemy_weight
+                            local r2 = (scaled_enemy_adj_hc + scaled_my_defense + scaled_enemy_defense / 100)
+                            rating2 = rating2 + r2 * enemy_weight
 
                             cum_weight = cum_weight + enemy_weight
-
-                            if false then
-                                print(id, enemy_id, x, y)
-                                print('  hc:  ' .. my_hc, enemy_hc, enemy_adj_hc)
-                                print('  shc: ' .. scaled_my_hc, scaled_enemy_hc, scaled_enemy_adj_hc)
-                                print('    r2:', r2, scaled_r2)
-                            end
                         end
                     end
 
