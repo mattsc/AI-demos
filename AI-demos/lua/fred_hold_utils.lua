@@ -13,7 +13,7 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, gam
         count = count + 1
     end
 
-    if (count== 1) then
+    if (count == 1) then
         for id,rating_map in pairs(rating_maps) do
             for x,y,data in FU.fgumap_iter(rating_map) do
                 data.conv = 1
@@ -67,7 +67,7 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, gam
                             end
 
                             local angle_fac = FU.weight_s(angle, 0.5)
-                            --print('  ' .. x2 .. ',' .. y2, angle, angle_fac)
+                            --print('  ' .. id, x .. ',' .. y, x2 .. ',' .. y2, dr, angle, angle_fac)
 
                             -- We want to know how strong the other hexes are for the other units
                             local conv_sum_units, count = 0, 0
@@ -93,7 +93,7 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, gam
             local conv = 0
             -- If we do the sum (or average) over all of the hexes, locations at
             -- the edges are penalized too much.
-            for i=1,math.min(5,#convs) do
+            for i=1,math.min(5, #convs) do
                 conv = conv + convs[i].rating
             end
 
