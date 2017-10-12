@@ -66,7 +66,7 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, gam
                                 end
                             end
 
-                            local angle_fac = FU.weight_s(angle, 0.5)
+                            local angle_fac = FU.weight_s(angle, 0.67)
                             --print('  ' .. id, x .. ',' .. y, x2 .. ',' .. y2, dr, angle, angle_fac)
 
                             -- We want to know how strong the other hexes are for the other units
@@ -526,7 +526,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             end
 
             -- TODO: this might undervalue combinations incl. adjacent hexes
-            local scaled_angle = FU.weight_s(min_angle, 0.5)
+            local scaled_angle = FU.weight_s(min_angle, 0.67)
             -- Make this a 20% maximum range effect
             angle_fac = (1 + scaled_angle / 5)
             --print('  -> min_angle: ' .. min_angle, scaled_angle, angle_fac)
