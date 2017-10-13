@@ -3303,11 +3303,11 @@ return {
                 protect_leader_distance = { min = ld, max = ld }
                 protect_locs = { { leader[1], leader[2] } }
                 assigned_enemies = fred.data.ops_data.leader_threats.enemies
-                min_btw_dist = -2.001
+                min_btw_dist = -1.5
             else
                 protect_leader_distance = fred.data.ops_data.protect_locs[zone_cfg.zone_id].leader_distance
                 protect_locs = fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs
-                min_btw_dist = -2.0
+                min_btw_dist = -1.5
                 assigned_enemies = fred.data.ops_data.assigned_enemies[zone_cfg.zone_id]
             end
 
