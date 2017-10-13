@@ -3311,6 +3311,12 @@ return {
                 assigned_enemies = fred.data.ops_data.assigned_enemies[zone_cfg.zone_id]
             end
 
+            -- TODO: just a safeguard for now; remove later
+            if protect_locs and (not protect_locs[1]) then
+                wesnoth.message('!!!!!!!!!! This should never happen: protect_locs table is empty !!!!!!!!!!')
+                protect_locs = nil
+            end
+
             --DBG.dbms(assigned_enemies)
 
             local leader = gamedata.leaders[wesnoth.current.side]
