@@ -3290,16 +3290,18 @@ return {
             end
             --DBG.dbms(enemy_weights)
 
+            -- TODO: this contains both the leader hex and id;
+            --   Eventually do this consistently as for other units, by changing one or the other
+            local leader = gamedata.leaders[wesnoth.current.side]
 
             -- TODO: in the end, this might be combined so that it can be dealt with
             -- in the same way. For now, it is intentionally kept separate.
             local min_btw_dist
             local protect_leader_distance, protect_locs, assigned_enemies
             if protect_leader then
-                local lx, ly = gamedata.leader_x, gamedata.leader_y
-                local ld = FU.get_fgumap_value(gamedata.leader_distance_map, lx, ly, 'distance')
+                local ld = FU.get_fgumap_value(gamedata.leader_distance_map, leader[1], leader[2], 'distance')
                 protect_leader_distance = { min = ld, max = ld }
-                protect_locs = { { lx, ly } }
+                protect_locs = { { leader[1], leader[2] } }
                 assigned_enemies = fred.data.ops_data.leader_threats.enemies
                 min_btw_dist = -2.001
             else
@@ -3314,10 +3316,7 @@ return {
                 wesnoth.message('!!!!!!!!!! This should never happen: protect_locs table is empty !!!!!!!!!!')
                 protect_locs = nil
             end
-
             --DBG.dbms(assigned_enemies)
-
-            local leader = gamedata.leaders[wesnoth.current.side]
 
             local between_map
             if protect_locs and assigned_enemies then
