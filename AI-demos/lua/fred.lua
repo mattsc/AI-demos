@@ -3153,9 +3153,7 @@ return {
                 end
             end
 
-            for enemy_id,_ in pairs(gamedata.enemies) do
-                local xe, ye = gamedata.unit_copies[enemy_id].x, gamedata.unit_copies[enemy_id].y
-
+            for enemy_id,enemy_loc in pairs(gamedata.enemies) do
                 for x,y,_ in FU.fgumap_iter(zone_map) do
                     --print(x,y)
 
@@ -3163,7 +3161,7 @@ return {
                     local min_dist, max_dist
                     for xa,ya in H.adjacent_tiles(x, y) do
                         -- Need the range of distance whether the enemy can get there or not
-                        local dist = H.distance_between(xe, ye, xa, ya)
+                        local dist = H.distance_between(enemy_loc[1], enemy_loc[2], xa, ya)
                         if (not max_dist) or (dist > max_dist) then
                             max_dist = dist
                         end
