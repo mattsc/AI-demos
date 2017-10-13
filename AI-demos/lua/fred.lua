@@ -3571,6 +3571,7 @@ return {
                 if pre_rating_maps[id] then
                     hold_maps[id] = {}
 
+                    local hold_here_map = {}
                     for x,y,data in FU.fgumap_iter(pre_rating_maps[id]) do
                         local hold_here = true
                         if protect_locs then
@@ -3592,18 +3593,37 @@ return {
                         end
 
                         if hold_here then
-                            if (data.exposure >= 0) then
-                                local my_count = FU.get_fgumap_value(holders_influence, x, y, 'my_count')
-                                local enemy_count = FU.get_fgumap_value(holders_influence, x, y, 'enemy_count')
+                            FU.set_fgumap_value(hold_here_map, x, y, 'exposure', data.exposure)
+                        end
+                    end
 
-                                if (my_count >= 3) or (1.5 * my_count >= enemy_count) then
-                                    FU.set_fgumap_value(hold_maps[id], x, y, 'exposure', data.exposure)
-                                end
+                    local adj_hex_map = {}
+                    for x,y,data in FU.fgumap_iter(hold_here_map) do
+                        for xa,ya in H.adjacent_tiles(x,y) do
+                            if (not FU.get_fgumap_value(hold_here_map, xa, ya, 'exposure'))
+                                and FU.get_fgumap_value(pre_rating_maps[id], xa, ya, 'av_outcome')
+                            then
+                                print('adjacent :' .. x .. ',' .. y, xa .. ',' .. ya)
+                                FU.set_fgumap_value(adj_hex_map, xa, ya, 'exposure', data.exposure)
                             end
+                        end
+                    end
+                    for x,y,data in FU.fgumap_iter(adj_hex_map) do
+                        FU.set_fgumap_value(hold_here_map, x, y, 'exposure', data.exposure)
+                    end
 
-                            if protect_locs then
-                                FU.set_fgumap_value(hold_maps[id], x, y, 'protect_exposure', data.exposure)
+                    for x,y,data in FU.fgumap_iter(hold_here_map) do
+                        if (data.exposure >= 0) then
+                            local my_count = FU.get_fgumap_value(holders_influence, x, y, 'my_count')
+                            local enemy_count = FU.get_fgumap_value(holders_influence, x, y, 'enemy_count')
+
+                            if (my_count >= 3) or (1.5 * my_count >= enemy_count) then
+                                FU.set_fgumap_value(hold_maps[id], x, y, 'exposure', data.exposure)
                             end
+                        end
+
+                        if protect_locs then
+                            FU.set_fgumap_value(hold_maps[id], x, y, 'protect_exposure', data.exposure)
                         end
                     end
                 end
