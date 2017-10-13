@@ -445,16 +445,16 @@ return {
                             end
                             table.insert(protect_locs[raw_cfg_top.zone_id].locs, loc)
                         end
-                        if (not hld_min) or (protect_locs[zone_id].hold_leader_distance.min < hld_min) then
-                            hld_min = protect_locs[zone_id].hold_leader_distance.min
+                        if (not hld_min) or (protect_locs[zone_id].leader_distance.min < hld_min) then
+                            hld_min = protect_locs[zone_id].leader_distance.min
                         end
-                        if (not hld_max) or (protect_locs[zone_id].hold_leader_distance.max > hld_max) then
-                            hld_max = protect_locs[zone_id].hold_leader_distance.max
+                        if (not hld_max) or (protect_locs[zone_id].leader_distance.max > hld_max) then
+                            hld_max = protect_locs[zone_id].leader_distance.max
                         end
                     end
                 end
                 if hld_min then
-                    protect_locs[raw_cfg_top.zone_id].hold_leader_distance = {
+                    protect_locs[raw_cfg_top.zone_id].leader_distance = {
                         min = hld_min, max = hld_max
                     }
                 end
@@ -566,8 +566,8 @@ return {
 
             for zone_id,threats in pairs(threats_by_zone) do
                 local hold_ld = 9999
-                if protect_locs[zone_id].hold_leader_distance then
-                    hold_ld = protect_locs[zone_id].hold_leader_distance.max
+                if protect_locs[zone_id].leader_distance then
+                    hold_ld = protect_locs[zone_id].leader_distance.max
                 end
                 --print(zone_id, hold_ld)
 
@@ -3296,16 +3296,16 @@ return {
             -- TODO: in the end, this might be combined so that it can be dealt with
             -- in the same way. For now, it is intentionally kept separate.
             local min_btw_dist
-            local hold_leader_distance, protect_locs, assigned_enemies
+            local protect_leader_distance, protect_locs, assigned_enemies
             if protect_leader then
                 local lx, ly = gamedata.leader_x, gamedata.leader_y
                 local ld = FU.get_fgumap_value(gamedata.leader_distance_map, lx, ly, 'distance')
-                hold_leader_distance = { min = ld, max = ld }
+                protect_leader_distance = { min = ld, max = ld }
                 protect_locs = { { lx, ly } }
                 assigned_enemies = fred.data.ops_data.leader_threats.enemies
                 min_btw_dist = -2.001
             else
-                hold_leader_distance = fred.data.ops_data.protect_locs[zone_cfg.zone_id].hold_leader_distance
+                protect_leader_distance = fred.data.ops_data.protect_locs[zone_cfg.zone_id].leader_distance
                 protect_locs = fred.data.ops_data.protect_locs[zone_cfg.zone_id].locs
                 min_btw_dist = -2.0
                 assigned_enemies = fred.data.ops_data.assigned_enemies[zone_cfg.zone_id]
@@ -3384,7 +3384,7 @@ return {
                     -- If there is nothing to protect, and we can move farther ahead
                     -- unthreatened than this hold position, don't hold here
                     local move_here = true
-                    if (not hold_leader_distance) then
+                    if (not protect_locs) then
                         local threats = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids')
 
                         if (not threats) then
@@ -3570,7 +3570,7 @@ return {
 
                     for x,y,data in FU.fgumap_iter(pre_rating_maps[id]) do
                         local hold_here = true
-                        if hold_leader_distance then
+                        if protect_locs then
 
                             if between_map then
                                 local btw_dist = FU.get_fgumap_value(between_map, x, y, 'distance', -99)
@@ -3579,7 +3579,7 @@ return {
                                 end
                             else
                                 local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
-                                local dld = ld - hold_leader_distance.min
+                                local dld = ld - protect_leader_distance.min
 
                                 -- TODO: this is likely too simplistic
                                 if (dld < min_btw_dist) then
@@ -3598,7 +3598,7 @@ return {
                                 end
                             end
 
-                            if hold_leader_distance then
+                            if protect_locs then
                                 FU.set_fgumap_value(hold_maps[id], x, y, 'protect_exposure', data.exposure)
                             end
                         end
@@ -3611,7 +3611,7 @@ return {
             if false then
                 for id,hold_map in pairs(hold_maps) do
                     FU.show_fgumap_with_message(hold_map, 'exposure', 'Exposure', gamedata.unit_copies[id])
-                    if hold_leader_distance then
+                    if protect_locs then
                         FU.show_fgumap_with_message(hold_map, 'protect_exposure', 'Protect_exposure', gamedata.unit_copies[id])
                     end
                 end
@@ -3622,7 +3622,7 @@ return {
             local hold_rating_maps, protect_rating_maps = {}, {}
 
             for id,hold_map in pairs(hold_maps) do
-                --print('\n' .. id, zone_cfg.zone_id,hold_leader_distance.min .. ' -- ' .. hold_leader_distance.max)
+                --print('\n' .. id, zone_cfg.zone_id,protect_leader_distance.min .. ' -- ' .. protect_leader_distance.max)
                 local min_rating, max_rating
                 local min_vuln, max_vuln
                 for x,y,_ in FU.fgumap_iter(hold_map) do
@@ -3757,7 +3757,7 @@ return {
                                 d_dist = FU.get_fgumap_value(between_map, x, y, 'inv_cost')
                             else
                                 local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
-                                d_dist = ld - hold_leader_distance.max
+                                d_dist = ld - protect_leader_distance.max
                             end
 
                             -- TODO: this is likely too simplistic
@@ -3791,7 +3791,7 @@ return {
 
             -- TODO: check whether this needs to include number of enemies also
             -- TODO: this can probably be done earlier
-            if hold_leader_distance then
+            if protect_locs then
                 local n_units,n_holders = 0, 0
                 for _,_ in pairs(hold_rating_maps) do n_units = n_units + 1 end
                 for _,_ in pairs(holders) do n_holders = n_holders + 1 end
@@ -3887,8 +3887,8 @@ return {
             end
 
             local best_protect_combo, all_best_protect_combo, protect_dst_src, protect_ratings
-            if hold_leader_distance then
-                --print('--> checking protect combos')
+            if protect_locs then
+                print('--> checking protect combos')
                 protect_dst_src, protect_ratings = FHU.unit_rating_maps_to_dstsrc(protect_rating_maps, 'protect_rating', gamedata, cfg_combos)
                 local protect_combos = FU.get_unit_hex_combos(protect_dst_src)
                 --DBG.dbms(protect_combos)
