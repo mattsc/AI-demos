@@ -3577,7 +3577,7 @@ return {
                         if protect_locs then
 
                             if between_map then
-                                local btw_dist = FU.get_fgumap_value(between_map, x, y, 'distance', -99)
+                                local btw_dist = FU.get_fgumap_value(between_map, x, y, 'blurred_distance', -99)
                                 if (btw_dist < min_btw_dist) then
                                     hold_here = false
                                 end
