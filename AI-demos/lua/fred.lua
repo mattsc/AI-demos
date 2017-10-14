@@ -3493,8 +3493,8 @@ return {
                             --if (frac_done > 1) then frac_done = 1 end
                             --if (frac_done < 0) then frac_done = 0 end
 
-                            damage_done = damage_done + frac_done * gamedata.unit_infos[enemy.enemy_id].max_hitpoints
-                            weighted_damage_done = weighted_damage_done + enemy_weight * frac_done * gamedata.unit_infos[enemy.enemy_id].max_hitpoints
+                            damage_done = damage_done + frac_done * gamedata.unit_infos[enemy.enemy_id].hitpoints
+                            weighted_damage_done = weighted_damage_done + enemy_weight * frac_done * gamedata.unit_infos[enemy.enemy_id].hitpoints
 
                             --print(x, y, damage_taken, damage_done)
                             --print('  ', weighted_damage_taken, weighted_damage_done, cum_weight)
