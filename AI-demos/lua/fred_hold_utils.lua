@@ -323,8 +323,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 leader_target[leader_id] = { gamedata.leader_x, gamedata.leader_y }
                 local old_locs = { { gamedata.leader_x, gamedata.leader_y } }
                 local new_locs = { { gamedata.leader_x, gamedata.leader_y } }
-
-                for src,dst in pairs(combo) do
+                for src,dst in pairs(combo.combo) do
                     local dst_x, dst_y =  math.floor(dst / 1000), dst % 1000
                     local src_x, src_y =  math.floor(src / 1000), src % 1000
                     table.insert(old_locs, { src_x, src_y })
