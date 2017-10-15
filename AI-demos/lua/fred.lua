@@ -3566,10 +3566,10 @@ return {
             end
 
 
-            local hold_maps = {}
+            local hold_here_maps = {}
             for id,_ in pairs(holders) do
                 if pre_rating_maps[id] then
-                    hold_maps[id] = {}
+                    hold_here_maps[id] = {}
 
                     local hold_here_map = {}
                     for x,y,data in FU.fgumap_iter(pre_rating_maps[id]) do
@@ -3618,24 +3618,24 @@ return {
                             local enemy_count = FU.get_fgumap_value(holders_influence, x, y, 'enemy_count')
 
                             if (my_count >= 3) or (1.5 * my_count >= enemy_count) then
-                                FU.set_fgumap_value(hold_maps[id], x, y, 'exposure', data.exposure)
+                                FU.set_fgumap_value(hold_here_maps[id], x, y, 'hold_here', true)
                             end
                         end
 
                         if protect_locs then
-                            FU.set_fgumap_value(hold_maps[id], x, y, 'protect_exposure', data.exposure)
+                            FU.set_fgumap_value(hold_here_maps[id], x, y, 'protect_here', true)
                         end
                     end
                 end
             end
 
-            if (not next(hold_maps)) then return end
+            if (not next(hold_here_maps)) then return end
 
             if false then
-                for id,hold_map in pairs(hold_maps) do
-                    FU.show_fgumap_with_message(hold_map, 'exposure', 'Exposure', gamedata.unit_copies[id])
+                for id,hold_here_map in pairs(hold_here_maps) do
+                    FU.show_fgumap_with_message(hold_here_map, 'hold_here', 'hold_here', gamedata.unit_copies[id])
                     if protect_locs then
-                        FU.show_fgumap_with_message(hold_map, 'protect_exposure', 'Protect_exposure', gamedata.unit_copies[id])
+                        FU.show_fgumap_with_message(hold_here_map, 'protect_here', 'protect_here', gamedata.unit_copies[id])
                     end
                 end
             end
@@ -3644,11 +3644,11 @@ return {
             local unit_rating_maps = {}
             local hold_rating_maps, protect_rating_maps = {}, {}
 
-            for id,hold_map in pairs(hold_maps) do
+            for id,hold_here_map in pairs(hold_here_maps) do
                 --print('\n' .. id, zone_cfg.zone_id,protect_leader_distance.min .. ' -- ' .. protect_leader_distance.max)
                 local min_rating, max_rating
                 local min_vuln, max_vuln
-                for x,y,_ in FU.fgumap_iter(hold_map) do
+                for x,y,_ in FU.fgumap_iter(hold_here_map) do
                     --print(x,y)
 
                     local protect_base_rating, cum_weight = 0, 0
@@ -3743,8 +3743,8 @@ return {
                         local v_fac = vuln / max_vuln / 10
 
 
-                        local exposure = FU.get_fgumap_value(hold_maps[id], x, y, 'exposure')
-                        if exposure then
+                        local hold_here = FU.get_fgumap_value(hold_here_maps[id], x, y, 'hold_here')
+                        if hold_here then
                             local vuln_rating = base_rating + v_fac
 
                             local uncropped_ratio = FU.get_fgumap_value(pre_rating_maps[id], x, y, 'uncropped_ratio')
@@ -3770,8 +3770,8 @@ return {
                             hold_rating_maps[id][x][y].id = id
                         end
 
-                        local protect_exposure = FU.get_fgumap_value(hold_maps[id], x, y, 'protect_exposure')
-                        if protect_exposure then
+                        local protect_here = FU.get_fgumap_value(hold_here_maps[id], x, y, 'protect_here')
+                        if protect_here then
                             local protect_base_rating = FU.get_fgumap_value(unit_rating_maps[id], x, y, 'protect_base_rating')
                             local protect_rating = protect_base_rating + vuln / max_vuln / 20
 
