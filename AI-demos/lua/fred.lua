@@ -3539,7 +3539,7 @@ return {
                         local av_outcome = enemy_value_ratio * weighted_damage_done - weighted_damage_taken
 
                         local influence = FU.get_fgumap_value(holders_influence, x, y, 'influence')
-                        local exposure = influence + net_outcome
+                        local exposure = net_outcome
 
                         if (not pre_rating_maps[id]) then
                             pre_rating_maps[id] = {}
