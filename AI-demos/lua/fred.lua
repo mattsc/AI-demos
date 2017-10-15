@@ -3475,7 +3475,7 @@ return {
                     end
 
                     if (#tmp_enemies > 0) then
-                        local weighted_damage_taken, weighted_damage_done = 0, 0
+                        local damage_taken, damage_done = 0, 0
                         local cum_weight, n_enemies = 0, 0
                         for _,enemy in pairs(tmp_enemies) do
                             --print('    ' .. enemy.enemy_id)
@@ -3483,7 +3483,7 @@ return {
                             cum_weight = cum_weight + enemy_weight
                             n_enemies = n_enemies + 1
 
-                            weighted_damage_taken = weighted_damage_taken + enemy_weight * enemy.damage_taken
+                            damage_taken = damage_taken + enemy_weight * enemy.damage_taken
 
                             local frac_done = enemy.damage_done - enemy.enemy_regen
                             frac_done = frac_done / gamedata.unit_infos[enemy.enemy_id].hitpoints
@@ -3491,14 +3491,14 @@ return {
                             --if (frac_done > 1) then frac_done = 1 end
                             --if (frac_done < 0) then frac_done = 0 end
 
-                            weighted_damage_done = weighted_damage_done + enemy_weight * frac_done * gamedata.unit_infos[enemy.enemy_id].hitpoints
+                            damage_done = damage_done + enemy_weight * frac_done * gamedata.unit_infos[enemy.enemy_id].hitpoints
 
-                            --print('  ', weighted_damage_taken, weighted_damage_done, cum_weight)
+                            --print('  ', damage_taken, damage_done, cum_weight)
                         end
 
-                        weighted_damage_taken = weighted_damage_taken / cum_weight
-                        weighted_damage_done = weighted_damage_done / cum_weight
-                        --print('  cum: ', weighted_damage_taken, weighted_damage_done, cum_weight)
+                        damage_taken = damage_taken / cum_weight
+                        damage_done = damage_done / cum_weight
+                        --print('  cum: ', damage_taken, damage_done, cum_weight)
 
                         -- Healing bonus for villages
                         local village_bonus = 0
@@ -3512,14 +3512,15 @@ return {
                         end
 
                         -- TODO: that division by sqrt(n_enemies) is pretty adhoc; decide whether to change that
-                        weighted_damage_taken = weighted_damage_taken * n_enemies - village_bonus - tmp_enemies[1].my_regen
-                        local frac_taken = weighted_damage_taken / gamedata.unit_infos[id].hitpoints
+                        damage_taken = damage_taken * n_enemies - village_bonus - tmp_enemies[1].my_regen
+                        local frac_taken = damage_taken / gamedata.unit_infos[id].hitpoints
                         frac_taken = FU.weight_s(frac_taken, 0.5)
                         --if (frac_taken > 1) then frac_taken = 1 end
                         --if (frac_taken < 0) then frac_taken = 0 end
-                        weighted_damage_taken = frac_taken / n_enemies * gamedata.unit_infos[id].hitpoints
+                        damage_taken = frac_taken / n_enemies * gamedata.unit_infos[id].hitpoints
 
-                        local av_outcome = enemy_value_ratio * weighted_damage_done - weighted_damage_taken
+                        local av_outcome = enemy_value_ratio * damage_done - damage_taken
+                        --print(x, y, damage_taken, damage_done, village_bonus, av_outcome, enemy_value_ratio)
 
                         local influence = FU.get_fgumap_value(holders_influence, x, y, 'influence')
 
