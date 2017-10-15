@@ -493,7 +493,7 @@ function fred_utils.inverse_cost_map(unit, loc, gamedata)
     -- To do it better, I think we'd have to go through this in ascending order of cost
     -- and adjust in real time.
     local inverse_cost_map = {}
-    for x,y,data in fred_utils.fgumap_iter(cost_map) do
+    for x,y,_ in fred_utils.fgumap_iter(cost_map) do
         local min_rating, min_cost, low_loc
         for xa,ya in H.adjacent_tiles(x, y) do
             local cost = fred_utils.get_fgumap_value(cost_map, xa, ya, 'cost', 999)

@@ -15,7 +15,7 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, gam
 
     if (count == 1) then
         for id,rating_map in pairs(rating_maps) do
-            for x,y,data in FU.fgumap_iter(rating_map) do
+            for _,_,data in FU.fgumap_iter(rating_map) do
                 data.conv = 1
                 data[key] = data[key .. '_org']
             end
@@ -101,7 +101,7 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, gam
         end
 
         FU.fgumap_normalize(rating_map, 'conv')
-        for x,y,data in FU.fgumap_iter(rating_map) do
+        for _,_,data in FU.fgumap_iter(rating_map) do
             -- It is possible for this value to be zero if no other units
             -- can get to surrounding hexes. While it is okay to derate this
             -- hex then, it should not be set to zero
@@ -124,7 +124,7 @@ function fred_hold_utils.unit_rating_maps_to_dstsrc(unit_rating_maps, key, gamed
     local sorted_ratings = {}
     for id,unit_rating_map in pairs(unit_rating_maps) do
         sorted_ratings[id] = {}
-        for x,y,data in FU.fgumap_iter(unit_rating_map) do
+        for _,_,data in FU.fgumap_iter(unit_rating_map) do
             table.insert(sorted_ratings[id], data)
         end
         table.sort(sorted_ratings[id], function(a, b) return a[key] > b[key] end)

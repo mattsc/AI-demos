@@ -26,7 +26,7 @@ function fred_village_utils.villages_to_protect(zone_cfgs, side_cfgs, gamedata)
     end
 
     local villages_to_protect_maps = {}
-    for x,y,village in FU.fgumap_iter(gamedata.village_map) do
+    for x,y,_ in FU.fgumap_iter(gamedata.village_map) do
         local my_distance = H.distance_between(x, y, my_start_hex[1], my_start_hex[2])
         local enemy_distance = H.distance_between(x, y, enemy_start_hex[1], enemy_start_hex[2])
 
@@ -62,7 +62,7 @@ function fred_village_utils.village_goals(villages_to_protect_maps, gamedata)
 
     local zone_village_goals = {}
     for zone_id, villages in pairs(villages_to_protect_maps) do
-        for x,y,village in FU.fgumap_iter(villages) do
+        for x,y,vilage_data in FU.fgumap_iter(villages) do
             local owner = FU.get_fgumap_value(gamedata.village_map, x, y, 'owner')
 
             if (owner ~= wesnoth.current.side) then
@@ -71,7 +71,7 @@ function fred_village_utils.village_goals(villages_to_protect_maps, gamedata)
                 end
 
                 local grab_only = true
-                if village.protect then
+                if vilage_data.protect then
                     grab_only = false
                 end
 
@@ -96,11 +96,11 @@ function fred_village_utils.protect_locs(villages_to_protect_maps, gamedata)
     -- by an enemy needs to be protected
 
     local protect_locs = {}
-    for zone_id,map in pairs(villages_to_protect_maps) do
+    for zone_id,villages in pairs(villages_to_protect_maps) do
         protect_locs[zone_id] = {}
         local max_ld, loc
-        for x,y,village in FU.fgumap_iter(map) do
-            if village.protect then
+        for x,y,vilage_data in FU.fgumap_iter(villages) do
+            if vilage_data.protect then
                 for enemy_id,_ in pairs(gamedata.enemies) do
                     if FU.get_fgumap_value(gamedata.reach_maps[enemy_id], x, y, 'moves_left') then
                         local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')

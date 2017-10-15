@@ -679,7 +679,7 @@ return {
                     number = number + 1
                 end
                 FU.set_fgumap_value(enemy_int_influence_map, x, y, 'enemy_influence', enemy_influence)
-                FU.set_fgumap_value(enemy_int_influence_map, x, y, 'number', number)
+                enemy_int_influence_map[x][y].number = number
             end
 
             if false then
@@ -861,7 +861,7 @@ return {
 
             -- Locations to protect, and move goals for the leader
             local max_ml, closest_keep, closest_village
-            for x,y,keep in FU.fgumap_iter(gamedata.reachable_keeps_map[wesnoth.current.side]) do
+            for x,y,_ in FU.fgumap_iter(gamedata.reachable_keeps_map[wesnoth.current.side]) do
                 --print('keep:', x, y)
                 -- Note that reachable_keeps_map contains moves_left assuming max_mp for the leader
                 -- This should generally be the same at this stage as the real situation, but
@@ -1035,8 +1035,8 @@ return {
             local goal_hexes = {}
             for zone_id,cfg in pairs(raw_cfgs_main) do
                 local max_ld, loc
-                for x,y,village in FU.fgumap_iter(villages_to_protect_maps[zone_id]) do
-                    if village.protect then
+                for x,y,village_data in FU.fgumap_iter(villages_to_protect_maps[zone_id]) do
+                    if village_data.protect then
                         for enemy_id,_ in pairs(gamedata.enemies) do
                             if FU.get_fgumap_value(gamedata.reach_maps[enemy_id], x, y, 'moves_left') then
                                 local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
@@ -3126,7 +3126,7 @@ return {
 
             -- For the enemy rating, we need to put a 1-hex buffer around this
             local buffered_zone_map = {}
-            for x,y,data in FU.fgumap_iter(zone_map) do
+            for x,y,_ in FU.fgumap_iter(zone_map) do
                 FU.set_fgumap_value(buffered_zone_map, x, y, 'flag', true)
                 for xa,ya in H.adjacent_tiles(x, y) do
                     FU.set_fgumap_value(buffered_zone_map, xa, ya, 'flag', true)
@@ -3222,30 +3222,30 @@ return {
                     local enemy_influence = FU.get_fgumap_value(fred.data.turn_data.enemy_int_influence_map, x, y, 'enemy_influence', 0)
 
                     FU.set_fgumap_value(holders_influence, x, y, 'enemy_influence', enemy_influence)
-                    FU.set_fgumap_value(holders_influence, x, y, 'influence', inf + unit_influence - enemy_influence)
+                    holders_influence[x][y].influence = inf + unit_influence - enemy_influence
                 end
             end
 
-            for x,y,influences in FU.fgumap_iter(holders_influence) do
-                if influences.influence then
-                    local influence = influences.influence
-                    local tension = influences.my_influence + influences.enemy_influence
+            for x,y,data in FU.fgumap_iter(holders_influence) do
+                if data.influence then
+                    local influence = data.influence
+                    local tension = data.my_influence + data.enemy_influence
                     local vulnerability = tension - math.abs(influence)
 
                     local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
                     vulnerability = vulnerability + ld / 10
 
-                    FU.set_fgumap_value(holders_influence, x, y, 'tension', tension)
-                    FU.set_fgumap_value(holders_influence, x, y, 'vulnerability', vulnerability)
+                    data.tension = tension
+                    data.vulnerability = vulnerability
                 end
             end
 
-            for x,y,map in FU.fgumap_iter(holders_influence, x, y) do
-                local my_inf = FU.get_fgumap_value(holders_influence, x, y, 'my_influence', 0)
-                local enemy_inf = FU.get_fgumap_value(holders_influence, x, y, 'enemy_influence', 0)
+            for x,y,data in FU.fgumap_iter(holders_influence, x, y) do
+                local my_inf = data.my_influence or 0
+                local enemy_inf = data.enemy_influence or 0
                 local inf_ratio = my_inf / (enemy_inf + 1)
 
-                FU.set_fgumap_value(holders_influence, x, y, 'inf_ratio', inf_ratio)
+                data.inf_ratio = inf_ratio
             end
 
 

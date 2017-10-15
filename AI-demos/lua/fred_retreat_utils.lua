@@ -328,7 +328,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, unit
                     local rating = 0
 
                     -- TODO: possibly find a more efficient way to do the following?
-                    for xv,yv,v in FU.fgumap_iter(goal_villages) do
+                    for xv,yv,vilage_data in FU.fgumap_iter(goal_villages) do
                         local old_x, old_y = gamedata.unit_copies[id].x, gamedata.unit_copies[id].y
                         local old_moves = gamedata.unit_copies[id].moves
                         gamedata.unit_copies[id].x, gamedata.unit_copies[id].y = x, y
@@ -337,12 +337,12 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, unit
                         local int_turns = math.ceil(cost / gamedata.unit_infos[id].max_moves)
                         gamedata.unit_copies[id].x, gamedata.unit_copies[id].y = old_x, old_y
                         gamedata.unit_copies[id].moves = old_moves
-                        --print('  ' .. id, x, y, xv, yv, int_turns, v.int_turns)
+                        --print('  ' .. id, x, y, xv, yv, int_turns, vilage_data.int_turns)
 
                         -- Distance rating is the reduction of moves needed to get there
                         -- This is additive for all villages for this is true
-                        if (int_turns < v.int_turns) then
-                            rating = rating + v.cost - cost
+                        if (int_turns < vilage_data.int_turns) then
+                            rating = rating + vilage_data.cost - cost
                         end
                     end
 
