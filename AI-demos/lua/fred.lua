@@ -3567,12 +3567,11 @@ return {
 
 
             local hold_here_maps = {}
-            for id,_ in pairs(holders) do
-                if pre_rating_maps[id] then
+            for id,pre_rating_map in pairs(pre_rating_maps) do
                     hold_here_maps[id] = {}
 
                     local hold_here_map = {}
-                    for x,y,data in FU.fgumap_iter(pre_rating_maps[id]) do
+                    for x,y,data in FU.fgumap_iter(pre_rating_map) do
                         local hold_here = true
                         if protect_locs then
 
@@ -3601,7 +3600,7 @@ return {
                     for x,y,data in FU.fgumap_iter(hold_here_map) do
                         for xa,ya in H.adjacent_tiles(x,y) do
                             if (not FU.get_fgumap_value(hold_here_map, xa, ya, 'exposure'))
-                                and FU.get_fgumap_value(pre_rating_maps[id], xa, ya, 'av_outcome')
+                                and FU.get_fgumap_value(pre_rating_map, xa, ya, 'av_outcome')
                             then
                                 print('adjacent :' .. x .. ',' .. y, xa .. ',' .. ya)
                                 FU.set_fgumap_value(adj_hex_map, xa, ya, 'exposure', data.exposure)
@@ -3626,7 +3625,6 @@ return {
                             FU.set_fgumap_value(hold_here_maps[id], x, y, 'protect_here', true)
                         end
                     end
-                end
             end
 
             if (not next(hold_here_maps)) then return end
