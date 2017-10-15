@@ -3711,7 +3711,7 @@ return {
 
                                 local enemy_weight = enemy_weights[id][enemy_id].weight
 
-                                local rating = (scaled_enemy_adj_hc + scaled_my_defense + scaled_enemy_defense / 100)
+                                local rating = (1.25 * scaled_enemy_adj_hc + scaled_my_defense + scaled_enemy_defense / 100)
                                 protect_base_rating = protect_base_rating + rating * enemy_weight
 
                                 cum_weight = cum_weight + enemy_weight

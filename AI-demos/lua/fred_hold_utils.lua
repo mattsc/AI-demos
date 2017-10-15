@@ -633,7 +633,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 else
                     unit_rel_rating = unit_rel_rating^2
                 end
-                unit_rel_rating = 1 + unit_rel_rating / 5
+                unit_rel_rating = 1 + unit_rel_rating / 10
 
                 --print('  ' .. ids[i_l], unit_rating)
                 --print('    ' .. unit_rel_rating, unit_value)
