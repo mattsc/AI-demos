@@ -3345,13 +3345,9 @@ return {
             local pre_rating_maps = {}
             for id,_ in pairs(holders) do
                 --print('\n' .. id, zone_cfg.zone_id)
-
-                local unit_type = gamedata.unit_infos[id].type
-
                 local min_eleader_distance
                 for x,y,_ in FU.fgumap_iter(gamedata.reach_maps[id]) do
                     --print(x,y)
-
                     local can_hit = false
                     for enemy_id,_ in pairs(gamedata.enemies) do
                         local enemy_adj_hc = FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'adj_hit_chance')
@@ -3362,16 +3358,14 @@ return {
                     end
 
                     -- Do not move the leader out of the way, if he's on a keep
-                    -- TODO: this is duplicated below; better way of doing this?
                     local moves_leader_off_keep = false
                     if leader_on_keep and (id ~= leader.id) and (x == leader[1]) and (y == leader[2]) then
                         moves_leader_off_keep = true
                     end
 
-                    -- TODO: probably want to us an actual move-distance map, rather than cartesian distances
                     if (not can_hit) and (not moves_leader_off_keep) then
                         local eld1 = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'enemy_leader_distance')
-                        local eld2 = FU.get_fgumap_value(gamedata.enemy_leader_distance_maps[unit_type], x, y, 'cost')
+                        local eld2 = FU.get_fgumap_value(gamedata.enemy_leader_distance_maps[gamedata.unit_infos[id].type], x, y, 'cost')
                         local eld = (eld1 + eld2) / 2
 
                         if (not min_eleader_distance) or (eld < min_eleader_distance) then
@@ -3392,7 +3386,7 @@ return {
 
                         if (not threats) then
                             local eld1 = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'enemy_leader_distance')
-                            local eld2 = FU.get_fgumap_value(gamedata.enemy_leader_distance_maps[unit_type], x, y, 'cost')
+                            local eld2 = FU.get_fgumap_value(gamedata.enemy_leader_distance_maps[gamedata.unit_infos[id].type], x, y, 'cost')
                             local eld = (eld1 + eld2) / 2
                             if min_eleader_distance and (eld > min_eleader_distance) then
                                 move_here = false
@@ -3401,12 +3395,9 @@ return {
                     end
 
                     -- Do not move the leader out of the way, if he's on a keep
-                    -- TODO: this is duplicated above; better way of doing this?
                     if leader_on_keep and (id ~= leader.id) and (x == leader[1]) and (y == leader[2]) then
                         move_here = false
                     end
-
-                    local my_defense = FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
 
                     local tmp_enemies = {}
                     if move_here then
@@ -3416,10 +3407,8 @@ return {
                             if enemy_adj_hc then
                                 --print(x,y)
                                 --print('  ', enemy_id, enemy_adj_hc)
-                                local att = fred.data.turn_data.unit_attacks[id][enemy_id]
 
-                                local my_hc = 1 - my_defense
-
+                                local my_hc = 1 - FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
                                 -- This is not directly a contribution to damage, it's just meant as a tiebreaker
                                 -- Taking away good terrain from the enemy
                                 local enemy_defense = 1 - FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'hit_chance')
@@ -3431,7 +3420,6 @@ return {
                                     ratio = (ratio + current_power_ratio) / 2
                                 end
                                 if (ratio < 1) then ratio = 1 end
-
                                 local uncropped_ratio = ratio
                                 if (ratio > 3) then ratio = 3 end
 
@@ -3439,6 +3427,7 @@ return {
                                 local factor_counter = 1 - factor_forward
                                 --print(x .. ',' .. y, ratio, factor_forward, factor_counter)
 
+                                local att = fred.data.turn_data.unit_attacks[id][enemy_id]
                                 local damage_taken = factor_counter * (my_hc * att.damage_counter.base_taken + att.damage_counter.extra_taken)
                                 damage_taken = damage_taken + factor_forward * (my_hc * att.damage_forward.base_taken + att.damage_forward.extra_taken)
 
@@ -3478,8 +3467,8 @@ return {
                         local damage_taken, damage_done = 0, 0
                         local cum_weight, n_enemies = 0, 0
                         for _,enemy in pairs(tmp_enemies) do
-                            --print('    ' .. enemy.enemy_id)
                             local enemy_weight = enemy_weights[id][enemy.enemy_id].weight
+                            --print('    ' .. enemy.enemy_id, enemy_weight)
                             cum_weight = cum_weight + enemy_weight
                             n_enemies = n_enemies + 1
 
@@ -3488,9 +3477,6 @@ return {
                             local frac_done = enemy.damage_done - enemy.enemy_regen
                             frac_done = frac_done / gamedata.unit_infos[enemy.enemy_id].hitpoints
                             frac_done = FU.weight_s(frac_done, 0.5)
-                            --if (frac_done > 1) then frac_done = 1 end
-                            --if (frac_done < 0) then frac_done = 0 end
-
                             damage_done = damage_done + enemy_weight * frac_done * gamedata.unit_infos[enemy.enemy_id].hitpoints
 
                             --print('  ', damage_taken, damage_done, cum_weight)
@@ -3511,12 +3497,9 @@ return {
                             end
                         end
 
-                        -- TODO: that division by sqrt(n_enemies) is pretty adhoc; decide whether to change that
                         damage_taken = damage_taken * n_enemies - village_bonus - tmp_enemies[1].my_regen
                         local frac_taken = damage_taken / gamedata.unit_infos[id].hitpoints
                         frac_taken = FU.weight_s(frac_taken, 0.5)
-                        --if (frac_taken > 1) then frac_taken = 1 end
-                        --if (frac_taken < 0) then frac_taken = 0 end
                         damage_taken = frac_taken / n_enemies * gamedata.unit_infos[id].hitpoints
 
                         local av_outcome = enemy_value_ratio * damage_done - damage_taken
