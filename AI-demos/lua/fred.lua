@@ -3522,8 +3522,6 @@ return {
                         local av_outcome = enemy_value_ratio * damage_done - damage_taken
                         --print(x, y, damage_taken, damage_done, village_bonus, av_outcome, enemy_value_ratio)
 
-                        local influence = FU.get_fgumap_value(holders_influence, x, y, 'influence')
-
                         if (not pre_rating_maps[id]) then
                             pre_rating_maps[id] = {}
                         end
@@ -3532,7 +3530,6 @@ return {
                         pre_rating_maps[id][x][y].y = y
                         pre_rating_maps[id][x][y].id = id
                         pre_rating_maps[id][x][y].av_outcome = av_outcome
-                        pre_rating_maps[id][x][y].influence = influence
                         pre_rating_maps[id][x][y].uncropped_ratio = tmp_enemies[1].uncropped_ratio
                     end
                 end
