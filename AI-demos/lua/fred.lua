@@ -3710,83 +3710,75 @@ return {
                 if hold_rating_maps[id] then
                     for x,y,hold_rating_data in FU.fgumap_iter(hold_rating_maps[id]) do
                         local vuln = FU.get_fgumap_value(holders_influence, x, y, 'vulnerability')
-
-                        if FU.get_fgumap_value(hold_here_maps[id], x, y, 'hold_here') then
-                            local base_rating = hold_rating_data.base_rating
+                        local base_rating = hold_rating_data.base_rating
 
 ----- ?????
-                            local hp = gamedata.unit_infos[id].hitpoints
-                            --base_rating = base_rating + hp
-                            --if (base_rating < 0) then base_rating = 0 end
-                            base_rating = base_rating / gamedata.unit_infos[id].max_hitpoints
-                            base_rating = (base_rating + 1) / 2
-                            base_rating = FU.weight_s(base_rating, 0.5)
+                        local hp = gamedata.unit_infos[id].hitpoints
+                        --base_rating = base_rating + hp
+                        --if (base_rating < 0) then base_rating = 0 end
+                        base_rating = base_rating / gamedata.unit_infos[id].max_hitpoints
+                        base_rating = (base_rating + 1) / 2
+                        base_rating = FU.weight_s(base_rating, 0.5)
 
-                            FU.set_fgumap_value(unit_rating_maps[id], x, y, 'base_rating', base_rating)
-
-                            local v_fac = vuln / max_vuln / 10
+                        local v_fac = vuln / max_vuln / 10
 
 
-                            local vuln_rating = base_rating + v_fac
+                        local vuln_rating = base_rating + v_fac
 
-                            local uncropped_ratio = FU.get_fgumap_value(pre_rating_maps[id], x, y, 'uncropped_ratio')
+                        local uncropped_ratio = FU.get_fgumap_value(pre_rating_maps[id], x, y, 'uncropped_ratio')
 
-                            local dist
-                            if between_map then
-                                dist = FU.get_fgumap_value(between_map, x, y, 'inv_cost')
-                            else
-                                dist = - FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'enemy_leader_distance')
-                            end
-
-                            local forward_rating = (uncropped_ratio - 1) * 0.01 * dist
-                            vuln_rating = vuln_rating + forward_rating
-                            --print('uncropped_ratio', x, y, uncropped_ratio, dist, forward_rating)
-
-                            hold_rating_data.base_rating = base_rating
-                            hold_rating_data.vuln_rating_org = vuln_rating
-                            hold_rating_data.x = x
-                            hold_rating_data.y = y
-                            hold_rating_data.id = id
+                        local dist
+                        if between_map then
+                            dist = FU.get_fgumap_value(between_map, x, y, 'inv_cost')
+                        else
+                            dist = - FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'enemy_leader_distance')
                         end
+
+                        local forward_rating = (uncropped_ratio - 1) * 0.01 * dist
+                        vuln_rating = vuln_rating + forward_rating
+                        --print('uncropped_ratio', x, y, uncropped_ratio, dist, forward_rating)
+
+                        hold_rating_data.base_rating = base_rating
+                        hold_rating_data.vuln_rating_org = vuln_rating
+                        hold_rating_data.x = x
+                        hold_rating_data.y = y
+                        hold_rating_data.id = id
                     end
                 end
 
                 if protect_rating_maps[id] then
                     for x,y,protect_rating_data in FU.fgumap_iter(protect_rating_maps[id]) do
                         local vuln = FU.get_fgumap_value(holders_influence, x, y, 'vulnerability')
+                        local protect_base_rating = protect_rating_data.protect_base_rating
+                        local protect_rating = protect_base_rating + vuln / max_vuln / 20
 
-                        if FU.get_fgumap_value(hold_here_maps[id], x, y, 'protect_here') then
-                            local protect_base_rating = protect_rating_data.protect_base_rating
-                            local protect_rating = protect_base_rating + vuln / max_vuln / 20
-
-                            local d_dist
-                            if between_map then
-                                d_dist = FU.get_fgumap_value(between_map, x, y, 'inv_cost')
-                            else
-                                local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
-                                d_dist = ld - protect_leader_distance.max
-                            end
-
-                            -- TODO: this is likely too simplistic
-                            if (d_dist > 4) then
-                                protect_rating = protect_rating - (d_dist - 2) / 20
-                            end
-
-                            if protect_leader then
-                                local mult = 0
-                                local power_ratio = fred.data.ops_data.leader_threats.power_ratio
-                                if (power_ratio < 1) then
-                                    mult = (1 / power_ratio - 1)
-                                end
-
-                                protect_rating = protect_rating * (1 - mult * (d_dist / 100))
-                            end
-
-                            protect_rating_data.protect_rating_org = protect_rating
-                            protect_rating_data.x = x
-                            protect_rating_data.y = y
-                            protect_rating_data.id = id
+                        local d_dist
+                        if between_map then
+                            d_dist = FU.get_fgumap_value(between_map, x, y, 'inv_cost')
+                        else
+                            local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
+                            d_dist = ld - protect_leader_distance.max
                         end
+
+                        -- TODO: this is likely too simplistic
+                        if (d_dist > 4) then
+                            protect_rating = protect_rating - (d_dist - 2) / 20
+                        end
+
+                        if protect_leader then
+                            local mult = 0
+                            local power_ratio = fred.data.ops_data.leader_threats.power_ratio
+                            if (power_ratio < 1) then
+                                mult = (1 / power_ratio - 1)
+                            end
+
+                            protect_rating = protect_rating * (1 - mult * (d_dist / 100))
+                        end
+
+                        protect_rating_data.protect_rating_org = protect_rating
+                        protect_rating_data.x = x
+                        protect_rating_data.y = y
+                        protect_rating_data.id = id
                     end
                 end
             end
