@@ -3568,63 +3568,62 @@ return {
 
             local hold_here_maps = {}
             for id,pre_rating_map in pairs(pre_rating_maps) do
-                    hold_here_maps[id] = {}
+                hold_here_maps[id] = {}
 
-                    local hold_here_map = {}
-                    for x,y,data in FU.fgumap_iter(pre_rating_map) do
-                        local hold_here = true
-                        if protect_locs then
-
-                            if between_map then
-                                local btw_dist = FU.get_fgumap_value(between_map, x, y, 'blurred_distance', -99)
-                                if (btw_dist < min_btw_dist) then
-                                    hold_here = false
-                                end
-                            else
-                                local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
-                                local dld = ld - protect_leader_distance.min
-
-                                -- TODO: this is likely too simplistic
-                                if (dld < min_btw_dist) then
-                                    hold_here = false
-                                end
+                local hold_here_map = {}
+                for x,y,data in FU.fgumap_iter(pre_rating_map) do
+                    local hold_here = true
+                    if protect_locs then
+                        if between_map then
+                            local btw_dist = FU.get_fgumap_value(between_map, x, y, 'blurred_distance', -99)
+                            if (btw_dist < min_btw_dist) then
+                                hold_here = false
                             end
-                        end
+                        else
+                            local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
+                            local dld = ld - protect_leader_distance.min
 
-                        if hold_here then
-                            FU.set_fgumap_value(hold_here_map, x, y, 'exposure', data.exposure)
-                        end
-                    end
-
-                    local adj_hex_map = {}
-                    for x,y,data in FU.fgumap_iter(hold_here_map) do
-                        for xa,ya in H.adjacent_tiles(x,y) do
-                            if (not FU.get_fgumap_value(hold_here_map, xa, ya, 'exposure'))
-                                and FU.get_fgumap_value(pre_rating_map, xa, ya, 'av_outcome')
-                            then
-                                print('adjacent :' .. x .. ',' .. y, xa .. ',' .. ya)
-                                FU.set_fgumap_value(adj_hex_map, xa, ya, 'exposure', data.exposure)
+                            -- TODO: this is likely too simplistic
+                            if (dld < min_btw_dist) then
+                                hold_here = false
                             end
                         end
                     end
-                    for x,y,data in FU.fgumap_iter(adj_hex_map) do
+
+                    if hold_here then
                         FU.set_fgumap_value(hold_here_map, x, y, 'exposure', data.exposure)
                     end
+                end
 
-                    for x,y,data in FU.fgumap_iter(hold_here_map) do
-                        if (data.exposure >= 0) then
-                            local my_count = FU.get_fgumap_value(holders_influence, x, y, 'my_count')
-                            local enemy_count = FU.get_fgumap_value(holders_influence, x, y, 'enemy_count')
-
-                            if (my_count >= 3) or (1.5 * my_count >= enemy_count) then
-                                FU.set_fgumap_value(hold_here_maps[id], x, y, 'hold_here', true)
-                            end
-                        end
-
-                        if protect_locs then
-                            FU.set_fgumap_value(hold_here_maps[id], x, y, 'protect_here', true)
+                local adj_hex_map = {}
+                for x,y,data in FU.fgumap_iter(hold_here_map) do
+                    for xa,ya in H.adjacent_tiles(x,y) do
+                        if (not FU.get_fgumap_value(hold_here_map, xa, ya, 'exposure'))
+                            and FU.get_fgumap_value(pre_rating_map, xa, ya, 'av_outcome')
+                        then
+                            --print('adjacent :' .. x .. ',' .. y, xa .. ',' .. ya)
+                            FU.set_fgumap_value(adj_hex_map, xa, ya, 'exposure', data.exposure)
                         end
                     end
+                end
+                for x,y,data in FU.fgumap_iter(adj_hex_map) do
+                    FU.set_fgumap_value(hold_here_map, x, y, 'exposure', data.exposure)
+                end
+
+                for x,y,data in FU.fgumap_iter(hold_here_map) do
+                    if (data.exposure >= 0) then
+                        local my_count = FU.get_fgumap_value(holders_influence, x, y, 'my_count')
+                        local enemy_count = FU.get_fgumap_value(holders_influence, x, y, 'enemy_count')
+
+                        if (my_count >= 3) or (1.5 * my_count >= enemy_count) then
+                            FU.set_fgumap_value(hold_here_maps[id], x, y, 'hold_here', true)
+                        end
+                    end
+
+                    if protect_locs then
+                        FU.set_fgumap_value(hold_here_maps[id], x, y, 'protect_here', true)
+                    end
+                end
             end
 
             if (not next(hold_here_maps)) then return end
