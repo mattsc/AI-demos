@@ -146,8 +146,9 @@ function fred_hold_utils.unit_rating_maps_to_dstsrc(unit_rating_maps, key, gamed
         end
         top_ratings = top_ratings / count
 
-        -- Want highest HP units to be most important
-        local unit_weight = 1 + gamedata.unit_infos[id].hitpoints / 100
+        -- Prefer tanks, i.e. the highest-HP units
+        -- Use the same weight as in the combo eval below
+        local unit_weight = gamedata.unit_infos[id].hitpoints
         top_ratings = top_ratings * unit_weight
 
         table.insert(best_units, { id = id, top_ratings = top_ratings })
