@@ -3703,23 +3703,25 @@ return {
 
                 if max_vuln then
                     for x,y,map in FU.fgumap_iter(unit_rating_maps[id]) do
-                        local base_rating = FU.get_fgumap_value(unit_rating_maps[id], x, y, 'base_rating')
-
-                        local hp = gamedata.unit_infos[id].hitpoints
-                        --base_rating = base_rating + hp
-                        --if (base_rating < 0) then base_rating = 0 end
-                        base_rating = base_rating / gamedata.unit_infos[id].max_hitpoints
-                        base_rating = (base_rating + 1) / 2
-                        base_rating = FU.weight_s(base_rating, 0.5)
-
-                        FU.set_fgumap_value(unit_rating_maps[id], x, y, 'base_rating', base_rating)
-
                         local vuln = FU.get_fgumap_value(holders_influence, x, y, 'vulnerability')
-                        local v_fac = vuln / max_vuln / 10
-
 
                         local hold_here = FU.get_fgumap_value(hold_here_maps[id], x, y, 'hold_here')
                         if hold_here then
+                            local base_rating = FU.get_fgumap_value(unit_rating_maps[id], x, y, 'base_rating')
+
+----- ?????
+                            local hp = gamedata.unit_infos[id].hitpoints
+                            --base_rating = base_rating + hp
+                            --if (base_rating < 0) then base_rating = 0 end
+                            base_rating = base_rating / gamedata.unit_infos[id].max_hitpoints
+                            base_rating = (base_rating + 1) / 2
+                            base_rating = FU.weight_s(base_rating, 0.5)
+
+                            FU.set_fgumap_value(unit_rating_maps[id], x, y, 'base_rating', base_rating)
+
+                            local v_fac = vuln / max_vuln / 10
+
+
                             local vuln_rating = base_rating + v_fac
 
                             local uncropped_ratio = FU.get_fgumap_value(pre_rating_maps[id], x, y, 'uncropped_ratio')
