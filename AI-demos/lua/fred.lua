@@ -3638,13 +3638,12 @@ return {
             end
 
 
-            local unit_rating_maps = {}
             local hold_rating_maps, protect_rating_maps = {}, {}
 
             for id,hold_here_map in pairs(hold_here_maps) do
                 --print('\n' .. id, zone_cfg.zone_id,protect_leader_distance.min .. ' -- ' .. protect_leader_distance.max)
                 local max_vuln
-                for x,y,_ in FU.fgumap_iter(hold_here_map) do
+                for x,y,hold_here_data in FU.fgumap_iter(hold_here_map) do
                     --print(x,y)
 
                     local protect_base_rating, cum_weight = 0, 0
@@ -3693,21 +3692,27 @@ return {
                             end
                         end
 
-                        if (not unit_rating_maps[id]) then
-                            unit_rating_maps[id] = {}
+                        if hold_here_data.hold_here then
+                            if (not hold_rating_maps[id]) then
+                                hold_rating_maps[id] = {}
+                            end
+                            FU.set_fgumap_value(hold_rating_maps[id], x, y, 'base_rating', base_rating)
                         end
-                        FU.set_fgumap_value(unit_rating_maps[id], x, y, 'base_rating', base_rating)
-                        FU.set_fgumap_value(unit_rating_maps[id], x, y, 'protect_base_rating', protect_base_rating)
+                        if hold_here_data.protect_here then
+                            if (not protect_rating_maps[id]) then
+                                protect_rating_maps[id] = {}
+                            end
+                            FU.set_fgumap_value(protect_rating_maps[id], x, y, 'protect_base_rating', protect_base_rating)
+                        end
                     end
                 end
 
-                if max_vuln then
-                    for x,y,map in FU.fgumap_iter(unit_rating_maps[id]) do
+                if hold_rating_maps[id] then
+                    for x,y,hold_rating_data in FU.fgumap_iter(hold_rating_maps[id]) do
                         local vuln = FU.get_fgumap_value(holders_influence, x, y, 'vulnerability')
 
-                        local hold_here = FU.get_fgumap_value(hold_here_maps[id], x, y, 'hold_here')
-                        if hold_here then
-                            local base_rating = FU.get_fgumap_value(unit_rating_maps[id], x, y, 'base_rating')
+                        if FU.get_fgumap_value(hold_here_maps[id], x, y, 'hold_here') then
+                            local base_rating = hold_rating_data.base_rating
 
 ----- ?????
                             local hp = gamedata.unit_infos[id].hitpoints
@@ -3737,19 +3742,21 @@ return {
                             vuln_rating = vuln_rating + forward_rating
                             --print('uncropped_ratio', x, y, uncropped_ratio, dist, forward_rating)
 
-                            if (not hold_rating_maps[id]) then
-                                hold_rating_maps[id] = {}
-                            end
-
-                            FU.set_fgumap_value(hold_rating_maps[id], x, y, 'vuln_rating_org', vuln_rating)
-                            hold_rating_maps[id][x][y].x = x
-                            hold_rating_maps[id][x][y].y = y
-                            hold_rating_maps[id][x][y].id = id
+                            hold_rating_data.base_rating = base_rating
+                            hold_rating_data.vuln_rating_org = vuln_rating
+                            hold_rating_data.x = x
+                            hold_rating_data.y = y
+                            hold_rating_data.id = id
                         end
+                    end
+                end
 
-                        local protect_here = FU.get_fgumap_value(hold_here_maps[id], x, y, 'protect_here')
-                        if protect_here then
-                            local protect_base_rating = FU.get_fgumap_value(unit_rating_maps[id], x, y, 'protect_base_rating')
+                if protect_rating_maps[id] then
+                    for x,y,protect_rating_data in FU.fgumap_iter(protect_rating_maps[id]) do
+                        local vuln = FU.get_fgumap_value(holders_influence, x, y, 'vulnerability')
+
+                        if FU.get_fgumap_value(hold_here_maps[id], x, y, 'protect_here') then
+                            local protect_base_rating = protect_rating_data.protect_base_rating
                             local protect_rating = protect_base_rating + vuln / max_vuln / 20
 
                             local d_dist
@@ -3765,10 +3772,6 @@ return {
                                 protect_rating = protect_rating - (d_dist - 2) / 20
                             end
 
-                            if (not protect_rating_maps[id]) then
-                                protect_rating_maps[id] = {}
-                            end
-
                             if protect_leader then
                                 local mult = 0
                                 local power_ratio = fred.data.ops_data.leader_threats.power_ratio
@@ -3779,10 +3782,10 @@ return {
                                 protect_rating = protect_rating * (1 - mult * (d_dist / 100))
                             end
 
-                            FU.set_fgumap_value(protect_rating_maps[id], x, y, 'protect_rating_org', protect_rating)
-                            protect_rating_maps[id][x][y].x = x
-                            protect_rating_maps[id][x][y].y = y
-                            protect_rating_maps[id][x][y].id = id
+                            protect_rating_data.protect_rating_org = protect_rating
+                            protect_rating_data.x = x
+                            protect_rating_data.y = y
+                            protect_rating_data.id = id
                         end
                     end
                 end
@@ -3809,21 +3812,19 @@ return {
             FHU.convolve_rating_maps(protect_rating_maps, 'protect_rating', between_map, gamedata)
 
             if false then
-                for id,unit_rating_map in pairs(unit_rating_maps) do
-                    --FU.show_fgumap_with_message(unit_rating_map, 'base_rating', 'base_rating', gamedata.unit_copies[id])
-                    FU.show_fgumap_with_message(hold_rating_maps[id] or {}, 'vuln_rating_org', 'vuln_rating_org', gamedata.unit_copies[id])
-                    FU.show_fgumap_with_message(hold_rating_maps[id] or {}, 'conv', 'conv', gamedata.unit_copies[id])
-                    FU.show_fgumap_with_message(hold_rating_maps[id] or {}, 'vuln_rating', 'vuln_rating', gamedata.unit_copies[id])
+                for id,hold_rating_map in pairs(hold_rating_maps) do
+                    FU.show_fgumap_with_message(hold_rating_map, 'base_rating', 'base_rating', gamedata.unit_copies[id])
+                    FU.show_fgumap_with_message(hold_rating_map, 'vuln_rating_org', 'vuln_rating_org', gamedata.unit_copies[id])
+                    FU.show_fgumap_with_message(hold_rating_map, 'conv', 'conv', gamedata.unit_copies[id])
+                    FU.show_fgumap_with_message(hold_rating_map, 'vuln_rating', 'vuln_rating', gamedata.unit_copies[id])
                 end
             end
             if false then
-                for id,unit_rating_map in pairs(unit_rating_maps) do
-                    FU.show_fgumap_with_message(unit_rating_map, 'protect_base_rating', 'protect_base_rating', gamedata.unit_copies[id])
-                    if protect_rating_maps[id] then
-                        FU.show_fgumap_with_message(protect_rating_maps[id], 'protect_rating_org', 'protect_rating_org', gamedata.unit_copies[id])
-                        FU.show_fgumap_with_message(protect_rating_maps[id], 'conv', 'conv', gamedata.unit_copies[id])
-                        FU.show_fgumap_with_message(protect_rating_maps[id], 'protect_rating', 'protect_rating', gamedata.unit_copies[id])
-                    end
+                for id,protect_rating_map in pairs(protect_rating_maps) do
+                    FU.show_fgumap_with_message(protect_rating_map, 'protect_base_rating', 'protect_base_rating', gamedata.unit_copies[id])
+                    FU.show_fgumap_with_message(protect_rating_map, 'protect_rating_org', 'protect_rating_org', gamedata.unit_copies[id])
+                    FU.show_fgumap_with_message(protect_rating_map, 'conv', 'conv', gamedata.unit_copies[id])
+                    FU.show_fgumap_with_message(protect_rating_map, 'protect_rating', 'protect_rating', gamedata.unit_copies[id])
                 end
             end
 
