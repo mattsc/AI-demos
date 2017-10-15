@@ -3522,7 +3522,6 @@ return {
                         local av_outcome = enemy_value_ratio * weighted_damage_done - weighted_damage_taken
 
                         local influence = FU.get_fgumap_value(holders_influence, x, y, 'influence')
-                        local exposure = av_outcome
 
                         if (not pre_rating_maps[id]) then
                             pre_rating_maps[id] = {}
@@ -3533,7 +3532,6 @@ return {
                         pre_rating_maps[id][x][y].id = id
                         pre_rating_maps[id][x][y].av_outcome = av_outcome
                         pre_rating_maps[id][x][y].influence = influence
-                        pre_rating_maps[id][x][y].exposure = exposure
                         pre_rating_maps[id][x][y].uncropped_ratio = tmp_enemies[1].uncropped_ratio
                     end
                 end
@@ -3541,10 +3539,8 @@ return {
 
             if false then
                 for id,pre_rating_map in pairs(pre_rating_maps) do
-                    FU.show_fgumap_with_message(pre_rating_map, 'net_outcome', 'Net outcome', gamedata.unit_copies[id])
                     FU.show_fgumap_with_message(pre_rating_map, 'av_outcome', 'Average outcome', gamedata.unit_copies[id])
                     --FU.show_fgumap_with_message(pre_rating_map, 'influence', 'Influence', gamedata.unit_copies[id])
-                    FU.show_fgumap_with_message(pre_rating_map, 'exposure', 'Exposure', gamedata.unit_copies[id])
                 end
             end
 
@@ -3574,27 +3570,27 @@ return {
                     end
 
                     if hold_here then
-                        FU.set_fgumap_value(hold_here_map, x, y, 'exposure', data.exposure)
+                        FU.set_fgumap_value(hold_here_map, x, y, 'av_outcome', data.av_outcome)
                     end
                 end
 
                 local adj_hex_map = {}
                 for x,y,data in FU.fgumap_iter(hold_here_map) do
                     for xa,ya in H.adjacent_tiles(x,y) do
-                        if (not FU.get_fgumap_value(hold_here_map, xa, ya, 'exposure'))
+                        if (not FU.get_fgumap_value(hold_here_map, xa, ya, 'av_outcome'))
                             and FU.get_fgumap_value(pre_rating_map, xa, ya, 'av_outcome')
                         then
                             --print('adjacent :' .. x .. ',' .. y, xa .. ',' .. ya)
-                            FU.set_fgumap_value(adj_hex_map, xa, ya, 'exposure', data.exposure)
+                            FU.set_fgumap_value(adj_hex_map, xa, ya, 'av_outcome', data.av_outcome)
                         end
                     end
                 end
                 for x,y,data in FU.fgumap_iter(adj_hex_map) do
-                    FU.set_fgumap_value(hold_here_map, x, y, 'exposure', data.exposure)
+                    FU.set_fgumap_value(hold_here_map, x, y, 'av_outcome', data.av_outcome)
                 end
 
                 for x,y,data in FU.fgumap_iter(hold_here_map) do
-                    if (data.exposure >= 0) then
+                    if (data.av_outcome >= 0) then
                         local my_count = FU.get_fgumap_value(holders_influence, x, y, 'my_count')
                         local enemy_count = FU.get_fgumap_value(holders_influence, x, y, 'enemy_count')
 
