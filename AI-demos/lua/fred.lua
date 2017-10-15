@@ -3643,8 +3643,7 @@ return {
 
             for id,hold_here_map in pairs(hold_here_maps) do
                 --print('\n' .. id, zone_cfg.zone_id,protect_leader_distance.min .. ' -- ' .. protect_leader_distance.max)
-                local min_rating, max_rating
-                local min_vuln, max_vuln
+                local max_vuln
                 for x,y,_ in FU.fgumap_iter(hold_here_map) do
                     --print(x,y)
 
@@ -3672,18 +3671,8 @@ return {
                     if (cum_weight > 0) then
                         local base_rating = FU.get_fgumap_value(pre_rating_maps[id], x, y, 'av_outcome')
 
-                        if (not min_rating) or (base_rating < min_rating) then
-                            min_rating = base_rating
-                        end
-                        if (not max_rating) or (base_rating > max_rating) then
-                            max_rating = base_rating
-                        end
-
                         local vuln = FU.get_fgumap_value(holders_influence, x, y, 'vulnerability')
 
-                        if (not min_vuln) or (vuln < min_vuln) then
-                            min_vuln = vuln
-                        end
                         if (not max_vuln) or (vuln > max_vuln) then
                             max_vuln = vuln
                         end
@@ -3712,16 +3701,9 @@ return {
                     end
                 end
 
-                if max_rating then
-                    if (min_rating == max_rating) then min_rating = max_rating - 1 end
-                    local dr = max_rating - min_rating
-
-                    if (min_vuln == max_vuln) then min_vuln = max_vuln - 1 end
-                    local dv = max_vuln - min_vuln
-
+                if max_vuln then
                     for x,y,map in FU.fgumap_iter(unit_rating_maps[id]) do
                         local base_rating = FU.get_fgumap_value(unit_rating_maps[id], x, y, 'base_rating')
---                        base_rating = (base_rating - min_rating) / dr
 
                         local hp = gamedata.unit_infos[id].hitpoints
                         --base_rating = base_rating + hp
@@ -3733,10 +3715,6 @@ return {
                         FU.set_fgumap_value(unit_rating_maps[id], x, y, 'base_rating', base_rating)
 
                         local vuln = FU.get_fgumap_value(holders_influence, x, y, 'vulnerability')
-                        --local v_fac = (vuln - min_vuln) / dv
-                        --v_fac = 0.5 + v_fac / 2
-                        --v_fac = math.sqrt(v_fac)
-
                         local v_fac = vuln / max_vuln / 10
 
 
