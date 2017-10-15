@@ -3598,44 +3598,128 @@ return {
             end
 
 
-            local hold_rating_maps, protect_rating_maps = {}, {}
-
+            local hold_rating_maps = {}
             for id,hold_here_map in pairs(hold_here_maps) do
-                --print('\n' .. id, zone_cfg.zone_id,protect_leader_distance.min .. ' -- ' .. protect_leader_distance.max)
+                --print('\n' .. id, zone_cfg.zone_id)
                 local max_vuln
                 for x,y,hold_here_data in FU.fgumap_iter(hold_here_map) do
-                    --print(x,y)
-
-                    local protect_base_rating, cum_weight = 0, 0
-
-                    local my_defense = FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
-
-                    for enemy_id,_ in pairs(gamedata.enemies) do
-                        local enemy_adj_hc = FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'adj_hit_chance')
-                        if enemy_adj_hc then
-                            local scaled_my_defense = FU.scaled_hitchance(my_defense)
-                            local enemy_defense = 1 - FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'hit_chance')
-                            local scaled_enemy_defense = FU.scaled_hitchance(enemy_defense)
-                            local scaled_enemy_adj_hc = FU.scaled_hitchance(enemy_adj_hc)
-
-                            local enemy_weight = enemy_weights[id][enemy_id].weight
-
-                            local rating = (scaled_enemy_adj_hc + scaled_my_defense + scaled_enemy_defense / 100)
-                            protect_base_rating = protect_base_rating + rating * enemy_weight
-
-                            cum_weight = cum_weight + enemy_weight
-                        end
-                    end
-
-                    if (cum_weight > 0) then
-                        local base_rating = FU.get_fgumap_value(pre_rating_maps[id], x, y, 'av_outcome')
-
+                    if hold_here_data.hold_here then
                         local vuln = FU.get_fgumap_value(holders_influence, x, y, 'vulnerability')
 
                         if (not max_vuln) or (vuln > max_vuln) then
                             max_vuln = vuln
                         end
 
+                        if (not hold_rating_maps[id]) then
+                            hold_rating_maps[id] = {}
+                        end
+                        FU.set_fgumap_value(hold_rating_maps[id], x, y, 'vuln', vuln)
+                    end
+                end
+
+                if hold_rating_maps[id] then
+                    for x,y,hold_rating_data in FU.fgumap_iter(hold_rating_maps[id]) do
+                        local base_rating = FU.get_fgumap_value(pre_rating_maps[id], x, y, 'av_outcome')
+                        local vuln = hold_rating_data.vuln
+
+----- ?????
+                        base_rating = base_rating / gamedata.unit_infos[id].max_hitpoints
+                        base_rating = (base_rating + 1) / 2
+                        base_rating = FU.weight_s(base_rating, 0.5)
+
+                        local vuln_rating_org = base_rating + vuln / max_vuln / 10
+
+                        local uncropped_ratio = FU.get_fgumap_value(pre_rating_maps[id], x, y, 'uncropped_ratio')
+
+                        local dist
+                        if between_map then
+                            dist = FU.get_fgumap_value(between_map, x, y, 'inv_cost')
+                        else
+                            dist = - FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'enemy_leader_distance')
+                        end
+                        local forward_rating = (uncropped_ratio - 1) * 0.01 * dist
+
+                        vuln_rating_org = vuln_rating_org + forward_rating
+                        --print('uncropped_ratio', x, y, uncropped_ratio, dist, forward_rating)
+
+                        hold_rating_data.base_rating = base_rating
+                        hold_rating_data.vuln_rating_org = vuln_rating_org
+                        hold_rating_data.x = x
+                        hold_rating_data.y = y
+                        hold_rating_data.id = id
+                    end
+                end
+            end
+            --DBG.dbms(hold_rating_maps)
+
+            -- TODO: check whether this needs to include number of enemies also
+            -- TODO: this can probably be done earlier
+            if protect_locs then
+                local n_units,n_holders = 0, 0
+                for _,_ in pairs(hold_rating_maps) do n_units = n_units + 1 end
+                for _,_ in pairs(holders) do n_holders = n_holders + 1 end
+                --print(n_units, n_holders)
+
+                if (n_units < 3) and (n_units < n_holders) then
+                    hold_rating_maps = {}
+                end
+            end
+
+            -- Add bonus for other strong hexes aligned *across* the direction
+            -- of advancement of the enemies
+            FHU.convolve_rating_maps(hold_rating_maps, 'vuln_rating', between_map, gamedata)
+
+            if true then
+                for id,hold_rating_map in pairs(hold_rating_maps) do
+                    FU.show_fgumap_with_message(hold_rating_map, 'base_rating', 'base_rating', gamedata.unit_copies[id])
+                    FU.show_fgumap_with_message(hold_rating_map, 'vuln_rating_org', 'vuln_rating_org', gamedata.unit_copies[id])
+                    FU.show_fgumap_with_message(hold_rating_map, 'conv', 'conv', gamedata.unit_copies[id])
+                    FU.show_fgumap_with_message(hold_rating_map, 'vuln_rating', 'vuln_rating', gamedata.unit_copies[id])
+                end
+            end
+
+
+            local protect_rating_maps = {}
+            for id,hold_here_map in pairs(hold_here_maps) do
+                --print('\n' .. id, zone_cfg.zone_id, protect_leader_distance.min .. ' -- ' .. protect_leader_distance.max)
+                local max_vuln
+                for x,y,hold_here_data in FU.fgumap_iter(hold_here_map) do
+                    if hold_here_data.protect_here then
+                        local vuln = FU.get_fgumap_value(holders_influence, x, y, 'vulnerability')
+
+                        if (not max_vuln) or (vuln > max_vuln) then
+                            max_vuln = vuln
+                        end
+
+                        if (not protect_rating_maps[id]) then
+                            protect_rating_maps[id] = {}
+                        end
+                        FU.set_fgumap_value(protect_rating_maps[id], x, y, 'vuln', vuln)
+                    end
+                end
+
+                if protect_rating_maps[id] then
+                    for x,y,protect_rating_data in FU.fgumap_iter(protect_rating_maps[id]) do
+                        local protect_base_rating, cum_weight = 0, 0
+
+                        local my_defense = FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
+
+                        for enemy_id,_ in pairs(gamedata.enemies) do
+                            local enemy_adj_hc = FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'adj_hit_chance')
+                            if enemy_adj_hc then
+                                local scaled_my_defense = FU.scaled_hitchance(my_defense)
+                                local enemy_defense = 1 - FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'hit_chance')
+                                local scaled_enemy_defense = FU.scaled_hitchance(enemy_defense)
+                                local scaled_enemy_adj_hc = FU.scaled_hitchance(enemy_adj_hc)
+
+                                local enemy_weight = enemy_weights[id][enemy_id].weight
+
+                                local rating = (scaled_enemy_adj_hc + scaled_my_defense + scaled_enemy_defense / 100)
+                                protect_base_rating = protect_base_rating + rating * enemy_weight
+
+                                cum_weight = cum_weight + enemy_weight
+                            end
+                        end
 
                         local protect_base_rating = protect_base_rating / cum_weight
                         --print('    base_rating, protect_base_rating: ' .. base_rating, protect_base_rating, cum_weight)
@@ -3652,64 +3736,7 @@ return {
                             end
                         end
 
-                        if hold_here_data.hold_here then
-                            if (not hold_rating_maps[id]) then
-                                hold_rating_maps[id] = {}
-                            end
-                            FU.set_fgumap_value(hold_rating_maps[id], x, y, 'base_rating', base_rating)
-                        end
-                        if hold_here_data.protect_here then
-                            if (not protect_rating_maps[id]) then
-                                protect_rating_maps[id] = {}
-                            end
-                            FU.set_fgumap_value(protect_rating_maps[id], x, y, 'protect_base_rating', protect_base_rating)
-                        end
-                    end
-                end
-
-                if hold_rating_maps[id] then
-                    for x,y,hold_rating_data in FU.fgumap_iter(hold_rating_maps[id]) do
-                        local vuln = FU.get_fgumap_value(holders_influence, x, y, 'vulnerability')
-                        local base_rating = hold_rating_data.base_rating
-
------ ?????
-                        local hp = gamedata.unit_infos[id].hitpoints
-                        --base_rating = base_rating + hp
-                        --if (base_rating < 0) then base_rating = 0 end
-                        base_rating = base_rating / gamedata.unit_infos[id].max_hitpoints
-                        base_rating = (base_rating + 1) / 2
-                        base_rating = FU.weight_s(base_rating, 0.5)
-
-                        local v_fac = vuln / max_vuln / 10
-
-
-                        local vuln_rating = base_rating + v_fac
-
-                        local uncropped_ratio = FU.get_fgumap_value(pre_rating_maps[id], x, y, 'uncropped_ratio')
-
-                        local dist
-                        if between_map then
-                            dist = FU.get_fgumap_value(between_map, x, y, 'inv_cost')
-                        else
-                            dist = - FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'enemy_leader_distance')
-                        end
-
-                        local forward_rating = (uncropped_ratio - 1) * 0.01 * dist
-                        vuln_rating = vuln_rating + forward_rating
-                        --print('uncropped_ratio', x, y, uncropped_ratio, dist, forward_rating)
-
-                        hold_rating_data.base_rating = base_rating
-                        hold_rating_data.vuln_rating_org = vuln_rating
-                        hold_rating_data.x = x
-                        hold_rating_data.y = y
-                        hold_rating_data.id = id
-                    end
-                end
-
-                if protect_rating_maps[id] then
-                    for x,y,protect_rating_data in FU.fgumap_iter(protect_rating_maps[id]) do
-                        local vuln = FU.get_fgumap_value(holders_influence, x, y, 'vulnerability')
-                        local protect_base_rating = protect_rating_data.protect_base_rating
+                        local vuln = protect_rating_data.vuln
                         local protect_rating = protect_base_rating + vuln / max_vuln / 20
 
                         local d_dist
@@ -3735,6 +3762,7 @@ return {
                             protect_rating = protect_rating * (1 - mult * (d_dist / 100))
                         end
 
+                        protect_rating_data.protect_base_rating = protect_base_rating
                         protect_rating_data.protect_rating_org = protect_rating
                         protect_rating_data.x = x
                         protect_rating_data.y = y
@@ -3742,35 +3770,11 @@ return {
                     end
                 end
             end
-            --DBG.dbms(hold_rating_maps)
-
-            -- TODO: check whether this needs to include number of enemies also
-            -- TODO: this can probably be done earlier
-            if protect_locs then
-                local n_units,n_holders = 0, 0
-                for _,_ in pairs(hold_rating_maps) do n_units = n_units + 1 end
-                for _,_ in pairs(holders) do n_holders = n_holders + 1 end
-                --print(n_units, n_holders)
-
-                if (n_units < 3) and (n_units < n_holders) then
-                    hold_rating_maps = {}
-                end
-            end
-
 
             -- Add bonus for other strong hexes aligned *across* the direction
             -- of advancement of the enemies
-            FHU.convolve_rating_maps(hold_rating_maps, 'vuln_rating', between_map, gamedata)
             FHU.convolve_rating_maps(protect_rating_maps, 'protect_rating', between_map, gamedata)
 
-            if false then
-                for id,hold_rating_map in pairs(hold_rating_maps) do
-                    FU.show_fgumap_with_message(hold_rating_map, 'base_rating', 'base_rating', gamedata.unit_copies[id])
-                    FU.show_fgumap_with_message(hold_rating_map, 'vuln_rating_org', 'vuln_rating_org', gamedata.unit_copies[id])
-                    FU.show_fgumap_with_message(hold_rating_map, 'conv', 'conv', gamedata.unit_copies[id])
-                    FU.show_fgumap_with_message(hold_rating_map, 'vuln_rating', 'vuln_rating', gamedata.unit_copies[id])
-                end
-            end
             if false then
                 for id,protect_rating_map in pairs(protect_rating_maps) do
                     FU.show_fgumap_with_message(protect_rating_map, 'protect_base_rating', 'protect_base_rating', gamedata.unit_copies[id])
