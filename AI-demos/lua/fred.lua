@@ -3349,9 +3349,8 @@ return {
                 for x,y,_ in FU.fgumap_iter(gamedata.reach_maps[id]) do
                     --print(x,y)
                     local can_hit = false
-                    for enemy_id,_ in pairs(gamedata.enemies) do
-                        local enemy_adj_hc = FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'adj_hit_chance')
-                        if enemy_adj_hc then
+                    for enemy_id,enemy_zone_map in pairs(enemy_zone_maps) do
+                        if FU.get_fgumap_value(enemy_zone_map, x, y, 'adj_hit_chance') then
                             can_hit = true
                             break
                         end
@@ -3704,11 +3703,11 @@ return {
 
                         local my_defense = FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
 
-                        for enemy_id,_ in pairs(gamedata.enemies) do
-                            local enemy_adj_hc = FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'adj_hit_chance')
+                        for enemy_id,enemy_zone_map in pairs(enemy_zone_maps) do
+                            local enemy_adj_hc = FU.get_fgumap_value(enemy_zone_map, x, y, 'adj_hit_chance')
                             if enemy_adj_hc then
                                 local scaled_my_defense = FU.scaled_hitchance(my_defense)
-                                local enemy_defense = 1 - FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'hit_chance')
+                                local enemy_defense = 1 - FU.get_fgumap_value(enemy_zone_map, x, y, 'hit_chance')
                                 local scaled_enemy_defense = FU.scaled_hitchance(enemy_defense)
                                 local scaled_enemy_adj_hc = FU.scaled_hitchance(enemy_adj_hc)
 
@@ -3795,8 +3794,8 @@ return {
                 if FU.get_fgumap_value(zone_map, x, y, 'flag') then
 
                     local can_reach = false
-                    for enemy_id,_ in pairs(gamedata.enemies) do
-                        if FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'moves_left') then
+                    for enemy_id,enemy_zone_map in pairs(enemy_zone_maps) do
+                        if FU.get_fgumap_value(enemy_zone_map, x, y, 'moves_left') then
                             can_reach = true
                             break
                         end
