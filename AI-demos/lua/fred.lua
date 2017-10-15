@@ -3619,16 +3619,12 @@ return {
                 if hold_rating_maps[id] then
                     for x,y,hold_rating_data in FU.fgumap_iter(hold_rating_maps[id]) do
                         local base_rating = FU.get_fgumap_value(pre_rating_maps[id], x, y, 'av_outcome')
-                        local vuln = hold_rating_data.vuln
 
------ ?????
                         base_rating = base_rating / gamedata.unit_infos[id].max_hitpoints
                         base_rating = (base_rating + 1) / 2
                         base_rating = FU.weight_s(base_rating, 0.5)
 
-                        local vuln_rating_org = base_rating + vuln / max_vuln / 10
-
-                        local uncropped_ratio = FU.get_fgumap_value(pre_rating_maps[id], x, y, 'uncropped_ratio')
+                        local vuln_rating_org = base_rating + hold_rating_data.vuln / max_vuln / 10
 
                         local dist
                         if between_map then
@@ -3636,6 +3632,8 @@ return {
                         else
                             dist = - FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'enemy_leader_distance')
                         end
+
+                        local uncropped_ratio = FU.get_fgumap_value(pre_rating_maps[id], x, y, 'uncropped_ratio')
                         local forward_rating = (uncropped_ratio - 1) * 0.01 * dist
 
                         vuln_rating_org = vuln_rating_org + forward_rating
@@ -3668,7 +3666,7 @@ return {
             -- of advancement of the enemies
             FHU.convolve_rating_maps(hold_rating_maps, 'vuln_rating', between_map, gamedata)
 
-            if true then
+            if false then
                 for id,hold_rating_map in pairs(hold_rating_maps) do
                     FU.show_fgumap_with_message(hold_rating_map, 'base_rating', 'base_rating', gamedata.unit_copies[id])
                     FU.show_fgumap_with_message(hold_rating_map, 'vuln_rating_org', 'vuln_rating_org', gamedata.unit_copies[id])
@@ -3702,11 +3700,11 @@ return {
                         local protect_base_rating, cum_weight = 0, 0
 
                         local my_defense = FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
+                        local scaled_my_defense = FU.scaled_hitchance(my_defense)
 
                         for enemy_id,enemy_zone_map in pairs(enemy_zone_maps) do
                             local enemy_adj_hc = FU.get_fgumap_value(enemy_zone_map, x, y, 'adj_hit_chance')
                             if enemy_adj_hc then
-                                local scaled_my_defense = FU.scaled_hitchance(my_defense)
                                 local enemy_defense = 1 - FU.get_fgumap_value(enemy_zone_map, x, y, 'hit_chance')
                                 local scaled_enemy_defense = FU.scaled_hitchance(enemy_defense)
                                 local scaled_enemy_adj_hc = FU.scaled_hitchance(enemy_adj_hc)
@@ -3844,7 +3842,7 @@ return {
 
             local best_protect_combo, all_best_protect_combo, protect_dst_src, protect_ratings
             if protect_locs then
-                print('--> checking protect combos')
+                --print('--> checking protect combos')
                 protect_dst_src, protect_ratings = FHU.unit_rating_maps_to_dstsrc(protect_rating_maps, 'protect_rating', gamedata, cfg_combos)
                 local protect_combos = FU.get_unit_hex_combos(protect_dst_src)
                 --DBG.dbms(protect_combos)
@@ -3907,7 +3905,7 @@ return {
                     W.label { x = x, y = y, text = id }
                 end
                 wesnoth.scroll_to_tile(x, y)
-                W.message { speaker = 'narrator', message = 'Best hold combo: '  .. max_rating }
+                W.message { speaker = 'narrator', message = 'Best hold combo' }
                 for src,dst in pairs(best_combo) do
                     x, y =  math.floor(dst / 1000), dst % 1000
                     W.label { x = x, y = y, text = "" }
