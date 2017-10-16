@@ -133,9 +133,6 @@ function fred_hold_utils.unit_rating_maps_to_dstsrc(unit_rating_maps, key, gamed
 
 
     -- The best units are those with the highest total rating
-    -- TODO: this does not make sense if everything is normalized
-    -- TODO: use unit weights here already?
-
     local best_units = {}
     for id,sorted_rating in pairs(sorted_ratings) do
         local count = math.min(max_hexes, #sorted_rating)
@@ -525,7 +522,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 end
             end
 
-            -- TODO: this might undervalue combinations incl. adjacent hexes
+            -- Potential TODO: this might undervalue combinations incl. adjacent hexes
             local scaled_angle = FU.weight_s(min_angle, 0.67)
             -- Make this a 20% maximum range effect
             angle_fac = (1 + scaled_angle / 5)

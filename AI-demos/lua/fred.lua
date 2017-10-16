@@ -3280,8 +3280,6 @@ return {
                     --DBG.dbms(att)
 
                     local weight = att.damage_counter.base_taken + att.damage_counter.extra_taken
-                    -- TODO: there's no reason for the value of 0.5, other than that
-                    -- we want to rate the enemy attack stronger than the AI unit attack
                     weight = weight - 0.5 * (att.damage_counter.base_done + att.damage_counter.extra_done)
                     if (weight < 1) then weight = 1 end
 
@@ -3290,11 +3288,11 @@ return {
             end
             --DBG.dbms(enemy_weights)
 
-            -- TODO: this contains both the leader hex and id;
+            -- Eventual TODO: this contains both the leader hex and id;
             --   Eventually do this consistently as for other units, by changing one or the other
             local leader = gamedata.leaders[wesnoth.current.side]
 
-            -- TODO: in the end, this might be combined so that it can be dealt with
+            -- Eventual TODO: in the end, this might be combined so that it can be dealt with
             -- in the same way. For now, it is intentionally kept separate.
             local min_btw_dist
             local protect_leader_distance, protect_locs, assigned_enemies
@@ -3311,7 +3309,7 @@ return {
                 assigned_enemies = fred.data.ops_data.assigned_enemies[zone_cfg.zone_id]
             end
 
-            -- TODO: just a safeguard for now; remove later
+            -- Eventual TODO: just a safeguard for now; remove later
             if protect_locs and (not protect_locs[1]) then
                 wesnoth.message('!!!!!!!!!! This should never happen: protect_locs table is empty !!!!!!!!!!')
                 protect_locs = nil
@@ -3542,7 +3540,6 @@ return {
                             local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
                             local dld = ld - protect_leader_distance.min
 
-                            -- TODO: this is likely too simplistic
                             if (dld < min_btw_dist) then
                                 hold_here = false
                             end
@@ -3649,8 +3646,8 @@ return {
             end
             --DBG.dbms(hold_rating_maps)
 
-            -- TODO: check whether this needs to include number of enemies also
-            -- TODO: this can probably be done earlier
+            -- If protecting is needed, do not do a no-protect hold with fewer
+            -- than 3 units, unless that's all the holders available
             if protect_locs then
                 local n_units,n_holders = 0, 0
                 for _,_ in pairs(hold_rating_maps) do n_units = n_units + 1 end
@@ -3721,10 +3718,9 @@ return {
                         local protect_base_rating = protect_base_rating / cum_weight
                         --print('    base_rating, protect_base_rating: ' .. base_rating, protect_base_rating, cum_weight)
 
-                        -- TODO: the village bonuses are huge, check for better values?
                         if FU.get_fgumap_value(gamedata.village_map, x, y, 'owner') then
                             -- Prefer strongest unit on village (for protection)
-                            -- TODO: we might want this condition on the threat to the village
+                            -- Potential TODO: we might want this conditional on the threat to the village
                             protect_base_rating = protect_base_rating + 0.1 * gamedata.unit_infos[id].hitpoints / 25
 
                             -- For non-regenerating units, we also give a heal bonus
@@ -3744,7 +3740,6 @@ return {
                             d_dist = ld - protect_leader_distance.max
                         end
 
-                        -- TODO: this is likely too simplistic
                         if (d_dist > 4) then
                             protect_rating = protect_rating - (d_dist - 2) / 20
                         end
@@ -3801,8 +3796,8 @@ return {
 
                     if can_reach then
                         for xa,ya in H.adjacent_tiles(x,y) do
-                            -- TODO: this currently only works for one adjacent village
-                            -- which is fine on the Freelands map, but might not be on oterhs
+                            -- Eventual TODO: this currently only works for one adjacent village
+                            -- which is fine on the Freelands map, but might not be on others
                             FU.set_fgumap_value(adjacent_village_map, xa, ya, 'village_xy', 1000 * x + y)
                         end
                     end
