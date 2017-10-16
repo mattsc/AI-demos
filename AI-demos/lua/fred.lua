@@ -3496,7 +3496,15 @@ return {
 
                         damage_taken = damage_taken - village_bonus - tmp_enemies[1].my_regen
                         local frac_taken = damage_taken / gamedata.unit_infos[id].hitpoints
-                        frac_taken = FU.weight_s(frac_taken, 0.5)
+                        if (frac_taken) <= 1 then
+                            frac_taken = FU.weight_s(frac_taken, 0.5)
+                        else
+                            -- If this damage is higher than the unit's hitpoints, it needs
+                            -- to be emphasized, not dampened. Note that this is not done
+                            -- for the enemy, as enemy units for which this applies are
+                            -- unlikely to attack.
+                            frac_taken = frac_taken^2
+                        end
                         damage_taken = frac_taken * gamedata.unit_infos[id].hitpoints
 
                         local av_outcome = enemy_value_ratio * damage_done - damage_taken
