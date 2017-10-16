@@ -3479,8 +3479,8 @@ return {
                             --print('  ', damage_taken, damage_done, cum_weight)
                         end
 
-                        damage_taken = damage_taken / cum_weight
-                        damage_done = damage_done / cum_weight
+                        damage_taken = damage_taken / cum_weight * n_enemies
+                        damage_done = damage_done / cum_weight * n_enemies
                         --print('  cum: ', damage_taken, damage_done, cum_weight)
 
                         -- Healing bonus for villages
@@ -3494,10 +3494,10 @@ return {
                             end
                         end
 
-                        damage_taken = damage_taken * n_enemies - village_bonus - tmp_enemies[1].my_regen
+                        damage_taken = damage_taken - village_bonus - tmp_enemies[1].my_regen
                         local frac_taken = damage_taken / gamedata.unit_infos[id].hitpoints
                         frac_taken = FU.weight_s(frac_taken, 0.5)
-                        damage_taken = frac_taken / n_enemies * gamedata.unit_infos[id].hitpoints
+                        damage_taken = frac_taken * gamedata.unit_infos[id].hitpoints
 
                         local av_outcome = enemy_value_ratio * damage_done - damage_taken
                         --print(x, y, damage_taken, damage_done, village_bonus, av_outcome, enemy_value_ratio)
