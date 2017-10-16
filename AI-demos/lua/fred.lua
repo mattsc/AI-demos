@@ -3411,7 +3411,6 @@ return {
                                 local enemy_defense = 1 - FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'hit_chance')
                                 my_hc = my_hc - enemy_defense /100
 
-
                                 local ratio = FU.get_fgumap_value(holders_influence, x, y, 'inf_ratio', 1)
                                 if (ratio > current_power_ratio) then
                                     ratio = (ratio + current_power_ratio) / 2
@@ -3465,7 +3464,7 @@ return {
                         local cum_weight, n_enemies = 0, 0
                         for _,enemy in pairs(tmp_enemies) do
                             local enemy_weight = enemy_weights[id][enemy.enemy_id].weight
-                            --print('    ' .. enemy.enemy_id, enemy_weight)
+                            --print('    ' .. enemy.enemy_id, enemy_weight, x .. ',' .. y)
                             cum_weight = cum_weight + enemy_weight
                             n_enemies = n_enemies + 1
 
@@ -3508,7 +3507,7 @@ return {
                         damage_taken = frac_taken * gamedata.unit_infos[id].hitpoints
 
                         local av_outcome = enemy_value_ratio * damage_done - damage_taken
-                        --print(x, y, damage_taken, damage_done, village_bonus, av_outcome, enemy_value_ratio)
+                        --print(x .. ',' .. y, damage_taken, damage_done, village_bonus, av_outcome, enemy_value_ratio)
 
                         if (not pre_rating_maps[id]) then
                             pre_rating_maps[id] = {}
