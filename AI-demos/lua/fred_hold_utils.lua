@@ -309,6 +309,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     -- 2. Rate the combos based on the shape of the formation and its orientation
     --    with respect to the direction in which the enemies are approaching.
     local good_combos = {}
+    local protect_loc_str
     local tmp_max_rating, tmp_all_max_rating -- just for debug display purposes
     for i_c,combo in ipairs(valid_combos) do
         -- 1. Check whether a combo protects the locations it is supposed to protect.
@@ -370,6 +371,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                         loc = protect_loc
                     end
                 end
+                protect_loc_str = tostring(loc[1]) .. ',' .. tostring(loc[2])
                 --print('*** need to check protection of ' .. loc[1] .. ',' .. loc[2])
 
                 -- First check (because it's quick): if there is a unit on the hex to be protected
@@ -563,6 +565,11 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
             local protected_str = 'no'
             if is_protected then protected_str = 'yes' end
+            if protect_loc_str then
+                protected_str = protected_str .. ' ' .. protect_loc_str
+            else
+                protected_str = 'n/a'
+            end
             local x, y
             for src,dst in pairs(combo.combo) do
                 x, y =  math.floor(dst / 1000), dst % 1000
@@ -570,7 +577,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             end
             wesnoth.scroll_to_tile(x, y)
             local rating_str =  string.format("%.4f = %.4f x %.4f x %.4f", formation_rating, angle_fac or -1111, dist_fac or -2222, combo.base_rating or -9999)
-            local max_str = string.format("max:  protected: %.4f,  all: %.4f", tmp_max_rating, tmp_all_max_rating)
+            local max_str = string.format("max:  protected: %.4f,  all: %.4f", tmp_max_rating or -9999, tmp_all_max_rating or -9999)
             W.message {
                 speaker = 'narrator', caption = 'Combo ' .. i_c .. '/' .. #valid_combos .. ': formation_rating',
                 message = rating_str .. '   is_protected = ' .. protected_str
@@ -694,6 +701,11 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         if false then
             local protected_str = 'no'
             if combo.is_protected then protected_str = 'yes' end
+            if protect_loc_str then
+                protected_str = protected_str .. ' ' .. protect_loc_str
+            else
+                protected_str = 'n/a'
+            end
             for i_l,loc in pairs(new_locs) do
                 W.label { x = loc[1], y = loc[2], text = ids[i_l] }
             end
