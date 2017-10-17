@@ -629,6 +629,19 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             )
             if counter_outcomes then
                 --DBG.dbms(counter_outcomes.rating_table)
+                -- If this does not protect the asset, we do not do it if the
+                -- chance to die is too high.  We cannot just remove this dst
+                -- from this hold though, as this would change the threats to
+                -- the other dsts. The entire combo needs to be discarded.
+                if (not combo.is_protected) then
+                    if (counter_outcomes.def_outcome.hp_chance[0] > 0.25) then
+                        print('Too dangerous for a non-protecting hold')
+                        count = 0
+                        break
+                    end
+                end
+
+
                 local unit_rating = - counter_outcomes.rating_table.rating
 
                 local unit_value = FU.unit_value(gamedata.unit_infos[ids[i_l]])
