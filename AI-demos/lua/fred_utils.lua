@@ -309,10 +309,6 @@ function fred_utils.unit_terrain_power(unit_info, x, y, gamedata)
     local defense = FGUI.get_unit_defense(gamedata.unit_copies[unit_info.id], x, y, gamedata.defense_maps)
     power = power * defense
 
-    --if fred_utils.get_fgumap_value(gamedata.village_map, x, y, 'owner') then
-    --    power = power * 1.5
-    --end
-
     return power
 end
 
