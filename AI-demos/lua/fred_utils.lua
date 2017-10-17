@@ -13,7 +13,7 @@ function fred_utils.print_debug(show_debug, ...)
 end
 
 function fred_utils.clear_labels()
-    -- Clear all labels on a map
+    -- Clear all labels on the map
     local width, height = wesnoth.get_map_size()
     for x = 1,width do
         for y = 1,height do
@@ -26,6 +26,7 @@ function fred_utils.put_fgumap_labels(map, key, cfg)
     -- Take @map (in the format as defined in fred_gamestate_utils (fgu) and put
     -- labels containing the values of @key onto the map.
     -- Print 'nan' if element exists but is not a number.
+    -- Print 'nil' if element is just that
     -- @cfg: table with optional parameters:
     --   - show_coords: (boolean) use hex coordinates as labels instead of value
     --   - factor=1: (number) if value is a number, multiply by this factor
@@ -102,8 +103,8 @@ function fred_utils.put_fgumap_labels(map, key, cfg)
 end
 
 function fred_utils.show_fgumap_with_message(map, key, text, cfg)
-    -- @cfg: optional table to contain x/y keys as coordinates and 'id' for the speaker
-    --   This can thus be a unit table
+    -- @cfg: optional table containing x/y keys as coordinates and 'id' for the speaker
+    --   Thus, it's possible to pass a unit as @cfg
 
     fred_utils.put_fgumap_labels(map, key)
     if cfg and cfg.x and cfg.y then
@@ -168,8 +169,8 @@ function fred_utils.fgumap_normalize(map, key)
 end
 
 function fred_utils.weight_s(x, exp)
-    -- S curve weighting of a variable that is meant as a fraction of a total,
-    -- that is, that for the most part varies from 0 to 1, but it continues smoothly
+    -- S curve weighting of a variable that is meant as a fraction of a total.
+    -- Thus, @x for the most part varies from 0 to 1, but does continues smoothly
     -- outside those ranges
     --
     -- Properties independent of @exp:
@@ -268,7 +269,7 @@ function fred_utils.unit_value(unit_info, cfg)
     local xp_diff = unit_info.max_experience - unit_info.experience
 
     -- Square so that a few XP don't matter, but being close to leveling is important
-    -- Unit very close to leveling is considered even more valuable than leveled unit
+    -- Units very close to leveling are considered even more valuable than leveled unit
     local xp_bonus
     if (xp_diff <= 1) then
         xp_bonus = 1.33
@@ -696,7 +697,7 @@ function fred_utils.single_unit_info(unit_proxy)
 end
 
 function fred_utils.get_unit_hex_combos(dst_src, get_best_combo)
-    -- This is a function which recursively finds all combinations of distributing
+    -- Recursively find all combinations of distributing
     -- units on hexes. The number of units and hexes does not have to be the same.
     -- @dst_src lists all units which can reach each hex in format:
     --  [1] = {
