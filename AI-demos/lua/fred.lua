@@ -1323,7 +1323,10 @@ return {
                         unit_rating = unit_rating + inertia
 
                         --print('    ' .. zone_id .. ' ' .. id, retreat_utilities[id], hold_utility[zone_id])
-                        if (retreat_utilities[id] > hold_utility[zone_id]) then
+                        -- TODO: the factor 0.8 is just a placeholder for now, so that
+                        -- very injured units are not used for holding. This should be
+                        -- replaced by a more accurate method
+                        if (retreat_utilities[id] > hold_utility[zone_id] * 0.8) then
                             unit_rating = -1
                         end
 
