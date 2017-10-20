@@ -1279,7 +1279,10 @@ return {
 
                 local hold_utility = {}
                 for zone_id,data in pairs(power_stats.zones) do
-                    local frac_needed = data.power_missing / data.power_needed
+                    local frac_needed = 0
+                    if (data.power_needed > 0) then
+                        frac_needed = data.power_missing / data.power_needed
+                    end
                     --print(zone_id, frac_needed, data.power_missing, data.power_needed)
                     local utility = math.sqrt(frac_needed)
                     hold_utility[zone_id] = utility
