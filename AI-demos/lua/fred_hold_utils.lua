@@ -602,6 +602,13 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     }
     local max_n_combos, reduced_max_n_combos = 20, 50
 
+    -- Acceptable chance-to-die for non-protect forward holds
+    local acceptable_ctd = 0.25
+    if (cfg.current_power_ratio > 1) then
+        acceptable_ctd = 0.25 + 0.75 * (cfg.current_power_ratio - 1)
+    end
+    --print(cfg.current_power_ratio, acceptable_ctd)
+
     local max_rating, best_combo, all_max_rating, all_best_combo
     local reduced_max_rating, reduced_best_combo, reduced_all_max_rating, reduced_all_best_combo
     for i_c,combo in pairs(good_combos) do
@@ -632,8 +639,9 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 -- If this does not protect the asset, we do not do it if the
                 -- chance to die is too high.
                 -- Only do this if position is in front of protect_loc
+
                 if (not combo.is_protected) then
-                    if (counter_outcomes.def_outcome.hp_chance[0] > 0.25) then
+                    if (counter_outcomes.def_outcome.hp_chance[0] > acceptable_ctd) then
                         local ld_protect = FU.get_fgumap_value(gamedata.leader_distance_map, protect_loc[1], protect_loc[2], 'distance')
                         local ld = FU.get_fgumap_value(gamedata.leader_distance_map, new_locs[i_l][1], new_locs[i_l][2], 'distance')
                         if (ld > ld_protect) then

@@ -3836,6 +3836,9 @@ return {
             cfg_best_combo_hold.protect_locs = protect_locs
             cfg_best_combo_protect.protect_locs = protect_locs
 
+            cfg_best_combo_hold.current_power_ratio = current_power_ratio
+            cfg_best_combo_protect.current_power_ratio = current_power_ratio
+
 
             local best_hold_combo, hold_dst_src, hold_ratings
             if (next(hold_rating_maps)) then
