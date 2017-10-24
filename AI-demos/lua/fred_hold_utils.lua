@@ -329,6 +329,8 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                     table.insert(new_locs, { dst_x, dst_y })
                 end
 
+                protect_loc = { gamedata.leader_x, gamedata.leader_y }
+
                 local counter_outcomes = FAU.calc_counter_attack(
                     leader_target, old_locs, new_locs, gamedata, move_cache, cfg_attack
                 )
