@@ -309,7 +309,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     -- 2. Rate the combos based on the shape of the formation and its orientation
     --    with respect to the direction in which the enemies are approaching.
     local good_combos = {}
-    local protect_loc_str
+    local protect_loc, protect_loc_str
     local tmp_max_rating, tmp_all_max_rating -- just for debug display purposes
     for i_c,combo in ipairs(valid_combos) do
         -- 1. Check whether a combo protects the locations it is supposed to protect.
@@ -364,15 +364,15 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 -- For now, simply use the protect_loc with the largest forward distance
                 -- TODO: think about how to deal with several simultaneously
                 local max_ld, loc
-                for _,protect_loc in ipairs(cfg.protect_locs) do
-                    local ld = FU.get_fgumap_value(gamedata.leader_distance_map, protect_loc[1], protect_loc[2], 'distance')
+                for _,pl in ipairs(cfg.protect_locs) do
+                    local ld = FU.get_fgumap_value(gamedata.leader_distance_map, pl[1], pl[2], 'distance')
                     if (not max_ld) or (ld > max_ld) then
                         max_ld = ld
-                        loc = protect_loc
+                        protect_loc = pl
                     end
                 end
-                protect_loc_str = tostring(loc[1]) .. ',' .. tostring(loc[2])
-                --print('*** need to check protection of ' .. loc[1] .. ',' .. loc[2])
+                protect_loc_str = tostring(protect_loc[1]) .. ',' .. tostring(protect_loc[2])
+                --print('*** need to check protection of ' .. protect_loc[1] .. ',' .. protect_loc[2])
 
                 -- First check (because it's quick): if there is a unit on the hex to be protected
                 is_protected = false
@@ -380,7 +380,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                     local x, y =  math.floor(dst / 1000), dst % 1000
                     --print('  ' .. x , y)
 
-                    if (x == loc[1]) and (y == loc[2]) then
+                    if (x == protect_loc[1]) and (y == protect_loc[2]) then
                         --print('    --> protected by having unit on hex')
                         is_protected = true
                         break
@@ -389,7 +389,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
                 -- If that did not find anything, do path finding
                 if (not is_protected) then
-                    --print('combo ' .. i_c, loc[1], loc[2])
+                    --print('combo ' .. i_c, protect_loc[1], protect_loc[2])
                     for src,dst in pairs(combo.combo) do
                         local id = ratings[dst][src].id
                         local x, y =  math.floor(dst / 1000), dst % 1000
@@ -400,10 +400,10 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
                     local can_reach = false
                     for enemy_id,_ in pairs(gamedata.enemies) do
-                        local moves_left = FU.get_fgumap_value(gamedata.reach_maps[enemy_id], loc[1], loc[2], 'moves_left')
+                        local moves_left = FU.get_fgumap_value(gamedata.reach_maps[enemy_id], protect_loc[1], protect_loc[2], 'moves_left')
                         if moves_left then
                             --print('  ' .. enemy_id, moves_left)
-                            local _, cost = wesnoth.find_path(gamedata.unit_copies[enemy_id], loc[1], loc[2])
+                            local _, cost = wesnoth.find_path(gamedata.unit_copies[enemy_id], protect_loc[1], protect_loc[2])
                             --print('  cost: ', cost)
 
                             if (cost <= gamedata.unit_infos[enemy_id].max_moves) then
