@@ -173,7 +173,7 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
                     --print('  -> ' .. av_damage, max_damage)
 
                     -- applicable_damage: if this is smaller than the unit's hitpoints, the grabbing is acceptable
-                    -- For villages to be protected, we always grab than (i.e. applicable_damage = 0)
+                    -- For villages to be protected, we always grab them (i.e. applicable_damage = 0)
                     -- Otherwise, use the mean between average and maximum damage,
                     -- Except for the leader, for which we are much more conservative in both cases.
                     local applicable_damage = 0
