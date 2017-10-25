@@ -1,5 +1,6 @@
 local H = wesnoth.require "lua/helper.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
+--local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 -- Collection of functions to get information about units and the gamestate and
 -- collect them in tables for easy access. They are expensive, so this should

@@ -12,7 +12,7 @@ return {
         local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
         local FVU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_village_utils.lua"
         local LS = wesnoth.require "lua/location_set.lua"
-        local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
+        --local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
         local R = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_retreat_utils.lua"
         local FHU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_hold_utils.lua"
 

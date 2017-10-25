@@ -2,6 +2,7 @@ local H = wesnoth.require "lua/helper.lua"
 local W = H.set_wml_action_metatable {}
 local FGUI = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 local items = wesnoth.require "lua/wml/items.lua"
+--local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 -- TODO: Some functions are currently repeats of those in ai_helper
 -- Trying not to use ai_helper for now.
