@@ -143,9 +143,17 @@ function fred_hold_utils.unit_rating_maps_to_dstsrc(unit_rating_maps, key, gamed
         end
         top_ratings = top_ratings / count
 
-        -- Prefer tanks, i.e. the highest-HP units
+        -- Prefer tanks, i.e. the highest-HP units,
+        -- but be more careful with high-XP units
         -- Use the same weight as in the combo eval below
         local unit_weight = gamedata.unit_infos[id].hitpoints
+        if (gamedata.unit_infos[id].experience < gamedata.unit_infos[id].max_experience - 1) then
+            local xp_penalty = gamedata.unit_infos[id].experience / gamedata.unit_infos[id].max_experience
+            xp_penalty = FU.weight_s(xp_penalty, 0.5)
+            unit_weight = unit_weight - xp_penalty * 10
+            if (unit_weight < 1) then unit_weight = 1 end
+        end
+
         top_ratings = top_ratings * unit_weight
 
         table.insert(best_units, { id = id, top_ratings = top_ratings })
@@ -257,10 +265,19 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         for src,dst in pairs(combo) do
             local id = ratings[dst][src].id
 
-            -- Prefer tanks, i.e. the highest-HP units
+            -- Prefer tanks, i.e. the highest-HP units,
+            -- but be more careful with high-XP units
             local weight
             if (not weights[id]) then
                 weight = gamedata.unit_infos[id].hitpoints
+
+                if (gamedata.unit_infos[id].experience < gamedata.unit_infos[id].max_experience - 1) then
+                    local xp_penalty = gamedata.unit_infos[id].experience / gamedata.unit_infos[id].max_experience
+                    xp_penalty = FU.weight_s(xp_penalty, 0.5)
+                    weight = weight - xp_penalty * 10
+                    if (weight < 1) then weight = 1 end
+                end
+
                 weights[id] = weight
             else
                 weight = weights[id]
