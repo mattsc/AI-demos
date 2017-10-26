@@ -3900,7 +3900,8 @@ return {
 
                 --print(hold_distance, protect_distance)
 
-                if (hold_distance > protect_distance) then
+                -- Potential TODO: this criterion might be too simple
+                if (hold_distance > protect_distance + 1) then
                     best_combo, ratings = best_hold_combo, hold_ratings
                 else
                     best_combo, ratings = best_protect_combo, protect_ratings
