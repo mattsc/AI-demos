@@ -1,3 +1,40 @@
+----- 0.14.6, xx Oct 2017 -----
+
+This release focused on Fred's non-attack actions, mainly defensive positioning
+(holding), advancing and retreating. The evaluation functions of these actions
+saw many changes, including but by no means limited to those listed below.
+
+- Fred (Freelands AI for Northerners, Side 1):
+  - Holding:
+    - Added multi-hex pre-rating
+    - Improved directional formation rating of hold combos
+    - Added counter attack evaluation for the best combos
+    - Improved combo rating when a unit is unreachable by enemy
+    - Fixed (not) assigning extremely injured units as holders
+    - Added discarding of holds with high CTD that do not protect assets
+    - Holding is now preferentially done with the strongest (highest HP) units
+    - Many more small changes to the holding evaluation functions
+    - Functional:
+      - Separated protect and no-protect holding evaluations
+      - Completely changed "between_map" evaluation and application
+  - Advancing:
+    - Added desperate attacks
+    - Fred is now much more careful with high-XP units
+    - Based secondary rating on counter attack outcomes
+    - Do not move leader off keep for advancers
+    - Always give small rating bonus for villages
+  - Retreating:
+    - Coordinated multi-unit retreats
+    - Made retreat direction dependent on enemy threat
+    - Improved multi-turn retreat rating
+  - Misc other changes:
+    - Move execution: improved how units move out of way
+    - Minor changes and bug fixes to attack rating
+    - Attack utils attack_combo_eval: removed ctd_limit
+    - ai_helper move_unit_out_of_way: fixed bug in direction rating
+    - Fred utils: new function fgumap_normalize
+
+
 ----- 0.14.5, 13 Aug 2017 -----
 
 The majority of this release is dedicated to Fred's attack evaluation code. It
