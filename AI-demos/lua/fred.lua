@@ -3686,6 +3686,16 @@ return {
             end
 
 
+            local max_inv_cost
+            if between_map then
+                for _,protect_loc in ipairs(protect_locs) do
+                    local inv_cost = FU.get_fgumap_value(between_map, protect_loc[1], protect_loc[2], 'inv_cost', 0)
+                    if (not max_inv_cost) or (inv_cost > max_inv_cost) then
+                        max_inv_cost = inv_cost
+                    end
+                end
+            end
+
             local protect_rating_maps = {}
             for id,hold_here_map in pairs(hold_here_maps) do
                 --print('\n' .. id, zone_cfg.zone_id, protect_leader_distance.min .. ' -- ' .. protect_leader_distance.max)
@@ -3747,7 +3757,8 @@ return {
 
                         local d_dist
                         if between_map then
-                            d_dist = FU.get_fgumap_value(between_map, x, y, 'inv_cost')
+                            local inv_cost = FU.get_fgumap_value(between_map, x, y, 'inv_cost')
+                            d_dist = inv_cost - max_inv_cost
                         else
                             local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
                             d_dist = ld - protect_leader_distance.max
