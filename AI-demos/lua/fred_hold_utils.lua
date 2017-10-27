@@ -28,8 +28,8 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, gam
         for x,y,_ in FU.fgumap_iter(rating_map) do
             local dist, perp_dist
             if between_map then
-                dist = FU.get_fgumap_value(between_map, x, y, 'blurred_distance')
-                perp_dist = FU.get_fgumap_value(between_map, x, y, 'blurred_perp_distance')
+                dist = FU.get_fgumap_value(between_map, x, y, 'blurred_distance', -999)
+                perp_dist = FU.get_fgumap_value(between_map, x, y, 'blurred_perp_distance', 0)
             else
                 -- In this case we do not have the perpendicular distance
                 dist = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
@@ -490,8 +490,8 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 -- Set up an array of the between_map distances for all hexes
                 local dist, perp_dist
                 if between_map then
-                    dist = FU.get_fgumap_value(between_map, x, y, 'blurred_distance')
-                    perp_dist = FU.get_fgumap_value(between_map, x, y, 'blurred_perp_distance')
+                    dist = FU.get_fgumap_value(between_map, x, y, 'blurred_distance', -999)
+                    perp_dist = FU.get_fgumap_value(between_map, x, y, 'blurred_perp_distance', 0)
                 else
                     -- In this case we do not have the perpendicular distance
                     dist = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')

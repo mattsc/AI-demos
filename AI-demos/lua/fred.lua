@@ -215,7 +215,7 @@ return {
                 for _,loc in ipairs(locs) do
                     local unit_map = {}
                     for x,y,data in FU.fgumap_iter(cost_map) do
-                        local cost = data.cost
+                        local cost = data.cost or 99
                         local inv_cost = FU.get_fgumap_value(inv_cost_map, x, y, 'cost')
 
                         -- This gives a rating that is a slanted plane, from the unit to toward_loc
@@ -3638,7 +3638,9 @@ return {
 
                         local dist
                         if between_map then
-                            dist = FU.get_fgumap_value(between_map, x, y, 'inv_cost')
+                            -- TODO: defaulting to zero (when no enemy can move onto the hex)
+                            -- is not the best solution, but at least it avoids the AI crashing for now
+                            dist = FU.get_fgumap_value(between_map, x, y, 'inv_cost', 0)
                         else
                             dist = - FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'enemy_leader_distance')
                         end
@@ -3757,7 +3759,9 @@ return {
 
                         local d_dist
                         if between_map then
-                            local inv_cost = FU.get_fgumap_value(between_map, x, y, 'inv_cost')
+                            -- TODO: defaulting to zero (when no enemy can move onto the hex)
+                            -- is not the best solution, but at least it avoids the AI crashing for now
+                            local inv_cost = FU.get_fgumap_value(between_map, x, y, 'inv_cost', 0)
                             d_dist = inv_cost - max_inv_cost
                         else
                             local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
