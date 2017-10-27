@@ -1,4 +1,4 @@
------ 0.14.6, xx Oct 2017 -----
+----- 0.14.6, 27 Oct 2017 -----
 
 This release focused on Fred's non-attack actions, mainly defensive positioning
 (holding), advancing and retreating. The evaluation functions of these actions
@@ -9,6 +9,7 @@ saw many changes, including but by no means limited to those listed below.
     - Added multi-hex pre-rating
     - Improved directional formation rating of hold combos
     - Added counter attack evaluation for the best combos
+    - More carefull use of high-XP units
     - Improved combo rating when a unit is unreachable by enemy
     - Fixed (not) assigning extremely injured units as holders
     - Added discarding of holds with high CTD that do not protect assets
