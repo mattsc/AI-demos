@@ -3764,7 +3764,7 @@ return {
                             d_dist = ld - protect_leader_distance.max
                         end
 
-                        if (d_dist > 4) then
+                        if (d_dist > 2) then
                             protect_rating = protect_rating - (d_dist - 2) / 20
                         end
 
