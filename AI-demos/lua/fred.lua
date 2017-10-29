@@ -1525,6 +1525,7 @@ return {
 
             -- Remove existing village actions that are not possible any more because
             -- 1. the reserved unit has moved
+            --     - this includes the possibility of the unit having died when attacking
             -- 2. the reserved unit cannot get to the goal any more
             -- This can happen if the units were used in other actions, moves
             -- to get out of the way for another unit or possibly due to a WML event
@@ -1532,6 +1533,7 @@ return {
                 local valid_action = true
                 local action = ops_data.actions.villages[i_a].action
                 for i_u,unit in ipairs(action.units) do
+                    -- TODO: the error this is supposed to check should be fixed. Remove eventually.
                     if (not unit) or (not unit.id) or (not gamedata.units[unit.id]) then
                         print('Trying to identify error !!!!!!!!')
                         print(i_a, i_u)
@@ -1539,8 +1541,10 @@ return {
                         DBG.dbms(action, -1)
                         DBG.dbms(gamedata.units, -1)
                     end
-                    if (gamedata.units[unit.id][1] ~= unit[1]) or (gamedata.units[unit.id][2] ~= unit[2]) then
-                        --print(unit.id .. ' has moved')
+                    if (not gamedata.units[unit.id])
+                        or (gamedata.units[unit.id][1] ~= unit[1]) or (gamedata.units[unit.id][2] ~= unit[2])
+                    then
+                        --print(unit.id .. ' has moved or died')
                         valid_action = false
                         break
                     else
