@@ -5077,7 +5077,7 @@ return {
                                     print(i_u, u.id, unit_in_way.id)
                                     print(unit.id, unit.x, unit.y)
                                     DBG.dbms(fred.data.zone_action, -1)
-                                    DBG.dbms(dst)
+                                    DBG.dbms(dst, -1)
                                     DBG.dbms(path, -1)
                                 end
                                 dx, dy = path[2][1] - path[1][1], path[2][2] - path[1][2]
