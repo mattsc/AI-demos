@@ -712,6 +712,30 @@ return {
                 FU.show_fgumap_with_message(influence_maps, 'tension', 'Tension map')
                 FU.show_fgumap_with_message(influence_maps, 'vulnerability', 'Vulnerability map')
             end
+            local my_total_influence, enemy_total_influence = 0, 0
+            for id,_ in pairs(gamedata.units) do
+                local unit_influence = FU.unit_current_power(gamedata.unit_infos[id])
+                if gamedata.unit_infos[id].canrecruit then
+                    unit_influence = unit_influence * leader_derating
+                end
+                --print(id, unit_influence)
+
+                if (gamedata.unit_infos[id].side == wesnoth.current.side) then
+                    my_total_influence = my_total_influence + unit_influence
+                else
+                    enemy_total_influence = enemy_total_influence + unit_influence
+                end
+            end
+
+            local behavior = {
+                influence = {
+                    my = my_total_influence,
+                    enemy = enemy_total_influence,
+                    ratio = my_total_influence / (enemy_total_influence + 0.0001)
+                }
+            }
+
+
             end
 
 
