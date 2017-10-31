@@ -383,40 +383,6 @@ function fred_utils.retreat_utilities(gamedata)
     return retreat_utility
 end
 
-function fred_utils.get_value_ratio(gamedata)
-    -- TODO: not sure what the best values are yet
-    -- TODO: also not sure if leaders should be included here
-
-    --print(' --- my units all map:')
-    local my_power = 0
-    for id,loc in pairs(gamedata.my_units) do
-        if (not gamedata.unit_infos[id].canrecruit) then
-            my_power = my_power + fred_utils.unit_current_power(gamedata.unit_infos[id])
-        end
-    end
-
-    --print(' --- enemy units all map:')
-    local enemy_power = 0
-    for id,loc in pairs(gamedata.enemies) do
-        if (not gamedata.unit_infos[id].canrecruit) then
-            enemy_power = enemy_power + fred_utils.unit_current_power(gamedata.unit_infos[id])
-        end
-    end
-    --print(' -----> enemy_power, my_power, enemy_power / my_power', enemy_power, my_power, enemy_power / my_power)
-
-    local value_ratio = fred_utils.cfg_default('value_ratio')
-    --print('default value_ratio', value_ratio)
-
-    local tmp_value_ratio = enemy_power / my_power
-
-    if (tmp_value_ratio < value_ratio) then
-        value_ratio = tmp_value_ratio
-    end
-    --print('value_ratio', value_ratio)
-
-    return value_ratio, my_power, enemy_power
-end
-
 function fred_utils.moved_toward_zone(unit_copy, zone_cfgs, side_cfgs)
     --print(unit_copy.id, unit_copy.x, unit_copy.y)
 
