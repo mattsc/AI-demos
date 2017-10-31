@@ -736,6 +736,27 @@ return {
             }
 
 
+            local n_vill_my, n_vill_enemy, n_vill_unowned, n_vill_total = 0, 0, 0, 0
+            for x,y,data in FU.fgumap_iter(gamedata.village_map) do
+                if (data.owner == 0) then
+                    n_vill_unowned = n_vill_unowned + 1
+                elseif (data.owner == wesnoth.current.side) then
+                    n_vill_my = n_vill_my + 1
+                else
+                    n_vill_enemy = n_vill_enemy + 1
+                end
+                n_vill_total = n_vill_total + 1
+            end
+
+            behavior.villages = {
+                n_my = n_vill_my,
+                n_enemy = n_vill_enemy,
+                n_unowned = n_vill_unowned,
+                n_total = n_vill_total,
+                ratio = n_vill_my / n_vill_total
+            }
+
+
             end
 
 
