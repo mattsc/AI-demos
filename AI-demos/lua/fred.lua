@@ -757,7 +757,28 @@ return {
             }
 
 
+            local raw_cfgs_main = fred:get_raw_cfgs()
+            behavior.fronts = { zones = {} }
+
+            -- Calculate where the fronts are in the zones (in leader_distance values)
+            -- based on a vulnerability-weighted sum over the zones
+            for zone_id,raw_cfg in pairs(raw_cfgs_main) do
+                local zone = wesnoth.get_locations(raw_cfg.ops_slf)
+                local num, denom = 0, 0
+                for _,loc in ipairs(zone) do
+                    local vulnerability = FU.get_fgumap_value(influence_maps, loc[1], loc[2], 'vulnerability')
+                    if vulnerability then
+                        local ld = FU.get_fgumap_value(gamedata.leader_distance_map, loc[1], loc[2], 'distance')
+                        num = num + vulnerability^2 * ld
+                        denom = denom + vulnerability^2
+                    end
+                end
+                local ld_max = num / denom
+                --print(zone_id, ld_max)
+                behavior.fronts.zones[zone_id] = ld_max
             end
+
+            --DBG.dbms(behavior)
 
 
             -- Find the unit-vs-unit ratings
