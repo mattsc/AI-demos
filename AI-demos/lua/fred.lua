@@ -667,24 +667,51 @@ return {
 
 
             local enemy_leader_derating = FU.cfg_default('enemy_leader_derating')
-            local enemy_int_influence_map = {}
+
+            local influence_maps = {}
+            for x,y,data in FU.fgumap_iter(gamedata.my_attack_map[1]) do
+                local my_influence, my_number = 0, 0
+                for _,id in pairs(data.ids) do
+                    local unit_influence = FU.unit_terrain_power(gamedata.unit_infos[id], x, y, gamedata)
+                    if gamedata.unit_infos[id].canrecruit then
+                        unit_influence = unit_influence * enemy_leader_derating -- !!!! TODO: change?
+                    end
+                    my_influence = my_influence + unit_influence
+                    my_number = my_number + 1
+                end
+                FU.set_fgumap_value(influence_maps, x, y, 'my_influence', my_influence)
+                influence_maps[x][y].my_number = my_number
+            end
+
             for x,y,data in FU.fgumap_iter(gamedata.enemy_attack_map[1]) do
-                local enemy_influence, number = 0, 0
+                local enemy_influence, enemy_number = 0, 0
                 for _,enemy_id in pairs(data.ids) do
                     local unit_influence = FU.unit_terrain_power(gamedata.unit_infos[enemy_id], x, y, gamedata)
                     if gamedata.unit_infos[enemy_id].canrecruit then
                         unit_influence = unit_influence * enemy_leader_derating
                     end
                     enemy_influence = enemy_influence + unit_influence
-                    number = number + 1
+                    enemy_number = enemy_number + 1
                 end
-                FU.set_fgumap_value(enemy_int_influence_map, x, y, 'enemy_influence', enemy_influence)
-                enemy_int_influence_map[x][y].number = number
+                FU.set_fgumap_value(influence_maps, x, y, 'enemy_influence', enemy_influence)
+                influence_maps[x][y].enemy_number = enemy_number
+            end
+
+            for x,y,data in FU.fgumap_iter(influence_maps) do
+                data.influence = (data.my_influence or 0) - (data.enemy_influence or 0)
+                data.tension = (data.my_influence or 0) + (data.enemy_influence or 0)
+                data.vulnerability = data.tension - math.abs(data.influence)
             end
 
             if false then
-                FU.show_fgumap_with_message(enemy_int_influence_map, 'enemy_influence', 'Enemy integer infuence map')
-                FU.show_fgumap_with_message(enemy_int_influence_map, 'number', 'Enemy number')
+                --FU.show_fgumap_with_message(influence_maps, 'my_influence', 'My integer influence map')
+                --FU.show_fgumap_with_message(influence_maps, 'my_number', 'My number')
+                --FU.show_fgumap_with_message(influence_maps, 'enemy_influence', 'Enemy integer influence map')
+                --FU.show_fgumap_with_message(influence_maps, 'enemy_number', 'Enemy number')
+                FU.show_fgumap_with_message(influence_maps, 'influence', 'Influence map')
+                FU.show_fgumap_with_message(influence_maps, 'tension', 'Tension map')
+                FU.show_fgumap_with_message(influence_maps, 'vulnerability', 'Vulnerability map')
+            end
             end
 
 
@@ -833,7 +860,7 @@ return {
 
             fred.data.turn_data = {
                 turn_number = wesnoth.current.turn,
-                enemy_int_influence_map = enemy_int_influence_map,
+                influence_maps = influence_maps,
                 unit_attacks = unit_attacks
             }
         end
@@ -3230,7 +3257,7 @@ return {
                     FU.set_fgumap_value(holders_influence, x, y, 'my_count', my_count)
 
 
-                    local enemy_influence = FU.get_fgumap_value(fred.data.turn_data.enemy_int_influence_map, x, y, 'enemy_influence', 0)
+                    local enemy_influence = FU.get_fgumap_value(fred.data.turn_data.influence_maps, x, y, 'enemy_influence', 0)
 
                     FU.set_fgumap_value(holders_influence, x, y, 'enemy_influence', enemy_influence)
                     holders_influence[x][y].influence = inf + unit_influence - enemy_influence
