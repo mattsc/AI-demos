@@ -712,6 +712,8 @@ return {
                 FU.show_fgumap_with_message(influence_maps, 'tension', 'Tension map')
                 FU.show_fgumap_with_message(influence_maps, 'vulnerability', 'Vulnerability map')
             end
+
+
             local my_total_influence, enemy_total_influence = 0, 0
             for id,_ in pairs(gamedata.units) do
                 local unit_influence = FU.unit_current_power(gamedata.unit_infos[id])
@@ -933,7 +935,8 @@ return {
             fred.data.turn_data = {
                 turn_number = wesnoth.current.turn,
                 influence_maps = influence_maps,
-                unit_attacks = unit_attacks
+                unit_attacks = unit_attacks,
+                behavior = behavior
             }
         end
 
@@ -1995,7 +1998,7 @@ return {
             }
 
             -- TODO: might want to do something more complex (e.g using local info) in ops layer
-            local value_ratio = FU.get_value_ratio(gamedata)
+            local value_ratio = fred.data.turn_data.behavior.influence.value_ratio
 
             for zone_id,zone_units in pairs(holders_by_zone) do
                 local power_rating = power_stats.zones[zone_id].power_needed - power_stats.zones[zone_id].my_power / 1000
