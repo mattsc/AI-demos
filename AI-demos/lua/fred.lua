@@ -3629,7 +3629,6 @@ return {
                         pre_rating_maps[id][x][y].x = x
                         pre_rating_maps[id][x][y].y = y
                         pre_rating_maps[id][x][y].id = id
-                        pre_rating_maps[id][x][y].av_outcome = av_outcome
                         pre_rating_maps[id][x][y].uncropped_ratio = tmp_enemies[1].uncropped_ratio
                     end
                 end
