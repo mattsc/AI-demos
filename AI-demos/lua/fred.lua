@@ -666,7 +666,7 @@ return {
             end
 
 
-            local enemy_leader_derating = FU.cfg_default('enemy_leader_derating')
+            local leader_derating = FU.cfg_default('leader_derating')
 
             local influence_maps = {}
             for x,y,data in FU.fgumap_iter(gamedata.my_attack_map[1]) do
@@ -674,7 +674,7 @@ return {
                 for _,id in pairs(data.ids) do
                     local unit_influence = FU.unit_terrain_power(gamedata.unit_infos[id], x, y, gamedata)
                     if gamedata.unit_infos[id].canrecruit then
-                        unit_influence = unit_influence * enemy_leader_derating -- !!!! TODO: change?
+                        unit_influence = unit_influence * leader_derating
                     end
                     my_influence = my_influence + unit_influence
                     my_number = my_number + 1
@@ -688,7 +688,7 @@ return {
                 for _,enemy_id in pairs(data.ids) do
                     local unit_influence = FU.unit_terrain_power(gamedata.unit_infos[enemy_id], x, y, gamedata)
                     if gamedata.unit_infos[enemy_id].canrecruit then
-                        unit_influence = unit_influence * enemy_leader_derating
+                        unit_influence = unit_influence * leader_derating
                     end
                     enemy_influence = enemy_influence + unit_influence
                     enemy_number = enemy_number + 1
@@ -3105,7 +3105,7 @@ return {
             local enemy_value_ratio = 1.25
             local max_units = 3
             local max_hexes = 6
-            local enemy_leader_derating = FU.cfg_default('enemy_leader_derating')
+            local leader_derating = FU.cfg_default('leader_derating')
 
             local raw_cfg = fred:get_raw_cfgs(zone_cfg.zone_id)
             --DBG.dbms(raw_cfg)
@@ -3472,8 +3472,8 @@ return {
                                 -- -> need to find minima the strongest enemies for this hex
 
                                 if gamedata.unit_infos[enemy_id].canrecruit then
-                                    damage_done = damage_done / enemy_leader_derating
-                                    damage_taken = damage_taken * enemy_leader_derating
+                                    damage_done = damage_done / leader_derating
+                                    damage_taken = damage_taken * leader_derating
                                 end
 
                                 local counter_rating = enemy_value_ratio * damage_done - damage_taken
