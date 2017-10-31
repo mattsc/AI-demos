@@ -534,13 +534,13 @@ return {
             -- Threat are all enemies that can attack the castle or any of the protect_locations
             leader_threats.enemies = {}
             for x,y,_ in FU.fgumap_iter(gamedata.reachable_castles_map[wesnoth.current.side]) do
-                local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids', {})
+                local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids') or {}
                 for _,id in ipairs(ids) do
                     leader_threats.enemies[id] = gamedata.units[id]
                 end
             end
             for _,loc in ipairs(leader_threats.protect_locs) do
-                local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], loc[1], loc[2], 'ids', {})
+                local ids = FU.get_fgumap_value(gamedata.enemy_attack_map[1], loc[1], loc[2], 'ids') or {}
                 for _,id in ipairs(ids) do
                     leader_threats.enemies[id] = gamedata.units[id]
                 end
@@ -968,7 +968,7 @@ return {
             local assigned_enemies = {}
             for id,loc in pairs(gamedata.enemies) do
                 if (not gamedata.unit_infos[id].canrecruit)
-                    and (not FU.get_fgumap_value(gamedata.reachable_castles_map[gamedata.unit_infos[id].side], loc[1], loc[2], 'castle', false))
+                    and (not FU.get_fgumap_value(gamedata.reachable_castles_map[gamedata.unit_infos[id].side], loc[1], loc[2], 'castle') or false)
                 then
                     local unit_copy = gamedata.unit_copies[id]
                     local zone_id = FU.moved_toward_zone(unit_copy, raw_cfgs_main, side_cfgs)
@@ -986,7 +986,7 @@ return {
             for id,_ in pairs(gamedata.my_units) do
                 local unit_copy = gamedata.unit_copies[id]
                 if (not unit_copy.canrecruit)
-                    and (not FU.get_fgumap_value(gamedata.reachable_castles_map[unit_copy.side], unit_copy.x, unit_copy.y, 'castle', false))
+                    and (not FU.get_fgumap_value(gamedata.reachable_castles_map[unit_copy.side], unit_copy.x, unit_copy.y, 'castle') or false)
                 then
                     local zone_id = FU.moved_toward_zone(unit_copy, raw_cfgs_main, side_cfgs)
                     pre_assigned_units[id] =  zone_id
@@ -3232,7 +3232,7 @@ return {
                         adj_hc = adj_hc / cum_weight
                         FU.set_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'adj_hit_chance', adj_hc)
 
-                        local enemy_count = FU.get_fgumap_value(holders_influence, x, y, 'enemy_count', 0) + 1
+                        local enemy_count = (FU.get_fgumap_value(holders_influence, x, y, 'enemy_count') or 0) + 1
                         FU.set_fgumap_value(holders_influence, x, y, 'enemy_count', enemy_count)
                     end
                 end
@@ -3250,14 +3250,14 @@ return {
 
                 for x,y,_ in FU.fgumap_iter(gamedata.unit_attack_maps[id]) do
                     local unit_influence = FU.unit_terrain_power(gamedata.unit_infos[id], x, y, gamedata)
-                    local inf = FU.get_fgumap_value(holders_influence, x, y, 'my_influence', 0)
+                    local inf = FU.get_fgumap_value(holders_influence, x, y, 'my_influence') or 0
                     FU.set_fgumap_value(holders_influence, x, y, 'my_influence', inf + unit_influence)
 
-                    local my_count = FU.get_fgumap_value(holders_influence, x, y, 'my_count', 0) + 1
+                    local my_count = (FU.get_fgumap_value(holders_influence, x, y, 'my_count') or 0) + 1
                     FU.set_fgumap_value(holders_influence, x, y, 'my_count', my_count)
 
 
-                    local enemy_influence = FU.get_fgumap_value(fred.data.turn_data.influence_maps, x, y, 'enemy_influence', 0)
+                    local enemy_influence = FU.get_fgumap_value(fred.data.turn_data.influence_maps, x, y, 'enemy_influence') or 0
 
                     FU.set_fgumap_value(holders_influence, x, y, 'enemy_influence', enemy_influence)
                     holders_influence[x][y].influence = inf + unit_influence - enemy_influence
@@ -3449,7 +3449,7 @@ return {
                                 local enemy_defense = 1 - FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'hit_chance')
                                 my_hc = my_hc - enemy_defense /100
 
-                                local ratio = FU.get_fgumap_value(holders_influence, x, y, 'inf_ratio', 1)
+                                local ratio = FU.get_fgumap_value(holders_influence, x, y, 'inf_ratio') or 1
                                 if (ratio > current_power_ratio) then
                                     ratio = (ratio + current_power_ratio) / 2
                                 end
@@ -3577,7 +3577,7 @@ return {
                     local hold_here = true
                     if protect_locs then
                         if between_map then
-                            local btw_dist = FU.get_fgumap_value(between_map, x, y, 'blurred_distance', -99)
+                            local btw_dist = FU.get_fgumap_value(between_map, x, y, 'blurred_distance') or -99
                             if (btw_dist < min_btw_dist) then
                                 hold_here = false
                             end
@@ -3672,7 +3672,7 @@ return {
                         if between_map then
                             -- TODO: defaulting to zero (when no enemy can move onto the hex)
                             -- is not the best solution, but at least it avoids the AI crashing for now
-                            dist = FU.get_fgumap_value(between_map, x, y, 'inv_cost', 0)
+                            dist = FU.get_fgumap_value(between_map, x, y, 'inv_cost') or 0
                         else
                             dist = - FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'enemy_leader_distance')
                         end
@@ -3723,7 +3723,7 @@ return {
             local max_inv_cost
             if between_map then
                 for _,protect_loc in ipairs(protect_locs) do
-                    local inv_cost = FU.get_fgumap_value(between_map, protect_loc[1], protect_loc[2], 'inv_cost', 0)
+                    local inv_cost = FU.get_fgumap_value(between_map, protect_loc[1], protect_loc[2], 'inv_cost') or 0
                     if (not max_inv_cost) or (inv_cost > max_inv_cost) then
                         max_inv_cost = inv_cost
                     end
@@ -3793,7 +3793,7 @@ return {
                         if between_map then
                             -- TODO: defaulting to zero (when no enemy can move onto the hex)
                             -- is not the best solution, but at least it avoids the AI crashing for now
-                            local inv_cost = FU.get_fgumap_value(between_map, x, y, 'inv_cost', 0)
+                            local inv_cost = FU.get_fgumap_value(between_map, x, y, 'inv_cost') or 0
                             d_dist = inv_cost - max_inv_cost
                         else
                             local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
@@ -4119,7 +4119,7 @@ return {
 
                                     for _,cost in pairs(cm) do
                                         if (cost[3] > -1) then
-                                           local c = FU.get_fgumap_value(cost_map, cost[1], cost[2], 'cost', 0)
+                                           local c = FU.get_fgumap_value(cost_map, cost[1], cost[2], 'cost') or 0
                                            FU.set_fgumap_value(cost_map, cost[1], cost[2], 'cost', c + cost[3])
                                         end
                                     end

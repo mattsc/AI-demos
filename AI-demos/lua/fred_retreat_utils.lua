@@ -346,7 +346,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, unit
                         end
                     end
 
-                    local heal_amount = FU.get_fgumap_value(heal_maps_no_regen[id], x, y, 'heal_amount', 0)
+                    local heal_amount = FU.get_fgumap_value(heal_maps_no_regen[id], x, y, 'heal_amount') or 0
 
                     -- We allow hexes that either pass the previous criterion, or that
                     -- are healing locations within one move that were previously

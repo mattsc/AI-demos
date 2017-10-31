@@ -126,8 +126,8 @@ function fred_utils.show_fgumap_with_message(map, key, text, cfg)
     W.redraw()
 end
 
-function fred_utils.get_fgumap_value(map, x, y, key, alt_value)
-    return (map[x] and map[x][y] and map[x][y][key]) or alt_value
+function fred_utils.get_fgumap_value(map, x, y, key)
+    return (map[x] and map[x][y] and map[x][y][key])
 end
 
 function fred_utils.set_fgumap_value(map, x, y, key, value)
@@ -137,7 +137,7 @@ function fred_utils.set_fgumap_value(map, x, y, key, value)
 end
 
 function fred_utils.fgumap_add(map, x, y, key, value)
-    local old_value = fred_utils.get_fgumap_value(map, x, y, key, 0)
+    local old_value = fred_utils.get_fgumap_value(map, x, y, key) or 0
     fred_utils.set_fgumap_value(map, x, y, key, old_value + value)
 end
 
@@ -494,7 +494,7 @@ function fred_utils.inverse_cost_map(unit, loc, gamedata)
     for x,y,_ in fred_utils.fgumap_iter(cost_map) do
         local min_rating, min_cost, low_loc
         for xa,ya in H.adjacent_tiles(x, y) do
-            local cost = fred_utils.get_fgumap_value(cost_map, xa, ya, 'cost', 999)
+            local cost = fred_utils.get_fgumap_value(cost_map, xa, ya, 'cost') or 999
             local movecost = wesnoth.unit_movement_cost(unit_proxy, wesnoth.get_terrain(xa, ya))
             local rating = cost + movecost / 100
             if (not min_rating) or (rating < min_rating) then

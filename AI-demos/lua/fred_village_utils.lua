@@ -146,7 +146,7 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
             }
             --print(x, y)
 
-            local ids = FU.get_fgumap_value(gamedata.my_move_map[1], x, y, 'ids', {})
+            local ids = FU.get_fgumap_value(gamedata.my_move_map[1], x, y, 'ids') or {}
 
             for _,id in pairs(ids) do
                 local loc = gamedata.my_units[id]

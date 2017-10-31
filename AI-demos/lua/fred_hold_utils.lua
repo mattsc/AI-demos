@@ -28,8 +28,8 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, gam
         for x,y,_ in FU.fgumap_iter(rating_map) do
             local dist, perp_dist
             if between_map then
-                dist = FU.get_fgumap_value(between_map, x, y, 'blurred_distance', -999)
-                perp_dist = FU.get_fgumap_value(between_map, x, y, 'blurred_perp_distance', 0)
+                dist = FU.get_fgumap_value(between_map, x, y, 'blurred_distance') or -999
+                perp_dist = FU.get_fgumap_value(between_map, x, y, 'blurred_perp_distance') or 0
             else
                 -- In this case we do not have the perpendicular distance
                 dist = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
@@ -45,10 +45,10 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, gam
                         if (dr <= 3) then
                             local dist2, perp_dist2
                             if between_map then
-                                dist2 = FU.get_fgumap_value(between_map, x2, y2, 'blurred_distance', -999)
-                                perp_dist2 = FU.get_fgumap_value(between_map, x2, y2, 'blurred_perp_distance', 0)
+                                dist2 = FU.get_fgumap_value(between_map, x2, y2, 'blurred_distance') or -999
+                                perp_dist2 = FU.get_fgumap_value(between_map, x2, y2, 'blurred_perp_distance') or 0
                             else
-                                dist2 = FU.get_fgumap_value(gamedata.leader_distance_map, x2, y2, 'distance', -999)
+                                dist2 = FU.get_fgumap_value(gamedata.leader_distance_map, x2, y2, 'distance') or -999
                             end
 
                             local dy = math.abs(dist - dist2)
@@ -490,8 +490,8 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 -- Set up an array of the between_map distances for all hexes
                 local dist, perp_dist
                 if between_map then
-                    dist = FU.get_fgumap_value(between_map, x, y, 'blurred_distance', -999)
-                    perp_dist = FU.get_fgumap_value(between_map, x, y, 'blurred_perp_distance', 0)
+                    dist = FU.get_fgumap_value(between_map, x, y, 'blurred_distance') or -999
+                    perp_dist = FU.get_fgumap_value(between_map, x, y, 'blurred_perp_distance') or 0
                 else
                     -- In this case we do not have the perpendicular distance
                     dist = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
