@@ -727,11 +727,17 @@ return {
                 end
             end
 
+            local value_ratio = FU.cfg_default('value_ratio')
+            local ratio = enemy_total_influence / my_total_influence
+            if (ratio < value_ratio) then
+                value_ratio = ratio
+            end
+
             local behavior = {
                 influence = {
                     my = my_total_influence,
                     enemy = enemy_total_influence,
-                    ratio = my_total_influence / (enemy_total_influence + 0.0001)
+                    value_ratio = value_ratio
                 }
             }
 
