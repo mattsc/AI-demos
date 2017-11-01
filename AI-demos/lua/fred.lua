@@ -3374,16 +3374,7 @@ return {
             end
 
 
-            local my_current_power, enemy_current_power = 0, 0
-            for id,_ in pairs(gamedata.my_units) do
-                my_current_power = my_current_power + FU.unit_current_power(gamedata.unit_infos[id])
-            end
-            for enemy_id,_ in pairs(gamedata.enemies) do
-                enemy_current_power = enemy_current_power + FU.unit_current_power(gamedata.unit_infos[enemy_id])
-            end
-            local current_power_ratio = my_current_power / (enemy_current_power + 0.001)
-            --print('current power:', my_current_power, enemy_current_power, current_power_ratio)
-
+            local current_power_ratio = fred.data.turn_data.behavior.influence.my / fred.data.turn_data.behavior.influence.enemy
 
             local enemy_weights = {}
             for id,_ in pairs(holders) do
