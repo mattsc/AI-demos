@@ -3177,7 +3177,7 @@ return {
         function fred:get_hold_action(zone_cfg)
             if debug_eval then print_time('  --> hold evaluation: ' .. zone_cfg.zone_id) end
 
-            local enemy_value_ratio = 1.25
+            local value_ratio = fred.data.turn_data.behavior.influence.value_ratio
             local max_units = 3
             local max_hexes = 6
             local leader_derating = FU.cfg_default('leader_derating')
@@ -3551,7 +3551,7 @@ return {
                                     damage_taken = damage_taken * leader_derating
                                 end
 
-                                local counter_rating = enemy_value_ratio * damage_done - damage_taken
+                                local counter_rating = damage_done / value_ratio - damage_taken
                                 table.insert(tmp_enemies, {
                                     damage_taken = damage_taken,
                                     damage_done = damage_done,
@@ -3619,8 +3619,8 @@ return {
                         end
                         damage_taken = frac_taken * gamedata.unit_infos[id].hitpoints
 
-                        local av_outcome = enemy_value_ratio * damage_done - damage_taken
-                        --print(x .. ',' .. y, damage_taken, damage_done, village_bonus, av_outcome, enemy_value_ratio)
+                        local av_outcome = damage_done / value_ratio - damage_taken
+                        --print(x .. ',' .. y, damage_taken, damage_done, village_bonus, av_outcome, value_ratio)
 
                         if (not pre_rating_maps[id]) then
                             pre_rating_maps[id] = {}
