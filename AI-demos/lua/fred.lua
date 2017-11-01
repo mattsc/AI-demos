@@ -2314,34 +2314,29 @@ return {
                         local adj_villages_map = {}
                         for _,dst in ipairs(combo_outcome.dsts) do
                             for xa,ya in H.adjacent_tiles(dst[1], dst[2]) do
-                                if gamedata.village_map[xa] and gamedata.village_map[xa][ya]
+                                if FU.get_fgumap_value(gamedata.village_map, xa, ya, 'owner')
                                    and ((xa ~= target_loc[1]) or (ya ~= target_loc[2]))
                                 then
                                     --print('next to village:')
-                                    if (not adj_villages_map[xa]) then adj_villages_map[xa] = {} end
-                                    adj_villages_map[xa][ya] = true
-                                    adj_unocc_village = true
+                                    FU.set_fgumap_value(adj_villages_map, xa, ya, 'is_village', true)
                                 end
                             end
                         end
 
                         -- Now check how many of those villages are occupied or used in the attack
                         local adj_unocc_village = 0
-                        for x,map in pairs(adj_villages_map) do
-                            for y,_ in pairs(map) do
-                                adj_unocc_village = adj_unocc_village + 1
-                                if gamedata.my_unit_map_noMP[x] and gamedata.my_unit_map_noMP[x][y] then
-                                    --print('Village is occupied')
-                                    adj_unocc_village = adj_unocc_village - 1
-                                else
-                                    for _,dst in ipairs(combo_outcome.dsts) do
-                                        if (dst[1] == x) and (dst[2] == y) then
-                                            --print('Village is used in attack')
-                                            adj_unocc_village = adj_unocc_village - 1
-                                        end
+                        for x,y in FU.fgumap_iter(adj_villages_map) do
+                            adj_unocc_village = adj_unocc_village + 1
+                            if FU.get_fgumap_value(gamedata.my_unit_map_noMP, x, y, 'id') then
+                                --print('Village is occupied')
+                                adj_unocc_village = adj_unocc_village - 1
+                            else
+                                for _,dst in ipairs(combo_outcome.dsts) do
+                                    if (dst[1] == x) and (dst[2] == y) then
+                                        --print('Village is used in attack')
+                                        adj_unocc_village = adj_unocc_village - 1
                                     end
                                 end
-
                             end
                         end
 
