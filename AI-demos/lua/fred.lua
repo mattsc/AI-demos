@@ -2346,7 +2346,7 @@ return {
                         -- For each such village found, we give a penalty eqivalent to 10 HP of the target
                         -- and we do not do the attack at all if the CTD of the defender is low
                         if (n_adj_unocc_village > 0) then
-                            if (combo_outcome.def_outcome.hp_chance[0] < 0.5) then
+                            if (combo_outcome.def_outcome.hp_chance[0] == 0) then
                                 -- TODO: this is probably still too simplistic, should really be
                                 -- a function of damage done to both sides vs. healing at village
                                 for i_a,dst in pairs(combo_outcome.dsts) do
