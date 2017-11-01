@@ -413,7 +413,6 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                         local id = ratings[dst][src].id
                         local x, y =  math.floor(dst / 1000), dst % 1000
                         --print(id, src, x,y, gamedata.unit_copies[id].x, gamedata.unit_copies[id].y)
-
                         wesnoth.put_unit(x, y, gamedata.unit_copies[id])
                     end
 
@@ -435,15 +434,9 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
                     for src,dst in pairs(combo.combo) do
                         local id = ratings[dst][src].id
-                        local x, y =  math.floor(dst / 1000), dst % 1000
-
                         wesnoth.extract_unit(gamedata.unit_copies[id])
-
-                        local src_x, src_y =  math.floor(src / 1000), src % 1000
-                        gamedata.unit_copies[id].x, gamedata.unit_copies[id].y = src_x, src_y
-
-
-                        --print('  ' .. id, src, x,y, gamedata.unit_copies[id].x, gamedata.unit_copies[id].y)
+                        gamedata.unit_copies[id].x, gamedata.unit_copies[id].y = gamedata.units[id][1], gamedata.units[id][2]
+                        --print('  ' .. id, src, gamedata.unit_copies[id].x, gamedata.unit_copies[id].y)
                     end
 
                     if (not can_reach) then
