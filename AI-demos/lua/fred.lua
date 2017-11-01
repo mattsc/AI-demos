@@ -1194,7 +1194,7 @@ return {
                 end
             end
 
-            local enemy_value_ratio = 1.25
+            local value_ratio = fred.data.turn_data.behavior.influence.value_ratio
             local attacker_ratings = {}
             local max_rating
             for id,_ in pairs(gamedata.my_units) do
@@ -1219,7 +1219,7 @@ return {
                             damage_done = damage_done + att.damage_forward.my_gen_hc * att.damage_forward.base_done + att.damage_forward.extra_done
                             damage_done = damage_done / 2
 
-                            local enemy_rating = enemy_value_ratio * damage_done - damage_taken
+                            local enemy_rating = damage_done / value_ratio - damage_taken
                             table.insert(tmp_enemies, {
                                 damage_taken = damage_taken,
                                 damage_done = damage_done,
@@ -1285,9 +1285,9 @@ return {
                             -- The rating must be positive for the analysis below to work
                             local av_hp_left = gamedata.unit_infos[id].hitpoints - av_damage_taken
                             if (av_hp_left < 0) then av_hp_left = 0 end
-                            --print('    ' .. enemy_value_ratio, av_damage_done, av_hp_left)
+                            --print('    ' .. value_ratio, av_damage_done, av_hp_left)
 
-                            local attacker_rating = enemy_value_ratio * av_damage_done + av_hp_left
+                            local attacker_rating = av_damage_done / value_ratio + av_hp_left
                             attacker_ratings[id][zone_id] = attacker_rating
 
                             if (not max_rating) or (attacker_rating > max_rating) then
