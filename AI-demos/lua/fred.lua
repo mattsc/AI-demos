@@ -2093,7 +2093,7 @@ return {
                 zone_id = 'all_map',
                 action_type = 'attack',
                 rating = base_ratings.fav_attack,
-                value_ratio = 2.0 -- only very favorable attacks will pass this
+                value_ratio = 2.0 * value_ratio -- only very favorable attacks will pass this
             })
 
 
