@@ -2311,7 +2311,7 @@ return {
                         -- unoccupied by an AI unit without MP or one of the attackers,
                         -- except if it's the hex the target is on, of course
 
-                        local adj_villages_map = {}
+                        local tmp_adj_villages_map = {}
                         for _,dst in ipairs(combo_outcome.dsts) do
                             for xa,ya in H.adjacent_tiles(dst[1], dst[2]) do
                                 if FU.get_fgumap_value(gamedata.village_map, xa, ya, 'owner')
@@ -2319,30 +2319,63 @@ return {
                                     and ((xa ~= target_loc[1]) or (ya ~= target_loc[2]))
                                 then
                                     --print('next to village:')
-                                    FU.set_fgumap_value(adj_villages_map, xa, ya, 'is_village', true)
+                                    FU.set_fgumap_value(tmp_adj_villages_map, xa, ya, 'is_village', true)
                                 end
                             end
                         end
 
                         -- Now check how many of those villages there are that are not used in the attack
+                        local adj_villages_map = {}
                         local n_adj_unocc_village = 0
-                        for x,y in FU.fgumap_iter(adj_villages_map) do
-                            n_adj_unocc_village = n_adj_unocc_village + 1
+                        for x,y in FU.fgumap_iter(tmp_adj_villages_map) do
+                            local is_used = false
                             for _,dst in ipairs(combo_outcome.dsts) do
                                 if (dst[1] == x) and (dst[2] == y) then
                                     --print('Village is used in attack:' .. x .. ',' .. y)
-                                    n_adj_unocc_village = n_adj_unocc_village - 1
+                                    is_used = true
+                                    break
                                 end
                             end
+                            if (not is_used) then
+                                n_adj_unocc_village = n_adj_unocc_village + 1
+                                FU.set_fgumap_value(adj_villages_map, x, y, 'is_village', true)
+                            end
                         end
+                        tmp_adj_villages_map = nil
 
                         -- For each such village found, we give a penalty eqivalent to 10 HP of the target
                         -- and we do not do the attack at all if the CTD of the defender is low
                         if (n_adj_unocc_village > 0) then
                             if (combo_outcome.def_outcome.hp_chance[0] < 0.5) then
-                                -- TODO: this condition should maybe only apply when the target
-                                -- can reach the village after the attack?
-                                do_attack = false
+                                -- TODO: this is probably still too simplistic, should really be
+                                -- a function of damage done to both sides vs. healing at village
+                                for i_a,dst in pairs(combo_outcome.dsts) do
+                                    local id = combo_outcome.attacker_infos[i_a].id
+                                    --print(id, dst[1], dst[2], gamedata.unit_copies[id].x, gamedata.unit_copies[id].y)
+                                    wesnoth.put_unit(dst[1], dst[2], gamedata.unit_copies[id])
+                                end
+
+                                local can_reach = false
+                                for x,y in FU.fgumap_iter(adj_villages_map) do
+                                    local _, cost = wesnoth.find_path(gamedata.unit_copies[target_id], x, y)
+                                    --print('cost', cost)
+                                    if (cost <= gamedata.unit_infos[target_id].max_moves) then
+                                        can_reach = true
+                                        break
+                                    end
+                                end
+                                --print('can_reach', can_reach)
+
+                                for i_a,dst in pairs(combo_outcome.dsts) do
+                                    local id = combo_outcome.attacker_infos[i_a].id
+                                    wesnoth.extract_unit(gamedata.unit_copies[id])
+                                    gamedata.unit_copies[id].x, gamedata.unit_copies[id].y = gamedata.units[id][1], gamedata.units[id][2]
+                                    --print(id, dst[1], dst[2], gamedata.unit_copies[id].x, gamedata.unit_copies[id].y)
+                                end
+
+                                if can_reach then
+                                    do_attack = false
+                                end
                             else
                                 local unit_value = FU.unit_value(gamedata.unit_infos[target_id])
                                 local penalty = 10. / gamedata.unit_infos[target_id].max_hitpoints * unit_value
