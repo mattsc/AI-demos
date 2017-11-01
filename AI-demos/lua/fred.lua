@@ -2324,17 +2324,17 @@ return {
                         end
 
                         -- Now check how many of those villages are occupied or used in the attack
-                        local adj_unocc_village = 0
+                        local n_adj_unocc_village = 0
                         for x,y in FU.fgumap_iter(adj_villages_map) do
-                            adj_unocc_village = adj_unocc_village + 1
+                            n_adj_unocc_village = n_adj_unocc_village + 1
                             if FU.get_fgumap_value(gamedata.my_unit_map_noMP, x, y, 'id') then
                                 --print('Village is occupied')
-                                adj_unocc_village = adj_unocc_village - 1
+                                n_adj_unocc_village = n_adj_unocc_village - 1
                             else
                                 for _,dst in ipairs(combo_outcome.dsts) do
                                     if (dst[1] == x) and (dst[2] == y) then
                                         --print('Village is used in attack')
-                                        adj_unocc_village = adj_unocc_village - 1
+                                        n_adj_unocc_village = n_adj_unocc_village - 1
                                     end
                                 end
                             end
@@ -2342,7 +2342,7 @@ return {
 
                         -- For each such village found, we give a penalty eqivalent to 10 HP of the target
                         -- and we do not do the attack at all if the CTD of the defender is low
-                        if (adj_unocc_village > 0) then
+                        if (n_adj_unocc_village > 0) then
                             if (combo_outcome.def_outcome.hp_chance[0] < 0.5) then
                                 -- TODO: this condition should maybe only apply when the target
                                 -- can reach the village after the attack?
@@ -2350,7 +2350,7 @@ return {
                             else
                                 local unit_value = FU.unit_value(gamedata.unit_infos[target_id])
                                 local penalty = 10. / gamedata.unit_infos[target_id].max_hitpoints * unit_value
-                                penalty = penalty * adj_unocc_village
+                                penalty = penalty * n_adj_unocc_village
                                 --print('Applying village penalty', bonus_rating, penalty)
                                 bonus_rating = bonus_rating - penalty
 
