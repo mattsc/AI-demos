@@ -1635,14 +1635,6 @@ return {
                 local valid_action = true
                 local action = ops_data.actions.villages[i_a].action
                 for i_u,unit in ipairs(action.units) do
-                    -- TODO: the error this is supposed to check should be fixed. Remove eventually.
-                    if (not unit) or (not unit.id) or (not gamedata.units[unit.id]) then
-                        print('Trying to identify error !!!!!!!!')
-                        print(i_a, i_u)
-                        DBG.dbms(ops_data.actions.villages, -1)
-                        DBG.dbms(action, -1)
-                        DBG.dbms(gamedata.units, -1)
-                    end
                     if (not gamedata.units[unit.id])
                         or (gamedata.units[unit.id][1] ~= unit[1]) or (gamedata.units[unit.id][2] ~= unit[2])
                     then
