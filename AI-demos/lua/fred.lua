@@ -2352,7 +2352,9 @@ return {
                                 for i_a,dst in pairs(combo_outcome.dsts) do
                                     local id = combo_outcome.attacker_infos[i_a].id
                                     --print(id, dst[1], dst[2], gamedata.unit_copies[id].x, gamedata.unit_copies[id].y)
-                                    wesnoth.put_unit(dst[1], dst[2], gamedata.unit_copies[id])
+                                    if (not gamedata.my_units_noMP[id]) then
+                                        wesnoth.put_unit(dst[1], dst[2], gamedata.unit_copies[id])
+                                    end
                                 end
 
                                 local can_reach = false
@@ -2368,8 +2370,10 @@ return {
 
                                 for i_a,dst in pairs(combo_outcome.dsts) do
                                     local id = combo_outcome.attacker_infos[i_a].id
-                                    wesnoth.extract_unit(gamedata.unit_copies[id])
-                                    gamedata.unit_copies[id].x, gamedata.unit_copies[id].y = gamedata.units[id][1], gamedata.units[id][2]
+                                    if (not gamedata.my_units_noMP[id]) then
+                                        wesnoth.extract_unit(gamedata.unit_copies[id])
+                                        gamedata.unit_copies[id].x, gamedata.unit_copies[id].y = gamedata.units[id][1], gamedata.units[id][2]
+                                    end
                                     --print(id, dst[1], dst[2], gamedata.unit_copies[id].x, gamedata.unit_copies[id].y)
                                 end
 
