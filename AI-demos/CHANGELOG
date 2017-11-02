@@ -1,3 +1,22 @@
+----- 0.14.7, 2 Nov 2017 -----
+
+This release is mostly a quick and somewhat superficial fix for Fred's
+exaggerated defensiveness introduced in the previous release. It does not solve
+all the problems and, in fact, introduces a couple new ones, but it should
+overall be an improvement.
+
+- Fred (Freelands AI for Northerners, Side 1):
+  - Flexible assessment of Fred's aggressiveness:
+    - Use time-of-day dependent current power ratio to determine aggressiveness
+      of all attacks and holding
+    - Lower enemy chance-to-die limit for allowable attack next to village
+    - Disallow attacks next to village only if target can reach the village
+  - Misc other changes and bug fixes:
+    - Add a behavior instructions table in the operations layer (still mostly
+      unused)
+    - Fix bug causing rare AI crash when assessing village grabbing
+
+
 ----- 0.14.6, 27 Oct 2017 -----
 
 This release focused on Fred's non-attack actions, mainly defensive positioning
