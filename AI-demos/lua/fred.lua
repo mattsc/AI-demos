@@ -4203,8 +4203,9 @@ return {
 
         ----- CA: Recruitment (max_score: 461000; default score: 181000) -----
 
+        fred.recruit = {}
         local params = { score_function = function () return 181000 end }
-        wesnoth.require("~add-ons/AI-demos/lua/generic_recruit_engine.lua").init(ai, fred, params)
+        wesnoth.require("~add-ons/AI-demos/lua/generic_recruit_engine.lua").init(ai, fred.recruit, params)
 
 
         ----- CA: Zone control (max_score: 350000) -----
@@ -4451,8 +4452,8 @@ return {
                         end
                     end
                 else
-                    while (fred:recruit_rushers_eval(fred.data.zone_action.outofway_units) > 0) do
-                        local _, recruit_proxy = fred:recruit_rushers_exec(nil, nil, fred.data.zone_action.outofway_units)
+                    while (fred.recruit:recruit_rushers_eval(fred.data.zone_action.outofway_units) > 0) do
+                        local _, recruit_proxy = fred.recruit:recruit_rushers_exec(nil, nil, fred.data.zone_action.outofway_units)
                         if (not recruit_proxy) then
                             break
                         else
@@ -4628,8 +4629,8 @@ return {
                     if AH.show_messages() then W.message { speaker = unit.id, message = 'The leader is about to move. Need to recruit first.' } end
 
                     local have_recruited
-                    while (fred:recruit_rushers_eval() > 0) do
-                        if (not fred:recruit_rushers_exec(nil, avoid_map)) then
+                    while (fred.recruit:recruit_rushers_eval() > 0) do
+                        if (not fred.recruit:recruit_rushers_exec(nil, avoid_map)) then
                             break
                         else
                             -- Note (TODO?): these units do not get counted as used in any zone
