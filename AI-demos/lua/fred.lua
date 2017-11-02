@@ -16,6 +16,8 @@ return {
         local R = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_retreat_utils.lua"
         local FHU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_hold_utils.lua"
 
+        local FSC = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_scenario_cfg.lua"
+
 
         ----- Debug output flags -----
         local debug_eval = false    -- top-level evaluation information
@@ -28,112 +30,14 @@ return {
 
         ------ Map analysis at beginning of turn -----------
 
-        function fred:get_side_cfgs()
-            local cfgs = {
-                { start_hex = { 18, 4 } },
-                { start_hex = { 20, 20 } }
-            }
-
-            return cfgs
-        end
-
-        function fred:get_attack_test_locs()
-            -- TODO: this is really just a placeholder for now until I know whether this works
-            -- It's easy to have this found automatically
-            local locs = {
-                attacker_loc = { 28, 13 },
-                defender_loc = { 28, 14 }
-            }
-
-            return locs
-        end
-
-        function fred:get_raw_cfgs(zone_id)
-            local cfg_leader_threat = {
-                zone_id = 'leader_threat',
-                ops_slf = {},
-            }
-
-            local cfg_west = {
-                zone_id = 'west',
-                ops_slf = { x = '1-15,1-14,1-21', y = '1-12,13-17,18-24' },
-                center_hexes = { { 10, 13 } },
-                zone_weight = 1,
-            }
-
-            local cfg_center = {
-                zone_id = 'center',
-                center_hexes = { { 18, 12 }, { 20, 12 } },
-                ops_slf = { x = '16-20,16-22,16-23,15-22,15-23', y = '6-7,8-9,10-12,13-17,18-24' },
-                zone_weight = 0.5,
-            }
-
-            local cfg_east = {
-                zone_id = 'east',
-                center_hexes = { { 28, 13 } },
-                ops_slf = { x = '21-34,23-34,24-34,23-34,17-34', y = '1-7,8-9,10-12,13-17,18-24' },
-                zone_weight = 1,
-            }
-
-            local cfg_top = {
-                zone_id = 'top',
-                ops_slf = { x = '17-20,21-34', y = '1-9,1-10' },
-                replace_zones = { 'center', 'east' }
-            }
-
-            local cfg_all_map = {
-                zone_id = 'all_map',
-                ops_slf = {},
-                center_hexes = { { 20, 20 } }
-            }
-
-
-            if (zone_id == 'leader_threat') then
-                return cfg_leader_threat
-            end
-
-            if (not zone_id) then
-                local zone_cfgs = {
-                    west = cfg_west,
-                    center = cfg_center,
-                    east = cfg_east
-                }
-               return zone_cfgs
-
-            elseif (zone_id == 'all') then
-                local all_cfgs = {
-                    leader_threat = cfg_leader_threat,
-                    west = cfg_west,
-                    center = cfg_center,
-                    east = cfg_east
-                }
-               return all_cfgs
-
-            else
-                local cfgs = {
-                    leader_threat = cfg_leader_threat,
-                    west = cfg_west,
-                    center = cfg_center,
-                    east = cfg_east,
-                    top = cfg_top,
-                    all_map = cfg_all_map
-                }
-
-                for _,cfg in pairs(cfgs) do
-                    if (cfg.zone_id == zone_id) then
-                        return cfg
-                    end
-                end
-            end
-        end
 
 
         function fred:replace_zones(assigned_units, assigned_enemies, protect_locs, actions)
             -- Combine 'east' and 'center' zones, if needed
             -- TODO: not sure whether it is better to do this earlier
             -- TODO: set this up to be configurable by the cfgs
-            local raw_cfgs_main = fred:get_raw_cfgs()
-            local raw_cfg_top = fred:get_raw_cfgs('top')
+            local raw_cfgs_main = FSC.get_raw_cfgs()
+            local raw_cfg_top = FSC.get_raw_cfgs('top')
             --DBG.dbms(raw_cfg_top)
 
             actions.hold_zones = {}
@@ -399,7 +303,7 @@ return {
 
             -- Get the needed cfgs
             local gamedata = fred.data.gamedata
-            local side_cfgs = fred:get_side_cfgs()
+            local side_cfgs = FSC.get_side_cfgs()
 
             if false then
                 --FU.show_fgumap_with_message(gamedata.leader_distance_map, 'my_leader_distance', 'my_leader_distance')
@@ -509,7 +413,7 @@ return {
             }
 
 
-            local raw_cfgs_main = fred:get_raw_cfgs()
+            local raw_cfgs_main = FSC.get_raw_cfgs()
             behavior.fronts = { zones = {} }
 
             -- Calculate where the fronts are in the zones (in leader_distance values)
@@ -547,7 +451,7 @@ return {
             end
 
             -- Find the effectiveness of each AI unit vs. each enemy unit
-            local attack_locs = fred:get_attack_test_locs()
+            local attack_locs = FSC.get_attack_test_locs()
 
             local unit_attacks = {}
             for my_id,_ in pairs(gamedata.my_units) do
@@ -690,8 +594,8 @@ return {
 
             -- Get the needed cfgs
             local gamedata = fred.data.gamedata
-            local raw_cfgs_main = fred:get_raw_cfgs()
-            local side_cfgs = fred:get_side_cfgs()
+            local raw_cfgs_main = FSC.get_raw_cfgs()
+            local side_cfgs = FSC.get_side_cfgs()
 
 
             local villages_to_protect_maps = FVU.villages_to_protect(raw_cfgs_main, side_cfgs, gamedata)
@@ -1318,8 +1222,8 @@ return {
         function fred:update_ops_data()
             local gamedata = fred.data.gamedata
             local ops_data = fred.data.ops_data
-            local raw_cfgs_main = fred:get_raw_cfgs()
-            local side_cfgs = fred:get_side_cfgs()
+            local raw_cfgs_main = FSC.get_raw_cfgs()
+            local side_cfgs = FSC.get_side_cfgs()
 
             -- After each move, we update:
             --  - village grabbers (as a village might have opened, or units be used for attacks)
@@ -1492,8 +1396,8 @@ return {
             --DBG.dbms(ops_data)
 
             -- These are only the raw_cfgs of the 3 main zones
-            --local raw_cfgs = fred:get_raw_cfgs('all')
-            --local raw_cfgs_main = fred:get_raw_cfgs()
+            --local raw_cfgs = FSC.get_raw_cfgs('all')
+            --local raw_cfgs_main = FSC.get_raw_cfgs()
             --DBG.dbms(raw_cfgs_main)
             --DBG.dbms(fred.data.analysis)
 
@@ -1793,7 +1697,7 @@ return {
 
 
             -- Advancing is still done in the old zones
-            local raw_cfgs_main = fred:get_raw_cfgs()
+            local raw_cfgs_main = FSC.get_raw_cfgs()
             local advancers_by_zone = {}
             for zone_id,_ in pairs(raw_cfgs_main) do
                 if ops_data.assigned_units[zone_id] then
@@ -2946,7 +2850,7 @@ return {
             local max_hexes = 6
             local leader_derating = FU.cfg_default('leader_derating')
 
-            local raw_cfg = fred:get_raw_cfgs(zone_cfg.zone_id)
+            local raw_cfg = FSC.get_raw_cfgs(zone_cfg.zone_id)
             --DBG.dbms(raw_cfg)
             --DBG.dbms(zone_cfg)
 
@@ -3828,7 +3732,7 @@ return {
             if debug_eval then AH.print_time(fred.data.turn_start_time, '  --> advance evaluation: ' .. zone_cfg.zone_id) end
 
             --DBG.dbms(zone_cfg)
-            local raw_cfg = fred:get_raw_cfgs(zone_cfg.zone_id)
+            local raw_cfg = FSC.get_raw_cfgs(zone_cfg.zone_id)
             --DBG.dbms(raw_cfg)
 
             local gamedata = fred.data.gamedata
@@ -4185,7 +4089,7 @@ return {
             --print(' Resetting gamedata tables (etc.) before move')
 
             fred.data.gamedata = FGU.get_gamedata()
-            local side_cfgs = fred:get_side_cfgs()
+            local side_cfgs = FSC.get_side_cfgs()
             fred.data.gamedata.leader_distance_map, fred.data.gamedata.enemy_leader_distance_maps = FU.get_leader_distance_map(side_cfgs, fred.data.gamedata)
             fred.data.move_cache = {}
 
