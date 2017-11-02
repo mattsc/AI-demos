@@ -26,16 +26,6 @@ return {
         local show_debug_advance = false
 
 
-        ------- Utility functions -------
-        local function print_time(...)
-            if fred.data.turn_start_time then
-                AH.print_ts_delta(fred.data.turn_start_time, ...)
-            else
-                AH.print_ts(...)
-            end
-        end
-
-
         ------ Map analysis at beginning of turn -----------
 
         function fred:get_leader_distance_map()
@@ -1741,7 +1731,7 @@ return {
 
         function fred:get_action_cfgs()
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
-            if debug_eval then print_time('     - Evaluating defend zones map analysis:') end
+            if debug_eval then AH.print_time(fred.data.turn_start_time, '     - Evaluating defend zones map analysis:') end
 
             local gamedata = fred.data.gamedata
             local ops_data = fred.data.ops_data
@@ -2110,7 +2100,7 @@ return {
 
         ----- Attack: -----
         function fred:get_attack_action(zone_cfg)
-            if debug_eval then print_time('  --> attack evaluation: ' .. zone_cfg.zone_id) end
+            if debug_eval then AH.print_time(fred.data.turn_start_time, '  --> attack evaluation: ' .. zone_cfg.zone_id) end
             --DBG.dbms(zone_cfg)
 
             local gamedata = fred.data.gamedata
@@ -2180,7 +2170,7 @@ return {
 
             -- How much more valuable do we consider the enemy units than our own
             local value_ratio = zone_cfg.value_ratio or FU.cfg_default('value_ratio')
-            --print_time('value_ratio', value_ratio)
+            --AH.print_time(fred.data.turn_start_time, 'value_ratio', value_ratio)
 
             -- We need to make sure the units always use the same weapon below, otherwise
             -- the comparison is not fair.
@@ -2208,11 +2198,11 @@ return {
                 local attack_combos = FAU.get_attack_combos(
                     zone_units_attacks, target, gamedata.reach_maps, false, move_cache, cfg_attack
                 )
-                --print_time('#attack_combos', #attack_combos)
+                --AH.print_time(fred.data.turn_start_time, '#attack_combos', #attack_combos)
 
 
                 for j,combo in ipairs(attack_combos) do
-                    --print_time('combo ' .. j)
+                    --AH.print_time(fred.data.turn_start_time, 'combo ' .. j)
 
                     -- Only check out the first 1000 attack combos to keep evaluation time reasonable
                     -- TODO: can we have these ordered with likely good rating first?
@@ -2602,7 +2592,7 @@ return {
 
                             bonus_rating = bonus_rating - plague_penalty
                         end
-                        --print_time(' -----------------------> rating', combo_rating, bonus_rating)
+                        --AH.print_time(fred.data.turn_start_time, ' -----------------------> rating', combo_rating, bonus_rating)
 
 
                         local pre_rating = combo_rating + bonus_rating
@@ -3105,7 +3095,7 @@ return {
                             local attacker = combo.attackers[1]
 
                             if (attacker.moves == 0) then
-                                --print_time('  by', attacker.id, combo.dsts[1][1], combo.dsts[1][2])
+                                --AH.print_time(fred.data.turn_start_time, '  by', attacker.id, combo.dsts[1][1], combo.dsts[1][2])
 
                                 -- Now calculate the counter attack outcome
                                 local attacker_moved = {}
@@ -3116,7 +3106,7 @@ return {
                                 )
                                 --DBG.dbms(counter_outcomes)
 
-                                --print_time('   counter ratings no attack:', counter_outcomes.rating_table.rating, counter_outcomes.def_outcome.hp_chance[0])
+                                --AH.print_time(fred.data.turn_start_time, '   counter ratings no attack:', counter_outcomes.rating_table.rating, counter_outcomes.def_outcome.hp_chance[0])
 
                                 -- Rating if no forward attack is done is done is only the counter attack rating
                                 local no_attack_rating = 0
@@ -3145,7 +3135,7 @@ return {
                         end
                     end
 
-                    --print_time('  acceptable_counter', acceptable_counter)
+                    --AH.print_time(fred.data.turn_start_time, '  acceptable_counter', acceptable_counter)
                     local total_rating = -9999
                     if acceptable_counter then
                         total_rating = min_total_damage_rating
@@ -3195,7 +3185,7 @@ return {
 
         ----- Hold: -----
         function fred:get_hold_action(zone_cfg)
-            if debug_eval then print_time('  --> hold evaluation: ' .. zone_cfg.zone_id) end
+            if debug_eval then AH.print_time(fred.data.turn_start_time, '  --> hold evaluation: ' .. zone_cfg.zone_id) end
 
             local value_ratio = fred.data.turn_data.behavior.influence.value_ratio
             local max_units = 3
@@ -4081,7 +4071,7 @@ return {
             -- Advancing is now only moving onto unthreatened hexes; everything
             -- else should be covered by holding, village grabbing, protecting, etc.
 
-            if debug_eval then print_time('  --> advance evaluation: ' .. zone_cfg.zone_id) end
+            if debug_eval then AH.print_time(fred.data.turn_start_time, '  --> advance evaluation: ' .. zone_cfg.zone_id) end
 
             --DBG.dbms(zone_cfg)
             local raw_cfg = fred:get_raw_cfgs(zone_cfg.zone_id)
@@ -4394,7 +4384,7 @@ return {
 
         ----- Retreat: -----
         function fred:get_retreat_action(zone_cfg)
-            if debug_eval then print_time('  --> retreat evaluation: ' .. zone_cfg.zone_id) end
+            if debug_eval then AH.print_time(fred.data.turn_start_time, '  --> retreat evaluation: ' .. zone_cfg.zone_id) end
 
             local gamedata = fred.data.gamedata
             local retreat_utilities = FU.retreat_utilities(gamedata)
@@ -4533,7 +4523,7 @@ return {
             local low_score = 1000
 
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'move_leader_to_keep'
-            if debug_eval then print_time('     - Evaluating move_leader_to_keep CA:') end
+            if debug_eval then AH.print_time(fred.data.turn_start_time, '     - Evaluating move_leader_to_keep CA:') end
 
             local gamedata = fred.data.gamedata
             local leader = gamedata.leaders[wesnoth.current.side]
@@ -4641,7 +4631,7 @@ return {
         end
 
         function fred:move_leader_to_keep_exec()
-            if debug_exec then print_time('=> exec: move_leader_to_keep CA') end
+            if debug_exec then AH.print_time(fred.data.turn_start_time, '=> exec: move_leader_to_keep CA') end
             if AH.show_messages() then W.message { speaker = fred.data.MLK_leader.id, message = 'Moving back to keep' } end
 
             -- If leader can get to the keep, make this a partial move, otherwise a full move
@@ -4673,7 +4663,7 @@ return {
 
             -- **** Retreat severely injured units evaluation ****
             if (cfg.action_type == 'retreat') then
-                --print_time('  ' .. cfg.zone_id .. ': retreat_injured eval')
+                --AH.print_time(fred.data.turn_start_time, '  ' .. cfg.zone_id .. ': retreat_injured eval')
                 -- TODO: heal_loc and safe_loc are not used at this time
                 -- keep for now and see later if needed
                 local action = fred:get_retreat_action(cfg)
@@ -4685,7 +4675,7 @@ return {
 
             -- **** Attack evaluation ****
             if (cfg.action_type == 'attack') then
-                --print_time('  ' .. cfg.zone_id .. ': attack eval')
+                --AH.print_time(fred.data.turn_start_time, '  ' .. cfg.zone_id .. ': attack eval')
                 local action = fred:get_attack_action(cfg)
                 if action then
                     --print(action.action_str)
@@ -4695,20 +4685,20 @@ return {
 
             -- **** Hold position evaluation ****
             if (cfg.action_type == 'hold') then
-                --print_time('  ' .. cfg.zone_id .. ': hold eval')
+                --AH.print_time(fred.data.turn_start_time, '  ' .. cfg.zone_id .. ': hold eval')
                 local action = fred:get_hold_action(cfg)
                 if action then
-                    --print_time(action.action_str)
+                    --AH.print_time(fred.data.turn_start_time, action.action_str)
                     return action
                 end
             end
 
             -- **** Advance in zone evaluation ****
             if (cfg.action_type == 'advance') then
-                --print_time('  ' .. cfg.zone_id .. ': advance eval')
+                --AH.print_time(fred.data.turn_start_time, '  ' .. cfg.zone_id .. ': advance eval')
                 local action = fred:get_advance_action(cfg)
                 if action then
-                    --print_time(action.action_str)
+                    --AH.print_time(fred.data.turn_start_time, action.action_str)
                     return action
                 end
             end
@@ -4718,10 +4708,10 @@ return {
             -- CA, but for simplicity we keep it like this for now until
             -- we know whether it works as desired
             if (cfg.action_type == 'move_leader_to_keep') then
-                --print_time('  ' .. cfg.zone_id .. ': move_leader_to_keep eval')
+                --AH.print_time(fred.data.turn_start_time, '  ' .. cfg.zone_id .. ': move_leader_to_keep eval')
                 local score, action = fred:move_leader_to_keep_eval(true)
                 if action then
-                    --print_time(action.action_str)
+                    --AH.print_time(fred.data.turn_start_time, action.action_str)
                     return action
                 end
             end
@@ -4729,7 +4719,7 @@ return {
             -- **** Recruit evaluation ****
             -- TODO: does it make sense to keep this also as a separate CA?
             if (cfg.action_type == 'recruit') then
-                --print_time('  ' .. cfg.zone_id .. ': recruit eval')
+                --AH.print_time(fred.data.turn_start_time, '  ' .. cfg.zone_id .. ': recruit eval')
                 -- Important: we cannot check recruiting here, as the units
                 -- are taken off the map at this time, so it needs to be checked
                 -- by the function setting up the cfg
@@ -4749,7 +4739,7 @@ return {
             local score_zone_control = 350000
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
 
-            if debug_eval then print_time('     - Evaluating zone_control CA:') end
+            if debug_eval then AH.print_time(fred.data.turn_start_time, '     - Evaluating zone_control CA:') end
 
 
 -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -4880,7 +4870,7 @@ return {
 
             -- If recruiting is set, we just do that, nothing else needs to be checked:
             if (fred.data.zone_action.type == 'recruit') then
-                if debug_exec then print_time('=> exec: ' .. action) end
+                if debug_exec then AH.print_time(fred.data.turn_start_time, '=> exec: ' .. action) end
                 if AH.show_messages() then W.message { speaker = unit.id, message = 'Zone action ' .. action } end
 
                 if fred.data.zone_action.recruit_units then
@@ -4982,7 +4972,7 @@ return {
                     --DBG.dbms(levelups)
 
 
-                    --print_time('Reordering units for attack')
+                    --AH.print_time(fred.data.turn_start_time, 'Reordering units for attack')
                     local max_rating
                     for ind,unit in ipairs(fred.data.zone_action.units) do
                         local unit_info = fred.data.gamedata.unit_infos[unit.id]
@@ -5059,9 +5049,9 @@ return {
                             max_rating, next_unit_ind = rating, ind
                         end
                     end
-                    --print_time('Best unit to go next:', fred.data.zone_action.units[next_unit_ind].id, max_rating, next_unit_ind)
+                    --AH.print_time(fred.data.turn_start_time, 'Best unit to go next:', fred.data.zone_action.units[next_unit_ind].id, max_rating, next_unit_ind)
                 end
-                --print_time('next_unit_ind', next_unit_ind)
+                --AH.print_time(fred.data.turn_start_time, 'next_unit_ind', next_unit_ind)
 
                 local unit = wesnoth.get_units { id = fred.data.zone_action.units[next_unit_ind].id }[1]
                 if (not unit) then
@@ -5098,7 +5088,7 @@ return {
                     if have_recruited then break end
                 end
 
-                if debug_exec then print_time('=> exec: ' .. action) end
+                if debug_exec then AH.print_time(fred.data.turn_start_time, '=> exec: ' .. action) end
                 if AH.show_messages() then W.message { speaker = unit.id, message = 'Zone action ' .. action } end
 
                 -- The following are some tests to make sure the intended move is actually
@@ -5260,7 +5250,7 @@ return {
             local score = 900
 
             local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'remove_MP'
-            if debug_eval then print_time('     - Evaluating remove_MP CA:') end
+            if debug_eval then AH.print_time(fred.data.turn_start_time, '     - Evaluating remove_MP CA:') end
 
             local id,_ = next(fred.data.gamedata.my_units_MP)
 
@@ -5274,7 +5264,7 @@ return {
         end
 
         function fred:remove_MP_exec()
-            if debug_exec then print_time('=> exec: remove_MP CA') end
+            if debug_exec then AH.print_time(fred.data.turn_start_time, '=> exec: remove_MP CA') end
 
             local id,loc = next(fred.data.gamedata.my_units_MP)
 

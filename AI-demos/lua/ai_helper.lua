@@ -124,6 +124,14 @@ function ai_helper.print_ts_delta(start_time, ...)
     return ts, delta
 end
 
+function ai_helper.print_time(start_time, ...)
+    if start_time then
+        ai_helper.print_ts_delta(start_time, ...)
+    else
+        ai_helper.print_ts(...)
+    end
+end
+
 ----- AI execution helper functions ------
 
 function ai_helper.checked_action_error(action, error_code)
