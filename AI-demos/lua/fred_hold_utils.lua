@@ -7,6 +7,184 @@ local W = H.set_wml_action_metatable {}
 
 local fred_hold_utils = {}
 
+function fred_hold_utils.get_between_map(locs, toward_loc, units, gamedata)
+    -- Calculate the "between-ness" of map hexes between @locs and @units
+    -- @toward_loc: the direction of the main gradient of the map. Usually
+    --   this is toward the AI leader, but any hex can be passed.
+    --
+    -- Note: this function ignores enemies and distance of the units
+    -- from the hexes. Whether this makes sense to use all these units needs
+    -- to be checked in the calling function
+
+    local weights, cum_weight = {}, 0
+    for id,_ in pairs(units) do
+        local weight = FU.unit_current_power(gamedata.unit_infos[id])
+        weights[id] = weight
+        cum_weight = cum_weight + weight
+    end
+    for id,weight in pairs(weights) do
+        weights[id] = weight / cum_weight / #locs
+    end
+    --DBG.dbms(weights)
+
+    local between_map = {}
+    for id,unit_loc in pairs(units) do
+        --print(id, unit_loc[1], unit_loc[2])
+        local unit = {}
+        unit[id] = unit_loc
+        local unit_proxy = wesnoth.get_unit(unit_loc[1], unit_loc[2])
+
+        -- For the perpendicular distance, we need a map denoting which
+        -- hexes are on the "left" and "right" of the path of the unit
+        -- to toward_loc. 'path_map' is set to be zero on the path, +1
+        -- on one side (nominally the right) and -1 on the other side.
+        local path = wesnoth.find_path(unit_proxy, toward_loc[1], toward_loc[2], { ignore_units = true })
+
+        local path_map = {}
+        for _,loc in ipairs(path) do
+            FU.set_fgumap_value(path_map, loc[1], loc[2], 'sign', 0)
+        end
+
+        local new_hexes = {}
+        for i_p=1,#path-1 do
+            p1, p2 = path[i_p], path[i_p+1]
+            local rad_path = AH.get_angle(p1, p2)
+            --print(p1[1] .. ',' .. p1[2], p2[1] .. ',' .. p2[2], rad_path)
+
+            for xa,ya in H.adjacent_tiles(p1[1], p1[2]) do
+                local rad = AH.get_angle(p1, { xa, ya })
+                local drad = rad - rad_path
+                --print('  ' .. xa .. ',' .. ya .. ':', rad, drad)
+
+                if (not FU.get_fgumap_value(path_map, xa, ya, 'sign')) then
+                    if (drad > 0) and (drad < 3.14) or (drad < -3.14) then
+                        table.insert(new_hexes, { xa, ya, 1 })
+                        FU.set_fgumap_value(path_map, xa, ya, 'sign', 1)
+                    else
+                        table.insert(new_hexes, { xa, ya, -1 })
+                        FU.set_fgumap_value(path_map, xa, ya, 'sign', -1)
+                    end
+                end
+            end
+        end
+
+        while (#new_hexes > 0) do
+            local old_hexes = AH.table_copy(new_hexes)
+            new_hexes = {}
+
+            for _,hex in ipairs(old_hexes) do
+                for xa,ya in H.adjacent_tiles(hex[1], hex[2]) do
+                    if (not FU.get_fgumap_value(path_map, xa, ya, 'sign')) then
+                        table.insert(new_hexes, { xa, ya, hex[3] })
+                        FU.set_fgumap_value(path_map, xa, ya, 'sign', hex[3])
+                    end
+                end
+            end
+        end
+
+        if false then
+            FU.show_fgumap_with_message(path_map, 'sign', 'path_map: sign')
+        end
+
+
+        -- wesnoth.find_cost_map() requires the unit to be on the map, and it needs to
+        -- have full moves. We cannot use the unit_type version of wesnoth.find_cost_map()
+        -- here as some specific units (e.g walking corpses or customized units) might have
+        -- movecosts different from their generic unit type.
+        local old_moves = unit_proxy.moves
+        unit_proxy.moves = unit_proxy.max_moves
+        local cm = wesnoth.find_cost_map(unit_loc[1], unit_loc[2], { ignore_units = true })
+        unit_proxy.moves = old_moves
+
+        local cost_map = {}
+        for _,cost in pairs(cm) do
+            if (cost[3] > -1) then
+               FU.set_fgumap_value(cost_map, cost[1], cost[2], 'cost', cost[3])
+            end
+        end
+
+        local inv_cost_map = FU.inverse_cost_map(unit, toward_loc, gamedata)
+
+        if false then
+            FU.show_fgumap_with_message(cost_map, 'cost', 'cost_map', gamedata.unit_copies[id])
+            FU.show_fgumap_with_message(inv_cost_map, 'cost', 'inv_cost_map', gamedata.unit_copies[id])
+        end
+
+        local cost_full = FU.get_fgumap_value(cost_map, toward_loc[1], toward_loc[2], 'cost')
+        local inv_cost_full = FU.get_fgumap_value(inv_cost_map, unit_loc[1], unit_loc[2], 'cost')
+
+        for _,loc in ipairs(locs) do
+            local unit_map = {}
+            for x,y,data in FU.fgumap_iter(cost_map) do
+                local cost = data.cost or 99
+                local inv_cost = FU.get_fgumap_value(inv_cost_map, x, y, 'cost')
+
+                -- This gives a rating that is a slanted plane, from the unit to toward_loc
+                local rating = (inv_cost - cost) / 2
+                if (cost > cost_full) then
+                    rating = rating + (cost_full - cost)
+                end
+                if (inv_cost > inv_cost_full) then
+                    rating = rating + (inv_cost - inv_cost_full)
+                end
+
+                rating = rating * weights[id]
+
+                local perp_distance = cost + inv_cost - (cost_full + inv_cost_full) / 2
+                perp_distance = perp_distance * FU.get_fgumap_value(path_map, x, y, 'sign')
+
+                FU.set_fgumap_value(unit_map, x, y, 'rating', rating)
+                FU.set_fgumap_value(unit_map, x, y, 'perp_distance', perp_distance * weights[id])
+                FU.fgumap_add(between_map, x, y, 'inv_cost', inv_cost * weights[id])
+            end
+
+            local loc_value = FU.get_fgumap_value(unit_map, loc[1], loc[2], 'rating')
+            local unit_value = FU.get_fgumap_value(unit_map, unit_loc[1], unit_loc[2], 'rating')
+            local max_value = (loc_value + unit_value) / 2
+            --print(loc[1], loc[2], loc_value, unit_value, max_value)
+
+            for x,y,data in FU.fgumap_iter(unit_map) do
+                local rating = data.rating
+
+                -- Set rating to maximum at midpoint between unit and loc
+                -- Decrease values in excess of that by that excess
+                if (rating > max_value) then
+                    rating = rating - 2 * (rating - max_value)
+                end
+
+                -- Set rating to zero at loc (and therefore also at unit)
+                rating = rating - loc_value
+
+                -- Rating falls off in perpendicular direction
+                rating = rating - math.abs((data.perp_distance / gamedata.unit_infos[id].max_moves)^2)
+
+                FU.fgumap_add(between_map, x, y, 'distance', rating)
+                FU.fgumap_add(between_map, x, y, 'perp_distance', data.perp_distance)
+            end
+        end
+    end
+
+    for x,y,data in FU.fgumap_iter(between_map) do
+        local blurred_distance, blurred_perp_distance = data.distance, data.perp_distance
+        local count = 1
+        local adj_weight = 0.5
+        for xa,ya in H.adjacent_tiles(x, y) do
+            local d = FU.get_fgumap_value(between_map, xa, ya, 'distance')
+            local p = FU.get_fgumap_value(between_map, xa, ya, 'perp_distance')
+            if d then
+                blurred_distance = blurred_distance + d * adj_weight
+                blurred_perp_distance = blurred_perp_distance + p * adj_weight
+                count = count + adj_weight
+            end
+        end
+        FU.set_fgumap_value(between_map, x, y, 'blurred_distance', blurred_distance / count)
+        FU.set_fgumap_value(between_map, x, y, 'blurred_perp_distance', blurred_perp_distance / count)
+    end
+
+    return between_map
+end
+
+
 function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, gamedata)
     local count = 0
     for id,_ in pairs(rating_maps) do
