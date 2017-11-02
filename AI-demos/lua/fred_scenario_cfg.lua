@@ -52,8 +52,7 @@ function fred_scenario_cfg.get_raw_cfgs(zone_id)
 
     local cfg_top = {
         zone_id = 'top',
-        ops_slf = { x = '17-20,21-34', y = '1-9,1-10' },
-        replace_zones = { 'center', 'east' }
+        ops_slf = { x = '17-20,21-34', y = '1-9,1-10' }
     }
 
     local cfg_all_map = {
@@ -100,6 +99,15 @@ function fred_scenario_cfg.get_raw_cfgs(zone_id)
             end
         end
     end
+end
+
+function fred_scenario_cfg.replace_zone_ids()
+    local zone_ids = {
+        old = { 'center', 'east' },
+        new = 'top'
+    }
+
+    return zone_ids
 end
 
 return fred_scenario_cfg

@@ -33,12 +33,17 @@ return {
 
 
         function fred:replace_zones(assigned_units, assigned_enemies, protect_locs, actions)
-            -- Combine 'east' and 'center' zones, if needed
+            -- Combine several zones into one, if the conditions for it are met.
+            -- For example, on Freelands the 'east' and 'center' zones are combined
+            -- into the 'top' zone if enemies are close enough to the leader.
+            --
             -- TODO: not sure whether it is better to do this earlier
             -- TODO: set this up to be configurable by the cfgs
+            local replace_zone_ids = FSC.replace_zone_ids()
             local raw_cfgs_main = FSC.get_raw_cfgs()
-            local raw_cfg_top = FSC.get_raw_cfgs('top')
-            --DBG.dbms(raw_cfg_top)
+            local raw_cfg_new = FSC.get_raw_cfgs(replace_zone_ids.new)
+            --DBG.dbms(replace_zone_ids)
+            --DBG.dbms(raw_cfg_new)
 
             actions.hold_zones = {}
             for zone_id,_ in pairs(raw_cfgs_main) do
@@ -48,10 +53,10 @@ return {
             end
 
             local replace_zones = false
-            for _,zone_id in ipairs(raw_cfg_top.replace_zones) do
+            for _,zone_id in ipairs(replace_zone_ids.old) do
                 if assigned_enemies[zone_id] then
                     for enemy_id,loc in pairs(assigned_enemies[zone_id]) do
-                        if wesnoth.match_location(loc[1], loc[2], raw_cfg_top.ops_slf) then
+                        if wesnoth.match_location(loc[1], loc[2], raw_cfg_new.ops_slf) then
                             replace_zones = true
                             break
                         end
@@ -63,9 +68,9 @@ return {
             --print('replace_zones', replace_zones)
 
             if replace_zones then
-                actions.hold_zones[raw_cfg_top.zone_id] = true
+                actions.hold_zones[raw_cfg_new.zone_id] = true
 
-                for _,zone_id in ipairs(raw_cfg_top.replace_zones) do
+                for _,zone_id in ipairs(replace_zone_ids.old) do
                     actions.hold_zones[zone_id] = nil
                 end
 
@@ -73,25 +78,25 @@ return {
                 -- from the zones to be replaced. We don't actually replace the
                 -- respective tables for those zones, just add those for the super zone,
                 -- because advancing still uses the original zones
-                assigned_units[raw_cfg_top.zone_id] = {}
-                assigned_enemies[raw_cfg_top.zone_id] = {}
-                protect_locs[raw_cfg_top.zone_id] = {}
+                assigned_units[raw_cfg_new.zone_id] = {}
+                assigned_enemies[raw_cfg_new.zone_id] = {}
+                protect_locs[raw_cfg_new.zone_id] = {}
 
                 local hld_min, hld_max
-                for _,zone_id in ipairs(raw_cfg_top.replace_zones) do
+                for _,zone_id in ipairs(replace_zone_ids.old) do
                     for id,loc in pairs(assigned_units[zone_id] or {}) do
-                        assigned_units[raw_cfg_top.zone_id][id] = loc
+                        assigned_units[raw_cfg_new.zone_id][id] = loc
                     end
                     for id,loc in pairs(assigned_enemies[zone_id] or {}) do
-                        assigned_enemies[raw_cfg_top.zone_id][id] = loc
+                        assigned_enemies[raw_cfg_new.zone_id][id] = loc
                     end
 
                     if protect_locs[zone_id].locs then
                         for _,loc in ipairs(protect_locs[zone_id].locs) do
-                            if (not protect_locs[raw_cfg_top.zone_id].locs) then
-                                protect_locs[raw_cfg_top.zone_id].locs = {}
+                            if (not protect_locs[raw_cfg_new.zone_id].locs) then
+                                protect_locs[raw_cfg_new.zone_id].locs = {}
                             end
-                            table.insert(protect_locs[raw_cfg_top.zone_id].locs, loc)
+                            table.insert(protect_locs[raw_cfg_new.zone_id].locs, loc)
                         end
                         if (not hld_min) or (protect_locs[zone_id].leader_distance.min < hld_min) then
                             hld_min = protect_locs[zone_id].leader_distance.min
@@ -102,7 +107,7 @@ return {
                     end
                 end
                 if hld_min then
-                    protect_locs[raw_cfg_top.zone_id].leader_distance = {
+                    protect_locs[raw_cfg_new.zone_id].leader_distance = {
                         min = hld_min, max = hld_max
                     }
                 end
