@@ -28,74 +28,6 @@ return {
 
         ------ Map analysis at beginning of turn -----------
 
-        function fred:get_leader_distance_map()
-            local side_cfgs = fred:get_side_cfgs()
-            local leader_loc, enemy_leader_loc
-            for side,cfg in ipairs(side_cfgs) do
-                if (side == wesnoth.current.side) then
-                    leader_loc = cfg.start_hex
-                else
-                    enemy_leader_loc = cfg.start_hex
-                end
-            end
-
-            -- Need a map with the distances to the enemy and own leaders
-            local leader_cx, leader_cy = AH.cartesian_coords(leader_loc[1], leader_loc[2])
-            local enemy_leader_cx, enemy_leader_cy = AH.cartesian_coords(enemy_leader_loc[1], enemy_leader_loc[2])
-
-            local dist_btw_leaders = math.sqrt( (enemy_leader_cx - leader_cx)^2 + (enemy_leader_cy - leader_cy)^2 )
-
-            local leader_distance_map = {}
-            local width, height = wesnoth.get_map_size()
-            for x = 1,width do
-                for y = 1,height do
-                    local cx, cy = AH.cartesian_coords(x, y)
-
-                    local leader_dist = math.sqrt( (leader_cx - cx)^2 + (leader_cy - cy)^2 )
-                    local enemy_leader_dist = math.sqrt( (enemy_leader_cx - cx)^2 + (enemy_leader_cy - cy)^2 )
-
-                    if (not leader_distance_map[x]) then leader_distance_map[x] = {} end
-                    leader_distance_map[x][y] = {
-                        my_leader_distance = leader_dist,
-                        enemy_leader_distance = enemy_leader_dist,
-                        distance = (leader_dist - enemy_leader_dist) / 2
-                    }
-
-                end
-            end
-            fred.data.gamedata.leader_distance_map = leader_distance_map
-
-
-            -- Enemy leader distance maps. These are calculated using wesnoth.find_cost_map() for
-            -- each unit type from the start hex of the enemy leader. This is not ideal, as it is
-            -- in the wrong direction (and terrain changes are not symmetric), but it
-            -- is good enough for the purpose of finding the best way to the enemy leader
-            -- TODO: do this correctly, if needed
-            local enemy_leader_distance_maps = {}
-            for id,_ in pairs(fred.data.gamedata.my_units) do
-                local typ = fred.data.gamedata.unit_infos[id].type -- can't use type, that's reserved
-
-                if (not enemy_leader_distance_maps[typ]) then
-                    enemy_leader_distance_maps[typ] = {}
-
-                    local cost_map = wesnoth.find_cost_map(
-                        { x = -1 }, -- SUF not matching any unit
-                        { { enemy_leader_loc[1], enemy_leader_loc[2], wesnoth.current.side, typ } },
-                        { ignore_units = true }
-                    )
-
-                    for _,cost in pairs(cost_map) do
-                        local x, y, c = cost[1], cost[2], cost[3]
-                        if (cost[3] > -1) then
-                            FU.set_fgumap_value(enemy_leader_distance_maps[typ], cost[1], cost[2], 'cost', cost[3])
-                        end
-                    end
-                end
-            end
-            fred.data.gamedata.enemy_leader_distance_maps = enemy_leader_distance_maps
-        end
-
-
         function fred:get_side_cfgs()
             local cfgs = {
                 { start_hex = { 18, 4 } },
@@ -4253,7 +4185,8 @@ return {
             --print(' Resetting gamedata tables (etc.) before move')
 
             fred.data.gamedata = FGU.get_gamedata()
-            fred:get_leader_distance_map()
+            local side_cfgs = fred:get_side_cfgs()
+            fred.data.gamedata.leader_distance_map, fred.data.gamedata.enemy_leader_distance_maps = FU.get_leader_distance_map(side_cfgs, fred.data.gamedata)
             fred.data.move_cache = {}
 
             return 0
