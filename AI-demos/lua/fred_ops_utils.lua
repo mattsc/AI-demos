@@ -569,7 +569,8 @@ function fred_ops_utils.set_turn_data(move_data)
         enemy_leader_distance_maps = enemy_leader_distance_maps,
         influence_maps = influence_maps,
         unit_attacks = unit_attacks,
-        behavior = behavior
+        behavior = behavior,
+        raw_cfgs = FSC.get_raw_cfgs('all')
     }
 
     return turn_data

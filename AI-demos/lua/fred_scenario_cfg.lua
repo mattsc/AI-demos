@@ -79,7 +79,9 @@ function fred_scenario_cfg.get_raw_cfgs(zone_id)
             leader_threat = cfg_leader_threat,
             west = cfg_west,
             center = cfg_center,
-            east = cfg_east
+            east = cfg_east,
+            top = cfg_top,
+            all_map = cfg_all_map
         }
        return all_cfgs
 
