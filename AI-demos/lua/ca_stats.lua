@@ -1,7 +1,7 @@
 ----- CA: Stats at beginning of turn (max_score: 999990) -----
 -- This will be blacklisted after first execution each turn
 
-local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
+local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local ca_stats = {}
 
@@ -12,7 +12,7 @@ end
 function ca_stats:execution(ai, cfg, self)
     local tod = wesnoth.get_time_of_day()
     print('\n**** Fred ' .. wesnoth.dofile('~/add-ons/AI-demos/version.lua') .. ' *******************************************************')
-    AH.print_ts('Beginning of Turn ' .. wesnoth.current.turn .. ' (' .. tod.name ..') stats')
+    DBG.print_ts('Beginning of Turn ' .. wesnoth.current.turn .. ' (' .. tod.name ..') stats')
 
     local sides = {}
     local leveled_units

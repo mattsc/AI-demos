@@ -16,7 +16,6 @@ end
 
 function ca_move_leader_to_keep:execution(ai, cfg, self)
     DBG.print_debug_time('exec', self.data.turn_start_time, '=> exec: move_leader_to_keep CA')
-    if AH.show_messages() then W.message { speaker = self.data.MLK_leader.id, message = 'Moving back to keep' } end
 
     -- If leader can get to the keep, make this a partial move, otherwise a full move
     if (self.data.MLK_dst[1] == self.data.MLK_keep[1])

@@ -13,6 +13,20 @@ function debug_utils.show_debug(debug_type)
     return show_debug[debug_type]
 end
 
+function debug_utils.print_ts(...)
+    -- Print arguments preceded by a time stamp in seconds
+    -- Also return that time stamp
+
+    local ts = wesnoth.get_time_stamp() / 1000.
+
+    local arg = { ... }
+    arg[#arg+1] = string.format('[ t = %.3f ]', ts)
+
+    print(table.unpack(arg))
+
+    return ts
+end
+
 function debug_utils.print_ts_delta(start_time, ...)
     -- @start_time: time stamp in seconds as returned by wesnoth.get_time_stamp / 1000.
 

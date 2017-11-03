@@ -2550,7 +2550,6 @@ function ca_zone_control:execution(ai, cfg, self)
     -- If recruiting is set, we just do that, nothing else needs to be checked:
     if (self.data.zone_action.type == 'recruit') then
         DBG.print_debug_time('exec', self.data.turn_start_time, '=> exec: ' .. action)
-        if AH.show_messages() then W.message { speaker = unit.id, message = 'Zone action ' .. action } end
 
         if self.data.zone_action.recruit_units then
             --print('Recruiting pre-evaluated units')
@@ -2750,8 +2749,6 @@ function ca_zone_control:execution(ai, cfg, self)
                 avoid_map:insert(dst[1], dst[2])
             end
 
-            if AH.show_messages() then W.message { speaker = unit.id, message = 'The leader is about to move. Need to recruit first.' } end
-
             local have_recruited
             while (self.recruit:recruit_rushers_eval() > 0) do
                 if (not self.recruit:recruit_rushers_exec(nil, avoid_map)) then
@@ -2768,7 +2765,6 @@ function ca_zone_control:execution(ai, cfg, self)
         end
 
         DBG.print_debug_time('exec', self.data.turn_start_time, '=> exec: ' .. action)
-        if AH.show_messages() then W.message { speaker = unit.id, message = 'Zone action ' .. action } end
 
         -- The following are some tests to make sure the intended move is actually
         -- possible, as there might have been some interference with units moving
