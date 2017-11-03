@@ -8,8 +8,6 @@ local FHU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_hold_utils.lua"
 local FMLU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_move_leader_utils.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
-local show_debug_analysis = false
-
 local fred_ops_utils = {}
 
 function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_locs, actions)
@@ -255,7 +253,7 @@ function fred_ops_utils.assess_leader_threats(leader_threats, protect_locs, lead
         max_total_loss = max_total_loss + max_loss
         av_total_loss = av_total_loss + av_loss
     end
-    DBG.print_debug(show_debug_analysis, '\nleader: max_total_loss, av_total_loss', max_total_loss, av_total_loss)
+    DBG.print_debug('analysis', '\nleader: max_total_loss, av_total_loss', max_total_loss, av_total_loss)
 
     -- We only consider these leader threats, if they either
     --   - maximum damage reduces current HP by more than 50%
@@ -267,7 +265,7 @@ function fred_ops_utils.assess_leader_threats(leader_threats, protect_locs, lead
     else
         leader_threats.significant_threat = false
     end
-    DBG.print_debug(show_debug_analysis, '  significant_threat', leader_threats.significant_threat)
+    DBG.print_debug('analysis', '  significant_threat', leader_threats.significant_threat)
 
     -- Only count leader threats if they are significant
     if (not leader_threats.significant_threat) then
@@ -284,7 +282,7 @@ end
 
 
 function fred_ops_utils.set_turn_data(gamedata)
-    DBG.print_debug(show_debug_analysis, '\n------------- Setting the turn_data table:')
+    DBG.print_debug('analysis', '\n------------- Setting the turn_data table:')
 
     -- Get the needed cfgs
     local side_cfgs = FSC.get_side_cfgs()
@@ -576,7 +574,7 @@ end
 
 
 function fred_ops_utils.set_ops_data(fred_data, fred_recruit)
-    DBG.print_debug(show_debug_analysis, '\n------------- Setting the turn_data table:')
+    DBG.print_debug('analysis', '\n------------- Setting the turn_data table:')
 
     -- Get the needed cfgs
     local gamedata = fred_data.gamedata
@@ -647,7 +645,7 @@ function fred_ops_utils.set_ops_data(fred_data, fred_recruit)
     if closest_keep then
         leader_threats.leader_locs.closest_keep = closest_keep
         table.insert(leader_threats.protect_locs, closest_keep)
-        DBG.print_debug(show_debug_analysis, 'closest keep: ' .. closest_keep[1] .. ',' .. closest_keep[2])
+        DBG.print_debug('analysis', 'closest keep: ' .. closest_keep[1] .. ',' .. closest_keep[2])
     else
         local _, _, next_hop, best_keep_for_hop = FMLU.move_eval(true, fred_data)
         leader_threats.leader_locs.next_hop = next_hop
@@ -655,13 +653,13 @@ function fred_ops_utils.set_ops_data(fred_data, fred_recruit)
         table.insert(leader_threats.protect_locs, next_hop)
         table.insert(leader_threats.protect_locs, best_keep_for_hop)
         if next_hop then
-            DBG.print_debug(show_debug_analysis, 'next_hop to keep: ' .. next_hop[1] .. ',' .. next_hop[2])
+            DBG.print_debug('analysis', 'next_hop to keep: ' .. next_hop[1] .. ',' .. next_hop[2])
         end
     end
     if closest_village then
         leader_threats.leader_locs.closest_village = closest_village
         table.insert(leader_threats.protect_locs, closest_village)
-        DBG.print_debug(show_debug_analysis, 'reachable village after keep: ' .. closest_village[1] .. ',' .. closest_village[2])
+        DBG.print_debug('analysis', 'reachable village after keep: ' .. closest_village[1] .. ',' .. closest_village[2])
     end
     -- It is possible that no protect location was found (e.g. if the leader cannot move)
     if (not leader_threats.protect_locs[1]) then
@@ -1202,7 +1200,7 @@ function fred_ops_utils.set_ops_data(fred_data, fred_recruit)
     --DBG.dbms(ops_data.assigned_enemies)
     --DBG.dbms(ops_data.assigned_units)
 
-    DBG.print_debug(show_debug_analysis, '--- Done determining turn_data ---\n')
+    DBG.print_debug('analysis', '--- Done determining turn_data ---\n')
 
     return ops_data
 end
@@ -1378,7 +1376,7 @@ end
 
 function fred_ops_utils.get_action_cfgs(fred_data)
     local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
-    if show_debug_analysis then AH.print_time(fred_data.turn_start_time, '     - Evaluating defend zones map analysis:') end
+    if DBG.show_debug('analysis') then AH.print_time(fred_data.turn_start_time, '     - Evaluating defend zones map analysis:') end
 
     local gamedata = fred_data.gamedata
     local ops_data = fred_data.ops_data

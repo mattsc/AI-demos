@@ -1,7 +1,20 @@
 local debug_utils = {}
 
-function debug_utils.print_debug(show_debug, ...)
-    if show_debug then print(...) end
+function debug_utils.show_debug(debug_type)
+    local show_debug = {
+        eval = false,
+        exec = false,
+        analysis = false,
+        attack = false,
+        hold = false,
+        advance = false
+    }
+
+    return show_debug[debug_type]
+end
+
+function debug_utils.print_debug(debug_type, ...)
+    if debug_utils.show_debug(debug_type) then print(...) end
 end
 
 function debug_utils.clear_labels()
