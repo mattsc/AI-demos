@@ -352,7 +352,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, unit
                     -- are healing locations within one move that were previously
                     -- excluded because max_damage was too large.
                     -- The latter has a lower rating all else being equal (rating=0 so far),
-                    -- as the former has other villahes in close reach.
+                    -- as the former has other villages in close reach.
                     if (rating > 0) or (heal_amount > 0) then
                         -- Main rating, as above, is the damage rating
                         rating = rating + retreat_rating(id, x, y, heal_amount, true)
