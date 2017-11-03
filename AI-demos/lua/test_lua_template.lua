@@ -8,17 +8,17 @@
 -- Include all these, just in case (mostly not needed)
 local H = wesnoth.require "lua/helper.lua"
 local W = H.set_wml_action_metatable {}
-local AH = wesnoth.dofile "~/add-ons/AI-demos/lua/ai_helper.lua"
-local MAIH = wesnoth.dofile "ai/micro_ais/micro_ai_helper.lua"
-local MAIUV = wesnoth.dofile "ai/micro_ais/micro_ai_unit_variables.lua"
-local MAISD = wesnoth.dofile "ai/micro_ais/micro_ai_self_data.lua"
-local BC = wesnoth.dofile "~/add-ons/AI-demos/lua/battle_calcs.lua"
+local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
+local MAIH = wesnoth.require "ai/micro_ais/micro_ai_helper.lua"
+local MAIUV = wesnoth.require "ai/micro_ais/micro_ai_unit_variables.lua"
+local MAISD = wesnoth.require "ai/micro_ais/micro_ai_self_data.lua"
+local BC = wesnoth.require "~/add-ons/AI-demos/lua/battle_calcs.lua"
 local FGU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils.lua"
 local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
-local LS = wesnoth.dofile "lua/location_set.lua"
-local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
+local LS = wesnoth.require "lua/location_set.lua"
+local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
 -- Clean up the screen
 wesnoth.clear_messages()
