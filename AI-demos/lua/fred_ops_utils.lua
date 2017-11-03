@@ -1376,7 +1376,7 @@ end
 
 function fred_ops_utils.get_action_cfgs(fred_data)
     local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
-    if DBG.show_debug('analysis') then AH.print_time(fred_data.turn_start_time, '     - Evaluating defend zones map analysis:') end
+    DBG.print_debug_time('analysis', fred_data.turn_start_time, '     - Evaluating defend zones map analysis:')
 
     local gamedata = fred_data.gamedata
     local ops_data = fred_data.ops_data
