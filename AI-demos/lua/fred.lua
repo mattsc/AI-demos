@@ -32,7 +32,7 @@ return {
         ----- Functions for getting the best actions -----
 
         ----- Attack: -----
-        function fred:get_attack_action(zone_cfg)
+        local function get_attack_action(zone_cfg)
             if debug_eval then AH.print_time(fred.data.turn_start_time, '  --> attack evaluation: ' .. zone_cfg.zone_id) end
             --DBG.dbms(zone_cfg)
 
@@ -1117,7 +1117,7 @@ return {
 
 
         ----- Hold: -----
-        function fred:get_hold_action(zone_cfg)
+        local function get_hold_action(zone_cfg)
             if debug_eval then AH.print_time(fred.data.turn_start_time, '  --> hold evaluation: ' .. zone_cfg.zone_id) end
 
             local value_ratio = fred.data.turn_data.behavior.influence.value_ratio
@@ -2000,7 +2000,7 @@ return {
 
 
         ----- Advance: -----
-        function fred:get_advance_action(zone_cfg)
+        local function get_advance_action(zone_cfg)
             -- Advancing is now only moving onto unthreatened hexes; everything
             -- else should be covered by holding, village grabbing, protecting, etc.
 
@@ -2316,7 +2316,7 @@ return {
 
 
         ----- Retreat: -----
-        function fred:get_retreat_action(zone_cfg)
+        local function get_retreat_action(zone_cfg)
             if debug_eval then AH.print_time(fred.data.turn_start_time, '  --> retreat evaluation: ' .. zone_cfg.zone_id) end
 
             local gamedata = fred.data.gamedata
@@ -2479,7 +2479,7 @@ return {
 
         ----- CA: Zone control (max_score: 350000) -----
         -- TODO: rename?
-        function fred:get_zone_action(cfg)
+        function get_zone_action(cfg)
             -- Find the best action to do in the zone described in 'cfg'
             -- This is all done together in one function, rather than in separate CAs so that
             --  1. Zones get done one at a time (rather than one CA at a time)
@@ -2490,7 +2490,7 @@ return {
                 --AH.print_time(fred.data.turn_start_time, '  ' .. cfg.zone_id .. ': retreat_injured eval')
                 -- TODO: heal_loc and safe_loc are not used at this time
                 -- keep for now and see later if needed
-                local action = fred:get_retreat_action(cfg)
+                local action = get_retreat_action(cfg)
                 if action then
                     --print(action.action_str)
                     return action
@@ -2500,7 +2500,7 @@ return {
             -- **** Attack evaluation ****
             if (cfg.action_type == 'attack') then
                 --AH.print_time(fred.data.turn_start_time, '  ' .. cfg.zone_id .. ': attack eval')
-                local action = fred:get_attack_action(cfg)
+                local action = get_attack_action(cfg)
                 if action then
                     --print(action.action_str)
                     return action
@@ -2510,7 +2510,7 @@ return {
             -- **** Hold position evaluation ****
             if (cfg.action_type == 'hold') then
                 --AH.print_time(fred.data.turn_start_time, '  ' .. cfg.zone_id .. ': hold eval')
-                local action = fred:get_hold_action(cfg)
+                local action = get_hold_action(cfg)
                 if action then
                     --AH.print_time(fred.data.turn_start_time, action.action_str)
                     return action
@@ -2520,7 +2520,7 @@ return {
             -- **** Advance in zone evaluation ****
             if (cfg.action_type == 'advance') then
                 --AH.print_time(fred.data.turn_start_time, '  ' .. cfg.zone_id .. ': advance eval')
-                local action = fred:get_advance_action(cfg)
+                local action = get_advance_action(cfg)
                 if action then
                     --AH.print_time(fred.data.turn_start_time, action.action_str)
                     return action
@@ -2667,7 +2667,7 @@ return {
                         table.insert(extracted_units, unit_proxy)  -- Not a proxy unit any more at this point
                     end
 
-                    local zone_action = fred:get_zone_action(cfg)
+                    local zone_action = get_zone_action(cfg)
 
                     for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
 
