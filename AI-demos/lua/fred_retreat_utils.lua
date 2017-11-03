@@ -6,7 +6,7 @@ local H = wesnoth.require "lua/helper.lua"
 local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
 local LS = wesnoth.require "lua/location_set.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
---local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
+local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local retreat_functions = {}
 
@@ -187,7 +187,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, unit
         end
 
         if false then
-            FU.show_fgumap_with_message(rating_map, 'rating', 'Retreat rating map (no-regen unit)', gamedata.unit_copies[id])
+            DBG.show_fgumap_with_message(rating_map, 'rating', 'Retreat rating map (no-regen unit)', gamedata.unit_copies[id])
         end
     end
 
@@ -234,7 +234,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, unit
         end
 
         if false then
-            FU.show_fgumap_with_message(rating_map, 'rating', 'Retreat rating map (regen unit)', gamedata.unit_copies[best_id])
+            DBG.show_fgumap_with_message(rating_map, 'rating', 'Retreat rating map (regen unit)', gamedata.unit_copies[best_id])
         end
 
         if best_loc then
@@ -376,7 +376,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, unit
             end
 
             if false then
-                FU.show_fgumap_with_message(rating_map, 'rating', 'Retreat rating map (far villages)', gamedata.unit_copies[id])
+                DBG.show_fgumap_with_message(rating_map, 'rating', 'Retreat rating map (far villages)', gamedata.unit_copies[id])
             end
         end
 

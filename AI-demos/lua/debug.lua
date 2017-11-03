@@ -1,7 +1,125 @@
--- This is almost literally stolen from Wesnoth Lua Pack
--- The only difference is that I changed the default options of dbms
-
 local debug_utils = {}
+
+function debug_utils.print_debug(show_debug, ...)
+    if show_debug then print(...) end
+end
+
+function debug_utils.clear_labels()
+    -- Clear all labels on the map
+    local width, height = wesnoth.get_map_size()
+    for x = 1,width do
+        for y = 1,height do
+            W.label { x = x, y = y, text = "" }
+        end
+    end
+end
+
+function debug_utils.put_fgumap_labels(map, key, cfg)
+    -- Take @map (in the format as defined in fred_gamestate_utils (fgu) and put
+    -- labels containing the values of @key onto the map.
+    -- Print 'nan' if element exists but is not a number.
+    -- Print 'nil' if element is just that
+    -- @cfg: table with optional parameters:
+    --   - show_coords: (boolean) use hex coordinates as labels instead of value
+    --   - factor=1: (number) if value is a number, multiply by this factor
+
+    local factor = (cfg and cfg.factor) or 1
+
+    debug_utils.clear_labels()
+
+    local min, max = 9e99, -9e99
+    for x,arr in pairs(map) do
+        for y,data in pairs(arr) do
+            local out = data[key]
+
+            if (type(out) == 'number') then
+                if (out > max) then max = out end
+                if (out < min) then min = out end
+            end
+        end
+    end
+
+    if (min > max) then
+        min, max = 0, 1
+    end
+
+    if (min == max) then
+        min = max - 1
+    end
+
+    min = min - (max - min) * 0.2
+
+    for x,arr in pairs(map) do
+        for y,data in pairs(arr) do
+            local out = data[key]
+
+            if cfg and cfg.show_coords then
+                out = x .. ',' .. y
+            end
+
+            if (type(out) ~= 'string') then
+                if out then
+                    out = tonumber(out) or 'nan'
+                else
+                    out = 'nil'
+                end
+            end
+
+            local red_fac, green_fac, blue_fac = 1, 1, 1
+            if (type(out) == 'number') then
+                color_fac = (out - min) / (max - min)
+                if (color_fac < 0.5) then
+                    red_fac = color_fac + 0.5
+                    green_fac = 0
+                    blue_fac = 0
+                elseif (color_fac < 0.75) then
+                    red_fac = 1
+                    green_fac = (color_fac - 0.5) * 4
+                    blue_fac = green_fac / 2
+                else
+                    red_fac = 1
+                    green_fac = 1
+                    blue_fac = (color_fac - 0.75) * 4
+                end
+
+                out = out * factor
+            end
+
+            W.label {
+                x = x, y = y,
+                text = out,
+                color = 255 * red_fac .. ',' .. 255 * green_fac .. ',' .. 255 * blue_fac
+            }
+        end
+    end
+end
+
+function debug_utils.show_fgumap_with_message(map, key, text, cfg)
+    -- @cfg: optional table containing x/y keys as coordinates and 'id' for the speaker
+    --   Thus, it's possible to pass a unit as @cfg
+
+    debug_utils.put_fgumap_labels(map, key)
+    if cfg and cfg.x and cfg.y then
+        wesnoth.scroll_to_tile(cfg.x,cfg.y)
+        items.place_halo(cfg.x, cfg.y, "halo/teleport-8.png")
+    end
+    W.redraw()
+    local id = cfg and cfg.id
+    if id then
+        W.message { speaker = 'narrator', message = text .. ': ' .. id }
+    else
+        W.message { speaker = 'narrator', message = text }
+    end
+    if cfg and cfg.x and cfg.y then
+        items.remove(cfg.x, cfg.y, "halo/teleport-8.png")
+    end
+    debug_utils.clear_labels()
+    W.redraw()
+end
+
+
+-- The remainder is almost literally stolen from Wesnoth Lua Pack
+-- The only difference is that I changed the default options of dbms
 
 -- an extensive debug message function
 -- It outputs information about type, value, length, and metatable of a variable of any lua kind.

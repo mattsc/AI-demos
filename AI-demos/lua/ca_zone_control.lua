@@ -118,7 +118,7 @@ local function get_attack_action(zone_cfg, fred_data)
         if gamedata.trapped_enemies[target_id] then
             is_trappable_enemy = false
         end
-        FU.print_debug(show_debug_attack, target_id, '  trappable:', is_trappable_enemy, target_loc[1], target_loc[2])
+        DBG.print_debug(show_debug_attack, target_id, '  trappable:', is_trappable_enemy, target_loc[1], target_loc[2])
 
         local attack_combos = FAU.get_attack_combos(
             zone_units_attacks, target, gamedata.reach_maps, false, move_cache, cfg_attack
@@ -559,14 +559,14 @@ local function get_attack_action(zone_cfg, fred_data)
     end
     table.sort(combo_ratings, function(a, b) return a.pre_rating > b.pre_rating end)
     --DBG.dbms(combo_ratings)
-    FU.print_debug(show_debug_attack, '#combo_ratings', #combo_ratings)
+    DBG.print_debug(show_debug_attack, '#combo_ratings', #combo_ratings)
 
     -- Now check whether counter attacks are acceptable
     local max_total_rating, action
     local disqualified_attacks = {}
     for count,combo in ipairs(combo_ratings) do
         if (count > 50) and action then break end
-        FU.print_debug(show_debug_attack, '\nChecking counter attack for attack on', count, next(combo.target), combo.rating_table.value_ratio, combo.rating_table.rating, action)
+        DBG.print_debug(show_debug_attack, '\nChecking counter attack for attack on', count, next(combo.target), combo.rating_table.value_ratio, combo.rating_table.rating, action)
 
         -- Check whether an position in this combo was previously disqualified
         -- Only do so for large numbers of combos though; there is a small
@@ -663,7 +663,7 @@ local function get_attack_action(zone_cfg, fred_data)
 
             local min_total_damage_rating = 9e99
             for i_a,attacker in ipairs(combo.attackers) do
-                FU.print_debug(show_debug_attack, '  by', attacker.id, combo.dsts[i_a][1], combo.dsts[i_a][2])
+                DBG.print_debug(show_debug_attack, '  by', attacker.id, combo.dsts[i_a][1], combo.dsts[i_a][2])
 
                 -- Now calculate the counter attack outcome
                 local attacker_moved = {}
@@ -811,7 +811,7 @@ local function get_attack_action(zone_cfg, fred_data)
                     my_rating = my_rating + unit_rating
                     --print('  ' .. damage.id, unit_rating)
                 end
-                FU.print_debug(show_debug_attack, '  --> total my unit rating:', my_rating)
+                DBG.print_debug(show_debug_attack, '  --> total my unit rating:', my_rating)
 
 
                 --print('ratings enemy units:')
@@ -822,14 +822,14 @@ local function get_attack_action(zone_cfg, fred_data)
                     enemy_rating = enemy_rating + unit_rating
                     --print('  ' .. damage.id, unit_rating)
                 end
-                FU.print_debug(show_debug_attack, '  --> total enemy unit rating:', enemy_rating)
+                DBG.print_debug(show_debug_attack, '  --> total enemy unit rating:', enemy_rating)
 
                 local extra_rating = combo.rating_table.extra_rating
-                FU.print_debug(show_debug_attack, '  --> extra rating:', extra_rating)
-                FU.print_debug(show_debug_attack, '  --> bonus rating:', combo.bonus_rating)
+                DBG.print_debug(show_debug_attack, '  --> extra rating:', extra_rating)
+                DBG.print_debug(show_debug_attack, '  --> bonus rating:', combo.bonus_rating)
 
                 local value_ratio = combo.rating_table.value_ratio
-                FU.print_debug(show_debug_attack, '  --> value_ratio:', value_ratio)
+                DBG.print_debug(show_debug_attack, '  --> value_ratio:', value_ratio)
 
                 local damage_rating = my_rating * value_ratio + enemy_rating
 
@@ -838,7 +838,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 -- whether an attack is acceptable
                 damage_rating = damage_rating + extra_rating + combo.bonus_rating
 
-                FU.print_debug(show_debug_attack, '     --> damage_rating:', damage_rating)
+                DBG.print_debug(show_debug_attack, '     --> damage_rating:', damage_rating)
 
 
                 if (damage_rating < min_total_damage_rating) then
@@ -858,14 +858,14 @@ local function get_attack_action(zone_cfg, fred_data)
                     if attacker.canrecruit then
                         --print('Leader: slowed, poisoned %', counter_outcomes.def_outcome.slowed, counter_outcomes.def_outcome.poisoned)
                         if (counter_outcomes.def_outcome.slowed > 0.0) and (not attacker.status.slowed) then
-                            FU.print_debug(show_debug_attack, '       leader: counter attack slow chance too high', counter_outcomes.def_outcome.slowed)
+                            DBG.print_debug(show_debug_attack, '       leader: counter attack slow chance too high', counter_outcomes.def_outcome.slowed)
                             acceptable_counter = false
                             FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                             break
                         end
 
                         if (counter_outcomes.def_outcome.poisoned > 0.0) and (not attacker.status.poisoned) and (not attacker.abilities.regenerate) then
-                            FU.print_debug(show_debug_attack, '       leader: counter attack poison chance too high', counter_outcomes.def_outcome.poisoned)
+                            DBG.print_debug(show_debug_attack, '       leader: counter attack poison chance too high', counter_outcomes.def_outcome.poisoned)
                             acceptable_counter = false
                             FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                             break
@@ -888,7 +888,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         --print('Leader: av_outcome', av_outcome)
 
                         if (min_outcome < 0.5) or (av_outcome < attacker.max_hitpoints / 2) then
-                            FU.print_debug(show_debug_attack, '       leader: counter attack outcome too low', min_outcome)
+                            DBG.print_debug(show_debug_attack, '       leader: counter attack outcome too low', min_outcome)
                             acceptable_counter = false
                             FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                             break
@@ -897,7 +897,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         -- is_acceptable_attack takes the damage to the side, so it needs
                         -- to be the negative of the rating for own units
                         if (not FAU.is_acceptable_attack(-my_rating, enemy_rating, value_ratio)) then
-                            FU.print_debug(show_debug_attack, '       non-leader: counter attack rating too low', my_rating, enemy_rating, value_ratio)
+                            DBG.print_debug(show_debug_attack, '       non-leader: counter attack rating too low', my_rating, enemy_rating, value_ratio)
                             acceptable_counter = false
                             FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                             break
@@ -947,7 +947,7 @@ local function get_attack_action(zone_cfg, fred_data)
                     --print('  ' .. xp_thresh, survival_chance)
 
                     if (survival_chance < xp_thresh) then
-                        FU.print_debug(show_debug_attack, '       non-leader: counter attack too dangerous for high-XP unit', survival_chance, xp_thresh, xp)
+                        DBG.print_debug(show_debug_attack, '       non-leader: counter attack too dangerous for high-XP unit', survival_chance, xp_thresh, xp)
                         acceptable_counter = false
                         FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                         break
@@ -985,7 +985,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         --print('         kill chance, kill_value: ', kill_chance, kill_value)
 
                         if (kill_chance < 0.33) or (kill_value < die_value * 2) then
-                            FU.print_debug(show_debug_attack, '       non-leader: counter attack too exposed', die_value, kill_value, kill_chance)
+                            DBG.print_debug(show_debug_attack, '       non-leader: counter attack too exposed', die_value, kill_value, kill_chance)
                             acceptable_counter = false
                             FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                             break
@@ -1064,13 +1064,13 @@ local function get_attack_action(zone_cfg, fred_data)
             local total_rating = -9999
             if acceptable_counter then
                 total_rating = min_total_damage_rating
-                FU.print_debug(show_debug_attack, '    Acceptable counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating_table.rating)
-                FU.print_debug(show_debug_attack, '      --> total_rating', total_rating)
+                DBG.print_debug(show_debug_attack, '    Acceptable counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating_table.rating)
+                DBG.print_debug(show_debug_attack, '      --> total_rating', total_rating)
 
                 if (total_rating > 0) then
                     total_rating = total_rating * combo.derating
                 end
-                FU.print_debug(show_debug_attack, '      --> total_rating adjusted', total_rating)
+                DBG.print_debug(show_debug_attack, '      --> total_rating adjusted', total_rating)
 
                 if (not max_total_rating) or (total_rating > max_total_rating) then
                     max_total_rating = total_rating
@@ -1169,7 +1169,7 @@ local function get_hold_action(zone_cfg, fred_data)
         end
     end
     if false then
-        FU.show_fgumap_with_message(zone_map, 'flag', 'Zone map')
+        DBG.show_fgumap_with_message(zone_map, 'flag', 'Zone map')
     end
 
     -- For the enemy rating, we need to put a 1-hex buffer around this
@@ -1181,7 +1181,7 @@ local function get_hold_action(zone_cfg, fred_data)
         end
     end
     if false then
-        FU.show_fgumap_with_message(buffered_zone_map, 'flag', 'Buffered zone map')
+        DBG.show_fgumap_with_message(buffered_zone_map, 'flag', 'Buffered zone map')
     end
 
 
@@ -1248,9 +1248,9 @@ local function get_hold_action(zone_cfg, fred_data)
         end
 
         if false then
-            --FU.show_fgumap_with_message(enemy_zone_maps[enemy_id], 'hit_chance', 'Enemy hit chance', gamedata.unit_copies[enemy_id])
-            --FU.show_fgumap_with_message(enemy_zone_maps[enemy_id], 'moves_left', 'Enemy moves left', gamedata.unit_copies[enemy_id])
-            FU.show_fgumap_with_message(enemy_zone_maps[enemy_id], 'adj_hit_chance', 'Enemy adjacent hit_chance', gamedata.unit_copies[enemy_id])
+            --DBG.show_fgumap_with_message(enemy_zone_maps[enemy_id], 'hit_chance', 'Enemy hit chance', gamedata.unit_copies[enemy_id])
+            --DBG.show_fgumap_with_message(enemy_zone_maps[enemy_id], 'moves_left', 'Enemy moves left', gamedata.unit_copies[enemy_id])
+            DBG.show_fgumap_with_message(enemy_zone_maps[enemy_id], 'adj_hit_chance', 'Enemy adjacent hit_chance', gamedata.unit_copies[enemy_id])
         end
     end
 
@@ -1298,14 +1298,14 @@ local function get_hold_action(zone_cfg, fred_data)
 
 
     if false then
-        --FU.show_fgumap_with_message(holders_influence, 'my_influence', 'Holders influence')
-        --FU.show_fgumap_with_message(holders_influence, 'enemy_influence', 'Enemy influence')
-        FU.show_fgumap_with_message(holders_influence, 'influence', 'Influence')
-        --FU.show_fgumap_with_message(holders_influence, 'tension', 'tension')
-        FU.show_fgumap_with_message(holders_influence, 'vulnerability', 'vulnerability')
-        --FU.show_fgumap_with_message(holders_influence, 'my_count', 'My count')
-        --FU.show_fgumap_with_message(holders_influence, 'enemy_count', 'Enemy count')
-        FU.show_fgumap_with_message(holders_influence, 'inf_ratio', 'inf_ratio')
+        --DBG.show_fgumap_with_message(holders_influence, 'my_influence', 'Holders influence')
+        --DBG.show_fgumap_with_message(holders_influence, 'enemy_influence', 'Enemy influence')
+        DBG.show_fgumap_with_message(holders_influence, 'influence', 'Influence')
+        --DBG.show_fgumap_with_message(holders_influence, 'tension', 'tension')
+        DBG.show_fgumap_with_message(holders_influence, 'vulnerability', 'vulnerability')
+        --DBG.show_fgumap_with_message(holders_influence, 'my_count', 'My count')
+        --DBG.show_fgumap_with_message(holders_influence, 'enemy_count', 'Enemy count')
+        DBG.show_fgumap_with_message(holders_influence, 'inf_ratio', 'inf_ratio')
     end
 
 
@@ -1364,13 +1364,13 @@ local function get_hold_action(zone_cfg, fred_data)
         between_map = FHU.get_between_map(locs, leader, assigned_enemies, gamedata)
 
         if false then
-            FU.show_fgumap_with_message(between_map, 'distance', 'Between map: distance')
-            FU.show_fgumap_with_message(between_map, 'blurred_distance', 'Between map: blurred distance')
-            FU.show_fgumap_with_message(between_map, 'perp_distance', 'Between map: perp_distance')
-            FU.show_fgumap_with_message(between_map, 'blurred_perp_distance', 'Between map: blurred blurred_perp_distance')
-            FU.show_fgumap_with_message(between_map, 'inv_cost', 'Between map: inv_cost')
-            --FU.show_fgumap_with_message(fred_data.gamedata.leader_distance_map, 'distance', 'leader distance')
-            --FU.show_fgumap_with_message(fred_data.gamedata.leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
+            DBG.show_fgumap_with_message(between_map, 'distance', 'Between map: distance')
+            DBG.show_fgumap_with_message(between_map, 'blurred_distance', 'Between map: blurred distance')
+            DBG.show_fgumap_with_message(between_map, 'perp_distance', 'Between map: perp_distance')
+            DBG.show_fgumap_with_message(between_map, 'blurred_perp_distance', 'Between map: blurred blurred_perp_distance')
+            DBG.show_fgumap_with_message(between_map, 'inv_cost', 'Between map: inv_cost')
+            --DBG.show_fgumap_with_message(fred_data.gamedata.leader_distance_map, 'distance', 'leader distance')
+            --DBG.show_fgumap_with_message(fred_data.gamedata.leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
         end
     end
 
@@ -1562,8 +1562,8 @@ local function get_hold_action(zone_cfg, fred_data)
 
     if false then
         for id,pre_rating_map in pairs(pre_rating_maps) do
-            FU.show_fgumap_with_message(pre_rating_map, 'av_outcome', 'Average outcome', gamedata.unit_copies[id])
-            --FU.show_fgumap_with_message(pre_rating_map, 'influence', 'Influence', gamedata.unit_copies[id])
+            DBG.show_fgumap_with_message(pre_rating_map, 'av_outcome', 'Average outcome', gamedata.unit_copies[id])
+            --DBG.show_fgumap_with_message(pre_rating_map, 'influence', 'Influence', gamedata.unit_copies[id])
         end
     end
 
@@ -1631,9 +1631,9 @@ local function get_hold_action(zone_cfg, fred_data)
 
     if false then
         for id,hold_here_map in pairs(hold_here_maps) do
-            FU.show_fgumap_with_message(hold_here_map, 'hold_here', 'hold_here', gamedata.unit_copies[id])
+            DBG.show_fgumap_with_message(hold_here_map, 'hold_here', 'hold_here', gamedata.unit_copies[id])
             if protect_locs then
-                FU.show_fgumap_with_message(hold_here_map, 'protect_here', 'protect_here', gamedata.unit_copies[id])
+                DBG.show_fgumap_with_message(hold_here_map, 'protect_here', 'protect_here', gamedata.unit_copies[id])
             end
         end
     end
@@ -1712,10 +1712,10 @@ local function get_hold_action(zone_cfg, fred_data)
 
     if false then
         for id,hold_rating_map in pairs(hold_rating_maps) do
-            FU.show_fgumap_with_message(hold_rating_map, 'base_rating', 'base_rating', gamedata.unit_copies[id])
-            FU.show_fgumap_with_message(hold_rating_map, 'vuln_rating_org', 'vuln_rating_org', gamedata.unit_copies[id])
-            FU.show_fgumap_with_message(hold_rating_map, 'conv', 'conv', gamedata.unit_copies[id])
-            FU.show_fgumap_with_message(hold_rating_map, 'vuln_rating', 'vuln_rating', gamedata.unit_copies[id])
+            DBG.show_fgumap_with_message(hold_rating_map, 'base_rating', 'base_rating', gamedata.unit_copies[id])
+            DBG.show_fgumap_with_message(hold_rating_map, 'vuln_rating_org', 'vuln_rating_org', gamedata.unit_copies[id])
+            DBG.show_fgumap_with_message(hold_rating_map, 'conv', 'conv', gamedata.unit_copies[id])
+            DBG.show_fgumap_with_message(hold_rating_map, 'vuln_rating', 'vuln_rating', gamedata.unit_copies[id])
         end
     end
 
@@ -1829,10 +1829,10 @@ local function get_hold_action(zone_cfg, fred_data)
 
     if false then
         for id,protect_rating_map in pairs(protect_rating_maps) do
-            FU.show_fgumap_with_message(protect_rating_map, 'protect_base_rating', 'protect_base_rating', gamedata.unit_copies[id])
-            FU.show_fgumap_with_message(protect_rating_map, 'protect_rating_org', 'protect_rating_org', gamedata.unit_copies[id])
-            FU.show_fgumap_with_message(protect_rating_map, 'conv', 'conv', gamedata.unit_copies[id])
-            FU.show_fgumap_with_message(protect_rating_map, 'protect_rating', 'protect_rating', gamedata.unit_copies[id])
+            DBG.show_fgumap_with_message(protect_rating_map, 'protect_base_rating', 'protect_base_rating', gamedata.unit_copies[id])
+            DBG.show_fgumap_with_message(protect_rating_map, 'protect_rating_org', 'protect_rating_org', gamedata.unit_copies[id])
+            DBG.show_fgumap_with_message(protect_rating_map, 'conv', 'conv', gamedata.unit_copies[id])
+            DBG.show_fgumap_with_message(protect_rating_map, 'protect_rating', 'protect_rating', gamedata.unit_copies[id])
         end
     end
 
@@ -1866,7 +1866,7 @@ local function get_hold_action(zone_cfg, fred_data)
     --DBG.dbms(adjacent_village_map)
 
     if false then
-        FU.show_fgumap_with_message(adjacent_village_map, 'village_xy', 'Adjacent vulnerable villages')
+        DBG.show_fgumap_with_message(adjacent_village_map, 'village_xy', 'Adjacent vulnerable villages')
     end
 
 
@@ -2042,7 +2042,7 @@ local function get_advance_action(zone_cfg, fred_data)
         FU.set_fgumap_value(zone_map, loc[1], loc[2], 'flag', true)
     end
     if false then
-        FU.show_fgumap_with_message(advance_map, 'flag', 'Advance map: ' .. zone_cfg.zone_id)
+        DBG.show_fgumap_with_message(advance_map, 'flag', 'Advance map: ' .. zone_cfg.zone_id)
     end
 
     local safe_loc = false
@@ -2125,7 +2125,7 @@ local function get_advance_action(zone_cfg, fred_data)
                             end
                         end
                         if false then
-                            FU.show_fgumap_with_message(cost_map, 'cost', 'cost_map')
+                            DBG.show_fgumap_with_message(cost_map, 'cost', 'cost_map')
                         end
                     end
 
@@ -2204,7 +2204,7 @@ local function get_advance_action(zone_cfg, fred_data)
 
     if false then
         for id,unit_rating_map in pairs(unit_rating_maps) do
-            FU.show_fgumap_with_message(unit_rating_map, 'rating', 'Unit rating', gamedata.unit_copies[id])
+            DBG.show_fgumap_with_message(unit_rating_map, 'rating', 'Unit rating', gamedata.unit_copies[id])
         end
     end
 
@@ -2290,7 +2290,7 @@ local function get_advance_action(zone_cfg, fred_data)
 
 
     if best_id then
-        FU.print_debug(show_debug_advance, '  best advance:', best_id, best_hex[1], best_hex[2])
+        DBG.print_debug(show_debug_advance, '  best advance:', best_id, best_hex[1], best_hex[2])
 
         local best_unit = gamedata.my_units[best_id]
         best_unit.id = best_id

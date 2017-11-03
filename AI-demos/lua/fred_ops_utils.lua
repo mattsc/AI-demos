@@ -6,6 +6,7 @@ local FSC = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_scenario_cfg.lua"
 local FVU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_village_utils.lua"
 local FHU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_hold_utils.lua"
 local FMLU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_move_leader_utils.lua"
+local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local show_debug_analysis = false
 
@@ -254,7 +255,7 @@ function fred_ops_utils.assess_leader_threats(leader_threats, protect_locs, lead
         max_total_loss = max_total_loss + max_loss
         av_total_loss = av_total_loss + av_loss
     end
-    FU.print_debug(show_debug_analysis, '\nleader: max_total_loss, av_total_loss', max_total_loss, av_total_loss)
+    DBG.print_debug(show_debug_analysis, '\nleader: max_total_loss, av_total_loss', max_total_loss, av_total_loss)
 
     -- We only consider these leader threats, if they either
     --   - maximum damage reduces current HP by more than 50%
@@ -266,7 +267,7 @@ function fred_ops_utils.assess_leader_threats(leader_threats, protect_locs, lead
     else
         leader_threats.significant_threat = false
     end
-    FU.print_debug(show_debug_analysis, '  significant_threat', leader_threats.significant_threat)
+    DBG.print_debug(show_debug_analysis, '  significant_threat', leader_threats.significant_threat)
 
     -- Only count leader threats if they are significant
     if (not leader_threats.significant_threat) then
@@ -283,17 +284,17 @@ end
 
 
 function fred_ops_utils.set_turn_data(gamedata)
-    FU.print_debug(show_debug_analysis, '\n------------- Setting the turn_data table:')
+    DBG.print_debug(show_debug_analysis, '\n------------- Setting the turn_data table:')
 
     -- Get the needed cfgs
     local side_cfgs = FSC.get_side_cfgs()
 
     if false then
-        --FU.show_fgumap_with_message(gamedata.leader_distance_map, 'my_leader_distance', 'my_leader_distance')
-        FU.show_fgumap_with_message(gamedata.leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
-        FU.show_fgumap_with_message(gamedata.leader_distance_map, 'distance', 'leader_distance_map')
-        --FU.show_fgumap_with_message(gamedata.enemy_leader_distance_maps['Orcish Grunt'], 'cost', 'cost Grunt')
-        --FU.show_fgumap_with_message(gamedata.enemy_leader_distance_maps['Wolf Rider'], 'cost', 'cost Wolf Rider')
+        --DBG.show_fgumap_with_message(gamedata.leader_distance_map, 'my_leader_distance', 'my_leader_distance')
+        DBG.show_fgumap_with_message(gamedata.leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
+        DBG.show_fgumap_with_message(gamedata.leader_distance_map, 'distance', 'leader_distance_map')
+        --DBG.show_fgumap_with_message(gamedata.enemy_leader_distance_maps['Orcish Grunt'], 'cost', 'cost Grunt')
+        --DBG.show_fgumap_with_message(gamedata.enemy_leader_distance_maps['Wolf Rider'], 'cost', 'cost Wolf Rider')
     end
 
 
@@ -335,13 +336,13 @@ function fred_ops_utils.set_turn_data(gamedata)
     end
 
     if false then
-        --FU.show_fgumap_with_message(influence_maps, 'my_influence', 'My integer influence map')
-        --FU.show_fgumap_with_message(influence_maps, 'my_number', 'My number')
-        --FU.show_fgumap_with_message(influence_maps, 'enemy_influence', 'Enemy integer influence map')
-        --FU.show_fgumap_with_message(influence_maps, 'enemy_number', 'Enemy number')
-        FU.show_fgumap_with_message(influence_maps, 'influence', 'Influence map')
-        FU.show_fgumap_with_message(influence_maps, 'tension', 'Tension map')
-        FU.show_fgumap_with_message(influence_maps, 'vulnerability', 'Vulnerability map')
+        --DBG.show_fgumap_with_message(influence_maps, 'my_influence', 'My integer influence map')
+        --DBG.show_fgumap_with_message(influence_maps, 'my_number', 'My number')
+        --DBG.show_fgumap_with_message(influence_maps, 'enemy_influence', 'Enemy integer influence map')
+        --DBG.show_fgumap_with_message(influence_maps, 'enemy_number', 'Enemy number')
+        DBG.show_fgumap_with_message(influence_maps, 'influence', 'Influence map')
+        DBG.show_fgumap_with_message(influence_maps, 'tension', 'Tension map')
+        DBG.show_fgumap_with_message(influence_maps, 'vulnerability', 'Vulnerability map')
     end
 
 
@@ -575,7 +576,7 @@ end
 
 
 function fred_ops_utils.set_ops_data(fred_data, fred_recruit)
-    FU.print_debug(show_debug_analysis, '\n------------- Setting the turn_data table:')
+    DBG.print_debug(show_debug_analysis, '\n------------- Setting the turn_data table:')
 
     -- Get the needed cfgs
     local gamedata = fred_data.gamedata
@@ -646,7 +647,7 @@ function fred_ops_utils.set_ops_data(fred_data, fred_recruit)
     if closest_keep then
         leader_threats.leader_locs.closest_keep = closest_keep
         table.insert(leader_threats.protect_locs, closest_keep)
-        FU.print_debug(show_debug_analysis, 'closest keep: ' .. closest_keep[1] .. ',' .. closest_keep[2])
+        DBG.print_debug(show_debug_analysis, 'closest keep: ' .. closest_keep[1] .. ',' .. closest_keep[2])
     else
         local _, _, next_hop, best_keep_for_hop = FMLU.move_eval(true, fred_data)
         leader_threats.leader_locs.next_hop = next_hop
@@ -654,13 +655,13 @@ function fred_ops_utils.set_ops_data(fred_data, fred_recruit)
         table.insert(leader_threats.protect_locs, next_hop)
         table.insert(leader_threats.protect_locs, best_keep_for_hop)
         if next_hop then
-            FU.print_debug(show_debug_analysis, 'next_hop to keep: ' .. next_hop[1] .. ',' .. next_hop[2])
+            DBG.print_debug(show_debug_analysis, 'next_hop to keep: ' .. next_hop[1] .. ',' .. next_hop[2])
         end
     end
     if closest_village then
         leader_threats.leader_locs.closest_village = closest_village
         table.insert(leader_threats.protect_locs, closest_village)
-        FU.print_debug(show_debug_analysis, 'reachable village after keep: ' .. closest_village[1] .. ',' .. closest_village[2])
+        DBG.print_debug(show_debug_analysis, 'reachable village after keep: ' .. closest_village[1] .. ',' .. closest_village[2])
     end
     -- It is possible that no protect location was found (e.g. if the leader cannot move)
     if (not leader_threats.protect_locs[1]) then
@@ -1201,7 +1202,7 @@ function fred_ops_utils.set_ops_data(fred_data, fred_recruit)
     --DBG.dbms(ops_data.assigned_enemies)
     --DBG.dbms(ops_data.assigned_units)
 
-    FU.print_debug(show_debug_analysis, '--- Done determining turn_data ---\n')
+    DBG.print_debug(show_debug_analysis, '--- Done determining turn_data ---\n')
 
     return ops_data
 end

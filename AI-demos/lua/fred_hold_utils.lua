@@ -3,7 +3,7 @@ local AH = wesnoth.require "ai/lua/ai_helper.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local W = H.set_wml_action_metatable {}
---local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
+local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local fred_hold_utils = {}
 
@@ -83,7 +83,7 @@ function fred_hold_utils.get_between_map(locs, toward_loc, units, gamedata)
         end
 
         if false then
-            FU.show_fgumap_with_message(path_map, 'sign', 'path_map: sign')
+            DBG.show_fgumap_with_message(path_map, 'sign', 'path_map: sign')
         end
 
 
@@ -106,8 +106,8 @@ function fred_hold_utils.get_between_map(locs, toward_loc, units, gamedata)
         local inv_cost_map = FU.inverse_cost_map(unit, toward_loc, gamedata)
 
         if false then
-            FU.show_fgumap_with_message(cost_map, 'cost', 'cost_map', gamedata.unit_copies[id])
-            FU.show_fgumap_with_message(inv_cost_map, 'cost', 'inv_cost_map', gamedata.unit_copies[id])
+            DBG.show_fgumap_with_message(cost_map, 'cost', 'cost_map', gamedata.unit_copies[id])
+            DBG.show_fgumap_with_message(inv_cost_map, 'cost', 'inv_cost_map', gamedata.unit_copies[id])
         end
 
         local cost_full = FU.get_fgumap_value(cost_map, toward_loc[1], toward_loc[2], 'cost')
@@ -355,7 +355,7 @@ function fred_hold_utils.unit_rating_maps_to_dstsrc(unit_rating_maps, key, gamed
             for i = 1,count do
                 FU.set_fgumap_value(tmp_map, sorted_ratings[unit.id][i].x, sorted_ratings[unit.id][i].y, 'protect_rating', sorted_ratings[unit.id][i].protect_rating)
             end
-            FU.show_fgumap_with_message(tmp_map, 'protect_rating', 'Best protect_rating', gamedata.unit_copies[unit.id])
+            DBG.show_fgumap_with_message(tmp_map, 'protect_rating', 'Best protect_rating', gamedata.unit_copies[unit.id])
         end
     end
 
