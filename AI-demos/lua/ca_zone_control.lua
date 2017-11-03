@@ -87,7 +87,7 @@ local function get_attack_action(zone_cfg, fred_data)
 
     -- How much more valuable do we consider the enemy units than our own
     local value_ratio = zone_cfg.value_ratio or FU.cfg_default('value_ratio')
-    --AH.print_time(fred_data.turn_start_time, 'value_ratio', value_ratio)
+    --DBG.print_ts_delta(fred_data.turn_start_time, 'value_ratio', value_ratio)
 
     -- We need to make sure the units always use the same weapon below, otherwise
     -- the comparison is not fair.
@@ -115,11 +115,11 @@ local function get_attack_action(zone_cfg, fred_data)
         local attack_combos = FAU.get_attack_combos(
             zone_units_attacks, target, gamedata.reach_maps, false, move_cache, cfg_attack
         )
-        --AH.print_time(fred_data.turn_start_time, '#attack_combos', #attack_combos)
+        --DBG.print_ts_delta(fred_data.turn_start_time, '#attack_combos', #attack_combos)
 
 
         for j,combo in ipairs(attack_combos) do
-            --AH.print_time(fred_data.turn_start_time, 'combo ' .. j)
+            --DBG.print_ts_delta(fred_data.turn_start_time, 'combo ' .. j)
 
             -- Only check out the first 1000 attack combos to keep evaluation time reasonable
             -- TODO: can we have these ordered with likely good rating first?
@@ -509,7 +509,7 @@ local function get_attack_action(zone_cfg, fred_data)
 
                     bonus_rating = bonus_rating - plague_penalty
                 end
-                --AH.print_time(fred_data.turn_start_time, ' -----------------------> rating', combo_rating, bonus_rating)
+                --DBG.print_ts_delta(fred_data.turn_start_time, ' -----------------------> rating', combo_rating, bonus_rating)
 
 
                 local pre_rating = combo_rating + bonus_rating
@@ -1012,7 +1012,7 @@ local function get_attack_action(zone_cfg, fred_data)
                     local attacker = combo.attackers[1]
 
                     if (attacker.moves == 0) then
-                        --AH.print_time(fred_data.turn_start_time, '  by', attacker.id, combo.dsts[1][1], combo.dsts[1][2])
+                        --DBG.print_ts_delta(fred_data.turn_start_time, '  by', attacker.id, combo.dsts[1][1], combo.dsts[1][2])
 
                         -- Now calculate the counter attack outcome
                         local attacker_moved = {}
@@ -1023,7 +1023,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         )
                         --DBG.dbms(counter_outcomes)
 
-                        --AH.print_time(fred_data.turn_start_time, '   counter ratings no attack:', counter_outcomes.rating_table.rating, counter_outcomes.def_outcome.hp_chance[0])
+                        --DBG.print_ts_delta(fred_data.turn_start_time, '   counter ratings no attack:', counter_outcomes.rating_table.rating, counter_outcomes.def_outcome.hp_chance[0])
 
                         -- Rating if no forward attack is done is done is only the counter attack rating
                         local no_attack_rating = 0
@@ -1052,7 +1052,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 end
             end
 
-            --AH.print_time(fred_data.turn_start_time, '  acceptable_counter', acceptable_counter)
+            --DBG.print_ts_delta(fred_data.turn_start_time, '  acceptable_counter', acceptable_counter)
             local total_rating = -9999
             if acceptable_counter then
                 total_rating = min_total_damage_rating
@@ -2344,7 +2344,7 @@ function get_zone_action(cfg, fred_data)
 
     -- **** Retreat severely injured units evaluation ****
     if (cfg.action_type == 'retreat') then
-        --AH.print_time(fred_data.turn_start_time, '  ' .. cfg.zone_id .. ': retreat_injured eval')
+        --DBG.print_ts_delta(fred_data.turn_start_time, '  ' .. cfg.zone_id .. ': retreat_injured eval')
         -- TODO: heal_loc and safe_loc are not used at this time
         -- keep for now and see later if needed
         local action = get_retreat_action(cfg, fred_data)
@@ -2356,7 +2356,7 @@ function get_zone_action(cfg, fred_data)
 
     -- **** Attack evaluation ****
     if (cfg.action_type == 'attack') then
-        --AH.print_time(fred_data.turn_start_time, '  ' .. cfg.zone_id .. ': attack eval')
+        --DBG.print_ts_delta(fred_data.turn_start_time, '  ' .. cfg.zone_id .. ': attack eval')
         local action = get_attack_action(cfg, fred_data)
         if action then
             --print(action.action_str)
@@ -2366,20 +2366,20 @@ function get_zone_action(cfg, fred_data)
 
     -- **** Hold position evaluation ****
     if (cfg.action_type == 'hold') then
-        --AH.print_time(fred_data.turn_start_time, '  ' .. cfg.zone_id .. ': hold eval')
+        --DBG.print_ts_delta(fred_data.turn_start_time, '  ' .. cfg.zone_id .. ': hold eval')
         local action = get_hold_action(cfg, fred_data)
         if action then
-            --AH.print_time(fred_data.turn_start_time, action.action_str)
+            --DBG.print_ts_delta(fred_data.turn_start_time, action.action_str)
             return action
         end
     end
 
     -- **** Advance in zone evaluation ****
     if (cfg.action_type == 'advance') then
-        --AH.print_time(fred_data.turn_start_time, '  ' .. cfg.zone_id .. ': advance eval')
+        --DBG.print_ts_delta(fred_data.turn_start_time, '  ' .. cfg.zone_id .. ': advance eval')
         local action = get_advance_action(cfg, fred_data)
         if action then
-            --AH.print_time(fred_data.turn_start_time, action.action_str)
+            --DBG.print_ts_delta(fred_data.turn_start_time, action.action_str)
             return action
         end
     end
@@ -2389,10 +2389,10 @@ function get_zone_action(cfg, fred_data)
     -- CA, but for simplicity we keep it like this for now until
     -- we know whether it works as desired
     if (cfg.action_type == 'move_leader_to_keep') then
-        --AH.print_time(fred_data.turn_start_time, '  ' .. cfg.zone_id .. ': move_leader_to_keep eval')
+        --DBG.print_ts_delta(fred_data.turn_start_time, '  ' .. cfg.zone_id .. ': move_leader_to_keep eval')
         local score, action = FMLU.move_eval(true, fred_data)
         if action then
-            --AH.print_time(fred_data.turn_start_time, action.action_str)
+            --DBG.print_ts_delta(fred_data.turn_start_time, action.action_str)
             return action
         end
     end
@@ -2400,7 +2400,7 @@ function get_zone_action(cfg, fred_data)
     -- **** Recruit evaluation ****
     -- TODO: does it make sense to keep this also as a separate CA?
     if (cfg.action_type == 'recruit') then
-        --AH.print_time(fred_data.turn_start_time, '  ' .. cfg.zone_id .. ': recruit eval')
+        --DBG.print_ts_delta(fred_data.turn_start_time, '  ' .. cfg.zone_id .. ': recruit eval')
         -- Important: we cannot check recruiting here, as the units
         -- are taken off the map at this time, so it needs to be checked
         -- by the function setting up the cfg
@@ -2651,7 +2651,7 @@ function ca_zone_control:execution(ai, cfg, self)
             --DBG.dbms(levelups)
 
 
-            --AH.print_time(self.data.turn_start_time, 'Reordering units for attack')
+            --DBG.print_ts_delta(self.data.turn_start_time, 'Reordering units for attack')
             local max_rating
             for ind,unit in ipairs(self.data.zone_action.units) do
                 local unit_info = self.data.gamedata.unit_infos[unit.id]
@@ -2728,9 +2728,9 @@ function ca_zone_control:execution(ai, cfg, self)
                     max_rating, next_unit_ind = rating, ind
                 end
             end
-            --AH.print_time(self.data.turn_start_time, 'Best unit to go next:', self.data.zone_action.units[next_unit_ind].id, max_rating, next_unit_ind)
+            --DBG.print_ts_delta(self.data.turn_start_time, 'Best unit to go next:', self.data.zone_action.units[next_unit_ind].id, max_rating, next_unit_ind)
         end
-        --AH.print_time(self.data.turn_start_time, 'next_unit_ind', next_unit_ind)
+        --DBG.print_ts_delta(self.data.turn_start_time, 'next_unit_ind', next_unit_ind)
 
         local unit = wesnoth.get_units { id = self.data.zone_action.units[next_unit_ind].id }[1]
         if (not unit) then
