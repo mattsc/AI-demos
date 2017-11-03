@@ -9,9 +9,9 @@ local FSC = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_scenario_cfg.lua"
 local ca_reset_vars_move = {}
 
 function ca_reset_vars_move:evaluation(ai, cfg, self)
-    --print(' Resetting gamedata tables (etc.) before move')
+    --print(' Resetting move_data tables (etc.) before move')
 
-    self.data.gamedata = FGU.get_gamedata()
+    self.data.move_data = FGU.get_move_data()
     local side_cfgs = FSC.get_side_cfgs()
     self.data.move_cache = {}
 

@@ -133,7 +133,7 @@ function fred_attack_utils.is_acceptable_attack(damage_to_ai, damage_to_enemy, v
     return (damage_to_enemy / damage_to_ai) >= value_ratio
 end
 
-function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, gamedata, cfg)
+function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, move_data, cfg)
     -- Return a table with the different contributions to damage a unit is
     -- expected to experience in an attack.
     -- The attack att_outcome for the attacker need to be precalculated for this.
@@ -156,7 +156,7 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, gamedata, cf
 
 
     ----- Begin get_delayed_damage() -----
-    local function get_delayed_damage(unit_info, att_outcome, average_damage, dst, gamedata)
+    local function get_delayed_damage(unit_info, att_outcome, average_damage, dst, move_data)
         -- This does, in principle, not have to be a separate function, as it is only
         -- called once, but this way it can be made accessible from outside again, if needed.
         --
@@ -192,7 +192,7 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, gamedata, cf
         end
 
         -- Negative delayed damage (healing)
-        local is_village = gamedata.village_map[dst[1]] and gamedata.village_map[dst[1]][dst[2]]
+        local is_village = move_data.village_map[dst[1]] and move_data.village_map[dst[1]][dst[2]]
 
         -- If unit is on a village, we count that as an 8 HP bonus (negative damage)
         -- multiplied by the chance to survive
@@ -260,7 +260,7 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, gamedata, cf
     damage.levelup_chance = att_outcome.levelup_chance
     --print('  levelup_chance', damage.levelup_chance)
 
-    damage.delayed_damage = get_delayed_damage(unit_info, att_outcome, average_damage, dst, gamedata)
+    damage.delayed_damage = get_delayed_damage(unit_info, att_outcome, average_damage, dst, move_data)
 
     -- Slow is somewhat harder to account for correctly. It sort of takes half the
     -- unit away, but since it's temporary, we assign only half of that as "damage".
@@ -320,7 +320,7 @@ function fred_attack_utils.damage_rating_unit(damage)
     return rating
 end
 
-function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, att_outcomes, def_outcome, gamedata, cfg)
+function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, att_outcomes, def_outcome, move_data, cfg)
     -- Returns a common (but configurable) rating for attacks of one or several attackers against one defender
     --
     -- Inputs:
@@ -330,7 +330,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     --  @att_outcomes: array of the attack outcomes of the attack combination(!) of the attackers
     --    (must be an array even for single unit attacks)
     --  @def_outcome: the combat outcome of the defender after facing the combination of all attackers
-    --  @gamedata: table with the game state as produced by fred_gamestate_utils.gamedata()
+    --  @move_data: table with the game state as produced by fred_gamestate_utils.move_data()
     --
     -- Optional inputs:
     --  @cfg: the different weights listed right below
@@ -358,7 +358,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     local attacker_damages = {}
     local attacker_rating = 0
     for i,attacker_info in ipairs(attacker_infos) do
-        attacker_damages[i] = fred_attack_utils.unit_damage(attacker_info, att_outcomes[i], dsts[i], gamedata, cfg)
+        attacker_damages[i] = fred_attack_utils.unit_damage(attacker_info, att_outcomes[i], dsts[i], move_data, cfg)
         attacker_rating = attacker_rating + fred_attack_utils.damage_rating_unit(attacker_damages[i])
     end
 
@@ -366,9 +366,9 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     if cfg and cfg.defender_loc then
         defender_x, defender_y = cfg.defender_loc[1], cfg.defender_loc[2]
     else
-        defender_x, defender_y = gamedata.units[defender_info.id][1], gamedata.units[defender_info.id][2]
+        defender_x, defender_y = move_data.units[defender_info.id][1], move_data.units[defender_info.id][2]
     end
-    local defender_damage = fred_attack_utils.unit_damage(defender_info, def_outcome, { defender_x, defender_y }, gamedata, cfg)
+    local defender_damage = fred_attack_utils.unit_damage(defender_info, def_outcome, { defender_x, defender_y }, move_data, cfg)
     -- Rating for the defender is negative damage rating (as in, damage is good)
     local defender_rating = - fred_attack_utils.damage_rating_unit(defender_damage)
 
@@ -423,7 +423,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
 
     -- If defender is on a village, add a bonus rating (we want to get rid of those preferentially)
     -- This is in addition to the damage bonus (penalty, if enemy) already included above (but as an extra rating)
-    local defender_on_village = gamedata.village_map[defender_x] and gamedata.village_map[defender_x][defender_y]
+    local defender_on_village = move_data.village_map[defender_x] and move_data.village_map[defender_x][defender_y]
     if defender_on_village then
         extra_rating = extra_rating + 10.
     end
@@ -438,9 +438,9 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     local defense_rating_attacker = 0.
     for i,attacker_info in ipairs(attacker_infos) do
         defense_rating_attacker = defense_rating_attacker + FGUI.get_unit_defense(
-            gamedata.unit_copies[attacker_info.id],
+            move_data.unit_copies[attacker_info.id],
             dsts[i][1], dsts[i][2],
-            gamedata.defense_maps
+            move_data.defense_maps
         )
     end
     defense_rating_attacker = defense_rating_attacker / #attacker_infos * terrain_defense_weight
@@ -452,9 +452,9 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     local defense_rating_defender = 0.
     for _,dst in ipairs(dsts) do
         defense_rating_defender = defense_rating_defender + FGUI.get_unit_defense(
-            gamedata.unit_copies[defender_info.id],
+            move_data.unit_copies[defender_info.id],
             dst[1], dst[2],
-            gamedata.defense_maps
+            move_data.defense_maps
         )
     end
     defense_rating_defender = defense_rating_defender / #dsts * terrain_defense_weight
@@ -463,12 +463,12 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
 
     -- Get a very small bonus for hexes in between defender and AI leader
     -- 'relative_distances' is larger for attack hexes closer to the side leader (possible values: -1 .. 1)
-    if gamedata.leaders[attacker_infos[1].side] then
+    if move_data.leaders[attacker_infos[1].side] then
         local rel_dist_rating = 0.
         for _,dst in ipairs(dsts) do
             local relative_distance =
-                H.distance_between(defender_x, defender_y, gamedata.leader_x, gamedata.leader_y)
-                - H.distance_between(dst[1], dst[2], gamedata.leader_x, gamedata.leader_y)
+                H.distance_between(defender_x, defender_y, move_data.leader_x, move_data.leader_y)
+                - H.distance_between(dst[1], dst[2], move_data.leader_x, move_data.leader_y)
             rel_dist_rating = rel_dist_rating + relative_distance
         end
         rel_dist_rating = rel_dist_rating / #dsts * distance_leader_weight
@@ -478,10 +478,10 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
 
     -- Add a very small penalty for attack hexes occupied by other own units that can move out of the way
     -- Note: it must be checked previously that the unit on the hex can move away,
-    --    that is we only check gamedata.my_unit_map_MP here
+    --    that is we only check move_data.my_unit_map_MP here
     for i,dst in ipairs(dsts) do
-        if gamedata.my_unit_map_MP[dst[1]] and gamedata.my_unit_map_MP[dst[1]][dst[2]] then
-            if (gamedata.my_unit_map_MP[dst[1]][dst[2]].id ~= attacker_infos[i].id) then
+        if move_data.my_unit_map_MP[dst[1]] and move_data.my_unit_map_MP[dst[1]][dst[2]] then
+            if (move_data.my_unit_map_MP[dst[1]][dst[2]].id ~= attacker_infos[i].id) then
                 extra_rating = extra_rating - occupied_hex_penalty
             end
         end
@@ -623,7 +623,7 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack, is_attacker, 
     return total_damage, base_damage, extra_damage, regen_damage
 end
 
-function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, attacker_info, defender_info, gamedata, move_cache, cfg)
+function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, attacker_info, defender_info, move_data, move_cache, cfg)
     -- Calculate the outcome of a combat by @attacker_copy vs. @defender_proxy at location @dst
     -- We use wesnoth.simulate_combat for this, but cache results when possible
     -- Inputs:
@@ -632,7 +632,7 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
     -- @dst: location from which the attacker will attack in form { x, y }
     -- @attacker_info, @defender_info: unit info for the two units (needed in addition to the units
     --   themselves in order to speed things up)
-    --  @gamedata: table with the game state as produced by fred_gamestate_utils.gamedata()
+    --  @move_data: table with the game state as produced by fred_gamestate_utils.move_data()
     --  @move_cache: for caching data *for this move only*, needs to be cleared after a gamestate change
     --
     --  Optional inputs:
@@ -717,8 +717,8 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
 
     local use_max_damage_weapons = (cfg and cfg.use_max_damage_weapons) or FU.cfg_default('use_max_damage_weapons')
 
-    local defender_defense = FGUI.get_unit_defense(defender_proxy, defender_proxy.x, defender_proxy.y, gamedata.defense_maps)
-    local attacker_defense = FGUI.get_unit_defense(attacker_copy, dst[1], dst[2], gamedata.defense_maps)
+    local defender_defense = FGUI.get_unit_defense(defender_proxy, defender_proxy.x, defender_proxy.y, move_data.defense_maps)
+    local attacker_defense = FGUI.get_unit_defense(attacker_copy, dst[1], dst[2], move_data.defense_maps)
 
     -- Units need to be identified by id and XP
     -- There is a very small chance that this could be ambiguous, ignore that for now
@@ -851,7 +851,7 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
     return att_outcome, def_outcome, att_weapon_i
 end
 
-function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cache, cfg)
+function fred_attack_utils.attack_combo_eval(combo, defender, move_data, move_cache, cfg)
     -- Evaluate attack combination outcomes using
     -- @tmp_attacker_copies: array of attacker unit copies (must be copies, does not work with the proxy table)
     -- @defender_proxy: the unit being attacked (must be a unit proxy table on the map, does not work with a copy)
@@ -859,7 +859,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
     --   must be in same order as @attackers
     -- @tmp_attacker_infos, @defender_info: unit info for the attackers and defenders (needed in addition to the units
     --   themselves in order to speed things up)
-    -- @gamedata, @move_cache: only needed to pass to the functions being called
+    -- @move_data, @move_cache: only needed to pass to the functions being called
     --    see fred_attack_utils.attack_outcome() for descriptions
     --
     -- Optional inputs:
@@ -950,10 +950,10 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
     local tmp_attacker_copies, tmp_attacker_infos, tmp_dsts = {}, {}, {}
     for src,dst in pairs(combo) do
         local src_x, src_y = math.floor(src / 1000), src % 1000
-        attacker_id = gamedata.unit_map[src_x][src_y].id
+        attacker_id = move_data.unit_map[src_x][src_y].id
         --print(src_x, src_y, attacker_id)
-        table.insert(tmp_attacker_infos, gamedata.unit_infos[attacker_id])
-        table.insert(tmp_attacker_copies, gamedata.unit_copies[attacker_id])
+        table.insert(tmp_attacker_infos, move_data.unit_infos[attacker_id])
+        table.insert(tmp_attacker_copies, move_data.unit_copies[attacker_id])
 
         table.insert(tmp_dsts, { math.floor(dst / 1000), dst % 1000 } )
     end
@@ -962,7 +962,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
 
     local defender_id, defender_loc = next(defender)
     local defender_proxy = wesnoth.get_unit(defender_loc[1], defender_loc[2])
-    local defender_info = gamedata.unit_infos[defender_id]
+    local defender_info = move_data.unit_infos[defender_id]
     --DBG.dbms(defender_info)
 
     -- We first simulate and rate the individual attacks
@@ -972,13 +972,13 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
             fred_attack_utils.attack_outcome(
                 attacker_copy, defender_proxy, tmp_dsts[i],
                 tmp_attacker_infos[i], defender_info,
-                gamedata, move_cache, cfg
+                move_data, move_cache, cfg
             )
 
         local rating_table =
             fred_attack_utils.attack_rating(
                 { tmp_attacker_infos[i] }, defender_info, { tmp_dsts[i] },
-                { tmp_att_outcomes[i] }, tmp_def_outcomes[i], gamedata, cfg
+                { tmp_att_outcomes[i] }, tmp_def_outcomes[i], move_data, cfg
             )
 
         --print(attacker_copy.id .. ' --> ' .. defender_proxy.id)
@@ -1085,7 +1085,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
                 local aoc, doc = fred_attack_utils.attack_outcome(
                     attacker_copies[i], defender_proxy, dsts[i],
                     attacker_infos[i], defender_info,
-                    gamedata, move_cache, cfg
+                    move_data, move_cache, cfg
                 )
 
                 defender_proxy.hitpoints = org_hp
@@ -1133,7 +1133,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
                     local aoc, doc = fred_attack_utils.attack_outcome(
                         attacker_copies[i], adv_defender_proxy, dsts[i],
                         attacker_infos[i], adv_defender_info,
-                        gamedata, move_cache, cfg
+                        move_data, move_cache, cfg
                     )
 
                     wesnoth.put_unit(defender_loc[1], defender_loc[2])
@@ -1200,7 +1200,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
 
         local rating_table = fred_attack_utils.attack_rating(
             tmp_ai, defender_info, tmp_dsts,
-            tmp_as, def_outcomes[i], gamedata, cfg
+            tmp_as, def_outcomes[i], move_data, cfg
         )
         rating_progression[i] = rating_table.rating
     end
@@ -1209,7 +1209,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
     local rating_table, attacker_damages, defender_damage =
         fred_attack_utils.attack_rating(
             attacker_infos, defender_info, dsts,
-            att_outcomes, def_outcomes[#attacker_infos], gamedata, cfg
+            att_outcomes, def_outcomes[#attacker_infos], move_data, cfg
         )
 
     rating_table.progression = rating_progression
@@ -1228,7 +1228,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, gamedata, move_cac
     return combo_outcome
 end
 
-function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, get_strongest_attack, gamedata, move_cache, cfg)
+function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, get_strongest_attack, move_data, move_cache, cfg)
     -- Get all attack combinations of @attackers on @defender
     -- OR: get what is considered the strongest of those attacks (approximately)
     -- The former is in order to get all attack combos (but order of individual attacks doesn't matter),
@@ -1244,15 +1244,15 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
     -- @reach_maps: reach_maps for the attackers in the form as returned by fred_gamestate_utils.get_mapstate()
     --   - This is _much_ faster if reach_maps is given; should be done for all attack combos for the side
     --     Only when the result depends on a hypothetical map situation (such as for counter attacks) should
-    --     it be calculated here. If reach_maps are not given, @gamedata must be provided
-    --   - Even if @reach_maps is no given, gamedata still needs  to contain the "original" reach_maps for the attackers.
+    --     it be calculated here. If reach_maps are not given, @move_data must be provided
+    --   - Even if @reach_maps is no given, move_data still needs  to contain the "original" reach_maps for the attackers.
     --     This is used to speed up the calculation. If the attacker (enemy) cannot get to a hex originally
     --     (remember that this is done with AI units with MP taken off the map), then it can also
     --     not get there after moving AI units into place.
     --   - Important: for units on the AI side, reach_maps must NOT included hexes with units that
     --     cannot move out of the way
     -- @get_strongest_attack (boolean): if set to 'true', don't return all attacks, but only the
-    --   one deemed strongest as described above. If this is set, @gamedata and @move_cache nust be provided
+    --   one deemed strongest as described above. If this is set, @move_data and @move_cache nust be provided
     --  @cfg: configuration parameters to be passed through the attack_outcome, attack_rating
     --
     -- Return value: attack combinations (either a single one or an array) of form { src = dst }, e.g.:
@@ -1274,7 +1274,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
             -- original reach. It cannot have gotten any better than this.
             local can_reach = false
             for xa,ya in H.adjacent_tiles(defender_loc[1], defender_loc[2]) do
-                if gamedata.reach_maps[attacker_id][xa] and gamedata.reach_maps[attacker_id][xa][ya] then
+                if move_data.reach_maps[attacker_id][xa] and move_data.reach_maps[attacker_id][xa][ya] then
                     can_reach = true
                     break
                 end
@@ -1284,27 +1284,27 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
                 -- For sides other than the current, we always use max_moves.
                 -- For the current side, we always use current moves.
                 local old_moves
-                if (gamedata.unit_infos[attacker_id].side ~= wesnoth.current.side) then
-                    old_moves = gamedata.unit_copies[attacker_id].moves
-                    gamedata.unit_copies[attacker_id].moves = gamedata.unit_copies[attacker_id].max_moves
+                if (move_data.unit_infos[attacker_id].side ~= wesnoth.current.side) then
+                    old_moves = move_data.unit_copies[attacker_id].moves
+                    move_data.unit_copies[attacker_id].moves = move_data.unit_copies[attacker_id].max_moves
                 end
 
-                local reach = wesnoth.find_reach(gamedata.unit_copies[attacker_id])
+                local reach = wesnoth.find_reach(move_data.unit_copies[attacker_id])
 
                 for _,r in ipairs(reach) do
                     if (not reach_maps[attacker_id][r[1]]) then reach_maps[attacker_id][r[1]] = {} end
                     reach_maps[attacker_id][r[1]][r[2]] = { moves_left = r[3] }
                 end
 
-                if (gamedata.unit_infos[attacker_id].side ~= wesnoth.current.side) then
-                    gamedata.unit_copies[attacker_id].moves = old_moves
+                if (move_data.unit_infos[attacker_id].side ~= wesnoth.current.side) then
+                    move_data.unit_copies[attacker_id].moves = old_moves
                 end
             end
         end
 
         -- Eliminate hexes with other units that cannot move out of the way
         for id,reach_map in pairs(reach_maps) do
-            for id_noMP,loc in pairs(gamedata.my_units_noMP) do
+            for id_noMP,loc in pairs(move_data.my_units_noMP) do
                 if (id ~= id_noMP) then
                     if reach_map[loc[1]] then reach_map[loc[1]][loc[2]] = nil end
                 end
@@ -1329,15 +1329,15 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
                 local _, rating
                 if get_strongest_attack then
                     local att_outcome, def_outcome = fred_attack_utils.attack_outcome(
-                        gamedata.unit_copies[attacker_id], defender_proxy, { xa, ya },
-                        gamedata.unit_infos[attacker_id], gamedata.unit_infos[defender_id],
-                        gamedata, move_cache, cfg
+                        move_data.unit_copies[attacker_id], defender_proxy, { xa, ya },
+                        move_data.unit_infos[attacker_id], move_data.unit_infos[defender_id],
+                        move_data, move_cache, cfg
                     )
 
                     local rating_table = fred_attack_utils.attack_rating(
-                        { gamedata.unit_infos[attacker_id] }, gamedata.unit_infos[defender_id], { { xa, ya } },
+                        { move_data.unit_infos[attacker_id] }, move_data.unit_infos[defender_id], { { xa, ya } },
                         { att_outcome }, def_outcome,
-                        gamedata, cfg
+                        move_data, cfg
                     )
 
                     -- It's okay to use the full rating here, rather than just damage_rating
@@ -1370,9 +1370,9 @@ function fred_attack_utils.get_attack_combos(attackers, defender, reach_maps, ge
     return FU.get_unit_hex_combos(attacks_dst_src, get_strongest_attack)
 end
 
-function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamedata, move_cache, cfg)
+function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, move_data, move_cache, cfg)
     -- Get counter-attack outcomes of an AI unit in a hypothetical map situation
-    -- Units are placed on the map and the gamedata tables are adjusted inside this
+    -- Units are placed on the map and the move_data tables are adjusted inside this
     -- function in order to avoid code duplication and ensure consistency
     --
     -- Conditions that need to be met before calling this function (otherwise it won't work):
@@ -1394,9 +1394,9 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
     local stored_units, ids = {}, {}
 
 
-    ----- Begin adjust_gamedata_tables() -----
-    local function adjust_gamedata_tables(old_locs, new_locs, store_units_in_way)
-        -- Adjust all the gamedata tables to the new position, and reset them again later.
+    ----- Begin adjust_move_data_tables() -----
+    local function adjust_move_data_tables(old_locs, new_locs, store_units_in_way)
+        -- Adjust all the move_data tables to the new position, and reset them again later.
         -- This is a local function as only counter attack calculations should have to move units.
         --
         -- INPUTS:
@@ -1422,8 +1422,8 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
                 -- This includes units with MP that attack from their current position,
                 -- but not units without MP (as the latter are already on the map)
                 -- Note: this array might have missing elements -> needs to be iterated using pairs()
-                if gamedata.my_unit_map_MP[x1] and gamedata.my_unit_map_MP[x1][y1] then
-                    ids[i_l] = gamedata.my_unit_map_MP[x1][y1].id
+                if move_data.my_unit_map_MP[x1] and move_data.my_unit_map_MP[x1][y1] then
+                    ids[i_l] = move_data.my_unit_map_MP[x1][y1].id
                 end
 
                 -- By contrast, we only need to store the information about units in the way,
@@ -1431,14 +1431,14 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
                 if (x1 ~= x2) or (y1 ~= y2) then
                     -- If there is another unit at the new location, store it
                     -- It does not matter for this whether this is a unit involved in the move or not
-                    if gamedata.my_unit_map[x2] and gamedata.my_unit_map[x2][y2] then
-                        stored_units[gamedata.my_unit_map[x2][y2].id] = { x2, y2 }
+                    if move_data.my_unit_map[x2] and move_data.my_unit_map[x2][y2] then
+                        stored_units[move_data.my_unit_map[x2][y2].id] = { x2, y2 }
                     end
                 end
             end
         end
 
-        -- Now adjust all the gamedata tables
+        -- Now adjust all the move_data tables
         for i_l,old_loc in ipairs(old_locs) do
             local x1, y1 = old_loc[1], old_loc[2]
             local x2, y2 = new_locs[i_l][1], new_locs[i_l][2]
@@ -1450,24 +1450,24 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
 
                 -- Likely, not all of these tables have to be changed, but it takes
                 -- very little time, so better safe than sorry
-                gamedata.unit_copies[id].x, gamedata.unit_copies[id].y = x2, y2
+                move_data.unit_copies[id].x, move_data.unit_copies[id].y = x2, y2
 
-                gamedata.units[id] = { x2, y2 }
-                gamedata.my_units[id] = { x2, y2 }
-                gamedata.my_units_MP[id] = { x2, y2 }
+                move_data.units[id] = { x2, y2 }
+                move_data.my_units[id] = { x2, y2 }
+                move_data.my_units_MP[id] = { x2, y2 }
 
-                if gamedata.unit_infos[id].canrecruit then
-                    gamedata.leaders[wesnoth.current.side] = { x2, y2, id = id }
+                if move_data.unit_infos[id].canrecruit then
+                    move_data.leaders[wesnoth.current.side] = { x2, y2, id = id }
                 end
 
                 -- Note that the following might leave empty orphan table elements, but that doesn't matter
-                gamedata.my_unit_map[x1][y1] = nil
-                if (not gamedata.my_unit_map[x2]) then gamedata.my_unit_map[x2] = {} end
-                gamedata.my_unit_map[x2][y2] = { id = id }
+                move_data.my_unit_map[x1][y1] = nil
+                if (not move_data.my_unit_map[x2]) then move_data.my_unit_map[x2] = {} end
+                move_data.my_unit_map[x2][y2] = { id = id }
 
-                gamedata.my_unit_map_MP[x1][y1] = nil
-                if (not gamedata.my_unit_map_MP[x2]) then gamedata.my_unit_map_MP[x2] = {} end
-                gamedata.my_unit_map_MP[x2][y2] = { id = id }
+                move_data.my_unit_map_MP[x1][y1] = nil
+                if (not move_data.my_unit_map_MP[x2]) then move_data.my_unit_map_MP[x2] = {} end
+                move_data.my_unit_map_MP[x2][y2] = { id = id }
             end
         end
 
@@ -1475,21 +1475,21 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
         -- into place), restore the stored units into the maps again
         if (not store_units_in_way) then
             for id,loc in pairs(stored_units) do
-                gamedata.my_unit_map[loc[1]][loc[2]] = { id = id }
-                gamedata.my_unit_map_MP[loc[1]][loc[2]] = { id = id }
+                move_data.my_unit_map[loc[1]][loc[2]] = { id = id }
+                move_data.my_unit_map_MP[loc[1]][loc[2]] = { id = id }
             end
         end
     end
-    ----- End adjust_gamedata_tables() -----
+    ----- End adjust_move_data_tables() -----
 
 
-    -- Mark the new positions of the units in the gamedata tables
-    adjust_gamedata_tables(old_locs, new_locs, true)
+    -- Mark the new positions of the units in the move_data tables
+    adjust_move_data_tables(old_locs, new_locs, true)
 
     -- Put all the units with MP onto the  map (those without are already there)
     -- They need to be proxy units for the counter attack calculation.
     for _,id in pairs(ids) do
-        wesnoth.put_unit(gamedata.unit_copies[id])
+        wesnoth.put_unit(move_data.unit_copies[id])
     end
 
     local target_id, target_loc = next(target)
@@ -1497,8 +1497,8 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
     -- The unit being attacked is included here and might have HP=0. Need to
     -- use only valid units.
     local attackers = {}
-    for id,loc in pairs(gamedata.enemies) do
-        if (gamedata.unit_infos[id].hitpoints > 0) then
+    for id,loc in pairs(move_data.enemies) do
+        if (move_data.unit_infos[id].hitpoints > 0) then
             attackers[id] = loc
         end
     end
@@ -1508,27 +1508,27 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, gamed
     -- Only want the best attack combo for this.
     local counter_attack = fred_attack_utils.get_attack_combos(
         attackers, target,
-        nil, true, gamedata, move_cache, cfg
+        nil, true, move_data, move_cache, cfg
     )
 
     local counter_attack_outcome
     if (next(counter_attack)) then
         -- Otherwise calculate the attack combo outcome
         local enemy_map = {}
-        for id,loc in pairs(gamedata.enemies) do
+        for id,loc in pairs(move_data.enemies) do
             enemy_map[loc[1] * 1000 + loc[2]] = id
         end
 
-        counter_attack_outcome = fred_attack_utils.attack_combo_eval(counter_attack, target, gamedata, move_cache, cfg)
+        counter_attack_outcome = fred_attack_utils.attack_combo_eval(counter_attack, target, move_data, move_cache, cfg)
     end
 
     -- Extract the units from the map
     for _,id in pairs(ids) do
-        wesnoth.extract_unit(gamedata.unit_copies[id])
+        wesnoth.extract_unit(move_data.unit_copies[id])
     end
 
     -- And put them back into their original locations
-    adjust_gamedata_tables(new_locs, old_locs)
+    adjust_move_data_tables(new_locs, old_locs)
 
     return counter_attack_outcome, counter_attack
 end

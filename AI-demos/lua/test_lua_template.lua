@@ -74,7 +74,7 @@ else  -- ... or do manual testing
     -- To initialize "old-style" AIs that do not use external CAs yet
     --local fred = wesnoth.dofile(fn).init()
     --fred.data = {}
-    --fred:reset_vars_move_eval()  -- sets fred.data.gamedata and fred.data.move_cache
+    --fred:reset_vars_move_eval()  -- sets fred.data.move_data and fred.data.move_cache
     --DBG.dbms(fred)
 
     local leader = wesnoth.get_units { side = 1, canrecruit = 'yes' }[1]

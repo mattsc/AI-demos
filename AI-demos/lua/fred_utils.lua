@@ -184,10 +184,10 @@ function fred_utils.unit_current_power(unit_info)
     return power
 end
 
-function fred_utils.unit_terrain_power(unit_info, x, y, gamedata)
+function fred_utils.unit_terrain_power(unit_info, x, y, move_data)
     local power = fred_utils.unit_current_power(unit_info)
 
-    local defense = FGUI.get_unit_defense(gamedata.unit_copies[unit_info.id], x, y, gamedata.defense_maps)
+    local defense = FGUI.get_unit_defense(move_data.unit_copies[unit_info.id], x, y, move_data.defense_maps)
     power = power * defense
 
     return power
@@ -201,28 +201,28 @@ function fred_utils.unittype_base_power(unit_type)
     return fred_utils.unit_base_power(unittype_info)
 end
 
-function fred_utils.retreat_utilities(gamedata)
+function fred_utils.retreat_utilities(move_data)
     -- Desire of each unit to retreat
     local retreat_utility = {}
-    for id,loc in pairs(gamedata.my_units) do
-        --print(id, gamedata.unit_infos[id].hitpoints .. '/' .. gamedata.unit_infos[id].max_hitpoints .. '   ' .. gamedata.unit_infos[id].experience .. '/' .. gamedata.unit_infos[id].max_experience)
+    for id,loc in pairs(move_data.my_units) do
+        --print(id, move_data.unit_infos[id].hitpoints .. '/' .. move_data.unit_infos[id].max_hitpoints .. '   ' .. move_data.unit_infos[id].experience .. '/' .. move_data.unit_infos[id].max_experience)
 
-        local hp_eff = gamedata.unit_infos[id].hitpoints
-        if gamedata.unit_infos[id].abilities.regenerate then
+        local hp_eff = move_data.unit_infos[id].hitpoints
+        if move_data.unit_infos[id].abilities.regenerate then
             hp_eff = hp_eff + 8
         end
-        if gamedata.unit_infos[id].status.poisoned then
+        if move_data.unit_infos[id].status.poisoned then
             local poison_damage = 8
-            if gamedata.unit_infos[id].traits.healthy then
+            if move_data.unit_infos[id].traits.healthy then
                 poison_damage = poison_damage * 0.75
             end
             hp_eff = hp_eff - poison_damage
         end
-        if gamedata.unit_infos[id].traits.healthy then
+        if move_data.unit_infos[id].traits.healthy then
             hp_eff = hp_eff + 2
         end
-        if (hp_eff > gamedata.unit_infos[id].max_hitpoints) then
-            hp_eff = gamedata.unit_infos[id].max_hitpoints
+        if (hp_eff > move_data.unit_infos[id].max_hitpoints) then
+            hp_eff = move_data.unit_infos[id].max_hitpoints
         end
         if (hp_eff < 1) then
             hp_eff = 1
@@ -231,17 +231,17 @@ function fred_utils.retreat_utilities(gamedata)
         -- Main criterion is simply the absolute HP
         local hp_inflection = 20
 
-        local max_hp_mult = math.sqrt(gamedata.unit_infos[id].max_hitpoints / (hp_inflection * 2))
+        local max_hp_mult = math.sqrt(move_data.unit_infos[id].max_hitpoints / (hp_inflection * 2))
         hp_inflection = hp_inflection * max_hp_mult
 
 
-        local xp_mult = 1 + 0.5 * gamedata.unit_infos[id].experience / gamedata.unit_infos[id].max_experience
+        local xp_mult = 1 + 0.5 * move_data.unit_infos[id].experience / move_data.unit_infos[id].max_experience
         hp_inflection = hp_inflection * xp_mult
 
         hp_inflection = hp_inflection * xp_mult
 
-        if (hp_inflection > 0.75 * gamedata.unit_infos[id].max_hitpoints) then
-            hp_inflection = 0.75 * gamedata.unit_infos[id].max_hitpoints
+        if (hp_inflection > 0.75 * move_data.unit_infos[id].max_hitpoints) then
+            hp_inflection = 0.75 * move_data.unit_infos[id].max_hitpoints
         end
 
         -- This must be done after the check vs. max_hp above
@@ -251,7 +251,7 @@ function fred_utils.retreat_utilities(gamedata)
         if (hp_eff <= hp_inflection) then
             w_remain = fred_utils.weight_s(hp_eff / (hp_inflection * 2), 0.75)
         else
-            w_remain = fred_utils.weight_s((hp_eff - hp_inflection) / ((gamedata.unit_infos[id].max_hitpoints - hp_inflection) * 2) + 0.5, 0.75)
+            w_remain = fred_utils.weight_s((hp_eff - hp_inflection) / ((move_data.unit_infos[id].max_hitpoints - hp_inflection) * 2) + 0.5, 0.75)
         end
 
         w_retreat = 1 - w_remain
@@ -295,7 +295,7 @@ function fred_utils.moved_toward_zone(unit_copy, zone_cfgs, side_cfgs)
     return to_zone_id
 end
 
-function fred_utils.inverse_cost_map(unit, loc, gamedata)
+function fred_utils.inverse_cost_map(unit, loc, move_data)
     -- returns map with the cost of @unit to go from any hex to @loc
     -- This is not the same as the cost_map for @unit from @loc, because of the
     -- asymmetry of movement cost when going from one terrain to the other
@@ -368,7 +368,7 @@ function fred_utils.inverse_cost_map(unit, loc, gamedata)
     return inverse_cost_map
 end
 
-function fred_utils.get_leader_distance_map(side_cfgs, gamedata)
+function fred_utils.get_leader_distance_map(side_cfgs, move_data)
     local leader_loc, enemy_leader_loc
     for side,cfg in ipairs(side_cfgs) do
         if (side == wesnoth.current.side) then
@@ -409,8 +409,8 @@ function fred_utils.get_leader_distance_map(side_cfgs, gamedata)
     -- is good enough for the purpose of finding the best way to the enemy leader
     -- TODO: do this correctly, if needed
     local enemy_leader_distance_maps = {}
-    for id,_ in pairs(gamedata.my_units) do
-        local typ = gamedata.unit_infos[id].type -- can't use type, that's reserved
+    for id,_ in pairs(move_data.my_units) do
+        local typ = move_data.unit_infos[id].type -- can't use type, that's reserved
 
         if (not enemy_leader_distance_maps[typ]) then
             enemy_leader_distance_maps[typ] = {}

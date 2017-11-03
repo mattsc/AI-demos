@@ -14,7 +14,7 @@ function ca_remove_mp:evaluation(ai, cfg, self)
     local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'remove_MP'
     DBG.print_debug_time('eval', self.data.turn_start_time, '     - Evaluating remove_MP CA:')
 
-    local id,_ = next(self.data.gamedata.my_units_MP)
+    local id,_ = next(self.data.move_data.my_units_MP)
 
     if id then
         return score
@@ -26,9 +26,9 @@ end
 function ca_remove_mp:execution(ai, cfg, self)
     DBG.print_debug_time('exec', self.data.turn_start_time, '=> exec: remove_MP CA')
 
-    local id,loc = next(self.data.gamedata.my_units_MP)
+    local id,loc = next(self.data.move_data.my_units_MP)
 
-    AH.checked_stopunit_moves(ai, self.data.gamedata.unit_copies[id])
+    AH.checked_stopunit_moves(ai, self.data.move_data.unit_copies[id])
 end
 
 return ca_remove_mp

@@ -6,7 +6,7 @@ local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_increme
 
 local fred_village_utils = {}
 
-function fred_village_utils.villages_to_protect(zone_cfgs, side_cfgs, gamedata)
+function fred_village_utils.villages_to_protect(zone_cfgs, side_cfgs, move_data)
     local my_start_hex, enemy_start_hex
     for side,cfgs in ipairs(side_cfgs) do
         if (side == wesnoth.current.side) then
@@ -16,7 +16,7 @@ function fred_village_utils.villages_to_protect(zone_cfgs, side_cfgs, gamedata)
         end
     end
 
-    -- TODO: this is needed in several places, could be pulled into gamedata or something
+    -- TODO: this is needed in several places, could be pulled into move_data or something
     local zone_maps = {}
     for zone_id,cfg in pairs(zone_cfgs) do
         zone_maps[zone_id] = {}
@@ -27,7 +27,7 @@ function fred_village_utils.villages_to_protect(zone_cfgs, side_cfgs, gamedata)
     end
 
     local villages_to_protect_maps = {}
-    for x,y,_ in FU.fgumap_iter(gamedata.village_map) do
+    for x,y,_ in FU.fgumap_iter(move_data.village_map) do
         local my_distance = H.distance_between(x, y, my_start_hex[1], my_start_hex[2])
         local enemy_distance = H.distance_between(x, y, enemy_start_hex[1], enemy_start_hex[2])
 
@@ -54,7 +54,7 @@ function fred_village_utils.villages_to_protect(zone_cfgs, side_cfgs, gamedata)
 end
 
 
-function fred_village_utils.village_goals(villages_to_protect_maps, gamedata)
+function fred_village_utils.village_goals(villages_to_protect_maps, move_data)
     -- Village goals are those that are:
     --  - on my side of the map
     --  - not owned by me
@@ -64,7 +64,7 @@ function fred_village_utils.village_goals(villages_to_protect_maps, gamedata)
     local zone_village_goals = {}
     for zone_id, villages in pairs(villages_to_protect_maps) do
         for x,y,vilage_data in FU.fgumap_iter(villages) do
-            local owner = FU.get_fgumap_value(gamedata.village_map, x, y, 'owner')
+            local owner = FU.get_fgumap_value(move_data.village_map, x, y, 'owner')
 
             if (owner ~= wesnoth.current.side) then
                 if (not zone_village_goals[zone_id]) then
@@ -76,7 +76,7 @@ function fred_village_utils.village_goals(villages_to_protect_maps, gamedata)
                     grab_only = false
                 end
 
-                local threats = FU.get_fgumap_value(gamedata.enemy_attack_map[1], x, y, 'ids')
+                local threats = FU.get_fgumap_value(move_data.enemy_attack_map[1], x, y, 'ids')
 
                 table.insert(zone_village_goals[zone_id], {
                     x = x, y = y,
@@ -92,7 +92,7 @@ function fred_village_utils.village_goals(villages_to_protect_maps, gamedata)
 end
 
 
-function fred_village_utils.protect_locs(villages_to_protect_maps, turn_data, gamedata)
+function fred_village_utils.protect_locs(villages_to_protect_maps, turn_data, move_data)
     -- For now, every village on our side of the map that can be reached
     -- by an enemy needs to be protected
 
@@ -102,8 +102,8 @@ function fred_village_utils.protect_locs(villages_to_protect_maps, turn_data, ga
         local max_ld, loc
         for x,y,vilage_data in FU.fgumap_iter(villages) do
             if vilage_data.protect then
-                for enemy_id,_ in pairs(gamedata.enemies) do
-                    if FU.get_fgumap_value(gamedata.reach_maps[enemy_id], x, y, 'moves_left') then
+                for enemy_id,_ in pairs(move_data.enemies) do
+                    if FU.get_fgumap_value(move_data.reach_maps[enemy_id], x, y, 'moves_left') then
                         local ld = FU.get_fgumap_value(turn_data.leader_distance_map, x, y, 'distance')
                         if (not max_ld) or (ld > max_ld) then
                             max_ld = ld
@@ -128,7 +128,7 @@ function fred_village_utils.protect_locs(villages_to_protect_maps, turn_data, ga
 end
 
 
-function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_protect_maps, assigned_units, village_actions, unit_attacks, turn_data, gamedata)
+function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_protect_maps, assigned_units, village_actions, unit_attacks, turn_data, move_data)
     -- assigned_units and village_actions are modified directly in place
 
     -- Villages that can be reached are dealt with separately from others
@@ -146,12 +146,12 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
             }
             --print(x, y)
 
-            local ids = FU.get_fgumap_value(gamedata.my_move_map[1], x, y, 'ids') or {}
+            local ids = FU.get_fgumap_value(move_data.my_move_map[1], x, y, 'ids') or {}
 
             for _,id in pairs(ids) do
-                local loc = gamedata.my_units[id]
+                local loc = move_data.my_units[id]
                 -- Only include the leader if he's on the keep
-                if (not gamedata.unit_infos[id].canrecruit)
+                if (not move_data.unit_infos[id].canrecruit)
                     or wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).keep
                 then
                     --print('  ' .. id, loc[1], loc[2])
@@ -163,7 +163,7 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
                             local damage_taken = att.damage_counter.base_taken
 
                             -- TODO: this does not take chance_to_hit specials into account
-                            local my_hc = 1 - FGUI.get_unit_defense(gamedata.unit_copies[id], x, y, gamedata.defense_maps)
+                            local my_hc = 1 - FGUI.get_unit_defense(move_data.unit_copies[id], x, y, move_data.defense_maps)
                             --print('    ' .. enemy_id, damage_taken, my_hc)
 
                             max_damage = max_damage + damage_taken
@@ -180,12 +180,12 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
                     if (not FU.get_fgumap_value(villages_to_protect_maps, x, y, 'protect')) then
                         applicable_damage = (max_damage + av_damage) / 2
                     end
-                    if gamedata.unit_infos[id].canrecruit then
+                    if move_data.unit_infos[id].canrecruit then
                         applicable_damage = max_damage * 2
                     end
-                    --print('     ' .. applicable_damage, gamedata.unit_infos[id].hitpoints)
+                    --print('     ' .. applicable_damage, move_data.unit_infos[id].hitpoints)
 
-                    if (applicable_damage < gamedata.unit_infos[id].hitpoints) then
+                    if (applicable_damage < move_data.unit_infos[id].hitpoints) then
                         table.insert(tmp_in_reach.units, id)
 
                         -- For this is sufficient to just count how many villages a unit can get to
@@ -227,7 +227,7 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
             for _,id in ipairs(village.units) do
                 local unit_rating = base_rating / (villages_in_reach.by_unit[id]^2)
 
-                local ui = gamedata.unit_infos[id]
+                local ui = move_data.unit_infos[id]
 
                 -- Use most injured unit first (but less important than choice of village)
                 -- Don't give an injured bonus for regenerating units
@@ -305,10 +305,10 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
         if (not assigned_units[capture.zone_id]) then
             assigned_units[capture.zone_id] = {}
         end
-        assigned_units[capture.zone_id][capture.id] = gamedata.units[capture.id]
+        assigned_units[capture.zone_id][capture.id] = move_data.units[capture.id]
 
         -- This currently only works for single-unit actions; can be expanded as needed
-        local unit = gamedata.my_units[capture.id]
+        local unit = move_data.my_units[capture.id]
         unit.id = capture.id
         table.insert(village_actions, {
             action = {
@@ -322,7 +322,7 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
 end
 
 
-function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, retreat_utilities, gamedata)
+function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, retreat_utilities, move_data)
     -- Potential TODOs:
     --  - Add threat assessment for scout routes; it might in fact make sense to use
     --    injured units to scout in unthreatened areas
@@ -360,21 +360,21 @@ function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, re
             for _,village in ipairs(villages) do
                 if (not village.grab_only) then
                     --print('  ' .. village.x, village.y)
-                    for id,loc in pairs(gamedata.my_units) do
+                    for id,loc in pairs(move_data.my_units) do
                         -- The leader is always excluded here, plus any unit that has already been assigned
                         -- TODO: set up an array of unassigned units?
-                        if (not gamedata.unit_infos[id].canrecruit) and (not used_ids[id]) then
-                            local _, cost = wesnoth.find_path(gamedata.unit_copies[id], village.x, village.y)
-                            cost = cost + gamedata.unit_infos[id].max_moves - gamedata.unit_infos[id].moves
+                        if (not move_data.unit_infos[id].canrecruit) and (not used_ids[id]) then
+                            local _, cost = wesnoth.find_path(move_data.unit_copies[id], village.x, village.y)
+                            cost = cost + move_data.unit_infos[id].max_moves - move_data.unit_infos[id].moves
                             --print('    ' .. id, cost)
-                            local _, cost_ign = wesnoth.find_path(gamedata.unit_copies[id], village.x, village.y, { ignore_units = true })
-                            cost_ign = cost_ign + gamedata.unit_infos[id].max_moves - gamedata.unit_infos[id].moves
+                            local _, cost_ign = wesnoth.find_path(move_data.unit_copies[id], village.x, village.y, { ignore_units = true })
+                            cost_ign = cost_ign + move_data.unit_infos[id].max_moves - move_data.unit_infos[id].moves
 
-                            local unit_rating = - cost / #villages / gamedata.unit_infos[id].max_moves
+                            local unit_rating = - cost / #villages / move_data.unit_infos[id].max_moves
 
                             -- Scout utility to compare to retreat utility
-                            local int_turns = math.ceil(cost / gamedata.unit_infos[id].max_moves)
-                            local int_turns_ign = math.ceil(cost_ign / gamedata.unit_infos[id].max_moves)
+                            local int_turns = math.ceil(cost / move_data.unit_infos[id].max_moves)
+                            local int_turns_ign = math.ceil(cost_ign / move_data.unit_infos[id].max_moves)
                             local scout_utility = math.sqrt(1 / math.max(1, int_turns - 1))
                             scout_utility = scout_utility * int_turns_ign / int_turns
 
@@ -471,7 +471,7 @@ function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, re
         if (not assigned_units[best_zone]) then
             assigned_units[best_zone] = {}
         end
-        assigned_units[best_zone][best_id] = gamedata.units[best_id]
+        assigned_units[best_zone][best_id] = move_data.units[best_id]
 
         units_assigned_villages[best_zone] = (units_assigned_villages[best_zone] or 0) + 1
 

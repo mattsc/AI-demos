@@ -107,7 +107,7 @@ local function eval_CA(ai, no_messages)
         end
     end
 
-    -- We always need to execute reset_vars_move_eval first, to set up the gamedata table
+    -- We always need to execute reset_vars_move_eval first, to set up the move_data table
     reset_vars_move_function()
 
     -- Now display and return the evaluation score

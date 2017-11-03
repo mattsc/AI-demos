@@ -29,7 +29,7 @@ local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 --  - Maps:
 --  - *_map: location indexed map: map[x][y] = { key1 = value, ... }
 --
----------- Part of both mapstate and gamedata ----------
+---------- Part of both mapstate and move_data ----------
 --
 ------ Unit tables ------
 --
@@ -68,7 +68,7 @@ local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 --                                              -- Out to max of additional_turns+1 turns (currently hard-coded to 2)
 --                                              -- Note that this is 0 for hex the unit is on
 --
----------- Separate from mapstate, but part of gamedata ----------
+---------- Separate from mapstate, but part of move_data ----------
 --
 -- defense_maps[id][x][y] = { defense = 0.4 }         -- defense (fraction) on the terrain; e.g. 0.4 for Grunt on flat
 -- reach_maps[id][x][y] = { moves_left = 3 }          -- moves left after moving to this hex
@@ -129,13 +129,13 @@ function fred_gamestate_utils.unit_infos()
     return unit_infos
 end
 
-function fred_gamestate_utils.get_gamedata()
+function fred_gamestate_utils.get_move_data()
     -- Returns:
     --   - State of villages and units on the map (all in one variable: gamestate)
     --   - Reach maps for all the AI's units (in separate variable: reach_maps)
     --   - Private unit copies (in separate variable: unit_copies)
     -- These are returned separately in case only part of it is needed.
-    -- They can also be retrieved all in one table using get_gamedata()
+    -- They can also be retrieved all in one table using get_move_data()
     --
     -- See above for the information returned
 
@@ -460,14 +460,14 @@ function fred_gamestate_utils.get_gamedata()
 
     mapstate.unit_attack_maps = unit_attack_maps
 
-    local gamedata = mapstate
+    local move_data = mapstate
 
-    gamedata.reach_maps = reach_maps
-    gamedata.unit_copies = unit_copies
-    gamedata.unit_infos = unit_infos
-    gamedata.defense_maps = {}
+    move_data.reach_maps = reach_maps
+    move_data.unit_copies = unit_copies
+    move_data.unit_infos = unit_infos
+    move_data.defense_maps = {}
 
-    return gamedata
+    return move_data
 end
 
 return fred_gamestate_utils

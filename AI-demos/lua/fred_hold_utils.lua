@@ -7,7 +7,7 @@ local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local fred_hold_utils = {}
 
-function fred_hold_utils.get_between_map(locs, toward_loc, units, gamedata)
+function fred_hold_utils.get_between_map(locs, toward_loc, units, move_data)
     -- Calculate the "between-ness" of map hexes between @locs and @units
     -- @toward_loc: the direction of the main gradient of the map. Usually
     --   this is toward the AI leader, but any hex can be passed.
@@ -18,7 +18,7 @@ function fred_hold_utils.get_between_map(locs, toward_loc, units, gamedata)
 
     local weights, cum_weight = {}, 0
     for id,_ in pairs(units) do
-        local weight = FU.unit_current_power(gamedata.unit_infos[id])
+        local weight = FU.unit_current_power(move_data.unit_infos[id])
         weights[id] = weight
         cum_weight = cum_weight + weight
     end
@@ -103,11 +103,11 @@ function fred_hold_utils.get_between_map(locs, toward_loc, units, gamedata)
             end
         end
 
-        local inv_cost_map = FU.inverse_cost_map(unit, toward_loc, gamedata)
+        local inv_cost_map = FU.inverse_cost_map(unit, toward_loc, move_data)
 
         if false then
-            DBG.show_fgumap_with_message(cost_map, 'cost', 'cost_map', gamedata.unit_copies[id])
-            DBG.show_fgumap_with_message(inv_cost_map, 'cost', 'inv_cost_map', gamedata.unit_copies[id])
+            DBG.show_fgumap_with_message(cost_map, 'cost', 'cost_map', move_data.unit_copies[id])
+            DBG.show_fgumap_with_message(inv_cost_map, 'cost', 'inv_cost_map', move_data.unit_copies[id])
         end
 
         local cost_full = FU.get_fgumap_value(cost_map, toward_loc[1], toward_loc[2], 'cost')
@@ -156,7 +156,7 @@ function fred_hold_utils.get_between_map(locs, toward_loc, units, gamedata)
                 rating = rating - loc_value
 
                 -- Rating falls off in perpendicular direction
-                rating = rating - math.abs((data.perp_distance / gamedata.unit_infos[id].max_moves)^2)
+                rating = rating - math.abs((data.perp_distance / move_data.unit_infos[id].max_moves)^2)
 
                 FU.fgumap_add(between_map, x, y, 'distance', rating)
                 FU.fgumap_add(between_map, x, y, 'perp_distance', data.perp_distance)
@@ -185,7 +185,7 @@ function fred_hold_utils.get_between_map(locs, toward_loc, units, gamedata)
 end
 
 
-function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, turn_data, gamedata)
+function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, turn_data, move_data)
     local count = 0
     for id,_ in pairs(rating_maps) do
         count = count + 1
@@ -291,7 +291,7 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, tur
 end
 
 
-function fred_hold_utils.unit_rating_maps_to_dstsrc(unit_rating_maps, key, gamedata, cfg)
+function fred_hold_utils.unit_rating_maps_to_dstsrc(unit_rating_maps, key, move_data, cfg)
     -- It's assumed that all individual unit_rating maps contain at least one rating
 
     local max_units = (cfg and cfg.max_units) or 3 -- number of units to be used per combo
@@ -324,9 +324,9 @@ function fred_hold_utils.unit_rating_maps_to_dstsrc(unit_rating_maps, key, gamed
         -- Prefer tanks, i.e. the highest-HP units,
         -- but be more careful with high-XP units
         -- Use the same weight as in the combo eval below
-        local unit_weight = gamedata.unit_infos[id].hitpoints
-        if (gamedata.unit_infos[id].experience < gamedata.unit_infos[id].max_experience - 1) then
-            local xp_penalty = gamedata.unit_infos[id].experience / gamedata.unit_infos[id].max_experience
+        local unit_weight = move_data.unit_infos[id].hitpoints
+        if (move_data.unit_infos[id].experience < move_data.unit_infos[id].max_experience - 1) then
+            local xp_penalty = move_data.unit_infos[id].experience / move_data.unit_infos[id].max_experience
             xp_penalty = FU.weight_s(xp_penalty, 0.5)
             unit_weight = unit_weight - xp_penalty * 10
             if (unit_weight < 1) then unit_weight = 1 end
@@ -355,7 +355,7 @@ function fred_hold_utils.unit_rating_maps_to_dstsrc(unit_rating_maps, key, gamed
             for i = 1,count do
                 FU.set_fgumap_value(tmp_map, sorted_ratings[unit.id][i].x, sorted_ratings[unit.id][i].y, 'protect_rating', sorted_ratings[unit.id][i].protect_rating)
             end
-            DBG.show_fgumap_with_message(tmp_map, 'protect_rating', 'Best protect_rating', gamedata.unit_copies[unit.id])
+            DBG.show_fgumap_with_message(tmp_map, 'protect_rating', 'Best protect_rating', move_data.unit_copies[unit.id])
         end
     end
 
@@ -363,7 +363,7 @@ function fred_hold_utils.unit_rating_maps_to_dstsrc(unit_rating_maps, key, gamed
     -- Finally, we need to set up the dst_src array in a way that can be used by get_unit_hex_combos()
     local ratings = {}
     for _,unit in ipairs(use_units) do
-        local src = gamedata.unit_copies[unit.id].x * 1000 + gamedata.unit_copies[unit.id].y
+        local src = move_data.unit_copies[unit.id].x * 1000 + move_data.unit_copies[unit.id].y
         --print(unit.id, src)
         local count = math.min(max_hexes, #sorted_ratings[unit.id])
         for i = 1,count do
@@ -393,21 +393,21 @@ function fred_hold_utils.unit_rating_maps_to_dstsrc(unit_rating_maps, key, gamed
 end
 
 
-function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_map, between_map, turn_data, gamedata, move_cache, cfg)
-    local leader_id = gamedata.leaders[wesnoth.current.side].id
+function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_map, between_map, turn_data, move_data, move_cache, cfg)
+    local leader_id = move_data.leaders[wesnoth.current.side].id
     local leader_protect_base_rating
 
     if cfg.protect_leader then
         local leader_target = {}
-        leader_target[leader_id] = { gamedata.leader_x, gamedata.leader_y }
-        local old_locs = { { gamedata.leader_x, gamedata.leader_y } }
-        local new_locs = { { gamedata.leader_x, gamedata.leader_y } }
+        leader_target[leader_id] = { move_data.leader_x, move_data.leader_y }
+        local old_locs = { { move_data.leader_x, move_data.leader_y } }
+        local new_locs = { { move_data.leader_x, move_data.leader_y } }
 
         local counter_outcomes = FAU.calc_counter_attack(
-            leader_target, old_locs, new_locs, gamedata, move_cache, cfg_attack
+            leader_target, old_locs, new_locs, move_data, move_cache, cfg_attack
         )
 
-        local remainging_hp = gamedata.unit_infos[leader_id].hitpoints
+        local remainging_hp = move_data.unit_infos[leader_id].hitpoints
         -- TODO: add healthy, regenerate.  Use fred_attack_utils functions?
         if counter_outcomes then
             remainging_hp = counter_outcomes.def_outcome.average_hp
@@ -416,7 +416,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             if (remainging_hp < 0) then remainging_hp = 0 end
         end
 
-        leader_protect_base_rating = remainging_hp / gamedata.unit_infos[leader_id].max_hitpoints
+        leader_protect_base_rating = remainging_hp / move_data.unit_infos[leader_id].max_hitpoints
 
         -- Plus chance of survival
         leader_protect_base_rating = leader_protect_base_rating + 1
@@ -447,10 +447,10 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             -- but be more careful with high-XP units
             local weight
             if (not weights[id]) then
-                weight = gamedata.unit_infos[id].hitpoints
+                weight = move_data.unit_infos[id].hitpoints
 
-                if (gamedata.unit_infos[id].experience < gamedata.unit_infos[id].max_experience - 1) then
-                    local xp_penalty = gamedata.unit_infos[id].experience / gamedata.unit_infos[id].max_experience
+                if (move_data.unit_infos[id].experience < move_data.unit_infos[id].max_experience - 1) then
+                    local xp_penalty = move_data.unit_infos[id].experience / move_data.unit_infos[id].max_experience
                     xp_penalty = FU.weight_s(xp_penalty, 0.5)
                     weight = weight - xp_penalty * 10
                     if (weight < 1) then weight = 1 end
@@ -514,9 +514,9 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             if cfg.protect_leader then
                 -- For the leader, we check whether it is better protected by the combo
                 local leader_target = {}
-                leader_target[leader_id] = { gamedata.leader_x, gamedata.leader_y }
-                local old_locs = { { gamedata.leader_x, gamedata.leader_y } }
-                local new_locs = { { gamedata.leader_x, gamedata.leader_y } }
+                leader_target[leader_id] = { move_data.leader_x, move_data.leader_y }
+                local old_locs = { { move_data.leader_x, move_data.leader_y } }
+                local new_locs = { { move_data.leader_x, move_data.leader_y } }
                 for src,dst in pairs(combo.combo) do
                     local dst_x, dst_y =  math.floor(dst / 1000), dst % 1000
                     local src_x, src_y =  math.floor(src / 1000), src % 1000
@@ -524,13 +524,13 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                     table.insert(new_locs, { dst_x, dst_y })
                 end
 
-                protect_loc = { gamedata.leader_x, gamedata.leader_y }
+                protect_loc = { move_data.leader_x, move_data.leader_y }
 
                 local counter_outcomes = FAU.calc_counter_attack(
-                    leader_target, old_locs, new_locs, gamedata, move_cache, cfg_attack
+                    leader_target, old_locs, new_locs, move_data, move_cache, cfg_attack
                 )
 
-                local remainging_hp = gamedata.unit_infos[leader_id].hitpoints
+                local remainging_hp = move_data.unit_infos[leader_id].hitpoints
                 if counter_outcomes then
                     remainging_hp = counter_outcomes.def_outcome.average_hp
                     remainging_hp = remainging_hp - counter_outcomes.def_outcome.poisoned * 8
@@ -538,7 +538,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                     if (remainging_hp < 0) then remainging_hp = 0 end
                 end
 
-                local leader_protect_rating = remainging_hp / gamedata.unit_infos[leader_id].max_hitpoints
+                local leader_protect_rating = remainging_hp / move_data.unit_infos[leader_id].max_hitpoints
 
                 -- Plus chance of survival
                 leader_protect_rating = leader_protect_rating + 1
@@ -590,19 +590,19 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                     for src,dst in pairs(combo.combo) do
                         local id = ratings[dst][src].id
                         local x, y =  math.floor(dst / 1000), dst % 1000
-                        --print(id, src, x,y, gamedata.unit_copies[id].x, gamedata.unit_copies[id].y)
-                        wesnoth.put_unit(x, y, gamedata.unit_copies[id])
+                        --print(id, src, x,y, move_data.unit_copies[id].x, move_data.unit_copies[id].y)
+                        wesnoth.put_unit(x, y, move_data.unit_copies[id])
                     end
 
                     local can_reach = false
-                    for enemy_id,_ in pairs(gamedata.enemies) do
-                        local moves_left = FU.get_fgumap_value(gamedata.reach_maps[enemy_id], protect_loc[1], protect_loc[2], 'moves_left')
+                    for enemy_id,_ in pairs(move_data.enemies) do
+                        local moves_left = FU.get_fgumap_value(move_data.reach_maps[enemy_id], protect_loc[1], protect_loc[2], 'moves_left')
                         if moves_left then
                             --print('  ' .. enemy_id, moves_left)
-                            local _, cost = wesnoth.find_path(gamedata.unit_copies[enemy_id], protect_loc[1], protect_loc[2])
+                            local _, cost = wesnoth.find_path(move_data.unit_copies[enemy_id], protect_loc[1], protect_loc[2])
                             --print('  cost: ', cost)
 
-                            if (cost <= gamedata.unit_infos[enemy_id].max_moves) then
+                            if (cost <= move_data.unit_infos[enemy_id].max_moves) then
                                 --print('    can reach this!')
                                 can_reach = true
                                 break
@@ -612,9 +612,9 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
                     for src,dst in pairs(combo.combo) do
                         local id = ratings[dst][src].id
-                        wesnoth.extract_unit(gamedata.unit_copies[id])
-                        gamedata.unit_copies[id].x, gamedata.unit_copies[id].y = gamedata.units[id][1], gamedata.units[id][2]
-                        --print('  ' .. id, src, gamedata.unit_copies[id].x, gamedata.unit_copies[id].y)
+                        wesnoth.extract_unit(move_data.unit_copies[id])
+                        move_data.unit_copies[id].x, move_data.unit_copies[id].y = move_data.units[id][1], move_data.units[id][2]
+                        --print('  ' .. id, src, move_data.unit_copies[id].x, move_data.unit_copies[id].y)
                     end
 
                     if (not can_reach) then
@@ -812,7 +812,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
             table.insert(old_locs, src)
             table.insert(new_locs, dst)
-            table.insert(ids, FU.get_fgumap_value(gamedata.my_unit_map, src[1], src[2], 'id'))
+            table.insert(ids, FU.get_fgumap_value(move_data.my_unit_map, src[1], src[2], 'id'))
         end
 
         local counter_rating, rel_rating, count, full_count = 0, 0, 0, 0
@@ -822,7 +822,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             target[ids[i_l]] = { new_locs[i_l][1], new_locs[i_l][2] }
 
             local counter_outcomes = FAU.calc_counter_attack(
-                target, old_locs, new_locs, gamedata, move_cache, cfg_attack
+                target, old_locs, new_locs, move_data, move_cache, cfg_attack
             )
             if counter_outcomes then
                 --DBG.dbms(counter_outcomes.rating_table)
@@ -848,7 +848,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
                 local unit_rating = - counter_outcomes.rating_table.rating
 
-                local unit_value = FU.unit_value(gamedata.unit_infos[ids[i_l]])
+                local unit_value = FU.unit_value(move_data.unit_infos[ids[i_l]])
                 local unit_rel_rating = unit_rating / unit_value
                 if (unit_rel_rating < 0) then
                     unit_rel_rating = - unit_rel_rating^2

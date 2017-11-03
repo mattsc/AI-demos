@@ -16,29 +16,29 @@ function ca_stats:execution(ai, cfg, self)
 
     local sides = {}
     local leveled_units
-    for id,_ in pairs(self.data.gamedata.units) do
-        local unit_side = self.data.gamedata.unit_infos[id].side
+    for id,_ in pairs(self.data.move_data.units) do
+        local unit_side = self.data.move_data.unit_infos[id].side
         if (not sides[unit_side]) then sides[unit_side] = {} end
 
         sides[unit_side].num_units = (sides[unit_side].num_units or 0) + 1
-        sides[unit_side].hitpoints = (sides[unit_side].hitpoints or 0) + self.data.gamedata.unit_infos[id].hitpoints
+        sides[unit_side].hitpoints = (sides[unit_side].hitpoints or 0) + self.data.move_data.unit_infos[id].hitpoints
 
-        if self.data.gamedata.unit_infos[id].canrecruit then
-            sides[unit_side].leader_type = self.data.gamedata.unit_copies[id].type
+        if self.data.move_data.unit_infos[id].canrecruit then
+            sides[unit_side].leader_type = self.data.move_data.unit_copies[id].type
         else
-            if (unit_side == wesnoth.current.side) and (self.data.gamedata.unit_infos[id].level > 1) then
+            if (unit_side == wesnoth.current.side) and (self.data.move_data.unit_infos[id].level > 1) then
                 if (not leveled_units) then leveled_units = '' end
                 leveled_units = leveled_units
-                    .. self.data.gamedata.unit_infos[id].type .. ' ('
-                    .. self.data.gamedata.unit_infos[id].hitpoints .. '/' .. self.data.gamedata.unit_infos[id].max_hitpoints .. ')  '
+                    .. self.data.move_data.unit_infos[id].type .. ' ('
+                    .. self.data.move_data.unit_infos[id].hitpoints .. '/' .. self.data.move_data.unit_infos[id].max_hitpoints .. ')  '
             end
         end
     end
 
     local total_villages = 0
-    for x,tmp in pairs(self.data.gamedata.village_map) do
+    for x,tmp in pairs(self.data.move_data.village_map) do
         for y,village in pairs(tmp) do
-            local owner = self.data.gamedata.village_map[x][y].owner
+            local owner = self.data.move_data.village_map[x][y].owner
             if (owner > 0) then
                 sides[owner].num_villages = (sides[owner].num_villages or 0) + 1
             end

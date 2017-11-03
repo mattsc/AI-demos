@@ -10,11 +10,11 @@ function fred_move_leader_utils.move_eval(move_unit_away, fred_data)
     local score = 480000
     local low_score = 1000
 
-    local gamedata = fred_data.gamedata
-    local leader = gamedata.leaders[wesnoth.current.side]
+    local move_data = fred_data.move_data
+    local leader = move_data.leaders[wesnoth.current.side]
 
     -- If the leader cannot move, don't do anything
-    if gamedata.my_units_noMP[leader.id] then
+    if move_data.my_units_noMP[leader.id] then
         return 0
     end
 
@@ -23,9 +23,9 @@ function fred_move_leader_utils.move_eval(move_unit_away, fred_data)
         return 0
     end
 
-    local leader_copy = gamedata.unit_copies[leader.id]
+    local leader_copy = move_data.unit_copies[leader.id]
 
-    local enemy_leader_cx, enemy_leader_cy = AH.cartesian_coords(gamedata.enemy_leader_x, gamedata.enemy_leader_y)
+    local enemy_leader_cx, enemy_leader_cy = AH.cartesian_coords(move_data.enemy_leader_x, move_data.enemy_leader_y)
 
     local width, height, border = wesnoth.get_map_size()
     local keeps = wesnoth.get_locations {
@@ -39,13 +39,13 @@ function fred_move_leader_utils.move_eval(move_unit_away, fred_data)
     for _,keep in ipairs(keeps) do
         -- Count keep closer to the enemy leader as belonging to the enemy
         local dist_leader = H.distance_between(keep[1], keep[2], leader[1], leader[2])
-        local dist_enemy_leader = H.distance_between(keep[1], keep[2], gamedata.enemy_leader_x, gamedata.enemy_leader_y)
+        local dist_enemy_leader = H.distance_between(keep[1], keep[2], move_data.enemy_leader_x, move_data.enemy_leader_y)
         local is_enemy_keep = dist_enemy_leader < dist_leader
         --print(keep[1], keep[2], dist_leader, dist_enemy_leader, is_enemy_keep)
 
         -- Is there a unit on the keep that cannot move any more?
-        local unit_in_way = gamedata.my_unit_map_noMP[keep[1]]
-            and gamedata.my_unit_map_noMP[keep[1]][keep[2]]
+        local unit_in_way = move_data.my_unit_map_noMP[keep[1]]
+            and move_data.my_unit_map_noMP[keep[1]][keep[2]]
 
         if (not is_enemy_keep) and (not unit_in_way) then
             local path, cost = wesnoth.find_path(leader_copy, keep[1], keep[2])
@@ -72,10 +72,10 @@ function fred_move_leader_utils.move_eval(move_unit_away, fred_data)
         -- If the leader can reach the keep, but there's a unit on it: wait
         -- Except when move_unit_away is set
         if (not move_unit_away)
-            and gamedata.reach_maps[leader.id][best_keep[1]]
-            and gamedata.reach_maps[leader.id][best_keep[1]][best_keep[2]]
-            and gamedata.my_unit_map_MP[best_keep[1]]
-            and gamedata.my_unit_map_MP[best_keep[1]][best_keep[2]]
+            and move_data.reach_maps[leader.id][best_keep[1]]
+            and move_data.reach_maps[leader.id][best_keep[1]][best_keep[2]]
+            and move_data.my_unit_map_MP[best_keep[1]]
+            and move_data.my_unit_map_MP[best_keep[1]][best_keep[2]]
         then
             return 0
         end
