@@ -92,7 +92,7 @@ function fred_village_utils.village_goals(villages_to_protect_maps, gamedata)
 end
 
 
-function fred_village_utils.protect_locs(villages_to_protect_maps, gamedata)
+function fred_village_utils.protect_locs(villages_to_protect_maps, turn_data, gamedata)
     -- For now, every village on our side of the map that can be reached
     -- by an enemy needs to be protected
 
@@ -104,7 +104,7 @@ function fred_village_utils.protect_locs(villages_to_protect_maps, gamedata)
             if vilage_data.protect then
                 for enemy_id,_ in pairs(gamedata.enemies) do
                     if FU.get_fgumap_value(gamedata.reach_maps[enemy_id], x, y, 'moves_left') then
-                        local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
+                        local ld = FU.get_fgumap_value(turn_data.leader_distance_map, x, y, 'distance')
                         if (not max_ld) or (ld > max_ld) then
                             max_ld = ld
                             loc = { x, y }
@@ -128,7 +128,7 @@ function fred_village_utils.protect_locs(villages_to_protect_maps, gamedata)
 end
 
 
-function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_protect_maps, assigned_units, village_actions, unit_attacks, gamedata)
+function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_protect_maps, assigned_units, village_actions, unit_attacks, turn_data, gamedata)
     -- assigned_units and village_actions are modified directly in place
 
     -- Villages that can be reached are dealt with separately from others
@@ -222,7 +222,7 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
             base_rating = base_rating / #village.units
 
             -- Prefer villages farther back
-            local add_rating_village = -2 * FU.get_fgumap_value(gamedata.leader_distance_map, village.x, village.y, 'distance')
+            local add_rating_village = -2 * FU.get_fgumap_value(turn_data.leader_distance_map, village.x, village.y, 'distance')
 
             for _,id in ipairs(village.units) do
                 local unit_rating = base_rating / (villages_in_reach.by_unit[id]^2)

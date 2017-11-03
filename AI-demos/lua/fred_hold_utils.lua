@@ -185,7 +185,7 @@ function fred_hold_utils.get_between_map(locs, toward_loc, units, gamedata)
 end
 
 
-function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, gamedata)
+function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, turn_data, gamedata)
     local count = 0
     for id,_ in pairs(rating_maps) do
         count = count + 1
@@ -210,7 +210,7 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, gam
                 perp_dist = FU.get_fgumap_value(between_map, x, y, 'blurred_perp_distance') or 0
             else
                 -- In this case we do not have the perpendicular distance
-                dist = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
+                dist = FU.get_fgumap_value(turn_data.leader_distance_map, x, y, 'distance')
             end
             --print(id, x .. ',' .. y, dist, perp_dist)
 
@@ -226,7 +226,7 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, gam
                                 dist2 = FU.get_fgumap_value(between_map, x2, y2, 'blurred_distance') or -999
                                 perp_dist2 = FU.get_fgumap_value(between_map, x2, y2, 'blurred_perp_distance') or 0
                             else
-                                dist2 = FU.get_fgumap_value(gamedata.leader_distance_map, x2, y2, 'distance') or -999
+                                dist2 = FU.get_fgumap_value(turn_data.leader_distance_map, x2, y2, 'distance') or -999
                             end
 
                             local dy = math.abs(dist - dist2)
@@ -393,7 +393,7 @@ function fred_hold_utils.unit_rating_maps_to_dstsrc(unit_rating_maps, key, gamed
 end
 
 
-function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_map, between_map, gamedata, move_cache, cfg)
+function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_map, between_map, turn_data, gamedata, move_cache, cfg)
     local leader_id = gamedata.leaders[wesnoth.current.side].id
     local leader_protect_base_rating
 
@@ -562,7 +562,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 -- TODO: think about how to deal with several simultaneously
                 local max_ld, loc
                 for _,pl in ipairs(cfg.protect_locs) do
-                    local ld = FU.get_fgumap_value(gamedata.leader_distance_map, pl[1], pl[2], 'distance')
+                    local ld = FU.get_fgumap_value(turn_data.leader_distance_map, pl[1], pl[2], 'distance')
                     if (not max_ld) or (ld > max_ld) then
                         max_ld = ld
                         protect_loc = pl
@@ -665,7 +665,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                     perp_dist = FU.get_fgumap_value(between_map, x, y, 'blurred_perp_distance') or 0
                 else
                     -- In this case we do not have the perpendicular distance
-                    dist = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
+                    dist = FU.get_fgumap_value(turn_data.leader_distance_map, x, y, 'distance')
                 end
 
                 table.insert(dists, {
@@ -832,8 +832,8 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
                 if (not combo.is_protected) then
                     if (counter_outcomes.def_outcome.hp_chance[0] > acceptable_ctd) then
-                        local ld_protect = FU.get_fgumap_value(gamedata.leader_distance_map, protect_loc[1], protect_loc[2], 'distance')
-                        local ld = FU.get_fgumap_value(gamedata.leader_distance_map, new_locs[i_l][1], new_locs[i_l][2], 'distance')
+                        local ld_protect = FU.get_fgumap_value(turn_data.leader_distance_map, protect_loc[1], protect_loc[2], 'distance')
+                        local ld = FU.get_fgumap_value(turn_data.leader_distance_map, new_locs[i_l][1], new_locs[i_l][2], 'distance')
                         if (ld > ld_protect) then
                             -- We cannot just remove this dst from this hold, as this would
                             -- change the threats to the other dsts. The entire combo needs

@@ -13,7 +13,6 @@ function ca_reset_vars_move:evaluation(ai, cfg, self)
 
     self.data.gamedata = FGU.get_gamedata()
     local side_cfgs = FSC.get_side_cfgs()
-    self.data.gamedata.leader_distance_map, self.data.gamedata.enemy_leader_distance_maps = FU.get_leader_distance_map(side_cfgs, self.data.gamedata)
     self.data.move_cache = {}
 
     return 0

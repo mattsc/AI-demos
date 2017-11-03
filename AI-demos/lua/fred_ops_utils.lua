@@ -161,7 +161,7 @@ function fred_ops_utils.calc_power_stats(zones, assigned_units, assigned_enemies
 end
 
 
-function fred_ops_utils.assess_leader_threats(leader_threats, protect_locs, leader_proxy, raw_cfgs_main, side_cfgs, gamedata, move_cache)
+function fred_ops_utils.assess_leader_threats(leader_threats, protect_locs, leader_proxy, raw_cfgs_main, side_cfgs, turn_data, gamedata, move_cache)
     -- Threat are all enemies that can attack the castle or any of the protect_locations
     leader_threats.enemies = {}
     for x,y,_ in FU.fgumap_iter(gamedata.reachable_castles_map[wesnoth.current.side]) do
@@ -191,7 +191,7 @@ function fred_ops_utils.assess_leader_threats(leader_threats, protect_locs, lead
         end
 
         local loc = gamedata.enemies[id]
-        threats_by_zone[zone_id][id] = FU.get_fgumap_value(gamedata.leader_distance_map, loc[1], loc[2], 'distance')
+        threats_by_zone[zone_id][id] = FU.get_fgumap_value(turn_data.leader_distance_map, loc[1], loc[2], 'distance')
     end
     --DBG.dbms(threats_by_zone)
 
@@ -286,13 +286,14 @@ function fred_ops_utils.set_turn_data(gamedata)
 
     -- Get the needed cfgs
     local side_cfgs = FSC.get_side_cfgs()
+    local leader_distance_map, enemy_leader_distance_maps = FU.get_leader_distance_map(side_cfgs, gamedata)
 
     if false then
-        --DBG.show_fgumap_with_message(gamedata.leader_distance_map, 'my_leader_distance', 'my_leader_distance')
-        DBG.show_fgumap_with_message(gamedata.leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
-        DBG.show_fgumap_with_message(gamedata.leader_distance_map, 'distance', 'leader_distance_map')
-        --DBG.show_fgumap_with_message(gamedata.enemy_leader_distance_maps['Orcish Grunt'], 'cost', 'cost Grunt')
-        --DBG.show_fgumap_with_message(gamedata.enemy_leader_distance_maps['Wolf Rider'], 'cost', 'cost Wolf Rider')
+        --DBG.show_fgumap_with_message(leader_distance_map, 'my_leader_distance', 'my_leader_distance')
+        DBG.show_fgumap_with_message(leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
+        DBG.show_fgumap_with_message(leader_distance_map, 'distance', 'leader_distance_map')
+        --DBG.show_fgumap_with_message(enemy_leader_distance_maps['Orcish Grunt'], 'cost', 'cost Grunt')
+        --DBG.show_fgumap_with_message(enemy_leader_distance_maps['Wolf Rider'], 'cost', 'cost Wolf Rider')
     end
 
 
@@ -406,7 +407,7 @@ function fred_ops_utils.set_turn_data(gamedata)
         for _,loc in ipairs(zone) do
             local vulnerability = FU.get_fgumap_value(influence_maps, loc[1], loc[2], 'vulnerability')
             if vulnerability then
-                local ld = FU.get_fgumap_value(gamedata.leader_distance_map, loc[1], loc[2], 'distance')
+                local ld = FU.get_fgumap_value(leader_distance_map, loc[1], loc[2], 'distance')
                 num = num + vulnerability^2 * ld
                 denom = denom + vulnerability^2
             end
@@ -564,6 +565,8 @@ function fred_ops_utils.set_turn_data(gamedata)
 
     local turn_data = {
         turn_number = wesnoth.current.turn,
+        leader_distance_map = leader_distance_map,
+        enemy_leader_distance_maps = enemy_leader_distance_maps,
         influence_maps = influence_maps,
         unit_attacks = unit_attacks,
         behavior = behavior
@@ -584,7 +587,7 @@ function fred_ops_utils.set_ops_data(fred_data, fred_recruit)
 
     local villages_to_protect_maps = FVU.villages_to_protect(raw_cfgs_main, side_cfgs, gamedata)
     local zone_village_goals = FVU.village_goals(villages_to_protect_maps, gamedata)
-    local protect_locs = FVU.protect_locs(villages_to_protect_maps, gamedata)
+    local protect_locs = FVU.protect_locs(villages_to_protect_maps, fred_data.turn_data, gamedata)
     --DBG.dbms(zone_village_goals)
     --DBG.dbms(villages_to_protect_maps)
     --DBG.dbms(protect_locs)
@@ -667,7 +670,7 @@ function fred_ops_utils.set_ops_data(fred_data, fred_recruit)
     end
     --DBG.dbms(leader_threats)
 
-    fred_ops_utils.assess_leader_threats(leader_threats, protect_locs, leader_proxy, raw_cfgs_main, side_cfgs, gamedata, fred_data.move_cache)
+    fred_ops_utils.assess_leader_threats(leader_threats, protect_locs, leader_proxy, raw_cfgs_main, side_cfgs, fred_data.turn_data, gamedata, fred_data.move_cache)
 
 
     -- Attributing enemy units to zones
@@ -717,7 +720,7 @@ function fred_ops_utils.set_ops_data(fred_data, fred_recruit)
         assigned_units,
         actions.villages,
         fred_data.turn_data.unit_attacks,
-        gamedata
+        fred_data.turn_data, gamedata
     )
 
     --DBG.dbms(assigned_units)
@@ -774,7 +777,7 @@ function fred_ops_utils.set_ops_data(fred_data, fred_recruit)
             if village_data.protect then
                 for enemy_id,_ in pairs(gamedata.enemies) do
                     if FU.get_fgumap_value(gamedata.reach_maps[enemy_id], x, y, 'moves_left') then
-                        local ld = FU.get_fgumap_value(gamedata.leader_distance_map, x, y, 'distance')
+                        local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
                         if (not max_ld) or (ld > max_ld) then
                             max_ld = ld
                             loc = { x, y }
@@ -1304,7 +1307,7 @@ function fred_ops_utils.update_ops_data(fred_data)
         assigned_units,
         actions.villages,
         fred_data.turn_data.unit_attacks,
-        gamedata
+        fred_data.turn_data, gamedata
     )
     FVU.assign_scouts(zone_village_goals, assigned_units, retreat_utilities, gamedata)
     --DBG.dbms(assigned_units)
@@ -1348,7 +1351,7 @@ function fred_ops_utils.update_ops_data(fred_data)
 
     -- Also update the protect locations, as a location might not be threatened
     -- any more
-    ops_data.protect_locs = FVU.protect_locs(villages_to_protect_maps, gamedata)
+    ops_data.protect_locs = FVU.protect_locs(villages_to_protect_maps, fred_data.turn_data, gamedata)
     fred_ops_utils.replace_zones(ops_data.assigned_units, ops_data.assigned_enemies, ops_data.protect_locs, ops_data.actions)
 
 
@@ -1359,7 +1362,7 @@ function fred_ops_utils.update_ops_data(fred_data)
         ops_data.leader_threats.leader_locs = {}
         ops_data.leader_threats.protect_locs = { { leader_proxy.x, leader_proxy.y } }
 
-        fred_ops_utils.assess_leader_threats(ops_data.leader_threats, ops_data.protect_locs, leader_proxy, raw_cfgs_main, side_cfgs, gamedata, fred_data.move_cache)
+        fred_ops_utils.assess_leader_threats(ops_data.leader_threats, ops_data.protect_locs, leader_proxy, raw_cfgs_main, side_cfgs, fred_data.turn_data, gamedata, fred_data.move_cache)
     end
 
 
