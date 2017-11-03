@@ -15,14 +15,9 @@ local FMLU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_move_leader_utils.lua"
 local FSC = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_scenario_cfg.lua"
 
 
------ Debug output flags -----
-local debug_eval = false    -- top-level evaluation information
-local debug_exec = true     -- top-level executiuon information
-
-
 ----- Attack: -----
 local function get_attack_action(zone_cfg, fred_data)
-    if debug_eval then AH.print_time(fred_data.turn_start_time, '  --> attack evaluation: ' .. zone_cfg.zone_id) end
+    DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> attack evaluation: ' .. zone_cfg.zone_id)
     --DBG.dbms(zone_cfg)
 
     local gamedata = fred_data.gamedata
@@ -1107,7 +1102,7 @@ end
 
 ----- Hold: -----
 local function get_hold_action(zone_cfg, fred_data)
-    if debug_eval then AH.print_time(fred_data.turn_start_time, '  --> hold evaluation: ' .. zone_cfg.zone_id) end
+    DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> hold evaluation: ' .. zone_cfg.zone_id)
 
     local value_ratio = fred_data.turn_data.behavior.influence.value_ratio
     local max_units = 3
@@ -1993,7 +1988,7 @@ local function get_advance_action(zone_cfg, fred_data)
     -- Advancing is now only moving onto unthreatened hexes; everything
     -- else should be covered by holding, village grabbing, protecting, etc.
 
-    if debug_eval then AH.print_time(fred_data.turn_start_time, '  --> advance evaluation: ' .. zone_cfg.zone_id) end
+    DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> advance evaluation: ' .. zone_cfg.zone_id)
 
     --DBG.dbms(zone_cfg)
     local raw_cfg = FSC.get_raw_cfgs(zone_cfg.zone_id)
@@ -2306,7 +2301,7 @@ end
 
 ----- Retreat: -----
 local function get_retreat_action(zone_cfg, fred_data)
-    if debug_eval then AH.print_time(fred_data.turn_start_time, '  --> retreat evaluation: ' .. zone_cfg.zone_id) end
+    DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> retreat evaluation: ' .. zone_cfg.zone_id)
 
     local gamedata = fred_data.gamedata
     local retreat_utilities = FU.retreat_utilities(gamedata)
@@ -2427,7 +2422,7 @@ function ca_zone_control:evaluation(ai, cfg, self)
     local score_zone_control = 350000
     local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
 
-    if debug_eval then AH.print_time(self.data.turn_start_time, '     - Evaluating zone_control CA:') end
+    DBG.print_debug_time('eval', self.data.turn_start_time, '     - Evaluating zone_control CA:')
 
 
 -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -2542,7 +2537,7 @@ function ca_zone_control:evaluation(ai, cfg, self)
         end
     end
 
-    if debug_eval then print('--> done with all cfgs') end
+    DBG.print_debug_time('eval', self.data.turn_start_time, '--> done with all cfgs')
 
     return 0
 end
@@ -2554,7 +2549,7 @@ function ca_zone_control:execution(ai, cfg, self)
 
     -- If recruiting is set, we just do that, nothing else needs to be checked:
     if (self.data.zone_action.type == 'recruit') then
-        if debug_exec then AH.print_time(self.data.turn_start_time, '=> exec: ' .. action) end
+        DBG.print_debug_time('exec', self.data.turn_start_time, '=> exec: ' .. action)
         if AH.show_messages() then W.message { speaker = unit.id, message = 'Zone action ' .. action } end
 
         if self.data.zone_action.recruit_units then
@@ -2772,7 +2767,7 @@ function ca_zone_control:execution(ai, cfg, self)
             if have_recruited then break end
         end
 
-        if debug_exec then AH.print_time(self.data.turn_start_time, '=> exec: ' .. action) end
+        DBG.print_debug_time('exec', self.data.turn_start_time, '=> exec: ' .. action)
         if AH.show_messages() then W.message { speaker = unit.id, message = 'Zone action ' .. action } end
 
         -- The following are some tests to make sure the intended move is actually

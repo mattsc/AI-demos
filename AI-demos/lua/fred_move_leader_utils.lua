@@ -10,9 +10,6 @@ function fred_move_leader_utils.move_eval(move_unit_away, fred_data)
     local score = 480000
     local low_score = 1000
 
-    local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'move_leader_to_keep'
-    if debug_eval then AH.print_time(fred_data.turn_start_time, '     - Evaluating move_leader_to_keep CA:') end
-
     local gamedata = fred_data.gamedata
     local leader = gamedata.leaders[wesnoth.current.side]
 

@@ -3,7 +3,7 @@ local debug_utils = {}
 function debug_utils.show_debug(debug_type)
     local show_debug = {
         eval = false,
-        exec = false,
+        exec = true,
         analysis = false,
         attack = false,
         hold = false,
@@ -13,8 +13,36 @@ function debug_utils.show_debug(debug_type)
     return show_debug[debug_type]
 end
 
+function debug_utils.print_ts_delta(start_time, ...)
+    -- @start_time: time stamp in seconds as returned by wesnoth.get_time_stamp / 1000.
+
+    -- Same as ai_helper.print_ts(), but also adds time elapsed since
+    -- the time given in the first argument (in seconds)
+    -- Returns time stamp as well as time elapsed
+
+    local ts = wesnoth.get_time_stamp() / 1000.
+    local delta = ts - start_time
+
+    local arg = { ... }
+    arg[#arg+1] = string.format('[ t = %.3f, dt = %.3f ]', ts, delta)
+
+    print(table.unpack(arg))
+
+    return ts, delta
+end
+
 function debug_utils.print_debug(debug_type, ...)
     if debug_utils.show_debug(debug_type) then print(...) end
+end
+
+function debug_utils.print_debug_time(debug_type, start_time, ...)
+    if debug_utils.show_debug(debug_type) then
+        if start_time then
+            debug_utils.print_ts_delta(start_time, ...)
+        else
+            print(...)
+        end
+    end
 end
 
 function debug_utils.clear_labels()
