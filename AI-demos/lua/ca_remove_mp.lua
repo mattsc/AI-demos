@@ -16,11 +16,9 @@ function ca_remove_mp:evaluation(ai, cfg, self)
     local id,_ = next(self.data.gamedata.my_units_MP)
 
     if id then
-        AH.done_eval_messages(start_time, ca_name)
         return score
     end
 
-    AH.done_eval_messages(start_time, ca_name)
     return 0
 end
 

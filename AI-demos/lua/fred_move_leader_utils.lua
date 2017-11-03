@@ -18,13 +18,11 @@ function fred_move_leader_utils.move_eval(move_unit_away, fred_data)
 
     -- If the leader cannot move, don't do anything
     if gamedata.my_units_noMP[leader.id] then
-        AH.done_eval_messages(start_time, ca_name)
         return 0
     end
 
     -- If the leader already is on a keep, don't do anything
     if (wesnoth.get_terrain_info(wesnoth.get_terrain(leader[1], leader[2])).keep) then
-        AH.done_eval_messages(start_time, ca_name)
         return 0
     end
 
@@ -95,8 +93,6 @@ function fred_move_leader_utils.move_eval(move_unit_away, fred_data)
             fred_data.MLK_keep = best_keep
             fred_data.MLK_dst = next_hop
 
-            AH.done_eval_messages(start_time, ca_name)
-
             -- This is done with high priority if the leader can get to the keep,
             -- otherwise with very low priority
             if (next_hop[1] == best_keep[1]) and (next_hop[2] == best_keep[2]) then
@@ -114,7 +110,6 @@ function fred_move_leader_utils.move_eval(move_unit_away, fred_data)
         end
     end
 
-    AH.done_eval_messages(start_time, ca_name)
     return 0
 end
 

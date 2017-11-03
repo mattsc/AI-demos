@@ -2519,7 +2519,6 @@ function ca_zone_control:evaluation(ai, cfg, self)
                 if is_good then
                     --print('  Pre-evaluated action found: ' .. cfg.action.action_str)
                     self.data.zone_action = AH.table_copy(cfg.action)
-                    AH.done_eval_messages(start_time, ca_name)
                     return score_zone_control
                 else
                     cfg.invalid = true
@@ -2542,7 +2541,6 @@ function ca_zone_control:evaluation(ai, cfg, self)
                 zone_action.zone_id = cfg.zone_id
                 --DBG.dbms(zone_action)
                 self.data.zone_action = zone_action
-                AH.done_eval_messages(start_time, ca_name)
                 return score_zone_control
             end
         end
@@ -2550,7 +2548,6 @@ function ca_zone_control:evaluation(ai, cfg, self)
 
     if debug_eval then print('--> done with all cfgs') end
 
-    AH.done_eval_messages(start_time, ca_name)
     return 0
 end
 
