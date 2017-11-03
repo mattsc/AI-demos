@@ -18,7 +18,6 @@ local FSC = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_scenario_cfg.lua"
 ----- Debug output flags -----
 local debug_eval = false    -- top-level evaluation information
 local debug_exec = true     -- top-level executiuon information
-local show_debug_analysis = false
 local show_debug_attack = false
 local show_debug_hold = false
 local show_debug_advance = false

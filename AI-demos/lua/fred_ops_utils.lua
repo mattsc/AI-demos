@@ -7,6 +7,8 @@ local FVU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_village_utils.lua"
 local FHU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_hold_utils.lua"
 local FMLU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_move_leader_utils.lua"
 
+local show_debug_analysis = false
+
 local fred_ops_utils = {}
 
 function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_locs, actions)
@@ -1375,7 +1377,7 @@ end
 
 function fred_ops_utils.get_action_cfgs(fred_data)
     local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
-    if debug_eval then AH.print_time(fred_data.turn_start_time, '     - Evaluating defend zones map analysis:') end
+    if show_debug_analysis then AH.print_time(fred_data.turn_start_time, '     - Evaluating defend zones map analysis:') end
 
     local gamedata = fred_data.gamedata
     local ops_data = fred_data.ops_data
