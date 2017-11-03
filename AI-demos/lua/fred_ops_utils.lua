@@ -163,7 +163,9 @@ function fred_ops_utils.calc_power_stats(zones, assigned_units, assigned_enemies
 end
 
 
-function fred_ops_utils.assess_leader_threats(leader_threats, protect_locs, leader_proxy, raw_cfgs_main, side_cfgs, turn_data, move_data, move_cache)
+function fred_ops_utils.assess_leader_threats(leader_threats, protect_locs, leader_proxy, raw_cfgs_main, side_cfgs, fred_data)
+    local move_data = fred_data.move_data
+
     -- Threat are all enemies that can attack the castle or any of the protect_locations
     leader_threats.enemies = {}
     for x,y,_ in FU.fgumap_iter(move_data.reachable_castles_map[wesnoth.current.side]) do
@@ -193,7 +195,7 @@ function fred_ops_utils.assess_leader_threats(leader_threats, protect_locs, lead
         end
 
         local loc = move_data.enemies[id]
-        threats_by_zone[zone_id][id] = FU.get_fgumap_value(turn_data.leader_distance_map, loc[1], loc[2], 'distance')
+        threats_by_zone[zone_id][id] = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc[1], loc[2], 'distance')
     end
     --DBG.dbms(threats_by_zone)
 
@@ -243,7 +245,7 @@ function fred_ops_utils.assess_leader_threats(leader_threats, protect_locs, lead
             move_data.unit_copies[id], leader_proxy,
             dst,
             move_data.unit_infos[id], move_data.unit_infos[leader_proxy.id],
-            move_data, move_cache
+            move_data, fred_data.move_cache
         )
         --DBG.dbms(att_outcome)
         --DBG.dbms(def_outcome)
@@ -590,7 +592,7 @@ function fred_ops_utils.set_ops_data(fred_data, fred_recruit)
 
     local villages_to_protect_maps = FVU.villages_to_protect(raw_cfgs_main, side_cfgs, move_data)
     local zone_village_goals = FVU.village_goals(villages_to_protect_maps, move_data)
-    local protect_locs = FVU.protect_locs(villages_to_protect_maps, fred_data.turn_data, move_data)
+    local protect_locs = FVU.protect_locs(villages_to_protect_maps, fred_data)
     --DBG.dbms(zone_village_goals)
     --DBG.dbms(villages_to_protect_maps)
     --DBG.dbms(protect_locs)
@@ -673,7 +675,7 @@ function fred_ops_utils.set_ops_data(fred_data, fred_recruit)
     end
     --DBG.dbms(leader_threats)
 
-    fred_ops_utils.assess_leader_threats(leader_threats, protect_locs, leader_proxy, raw_cfgs_main, side_cfgs, fred_data.turn_data, move_data, fred_data.move_cache)
+    fred_ops_utils.assess_leader_threats(leader_threats, protect_locs, leader_proxy, raw_cfgs_main, side_cfgs, fred_data)
 
 
     -- Attributing enemy units to zones
@@ -717,14 +719,7 @@ function fred_ops_utils.set_ops_data(fred_data, fred_recruit)
     local actions = { villages = {} }
     local assigned_units = {}
 
-    FVU.assign_grabbers(
-        zone_village_goals,
-        villages_to_protect_maps,
-        assigned_units,
-        actions.villages,
-        fred_data.turn_data.unit_attacks,
-        fred_data.turn_data, move_data
-    )
+    FVU.assign_grabbers( zone_village_goals, villages_to_protect_maps, assigned_units, actions.villages, fred_data)
 
     --DBG.dbms(assigned_units)
     FVU.assign_scouts(zone_village_goals, assigned_units, retreat_utilities, move_data)
@@ -1304,14 +1299,7 @@ function fred_ops_utils.update_ops_data(fred_data)
     local actions = { villages = {} }
     local assigned_units = {}
 
-    FVU.assign_grabbers(
-        zone_village_goals,
-        villages_to_protect_maps,
-        assigned_units,
-        actions.villages,
-        fred_data.turn_data.unit_attacks,
-        fred_data.turn_data, move_data
-    )
+    FVU.assign_grabbers( zone_village_goals, villages_to_protect_maps, assigned_units, actions.villages, fred_data)
     FVU.assign_scouts(zone_village_goals, assigned_units, retreat_utilities, move_data)
     --DBG.dbms(assigned_units)
     --DBG.dbms(ops_data.assigned_units)
@@ -1354,7 +1342,7 @@ function fred_ops_utils.update_ops_data(fred_data)
 
     -- Also update the protect locations, as a location might not be threatened
     -- any more
-    ops_data.protect_locs = FVU.protect_locs(villages_to_protect_maps, fred_data.turn_data, move_data)
+    ops_data.protect_locs = FVU.protect_locs(villages_to_protect_maps, fred_data)
     fred_ops_utils.replace_zones(ops_data.assigned_units, ops_data.assigned_enemies, ops_data.protect_locs, ops_data.actions)
 
 
@@ -1365,7 +1353,7 @@ function fred_ops_utils.update_ops_data(fred_data)
         ops_data.leader_threats.leader_locs = {}
         ops_data.leader_threats.protect_locs = { { leader_proxy.x, leader_proxy.y } }
 
-        fred_ops_utils.assess_leader_threats(ops_data.leader_threats, ops_data.protect_locs, leader_proxy, raw_cfgs_main, side_cfgs, fred_data.turn_data, move_data, fred_data.move_cache)
+        fred_ops_utils.assess_leader_threats(ops_data.leader_threats, ops_data.protect_locs, leader_proxy, raw_cfgs_main, side_cfgs, fred_data)
     end
 
 

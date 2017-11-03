@@ -44,7 +44,8 @@ function retreat_functions.get_healing_locations()
     return healing_locs
 end
 
-function retreat_functions.find_best_retreat(retreaters, retreat_utilities, turn_data, move_data)
+function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred_data)
+    local move_data = fred_data.move_data
 
     ----- Begin retreat_damages() -----
     local function retreat_damages(id, x, y, hitchance, unit_attacks, move_data)
@@ -71,7 +72,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, turn
     ----- Begin retreat_rating() -----
     local function retreat_rating(id, x, y, heal_amount, no_damage_limit)
         local hitchance = wesnoth.unit_defense(move_data.unit_copies[id], wesnoth.get_terrain(x, y)) / 100.
-        local max_damage, av_damage = retreat_damages(id, x, y, hitchance, turn_data.unit_attacks, move_data)
+        local max_damage, av_damage = retreat_damages(id, x, y, hitchance, fred_data.turn_data.unit_attacks, move_data)
 
         if no_damage_limit or (max_damage < move_data.unit_infos[id].hitpoints) then
             local rating = (heal_amount - av_damage) * 100
@@ -106,7 +107,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, turn
             -- a threat, or away from the leader when there is not
             local retreat_direction = 1
             if (av_damage > 0) then retreat_direction = -1 end
-            local ld = FU.get_fgumap_value(turn_data.leader_distance_map, x, y, 'distance')
+            local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
             rating = rating + retreat_direction * ld / 1000
 
             return rating
@@ -274,7 +275,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, turn
             local villages, min_turns = {}
             for x,y,_ in FU.fgumap_iter(move_data.village_map) do
                 local hitchance = wesnoth.unit_defense(move_data.unit_copies[id], wesnoth.get_terrain(x, y)) / 100.
-                local max_damage, av_damage = retreat_damages(id, x, y, hitchance, turn_data.unit_attacks, move_data)
+                local max_damage, av_damage = retreat_damages(id, x, y, hitchance, fred_data.turn_data.unit_attacks, move_data)
 
                 if (av_damage < move_data.unit_infos[id].hitpoints) then
                     local _,cost = wesnoth.find_path(move_data.unit_copies[id], x, y)
@@ -322,7 +323,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, turn
                 -- and only those that reduce the number of turns needed to get to the goal villages.
                 -- Acceptable threats in this case are based on av_damage, not max_damage as above
                 local hitchance = wesnoth.unit_defense(move_data.unit_copies[id], wesnoth.get_terrain(x, y)) / 100.
-                local max_damage, av_damage = retreat_damages(id, x, y, hitchance, turn_data.unit_attacks, move_data)
+                local max_damage, av_damage = retreat_damages(id, x, y, hitchance, fred_data.turn_data.unit_attacks, move_data)
 
                 if (av_damage < move_data.unit_infos[id].hitpoints) then
                     local rating = 0

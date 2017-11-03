@@ -185,7 +185,7 @@ function fred_hold_utils.get_between_map(locs, toward_loc, units, move_data)
 end
 
 
-function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, turn_data, move_data)
+function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, turn_data)
     local count = 0
     for id,_ in pairs(rating_maps) do
         count = count + 1
@@ -393,7 +393,8 @@ function fred_hold_utils.unit_rating_maps_to_dstsrc(unit_rating_maps, key, move_
 end
 
 
-function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_map, between_map, turn_data, move_data, move_cache, cfg)
+function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_map, between_map, fred_data, cfg)
+    local move_data = fred_data.move_data
     local leader_id = move_data.leaders[wesnoth.current.side].id
     local leader_protect_base_rating
 
@@ -404,7 +405,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         local new_locs = { { move_data.leader_x, move_data.leader_y } }
 
         local counter_outcomes = FAU.calc_counter_attack(
-            leader_target, old_locs, new_locs, move_data, move_cache, cfg_attack
+            leader_target, old_locs, new_locs, move_data, fred_data.move_cache, cfg_attack
         )
 
         local remainging_hp = move_data.unit_infos[leader_id].hitpoints
@@ -527,7 +528,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 protect_loc = { move_data.leader_x, move_data.leader_y }
 
                 local counter_outcomes = FAU.calc_counter_attack(
-                    leader_target, old_locs, new_locs, move_data, move_cache, cfg_attack
+                    leader_target, old_locs, new_locs, move_data, fred_data.move_cache, cfg_attack
                 )
 
                 local remainging_hp = move_data.unit_infos[leader_id].hitpoints
@@ -562,7 +563,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 -- TODO: think about how to deal with several simultaneously
                 local max_ld, loc
                 for _,pl in ipairs(cfg.protect_locs) do
-                    local ld = FU.get_fgumap_value(turn_data.leader_distance_map, pl[1], pl[2], 'distance')
+                    local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, pl[1], pl[2], 'distance')
                     if (not max_ld) or (ld > max_ld) then
                         max_ld = ld
                         protect_loc = pl
@@ -665,7 +666,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                     perp_dist = FU.get_fgumap_value(between_map, x, y, 'blurred_perp_distance') or 0
                 else
                     -- In this case we do not have the perpendicular distance
-                    dist = FU.get_fgumap_value(turn_data.leader_distance_map, x, y, 'distance')
+                    dist = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
                 end
 
                 table.insert(dists, {
@@ -822,7 +823,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             target[ids[i_l]] = { new_locs[i_l][1], new_locs[i_l][2] }
 
             local counter_outcomes = FAU.calc_counter_attack(
-                target, old_locs, new_locs, move_data, move_cache, cfg_attack
+                target, old_locs, new_locs, move_data, fred_data.move_cache, cfg_attack
             )
             if counter_outcomes then
                 --DBG.dbms(counter_outcomes.rating_table)
@@ -832,8 +833,8 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
                 if (not combo.is_protected) then
                     if (counter_outcomes.def_outcome.hp_chance[0] > acceptable_ctd) then
-                        local ld_protect = FU.get_fgumap_value(turn_data.leader_distance_map, protect_loc[1], protect_loc[2], 'distance')
-                        local ld = FU.get_fgumap_value(turn_data.leader_distance_map, new_locs[i_l][1], new_locs[i_l][2], 'distance')
+                        local ld_protect = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, protect_loc[1], protect_loc[2], 'distance')
+                        local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, new_locs[i_l][1], new_locs[i_l][2], 'distance')
                         if (ld > ld_protect) then
                             -- We cannot just remove this dst from this hold, as this would
                             -- change the threats to the other dsts. The entire combo needs

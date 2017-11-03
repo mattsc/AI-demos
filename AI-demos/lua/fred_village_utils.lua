@@ -92,7 +92,7 @@ function fred_village_utils.village_goals(villages_to_protect_maps, move_data)
 end
 
 
-function fred_village_utils.protect_locs(villages_to_protect_maps, turn_data, move_data)
+function fred_village_utils.protect_locs(villages_to_protect_maps, fred_data)
     -- For now, every village on our side of the map that can be reached
     -- by an enemy needs to be protected
 
@@ -102,9 +102,9 @@ function fred_village_utils.protect_locs(villages_to_protect_maps, turn_data, mo
         local max_ld, loc
         for x,y,vilage_data in FU.fgumap_iter(villages) do
             if vilage_data.protect then
-                for enemy_id,_ in pairs(move_data.enemies) do
-                    if FU.get_fgumap_value(move_data.reach_maps[enemy_id], x, y, 'moves_left') then
-                        local ld = FU.get_fgumap_value(turn_data.leader_distance_map, x, y, 'distance')
+                for enemy_id,_ in pairs(fred_data.move_data.enemies) do
+                    if FU.get_fgumap_value(fred_data.move_data.reach_maps[enemy_id], x, y, 'moves_left') then
+                        local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
                         if (not max_ld) or (ld > max_ld) then
                             max_ld = ld
                             loc = { x, y }
@@ -128,9 +128,10 @@ function fred_village_utils.protect_locs(villages_to_protect_maps, turn_data, mo
 end
 
 
-function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_protect_maps, assigned_units, village_actions, unit_attacks, turn_data, move_data)
+function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_protect_maps, assigned_units, village_actions, fred_data)
     -- assigned_units and village_actions are modified directly in place
 
+    local move_data = fred_data.move_data
     -- Villages that can be reached are dealt with separately from others
     -- Only go over those found above
     local villages_in_reach = { by_village = {}, by_unit = {} }
@@ -159,7 +160,7 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
                     local max_damage, av_damage = 0, 0
                     if village.threats then
                         for _,enemy_id in ipairs(village.threats) do
-                            local att = unit_attacks[id][enemy_id]
+                            local att = fred_data.turn_data.unit_attacks[id][enemy_id]
                             local damage_taken = att.damage_counter.base_taken
 
                             -- TODO: this does not take chance_to_hit specials into account
@@ -222,7 +223,7 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
             base_rating = base_rating / #village.units
 
             -- Prefer villages farther back
-            local add_rating_village = -2 * FU.get_fgumap_value(turn_data.leader_distance_map, village.x, village.y, 'distance')
+            local add_rating_village = -2 * FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, village.x, village.y, 'distance')
 
             for _,id in ipairs(village.units) do
                 local unit_rating = base_rating / (villages_in_reach.by_unit[id]^2)

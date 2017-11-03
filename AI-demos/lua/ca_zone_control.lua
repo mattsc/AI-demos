@@ -1110,7 +1110,6 @@ local function get_hold_action(zone_cfg, fred_data)
     --DBG.dbms(zone_cfg)
 
     local move_data = fred_data.move_data
-    local move_cache = fred_data.move_cache
 
     -- Holders are those specified in zone_units, or all units except the leader otherwise
     local holders = {}
@@ -1696,7 +1695,7 @@ local function get_hold_action(zone_cfg, fred_data)
 
     -- Add bonus for other strong hexes aligned *across* the direction
     -- of advancement of the enemies
-    FHU.convolve_rating_maps(hold_rating_maps, 'vuln_rating', between_map, fred_data.turn_data, move_data)
+    FHU.convolve_rating_maps(hold_rating_maps, 'vuln_rating', between_map, fred_data.turn_data)
 
     if false then
         for id,hold_rating_map in pairs(hold_rating_maps) do
@@ -1813,7 +1812,7 @@ local function get_hold_action(zone_cfg, fred_data)
 
     -- Add bonus for other strong hexes aligned *across* the direction
     -- of advancement of the enemies
-    FHU.convolve_rating_maps(protect_rating_maps, 'protect_rating', between_map, fred_data.turn_data, move_data)
+    FHU.convolve_rating_maps(protect_rating_maps, 'protect_rating', between_map, fred_data.turn_data)
 
     if false then
         for id,protect_rating_map in pairs(protect_rating_maps) do
@@ -1883,7 +1882,7 @@ local function get_hold_action(zone_cfg, fred_data)
         --DBG.dbms(hold_combos)
         --print('#hold_combos', #hold_combos)
 
-        best_hold_combo = FHU.find_best_combo(hold_combos, hold_ratings, 'vuln_rating', adjacent_village_map, between_map, fred_data.turn_data, move_data, move_cache, cfg_best_combo_hold)
+        best_hold_combo = FHU.find_best_combo(hold_combos, hold_ratings, 'vuln_rating', adjacent_village_map, between_map, fred_data, cfg_best_combo_hold)
     end
 
     local best_protect_combo, all_best_protect_combo, protect_dst_src, protect_ratings
@@ -1894,7 +1893,7 @@ local function get_hold_action(zone_cfg, fred_data)
         --DBG.dbms(protect_combos)
         --print('#protect_combos', #protect_combos)
 
-        best_protect_combo, all_best_protect_combo = FHU.find_best_combo(protect_combos, protect_ratings, 'protect_rating', adjacent_village_map, between_map, fred_data.turn_data, move_data, move_cache, cfg_best_combo_protect)
+        best_protect_combo, all_best_protect_combo = FHU.find_best_combo(protect_combos, protect_ratings, 'protect_rating', adjacent_village_map, between_map, fred_data, cfg_best_combo_protect)
 
         -- If no combo that protects the location was found, use the best of the others
         if (not best_protect_combo) then
@@ -2301,7 +2300,7 @@ local function get_retreat_action(zone_cfg, fred_data)
 
     local move_data = fred_data.move_data
     local retreat_utilities = FU.retreat_utilities(move_data)
-    local retreat_combo = R.find_best_retreat(zone_cfg.retreaters, retreat_utilities, fred_data.turn_data, move_data)
+    local retreat_combo = R.find_best_retreat(zone_cfg.retreaters, retreat_utilities, fred_data)
 
     if retreat_combo then
         local action = {
