@@ -2746,7 +2746,7 @@ function ca_zone_control:execution(ai, cfg, self)
 
             local have_recruited
             while (self.recruit:recruit_rushers_eval() > 0) do
-                if (not self.recruit:recruit_rushers_exec(nil, avoid_map)) then
+                if (not self.recruit:recruit_rushers_exec(ai, avoid_map)) then
                     break
                 else
                     -- Note (TODO?): these units do not get counted as used in any zone
