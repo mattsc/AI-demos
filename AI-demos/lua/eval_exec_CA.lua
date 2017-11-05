@@ -6,6 +6,7 @@
 
 local H = wesnoth.require "lua/helper.lua"
 local W = H.set_wml_action_metatable {}
+--local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
 local function debug_CA()
     -- Edit manually whether you want debug_CA mode or not
@@ -51,6 +52,9 @@ local function set_menus()
 end
 
 local function get_all_CA_names()
+    -- TODO: This is disabled for now, might be reinstated later
+
+    --[[
     -- Return an array of CA names to choose from
 
     -- First, get all the custom AI functions
@@ -77,85 +81,32 @@ local function get_all_CA_names()
     table.sort(cas, function(a, b) return (a < b) end)
 
     return cas
+    --]]
 end
 
-local function eval_CA(ai, no_messages)
-    -- Evaluates the CA with name returned by CA_name()
-
+local function init_CA(self)
     wesnoth.clear_messages()
+    if wrong_side(1) then return end
 
-    local eval_name = CA_name() .. '_eval'
-
-    -- Get all the custom AI functions
-    my_ai = wesnoth.dofile("~add-ons/AI-demos/lua/fred.lua").init(ai)
-
-    -- Need to set up a fake 'self.data' table, as that does not exist outside the AI engine
-    -- This is taken from the global table 'self_data_table', because it needs to persist between moves
-    my_ai.data = self_data_table
-
-    -- Loop through the my_ai table until we find the function we are looking for
-    local found = false
-    local eval_function, reset_vars_move_function
-    for k,v in pairs(my_ai) do
-        if (k == eval_name) then
-            found = true
-            eval_function = v
-        end
-
-        if (k == 'reset_vars_move_eval') then
-            reset_vars_move_function = v
-        end
+    -- First time we need to call reset_vars_turn:execution
+    if (not self.data.turn_data) then
+        wesnoth.dofile("~add-ons/AI-demos/lua/ca_reset_vars_turn.lua"):execution(_, _, self)
     end
 
-    -- We always need to execute reset_vars_move_eval first, to set up the move_data table
-    reset_vars_move_function()
+    -- We always need to call reset_vars_move:evaluation first, to set up the move_data table
+    wesnoth.dofile("~add-ons/AI-demos/lua/ca_reset_vars_move.lua"):evaluation(_, _, self)
 
-    -- Now display and return the evaluation score
-    local score = 0
-    if found then
-        score = eval_function()
-        if (not no_messages) then wesnoth.message("Evaluation score for " .. CA_name() .. ': ' .. score) end
-    else
-        if (not no_messages) then wesnoth.message("Found no CA of that name: " .. CA_name()) end
-    end
+    -- Now get the AI table and the CA functions
+    local ai = wesnoth.debug_ai(wesnoth.current.side).ai -- not local in 1.13!
+    local ca = wesnoth.dofile("~add-ons/AI-demos/lua/ca_zone_control.lua")
 
-    -- At the end, transfer my_ai.data content to global self_data_table
-    self_data_table = my_ai.data
-
-    return score
-end
-
-local function exec_CA(ai, no_messages)
-    -- Executes the CA with name returned by CA_name()
-
-    if ai then
-        local exec_name = CA_name() .. '_exec'
-        if (not no_messages) then wesnoth.message("Executing CA: " .. CA_name()) end
-
-        -- Get all the custom AI functions
-        my_ai = wesnoth.dofile("~add-ons/AI-demos/lua/fred.lua").init(ai)
-
-        -- Need to set up a fake 'self.data' table, as that does not exist outside the AI engine
-        -- This is taken from the global table 'self_data_table', because it needs to persist between moves
-        my_ai.data = self_data_table
-
-        -- Loop through the my_ai table until we find the function we are looking for
-        local exec_function = ''
-        for k,v in pairs(my_ai) do
-            if (k == exec_name) then
-                exec_function = v
-                exec_function()
-            end
-        end
-
-        -- At the end, transfer my_ai.data content to global self_data_table
-        self_data_table = my_ai.data
-    else
-        wesnoth.message("!!!!! Error !!!!! CAs not activated for execution.")
-    end
+    return ai, ca
 end
 
 local function highest_score_CA(ai)
+    -- TODO: This is disabled for now, might be reinstated later
+
+    --[[
     local cas = get_all_CA_names()
 
     local best_ca, max_score = '', 0
@@ -170,6 +121,7 @@ local function highest_score_CA(ai)
     end
 
     return best_ca, max_score
+    --]]
 end
 
 return {
@@ -183,24 +135,23 @@ return {
             W.clear_menu_item { id = 'm01_eval' }
             W.clear_menu_item { id = 'm02_exec' }
             W.clear_menu_item { id = 'm02a_units_info' }
-            W.clear_menu_item { id = 'm03_choose_ca' }
-            W.clear_menu_item { id = 'm04_highest_score_CA' }
+            --W.clear_menu_item { id = 'm03_choose_ca' }
+            --W.clear_menu_item { id = 'm04_highest_score_CA' }
             W.clear_menu_item { id = 'm05_play_turn' }
         end
     end,
 
-    eval_CA = function(ai)
-        -- This simply calls the function of the same name
-        -- Done so that it is available from several functions inside this table
-        if wrong_side(1) then return end
-        eval_CA(ai)
-    end,
+    eval_exec_CA = function(exec_also)
+        local self = dummy_self
+        local ai, ca = init_CA(self)
 
-    eval_exec_CA = function(ai)
-        -- This calls eval_CA(), then exec(CA) if the score is >0
-        if wrong_side(1) then return end
-        local score = eval_CA(ai)
-        if (score > 0) then exec_CA(ai) end
+        local score = ca:evaluation(ai, cfg, self)
+        wesnoth.message("Evaluation score for " .. CA_name() .. ': ' .. score)
+
+        if exec_also and (score > 0) then
+            ca:execution(ai, cfg, self)
+        end
+        dummy_self = self
     end,
 
     units_info = function(stdout_only)
@@ -220,6 +171,9 @@ return {
         if (not stdout_only) then wesnoth.message(str) end
     end,
 
+    -- TODO: This is disabled for now, might be reinstated later
+
+    --[[
     choose_CA = function()
         -- Lets the user choose a CA from a menu
         -- The result is stored in WML variable 'debug_CA_name'
@@ -246,7 +200,11 @@ return {
         -- And set the menu items accordingly
         set_menus()
     end,
+    --]]
 
+    -- TODO: This is disabled for now, might be reinstated later
+
+    --[[
     highest_score_CA = function(ai)
         -- Finds and displays the name of the highest-scoring CA
         if wrong_side(1) then return end
@@ -263,25 +221,31 @@ return {
         -- And set the menu items accordingly
         set_menus()
     end,
+    --]]
 
     play_turn = function(ai)
         -- Play through an entire AI turn
         if wrong_side(1) then return end
 
+        local self = dummy_self
+
         while 1 do
-            local ca, score = highest_score_CA(ai)
+            local ai, ca = init_CA(self)
+
+            -- TODO: this is disabled for the time being
+            -- local ca_name, score = highest_score_CA(ai)
+            local ca_name, score = 'zone_control', ca:evaluation(ai, cfg, self)
 
             if (score > 0) then
                 W.message {
                     speaker = 'narrator',
-                    caption = "Executing " .. ca .. " CA",
+                    caption = "Executing " .. ca_name .. " CA",
                     image = 'wesnoth-icon.png', message = "Score: " .. score
                 }
 
                 -- Need to evaluate the CA again first, so that 'self.data' gets set up
-                wesnoth.set_variable('debug_CA_name', ca)
-                eval_CA(ai, true)
-                exec_CA(ai, true)
+                wesnoth.set_variable('debug_CA_name', ca_name)
+                ca:execution(ai, cfg, self)
             else
                 W.message {
                     speaker = 'narrator',
@@ -291,6 +255,8 @@ return {
                 break
             end
         end
+
+        dummy_self = self
     end,
 
     set_menus = function()
