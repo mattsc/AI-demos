@@ -1,7 +1,7 @@
 ----- CA: Clear data table at end of turn (max_score: 1) -----
 -- This will be blacklisted after first execution each turn, which happens at the very end of each turn
 
-wesnoth.require "~/add-ons/AI-demos/lua/set_CA_args.lua"
+local FC = wesnoth.require "~/add-ons/AI-demos/lua/fred_compatibility.lua"
 
 local ca_clear_self_data = {}
 
@@ -10,7 +10,7 @@ function ca_clear_self_data:evaluation()
 end
 
 function ca_clear_self_data:execution(arg1, arg2, arg3)
-    local ai, cfg, data = set_CA_args(arg1, arg2, arg3)
+    local ai, cfg, data = FC.set_CA_args(arg1, arg2, arg3)
 
     --print(' Clearing data table at end of Turn ' .. wesnoth.current.turn)
 

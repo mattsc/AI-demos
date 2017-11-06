@@ -5,12 +5,12 @@
 
 local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
 local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
-wesnoth.require "~/add-ons/AI-demos/lua/set_CA_args.lua"
+local FC = wesnoth.require "~/add-ons/AI-demos/lua/fred_compatibility.lua"
 
 local ca_remove_mp = {}
 
 function ca_remove_mp:evaluation(arg1, arg2, arg3)
-    local ai, cfg, data = set_CA_args(arg1, arg2, arg3)
+    local ai, cfg, data = FC.set_CA_args(arg1, arg2, arg3)
 
     local score = 900
 
@@ -27,7 +27,7 @@ function ca_remove_mp:evaluation(arg1, arg2, arg3)
 end
 
 function ca_remove_mp:execution(arg1, arg2, arg3)
-    local ai, cfg, data = set_CA_args(arg1, arg2, arg3)
+    local ai, cfg, data = FC.set_CA_args(arg1, arg2, arg3)
 
     DBG.print_debug_time('exec', data.turn_start_time, '=> exec: remove_MP CA')
 

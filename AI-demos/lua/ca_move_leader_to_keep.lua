@@ -3,12 +3,12 @@
 local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
 local FMLU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_move_leader_utils.lua"
 local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
-wesnoth.require "~/add-ons/AI-demos/lua/set_CA_args.lua"
+local FC = wesnoth.require "~/add-ons/AI-demos/lua/fred_compatibility.lua"
 
 local ca_move_leader_to_keep = {}
 
 function ca_move_leader_to_keep:evaluation(arg1, arg2, arg3)
-    local ai, cfg, data = set_CA_args(arg1, arg2, arg3)
+    local ai, cfg, data = FC.set_CA_args(arg1, arg2, arg3)
 
     local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'move_leader_to_keep'
     DBG.print_debug_time('eval', data.turn_start_time, '     - Evaluating move_leader_to_keep CA:')
@@ -17,7 +17,7 @@ function ca_move_leader_to_keep:evaluation(arg1, arg2, arg3)
 end
 
 function ca_move_leader_to_keep:execution(arg1, arg2, arg3)
-    local ai, cfg, data = set_CA_args(arg1, arg2, arg3)
+    local ai, cfg, data = FC.set_CA_args(arg1, arg2, arg3)
 
     DBG.print_debug_time('exec', data.turn_start_time, '=> exec: move_leader_to_keep CA')
 
