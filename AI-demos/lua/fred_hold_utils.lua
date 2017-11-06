@@ -892,7 +892,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             else
                 local reduced_combo = {
                     combo = {},
-                    formation_rating = formation_rating,
+                    formation_rating = combo.formation_rating,
                     is_protected = combo.is_protected
                 }
                 for src,dst in pairs(combo.combo) do
