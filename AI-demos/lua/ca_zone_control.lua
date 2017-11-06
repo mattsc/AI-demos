@@ -1275,7 +1275,7 @@ local function get_hold_action(zone_cfg, fred_data)
         end
     end
 
-    for x,y,data in FU.fgumap_iter(holders_influence, x, y) do
+    for x,y,data in FU.fgumap_iter(holders_influence) do
         local my_inf = data.my_influence or 0
         local enemy_inf = data.enemy_influence or 0
         local inf_ratio = my_inf / (enemy_inf + 1)
