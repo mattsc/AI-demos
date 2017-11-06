@@ -3,19 +3,22 @@
 
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FGU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils.lua"
+wesnoth.require "~/add-ons/AI-demos/lua/set_CA_args.lua"
 
 local ca_reset_vars_move = {}
 
-function ca_reset_vars_move:evaluation(ai, cfg, self)
+function ca_reset_vars_move:evaluation(arg1, arg2, arg3)
+    local ai, cfg, data = set_CA_args(arg1, arg2, arg3)
+
     --print(' Resetting move_data tables (etc.) before move')
 
-    self.data.move_data = FGU.get_move_data()
-    self.data.move_cache = {}
+    data.move_data = FGU.get_move_data()
+    data.move_cache = {}
 
     return 0
 end
 
-function ca_reset_vars_move:execution(ai, cfg, self)
+function ca_reset_vars_move:execution()
 end
 
 return ca_reset_vars_move

@@ -581,7 +581,7 @@ function fred_ops_utils.set_turn_data(move_data)
 end
 
 
-function fred_ops_utils.set_ops_data(fred_data, fred_recruit)
+function fred_ops_utils.set_ops_data(fred_data)
     DBG.print_debug('analysis', '\n------------- Setting the turn_data table:')
 
     -- Get the needed cfgs
@@ -751,9 +751,9 @@ function fred_ops_utils.set_ops_data(fred_data, fred_recruit)
             end
         end
 
-        prerecruit = fred_recruit:prerecruit_units(closest_keep, outofway_units)
+        prerecruit = fred_data.recruit:prerecruit_units(closest_keep, outofway_units)
         -- Need to do this, or the recruit CA will try to recruit the same units again later
-        fred_recruit:clear_prerecruit()
+        fred_data.recruit:clear_prerecruit()
     end
     --DBG.dbms(prerecruit)
 

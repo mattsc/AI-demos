@@ -5,16 +5,19 @@
 
 local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
 local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
+wesnoth.require "~/add-ons/AI-demos/lua/set_CA_args.lua"
 
 local ca_remove_mp = {}
 
-function ca_remove_mp:evaluation(ai, cfg, self)
+function ca_remove_mp:evaluation(arg1, arg2, arg3)
+    local ai, cfg, data = set_CA_args(arg1, arg2, arg3)
+
     local score = 900
 
     local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'remove_MP'
-    DBG.print_debug_time('eval', self.data.turn_start_time, '     - Evaluating remove_MP CA:')
+    DBG.print_debug_time('eval', data.turn_start_time, '     - Evaluating remove_MP CA:')
 
-    local id,_ = next(self.data.move_data.my_units_MP)
+    local id,_ = next(data.move_data.my_units_MP)
 
     if id then
         return score
@@ -23,12 +26,14 @@ function ca_remove_mp:evaluation(ai, cfg, self)
     return 0
 end
 
-function ca_remove_mp:execution(ai, cfg, self)
-    DBG.print_debug_time('exec', self.data.turn_start_time, '=> exec: remove_MP CA')
+function ca_remove_mp:execution(arg1, arg2, arg3)
+    local ai, cfg, data = set_CA_args(arg1, arg2, arg3)
 
-    local id,loc = next(self.data.move_data.my_units_MP)
+    DBG.print_debug_time('exec', data.turn_start_time, '=> exec: remove_MP CA')
 
-    AH.checked_stopunit_moves(ai, self.data.move_data.unit_copies[id])
+    local id,loc = next(data.move_data.my_units_MP)
+
+    AH.checked_stopunit_moves(ai, data.move_data.unit_copies[id])
 end
 
 return ca_remove_mp
