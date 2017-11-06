@@ -5,6 +5,7 @@ local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
 local FVU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_village_utils.lua"
 local FHU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_hold_utils.lua"
 local FMLU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_move_leader_utils.lua"
+local FC = wesnoth.require "~/add-ons/AI-demos/lua/fred_compatibility.lua"
 local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
 -- Trying to set things up so that FSC is _only_ used in ops_utils
@@ -449,7 +450,7 @@ function fred_ops_utils.set_turn_data(move_data)
         local old_y = move_data.unit_copies[my_id].y
         local my_x, my_y = attack_locs.attacker_loc[1], attack_locs.attacker_loc[2]
 
-        wesnoth.put_unit(my_x, my_y, move_data.unit_copies[my_id])
+        FC.put_unit(my_x, my_y, move_data.unit_copies[my_id])
         local my_proxy = wesnoth.get_unit(my_x, my_y)
 
         for enemy_id,_ in pairs(move_data.enemies) do
@@ -459,7 +460,7 @@ function fred_ops_utils.set_turn_data(move_data)
             local old_y_enemy = move_data.unit_copies[enemy_id].y
             local enemy_x, enemy_y = attack_locs.defender_loc[1], attack_locs.defender_loc[2]
 
-            wesnoth.put_unit(enemy_x, enemy_y, move_data.unit_copies[enemy_id])
+            FC.put_unit(enemy_x, enemy_y, move_data.unit_copies[enemy_id])
             local enemy_proxy = wesnoth.get_unit(enemy_x, enemy_y)
 
             local bonus_poison = 8
@@ -550,13 +551,13 @@ function fred_ops_utils.set_turn_data(move_data)
 
 
             move_data.unit_copies[enemy_id] = wesnoth.copy_unit(enemy_proxy)
-            wesnoth.put_unit(enemy_x, enemy_y)
+            FC.erase_unit(enemy_x, enemy_y)
             move_data.unit_copies[enemy_id].x = old_x_enemy
             move_data.unit_copies[enemy_id].y = old_y_enemy
         end
 
         move_data.unit_copies[my_id] = wesnoth.copy_unit(my_proxy)
-        wesnoth.put_unit(my_x, my_y)
+        FC.erase_unit(my_x, my_y)
         move_data.unit_copies[my_id].x = old_x
         move_data.unit_copies[my_id].y = old_y
 

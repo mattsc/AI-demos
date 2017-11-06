@@ -3,6 +3,7 @@ local AH = wesnoth.require "ai/lua/ai_helper.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local W = H.set_wml_action_metatable {}
+local FC = wesnoth.require "~/add-ons/AI-demos/lua/fred_compatibility.lua"
 local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
 local fred_hold_utils = {}
@@ -592,7 +593,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                         local id = ratings[dst][src].id
                         local x, y =  math.floor(dst / 1000), dst % 1000
                         --print(id, src, x,y, move_data.unit_copies[id].x, move_data.unit_copies[id].y)
-                        wesnoth.put_unit(x, y, move_data.unit_copies[id])
+                        FC.put_unit(x, y, move_data.unit_copies[id])
                     end
 
                     local can_reach = false

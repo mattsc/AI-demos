@@ -2,6 +2,7 @@ local H = wesnoth.require "lua/helper.lua"
 local W = H.set_wml_action_metatable {}
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FGUI = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
+local FC = wesnoth.require "~/add-ons/AI-demos/lua/fred_compatibility.lua"
 --local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
 
 -- Functions to perform fast evaluation of attacks and attack combinations.
@@ -1118,7 +1119,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, move_data, move_ca
 
                     -- Setting XP to 0, as it is extremely unlikely that a
                     -- defender will level twice in a single attack combo
-                    wesnoth.put_unit(defender_loc[1], defender_loc[2], {
+                    FC.put_unit(defender_loc[1], defender_loc[2], {
                         id = 'adv_' .. defender_info.id,  -- To distinguish from defender for caching
                         side = defender_info.side,
                         hitpoints = hp1,
@@ -1136,7 +1137,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, move_data, move_ca
                         move_data, move_cache, cfg
                     )
 
-                    wesnoth.put_unit(defender_loc[1], defender_loc[2])
+                    FC.erase_unit(defender_loc[1], defender_loc[2])
                     wesnoth.put_unit(defender_proxy)
 
                     -- Attacker outcomes are the same as for the not leveled-up case, since an attacker
