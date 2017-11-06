@@ -97,7 +97,7 @@ local function init_CA(self)
     wesnoth.dofile("~add-ons/AI-demos/lua/ca_reset_vars_move.lua"):evaluation(_, _, self)
 
     -- Now get the AI table and the CA functions
-    local ai = wesnoth.debug_ai(wesnoth.current.side).ai -- not local in 1.13!
+    local ai = wesnoth.debug_ai(wesnoth.current.side).ai
     local ca = wesnoth.dofile("~add-ons/AI-demos/lua/ca_zone_control.lua")
 
     return ai, ca
