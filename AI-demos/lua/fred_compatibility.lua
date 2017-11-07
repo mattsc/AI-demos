@@ -2,13 +2,16 @@
 
 local fred_compatibility = {}
 
-function fred_compatibility.set_CA_args(arg1, arg2, arg3)
-    local ai, cfg, data = ai, arg1, arg2
-    if wesnoth.compare_versions(wesnoth.game_config.version, '<', '1.13.5') then
-        ai, cfg, data = arg1, arg2, arg3.data
+function fred_compatibility.set_CA_args(arg1, arg2, arg3, use_1_12_syntax)
+    -- @use_1_12_syntax: in CA debugging mode, use 1.12 syntax even in 1.13
+    local ai_local, cfg, data
+    if wesnoth.compare_versions(wesnoth.game_config.version, '<', '1.13.5') or use_1_12_syntax then
+        ai_local, cfg, data = arg1, arg2, arg3.data
+    else
+        ai_local, cfg, data = ai, arg1, arg2
     end
 
-    return ai, cfg, data
+    return ai_local, cfg, data
 end
 
 function fred_compatibility.put_unit(x, y, unit)

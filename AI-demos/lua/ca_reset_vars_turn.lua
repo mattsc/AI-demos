@@ -9,8 +9,8 @@ function ca_reset_vars_turn:evaluation()
     return 999998
 end
 
-function ca_reset_vars_turn:execution(arg1, arg2, arg3)
-    local ai, cfg, data = FC.set_CA_args(arg1, arg2, arg3)
+function ca_reset_vars_turn:execution(arg1, arg2, arg3, use_1_12_syntax)
+    local ai, cfg, data = FC.set_CA_args(arg1, arg2, arg3, use_1_12_syntax)
 
     --print(' Resetting variables at beginning of Turn ' .. wesnoth.current.turn)
 

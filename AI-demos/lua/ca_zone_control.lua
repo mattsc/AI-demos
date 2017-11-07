@@ -2414,8 +2414,8 @@ end
 
 local ca_zone_control = {}
 
-function ca_zone_control:evaluation(arg1, arg2, arg3)
-    local ai, cfg, data = FC.set_CA_args(arg1, arg2, arg3)
+function ca_zone_control:evaluation(arg1, arg2, arg3, use_1_12_syntax)
+    local ai, cfg, data = FC.set_CA_args(arg1, arg2, arg3, use_1_12_syntax)
 
     local score_zone_control = 350000
     local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
@@ -2540,8 +2540,8 @@ function ca_zone_control:evaluation(arg1, arg2, arg3)
     return 0
 end
 
-function ca_zone_control:execution(arg1, arg2, arg3)
-    local ai, cfg, data = FC.set_CA_args(arg1, arg2, arg3)
+function ca_zone_control:execution(arg1, arg2, arg3, use_1_12_syntax)
+    local ai, cfg, data = FC.set_CA_args(arg1, arg2, arg3, use_1_12_syntax)
 
     local action = data.zone_action.zone_id .. ': ' .. data.zone_action.action_str
     --DBG.dbms(data.zone_action)

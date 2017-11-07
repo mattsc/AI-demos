@@ -7,8 +7,8 @@ local FC = wesnoth.require "~/add-ons/AI-demos/lua/fred_compatibility.lua"
 
 local ca_reset_vars_move = {}
 
-function ca_reset_vars_move:evaluation(arg1, arg2, arg3)
-    local ai, cfg, data = FC.set_CA_args(arg1, arg2, arg3)
+function ca_reset_vars_move:evaluation(arg1, arg2, arg3, use_1_12_syntax)
+    local ai, cfg, data = FC.set_CA_args(arg1, arg2, arg3, use_1_12_syntax)
 
     --print(' Resetting move_data tables (etc.) before move')
 

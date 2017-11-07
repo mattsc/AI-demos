@@ -88,17 +88,17 @@ local function init_CA(self)
     wesnoth.clear_messages()
     if wrong_side(1) then return end
 
+    -- Get the AI table and the CA functions
+    local ai = wesnoth.debug_ai(wesnoth.current.side).ai
+    local ca = wesnoth.dofile("~add-ons/AI-demos/lua/ca_zone_control.lua")
+
     -- First time we need to call reset_vars_turn:execution
     if (not self.data.turn_data) then
-        wesnoth.dofile("~add-ons/AI-demos/lua/ca_reset_vars_turn.lua"):execution(_, _, self)
+        wesnoth.dofile("~add-ons/AI-demos/lua/ca_reset_vars_turn.lua"):execution(ai, nil, self, true)
     end
 
     -- We always need to call reset_vars_move:evaluation first, to set up the move_data table
-    wesnoth.dofile("~add-ons/AI-demos/lua/ca_reset_vars_move.lua"):evaluation(_, _, self)
-
-    -- Now get the AI table and the CA functions
-    local ai = wesnoth.debug_ai(wesnoth.current.side).ai
-    local ca = wesnoth.dofile("~add-ons/AI-demos/lua/ca_zone_control.lua")
+    wesnoth.dofile("~add-ons/AI-demos/lua/ca_reset_vars_move.lua"):evaluation(ai, nil, self, true)
 
     return ai, ca
 end
@@ -145,11 +145,11 @@ return {
         local self = dummy_self
         local ai, ca = init_CA(self)
 
-        local score = ca:evaluation(ai, cfg, self)
+        local score = ca:evaluation(ai, nil, self, true)
         wesnoth.message("Evaluation score for " .. CA_name() .. ': ' .. score)
 
         if exec_also and (score > 0) then
-            ca:execution(ai, cfg, self)
+            ca:execution(ai, nil, self, true)
         end
         dummy_self = self
     end,
@@ -234,7 +234,7 @@ return {
 
             -- TODO: this is disabled for the time being
             -- local ca_name, score = highest_score_CA(ai)
-            local ca_name, score = 'zone_control', ca:evaluation(ai, cfg, self)
+            local ca_name, score = 'zone_control', ca:evaluation(ai, nil, self, true)
 
             if (score > 0) then
                 W.message {
@@ -245,7 +245,7 @@ return {
 
                 -- Need to evaluate the CA again first, so that 'self.data' gets set up
                 wesnoth.set_variable('debug_CA_name', ca_name)
-                ca:execution(ai, cfg, self)
+                ca:execution(ai, nil, self, true)
             else
                 W.message {
                     speaker = 'narrator',
