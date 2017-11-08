@@ -406,7 +406,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         local new_locs = { { move_data.leader_x, move_data.leader_y } }
 
         local counter_outcomes = FAU.calc_counter_attack(
-            leader_target, old_locs, new_locs, move_data, fred_data.move_cache, cfg_attack
+            leader_target, old_locs, new_locs, move_data, fred_data.move_cache
         )
 
         local remainging_hp = move_data.unit_infos[leader_id].hitpoints
@@ -529,7 +529,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 protect_loc = { move_data.leader_x, move_data.leader_y }
 
                 local counter_outcomes = FAU.calc_counter_attack(
-                    leader_target, old_locs, new_locs, move_data, fred_data.move_cache, cfg_attack
+                    leader_target, old_locs, new_locs, move_data, fred_data.move_cache
                 )
 
                 local remainging_hp = move_data.unit_infos[leader_id].hitpoints
