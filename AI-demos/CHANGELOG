@@ -1,4 +1,12 @@
------ 0.14.7, 2 Nov 2017 -----
+----- 0.14.8, 8 Nov 2017  (port Fred to Wesnoth 1.13) -----
+
+- Fred (Freelands AI for Northerners, Side 1):
+  - Adapt code to work in both Wesnoth 1.12 and 1.13
+  - Switch to using external candidate actions
+  - Significant amounts of code refactoring to make the above changes possible
+
+
+----- 0.14.7, 2 Nov 2017  (fix lack of aggressiveness) -----
 
 This release is mostly a quick and somewhat superficial fix for Fred's
 exaggerated defensiveness introduced in the previous release. It does not solve
@@ -17,7 +25,7 @@ overall be an improvement.
     - Fix bug causing rare AI crash when assessing village grabbing
 
 
------ 0.14.6, 27 Oct 2017 -----
+----- 0.14.6, 27 Oct 2017  (holding, advancing, retreating) -----
 
 This release focused on Fred's non-attack actions, mainly defensive positioning
 (holding), advancing and retreating. The evaluation functions of these actions
@@ -55,7 +63,7 @@ saw many changes, including but by no means limited to those listed below.
     - Fred utils: new function fgumap_normalize
 
 
------ 0.14.5, 13 Aug 2017 -----
+----- 0.14.5, 13 Aug 2017  (attack evaluation) -----
 
 The majority of this release is dedicated to Fred's attack evaluation code. It
 contains many changes to the attack evaluation and execution code, only the more
