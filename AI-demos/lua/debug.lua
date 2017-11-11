@@ -1,3 +1,6 @@
+local H = wesnoth.require "lua/helper.lua"
+local W = H.set_wml_action_metatable {}
+
 local debug_utils = {}
 
 function debug_utils.show_debug(debug_type)
