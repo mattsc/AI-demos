@@ -11,6 +11,7 @@ local R = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_retreat_utils.lua"
 local FHU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_hold_utils.lua"
 local FMLU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_move_leader_utils.lua"
 local FC = wesnoth.require "~/add-ons/AI-demos/lua/fred_compatibility.lua"
+local FCFG = wesnoth.require "~/add-ons/AI-demos/lua/fred_config.lua"
 
 ----- Attack: -----
 local function get_attack_action(zone_cfg, fred_data)
@@ -83,7 +84,7 @@ local function get_attack_action(zone_cfg, fred_data)
     end
 
     -- How much more valuable do we consider the enemy units than our own
-    local value_ratio = zone_cfg.value_ratio or FU.cfg_default('value_ratio')
+    local value_ratio = zone_cfg.value_ratio or FCFG.get_cfg_parm('value_ratio')
     --DBG.print_ts_delta(fred_data.turn_start_time, 'value_ratio', value_ratio)
 
     -- We need to make sure the units always use the same weapon below, otherwise
@@ -1104,7 +1105,7 @@ local function get_hold_action(zone_cfg, fred_data)
     local value_ratio = fred_data.turn_data.behavior.influence.value_ratio
     local max_units = 3
     local max_hexes = 6
-    local leader_derating = FU.cfg_default('leader_derating')
+    local leader_derating = FCFG.get_cfg_parm('leader_derating')
 
     local raw_cfg = fred_data.turn_data.raw_cfgs[zone_cfg.zone_id]
     --DBG.dbms(raw_cfg)

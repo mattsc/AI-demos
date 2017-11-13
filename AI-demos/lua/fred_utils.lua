@@ -2,6 +2,7 @@ local H = wesnoth.require "lua/helper.lua"
 local W = H.set_wml_action_metatable {}
 local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
 local FGUI = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
+local FCFG = wesnoth.require "~/add-ons/AI-demos/lua/fred_config.lua"
 
 local fred_utils = {}
 
@@ -102,39 +103,16 @@ function fred_utils.get_unit_time_of_day_bonus(alignment, lawful_bonus)
     return multiplier
 end
 
-
-function fred_utils.cfg_default(parm)
-    local cfg = {
-        value_ratio = 0.8,  -- how valuable are own units compared to enemies
-
-        leader_weight = 1.5,
-
-        xp_weight = 1.0,
-
-        terrain_defense_weight = 0.1,
-        distance_leader_weight = 0.002,
-        occupied_hex_penalty = 0.001,
-
-        villages_per_unit = 2,
-
-        leader_derating = 0.5,
-
-        use_max_damage_weapons = false
-    }
-
-    return cfg[parm]
-end
-
 function fred_utils.unit_value(unit_info, cfg)
     -- Get a gold-equivalent value for the unit
 
-    local xp_weight = (cfg and cfg.xp_weight) or fred_utils.cfg_default('xp_weight')
+    local xp_weight = (cfg and cfg.xp_weight) or FCFG.get_cfg_parm('xp_weight')
 
     local unit_value = unit_info.cost
 
     -- If this is the side leader, make damage to it much more important
     if unit_info.canrecruit and (unit_info.side == wesnoth.current.side) then
-        local leader_weight = (cfg and cfg.leader_weight) or fred_utils.cfg_default('leader_weight')
+        local leader_weight = (cfg and cfg.leader_weight) or FCFG.get_cfg_parm('leader_weight')
         unit_value = unit_value * leader_weight
     end
 

@@ -3,6 +3,7 @@ local W = H.set_wml_action_metatable {}
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FGUI = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 local FC = wesnoth.require "~/add-ons/AI-demos/lua/fred_compatibility.lua"
+local FCFG = wesnoth.require "~/add-ons/AI-demos/lua/fred_config.lua"
 --local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 -- Functions to perform fast evaluation of attacks and attack combinations.
@@ -119,7 +120,7 @@ function fred_attack_utils.is_acceptable_attack(damage_to_ai, damage_to_enemy, v
     --   It is generally okay for the AI to take a little more damage than it deals out,
     --   so for the most part this value should be slightly smaller than 1.
 
-    value_ratio = value_ratio or FU.cfg_default('value_ratio')
+    value_ratio = value_ratio or FCFG.get_cfg_parm('value_ratio')
 
     -- Otherwise it depends on whether the numbers are positive or negative
     -- Negative damage means that one or several of the units are likely to level up
@@ -351,10 +352,10 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     --          side, and to 1 for the other side
 
     -- Set up the config parameters for the rating
-    local terrain_defense_weight = (cfg and cfg.terrain_defense_weight) or FU.cfg_default('terrain_defense_weight')
-    local distance_leader_weight = (cfg and cfg.distance_leader_weight) or FU.cfg_default('distance_leader_weight')
-    local occupied_hex_penalty = (cfg and cfg.occupied_hex_penalty) or FU.cfg_default('occupied_hex_penalty')
-    local value_ratio = (cfg and cfg.value_ratio) or FU.cfg_default('value_ratio')
+    local terrain_defense_weight = (cfg and cfg.terrain_defense_weight) or FCFG.get_cfg_parm('terrain_defense_weight')
+    local distance_leader_weight = (cfg and cfg.distance_leader_weight) or FCFG.get_cfg_parm('distance_leader_weight')
+    local occupied_hex_penalty = (cfg and cfg.occupied_hex_penalty) or FCFG.get_cfg_parm('occupied_hex_penalty')
+    local value_ratio = (cfg and cfg.value_ratio) or FCFG.get_cfg_parm('value_ratio')
 
     local attacker_damages = {}
     local attacker_rating = 0
@@ -716,7 +717,7 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
     ----- End attstat_to_outcome() -----
 
 
-    local use_max_damage_weapons = (cfg and cfg.use_max_damage_weapons) or FU.cfg_default('use_max_damage_weapons')
+    local use_max_damage_weapons = (cfg and cfg.use_max_damage_weapons) or FCFG.get_cfg_parm('use_max_damage_weapons')
 
     local defender_defense = FGUI.get_unit_defense(defender_proxy, defender_proxy.x, defender_proxy.y, move_data.defense_maps)
     local attacker_defense = FGUI.get_unit_defense(attacker_copy, dst[1], dst[2], move_data.defense_maps)

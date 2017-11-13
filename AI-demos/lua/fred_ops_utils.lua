@@ -6,6 +6,7 @@ local FVU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_village_utils.lua"
 local FHU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_hold_utils.lua"
 local FMLU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_move_leader_utils.lua"
 local FC = wesnoth.require "~/add-ons/AI-demos/lua/fred_compatibility.lua"
+local FCFG = wesnoth.require "~/add-ons/AI-demos/lua/fred_config.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 -- Trying to set things up so that FSC is _only_ used in ops_utils
@@ -302,7 +303,7 @@ function fred_ops_utils.set_turn_data(move_data)
     end
 
 
-    local leader_derating = FU.cfg_default('leader_derating')
+    local leader_derating = FCFG.get_cfg_parm('leader_derating')
 
     local influence_maps = {}
     for x,y,data in FU.fgumap_iter(move_data.my_attack_map[1]) do
@@ -365,7 +366,7 @@ function fred_ops_utils.set_turn_data(move_data)
         end
     end
 
-    local value_ratio = FU.cfg_default('value_ratio')
+    local value_ratio = FCFG.get_cfg_parm('value_ratio')
     local ratio = enemy_total_influence / my_total_influence
     if (ratio < 1) then
         value_ratio = ratio * value_ratio

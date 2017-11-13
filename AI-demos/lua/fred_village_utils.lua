@@ -2,6 +2,7 @@ local H = wesnoth.require "lua/helper.lua"
 local W = H.set_wml_action_metatable {}
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
+local FCFG = wesnoth.require "~/add-ons/AI-demos/lua/fred_config.lua"
 --local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local fred_village_utils = {}
@@ -330,7 +331,7 @@ function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, re
     --  - Actually assigning scouting actions
     -- Find how many units are needed in each zone for moving toward villages ('exploring')
     local units_needed_villages = {}
-    local villages_per_unit = FU.cfg_default('villages_per_unit')
+    local villages_per_unit = FCFG.get_cfg_parm('villages_per_unit')
     for zone_id,villages in pairs(zone_village_goals) do
         local n_villages = 0
         for _,village in pairs(villages) do
