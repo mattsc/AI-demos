@@ -103,16 +103,16 @@ function fred_utils.get_unit_time_of_day_bonus(alignment, lawful_bonus)
     return multiplier
 end
 
-function fred_utils.unit_value(unit_info, cfg)
+function fred_utils.unit_value(unit_info)
     -- Get a gold-equivalent value for the unit
 
-    local xp_weight = (cfg and cfg.xp_weight) or FCFG.get_cfg_parm('xp_weight')
+    local xp_weight = FCFG.get_cfg_parm('xp_weight')
 
     local unit_value = unit_info.cost
 
     -- If this is the side leader, make damage to it much more important
     if unit_info.canrecruit and (unit_info.side == wesnoth.current.side) then
-        local leader_weight = (cfg and cfg.leader_weight) or FCFG.get_cfg_parm('leader_weight')
+        local leader_weight = FCFG.get_cfg_parm('leader_weight')
         unit_value = unit_value * leader_weight
     end
 

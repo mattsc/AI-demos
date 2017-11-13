@@ -133,7 +133,7 @@ function fred_attack_utils.is_acceptable_attack(damage_to_ai, damage_to_enemy, v
     return (damage_to_enemy / damage_to_ai) >= value_ratio
 end
 
-function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, move_data, cfg)
+function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, move_data)
     -- Return a table with the different contributions to damage a unit is
     -- expected to experience in an attack.
     -- The attack att_outcome for the attacker need to be precalculated for this.
@@ -150,9 +150,6 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, move_data, c
     --  @att_outcome: attack outcomes for the attackers as from attack_outcome or attack_combo_eval
     --  @dst: location of the unit for which to calculate this; this might or
     --   might not be the current location of the unit
-    --
-    -- Optional parameters:
-    --  @cfg: table with the optional weights needed by fred_utils.unit_value
 
 
     ----- Begin get_delayed_damage() -----
@@ -274,7 +271,7 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, move_data, c
     damage.id = unit_info.id
     damage.hitpoints = unit_info.hitpoints
     damage.max_hitpoints = unit_info.max_hitpoints
-    damage.unit_value = FU.unit_value(unit_info, cfg)
+    damage.unit_value = FU.unit_value(unit_info)
 
     return damage
 end
@@ -359,7 +356,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     local attacker_damages = {}
     local attacker_rating = 0
     for i,attacker_info in ipairs(attacker_infos) do
-        attacker_damages[i] = fred_attack_utils.unit_damage(attacker_info, att_outcomes[i], dsts[i], move_data, cfg)
+        attacker_damages[i] = fred_attack_utils.unit_damage(attacker_info, att_outcomes[i], dsts[i], move_data)
         attacker_rating = attacker_rating + fred_attack_utils.damage_rating_unit(attacker_damages[i])
     end
 
@@ -369,7 +366,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     else
         defender_x, defender_y = move_data.units[defender_info.id][1], move_data.units[defender_info.id][2]
     end
-    local defender_damage = fred_attack_utils.unit_damage(defender_info, def_outcome, { defender_x, defender_y }, move_data, cfg)
+    local defender_damage = fred_attack_utils.unit_damage(defender_info, def_outcome, { defender_x, defender_y }, move_data)
     -- Rating for the defender is negative damage rating (as in, damage is good)
     local defender_rating = - fred_attack_utils.damage_rating_unit(defender_damage)
 
