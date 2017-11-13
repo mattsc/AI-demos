@@ -2,7 +2,6 @@ local H = wesnoth.require "lua/helper.lua"
 local W = H.set_wml_action_metatable {}
 local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
 local FGUI = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
-local items = wesnoth.require "lua/wml/items.lua"
 
 local fred_utils = {}
 
