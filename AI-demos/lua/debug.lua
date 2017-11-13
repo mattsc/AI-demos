@@ -1,5 +1,6 @@
 local H = wesnoth.require "lua/helper.lua"
 local W = H.set_wml_action_metatable {}
+local items = wesnoth.require "lua/wml/items.lua"
 
 local debug_utils = {}
 
