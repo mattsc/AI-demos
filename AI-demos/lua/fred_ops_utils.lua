@@ -6,7 +6,7 @@ local FVU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_village_utils.lua"
 local FHU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_hold_utils.lua"
 local FMLU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_move_leader_utils.lua"
 local FC = wesnoth.require "~/add-ons/AI-demos/lua/fred_compatibility.lua"
-local FCFG = wesnoth.require "~/add-ons/AI-demos/lua/fred_config.lua"
+local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 -- Trying to set things up so that FSC is _only_ used in ops_utils

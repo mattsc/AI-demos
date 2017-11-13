@@ -11,7 +11,7 @@ local R = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_retreat_utils.lua"
 local FHU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_hold_utils.lua"
 local FMLU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_move_leader_utils.lua"
 local FC = wesnoth.require "~/add-ons/AI-demos/lua/fred_compatibility.lua"
-local FCFG = wesnoth.require "~/add-ons/AI-demos/lua/fred_config.lua"
+local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
 
 ----- Attack: -----
 local function get_attack_action(zone_cfg, fred_data)
