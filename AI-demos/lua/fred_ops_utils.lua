@@ -376,6 +376,12 @@ function fred_ops_utils.set_turn_data(move_data)
             my = my_total_influence,
             enemy = enemy_total_influence,
             value_ratio = value_ratio
+        },
+        ratios = {
+            influence = my_total_influence / enemy_total_influence
+        },
+        orders = {
+            aggression = 1 / value_ratio
         }
     }
 
@@ -396,9 +402,12 @@ function fred_ops_utils.set_turn_data(move_data)
         n_my = n_vill_my,
         n_enemy = n_vill_enemy,
         n_unowned = n_vill_unowned,
-        n_total = n_vill_total,
-        ratio = n_vill_my / n_vill_total
+        n_total = n_vill_total
     }
+
+    behavior.ratios.assets = n_vill_my / (n_vill_total - n_vill_my + 1e-6)
+
+    behavior.orders.expansion = behavior.ratios.influence / behavior.ratios.assets
 
 
     local raw_cfgs_main = FSC.get_raw_cfgs()
