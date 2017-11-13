@@ -4,7 +4,7 @@
 -- unanswerable attacks), while they do not if they can still move
 
 local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
-local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
+local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 local FC = wesnoth.require "~/add-ons/AI-demos/lua/fred_compatibility.lua"
 
 local ca_remove_mp = {}

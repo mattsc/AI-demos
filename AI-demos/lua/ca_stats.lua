@@ -1,7 +1,7 @@
 ----- CA: Stats at beginning of turn (max_score: 999990) -----
 -- This will be blacklisted after first execution each turn
 
-local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
+local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 local FC = wesnoth.require "~/add-ons/AI-demos/lua/fred_compatibility.lua"
 
 local ca_stats = {}

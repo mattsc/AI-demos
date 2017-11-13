@@ -4,7 +4,7 @@ local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local W = H.set_wml_action_metatable {}
 local FC = wesnoth.require "~/add-ons/AI-demos/lua/fred_compatibility.lua"
-local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
+local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local fred_hold_utils = {}
 

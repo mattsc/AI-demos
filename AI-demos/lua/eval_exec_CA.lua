@@ -6,7 +6,7 @@
 
 local H = wesnoth.require "lua/helper.lua"
 local W = H.set_wml_action_metatable {}
---local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
+--local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local function debug_CA()
     -- Edit manually whether you want debug_CA mode or not
