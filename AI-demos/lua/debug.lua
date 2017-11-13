@@ -154,13 +154,18 @@ function debug_utils.put_fgumap_labels(map, key, cfg)
 end
 
 function debug_utils.show_fgumap_with_message(map, key, text, cfg)
-    -- @cfg: optional table containing x/y keys as coordinates and 'id' for the speaker
-    --   Thus, it's possible to pass a unit as @cfg
+    -- @cfg: optional table with display configuration paramters:
+    --   @x,@y: coordinates to scroll to; if omitted, no scrolling is done
+    --   @id: speaker id; if omitted, a narrator message is shown
+    --   @no_halo: if set, do not display a halo in the speaker unit location
+    -- Thus, it's possible to pass a unit as @cfg
 
     debug_utils.put_fgumap_labels(map, key)
     if cfg and cfg.x and cfg.y then
         wesnoth.scroll_to_tile(cfg.x,cfg.y)
-        items.place_halo(cfg.x, cfg.y, "halo/teleport-8.png")
+        if (not cfg.no_halo) then
+            items.place_halo(cfg.x, cfg.y, "halo/teleport-8.png")
+        end
     end
     W.redraw()
     local id = cfg and cfg.id
@@ -169,7 +174,7 @@ function debug_utils.show_fgumap_with_message(map, key, text, cfg)
     else
         W.message { speaker = 'narrator', message = text }
     end
-    if cfg and cfg.x and cfg.y then
+    if cfg and cfg.x and cfg.y and (not cfg.no_halo) then
         items.remove(cfg.x, cfg.y, "halo/teleport-8.png")
     end
     debug_utils.clear_labels()
