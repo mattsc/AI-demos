@@ -406,8 +406,12 @@ function fred_ops_utils.set_turn_data(move_data)
 
     -- Calculate where the fronts are in the zones (in leader_distance values)
     -- based on a vulnerability-weighted sum over the zones
+    local zones = {}
     for zone_id,raw_cfg in pairs(raw_cfgs_main) do
-        local zone = wesnoth.get_locations(raw_cfg.ops_slf)
+        zones[zone_id] = wesnoth.get_locations(raw_cfg.ops_slf)
+    end
+
+    for zone_id,zone in pairs(zones) do
         local num, denom = 0, 0
         for _,loc in ipairs(zone) do
             local vulnerability = FU.get_fgumap_value(influence_maps, loc[1], loc[2], 'vulnerability')
@@ -423,6 +427,23 @@ function fred_ops_utils.set_turn_data(move_data)
     end
 
     --DBG.dbms(behavior)
+    if false then
+        for zone_id,zone in pairs(zones) do
+            local ld_front = behavior.fronts.zones[zone_id]
+            local front_map = {}
+            local mean_x, mean_y, count = 0, 0, 0
+            for _,loc in ipairs(zone) do
+                local ld = FU.get_fgumap_value(leader_distance_map, loc[1], loc[2], 'distance')
+                if (math.abs(ld - ld_front) <= 0.5) then
+                    FU.set_fgumap_value(front_map, loc[1], loc[2], 'distance', ld)
+                    mean_x, mean_y, count = mean_x + loc[1], mean_y + loc[2], count + 1
+                end
+            end
+            mean_x, mean_y = math.abs(mean_x / count), math.abs(mean_y / count)
+            DBG.show_fgumap_with_message(front_map, 'distance', 'Front leader_distance: ' .. ld_front, { x = mean_x, y = mean_y, no_halo = true })
+        end
+    end
+
 
 
     -- Find the unit-vs-unit ratings
