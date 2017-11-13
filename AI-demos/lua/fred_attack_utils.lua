@@ -120,8 +120,6 @@ function fred_attack_utils.is_acceptable_attack(damage_to_ai, damage_to_enemy, v
     --   It is generally okay for the AI to take a little more damage than it deals out,
     --   so for the most part this value should be slightly smaller than 1.
 
-    value_ratio = value_ratio or FCFG.get_cfg_parm('value_ratio')
-
     -- Otherwise it depends on whether the numbers are positive or negative
     -- Negative damage means that one or several of the units are likely to level up
     if (damage_to_ai < 0) and (damage_to_enemy < 0) then
@@ -335,8 +333,9 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     --  @move_data: table with the game state as produced by fred_gamestate_utils.move_data()
     --
     -- Optional inputs:
-    --  @cfg: the different weights listed right below
-    --   - also: defender_loc if different from the position of the unit in the tables
+    --  @cfg:
+    --   - @value_ratio: if different from default
+    --   - @defender_loc: if different from the position of the unit in the tables
     --
     -- Returns:
     --   - Overall rating for the attack or attack combo
@@ -352,9 +351,9 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     --          side, and to 1 for the other side
 
     -- Set up the config parameters for the rating
-    local terrain_defense_weight = (cfg and cfg.terrain_defense_weight) or FCFG.get_cfg_parm('terrain_defense_weight')
-    local distance_leader_weight = (cfg and cfg.distance_leader_weight) or FCFG.get_cfg_parm('distance_leader_weight')
-    local occupied_hex_penalty = (cfg and cfg.occupied_hex_penalty) or FCFG.get_cfg_parm('occupied_hex_penalty')
+    local terrain_defense_weight = FCFG.get_cfg_parm('terrain_defense_weight')
+    local distance_leader_weight = FCFG.get_cfg_parm('distance_leader_weight')
+    local occupied_hex_penalty = FCFG.get_cfg_parm('occupied_hex_penalty')
     local value_ratio = (cfg and cfg.value_ratio) or FCFG.get_cfg_parm('value_ratio')
 
     local attacker_damages = {}
