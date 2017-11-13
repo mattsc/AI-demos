@@ -295,7 +295,7 @@ function fred_ops_utils.set_turn_data(move_data)
 
     if false then
         --DBG.show_fgumap_with_message(leader_distance_map, 'my_leader_distance', 'my_leader_distance')
-        DBG.show_fgumap_with_message(leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
+        --DBG.show_fgumap_with_message(leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
         DBG.show_fgumap_with_message(leader_distance_map, 'distance', 'leader_distance_map')
         --DBG.show_fgumap_with_message(enemy_leader_distance_maps['Orcish Grunt'], 'cost', 'cost Grunt')
         --DBG.show_fgumap_with_message(enemy_leader_distance_maps['Wolf Rider'], 'cost', 'cost Wolf Rider')
@@ -435,7 +435,6 @@ function fred_ops_utils.set_turn_data(move_data)
         behavior.fronts.zones[zone_id] = ld_max
     end
 
-    --DBG.dbms(behavior)
     if false then
         for zone_id,zone in pairs(zones) do
             local ld_front = behavior.fronts.zones[zone_id]
@@ -453,6 +452,9 @@ function fred_ops_utils.set_turn_data(move_data)
         end
     end
 
+    if DBG.show_debug('analysis') then
+        DBG.dbms(behavior)
+    end
 
 
     -- Find the unit-vs-unit ratings
