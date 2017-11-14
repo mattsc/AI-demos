@@ -366,7 +366,7 @@ function fred_ops_utils.set_turn_data(move_data)
         end
     end
 
-    local value_ratio = FCFG.get_cfg_parm('value_ratio')
+    local value_ratio = FCFG.get_cfg_parm('base_value_ratio')
     local ratio = enemy_total_influence / my_total_influence
     if (ratio < 1) then
         value_ratio = ratio * value_ratio

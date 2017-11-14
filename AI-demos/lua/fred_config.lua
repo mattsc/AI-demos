@@ -5,7 +5,7 @@
 -- for each function call.
 
 local cfg = {
-    value_ratio = 0.8,  -- value of own units compared to enemies
+    base_value_ratio = 0.8,  -- value of own units compared to enemies
 
 
     ----- Do not change values below unless you know exactly what you are doing -----
