@@ -64,7 +64,7 @@ function fred_village_utils.village_goals(villages_to_protect_maps, move_data)
 
     local zone_village_goals = {}
     for zone_id, villages in pairs(villages_to_protect_maps) do
-        for x,y,vilage_data in FU.fgumap_iter(villages) do
+        for x,y,village_data in FU.fgumap_iter(villages) do
             local owner = FU.get_fgumap_value(move_data.village_map, x, y, 'owner')
 
             if (owner ~= wesnoth.current.side) then
@@ -73,7 +73,7 @@ function fred_village_utils.village_goals(villages_to_protect_maps, move_data)
                 end
 
                 local grab_only = true
-                if vilage_data.protect then
+                if village_data.protect then
                     grab_only = false
                 end
 
@@ -101,8 +101,8 @@ function fred_village_utils.protect_locs(villages_to_protect_maps, fred_data)
     for zone_id,villages in pairs(villages_to_protect_maps) do
         protect_locs[zone_id] = {}
         local max_ld, loc
-        for x,y,vilage_data in FU.fgumap_iter(villages) do
-            if vilage_data.protect then
+        for x,y,village_data in FU.fgumap_iter(villages) do
+            if village_data.protect then
                 for enemy_id,_ in pairs(fred_data.move_data.enemies) do
                     if FU.get_fgumap_value(fred_data.move_data.reach_maps[enemy_id], x, y, 'moves_left') then
                         local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
