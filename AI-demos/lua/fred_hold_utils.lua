@@ -399,6 +399,11 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     local leader_id = move_data.leaders[wesnoth.current.side].id
     local leader_protect_base_rating
 
+    local cfg_attack = {
+        value_ratio = fred_data.turn_data.behavior.orders.value_ratio,
+        use_max_damage_weapons = true
+    }
+
     if cfg.protect_leader then
         local leader_target = {}
         leader_target[leader_id] = { move_data.leader_x, move_data.leader_y }
@@ -406,7 +411,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         local new_locs = { { move_data.leader_x, move_data.leader_y } }
 
         local counter_outcomes = FAU.calc_counter_attack(
-            leader_target, old_locs, new_locs, move_data, fred_data.move_cache
+            leader_target, old_locs, new_locs, cfg_attack, move_data, fred_data.move_cache
         )
 
         local remainging_hp = move_data.unit_infos[leader_id].hitpoints
@@ -529,7 +534,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 protect_loc = { move_data.leader_x, move_data.leader_y }
 
                 local counter_outcomes = FAU.calc_counter_attack(
-                    leader_target, old_locs, new_locs, move_data, fred_data.move_cache
+                    leader_target, old_locs, new_locs, cfg_attack, move_data, fred_data.move_cache
                 )
 
                 local remainging_hp = move_data.unit_infos[leader_id].hitpoints
@@ -788,10 +793,6 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
 
     -- Full counter attack analysis for the best combos
-    local cfg_attack = {
-        value_ratio = 1,
-        use_max_damage_weapons = true
-    }
     local max_n_combos, reduced_max_n_combos = 20, 50
 
     -- Acceptable chance-to-die for non-protect forward holds
@@ -824,7 +825,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             target[ids[i_l]] = { new_locs[i_l][1], new_locs[i_l][2] }
 
             local counter_outcomes = FAU.calc_counter_attack(
-                target, old_locs, new_locs, move_data, fred_data.move_cache, cfg_attack
+                target, old_locs, new_locs, cfg_attack, move_data, fred_data.move_cache
             )
             if counter_outcomes then
                 --DBG.dbms(counter_outcomes.rating_table)

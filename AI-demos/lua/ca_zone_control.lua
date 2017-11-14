@@ -84,7 +84,7 @@ local function get_attack_action(zone_cfg, fred_data)
     end
 
     -- How much more valuable do we consider the enemy units than our own
-    local value_ratio = zone_cfg.value_ratio or FCFG.get_cfg_parm('value_ratio')
+    local value_ratio = zone_cfg.value_ratio
     --DBG.print_ts_delta(fred_data.turn_start_time, 'value_ratio', value_ratio)
 
     -- We need to make sure the units always use the same weapon below, otherwise
@@ -111,7 +111,7 @@ local function get_attack_action(zone_cfg, fred_data)
         DBG.print_debug('attack', target_id, '  trappable:', is_trappable_enemy, target_loc[1], target_loc[2])
 
         local attack_combos = FAU.get_attack_combos(
-            zone_units_attacks, target, move_data.reach_maps, false, move_cache, cfg_attack
+            zone_units_attacks, target, cfg_attack, move_data.reach_maps, false, move_cache
         )
         --DBG.print_ts_delta(fred_data.turn_start_time, '#attack_combos', #attack_combos)
 
@@ -125,7 +125,7 @@ local function get_attack_action(zone_cfg, fred_data)
 
             local attempt_trapping = is_trappable_enemy
 
-            local combo_outcome = FAU.attack_combo_eval(combo, target, move_data, move_cache, cfg_attack)
+            local combo_outcome = FAU.attack_combo_eval(combo, target, cfg_attack, move_data, move_cache)
 
             -- For this first assessment, we use the full rating, that is, including
             -- all types of damage, extra rating, etc. While this is not accurate for
@@ -660,7 +660,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 attacker_moved[attacker.id] = { combo.dsts[i_a][1], combo.dsts[i_a][2] }
 
                 local counter_outcomes = FAU.calc_counter_attack(
-                    attacker_moved, old_locs, combo.dsts, move_data, move_cache, cfg_attack
+                    attacker_moved, old_locs, combo.dsts, cfg_attack, move_data, move_cache
                 )
                 --DBG.dbms(counter_outcomes)
 
@@ -1017,7 +1017,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         attacker_moved[attacker.id] = { combo.dsts[1][1], combo.dsts[1][2] }
 
                         local counter_outcomes = FAU.calc_counter_attack(
-                            attacker_moved, old_locs, combo.dsts, move_data, move_cache, cfg_attack
+                            attacker_moved, old_locs, combo.dsts, cfg_attack, move_data, move_cache
                         )
                         --DBG.dbms(counter_outcomes)
 
@@ -1102,7 +1102,7 @@ end
 local function get_hold_action(zone_cfg, fred_data)
     DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> hold evaluation: ' .. zone_cfg.zone_id)
 
-    local value_ratio = fred_data.turn_data.behavior.influence.value_ratio
+    local value_ratio = fred_data.turn_data.behavior.orders.value_ratio
     local max_units = 3
     local max_hexes = 6
     local leader_derating = FCFG.get_cfg_parm('leader_derating')
@@ -2034,6 +2034,11 @@ local function get_advance_action(zone_cfg, fred_data)
         DBG.show_fgumap_with_message(advance_map, 'flag', 'Advance map: ' .. zone_cfg.zone_id)
     end
 
+    local cfg_attack = {
+        value_ratio = fred_data.turn_data.behavior.orders.value_ratio,
+        use_max_damage_weapons = true
+    }
+
     local safe_loc = false
     local unit_rating_maps = {}
     local max_rating, best_id, best_hex
@@ -2126,7 +2131,7 @@ local function get_advance_action(zone_cfg, fred_data)
                     local old_locs = { { unit_loc[1], unit_loc[2] } }
                     local new_locs = { { x, y } }
                     local counter_outcomes = FAU.calc_counter_attack(
-                        unit_moved, old_locs, new_locs, move_data, move_cache
+                        unit_moved, old_locs, new_locs, cfg_attack, move_data, move_cache
                     )
                     --DBG.dbms(counter_outcomes.def_outcome.ctd_progression)
                     --print('  die_chance', counter_outcomes.def_outcome.hp_chance[0])
@@ -2221,11 +2226,11 @@ local function get_advance_action(zone_cfg, fred_data)
                     local target = {}
                     target[enemy_id] = enemy_loc
                     local attack_combos = FAU.get_attack_combos(
-                        attacker, target, move_data.reach_maps, false, move_cache, cfg_attack
+                        attacker, target, cfg_attack, move_data.reach_maps, false, move_cache
                     )
 
                     for _,combo in ipairs(attack_combos) do
-                        local combo_outcome = FAU.attack_combo_eval(combo, target, move_data, move_cache, cfg_attack)
+                        local combo_outcome = FAU.attack_combo_eval(combo, target, cfg_attack, move_data, move_cache)
                         --print(next(combo))
                         --DBG.dbms(combo_outcome.rating_table)
 
@@ -2622,8 +2627,11 @@ function ca_zone_control:execution(arg1, arg2, arg3, use_1_12_syntax)
 
             local defender_info = data.move_data.unit_infos[enemy_proxy.id]
 
-            local cfg_attack = { use_max_damage_weapons = true }
-            local combo_outcome = FAU.attack_combo_eval(combo, data.zone_action.enemy, data.move_data, data.move_cache, cfg_attack)
+            local cfg_attack = {
+                value_ratio = data.turn_data.behavior.orders.value_ratio,
+                use_max_damage_weapons = true
+            }
+            local combo_outcome = FAU.attack_combo_eval(combo, data.zone_action.enemy, cfg_attack, data.move_data, data.move_cache)
             --print('\noverall kill chance: ', combo_outcome.defender_damage.die_chance)
 
             local enemy_level = defender_info.level
@@ -2663,7 +2671,7 @@ function ca_zone_control:execution(arg1, arg2, arg3, use_1_12_syntax)
                     data.move_data, data.move_cache, cfg_attack
                 )
                 local rating_table, att_damage, def_damage =
-                    FAU.attack_rating({ unit_info }, defender_info, { data.zone_action.dsts[ind] }, { att_outcome }, def_outcome, data.move_data)
+                    FAU.attack_rating({ unit_info }, defender_info, { data.zone_action.dsts[ind] }, { att_outcome }, def_outcome, cfg_attack, data.move_data)
 
                 -- The base rating is the individual attack rating
                 local rating = rating_table.rating

@@ -375,14 +375,13 @@ function fred_ops_utils.set_turn_data(move_data)
     local behavior = {
         influence = {
             my = my_total_influence,
-            enemy = enemy_total_influence,
-            value_ratio = value_ratio
+            enemy = enemy_total_influence
         },
         ratios = {
             influence = my_total_influence / enemy_total_influence
         },
         orders = {
-            aggression = 1 / value_ratio
+            value_ratio = value_ratio
         }
     }
 
@@ -862,7 +861,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         end
     end
 
-    local value_ratio = fred_data.turn_data.behavior.influence.value_ratio
+    local value_ratio = fred_data.turn_data.behavior.orders.value_ratio
     local attacker_ratings = {}
     local max_rating
     for id,_ in pairs(move_data.my_units) do
@@ -1653,7 +1652,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     }
 
     -- TODO: might want to do something more complex (e.g using local info) in ops layer
-    local value_ratio = fred_data.turn_data.behavior.influence.value_ratio
+    local value_ratio = fred_data.turn_data.behavior.orders.value_ratio
 
     for zone_id,zone_units in pairs(holders_by_zone) do
         local power_rating = power_stats.zones[zone_id].power_needed - power_stats.zones[zone_id].my_power / 1000
