@@ -399,10 +399,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     local leader_id = move_data.leaders[wesnoth.current.side].id
     local leader_protect_base_rating
 
-    local cfg_attack = {
-        value_ratio = fred_data.turn_data.behavior.orders.value_ratio,
-        use_max_damage_weapons = true
-    }
+    local cfg_attack = { value_ratio = fred_data.turn_data.behavior.orders.value_ratio }
 
     if cfg.protect_leader then
         local leader_target = {}

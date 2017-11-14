@@ -89,10 +89,7 @@ local function get_attack_action(zone_cfg, fred_data)
 
     -- We need to make sure the units always use the same weapon below, otherwise
     -- the comparison is not fair.
-    local cfg_attack = {
-        value_ratio = value_ratio,
-        use_max_damage_weapons = true
-    }
+    local cfg_attack = { value_ratio = value_ratio }
 
     local combo_ratings = {}
     for target_id, target_loc in pairs(targets) do
@@ -2034,10 +2031,7 @@ local function get_advance_action(zone_cfg, fred_data)
         DBG.show_fgumap_with_message(advance_map, 'flag', 'Advance map: ' .. zone_cfg.zone_id)
     end
 
-    local cfg_attack = {
-        value_ratio = fred_data.turn_data.behavior.orders.value_ratio,
-        use_max_damage_weapons = true
-    }
+    local cfg_attack = { value_ratio = fred_data.turn_data.behavior.orders.value_ratio }
 
     local safe_loc = false
     local unit_rating_maps = {}
@@ -2208,10 +2202,7 @@ local function get_advance_action(zone_cfg, fred_data)
     if (not safe_loc) then
         --print('----- no safe advance location found -----')
 
-        local cfg_attack = {
-            value_ratio = 0.2, -- mostly based on damage done to enemy
-            use_max_damage_weapons = true
-        }
+        local cfg_attack = { value_ratio = 0.2 } -- mostly based on damage done to enemy
 
         local max_attack_rating, best_attacker_id, best_attack_hex
         for id,unit_loc in pairs(advancers) do
@@ -2627,10 +2618,7 @@ function ca_zone_control:execution(arg1, arg2, arg3, use_1_12_syntax)
 
             local defender_info = data.move_data.unit_infos[enemy_proxy.id]
 
-            local cfg_attack = {
-                value_ratio = data.turn_data.behavior.orders.value_ratio,
-                use_max_damage_weapons = true
-            }
+            local cfg_attack = { value_ratio = data.turn_data.behavior.orders.value_ratio }
             local combo_outcome = FAU.attack_combo_eval(combo, data.zone_action.enemy, cfg_attack, data.move_data, data.move_cache)
             --print('\noverall kill chance: ', combo_outcome.defender_damage.die_chance)
 

@@ -619,7 +619,7 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack, is_attacker, 
     return total_damage, base_damage, extra_damage, regen_damage
 end
 
-function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, attacker_info, defender_info, move_data, move_cache, cfg)
+function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, attacker_info, defender_info, move_data, move_cache)
     -- Calculate the outcome of a combat by @attacker_copy vs. @defender_proxy at location @dst
     -- We use wesnoth.simulate_combat for this, but cache results when possible
     -- Inputs:
@@ -630,10 +630,6 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
     --   themselves in order to speed things up)
     --  @move_data: table with the game state as produced by fred_gamestate_utils.move_data()
     --  @move_cache: for caching data *for this move only*, needs to be cleared after a gamestate change
-    --
-    --  Optional inputs:
-    -- @cfg: configuration parameters (only use_max_damage_weapons so far, possibly to be extended)
-
 
     ----- Begin attstat_to_outcome() -----
     local function attstat_to_outcome(unit_info, stat, enemy_ctd, enemy_level)
@@ -711,8 +707,6 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
     ----- End attstat_to_outcome() -----
 
 
-    local use_max_damage_weapons = (cfg and cfg.use_max_damage_weapons) or FCFG.get_cfg_parm('use_max_damage_weapons')
-
     local defender_defense = FGUI.get_unit_defense(defender_proxy, defender_proxy.x, defender_proxy.y, move_data.defense_maps)
     local attacker_defense = FGUI.get_unit_defense(attacker_copy, dst[1], dst[2], move_data.defense_maps)
 
@@ -739,6 +733,10 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
 
     local tmp_att_stat, tmp_def_stat, att_weapon
     local att_weapon_i, def_weapon_i = nil, nil
+
+    -- TODO: This is always set to true for now, as it can otherwise cause discontinuities
+    -- in the attack evaluations. Either find a better way to do this or remove later.
+    local use_max_damage_weapons = true
     if use_max_damage_weapons then
         if (not move_cache.best_weapons)
             or (not move_cache.best_weapons[attacker_info.id])
@@ -810,7 +808,9 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
 
         tmp_att_stat, tmp_def_stat, att_weapon = wesnoth.simulate_combat(attacker_copy, att_weapon_i, defender_proxy, def_weapon_i)
     else
-        tmp_att_stat, tmp_def_stat, att_weapon = wesnoth.simulate_combat(attacker_copy, defender_proxy)
+        -- Disable for now
+        -- TODO: remove or reenable
+        --tmp_att_stat, tmp_def_stat, att_weapon = wesnoth.simulate_combat(attacker_copy, defender_proxy)
     end
 
     if (not att_weapon_i) then

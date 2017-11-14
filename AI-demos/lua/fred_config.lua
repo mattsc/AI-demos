@@ -18,8 +18,7 @@ local cfg = {
 
     terrain_defense_weight = 0.1,
     distance_leader_weight = 0.002,
-    occupied_hex_penalty = 0.001,
-    use_max_damage_weapons = false
+    occupied_hex_penalty = 0.001
 }
 
 local fred_config = {}
