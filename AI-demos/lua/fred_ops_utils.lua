@@ -352,19 +352,32 @@ function fred_ops_utils.set_turn_data(move_data)
 
 
     local my_total_influence, enemy_total_influence = 0, 0
+    local my_ratio_next_turn, my_weight = 0, 0
+    local enemy_ratio_next_turn, enemy_weight = 0, 0
     for id,_ in pairs(move_data.units) do
         local unit_influence = FU.unit_current_power(move_data.unit_infos[id])
         if move_data.unit_infos[id].canrecruit then
             unit_influence = unit_influence * leader_derating
         end
-        --print(id, unit_influence)
+
+        local alignment = move_data.unit_infos[id].alignment
+        local tod_bonus_next_turn = FU.get_unit_time_of_day_bonus(alignment, wesnoth.get_time_of_day(wesnoth.current.turn + 1).lawful_bonus)
+        local tod_mod_ratio = tod_bonus_next_turn / move_data.unit_infos[id].tod_mod
+        --print(id, unit_influence, alignment, move_data.unit_infos[id].tod_mod, tod_bonus_next_turn, tod_mod_ratio)
 
         if (move_data.unit_infos[id].side == wesnoth.current.side) then
             my_total_influence = my_total_influence + unit_influence
+            my_ratio_next_turn = my_ratio_next_turn + unit_influence * tod_mod_ratio
+            my_weight = my_weight + unit_influence
         else
             enemy_total_influence = enemy_total_influence + unit_influence
+            enemy_ratio_next_turn = enemy_ratio_next_turn + unit_influence * tod_mod_ratio
+            enemy_weight = enemy_weight + unit_influence
         end
     end
+
+    local influence_mult_next_turn = my_ratio_next_turn / my_weight / (enemy_ratio_next_turn / enemy_weight)
+    --print(my_ratio_next_turn / my_weight, enemy_ratio_next_turn / enemy_weight, influence_mult_next_turn)
 
     local value_ratio = FCFG.get_cfg_parm('base_value_ratio')
     local ratio = enemy_total_influence / my_total_influence
@@ -378,7 +391,8 @@ function fred_ops_utils.set_turn_data(move_data)
             enemy = enemy_total_influence
         },
         ratios = {
-            influence = my_total_influence / enemy_total_influence
+            influence = my_total_influence / enemy_total_influence,
+            influence_mult_next_turn = influence_mult_next_turn
         },
         orders = {
             value_ratio = value_ratio
