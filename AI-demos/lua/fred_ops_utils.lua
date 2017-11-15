@@ -379,8 +379,13 @@ function fred_ops_utils.set_turn_data(move_data)
     local influence_mult_next_turn = my_ratio_next_turn / my_weight / (enemy_ratio_next_turn / enemy_weight)
     --print(my_ratio_next_turn / my_weight, enemy_ratio_next_turn / enemy_weight, influence_mult_next_turn)
 
-    local ratio = enemy_total_influence / my_total_influence
+    -- Take fraction of influence ratio change on next turn into account for calculating value_ratio
+    local weight = FCFG.get_cfg_parm('next_turn_influence_weight')
+    local factor = 1 / (1 + (influence_mult_next_turn - 1) * weight)
+    --print(influence_mult_next_turn, weight, factor)
+
     local base_value_ratio = FCFG.get_cfg_parm('base_value_ratio')
+    local ratio = factor * enemy_total_influence / my_total_influence
     if (ratio < 1) then
         value_ratio = ratio * base_value_ratio
     end
@@ -392,8 +397,9 @@ function fred_ops_utils.set_turn_data(move_data)
         },
         ratios = {
             influence = my_total_influence / enemy_total_influence,
-            influence_mult_next_turn = influence_mult_next_turn
+            influence_mult_next_turn = influence_mult_next_turn,
             base_value_ratio = base_value_ratio,
+            next_turn_influence_weight = weight
         },
         orders = {
             value_ratio = value_ratio

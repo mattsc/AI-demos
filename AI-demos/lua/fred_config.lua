@@ -6,6 +6,7 @@
 
 local cfg = {
     base_value_ratio = 0.8,  -- value of own units compared to enemies
+    next_turn_influence_weight = 0.25,
 
 
     ----- Do not change values below unless you know exactly what you are doing -----
