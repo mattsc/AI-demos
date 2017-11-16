@@ -1104,6 +1104,10 @@ local function get_hold_action(zone_cfg, fred_data)
     local max_hexes = 6
     local leader_derating = FCFG.get_cfg_parm('leader_derating')
 
+    local forward_ratio = 1 / fred_data.turn_data.behavior.orders.value_ratio
+    if (forward_ratio < 1) then forward_ratio = 1 end
+    if (forward_ratio > 3) then forward_ratio = 3 end
+
     local raw_cfg = fred_data.turn_data.raw_cfgs[zone_cfg.zone_id]
     --DBG.dbms(raw_cfg)
     --DBG.dbms(zone_cfg)
@@ -1277,9 +1281,6 @@ local function get_hold_action(zone_cfg, fred_data)
     for x,y,data in FU.fgumap_iter(holders_influence) do
         local my_inf = data.my_influence or 0
         local enemy_inf = data.enemy_influence or 0
-        local inf_ratio = my_inf / (enemy_inf + 1)
-
-        data.inf_ratio = inf_ratio
     end
 
 
@@ -1291,11 +1292,8 @@ local function get_hold_action(zone_cfg, fred_data)
         DBG.show_fgumap_with_message(holders_influence, 'vulnerability', 'vulnerability')
         --DBG.show_fgumap_with_message(holders_influence, 'my_count', 'My count')
         --DBG.show_fgumap_with_message(holders_influence, 'enemy_count', 'Enemy count')
-        DBG.show_fgumap_with_message(holders_influence, 'inf_ratio', 'inf_ratio')
     end
 
-
-    local current_power_ratio = fred_data.turn_data.behavior.influence.my / fred_data.turn_data.behavior.influence.enemy
 
     local enemy_weights = {}
     for id,_ in pairs(holders) do
@@ -1436,17 +1434,10 @@ local function get_hold_action(zone_cfg, fred_data)
                         local enemy_defense = 1 - FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'hit_chance')
                         my_hc = my_hc - enemy_defense /100
 
-                        local ratio = FU.get_fgumap_value(holders_influence, x, y, 'inf_ratio') or 1
-                        if (ratio > current_power_ratio) then
-                            ratio = (ratio + current_power_ratio) / 2
-                        end
-                        if (ratio < 1) then ratio = 1 end
-                        local uncropped_ratio = ratio
-                        if (ratio > 3) then ratio = 3 end
-
-                        local factor_forward = 0.1 + (ratio - 1) * 0.4
+--!!!!!!!!!!
+                        local factor_forward = 0.1 + (forward_ratio - 1) * 0.4
                         local factor_counter = 1 - factor_forward
-                        --print(x .. ',' .. y, ratio, factor_forward, factor_counter)
+                        --print(x .. ',' .. y, forward_ratio, factor_forward, factor_counter)
 
                         local att = fred_data.turn_data.unit_attacks[id][enemy_id]
                         local damage_taken = factor_counter * (my_hc * att.damage_counter.base_taken + att.damage_counter.extra_taken)
@@ -1470,8 +1461,7 @@ local function get_hold_action(zone_cfg, fred_data)
                             counter_rating = counter_rating,
                             enemy_id = enemy_id,
                             my_regen = att.my_regen,
-                            enemy_regen = att.enemy_regen,
-                            uncropped_ratio = uncropped_ratio
+                            enemy_regen = att.enemy_regen
                         })
                     end
                 end
@@ -1541,7 +1531,6 @@ local function get_hold_action(zone_cfg, fred_data)
                 pre_rating_maps[id][x][y].x = x
                 pre_rating_maps[id][x][y].y = y
                 pre_rating_maps[id][x][y].id = id
-                pre_rating_maps[id][x][y].uncropped_ratio = tmp_enemies[1].uncropped_ratio
             end
         end
     end
@@ -1663,11 +1652,10 @@ local function get_hold_action(zone_cfg, fred_data)
                     dist = - FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'enemy_leader_distance')
                 end
 
-                local uncropped_ratio = FU.get_fgumap_value(pre_rating_maps[id], x, y, 'uncropped_ratio')
-                local forward_rating = (uncropped_ratio - 1) * 0.01 * dist
+                local forward_rating = (forward_ratio - 1) * 0.02 * dist
 
                 vuln_rating_org = vuln_rating_org + forward_rating
-                --print('uncropped_ratio', x, y, uncropped_ratio, dist, forward_rating)
+                --print('forward_ratio', x, y, forward_ratio, dist, forward_rating)
 
                 hold_rating_data.base_rating = base_rating
                 hold_rating_data.vuln_rating_org = vuln_rating_org
@@ -1869,8 +1857,8 @@ local function get_hold_action(zone_cfg, fred_data)
     cfg_best_combo_hold.protect_locs = protect_locs
     cfg_best_combo_protect.protect_locs = protect_locs
 
-    cfg_best_combo_hold.current_power_ratio = current_power_ratio
-    cfg_best_combo_protect.current_power_ratio = current_power_ratio
+    cfg_best_combo_hold.forward_ratio = forward_ratio
+    cfg_best_combo_protect.forward_ratio = forward_ratio
 
 
     local best_hold_combo, hold_dst_src, hold_ratings

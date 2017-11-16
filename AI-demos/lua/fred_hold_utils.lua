@@ -794,10 +794,10 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
     -- Acceptable chance-to-die for non-protect forward holds
     local acceptable_ctd = 0.25
-    if (cfg.current_power_ratio > 1) then
-        acceptable_ctd = 0.25 + 0.75 * (cfg.current_power_ratio - 1)
+    if (cfg.forward_ratio > 1) then
+        acceptable_ctd = 0.25 + 0.75 * (cfg.forward_ratio - 1)
     end
-    --print(cfg.current_power_ratio, acceptable_ctd)
+    --print(cfg.forward_ratio, acceptable_ctd)
 
     local max_rating, best_combo, all_max_rating, all_best_combo
     local reduced_max_rating, reduced_best_combo, reduced_all_max_rating, reduced_all_best_combo
