@@ -1104,9 +1104,13 @@ local function get_hold_action(zone_cfg, fred_data)
     local max_hexes = 6
     local leader_derating = FCFG.get_cfg_parm('leader_derating')
 
-    local forward_ratio = 1 / fred_data.turn_data.behavior.orders.value_ratio
-    if (forward_ratio < 1) then forward_ratio = 1 end
-    if (forward_ratio > 3) then forward_ratio = 3 end
+    -- Ratio of forward to counter attack to consider for holding evaluation
+    -- Set up so that:
+    --   factor_counter + factor_forward = 1
+    --   factor_counter / factor_forward = value_ratio
+    local factor_counter = 1 / (1 + 1 / value_ratio)
+    local factor_forward = 1 - factor_counter
+    --print('factor_counter, factor_forward', factor_counter, factor_forward)
 
     local raw_cfg = fred_data.turn_data.raw_cfgs[zone_cfg.zone_id]
     --DBG.dbms(raw_cfg)
@@ -1434,11 +1438,6 @@ local function get_hold_action(zone_cfg, fred_data)
                         local enemy_defense = 1 - FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'hit_chance')
                         my_hc = my_hc - enemy_defense /100
 
---!!!!!!!!!!
-                        local factor_forward = 0.1 + (forward_ratio - 1) * 0.4
-                        local factor_counter = 1 - factor_forward
-                        --print(x .. ',' .. y, forward_ratio, factor_forward, factor_counter)
-
                         local att = fred_data.turn_data.unit_attacks[id][enemy_id]
                         local damage_taken = factor_counter * (my_hc * att.damage_counter.base_taken + att.damage_counter.extra_taken)
                         damage_taken = damage_taken + factor_forward * (my_hc * att.damage_forward.base_taken + att.damage_forward.extra_taken)
@@ -1652,9 +1651,8 @@ local function get_hold_action(zone_cfg, fred_data)
                     dist = - FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'enemy_leader_distance')
                 end
 
-                local forward_rating = (forward_ratio - 1) * 0.02 * dist
-
-                vuln_rating_org = vuln_rating_org + forward_rating
+--                local forward_rating = (forward_ratio - 1) * 0.02 * dist
+--                vuln_rating_org = vuln_rating_org + forward_rating
                 --print('forward_ratio', x, y, forward_ratio, dist, forward_rating)
 
                 hold_rating_data.base_rating = base_rating
