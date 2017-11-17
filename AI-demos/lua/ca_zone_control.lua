@@ -1453,7 +1453,7 @@ local function get_hold_action(zone_cfg, fred_data)
                             damage_taken = damage_taken * leader_derating
                         end
 
-                        local counter_rating = damage_done / value_ratio - damage_taken
+                        local counter_rating = damage_done - damage_taken * value_ratio
                         table.insert(tmp_enemies, {
                             damage_taken = damage_taken,
                             damage_done = damage_done,
@@ -1520,7 +1520,7 @@ local function get_hold_action(zone_cfg, fred_data)
                 end
                 damage_taken = frac_taken * move_data.unit_infos[id].hitpoints
 
-                local av_outcome = damage_done / value_ratio - damage_taken
+                local av_outcome = damage_done - damage_taken * value_ratio
                 --print(x .. ',' .. y, damage_taken, damage_done, village_bonus, av_outcome, value_ratio)
 
                 if (not pre_rating_maps[id]) then
