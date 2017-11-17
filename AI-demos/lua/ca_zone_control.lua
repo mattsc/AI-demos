@@ -1872,6 +1872,7 @@ local function get_hold_action(zone_cfg, fred_data)
         best_hold_combo = FHU.find_best_combo(hold_combos, hold_ratings, 'vuln_rating', adjacent_village_map, between_map, fred_data, cfg_best_combo_hold)
     end
 
+    local protect_loc_str
     local best_protect_combo, all_best_protect_combo, protect_dst_src, protect_ratings
     if protect_locs then
         --print('--> checking protect combos')
@@ -1880,7 +1881,7 @@ local function get_hold_action(zone_cfg, fred_data)
         --DBG.dbms(protect_combos)
         --print('#protect_combos', #protect_combos)
 
-        best_protect_combo, all_best_protect_combo = FHU.find_best_combo(protect_combos, protect_ratings, 'protect_rating', adjacent_village_map, between_map, fred_data, cfg_best_combo_protect)
+        best_protect_combo, all_best_protect_combo, protect_loc_str = FHU.find_best_combo(protect_combos, protect_ratings, 'protect_rating', adjacent_village_map, between_map, fred_data, cfg_best_combo_protect)
 
         -- If no combo that protects the location was found, use the best of the others
         if (not best_protect_combo) then
@@ -1895,9 +1896,11 @@ local function get_hold_action(zone_cfg, fred_data)
     end
 
 
+    local action_str = 'hold'
     local best_combo, ratings
     if (not best_hold_combo) then
         best_combo, ratings = best_protect_combo, protect_ratings
+        action_str = 'hold (protect ' .. protect_loc_str .. ')'
     elseif (not best_protect_combo) then
         best_combo, ratings = best_hold_combo, hold_ratings
     else
@@ -1926,6 +1929,7 @@ local function get_hold_action(zone_cfg, fred_data)
             best_combo, ratings = best_hold_combo, hold_ratings
         else
             best_combo, ratings = best_protect_combo, protect_ratings
+            action_str = 'hold (protect ' .. protect_loc_str .. ')'
         end
     end
     --DBG.dbms(best_combo)
@@ -1946,7 +1950,7 @@ local function get_hold_action(zone_cfg, fred_data)
     end
 
     local action = {
-        action_str = 'hold',
+        action_str = action_str,
         units = {},
         dsts = {}
     }
