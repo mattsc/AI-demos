@@ -1436,7 +1436,7 @@ local function get_hold_action(zone_cfg, fred_data)
                         -- This is not directly a contribution to damage, it's just meant as a tiebreaker
                         -- Taking away good terrain from the enemy
                         local enemy_defense = 1 - FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'hit_chance')
-                        my_hc = my_hc - enemy_defense /100
+                        my_hc = my_hc - enemy_defense / 100
 
                         local att = fred_data.turn_data.unit_attacks[id][enemy_id]
                         local damage_taken = factor_counter * (my_hc * att.damage_counter.base_taken + att.damage_counter.extra_taken)
