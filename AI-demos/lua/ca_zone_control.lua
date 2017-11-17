@@ -1857,9 +1857,6 @@ local function get_hold_action(zone_cfg, fred_data)
     cfg_best_combo_hold.protect_locs = protect_locs
     cfg_best_combo_protect.protect_locs = protect_locs
 
-    cfg_best_combo_hold.forward_ratio = forward_ratio
-    cfg_best_combo_protect.forward_ratio = forward_ratio
-
 
     local best_hold_combo, hold_dst_src, hold_ratings
     if (next(hold_rating_maps)) then

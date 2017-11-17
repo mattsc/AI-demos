@@ -399,7 +399,8 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     local leader_id = move_data.leaders[wesnoth.current.side].id
     local leader_protect_base_rating
 
-    local cfg_attack = { value_ratio = fred_data.turn_data.behavior.orders.value_ratio }
+    local value_ratio = fred_data.turn_data.behavior.orders.value_ratio
+    local cfg_attack = { value_ratio = value_ratio }
 
     if cfg.protect_leader then
         local leader_target = {}
@@ -794,8 +795,8 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
     -- Acceptable chance-to-die for non-protect forward holds
     local acceptable_ctd = 0.25
-    if (cfg.forward_ratio > 1) then
-        acceptable_ctd = 0.25 + 0.75 * (cfg.forward_ratio - 1)
+    if (value_ratio > 1) then
+        acceptable_ctd = 0.25 + 0.75 * (value_ratio - 1)
     end
     --print(cfg.forward_ratio, acceptable_ctd)
 
