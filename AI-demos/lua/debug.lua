@@ -76,7 +76,7 @@ end
 function debug_utils.put_fgumap_labels(map, key, cfg)
     -- Take @map (in the format as defined in fred_gamestate_utils (fgu) and put
     -- labels containing the values of @key onto the map.
-    -- Print 'nan' if element exists but is not a number.
+    -- Print 'nan' if element exists but is not a number or a boolean.
     -- Print 'nil' if element is just that
     -- @cfg: table with optional parameters:
     --   - show_coords: (boolean) use hex coordinates as labels instead of value
@@ -117,10 +117,18 @@ function debug_utils.put_fgumap_labels(map, key, cfg)
             end
 
             if (type(out) ~= 'string') then
-                if out then
-                    out = tonumber(out) or 'nan'
+                if (type(out) == 'boolean') then
+                    if out then
+                        out = 'true'
+                    else
+                        out = 'false'
+                    end
                 else
-                    out = 'nil'
+                    if out then
+                        out = tonumber(out) or 'nan'
+                    else
+                        out = 'nil'
+                    end
                 end
             end
 
