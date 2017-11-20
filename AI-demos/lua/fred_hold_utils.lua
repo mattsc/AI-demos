@@ -166,22 +166,8 @@ function fred_hold_utils.get_between_map(locs, toward_loc, units, move_data)
         end
     end
 
-    for x,y,data in FU.fgumap_iter(between_map) do
-        local blurred_distance, blurred_perp_distance = data.distance, data.perp_distance
-        local count = 1
-        local adj_weight = 0.5
-        for xa,ya in H.adjacent_tiles(x, y) do
-            local d = FU.get_fgumap_value(between_map, xa, ya, 'distance')
-            local p = FU.get_fgumap_value(between_map, xa, ya, 'perp_distance')
-            if d then
-                blurred_distance = blurred_distance + d * adj_weight
-                blurred_perp_distance = blurred_perp_distance + p * adj_weight
-                count = count + adj_weight
-            end
-        end
-        FU.set_fgumap_value(between_map, x, y, 'blurred_distance', blurred_distance / count)
-        FU.set_fgumap_value(between_map, x, y, 'blurred_perp_distance', blurred_perp_distance / count)
-    end
+    FU.fgumap_blur(between_map, 'distance')
+    FU.fgumap_blur(between_map, 'perp_distance')
 
     return between_map
 end
