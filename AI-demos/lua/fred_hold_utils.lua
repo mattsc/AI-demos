@@ -4,6 +4,7 @@ local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local W = H.set_wml_action_metatable {}
 local FC = wesnoth.require "~/add-ons/AI-demos/lua/fred_compatibility.lua"
+local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local fred_hold_utils = {}
@@ -400,6 +401,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     local leader_protect_base_rating
 
     local value_ratio = fred_data.turn_data.behavior.orders.value_ratio
+    local hold_counter_weight = FCFG.get_cfg_parm('hold_counter_weight')
     local cfg_attack = { value_ratio = value_ratio }
 
     if cfg.protect_leader then
@@ -795,8 +797,8 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
     -- Acceptable chance-to-die for non-protect forward holds
     local acceptable_ctd = 0.25
-    if (value_ratio > 1) then
-        acceptable_ctd = 0.25 + 0.75 * (value_ratio - 1)
+    if (value_ratio < 1) then
+        acceptable_ctd = 0.25 + 0.75 * (1 / value_ratio - 1)
     end
     --print(cfg.forward_ratio, acceptable_ctd)
 
@@ -856,7 +858,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 else
                     unit_rel_rating = unit_rel_rating^2
                 end
-                unit_rel_rating = 1 + unit_rel_rating / 10
+                unit_rel_rating = 1 + unit_rel_rating * hold_counter_weight
 
                 --print('  ' .. ids[i_l], unit_rating)
                 --print('    ' .. unit_rel_rating, unit_value)

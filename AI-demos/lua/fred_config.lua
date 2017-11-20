@@ -19,7 +19,12 @@ local cfg = {
 
     terrain_defense_weight = 0.1,
     distance_leader_weight = 0.002,
-    occupied_hex_penalty = 0.001
+    occupied_hex_penalty = 0.001,
+
+    vuln_weight = 0.25,
+    forward_weight = 0.02,
+    hold_counter_weight = 0.1;
+    protect_forward_weight = 1
 }
 
 local fred_config = {}

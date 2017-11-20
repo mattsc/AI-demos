@@ -1112,6 +1112,24 @@ local function get_hold_action(zone_cfg, fred_data)
     local factor_forward = 1 - factor_counter
     --print('factor_counter, factor_forward', factor_counter, factor_forward)
 
+    local vuln_weight = FCFG.get_cfg_parm('vuln_weight')
+    local vuln_rating_weight = vuln_weight * (1 / value_ratio - 1)
+    if (vuln_rating_weight < 0) then
+        vuln_rating_weight = 0
+    end
+    --print('vuln_weight, vuln_rating_weight', vuln_weight, vuln_rating_weight)
+
+    local forward_weight = FCFG.get_cfg_parm('forward_weight')
+    local forward_rating_weight = forward_weight * (1 / value_ratio)
+    --print('forward_weight, forward_rating_weight', forward_weight, forward_rating_weight)
+
+    local influence_ratio = fred_data.turn_data.behavior.ratios.influence
+    local base_value_ratio = fred_data.turn_data.behavior.ratios.base_value_ratio
+    local protect_forward_rating_weight = (influence_ratio / base_value_ratio) - 1
+    protect_forward_rating_weight = protect_forward_rating_weight * FCFG.get_cfg_parm('protect_forward_weight')
+    --print('protect_forward_rating_weight', protect_forward_rating_weight)
+
+
     local raw_cfg = fred_data.turn_data.raw_cfgs[zone_cfg.zone_id]
     --DBG.dbms(raw_cfg)
     --DBG.dbms(zone_cfg)
@@ -1306,6 +1324,8 @@ local function get_hold_action(zone_cfg, fred_data)
             local att = fred_data.turn_data.unit_attacks[id][enemy_id]
             --DBG.dbms(att)
 
+            -- It's probably okay to keep the hard-coded weight of 0.5 here, as the
+            -- damage taken is most important for which units the enemy will select
             local weight = att.damage_counter.base_taken + att.damage_counter.extra_taken
             weight = weight - 0.5 * (att.damage_counter.base_done + att.damage_counter.extra_done)
             if (weight < 1) then weight = 1 end
@@ -1590,9 +1610,10 @@ local function get_hold_action(zone_cfg, fred_data)
                 local my_count = FU.get_fgumap_value(holders_influence, x, y, 'my_count')
                 local enemy_count = FU.get_fgumap_value(holders_influence, x, y, 'enemy_count')
 
-                if (my_count >= 3) or (1.5 * my_count >= enemy_count) then
+                -- TODO: comment this out for now, but might need a condition like that again later
+                --if (my_count >= 3) or (1.5 * my_count >= enemy_count) then
                     FU.set_fgumap_value(hold_here_maps[id], x, y, 'hold_here', true)
-                end
+                --end
             end
 
             if protect_locs then
@@ -1638,22 +1659,12 @@ local function get_hold_action(zone_cfg, fred_data)
 
                 base_rating = base_rating / move_data.unit_infos[id].max_hitpoints
                 base_rating = (base_rating + 1) / 2
-                base_rating = FU.weight_s(base_rating, 0.5)
+                base_rating = FU.weight_s(base_rating, 0.75)
 
-                local vuln_rating_org = base_rating + hold_rating_data.vuln / max_vuln / 10
+                local vuln_rating_org = base_rating + hold_rating_data.vuln / max_vuln * vuln_rating_weight
 
-                local dist
-                if between_map then
-                    -- TODO: defaulting to zero (when no enemy can move onto the hex)
-                    -- is not the best solution, but at least it avoids the AI crashing for now
-                    dist = FU.get_fgumap_value(between_map, x, y, 'inv_cost') or 0
-                else
-                    dist = - FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'enemy_leader_distance')
-                end
-
---                local forward_rating = (forward_ratio - 1) * 0.02 * dist
---                vuln_rating_org = vuln_rating_org + forward_rating
-                --print('forward_ratio', x, y, forward_ratio, dist, forward_rating)
+                local dist = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
+                vuln_rating_org = vuln_rating_org + forward_rating_weight * dist
 
                 hold_rating_data.base_rating = base_rating
                 hold_rating_data.vuln_rating_org = vuln_rating_org
@@ -1737,7 +1748,8 @@ local function get_hold_action(zone_cfg, fred_data)
 
                         local enemy_weight = enemy_weights[id][enemy_id].weight
 
-                        local rating = (1.25 * scaled_enemy_adj_hc + scaled_my_defense + scaled_enemy_defense / 100)
+                        local rating = scaled_enemy_adj_hc
+                        rating = rating + (scaled_enemy_adj_hc + scaled_my_defense + scaled_enemy_defense / 100) * value_ratio
                         protect_base_rating = protect_base_rating + rating * enemy_weight
 
                         cum_weight = cum_weight + enemy_weight
@@ -1750,30 +1762,22 @@ local function get_hold_action(zone_cfg, fred_data)
                 if FU.get_fgumap_value(move_data.village_map, x, y, 'owner') then
                     -- Prefer strongest unit on village (for protection)
                     -- Potential TODO: we might want this conditional on the threat to the village
-                    protect_base_rating = protect_base_rating + 0.1 * move_data.unit_infos[id].hitpoints / 25
+                    protect_base_rating = protect_base_rating + 0.1 * move_data.unit_infos[id].hitpoints / 25 * value_ratio
 
                     -- For non-regenerating units, we also give a heal bonus
                     if (not move_data.unit_infos[id].abilities.regenerate) then
-                        protect_base_rating = protect_base_rating + 0.1 * 8 / 25
+                        protect_base_rating = protect_base_rating + 0.1 * 8 / 25 * value_ratio
                     end
                 end
 
-                local vuln = protect_rating_data.vuln
-                local protect_rating = protect_base_rating + vuln / max_vuln / 20
-
-                local d_dist
-                if between_map then
-                    -- TODO: defaulting to zero (when no enemy can move onto the hex)
-                    -- is not the best solution, but at least it avoids the AI crashing for now
-                    local inv_cost = FU.get_fgumap_value(between_map, x, y, 'inv_cost') or 0
-                    d_dist = inv_cost - max_inv_cost
+                local inv_cost = FU.get_fgumap_value(between_map, x, y, 'inv_cost') or 0
+                local d_dist = inv_cost - max_inv_cost
+                local protect_rating = protect_base_rating
+                if (protect_forward_rating_weight > 0) then
+                    local vuln = protect_rating_data.vuln
+                    protect_rating = protect_rating + vuln / max_vuln * protect_forward_rating_weight
                 else
-                    local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
-                    d_dist = ld - protect_leader_distance.max
-                end
-
-                if (d_dist > 2) then
-                    protect_rating = protect_rating - (d_dist - 2) / 20
+                    protect_rating = protect_rating + (d_dist - 2) /10 * protect_forward_rating_weight
                 end
 
                 if protect_leader then
@@ -1895,7 +1899,7 @@ local function get_hold_action(zone_cfg, fred_data)
     local best_combo, ratings
     if (not best_hold_combo) then
         best_combo, ratings = best_protect_combo, protect_ratings
-        action_str = 'hold (protect ' .. protect_loc_str .. ')'
+        action_str = 'hold (protect ' .. protect_loc_str or 'x,x' .. ')'
     elseif (not best_protect_combo) then
         best_combo, ratings = best_hold_combo, hold_ratings
     else
@@ -1924,7 +1928,7 @@ local function get_hold_action(zone_cfg, fred_data)
             best_combo, ratings = best_hold_combo, hold_ratings
         else
             best_combo, ratings = best_protect_combo, protect_ratings
-            action_str = 'hold (protect ' .. protect_loc_str .. ')'
+            action_str = 'hold (protect ' .. protect_loc_str or 'x,x' .. ')'
         end
     end
     --DBG.dbms(best_combo)
