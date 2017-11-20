@@ -49,6 +49,24 @@ function fred_utils.fgumap_normalize(map, key)
     end
 end
 
+function fred_utils.fgumap_blur(map, key)
+    for x,y,data in fred_utils.fgumap_iter(map) do
+        local blurred_data = data[key]
+        if blurred_data then
+            local count = 1
+            local adj_weight = 0.5
+            for xa,ya in H.adjacent_tiles(x, y) do
+                local value = fred_utils.get_fgumap_value(map, xa, ya, key)
+                if value then
+                    blurred_data = blurred_data + value * adj_weight
+                   count = count + adj_weight
+                end
+            end
+            fred_utils.set_fgumap_value(map, x, y, 'blurred_' .. key, blurred_data / count)
+        end
+    end
+end
+
 function fred_utils.weight_s(x, exp)
     -- S curve weighting of a variable that is meant as a fraction of a total.
     -- Thus, @x for the most part varies from 0 to 1, but does continues smoothly
