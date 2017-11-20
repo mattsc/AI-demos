@@ -1899,7 +1899,7 @@ local function get_hold_action(zone_cfg, fred_data)
     local best_combo, ratings
     if (not best_hold_combo) then
         best_combo, ratings = best_protect_combo, protect_ratings
-        action_str = 'hold (protect ' .. protect_loc_str or 'x,x' .. ')'
+        action_str = 'hold (protect ' .. (protect_loc_str or 'x,x') .. ')'
     elseif (not best_protect_combo) then
         best_combo, ratings = best_hold_combo, hold_ratings
     else
@@ -1928,7 +1928,7 @@ local function get_hold_action(zone_cfg, fred_data)
             best_combo, ratings = best_hold_combo, hold_ratings
         else
             best_combo, ratings = best_protect_combo, protect_ratings
-            action_str = 'hold (protect ' .. protect_loc_str or 'x,x' .. ')'
+            action_str = 'hold (protect ' .. (protect_loc_str or 'x,x') .. ')'
         end
     end
     --DBG.dbms(best_combo)
