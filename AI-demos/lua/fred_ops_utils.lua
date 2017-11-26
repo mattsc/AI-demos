@@ -384,7 +384,7 @@ function fred_ops_utils.set_turn_data(move_data)
     local factor = 1 / (1 + (influence_mult_next_turn - 1) * weight)
     --print(influence_mult_next_turn, weight, factor)
 
-    local base_value_ratio = FCFG.get_cfg_parm('base_value_ratio')
+    local base_value_ratio = 1 / FCFG.get_cfg_parm('aggression')
     local ratio = factor * enemy_total_influence / my_total_influence
     local value_ratio = base_value_ratio
     if (ratio < 1) then

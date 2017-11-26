@@ -5,7 +5,7 @@
 -- for each function call.
 
 local cfg = {
-    base_value_ratio = 0.8,  -- value of own units compared to enemies
+    aggression = 1.25,  -- to first order, base ratio of acceptable damage: own / enemy
     next_turn_influence_weight = 0.25,
 
 
