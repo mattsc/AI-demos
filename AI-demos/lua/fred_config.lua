@@ -5,22 +5,28 @@
 -- for each function call.
 
 local cfg = {
-    aggression = 1.25,  -- to first order, base ratio of acceptable damage: own / enemy
-    next_turn_influence_weight = 0.25,
+    ----- Parameters in this section are meant to be adjustable for faction, scenario, ... -----
+
+    aggression = 1.25,                  -- To first order, base ratio of acceptable damage: own / enemy
+    next_turn_influence_weight = 0.25,  -- Fraction of ToD influence change of next turn to take into account
 
 
     ----- Do not change values below unless you know exactly what you are doing -----
 
+    -- Unit value parameters
     xp_weight = 1.0,
     leader_weight = 1.5,
     leader_derating = 0.5,
 
+    -- Village grabbing parameters
     villages_per_unit = 2,
 
+    -- Attack rating parameters
     terrain_defense_weight = 0.1,
     distance_leader_weight = 0.002,
     occupied_hex_penalty = 0.001,
 
+    -- Hold rating parameters
     vuln_weight = 0.25,
     forward_weight = 0.02,
     hold_counter_weight = 0.1;
