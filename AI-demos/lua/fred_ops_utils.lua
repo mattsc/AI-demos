@@ -361,7 +361,8 @@ function fred_ops_utils.set_turn_data(move_data)
         end
 
         local alignment = move_data.unit_infos[id].alignment
-        local tod_bonus_next_turn = FU.get_unit_time_of_day_bonus(alignment, wesnoth.get_time_of_day(wesnoth.current.turn + 1).lawful_bonus)
+        local is_fearless = move_data.unit_infos[id].traits.fearless
+        local tod_bonus_next_turn = FU.get_unit_time_of_day_bonus(alignment, is_fearless, wesnoth.get_time_of_day(wesnoth.current.turn + 1).lawful_bonus)
         local tod_mod_ratio = tod_bonus_next_turn / move_data.unit_infos[id].tod_mod
         --print(id, unit_influence, alignment, move_data.unit_infos[id].tod_mod, tod_bonus_next_turn, tod_mod_ratio)
 

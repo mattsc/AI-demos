@@ -107,7 +107,7 @@ function fred_utils.print_weight_s(exp)
     print(s2)
 end
 
-function fred_utils.get_unit_time_of_day_bonus(alignment, lawful_bonus)
+function fred_utils.get_unit_time_of_day_bonus(alignment, is_fearless, lawful_bonus)
     local multiplier = 1
     if (lawful_bonus ~= 0) then
         if (alignment == 'lawful') then
@@ -118,6 +118,11 @@ function fred_utils.get_unit_time_of_day_bonus(alignment, lawful_bonus)
             multipler = (1 - math.abs(lawful_bonus) / 100.)
         end
     end
+
+    if is_fearless and (multiplier < 1) then
+        multiplier = 1
+    end
+
     return multiplier
 end
 
@@ -533,8 +538,9 @@ function fred_utils.single_unit_info(unit_proxy)
     end
     single_unit_info.max_damage = max_damage
 
-    -- Time of day modifier (done here so that it works on unit types also; the fearless trait is dealt with below)
-    single_unit_info.tod_mod = fred_utils.get_unit_time_of_day_bonus(unit_cfg.alignment, wesnoth.get_time_of_day().lawful_bonus)
+    -- Time of day modifier: done here once so that it works on unit types also.
+    -- It is repeated below if a unit is passed, to take the fearless trait into account.
+    single_unit_info.tod_mod = fred_utils.get_unit_time_of_day_bonus(single_unit_info.alignment, false, wesnoth.get_time_of_day().lawful_bonus)
 
 
     -- The following can only be done on a real unit, not on a unit type
@@ -552,10 +558,9 @@ function fred_utils.single_unit_info(unit_proxy)
             single_unit_info.traits[trait.id] = true
         end
 
-        if single_unit_info.traits.fearless then
-            single_unit_info.tod_mod = 1
-        end
 
+        -- Now we do this again, using the correct value for the fearless trait
+        single_unit_info.tod_mod = fred_utils.get_unit_time_of_day_bonus(single_unit_info.alignment, single_unit_info.traits.fearless, wesnoth.get_time_of_day().lawful_bonus)
 
         -- Define what "good terrain" means for a unit
         local defense = H.get_child(unit_proxy.__cfg, "defense")
