@@ -10,6 +10,68 @@ local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local retreat_functions = {}
 
+function retreat_functions.retreat_utilities(move_data)
+    -- Desire of each unit to retreat
+    local retreat_utility = {}
+    for id,loc in pairs(move_data.my_units) do
+        --print(id, move_data.unit_infos[id].hitpoints .. '/' .. move_data.unit_infos[id].max_hitpoints .. '   ' .. move_data.unit_infos[id].experience .. '/' .. move_data.unit_infos[id].max_experience)
+
+        local hp_eff = move_data.unit_infos[id].hitpoints
+        if move_data.unit_infos[id].abilities.regenerate then
+            hp_eff = hp_eff + 8
+        end
+        if move_data.unit_infos[id].status.poisoned then
+            local poison_damage = 8
+            if move_data.unit_infos[id].traits.healthy then
+                poison_damage = poison_damage * 0.75
+            end
+            hp_eff = hp_eff - poison_damage
+        end
+        if move_data.unit_infos[id].traits.healthy then
+            hp_eff = hp_eff + 2
+        end
+        if (hp_eff > move_data.unit_infos[id].max_hitpoints) then
+            hp_eff = move_data.unit_infos[id].max_hitpoints
+        end
+        if (hp_eff < 1) then
+            hp_eff = 1
+        end
+
+        -- Main criterion is simply the absolute HP
+        local hp_inflection = 20
+
+        local max_hp_mult = math.sqrt(move_data.unit_infos[id].max_hitpoints / (hp_inflection * 2))
+        hp_inflection = hp_inflection * max_hp_mult
+
+
+        local xp_mult = 1 + 0.5 * move_data.unit_infos[id].experience / move_data.unit_infos[id].max_experience
+        hp_inflection = hp_inflection * xp_mult
+
+        hp_inflection = hp_inflection * xp_mult
+
+        if (hp_inflection > 0.75 * move_data.unit_infos[id].max_hitpoints) then
+            hp_inflection = 0.75 * move_data.unit_infos[id].max_hitpoints
+        end
+
+        -- This must be done after the check vs. max_hp above
+        --print(id, hp_inflection, xp_mult)
+
+        local w_remain = 1
+        if (hp_eff <= hp_inflection) then
+            w_remain = FU.weight_s(hp_eff / (hp_inflection * 2), 0.75)
+        else
+            w_remain = FU.weight_s((hp_eff - hp_inflection) / ((move_data.unit_infos[id].max_hitpoints - hp_inflection) * 2) + 0.5, 0.75)
+        end
+
+        w_retreat = 1 - w_remain
+        --print('  ' .. w_retreat)
+
+        retreat_utility[id] = w_retreat
+    end
+
+    return retreat_utility
+end
+
 function retreat_functions.get_healing_locations()
     local possible_healer_proxies = AH.get_live_units {
         { "filter_side", {{ "allied_with", { side = wesnoth.current.side } }} }

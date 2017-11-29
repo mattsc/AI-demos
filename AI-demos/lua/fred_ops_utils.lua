@@ -2,6 +2,7 @@ local H = wesnoth.require "lua/helper.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
+local FRU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_retreat_utils.lua"
 local FVU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_village_utils.lua"
 local FHU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_hold_utils.lua"
 local FMLU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_move_leader_utils.lua"
@@ -766,8 +767,8 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(pre_assigned_units)
 
 
-    local retreat_utilities = FU.retreat_utilities(move_data)
     --DBG.dbms(retreat_utilities)
+    local retreat_utilities = FRU.retreat_utilities(move_data)
 
 
     ----- Village goals -----
@@ -1348,7 +1349,7 @@ function fred_ops_utils.update_ops_data(fred_data)
         end
     end
 
-    local retreat_utilities = FU.retreat_utilities(move_data)
+    local retreat_utilities = FRU.retreat_utilities(move_data)
     --DBG.dbms(retreat_utilities)
 
 

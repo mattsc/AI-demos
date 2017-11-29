@@ -7,7 +7,7 @@ local FOU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_ops_utils.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
 local LS = wesnoth.require "lua/location_set.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
-local R = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_retreat_utils.lua"
+local FRU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_retreat_utils.lua"
 local FHU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_hold_utils.lua"
 local FMLU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_move_leader_utils.lua"
 local FC = wesnoth.require "~/add-ons/AI-demos/lua/fred_compatibility.lua"
@@ -2289,7 +2289,7 @@ local function get_retreat_action(zone_cfg, fred_data)
 
     local move_data = fred_data.move_data
     local retreat_utilities = FU.retreat_utilities(move_data)
-    local retreat_combo = R.find_best_retreat(zone_cfg.retreaters, retreat_utilities, fred_data)
+    local retreat_combo = FRU.find_best_retreat(zone_cfg.retreaters, retreat_utilities, fred_data)
 
     if retreat_combo then
         local action = {
