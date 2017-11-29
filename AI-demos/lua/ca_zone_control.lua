@@ -2496,7 +2496,7 @@ function ca_zone_control:evaluation(arg1, arg2, arg3, use_1_12_syntax)
                 if is_good then
                     --print('  Pre-evaluated action found: ' .. cfg.action.action_str)
                     data.zone_action = AH.table_copy(cfg.action)
-                    return score_zone_control
+                    return score_zone_control, cfg.action
                 else
                     cfg.invalid = true
                 end
@@ -2518,7 +2518,7 @@ function ca_zone_control:evaluation(arg1, arg2, arg3, use_1_12_syntax)
                 zone_action.zone_id = cfg.zone_id
                 --DBG.dbms(zone_action)
                 data.zone_action = zone_action
-                return score_zone_control
+                return score_zone_control, zone_action
             end
         end
     end

@@ -145,8 +145,13 @@ return {
         local self = dummy_self
         local ai, ca = init_CA(self)
 
-        local score = ca:evaluation(ai, nil, self, true)
-        wesnoth.message("Evaluation score for " .. CA_name() .. ': ' .. score)
+        local score, action = ca:evaluation(ai, nil, self, true)
+        local action_str = ''
+        if action then
+            action_str = action.zone_id .. '  ' .. action.action_str .. '  '
+        end
+
+        wesnoth.message("Eval score for " .. CA_name() .. ':  ' .. action_str .. score)
 
         if exec_also and (score > 0) then
             ca:execution(ai, nil, self, true)
