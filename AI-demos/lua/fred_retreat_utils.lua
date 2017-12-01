@@ -38,19 +38,15 @@ function retreat_functions.retreat_utilities(move_data)
         end
 
         -- Main criterion is simply the absolute HP
-        local hp_inflection = 20
+        local hp_inflection_base = 20
 
-        local max_hp_mult = math.sqrt(move_data.unit_infos[id].max_hitpoints / (hp_inflection * 2))
-        hp_inflection = hp_inflection * max_hp_mult
+        local max_hp_mult = math.sqrt(move_data.unit_infos[id].max_hitpoints / (hp_inflection_base * 2))
+        hp_inflection_base = hp_inflection_base * max_hp_mult
 
-
-        local xp_mult = 1 + 0.5 * move_data.unit_infos[id].experience / move_data.unit_infos[id].max_experience
-        hp_inflection = hp_inflection * xp_mult
-
-        hp_inflection = hp_inflection * xp_mult
-
-        if (hp_inflection > 0.75 * move_data.unit_infos[id].max_hitpoints) then
-            hp_inflection = 0.75 * move_data.unit_infos[id].max_hitpoints
+        hp_inflection_max_xp = (hp_inflection_base + move_data.unit_infos[id].max_hitpoints) / 2
+        local xp_mult = FU.weight_s(move_data.unit_infos[id].experience / move_data.unit_infos[id].max_experience, 0.75)
+        if (hp_inflection_max_xp > hp_inflection_base) then
+            hp_inflection = hp_inflection_base + (hp_inflection_max_xp - hp_inflection_base) * xp_mult
         end
 
         local w_retreat
@@ -59,7 +55,7 @@ function retreat_functions.retreat_utilities(move_data)
         else
             w_retreat = FU.weight_s((move_data.unit_infos[id].max_hitpoints - hp_eff) / ((move_data.unit_infos[id].max_hitpoints - hp_inflection) * 2), 0.75)
         end
-        --print('  ' .. w_retreat)
+        --print(id, move_data.unit_infos[id].experience, hp_inflection_base, hp_inflection, w_retreat)
 
         retreat_utility[id] = w_retreat
     end
