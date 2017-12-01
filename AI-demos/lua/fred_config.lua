@@ -29,8 +29,11 @@ local cfg = {
     -- Hold rating parameters
     vuln_weight = 0.25,
     forward_weight = 0.02,
-    hold_counter_weight = 0.1;
-    protect_forward_weight = 1
+    hold_counter_weight = 0.1,
+    protect_forward_weight = 1,
+
+    -- Retreat rating parameters
+    dhp_no_retreat = 4
 }
 
 local fred_config = {}
