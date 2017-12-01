@@ -53,17 +53,12 @@ function retreat_functions.retreat_utilities(move_data)
             hp_inflection = 0.75 * move_data.unit_infos[id].max_hitpoints
         end
 
-        -- This must be done after the check vs. max_hp above
-        --print(id, hp_inflection, xp_mult)
-
-        local w_remain = 1
+        local w_retreat
         if (hp_eff <= hp_inflection) then
-            w_remain = FU.weight_s(hp_eff / (hp_inflection * 2), 0.75)
+            w_retreat = FU.weight_s((hp_inflection - hp_eff) / (hp_inflection * 2) + 0.5, 0.75)
         else
-            w_remain = FU.weight_s((hp_eff - hp_inflection) / ((move_data.unit_infos[id].max_hitpoints - hp_inflection) * 2) + 0.5, 0.75)
+            w_retreat = FU.weight_s((move_data.unit_infos[id].max_hitpoints - hp_eff) / ((move_data.unit_infos[id].max_hitpoints - hp_inflection) * 2), 0.75)
         end
-
-        w_retreat = 1 - w_remain
         --print('  ' .. w_retreat)
 
         retreat_utility[id] = w_retreat
