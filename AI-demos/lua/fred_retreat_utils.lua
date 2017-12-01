@@ -42,12 +42,12 @@ function retreat_functions.retreat_utilities(move_data)
             if (hp_eff < 1) then hp_eff = 1 end
 
             local max_hp_mult = math.sqrt(hp_no_retreat / (hp_inflection_base * 2))
-            hp_inflection_base = hp_inflection_base * max_hp_mult
+            local hp_inflection = hp_inflection_base * max_hp_mult
 
-            hp_inflection_max_xp = (hp_inflection_base + hp_no_retreat) / 2
+            local hp_inflection_max_xp = (hp_inflection + hp_no_retreat) / 2
             local xp_mult = FU.weight_s(move_data.unit_infos[id].experience / move_data.unit_infos[id].max_experience, 0.75)
-            if (hp_inflection_max_xp > hp_inflection_base) then
-                hp_inflection = hp_inflection_base + (hp_inflection_max_xp - hp_inflection_base) * xp_mult
+            if (hp_inflection_max_xp > hp_inflection) then
+                hp_inflection = hp_inflection + (hp_inflection_max_xp - hp_inflection) * xp_mult
             end
 
             if (hp_eff <= hp_inflection) then
