@@ -2288,7 +2288,7 @@ local function get_retreat_action(zone_cfg, fred_data)
     DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> retreat evaluation: ' .. zone_cfg.zone_id)
 
     local move_data = fred_data.move_data
-    local retreat_utilities = FU.retreat_utilities(move_data)
+    local retreat_utilities = FRU.retreat_utilities(move_data, fred_data.turn_data.behavior.orders.value_ratio)
     local retreat_combo = FRU.find_best_retreat(zone_cfg.retreaters, retreat_utilities, fred_data)
 
     if retreat_combo then

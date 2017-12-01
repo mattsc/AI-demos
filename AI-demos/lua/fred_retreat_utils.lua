@@ -11,16 +11,21 @@ local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local retreat_functions = {}
 
-function retreat_functions.retreat_utilities(move_data)
-    local dhp_no_retreat = FCFG.get_cfg_parm('dhp_no_retreat')
+function retreat_functions.retreat_utilities(move_data, value_ratio)
     local hp_inflection_base = FCFG.get_cfg_parm('hp_inflection_base')
 
     local retreat_utility = {}
     for id,loc in pairs(move_data.my_units) do
-        local hp_no_retreat = move_data.unit_infos[id].max_hitpoints - dhp_no_retreat
-        -- This shouldn't really happen, but just in case
-        if (hp_no_retreat < 1) then hp_no_retreat = 1 end
+        local xp_mult = FU.weight_s(move_data.unit_infos[id].experience / move_data.unit_infos[id].max_experience, 0.75)
+
+        local dhp_in = hp_inflection_base * (1 - value_ratio) * (1 - xp_mult)
+        local hp_inflection_init = hp_inflection_base - dhp_in
+
+        local dhp_nr = (move_data.unit_infos[id].max_hitpoints - hp_inflection_init) * (1 - value_ratio) * (1 - xp_mult)
+        local hp_no_retreat = move_data.unit_infos[id].max_hitpoints - dhp_nr
+
         --print(id, move_data.unit_infos[id].hitpoints .. '/' .. move_data.unit_infos[id].max_hitpoints .. '   ' .. move_data.unit_infos[id].experience .. '/' .. move_data.unit_infos[id].max_experience .. '   ' .. hp_no_retreat)
+        --print('  ' .. hp_inflection_base, hp_inflection_init, hp_no_retreat)
 
         local hp_eff = move_data.unit_infos[id].hitpoints
         if move_data.unit_infos[id].abilities.regenerate then
@@ -41,11 +46,10 @@ function retreat_functions.retreat_utilities(move_data)
         if (hp_eff < hp_no_retreat) then
             if (hp_eff < 1) then hp_eff = 1 end
 
-            local max_hp_mult = math.sqrt(hp_no_retreat / (hp_inflection_base * 2))
-            local hp_inflection = hp_inflection_base * max_hp_mult
+            local max_hp_mult = math.sqrt(hp_no_retreat / (hp_inflection_init * 2))
+            local hp_inflection = hp_inflection_init * max_hp_mult
 
             local hp_inflection_max_xp = (hp_inflection + hp_no_retreat) / 2
-            local xp_mult = FU.weight_s(move_data.unit_infos[id].experience / move_data.unit_infos[id].max_experience, 0.75)
             if (hp_inflection_max_xp > hp_inflection) then
                 hp_inflection = hp_inflection + (hp_inflection_max_xp - hp_inflection) * xp_mult
             end
@@ -55,7 +59,7 @@ function retreat_functions.retreat_utilities(move_data)
             else
                 w_retreat = FU.weight_s((hp_no_retreat - hp_eff) / ((hp_no_retreat - hp_inflection) * 2), 0.75)
             end
-            --print('  ' .. id, move_data.unit_infos[id].experience, hp_inflection_base, hp_inflection, w_retreat)
+            --print('  ' .. id, move_data.unit_infos[id].experience, hp_inflection, hp_inflection, w_retreat)
         end
 
         retreat_utility[id] = w_retreat

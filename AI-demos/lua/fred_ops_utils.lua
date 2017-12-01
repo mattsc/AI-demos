@@ -767,8 +767,8 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(pre_assigned_units)
 
 
+    local retreat_utilities = FRU.retreat_utilities(move_data, fred_data.turn_data.behavior.orders.value_ratio)
     --DBG.dbms(retreat_utilities)
-    local retreat_utilities = FRU.retreat_utilities(move_data)
 
 
     ----- Village goals -----
@@ -1349,7 +1349,7 @@ function fred_ops_utils.update_ops_data(fred_data)
         end
     end
 
-    local retreat_utilities = FRU.retreat_utilities(move_data)
+    local retreat_utilities = FRU.retreat_utilities(move_data, fred_data.turn_data.behavior.orders.value_ratio)
     --DBG.dbms(retreat_utilities)
 
 
