@@ -12,8 +12,8 @@ local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 local retreat_functions = {}
 
 function retreat_functions.retreat_utilities(move_data)
-    -- Desire of each unit to retreat
     local dhp_no_retreat = FCFG.get_cfg_parm('dhp_no_retreat')
+    local hp_inflection_base = 20
 
     local retreat_utility = {}
     for id,loc in pairs(move_data.my_units) do
@@ -36,32 +36,27 @@ function retreat_functions.retreat_utilities(move_data)
         if move_data.unit_infos[id].traits.healthy then
             hp_eff = hp_eff + 2
         end
-        if (hp_eff > hp_no_retreat) then
-            hp_eff = hp_no_retreat
-        end
-        if (hp_eff < 1) then
-            hp_eff = 1
-        end
 
-        -- Main criterion is simply the absolute HP
-        local hp_inflection_base = 20
+        local w_retreat = 0
+        if (hp_eff < hp_no_retreat) then
+            if (hp_eff < 1) then hp_eff = 1 end
 
-        local max_hp_mult = math.sqrt(hp_no_retreat / (hp_inflection_base * 2))
-        hp_inflection_base = hp_inflection_base * max_hp_mult
+            local max_hp_mult = math.sqrt(hp_no_retreat / (hp_inflection_base * 2))
+            hp_inflection_base = hp_inflection_base * max_hp_mult
 
-        hp_inflection_max_xp = (hp_inflection_base + hp_no_retreat) / 2
-        local xp_mult = FU.weight_s(move_data.unit_infos[id].experience / move_data.unit_infos[id].max_experience, 0.75)
-        if (hp_inflection_max_xp > hp_inflection_base) then
-            hp_inflection = hp_inflection_base + (hp_inflection_max_xp - hp_inflection_base) * xp_mult
+            hp_inflection_max_xp = (hp_inflection_base + hp_no_retreat) / 2
+            local xp_mult = FU.weight_s(move_data.unit_infos[id].experience / move_data.unit_infos[id].max_experience, 0.75)
+            if (hp_inflection_max_xp > hp_inflection_base) then
+                hp_inflection = hp_inflection_base + (hp_inflection_max_xp - hp_inflection_base) * xp_mult
+            end
+
+            if (hp_eff <= hp_inflection) then
+                w_retreat = FU.weight_s((hp_inflection - hp_eff) / (hp_inflection * 2) + 0.5, 0.75)
+            else
+                w_retreat = FU.weight_s((hp_no_retreat - hp_eff) / ((hp_no_retreat - hp_inflection) * 2), 0.75)
+            end
+            --print('  ' .. id, move_data.unit_infos[id].experience, hp_inflection_base, hp_inflection, w_retreat)
         end
-
-        local w_retreat
-        if (hp_eff <= hp_inflection) then
-            w_retreat = FU.weight_s((hp_inflection - hp_eff) / (hp_inflection * 2) + 0.5, 0.75)
-        else
-            w_retreat = FU.weight_s((hp_no_retreat - hp_eff) / ((hp_no_retreat - hp_inflection) * 2), 0.75)
-        end
-        --print(id, move_data.unit_infos[id].experience, hp_inflection_base, hp_inflection, w_retreat)
 
         retreat_utility[id] = w_retreat
     end
@@ -146,7 +141,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
             -- Small bonus for terrain defense
             rating = rating + (1 - hitchance)
 
-            -- Potential TODO: it' not a priori clear whether the av_damage contribution should be
+            -- Potential TODO: it's not a priori clear whether the av_damage contribution should be
             -- multiplied by 1/retreat_utility instead. Depending on the point of view,
             -- both make some sense. Reconsider more carefully later.
             rating = rating * retreat_utilities[id]
