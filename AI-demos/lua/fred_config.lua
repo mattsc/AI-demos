@@ -33,7 +33,8 @@ local cfg = {
     protect_forward_weight = 1,
 
     -- Retreat rating parameters
-    dhp_no_retreat = 4
+    dhp_no_retreat = 4,
+    hp_inflection_base = 20
 }
 
 local fred_config = {}

@@ -13,7 +13,7 @@ local retreat_functions = {}
 
 function retreat_functions.retreat_utilities(move_data)
     local dhp_no_retreat = FCFG.get_cfg_parm('dhp_no_retreat')
-    local hp_inflection_base = 20
+    local hp_inflection_base = FCFG.get_cfg_parm('hp_inflection_base')
 
     local retreat_utility = {}
     for id,loc in pairs(move_data.my_units) do
