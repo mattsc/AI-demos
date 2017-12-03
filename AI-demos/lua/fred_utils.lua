@@ -3,6 +3,7 @@ local W = H.set_wml_action_metatable {}
 local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
 local FGUI = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
+local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local fred_utils = {}
 
@@ -232,6 +233,80 @@ function fred_utils.moved_toward_zone(unit_copy, zone_cfgs, side_cfgs)
 
     return to_zone_id
 end
+
+function fred_utils.smooth_cost_map(unit_proxy, loc, is_inverse_map)
+    -- Smooth means that it does not add discontinuities for not having enough
+    -- MP left to enter certain terrain at the end of a turn. This is done by setting
+    -- moves and max_moves to 98 (99 being the move cost for impassable terrain).
+    -- Thus, there could still be some such effect for very long paths, but this is
+    -- good enough for all practical purposes.
+    --
+    -- Returns an FGU_map with the cost (key: 'cost')
+    --
+    -- INPUTS:
+    --  @unit_proxy: use the proxy here, because it might have already been extracted
+    --     in the calling function (to save time)
+    --  @loc (optional): the hex from where to calculate the cost map. If omitted, use
+    --     the current location of the unit
+    --  @is_inverse_map (optional): if true, calculate the inverse map, that is, the
+    --     move cost for moving toward @loc, rather than away from it. These two are
+    --     almost the same, except for the asymmetry of entering the two extreme hexes
+    --     of any path.
+
+    local old_loc, uiw
+    if loc and ((loc[1] ~= unit_proxy.x) or (loc[2] ~= unit_proxy.y)) then
+        uiw = wesnoth.get_unit(loc[1], loc[2])
+        if uiw then wesnoth.extract_unit(uiw) end
+        old_loc = { unit_proxy.x, unit_proxy.y }
+        H.modify_unit(
+            { id = unit_proxy.id} ,
+            { x = loc[1], y = loc[2] }
+        )
+    end
+    local old_moves, old_max_moves = unit_proxy.moves, unit_proxy.max_moves
+    H.modify_unit(
+        { id = unit_proxy.id} ,
+        { moves = 98, max_moves = 98 }
+    )
+
+    local cm = wesnoth.find_cost_map(unit_proxy.x, unit_proxy.y, { ignore_units = true })
+
+    H.modify_unit({ id = unit_proxy.id} ,
+        { moves = old_moves, max_moves = old_max_moves }
+    )
+    if old_loc then
+        H.modify_unit(
+            { id = unit_proxy.id} ,
+            { x = old_loc[1], y = old_loc[2] }
+        )
+        if uiw then wesnoth.put_unit(uiw) end
+    end
+
+    local movecost_0
+    if is_inverse_map then
+        movecost_0 = wesnoth.unit_movement_cost(unit_proxy, wesnoth.get_terrain(loc[1], loc[2]))
+    end
+
+    local cost_map = {}
+    for _,cost in pairs(cm) do
+        local x, y, c = cost[1], cost[2], cost[3]
+        if (c > -1) then
+            if is_inverse_map then
+                movecost = wesnoth.unit_movement_cost(unit_proxy, wesnoth.get_terrain(x, y))
+                c = c + movecost_0 - movecost
+            end
+
+            fred_utils.set_fgumap_value(cost_map, cost[1], cost[2], 'cost', c)
+        end
+    end
+
+    if false then
+        DBG.show_fgumap_with_message(cost_map, 'cost', 'cost_map', unit_proxy.id)
+    end
+
+    return cost_map
+end
+
 
 function fred_utils.inverse_cost_map(unit, loc, move_data)
     -- returns map with the cost of @unit to go from any hex to @loc
