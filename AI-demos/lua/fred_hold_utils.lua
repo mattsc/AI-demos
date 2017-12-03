@@ -105,7 +105,7 @@ function fred_hold_utils.get_between_map(locs, toward_loc, units, move_data)
             end
         end
 
-        local inv_cost_map = FU.inverse_cost_map(unit, toward_loc, move_data)
+        local inv_cost_map = FU.smooth_cost_map(unit_proxy, toward_loc, true)
 
         if false then
             DBG.show_fgumap_with_message(cost_map, 'cost', 'cost_map', move_data.unit_copies[id])
