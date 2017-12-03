@@ -271,7 +271,8 @@ function fred_utils.smooth_cost_map(unit_proxy, loc, is_inverse_map)
 
     local cm = wesnoth.find_cost_map(unit_proxy.x, unit_proxy.y, { ignore_units = true })
 
-    H.modify_unit({ id = unit_proxy.id} ,
+    H.modify_unit(
+        { id = unit_proxy.id},
         { moves = old_moves, max_moves = old_max_moves }
     )
     if old_loc then
