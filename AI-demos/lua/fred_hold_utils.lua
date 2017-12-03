@@ -89,22 +89,7 @@ function fred_hold_utils.get_between_map(locs, toward_loc, units, move_data)
         end
 
 
-        -- wesnoth.find_cost_map() requires the unit to be on the map, and it needs to
-        -- have full moves. We cannot use the unit_type version of wesnoth.find_cost_map()
-        -- here as some specific units (e.g walking corpses or customized units) might have
-        -- movecosts different from their generic unit type.
-        local old_moves = unit_proxy.moves
-        unit_proxy.moves = unit_proxy.max_moves
-        local cm = wesnoth.find_cost_map(unit_loc[1], unit_loc[2], { ignore_units = true })
-        unit_proxy.moves = old_moves
-
-        local cost_map = {}
-        for _,cost in pairs(cm) do
-            if (cost[3] > -1) then
-               FU.set_fgumap_value(cost_map, cost[1], cost[2], 'cost', cost[3])
-            end
-        end
-
+        local cost_map = FU.smooth_cost_map(unit_proxy)
         local inv_cost_map = FU.smooth_cost_map(unit_proxy, toward_loc, true)
 
         if false then
