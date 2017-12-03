@@ -349,24 +349,12 @@ function fred_utils.get_leader_distance_map(side_cfgs, move_data)
     -- is good enough for the purpose of finding the best way to the enemy leader
     -- TODO: do this correctly, if needed
     local enemy_leader_distance_maps = {}
-    for id,_ in pairs(move_data.my_units) do
+    for id,unit_loc in pairs(move_data.my_units) do
         local typ = move_data.unit_infos[id].type -- can't use type, that's reserved
 
         if (not enemy_leader_distance_maps[typ]) then
-            enemy_leader_distance_maps[typ] = {}
-
-            local cost_map = wesnoth.find_cost_map(
-                { x = -1 }, -- SUF not matching any unit
-                { { enemy_leader_loc[1], enemy_leader_loc[2], wesnoth.current.side, typ } },
-                { ignore_units = true }
-            )
-
-            for _,cost in pairs(cost_map) do
-                local x, y, c = cost[1], cost[2], cost[3]
-                if (cost[3] > -1) then
-                    fred_utils.set_fgumap_value(enemy_leader_distance_maps[typ], cost[1], cost[2], 'cost', cost[3])
-                end
-            end
+            local unit_proxy = wesnoth.get_unit(unit_loc[1], unit_loc[2])
+            enemy_leader_distance_maps[typ] = fred_utils.smooth_cost_map(unit_proxy, enemy_leader_loc, true)
         end
     end
 
