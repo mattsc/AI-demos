@@ -2067,7 +2067,8 @@ local function get_advance_action(zone_cfg, fred_data)
                     dist = FU.get_fgumap_value(fred_data.turn_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
                 else
                     -- When no unthreatened hexes inside the zone can be found,
-                    -- the enemy threat needs to be taken into account
+                    -- the enemy threat needs to be taken into account and hexes outside
+                    -- the zone are considered
                     if not cost_map then
                         cost_map = {}
 
@@ -2101,6 +2102,7 @@ local function get_advance_action(zone_cfg, fred_data)
                             end
                         end
 
+                        -- Potential TODO: maybe replace this with smooth_cost_map()
                         for _,hex in ipairs(hexes) do
                             local cm = wesnoth.find_cost_map(
                                 { x = -1 }, -- SUF not matching any unit
