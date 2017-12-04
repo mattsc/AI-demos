@@ -1582,26 +1582,7 @@ local function get_hold_action(zone_cfg, fred_data)
 
         local hold_here_map = {}
         for x,y,data in FU.fgumap_iter(pre_rating_map) do
-            local hold_here = true
-            if protect_locs then
-                if between_map then
-                    local btw_dist = FU.get_fgumap_value(between_map, x, y, 'blurred_distance') or -99
-                    if (btw_dist < min_btw_dist) then
-                        hold_here = false
-                    end
-                else
-                    local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
-                    local dld = ld - protect_leader_distance.min
-
-                    if (dld < min_btw_dist) then
-                        hold_here = false
-                    end
-                end
-            end
-
-            if hold_here then
-                FU.set_fgumap_value(hold_here_map, x, y, 'av_outcome', data.av_outcome)
-            end
+            FU.set_fgumap_value(hold_here_map, x, y, 'av_outcome', data.av_outcome)
         end
 
         local adj_hex_map = {}
@@ -1629,21 +1610,60 @@ local function get_hold_action(zone_cfg, fred_data)
                     FU.set_fgumap_value(hold_here_maps[id], x, y, 'hold_here', true)
                 --end
             end
+        end
+    end
 
-            if protect_locs then
-                FU.set_fgumap_value(hold_here_maps[id], x, y, 'protect_here', true)
+    local protect_here_maps = {}
+    if protect_locs then
+        for id,pre_rating_map in pairs(pre_rating_maps) do
+            protect_here_maps[id] = {}
+            for x,y,data in FU.fgumap_iter(pre_rating_map) do
+                local protect_here = true
+                if between_map then
+                    local btw_dist = FU.get_fgumap_value(between_map, x, y, 'blurred_distance') or -99
+                    if (btw_dist < min_btw_dist) then
+                        protect_here = false
+                    end
+                else
+                    local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
+                    local dld = ld - protect_leader_distance.min
+
+                    if (dld < min_btw_dist) then
+                        protect_here = false
+                    end
+                end
+
+                if protect_here then
+                    FU.set_fgumap_value(protect_here_maps[id], x, y, 'protect_here', true)
+                end
+            end
+
+            local adj_hex_map = {}
+            for x,y,data in FU.fgumap_iter(protect_here_maps[id]) do
+                for xa,ya in H.adjacent_tiles(x,y) do
+                    if (not FU.get_fgumap_value(protect_here_maps[id], xa, ya, 'protect_here'))
+                        and FU.get_fgumap_value(pre_rating_map, xa, ya, 'av_outcome')
+                    then
+                        --print('adjacent :' .. x .. ',' .. y, xa .. ',' .. ya)
+                        FU.set_fgumap_value(adj_hex_map, xa, ya, 'protect_here', true)
+                    end
+                end
+            end
+
+            for x,y,data in FU.fgumap_iter(adj_hex_map) do
+                FU.set_fgumap_value(protect_here_maps[id], x, y, 'protect_here', true)
             end
         end
     end
 
-    if (not next(hold_here_maps)) then return end
+    if (not next(hold_here_maps)) and (not next(protect_here_maps)) then return end
 
     if false then
         for id,hold_here_map in pairs(hold_here_maps) do
             DBG.show_fgumap_with_message(hold_here_map, 'hold_here', 'hold_here', move_data.unit_copies[id])
-            if protect_locs then
-                DBG.show_fgumap_with_message(hold_here_map, 'protect_here', 'protect_here', move_data.unit_copies[id])
-            end
+        end
+        for id,protect_here_map in pairs(protect_here_maps) do
+            DBG.show_fgumap_with_message(protect_here_map, 'protect_here', 'protect_here', move_data.unit_copies[id])
         end
     end
 
@@ -1728,11 +1748,11 @@ local function get_hold_action(zone_cfg, fred_data)
     end
 
     local protect_rating_maps = {}
-    for id,hold_here_map in pairs(hold_here_maps) do
+    for id,protect_here_map in pairs(protect_here_maps) do
         --print('\n' .. id, zone_cfg.zone_id, protect_leader_distance.min .. ' -- ' .. protect_leader_distance.max)
         local max_vuln
-        for x,y,hold_here_data in FU.fgumap_iter(hold_here_map) do
-            if hold_here_data.protect_here then
+        for x,y,protect_here_data in FU.fgumap_iter(protect_here_map) do
+            if protect_here_data.protect_here then
                 local vuln = FU.get_fgumap_value(holders_influence, x, y, 'vulnerability')
 
                 if (not max_vuln) or (vuln > max_vuln) then
@@ -1887,7 +1907,7 @@ local function get_hold_action(zone_cfg, fred_data)
 
     local protect_loc_str
     local best_protect_combo, all_best_protect_combo, protect_dst_src, protect_ratings
-    if protect_locs then
+    if protect_locs and next(protect_rating_maps) then
         --print('--> checking protect combos')
         protect_dst_src, protect_ratings = FHU.unit_rating_maps_to_dstsrc(protect_rating_maps, 'protect_rating', move_data, cfg_combos)
         local protect_combos = FU.get_unit_hex_combos(protect_dst_src)
