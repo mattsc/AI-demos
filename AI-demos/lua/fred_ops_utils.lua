@@ -260,7 +260,7 @@ function fred_ops_utils.assess_leader_threats(leader_threats, protect_locs, lead
         max_total_loss = max_total_loss + max_loss
         av_total_loss = av_total_loss + av_loss
     end
-    DBG.print_debug('analysis', '\nleader: max_total_loss, av_total_loss', max_total_loss, av_total_loss)
+    DBG.print_debug('analysis', 'leader: max_total_loss, av_total_loss', max_total_loss, av_total_loss)
 
     -- We only consider these leader threats, if they either
     --   - maximum damage reduces current HP by more than 50%
@@ -289,8 +289,6 @@ end
 
 
 function fred_ops_utils.set_turn_data(move_data)
-    DBG.print_debug('analysis', '\n------------- Setting the turn_data table:')
-
     -- Get the needed cfgs
     local raw_cfgs_main = FSC.get_raw_cfgs()
     local side_cfgs = FSC.get_side_cfgs()
@@ -477,7 +475,10 @@ function fred_ops_utils.set_turn_data(move_data)
     end
 
     if DBG.show_debug('analysis') then
-        DBG.dbms(behavior)
+        print('\n----- Behavior table -----')
+        DBG.dbms(behavior.ratios)
+        DBG.dbms(behavior.orders)
+        --DBG.dbms(behavior)
     end
 
 
@@ -639,8 +640,6 @@ end
 
 
 function fred_ops_utils.set_ops_data(fred_data)
-    DBG.print_debug('analysis', '\n------------- Setting the turn_data table:')
-
     -- Get the needed cfgs
     local move_data = fred_data.move_data
     local raw_cfgs_main = FSC.get_raw_cfgs()
@@ -710,7 +709,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     if closest_keep then
         leader_threats.leader_locs.closest_keep = closest_keep
         table.insert(leader_threats.protect_locs, closest_keep)
-        DBG.print_debug('analysis', 'closest keep: ' .. closest_keep[1] .. ',' .. closest_keep[2])
+        --print('closest keep: ' .. closest_keep[1] .. ',' .. closest_keep[2])
     else
         local _, _, next_hop, best_keep_for_hop = FMLU.move_eval(true, fred_data)
         leader_threats.leader_locs.next_hop = next_hop
@@ -718,13 +717,13 @@ function fred_ops_utils.set_ops_data(fred_data)
         table.insert(leader_threats.protect_locs, next_hop)
         table.insert(leader_threats.protect_locs, best_keep_for_hop)
         if next_hop then
-            DBG.print_debug('analysis', 'next_hop to keep: ' .. next_hop[1] .. ',' .. next_hop[2])
+            --print('next_hop to keep: ' .. next_hop[1] .. ',' .. next_hop[2])
         end
     end
     if closest_village then
         leader_threats.leader_locs.closest_village = closest_village
         table.insert(leader_threats.protect_locs, closest_village)
-        DBG.print_debug('analysis', 'reachable village after keep: ' .. closest_village[1] .. ',' .. closest_village[2])
+        --print('reachable village after keep: ' .. closest_village[1] .. ',' .. closest_village[2])
     end
     -- It is possible that no protect location was found (e.g. if the leader cannot move)
     if (not leader_threats.protect_locs[1]) then
@@ -1258,8 +1257,6 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(ops_data.assigned_enemies)
     --DBG.dbms(ops_data.assigned_units)
 
-    DBG.print_debug('analysis', '--- Done determining turn_data ---\n')
-
     return ops_data
 end
 
@@ -1427,7 +1424,6 @@ end
 
 function fred_ops_utils.get_action_cfgs(fred_data)
     local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
-    DBG.print_debug_time('analysis', fred_data.turn_start_time, '     - Evaluating defend zones map analysis:')
 
     local move_data = fred_data.move_data
     local ops_data = fred_data.ops_data
