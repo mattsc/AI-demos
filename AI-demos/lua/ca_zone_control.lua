@@ -1902,7 +1902,12 @@ local function get_hold_action(zone_cfg, fred_data)
         --DBG.dbms(hold_combos)
         --print('#hold_combos', #hold_combos)
 
-        best_hold_combo = FHU.find_best_combo(hold_combos, hold_ratings, 'vuln_rating', adjacent_village_map, between_map, fred_data, cfg_best_combo_hold)
+        best_hold_combo, all_best_hold_combo = FHU.find_best_combo(hold_combos, hold_ratings, 'vuln_rating', adjacent_village_map, between_map, fred_data, cfg_best_combo_hold)
+
+        -- If no combo that protects the location was found, use the best of the others
+        if (not best_hold_combo) then
+            best_hold_combo = all_best_hold_combo
+        end
     end
 
     local protect_loc_str
