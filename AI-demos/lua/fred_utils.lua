@@ -287,6 +287,10 @@ function fred_utils.smooth_cost_map(unit_proxy, loc, is_inverse_map)
     if is_inverse_map then
         movecost_0 = wesnoth.unit_movement_cost(unit_proxy, wesnoth.get_terrain(loc[1], loc[2]))
     end
+    -- Just a safeguard against potential future problems:
+    if movecost_0 and (movecost_0 > 90) then
+        error('Goal hex is unreachable :' .. unit_proxy.id .. ' --> ' .. loc[1] .. ',' .. loc[2])
+    end
 
     local cost_map = {}
     for _,cost in pairs(cm) do
