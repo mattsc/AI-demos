@@ -323,6 +323,7 @@ function fred_utils.get_leader_distance_map(zone_cfgs, side_cfgs, move_data)
     end
 
     -- Need a map with the distances to the enemy and own leaders
+    -- TODO: Leave like this for now, potentially switch to using smooth_cost_map() later
     local leader_cx, leader_cy = AH.cartesian_coords(leader_loc[1], leader_loc[2])
     local enemy_leader_cx, enemy_leader_cy = AH.cartesian_coords(enemy_leader_loc[1], enemy_leader_loc[2])
 
