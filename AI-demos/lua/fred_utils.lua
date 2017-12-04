@@ -308,7 +308,7 @@ function fred_utils.smooth_cost_map(unit_proxy, loc, is_inverse_map)
     return cost_map
 end
 
-function fred_utils.get_leader_distance_map(side_cfgs, move_data)
+function fred_utils.get_leader_distance_map(zone_cfgs, side_cfgs, move_data)
     local leader_loc, enemy_leader_loc
     for side,cfg in ipairs(side_cfgs) do
         if (side == wesnoth.current.side) then
@@ -344,17 +344,48 @@ function fred_utils.get_leader_distance_map(side_cfgs, move_data)
     end
 
     -- Enemy leader distance maps. These are calculated using wesnoth.find_cost_map() for
-    -- each unit type from the start hex of the enemy leader. This is not ideal, as it is
-    -- in the wrong direction (and terrain changes are not symmetric), but it
-    -- is good enough for the purpose of finding the best way to the enemy leader
-    -- TODO: do this correctly, if needed
+    -- each unit type from the start hex of the enemy leader.
+    -- TODO: Doing this by unit type may cause problems once Fred can play factions
+    -- with unit types that have different variations (i.e. Walking Corpses). Fix later.
     local enemy_leader_distance_maps = {}
+    for zone_id,cfg in pairs(zone_cfgs) do
+        enemy_leader_distance_maps[zone_id] = {}
+
+        local old_terrain = {}
+        local avoid_locs = wesnoth.get_locations { { "not", cfg.ops_slf  } }
+        for _,avoid_loc in ipairs(avoid_locs) do
+            table.insert(old_terrain, {avoid_loc[1], avoid_loc[2], wesnoth.get_terrain(avoid_loc[1], avoid_loc[2])})
+            wesnoth.set_terrain(avoid_loc[1], avoid_loc[2], "Xv")
+        end
+
+        for id,unit_loc in pairs(move_data.my_units) do
+            local typ = move_data.unit_infos[id].type -- can't use type, that's reserved
+
+            if (not enemy_leader_distance_maps[zone_id][typ]) then
+                local unit_proxy = wesnoth.get_unit(unit_loc[1], unit_loc[2])
+                enemy_leader_distance_maps[zone_id][typ] = fred_utils.smooth_cost_map(unit_proxy, enemy_leader_loc, true)
+            end
+        end
+
+        for _,terrain in ipairs(old_terrain) do
+            wesnoth.set_terrain(terrain[1], terrain[2], terrain[3])
+        end
+        -- The above procedure unsets village ownership
+        for x,y,data in fred_utils.fgumap_iter(move_data.village_map) do
+            if (data.owner > 0) then
+                wesnoth.set_village_owner(x, y, data.owner)
+            end
+        end
+    end
+
+    -- Also need this for the full map
+    enemy_leader_distance_maps['all_map'] = {}
     for id,unit_loc in pairs(move_data.my_units) do
         local typ = move_data.unit_infos[id].type -- can't use type, that's reserved
 
-        if (not enemy_leader_distance_maps[typ]) then
+        if (not enemy_leader_distance_maps['all_map'][typ]) then
             local unit_proxy = wesnoth.get_unit(unit_loc[1], unit_loc[2])
-            enemy_leader_distance_maps[typ] = fred_utils.smooth_cost_map(unit_proxy, enemy_leader_loc, true)
+            enemy_leader_distance_maps['all_map'][typ] = fred_utils.smooth_cost_map(unit_proxy, enemy_leader_loc, true)
         end
     end
 

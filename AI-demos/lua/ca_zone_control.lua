@@ -1392,28 +1392,37 @@ local function get_hold_action(zone_cfg, fred_data)
         --print('\n' .. id, zone_cfg.zone_id)
         local min_eleader_distance
         for x,y,_ in FU.fgumap_iter(move_data.reach_maps[id]) do
-            --print(x,y)
-            local can_hit = false
-            for enemy_id,enemy_zone_map in pairs(enemy_zone_maps) do
-                if FU.get_fgumap_value(enemy_zone_map, x, y, 'adj_hit_chance') then
-                    can_hit = true
-                    break
+            if FU.get_fgumap_value(zone_map, x, y, 'flag') then
+                --print(x,y)
+                local can_hit = false
+                for enemy_id,enemy_zone_map in pairs(enemy_zone_maps) do
+                    if FU.get_fgumap_value(enemy_zone_map, x, y, 'adj_hit_chance') then
+                        can_hit = true
+                        break
+                    end
                 end
-            end
 
-            -- Do not move the leader out of the way, if he's on a keep
-            local moves_leader_off_keep = false
-            if leader_on_keep and (id ~= leader.id) and (x == leader[1]) and (y == leader[2]) then
-                moves_leader_off_keep = true
-            end
+                -- Do not move the leader out of the way, if he's on a keep
+                local moves_leader_off_keep = false
+                if leader_on_keep and (id ~= leader.id) and (x == leader[1]) and (y == leader[2]) then
+                    moves_leader_off_keep = true
+                end
 
-            if (not can_hit) and (not moves_leader_off_keep) then
-                local eld1 = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'enemy_leader_distance')
-                local eld2 = FU.get_fgumap_value(fred_data.turn_data.enemy_leader_distance_maps[move_data.unit_infos[id].type], x, y, 'cost')
-                local eld = (eld1 + eld2) / 2
+                if (not can_hit) and (not moves_leader_off_keep) then
+                    local eld1 = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'enemy_leader_distance')
+                    local eld2
+                    if fred_data.turn_data.enemy_leader_distance_maps[zone_cfg.zone_id] then
+                        eld2 = FU.get_fgumap_value(fred_data.turn_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
+                    end
+                    if (not eld2) then
+                        eld2 = FU.get_fgumap_value(fred_data.turn_data.enemy_leader_distance_maps['all_map'][move_data.unit_infos[id].type], x, y, 'cost') + 99
+                    end
 
-                if (not min_eleader_distance) or (eld < min_eleader_distance) then
-                    min_eleader_distance = eld
+                    local eld = (eld1 + eld2) / 2
+
+                    if (not min_eleader_distance) or (eld < min_eleader_distance) then
+                        min_eleader_distance = eld
+                    end
                 end
             end
         end
@@ -1424,16 +1433,25 @@ local function get_hold_action(zone_cfg, fred_data)
 
             -- If there is nothing to protect, and we can move farther ahead
             -- unthreatened than this hold position, don't hold here
-            local move_here = true
-            if (not protect_locs) then
-                local threats = FU.get_fgumap_value(move_data.enemy_attack_map[1], x, y, 'ids')
+            local move_here = false
+            if FU.get_fgumap_value(zone_map, x, y, 'flag') then
+                move_here = true
+                if (not protect_locs) then
+                    local threats = FU.get_fgumap_value(move_data.enemy_attack_map[1], x, y, 'ids')
 
-                if (not threats) then
-                    local eld1 = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'enemy_leader_distance')
-                    local eld2 = FU.get_fgumap_value(fred_data.turn_data.enemy_leader_distance_maps[move_data.unit_infos[id].type], x, y, 'cost')
-                    local eld = (eld1 + eld2) / 2
-                    if min_eleader_distance and (eld > min_eleader_distance) then
-                        move_here = false
+                    if (not threats) then
+                        local eld1 = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'enemy_leader_distance')
+                        local eld2
+                        if fred_data.turn_data.enemy_leader_distance_maps[zone_cfg.zone_id] then
+                            eld2 = FU.get_fgumap_value(fred_data.turn_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
+                        end
+                        if (not eld2) then
+                            eld2 = FU.get_fgumap_value(fred_data.turn_data.enemy_leader_distance_maps['all_map'][move_data.unit_infos[id].type], x, y, 'cost') + 99
+                        end
+                        local eld = (eld1 + eld2) / 2
+                        if min_eleader_distance and (eld > min_eleader_distance) then
+                            move_here = false
+                        end
                     end
                 end
             end
@@ -2051,7 +2069,7 @@ local function get_advance_action(zone_cfg, fred_data)
                 if FU.get_fgumap_value(advance_map, x, y, 'flag') then
                     -- For unthreatened hexes in the zone, the main criterion is the "forward distance"
                     local ld1 = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'enemy_leader_distance')
-                    local ld2 = FU.get_fgumap_value(fred_data.turn_data.enemy_leader_distance_maps[move_data.unit_infos[id].type], x, y, 'cost')
+                    local ld2 = FU.get_fgumap_value(fred_data.turn_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
                     dist = (ld1 + ld2) / 2
                 else
                     -- When no unthreatened hexes inside the zone can be found,

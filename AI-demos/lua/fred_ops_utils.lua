@@ -292,14 +292,16 @@ function fred_ops_utils.set_turn_data(move_data)
     DBG.print_debug('analysis', '\n------------- Setting the turn_data table:')
 
     -- Get the needed cfgs
+    local raw_cfgs_main = FSC.get_raw_cfgs()
     local side_cfgs = FSC.get_side_cfgs()
-    local leader_distance_map, enemy_leader_distance_maps = FU.get_leader_distance_map(side_cfgs, move_data)
+
+    local leader_distance_map, enemy_leader_distance_maps = FU.get_leader_distance_map(raw_cfgs_main, side_cfgs, move_data)
 
     if false then
         --DBG.show_fgumap_with_message(leader_distance_map, 'my_leader_distance', 'my_leader_distance')
         --DBG.show_fgumap_with_message(leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
-        DBG.show_fgumap_with_message(leader_distance_map, 'distance', 'leader_distance_map')
-        --DBG.show_fgumap_with_message(enemy_leader_distance_maps['Orcish Grunt'], 'cost', 'cost Grunt')
+        --DBG.show_fgumap_with_message(leader_distance_map, 'distance', 'leader_distance_map')
+        DBG.show_fgumap_with_message(enemy_leader_distance_maps['west']['Wolf Rider'], 'cost', 'cost Grunt')
         --DBG.show_fgumap_with_message(enemy_leader_distance_maps['Wolf Rider'], 'cost', 'cost Wolf Rider')
     end
 
@@ -433,8 +435,6 @@ function fred_ops_utils.set_turn_data(move_data)
 
     behavior.orders.expansion = behavior.ratios.influence / behavior.ratios.assets
 
-
-    local raw_cfgs_main = FSC.get_raw_cfgs()
     behavior.fronts = { zones = {} }
 
     -- Calculate where the fronts are in the zones (in leader_distance values)
