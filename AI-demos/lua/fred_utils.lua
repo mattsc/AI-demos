@@ -169,7 +169,6 @@ function fred_utils.unit_value(unit_info)
 end
 
 function fred_utils.unit_base_power(unit_info)
-    -- Use sqrt() here so that just missing a few HP does not matter much
     local hp_mod = fred_utils.weight_s(unit_info.hitpoints / unit_info.max_hitpoints, 0.67)
 
     local power = unit_info.max_damage
