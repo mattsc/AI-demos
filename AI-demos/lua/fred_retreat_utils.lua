@@ -17,11 +17,12 @@ function retreat_functions.retreat_utilities(move_data, value_ratio)
     local retreat_utility = {}
     for id,loc in pairs(move_data.my_units) do
         local xp_mult = FU.weight_s(move_data.unit_infos[id].experience / move_data.unit_infos[id].max_experience, 0.75)
+        local level = move_data.unit_infos[id].level
 
-        local dhp_in = hp_inflection_base * (1 - value_ratio) * (1 - xp_mult)
+        local dhp_in = hp_inflection_base * (1 - value_ratio) * (1 - xp_mult) / level^2
         local hp_inflection_init = hp_inflection_base - dhp_in
 
-        local dhp_nr = (move_data.unit_infos[id].max_hitpoints - hp_inflection_init) * (1 - value_ratio) * (1 - xp_mult)
+        local dhp_nr = (move_data.unit_infos[id].max_hitpoints - hp_inflection_init) * (1 - value_ratio) * (1 - xp_mult) / level^2
         local hp_no_retreat = move_data.unit_infos[id].max_hitpoints - dhp_nr
 
         --print(id, move_data.unit_infos[id].hitpoints .. '/' .. move_data.unit_infos[id].max_hitpoints .. '   ' .. move_data.unit_infos[id].experience .. '/' .. move_data.unit_infos[id].max_experience .. '   ' .. hp_no_retreat)
