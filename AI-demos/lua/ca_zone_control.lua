@@ -1804,14 +1804,18 @@ local function get_hold_action(zone_cfg, fred_data)
                     end
                 end
 
-                local inv_cost = FU.get_fgumap_value(between_map, x, y, 'inv_cost') or 0
-                local d_dist = inv_cost - max_inv_cost
+                -- TODO: check if this is the right metric when between map does not exist
+                local inv_cost = 0
+                if between_map then
+                    inv_cost = FU.get_fgumap_value(between_map, x, y, 'inv_cost') or 0
+                end
+                local d_dist = inv_cost - (max_inv_cost or 0)
                 local protect_rating = protect_base_rating
                 if (protect_forward_rating_weight > 0) then
                     local vuln = protect_rating_data.vuln
                     protect_rating = protect_rating + vuln / max_vuln * protect_forward_rating_weight
                 else
-                    protect_rating = protect_rating + (d_dist - 2) /10 * protect_forward_rating_weight
+                    protect_rating = protect_rating + (d_dist - 2) / 10 * protect_forward_rating_weight
                 end
 
                 if protect_leader then
