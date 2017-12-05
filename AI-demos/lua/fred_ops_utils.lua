@@ -123,7 +123,7 @@ function fred_ops_utils.calc_power_stats(zones, assigned_units, assigned_enemies
     end
 
     local ratio = power_stats.total.my_power / power_stats.total.enemy_power
-    if (ratio > 1) then ratio = 1 end
+    if (ratio > 1) then ratio = math.sqrt(ratio) end
     power_stats.total.ratio = ratio
 
 
