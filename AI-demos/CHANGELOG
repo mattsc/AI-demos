@@ -1,3 +1,37 @@
+----- 0.14.9, xx Dec 2017  (increased aggressiveness vs lawful factions) -----
+
+This is the first in a series of releases aimed at improving Fred's operations
+layers assessment and the application of the operations orders in the tactics
+layer. Its emphasis is on increasing offensive forward movement during favorable
+times of day, in particular against lawful factions. This is an intermediate
+development release with incomplete (and incompletely tested) changes.
+
+- Fred (Freelands AI for Northerners, Side 1):
+  - Operations layer:
+    - Increase overall aggressiveness
+    - Increase time-of-day variation of aggressiveness
+    - Take power ratio at next turn into account for current aggressiveness
+    - Increase assigned units per zone when we have power to spare
+    - Determine where the fronts are in each zone
+    - Improved determination of forward direction, separated by zone
+  - Holding:
+    - Use current time-of-day dependent power ratio in all evaluations
+    - More aggressive pushing into vulnerable areas, and forward in general,
+      when power ratio is favorable
+    - Fully separate hold location evaluation between protect and non-protect
+      holds
+    - Allow non-protect holds as last resort even when trying to protect assets
+  - Retreating:
+    - Make units' desire to retreat dependent on current power ratio
+    - Do not retreat barely injured units
+    - Be more careful with high-XP and leveled units
+  - Functionality and misc. other changes:
+    - Move AI configuration parameters into dedicated file
+    - Fix bug in how fearless trait effect was assessed
+    - New functions 'smooth_cost_map' and 'fgumap_blur'
+    - Lots of internal changes and refactoring to implement these changes
+
+
 ----- 0.14.8, 8 Nov 2017  (port Fred to Wesnoth 1.13) -----
 
 - Fred (Freelands AI for Northerners, Side 1):
