@@ -175,7 +175,6 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
     ----- End retreat_rating() -----
 
 
-    -- Only retreat to safe locations
     local healing_locs = retreat_functions.get_healing_locations()
 
     local heal_maps_regen, heal_maps_no_regen = {}, {}
@@ -250,6 +249,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
             DBG.show_fgumap_with_message(rating_map, 'rating', 'Retreat rating map (no-regen unit)', move_data.unit_copies[id])
         end
     end
+    --DBG.dbms(tmp_dst_src)
 
     if next(tmp_dst_src) then
         local dst_src = {}
@@ -258,10 +258,33 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
         end
         --DBG.dbms(dst_src)
 
-        local combos = FU.get_unit_hex_combos(dst_src, true)
-        --DBG.dbms(combos)
+        local tmp_combos = FU.get_unit_hex_combos(dst_src, true)
+        --DBG.dbms(tmp_combos)
 
-        return combos
+        local combos, rest_heal_combos, rest_heal_amounts
+        -- It seems like there should be an easier way to do the following ...
+        for src,dst in pairs(tmp_combos) do
+            local src_x,src_y = math.floor(src / 1000), src % 1000
+            local dst_x,dst_y = math.floor(dst / 1000), dst % 1000
+            local id = move_data.my_unit_map[src_x][src_y].id
+            local heal_amount = heal_maps_no_regen[id][dst_x][dst_y].heal_amount
+            --print(src, src_x, src_y, id, heal_amount)
+
+            -- Just rest healign is not necessarily worth it
+            if (heal_amount > 2) then
+                if (not combos) then combos = {} end
+                combos[src] = dst
+            else
+                if (not rest_heal_combos) then
+                    rest_heal_combos = {}
+                    rest_heal_amounts = {}
+                end
+                rest_heal_combos[src] = dst
+                rest_heal_amounts[id] = heal_amount
+            end
+        end
+
+        if combos then return combos end
     end
 
 
@@ -340,7 +363,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
                     local _,cost = wesnoth.find_path(move_data.unit_copies[id], x, y)
                     local int_turns = math.ceil(cost / move_data.unit_infos[id].max_moves)
 
-                    -- Exclude 1-turn hexes as these might be occupied by a friendly unit ot something
+                    -- Exclude 1-turn hexes as these might be occupied by a friendly unit
                     if (int_turns > 1) and (int_turns <= 3) then
                         -- This is really the required utility to make it worth it, rather than the utility of the village
                         local distance_utility = 1 - 1 / int_turns
@@ -414,8 +437,11 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
                     -- The latter has a lower rating all else being equal (rating=0 so far),
                     -- as the former has other villages in close reach.
                     if (rating > 0) or (heal_amount > 0) then
-                        -- Main rating, as above, is the damage rating
-                        rating = rating + retreat_rating(id, x, y, heal_amount, true)
+                        -- Main rating, as above, is the damage rating, except when the heal_amount
+                        -- is only rest healing, in which case it becomes a minor contribution
+                        local heal_rating = retreat_rating(id, x, y, heal_amount, true)
+                        if (heal_amount <= 2) then heal_rating = heal_rating / 1000 end
+                        rating = rating + heal_rating
 
                         -- However, if there is a chance to die, we give a huge penalty,
                         -- larger than any healing benefit could be. In other words, we
