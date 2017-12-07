@@ -1898,7 +1898,7 @@ local function get_hold_action(zone_cfg, fred_data)
     cfg_best_combo_protect.protect_locs = protect_locs
 
 
-    local best_hold_combo, hold_dst_src, hold_ratings
+    local best_hold_combo, all_best_hold_combo, hold_dst_src, hold_ratings
     if (next(hold_rating_maps)) then
         --print('--> checking hold combos')
         hold_dst_src, hold_ratings = FHU.unit_rating_maps_to_dstsrc(hold_rating_maps, 'vuln_rating', move_data, cfg_combos)
@@ -1907,11 +1907,6 @@ local function get_hold_action(zone_cfg, fred_data)
         --print('#hold_combos', #hold_combos)
 
         best_hold_combo, all_best_hold_combo = FHU.find_best_combo(hold_combos, hold_ratings, 'vuln_rating', adjacent_village_map, between_map, fred_data, cfg_best_combo_hold)
-
-        -- If no combo that protects the location was found, use the best of the others
-        if (not best_hold_combo) then
-            best_hold_combo = all_best_hold_combo
-        end
     end
 
     local protect_loc_str
@@ -1933,7 +1928,7 @@ local function get_hold_action(zone_cfg, fred_data)
     --DBG.dbms(best_hold_combo)
     --DBG.dbms(best_protect_combo)
 
-    if (not best_hold_combo) and (not best_protect_combo) then
+    if (not best_hold_combo) and (not all_best_hold_combo) and (not best_protect_combo) then
         return
     end
 
@@ -1973,6 +1968,11 @@ local function get_hold_action(zone_cfg, fred_data)
             best_combo, ratings = best_protect_combo, protect_ratings
             action_str = 'hold (protect ' .. (protect_loc_str or 'x,x') .. ')'
         end
+    end
+
+    -- Only as a last resort do we use all_best_hold_combo
+    if (not best_combo) then
+        best_combo, ratings = all_best_hold_combo, hold_ratings
     end
     --DBG.dbms(best_combo)
 
