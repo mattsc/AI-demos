@@ -132,6 +132,7 @@ end
 function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_protect_maps, assigned_units, village_actions, fred_data)
     -- assigned_units and village_actions are modified directly in place
 
+    local value_ratio = fred_data.turn_data.behavior.orders.value_ratio
     local leader_derating = FCFG.get_cfg_parm('leader_derating')
 
     local move_data = fred_data.move_data
@@ -185,7 +186,10 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
                     -- Except for the leader, for which we are much more conservative in both cases.
                     local applicable_damage = 0
                     if (not FU.get_fgumap_value(villages_to_protect_maps, x, y, 'protect')) then
-                        applicable_damage = (max_damage + av_damage) / 2
+                        local xp_mult = FU.weight_s(move_data.unit_infos[id].experience / move_data.unit_infos[id].max_experience, 0.5)
+                        hp_max = (max_damage + av_damage) / 2
+                        dh = 1.5 * (hp_max - av_damage / 2) * (1 - value_ratio) * (1 - xp_mult)
+                        applicable_damage = max_damage - dh
                     end
                     if move_data.unit_infos[id].canrecruit then
                         applicable_damage = max_damage * 2
