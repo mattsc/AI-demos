@@ -8,7 +8,7 @@ local cfg = {
     ----- Parameters in this section are meant to be adjustable for faction, scenario, ... -----
 
     aggression = 1.25,                  -- To first order, base ratio of acceptable damage: own / enemy
-    next_turn_influence_weight = 0.25,  -- Fraction of ToD influence change of next turn to take into account
+    next_turn_influence_weight = 1,  -- Fraction of ToD influence change of next turn to take into account
 
 
     ----- Do not change values below unless you know exactly what you are doing -----
