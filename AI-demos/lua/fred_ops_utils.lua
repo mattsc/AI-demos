@@ -387,10 +387,11 @@ function fred_ops_utils.set_turn_data(move_data)
     --print(influence_mult_next_turn, weight, factor)
 
     local base_value_ratio = 1 / FCFG.get_cfg_parm('aggression')
+    local max_value_ratio = 1 / FCFG.get_cfg_parm('min_aggression')
     local ratio = factor * enemy_total_influence / my_total_influence
-    local value_ratio = base_value_ratio
-    if (ratio < 1) then
-        value_ratio = ratio * base_value_ratio
+    local value_ratio = ratio * base_value_ratio
+    if (value_ratio > max_value_ratio) then
+        value_ratio = max_value_ratio
     end
 
     local behavior = {
@@ -402,6 +403,7 @@ function fred_ops_utils.set_turn_data(move_data)
             influence = my_total_influence / enemy_total_influence,
             influence_mult_next_turn = influence_mult_next_turn,
             base_value_ratio = base_value_ratio,
+            max_value_ratio = max_value_ratio,
             next_turn_influence_weight = weight
         },
         orders = {
