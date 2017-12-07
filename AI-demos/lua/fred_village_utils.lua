@@ -132,6 +132,8 @@ end
 function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_protect_maps, assigned_units, village_actions, fred_data)
     -- assigned_units and village_actions are modified directly in place
 
+    local leader_derating = FCFG.get_cfg_parm('leader_derating')
+
     local move_data = fred_data.move_data
     -- Villages that can be reached are dealt with separately from others
     -- Only go over those found above
@@ -163,6 +165,9 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
                         for _,enemy_id in ipairs(village.threats) do
                             local att = fred_data.turn_data.unit_attacks[id][enemy_id]
                             local damage_taken = att.damage_counter.base_taken
+                            if move_data.unit_infos[enemy_id].canrecruit then
+                                damage_taken = damage_taken * leader_derating
+                            end
 
                             -- TODO: this does not take chance_to_hit specials into account
                             local my_hc = 1 - FGUI.get_unit_defense(move_data.unit_copies[id], x, y, move_data.defense_maps)
