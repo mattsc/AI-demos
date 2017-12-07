@@ -187,8 +187,9 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
                     local applicable_damage = 0
                     if (not FU.get_fgumap_value(villages_to_protect_maps, x, y, 'protect')) then
                         local xp_mult = FU.weight_s(move_data.unit_infos[id].experience / move_data.unit_infos[id].max_experience, 0.5)
+                        local level = move_data.unit_infos[id].level
                         hp_max = (max_damage + av_damage) / 2
-                        dh = 1.5 * (hp_max - av_damage / 2) * (1 - value_ratio) * (1 - xp_mult)
+                        dh = 1.5 * (hp_max - av_damage / 2) * (1 - value_ratio) * (1 - xp_mult) / level^2
                         applicable_damage = max_damage - dh
                     end
                     if move_data.unit_infos[id].canrecruit then
