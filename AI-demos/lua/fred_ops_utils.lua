@@ -472,7 +472,8 @@ function fred_ops_utils.set_turn_data(move_data)
                 end
             end
             mean_x, mean_y = math.abs(mean_x / count), math.abs(mean_y / count)
-            DBG.show_fgumap_with_message(front_map, 'distance', 'Front leader_distance: ' .. ld_front, { x = mean_x, y = mean_y, no_halo = true })
+            local str = string.format('Front in zone %s:  %.3f  (forward distance)', zone_id, ld_front)
+            DBG.show_fgumap_with_message(front_map, 'distance', str, { x = mean_x, y = mean_y, no_halo = true })
         end
     end
 
