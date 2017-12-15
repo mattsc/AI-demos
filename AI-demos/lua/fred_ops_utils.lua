@@ -459,7 +459,7 @@ function fred_ops_utils.set_turn_data(move_data)
         behavior.fronts.zones[zone_id] = ld_max
     end
 
-    if false then
+    if wesnoth.get_variable("fred_show_behavior")then
         for zone_id,zone in pairs(zones) do
             local ld_front = behavior.fronts.zones[zone_id]
             local front_map = {}
