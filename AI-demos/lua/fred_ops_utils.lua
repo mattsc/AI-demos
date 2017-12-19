@@ -295,11 +295,11 @@ function fred_ops_utils.set_turn_data(move_data)
 
     local leader_distance_map, enemy_leader_distance_maps = FU.get_leader_distance_map(raw_cfgs_main, side_cfgs, move_data)
 
-    if false then
+    if DBG.show_debug('analysis_leader_distance_map') then
         --DBG.show_fgumap_with_message(leader_distance_map, 'my_leader_distance', 'my_leader_distance')
         --DBG.show_fgumap_with_message(leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
-        --DBG.show_fgumap_with_message(leader_distance_map, 'distance', 'leader_distance_map')
-        DBG.show_fgumap_with_message(enemy_leader_distance_maps['west']['Wolf Rider'], 'cost', 'cost Grunt')
+        DBG.show_fgumap_with_message(leader_distance_map, 'distance', 'leader_distance_map')
+        --DBG.show_fgumap_with_message(enemy_leader_distance_maps['west']['Wolf Rider'], 'cost', 'cost Grunt')
         --DBG.show_fgumap_with_message(enemy_leader_distance_maps['Wolf Rider'], 'cost', 'cost Wolf Rider')
     end
 
@@ -341,8 +341,8 @@ function fred_ops_utils.set_turn_data(move_data)
         data.vulnerability = data.tension - math.abs(data.influence)
     end
 
-    if false then
-        --DBG.show_fgumap_with_message(influence_maps, 'my_influence', 'My integer influence map')
+    if DBG.show_debug('analysis_influence_maps') then
+        DBG.show_fgumap_with_message(influence_maps, 'my_influence', 'My integer influence map')
         --DBG.show_fgumap_with_message(influence_maps, 'my_number', 'My number')
         --DBG.show_fgumap_with_message(influence_maps, 'enemy_influence', 'Enemy integer influence map')
         --DBG.show_fgumap_with_message(influence_maps, 'enemy_number', 'Enemy number')

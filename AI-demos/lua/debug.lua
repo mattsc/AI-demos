@@ -10,6 +10,9 @@ local debug_cfg = {
     exec = true,
 
     analysis = false,
+    analysis_leader_distance_map = false,
+    analysis_influence_maps = true,
+
 
     attack_combos = false,
 
@@ -22,7 +25,7 @@ local debug_cfg = {
     hold_best_units_hexes = false,
     hold_combo_formation_rating = false,
     hold_combo_counter_rating = false,
-    hold_best_combo = true,
+    hold_best_combo = false,
 
     advance_map = false,
     advance_unit_rating = false,
