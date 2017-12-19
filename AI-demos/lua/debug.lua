@@ -2,19 +2,23 @@ local H = wesnoth.require "lua/helper.lua"
 local W = H.set_wml_action_metatable {}
 local items = wesnoth.require "lua/wml/items.lua"
 
+-- Note: Assigning this table is slow compared to accessing values in it. It is
+-- thus done outside the functions below, so that it is not done over and over
+-- for each function call.
+local debug_cfg = {
+    eval = false,
+    exec = true,
+    analysis = false,
+    attack = false,
+    hold = false,
+    advance = false
+}
+
+
 local debug_utils = {}
 
 function debug_utils.show_debug(debug_type)
-    local show_debug = {
-        eval = false,
-        exec = true,
-        analysis = false,
-        attack = false,
-        hold = false,
-        advance = false
-    }
-
-    return show_debug[debug_type]
+    return debug_cfg[debug_type]
 end
 
 function debug_utils.print_ts(...)
