@@ -596,7 +596,7 @@ local function get_attack_action(zone_cfg, fred_data)
 
             local old_locs, old_HP_attackers = {}, {}
             for i_a,attacker_info in ipairs(combo.attackers) do
-                if DBG.show_debug('attack') then
+                if DBG.show_debug('attack_combos') then
                     local id, x, y = attacker_info.id, combo.dsts[i_a][1], combo.dsts[i_a][2]
                     W.label { x = x, y = y, text = attacker_info.id }
                 end
@@ -1078,7 +1078,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 end
             end
 
-            if DBG.show_debug('attack') then
+            if DBG.show_debug('attack_combos') then
                 wesnoth.scroll_to_tile(target_loc[1], target_loc[2])
                 W.message { speaker = 'narrator', message = 'Attack combo ' .. count .. ': ' .. total_rating .. ' / ' .. (max_total_rating or 0) .. '    (pre-rating: ' .. combo.pre_rating .. ')' }
                 for i_a,attacker_info in ipairs(combo.attackers) do
@@ -1180,7 +1180,7 @@ local function get_hold_action(zone_cfg, fred_data)
             FU.set_fgumap_value(zone_map, loc[1], loc[2], 'flag', true)
         end
     end
-    if false then
+    if DBG.show_debug('hold_zone_map') then
         DBG.show_fgumap_with_message(zone_map, 'flag', 'Zone map')
     end
 
@@ -1306,7 +1306,7 @@ local function get_hold_action(zone_cfg, fred_data)
     end
 
 
-    if false then
+    if DBG.show_debug('hold_influence_map') then
         --DBG.show_fgumap_with_message(holders_influence, 'my_influence', 'Holders influence')
         --DBG.show_fgumap_with_message(holders_influence, 'enemy_influence', 'Enemy influence')
         DBG.show_fgumap_with_message(holders_influence, 'influence', 'Influence')
@@ -1371,7 +1371,7 @@ local function get_hold_action(zone_cfg, fred_data)
         end
         between_map = FHU.get_between_map(locs, leader, assigned_enemies, move_data)
 
-        if false then
+        if DBG.show_debug('hold_between_map') then
             DBG.show_fgumap_with_message(between_map, 'distance', 'Between map: distance')
             DBG.show_fgumap_with_message(between_map, 'blurred_distance', 'Between map: blurred distance')
             DBG.show_fgumap_with_message(between_map, 'perp_distance', 'Between map: perp_distance')
@@ -1658,7 +1658,7 @@ local function get_hold_action(zone_cfg, fred_data)
 
     if (not next(hold_here_maps)) and (not next(protect_here_maps)) then return end
 
-    if false then
+    if DBG.show_debug('hold_here_map') then
         for id,hold_here_map in pairs(hold_here_maps) do
             DBG.show_fgumap_with_message(hold_here_map, 'hold_here', 'hold_here', move_data.unit_copies[id])
         end
@@ -1727,7 +1727,7 @@ local function get_hold_action(zone_cfg, fred_data)
     -- of advancement of the enemies
     FHU.convolve_rating_maps(hold_rating_maps, 'vuln_rating', between_map, fred_data.turn_data)
 
-    if false then
+    if DBG.show_debug('hold_rating_maps') then
         for id,hold_rating_map in pairs(hold_rating_maps) do
             DBG.show_fgumap_with_message(hold_rating_map, 'base_rating', 'base_rating', move_data.unit_copies[id])
             DBG.show_fgumap_with_message(hold_rating_map, 'vuln_rating_org', 'vuln_rating_org', move_data.unit_copies[id])
@@ -1841,7 +1841,7 @@ local function get_hold_action(zone_cfg, fred_data)
     -- of advancement of the enemies
     FHU.convolve_rating_maps(protect_rating_maps, 'protect_rating', between_map, fred_data.turn_data)
 
-    if false then
+    if DBG.show_debug('hold_protect_rating_maps') then
         for id,protect_rating_map in pairs(protect_rating_maps) do
             DBG.show_fgumap_with_message(protect_rating_map, 'protect_base_rating', 'protect_base_rating', move_data.unit_copies[id])
             DBG.show_fgumap_with_message(protect_rating_map, 'protect_rating_org', 'protect_rating_org', move_data.unit_copies[id])
@@ -1976,7 +1976,7 @@ local function get_hold_action(zone_cfg, fred_data)
     end
     --DBG.dbms(best_combo)
 
-    if false then
+    if DBG.show_debug('hold_best_combo') then
         local x, y
         for src,dst in pairs(best_combo) do
             x, y =  math.floor(dst / 1000), dst % 1000
@@ -2061,7 +2061,7 @@ local function get_advance_action(zone_cfg, fred_data)
         end
         FU.set_fgumap_value(zone_map, loc[1], loc[2], 'flag', true)
     end
-    if false then
+    if DBG.show_debug('advance_map') then
         DBG.show_fgumap_with_message(advance_map, 'flag', 'Advance map: ' .. zone_cfg.zone_id)
     end
 
@@ -2224,7 +2224,7 @@ local function get_advance_action(zone_cfg, fred_data)
     end
     --print('best unit: ' .. best_id, best_hex[1], best_hex[2])
 
-    if false then
+    if DBG.show_debug('advance_unit_rating') then
         for id,unit_rating_map in pairs(unit_rating_maps) do
             DBG.show_fgumap_with_message(unit_rating_map, 'rating', 'Unit rating', move_data.unit_copies[id])
         end

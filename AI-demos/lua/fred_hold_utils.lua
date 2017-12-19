@@ -321,7 +321,7 @@ function fred_hold_utils.unit_rating_maps_to_dstsrc(unit_rating_maps, key, move_
 
 
     -- Show the units and hexes to be used
-    if false then
+    if DBG.show_debug('hold_best_units_hexes') then
         for _,unit in ipairs(use_units) do
             local tmp_map = {}
             local count = math.min(max_hexes, #sorted_ratings[unit.id])
@@ -721,7 +721,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             is_protected = is_protected
         })
 
-        if false then
+        if DBG.show_debug('hold_combo_formation_rating') then
             if (not tmp_all_max_rating) or (formation_rating > tmp_all_max_rating) then
                 tmp_all_max_rating = formation_rating
             end
@@ -889,7 +889,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             end
         end
 
-        if false then
+        if DBG.show_debug('hold_combo_counter_rating') then
             local protected_str = 'no'
             if combo.is_protected then protected_str = 'yes' end
             if protect_loc_str then

@@ -8,10 +8,24 @@ local items = wesnoth.require "lua/wml/items.lua"
 local debug_cfg = {
     eval = false,
     exec = true,
+
     analysis = false,
-    attack = false,
-    hold = false,
-    advance = false,
+
+    attack_combos = false,
+
+    hold_zone_map = false,
+    hold_influence_map = false,
+    hold_between_map = false,
+    hold_here_map = false,
+    hold_rating_maps = false,
+    hold_protect_rating_maps = false,
+    hold_best_units_hexes = false,
+    hold_combo_formation_rating = false,
+    hold_combo_counter_rating = false,
+    hold_best_combo = true,
+
+    advance_map = false,
+    advance_unit_rating = false,
 
     reset_turn = false
 }
