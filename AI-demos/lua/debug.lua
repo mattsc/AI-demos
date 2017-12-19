@@ -11,7 +11,9 @@ local debug_cfg = {
     analysis = false,
     attack = false,
     hold = false,
-    advance = false
+    advance = false,
+
+    reset_turn = false
 }
 
 

@@ -2453,10 +2453,10 @@ function ca_zone_control:evaluation(arg1, arg2, arg3, use_1_12_syntax)
 
     DBG.print_debug_time('eval', data.turn_start_time, '     - Evaluating zone_control CA:')
 
-
--- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
---data.turn_data = nil
---DBG.dbms(data.turn_data)
+    -- This forces the turn data to be reset each call (use with care!)
+    if DBG.show_debug('reset_turn') then
+        data.turn_data = nil
+    end
 
 
     if (not data.turn_data)
