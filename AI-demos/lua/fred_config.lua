@@ -3,7 +3,6 @@
 -- Note: Assigning this table is slow compared to accessing values in it. It is
 -- thus done outside the functions below, so that it is not done over and over
 -- for each function call.
-
 local cfg = {
     ----- Parameters in this section are meant to be adjustable for faction, scenario, ... -----
 
