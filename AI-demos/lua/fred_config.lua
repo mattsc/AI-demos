@@ -18,6 +18,9 @@ local cfg = {
     leader_weight = 1.5,
     leader_derating = 0.5,
 
+    influence_falloff_floor = 0.5,
+    influence_falloff_exp = 2,
+
     -- Village grabbing parameters
     villages_per_unit = 2,
 

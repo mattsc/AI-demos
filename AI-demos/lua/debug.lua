@@ -11,7 +11,7 @@ local debug_cfg = {
 
     analysis = false,
     analysis_leader_distance_map = false,
-    analysis_influence_maps = true,
+    analysis_influence_maps = false,
 
 
     attack_combos = false,

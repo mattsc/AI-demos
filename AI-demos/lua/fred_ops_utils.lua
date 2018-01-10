@@ -305,6 +305,8 @@ function fred_ops_utils.set_turn_data(move_data)
 
 
     local leader_derating = FCFG.get_cfg_parm('leader_derating')
+    local influence_falloff_floor = FCFG.get_cfg_parm('influence_falloff_floor')
+    local influence_falloff_exp = FCFG.get_cfg_parm('influence_falloff_exp')
 
     local influence_maps = {}
     for x,y,data in FU.fgumap_iter(move_data.my_attack_map[1]) do
@@ -314,7 +316,14 @@ function fred_ops_utils.set_turn_data(move_data)
             if move_data.unit_infos[id].canrecruit then
                 unit_influence = unit_influence * leader_derating
             end
-            my_influence = my_influence + unit_influence
+
+            local moves_left = FU.get_fgumap_value(move_data.reach_maps[id], x, y, 'moves_left') or -1
+            if (moves_left < move_data.unit_infos[id].max_moves) then
+                moves_left = moves_left + 1
+            end
+            local inf_falloff = 1 - (1 - influence_falloff_floor) * (1 - moves_left / move_data.unit_infos[id].max_moves) ^ influence_falloff_exp
+
+            my_influence = my_influence + unit_influence * inf_falloff
             my_number = my_number + 1
         end
         FU.set_fgumap_value(influence_maps, x, y, 'my_influence', my_influence)
@@ -328,7 +337,14 @@ function fred_ops_utils.set_turn_data(move_data)
             if move_data.unit_infos[enemy_id].canrecruit then
                 unit_influence = unit_influence * leader_derating
             end
-            enemy_influence = enemy_influence + unit_influence
+
+            local moves_left = FU.get_fgumap_value(move_data.reach_maps[enemy_id], x, y, 'moves_left') or -1
+            if (moves_left < move_data.unit_infos[enemy_id].max_moves) then
+                moves_left = moves_left + 1
+            end
+            local inf_falloff = 1 - (1 - influence_falloff_floor) * (1 - moves_left / move_data.unit_infos[enemy_id].max_moves) ^ influence_falloff_exp
+
+            enemy_influence = enemy_influence + unit_influence * inf_falloff
             enemy_number = enemy_number + 1
         end
         FU.set_fgumap_value(influence_maps, x, y, 'enemy_influence', enemy_influence)
@@ -342,9 +358,9 @@ function fred_ops_utils.set_turn_data(move_data)
     end
 
     if DBG.show_debug('analysis_influence_maps') then
-        DBG.show_fgumap_with_message(influence_maps, 'my_influence', 'My integer influence map')
+        DBG.show_fgumap_with_message(influence_maps, 'my_influence', 'My influence map')
         --DBG.show_fgumap_with_message(influence_maps, 'my_number', 'My number')
-        --DBG.show_fgumap_with_message(influence_maps, 'enemy_influence', 'Enemy integer influence map')
+        --DBG.show_fgumap_with_message(influence_maps, 'enemy_influence', 'Enemy influence map')
         --DBG.show_fgumap_with_message(influence_maps, 'enemy_number', 'Enemy number')
         DBG.show_fgumap_with_message(influence_maps, 'influence', 'Influence map')
         DBG.show_fgumap_with_message(influence_maps, 'tension', 'Tension map')
