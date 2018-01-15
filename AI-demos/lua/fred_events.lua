@@ -85,7 +85,7 @@ function fred_events.show_behavior()
         wesnoth.set_variable('fred_show_behavior', false)
     end
 
-    wesnoth.wml_actions.message({
+    wesnoth.wml_actions.message(wesnoth.tovconfig {
         id='Fred',
         caption='Fred (Freelands AI v$AI_Demos_version)',
         message='Show behavior is now set to: $fred_show_behavior'
