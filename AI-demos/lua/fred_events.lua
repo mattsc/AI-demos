@@ -76,4 +76,20 @@ function fred_events.fred_setup()
     end
 end
 
+function fred_events.show_behavior()
+    local fred_show_behavior = wesnoth.get_variable('fred_show_behavior')
+
+    if (fred_show_behavior ~= true) then
+        wesnoth.set_variable('fred_show_behavior', true)
+    else
+        wesnoth.set_variable('fred_show_behavior', false)
+    end
+
+    wesnoth.wml_actions.message({
+        id='Fred',
+        caption='Fred (Freelands AI v$AI_Demos_version)',
+        message='Show behavior is now set to: $fred_show_behavior'
+    })
+end
+
 return fred_events
