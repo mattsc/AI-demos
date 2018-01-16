@@ -88,6 +88,11 @@ function fred_events.show_behavior()
     print(str)
 end
 
+function fred_events.show_last_behavior()
+    local fred_behavior_str = wesnoth.get_variable('fred_behavior_str') or 'No behavior instructions yet'
+
+    wesnoth.message('Fred', fred_behavior_str)
+    print(fred_behavior_str)
 end
 
 return fred_events
