@@ -77,19 +77,17 @@ function fred_events.fred_setup()
 end
 
 function fred_events.show_behavior()
-    local fred_show_behavior = wesnoth.get_variable('fred_show_behavior')
+    local options = { 'off', 'instructions only', 'instructions and fronts'}
 
-    if (fred_show_behavior ~= true) then
-        wesnoth.set_variable('fred_show_behavior', true)
-    else
-        wesnoth.set_variable('fred_show_behavior', false)
-    end
+    local fred_show_behavior = wesnoth.get_variable('fred_show_behavior') or 1
+    fred_show_behavior = (fred_show_behavior % #options) + 1
+    wesnoth.set_variable('fred_show_behavior', fred_show_behavior)
 
-    wesnoth.wml_actions.message(wesnoth.tovconfig {
-        id='Fred',
-        caption='Fred (Freelands AI v$AI_Demos_version)',
-        message='Show behavior is now set to: $fred_show_behavior'
-    })
+    local str = 'Show behavior now set to ' .. fred_show_behavior .. ': ' .. options[fred_show_behavior]
+    wesnoth.message('Fred', str)
+    print(str)
+end
+
 end
 
 return fred_events

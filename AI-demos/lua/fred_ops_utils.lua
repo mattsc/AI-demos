@@ -475,25 +475,31 @@ function fred_ops_utils.set_turn_data(move_data)
         behavior.fronts.zones[zone_id] = ld_max
     end
 
-    if wesnoth.get_variable("fred_show_behavior")then
-        for zone_id,zone in pairs(zones) do
-            local ld_front = behavior.fronts.zones[zone_id]
-            local front_map = {}
-            local mean_x, mean_y, count = 0, 0, 0
-            for _,loc in ipairs(zone) do
-                local ld = FU.get_fgumap_value(leader_distance_map, loc[1], loc[2], 'distance')
-                if (math.abs(ld - ld_front) <= 0.5) then
-                    FU.set_fgumap_value(front_map, loc[1], loc[2], 'distance', ld)
-                    mean_x, mean_y, count = mean_x + loc[1], mean_y + loc[2], count + 1
     local fred_behavior_str = 'Behavior instructions:'
     fred_behavior_str = fred_behavior_str .. '\nvalue_ratio : ' .. behavior.orders.value_ratio
     wesnoth.set_variable('fred_behavior_str', fred_behavior_str)
 
+    local fred_show_behavior = wesnoth.get_variable("fred_show_behavior") or 1
+    if (fred_show_behavior > 1) then
+        wesnoth.message('Fred', fred_behavior_str)
+        print(fred_behavior_str)
+
+        if (fred_show_behavior == 3) then
+            for zone_id,zone in pairs(zones) do
+                local ld_front = behavior.fronts.zones[zone_id]
+                local front_map = {}
+                local mean_x, mean_y, count = 0, 0, 0
+                for _,loc in ipairs(zone) do
+                    local ld = FU.get_fgumap_value(leader_distance_map, loc[1], loc[2], 'distance')
+                    if (math.abs(ld - ld_front) <= 0.5) then
+                        FU.set_fgumap_value(front_map, loc[1], loc[2], 'distance', ld)
+                        mean_x, mean_y, count = mean_x + loc[1], mean_y + loc[2], count + 1
+                    end
                 end
+                mean_x, mean_y = math.abs(mean_x / count), math.abs(mean_y / count)
+                local str = string.format('Front in zone %s:  %.3f  (forward distance)', zone_id, ld_front)
+                DBG.show_fgumap_with_message(front_map, 'distance', str, { x = mean_x, y = mean_y, no_halo = true })
             end
-            mean_x, mean_y = math.abs(mean_x / count), math.abs(mean_y / count)
-            local str = string.format('Front in zone %s:  %.3f  (forward distance)', zone_id, ld_front)
-            DBG.show_fgumap_with_message(front_map, 'distance', str, { x = mean_x, y = mean_y, no_halo = true })
         end
     end
 
