@@ -485,6 +485,10 @@ function fred_ops_utils.set_turn_data(move_data)
                 if (math.abs(ld - ld_front) <= 0.5) then
                     FU.set_fgumap_value(front_map, loc[1], loc[2], 'distance', ld)
                     mean_x, mean_y, count = mean_x + loc[1], mean_y + loc[2], count + 1
+    local fred_behavior_str = 'Behavior instructions:'
+    fred_behavior_str = fred_behavior_str .. '\nvalue_ratio : ' .. behavior.orders.value_ratio
+    wesnoth.set_variable('fred_behavior_str', fred_behavior_str)
+
                 end
             end
             mean_x, mean_y = math.abs(mean_x / count), math.abs(mean_y / count)
