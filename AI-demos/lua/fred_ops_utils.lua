@@ -312,7 +312,7 @@ function fred_ops_utils.set_turn_data(move_data)
     for x,y,data in FU.fgumap_iter(move_data.my_attack_map[1]) do
         local my_influence, my_number = 0, 0
         for _,id in pairs(data.ids) do
-            local unit_influence = FU.unit_terrain_power(move_data.unit_infos[id], x, y, move_data)
+            local unit_influence = FU.unit_current_power(move_data.unit_infos[id], x, y, move_data)
             if move_data.unit_infos[id].canrecruit then
                 unit_influence = unit_influence * leader_derating
             end
@@ -333,7 +333,7 @@ function fred_ops_utils.set_turn_data(move_data)
     for x,y,data in FU.fgumap_iter(move_data.enemy_attack_map[1]) do
         local enemy_influence, enemy_number = 0, 0
         for _,enemy_id in pairs(data.ids) do
-            local unit_influence = FU.unit_terrain_power(move_data.unit_infos[enemy_id], x, y, move_data)
+            local unit_influence = FU.unit_current_power(move_data.unit_infos[enemy_id], x, y, move_data)
             if move_data.unit_infos[enemy_id].canrecruit then
                 unit_influence = unit_influence * leader_derating
             end
