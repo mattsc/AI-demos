@@ -368,9 +368,10 @@ function fred_ops_utils.set_turn_data(move_data)
     end
 
 
+    local my_base_power, enemy_base_power = 0, 0
     local my_total_influence, enemy_total_influence = 0, 0
-    local my_ratio_next_turn, my_weight = 0, 0
-    local enemy_ratio_next_turn, enemy_weight = 0, 0
+    local my_influence_next_turn, my_weight = 0, 0
+    local enemy_influence_next_turn, enemy_weight = 0, 0
     for id,_ in pairs(move_data.units) do
         local unit_influence = FU.unit_current_power(move_data.unit_infos[id])
         if move_data.unit_infos[id].canrecruit then
@@ -385,17 +386,21 @@ function fred_ops_utils.set_turn_data(move_data)
 
         if (move_data.unit_infos[id].side == wesnoth.current.side) then
             my_total_influence = my_total_influence + unit_influence
-            my_ratio_next_turn = my_ratio_next_turn + unit_influence * tod_mod_ratio
+            my_influence_next_turn = my_influence_next_turn + unit_influence * tod_mod_ratio
             my_weight = my_weight + unit_influence
+            my_base_power = my_base_power + FU.unit_base_power(move_data.unit_infos[id]) * leader_derating
         else
             enemy_total_influence = enemy_total_influence + unit_influence
-            enemy_ratio_next_turn = enemy_ratio_next_turn + unit_influence * tod_mod_ratio
+            enemy_influence_next_turn = enemy_influence_next_turn + unit_influence * tod_mod_ratio
             enemy_weight = enemy_weight + unit_influence
+            enemy_base_power = enemy_base_power + FU.unit_base_power(move_data.unit_infos[id]) * leader_derating
         end
     end
 
-    local influence_mult_next_turn = my_ratio_next_turn / my_weight / (enemy_ratio_next_turn / enemy_weight)
-    --print(my_ratio_next_turn / my_weight, enemy_ratio_next_turn / enemy_weight, influence_mult_next_turn)
+    local neutral_power_ratio = my_base_power / enemy_base_power
+
+    local influence_mult_next_turn = my_influence_next_turn / my_weight / (enemy_influence_next_turn / enemy_weight)
+    --print(my_influence_next_turn / my_weight, enemy_influence_next_turn / enemy_weight, influence_mult_next_turn)
 
     -- Take fraction of influence ratio change on next turn into account for calculating value_ratio
     local weight = FCFG.get_cfg_parm('next_turn_influence_weight')
@@ -417,13 +422,15 @@ function fred_ops_utils.set_turn_data(move_data)
         },
         ratios = {
             influence = my_total_influence / enemy_total_influence,
+            influence_next_turn = my_influence_next_turn / enemy_influence_next_turn,
             influence_mult_next_turn = influence_mult_next_turn,
             base_value_ratio = base_value_ratio,
             max_value_ratio = max_value_ratio,
             next_turn_influence_weight = weight
         },
         orders = {
-            value_ratio = value_ratio
+            value_ratio = value_ratio,
+            neutral_power_ratio = neutral_power_ratio
         }
     }
 
