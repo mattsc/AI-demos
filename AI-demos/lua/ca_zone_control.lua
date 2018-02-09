@@ -1112,6 +1112,10 @@ local function get_hold_action(zone_cfg, fred_data)
     local factor_forward = 1 - factor_counter
     --print('factor_counter, factor_forward', factor_counter, factor_forward)
 
+    local push_factor = fred_data.turn_data.behavior.fronts.zones[zone_cfg.zone_id].push_utility
+    push_factor = push_factor / value_ratio
+    --print('push_factor', push_factor)
+
     local vuln_weight = FCFG.get_cfg_parm('vuln_weight')
     local vuln_rating_weight = vuln_weight * (1 / value_ratio - 1)
     if (vuln_rating_weight < 0) then
@@ -1473,11 +1477,16 @@ local function get_hold_action(zone_cfg, fred_data)
                         my_hc = my_hc - enemy_defense / 100
 
                         local att = fred_data.turn_data.unit_attacks[id][enemy_id]
-                        local damage_taken = factor_counter * (my_hc * att.damage_counter.base_taken + att.damage_counter.extra_taken)
+                        local counter_max_taken = att.damage_counter.base_taken + att.damage_counter.extra_taken
+                        local counter_actual_taken = my_hc * att.damage_counter.base_taken + att.damage_counter.extra_taken
+                        local damage_taken = factor_counter * counter_actual_taken
                         damage_taken = damage_taken + factor_forward * (my_hc * att.damage_forward.base_taken + att.damage_forward.extra_taken)
 
-                        local damage_done = factor_counter * (enemy_adj_hc * att.damage_counter.base_done + att.damage_counter.extra_taken)
-                        damage_done = damage_done + factor_forward * (enemy_adj_hc * att.damage_forward.base_done + att.damage_forward.extra_taken)
+                        local counter_max_done = att.damage_counter.base_done + att.damage_counter.extra_done
+                        local counter_actual_done = enemy_adj_hc * att.damage_counter.base_done + att.damage_counter.extra_done
+                        local damage_done = factor_counter * counter_actual_done
+                        damage_done = damage_done + factor_forward * (enemy_adj_hc * att.damage_forward.base_done + att.damage_forward.extra_done)
+
 
                         -- Note: this is small (negative) for the strongest enemy
                         -- -> need to find minima the strongest enemies for this hex
@@ -1489,6 +1498,10 @@ local function get_hold_action(zone_cfg, fred_data)
 
                         local counter_rating = damage_done - damage_taken * value_ratio
                         table.insert(tmp_enemies, {
+                            counter_max_taken = counter_max_taken,
+                            counter_max_done = counter_max_done,
+                            counter_actual_taken = counter_actual_taken,
+                            counter_actual_done = counter_actual_done,
                             damage_taken = damage_taken,
                             damage_done = damage_done,
                             counter_rating = counter_rating,
@@ -1509,10 +1522,12 @@ local function get_hold_action(zone_cfg, fred_data)
 
             if (#tmp_enemies > 0) then
                 local damage_taken, damage_done = 0, 0
+                local counter_actual_taken, counter_max_taken, counter_actual_damage = 0, 0, 0
+                local enemy_value_loss = 0
                 local cum_weight, n_enemies = 0, 0
                 for _,enemy in pairs(tmp_enemies) do
                     local enemy_weight = enemy_weights[id][enemy.enemy_id].weight
-                    --print('    ' .. enemy.enemy_id, enemy_weight, x .. ',' .. y)
+                    --print('    ' .. enemy.enemy_id, enemy_weight, x .. ',' .. y, enemy.damage_taken, enemy.damage_done, enemy.counter_actual_taken, enemy.counter_actual_done, enemy.counter_max_taken)
                     cum_weight = cum_weight + enemy_weight
                     n_enemies = n_enemies + 1
 
@@ -1523,12 +1538,26 @@ local function get_hold_action(zone_cfg, fred_data)
                     frac_done = FU.weight_s(frac_done, 0.5)
                     damage_done = damage_done + enemy_weight * frac_done * move_data.unit_infos[enemy.enemy_id].hitpoints
 
+                    counter_actual_taken = counter_actual_taken + enemy.counter_actual_taken
+                    counter_actual_damage = counter_actual_damage + enemy.counter_actual_taken - enemy.counter_actual_done
+                    counter_max_taken = counter_max_taken + enemy.counter_max_taken
+
+                    -- Enemy value loss is calculated per enemy whereas for the own unit, it
+                    -- needs to be done on the sum (because of the non-linear weighting)
+                    enemy_value_loss = enemy_value_loss
+                        + FU.approx_value_loss(move_data.unit_infos[enemy.enemy_id], enemy.counter_actual_done, enemy.counter_max_done)
+
                     --print('  ', damage_taken, damage_done, cum_weight)
                 end
 
                 damage_taken = damage_taken / cum_weight * n_enemies
                 damage_done = damage_done / cum_weight * n_enemies
                 --print('  cum: ', damage_taken, damage_done, cum_weight)
+
+                local my_value_loss, approx_ctd, unit_value = FU.approx_value_loss(move_data.unit_infos[id], counter_actual_taken, counter_max_taken)
+
+                -- Yes, we are dividing the enemy value loss by our unit's value
+                local value_loss = (my_value_loss - enemy_value_loss) / unit_value
 
                 -- Healing bonus for villages
                 local village_bonus = 0
@@ -1561,6 +1590,13 @@ local function get_hold_action(zone_cfg, fred_data)
                     pre_rating_maps[id] = {}
                 end
                 FU.set_fgumap_value(pre_rating_maps[id], x, y, 'av_outcome', av_outcome)
+                pre_rating_maps[id][x][y].counter_actual_taken = counter_actual_taken
+                pre_rating_maps[id][x][y].counter_actual_damage = counter_actual_damage
+                pre_rating_maps[id][x][y].counter_max_taken = counter_max_taken
+                pre_rating_maps[id][x][y].my_value_loss = my_value_loss
+                pre_rating_maps[id][x][y].enemy_value_loss = enemy_value_loss
+                pre_rating_maps[id][x][y].value_loss = value_loss
+                pre_rating_maps[id][x][y].approx_ctd = approx_ctd
                 pre_rating_maps[id][x][y].x = x
                 pre_rating_maps[id][x][y].y = y
                 pre_rating_maps[id][x][y].id = id
@@ -1571,6 +1607,13 @@ local function get_hold_action(zone_cfg, fred_data)
     if false then
         for id,pre_rating_map in pairs(pre_rating_maps) do
             DBG.show_fgumap_with_message(pre_rating_map, 'av_outcome', 'Average outcome', move_data.unit_copies[id])
+            --DBG.show_fgumap_with_message(pre_rating_map, 'counter_actual_taken', 'Actual damage (taken) from counter attack', move_data.unit_copies[id])
+            --DBG.show_fgumap_with_message(pre_rating_map, 'counter_actual_damage', 'Actual damage (taken - done) from counter attack', move_data.unit_copies[id])
+            --DBG.show_fgumap_with_message(pre_rating_map, 'counter_max_taken', 'Max damage from counter attack', move_data.unit_copies[id])
+            --DBG.show_fgumap_with_message(pre_rating_map, 'approx_ctd', 'Approximate chance to die', move_data.unit_copies[id])
+            --DBG.show_fgumap_with_message(pre_rating_map, 'my_value_loss', 'My value loss', move_data.unit_copies[id])
+            --DBG.show_fgumap_with_message(pre_rating_map, 'enemy_value_loss', 'Enemy value loss', move_data.unit_copies[id])
+            DBG.show_fgumap_with_message(pre_rating_map, 'value_loss', 'Value loss', move_data.unit_copies[id])
             --DBG.show_fgumap_with_message(pre_rating_map, 'influence', 'Influence', move_data.unit_copies[id])
         end
     end
@@ -1606,9 +1649,15 @@ local function get_hold_action(zone_cfg, fred_data)
                 local enemy_count = FU.get_fgumap_value(holders_influence, x, y, 'enemy_count')
 
                 -- TODO: comment this out for now, but might need a condition like that again later
-                --if (my_count >= 3) or (1.5 * my_count >= enemy_count) then
+                if (my_count >= 3) then
                     FU.set_fgumap_value(hold_here_maps[id], x, y, 'hold_here', true)
-                --end
+                else
+                    local value_loss = FU.get_fgumap_value(pre_rating_map, x, y, 'value_loss')
+                    --print(x, y, value_loss, push_factor)
+                    if (value_loss > - push_factor) then
+                        FU.set_fgumap_value(hold_here_maps[id], x, y, 'hold_here', true)
+                    end
+                end
             end
         end
     end
