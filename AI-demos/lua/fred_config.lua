@@ -21,6 +21,9 @@ local cfg = {
     influence_falloff_floor = 0.5,
     influence_falloff_exp = 2,
 
+    winning_ratio = 1.25,
+    losing_ratio = 0.8,
+
     -- Village grabbing parameters
     villages_per_unit = 2,
 
