@@ -467,6 +467,7 @@ function fred_ops_utils.set_turn_data(move_data)
         zones[zone_id] = wesnoth.get_locations(raw_cfg.ops_slf)
     end
 
+    local max_push_utility = 0
     for zone_id,zone in pairs(zones) do
         local num, denom = 0, 0
         for _,loc in ipairs(zone) do
@@ -477,44 +478,41 @@ function fred_ops_utils.set_turn_data(move_data)
                 denom = denom + vulnerability^2
             end
         end
-        local ld_max = num / denom
+        local ld_front = num / denom
         --print(zone_id, ld_max)
-        behavior.fronts.zones[zone_id] = ld_max
-    end
 
-    local fred_behavior_str = 'Behavior instructions:'
-    fred_behavior_str = fred_behavior_str .. '\nvalue_ratio : ' .. behavior.orders.value_ratio
-    wesnoth.set_variable('fred_behavior_str', fred_behavior_str)
-
-    local fred_show_behavior = wesnoth.get_variable("fred_show_behavior") or 1
-    if (fred_show_behavior > 1) then
-        wesnoth.message('Fred', fred_behavior_str)
-        print(fred_behavior_str)
-
-        if (fred_show_behavior == 3) then
-            for zone_id,zone in pairs(zones) do
-                local ld_front = behavior.fronts.zones[zone_id]
-                local front_map = {}
-                local mean_x, mean_y, count = 0, 0, 0
-                for _,loc in ipairs(zone) do
-                    local ld = FU.get_fgumap_value(leader_distance_map, loc[1], loc[2], 'distance')
-                    if (math.abs(ld - ld_front) <= 0.5) then
-                        FU.set_fgumap_value(front_map, loc[1], loc[2], 'distance', ld)
-                        mean_x, mean_y, count = mean_x + loc[1], mean_y + loc[2], count + 1
-                    end
-                end
-                mean_x, mean_y = math.abs(mean_x / count), math.abs(mean_y / count)
-                local str = string.format('Front in zone %s:  %.3f  (forward distance)', zone_id, ld_front)
-                DBG.show_fgumap_with_message(front_map, 'distance', str, { x = mean_x, y = mean_y, no_halo = true })
+        local front_hexes = {}
+        for _,loc in ipairs(zone) do
+            local ld = FU.get_fgumap_value(leader_distance_map, loc[1], loc[2], 'distance')
+            if (math.abs(ld - ld_front) <= 0.5) then
+                table.insert(front_hexes, { loc[1], loc[2], FU.get_fgumap_value(influence_maps, loc[1], loc[2], 'vulnerability') or 0 })
             end
         end
-    end
+        table.sort(front_hexes, function(a, b) return a[3] > b[3] end)
 
-    if DBG.show_debug('analysis') then
-        print('\n----- Behavior table -----')
-        DBG.dbms(behavior.ratios)
-        DBG.dbms(behavior.orders)
-        --DBG.dbms(behavior)
+        local n_hexes = math.min(5, #front_hexes)
+        local peak_vuln = 0
+        for i_h=1,n_hexes do
+            peak_vuln = peak_vuln + front_hexes[i_h][3]
+        end
+        peak_vuln = peak_vuln / n_hexes
+
+        local push_utility = peak_vuln * math.sqrt((enemy_ld0 - ld_front) / (enemy_ld0 - my_ld0))
+
+        if (push_utility > max_push_utility) then
+            max_push_utility = push_utility
+        end
+
+        behavior.fronts.zones[zone_id] = {
+            ld = ld_front,
+            peak_vuln = peak_vuln,
+            push_utility = push_utility
+        }
+    end
+    --print('max_push_utility', max_push_utility)
+
+    for _,front in pairs(behavior.fronts.zones) do
+        front.push_utility = front.push_utility / max_push_utility
     end
 
 
@@ -1276,6 +1274,58 @@ function fred_ops_utils.set_ops_data(fred_data)
 
 
     fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_locs, actions)
+
+
+    ---- Behavior output ----
+    local behavior = fred_data.turn_data.behavior
+    local fred_behavior_str = '--- Behavior instructions ---'
+
+    local overall_str = 'roughly equal'
+    if (behavior.orders.neutral_power_ratio > FCFG.get_cfg_parm('winning_ratio')) then
+        overall_str = 'winning'
+    elseif (behavior.orders.neutral_power_ratio < FCFG.get_cfg_parm('losing_ratio')) then
+        overall_str = 'losing'
+    end
+
+    fred_behavior_str = fred_behavior_str
+      .. string.format('\nBase power ratio : %.3f (%s)', behavior.orders.neutral_power_ratio, overall_str)
+      .. string.format('\n \nvalue_ratio : %.3f', behavior.orders.value_ratio)
+    wesnoth.set_variable('fred_behavior_str', fred_behavior_str)
+
+    local fred_show_behavior = wesnoth.get_variable("fred_show_behavior") or 1
+fred_show_behavior = 2
+    if (fred_show_behavior > 1) then
+        wesnoth.message('Fred', fred_behavior_str)
+        print(fred_behavior_str)
+
+        if (fred_show_behavior == 3) then
+            for zone_id,front in pairs(behavior.fronts.zones) do
+                local raw_cfg = FSC.get_raw_cfgs(zone_id)
+                local zone = wesnoth.get_locations(raw_cfg.ops_slf)
+
+                local front_map = {}
+                local mean_x, mean_y, count = 0, 0, 0
+                for _,loc in ipairs(zone) do
+                    local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc[1], loc[2], 'distance')
+                    if (math.abs(ld - front.ld) <= 0.5) then
+                        FU.set_fgumap_value(front_map, loc[1], loc[2], 'distance', ld)
+                        mean_x, mean_y, count = mean_x + loc[1], mean_y + loc[2], count + 1
+                    end
+                end
+                mean_x, mean_y = math.abs(mean_x / count), math.abs(mean_y / count)
+                local str = string.format('Front in zone %s:  forward distance = %.3f, peak vulnerability = %.3f', zone_id, front.ld, front.peak_vuln)
+                DBG.show_fgumap_with_message(front_map, 'distance', str, { x = mean_x, y = mean_y, no_halo = true })
+            end
+        end
+    end
+
+    if DBG.show_debug('analysis') then
+        print('\n----- Behavior table -----')
+        --DBG.dbms(behavior.ratios)
+        --DBG.dbms(behavior.orders)
+        DBG.dbms(behavior.fronts)
+        --DBG.dbms(behavior)
+    end
 
 
     local ops_data = {
