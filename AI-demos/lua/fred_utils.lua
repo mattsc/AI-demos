@@ -168,6 +168,57 @@ function fred_utils.unit_value(unit_info)
     return unit_value
 end
 
+function fred_utils.approx_value_loss(unit_info, av_damage, max_damage)
+    -- This is similar to FAU.damage_rating_unit (but simplified)
+    -- TODO: maybe base the two on the same core function at some point
+
+    -- Returns loss of value (as a negative number)
+
+    -- In principle, damage is a fraction of max_hitpoints. However, it should be
+    -- more important for units already injured. Making it a fraction of hitpoints
+    -- would overemphasize units close to dying, as that is also factored in. Thus,
+    -- we use an effective HP value that's a weighted average of the two.
+    -- TODO: splitting it 50/50 seems okay for now, but might have to be fine-tuned.
+    local injured_fraction = 0.5
+    local hp = unit_info.hitpoints
+    local hp_eff = injured_fraction * hp + (1 - injured_fraction) * unit_info.max_hitpoints
+
+    -- Cap the damage at the hitpoints of the unit; larger damage is taken into
+    -- account in the chance to die
+    local real_damage = av_damage
+    if (av_damage > hp) then
+        real_damage = hp
+    end
+    local fractional_damage = real_damage / hp_eff
+    local fractional_rating = - fred_utils.weight_s(fractional_damage, 0.67)
+    --print('  fractional_damage, fractional_rating:', fractional_damage, fractional_rating)
+
+    -- Additionally, add the chance to die, in order to emphasize units that might die
+    -- This might result in fractional_damage > 1 in some cases
+    -- Very approximate estimate of the CTD
+    local approx_ctd = 0
+    if (av_damage > hp) then
+        approx_ctd = 0.5 + 0.5 * (1 - hp / av_damage)
+    elseif (max_damage > hp) then
+        approx_ctd = 0.5 * (max_damage - hp) / (max_damage - av_damage)
+    end
+    local ctd_rating = - 1.5 * approx_ctd^1.5
+    fractional_rating = fractional_rating + ctd_rating
+    --print('  ctd, ctd_rating, fractional_rating:', approx_ctd, ctd_rating, fractional_rating)
+
+    -- Convert all the fractional ratings before to one in "gold units"
+    -- We cap this at 1.5 times the unit value
+    -- TODO: what's the best value here?
+    if (fractional_rating < -1.5) then
+        fractional_rating = -1.5
+    end
+    local unit_value = fred_utils.unit_value(unit_info)
+    local value_loss = fractional_rating * unit_value
+    --print('  unit_value, rating:', fred_utils.unit_value(unit_info), rating)
+
+    return value_loss, approx_ctd, unit_value
+end
+
 function fred_utils.unit_base_power(unit_info)
     local hp_mod = fred_utils.weight_s(unit_info.hitpoints / unit_info.max_hitpoints, 0.67)
 
