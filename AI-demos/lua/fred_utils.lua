@@ -447,6 +447,65 @@ function fred_utils.get_leader_distance_map(zone_cfgs, side_cfgs, move_data)
     return leader_distance_map, enemy_leader_distance_maps
 end
 
+function fred_utils.support_maps(move_data)
+    local width, height = wesnoth.get_map_size()
+    local support_maps = { total = {}, units = {} }
+    for id,unit_loc in pairs(move_data.my_units) do
+        local current_power = fred_utils.unit_current_power(move_data.unit_infos[id])
+
+        local cm = wesnoth.find_cost_map(unit_loc[1], unit_loc[2], {}, { ignore_units = false })
+        local cost_map = {}
+        for _,cost in pairs(cm) do
+            local x, y, c = cost[1], cost[2], cost[3]
+            if (c > -1) then
+                fred_utils.set_fgumap_value(cost_map, cost[1], cost[2], 'cost', c)
+            end
+        end
+
+        if move_data.unit_infos[id].canrecruit then
+            current_power = current_power * FCFG.get_cfg_parm('leader_derating')
+        end
+
+        support_maps.units[id] = {}
+        for x = 1,width do
+            for y = 1,height do
+                local min_cost = fred_utils.get_fgumap_value(cost_map, x, y, 'cost') or 99
+                for xa,ya in H.adjacent_tiles(x, y) do
+                    local adj_cost = fred_utils.get_fgumap_value(cost_map, xa, ya, 'cost') or 99
+                    if (adj_cost < min_cost) then
+                        min_cost = adj_cost
+                    end
+                end
+
+                local turns = min_cost / move_data.unit_infos[id].max_moves
+                local int_turns, frac_turns = math.ceil(turns), turns % 1
+                if (int_turns == 0) then
+                    int_turns = 1
+                else
+                    if (frac_turns == 0) then
+                        frac_turns = 1
+                    end
+                end
+
+                local support = (1 - 0.5 * frac_turns^2) / (4 ^ (int_turns - 1)) * current_power
+
+                if (min_cost < 99) and (int_turns <= 2) then
+                    fred_utils.set_fgumap_value(support_maps.units[id], x, y, 'support', support)
+                    fred_utils.fgumap_add(support_maps.total, x, y, 'support', support)
+                end
+            end
+        end
+
+        if false then
+            DBG.show_fgumap_with_message(support_maps.units[id], 'support', 'unit support', move_data.unit_copies[id])
+        end
+    end
+
+    if false then
+        DBG.show_fgumap_with_message(support_maps.total, 'support', 'total support')
+    end
+end
+
 function fred_utils.single_unit_info(unit_proxy)
     -- Collects unit information from proxy unit table @unit_proxy into a Lua table
     -- so that it is accessible faster.
