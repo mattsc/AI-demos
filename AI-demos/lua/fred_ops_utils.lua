@@ -770,7 +770,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     -- Attributing enemy units to zones
     -- Use base_power for this as it is not only for the current turn
-    local assigned_enemies = {}
+    local assigned_enemies, unassigned_enemies = {}, {}
     for id,loc in pairs(move_data.enemies) do
         if (not move_data.unit_infos[id].canrecruit)
             and (not FU.get_fgumap_value(move_data.reachable_castles_map[move_data.unit_infos[id].side], loc[1], loc[2], 'castle') or false)
@@ -782,9 +782,12 @@ function fred_ops_utils.set_ops_data(fred_data)
                 assigned_enemies[zone_id] = {}
             end
             assigned_enemies[zone_id][id] = move_data.units[id]
+        else
+            unassigned_enemies[id] = move_data.units[id]
         end
     end
     --DBG.dbms(assigned_enemies)
+    --DBG.dbms(unassigned_enemies)
 
 
     local pre_assigned_units = {}
@@ -1331,6 +1334,7 @@ fred_show_behavior = 2
     local ops_data = {
         leader_threats = leader_threats,
         assigned_enemies = assigned_enemies,
+        unassigned_enemies = unassigned_enemies,
         assigned_units = assigned_units,
         retreaters = retreaters,
         assigned_recruits = assigned_recruits,
