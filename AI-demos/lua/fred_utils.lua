@@ -501,6 +501,47 @@ function fred_utils.support_maps(move_data)
     return support_maps
 end
 
+function fred_utils.behind_enemy_map(fred_data)
+    local tmp_current_powers, tmp_lds = {}, {}
+    local behind_enemy_map = {}
+
+    -- TODO: Combining the zones like this is likely not ideal.
+    --       For example, it causes discontinuities.  Refine later.
+    for zone_id,raw_cfg in pairs(fred_data.turn_data.raw_cfgs_main) do
+        local zone = wesnoth.get_locations(raw_cfg.ops_slf)
+        for _,loc in ipairs(zone) do
+            for turns = 1,2 do
+                local ld = fred_utils.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc[1], loc[2], 'distance')
+                local ids = fred_utils.get_fgumap_value(fred_data.move_data.enemy_attack_map[turns], loc[1], loc[2], 'ids') or {}
+                for _,id in ipairs(ids) do
+                    if (fred_data.ops_data.assigned_enemies[zone_id] and fred_data.ops_data.assigned_enemies[zone_id][id])
+                        -- TODO: not sure if the following should be included.  But in any case,
+                        --       it would triple count unassigned enemies
+                        --or fred_data.ops_data.unassigned_enemies[id]
+                    then
+                        local current_power = tmp_current_powers[id]
+                        local enemy_ld = tmp_lds[id]
+                        if (not current_power) then
+                            current_power = fred_utils.unit_current_power(fred_data.move_data.unit_infos[id])
+                            tmp_current_powers[id] = current_power
+                            enemy_ld = fred_utils.get_fgumap_value(fred_data.turn_data.leader_distance_map, fred_data.move_data.unit_copies[id].x, fred_data.move_data.unit_copies[id].y, 'distance')
+                            tmp_lds[id] = enemy_ld
+                        end
+
+                        if (ld >= enemy_ld) then
+                            fred_utils.fgumap_add(behind_enemy_map, loc[1], loc[2], 'enemy_power', current_power)
+                        end
+                    end
+                end
+            end
+        end
+    end
+    --DBG.dbms(tmp_current_powers)
+    --DBG.dbms(tmp_lds)
+
+    return behind_enemy_map
+end
+
 function fred_utils.single_unit_info(unit_proxy)
     -- Collects unit information from proxy unit table @unit_proxy into a Lua table
     -- so that it is accessible faster.
