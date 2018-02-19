@@ -496,15 +496,9 @@ function fred_utils.support_maps(move_data)
             end
         end
 
-        if false then
-            DBG.show_fgumap_with_message(support_maps.units[id], 'support', 'unit support', move_data.unit_copies[id])
-        end
     end
 
-    if false then
-        DBG.show_fgumap_with_message(support_maps.total, 'support', 'total support')
     return support_maps
-    end
 end
 
 function fred_utils.single_unit_info(unit_proxy)
