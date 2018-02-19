@@ -503,6 +503,7 @@ function fred_utils.support_maps(move_data)
 
     if false then
         DBG.show_fgumap_with_message(support_maps.total, 'support', 'total support')
+    return support_maps
     end
 end
 
