@@ -1115,6 +1115,10 @@ local function get_hold_action(zone_cfg, fred_data)
     local push_factor = fred_data.turn_data.behavior.fronts.zones[zone_cfg.zone_id].push_utility
     push_factor = push_factor / value_ratio
     --print('push_factor', push_factor)
+    local front_ld = fred_data.turn_data.behavior.fronts.zones[zone_cfg.zone_id].ld
+    print('front_ld', front_ld)
+
+
 
     local vuln_weight = FCFG.get_cfg_parm('vuln_weight')
     local vuln_rating_weight = vuln_weight * (1 / value_ratio - 1)
@@ -1654,8 +1658,29 @@ local function get_hold_action(zone_cfg, fred_data)
                 else
                     local value_loss = FU.get_fgumap_value(pre_rating_map, x, y, 'value_loss')
                     --print(x, y, value_loss, push_factor)
-                    if (value_loss > - push_factor) then
+
+                    -- The overall push forward must be worth it
+                    -- AND it should not be too far ahead of the front
+                    -- TODO: currently these are done individually; not sure if
+                    --   these two conditions should be combined (multiplied)
+                    if (value_loss >= - push_factor) then
                         FU.set_fgumap_value(hold_here_maps[id], x, y, 'hold_here', true)
+
+                        local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
+                        if (ld > front_ld + 1) then
+                            local advance_factor = 1 / (ld - front_ld)
+
+                            advance_factor = advance_factor
+                           --FU.set_fgumap_value(hold_here_maps[id], x, y, 'hold_here', value_loss)
+                           --print(x, y, ld, front_ld, f)
+
+                            if (value_loss < - advance_factor) then
+                                FU.set_fgumap_value(hold_here_maps[id], x, y, 'hold_here', false)
+                            end
+                        end
+
+
+
                     end
                 end
             end
