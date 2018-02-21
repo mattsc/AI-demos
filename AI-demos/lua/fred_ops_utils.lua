@@ -15,7 +15,7 @@ local FSC = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_scenario_cfg.lua"
 
 local fred_ops_utils = {}
 
-function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_locs, actions)
+function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_locs, actions, fronts)
     -- Combine several zones into one, if the conditions for it are met.
     -- For example, on Freelands the 'east' and 'center' zones are combined
     -- into the 'top' zone if enemies are close enough to the leader.
@@ -60,12 +60,14 @@ function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_
         -- Also combine assigned_units, assigned_enemies, protect_locs
         -- from the zones to be replaced. We don't actually replace the
         -- respective tables for those zones, just add those for the super zone,
-        -- because advancing still uses the original zones
+        -- because advancing and some other functions still use the original zones
         assigned_units[raw_cfg_new.zone_id] = {}
         assigned_enemies[raw_cfg_new.zone_id] = {}
         protect_locs[raw_cfg_new.zone_id] = {}
 
         local hld_min, hld_max
+        local new_front = { ld = 0, push_utility = -999, peak_vuln = -999 }
+        local zone_count = 0
         for _,zone_id in ipairs(replace_zone_ids.old) do
             for id,loc in pairs(assigned_units[zone_id] or {}) do
                 assigned_units[raw_cfg_new.zone_id][id] = loc
@@ -88,12 +90,25 @@ function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_
                     hld_max = protect_locs[zone_id].leader_distance.max
                 end
             end
+
+            zone_count = zone_count + 1
+            new_front.ld = new_front.ld + fronts.zones[zone_id].ld
+            if (new_front.push_utility < fronts.zones[zone_id].push_utility) then
+                new_front.push_utility = fronts.zones[zone_id].push_utility
+            end
+            if (new_front.peak_vuln < fronts.zones[zone_id].peak_vuln) then
+                new_front.peak_vuln = fronts.zones[zone_id].peak_vuln
+            end
         end
+
         if hld_min then
             protect_locs[raw_cfg_new.zone_id].leader_distance = {
                 min = hld_min, max = hld_max
             }
         end
+
+        new_front.ld = new_front.ld / zone_count
+        fronts.zones[raw_cfg_new.zone_id] = new_front
     end
 end
 
@@ -1275,8 +1290,10 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
     --DBG.dbms(power_stats)
 
+    fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_locs, actions, fred_data.turn_data.behavior.fronts)
 
-    fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_locs, actions)
+-- TODO: move fronts here?
+
 
 
     ---- Behavior output ----
@@ -1487,7 +1504,7 @@ function fred_ops_utils.update_ops_data(fred_data)
     -- Also update the protect locations, as a location might not be threatened
     -- any more
     ops_data.protect_locs = FVU.protect_locs(villages_to_protect_maps, fred_data)
-    fred_ops_utils.replace_zones(ops_data.assigned_units, ops_data.assigned_enemies, ops_data.protect_locs, ops_data.actions)
+    fred_ops_utils.replace_zones(ops_data.assigned_units, ops_data.assigned_enemies, ops_data.protect_locs, ops_data.actions, fred_data.turn_data.behavior.fronts)
 
 
     -- Once the leader has no MP left, we reconsider the leader threats
