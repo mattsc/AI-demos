@@ -2154,7 +2154,7 @@ local function get_advance_action(zone_cfg, fred_data)
             local own_support = FU.get_fgumap_value(move_data.support_maps.units[id], x, y, 'support') or 0
             local enemy_power = FU.get_fgumap_value(behind_enemy_map, x, y, 'enemy_power') or 0
 
-            local support = all_support - own_support +current_power - enemy_power
+            local support = all_support - own_support + current_power - enemy_power
 
             if (support < 0) then
                 FU.set_fgumap_value(insufficient_support_maps[id], x, y, 'support', support)
@@ -2199,7 +2199,11 @@ local function get_advance_action(zone_cfg, fred_data)
         local hp_rating = FU.weight_s(fraction_hp_missing, 0.5)
         hp_rating = hp_rating * 10
 
-        --print(id, rating_moves, rating_power, fraction_hp_missing, hp_rating)
+        -- Discourage hexes behind enemy lines without sufficient support
+        -- TODO: this is pretty ad hoc right now, but there's some logic behind it ...
+        local rating_behind_enemies = move_data.unit_infos[id].cost / FU.unit_current_power(move_data.unit_infos[id])
+
+        --print(id, rating_moves, rating_power, fraction_hp_missing, hp_rating, rating_behind_enemies)
 
         local cost_map
         for x,y,_ in FU.fgumap_iter(move_data.reach_maps[id]) do
@@ -2230,6 +2234,7 @@ local function get_advance_action(zone_cfg, fred_data)
                                 table.insert(hexes, loc)
                             end
                         else
+                            -- TODO: not sure why moving toward center hex is what should be done here
                             for _,loc in ipairs(raw_cfg.center_hexes) do
                                 table.insert(hexes, loc)
                             end
@@ -2305,7 +2310,14 @@ local function get_advance_action(zone_cfg, fred_data)
                     rating = rating - 1000
                 end
 
-                local rating = rating - dist
+                rating = rating - dist
+
+                -- We additionally discourage locations behind enemy lines without sufficient support
+                -- TODO: this is a large effect and it introduces a discontinuity, might
+                --    need to do this differently
+                -- Note: the support value in this table is negative
+                local support = FU.get_fgumap_value(insufficient_support_maps[id], x, y, 'support') or 0
+                rating = rating + support * rating_behind_enemies
 
                 -- Small preference for villages we don't own (although this
                 -- should mostly be covered by the village grabbing action already)
