@@ -1857,6 +1857,7 @@ local function get_hold_action(zone_cfg, fred_data)
                         local enemy_weight = enemy_weights[id][enemy_id].weight
 
                         local rating = scaled_enemy_adj_hc
+                        -- TODO: shift more toward weak enemy terrain at small value_ratio?
                         rating = rating + (scaled_enemy_adj_hc + scaled_my_defense + scaled_enemy_defense / 100) * value_ratio
                         protect_base_rating = protect_base_rating + rating * enemy_weight
 
@@ -1892,6 +1893,7 @@ local function get_hold_action(zone_cfg, fred_data)
                     protect_rating = protect_rating + (d_dist - 2) / 10 * protect_forward_rating_weight
                 end
 
+                -- TODO: this might be too simplistic
                 if protect_leader then
                     local mult = 0
                     local power_ratio = fred_data.ops_data.leader_threats.power_ratio
