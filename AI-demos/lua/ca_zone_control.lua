@@ -2125,6 +2125,50 @@ local function get_advance_action(zone_cfg, fred_data)
         end
     end
 
+
+    local behind_enemy_map = FU.behind_enemy_map(fred_data)
+    if DBG.show_debug('advance_behind_enemy_map') then
+        DBG.show_fgumap_with_message(behind_enemy_map, 'enemy_power', 'behind_enemy_map ')
+    end
+
+    if DBG.show_debug('advance_support_map') then
+        DBG.show_fgumap_with_message(move_data.support_maps.total, 'support', 'Total support')
+    end
+    if DBG.show_debug('advance_unit_support_maps') then
+        for id,support_unit_map in pairs(move_data.support_maps.units) do
+            DBG.show_fgumap_with_message(support_unit_map, 'support', 'Unit support', move_data.unit_copies[id])
+        end
+    end
+
+    -- Find hexes behind enemy lines with insufficient support for each unit
+    -- It's not necessary to do this part separately, it's done this way for diagnostics purposes
+    local insufficient_support_maps = {}
+    for id,unit_loc in pairs(advancers) do
+        insufficient_support_maps[id] = {}
+        local current_power = FU.unit_current_power(move_data.unit_infos[id])
+
+        for x,y,_ in FU.fgumap_iter(behind_enemy_map) do
+            -- Note: support_maps decay with distance, while behind_enemy_map contain
+            -- full enemy power. Thus the somewhat complex calculation here.
+            local all_support = FU.get_fgumap_value(move_data.support_maps.total, x, y, 'support') or 0
+            local own_support = FU.get_fgumap_value(move_data.support_maps.units[id], x, y, 'support') or 0
+            local enemy_power = FU.get_fgumap_value(behind_enemy_map, x, y, 'enemy_power') or 0
+
+            local support = all_support - own_support +current_power - enemy_power
+
+            if (support < 0) then
+                FU.set_fgumap_value(insufficient_support_maps[id], x, y, 'support', support)
+            end
+        end
+    end
+
+    if DBG.show_debug('advance_insufficient_support_maps') then
+        for id,insufficient_support_map in pairs(insufficient_support_maps) do
+            DBG.show_fgumap_with_message(insufficient_support_map, 'support', 'Insufficient support', move_data.unit_copies[id])
+        end
+    end
+
+
     -- advance_map covers all hexes in the zone which are not threatened by enemies
     local advance_map, zone_map = {}, {}
     local zone = wesnoth.get_locations(raw_cfg.ops_slf)
@@ -2164,7 +2208,9 @@ local function get_advance_action(zone_cfg, fred_data)
                 local rating = rating_moves + rating_power
 
                 local dist
-                if FU.get_fgumap_value(advance_map, x, y, 'flag') then
+                if FU.get_fgumap_value(advance_map, x, y, 'flag')
+                    and (not FU.get_fgumap_value(insufficient_support_maps[id], x, y, 'support'))
+                then
                     -- For unthreatened hexes in the zone, the main criterion is the "forward distance"
                     dist = FU.get_fgumap_value(fred_data.turn_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
                 else

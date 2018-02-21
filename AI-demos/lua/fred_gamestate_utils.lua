@@ -467,6 +467,10 @@ function fred_gamestate_utils.get_move_data()
     move_data.unit_infos = unit_infos
     move_data.defense_maps = {}
 
+    -- TODO: there's a bunch of duplication here w.r.t. the above
+    local support_maps = FU.support_maps(move_data)
+    move_data.support_maps = support_maps
+
     return move_data
 end
 

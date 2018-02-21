@@ -681,7 +681,8 @@ function fred_ops_utils.set_turn_data(move_data)
         influence_maps = influence_maps,
         unit_attacks = unit_attacks,
         behavior = behavior,
-        raw_cfgs = FSC.get_raw_cfgs('all')
+        raw_cfgs = FSC.get_raw_cfgs('all'),
+        raw_cfgs_main = raw_cfgs_main
     }
 
     return turn_data
