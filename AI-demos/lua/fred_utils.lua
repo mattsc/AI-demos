@@ -452,6 +452,9 @@ function fred_utils.support_maps(move_data)
     local support_maps = { total = {}, units = {} }
     for id,unit_loc in pairs(move_data.my_units) do
         local current_power = fred_utils.unit_current_power(move_data.unit_infos[id])
+        if move_data.unit_infos[id].canrecruit then
+            current_power = current_power * FCFG.get_cfg_parm('leader_derating')
+        end
 
         local cm = wesnoth.find_cost_map(unit_loc[1], unit_loc[2], {}, { ignore_units = false })
         local cost_map = {}
@@ -460,10 +463,6 @@ function fred_utils.support_maps(move_data)
             if (c > -1) then
                 fred_utils.set_fgumap_value(cost_map, cost[1], cost[2], 'cost', c)
             end
-        end
-
-        if move_data.unit_infos[id].canrecruit then
-            current_power = current_power * FCFG.get_cfg_parm('leader_derating')
         end
 
         support_maps.units[id] = {}
