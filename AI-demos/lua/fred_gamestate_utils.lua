@@ -158,7 +158,7 @@ function fred_gamestate_utils.get_move_data()
     local my_units, my_units_MP, my_units_noMP, enemies = {}, {}, {}, {}
     local unit_map, my_unit_map, my_unit_map_MP, my_unit_map_noMP, enemy_map = {}, {}, {}, {}, {}
     local my_attack_map, my_move_map = {}, {}
-    local unit_attack_maps = {}
+    local unit_attack_maps = { {}, {} }
     local unit_copies = {}
 
     local additional_turns = 1
@@ -171,7 +171,8 @@ function fred_gamestate_utils.get_move_data()
         local unit_copy = wesnoth.copy_unit(unit_proxy)
         local id = unit_proxy.id
         unit_copies[unit_copy.id] = unit_copy
-        unit_attack_maps[id] = {}
+        unit_attack_maps[1][id] = {}
+        unit_attack_maps[2][id] = {}
 
         units[unit_copy.id] = { unit_copy.x, unit_copy.y }
 
@@ -240,9 +241,9 @@ function fred_gamestate_utils.get_move_data()
 
                     table.insert(my_attack_map[int_turns][x][y].ids, id)
 
-                    if (int_turns <= 1) then
+                    if (int_turns <= 2) then
                         local current_power = FU.unit_current_power(unit_infos[id])
-                        FU.set_fgumap_value(unit_attack_maps[id], x, y, 'current_power', current_power)
+                        FU.set_fgumap_value(unit_attack_maps[int_turns][id], x, y, 'current_power', current_power)
                     end
                 end
             end
@@ -377,7 +378,8 @@ function fred_gamestate_utils.get_move_data()
         local old_moves = unit_copies[enemy_id].moves
         unit_copies[enemy_id].moves = unit_copies[enemy_id].max_moves
 
-        unit_attack_maps[enemy_id] = {}
+        unit_attack_maps[1][enemy_id] = {}
+        unit_attack_maps[2][enemy_id] = {}
 
         -- Hexes the enemy can reach in additional_turns+1 turns
         local reach = wesnoth.find_reach(unit_copies[enemy_id], { additional_turns = additional_turns })
@@ -443,9 +445,9 @@ function fred_gamestate_utils.get_move_data()
 
                 table.insert(enemy_attack_map[int_turns][x][y].ids, enemy_id)
 
-                if (int_turns <= 1) then
+                if (int_turns <= 2) then
                     local current_power = FU.unit_current_power(unit_infos[enemy_id])
-                    FU.set_fgumap_value(unit_attack_maps[enemy_id], x, y, 'current_power', current_power)
+                    FU.set_fgumap_value(unit_attack_maps[int_turns][enemy_id], x, y, 'current_power', current_power)
                 end
             end
         end

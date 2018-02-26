@@ -1275,7 +1275,7 @@ local function get_hold_action(zone_cfg, fred_data)
     for id,_ in pairs(holders) do
         --print('\n' .. id, zone_cfg.zone_id)
 
-        for x,y,_ in FU.fgumap_iter(move_data.unit_attack_maps[id]) do
+        for x,y,_ in FU.fgumap_iter(move_data.unit_attack_maps[1][id]) do
             local unit_influence = FU.unit_terrain_power(move_data.unit_infos[id], x, y, move_data)
             local inf = FU.get_fgumap_value(holders_influence, x, y, 'my_influence') or 0
             FU.set_fgumap_value(holders_influence, x, y, 'my_influence', inf + unit_influence)
@@ -2376,7 +2376,7 @@ local function get_advance_action(zone_cfg, fred_data)
             local attacker = {}
             attacker[id] = unit_loc
             for enemy_id,enemy_loc in pairs(move_data.enemies) do
-                if FU.get_fgumap_value(move_data.unit_attack_maps[id], enemy_loc[1], enemy_loc[2], 'current_power') then
+                if FU.get_fgumap_value(move_data.unit_attack_maps[1][id], enemy_loc[1], enemy_loc[2], 'current_power') then
                     --print('    potential target:' .. enemy_id)
 
                     local target = {}
