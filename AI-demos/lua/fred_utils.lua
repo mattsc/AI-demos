@@ -501,42 +501,73 @@ function fred_utils.support_maps(move_data)
 end
 
 function fred_utils.behind_enemy_map(fred_data)
-    local tmp_current_powers, tmp_lds = {}, {}
+    local function is_new_behind_hex(x, y, enemy_id, unit_behind_map, ld_ref)
+        if fred_utils.get_fgumap_value(unit_behind_map, x, y, 'enemy_power') then
+            return false
+        end
+
+        local ld = fred_utils.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
+        if (ld < ld_ref) then
+            return false
+        end
+
+        if (not fred_utils.get_fgumap_value(fred_data.move_data.unit_attack_maps[1][enemy_id], x, y, 'current_power'))
+            and (not fred_utils.get_fgumap_value(fred_data.move_data.unit_attack_maps[2][enemy_id], x, y, 'current_power'))
+        then
+            return false
+        end
+
+        local move_cost = wesnoth.unit_movement_cost(fred_data.move_data.unit_copies[enemy_id], wesnoth.get_terrain(x, y))
+        if (move_cost >= 99) then
+            return false
+        end
+
+        return true
+    end
+
     local behind_enemy_map = {}
+    for enemy_id,enemy_loc in pairs(fred_data.move_data.enemies) do
+        local current_power = fred_utils.unit_current_power(fred_data.move_data.unit_infos[enemy_id])
 
-    -- TODO: Combining the zones like this is likely not ideal.
-    --       For example, it causes discontinuities.  Refine later.
-    for zone_id,raw_cfg in pairs(fred_data.turn_data.raw_cfgs_main) do
-        local zone = wesnoth.get_locations(raw_cfg.ops_slf)
-        for _,loc in ipairs(zone) do
-            for turns = 1,2 do
-                local ld = fred_utils.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc[1], loc[2], 'distance')
-                local ids = fred_utils.get_fgumap_value(fred_data.move_data.enemy_attack_map[turns], loc[1], loc[2], 'ids') or {}
-                for _,id in ipairs(ids) do
-                    if (fred_data.ops_data.assigned_enemies[zone_id] and fred_data.ops_data.assigned_enemies[zone_id][id])
-                        -- TODO: not sure if the following should be included.  But in any case,
-                        --       it would triple count unassigned enemies
-                        --or fred_data.ops_data.unassigned_enemies[id]
-                    then
-                        local current_power = tmp_current_powers[id]
-                        local enemy_ld = tmp_lds[id]
-                        if (not current_power) then
-                            current_power = fred_utils.unit_current_power(fred_data.move_data.unit_infos[id])
-                            tmp_current_powers[id] = current_power
-                            enemy_ld = fred_utils.get_fgumap_value(fred_data.turn_data.leader_distance_map, fred_data.move_data.unit_copies[id].x, fred_data.move_data.unit_copies[id].y, 'distance')
-                            tmp_lds[id] = enemy_ld
-                        end
+        local unit_behind_map = {}
+        fred_utils.set_fgumap_value(unit_behind_map, enemy_loc[1], enemy_loc[2], 'enemy_power', current_power)
+        local new_hexes = { enemy_loc }
 
-                        if (ld >= enemy_ld) then
-                            fred_utils.fgumap_add(behind_enemy_map, loc[1], loc[2], 'enemy_power', current_power)
+        local keep_trying = true
+        while keep_trying do
+            keep_trying = false
+
+            local hexes = AH.table_copy(new_hexes)
+            new_hexes = {}
+            for _,loc in ipairs(hexes) do
+                local ld_ref = fred_utils.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc[1], loc[2], 'distance')
+                for xa,ya in H.adjacent_tiles(loc[1], loc[2]) do
+                    if is_new_behind_hex(xa, ya, enemy_id, unit_behind_map, ld_ref) then
+                        fred_utils.set_fgumap_value(unit_behind_map, xa, ya, 'enemy_power', current_power)
+                        table.insert(new_hexes, { xa, ya })
+                        keep_trying = true
+
+                        -- Because of the hex geometry, we also need to do a second row
+                        for xa2,ya2 in H.adjacent_tiles(xa, ya) do
+                            if is_new_behind_hex(xa2, ya2, enemy_id, unit_behind_map, ld_ref) then
+                                fred_utils.set_fgumap_value(unit_behind_map, xa2, ya2, 'enemy_power', current_power)
+                                table.insert(new_hexes, { xa2, ya2 })
+                                keep_trying = true
+                            end
                         end
                     end
                 end
             end
         end
+
+        for x,y,data in fred_utils.fgumap_iter(unit_behind_map) do
+            fred_utils.fgumap_add(behind_enemy_map, x, y, 'enemy_power', data.enemy_power)
+        end
+
+        if false then
+            DBG.show_fgumap_with_message(unit_behind_map, 'enemy_power', 'behind map', fred_data.move_data.unit_copies[enemy_id])
+        end
     end
-    --DBG.dbms(tmp_current_powers)
-    --DBG.dbms(tmp_lds)
 
     return behind_enemy_map
 end
