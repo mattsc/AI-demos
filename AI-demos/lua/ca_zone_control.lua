@@ -1284,7 +1284,7 @@ local function get_hold_action(zone_cfg, fred_data)
             FU.set_fgumap_value(holders_influence, x, y, 'my_count', my_count)
 
 
-            local enemy_influence = FU.get_fgumap_value(fred_data.turn_data.influence_maps, x, y, 'enemy_influence') or 0
+            local enemy_influence = FU.get_fgumap_value(move_data.influence_maps, x, y, 'enemy_influence') or 0
 
             FU.set_fgumap_value(holders_influence, x, y, 'enemy_influence', enemy_influence)
             holders_influence[x][y].influence = inf + unit_influence - enemy_influence
@@ -2240,7 +2240,7 @@ local function get_advance_action(zone_cfg, fred_data)
                                         if (not forward_influence[int_ld]) then
                                             forward_influence[int_ld] = { inf = 0, count = 0 }
                                         end
-                                        local influence = FU.get_fgumap_value(fred_data.turn_data.influence_maps, x, y, 'full_move_influence')
+                                        local influence = FU.get_fgumap_value(move_data.influence_maps, x, y, 'full_move_influence')
                                         if influence then
                                             forward_influence[int_ld].inf = forward_influence[int_ld].inf + influence
                                             forward_influence[int_ld].count = forward_influence[int_ld].count + 1

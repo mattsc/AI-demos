@@ -318,8 +318,6 @@ function fred_ops_utils.set_turn_data(move_data)
         --DBG.show_fgumap_with_message(enemy_leader_distance_maps['Wolf Rider'], 'cost', 'cost Wolf Rider')
     end
 
-    local influence_maps = FU.get_influence_maps(move_data)
-
     local leader_derating = FCFG.get_cfg_parm('leader_derating')
 
     local my_base_power, enemy_base_power = 0, 0
@@ -425,7 +423,7 @@ function fred_ops_utils.set_turn_data(move_data)
     for zone_id,zone in pairs(zones) do
         local num, denom = 0, 0
         for _,loc in ipairs(zone) do
-            local vulnerability = FU.get_fgumap_value(influence_maps, loc[1], loc[2], 'vulnerability')
+            local vulnerability = FU.get_fgumap_value(move_data.influence_maps, loc[1], loc[2], 'vulnerability')
             if vulnerability then
                 local ld = FU.get_fgumap_value(leader_distance_map, loc[1], loc[2], 'distance')
                 num = num + vulnerability^2 * ld
@@ -439,7 +437,7 @@ function fred_ops_utils.set_turn_data(move_data)
         for _,loc in ipairs(zone) do
             local ld = FU.get_fgumap_value(leader_distance_map, loc[1], loc[2], 'distance')
             if (math.abs(ld - ld_front) <= 0.5) then
-                table.insert(front_hexes, { loc[1], loc[2], FU.get_fgumap_value(influence_maps, loc[1], loc[2], 'vulnerability') or 0 })
+                table.insert(front_hexes, { loc[1], loc[2], FU.get_fgumap_value(move_data.influence_maps, loc[1], loc[2], 'vulnerability') or 0 })
             end
         end
         table.sort(front_hexes, function(a, b) return a[3] > b[3] end)
@@ -617,7 +615,6 @@ function fred_ops_utils.set_turn_data(move_data)
         turn_number = wesnoth.current.turn,
         leader_distance_map = leader_distance_map,
         enemy_leader_distance_maps = enemy_leader_distance_maps,
-        influence_maps = influence_maps,
         unit_attacks = unit_attacks,
         behavior = behavior,
         raw_cfgs = FSC.get_raw_cfgs('all'),
