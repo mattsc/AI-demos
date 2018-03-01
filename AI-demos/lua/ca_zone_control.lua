@@ -1305,11 +1305,6 @@ local function get_hold_action(zone_cfg, fred_data)
         end
     end
 
-    for x,y,data in FU.fgumap_iter(holders_influence) do
-        local my_inf = data.my_influence or 0
-        local enemy_inf = data.enemy_influence or 0
-    end
-
 
     if DBG.show_debug('hold_influence_map') then
         --DBG.show_fgumap_with_message(holders_influence, 'my_influence', 'Holders influence')
