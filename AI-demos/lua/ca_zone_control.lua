@@ -2188,6 +2188,9 @@ local function get_advance_action(zone_cfg, fred_data)
     local unit_rating_maps = {}
     local max_rating, best_id, best_hex
     for id,unit_loc in pairs(advancers) do
+        local is_unit_in_zone = wesnoth.match_location(unit_loc[1], unit_loc[2], raw_cfg.ops_slf)
+        --print('is_unit_in_zone: ' .. id, is_unit_in_zone)
+
         unit_rating_maps[id] = {}
 
         local unit_value = FU.unit_value(move_data.unit_infos[id])
@@ -2205,12 +2208,18 @@ local function get_advance_action(zone_cfg, fred_data)
 
         --print(id, rating_moves, rating_power, fraction_hp_missing, hp_rating)
 
-        local cost_map
+        local cost_map, cost_map_key
         for x,y,_ in FU.fgumap_iter(move_data.reach_maps[id]) do
             if (not FU.get_fgumap_value(avoid_maps[id], x, y, 'avoid')) then
 
                 local rating = rating_moves + rating_power
 
+                -- The direction of movement is determined as follows:
+                --  1. Unthreatened hexes: always toward enemy leader
+                --  2. If unit is outside the zone: toward either protect_locs or center_hex
+                --  3. Otherwise, it's either toward the own or the enemy leader, depending on
+                --     the influence map in the area the unit can reach
+                -- Note that 'dist' is to be minimize, that is, it is subtracted from the rating
                 local dist
                 if FU.get_fgumap_value(advance_map, x, y, 'flag')
                     and (not FU.get_fgumap_value(insufficient_support_maps[id], x, y, 'support'))
@@ -2221,61 +2230,112 @@ local function get_advance_action(zone_cfg, fred_data)
                     -- When no unthreatened hexes inside the zone can be found,
                     -- the enemy threat needs to be taken into account and hexes outside
                     -- the zone are considered
-                    if not cost_map then
-                        cost_map = {}
-
-                        local hexes = {}
-                        -- Cannot just assign here, as we do not want to change the input tables later
-                        if fred_data.ops_data.protect_locs[zone_cfg.zone_id]
-                            and fred_data.ops_data.protect_locs[zone_cfg.zone_id].locs
-                            and fred_data.ops_data.protect_locs[zone_cfg.zone_id].locs[1]
-                        then
-                            for _,loc in ipairs(fred_data.ops_data.protect_locs[zone_cfg.zone_id].locs) do
-                                table.insert(hexes, loc)
-                            end
-                        else
-                            -- TODO: not sure why moving toward center hex is what should be done here
-                            for _,loc in ipairs(raw_cfg.center_hexes) do
-                                table.insert(hexes, loc)
-                            end
-                        end
-
-                        local include_leader_locs = false
-                        if fred_data.ops_data.assigned_enemies[zone_cfg.zone_id] and fred_data.ops_data.leader_threats.enemies then
-                            for enemy_id,_ in pairs(fred_data.ops_data.assigned_enemies[zone_cfg.zone_id]) do
-                                if fred_data.ops_data.leader_threats.enemies[enemy_id] then
-                                    include_leader_locs = true
-                                    break
+                    if (not cost_map) then
+                        if is_unit_in_zone then
+                            local forward_influence = {}
+                            for x,y,_ in FU.fgumap_iter(move_data.reach_maps[id]) do
+                                if (not FU.get_fgumap_value(avoid_maps[id], x, y, 'avoid')) then
+                                    local ld = FU.get_fgumap_value(fred_data.turn_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
+                                    if ld then
+                                        -- We set up an averaged integer leader_distance array here
+                                        -- In principle, we could just pass all the numbers to the linear regression function
+                                        -- below, but this is easier for visualizing what is going on; it also rates all
+                                        -- integer leader_distance values equally, which might or might not be good.
+                                        local int_ld = math.ceil(ld)
+                                        if (not forward_influence[int_ld]) then
+                                            forward_influence[int_ld] = { inf = 0, count = 0 }
+                                        end
+                                        local influence = FU.get_fgumap_value(fred_data.turn_data.influence_maps, x, y, 'full_move_influence')
+                                        if influence then
+                                            forward_influence[int_ld].inf = forward_influence[int_ld].inf + influence
+                                            forward_influence[int_ld].count = forward_influence[int_ld].count + 1
+                                        end
+                                    end
                                 end
                             end
-                        end
-                        if include_leader_locs then
-                            for _,loc in ipairs(fred_data.ops_data.leader_threats.protect_locs) do
-                                table.insert(hexes, loc)
+                            local data_arr = {}
+                            for i,data in pairs(forward_influence) do
+                                data_arr[i] = data.inf / data.count
                             end
-                        end
+                            --DBG.dbms(forward_influence)
 
-                        -- Potential TODO: maybe replace this with smooth_cost_map()
-                        for _,hex in ipairs(hexes) do
-                            local cm = wesnoth.find_cost_map(
-                                { x = -1 }, -- SUF not matching any unit
-                                { { hex[1], hex[2], wesnoth.current.side, fred_data.move_data.unit_infos[id].type } },
-                                { ignore_units = true }
-                            )
+                            local slope, y0 = FU.linear_regression(data_arr)
+                            local x0 = - y0 / slope
+                            local ld_unit = FU.get_fgumap_value(fred_data.turn_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], unit_loc[1], unit_loc[2], 'cost')
 
-                            for _,cost in pairs(cm) do
-                                if (cost[3] > -1) then
-                                   local c = FU.get_fgumap_value(cost_map, cost[1], cost[2], 'cost') or 0
-                                   FU.set_fgumap_value(cost_map, cost[1], cost[2], 'cost', c + cost[3])
+                            if false then
+                                print('forward influences:', id, ld_unit)
+                                for i=-100,100 do
+                                    if data_arr[i] then
+                                        print('  ' .. i, data_arr[i])
+                                    end
+                                end
+                                print('x0', x0)
+                            end
+
+
+                            cost_map = fred_data.turn_data.leader_distance_map
+                            if (x0 > ld_unit) then
+                                cost_map_key = 'my_leader_distance'
+                            else
+                                cost_map_key = 'enemy_leader_distance'
+                            end
+                        else
+                            cost_map = {}
+                            cost_map_key = 'cost'
+
+                            local hexes = {}
+                            -- Cannot just assign here, as we do not want to change the input tables later
+                            if fred_data.ops_data.protect_locs[zone_cfg.zone_id]
+                                and fred_data.ops_data.protect_locs[zone_cfg.zone_id].locs
+                                and fred_data.ops_data.protect_locs[zone_cfg.zone_id].locs[1]
+                            then
+                                for _,loc in ipairs(fred_data.ops_data.protect_locs[zone_cfg.zone_id].locs) do
+                                    table.insert(hexes, loc)
+                                end
+                            else
+                                for _,loc in ipairs(raw_cfg.center_hexes) do
+                                    table.insert(hexes, loc)
+                                end
+                            end
+
+                            local include_leader_locs = false
+                            if fred_data.ops_data.assigned_enemies[zone_cfg.zone_id] and fred_data.ops_data.leader_threats.enemies then
+                                for enemy_id,_ in pairs(fred_data.ops_data.assigned_enemies[zone_cfg.zone_id]) do
+                                    if fred_data.ops_data.leader_threats.enemies[enemy_id] then
+                                        include_leader_locs = true
+                                        break
+                                    end
+                                end
+                            end
+                            if include_leader_locs then
+                                for _,loc in ipairs(fred_data.ops_data.leader_threats.protect_locs) do
+                                    table.insert(hexes, loc)
+                                end
+                            end
+
+                            -- Potential TODO: maybe replace this with smooth_cost_map()
+                            for _,hex in ipairs(hexes) do
+                                local cm = wesnoth.find_cost_map(
+                                    { x = -1 }, -- SUF not matching any unit
+                                    { { hex[1], hex[2], wesnoth.current.side, fred_data.move_data.unit_infos[id].type } },
+                                    { ignore_units = true }
+                                )
+
+                                for _,cost in pairs(cm) do
+                                    if (cost[3] > -1) then
+                                       local c = FU.get_fgumap_value(cost_map, cost[1], cost[2], 'cost') or 0
+                                       FU.set_fgumap_value(cost_map, cost[1], cost[2], 'cost', c + cost[3])
+                                    end
                                 end
                             end
                         end
                         if false then
-                            DBG.show_fgumap_with_message(cost_map, 'cost', 'cost_map')
+                            DBG.show_fgumap_with_message(cost_map, cost_map_key, 'cost_map')
                         end
                     end
 
-                    dist = FU.get_fgumap_value(cost_map, x, y, 'cost')
+                    dist = FU.get_fgumap_value(cost_map, x, y, cost_map_key)
 
                     -- Counter attack outcome
                     local unit_moved = {}
