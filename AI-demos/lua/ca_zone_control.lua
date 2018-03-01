@@ -2190,20 +2190,20 @@ local function get_advance_action(zone_cfg, fred_data)
     for id,unit_loc in pairs(advancers) do
         unit_rating_maps[id] = {}
 
+        local unit_value = FU.unit_value(move_data.unit_infos[id])
+
         -- Fastest unit first, after that strongest unit first
+        -- These are small, mostly just tie breakers
         local rating_moves = move_data.unit_infos[id].moves / 10
         local rating_power = FU.unit_current_power(move_data.unit_infos[id]) / 1000
 
         -- If a village is involved, we prefer injured units
+        -- We make this a large contribution, up to half the value of the unit
         local fraction_hp_missing = (move_data.unit_infos[id].max_hitpoints - move_data.unit_infos[id].hitpoints) / move_data.unit_infos[id].max_hitpoints
         local hp_rating = FU.weight_s(fraction_hp_missing, 0.5)
-        hp_rating = hp_rating * 10
+        hp_rating = hp_rating * unit_value / 2
 
-        -- Discourage hexes behind enemy lines without sufficient support
-        -- TODO: this is pretty ad hoc right now, but there's some logic behind it ...
-        local rating_behind_enemies = move_data.unit_infos[id].cost / FU.unit_current_power(move_data.unit_infos[id])
-
-        --print(id, rating_moves, rating_power, fraction_hp_missing, hp_rating, rating_behind_enemies)
+        --print(id, rating_moves, rating_power, fraction_hp_missing, hp_rating)
 
         local cost_map
         for x,y,_ in FU.fgumap_iter(move_data.reach_maps[id]) do
@@ -2289,15 +2289,17 @@ local function get_advance_action(zone_cfg, fred_data)
                     --print('  die_chance', counter_outcomes.def_outcome.hp_chance[0])
 
                     if counter_outcomes then
+                        -- This is the standard attack rating (roughly) in units of cost (gold)
                         local counter_rating = - counter_outcomes.rating_table.rating
-                        -- Use cost here, rather than value, as we want to be more careful with high XP units
-                        counter_rating = counter_rating / move_data.unit_infos[id].cost
-                        counter_rating = 2 * counter_rating * move_data.unit_infos[id].max_moves
 
                         -- The die chance is already included in the rating, but we
-                        -- want it to have even more importance here
-                        local die_rating = - counter_outcomes.def_outcome.hp_chance[0]
-                        die_rating = 2 * die_rating * move_data.unit_infos[id].max_moves
+                        -- want it to be even more important here (and very non-linear)
+                        -- It's set to be quadratic and take unity value at the desperate attack
+                        -- hp_chance[0]=0.85; but then it is the difference between die chances that
+                        -- really matters, so we multiply by another factor 2.
+                        -- This makes this a huge contribution to the rating.
+                        -- It is meant to override the "behind enemy lines" rating below for high die chances
+                        local die_rating = - unit_value * counter_outcomes.def_outcome.hp_chance[0] ^ 2 / 0.85^2 * 2
 
                         rating = rating + counter_rating + die_rating
                     end
@@ -2316,17 +2318,23 @@ local function get_advance_action(zone_cfg, fred_data)
                 -- TODO: this is a large effect and it introduces a discontinuity, might
                 --    need to do this differently
                 -- Note: the support value in this table is negative
-                local support = FU.get_fgumap_value(insufficient_support_maps[id], x, y, 'support') or 0
-                rating = rating + support * rating_behind_enemies
+                -- This rating is bound in the range unit_value * [-1 .. 0].  It takes on value 0 when this
+                -- is not a hex behind enemy lines without sufficient support.  It's value is -0.75*unit_value
+                -- if missing support is equal to the units HP, and decreases asymptotically to -unit_value from there.
+                -- It's supposed to be (mostly) balanced against the damage rating above.
+                local support = - (FU.get_fgumap_value(insufficient_support_maps[id], x, y, 'support') or 0)
+                local support_rating = - unit_value * (1 - 0.25 ^ (support / move_data.unit_infos[id].hitpoints))
+                rating = rating + support_rating
 
                 -- Small preference for villages we don't own (although this
                 -- should mostly be covered by the village grabbing action already)
+                -- Equal to gold difference between grabbing and not grabbing (not counting support)
                 local owner = FU.get_fgumap_value(move_data.village_map, x, y, 'owner')
                 if owner and (owner ~= wesnoth.current.side) then
                     if (owner == 0) then
-                        rating = rating + 1
-                    else
                         rating = rating + 2
+                    else
+                        rating = rating + 4
                     end
                 end
 
