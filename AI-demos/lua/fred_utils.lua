@@ -108,6 +108,27 @@ function fred_utils.print_weight_s(exp)
     print(s2)
 end
 
+function fred_utils.linear_regression(data)
+    -- @data key-value pairs: key is x, value is y
+    local x_m, y_m, count = 0, 0, 0
+    for x,y in pairs(data) do
+        x_m, y_m = x_m + x, y_m + y
+        count = count + 1
+    end
+    x_m, y_m = x_m / count, y_m / count
+
+    local num, denom = 0, 0
+    for x,y in pairs(data) do
+        num = num + (x - x_m) * (y - y_m)
+        denom = denom + (x - x_m)^2
+    end
+
+    local slope = num / denom
+    local y0 = y_m - slope * x_m
+
+    return slope, y0
+end
+
 function fred_utils.get_unit_time_of_day_bonus(alignment, is_fearless, lawful_bonus)
     local multiplier = 1
     if (lawful_bonus ~= 0) then
