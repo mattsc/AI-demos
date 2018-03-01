@@ -193,7 +193,7 @@ function fred_gamestate_utils.get_move_data()
             local reach = wesnoth.find_reach(unit_copy, { additional_turns = additional_turns })
 
             reach_maps[unit_copy.id] = {}
-            local attack_range = {}
+            local attack_range, moves_left = {}, {}
 
             for _,loc in ipairs(reach) do
                 -- reach_map:
@@ -209,6 +209,11 @@ function fred_gamestate_utils.get_move_data()
                 local int_turns = math.ceil(turns)
                 if (int_turns == 0) then int_turns = 1 end
 
+                local moves_left_this_turn = loc[3] % max_moves
+                if (loc[1] == unit_copy.x) and (loc[2] == unit_copy.y) then
+                    moves_left_this_turn = max_moves
+                end
+
                 if (not my_move_map[int_turns][loc[1]]) then my_move_map[int_turns][loc[1]] = {} end
                 if (not my_move_map[int_turns][loc[1]][loc[2]]) then my_move_map[int_turns][loc[1]][loc[2]] = {} end
                 if (not my_move_map[int_turns][loc[1]][loc[2]].ids) then my_move_map[int_turns][loc[1]][loc[2]].ids = {} end
@@ -216,17 +221,28 @@ function fred_gamestate_utils.get_move_data()
 
                 table.insert(my_move_map[int_turns][loc[1]][loc[2]].ids, id)
 
-
-                if (not attack_range[loc[1]]) then attack_range[loc[1]] = {} end
+                if (not attack_range[loc[1]]) then
+                    attack_range[loc[1]] = {}
+                    moves_left[loc[1]] = {}
+                end
                 if (not attack_range[loc[1]][loc[2]]) or (attack_range[loc[1]][loc[2]] > int_turns) then
                     attack_range[loc[1]][loc[2]] = int_turns
+                    moves_left[loc[1]][loc[2]] = moves_left_this_turn
+                elseif (attack_range[loc[1]][loc[2]] == int_turns) and (moves_left[loc[1]][loc[2]] < moves_left_this_turn) then
+                    moves_left[loc[1]][loc[2]] = moves_left_this_turn
                 end
 
                 for xa,ya in H.adjacent_tiles(loc[1], loc[2]) do
-                    if (not attack_range[xa]) then attack_range[xa] = {} end
+                    if (not attack_range[xa]) then
+                        attack_range[xa] = {}
+                        moves_left[xa] = {}
+                    end
 
                     if (not attack_range[xa][ya]) or (attack_range[xa][ya] > int_turns) then
                         attack_range[xa][ya] = int_turns
+                        moves_left[xa][ya] = moves_left_this_turn
+                    elseif (attack_range[xa][ya] == int_turns) and (moves_left[xa][ya] < moves_left_this_turn) then
+                        moves_left[xa][ya] = moves_left_this_turn
                     end
                 end
             end
@@ -244,6 +260,7 @@ function fred_gamestate_utils.get_move_data()
                     if (int_turns <= 2) then
                         local current_power = FU.unit_current_power(unit_infos[id])
                         FU.set_fgumap_value(unit_attack_maps[int_turns][id], x, y, 'current_power', current_power)
+                        unit_attack_maps[int_turns][id][x][y].moves_left_this_turn = moves_left[x][y]
                     end
                 end
             end
