@@ -523,27 +523,27 @@ end
 
 function fred_utils.behind_enemy_map(fred_data)
     local function is_new_behind_hex(x, y, enemy_id, unit_behind_map, ld_ref)
+        local move_cost = wesnoth.unit_movement_cost(fred_data.move_data.unit_copies[enemy_id], wesnoth.get_terrain(x, y))
+        if (move_cost >= 99) then
+            return false, false, false
+        end
+
         if fred_utils.get_fgumap_value(unit_behind_map, x, y, 'enemy_power') then
-            return false
+            return false, false, true
         end
 
         local ld = fred_utils.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'my_leader_distance')
         if (ld < ld_ref) then
-            return false
+            return false, true, true
         end
 
         if (not fred_utils.get_fgumap_value(fred_data.move_data.unit_attack_maps[1][enemy_id], x, y, 'current_power'))
             and (not fred_utils.get_fgumap_value(fred_data.move_data.unit_attack_maps[2][enemy_id], x, y, 'current_power'))
         then
-            return false
+            return false, true, true
         end
 
-        local move_cost = wesnoth.unit_movement_cost(fred_data.move_data.unit_copies[enemy_id], wesnoth.get_terrain(x, y))
-        if (move_cost >= 99) then
-            return false
-        end
-
-        return true
+        return true, true, true
     end
 
     local behind_enemy_map = {}
@@ -563,17 +563,31 @@ function fred_utils.behind_enemy_map(fred_data)
             for _,loc in ipairs(hexes) do
                 local ld_ref = fred_utils.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc[1], loc[2], 'my_leader_distance')
                 for xa,ya in H.adjacent_tiles(loc[1], loc[2]) do
-                    if is_new_behind_hex(xa, ya, enemy_id, unit_behind_map, ld_ref) then
-                        fred_utils.set_fgumap_value(unit_behind_map, xa, ya, 'enemy_power', current_power)
-                        table.insert(new_hexes, { xa, ya })
-                        keep_trying = true
+                    local is_valid, is_new, is_passable = is_new_behind_hex(xa, ya, enemy_id, unit_behind_map, ld_ref)
+                    if is_passable then
+                        if is_valid then
+                            fred_utils.set_fgumap_value(unit_behind_map, xa, ya, 'enemy_power', current_power)
+                            table.insert(new_hexes, { xa, ya })
+                            keep_trying = true
+                        elseif is_new then
+                            -- This gives 2 rows of zeros around the edges, but not for
+                            -- impassable terrain; needed for blurring
+                            fred_utils.set_fgumap_value(unit_behind_map, xa, ya, 'enemy_power', 0)
+                        end
 
                         -- Because of the hex geometry, we also need to do a second row
                         for xa2,ya2 in H.adjacent_tiles(xa, ya) do
-                            if is_new_behind_hex(xa2, ya2, enemy_id, unit_behind_map, ld_ref) then
-                                fred_utils.set_fgumap_value(unit_behind_map, xa2, ya2, 'enemy_power', current_power)
-                                table.insert(new_hexes, { xa2, ya2 })
-                                keep_trying = true
+                            local is_valid2, is_new2, is_passable2 = is_new_behind_hex(xa2, ya2, enemy_id, unit_behind_map, ld_ref)
+                            if is_passable2 then
+                                if is_valid2 then
+                                    fred_utils.set_fgumap_value(unit_behind_map, xa2, ya2, 'enemy_power', current_power)
+                                    table.insert(new_hexes, { xa2, ya2 })
+                                    keep_trying = true
+                                elseif is_new2 then
+                                    -- This gives 2 rows of zeros around the edges, but not for
+                                    -- impassable terrain; needed for blurring
+                                    fred_utils.set_fgumap_value(unit_behind_map, xa2, ya2, 'enemy_power', 0)
+                                end
                             end
                         end
                     end
@@ -581,13 +595,17 @@ function fred_utils.behind_enemy_map(fred_data)
             end
         end
 
-        for x,y,data in fred_utils.fgumap_iter(unit_behind_map) do
-            fred_utils.fgumap_add(behind_enemy_map, x, y, 'enemy_power', data.enemy_power)
-        end
+        fred_utils.fgumap_blur(unit_behind_map, 'enemy_power')
+        fred_utils.fgumap_blur(unit_behind_map, 'blurred_enemy_power')
 
         if false then
-            DBG.show_fgumap_with_message(unit_behind_map, 'enemy_power', 'behind map', fred_data.move_data.unit_copies[enemy_id])
+            DBG.show_fgumap_with_message(unit_behind_map, 'blurred_blurred_enemy_power', 'behind map', fred_data.move_data.unit_copies[enemy_id])
         end
+
+        for x,y,data in fred_utils.fgumap_iter(unit_behind_map) do
+            fred_utils.fgumap_add(behind_enemy_map, x, y, 'enemy_power', data.blurred_blurred_enemy_power)
+        end
+
     end
 
     return behind_enemy_map
