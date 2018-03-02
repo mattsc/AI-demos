@@ -235,7 +235,7 @@ function fred_utils.approx_value_loss(unit_info, av_damage, max_damage)
     end
     local unit_value = fred_utils.unit_value(unit_info)
     local value_loss = fractional_rating * unit_value
-    --print('  unit_value, rating:', fred_utils.unit_value(unit_info), rating)
+    --print('  unit_value, value_loss:', fred_utils.unit_value(unit_info), value_loss)
 
     return value_loss, approx_ctd, unit_value
 end
