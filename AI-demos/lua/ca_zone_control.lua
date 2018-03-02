@@ -864,17 +864,53 @@ local function get_attack_action(zone_cfg, fred_data)
                         -- However, min_hp for the counter also contains this reduction, so
                         -- min_outcome below has the correct value (except for rounding errors,
                         -- that's why it is compared ot 0.5 instead of 0)
-                        local max_damage_attack = attacker.hitpoints - combo.att_outcomes[i_a].min_hp
+                        -- Note: we don't use this any more, but keep code for now for possibly resurrection
+                        --local max_damage_attack = attacker.hitpoints - combo.att_outcomes[i_a].min_hp
                         --print('max_damage_attack, attacker.hitpoints, min_hp', max_damage_attack, attacker.hitpoints, combo.att_outcomes[i_a].min_hp)
-
                         -- Add damage from attack and counter attack
-                        local min_outcome = counter_min_hp - max_damage_attack
+                        --local min_outcome = counter_min_hp - max_damage_attack
                         --print('Leader: min_outcome, counter_min_hp, max_damage_attack', min_outcome, counter_min_hp, max_damage_attack)
+
+                        -- Approximate way of calculating the chance that the leader will die in the combination
+                        -- of attack and counter attack. This should work reasonably well for small die chances, which
+                        -- is all we're interested in. The exact value can only be obtained by running counter_calcs on
+                        -- all combination of attacker/defender outcomes from the forward attack
+                        local combined_hp_probs = {}
+                        for hp_counter,chance_counter in pairs(counter_outcomes.def_outcome.hp_chance) do
+                            if (chance_counter > 0) then
+                                local dhp = hp_counter - move_data.unit_infos[attacker.id].hitpoints
+                                for hp,chance in pairs(combo.att_outcomes[i_a].hp_chance) do
+                                    if (chance > 0) then
+                                        local new_hp = hp + dhp
+                                        local added_chance = chance * chance_counter
+                                        -- If the counter attack only involves a single unit (that is, the
+                                        -- forward attack target itself), we can also multiply the
+                                        -- counter chance by the survival chance of the target.
+                                        -- This cannot be done accurately enough if there are more than one counter
+                                        -- attackers, so we simply don't do it then (err on the conservative side).
+                                        if (#counter_outcomes.att_outcomes == 1) then
+                                            added_chance = added_chance * (1 - combo.def_outcome.hp_chance[0])
+                                        end
+
+                                        combined_hp_probs[new_hp] = (combined_hp_probs[new_hp] or 0) + added_chance
+                                    end
+                                end
+                            end
+                        end
+                        --DBG.dbms(combined_hp_probs)
+
+                        local die_chance = 0
+                        for hp,chance in pairs(combined_hp_probs) do
+                            if (hp <= 0) then
+                                die_chance = die_chance + chance
+                            end
+                        end
+                        --print('Leader: die_chance', die_chance)
 
                         local av_outcome = counter_outcomes.def_outcome.average_hp
                         --print('Leader: av_outcome', av_outcome)
 
-                        if (min_outcome < 0.5) or (av_outcome < attacker.max_hitpoints / 2) then
+                        if (die_chance > 0.02) or (av_outcome < attacker.max_hitpoints / 2) then
                             DBG.print_debug('attack_print_output', '       leader: counter attack outcome too low', min_outcome)
                             acceptable_counter = false
                             FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
