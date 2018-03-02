@@ -14,8 +14,8 @@ local debug_cfg = {
     analysis_influence_maps = false,
 
 
+    attack_print_output = false,
     attack_combos = false,
-    attack_print_output = true,
 
     hold_zone_map = false,
     hold_influence_map = false,
