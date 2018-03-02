@@ -21,6 +21,8 @@ local function get_attack_action(zone_cfg, fred_data)
     local move_data = fred_data.move_data
     local move_cache = fred_data.move_cache
 
+    local leader_max_die_chance = FCFG.get_cfg_parm('leader_max_die_chance')
+
     local targets = {}
     if zone_cfg.targets then
         targets = zone_cfg.targets
@@ -910,7 +912,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         local av_outcome = counter_outcomes.def_outcome.average_hp
                         --print('Leader: av_outcome', av_outcome)
 
-                        if (die_chance > 0.02) or (av_outcome < attacker.max_hitpoints / 2) then
+                        if (die_chance > leader_max_die_chance) or (av_outcome < attacker.max_hitpoints / 2) then
                             DBG.print_debug('attack_print_output', '       leader: counter attack outcome too low', min_outcome)
                             acceptable_counter = false
                             FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)

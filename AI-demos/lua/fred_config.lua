@@ -31,6 +31,7 @@ local cfg = {
     terrain_defense_weight = 0.1,
     distance_leader_weight = 0.002,
     occupied_hex_penalty = 0.001,
+    leader_max_die_chance = 0.02,
 
     -- Hold rating parameters
     vuln_weight = 0.25,
