@@ -1120,7 +1120,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 wesnoth.scroll_to_tile(target_loc[1], target_loc[2])
                 W.message { speaker = 'narrator', message = 'Attack combo ' .. count .. '/' .. #combo_ratings .. ': ' .. total_rating .. ' / ' .. (max_total_rating or 0) .. '    (pre-rating: ' .. combo.pre_rating .. ')' }
                 for i_a,attacker_info in ipairs(combo.attackers) do
-                    local id, x, y = attacker_info.id, combo.dsts[i_a][1], combo.dsts[i_a][2]
+                    local x, y = combo.dsts[i_a][1], combo.dsts[i_a][2]
                     W.label { x = x, y = y, text = "" }
                 end
             end
