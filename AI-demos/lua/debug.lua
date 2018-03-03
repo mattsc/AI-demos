@@ -16,6 +16,7 @@ local debug_cfg = {
 
     attack_print_output = false,
     attack_combos = false,
+    attack_best_combo = true,
 
     hold_zone_map = false,
     hold_influence_map = false,

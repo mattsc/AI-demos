@@ -1127,6 +1127,20 @@ local function get_attack_action(zone_cfg, fred_data)
         end
     end
 
+    if DBG.show_debug('attack_best_combo') then
+        if action then
+            for i_a,attacker in ipairs(action.units) do
+                W.label { x = action.dsts[i_a][1], y = action.dsts[i_a][2], text = attacker.id }
+            end
+            local _,target_loc = next(action.enemy)
+            wesnoth.scroll_to_tile(target_loc[1], target_loc[2])
+            W.message { speaker = 'narrator', message = 'Best attack combo' }
+            for i_a,attacker in ipairs(action.units) do
+                W.label { x = action.dsts[i_a][1], y = action.dsts[i_a][2], text = "" }
+            end
+        end
+    end
+
     --DBG.dbms(disqualified_attacks)
 
     return action  -- returns nil is no acceptable attack was found
