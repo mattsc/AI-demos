@@ -744,6 +744,10 @@ local function get_attack_action(zone_cfg, fred_data)
                         if dam1 and (dam1.id == dam2.id) then
                             --DBG.dbms(dam2)
 
+                            -- For the target, we need to use the hitpoints from before the
+                            -- forward attack, not from before the counter attack
+                            dam.hitpoints = old_HP_target
+
                             target_included = true
 
                             --print('-- enemy units --', dam2.id)
