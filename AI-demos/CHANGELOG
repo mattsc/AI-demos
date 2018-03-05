@@ -1,3 +1,29 @@
+----- 0.14.10, ? ??? 2018  (continued work on operations layer) -----
+
+- Fred (Freelands AI for Northerners, Side 1):
+  - Attacking:
+    - Fix bug which caused Fred to prefer attacking full-health units over easy
+      kills
+    - Allow using the leader in attacks when there is a small chance of the
+      leader to die in the counter attack.
+      - This is configurable and can be (re)set to zero CTD if desired
+  - Holding:
+    - Do not push too far ahead of main front with few units
+    - Do not do normal hold if it is too wasteful
+  - Advancing:
+    - Discourage advancing behind enemy lines without sufficient support
+    - Set advance direction to forward or backward depending on enemy threat
+      and own-unit support
+    - Full reworking of advancement rating (roughly gold-based now)
+  - Functionality and misc. other changes:
+    - New menu options to display behavior instructions
+    - fred_utils: new functions linear_regression(), behind_enemy_map(),
+      support_maps(), approx_value_loss()
+    - New full-move versions of influence maps
+    - Many changes/additions to rating functions, game state maps, supporting
+      code and debugging information to support the changes above
+
+
 ----- 0.14.9, 7 Dec 2017  (increased aggressiveness vs lawful factions) -----
 
 This is the first in a series of releases aimed at improving Fred's operations
