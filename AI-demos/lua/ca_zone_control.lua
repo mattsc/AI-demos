@@ -2883,7 +2883,7 @@ function ca_zone_control:execution(arg1, arg2, arg3, use_1_12_syntax)
 
     local gamestate_changed = false
 
-    while data.zone_action.units and (table.maxn(data.zone_action.units) > 0) do
+    while data.zone_action.units and (#data.zone_action.units > 0) do
         local next_unit_ind = 1
 
         -- If this is an attack combo, reorder units to
