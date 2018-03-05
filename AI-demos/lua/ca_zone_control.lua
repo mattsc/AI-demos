@@ -917,7 +917,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         --print('Leader: av_outcome', av_outcome)
 
                         if (die_chance > leader_max_die_chance) or (av_outcome < attacker.max_hitpoints / 2) then
-                            DBG.print_debug('attack_print_output', '       leader: counter attack outcome too low', min_outcome)
+                            DBG.print_debug('attack_print_output', '       leader: counter attack outcome too low', die_chance)
                             acceptable_counter = false
                             FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                             break
