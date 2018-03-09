@@ -103,14 +103,22 @@ function fred_village_utils.protect_locs(villages_to_protect_maps, fred_data)
         local max_ld, loc
         for x,y,village_data in FU.fgumap_iter(villages) do
             if village_data.protect then
+                local is_protected = true
                 for enemy_id,_ in pairs(fred_data.move_data.enemies) do
-                    if FU.get_fgumap_value(fred_data.move_data.reach_maps[enemy_id], x, y, 'moves_left') then
+                    if FU.get_fgumap_value(fred_data.turn_data.enemy_initial_reach_maps[enemy_id], x, y, 'moves_left') then
+                        if FU.get_fgumap_value(fred_data.move_data.reach_maps[enemy_id], x, y, 'moves_left') then
+                            is_protected = false
+                        end
+
                         local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
                         if (not max_ld) or (ld > max_ld) then
                             max_ld = ld
                             loc = { x, y }
                         end
                     end
+                end
+                if loc then
+                    loc.is_protected = is_protected
                 end
             end
         end

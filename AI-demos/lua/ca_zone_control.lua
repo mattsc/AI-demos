@@ -1402,12 +1402,21 @@ local function get_hold_action(zone_cfg, fred_data)
     if protect_leader then
         local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, leader[1], leader[2], 'distance')
         protect_leader_distance = { min = ld, max = ld }
-        protect_locs = { { leader[1], leader[2] } }
+        protect_locs = { { leader[1], leader[2], is_protected = false } }
         assigned_enemies = fred_data.ops_data.leader_threats.enemies
         min_btw_dist = -1.5
     else
         protect_leader_distance = fred_data.ops_data.protect_locs[zone_cfg.zone_id].leader_distance
-        protect_locs = fred_data.ops_data.protect_locs[zone_cfg.zone_id].locs
+        if fred_data.ops_data.protect_locs[zone_cfg.zone_id].locs then
+            for _,loc in ipairs(fred_data.ops_data.protect_locs[zone_cfg.zone_id].locs) do
+                if (not loc.is_protected) then
+                    if (not protect_locs) then
+                        protect_locs = {}
+                    end
+                    table.insert(protect_locs, loc)
+                end
+            end
+        end
         min_btw_dist = -1.5
         assigned_enemies = fred_data.ops_data.assigned_enemies[zone_cfg.zone_id]
     end
@@ -2337,6 +2346,8 @@ local function get_advance_action(zone_cfg, fred_data)
 
                             local hexes = {}
                             -- Cannot just assign here, as we do not want to change the input tables later
+                            -- TODO: This currently includes already protected protect_locs. I think
+                            -- that that's the right thing to do, re-examine later.
                             if fred_data.ops_data.protect_locs[zone_cfg.zone_id]
                                 and fred_data.ops_data.protect_locs[zone_cfg.zone_id].locs
                                 and fred_data.ops_data.protect_locs[zone_cfg.zone_id].locs[1]
