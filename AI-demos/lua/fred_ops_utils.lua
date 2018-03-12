@@ -455,6 +455,18 @@ function fred_ops_utils.set_turn_data(move_data)
         zones[zone_id] = wesnoth.get_locations(raw_cfg.ops_slf)
     end
 
+    local side_cfgs = FSC.get_side_cfgs()
+    local my_start_hex, enemy_start_hex
+    for side,cfgs in ipairs(side_cfgs) do
+        if (side == wesnoth.current.side) then
+            my_start_hex = cfgs.start_hex
+        else
+            enemy_start_hex = cfgs.start_hex
+        end
+    end
+    local my_ld0 = FU.get_fgumap_value(leader_distance_map, my_start_hex[1], my_start_hex[2], 'distance')
+    local enemy_ld0 = FU.get_fgumap_value(leader_distance_map, enemy_start_hex[1], enemy_start_hex[2], 'distance')
+
     local max_push_utility = 0
     for zone_id,zone in pairs(zones) do
         local num, denom = 0, 0
