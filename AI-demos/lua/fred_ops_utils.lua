@@ -15,7 +15,7 @@ local FSC = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_scenario_cfg.lua"
 
 local fred_ops_utils = {}
 
-function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_locs, actions, fronts)
+function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_locs, actions)
     -- Combine several zones into one, if the conditions for it are met.
     -- For example, on Freelands the 'east' and 'center' zones are combined
     -- into the 'top' zone if enemies are close enough to the leader.
@@ -66,7 +66,6 @@ function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_
         protect_locs[raw_cfg_new.zone_id] = {}
 
         local hld_min, hld_max
-        local new_front = { ld = 0, push_utility = -999, peak_vuln = -999 }
         local zone_count = 0
         for _,zone_id in ipairs(replace_zone_ids.old) do
             for id,loc in pairs(assigned_units[zone_id] or {}) do
@@ -92,13 +91,6 @@ function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_
             end
 
             zone_count = zone_count + 1
-            new_front.ld = new_front.ld + fronts.zones[zone_id].ld
-            if (new_front.push_utility < fronts.zones[zone_id].push_utility) then
-                new_front.push_utility = fronts.zones[zone_id].push_utility
-            end
-            if (new_front.peak_vuln < fronts.zones[zone_id].peak_vuln) then
-                new_front.peak_vuln = fronts.zones[zone_id].peak_vuln
-            end
         end
 
         if hld_min then
@@ -106,9 +98,6 @@ function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_
                 min = hld_min, max = hld_max
             }
         end
-
-        new_front.ld = new_front.ld / zone_count
-        fronts.zones[raw_cfg_new.zone_id] = new_front
     end
 end
 
@@ -446,75 +435,6 @@ function fred_ops_utils.set_turn_data(move_data)
 
     behavior.orders.expansion = behavior.ratios.influence / behavior.ratios.assets
 
-    behavior.fronts = { zones = {} }
-
-    -- Calculate where the fronts are in the zones (in leader_distance values)
-    -- based on a vulnerability-weighted sum over the zones
-    local zones = {}
-    for zone_id,raw_cfg in pairs(raw_cfgs_main) do
-        zones[zone_id] = wesnoth.get_locations(raw_cfg.ops_slf)
-    end
-
-    local side_cfgs = FSC.get_side_cfgs()
-    local my_start_hex, enemy_start_hex
-    for side,cfgs in ipairs(side_cfgs) do
-        if (side == wesnoth.current.side) then
-            my_start_hex = cfgs.start_hex
-        else
-            enemy_start_hex = cfgs.start_hex
-        end
-    end
-    local my_ld0 = FU.get_fgumap_value(leader_distance_map, my_start_hex[1], my_start_hex[2], 'distance')
-    local enemy_ld0 = FU.get_fgumap_value(leader_distance_map, enemy_start_hex[1], enemy_start_hex[2], 'distance')
-
-    local max_push_utility = 0
-    for zone_id,zone in pairs(zones) do
-        local num, denom = 0, 0
-        for _,loc in ipairs(zone) do
-            local vulnerability = FU.get_fgumap_value(move_data.influence_maps, loc[1], loc[2], 'vulnerability')
-            if vulnerability then
-                local ld = FU.get_fgumap_value(leader_distance_map, loc[1], loc[2], 'distance')
-                num = num + vulnerability^2 * ld
-                denom = denom + vulnerability^2
-            end
-        end
-        local ld_front = num / denom
-        --print(zone_id, ld_max)
-
-        local front_hexes = {}
-        for _,loc in ipairs(zone) do
-            local ld = FU.get_fgumap_value(leader_distance_map, loc[1], loc[2], 'distance')
-            if (math.abs(ld - ld_front) <= 0.5) then
-                table.insert(front_hexes, { loc[1], loc[2], FU.get_fgumap_value(move_data.influence_maps, loc[1], loc[2], 'vulnerability') or 0 })
-            end
-        end
-        table.sort(front_hexes, function(a, b) return a[3] > b[3] end)
-
-        local n_hexes = math.min(5, #front_hexes)
-        local peak_vuln = 0
-        for i_h=1,n_hexes do
-            peak_vuln = peak_vuln + front_hexes[i_h][3]
-        end
-        peak_vuln = peak_vuln / n_hexes
-
-        local push_utility = peak_vuln * math.sqrt((enemy_ld0 - ld_front) / (enemy_ld0 - my_ld0))
-
-        if (push_utility > max_push_utility) then
-            max_push_utility = push_utility
-        end
-
-        behavior.fronts.zones[zone_id] = {
-            ld = ld_front,
-            peak_vuln = peak_vuln,
-            push_utility = push_utility
-        }
-    end
-    --print('max_push_utility', max_push_utility)
-
-    for _,front in pairs(behavior.fronts.zones) do
-        front.push_utility = front.push_utility / max_push_utility
-    end
-
 
     -- Find the unit-vs-unit ratings
     -- TODO: can functions in attack_utils be used for this?
@@ -678,6 +598,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     -- Get the needed cfgs
     local move_data = fred_data.move_data
     local raw_cfgs_main = FSC.get_raw_cfgs()
+    local raw_cfgs_all = FSC.get_raw_cfgs('all')
     local side_cfgs = FSC.get_side_cfgs()
 
 
@@ -1276,9 +1197,78 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
     --DBG.dbms(power_stats)
 
-    fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_locs, actions, fred_data.turn_data.behavior.fronts)
+    fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_locs, actions)
 
--- TODO: move fronts here?
+
+    -- Calculate where the fronts are in the zones (in leader_distance values)
+    -- based on a vulnerability-weighted sum over the zones
+    -- Note: assigned_units includes both the old and new zones from replace_zones()
+    --   This is intentional, as some actions use the individual, some the combined zones
+    local zones = {}
+    for zone_id,_ in pairs(assigned_units) do
+        zones[zone_id] = wesnoth.get_locations(raw_cfgs_all[zone_id].ops_slf)
+    end
+
+    local side_cfgs = FSC.get_side_cfgs()
+    local my_start_hex, enemy_start_hex
+    for side,cfgs in ipairs(side_cfgs) do
+        if (side == wesnoth.current.side) then
+            my_start_hex = cfgs.start_hex
+        else
+            enemy_start_hex = cfgs.start_hex
+        end
+    end
+    local my_ld0 = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, my_start_hex[1], my_start_hex[2], 'distance')
+    local enemy_ld0 = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, enemy_start_hex[1], enemy_start_hex[2], 'distance')
+
+    local fronts = { zones = {} }
+    local max_push_utility = 0
+    for zone_id,zone in pairs(zones) do
+        local num, denom = 0, 0
+        for _,loc in ipairs(zone) do
+            local vulnerability = FU.get_fgumap_value(move_data.influence_maps, loc[1], loc[2], 'vulnerability')
+            if vulnerability then
+                local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc[1], loc[2], 'distance')
+                num = num + vulnerability^2 * ld
+                denom = denom + vulnerability^2
+            end
+        end
+        local ld_front = num / denom
+        --print(zone_id, ld_max)
+
+        local front_hexes = {}
+        for _,loc in ipairs(zone) do
+            local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc[1], loc[2], 'distance')
+            if (math.abs(ld - ld_front) <= 0.5) then
+                table.insert(front_hexes, { loc[1], loc[2], FU.get_fgumap_value(move_data.influence_maps, loc[1], loc[2], 'vulnerability') or 0 })
+            end
+        end
+        table.sort(front_hexes, function(a, b) return a[3] > b[3] end)
+
+        local n_hexes = math.min(5, #front_hexes)
+        local peak_vuln = 0
+        for i_h=1,n_hexes do
+            peak_vuln = peak_vuln + front_hexes[i_h][3]
+        end
+        peak_vuln = peak_vuln / n_hexes
+
+        local push_utility = peak_vuln * math.sqrt((enemy_ld0 - ld_front) / (enemy_ld0 - my_ld0))
+
+        if (push_utility > max_push_utility) then
+            max_push_utility = push_utility
+        end
+
+        fronts.zones[zone_id] = {
+            ld = ld_front,
+            peak_vuln = peak_vuln,
+            push_utility = push_utility
+        }
+    end
+    --print('max_push_utility', max_push_utility)
+
+    for _,front in pairs(fronts.zones) do
+        front.push_utility = front.push_utility / max_push_utility
+    end
 
 
 
@@ -1305,7 +1295,7 @@ fred_show_behavior = 2
         print(fred_behavior_str)
 
         if (fred_show_behavior == 3) then
-            for zone_id,front in pairs(behavior.fronts.zones) do
+            for zone_id,front in pairs(fronts.zones) do
                 local raw_cfg = FSC.get_raw_cfgs(zone_id)
                 local zone = wesnoth.get_locations(raw_cfg.ops_slf)
 
@@ -1329,7 +1319,7 @@ fred_show_behavior = 2
         print('\n----- Behavior table -----')
         --DBG.dbms(behavior.ratios)
         --DBG.dbms(behavior.orders)
-        DBG.dbms(behavior.fronts)
+        DBG.dbms(fronts)
         --DBG.dbms(behavior)
     end
 
@@ -1341,6 +1331,7 @@ fred_show_behavior = 2
         assigned_units = assigned_units,
         retreaters = retreaters,
         assigned_recruits = assigned_recruits,
+        fronts = fronts,
         protect_locs = protect_locs,
         actions = actions,
         prerecruit = prerecruit
@@ -1490,7 +1481,7 @@ function fred_ops_utils.update_ops_data(fred_data)
     -- Also update the protect locations, as a location might not be threatened
     -- any more
     ops_data.protect_locs = FVU.protect_locs(villages_to_protect_maps, fred_data)
-    fred_ops_utils.replace_zones(ops_data.assigned_units, ops_data.assigned_enemies, ops_data.protect_locs, ops_data.actions, fred_data.turn_data.behavior.fronts)
+    fred_ops_utils.replace_zones(ops_data.assigned_units, ops_data.assigned_enemies, ops_data.protect_locs, ops_data.actions)
 
 
     -- Once the leader has no MP left, we reconsider the leader threats
