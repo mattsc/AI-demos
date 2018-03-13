@@ -1204,9 +1204,13 @@ function fred_ops_utils.set_ops_data(fred_data)
     -- based on a vulnerability-weighted sum over the zones
     -- Note: assigned_units includes both the old and new zones from replace_zones()
     --   This is intentional, as some actions use the individual, some the combined zones
-    local zones = {}
+    local zone_maps = {}
     for zone_id,_ in pairs(assigned_units) do
-        zones[zone_id] = wesnoth.get_locations(raw_cfgs_all[zone_id].ops_slf)
+        zone_maps[zone_id] = {}
+        local zone = wesnoth.get_locations(raw_cfgs_all[zone_id].ops_slf)
+        for _,loc in ipairs(zone) do
+            FU.set_fgumap_value(zone_maps[zone_id], loc[1], loc[2], 'flag', true)
+        end
     end
 
     local side_cfgs = FSC.get_side_cfgs()
@@ -1223,24 +1227,51 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     local fronts = { zones = {} }
     local max_push_utility = 0
-    for zone_id,zone in pairs(zones) do
-        local num, denom = 0, 0
-        for _,loc in ipairs(zone) do
-            local vulnerability = FU.get_fgumap_value(move_data.influence_maps, loc[1], loc[2], 'vulnerability')
-            if vulnerability then
-                local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc[1], loc[2], 'distance')
-                num = num + vulnerability^2 * ld
-                denom = denom + vulnerability^2
+    for zone_id,zone_map in pairs(zone_maps) do
+        local zone_influence_map = {}
+        for id,_ in pairs(assigned_units[zone_id]) do
+            for x,y,data in FU.fgumap_iter(move_data.unit_influence_maps[id]) do
+                if FU.get_fgumap_value(zone_map, x, y, 'flag') then
+                    FU.fgumap_add(zone_influence_map, x, y, 'my_influence', data.influence)
+                end
             end
+        end
+        for enemy_id,_ in pairs(assigned_enemies[zone_id]) do
+            for x,y,data in FU.fgumap_iter(move_data.unit_influence_maps[enemy_id]) do
+                if FU.get_fgumap_value(zone_map, x, y, 'flag') then
+                    FU.fgumap_add(zone_influence_map, x, y, 'enemy_influence', data.influence)
+                end
+            end
+        end
+
+        for x,y,data in FU.fgumap_iter(zone_influence_map) do
+            data.influence = (data.my_influence or 0) - (data.enemy_influence or 0)
+            data.tension = (data.my_influence or 0) + (data.enemy_influence or 0)
+            data.vulnerability = data.tension - math.abs(data.influence)
+        end
+
+        if DBG.show_debug('analysis_zone_influence_maps') then
+            --DBG.show_fgumap_with_message(zone_influence_map, 'my_influence', 'Zone my influence map ' .. zone_id)
+            --DBG.show_fgumap_with_message(zone_influence_map, 'enemy_influence', 'Zone enemy influence map ' .. zone_id)
+            DBG.show_fgumap_with_message(zone_influence_map, 'influence', 'Zone influence map ' .. zone_id)
+            --DBG.show_fgumap_with_message(zone_influence_map, 'tension', 'Zone tension map ' .. zone_id)
+            DBG.show_fgumap_with_message(zone_influence_map, 'vulnerability', 'Zone vulnerability map ' .. zone_id)
+        end
+
+        local num, denom = 0, 0
+        for x,y,data in FU.fgumap_iter(zone_influence_map) do
+            local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
+            num = num + data.vulnerability^2 * ld
+            denom = denom + data.vulnerability^2
         end
         local ld_front = num / denom
         --print(zone_id, ld_max)
 
         local front_hexes = {}
-        for _,loc in ipairs(zone) do
-            local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc[1], loc[2], 'distance')
+        for x,y,data in FU.fgumap_iter(zone_influence_map) do
+            local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
             if (math.abs(ld - ld_front) <= 0.5) then
-                table.insert(front_hexes, { loc[1], loc[2], FU.get_fgumap_value(move_data.influence_maps, loc[1], loc[2], 'vulnerability') or 0 })
+                table.insert(front_hexes, { x, y, data.vulnerability })
             end
         end
         table.sort(front_hexes, function(a, b) return a[3] > b[3] end)

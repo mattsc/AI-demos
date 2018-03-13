@@ -486,7 +486,7 @@ function fred_gamestate_utils.get_move_data()
     move_data.unit_infos = unit_infos
     move_data.defense_maps = {}
 
-    local influence_maps = FU.get_influence_maps(move_data)
+    local influence_maps, unit_influence_maps = FU.get_influence_maps(move_data)
     move_data.influence_maps = influence_maps
     move_data.unit_influence_maps = unit_influence_maps
 
