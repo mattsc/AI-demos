@@ -1320,7 +1320,6 @@ function fred_ops_utils.set_ops_data(fred_data)
     wesnoth.set_variable('fred_behavior_str', fred_behavior_str)
 
     local fred_show_behavior = wesnoth.get_variable("fred_show_behavior") or 1
-fred_show_behavior = 2
     if (fred_show_behavior > 1) then
         wesnoth.message('Fred', fred_behavior_str)
         print(fred_behavior_str)
