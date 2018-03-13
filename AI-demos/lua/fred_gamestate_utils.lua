@@ -488,6 +488,7 @@ function fred_gamestate_utils.get_move_data()
 
     local influence_maps = FU.get_influence_maps(move_data)
     move_data.influence_maps = influence_maps
+    move_data.unit_influence_maps = unit_influence_maps
 
     -- TODO: there's a bunch of duplication here w.r.t. the above
     local support_maps = FU.support_maps(move_data)

@@ -473,7 +473,7 @@ function fred_utils.get_influence_maps(move_data)
     local influence_falloff_floor = FCFG.get_cfg_parm('influence_falloff_floor')
     local influence_falloff_exp = FCFG.get_cfg_parm('influence_falloff_exp')
 
-    local influence_maps = {}
+    local influence_maps, unit_influence_maps = {}, {}
     for int_turns = 1,2 do
         for x,y,data in fred_utils.fgumap_iter(move_data.my_attack_map[int_turns]) do
             for _,id in pairs(data.ids) do
@@ -492,6 +492,11 @@ function fred_utils.get_influence_maps(move_data)
                     fred_utils.fgumap_add(influence_maps, x, y, 'my_number', 1)
 
                     fred_utils.fgumap_add(influence_maps, x, y, 'my_full_move_influence', my_influence)
+
+                    if (not unit_influence_maps[id]) then
+                        unit_influence_maps[id] = {}
+                    end
+                    fred_utils.fgumap_add(unit_influence_maps[id], x, y, 'influence', my_influence)
                 end
                 if (int_turns == 2) and (move_data.unit_infos[id].moves == 0) then
                     fred_utils.fgumap_add(influence_maps, x, y, 'my_full_move_influence', my_influence)
@@ -517,6 +522,11 @@ function fred_utils.get_influence_maps(move_data)
             fred_utils.fgumap_add(influence_maps, x, y, 'enemy_influence', enemy_influence)
             fred_utils.fgumap_add(influence_maps, x, y, 'enemy_number', 1)
             fred_utils.fgumap_add(influence_maps, x, y, 'enemy_full_move_influence', enemy_influence) -- same as 'enemy_influence' for now
+
+            if (not unit_influence_maps[enemy_id]) then
+                unit_influence_maps[enemy_id] = {}
+            end
+            fred_utils.fgumap_add(unit_influence_maps[enemy_id], x, y, 'influence', enemy_influence)
         end
     end
 
@@ -536,11 +546,17 @@ function fred_utils.get_influence_maps(move_data)
         DBG.show_fgumap_with_message(influence_maps, 'enemy_full_move_influence', 'Enemy full-move influence map')
         DBG.show_fgumap_with_message(influence_maps, 'influence', 'Influence map')
         DBG.show_fgumap_with_message(influence_maps, 'full_move_influence', 'Full-move influence map')
-        --DBG.show_fgumap_with_message(influence_maps, 'tension', 'Tension map')
-        --DBG.show_fgumap_with_message(influence_maps, 'vulnerability', 'Vulnerability map')
+        DBG.show_fgumap_with_message(influence_maps, 'tension', 'Tension map')
+        DBG.show_fgumap_with_message(influence_maps, 'vulnerability', 'Vulnerability map')
     end
 
-    return influence_maps
+    if DBG.show_debug('analysis_unit_influence_maps') then
+        for id,unit_influence_map in pairs(unit_influence_maps) do
+            DBG.show_fgumap_with_message(unit_influence_map, 'influence', 'Unit influence map ' .. id, move_data.unit_copies[id])
+        end
+    end
+
+    return influence_maps, unit_influence_maps
 end
 
 function fred_utils.support_maps(move_data)
