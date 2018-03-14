@@ -108,17 +108,12 @@ function fred_ops_utils.calc_power_stats(zones, assigned_units, assigned_enemies
         zones = {}
     }
 
-    local recruit_weight = 0.5
 
     for id,_ in pairs(move_data.my_units) do
         if (not move_data.unit_infos[id].canrecruit) then
             power_stats.total.my_power = power_stats.total.my_power + FU.unit_base_power(move_data.unit_infos[id])
         end
     end
-    --for _,unit in ipairs(assigned_recruits) do
-    --    local power = FU.unittype_base_power(unit.recruit_type)
-    --    power_stats.total.my_power = power_stats.total.my_power + recruit_weight * power
-    --end
 
     for id,_ in pairs(move_data.enemies) do
         if (not move_data.unit_infos[id].canrecruit) then
@@ -144,10 +139,6 @@ function fred_ops_utils.calc_power_stats(zones, assigned_units, assigned_enemies
             power_stats.zones[zone_id].my_power = power_stats.zones[zone_id].my_power + power
         end
     end
-    --for _,unit in ipairs(assigned_recruits) do
-    --    local power = FU.unittype_base_power(unit.recruit_type)
-    --    power_stats.zones['leader_threat'].my_power = power_stats.zones['leader_threat'].my_power + recruit_weight * power
-    --end
 
     for zone_id,enemies in pairs(zones) do
         for id,_ in pairs(assigned_enemies[zone_id] or {}) do
