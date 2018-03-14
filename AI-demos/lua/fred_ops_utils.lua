@@ -1215,7 +1215,8 @@ function fred_ops_utils.set_ops_data(fred_data)
                 end
             end
         end
-        for enemy_id,_ in pairs(assigned_enemies[zone_id]) do
+
+        for enemy_id,_ in pairs(assigned_enemies[zone_id] or {}) do
             for x,y,data in FU.fgumap_iter(move_data.unit_influence_maps[enemy_id]) do
                 if FU.get_fgumap_value(zone_map, x, y, 'flag') then
                     FU.fgumap_add(zone_influence_map, x, y, 'enemy_influence', data.influence)
