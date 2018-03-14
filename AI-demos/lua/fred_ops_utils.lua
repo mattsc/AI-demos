@@ -102,29 +102,10 @@ function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_
 end
 
 
-function fred_ops_utils.calc_power_stats(zones, assigned_units, assigned_enemies, assigned_recruits, move_data)
+function fred_ops_utils.calc_power_stats(zones, assigned_units, assigned_enemies, assigned_recruits, fred_data)
     local power_stats = {
-        total = { my_power = 0, enemy_power = 0 },
         zones = {}
     }
-
-
-    for id,_ in pairs(move_data.my_units) do
-        if (not move_data.unit_infos[id].canrecruit) then
-            power_stats.total.my_power = power_stats.total.my_power + FU.unit_base_power(move_data.unit_infos[id])
-        end
-    end
-
-    for id,_ in pairs(move_data.enemies) do
-        if (not move_data.unit_infos[id].canrecruit) then
-            power_stats.total.enemy_power = power_stats.total.enemy_power + FU.unit_base_power(move_data.unit_infos[id])
-        end
-    end
-
-    local ratio = power_stats.total.my_power / power_stats.total.enemy_power
-    if (ratio > 1) then ratio = math.sqrt(ratio) end
-    power_stats.total.ratio = ratio
-
 
     for zone_id,_ in pairs(zones) do
         power_stats.zones[zone_id] = {
@@ -135,22 +116,27 @@ function fred_ops_utils.calc_power_stats(zones, assigned_units, assigned_enemies
 
     for zone_id,_ in pairs(zones) do
         for id,_ in pairs(assigned_units[zone_id] or {}) do
-            local power = FU.unit_base_power(move_data.unit_infos[id])
+            local power = FU.unit_base_power(fred_data.move_data.unit_infos[id])
             power_stats.zones[zone_id].my_power = power_stats.zones[zone_id].my_power + power
         end
     end
 
     for zone_id,enemies in pairs(zones) do
         for id,_ in pairs(assigned_enemies[zone_id] or {}) do
-            local power = FU.unit_base_power(move_data.unit_infos[id])
+            local power = FU.unit_base_power(fred_data.move_data.unit_infos[id])
             power_stats.zones[zone_id].enemy_power = power_stats.zones[zone_id].enemy_power + power
         end
     end
 
 
+    local total_ratio_factor = fred_data.turn_data.behavior.orders.neutral_power_ratio
+    if (total_ratio_factor > 1) then
+        total_ratio_factor = math.sqrt(total_ratio_factor)
+    end
     for zone_id,_ in pairs(zones) do
         -- Note: both power_needed and power_missing take ratio into account, the other values do not
-        local power_needed = power_stats.zones[zone_id].enemy_power * power_stats.total.ratio
+        -- For large ratios in Fred's favor, we also take the square root of it
+        local power_needed = power_stats.zones[zone_id].enemy_power * total_ratio_factor
         local power_missing = power_needed - power_stats.zones[zone_id].my_power
         if (power_missing < 0) then power_missing = 0 end
         power_stats.zones[zone_id].power_needed = power_needed
@@ -274,11 +260,8 @@ function fred_ops_utils.assess_leader_threats(leader_threats, protect_locs, lead
         leader_threats.enemies = nil
     end
 
-    local power_stats = fred_ops_utils.calc_power_stats({}, {}, {}, {}, move_data)
+    local power_stats = fred_ops_utils.calc_power_stats({}, {}, {}, {}, fred_data)
     --DBG.dbms(power_stats)
-
-    leader_threats.power_ratio = power_stats.total.ratio
-
     --DBG.dbms(leader_threats)
 end
 
@@ -1003,7 +986,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
     --DBG.dbms(n_enemies)
 
-    local power_stats = fred_ops_utils.calc_power_stats(raw_cfgs_main, assigned_units, assigned_enemies, assigned_recruits, move_data)
+    local power_stats = fred_ops_utils.calc_power_stats(raw_cfgs_main, assigned_units, assigned_enemies, assigned_recruits, fred_data)
     --DBG.dbms(power_stats)
 
     local keep_trying = true
@@ -1091,7 +1074,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             assigned_units[best_zone][best_unit] = move_data.units[best_unit]
 
             unit_ratings[best_unit] = nil
-            power_stats = fred_ops_utils.calc_power_stats(raw_cfgs_main, assigned_units, assigned_enemies, assigned_recruits, move_data)
+            power_stats = fred_ops_utils.calc_power_stats(raw_cfgs_main, assigned_units, assigned_enemies, assigned_recruits, fred_data)
 
             --DBG.dbms(assigned_units)
             --DBG.dbms(unit_ratings)
@@ -1127,7 +1110,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     attacker_ratings = nil
     unit_ratings = nil
 
-    power_stats = fred_ops_utils.calc_power_stats(raw_cfgs_main, assigned_units, assigned_enemies, assigned_recruits, move_data)
+    power_stats = fred_ops_utils.calc_power_stats(raw_cfgs_main, assigned_units, assigned_enemies, assigned_recruits, fred_data)
     --DBG.dbms(power_stats)
     --DBG.dbms(reserve_units)
 
@@ -1143,11 +1126,16 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
     --print('total_weight', total_weight)
 
+    local total_ratio_factor = fred_data.turn_data.behavior.orders.neutral_power_ratio
+    if (total_ratio_factor > 1) then
+        total_ratio_factor = math.sqrt(total_ratio_factor)
+    end
+
     while next(reserve_units) do
         --print('power: assigned / desired --> deficit')
         local max_deficit, best_zone_id
         for zone_id,cfg in pairs(raw_cfgs_main) do
-            local desired_power = power_stats.total.my_power * cfg.zone_weight / total_weight
+            local desired_power = total_ratio_factor * cfg.zone_weight / total_weight
             local assigned_power = power_stats.zones[zone_id].my_power
             local deficit = desired_power - assigned_power
             --print(zone_id, assigned_power .. ' / ' .. desired_power, deficit)
@@ -1185,7 +1173,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         assigned_units[best_zone_id][best_id] = move_data.units[best_id]
         reserve_units[best_id] = nil
 
-        power_stats = fred_ops_utils.calc_power_stats(raw_cfgs_main, assigned_units, assigned_enemies, assigned_recruits, move_data)
+        power_stats = fred_ops_utils.calc_power_stats(raw_cfgs_main, assigned_units, assigned_enemies, assigned_recruits, fred_data)
         --DBG.dbms(power_stats)
     end
     --DBG.dbms(power_stats)
@@ -1657,7 +1645,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     end
     --DBG.dbms(leader_threats_by_zone)
 
-    local power_stats = fred_ops_utils.calc_power_stats(ops_data.actions.hold_zones, ops_data.assigned_units, ops_data.assigned_enemies, ops_data.assigned_recruits, move_data)
+    local power_stats = fred_ops_utils.calc_power_stats(ops_data.actions.hold_zones, ops_data.assigned_units, ops_data.assigned_enemies, ops_data.assigned_recruits, fred_data)
     --DBG.dbms(power_stats)
 
 
