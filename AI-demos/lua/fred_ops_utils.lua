@@ -341,9 +341,11 @@ function fred_ops_utils.set_turn_data(move_data)
     local my_influence_next_turn, my_weight = 0, 0
     local enemy_influence_next_turn, enemy_weight = 0, 0
     for id,_ in pairs(move_data.units) do
+        local unit_base_power = FU.unit_base_power(move_data.unit_infos[id])
         local unit_influence = FU.unit_current_power(move_data.unit_infos[id])
         if move_data.unit_infos[id].canrecruit then
             unit_influence = unit_influence * leader_derating
+            unit_base_power = unit_base_power * leader_derating
         end
 
         local alignment = move_data.unit_infos[id].alignment
@@ -356,12 +358,12 @@ function fred_ops_utils.set_turn_data(move_data)
             my_total_influence = my_total_influence + unit_influence
             my_influence_next_turn = my_influence_next_turn + unit_influence * tod_mod_ratio
             my_weight = my_weight + unit_influence
-            my_base_power = my_base_power + FU.unit_base_power(move_data.unit_infos[id]) * leader_derating
+            my_base_power = my_base_power + unit_base_power
         else
             enemy_total_influence = enemy_total_influence + unit_influence
             enemy_influence_next_turn = enemy_influence_next_turn + unit_influence * tod_mod_ratio
             enemy_weight = enemy_weight + unit_influence
-            enemy_base_power = enemy_base_power + FU.unit_base_power(move_data.unit_infos[id]) * leader_derating
+            enemy_base_power = enemy_base_power + unit_base_power
         end
     end
 
