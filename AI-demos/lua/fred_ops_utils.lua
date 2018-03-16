@@ -102,7 +102,7 @@ function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_
 end
 
 
-function fred_ops_utils.zone_power_stats(zones, assigned_units, assigned_enemies, assigned_recruits, fred_data)
+function fred_ops_utils.zone_power_stats(zones, assigned_units, assigned_enemies, fred_data)
     local zone_power_stats = {}
 
     for zone_id,_ in pairs(zones) do
@@ -258,7 +258,7 @@ function fred_ops_utils.assess_leader_threats(leader_threats, protect_locs, lead
         leader_threats.enemies = nil
     end
 
-    local zone_power_stats = fred_ops_utils.zone_power_stats({}, {}, {}, {}, fred_data)
+    local zone_power_stats = fred_ops_utils.zone_power_stats({}, {}, {}, fred_data)
     --DBG.dbms(zone_power_stats)
     --DBG.dbms(leader_threats)
 end
@@ -747,14 +747,6 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(prerecruit)
 
 
-    -- This needs to be kept separately for zone_power_stats calculations,
-    -- because prerecruit gets deleted after the recruiting is done
-    local assigned_recruits = {}
-    for _,unit in ipairs(prerecruit.units) do
-        table.insert(assigned_recruits, { recruit_type = unit.recruit_type })
-    end
-    --DBG.dbms(assigned_recruits)
-
     -- Finding areas and units for attacking/defending in each zone
     --print('Move toward (highest blurred vulnerability):')
     local goal_hexes = {}
@@ -984,7 +976,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
     --DBG.dbms(n_enemies)
 
-    local zone_power_stats = fred_ops_utils.zone_power_stats(raw_cfgs_main, assigned_units, assigned_enemies, assigned_recruits, fred_data)
+    local zone_power_stats = fred_ops_utils.zone_power_stats(raw_cfgs_main, assigned_units, assigned_enemies, fred_data)
     --DBG.dbms(zone_power_stats)
 
     local keep_trying = true
@@ -1072,7 +1064,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             assigned_units[best_zone][best_unit] = move_data.units[best_unit]
 
             unit_ratings[best_unit] = nil
-            zone_power_stats = fred_ops_utils.zone_power_stats(raw_cfgs_main, assigned_units, assigned_enemies, assigned_recruits, fred_data)
+            zone_power_stats = fred_ops_utils.zone_power_stats(raw_cfgs_main, assigned_units, assigned_enemies, fred_data)
 
             --DBG.dbms(assigned_units)
             --DBG.dbms(unit_ratings)
@@ -1108,7 +1100,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     attacker_ratings = nil
     unit_ratings = nil
 
-    zone_power_stats = fred_ops_utils.zone_power_stats(raw_cfgs_main, assigned_units, assigned_enemies, assigned_recruits, fred_data)
+    zone_power_stats = fred_ops_utils.zone_power_stats(raw_cfgs_main, assigned_units, assigned_enemies, fred_data)
     --DBG.dbms(zone_power_stats)
     --DBG.dbms(reserve_units)
 
@@ -1171,7 +1163,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         assigned_units[best_zone_id][best_id] = move_data.units[best_id]
         reserve_units[best_id] = nil
 
-        zone_power_stats = fred_ops_utils.zone_power_stats(raw_cfgs_main, assigned_units, assigned_enemies, assigned_recruits, fred_data)
+        zone_power_stats = fred_ops_utils.zone_power_stats(raw_cfgs_main, assigned_units, assigned_enemies, fred_data)
         --DBG.dbms(zone_power_stats)
     end
     --DBG.dbms(zone_power_stats)
@@ -1340,7 +1332,6 @@ function fred_ops_utils.set_ops_data(fred_data)
         unassigned_enemies = unassigned_enemies,
         assigned_units = assigned_units,
         retreaters = retreaters,
-        assigned_recruits = assigned_recruits,
         fronts = fronts,
         protect_locs = protect_locs,
         actions = actions,
@@ -1644,7 +1635,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     end
     --DBG.dbms(leader_threats_by_zone)
 
-    local zone_power_stats = fred_ops_utils.zone_power_stats(ops_data.actions.hold_zones, ops_data.assigned_units, ops_data.assigned_enemies, ops_data.assigned_recruits, fred_data)
+    local zone_power_stats = fred_ops_utils.zone_power_stats(ops_data.actions.hold_zones, ops_data.assigned_units, ops_data.assigned_enemies, fred_data)
     --DBG.dbms(zone_power_stats)
 
 
