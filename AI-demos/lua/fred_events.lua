@@ -49,7 +49,7 @@ function fred_events.fred_setup()
         -- Check whether fog is set
         local fog_set = false
         for _,side_info in ipairs(wesnoth.sides) do
-            if side_info.fog then
+            if side_info.fog or side_info.shroud then
                 fog_set = true
             end
         end
