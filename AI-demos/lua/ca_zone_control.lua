@@ -1953,7 +1953,7 @@ local function get_hold_action(zone_cfg, fred_data)
                 -- TODO: this might be too simplistic
                 if protect_leader then
                     local mult = 0
-                    local power_ratio = fred_data.fred_data.turn_data.behavior.orders.neutral_power_ratio
+                    local power_ratio = fred_data.turn_data.behavior.orders.neutral_power_ratio
                     if (power_ratio < 1) then
                         mult = (1 / power_ratio - 1)
                     end
