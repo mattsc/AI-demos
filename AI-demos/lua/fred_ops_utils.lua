@@ -536,13 +536,13 @@ function fred_ops_utils.set_turn_data(move_data)
 
 
             move_data.unit_copies[enemy_id] = wesnoth.copy_unit(enemy_proxy)
-            FC.erase_unit(enemy_x, enemy_y)
+            wesnoth.erase_unit(enemy_x, enemy_y)
             move_data.unit_copies[enemy_id].x = old_x_enemy
             move_data.unit_copies[enemy_id].y = old_y_enemy
         end
 
         move_data.unit_copies[my_id] = wesnoth.copy_unit(my_proxy)
-        FC.erase_unit(my_x, my_y)
+        wesnoth.erase_unit(my_x, my_y)
         move_data.unit_copies[my_id].x = old_x
         move_data.unit_copies[my_id].y = old_y
 

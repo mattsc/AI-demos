@@ -1130,7 +1130,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
                         move_data, move_cache, cfg
                     )
 
-                    FC.erase_unit(defender_loc[1], defender_loc[2])
+                    wesnoth.erase_unit(defender_loc[1], defender_loc[2])
                     wesnoth.put_unit(defender_proxy)
 
                     -- Attacker outcomes are the same as for the not leveled-up case, since an attacker

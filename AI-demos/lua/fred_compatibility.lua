@@ -22,12 +22,4 @@ function fred_compatibility.put_unit(x, y, unit)
     end
 end
 
-function fred_compatibility.erase_unit(x, y)
-    if wesnoth.compare_versions(wesnoth.game_config.version, '>=', '1.13.2') then
-        wesnoth.erase_unit(x, y)
-    else
-        wesnoth.put_unit(x, y)
-    end
-end
-
 return fred_compatibility
