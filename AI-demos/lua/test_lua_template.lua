@@ -38,6 +38,7 @@ ai = wesnoth.debug_ai(wesnoth.current.side).ai
 local fn = "~add-ons/AI-demos/lua/fred.lua"
 fn = "ai/micro_ais/cas/ca_fast_move.lua"
 local self = { data = {} }
+local cfg = {}
 
 -----------------------------------------------------------------
 
