@@ -413,7 +413,7 @@ function fred_utils.get_leader_distance_map(zone_cfgs, side_cfgs, move_data)
             leader_distance_map[x][y] = {
                 my_leader_distance = leader_dist,
                 enemy_leader_distance = enemy_leader_dist,
-                distance = (leader_dist - enemy_leader_dist) / 2
+                distance = (leader_dist - 0.5 * enemy_leader_dist) / 1.5
             }
 
         end
