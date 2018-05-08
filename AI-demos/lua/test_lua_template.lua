@@ -32,7 +32,7 @@ if (not wesnoth.game_config.debug) then
 end
 
 -- Add shortcut to debug ai table
-local ai = wesnoth.debug_ai(wesnoth.current.side).ai -- not local in 1.13!
+ai = wesnoth.debug_ai(wesnoth.current.side).ai
 --DBG.dbms(ai)
 
 local fn = "~add-ons/AI-demos/lua/fred.lua"
