@@ -1112,7 +1112,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
 
                     -- Setting XP to 0, as it is extremely unlikely that a
                     -- defender will level twice in a single attack combo
-                    FC.put_unit(defender_loc[1], defender_loc[2], {
+                    wesnoth.put_unit({
                         id = 'adv_' .. defender_info.id,  -- To distinguish from defender for caching
                         side = defender_info.side,
                         hitpoints = hp1,
@@ -1120,7 +1120,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
                         random_traits = false,  -- The rest is needed to avoid OOS errors
                         name = "X",
                         random_gender = false
-                    })
+                    }, defender_loc[1], defender_loc[2])
                     local adv_defender_proxy = wesnoth.get_unit(defender_loc[1], defender_loc[2])
                     local adv_defender_info = FU.single_unit_info(adv_defender_proxy)
 

@@ -249,7 +249,7 @@ local function get_attack_action(zone_cfg, fred_data)
                             local id = combo_outcome.attacker_infos[i_a].id
                             --print(id, dst[1], dst[2], move_data.unit_copies[id].x, move_data.unit_copies[id].y)
                             if (not move_data.my_units_noMP[id]) then
-                                FC.put_unit(dst[1], dst[2], move_data.unit_copies[id])
+                                wesnoth.put_unit(move_data.unit_copies[id], dst[1], dst[2])
                             end
                         end
 

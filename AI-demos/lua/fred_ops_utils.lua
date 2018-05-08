@@ -435,7 +435,7 @@ function fred_ops_utils.set_turn_data(move_data)
         local old_y = move_data.unit_copies[my_id].y
         local my_x, my_y = attack_locs.attacker_loc[1], attack_locs.attacker_loc[2]
 
-        FC.put_unit(my_x, my_y, move_data.unit_copies[my_id])
+        wesnoth.put_unit(move_data.unit_copies[my_id], my_x, my_y)
         local my_proxy = wesnoth.get_unit(my_x, my_y)
 
         for enemy_id,_ in pairs(move_data.enemies) do
@@ -445,7 +445,7 @@ function fred_ops_utils.set_turn_data(move_data)
             local old_y_enemy = move_data.unit_copies[enemy_id].y
             local enemy_x, enemy_y = attack_locs.defender_loc[1], attack_locs.defender_loc[2]
 
-            FC.put_unit(enemy_x, enemy_y, move_data.unit_copies[enemy_id])
+            wesnoth.put_unit(move_data.unit_copies[enemy_id], enemy_x, enemy_y)
             local enemy_proxy = wesnoth.get_unit(enemy_x, enemy_y)
 
             local bonus_poison = 8

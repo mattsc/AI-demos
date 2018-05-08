@@ -569,7 +569,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                         local id = ratings[dst][src].id
                         local x, y =  math.floor(dst / 1000), dst % 1000
                         --print(id, src, x,y, move_data.unit_copies[id].x, move_data.unit_copies[id].y)
-                        FC.put_unit(x, y, move_data.unit_copies[id])
+                        wesnoth.put_unit(move_data.unit_copies[id], x, y)
                     end
 
                     local can_reach = false
