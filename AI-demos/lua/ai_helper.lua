@@ -1047,16 +1047,15 @@ function ai_helper.find_best_move(units, rating_function, cfg)
     --  best_hex: format { x, y }
     --  best_unit: unit for which this rating function produced the maximum value
     --  max_rating: the rating found for this hex/unit combination
-    -- If no valid moves were found, best_unit and best_hex are empty arrays
-
-    -- TODO: change return value to nil if no unit/hex is found later in 1.13., but keep as is in 1.12
+    -- If no valid moves were found, best_unit and best_hex are nil
+    --  (in Wesnoth 1.12 they were empty tables)
 
     cfg = cfg or {}
 
     -- If this is an individual unit, turn it into an array
     if units.hitpoints then units = { units } end
 
-    local max_rating, best_hex, best_unit = -9e99, {}, {}
+    local max_rating, best_hex, best_unit = -9e99
     for _,unit in ipairs(units) do
         -- Hexes each unit can reach
         local reach_map = ai_helper.get_reachable_unocc(unit)
