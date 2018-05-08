@@ -1,6 +1,13 @@
------ 0.14.10, ? ??? 2018  (continued work on operations layer) -----
+----- 0.14.10, 8 May 2018 -----
 
 - Fred (Freelands AI for Northerners, Side 1):
+  - Operations layer:
+    - Calculate fronts from in-zone influence only
+    - New full-move versions of influence maps
+    - Add individual unit influence maps
+    - Change to leader_distance metric
+    - Fix bug in base_power calculation
+    - New menu options to display behavior instructions
   - Attacking:
     - Fix bug which caused Fred to prefer attacking full-health units over easy
       kills
@@ -10,18 +17,19 @@
   - Holding:
     - Do not push too far ahead of main front with few units
     - Do not do normal hold if it is too wasteful
+    - Keep already protected hexes in protect_locs
   - Advancing:
     - Discourage advancing behind enemy lines without sufficient support
     - Set advance direction to forward or backward depending on enemy threat
       and own-unit support
     - Full reworking of advancement rating (roughly gold-based now)
   - Functionality and misc. other changes:
-    - New menu options to display behavior instructions
+    - Also turn shroud off at scenario start (shroud can get the AI to crash)
     - fred_utils: new functions linear_regression(), behind_enemy_map(),
       support_maps(), approx_value_loss()
-    - New full-move versions of influence maps
     - Many changes/additions to rating functions, game state maps, supporting
       code and debugging information to support the changes above
+    - Add warning that development will be discontinued on Wesnoth 1.12
 
 
 ----- 0.14.9, 7 Dec 2017  (increased aggressiveness vs lawful factions) -----
