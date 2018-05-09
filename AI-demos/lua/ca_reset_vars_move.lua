@@ -1,7 +1,6 @@
 ----- CA: Reset variables at beginning of each move (max_score: 999997) -----
 -- This always returns 0 -> will never be executed, but evaluated before each move
 
-local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FGU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils.lua"
 
 local ca_reset_vars_move = {}
