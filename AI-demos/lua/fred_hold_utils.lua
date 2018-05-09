@@ -2,7 +2,6 @@ local H = wesnoth.require "helper"
 local AH = wesnoth.require "ai/lua/ai_helper.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
-local W = H.set_wml_action_metatable {}
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
@@ -740,19 +739,19 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             local x, y
             for src,dst in pairs(combo.combo) do
                 x, y =  math.floor(dst / 1000), dst % 1000
-                W.label { x = x, y = y, text = ratings[dst][src].id }
+                wesnoth.wml_actions.label { x = x, y = y, text = ratings[dst][src].id }
             end
             wesnoth.scroll_to_tile(x, y)
             local rating_str =  string.format("%.4f = %.4f x %.4f x %.4f", formation_rating, angle_fac or -1111, dist_fac or -2222, combo.base_rating or -9999)
             local max_str = string.format("max:  protected: %.4f,  all: %.4f", tmp_max_rating or -9999, tmp_all_max_rating or -9999)
-            W.message {
+            wesnoth.wml_actions.message {
                 speaker = 'narrator', caption = 'Combo ' .. i_c .. '/' .. #valid_combos .. ': formation_rating',
                 message = rating_str .. '   is_protected = ' .. protected_str
                     .. '\n' .. max_str
             }
             for src,dst in pairs(combo.combo) do
                 x, y =  math.floor(dst / 1000), dst % 1000
-                W.label { x = x, y = y, text = "" }
+                wesnoth.wml_actions.label { x = x, y = y, text = "" }
             end
         end
     end
@@ -897,19 +896,19 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 protected_str = 'n/a'
             end
             for i_l,loc in pairs(new_locs) do
-                W.label { x = loc[1], y = loc[2], text = ids[i_l] }
+                wesnoth.wml_actions.label { x = loc[1], y = loc[2], text = ids[i_l] }
             end
             wesnoth.scroll_to_tile(new_locs[1][1], new_locs[1][2])
 
             local rating_str =  string.format("%.4f = %.4f x %.4f", counter_rating, rel_rating, combo.formation_rating)
             local max_str = string.format("max:  protected: %.4f,  all: %.4f", max_rating or -9999, all_max_rating or -9999)
-            W.message {
+            wesnoth.wml_actions.message {
                 speaker = 'narrator', caption = 'Combo ' .. i_c .. '/' .. #valid_combos .. ': counter_rating',
                 message = rating_str .. '   is_protected = ' .. protected_str
                     .. '\n' .. max_str
             }
             for i_l,loc in pairs(new_locs) do
-                W.label { x = loc[1], y = loc[2], text = "" }
+                wesnoth.wml_actions.label { x = loc[1], y = loc[2], text = "" }
             end
         end
 

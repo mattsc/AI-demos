@@ -1,5 +1,4 @@
 local H = wesnoth.require "helper"
-local W = H.set_wml_action_metatable {}
 local AH = wesnoth.require "ai/lua/ai_helper.lua"
 local AHL = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper_local.lua"
 local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
@@ -600,7 +599,7 @@ local function get_attack_action(zone_cfg, fred_data)
             for i_a,attacker_info in ipairs(combo.attackers) do
                 if DBG.show_debug('attack_combos') then
                     local id, x, y = attacker_info.id, combo.dsts[i_a][1], combo.dsts[i_a][2]
-                    W.label { x = x, y = y, text = attacker_info.id }
+                    wesnoth.wml_actions.label { x = x, y = y, text = attacker_info.id }
                 end
 
                 table.insert(old_locs, move_data.my_units[attacker_info.id])
@@ -1122,10 +1121,10 @@ local function get_attack_action(zone_cfg, fred_data)
 
             if DBG.show_debug('attack_combos') then
                 wesnoth.scroll_to_tile(target_loc[1], target_loc[2])
-                W.message { speaker = 'narrator', message = 'Attack combo ' .. count .. '/' .. #combo_ratings .. ': ' .. total_rating .. ' / ' .. (max_total_rating or 0) .. '    (pre-rating: ' .. combo.pre_rating .. ')' }
+                wesnoth.wml_actions.message { speaker = 'narrator', message = 'Attack combo ' .. count .. '/' .. #combo_ratings .. ': ' .. total_rating .. ' / ' .. (max_total_rating or 0) .. '    (pre-rating: ' .. combo.pre_rating .. ')' }
                 for i_a,attacker_info in ipairs(combo.attackers) do
                     local x, y = combo.dsts[i_a][1], combo.dsts[i_a][2]
-                    W.label { x = x, y = y, text = "" }
+                    wesnoth.wml_actions.label { x = x, y = y, text = "" }
                 end
             end
         end
@@ -1134,13 +1133,13 @@ local function get_attack_action(zone_cfg, fred_data)
     if DBG.show_debug('attack_best_combo') then
         if action then
             for i_a,attacker in ipairs(action.units) do
-                W.label { x = action.dsts[i_a][1], y = action.dsts[i_a][2], text = attacker.id }
+                wesnoth.wml_actions.label { x = action.dsts[i_a][1], y = action.dsts[i_a][2], text = attacker.id }
             end
             local _,target_loc = next(action.enemy)
             wesnoth.scroll_to_tile(target_loc[1], target_loc[2])
-            W.message { speaker = 'narrator', message = 'Best attack combo' }
+            wesnoth.wml_actions.message { speaker = 'narrator', message = 'Best attack combo' }
             for i_a,attacker in ipairs(action.units) do
-                W.label { x = action.dsts[i_a][1], y = action.dsts[i_a][2], text = "" }
+                wesnoth.wml_actions.label { x = action.dsts[i_a][1], y = action.dsts[i_a][2], text = "" }
             end
         end
     end
@@ -2114,13 +2113,13 @@ local function get_hold_action(zone_cfg, fred_data)
         for src,dst in pairs(best_combo) do
             x, y =  math.floor(dst / 1000), dst % 1000
             local id = ratings[dst][src].id
-            W.label { x = x, y = y, text = id }
+            wesnoth.wml_actions.label { x = x, y = y, text = id }
         end
         wesnoth.scroll_to_tile(x, y)
-        W.message { speaker = 'narrator', message = 'Best hold combo' }
+        wesnoth.wml_actions.message { speaker = 'narrator', message = 'Best hold combo' }
         for src,dst in pairs(best_combo) do
             x, y =  math.floor(dst / 1000), dst % 1000
-            W.label { x = x, y = y, text = "" }
+            wesnoth.wml_actions.label { x = x, y = y, text = "" }
         end
     end
 

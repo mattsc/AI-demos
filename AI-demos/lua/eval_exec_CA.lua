@@ -4,8 +4,6 @@
 -- See the github wiki page for a detailed description of how to use them:
 -- https://github.com/mattsc/Wesnoth-AI-Demos/wiki/CA-debugging
 
-local H = wesnoth.require "helper"
-local W = H.set_wml_action_metatable {}
 --local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local function debug_CA()
@@ -34,7 +32,7 @@ local function set_menus()
     -- Set the two menu items that have the selected CA name in them
     -- They need to be reset when that is changed, that's why this is done here
 
-    W.set_menu_item {
+    wesnoth.wml_actions.set_menu_item {
         id = 'm01_eval',
         description = 'Evaluate Single Candidate Action: ' .. CA_name(),
         image = 'items/ring-red.png~CROP(26,26,20,20)',
@@ -42,7 +40,7 @@ local function set_menus()
         { 'default_hotkey', { key = 'v' } }
     }
 
-    W.set_menu_item {
+    wesnoth.wml_actions.set_menu_item {
         id = 'm02_exec',
         description = 'Evaluate and Execute Single Candidate Action: ' .. CA_name(),
         image = 'items/ring-gold.png~CROP(26,26,20,20)',
@@ -132,12 +130,12 @@ return {
         if debug_CA_mode and wesnoth.game_config.debug then
             wesnoth.fire_event("debug_CA")
         else
-            W.clear_menu_item { id = 'm01_eval' }
-            W.clear_menu_item { id = 'm02_exec' }
-            W.clear_menu_item { id = 'm02a_units_info' }
-            --W.clear_menu_item { id = 'm03_choose_ca' }
-            --W.clear_menu_item { id = 'm04_highest_score_CA' }
-            W.clear_menu_item { id = 'm05_play_turn' }
+            wesnoth.wml_actions.clear_menu_item { id = 'm01_eval' }
+            wesnoth.wml_actions.clear_menu_item { id = 'm02_exec' }
+            wesnoth.wml_actions.clear_menu_item { id = 'm02a_units_info' }
+            --wesnoth.wml_actions.clear_menu_item { id = 'm03_choose_ca' }
+            --wesnoth.wml_actions.clear_menu_item { id = 'm04_highest_score_CA' }
+            wesnoth.wml_actions.clear_menu_item { id = 'm05_play_turn' }
         end
     end,
 
@@ -242,7 +240,7 @@ return {
             local ca_name, score = 'zone_control', ca:evaluation(nil, self, ai)
 
             if (score > 0) then
-                W.message {
+                wesnoth.wml_actions.message {
                     speaker = 'narrator',
                     caption = "Executing " .. ca_name .. " CA",
                     image = 'wesnoth-icon.png', message = "Score: " .. score
@@ -252,7 +250,7 @@ return {
                 wesnoth.set_variable('debug_CA_name', ca_name)
                 ca:execution(nil, self, ai)
             else
-                W.message {
+                wesnoth.wml_actions.message {
                     speaker = 'narrator',
                     caption = "No more CAs with positive scores to execute",
                     image = 'wesnoth-icon.png', message = "That's all."

@@ -1,5 +1,4 @@
 local H = wesnoth.require "helper"
-local W = H.set_wml_action_metatable {}
 
 local fred_events = {}
 
@@ -25,7 +24,7 @@ function fred_events.fred_setup()
     if fred_side then
         -- First thing we do is set the name and id of the side leader
         -- This is done for the messages
-        W.modify_unit {
+        wesnoth.wml_actions.modify_unit {
             { 'filter', { side = fred_side, canrecruit = 'yes' } },
             id = 'Fred',
             name = 'Fred'
@@ -60,12 +59,12 @@ function fred_events.fred_setup()
         local start_loc = wesnoth.get_starting_location(wesnoth.current.side)
 
         if (not can_recruit_grunts) or (width ~= 37) or (height ~= 24) or (start_loc[1] ~= 19) or ((start_loc[2] ~= 4) and (start_loc[2] ~= 20)) then
-            W.message {
+            wesnoth.wml_actions.message {
                 id = 'Fred',
                 caption = "Fred (Freelands AI v" .. version .. ")",
                 message = "I currently only know how to play Northerners as Side 1 on the Freelands map. Sorry!"
             }
-            W.endlevel { result = 'defeat' }
+            wesnoth.wml_actions.endlevel { result = 'defeat' }
         else
             if fog_set then
                 wesnoth.fire_event("fred_lift_fog")

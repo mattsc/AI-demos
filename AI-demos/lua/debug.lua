@@ -1,5 +1,3 @@
-local H = wesnoth.require "helper"
-local W = H.set_wml_action_metatable {}
 local items = wesnoth.require "lua/wml/items.lua"
 
 -- Note: Assigning this table is slow compared to accessing values in it. It is
@@ -99,7 +97,7 @@ function debug_utils.clear_labels()
     local width, height = wesnoth.get_map_size()
     for x = 1,width do
         for y = 1,height do
-            W.label { x = x, y = y, text = "" }
+            wesnoth.wml_actions.label { x = x, y = y, text = "" }
         end
     end
 end
@@ -183,7 +181,7 @@ function debug_utils.put_fgumap_labels(map, key, cfg)
                 out = out * factor
             end
 
-            W.label {
+            wesnoth.wml_actions.label {
                 x = x, y = y,
                 text = out,
                 color = 255 * red_fac .. ',' .. 255 * green_fac .. ',' .. 255 * blue_fac
@@ -206,18 +204,18 @@ function debug_utils.show_fgumap_with_message(map, key, text, cfg)
             items.place_halo(cfg.x, cfg.y, "halo/teleport-8.png")
         end
     end
-    W.redraw()
+    wesnoth.wml_actions.redraw {}
     local id = cfg and cfg.id
     if id then
-        W.message { speaker = 'narrator', message = text .. ': ' .. id }
+        wesnoth.wml_actions.message { speaker = 'narrator', message = text .. ': ' .. id }
     else
-        W.message { speaker = 'narrator', message = text }
+        wesnoth.wml_actions.message { speaker = 'narrator', message = text }
     end
     if cfg and cfg.x and cfg.y and (not cfg.no_halo) then
         items.remove(cfg.x, cfg.y, "halo/teleport-8.png")
     end
     debug_utils.clear_labels()
-    W.redraw()
+    wesnoth.wml_actions.redraw {}
 end
 
 
