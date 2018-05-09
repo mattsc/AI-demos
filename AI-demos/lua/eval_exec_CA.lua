@@ -4,7 +4,7 @@
 -- See the github wiki page for a detailed description of how to use them:
 -- https://github.com/mattsc/Wesnoth-AI-Demos/wiki/CA-debugging
 
-local H = wesnoth.require "lua/helper.lua"
+local H = wesnoth.require "helper"
 local W = H.set_wml_action_metatable {}
 --local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
@@ -184,7 +184,7 @@ return {
         -- The result is stored in WML variable 'debug_CA_name'
         if wrong_side(1) then return end
 
-        local H = wesnoth.require "lua/helper.lua"
+        local H = wesnoth.require "helper"
 
         local cas = get_all_CA_names()
 

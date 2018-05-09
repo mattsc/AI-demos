@@ -6,7 +6,7 @@
 -- /Applications/Wesnoth-1.11.app/Contents/MacOS/Wesnoth -d -l AI-demos-test.gz
 
 -- Include all these, just in case (mostly not needed)
-local H = wesnoth.require "lua/helper.lua"
+local H = wesnoth.require "helper"
 local W = H.set_wml_action_metatable {}
 local AH = wesnoth.require "ai/lua/ai_helper.lua"
 local MAIH = wesnoth.require "ai/micro_ais/micro_ai_helper.lua"
