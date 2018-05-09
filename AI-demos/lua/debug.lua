@@ -437,7 +437,7 @@ function debug_utils.set_inspect()
         wesnoth.wml_actions.message({ speaker = "narrator", message = "Condition ? Example: \"$|turn_number == 2 and $|side_number == 3\" (without the \"\"):", image = "wesnoth-icon.png",
         {"text_input", { variable = "LUA_inspect_condition", text = "true" }},
         })
-        local condition_userdata = wesnoth.tovconfig({ condition_string = wesnoth.get_variable("LUA_inspect_condition") })
+        local condition_userdata = wml.tovconfig({ condition_string = wesnoth.get_variable("LUA_inspect_condition") })
         wesnoth.set_variable("LUA_inspect_condition")
 
         local function show_inspect()
