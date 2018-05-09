@@ -1,6 +1,6 @@
 ----- CA: Move leader to keep (max_score: 480,000) -----
 
-local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
+local AH = wesnoth.require "ai/lua/ai_helper.lua"
 local FMLU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_move_leader_utils.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 

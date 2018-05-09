@@ -3,7 +3,7 @@
 -- units without MP. They might still attack in this case (such as
 -- unanswerable attacks), while they do not if they can still move
 
-local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
+local AH = wesnoth.require "ai/lua/ai_helper.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local ca_remove_mp = {}

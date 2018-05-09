@@ -1,6 +1,7 @@
 local H = wesnoth.require "lua/helper.lua"
 local W = H.set_wml_action_metatable {}
-local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
+local AH = wesnoth.require "ai/lua/ai_helper.lua"
+local AHL = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper_local.lua"
 local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FOU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_ops_utils.lua"
@@ -3160,7 +3161,7 @@ function ca_zone_control:execution(cfg, data, ai_debug)
 
 
         if data.zone_action.partial_move then
-            AH.movepartial_outofway_stopunit(ai, unit, dst[1], dst[2], { dx = dx, dy = dy })
+            AHL.movepartial_outofway_stopunit(ai, unit, dst[1], dst[2], { dx = dx, dy = dy })
         else
             AH.movefull_outofway_stopunit(ai, unit, dst[1], dst[2], { dx = dx, dy = dy })
         end

@@ -1,4 +1,4 @@
-local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
+local AH = wesnoth.require "ai/lua/ai_helper.lua"
 local H = wesnoth.require "lua/helper.lua"
 
 local ca_move_unittype = {}

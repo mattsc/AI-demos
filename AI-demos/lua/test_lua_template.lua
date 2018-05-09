@@ -8,7 +8,7 @@
 -- Include all these, just in case (mostly not needed)
 local H = wesnoth.require "lua/helper.lua"
 local W = H.set_wml_action_metatable {}
-local AH = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper.lua"
+local AH = wesnoth.require "ai/lua/ai_helper.lua"
 local MAIH = wesnoth.require "ai/micro_ais/micro_ai_helper.lua"
 local MAIUV = wesnoth.require "ai/micro_ais/micro_ai_unit_variables.lua"
 local MAISD = wesnoth.require "ai/micro_ais/micro_ai_self_data.lua"
