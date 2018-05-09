@@ -1,5 +1,3 @@
-local items = wesnoth.require "lua/wml/items.lua"
-
 -- Note: Assigning this table is slow compared to accessing values in it. It is
 -- thus done outside the functions below, so that it is not done over and over
 -- for each function call.
@@ -201,7 +199,7 @@ function debug_utils.show_fgumap_with_message(map, key, text, cfg)
     if cfg and cfg.x and cfg.y then
         wesnoth.scroll_to_tile(cfg.x,cfg.y)
         if (not cfg.no_halo) then
-            items.place_halo(cfg.x, cfg.y, "halo/teleport-8.png")
+            wesnoth.wml_actions.item { x = cfg.x, y = cfg.y, halo = "halo/teleport-8.png" }
         end
     end
     wesnoth.wml_actions.redraw {}
@@ -212,7 +210,7 @@ function debug_utils.show_fgumap_with_message(map, key, text, cfg)
         wesnoth.wml_actions.message { speaker = 'narrator', message = text }
     end
     if cfg and cfg.x and cfg.y and (not cfg.no_halo) then
-        items.remove(cfg.x, cfg.y, "halo/teleport-8.png")
+        wesnoth.wml_actions.remove_item { x = cfg.x, y = cfg.y, image = "halo/teleport-8.png" }
     end
     debug_utils.clear_labels()
     wesnoth.wml_actions.redraw {}
