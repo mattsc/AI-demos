@@ -64,7 +64,7 @@ function fred_events.fred_setup()
                 caption = "Fred (Freelands AI v" .. version .. ")",
                 message = "I currently only know how to play Northerners as Side 1 on the Freelands map. Sorry!"
             }
-            wesnoth.wml_actions.endlevel { result = 'defeat' }
+            wesnoth.wml_actions.endlevel { result = 'victory' }
         else
             if fog_set then
                 wesnoth.fire_event("fred_lift_fog")
