@@ -802,9 +802,9 @@ return {
                     local unit = wesnoth.get_unit(c[1], c[2])
                     if (not unit) or outofway_units[unit.id] then
                         for j,e in ipairs(enemy_leaders) do
-                            rating = rating + 1 / H.distance_between(c[1], c[2], e.x, e.y) ^ 2.
+                            rating = rating + 1 / wesnoth.map.distance_between(c[1], c[2], e.x, e.y) ^ 2.
                         end
-                        rating = rating + 1 / H.distance_between(c[1], c[2], closest_enemy_location.x, closest_enemy_location.y) ^ 2.
+                        rating = rating + 1 / wesnoth.map.distance_between(c[1], c[2], closest_enemy_location.x, closest_enemy_location.y) ^ 2.
 
                         -- If there's a unit on the hex (that is marked as being able
                         -- to move out of the way, otherwise we don't get here), give
@@ -1059,7 +1059,7 @@ return {
                 c_index = c[1] + c[2]*1000
                 total_village_distance[c_index] = 0
                 for i,v in ipairs(villages) do
-                    total_village_distance[c_index] = total_village_distance[c_index] + H.distance_between(c[1], c[2], v[1], v[2])
+                    total_village_distance[c_index] = total_village_distance[c_index] + wesnoth.map.distance_between(c[1], c[2], v[1], v[2])
                 end
             end
 

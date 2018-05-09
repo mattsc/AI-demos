@@ -1,5 +1,4 @@
 local AH = wesnoth.require "ai/lua/ai_helper.lua"
-local H = wesnoth.require "helper"
 
 local fred_move_leader_utils = {}
 
@@ -38,8 +37,8 @@ function fred_move_leader_utils.move_eval(move_unit_away, fred_data)
                                        -- so that the leader does not try to get to unreachable locations
     for _,keep in ipairs(keeps) do
         -- Count keep closer to the enemy leader as belonging to the enemy
-        local dist_leader = H.distance_between(keep[1], keep[2], leader[1], leader[2])
-        local dist_enemy_leader = H.distance_between(keep[1], keep[2], move_data.enemy_leader_x, move_data.enemy_leader_y)
+        local dist_leader = wesnoth.map.distance_between(keep[1], keep[2], leader[1], leader[2])
+        local dist_enemy_leader = wesnoth.map.distance_between(keep[1], keep[2], move_data.enemy_leader_x, move_data.enemy_leader_y)
         local is_enemy_keep = dist_enemy_leader < dist_leader
         --print(keep[1], keep[2], dist_leader, dist_enemy_leader, is_enemy_keep)
 

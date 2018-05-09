@@ -190,7 +190,7 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, tur
                 for y2=y-3,y+3 do
                     if ((x2 ~= x) or (y2 ~= y)) then
                         -- This is faster than filtering by radius
-                        local dr = H.distance_between(x, y, x2, y2)
+                        local dr = wesnoth.map.distance_between(x, y, x2, y2)
                         if (dr <= 3) then
                             local dist2, perp_dist2
                             if between_map then
@@ -620,7 +620,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 for src2,dst2 in pairs(combo.combo) do
                     if (src2 ~= src) or (dst2 ~= dst) then
                         x2, y2 =  math.floor(dst2 / 1000), dst2 % 1000
-                        local d = H.distance_between(x2, y2, x, y)
+                        local d = wesnoth.map.distance_between(x2, y2, x, y)
                         if (not min_dist) or (d < min_dist) then
                             min_dist = d
                         end
@@ -657,8 +657,8 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 table.sort(dists, function(a, b) return a.perp_dist < b.perp_dist end)
             else
                 for _,dist in ipairs(dists) do
-                    local d1 = H.distance_between(dist.x, dist.y, extremes.x, extremes.y)
-                    local d2 = H.distance_between(dist.x, dist.y, extremes.x2, extremes.y2)
+                    local d1 = wesnoth.map.distance_between(dist.x, dist.y, extremes.x, extremes.y)
+                    local d2 = wesnoth.map.distance_between(dist.x, dist.y, extremes.x2, extremes.y2)
                     --print(dist.x, dist.y, d1, d2, d1 - d2)
                     dist.perp_rank = d1 - d2
                 end
@@ -675,7 +675,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                     -- Note, this must be x/y, not y/x!  We want the angle from the toward-leader direction
                     angle = math.atan(dx, dy) / 1.5708
                 else
-                    local dr = H.distance_between(dists[i_h + 1].x, dists[i_h + 1].y, dists[i_h].x, dists[i_h].y)
+                    local dr = wesnoth.map.distance_between(dists[i_h + 1].x, dists[i_h + 1].y, dists[i_h].x, dists[i_h].y)
                     -- Note, this must be y/r, not x/r!  We want the angle from the toward-leader direction
                     if (dy > dr) then
                         angle = 0

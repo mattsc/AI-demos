@@ -1,4 +1,3 @@
-local H = wesnoth.require "helper"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
@@ -28,8 +27,8 @@ function fred_village_utils.villages_to_protect(zone_cfgs, side_cfgs, move_data)
 
     local villages_to_protect_maps = {}
     for x,y,_ in FU.fgumap_iter(move_data.village_map) do
-        local my_distance = H.distance_between(x, y, my_start_hex[1], my_start_hex[2])
-        local enemy_distance = H.distance_between(x, y, enemy_start_hex[1], enemy_start_hex[2])
+        local my_distance = wesnoth.map.distance_between(x, y, my_start_hex[1], my_start_hex[2])
+        local enemy_distance = wesnoth.map.distance_between(x, y, enemy_start_hex[1], enemy_start_hex[2])
 
         local village_zone
         for zone_id,_ in pairs(zone_maps) do

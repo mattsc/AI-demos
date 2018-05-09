@@ -4,7 +4,6 @@ return {
         -- Grab a useful separate CA as a starting point
         local generic_rush = wesnoth.require("~/add-ons/AI-demos/lua/move_to_any_target.lua").init(ai)
 
-        local H = wesnoth.require "helper"
         local AH = wesnoth.require "ai/lua/ai_helper.lua"
         local BC = wesnoth.require "ai/lua/battle_calcs.lua"
         local LS = wesnoth.require "location_set"
@@ -152,7 +151,7 @@ return {
                 if turns <= 2 then
                     score = 1/turns
                     for j,e in ipairs(enemy_leaders) do
-                        score = score + 1 / H.distance_between(loc[1], loc[2], e.x, e.y)
+                        score = score + 1 / wesnoth.map.distance_between(loc[1], loc[2], e.x, e.y)
                     end
 
                     if score > best_score then
@@ -181,7 +180,7 @@ return {
                 local score = 1/best_turns
                 for j,e in ipairs(enemy_leaders) do
                     -- count all distances as three less than they actually are
-                    local distance = H.distance_between(leader.x, leader.y, e.x, e.y)
+                    local distance = wesnoth.map.distance_between(leader.x, leader.y, e.x, e.y)
                     score = score + 1 / (distance - 3)
                     current_keep_score = current_keep_score + 1 / distance
                 end
@@ -357,7 +356,7 @@ return {
                     if (not village_occupied) then
                         -- Path finding is expensive, so we do a first cut simply by distance
                         -- There is no way a unit can get to the village if the distance is greater than its moves
-                        local dist = H.distance_between(u.x, u.y, v[1], v[2])
+                        local dist = wesnoth.map.distance_between(u.x, u.y, v[1], v[2])
                         if (dist <= u.moves) then
                             local path, cost = wesnoth.find_path(u, v[1], v[2])
                             if (cost <= u.moves) then

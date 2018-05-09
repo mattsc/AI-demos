@@ -429,7 +429,7 @@ function fred_gamestate_utils.get_move_data()
             if (int_turns == 0) then int_turns = 1 end
 
             if is_trapped and (int_turns == 1) then
-                if (H.distance_between(loc[1], loc[2], unit_copies[enemy_id].x, unit_copies[enemy_id].y) > 1) then
+                if (wesnoth.map.distance_between(loc[1], loc[2], unit_copies[enemy_id].x, unit_copies[enemy_id].y) > 1) then
                     is_trapped = nil
                 end
             end

@@ -1281,7 +1281,7 @@ local function get_hold_action(zone_cfg, fred_data)
             local min_dist, max_dist
             for xa,ya in H.adjacent_tiles(x, y) do
                 -- Need the range of distance whether the enemy can get there or not
-                local dist = H.distance_between(enemy_loc[1], enemy_loc[2], xa, ya)
+                local dist = wesnoth.map.distance_between(enemy_loc[1], enemy_loc[2], xa, ya)
                 if (not max_dist) or (dist > max_dist) then
                     max_dist = dist
                 end
@@ -3172,7 +3172,7 @@ function ca_zone_control:execution(cfg, data, ai_debug)
         table.remove(data.zone_action.dsts, next_unit_ind)
 
         -- Then do the attack, if there is one to do
-        if enemy_proxy and (H.distance_between(unit.x, unit.y, enemy_proxy.x, enemy_proxy.y) == 1) then
+        if enemy_proxy and (wesnoth.map.distance_between(unit.x, unit.y, enemy_proxy.x, enemy_proxy.y) == 1) then
             local weapon = data.zone_action.weapons[next_unit_ind]
             table.remove(data.zone_action.weapons, next_unit_ind)
 

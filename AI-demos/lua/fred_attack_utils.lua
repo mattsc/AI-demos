@@ -461,8 +461,8 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
         local rel_dist_rating = 0.
         for _,dst in ipairs(dsts) do
             local relative_distance =
-                H.distance_between(defender_x, defender_y, move_data.leader_x, move_data.leader_y)
-                - H.distance_between(dst[1], dst[2], move_data.leader_x, move_data.leader_y)
+                wesnoth.map.distance_between(defender_x, defender_y, move_data.leader_x, move_data.leader_y)
+                - wesnoth.map.distance_between(dst[1], dst[2], move_data.leader_x, move_data.leader_y)
             rel_dist_rating = rel_dist_rating + relative_distance
         end
         rel_dist_rating = rel_dist_rating / #dsts * distance_leader_weight
