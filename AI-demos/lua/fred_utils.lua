@@ -744,7 +744,7 @@ function fred_utils.single_unit_info(unit_proxy)
 
     -- Include the ability type, such as: hides, heals, regenerate, skirmisher (set up as 'hides = true')
     single_unit_info.abilities = {}
-    local abilities = H.get_child(unit_proxy.__cfg, "abilities")
+    local abilities = wml.get_child(unit_proxy.__cfg, "abilities")
     if abilities then
         for _,ability in ipairs(abilities) do
             single_unit_info.abilities[ability[1]] = true
@@ -755,11 +755,11 @@ function fred_utils.single_unit_info(unit_proxy)
     -- including specials (e.g. 'poison = true')
     single_unit_info.attacks = {}
     local max_damage = 0
-    for attack in H.child_range(unit_cfg, 'attack') do
+    for attack in wml.child_range(unit_cfg, 'attack') do
         -- Extract information for specials; we do this first because some
         -- custom special might have the same name as one of the default scalar fields
         local a = {}
-        for special in H.child_range(attack, 'specials') do
+        for special in wml.child_range(attack, 'specials') do
             for _,sp in ipairs(special) do
                 if (sp[1] == 'damage') then  -- this is 'backstab'
                     if (sp[2].id == 'backstab') then
@@ -814,15 +814,15 @@ function fred_utils.single_unit_info(unit_proxy)
     -- The following can only be done on a real unit, not on a unit type
     if (unit_proxy.x) then
         single_unit_info.status = {}
-        local status = H.get_child(unit_cfg, "status")
+        local status = wml.get_child(unit_cfg, "status")
         for k,_ in pairs(status) do
             single_unit_info.status[k] = true
         end
 
 
         single_unit_info.traits = {}
-        local mods = H.get_child(unit_cfg, "modifications")
-        for trait in H.child_range(mods, 'trait') do
+        local mods = wml.get_child(unit_cfg, "modifications")
+        for trait in wml.child_range(mods, 'trait') do
             single_unit_info.traits[trait.id] = true
         end
 
@@ -831,7 +831,7 @@ function fred_utils.single_unit_info(unit_proxy)
         single_unit_info.tod_mod = fred_utils.get_unit_time_of_day_bonus(single_unit_info.alignment, single_unit_info.traits.fearless, wesnoth.get_time_of_day().lawful_bonus)
 
         -- Define what "good terrain" means for a unit
-        local defense = H.get_child(unit_proxy.__cfg, "defense")
+        local defense = wml.get_child(unit_proxy.__cfg, "defense")
 
         -- Get the hit chances for all terrains and sort (best = lowest hit chance first)
         local hit_chances = {}
