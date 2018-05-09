@@ -1,16 +1,14 @@
 ----- CA: Reset variables at beginning of turn (max_score: 999998) -----
 -- This will be blacklisted after first execution each turn
 
-local FC = wesnoth.require "~/add-ons/AI-demos/lua/fred_compatibility.lua"
-
 local ca_reset_vars_turn = {}
 
 function ca_reset_vars_turn:evaluation()
     return 999998
 end
 
-function ca_reset_vars_turn:execution(arg1, arg2, arg3, use_1_12_syntax)
-    local ai, cfg, data = FC.set_CA_args(arg1, arg2, arg3, use_1_12_syntax)
+function ca_reset_vars_turn:execution(cfg, data, ai_debug)
+    local ai = ai_debug or ai
 
     --print(' Resetting variables at beginning of Turn ' .. wesnoth.current.turn)
 

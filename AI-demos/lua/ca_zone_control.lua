@@ -10,7 +10,6 @@ local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 local FRU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_retreat_utils.lua"
 local FHU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_hold_utils.lua"
 local FMLU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_move_leader_utils.lua"
-local FC = wesnoth.require "~/add-ons/AI-demos/lua/fred_compatibility.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
 
 ----- Attack: -----
@@ -2706,8 +2705,8 @@ end
 
 local ca_zone_control = {}
 
-function ca_zone_control:evaluation(arg1, arg2, arg3, use_1_12_syntax)
-    local ai, cfg, data = FC.set_CA_args(arg1, arg2, arg3, use_1_12_syntax)
+function ca_zone_control:evaluation(cfg, data, ai_debug)
+    local ai = ai_debug or ai
 
     local score_zone_control = 350000
     local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
@@ -2832,8 +2831,8 @@ function ca_zone_control:evaluation(arg1, arg2, arg3, use_1_12_syntax)
     return 0
 end
 
-function ca_zone_control:execution(arg1, arg2, arg3, use_1_12_syntax)
-    local ai, cfg, data = FC.set_CA_args(arg1, arg2, arg3, use_1_12_syntax)
+function ca_zone_control:execution(cfg, data, ai_debug)
+    local ai = ai_debug or ai
 
     local action = data.zone_action.zone_id .. ': ' .. data.zone_action.action_str
     --DBG.dbms(data.zone_action)
