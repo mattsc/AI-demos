@@ -2,7 +2,6 @@
 -- This will be blacklisted after first execution each turn
 
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
-local FC = wesnoth.require "~/add-ons/AI-demos/lua/fred_compatibility.lua"
 
 local ca_stats = {}
 
@@ -10,9 +9,7 @@ function ca_stats:evaluation()
     return 999990
 end
 
-function ca_stats:execution(arg1, arg2, arg3)
-    local ai, cfg, data = FC.set_CA_args(arg1, arg2, arg3)
-
+function ca_stats:execution(cfg, data)
     local tod = wesnoth.get_time_of_day()
     print('\n**** Fred ' .. wesnoth.dofile('~/add-ons/AI-demos/version.lua') .. ' *******************************************************')
     DBG.print_ts('Beginning of Turn ' .. wesnoth.current.turn .. ' (' .. tod.name ..') stats')
