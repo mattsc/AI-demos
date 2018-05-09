@@ -205,7 +205,7 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, tur
                             if between_map then
                                 local dx = math.abs(perp_dist - perp_dist2)
                                 -- Note, this must be x/y, not y/x!  We want the angle from the toward-leader direction
-                                angle = math.atan2(dx, dy) / 1.5708
+                                angle = math.atan(dx, dy) / 1.5708
                             else
                                 -- Note, this must be y/r, not x/r!  We want the angle from the toward-leader direction
                                 if (dy > dr) then
@@ -673,7 +673,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 if between_map then
                     local dx = math.abs(dists[i_h + 1].perp_dist - dists[i_h].perp_dist)
                     -- Note, this must be x/y, not y/x!  We want the angle from the toward-leader direction
-                    angle = math.atan2(dx, dy) / 1.5708
+                    angle = math.atan(dx, dy) / 1.5708
                 else
                     local dr = H.distance_between(dists[i_h + 1].x, dists[i_h + 1].y, dists[i_h].x, dists[i_h].y)
                     -- Note, this must be y/r, not x/r!  We want the angle from the toward-leader direction
