@@ -24,7 +24,7 @@ local function CA_name()
     -- It takes the value from WML variable 'debug_CA_name' if that variable exists,
     -- otherwise it defaults to 'recruit_orcs'
 
-    local name = wesnoth.get_variable('debug_CA_name')
+    local name = wml.variables.debug_CA_name
     return name or 'zone_control'
 end
 
@@ -109,7 +109,7 @@ local function highest_score_CA(ai)
 
     local best_ca, max_score = '', 0
     for i,c in ipairs(cas) do
-        wesnoth.set_variable('debug_CA_name', c)
+        wml.variables.debug_CA_name = c
         local score = eval_CA(ai, true)
         --wesnoth.message(c .. ': ' .. score)
 
@@ -199,7 +199,7 @@ return {
         --wesnoth.message(cas[choice])
 
         -- Now set the WML variable
-        wesnoth.set_variable('debug_CA_name', cas[choice])
+        wml.variables.debug_CA_name = cas[choice]
         -- And set the menu items accordingly
         set_menus()
     end,
@@ -216,10 +216,10 @@ return {
 
         if (score > 0) then
             wesnoth.message('Highest scoring CA: ' .. ca .. ': ' .. score)
-            wesnoth.set_variable('debug_CA_name', ca)
+            wml.variables.debug_CA_name = ca
         else
             wesnoth.message('No CA has a score greater than 0')
-            wesnoth.set_variable('debug_CA_name', 'recruit_orcs')
+            wml.variables.debug_CA_name = 'recruit_orcs'
         end
         -- And set the menu items accordingly
         set_menus()
@@ -247,7 +247,7 @@ return {
                 }
 
                 -- Need to evaluate the CA again first, so that 'self.data' gets set up
-                wesnoth.set_variable('debug_CA_name', ca_name)
+                wml.variables.debug_CA_name = ca_name
                 ca:execution(nil, self, ai)
             else
                 wesnoth.wml_actions.message {

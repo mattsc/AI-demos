@@ -28,7 +28,7 @@ function fred_events.fred_setup()
             name = 'Fred'
         }
 
-        local version = wesnoth.get_variable('AI_Demos_version')
+        local version = wml.variables.AI_Demos_version
         version = version or '?.?.?'
 
         -- We first add a check here whether the AI is for Side 1, Northerners and the Freelands map
@@ -76,9 +76,9 @@ end
 function fred_events.show_behavior()
     local options = { 'off', 'instructions only', 'instructions and fronts'}
 
-    local fred_show_behavior = wesnoth.get_variable('fred_show_behavior') or 1
+    local fred_show_behavior = wml.variables.fred_show_behavior or 1
     fred_show_behavior = (fred_show_behavior % #options) + 1
-    wesnoth.set_variable('fred_show_behavior', fred_show_behavior)
+    wml.variables.fred_show_behavior = fred_show_behavior
 
     local str = 'Show behavior now set to ' .. fred_show_behavior .. ': ' .. options[fred_show_behavior]
     wesnoth.message('Fred', str)
@@ -86,7 +86,7 @@ function fred_events.show_behavior()
 end
 
 function fred_events.show_last_behavior()
-    local fred_behavior_str = wesnoth.get_variable('fred_behavior_str') or 'No behavior instructions yet'
+    local fred_behavior_str = wml.variables.fred_behavior_str or 'No behavior instructions yet'
 
     wesnoth.message('Fred', fred_behavior_str)
     print(fred_behavior_str)

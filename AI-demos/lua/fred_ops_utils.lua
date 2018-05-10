@@ -1287,9 +1287,9 @@ function fred_ops_utils.set_ops_data(fred_data)
     fred_behavior_str = fred_behavior_str
       .. string.format('\nBase power ratio : %.3f (%s)', behavior.orders.neutral_power_ratio, overall_str)
       .. string.format('\n \nvalue_ratio : %.3f', behavior.orders.value_ratio)
-    wesnoth.set_variable('fred_behavior_str', fred_behavior_str)
+    wml.variables.fred_behavior_str = fred_behavior_str
 
-    local fred_show_behavior = wesnoth.get_variable("fred_show_behavior") or 1
+    local fred_show_behavior = wml.variables.fred_show_behavior or 1
     if (fred_show_behavior > 1) then
         wesnoth.message('Fred', fred_behavior_str)
         print(fred_behavior_str)
