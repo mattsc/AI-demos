@@ -77,6 +77,9 @@ function fred_events.fred_setup()
             }
         end
 
+        -- We put this into a WML variable, so that it can easily be retrieved from replays
+        wml.variables['AI_Demos_version'] = wesnoth.dofile('~/add-ons/AI-demos/version.lua')
+
         wesnoth.require "~/add-ons/AI-demos/lua/fred_events.lua"
     end
 end
