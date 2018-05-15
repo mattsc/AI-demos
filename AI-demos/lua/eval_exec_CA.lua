@@ -36,7 +36,11 @@ local function set_menus()
         id = 'm01_eval',
         description = 'Evaluate Single Candidate Action: ' .. CA_name(),
         image = 'items/ring-red.png~CROP(26,26,20,20)',
-        { 'command', {{ 'fire_event', { name = 'eval_CA' } }} },
+        { 'command', {
+            { 'lua', {
+                code = 'wesnoth.dofile "~add-ons/AI-demos/lua/eval_exec_CA.lua".eval_exec_CA(false)'
+            } },
+        } },
         { 'default_hotkey', { key = 'v' } }
     }
 
@@ -44,7 +48,11 @@ local function set_menus()
         id = 'm02_exec',
         description = 'Evaluate and Execute Single Candidate Action: ' .. CA_name(),
         image = 'items/ring-gold.png~CROP(26,26,20,20)',
-        { 'command', {{ 'fire_event', { name = 'exec_CA' } }} },
+        { 'command', {
+            { 'lua', {
+                code = 'wesnoth.dofile "~add-ons/AI-demos/lua/eval_exec_CA.lua".eval_exec_CA(true)'
+            } },
+        } },
         { 'default_hotkey', { key = 'x' } }
     }
 end
