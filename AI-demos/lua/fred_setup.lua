@@ -17,7 +17,6 @@ end
 local fred_setup = {}
 
 function fred_setup.fred_setup()
-    -- Hello message for Fred AI
     local fred_side = is_fred()
     if fred_side then
         -- First thing we do is set the name and id of the side leader
@@ -80,6 +79,7 @@ function fred_setup.fred_setup()
         -- We put this into a WML variable, so that it can easily be retrieved from replays
         wml.variables['AI_Demos_version'] = wesnoth.dofile('~/add-ons/AI-demos/version.lua')
 
+        -- Set the message and easter egg events
         wesnoth.require "~/add-ons/AI-demos/lua/fred_events.lua"
 
         -- Set the behavior display menu options
