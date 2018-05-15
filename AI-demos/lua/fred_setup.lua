@@ -1,6 +1,4 @@
-local fred_setup = {}
-
-function fred_setup.is_fred()
+local function is_fred()
     -- Check whether side is played by Fred
     -- We do this by testing whether the 'zone_control' CA exists
     -- Returns the side number of the first side for which the CA is found, false otherwise
@@ -16,9 +14,11 @@ function fred_setup.is_fred()
     return false
 end
 
+local fred_setup = {}
+
 function fred_setup.fred_setup()
     -- Hello message for Fred AI
-    local fred_side = fred_events.is_fred()
+    local fred_side = is_fred()
     if fred_side then
         -- First thing we do is set the name and id of the side leader
         -- This is done for the messages
