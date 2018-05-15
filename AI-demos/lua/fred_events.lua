@@ -66,7 +66,15 @@ function fred_events.fred_setup()
             end
         end
         if fog_set then
-            wesnoth.fire_event("fred_lift_fog")
+            wesnoth.wml_actions.message {
+                id = 'Fred',
+                message = "I'm noticing that you have fog/shroud turned on. I'm turning it off in order to help with testing."
+            }
+            wesnoth.wml_actions.modify_side {
+                side = '1,2',
+                fog = false,
+                shroud = false
+            }
         end
 
         wesnoth.fire_event("fred_setup_events")
