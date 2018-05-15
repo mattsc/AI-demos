@@ -81,26 +81,40 @@ function fred_setup.fred_setup()
         wml.variables['AI_Demos_version'] = wesnoth.dofile('~/add-ons/AI-demos/version.lua')
 
         wesnoth.require "~/add-ons/AI-demos/lua/fred_events.lua"
+
+        -- Set the behavior display menu options
+        wesnoth.wml_actions.set_menu_item {
+            id = 'm09_show_behavior',
+            description = "Toggle Fred's behavior analysis display",
+            image = 'items/ring-white.png~CROP(26,26,20,20)',
+            { 'command', {
+                { 'lua', {
+                    code = "local options = { 'off', 'instructions only', 'instructions and fronts' }"
+					.. " local fred_show_behavior = wml.variables.fred_show_behavior or 1"
+					.. " fred_show_behavior = (fred_show_behavior % #options) + 1"
+					.. " wml.variables.fred_show_behavior = fred_show_behavior"
+					.. " local str = 'Show behavior now set to ' .. fred_show_behavior .. ': ' .. options[fred_show_behavior]"
+					.. " wesnoth.message('Fred', str)"
+					.. " std_print(str)"
+                } },
+            } },
+            { 'default_hotkey', { key = 'b' } }
+        }
+
+        wesnoth.wml_actions.set_menu_item {
+            id = 'm10_last_behavior',
+            description = "Fred's most recent behavior instructions",
+            image = 'items/ring-white.png~CROP(26,26,20,20)',
+            { 'command', {
+                { 'lua', {
+                    code = "local fred_behavior_str = wml.variables.fred_behavior_str or 'No behavior instructions yet'"
+					.. " wesnoth.message('Fred', fred_behavior_str)"
+					.. " std_print(fred_behavior_str)"
+                } },
+            } },
+            { 'default_hotkey', { key = 'b', shift = 'yes' } }
+        }
     end
-end
-
-function fred_setup.show_behavior()
-    local options = { 'off', 'instructions only', 'instructions and fronts'}
-
-    local fred_show_behavior = wml.variables.fred_show_behavior or 1
-    fred_show_behavior = (fred_show_behavior % #options) + 1
-    wml.variables.fred_show_behavior = fred_show_behavior
-
-    local str = 'Show behavior now set to ' .. fred_show_behavior .. ': ' .. options[fred_show_behavior]
-    wesnoth.message('Fred', str)
-    print(str)
-end
-
-function fred_setup.show_last_behavior()
-    local fred_behavior_str = wml.variables.fred_behavior_str or 'No behavior instructions yet'
-
-    wesnoth.message('Fred', fred_behavior_str)
-    print(fred_behavior_str)
 end
 
 return fred_setup
