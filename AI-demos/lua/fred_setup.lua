@@ -114,6 +114,22 @@ function fred_setup.fred_setup()
             } },
             { 'default_hotkey', { key = 'b', shift = 'yes' } }
         }
+
+        ---------- CA debugging mode ----------
+        -- This needs to be activated here once, but this preload event is set
+        -- to be removed after one use (because of all the other stuff in it),
+        -- so we then also set up another preload event with first_time_only=no.
+        -- That one will fire when saves/replays get loaded.
+        wesnoth.dofile "~add-ons/AI-demos/lua/eval_exec_CA.lua".debug_CA()
+
+        wesnoth.add_event_handler {
+            name = 'preload',
+            first_time_only = 'no',
+
+            { 'lua', {
+                code = 'wesnoth.dofile "~add-ons/AI-demos/lua/eval_exec_CA.lua".debug_CA()'
+            } }
+        }
     end
 end
 

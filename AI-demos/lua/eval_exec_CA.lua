@@ -128,6 +128,16 @@ return {
         -- that is, only if 'debug_CA_mode=true' is set and if we're in debug mode
         local debug_CA_mode = debug_CA()
         if debug_CA_mode and wesnoth.game_config.debug then
+            wesnoth.wml_actions.message {
+                speaker = 'narrator',
+                image = 'wesnoth-icon.png',
+                caption = "Candidate Action Debugging Mode",
+                message = "You are entering CA debugging mode. Check out the AI Demos github wiki about information on how to use this mode, or how to deactivate it."
+            }
+
+            wesnoth.sides[1].controller = 'human'
+            wesnoth.sides[2].controller = 'human'
+
             wesnoth.fire_event("debug_CA")
         else
             wesnoth.wml_actions.clear_menu_item { id = 'm01_eval' }
