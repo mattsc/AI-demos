@@ -1,6 +1,6 @@
-local fred_events = {}
+local fred_setup = {}
 
-function fred_events.is_fred()
+function fred_setup.is_fred()
     -- Check whether side is played by Fred
     -- We do this by testing whether the 'zone_control' CA exists
     -- Returns the side number of the first side for which the CA is found, false otherwise
@@ -16,7 +16,7 @@ function fred_events.is_fred()
     return false
 end
 
-function fred_events.fred_setup()
+function fred_setup.fred_setup()
     -- Hello message for Fred AI
     local fred_side = fred_events.is_fred()
     if fred_side then
@@ -84,7 +84,7 @@ function fred_events.fred_setup()
     end
 end
 
-function fred_events.show_behavior()
+function fred_setup.show_behavior()
     local options = { 'off', 'instructions only', 'instructions and fronts'}
 
     local fred_show_behavior = wml.variables.fred_show_behavior or 1
@@ -96,11 +96,11 @@ function fred_events.show_behavior()
     print(str)
 end
 
-function fred_events.show_last_behavior()
+function fred_setup.show_last_behavior()
     local fred_behavior_str = wml.variables.fred_behavior_str or 'No behavior instructions yet'
 
     wesnoth.message('Fred', fred_behavior_str)
     print(fred_behavior_str)
 end
 
-return fred_events
+return fred_setup
