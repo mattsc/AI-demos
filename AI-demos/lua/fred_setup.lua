@@ -77,7 +77,7 @@ function fred_events.fred_setup()
             }
         end
 
-        wesnoth.fire_event("fred_setup_events")
+        wesnoth.require "~/add-ons/AI-demos/lua/fred_events.lua"
     end
 end
 
