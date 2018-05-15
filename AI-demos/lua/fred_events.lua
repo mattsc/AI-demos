@@ -43,14 +43,6 @@ function fred_events.fred_setup()
             end
         end
 
-        -- Check whether fog is set
-        local fog_set = false
-        for _,side_info in ipairs(wesnoth.sides) do
-            if side_info.fog or side_info.shroud then
-                fog_set = true
-            end
-        end
-
         -- Map is checked through the map size and the starting location of the AI side
         -- This also takes care of the side check, so that does not have to be done separately
         local width, height = wesnoth.get_map_size()
@@ -63,13 +55,21 @@ function fred_events.fred_setup()
                 message = "I currently only know how to play Northerners as Side 1 on the Freelands map. Sorry!"
             }
             wesnoth.wml_actions.endlevel { result = 'victory' }
-        else
-            if fog_set then
-                wesnoth.fire_event("fred_lift_fog")
-            end
-
-            wesnoth.fire_event("fred_setup_events")
+            return
         end
+
+        -- Turn off fog and shroud if set
+        local fog_set = false
+        for _,side_info in ipairs(wesnoth.sides) do
+            if side_info.fog or side_info.shroud then
+                fog_set = true
+            end
+        end
+        if fog_set then
+            wesnoth.fire_event("fred_lift_fog")
+        end
+
+        wesnoth.fire_event("fred_setup_events")
     end
 end
 
