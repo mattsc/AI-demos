@@ -1,9 +1,9 @@
 -- These collect all the scenario/map specific information
 -- TODO: generalize so that it can be used on maps other than Freelands
 
-local fred_scenario_cfg = {}
+local fred_map_config = {}
 
-function fred_scenario_cfg.get_side_cfgs()
+function fred_map_config.get_side_cfgs()
     local cfgs = {
         { start_hex = { 18, 4 } },
         { start_hex = { 20, 20 } }
@@ -12,7 +12,7 @@ function fred_scenario_cfg.get_side_cfgs()
     return cfgs
 end
 
-function fred_scenario_cfg.get_attack_test_locs()
+function fred_map_config.get_attack_test_locs()
     -- TODO: this is really just a placeholder for now until I know whether this works
     -- It's easy to have this found automatically
     local locs = {
@@ -23,7 +23,7 @@ function fred_scenario_cfg.get_attack_test_locs()
     return locs
 end
 
-function fred_scenario_cfg.get_raw_cfgs(zone_id)
+function fred_map_config.get_raw_cfgs(zone_id)
     local cfg_leader_threat = {
         zone_id = 'leader_threat',
         ops_slf = {},
@@ -103,7 +103,7 @@ function fred_scenario_cfg.get_raw_cfgs(zone_id)
     end
 end
 
-function fred_scenario_cfg.replace_zone_ids()
+function fred_map_config.replace_zone_ids()
     local zone_ids = {
         old = { 'center', 'east' },
         new = 'top'
@@ -112,4 +112,4 @@ function fred_scenario_cfg.replace_zone_ids()
     return zone_ids
 end
 
-return fred_scenario_cfg
+return fred_map_config

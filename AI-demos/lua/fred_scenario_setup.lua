@@ -14,9 +14,9 @@ local function is_fred()
     return false
 end
 
-local fred_setup = {}
+local fred_scenario_setup = {}
 
-function fred_setup.fred_setup()
+function fred_scenario_setup.fred_scenario_setup()
     local fred_side = is_fred()
     if fred_side then
         -- First thing we do is set the name and id of the side leader
@@ -80,7 +80,7 @@ function fred_setup.fred_setup()
         wml.variables['AI_Demos_version'] = wesnoth.dofile('~/add-ons/AI-demos/version.lua')
 
         -- Set the message and easter egg events
-        wesnoth.require "~/add-ons/AI-demos/lua/fred_events.lua"
+        wesnoth.require "~/add-ons/AI-demos/lua/fred_scenario_events.lua"
 
         -- Set the behavior display menu options
         wesnoth.wml_actions.set_menu_item {
@@ -133,4 +133,4 @@ function fred_setup.fred_setup()
     end
 end
 
-return fred_setup
+return fred_scenario_setup

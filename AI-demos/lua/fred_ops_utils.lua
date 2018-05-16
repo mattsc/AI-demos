@@ -8,8 +8,8 @@ local FMLU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_move_leader_utils.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
--- Trying to set things up so that FSC is _only_ used in ops_utils
-local FSC = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_scenario_cfg.lua"
+-- Trying to set things up so that FMC is _only_ used in ops_utils
+local FMC = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_map_config.lua"
 
 local fred_ops_utils = {}
 
@@ -20,9 +20,9 @@ function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_
     --
     -- TODO: not sure whether it is better to do this earlier
     -- TODO: set this up to be configurable by the cfgs
-    local replace_zone_ids = FSC.replace_zone_ids()
-    local raw_cfgs_main = FSC.get_raw_cfgs()
-    local raw_cfg_new = FSC.get_raw_cfgs(replace_zone_ids.new)
+    local replace_zone_ids = FMC.replace_zone_ids()
+    local raw_cfgs_main = FMC.get_raw_cfgs()
+    local raw_cfg_new = FMC.get_raw_cfgs(replace_zone_ids.new)
     --DBG.dbms(replace_zone_ids)
     --DBG.dbms(raw_cfg_new)
 
@@ -264,8 +264,8 @@ end
 
 function fred_ops_utils.set_turn_data(move_data)
     -- Get the needed cfgs
-    local raw_cfgs_main = FSC.get_raw_cfgs()
-    local side_cfgs = FSC.get_side_cfgs()
+    local raw_cfgs_main = FMC.get_raw_cfgs()
+    local side_cfgs = FMC.get_side_cfgs()
 
     local leader_distance_map, enemy_leader_distance_maps = FU.get_leader_distance_map(raw_cfgs_main, side_cfgs, move_data)
 
@@ -422,7 +422,7 @@ function fred_ops_utils.set_turn_data(move_data)
     end
 
     -- Find the effectiveness of each AI unit vs. each enemy unit
-    local attack_locs = FSC.get_attack_test_locs()
+    local attack_locs = FMC.get_attack_test_locs()
 
     local unit_attacks = {}
     for my_id,_ in pairs(move_data.my_units) do
@@ -558,7 +558,7 @@ function fred_ops_utils.set_turn_data(move_data)
         enemy_initial_reach_maps = enemy_initial_reach_maps,
         unit_attacks = unit_attacks,
         behavior = behavior,
-        raw_cfgs = FSC.get_raw_cfgs('all'),
+        raw_cfgs = FMC.get_raw_cfgs('all'),
         raw_cfgs_main = raw_cfgs_main
     }
 
@@ -569,9 +569,9 @@ end
 function fred_ops_utils.set_ops_data(fred_data)
     -- Get the needed cfgs
     local move_data = fred_data.move_data
-    local raw_cfgs_main = FSC.get_raw_cfgs()
-    local raw_cfgs_all = FSC.get_raw_cfgs('all')
-    local side_cfgs = FSC.get_side_cfgs()
+    local raw_cfgs_main = FMC.get_raw_cfgs()
+    local raw_cfgs_all = FMC.get_raw_cfgs('all')
+    local side_cfgs = FMC.get_side_cfgs()
 
 
     local villages_to_protect_maps = FVU.villages_to_protect(raw_cfgs_main, side_cfgs, move_data)
@@ -1182,7 +1182,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         end
     end
 
-    local side_cfgs = FSC.get_side_cfgs()
+    local side_cfgs = FMC.get_side_cfgs()
     local my_start_hex, enemy_start_hex
     for side,cfgs in ipairs(side_cfgs) do
         if (side == wesnoth.current.side) then
@@ -1296,7 +1296,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
         if (fred_show_behavior == 3) then
             for zone_id,front in pairs(fronts.zones) do
-                local raw_cfg = FSC.get_raw_cfgs(zone_id)
+                local raw_cfg = FMC.get_raw_cfgs(zone_id)
                 local zone = wesnoth.get_locations(raw_cfg.ops_slf)
 
                 local front_map = {}
@@ -1347,8 +1347,8 @@ end
 function fred_ops_utils.update_ops_data(fred_data)
     local ops_data = fred_data.ops_data
     local move_data = fred_data.move_data
-    local raw_cfgs_main = FSC.get_raw_cfgs()
-    local side_cfgs = FSC.get_side_cfgs()
+    local raw_cfgs_main = FMC.get_raw_cfgs()
+    local side_cfgs = FMC.get_side_cfgs()
 
     -- After each move, we update:
     --  - village grabbers (as a village might have opened, or units be used for attacks)
@@ -1513,8 +1513,8 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     --DBG.dbms(ops_data)
 
     -- These are only the raw_cfgs of the 3 main zones
-    --local raw_cfgs = FSC.get_raw_cfgs('all')
-    --local raw_cfgs_main = FSC.get_raw_cfgs()
+    --local raw_cfgs = FMC.get_raw_cfgs('all')
+    --local raw_cfgs_main = FMC.get_raw_cfgs()
     --DBG.dbms(raw_cfgs_main)
     --DBG.dbms(fred_data.analysis)
 
@@ -1814,7 +1814,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 
 
     -- Advancing is still done in the old zones
-    local raw_cfgs_main = FSC.get_raw_cfgs()
+    local raw_cfgs_main = FMC.get_raw_cfgs()
     local advancers_by_zone = {}
     for zone_id,_ in pairs(raw_cfgs_main) do
         if ops_data.assigned_units[zone_id] then
