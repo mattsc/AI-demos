@@ -96,7 +96,7 @@ local function calc_stats_attack_outcome(outcome)
     sum_chances = sum_chances + outcome.levelup_chance
 
     if (math.abs(sum_chances - 1) > 0.0001) then
-        print('***** error: sum over outcomes not equal to 1: *****', sum_chances)
+        std_print('***** error: sum over outcomes not equal to 1: *****', sum_chances)
     end
 end
 
@@ -228,14 +228,14 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, move_data)
     ----- End get_delayed_damage() -----
 
 
-    --print(unit_info.id, unit_info.hitpoints, unit_info.max_hitpoints)
+    --std_print(unit_info.id, unit_info.hitpoints, unit_info.max_hitpoints)
     local damage = {}
 
     -- Average damage from the attack.  This cannot be simply the average_hp field
     -- of att_outcome, as that accounts for leveling up differently than needed here
     -- Start with that as the default though:
     local average_damage = unit_info.hitpoints - att_outcome.average_hp
-    --print('  average_damage raw:', average_damage)
+    --std_print('  average_damage raw:', average_damage)
 
     -- We want to include healing due to drain etc. in this damage, but not
     -- leveling up, so if there is a chance to level up, we need to do that differently.
@@ -246,14 +246,14 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, move_data)
             average_damage = average_damage + (unit_info.hitpoints - hp) * chance
         end
     end
-    --print('  average_damage:', average_damage)
+    --std_print('  average_damage:', average_damage)
 
     -- Now add some of the other contributions
     damage.damage = average_damage
     damage.die_chance = att_outcome.hp_chance[0]
 
     damage.levelup_chance = att_outcome.levelup_chance
-    --print('  levelup_chance', damage.levelup_chance)
+    --std_print('  levelup_chance', damage.levelup_chance)
 
     damage.delayed_damage = get_delayed_damage(unit_info, att_outcome, average_damage, dst, move_data)
 
@@ -293,24 +293,24 @@ function fred_attack_utils.damage_rating_unit(damage)
 
     local fractional_damage = (damage.damage + damage.delayed_damage + damage.slowed_damage) / hp_eff
     local fractional_rating = - FU.weight_s(fractional_damage, 0.67)
-    --print('  fractional_damage, fractional_rating:', fractional_damage, fractional_rating)
+    --std_print('  fractional_damage, fractional_rating:', fractional_damage, fractional_rating)
 
     -- Additionally, add the chance to die, in order to emphasize units that might die
     -- This might result in fractional_damage > 1 in some cases, although usually not by much
     local ctd_rating = - 1.5 * damage.die_chance^1.5
     fractional_rating = fractional_rating + ctd_rating
-    --print('  ctd, ctd_rating, fractional_rating:', damage.die_chance, ctd_rating, fractional_rating)
+    --std_print('  ctd, ctd_rating, fractional_rating:', damage.die_chance, ctd_rating, fractional_rating)
 
     -- Levelup chance: we use square rating here, as opposed to S-curve rating
     -- for the other contributions
     -- TODO: does that make sense?
     local lu_rating = damage.levelup_chance^2
     fractional_rating = fractional_rating + lu_rating
-    --print('  lu_chance, lu_rating, fractional_rating:', damage.levelup_chance, lu_rating, fractional_rating)
+    --std_print('  lu_chance, lu_rating, fractional_rating:', damage.levelup_chance, lu_rating, fractional_rating)
 
     -- Convert all the fractional ratings before to one in "gold units"
     local rating = fractional_rating * damage.unit_value
-    --print('  unit_value, rating:', damage.unit_value, rating)
+    --std_print('  unit_value, rating:', damage.unit_value, rating)
 
     return rating
 end
@@ -374,7 +374,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     for i,attacker_info in ipairs(attacker_infos) do
         for _,weapon in ipairs(attacker_info.attacks) do
             if weapon.plague then
-                --print('attacker #' .. i .. ' ' .. attacker_info.id ..' has plague special')
+                --std_print('attacker #' .. i .. ' ' .. attacker_info.id ..' has plague special')
                 local ctk
                 if (#attacker_infos == 1) then
                     ctk = def_outcome.hp_chance[0]
@@ -384,7 +384,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
                 local plague_bonus = 8 * ctk
 
                 -- Converting the defender is positive rating for attacker side (new WC)
-                --print('  applying attacker plague bonus', plague_bonus, ctk)
+                --std_print('  applying attacker plague bonus', plague_bonus, ctk)
                 attacker_rating = attacker_rating + plague_bonus
 
                 break
@@ -394,13 +394,13 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
 
     for _,weapon in ipairs(defender_info.attacks) do
         if weapon.plague then
-            --print('defender ' .. defender_info.id ..' has plague special')
+            --std_print('defender ' .. defender_info.id ..' has plague special')
             for i,att_outcome in ipairs(att_outcomes) do
                 local ctk = att_outcome.hp_chance[0]
                 local plague_penalty = 8 * ctk
 
                 -- Converting the attacker is (negative) contribution to the defender rating
-                --print('  applying attacker #' .. i .. ' plague plague_penalty', plague_penalty, ctk)
+                --std_print('  applying attacker #' .. i .. ' plague plague_penalty', plague_penalty, ctk)
                 defender_rating = defender_rating - plague_penalty
             end
 
@@ -496,7 +496,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
 
     local rating = defender_rating * defender_weight + attacker_rating * attacker_weight + extra_rating
 
-    --print('rating, attacker_rating, defender_rating, extra_rating:', rating, attacker_rating, defender_rating, extra_rating)
+    --std_print('rating, attacker_rating, defender_rating, extra_rating:', rating, attacker_rating, defender_rating, extra_rating)
 
     -- The overall ratings take the value_ratio into account, the attacker and
     -- defender tables do not
@@ -747,7 +747,7 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
                 move_cache[cache_att_id][cache_def_id] = {}
             end
 
-            --print(' Finding highest-damage weapons: ', attacker_info.id, defender_proxy.id)
+            --std_print(' Finding highest-damage weapons: ', attacker_info.id, defender_proxy.id)
 
             local best_att, best_def
 
@@ -758,7 +758,7 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
                 local _, _, att_weapon, _ = wesnoth.simulate_combat(attacker_copy, i_a, defender_proxy)
 
                 local total_damage_attack = fred_attack_utils.get_total_damage_attack(att_weapon, att, true, defender_info)
-                --print('  i_a:', i_a, total_damage_attack)
+                --std_print('  i_a:', i_a, total_damage_attack)
 
                 if (not best_att) or (total_damage_attack > best_att) then
                     best_att = total_damage_attack
@@ -779,12 +779,12 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
                                 def_weapon_i = i_d
                             end
 
-                            --print('    i_d:', i_d, total_damage_defense)
+                            --std_print('    i_d:', i_d, total_damage_defense)
                         end
                     end
                 end
             end
-            --print('  --> best att/def:', att_weapon_i, best_att, def_weapon_i, best_def)
+            --std_print('  --> best att/def:', att_weapon_i, best_att, def_weapon_i, best_def)
 
             if (not move_cache.best_weapons) then
                 move_cache.best_weapons = {}
@@ -801,7 +801,7 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
         else
             att_weapon_i = move_cache.best_weapons[attacker_info.id][defender_info.id].att_weapon_i
             def_weapon_i = move_cache.best_weapons[attacker_info.id][defender_info.id].def_weapon_i
-            --print(' Reusing weapons: ', cache_att_id, defender_proxy.id, att_weapon_i, def_weapon_i)
+            --std_print(' Reusing weapons: ', cache_att_id, defender_proxy.id, att_weapon_i, def_weapon_i)
         end
 
         tmp_att_stat, tmp_def_stat, att_weapon = wesnoth.simulate_combat(attacker_copy, att_weapon_i, defender_proxy, def_weapon_i)
@@ -814,7 +814,7 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
     if (not att_weapon_i) then
         att_weapon_i = att_weapon.attack_num + 1
     end
-    --print(att_weapon_i)
+    --std_print(att_weapon_i)
 
     attacker_copy.x, attacker_copy.y = old_x, old_y
 
@@ -943,7 +943,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
     for src,dst in pairs(combo) do
         local src_x, src_y = math.floor(src / 1000), src % 1000
         attacker_id = move_data.unit_map[src_x][src_y].id
-        --print(src_x, src_y, attacker_id)
+        --std_print(src_x, src_y, attacker_id)
         table.insert(tmp_attacker_infos, move_data.unit_infos[attacker_id])
         table.insert(tmp_attacker_copies, move_data.unit_copies[attacker_id])
 
@@ -973,8 +973,8 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
                 { tmp_att_outcomes[i] }, tmp_def_outcomes[i], cfg, move_data
             )
 
-        --print(attacker_copy.id .. ' --> ' .. defender_proxy.id)
-        --print('  CTD att, def:', tmp_att_outcomes[i].hp_chance[0], tmp_def_outcomes[i].hp_chance[0])
+        --std_print(attacker_copy.id .. ' --> ' .. defender_proxy.id)
+        --std_print('  CTD att, def:', tmp_att_outcomes[i].hp_chance[0], tmp_def_outcomes[i].hp_chance[0])
         --DBG.dbms(rating_table)
 
         -- Need the 'i' here in order to specify the order of attackers, dsts below
@@ -1060,7 +1060,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
 
         -- The HP distribution without leveling
         for hp1,chance1 in pairs(def_outcomes[i-1].hp_chance) do -- Note: need pairs(), not ipairs() !!
-            --print('  not leveled: ', hp1,chance1)
+            --std_print('  not leveled: ', hp1,chance1)
             if (hp1 == 0) then
                 att_outcomes[i].hp_chance[attacker_infos[i].hitpoints] =
                     (att_outcomes[i].hp_chance[attacker_infos[i].hitpoints] or 0) + chance1
@@ -1097,12 +1097,12 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
         -- The HP distribution after leveling
         if (def_outcomes[i-1].levelup_chance > 0) then
             for hp1,chance1 in pairs(def_outcomes[i-1].levelup.hp_chance) do -- Note: need pairs(), not ipairs() !!
-                --print('  leveled: ', hp1,chance1)
+                --std_print('  leveled: ', hp1,chance1)
 
                 if (hp1 == 0) then
                     -- levelup.hp_chance should never contain a HP=0 entry, as those are
                     -- put directely into hp_chance at the top level
-                    print('***** error: HP = 0 in levelup outcomes entcountered *****')
+                    std_print('***** error: HP = 0 in levelup outcomes entcountered *****')
                 else
                     -- We create an entirely new unit in this case, replacing the
                     -- original defender_proxy by one of the correct advanced type
@@ -1334,7 +1334,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, cfg, reach_map
 
                     -- It's okay to use the full rating here, rather than just damage_rating
                     rating = rating_table.rating
-                    --print(xa, ya, attacker_id, rating, rating_table.attacker_rating, rating_table.defender_rating, rating_table.extra_rating)
+                    --std_print(xa, ya, attacker_id, rating, rating_table.attacker_rating, rating_table.defender_rating, rating_table.extra_rating)
                 end
 
                 if (not tmp_attacks_dst_src[dst]) then
@@ -1432,7 +1432,7 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, cfg, 
         for i_l,old_loc in ipairs(old_locs) do
             local x1, y1 = old_loc[1], old_loc[2]
             local x2, y2 = new_locs[i_l][1], new_locs[i_l][2]
-            --print('Moving unit:', x1, y1, '-->', x2, y2)
+            --std_print('Moving unit:', x1, y1, '-->', x2, y2)
 
             -- We only need to do this if the unit actually gets moved
             if (x1 ~= x2) or (y1 ~= y2) then

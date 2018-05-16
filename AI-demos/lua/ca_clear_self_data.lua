@@ -8,7 +8,7 @@ function ca_clear_self_data:evaluation()
 end
 
 function ca_clear_self_data:execution(cfg, data)
-    --print(' Clearing data table at end of Turn ' .. wesnoth.current.turn)
+    --std_print(' Clearing data table at end of Turn ' .. wesnoth.current.turn)
 
     -- This is mostly done so that there is no chance of corruption of savefiles
     data = { recruit = data.recruit }

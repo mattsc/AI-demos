@@ -22,7 +22,7 @@ local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 -- Clean up the screen
 wesnoth.clear_messages()
 AH.clear_labels()
-print('\n---- Side ', wesnoth.current.side, '------------')
+std_print('\n---- Side ', wesnoth.current.side, '------------')
 
 -- Check for debug mode and quit if it is not activated
 if (not wesnoth.game_config.debug) then
@@ -80,7 +80,7 @@ else  -- ... or do manual testing
     local leader = wesnoth.get_units { side = 1, canrecruit = 'yes' }[1]
     local units = wesnoth.get_units { side = 1, canrecruit = 'no' }
     local enemies = wesnoth.get_units { side = 2, canrecruit = 'no' }
-    print(#units, #enemies)
+    std_print(#units, #enemies)
     local unit = units[1]
     local enemy = enemies[1]
 
@@ -91,5 +91,5 @@ else  -- ... or do manual testing
 
     local end_time = wesnoth.get_time_stamp() / 1000.
     wesnoth.message('Finish time:', end_time .. '  ' .. tostring(end_time - start_time))
-    print('Finish time:', end_time .. '  ' .. tostring(end_time - start_time))
+    std_print('Finish time:', end_time .. '  ' .. tostring(end_time - start_time))
 end

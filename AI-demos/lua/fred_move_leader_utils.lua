@@ -40,7 +40,7 @@ function fred_move_leader_utils.move_eval(move_unit_away, fred_data)
         local dist_leader = wesnoth.map.distance_between(keep[1], keep[2], leader[1], leader[2])
         local dist_enemy_leader = wesnoth.map.distance_between(keep[1], keep[2], move_data.enemy_leader_x, move_data.enemy_leader_y)
         local is_enemy_keep = dist_enemy_leader < dist_leader
-        --print(keep[1], keep[2], dist_leader, dist_enemy_leader, is_enemy_keep)
+        --std_print(keep[1], keep[2], dist_leader, dist_enemy_leader, is_enemy_keep)
 
         -- Is there a unit on the keep that cannot move any more?
         local unit_in_way = move_data.my_unit_map_noMP[keep[1]]

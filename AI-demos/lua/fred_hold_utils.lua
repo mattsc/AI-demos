@@ -29,7 +29,7 @@ function fred_hold_utils.get_between_map(locs, toward_loc, units, move_data)
 
     local between_map = {}
     for id,unit_loc in pairs(units) do
-        --print(id, unit_loc[1], unit_loc[2])
+        --std_print(id, unit_loc[1], unit_loc[2])
         local unit = {}
         unit[id] = unit_loc
         local unit_proxy = wesnoth.get_unit(unit_loc[1], unit_loc[2])
@@ -49,12 +49,12 @@ function fred_hold_utils.get_between_map(locs, toward_loc, units, move_data)
         for i_p=1,#path-1 do
             p1, p2 = path[i_p], path[i_p+1]
             local rad_path = AH.get_angle(p1, p2)
-            --print(p1[1] .. ',' .. p1[2], p2[1] .. ',' .. p2[2], rad_path)
+            --std_print(p1[1] .. ',' .. p1[2], p2[1] .. ',' .. p2[2], rad_path)
 
             for xa,ya in H.adjacent_tiles(p1[1], p1[2]) do
                 local rad = AH.get_angle(p1, { xa, ya })
                 local drad = rad - rad_path
-                --print('  ' .. xa .. ',' .. ya .. ':', rad, drad)
+                --std_print('  ' .. xa .. ',' .. ya .. ':', rad, drad)
 
                 if (not FU.get_fgumap_value(path_map, xa, ya, 'sign')) then
                     if (drad > 0) and (drad < 3.14) or (drad < -3.14) then
@@ -126,7 +126,7 @@ function fred_hold_utils.get_between_map(locs, toward_loc, units, move_data)
             local loc_value = FU.get_fgumap_value(unit_map, loc[1], loc[2], 'rating')
             local unit_value = FU.get_fgumap_value(unit_map, unit_loc[1], unit_loc[2], 'rating')
             local max_value = (loc_value + unit_value) / 2
-            --print(loc[1], loc[2], loc_value, unit_value, max_value)
+            --std_print(loc[1], loc[2], loc_value, unit_value, max_value)
 
             for x,y,data in FU.fgumap_iter(unit_map) do
                 local rating = data.rating
@@ -183,7 +183,7 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, tur
                 -- In this case we do not have the perpendicular distance
                 dist = FU.get_fgumap_value(turn_data.leader_distance_map, x, y, 'distance')
             end
-            --print(id, x .. ',' .. y, dist, perp_dist)
+            --std_print(id, x .. ',' .. y, dist, perp_dist)
 
             local convs = {}
             for x2=x-3,x+3 do
@@ -216,7 +216,7 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, tur
                             end
 
                             local angle_fac = FU.weight_s(angle, 0.67)
-                            --print('  ' .. id, x .. ',' .. y, x2 .. ',' .. y2, dr, angle, angle_fac)
+                            --std_print('  ' .. id, x .. ',' .. y, x2 .. ',' .. y2, dr, angle, angle_fac)
 
                             -- We want to know how strong the other hexes are for the other units
                             local conv_sum_units, count = 0, 0
@@ -335,11 +335,11 @@ function fred_hold_utils.unit_rating_maps_to_dstsrc(unit_rating_maps, key, move_
     local ratings = {}
     for _,unit in ipairs(use_units) do
         local src = move_data.unit_copies[unit.id].x * 1000 + move_data.unit_copies[unit.id].y
-        --print(unit.id, src)
+        --std_print(unit.id, src)
         local count = math.min(max_hexes, #sorted_ratings[unit.id])
         for i = 1,count do
             local dst = sorted_ratings[unit.id][i].x * 1000 + sorted_ratings[unit.id][i].y
-            --print('  ' .. dst, sorted_ratings[unit.id][i].rating)
+            --std_print('  ' .. dst, sorted_ratings[unit.id][i].rating)
 
             if (not ratings[dst]) then
                 ratings[dst] = {}
@@ -398,11 +398,11 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         leader_protect_base_rating = leader_protect_base_rating + 1
         if counter_outcomes then
             leader_protect_base_rating = leader_protect_base_rating - counter_outcomes.def_outcome.hp_chance[0]
-            --print('  ' .. counter_outcomes.def_outcome.hp_chance[0])
+            --std_print('  ' .. counter_outcomes.def_outcome.hp_chance[0])
         end
 
         leader_protect_base_rating = 1 + leader_protect_base_rating / 2
-        --print('base', remainging_hp, leader_protect_base_rating)
+        --std_print('base', remainging_hp, leader_protect_base_rating)
     end
 
 
@@ -411,7 +411,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     -- Combos that leave adjacent villages exposed are disqualified.
     local valid_combos, weights = {}, {}
     for i_c,combo in ipairs(combos) do
-        --print('combo ' .. i_c)
+        --std_print('combo ' .. i_c)
         local base_rating = 0
         local is_dqed = false
 
@@ -445,7 +445,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             -- TODO: this might be overly retrictive
             local x, y =  math.floor(dst / 1000), dst % 1000
             local adj_vill_xy = FU.get_fgumap_value(adjacent_village_map, x, y, 'village_xy')
-            --print(x, y, adj_vill_xy)
+            --std_print(x, y, adj_vill_xy)
             if adj_vill_xy then
                 is_dqed = true
                 for _,tmp_dst in pairs(combo) do
@@ -454,7 +454,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                         break
                     end
                 end
-                --print('  is_dqed', x, y, is_dqed)
+                --std_print('  is_dqed', x, y, is_dqed)
 
                 if is_dqed then break end
             end
@@ -469,7 +469,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             })
         end
     end
-    --print('#valid_combos: ' .. #valid_combos .. '/' .. #combos)
+    --std_print('#valid_combos: ' .. #valid_combos .. '/' .. #combos)
 
     table.sort(valid_combos, function(a, b) return a.base_rating > b.base_rating end)
     --DBG.dbms(valid_combos)
@@ -520,12 +520,12 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 leader_protect_rating = leader_protect_rating + 1
                 if counter_outcomes then
                     leader_protect_rating = leader_protect_rating - counter_outcomes.def_outcome.hp_chance[0]
-                    --print('  ' .. counter_outcomes.def_outcome.hp_chance[0])
+                    --std_print('  ' .. counter_outcomes.def_outcome.hp_chance[0])
                 end
 
                 leader_protect_rating = 1 + leader_protect_rating / 2
                 leader_protect_mult = leader_protect_rating / leader_protect_base_rating
-                --print(i_c, remainging_hp, leader_protect_rating, leader_protect_mult)
+                --std_print(i_c, remainging_hp, leader_protect_rating, leader_protect_mult)
 
                 if (leader_protect_mult < 1.001) then
                     is_protected = false
@@ -545,16 +545,16 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                     end
                 end
                 protect_loc_str = tostring(protect_loc[1]) .. ',' .. tostring(protect_loc[2])
-                --print('*** need to check protection of ' .. protect_loc[1] .. ',' .. protect_loc[2])
+                --std_print('*** need to check protection of ' .. protect_loc[1] .. ',' .. protect_loc[2])
 
                 -- First check (because it's quick): if there is a unit on the hex to be protected
                 is_protected = false
                 for src,dst in pairs(combo.combo) do
                     local x, y =  math.floor(dst / 1000), dst % 1000
-                    --print('  ' .. x , y)
+                    --std_print('  ' .. x , y)
 
                     if (x == protect_loc[1]) and (y == protect_loc[2]) then
-                        --print('    --> protected by having unit on hex')
+                        --std_print('    --> protected by having unit on hex')
                         is_protected = true
                         break
                     end
@@ -562,11 +562,11 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
                 -- If that did not find anything, do path finding
                 if (not is_protected) then
-                    --print('combo ' .. i_c, protect_loc[1], protect_loc[2])
+                    --std_print('combo ' .. i_c, protect_loc[1], protect_loc[2])
                     for src,dst in pairs(combo.combo) do
                         local id = ratings[dst][src].id
                         local x, y =  math.floor(dst / 1000), dst % 1000
-                        --print(id, src, x,y, move_data.unit_copies[id].x, move_data.unit_copies[id].y)
+                        --std_print(id, src, x,y, move_data.unit_copies[id].x, move_data.unit_copies[id].y)
                         wesnoth.put_unit(move_data.unit_copies[id], x, y)
                     end
 
@@ -574,12 +574,12 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                     for enemy_id,_ in pairs(move_data.enemies) do
                         local moves_left = FU.get_fgumap_value(move_data.reach_maps[enemy_id], protect_loc[1], protect_loc[2], 'moves_left')
                         if moves_left then
-                            --print('  ' .. enemy_id, moves_left)
+                            --std_print('  ' .. enemy_id, moves_left)
                             local _, cost = wesnoth.find_path(move_data.unit_copies[enemy_id], protect_loc[1], protect_loc[2])
-                            --print('  cost: ', cost)
+                            --std_print('  cost: ', cost)
 
                             if (cost <= move_data.unit_infos[enemy_id].max_moves) then
-                                --print('    can reach this!')
+                                --std_print('    can reach this!')
                                 can_reach = true
                                 break
                             end
@@ -590,7 +590,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                         local id = ratings[dst][src].id
                         wesnoth.extract_unit(move_data.unit_copies[id])
                         move_data.unit_copies[id].x, move_data.unit_copies[id].y = move_data.units[id][1], move_data.units[id][2]
-                        --print('  ' .. id, src, move_data.unit_copies[id].x, move_data.unit_copies[id].y)
+                        --std_print('  ' .. id, src, move_data.unit_copies[id].x, move_data.unit_copies[id].y)
                     end
 
                     if (not can_reach) then
@@ -601,7 +601,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         else
             -- If there are no locations to be protected, count hold as protecting by default
         end
-        --print('is_protected', is_protected)
+        --std_print('is_protected', is_protected)
 
 
         -- 2. Rate the combos based on the shape of the formation and its orientation
@@ -659,7 +659,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 for _,dist in ipairs(dists) do
                     local d1 = wesnoth.map.distance_between(dist.x, dist.y, extremes.x, extremes.y)
                     local d2 = wesnoth.map.distance_between(dist.x, dist.y, extremes.x2, extremes.y2)
-                    --print(dist.x, dist.y, d1, d2, d1 - d2)
+                    --std_print(dist.x, dist.y, d1, d2, d1 - d2)
                     dist.perp_rank = d1 - d2
                 end
                 table.sort(dists, function(a, b) return a.perp_rank < b.perp_rank end)
@@ -683,7 +683,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                         angle = math.acos(dy / dr) / 1.5708
                     end
                 end
-                --print(i_h, angle)
+                --std_print(i_h, angle)
 
                 if (not min_angle) or (angle < min_angle) then
                     min_angle = angle
@@ -694,7 +694,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             local scaled_angle = FU.weight_s(min_angle, 0.67)
             -- Make this a 20% maximum range effect
             angle_fac = (1 + scaled_angle / 5)
-            --print('  -> min_angle: ' .. min_angle, scaled_angle, angle_fac)
+            --std_print('  -> min_angle: ' .. min_angle, scaled_angle, angle_fac)
 
             formation_rating = formation_rating * angle_fac
 
@@ -706,11 +706,11 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 formation_rating = formation_rating * dist_fac
             end
         end
-        --print('  formation_rating 2:', formation_rating)
+        --std_print('  formation_rating 2:', formation_rating)
 
         if cfg.protect_leader then
             formation_rating = formation_rating * leader_protect_mult
-            --print(i_c, formation_rating, leader_protect_mult, formation_rating / leader_protect_mult)
+            --std_print(i_c, formation_rating, leader_protect_mult, formation_rating / leader_protect_mult)
         end
 
         table.insert(good_combos, {
@@ -755,7 +755,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             end
         end
     end
-    --print('#good_combos: ' .. #good_combos .. '/' .. #valid_combos .. '/' .. #combos)
+    --std_print('#good_combos: ' .. #good_combos .. '/' .. #valid_combos .. '/' .. #combos)
 
     table.sort(good_combos, function(a, b) return a.formation_rating > b.formation_rating end)
     --DBG.dbms(good_combos)
@@ -769,18 +769,18 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     if (value_ratio < 1) then
         acceptable_ctd = 0.25 + 0.75 * (1 / value_ratio - 1)
     end
-    --print(cfg.forward_ratio, acceptable_ctd)
+    --std_print(cfg.forward_ratio, acceptable_ctd)
 
     local max_rating, best_combo, all_max_rating, all_best_combo
     local reduced_max_rating, reduced_best_combo, reduced_all_max_rating, reduced_all_best_combo
     for i_c,combo in pairs(good_combos) do
-        --print('combo ' .. i_c)
+        --std_print('combo ' .. i_c)
 
         local old_locs, new_locs, ids = {}, {}, {}
         for s,d in pairs(combo.combo) do
             local src =  { math.floor(s / 1000), s % 1000 }
             local dst =  { math.floor(d / 1000), d % 1000 }
-            --print('  ' .. src[1] .. ',' .. src[2] .. '  -->  ' .. dst[1] .. ',' .. dst[2])
+            --std_print('  ' .. src[1] .. ',' .. src[2] .. '  -->  ' .. dst[1] .. ',' .. dst[2])
 
             table.insert(old_locs, src)
             table.insert(new_locs, dst)
@@ -810,7 +810,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                             -- We cannot just remove this dst from this hold, as this would
                             -- change the threats to the other dsts. The entire combo needs
                             -- to be discarded.
-                            --print('Too dangerous for a non-protecting hold', counter_outcomes.def_outcome.hp_chance[0])
+                            --std_print('Too dangerous for a non-protecting hold', counter_outcomes.def_outcome.hp_chance[0])
                             count = 0
                             break
                         end
@@ -829,8 +829,8 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 end
                 unit_rel_rating = 1 + unit_rel_rating * hold_counter_weight
 
-                --print('  ' .. ids[i_l], unit_rating)
-                --print('    ' .. unit_rel_rating, unit_value)
+                --std_print('  ' .. ids[i_l], unit_rating)
+                --std_print('    ' .. unit_rel_rating, unit_value)
                 rel_rating = rel_rating + unit_rel_rating
                 count = count + 1
             else
@@ -839,12 +839,12 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
             full_count = full_count + 1
         end
-        --print(i_c, count, full_count)
+        --std_print(i_c, count, full_count)
 
         if (count > 0) then
             rel_rating = rel_rating / count
             counter_rating = combo.formation_rating * rel_rating
-            --print('  ---> ' .. combo.formation_rating, rel_rating, combo.formation_rating * rel_rating)
+            --std_print('  ---> ' .. combo.formation_rating, rel_rating, combo.formation_rating * rel_rating)
 
             if (count == full_count) then
                 if combo.is_protected then
@@ -924,8 +924,8 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
        all_best_combo = reduced_all_best_combo
     end
 
-    --print(' ===> max rating:             ' .. (max_rating or 'none'))
-    --print(' ===> max rating all: ' .. (all_max_rating or 'none'))
+    --std_print(' ===> max rating:             ' .. (max_rating or 'none'))
+    --std_print(' ===> max rating all: ' .. (all_max_rating or 'none'))
 
     return best_combo and best_combo.combo, all_best_combo and all_best_combo.combo, protect_loc_str
 end

@@ -809,12 +809,12 @@ return {
                         -- to move out of the way, otherwise we don't get here), give
                         -- a pretty stiff penalty, but make it possible to recruit here
                         if unit then
-                            --print('Out of way penalty', c[1], c[2], unit.id)
+                            --std_print('Out of way penalty', c[1], c[2], unit.id)
                             rating = rating - 100.
                         end
 
                         if avoid_map and avoid_map:get(c[1], c[2]) then
-                            --print('Avoid hex for recruiting:', c[1], c[2])
+                            --std_print('Avoid hex for recruiting:', c[1], c[2])
                             rating = rating - 1000.
                         end
                         if (rating > max_rating) then
@@ -826,9 +826,9 @@ return {
 
             if AH.print_eval() then
                 if village[1] then
-                    print("Recruit at: " .. best_hex[1] .. "," .. best_hex[2] .. " -> " .. village[1] .. "," .. village[2])
+                    std_print("Recruit at: " .. best_hex[1] .. "," .. best_hex[2] .. " -> " .. village[1] .. "," .. village[2])
                 else
-                    print("Recruit at: " .. best_hex[1] .. "," .. best_hex[2])
+                    std_print("Recruit at: " .. best_hex[1] .. "," .. best_hex[2])
                 end
             end
             return best_hex, village
@@ -851,7 +851,7 @@ return {
             if recruit_data.castle.loose_gold_limit >= recruit_data.recruit.cheapest_unit_cost then
                 gold_limit = recruit_data.castle.loose_gold_limit
             end
-            --print (recruit_data.castle.loose_gold_limit .. " " .. recruit_data.recruit.cheapest_unit_cost .. " " .. gold_limit)
+            --std_print (recruit_data.castle.loose_gold_limit .. " " .. recruit_data.recruit.cheapest_unit_cost .. " " .. gold_limit)
 
             local recruitable_units = {}
 
@@ -971,11 +971,11 @@ return {
                 end
 
                 local score = offense_score*offense_weight + defense_score*defense_weight + move_score*move_weight + bonus
-                --print(recruit_id)
-                --print('  ' .. offense_score .. ' * ' .. offense_weight .. ' + ' .. defense_score .. ' * ' .. defense_weight .. ' + ' .. move_score .. ' * ' .. move_weight .. ' + ' .. bonus)
-                --print('  --> ' .. score)
+                --std_print(recruit_id)
+                --std_print('  ' .. offense_score .. ' * ' .. offense_weight .. ' + ' .. defense_score .. ' * ' .. defense_weight .. ' + ' .. move_score .. ' * ' .. move_weight .. ' + ' .. bonus)
+                --std_print('  --> ' .. score)
                 if AH.print_eval() then
-                    print(recruit_id .. " score: " .. offense_score*offense_weight .. " + " .. defense_score*defense_weight .. " + " .. move_score*move_weight  .. " + " .. bonus  .. " = " .. score)
+                    std_print(recruit_id .. " score: " .. offense_score*offense_weight .. " + " .. defense_score*defense_weight .. " + " .. move_score*move_weight  .. " + " .. bonus  .. " = " .. score)
                 end
                 if score > best_score and wesnoth.unit_types[recruit_id].cost <= gold_limit then
                     best_score = score

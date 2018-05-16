@@ -134,7 +134,7 @@ local function get_attack_action(zone_cfg, fred_data)
             local bonus_rating = 0
 
             --DBG.dbms(combo_outcome.rating_table)
-            --print('   combo ratings: ', combo_outcome.rating_table.rating, combo_outcome.rating_table.attacker.rating, combo_outcome.rating_table.defender.rating)
+            --std_print('   combo ratings: ', combo_outcome.rating_table.rating, combo_outcome.rating_table.attacker.rating, combo_outcome.rating_table.defender.rating)
 
             -- Don't attack if the leader is involved and has chance to die > 0
             local do_attack = true
@@ -160,7 +160,7 @@ local function get_attack_action(zone_cfg, fred_data)
                     end
                 end
             end
-            --print('  ******* do_attack after keep check:', do_attack)
+            --std_print('  ******* do_attack after keep check:', do_attack)
 
             -- Don't do this attack if the leader has a chance to get killed, poisoned or slowed
             -- This is only the chance of poison/slow in this attack, if he is already
@@ -213,7 +213,7 @@ local function get_attack_action(zone_cfg, fred_data)
                             and (not FU.get_fgumap_value(move_data.my_unit_map_noMP, xa, ya, 'id'))
                             and ((xa ~= target_loc[1]) or (ya ~= target_loc[2]))
                         then
-                            --print('next to village:')
+                            --std_print('next to village:')
                             FU.set_fgumap_value(tmp_adj_villages_map, xa, ya, 'is_village', true)
                         end
                     end
@@ -226,7 +226,7 @@ local function get_attack_action(zone_cfg, fred_data)
                     local is_used = false
                     for _,dst in ipairs(combo_outcome.dsts) do
                         if (dst[1] == x) and (dst[2] == y) then
-                            --print('Village is used in attack:' .. x .. ',' .. y)
+                            --std_print('Village is used in attack:' .. x .. ',' .. y)
                             is_used = true
                             break
                         end
@@ -246,7 +246,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         -- a function of damage done to both sides vs. healing at village
                         for i_a,dst in pairs(combo_outcome.dsts) do
                             local id = combo_outcome.attacker_infos[i_a].id
-                            --print(id, dst[1], dst[2], move_data.unit_copies[id].x, move_data.unit_copies[id].y)
+                            --std_print(id, dst[1], dst[2], move_data.unit_copies[id].x, move_data.unit_copies[id].y)
                             if (not move_data.my_units_noMP[id]) then
                                 wesnoth.put_unit(move_data.unit_copies[id], dst[1], dst[2])
                             end
@@ -255,13 +255,13 @@ local function get_attack_action(zone_cfg, fred_data)
                         local can_reach = false
                         for x,y in FU.fgumap_iter(adj_villages_map) do
                             local _, cost = wesnoth.find_path(move_data.unit_copies[target_id], x, y)
-                            --print('cost', cost)
+                            --std_print('cost', cost)
                             if (cost <= move_data.unit_infos[target_id].max_moves) then
                                 can_reach = true
                                 break
                             end
                         end
-                        --print('can_reach', can_reach)
+                        --std_print('can_reach', can_reach)
 
                         for i_a,dst in pairs(combo_outcome.dsts) do
                             local id = combo_outcome.attacker_infos[i_a].id
@@ -269,7 +269,7 @@ local function get_attack_action(zone_cfg, fred_data)
                                 wesnoth.extract_unit(move_data.unit_copies[id])
                                 move_data.unit_copies[id].x, move_data.unit_copies[id].y = move_data.units[id][1], move_data.units[id][2]
                             end
-                            --print(id, dst[1], dst[2], move_data.unit_copies[id].x, move_data.unit_copies[id].y)
+                            --std_print(id, dst[1], dst[2], move_data.unit_copies[id].x, move_data.unit_copies[id].y)
                         end
 
                         if can_reach then
@@ -279,7 +279,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         local unit_value = FU.unit_value(move_data.unit_infos[target_id])
                         local penalty = 10. / move_data.unit_infos[target_id].max_hitpoints * unit_value
                         penalty = penalty * n_adj_unocc_village
-                        --print('Applying village penalty', bonus_rating, penalty)
+                        --std_print('Applying village penalty', bonus_rating, penalty)
                         bonus_rating = bonus_rating - penalty
 
                         -- In that case, also don't give the trapping bonus
@@ -371,7 +371,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         -- to check that the unit is not trapped any more in combos with more
                         -- than 2 attackers. This is likely not worth the effort.
 
-                        --print('Applying trapping bonus', bonus_rating, bonus)
+                        --std_print('Applying trapping bonus', bonus_rating, bonus)
                         bonus_rating = bonus_rating + bonus
                     end
                 end
@@ -501,7 +501,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         plague_penalty = plague_penalty + 0.5 * 6. * (number_plaguers - 1)
                     end
 
-                    print('Applying plague penalty', bonus_rating, plague_penalty)
+                    std_print('Applying plague penalty', bonus_rating, plague_penalty)
 
                     bonus_rating = bonus_rating - plague_penalty
                 end
@@ -521,7 +521,7 @@ local function get_attack_action(zone_cfg, fred_data)
                     if (dim_return < 1) then
                         derating = math.sqrt(dim_return)
                     end
-                    --print('derating', n_att, dim_return, derating)
+                    --std_print('derating', n_att, dim_return, derating)
 
                     pre_rating = pre_rating * derating
                 end
@@ -577,7 +577,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 end
             end
         end
-        --print('  is_disqualified', is_disqualified)
+        --std_print('  is_disqualified', is_disqualified)
 
         if (not is_disqualified) then
             -- TODO: the following is slightly inefficient, as it places units and
@@ -618,7 +618,7 @@ local function get_attack_action(zone_cfg, fred_data)
 
                 -- Need to round, otherwise the poison calculation might be wrong
                 hp = H.round(hp)
-                --print('attacker hp before, after:', old_HP_attackers[i_a], hp)
+                --std_print('attacker hp before, after:', old_HP_attackers[i_a], hp)
 
                 move_data.unit_infos[attacker_info.id].hitpoints = hp
                 move_data.unit_copies[attacker_info.id].hitpoints = hp
@@ -641,7 +641,7 @@ local function get_attack_action(zone_cfg, fred_data)
             hp = H.round(hp_org - combo.defender_damage.delayed_damage)
 
             if (hp < 1) then hp = math.min(1, H.round(hp_org)) end
-            --print('target hp before, after:', old_HP_target, hp_org, hp)
+            --std_print('target hp before, after:', old_HP_target, hp_org, hp)
 
             move_data.unit_infos[target_id].hitpoints = hp
             move_data.unit_copies[target_id].hitpoints = hp
@@ -692,29 +692,29 @@ local function get_attack_action(zone_cfg, fred_data)
                     -- For the unit considered here, combine the results
                     -- For all other units they remain unchanged
                     if dam2 and (dam1.id == dam2.id) then
-                        --print('-- my units --', dam1.id)
+                        --std_print('-- my units --', dam1.id)
                         -- Unchanged: unit_value, max_hitpoints, id
 
                         --  damage: just add up the two
                         dam.damage = dam1.damage + dam2.damage
-                        --print('  damage:', dam1.damage, dam2.damage, dam.damage)
+                        --std_print('  damage:', dam1.damage, dam2.damage, dam.damage)
 
                         local normal_damage_chance1 = 1 - dam1.die_chance - dam1.levelup_chance
                         local normal_damage_chance2 = 1 - dam2.die_chance - dam2.levelup_chance
-                        --print('  normal_damage_chance (1, 2)', normal_damage_chance1,normal_damage_chance2)
+                        --std_print('  normal_damage_chance (1, 2)', normal_damage_chance1,normal_damage_chance2)
 
                         --  - delayed_damage: only take that from the counter attack
                         --  TODO: this might underestimate poison etc.
                         dam.delayed_damage = dam2.delayed_damage
-                        --print('  delayed_damage:', dam1.delayed_damage, dam2.delayed_damage, dam.delayed_damage)
+                        --std_print('  delayed_damage:', dam1.delayed_damage, dam2.delayed_damage, dam.delayed_damage)
 
                         --  - die_chance
                         dam.die_chance = dam1.die_chance + dam2.die_chance * normal_damage_chance1
-                        --print('  die_chance:', dam1.die_chance, dam2.die_chance, dam.die_chance)
+                        --std_print('  die_chance:', dam1.die_chance, dam2.die_chance, dam.die_chance)
 
                         --  - levelup_chance
                         dam.levelup_chance = dam1.levelup_chance + dam2.levelup_chance * normal_damage_chance1
-                        --print('  levelup_chance:', dam1.levelup_chance, dam2.levelup_chance, dam.levelup_chance)
+                        --std_print('  levelup_chance:', dam1.levelup_chance, dam2.levelup_chance, dam.levelup_chance)
                     end
 
                     damages_my_units[i_d] = dam
@@ -749,7 +749,7 @@ local function get_attack_action(zone_cfg, fred_data)
 
                             target_included = true
 
-                            --print('-- enemy units --', dam2.id)
+                            --std_print('-- enemy units --', dam2.id)
                             -- Unchanged: unit_value, max_hitpoints, id
 
                             -- Derate the counter enemy rating by the CTD of the enemy. This is meant
@@ -759,28 +759,28 @@ local function get_attack_action(zone_cfg, fred_data)
                             -- TODO: this is currently only done for the enemy rating, not the
                             -- AI unit rating. It might result in the AI being to timid.
                             local survival_weight = FU.weight_s(1 - dam2.die_chance, 0.75)
-                            --print('  survival_weight, counter die chance', survival_weight, dam2.die_chance)
+                            --std_print('  survival_weight, counter die chance', survival_weight, dam2.die_chance)
 
                             --  damage: just add up the two
                             dam.damage = dam1.damage + dam2.damage * survival_weight
-                            --print('  damage:', dam1.damage, dam2.damage, dam.damage)
+                            --std_print('  damage:', dam1.damage, dam2.damage, dam.damage)
 
                             local normal_damage_chance1 = 1 - dam1.die_chance - dam1.levelup_chance
                             local normal_damage_chance2 = 1 - dam2.die_chance - dam2.levelup_chance
-                            --print('  normal_damage_chance (1, 2)', normal_damage_chance1,normal_damage_chance2)
+                            --std_print('  normal_damage_chance (1, 2)', normal_damage_chance1,normal_damage_chance2)
 
                             --  - delayed_damage: only take that from the forward attack
                             --  TODO: this might underestimate poison etc.
                             dam.delayed_damage = dam1.delayed_damage
-                            --print('  delayed_damage:', dam1.delayed_damage, dam2.delayed_damage, dam.delayed_damage)
+                            --std_print('  delayed_damage:', dam1.delayed_damage, dam2.delayed_damage, dam.delayed_damage)
 
                             --  - die_chance
                             dam.die_chance = dam1.die_chance + dam2.die_chance * normal_damage_chance1 * survival_weight
-                            --print('  die_chance:', dam1.die_chance, dam2.die_chance, dam.die_chance)
+                            --std_print('  die_chance:', dam1.die_chance, dam2.die_chance, dam.die_chance)
 
                             --  - levelup_chance
                             dam.levelup_chance = dam1.levelup_chance + dam2.levelup_chance * normal_damage_chance1 * survival_weight
-                            --print('  levelup_chance:', dam1.levelup_chance, dam2.levelup_chance, dam.levelup_chance)
+                            --std_print('  levelup_chance:', dam1.levelup_chance, dam2.levelup_chance, dam.levelup_chance)
                         end
 
                         damages_enemy_units[i_d] = dam
@@ -796,23 +796,23 @@ local function get_attack_action(zone_cfg, fred_data)
                 --DBG.dbms(damages_enemy_units)
                 --DBG.dbms(combo)
 
-                --print('\nratings my units:')
+                --std_print('\nratings my units:')
                 local my_rating = 0
                 for _,damage in ipairs(damages_my_units) do
                     local unit_rating = FAU.damage_rating_unit(damage)
                     my_rating = my_rating + unit_rating
-                    --print('  ' .. damage.id, unit_rating)
+                    --std_print('  ' .. damage.id, unit_rating)
                 end
                 DBG.print_debug('attack_print_output', '  --> total my unit rating:', my_rating)
 
 
-                --print('ratings enemy units:')
+                --std_print('ratings enemy units:')
                 local enemy_rating = 0
                 for _,damage in ipairs(damages_enemy_units) do
                     -- Enemy damage rating is negative!
                     local unit_rating = - FAU.damage_rating_unit(damage)
                     enemy_rating = enemy_rating + unit_rating
-                    --print('  ' .. damage.id, unit_rating)
+                    --std_print('  ' .. damage.id, unit_rating)
                 end
                 DBG.print_debug('attack_print_output', '  --> total enemy unit rating:', enemy_rating)
 
@@ -848,7 +848,7 @@ local function get_attack_action(zone_cfg, fred_data)
                     -- If there's a chance of the leader getting poisoned, slowed or killed, don't do it
                     -- unless he is poisoned/slowed already
                     if attacker.canrecruit then
-                        --print('Leader: slowed, poisoned %', counter_outcomes.def_outcome.slowed, counter_outcomes.def_outcome.poisoned)
+                        --std_print('Leader: slowed, poisoned %', counter_outcomes.def_outcome.slowed, counter_outcomes.def_outcome.poisoned)
                         if (counter_outcomes.def_outcome.slowed > 0.0) and (not attacker.status.slowed) then
                             DBG.print_debug('attack_print_output', '       leader: counter attack slow chance too high', counter_outcomes.def_outcome.slowed)
                             acceptable_counter = false
@@ -871,10 +871,10 @@ local function get_attack_action(zone_cfg, fred_data)
                         -- that's why it is compared ot 0.5 instead of 0)
                         -- Note: we don't use this any more, but keep code for now for possibly resurrection
                         --local max_damage_attack = attacker.hitpoints - combo.att_outcomes[i_a].min_hp
-                        --print('max_damage_attack, attacker.hitpoints, min_hp', max_damage_attack, attacker.hitpoints, combo.att_outcomes[i_a].min_hp)
+                        --std_print('max_damage_attack, attacker.hitpoints, min_hp', max_damage_attack, attacker.hitpoints, combo.att_outcomes[i_a].min_hp)
                         -- Add damage from attack and counter attack
                         --local min_outcome = counter_min_hp - max_damage_attack
-                        --print('Leader: min_outcome, counter_min_hp, max_damage_attack', min_outcome, counter_min_hp, max_damage_attack)
+                        --std_print('Leader: min_outcome, counter_min_hp, max_damage_attack', min_outcome, counter_min_hp, max_damage_attack)
 
                         -- Approximate way of calculating the chance that the leader will die in the combination
                         -- of attack and counter attack. This should work reasonably well for small die chances, which
@@ -910,10 +910,10 @@ local function get_attack_action(zone_cfg, fred_data)
                                 die_chance = die_chance + chance
                             end
                         end
-                        --print('Leader: die_chance', die_chance)
+                        --std_print('Leader: die_chance', die_chance)
 
                         local av_outcome = counter_outcomes.def_outcome.average_hp
-                        --print('Leader: av_outcome', av_outcome)
+                        --std_print('Leader: av_outcome', av_outcome)
 
                         if (die_chance > leader_max_die_chance) or (av_outcome < attacker.max_hitpoints / 2) then
                             DBG.print_debug('attack_print_output', '       leader: counter attack outcome too low', die_chance)
@@ -949,7 +949,7 @@ local function get_attack_action(zone_cfg, fred_data)
                     check_exposure = false
                     is_leader_threat = true
                 end
-                --print('check_exposure', check_exposure)
+                --std_print('check_exposure', check_exposure)
 
 
                 -- Check whether die chance for units with high XP values is too high.
@@ -971,8 +971,8 @@ local function get_attack_action(zone_cfg, fred_data)
                     end
 
                     local survival_chance = 1 - damages_my_units[i_a].die_chance
-                    --print(id, xp, min_xp, max_xp)
-                    --print('  ' .. xp_thresh, survival_chance)
+                    --std_print(id, xp, min_xp, max_xp)
+                    --std_print('  ' .. xp_thresh, survival_chance)
 
                     if (survival_chance < xp_thresh) then
                         DBG.print_debug('attack_print_output', '       non-leader: counter attack too dangerous for high-XP unit', survival_chance, xp_thresh, xp)
@@ -997,20 +997,20 @@ local function get_attack_action(zone_cfg, fred_data)
                         if (not check_exposure) then break end
                     end
                 end
-                --print('check_exposure', check_exposure)
+                --std_print('check_exposure', check_exposure)
 
                 if check_exposure and counter_outcomes
                     and (#combo.attackers < 3) and (1.5 * #combo.attackers < #damages_enemy_units)
                     and ((#combo.attackers > 1) or (combo.attackers[1].moves > 0))
                 then
-                    --print('       outnumbered in counter attack: ' .. #combo.attackers .. ' vs. ' .. #damages_enemy_units)
+                    --std_print('       outnumbered in counter attack: ' .. #combo.attackers .. ' vs. ' .. #damages_enemy_units)
                     local die_value = damages_my_units[i_a].die_chance * damages_my_units[i_a].unit_value
-                    --print('           die value ' .. damages_my_units[i_a].id .. ': ', die_value, damages_my_units[i_a].unit_value)
+                    --std_print('           die value ' .. damages_my_units[i_a].id .. ': ', die_value, damages_my_units[i_a].unit_value)
 
                     if (die_value > 0) then
                         local kill_chance = combo.def_outcome.hp_chance[0]
                         local kill_value = kill_chance * FU.unit_value(move_data.unit_infos[target_id])
-                        --print('         kill chance, kill_value: ', kill_chance, kill_value)
+                        --std_print('         kill chance, kill_value: ', kill_chance, kill_value)
 
                         if (kill_chance < 0.33) or (kill_value < die_value * 2) then
                             DBG.print_debug('attack_print_output', '       non-leader: counter attack too exposed', die_value, kill_value, kill_chance)
@@ -1069,15 +1069,15 @@ local function get_attack_action(zone_cfg, fred_data)
                         -- If an attack is done, it's the combined forward and counter attack rating
                         local with_attack_rating = min_total_damage_rating
 
-                        --print('    V1: no attack rating: ', no_attack_rating, '<---', 0, -counter_outcomes.rating_table.rating)
-                        --print('    V2: with attack rating:', with_attack_rating, '<---', combo.rating_table.rating, min_total_damage_rating)
+                        --std_print('    V1: no attack rating: ', no_attack_rating, '<---', 0, -counter_outcomes.rating_table.rating)
+                        --std_print('    V2: with attack rating:', with_attack_rating, '<---', combo.rating_table.rating, min_total_damage_rating)
 
                         if (with_attack_rating < no_attack_rating) then
                             acceptable_counter = false
                             -- Note the '1': (since this is a single-unit attack)
                             FAU.add_disqualified_attack(combo, 1, disqualified_attacks)
                         end
-                        --print('acceptable_counter', acceptable_counter)
+                        --std_print('acceptable_counter', acceptable_counter)
                     end
                 else
                     -- Otherwise this is only acceptable if the chance to die
@@ -1165,11 +1165,11 @@ local function get_hold_action(zone_cfg, fred_data)
     --   factor_counter / factor_forward = value_ratio
     local factor_counter = 1 / (1 + 1 / value_ratio)
     local factor_forward = 1 - factor_counter
-    --print('factor_counter, factor_forward', factor_counter, factor_forward)
+    --std_print('factor_counter, factor_forward', factor_counter, factor_forward)
 
     local push_factor = fred_data.ops_data.fronts.zones[zone_cfg.zone_id].push_utility
     push_factor = push_factor / value_ratio
-    --print('push_factor', push_factor)
+    --std_print('push_factor', push_factor)
     local front_ld = fred_data.ops_data.fronts.zones[zone_cfg.zone_id].ld
 
     local vuln_weight = FCFG.get_cfg_parm('vuln_weight')
@@ -1177,17 +1177,17 @@ local function get_hold_action(zone_cfg, fred_data)
     if (vuln_rating_weight < 0) then
         vuln_rating_weight = 0
     end
-    --print('vuln_weight, vuln_rating_weight', vuln_weight, vuln_rating_weight)
+    --std_print('vuln_weight, vuln_rating_weight', vuln_weight, vuln_rating_weight)
 
     local forward_weight = FCFG.get_cfg_parm('forward_weight')
     local forward_rating_weight = forward_weight * (1 / value_ratio)
-    --print('forward_weight, forward_rating_weight', forward_weight, forward_rating_weight)
+    --std_print('forward_weight, forward_rating_weight', forward_weight, forward_rating_weight)
 
     local influence_ratio = fred_data.turn_data.behavior.ratios.influence
     local base_value_ratio = fred_data.turn_data.behavior.ratios.base_value_ratio
     local protect_forward_rating_weight = (influence_ratio / base_value_ratio) - 1
     protect_forward_rating_weight = protect_forward_rating_weight * FCFG.get_cfg_parm('protect_forward_weight')
-    --print('protect_forward_rating_weight', protect_forward_rating_weight)
+    --std_print('protect_forward_rating_weight', protect_forward_rating_weight)
 
 
     local raw_cfg = fred_data.turn_data.raw_cfgs[zone_cfg.zone_id]
@@ -1211,7 +1211,7 @@ local function get_hold_action(zone_cfg, fred_data)
     --DBG.dbms(holders)
 
     local protect_leader = zone_cfg.protect_leader
-    --print('protect_leader', protect_leader)
+    --std_print('protect_leader', protect_leader)
 
     local zone
     if protect_leader then
@@ -1275,7 +1275,7 @@ local function get_hold_action(zone_cfg, fred_data)
 
     for enemy_id,enemy_loc in pairs(move_data.enemies) do
         for x,y,_ in FU.fgumap_iter(zone_map) do
-            --print(x,y)
+            --std_print(x,y)
 
             local enemy_hcs = {}
             local min_dist, max_dist
@@ -1328,7 +1328,7 @@ local function get_hold_action(zone_cfg, fred_data)
 
 
     for id,_ in pairs(holders) do
-        --print('\n' .. id, zone_cfg.zone_id)
+        --std_print('\n' .. id, zone_cfg.zone_id)
 
         for x,y,_ in FU.fgumap_iter(move_data.unit_attack_maps[1][id]) do
             local unit_influence = FU.unit_terrain_power(move_data.unit_infos[id], x, y, move_data)
@@ -1453,11 +1453,11 @@ local function get_hold_action(zone_cfg, fred_data)
 
     local pre_rating_maps = {}
     for id,_ in pairs(holders) do
-        --print('\n' .. id, zone_cfg.zone_id)
+        --std_print('\n' .. id, zone_cfg.zone_id)
         local min_eleader_distance
         for x,y,_ in FU.fgumap_iter(move_data.reach_maps[id]) do
             if FU.get_fgumap_value(zone_map, x, y, 'flag') then
-                --print(x,y)
+                --std_print(x,y)
                 local can_hit = false
                 for enemy_id,enemy_zone_map in pairs(enemy_zone_maps) do
                     if FU.get_fgumap_value(enemy_zone_map, x, y, 'adj_hit_chance') then
@@ -1487,10 +1487,10 @@ local function get_hold_action(zone_cfg, fred_data)
                 end
             end
         end
-        --print('  min_eleader_distance: ' .. min_eleader_distance)
+        --std_print('  min_eleader_distance: ' .. min_eleader_distance)
 
         for x,y,_ in FU.fgumap_iter(move_data.reach_maps[id]) do
-            --print(x,y)
+            --std_print(x,y)
 
             -- If there is nothing to protect, and we can move farther ahead
             -- unthreatened than this hold position, don't hold here
@@ -1527,8 +1527,8 @@ local function get_hold_action(zone_cfg, fred_data)
                     local enemy_adj_hc = FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'adj_hit_chance')
 
                     if enemy_adj_hc then
-                        --print(x,y)
-                        --print('  ', enemy_id, enemy_adj_hc)
+                        --std_print(x,y)
+                        --std_print('  ', enemy_id, enemy_adj_hc)
 
                         local my_hc = 1 - FGUI.get_unit_defense(move_data.unit_copies[id], x, y, move_data.defense_maps)
                         -- This is not directly a contribution to damage, it's just meant as a tiebreaker
@@ -1587,7 +1587,7 @@ local function get_hold_action(zone_cfg, fred_data)
                 local cum_weight, n_enemies = 0, 0
                 for _,enemy in pairs(tmp_enemies) do
                     local enemy_weight = enemy_weights[id][enemy.enemy_id].weight
-                    --print('    ' .. enemy.enemy_id, enemy_weight, x .. ',' .. y, enemy.damage_taken, enemy.damage_done, enemy.counter_actual_taken, enemy.counter_actual_done, enemy.counter_max_taken)
+                    --std_print('    ' .. enemy.enemy_id, enemy_weight, x .. ',' .. y, enemy.damage_taken, enemy.damage_done, enemy.counter_actual_taken, enemy.counter_actual_done, enemy.counter_max_taken)
                     cum_weight = cum_weight + enemy_weight
                     n_enemies = n_enemies + 1
 
@@ -1607,12 +1607,12 @@ local function get_hold_action(zone_cfg, fred_data)
                     enemy_value_loss = enemy_value_loss
                         + FU.approx_value_loss(move_data.unit_infos[enemy.enemy_id], enemy.counter_actual_done, enemy.counter_max_done)
 
-                    --print('  ', damage_taken, damage_done, cum_weight)
+                    --std_print('  ', damage_taken, damage_done, cum_weight)
                 end
 
                 damage_taken = damage_taken / cum_weight * n_enemies
                 damage_done = damage_done / cum_weight * n_enemies
-                --print('  cum: ', damage_taken, damage_done, cum_weight)
+                --std_print('  cum: ', damage_taken, damage_done, cum_weight)
 
                 local my_value_loss, approx_ctd, unit_value = FU.approx_value_loss(move_data.unit_infos[id], counter_actual_taken, counter_max_taken)
 
@@ -1644,7 +1644,7 @@ local function get_hold_action(zone_cfg, fred_data)
                 damage_taken = frac_taken * move_data.unit_infos[id].hitpoints
 
                 local av_outcome = damage_done - damage_taken * value_ratio
-                --print(x .. ',' .. y, damage_taken, damage_done, village_bonus, av_outcome, value_ratio)
+                --std_print(x .. ',' .. y, damage_taken, damage_done, village_bonus, av_outcome, value_ratio)
 
                 if (not pre_rating_maps[id]) then
                     pre_rating_maps[id] = {}
@@ -1694,7 +1694,7 @@ local function get_hold_action(zone_cfg, fred_data)
                 if (not FU.get_fgumap_value(hold_here_map, xa, ya, 'av_outcome'))
                     and FU.get_fgumap_value(pre_rating_map, xa, ya, 'av_outcome')
                 then
-                    --print('adjacent :' .. x .. ',' .. y, xa .. ',' .. ya)
+                    --std_print('adjacent :' .. x .. ',' .. y, xa .. ',' .. ya)
                     FU.set_fgumap_value(adj_hex_map, xa, ya, 'av_outcome', data.av_outcome)
                 end
             end
@@ -1713,7 +1713,7 @@ local function get_hold_action(zone_cfg, fred_data)
                     FU.set_fgumap_value(hold_here_maps[id], x, y, 'hold_here', true)
                 else
                     local value_loss = FU.get_fgumap_value(pre_rating_map, x, y, 'value_loss')
-                    --print(x, y, value_loss, push_factor)
+                    --std_print(x, y, value_loss, push_factor)
 
                     -- The overall push forward must be worth it
                     -- AND it should not be too far ahead of the front
@@ -1728,7 +1728,7 @@ local function get_hold_action(zone_cfg, fred_data)
 
                             advance_factor = advance_factor
                            --FU.set_fgumap_value(hold_here_maps[id], x, y, 'hold_here', value_loss)
-                           --print(x, y, ld, front_ld, f)
+                           --std_print(x, y, ld, front_ld, f)
 
                             if (value_loss < - advance_factor) then
                                 FU.set_fgumap_value(hold_here_maps[id], x, y, 'hold_here', false)
@@ -1774,7 +1774,7 @@ local function get_hold_action(zone_cfg, fred_data)
                     if (not FU.get_fgumap_value(protect_here_maps[id], xa, ya, 'protect_here'))
                         and FU.get_fgumap_value(pre_rating_map, xa, ya, 'av_outcome')
                     then
-                        --print('adjacent :' .. x .. ',' .. y, xa .. ',' .. ya)
+                        --std_print('adjacent :' .. x .. ',' .. y, xa .. ',' .. ya)
                         FU.set_fgumap_value(adj_hex_map, xa, ya, 'protect_here', true)
                     end
                 end
@@ -1800,7 +1800,7 @@ local function get_hold_action(zone_cfg, fred_data)
 
     local hold_rating_maps = {}
     for id,hold_here_map in pairs(hold_here_maps) do
-        --print('\n' .. id, zone_cfg.zone_id)
+        --std_print('\n' .. id, zone_cfg.zone_id)
         local max_vuln
         for x,y,hold_here_data in FU.fgumap_iter(hold_here_map) do
             if hold_here_data.hold_here then
@@ -1846,7 +1846,7 @@ local function get_hold_action(zone_cfg, fred_data)
         local n_units,n_holders = 0, 0
         for _,_ in pairs(hold_rating_maps) do n_units = n_units + 1 end
         for _,_ in pairs(holders) do n_holders = n_holders + 1 end
-        --print(n_units, n_holders)
+        --std_print(n_units, n_holders)
 
         if (n_units < 3) and (n_units < n_holders) then
             hold_rating_maps = {}
@@ -1879,7 +1879,7 @@ local function get_hold_action(zone_cfg, fred_data)
 
     local protect_rating_maps = {}
     for id,protect_here_map in pairs(protect_here_maps) do
-        --print('\n' .. id, zone_cfg.zone_id, protect_leader_distance.min .. ' -- ' .. protect_leader_distance.max)
+        --std_print('\n' .. id, zone_cfg.zone_id, protect_leader_distance.min .. ' -- ' .. protect_leader_distance.max)
         local max_vuln
         for x,y,protect_here_data in FU.fgumap_iter(protect_here_map) do
             if protect_here_data.protect_here then
@@ -1922,7 +1922,7 @@ local function get_hold_action(zone_cfg, fred_data)
                 end
 
                 local protect_base_rating = protect_base_rating / cum_weight
-                --print('    base_rating, protect_base_rating: ' .. base_rating, protect_base_rating, cum_weight)
+                --std_print('    base_rating, protect_base_rating: ' .. base_rating, protect_base_rating, cum_weight)
 
                 if FU.get_fgumap_value(move_data.village_map, x, y, 'owner') then
                     -- Prefer strongest unit on village (for protection)
@@ -2032,11 +2032,11 @@ local function get_hold_action(zone_cfg, fred_data)
 
     local best_hold_combo, all_best_hold_combo, hold_dst_src, hold_ratings
     if (next(hold_rating_maps)) then
-        --print('--> checking hold combos')
+        --std_print('--> checking hold combos')
         hold_dst_src, hold_ratings = FHU.unit_rating_maps_to_dstsrc(hold_rating_maps, 'vuln_rating', move_data, cfg_combos)
         local hold_combos = FU.get_unit_hex_combos(hold_dst_src)
         --DBG.dbms(hold_combos)
-        --print('#hold_combos', #hold_combos)
+        --std_print('#hold_combos', #hold_combos)
 
         best_hold_combo, all_best_hold_combo = FHU.find_best_combo(hold_combos, hold_ratings, 'vuln_rating', adjacent_village_map, between_map, fred_data, cfg_best_combo_hold)
     end
@@ -2044,11 +2044,11 @@ local function get_hold_action(zone_cfg, fred_data)
     local protect_loc_str
     local best_protect_combo, all_best_protect_combo, protect_dst_src, protect_ratings
     if protect_locs and next(protect_rating_maps) then
-        --print('--> checking protect combos')
+        --std_print('--> checking protect combos')
         protect_dst_src, protect_ratings = FHU.unit_rating_maps_to_dstsrc(protect_rating_maps, 'protect_rating', move_data, cfg_combos)
         local protect_combos = FU.get_unit_hex_combos(protect_dst_src)
         --DBG.dbms(protect_combos)
-        --print('#protect_combos', #protect_combos)
+        --std_print('#protect_combos', #protect_combos)
 
         best_protect_combo, all_best_protect_combo, protect_loc_str = FHU.find_best_combo(protect_combos, protect_ratings, 'protect_rating', adjacent_village_map, between_map, fred_data, cfg_best_combo_protect)
 
@@ -2091,7 +2091,7 @@ local function get_hold_action(zone_cfg, fred_data)
         end
         protect_distance = protect_distance / count
 
-        --print(hold_distance, protect_distance)
+        --std_print(hold_distance, protect_distance)
 
         -- Potential TODO: this criterion might be too simple
         if (hold_distance > protect_distance + 1) then
@@ -2248,7 +2248,7 @@ local function get_advance_action(zone_cfg, fred_data)
     local max_rating, best_id, best_hex
     for id,unit_loc in pairs(advancers) do
         local is_unit_in_zone = wesnoth.match_location(unit_loc[1], unit_loc[2], raw_cfg.ops_slf)
-        --print('is_unit_in_zone: ' .. id, is_unit_in_zone)
+        --std_print('is_unit_in_zone: ' .. id, is_unit_in_zone)
 
         unit_rating_maps[id] = {}
 
@@ -2265,7 +2265,7 @@ local function get_advance_action(zone_cfg, fred_data)
         local hp_rating = FU.weight_s(fraction_hp_missing, 0.5)
         hp_rating = hp_rating * unit_value / 2
 
-        --print(id, rating_moves, rating_power, fraction_hp_missing, hp_rating)
+        --std_print(id, rating_moves, rating_power, fraction_hp_missing, hp_rating)
 
         local cost_map, cost_map_key
         for x,y,_ in FU.fgumap_iter(move_data.reach_maps[id]) do
@@ -2323,13 +2323,13 @@ local function get_advance_action(zone_cfg, fred_data)
                             local ld_unit = FU.get_fgumap_value(fred_data.turn_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], unit_loc[1], unit_loc[2], 'cost')
 
                             if false then
-                                print('forward influences:', id, ld_unit)
+                                std_print('forward influences:', id, ld_unit)
                                 for i=-100,100 do
                                     if data_arr[i] then
-                                        print('  ' .. i, data_arr[i])
+                                        std_print('  ' .. i, data_arr[i])
                                     end
                                 end
-                                print('x0', x0)
+                                std_print('x0', x0)
                             end
 
 
@@ -2407,7 +2407,7 @@ local function get_advance_action(zone_cfg, fred_data)
                         unit_moved, old_locs, new_locs, cfg_attack, move_data, move_cache
                     )
                     --DBG.dbms(counter_outcomes.def_outcome.ctd_progression)
-                    --print('  die_chance', counter_outcomes.def_outcome.hp_chance[0])
+                    --std_print('  die_chance', counter_outcomes.def_outcome.hp_chance[0])
 
                     if counter_outcomes then
                         -- This is the standard attack rating (roughly) in units of cost (gold)
@@ -2482,7 +2482,7 @@ local function get_advance_action(zone_cfg, fred_data)
             end
         end
     end
-    --print('best unit: ' .. best_id, best_hex[1], best_hex[2])
+    --std_print('best unit: ' .. best_id, best_hex[1], best_hex[2])
 
     if DBG.show_debug('advance_unit_rating') then
         for id,unit_rating_map in pairs(unit_rating_maps) do
@@ -2494,19 +2494,19 @@ local function get_advance_action(zone_cfg, fred_data)
     -- If no safe location is found, check for desparate attack
     local best_target, best_weapons, action_str
     if (not safe_loc) then
-        --print('----- no safe advance location found -----')
+        --std_print('----- no safe advance location found -----')
 
         local cfg_attack = { value_ratio = 0.2 } -- mostly based on damage done to enemy
 
         local max_attack_rating, best_attacker_id, best_attack_hex
         for id,unit_loc in pairs(advancers) do
-            --print('checking desparate attacks for ' .. id)
+            --std_print('checking desparate attacks for ' .. id)
 
             local attacker = {}
             attacker[id] = unit_loc
             for enemy_id,enemy_loc in pairs(move_data.enemies) do
                 if FU.get_fgumap_value(move_data.unit_attack_maps[1][id], enemy_loc[1], enemy_loc[2], 'current_power') then
-                    --print('    potential target:' .. enemy_id)
+                    --std_print('    potential target:' .. enemy_id)
 
                     local target = {}
                     target[enemy_id] = enemy_loc
@@ -2516,7 +2516,7 @@ local function get_advance_action(zone_cfg, fred_data)
 
                     for _,combo in ipairs(attack_combos) do
                         local combo_outcome = FAU.attack_combo_eval(combo, target, cfg_attack, move_data, move_cache)
-                        --print(next(combo))
+                        --std_print(next(combo))
                         --DBG.dbms(combo_outcome.rating_table)
 
                         local do_attack = true
@@ -2561,7 +2561,7 @@ local function get_advance_action(zone_cfg, fred_data)
             end
         end
         if best_attacker_id then
-            --print('best desparate attack: ' .. best_attacker_id, best_attack_hex[1], best_attack_hex[2], next(best_target))
+            --std_print('best desparate attack: ' .. best_attacker_id, best_attack_hex[1], best_attack_hex[2], next(best_target))
             best_id = best_attacker_id
             best_hex = best_attack_hex
         end
@@ -2636,7 +2636,7 @@ function get_zone_action(cfg, fred_data)
         -- keep for now and see later if needed
         local action = get_retreat_action(cfg, fred_data)
         if action then
-            --print(action.action_str)
+            --std_print(action.action_str)
             return action
         end
     end
@@ -2646,7 +2646,7 @@ function get_zone_action(cfg, fred_data)
         --DBG.print_ts_delta(fred_data.turn_start_time, '  ' .. cfg.zone_id .. ': attack eval')
         local action = get_attack_action(cfg, fred_data)
         if action then
-            --print(action.action_str)
+            --std_print(action.action_str)
             return action
         end
     end
@@ -2753,7 +2753,7 @@ function ca_zone_control:evaluation(cfg, data, ai_debug)
                     local leader = data.move_data.leaders[wesnoth.current.side]
                     if (wesnoth.get_terrain_info(wesnoth.get_terrain(leader[1], leader[2])).keep) then
                         for _,recruit_unit in ipairs(cfg.action.recruit_units) do
-                            --print('  ' .. recruit_unit.recruit_type .. ' at ' .. recruit_unit.recruit_hex[1] .. ',' .. recruit_unit.recruit_hex[2])
+                            --std_print('  ' .. recruit_unit.recruit_type .. ' at ' .. recruit_unit.recruit_hex[1] .. ',' .. recruit_unit.recruit_hex[2])
                             local uiw = wesnoth.get_unit(recruit_unit.recruit_hex[1], recruit_unit.recruit_hex[2])
                             if (not uiw) then
                                 -- If there is no unit in the way, we're good
@@ -2774,7 +2774,7 @@ function ca_zone_control:evaluation(cfg, data, ai_debug)
                 else
                     for _,u in ipairs(cfg.action.units) do
                         local unit = wesnoth.get_units { id = u.id }[1]
-                        --print(unit.id, unit.x, unit.y)
+                        --std_print(unit.id, unit.x, unit.y)
 
                         if (not unit) or ((unit.x == cfg.action.dsts[1][1]) and (unit.y == cfg.action.dsts[1][2])) then
                             is_good = false
@@ -2782,7 +2782,7 @@ function ca_zone_control:evaluation(cfg, data, ai_debug)
                         end
 
                         local _, cost = wesnoth.find_path(unit, cfg.action.dsts[1][1], cfg.action.dsts[1][2])
-                        --print(cost)
+                        --std_print(cost)
 
                         if (cost > unit.moves) then
                             is_good = false
@@ -2793,11 +2793,11 @@ function ca_zone_control:evaluation(cfg, data, ai_debug)
                     if (#cfg.action.units == 0) then
                         is_good = false
                     end
-                    --print('is_good:', is_good)
+                    --std_print('is_good:', is_good)
                 end
 
                 if is_good then
-                    --print('  Pre-evaluated action found: ' .. cfg.action.action_str)
+                    --std_print('  Pre-evaluated action found: ' .. cfg.action.action_str)
                     data.zone_action = AH.table_copy(cfg.action)
                     return score_zone_control, cfg.action
                 else
@@ -2843,9 +2843,9 @@ function ca_zone_control:execution(cfg, data, ai_debug)
         DBG.print_debug_time('exec', data.turn_start_time, '=> exec: ' .. action)
 
         if data.zone_action.recruit_units then
-            --print('Recruiting pre-evaluated units')
+            --std_print('Recruiting pre-evaluated units')
             for _,recruit_unit in ipairs(data.zone_action.recruit_units) do
-                --print('  ' .. recruit_unit.recruit_type .. ' at ' .. recruit_unit.recruit_hex[1] .. ',' .. recruit_unit.recruit_hex[2])
+                --std_print('  ' .. recruit_unit.recruit_type .. ' at ' .. recruit_unit.recruit_hex[1] .. ',' .. recruit_unit.recruit_hex[2])
                 local uiw = wesnoth.get_unit(recruit_unit.recruit_hex[1], recruit_unit.recruit_hex[2])
                 if uiw then
                     -- Generally, move out of way in direction of own leader
@@ -2854,7 +2854,7 @@ function ca_zone_control:execution(cfg, data, ai_debug)
                     local r = math.sqrt(dx * dx + dy * dy)
                     if (r ~= 0) then dx, dy = dx / r, dy / r end
 
-                    --print('    uiw: ' .. uiw.id)
+                    --std_print('    uiw: ' .. uiw.id)
                     AH.move_unit_out_of_way(ai, uiw, { dx = dx, dy = dy })
 
                     -- Make sure the unit really is gone now
@@ -2914,11 +2914,11 @@ function ca_zone_control:execution(cfg, data, ai_debug)
 
             local cfg_attack = { value_ratio = data.turn_data.behavior.orders.value_ratio }
             local combo_outcome = FAU.attack_combo_eval(combo, data.zone_action.enemy, cfg_attack, data.move_data, data.move_cache)
-            --print('\noverall kill chance: ', combo_outcome.defender_damage.die_chance)
+            --std_print('\noverall kill chance: ', combo_outcome.defender_damage.die_chance)
 
             local enemy_level = defender_info.level
             if (enemy_level == 0) then enemy_level = 0.5 end
-            --print('enemy level', enemy_level)
+            --std_print('enemy level', enemy_level)
 
             -- Check if any unit has a chance to level up
             local levelups = { anybody = false }
@@ -2934,7 +2934,7 @@ function ca_zone_control:execution(cfg, data, ai_debug)
                     levelup_possible = true
                     levelups.anybody = true
                 end
-                --print('  ' .. unit_info.id, XP_diff, levelup_possible, levelup_certain)
+                --std_print('  ' .. unit_info.id, XP_diff, levelup_possible, levelup_certain)
 
                 levelups[ind] = { certain = levelup_certain, possible = levelup_possible}
             end
@@ -2957,7 +2957,7 @@ function ca_zone_control:execution(cfg, data, ai_debug)
 
                 -- The base rating is the individual attack rating
                 local rating = rating_table.rating
-                --print('  base_rating ' .. unit_info.id, rating)
+                --std_print('  base_rating ' .. unit_info.id, rating)
 
                 -- If the target can die, we might want to reorder, in order
                 -- to maximize the chance to level up and give the most XP
@@ -2986,7 +2986,7 @@ function ca_zone_control:execution(cfg, data, ai_debug)
                             extra_rating = 90 * utility + XP_diff / 10
                             extra_rating = extra_rating - att_damage[1].unit_value / 100
                         end
-                        --print('    levelup utility', utility)
+                        --std_print('    levelup utility', utility)
                     else
                         -- If no unit has a chance to level up, giving the
                         -- most XP to the most advanced unit is desirable, but
@@ -3000,18 +3000,18 @@ function ca_zone_control:execution(cfg, data, ai_debug)
                         -- as well as units with high XP and high chance to kill
                         -- It is normalized to [0..1]
                         local utility = (x * y + 1) / 2
-                        --print('      ' .. xp_fraction, def_outcome.hp_chance[0])
-                        --print('      ' .. x, y, utility)
+                        --std_print('      ' .. xp_fraction, def_outcome.hp_chance[0])
+                        --std_print('      ' .. x, y, utility)
 
                         extra_rating = 10 * utility * (1 - att_outcome.hp_chance[0])^2
 
                         -- Also want most valuable unit to go first
                         extra_rating = extra_rating + att_damage[1].unit_value / 1000
-                        --print('    XP gain utility', utility)
+                        --std_print('    XP gain utility', utility)
                     end
 
                     rating = rating + extra_rating
-                    --print('    rating', rating)
+                    --std_print('    rating', rating)
                 end
 
                 if (not max_rating) or (rating > max_rating) then
@@ -3034,7 +3034,7 @@ function ca_zone_control:execution(cfg, data, ai_debug)
         -- If this is the leader (and he has MP left), recruit first
         -- We're doing that by running a mini CA eval/exec loop
         if unit.canrecruit and (unit.moves > 0) then
-            --print('-------------------->  This is the leader. Recruit first.')
+            --std_print('-------------------->  This is the leader. Recruit first.')
             local avoid_map = LS.create()
             for _,loc in ipairs(data.zone_action.dsts) do
                 avoid_map:insert(dst[1], dst[2])
@@ -3119,7 +3119,7 @@ function ca_zone_control:execution(cfg, data, ai_debug)
         if unit_in_way then
             for i_u,u in ipairs(data.zone_action.units) do
                 if (u.id == unit_in_way.id) then
-                    --print('  unit is part of the combo', unit_in_way.id, unit_in_way.x, unit_in_way.y)
+                    --std_print('  unit is part of the combo', unit_in_way.id, unit_in_way.x, unit_in_way.y)
                     local path, _ = wesnoth.find_path(unit_in_way, data.zone_action.dsts[i_u][1], data.zone_action.dsts[i_u][2])
 
                     -- If we can find an unoccupied hex along the path, move the
@@ -3137,13 +3137,13 @@ function ca_zone_control:execution(cfg, data, ai_debug)
                     end
 
                     if moveto then
-                        --print('    ' .. unit_in_way.id .. ': moving out of way to:', moveto[1], moveto[2])
+                        --std_print('    ' .. unit_in_way.id .. ': moving out of way to:', moveto[1], moveto[2])
                         AH.checked_move(ai, unit_in_way, moveto[1], moveto[2])
                     else
                         if (not path) or (not path[1]) or (not path[2]) then
-                            print('Trying to identify path table error !!!!!!!!')
-                            print(i_u, u.id, unit_in_way.id)
-                            print(unit.id, unit.x, unit.y)
+                            std_print('Trying to identify path table error !!!!!!!!')
+                            std_print(i_u, u.id, unit_in_way.id)
+                            std_print(unit.id, unit.x, unit.y)
                             DBG.dbms(data.zone_action, -1)
                             DBG.dbms(dst, -1)
                             DBG.dbms(path, -1)

@@ -46,7 +46,7 @@ function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_
 
         if replace_zones then break end
     end
-    --print('replace_zones', replace_zones)
+    --std_print('replace_zones', replace_zones)
 
     if replace_zones then
         actions.hold_zones[raw_cfg_new.zone_id] = true
@@ -184,17 +184,17 @@ function fred_ops_utils.assess_leader_threats(leader_threats, protect_locs, lead
         if protect_locs[zone_id].leader_distance then
             hold_ld = protect_locs[zone_id].leader_distance.max
         end
-        --print(zone_id, hold_ld)
+        --std_print(zone_id, hold_ld)
 
         local is_threat = false
         for id,ld in pairs(threats) do
-            --print('  ' .. id, ld)
+            --std_print('  ' .. id, ld)
             if (ld < hold_ld + 1) then
                 is_threat = true
                 break
             end
         end
-        --print('    is_threat: ', is_threat)
+        --std_print('    is_threat: ', is_threat)
 
         if (not is_threat) then
             for id,_ in pairs(threats) do
@@ -208,7 +208,7 @@ function fred_ops_utils.assess_leader_threats(leader_threats, protect_locs, lead
 
     -- Check out how much of a threat these units pose in combination
     local max_total_loss, av_total_loss = 0, 0
-    --print('    possible damage by enemies in reach (average, max):')
+    --std_print('    possible damage by enemies in reach (average, max):')
     for id,_ in pairs(leader_threats.enemies) do
         local dst
         local max_defense = 0
@@ -232,7 +232,7 @@ function fred_ops_utils.assess_leader_threats(leader_threats, protect_locs, lead
 
         local max_loss = leader_proxy.hitpoints - def_outcome.min_hp
         local av_loss = leader_proxy.hitpoints - def_outcome.average_hp
-        --print('    ', id, av_loss, max_loss)
+        --std_print('    ', id, av_loss, max_loss)
 
         max_total_loss = max_total_loss + max_loss
         av_total_loss = av_total_loss + av_loss
@@ -283,7 +283,7 @@ function fred_ops_utils.set_turn_data(move_data)
     -- so that we do not have to double-calculate them.
     local enemy_initial_reach_maps = {}
     if (not next(move_data.my_units_noMP)) then
-        --print('Using existing enemy move map')
+        --std_print('Using existing enemy move map')
         for enemy_id,_ in pairs(move_data.enemies) do
             enemy_initial_reach_maps[enemy_id] = {}
             for x,y,data in FU.fgumap_iter(move_data.reach_maps[enemy_id]) do
@@ -291,7 +291,7 @@ function fred_ops_utils.set_turn_data(move_data)
             end
         end
     else
-        --print('Need to create new enemy move map')
+        --std_print('Need to create new enemy move map')
         for enemy_id,_ in pairs(move_data.enemies) do
             enemy_initial_reach_maps[enemy_id] = {}
 
@@ -331,7 +331,7 @@ function fred_ops_utils.set_turn_data(move_data)
         local is_fearless = move_data.unit_infos[id].traits.fearless
         local tod_bonus_next_turn = FU.get_unit_time_of_day_bonus(alignment, is_fearless, wesnoth.get_time_of_day(wesnoth.current.turn + 1).lawful_bonus)
         local tod_mod_ratio = tod_bonus_next_turn / move_data.unit_infos[id].tod_mod
-        --print(id, unit_influence, alignment, move_data.unit_infos[id].tod_mod, tod_bonus_next_turn, tod_mod_ratio)
+        --std_print(id, unit_influence, alignment, move_data.unit_infos[id].tod_mod, tod_bonus_next_turn, tod_mod_ratio)
 
         if (move_data.unit_infos[id].side == wesnoth.current.side) then
             my_total_influence = my_total_influence + unit_influence
@@ -349,12 +349,12 @@ function fred_ops_utils.set_turn_data(move_data)
     local neutral_power_ratio = my_base_power / enemy_base_power
 
     local influence_mult_next_turn = my_influence_next_turn / my_weight / (enemy_influence_next_turn / enemy_weight)
-    --print(my_influence_next_turn / my_weight, enemy_influence_next_turn / enemy_weight, influence_mult_next_turn)
+    --std_print(my_influence_next_turn / my_weight, enemy_influence_next_turn / enemy_weight, influence_mult_next_turn)
 
     -- Take fraction of influence ratio change on next turn into account for calculating value_ratio
     local weight = FCFG.get_cfg_parm('next_turn_influence_weight')
     local factor = 1 / (1 + (influence_mult_next_turn - 1) * weight)
-    --print(influence_mult_next_turn, weight, factor)
+    --std_print(influence_mult_next_turn, weight, factor)
 
     local base_value_ratio = 1 / FCFG.get_cfg_parm('aggression')
     local max_value_ratio = 1 / FCFG.get_cfg_parm('min_aggression')
@@ -426,7 +426,7 @@ function fred_ops_utils.set_turn_data(move_data)
 
     local unit_attacks = {}
     for my_id,_ in pairs(move_data.my_units) do
-        --print(my_id)
+        --std_print(my_id)
         local tmp_attacks = {}
 
         local old_x = move_data.unit_copies[my_id].x
@@ -437,7 +437,7 @@ function fred_ops_utils.set_turn_data(move_data)
         local my_proxy = wesnoth.get_unit(my_x, my_y)
 
         for enemy_id,_ in pairs(move_data.enemies) do
-            --print('    ' .. enemy_id)
+            --std_print('    ' .. enemy_id)
 
             local old_x_enemy = move_data.unit_copies[enemy_id].x
             local old_y_enemy = move_data.unit_copies[enemy_id].y
@@ -452,7 +452,7 @@ function fred_ops_utils.set_turn_data(move_data)
 
             local max_diff_forward
             for i_w,attack in ipairs(move_data.unit_infos[my_id].attacks) do
-                --print('attack weapon: ' .. i_w)
+                --std_print('attack weapon: ' .. i_w)
 
                 local _, _, my_weapon, enemy_weapon = wesnoth.simulate_combat(my_proxy, i_w, enemy_proxy)
                 local _, my_base_damage, my_extra_damage, my_regen_damage
@@ -461,7 +461,7 @@ function fred_ops_utils.set_turn_data(move_data)
                 -- If the enemy has no weapon at this range, attack_num=-1 and enemy_attack
                 -- will be nil; this is handled just fine by FAU.get_total_damage_attack
                 -- Note: attack_num starts at 0, not 1 !!!!
-                --print('  enemy weapon: ' .. enemy_weapon.attack_num + 1)
+                --std_print('  enemy weapon: ' .. enemy_weapon.attack_num + 1)
                 local enemy_attack = move_data.unit_infos[enemy_id].attacks[enemy_weapon.attack_num + 1]
                 local _, enemy_base_damage, enemy_extra_damage, enemy_regen_damage
                     = FAU.get_total_damage_attack(enemy_weapon, enemy_attack, false, move_data.unit_infos[my_id])
@@ -469,7 +469,7 @@ function fred_ops_utils.set_turn_data(move_data)
                 -- TODO: the factor of 2 is somewhat arbitrary and serves to emphasize
                 -- the strongest attack weapon. Might be changed later. Use 1/value_ratio?
                 local diff = 2 * (my_base_damage + my_extra_damage) - enemy_base_damage - enemy_extra_damage
-                --print('  ' .. my_base_damage, enemy_base_damage, my_extra_damage, enemy_extra_damage, '-->', diff)
+                --std_print('  ' .. my_base_damage, enemy_base_damage, my_extra_damage, enemy_extra_damage, '-->', diff)
 
                 if (not max_diff_forward) or (diff > max_diff_forward) then
                     max_diff_forward = diff
@@ -491,7 +491,7 @@ function fred_ops_utils.set_turn_data(move_data)
 
             local max_diff_counter, max_damage_counter
             for i_w,attack in ipairs(move_data.unit_infos[enemy_id].attacks) do
-                --print('counter weapon: ' .. i_w)
+                --std_print('counter weapon: ' .. i_w)
 
                 local _, _, enemy_weapon, my_weapon = wesnoth.simulate_combat(enemy_proxy, i_w, my_proxy)
                 local _, enemy_base_damage, enemy_extra_damage, _
@@ -500,7 +500,7 @@ function fred_ops_utils.set_turn_data(move_data)
                 -- If the AI unit has no weapon at this range, attack_num=-1 and my_attack
                 -- will be nil; this is handled just fine by FAU.get_total_damage_attack
                 -- Note: attack_num starts at 0, not 1 !!!!
-                --print('  my weapon: ' .. my_weapon.attack_num + 1)
+                --std_print('  my weapon: ' .. my_weapon.attack_num + 1)
                 local my_attack = move_data.unit_infos[my_id].attacks[my_weapon.attack_num + 1]
                 local _, my_base_damage, my_extra_damage, _
                     = FAU.get_total_damage_attack(my_weapon, my_attack, false, move_data.unit_infos[enemy_id])
@@ -508,7 +508,7 @@ function fred_ops_utils.set_turn_data(move_data)
                 -- TODO: the factor of 2 is somewhat arbitrary and serves to emphasize
                 -- the strongest attack weapon. Might be changed later. Use 1/value_ratio?
                 local diff = 2 * (enemy_base_damage + enemy_extra_damage) - my_base_damage - my_extra_damage
-                --print('  ' .. enemy_base_damage, my_base_damage, enemy_extra_damage, my_extra_damage, '-->', diff)
+                --std_print('  ' .. enemy_base_damage, my_base_damage, enemy_extra_damage, my_extra_damage, '-->', diff)
 
                 if (not max_diff_counter) or (diff > max_diff_counter) then
                     max_diff_counter = diff
@@ -588,7 +588,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     -- Locations to protect, and move goals for the leader
     local max_ml, closest_keep, closest_village
     for x,y,_ in FU.fgumap_iter(move_data.reachable_keeps_map[wesnoth.current.side]) do
-        --print('keep:', x, y)
+        --std_print('keep:', x, y)
         -- Note that reachable_keeps_map contains moves_left assuming max_mp for the leader
         -- This should generally be the same at this stage as the real situation, but
         -- might not work depending on how this is used in the future.
@@ -620,7 +620,7 @@ function fred_ops_utils.set_ops_data(fred_data)
                     end
                 end
             end
-            --print('    ' .. x, y, max_ml_village)
+            --std_print('    ' .. x, y, max_ml_village)
 
             if (not max_ml) or (max_ml_village > max_ml) then
                 max_ml = max_ml_village
@@ -637,7 +637,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     if closest_keep then
         leader_threats.leader_locs.closest_keep = closest_keep
         table.insert(leader_threats.protect_locs, closest_keep)
-        --print('closest keep: ' .. closest_keep[1] .. ',' .. closest_keep[2])
+        --std_print('closest keep: ' .. closest_keep[1] .. ',' .. closest_keep[2])
     else
         local _, _, next_hop, best_keep_for_hop = FMLU.move_eval(true, fred_data)
         leader_threats.leader_locs.next_hop = next_hop
@@ -645,13 +645,13 @@ function fred_ops_utils.set_ops_data(fred_data)
         table.insert(leader_threats.protect_locs, next_hop)
         table.insert(leader_threats.protect_locs, best_keep_for_hop)
         if next_hop then
-            --print('next_hop to keep: ' .. next_hop[1] .. ',' .. next_hop[2])
+            --std_print('next_hop to keep: ' .. next_hop[1] .. ',' .. next_hop[2])
         end
     end
     if closest_village then
         leader_threats.leader_locs.closest_village = closest_village
         table.insert(leader_threats.protect_locs, closest_village)
-        --print('reachable village after keep: ' .. closest_village[1] .. ',' .. closest_village[2])
+        --std_print('reachable village after keep: ' .. closest_village[1] .. ',' .. closest_village[2])
     end
     -- It is possible that no protect location was found (e.g. if the leader cannot move)
     if (not leader_threats.protect_locs[1]) then
@@ -746,7 +746,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
 
     -- Finding areas and units for attacking/defending in each zone
-    --print('Move toward (highest blurred vulnerability):')
+    --std_print('Move toward (highest blurred vulnerability):')
     local goal_hexes = {}
     for zone_id,cfg in pairs(raw_cfgs_main) do
         local max_ld, loc
@@ -765,7 +765,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         end
 
         if max_ld then
-            --print('max protect ld:', zone_id, max_ld, loc[1], loc[2])
+            --std_print('max protect ld:', zone_id, max_ld, loc[1], loc[2])
             goal_hexes[zone_id] = { loc }
         else
             goal_hexes[zone_id] = cfg.center_hexes
@@ -776,22 +776,22 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     local distance_from_front = {}
     for id,l in pairs(move_data.my_units) do
-        --print(id, l[1], l[2])
+        --std_print(id, l[1], l[2])
         if (not move_data.unit_infos[id].canrecruit) then
             distance_from_front[id] = {}
             for zone_id,locs in pairs(goal_hexes) do
-                --print('  ' .. zone_id)
+                --std_print('  ' .. zone_id)
                 local min_dist
                 for _,loc in ipairs(locs) do
                     local _, cost = wesnoth.find_path(move_data.unit_copies[id], loc[1], loc[2], { ignore_units = true })
                     cost = cost + move_data.unit_infos[id].max_moves - move_data.unit_infos[id].moves
-                    --print('    ' .. loc[1] .. ',' .. loc[2], cost)
+                    --std_print('    ' .. loc[1] .. ',' .. loc[2], cost)
 
                     if (not min_dist) or (min_dist > cost) then
                         min_dist = cost
                     end
                 end
-                --print('    -> ' .. min_dist, move_data.unit_infos[id].max_moves)
+                --std_print('    -> ' .. min_dist, move_data.unit_infos[id].max_moves)
                 distance_from_front[id][zone_id] = min_dist / move_data.unit_infos[id].max_moves
             end
         end
@@ -814,14 +814,14 @@ function fred_ops_utils.set_ops_data(fred_data)
         if (not move_data.unit_infos[id].canrecruit)
             and (not used_ids[id])
         then
-            --print(id)
+            --std_print(id)
             attacker_ratings[id] = {}
             for zone_id,data in pairs(assigned_enemies) do
-                --print('  ' .. zone_id)
+                --std_print('  ' .. zone_id)
 
                 local tmp_enemies = {}
                 for enemy_id,_ in pairs(data) do
-                    --print('    ' .. enemy_id)
+                    --std_print('    ' .. enemy_id)
                     local att = fred_data.turn_data.unit_attacks[id][enemy_id]
 
                     local damage_taken = att.damage_counter.enemy_gen_hc * att.damage_counter.base_taken + att.damage_counter.extra_taken
@@ -855,50 +855,50 @@ function fred_ops_utils.set_ops_data(fred_data)
                     local av_damage_taken, av_damage_done = 0, 0
                     local cum_weight, n_enemies = 0, 0
                     for _,enemy in pairs(tmp_enemies) do
-                        --print('    ' .. enemy.enemy_id)
+                        --std_print('    ' .. enemy.enemy_id)
                         local enemy_weight = FU.unit_base_power(move_data.unit_infos[id])
                         cum_weight = cum_weight + enemy_weight
                         n_enemies = n_enemies + 1
 
-                        --print('      taken, done:', enemy.damage_taken, enemy.damage_done)
+                        --std_print('      taken, done:', enemy.damage_taken, enemy.damage_done)
 
                         -- For this purpose, we use individual damage, rather than combined
                         local frac_taken = enemy.damage_taken - enemy.my_regen
                         frac_taken = frac_taken / move_data.unit_infos[id].hitpoints
-                        --print('      frac_taken 1', frac_taken)
+                        --std_print('      frac_taken 1', frac_taken)
                         frac_taken = FU.weight_s(frac_taken, 0.5)
-                        --print('      frac_taken 2', frac_taken)
+                        --std_print('      frac_taken 2', frac_taken)
                         --if (frac_taken > 1) then frac_taken = 1 end
                         --if (frac_taken < 0) then frac_taken = 0 end
                         av_damage_taken = av_damage_taken + enemy_weight * frac_taken * move_data.unit_infos[id].hitpoints
 
                         local frac_done = enemy.damage_done - enemy.enemy_regen
                         frac_done = frac_done / move_data.unit_infos[enemy.enemy_id].hitpoints
-                        --print('      frac_done 1', frac_done)
+                        --std_print('      frac_done 1', frac_done)
                         frac_done = FU.weight_s(frac_done, 0.5)
-                        --print('      frac_done 2', frac_done)
+                        --std_print('      frac_done 2', frac_done)
                         --if (frac_done > 1) then frac_done = 1 end
                         --if (frac_done < 0) then frac_done = 0 end
                         av_damage_done = av_damage_done + enemy_weight * frac_done * move_data.unit_infos[enemy.enemy_id].hitpoints
 
-                        --print('  ', av_damage_taken, av_damage_done, cum_weight)
+                        --std_print('  ', av_damage_taken, av_damage_done, cum_weight)
                     end
 
-                    --print('  cum: ', av_damage_taken, av_damage_done, cum_weight)
+                    --std_print('  cum: ', av_damage_taken, av_damage_done, cum_weight)
                     av_damage_taken = av_damage_taken / cum_weight
                     av_damage_done = av_damage_done / cum_weight
-                    --print('  av:  ', av_damage_taken, av_damage_done)
+                    --std_print('  av:  ', av_damage_taken, av_damage_done)
 
                     -- We want the ToD-independent rating here.
                     -- The rounding is going to be off for ToD modifier, but good enough for now
                     --av_damage_taken = av_damage_taken / move_data.unit_infos[id].tod_mod
                     --av_damage_done = av_damage_done / move_data.unit_infos[id].tod_mod
-                    --print('  av:  ', av_damage_taken, av_damage_done)
+                    --std_print('  av:  ', av_damage_taken, av_damage_done)
 
                     -- The rating must be positive for the analysis below to work
                     local av_hp_left = move_data.unit_infos[id].hitpoints - av_damage_taken
                     if (av_hp_left < 0) then av_hp_left = 0 end
-                    --print('    ' .. value_ratio, av_damage_done, av_hp_left)
+                    --std_print('    ' .. value_ratio, av_damage_done, av_hp_left)
 
                     local attacker_rating = av_damage_done / value_ratio + av_hp_left
                     attacker_ratings[id][zone_id] = attacker_rating
@@ -906,7 +906,7 @@ function fred_ops_utils.set_ops_data(fred_data)
                     if (not max_rating) or (attacker_rating > max_rating) then
                         max_rating = attacker_rating
                     end
-                    --print('  -->', attacker_rating)
+                    --std_print('  -->', attacker_rating)
                 end
             end
         end
@@ -924,14 +924,14 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     local unit_ratings = {}
     for id,zone_ratings in pairs(attacker_ratings) do
-        --print(id)
+        --std_print(id)
         unit_ratings[id] = {}
 
         for zone_id,rating in pairs(zone_ratings) do
             local distance = distance_from_front[id][zone_id]
             if (distance < 1) then distance = 1 end
             local distance_rating = 1 / distance
-            --print('  ' .. zone_id, distance, distance_rating, rating)
+            --std_print('  ' .. zone_id, distance, distance_rating, rating)
 
             local unit_rating = rating * distance_rating
             unit_ratings[id][zone_id] = { this_zone = unit_rating }
@@ -980,7 +980,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     local keep_trying = true
     while keep_trying do
         keep_trying = false
-        --print()
+        --std_print()
 
         local n_units = {}
         for zone_id,units in pairs(assigned_units) do
@@ -998,7 +998,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             if (data.power_needed > 0) then
                 frac_needed = data.power_missing / data.power_needed
             end
-            --print(zone_id, frac_needed, data.power_missing, data.power_needed)
+            --std_print(zone_id, frac_needed, data.power_missing, data.power_needed)
             local utility = math.sqrt(frac_needed)
             hold_utility[zone_id] = utility
         end
@@ -1016,10 +1016,10 @@ function fred_ops_utils.set_ops_data(fred_data)
             local zone_rating = data.power_missing
             --if ((n_units[zone_id] or 0) + 1 >= (n_enemies[zone_id] or 0)) then
             --    zone_rating = zone_rating * math.sqrt(ratio)
-            --    print('    -- decreasing zone_rating by factor ' .. math.sqrt(ratio), zone_rating)
+            --    std_print('    -- decreasing zone_rating by factor ' .. math.sqrt(ratio), zone_rating)
             --end
-            --print(zone_id, data.power_missing .. '/' .. data.power_needed .. ' = ' .. ratio, zone_rating)
-            --print('  zone_rating', zone_rating)
+            --std_print(zone_id, data.power_missing .. '/' .. data.power_needed .. ' = ' .. ratio, zone_rating)
+            --std_print('  zone_rating', zone_rating)
 
             for id,unit_zone_ratings in pairs(unit_ratings) do
                 local unit_rating = 0
@@ -1027,7 +1027,7 @@ function fred_ops_utils.set_ops_data(fred_data)
                 if unit_zone_ratings[zone_id] and unit_zone_ratings[zone_id].rating then
                     unit_zone_rating = unit_zone_ratings[zone_id].rating
                     unit_rating = unit_zone_rating * zone_rating
-                    --print('  ' .. id, unit_zone_rating, zone_rating, unit_rating)
+                    --std_print('  ' .. id, unit_zone_rating, zone_rating, unit_rating)
                 end
 
                 local inertia = 0
@@ -1037,7 +1037,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
                 unit_rating = unit_rating + inertia
 
-                --print('    ' .. zone_id .. ' ' .. id, retreat_utilities[id], hold_utility[zone_id])
+                --std_print('    ' .. zone_id .. ' ' .. id, retreat_utilities[id], hold_utility[zone_id])
                 -- TODO: the factor 0.8 is just a placeholder for now, so that
                 -- very injured units are not used for holding. This should be
                 -- replaced by a more accurate method
@@ -1050,12 +1050,12 @@ function fred_ops_utils.set_ops_data(fred_data)
                     best_zone = zone_id
                     best_unit = id
                 end
-                --print('  ' .. id .. '  ' .. move_data.unit_infos[id].hitpoints .. '/' .. move_data.unit_infos[id].max_hitpoints, unit_rating, inertia)
+                --std_print('  ' .. id .. '  ' .. move_data.unit_infos[id].hitpoints .. '/' .. move_data.unit_infos[id].max_hitpoints, unit_rating, inertia)
             end
         end
 
         if best_unit then
-            --print('--> ' .. best_zone, best_unit, move_data.unit_copies[best_unit].x .. ',' .. move_data.unit_copies[best_unit].y)
+            --std_print('--> ' .. best_zone, best_unit, move_data.unit_copies[best_unit].x .. ',' .. move_data.unit_copies[best_unit].y)
             if (not assigned_units[best_zone]) then
                 assigned_units[best_zone] = {}
             end
@@ -1109,10 +1109,10 @@ function fred_ops_utils.set_ops_data(fred_data)
     -- TODO: reconsider later whether this is the best thing to do.
     local total_weight = 0
     for zone_id,cfg in pairs(raw_cfgs_main) do
-        --print(zone_id, cfg.zone_weight)
+        --std_print(zone_id, cfg.zone_weight)
         total_weight = total_weight + cfg.zone_weight
     end
-    --print('total_weight', total_weight)
+    --std_print('total_weight', total_weight)
 
     local total_ratio_factor = fred_data.turn_data.behavior.orders.neutral_power_ratio
     if (total_ratio_factor > 1) then
@@ -1120,19 +1120,19 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
 
     while next(reserve_units) do
-        --print('power: assigned / desired --> deficit')
+        --std_print('power: assigned / desired --> deficit')
         local max_deficit, best_zone_id
         for zone_id,cfg in pairs(raw_cfgs_main) do
             local desired_power = total_ratio_factor * cfg.zone_weight / total_weight
             local assigned_power = zone_power_stats[zone_id].my_power
             local deficit = desired_power - assigned_power
-            --print(zone_id, assigned_power .. ' / ' .. desired_power, deficit)
+            --std_print(zone_id, assigned_power .. ' / ' .. desired_power, deficit)
 
             if (not max_deficit) or (deficit > max_deficit) then
                 max_deficit, best_zone_id = deficit, zone_id
             end
         end
-        --print('most in need: ' .. best_zone_id)
+        --std_print('most in need: ' .. best_zone_id)
 
         -- Find the best unit for this zone
         local max_rating, best_id
@@ -1146,15 +1146,15 @@ function fred_ops_utils.set_ops_data(fred_data)
                 power_rating = power_rating / 10
 
                 local rating = - turns + power_rating
-                --print(id, cost, turns, power_rating)
-                --print('  --> rating: ' .. rating)
+                --std_print(id, cost, turns, power_rating)
+                --std_print('  --> rating: ' .. rating)
 
                 if (not max_rating) or (rating > max_rating) then
                     max_rating, best_id = rating, id
                 end
             end
         end
-        --print('best:', best_zone_id, best_id)
+        --std_print('best:', best_zone_id, best_id)
         if (not assigned_units[best_zone_id]) then
             assigned_units[best_zone_id] = {}
         end
@@ -1235,7 +1235,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             denom = denom + data.vulnerability^2
         end
         local ld_front = num / denom
-        --print(zone_id, ld_max)
+        --std_print(zone_id, ld_max)
 
         local front_hexes = {}
         for x,y,data in FU.fgumap_iter(zone_influence_map) do
@@ -1265,7 +1265,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             push_utility = push_utility
         }
     end
-    --print('max_push_utility', max_push_utility)
+    --std_print('max_push_utility', max_push_utility)
 
     for _,front in pairs(fronts.zones) do
         front.push_utility = front.push_utility / max_push_utility
@@ -1292,7 +1292,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     local fred_show_behavior = wml.variables.fred_show_behavior or 1
     if (fred_show_behavior > 1) then
         wesnoth.message('Fred', fred_behavior_str)
-        print(fred_behavior_str)
+        std_print(fred_behavior_str)
 
         if (fred_show_behavior == 3) then
             for zone_id,front in pairs(fronts.zones) do
@@ -1316,7 +1316,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
 
     if DBG.show_debug('analysis') then
-        print('\n----- Behavior table -----')
+        std_print('\n----- Behavior table -----')
         --DBG.dbms(behavior.ratios)
         --DBG.dbms(behavior.orders)
         DBG.dbms(fronts)
@@ -1411,12 +1411,12 @@ function fred_ops_utils.update_ops_data(fred_data)
             if (not move_data.units[unit.id])
                 or (move_data.units[unit.id][1] ~= unit[1]) or (move_data.units[unit.id][2] ~= unit[2])
             then
-                --print(unit.id .. ' has moved or died')
+                --std_print(unit.id .. ' has moved or died')
                 valid_action = false
                 break
             else
                 if (not FU.get_fgumap_value(move_data.reach_maps[unit.id], action.dsts[i_u][1],  action.dsts[i_u][2], 'moves_left')) then
-                    --print(unit.id .. ' cannot get to village goal any more')
+                    --std_print(unit.id .. ' cannot get to village goal any more')
                     valid_action = false
                     break
                 end
@@ -1424,7 +1424,7 @@ function fred_ops_utils.update_ops_data(fred_data)
         end
 
         if (not valid_action) then
-            --print('deleting village action:', i_a)
+            --std_print('deleting village action:', i_a)
             table.remove(ops_data.actions.villages, i_a)
         end
     end
@@ -1465,7 +1465,7 @@ function fred_ops_utils.update_ops_data(fred_data)
             new_village_action = true
         end
     end
-    --print('new_village_action', new_village_action)
+    --std_print('new_village_action', new_village_action)
 
     -- If we found a village action that previously was not there, we
     -- simply use the new village actions, but without reassigning all
@@ -1553,7 +1553,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 
     -- We add the leader as a potential attacker to all zones but only if he's on the keep
     local leader = move_data.leaders[wesnoth.current.side]
-    --print('leader.id', leader.id)
+    --std_print('leader.id', leader.id)
     if (move_data.unit_copies[leader.id].attacks_left > 0)
        and wesnoth.get_terrain_info(wesnoth.get_terrain(leader[1], leader[2])).keep
     then
@@ -1622,7 +1622,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     local leader_threats_by_zone = {}
     for zone_id,threats in pairs(threats_by_zone) do
         for id,loc in pairs(threats) do
-            --print(zone_id,id)
+            --std_print(zone_id,id)
             if ops_data.leader_threats.enemies and ops_data.leader_threats.enemies[id] then
                 if (not leader_threats_by_zone[zone_id]) then
                     leader_threats_by_zone[zone_id] = {}

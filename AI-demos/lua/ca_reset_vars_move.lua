@@ -6,7 +6,7 @@ local FGU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils.lua"
 local ca_reset_vars_move = {}
 
 function ca_reset_vars_move:evaluation(cfg, data)
-    --print(' Resetting move_data tables (etc.) before move')
+    --std_print(' Resetting move_data tables (etc.) before move')
 
     data.move_data = FGU.get_move_data()
     data.move_cache = {}

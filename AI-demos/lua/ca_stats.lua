@@ -11,7 +11,7 @@ end
 
 function ca_stats:execution(cfg, data)
     local tod = wesnoth.get_time_of_day()
-    print('\n**** Fred ' .. wesnoth.dofile('~/add-ons/AI-demos/version.lua') .. ' *******************************************************')
+    std_print('\n**** Fred ' .. wesnoth.dofile('~/add-ons/AI-demos/version.lua') .. ' *******************************************************')
     DBG.print_ts('Beginning of Turn ' .. wesnoth.current.turn .. ' (' .. tod.name ..') stats')
 
     local sides = {}
@@ -50,16 +50,16 @@ function ca_stats:execution(cfg, data)
     for _,side_info in ipairs(wesnoth.sides) do
         local side = side_info.side
         local num_villages = sides[side].num_villages or 0
-        print('  Side ' .. side .. ': '
+        std_print('  Side ' .. side .. ': '
             .. sides[side].num_units .. ' Units (' .. sides[side].hitpoints .. ' HP), '
             .. num_villages .. '/' .. total_villages .. ' villages  ('
             .. sides[side].leader_type .. ', ' .. side_info.gold .. ' gold)'
         )
     end
 
-    if leveled_units then print('    Leveled units: ' .. leveled_units) end
+    if leveled_units then std_print('    Leveled units: ' .. leveled_units) end
 
-    print('************************************************************************')
+    std_print('************************************************************************')
 end
 
 return ca_stats

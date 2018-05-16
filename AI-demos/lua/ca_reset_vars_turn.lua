@@ -10,7 +10,7 @@ end
 function ca_reset_vars_turn:execution(cfg, data, ai_debug)
     local ai = ai_debug or ai
 
-    --print(' Resetting variables at beginning of Turn ' .. wesnoth.current.turn)
+    --std_print(' Resetting variables at beginning of Turn ' .. wesnoth.current.turn)
 
     data.turn_start_time = wesnoth.get_time_stamp() / 1000.
 

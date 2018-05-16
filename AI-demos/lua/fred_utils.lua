@@ -103,8 +103,8 @@ function fred_utils.print_weight_s(exp)
         s1 = s1 .. string.format("%5.3f", x) .. '  '
         s2 = s2 .. string.format("%5.3f", y) .. '  '
     end
-    print(s1)
-    print(s2)
+    std_print(s1)
+    std_print(s2)
 end
 
 function fred_utils.linear_regression(data)
@@ -183,7 +183,7 @@ function fred_utils.unit_value(unit_info)
 
     unit_value = unit_value * (1. + xp_bonus * (cost_factor - 1) * xp_weight)
 
-    --print('fred_utils.unit_value:', unit_info.id, unit_value, xp_bonus, xp_diff)
+    --std_print('fred_utils.unit_value:', unit_info.id, unit_value, xp_bonus, xp_diff)
 
     return unit_value
 end
@@ -211,7 +211,7 @@ function fred_utils.approx_value_loss(unit_info, av_damage, max_damage)
     end
     local fractional_damage = real_damage / hp_eff
     local fractional_rating = - fred_utils.weight_s(fractional_damage, 0.67)
-    --print('  fractional_damage, fractional_rating:', fractional_damage, fractional_rating)
+    --std_print('  fractional_damage, fractional_rating:', fractional_damage, fractional_rating)
 
     -- Additionally, add the chance to die, in order to emphasize units that might die
     -- This might result in fractional_damage > 1 in some cases
@@ -224,7 +224,7 @@ function fred_utils.approx_value_loss(unit_info, av_damage, max_damage)
     end
     local ctd_rating = - 1.5 * approx_ctd^1.5
     fractional_rating = fractional_rating + ctd_rating
-    --print('  ctd, ctd_rating, fractional_rating:', approx_ctd, ctd_rating, fractional_rating)
+    --std_print('  ctd, ctd_rating, fractional_rating:', approx_ctd, ctd_rating, fractional_rating)
 
     -- Convert all the fractional ratings before to one in "gold units"
     -- We cap this at 1.5 times the unit value
@@ -234,7 +234,7 @@ function fred_utils.approx_value_loss(unit_info, av_damage, max_damage)
     end
     local unit_value = fred_utils.unit_value(unit_info)
     local value_loss = fractional_rating * unit_value
-    --print('  unit_value, value_loss:', fred_utils.unit_value(unit_info), value_loss)
+    --std_print('  unit_value, value_loss:', fred_utils.unit_value(unit_info), value_loss)
 
     return value_loss, approx_ctd, unit_value
 end
@@ -273,7 +273,7 @@ function fred_utils.unittype_base_power(unit_type)
 end
 
 function fred_utils.moved_toward_zone(unit_copy, zone_cfgs, side_cfgs)
-    --print(unit_copy.id, unit_copy.x, unit_copy.y)
+    --std_print(unit_copy.id, unit_copy.x, unit_copy.y)
 
     local start_hex = side_cfgs[unit_copy.side].start_hex
 
@@ -293,7 +293,7 @@ function fred_utils.moved_toward_zone(unit_copy, zone_cfgs, side_cfgs)
             -- As a tie breaker, prefer zone that is originally farther away
             rating = rating + cost_start / 1000
 
-            --print('  ' .. zone_id, cost_start, cost_new, rating)
+            --std_print('  ' .. zone_id, cost_start, cost_new, rating)
 
             if (not score) or (rating > score) then
                to_zone_id, score = zone_id, rating
@@ -845,8 +845,8 @@ function fred_utils.single_unit_info(unit_proxy)
         -- and on shallow water for mermen, nagas etc.
         -- Use the best of those
         local flat_hc = math.min(defense.flat, defense.cave, defense.shallow_water)
-        --print('best hit chance on flat, cave, shallow water:', flat_hc)
-        --print(defense.flat, defense.cave, defense.shallow_water)
+        --std_print('best hit chance on flat, cave, shallow water:', flat_hc)
+        --std_print(defense.flat, defense.cave, defense.shallow_water)
 
         -- Good terrain is now defined as 10% lesser hit chance than that, except
         -- when this is better than the third best terrain for the unit. An example
@@ -856,7 +856,7 @@ function fred_utils.single_unit_info(unit_proxy)
         if (good_terrain_hit_chance < hit_chances[3].hit_chance) then
             good_terrain_hit_chance = flat_hc
         end
-        --print('good_terrain_hit_chance', good_terrain_hit_chance)
+        --std_print('good_terrain_hit_chance', good_terrain_hit_chance)
 
         single_unit_info.good_terrain_hit_chance = good_terrain_hit_chance / 100.
 

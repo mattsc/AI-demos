@@ -165,7 +165,7 @@ return {
             str = str .. '\n'
         end
 
-        print(str)
+        std_print(str)
         if (not stdout_only) then wesnoth.message(str) end
     end,
 

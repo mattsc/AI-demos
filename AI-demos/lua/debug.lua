@@ -53,7 +53,7 @@ function debug_utils.print_ts(...)
     local arg = { ... }
     arg[#arg+1] = string.format('[ t = %.3f ]', ts)
 
-    print(table.unpack(arg))
+    std_print(table.unpack(arg))
 
     return ts
 end
@@ -71,13 +71,13 @@ function debug_utils.print_ts_delta(start_time, ...)
     local arg = { ... }
     arg[#arg+1] = string.format('[ t = %.3f, dt = %.3f ]', ts, delta)
 
-    print(table.unpack(arg))
+    std_print(table.unpack(arg))
 
     return ts, delta
 end
 
 function debug_utils.print_debug(debug_type, ...)
-    if debug_utils.show_debug(debug_type) then print(...) end
+    if debug_utils.show_debug(debug_type) then std_print(...) end
 end
 
 function debug_utils.print_debug_time(debug_type, start_time, ...)
@@ -85,7 +85,7 @@ function debug_utils.print_debug_time(debug_type, start_time, ...)
         if start_time then
             debug_utils.print_ts_delta(start_time, ...)
         else
-            print(...)
+            std_print(...)
         end
     end
 end
@@ -372,7 +372,7 @@ function debug_utils.dbms(lua_var, clear, name, onscreen, wrap, only_return)
 
         if clear and wesnoth then wesnoth.clear_messages() end
         if not only_return then
-                print(result)
+                std_print(result)
                 if wesnoth and ((not clear) or (clear and (clear ~= -1))) then wesnoth.message("dbms", result) end;
         end
         local continue = true

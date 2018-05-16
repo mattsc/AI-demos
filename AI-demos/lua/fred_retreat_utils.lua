@@ -25,8 +25,8 @@ function retreat_functions.retreat_utilities(move_data, value_ratio)
         local dhp_nr = (move_data.unit_infos[id].max_hitpoints - hp_inflection_init) * (1 - value_ratio) * (1 - xp_mult) / level^2
         local hp_no_retreat = move_data.unit_infos[id].max_hitpoints - dhp_nr
 
-        --print(id, move_data.unit_infos[id].hitpoints .. '/' .. move_data.unit_infos[id].max_hitpoints .. '   ' .. move_data.unit_infos[id].experience .. '/' .. move_data.unit_infos[id].max_experience .. '   ' .. hp_no_retreat)
-        --print('  ' .. hp_inflection_base, hp_inflection_init, hp_no_retreat)
+        --std_print(id, move_data.unit_infos[id].hitpoints .. '/' .. move_data.unit_infos[id].max_hitpoints .. '   ' .. move_data.unit_infos[id].experience .. '/' .. move_data.unit_infos[id].max_experience .. '   ' .. hp_no_retreat)
+        --std_print('  ' .. hp_inflection_base, hp_inflection_init, hp_no_retreat)
 
         local hp_eff = move_data.unit_infos[id].hitpoints
         if move_data.unit_infos[id].abilities.regenerate then
@@ -60,7 +60,7 @@ function retreat_functions.retreat_utilities(move_data, value_ratio)
             else
                 w_retreat = FU.weight_s((hp_no_retreat - hp_eff) / ((hp_no_retreat - hp_inflection) * 2), 0.75)
             end
-            --print('  ' .. id, move_data.unit_infos[id].experience, hp_inflection, hp_inflection, w_retreat)
+            --std_print('  ' .. id, move_data.unit_infos[id].experience, hp_inflection, hp_inflection, w_retreat)
         end
 
         retreat_utility[id] = w_retreat
@@ -117,12 +117,12 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
         if enemy_ids then
             for _,enemy_id in ipairs(enemy_ids) do
                 local damage = unit_attacks[id][enemy_id].damage_counter.max_taken_any_weapon
-                --print('  ' .. x, y, enemy_id, damage, hitchance)
+                --std_print('  ' .. x, y, enemy_id, damage, hitchance)
                 max_damage = max_damage + damage
                 av_damage = av_damage + damage * hitchance
             end
         end
-        --print('    ' .. max_damage, av_damage)
+        --std_print('    ' .. max_damage, av_damage)
 
         return max_damage, av_damage
     end
@@ -156,7 +156,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
             -- Both of these are small though, really just meant as tie breakers
             -- Units with MP are taken off the map at this point, so cannot just check the map
             local uiw_id = FU.get_fgumap_value(move_data.my_unit_map_MP, x, y, 'id')
-            --print(id, x, y, uiw_id)
+            --std_print(id, x, y, uiw_id)
             if uiw_id and (uiw_id ~= id) then
                 rating = rating - 0.01
                 rating = rating + (move_data.unit_infos[uiw_id].hitpoints - move_data.unit_infos[uiw_id].max_hitpoints) / 100.
@@ -233,7 +233,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
 
         for x,y,data in FU.fgumap_iter(heal_map) do
             local dst = x * 1000 + y
-            --print(id, x, y, src, dst)
+            --std_print(id, x, y, src, dst)
 
             local rating = retreat_rating(id, x, y, data.heal_amount)
 
@@ -268,7 +268,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
             local dst_x,dst_y = math.floor(dst / 1000), dst % 1000
             local id = move_data.my_unit_map[src_x][src_y].id
             local heal_amount = heal_maps_no_regen[id][dst_x][dst_y].heal_amount
-            --print(src, src_x, src_y, id, heal_amount)
+            --std_print(src, src_x, src_y, id, heal_amount)
 
             -- Just rest healign is not necessarily worth it
             if (heal_amount > 2) then
@@ -304,7 +304,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
         local rating_map = {}
         for x,y,data in FU.fgumap_iter(heal_maps_regen[best_id]) do
             local rating = retreat_rating(best_id, x, y, data.heal_amount)
-            --print(best_id, x, y, rating)
+            --std_print(best_id, x, y, rating)
 
             if rating then
                 FU.set_fgumap_value(rating_map, x, y, 'rating', rating)
@@ -368,7 +368,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
                         -- This is really the required utility to make it worth it, rather than the utility of the village
                         local distance_utility = 1 - 1 / int_turns
                         if (retreat_utilities[id] >= distance_utility) then
-                            --print(id, x, y, int_turns, distance_utility, retreat_utilities[id])
+                            --std_print(id, x, y, int_turns, distance_utility, retreat_utilities[id])
                             if (not min_turns) or (int_turns < min_turns) then
                                 min_turns = int_turns
                             end
@@ -420,7 +420,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
                         local int_turns = math.ceil(cost / move_data.unit_infos[id].max_moves)
                         move_data.unit_copies[id].x, move_data.unit_copies[id].y = old_x, old_y
                         move_data.unit_copies[id].moves = old_moves
-                        --print('  ' .. id, x, y, xv, yv, int_turns, vilage_data.int_turns)
+                        --std_print('  ' .. id, x, y, xv, yv, int_turns, vilage_data.int_turns)
 
                         -- Distance rating is the reduction of moves needed to get there
                         -- This is additive for all villages for this is true

@@ -155,7 +155,7 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
                 owner = village.owner, zone_id = zone_id,
                 units = {}
             }
-            --print(x, y)
+            --std_print(x, y)
 
             local ids = FU.get_fgumap_value(move_data.my_move_map[1], x, y, 'ids') or {}
 
@@ -165,7 +165,7 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
                 if (not move_data.unit_infos[id].canrecruit)
                     or wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).keep
                 then
-                    --print('  ' .. id, loc[1], loc[2])
+                    --std_print('  ' .. id, loc[1], loc[2])
 
                     local max_damage, av_damage = 0, 0
                     if village.threats then
@@ -178,13 +178,13 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
 
                             -- TODO: this does not take chance_to_hit specials into account
                             local my_hc = 1 - FGUI.get_unit_defense(move_data.unit_copies[id], x, y, move_data.defense_maps)
-                            --print('    ' .. enemy_id, damage_taken, my_hc)
+                            --std_print('    ' .. enemy_id, damage_taken, my_hc)
 
                             max_damage = max_damage + damage_taken
                             av_damage = av_damage + damage_taken * my_hc
                         end
                     end
-                    --print('  -> ' .. av_damage, max_damage)
+                    --std_print('  -> ' .. av_damage, max_damage)
 
                     -- applicable_damage: if this is smaller than the unit's hitpoints, the grabbing is acceptable
                     -- For villages to be protected, we always grab them (i.e. applicable_damage = 0)
@@ -201,7 +201,7 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
                     if move_data.unit_infos[id].canrecruit then
                         applicable_damage = max_damage * 2
                     end
-                    --print('     ' .. applicable_damage, move_data.unit_infos[id].hitpoints)
+                    --std_print('     ' .. applicable_damage, move_data.unit_infos[id].hitpoints)
 
                     if (applicable_damage < move_data.unit_infos[id].hitpoints) then
                         table.insert(tmp_in_reach.units, id)
@@ -276,7 +276,7 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
                 end
 
                 local total_rating = unit_rating + add_rating_village + add_rating_unit
-                --print(id, add_rating_unit, total_rating, ui.canrecruit)
+                --std_print(id, add_rating_unit, total_rating, ui.canrecruit)
 
                 if (not max_rating) or (total_rating > max_rating) then
                     max_rating = total_rating
@@ -373,18 +373,18 @@ function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, re
     local scouts = {}
     for zone_id,villages in pairs(zone_village_goals) do
         if (units_needed_villages[zone_id] > (units_assigned_villages[zone_id] or 0)) then
-            --print(zone_id)
+            --std_print(zone_id)
             scouts[zone_id] = {}
             for _,village in ipairs(villages) do
                 if (not village.grab_only) then
-                    --print('  ' .. village.x, village.y)
+                    --std_print('  ' .. village.x, village.y)
                     for id,loc in pairs(move_data.my_units) do
                         -- The leader is always excluded here, plus any unit that has already been assigned
                         -- TODO: set up an array of unassigned units?
                         if (not move_data.unit_infos[id].canrecruit) and (not used_ids[id]) then
                             local _, cost = wesnoth.find_path(move_data.unit_copies[id], village.x, village.y)
                             cost = cost + move_data.unit_infos[id].max_moves - move_data.unit_infos[id].moves
-                            --print('    ' .. id, cost)
+                            --std_print('    ' .. id, cost)
                             local _, cost_ign = wesnoth.find_path(move_data.unit_copies[id], village.x, village.y, { ignore_units = true })
                             cost_ign = cost_ign + move_data.unit_infos[id].max_moves - move_data.unit_infos[id].moves
 
@@ -425,7 +425,7 @@ function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, re
                     org_rating = data.rating
                 })
             else
-                --print('needs to retreat instead:', id)
+                --std_print('needs to retreat instead:', id)
             end
         end
         if sorted_scouts[zone_id] then
@@ -470,7 +470,7 @@ function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, re
                 best_zone = zone_id
             end
         end
-        --print('best:', best_zone, best_id)
+        --std_print('best:', best_zone, best_id)
 
         for zone_id,units in pairs(sorted_scouts) do
             for i_u,data in ipairs(units) do

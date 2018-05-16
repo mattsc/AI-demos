@@ -6,7 +6,7 @@ local function is_fred()
     for _,side_info in ipairs(wesnoth.sides) do
         local stage = wml.get_child(wml.get_child(side_info.__cfg, 'ai'), 'stage')
         for CA in wml.child_range(stage, 'candidate_action') do
-            --print(CA.name)
+            --std_print(CA.name)
             if (CA.name == 'zone_control') then return side_info.side end
         end
     end
