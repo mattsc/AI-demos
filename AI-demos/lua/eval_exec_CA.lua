@@ -101,7 +101,7 @@ local function init_CA(self)
 end
 
 return {
-    debug_CA = function()
+    activate_CA_debugging_mode = function()
         -- CA debugging mode is enabled if this function returns true,
         -- that is, only if 'debug_CA_mode=true' is set and if we're in debug mode
         local debug_CA_mode = debug_CA()
