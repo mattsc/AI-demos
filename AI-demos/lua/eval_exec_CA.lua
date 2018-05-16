@@ -170,13 +170,16 @@ return {
         while 1 do
             local ai, ca = init_CA(self)
 
-            local ca_name, score = 'zone_control', ca:evaluation(nil, self, ai)
+            local ca_name, score, action = 'zone_control', ca:evaluation(nil, self, ai)
 
             if (score > 0) then
+                local action_str = action.zone_id .. '  ' .. action.action_str .. ':  '
+
                 wesnoth.wml_actions.message {
                     speaker = 'narrator',
                     caption = "Executing " .. ca_name .. " CA",
-                    image = 'wesnoth-icon.png', message = "Score: " .. score
+                    image = 'wesnoth-icon.png',
+                    message = "Score for " .. ca_name .. '  ' .. action_str .. score
                 }
 
                 -- Need to evaluate the CA again first, so that 'self.data' gets set up
