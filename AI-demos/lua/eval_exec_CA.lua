@@ -104,8 +104,7 @@ return {
     activate_CA_debugging_mode = function()
         -- CA debugging mode is enabled if this function returns true, that is,
         -- only if 'is_CA_debugging_mode()' above returns true and if we're in debug mode
-        local debug_CA_mode = is_CA_debugging_mode()
-        if debug_CA_mode and wesnoth.game_config.debug then
+        if is_CA_debugging_mode() and wesnoth.game_config.debug then
             wesnoth.wml_actions.message {
                 speaker = 'narrator',
                 image = 'wesnoth-icon.png',
