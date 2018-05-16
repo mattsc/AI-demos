@@ -6,9 +6,8 @@
 
 --local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
-    -- Edit manually whether you want debug_CA mode or not
-    return false
 local function is_CA_debugging_mode()
+    -- Edit manually to indicate whether you want CA debugging mode enabled
 end
 
 local function is_wrong_side(side)
@@ -31,6 +30,7 @@ end
 local function set_menus()
     -- Set the two menu items that have the selected CA name in them
     -- They need to be reset when that is changed, that's why this is done here
+    -- Note: changing the CA name is currently not used, but we keep this for now
 
     wesnoth.wml_actions.set_menu_item {
         id = 'm01_eval',
@@ -102,8 +102,8 @@ end
 
 return {
     activate_CA_debugging_mode = function()
-        -- CA debugging mode is enabled if this function returns true, that is,
-        -- only if 'is_CA_debugging_mode()' above returns true and if we're in debug mode
+        -- CA debugging mode is enabled only if 'is_CA_debugging_mode()' above
+        -- returns true and if we're in debug mode
         if is_CA_debugging_mode() and wesnoth.game_config.debug then
             wesnoth.wml_actions.message {
                 speaker = 'narrator',
@@ -145,8 +145,8 @@ return {
     end,
 
     units_info = function(stdout_only)
-        -- Shows some information for all units
-        -- Specifically, this links the unit id to its position, name etc. for easier identification
+        -- Shows some information for all units. Specifically, this links the
+        -- unit id to its position, name etc. for easier identification
         local tmp_units = wesnoth.get_units()
         local str = ''
         for _,u in ipairs(tmp_units) do
@@ -162,7 +162,7 @@ return {
     end,
 
     play_turn = function(ai)
-        -- Play through an entire AI turn
+        -- Play through an entire AI turn (zone_control CA only)
         if is_wrong_side(1) then return end
 
         local self = dummy_self
