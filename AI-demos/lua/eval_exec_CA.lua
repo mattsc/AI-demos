@@ -133,10 +133,10 @@ return {
         local score, action = ca:evaluation(nil, self, ai)
         local action_str = ''
         if action then
-            action_str = action.zone_id .. '  ' .. action.action_str .. '  '
+            action_str = action.zone_id .. '  ' .. action.action_str .. ':  '
         end
 
-        wesnoth.message("Eval score for " .. CA_name() .. ':  ' .. action_str .. score)
+        wesnoth.message("Eval score for " .. CA_name() .. '  ' .. action_str .. score)
 
         if exec_also and (score > 0) then
             ca:execution(nil, self, ai)
