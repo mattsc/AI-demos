@@ -57,19 +57,7 @@ local function set_menus()
     }
 
     wesnoth.wml_actions.set_menu_item {
-        id = 'm02a_units_info',
-        description = "Show Units Info",
-        image = 'items/ring-silver.png~CROP(26,26,20,20)',
-        { 'command', {
-            { 'lua', {
-                code = 'wesnoth.dofile "~add-ons/AI-demos/lua/eval_exec_CA.lua".units_info()'
-            } },
-        } },
-        { 'default_hotkey', { key = 'i' } }
-    }
-
-    wesnoth.wml_actions.set_menu_item {
-        id = 'm05_play_turn',
+        id = 'm03_play_turn',
         description = "Play an entire AI turn",
         image = 'items/ring-white.png~CROP(26,26,20,20)',
         { 'command', {
@@ -78,6 +66,18 @@ local function set_menus()
             } },
         } },
         { 'default_hotkey', { key = 'a', shift = 'yes' } }
+    }
+
+    wesnoth.wml_actions.set_menu_item {
+        id = 'm04_units_info',
+        description = "Show Units Info",
+        image = 'items/ring-silver.png~CROP(26,26,20,20)',
+        { 'command', {
+            { 'lua', {
+                code = 'wesnoth.dofile "~add-ons/AI-demos/lua/eval_exec_CA.lua".units_info()'
+            } },
+        } },
+        { 'default_hotkey', { key = 'i' } }
     }
 end
 
@@ -125,8 +125,8 @@ return {
 
                 { 'clear_menu_item', { id = 'm01_eval' } },
                 { 'clear_menu_item', { id = 'm02_exec' } },
-                { 'clear_menu_item', { id = 'm05_play_turn' } },
-                { 'clear_menu_item', { id = 'm02a_units_info' } }
+                { 'clear_menu_item', { id = 'm03_play_turn' } },
+                { 'clear_menu_item', { id = 'm04_units_info' } }
             }
         end
     end,

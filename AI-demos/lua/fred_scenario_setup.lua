@@ -84,7 +84,7 @@ function fred_scenario_setup.fred_scenario_setup()
 
         -- Set the behavior display menu options
         wesnoth.wml_actions.set_menu_item {
-            id = 'm09_show_behavior',
+            id = 'm08_show_behavior',
             description = "Toggle Fred's behavior analysis display",
             image = 'items/ring-white.png~CROP(26,26,20,20)',
             { 'command', {
@@ -102,7 +102,7 @@ function fred_scenario_setup.fred_scenario_setup()
         }
 
         wesnoth.wml_actions.set_menu_item {
-            id = 'm10_last_behavior',
+            id = 'm09_last_behavior',
             description = "Fred's most recent behavior instructions",
             image = 'items/ring-white.png~CROP(26,26,20,20)',
             { 'command', {
@@ -124,8 +124,8 @@ function fred_scenario_setup.fred_scenario_setup()
             { 'clear_variable', { name = 'AI_Demos_version' } },
             { 'clear_variable', { name = 'fred_behavior_str' } },
             { 'clear_variable', { name = 'fred_show_behavior' } },
-            { 'clear_menu_item', { id = 'm09_show_behavior' } },
-            { 'clear_menu_item', { id = 'm10_last_behavior' } }
+            { 'clear_menu_item', { id = 'm08_show_behavior' } },
+            { 'clear_menu_item', { id = 'm09_last_behavior' } }
         }
 
         ---------- CA debugging mode ----------
