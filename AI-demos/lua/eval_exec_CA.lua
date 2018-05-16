@@ -1,5 +1,5 @@
 -- This is a collection of functions that can be used to evaluate and/or execute
--- individual candidate actions from the right-click menu
+-- Fred's zone_control CA from the right-click menu
 --
 -- See the github wiki page for a detailed description of how to use them:
 -- https://github.com/mattsc/Wesnoth-AI-Demos/wiki/CA-debugging
@@ -81,39 +81,6 @@ local function set_menus()
     }
 end
 
-local function get_all_CA_names()
-    -- TODO: This is disabled for now, might be reinstated later
-
-    --[[
-    -- Return an array of CA names to choose from
-
-    -- First, get all the custom AI functions
-    local tmp_ai = wesnoth.dofile("~add-ons/AI-demos/lua/fred.lua").init(ai)
-
-    -- Loop through the tmp_ai table and set up table of all available CAs
-    local cas = {}
-    for k,v in pairs(tmp_ai) do
-        local pos = string.find(k, '_eval')
-        if pos and (pos == string.len(k) - 4) then
-            local name = string.sub(k, 1, pos-1)
-            if (name ~= 'stats')
-                and (name ~= 'reset_vars_turn')
-                and (name ~= 'reset_vars_move')
-                and (name ~= 'clear_self_data')
-                and (name ~= 'recruit_rushers')
-            then
-                table.insert(cas, name)
-            end
-        end
-    end
-
-    -- Sort the CAs alphabetically
-    table.sort(cas, function(a, b) return (a < b) end)
-
-    return cas
-    --]]
-end
-
 local function init_CA(self)
     wesnoth.clear_messages()
     if wrong_side(1) then return end
@@ -131,27 +98,6 @@ local function init_CA(self)
     wesnoth.dofile("~add-ons/AI-demos/lua/ca_reset_vars_move.lua"):evaluation(nil, self, ai)
 
     return ai, ca
-end
-
-local function highest_score_CA(ai)
-    -- TODO: This is disabled for now, might be reinstated later
-
-    --[[
-    local cas = get_all_CA_names()
-
-    local best_ca, max_score = '', 0
-    for i,c in ipairs(cas) do
-        wml.variables.debug_CA_name = c
-        local score = eval_CA(ai, true)
-        --wesnoth.message(c .. ': ' .. score)
-
-        if (score > max_score) then
-            best_ca, max_score = c, score
-        end
-    end
-
-    return best_ca, max_score
-    --]]
 end
 
 return {
@@ -175,8 +121,6 @@ return {
             wesnoth.wml_actions.clear_menu_item { id = 'm01_eval' }
             wesnoth.wml_actions.clear_menu_item { id = 'm02_exec' }
             wesnoth.wml_actions.clear_menu_item { id = 'm02a_units_info' }
-            --wesnoth.wml_actions.clear_menu_item { id = 'm03_choose_ca' }
-            --wesnoth.wml_actions.clear_menu_item { id = 'm04_highest_score_CA' }
             wesnoth.wml_actions.clear_menu_item { id = 'm05_play_turn' }
         end
     end,
@@ -216,58 +160,6 @@ return {
         if (not stdout_only) then wesnoth.message(str) end
     end,
 
-    -- TODO: This is disabled for now, might be reinstated later
-
-    --[[
-    choose_CA = function()
-        -- Lets the user choose a CA from a menu
-        -- The result is stored in WML variable 'debug_CA_name'
-        if wrong_side(1) then return end
-
-        local H = wesnoth.require "helper"
-
-        local cas = get_all_CA_names()
-
-        -- Let user choose one of the CAs
-        local choice = H.get_user_choice(
-            {
-                speaker = "narrator",
-                image = "wesnoth-icon.png",
-                caption = "Choose Candidate Action",
-                message = "Which CA do you want to evaluate or execute?"
-            },
-            cas
-        )
-        --wesnoth.message(cas[choice])
-
-        -- Now set the WML variable
-        wml.variables.debug_CA_name = cas[choice]
-        -- And set the menu items accordingly
-        set_menus()
-    end,
-    --]]
-
-    -- TODO: This is disabled for now, might be reinstated later
-
-    --[[
-    highest_score_CA = function(ai)
-        -- Finds and displays the name of the highest-scoring CA
-        if wrong_side(1) then return end
-
-        local ca, score = highest_score_CA(ai)
-
-        if (score > 0) then
-            wesnoth.message('Highest scoring CA: ' .. ca .. ': ' .. score)
-            wml.variables.debug_CA_name = ca
-        else
-            wesnoth.message('No CA has a score greater than 0')
-            wml.variables.debug_CA_name = 'recruit_orcs'
-        end
-        -- And set the menu items accordingly
-        set_menus()
-    end,
-    --]]
-
     play_turn = function(ai)
         -- Play through an entire AI turn
         if wrong_side(1) then return end
@@ -277,8 +169,6 @@ return {
         while 1 do
             local ai, ca = init_CA(self)
 
-            -- TODO: this is disabled for the time being
-            -- local ca_name, score = highest_score_CA(ai)
             local ca_name, score = 'zone_control', ca:evaluation(nil, self, ai)
 
             if (score > 0) then
