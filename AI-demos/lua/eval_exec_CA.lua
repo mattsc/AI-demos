@@ -6,9 +6,9 @@
 
 --local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
-local function debug_CA()
     -- Edit manually whether you want debug_CA mode or not
     return false
+local function is_CA_debugging_mode()
 end
 
 local function is_wrong_side(side)
@@ -102,9 +102,9 @@ end
 
 return {
     activate_CA_debugging_mode = function()
-        -- CA debugging mode is enabled if this function returns true,
-        -- that is, only if 'debug_CA_mode=true' is set and if we're in debug mode
-        local debug_CA_mode = debug_CA()
+        -- CA debugging mode is enabled if this function returns true, that is,
+        -- only if 'is_CA_debugging_mode()' above returns true and if we're in debug mode
+        local debug_CA_mode = is_CA_debugging_mode()
         if debug_CA_mode and wesnoth.game_config.debug then
             wesnoth.wml_actions.message {
                 speaker = 'narrator',
