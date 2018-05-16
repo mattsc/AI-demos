@@ -11,7 +11,7 @@ local function debug_CA()
     return false
 end
 
-local function wrong_side(side)
+local function is_wrong_side(side)
     if (side ~= wesnoth.current.side) then
         wesnoth.message("!!!!! Error !!!!! You need to be in control of Side " .. side)
         return true
@@ -83,7 +83,7 @@ end
 
 local function init_CA(self)
     wesnoth.clear_messages()
-    if wrong_side(1) then return end
+    if is_wrong_side(1) then return end
 
     -- Get the AI table and the CA functions
     local ai = wesnoth.debug_ai(wesnoth.current.side).ai
@@ -162,7 +162,7 @@ return {
 
     play_turn = function(ai)
         -- Play through an entire AI turn
-        if wrong_side(1) then return end
+        if is_wrong_side(1) then return end
 
         local self = dummy_self
 
