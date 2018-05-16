@@ -194,10 +194,5 @@ return {
         end
 
         dummy_self = self
-    end,
-
-    set_menus = function()
-        -- Set the menus so that they display the name of the CA to be executed/evaluated
-        set_menus()
     end
 }
