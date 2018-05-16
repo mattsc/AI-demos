@@ -126,6 +126,8 @@ return {
     end,
 
     eval_exec_CA = function(exec_also)
+        if is_wrong_side(1) then return end
+
         local self = dummy_self
         local ai, ca = init_CA(self)
 
