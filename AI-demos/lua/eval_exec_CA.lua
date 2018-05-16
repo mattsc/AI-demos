@@ -8,6 +8,7 @@
 
 local function is_CA_debugging_mode()
     -- Edit manually to indicate whether you want CA debugging mode enabled
+    return false
 end
 
 local function is_wrong_side(side)
