@@ -116,11 +116,18 @@ return {
             wesnoth.sides[2].controller = 'human'
 
             set_menus()
-        else
-            wesnoth.wml_actions.clear_menu_item { id = 'm01_eval' }
-            wesnoth.wml_actions.clear_menu_item { id = 'm02_exec' }
-            wesnoth.wml_actions.clear_menu_item { id = 'm02a_units_info' }
-            wesnoth.wml_actions.clear_menu_item { id = 'm05_play_turn' }
+
+            -- Also remove the menu items at the end of the scenario.
+            -- This is only important when playing Fred from the switchboard
+            -- scenario in AI-demos, and going back to switchboard afterward.
+            wesnoth.add_event_handler {
+                name = 'victory,defeat,time_over,enemies_defeated',
+
+                { 'clear_menu_item', { id = 'm01_eval' } },
+                { 'clear_menu_item', { id = 'm02_exec' } },
+                { 'clear_menu_item', { id = 'm05_play_turn' } },
+                { 'clear_menu_item', { id = 'm02a_units_info' } }
+            }
         end
     end,
 

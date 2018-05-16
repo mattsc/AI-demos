@@ -115,6 +115,19 @@ function fred_scenario_setup.fred_scenario_setup()
             { 'default_hotkey', { key = 'b', shift = 'yes' } }
         }
 
+        -- Also remove the variables and menu items at the end of the scenario.
+        -- This is only important when playing Fred from the switchboard
+        -- scenario in AI-demos, and going back to switchboard afterward.
+        wesnoth.add_event_handler {
+            name = 'victory,defeat,time_over,enemies_defeated',
+
+            { 'clear_variable', { name = 'AI_Demos_version' } },
+            { 'clear_variable', { name = 'fred_behavior_str' } },
+            { 'clear_variable', { name = 'fred_show_behavior' } },
+            { 'clear_menu_item', { id = 'm09_show_behavior' } },
+            { 'clear_menu_item', { id = 'm10_last_behavior' } }
+        }
+
         ---------- CA debugging mode ----------
         -- This needs to be activated here once, but this preload event is set
         -- to be removed after one use (because of all the other stuff in it),
