@@ -55,6 +55,30 @@ local function set_menus()
         } },
         { 'default_hotkey', { key = 'x' } }
     }
+
+    wesnoth.wml_actions.set_menu_item {
+        id = 'm02a_units_info',
+        description = "Show Units Info",
+        image = 'items/ring-silver.png~CROP(26,26,20,20)',
+        { 'command', {
+            { 'lua', {
+                code = 'wesnoth.dofile "~add-ons/AI-demos/lua/eval_exec_CA.lua".units_info()'
+            } },
+        } },
+        { 'default_hotkey', { key = 'i' } }
+    }
+
+    wesnoth.wml_actions.set_menu_item {
+        id = 'm05_play_turn',
+        description = "Play an entire AI turn",
+        image = 'items/ring-white.png~CROP(26,26,20,20)',
+        { 'command', {
+            { 'lua', {
+                code = 'wesnoth.dofile "~add-ons/AI-demos/lua/eval_exec_CA.lua".play_turn()'
+            } },
+        } },
+        { 'default_hotkey', { key = 'a', shift = 'yes' } }
+    }
 end
 
 local function get_all_CA_names()
@@ -146,7 +170,7 @@ return {
             wesnoth.sides[1].controller = 'human'
             wesnoth.sides[2].controller = 'human'
 
-            wesnoth.fire_event("debug_CA")
+            set_menus()
         else
             wesnoth.wml_actions.clear_menu_item { id = 'm01_eval' }
             wesnoth.wml_actions.clear_menu_item { id = 'm02_exec' }
