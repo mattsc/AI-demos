@@ -1,3 +1,22 @@
+----- 0.14.11, 16 May 2018 (drop support for BfW 1.12 and code clean-up) -----
+
+- Remove all the version checks and only keep Wesnoth 1.14 compatible code
+  - This means that AI-demos will not work in Wesnoth 1.12 any more starting
+    from this version
+  - Replace deprecated functions and macros
+- Fred (Freelands AI for Northerners, Side 1):
+  - Set up the scenario events, menu items, CA debugging tools etc. so that they
+    are only present in scenarios actually using Fred.
+  - Fred quitting because he does not know how to play the map, faction or side
+    should count as player victory, not defeat
+- Other misc. changes and clean-up
+  - Remove local ai_helper.lua and battle_calcs.lua and use mainline versions
+  - Remove prune cart scenario
+  - Remove machine learning recruiter code
+  - Remove 'Default + Extra Targets' test AI
+  - Lots of internal changes and clean-up of Lua code and scenarios
+
+
 ----- 0.14.10, 8 May 2018 -----
 
 - Fred (Freelands AI for Northerners, Side 1):
