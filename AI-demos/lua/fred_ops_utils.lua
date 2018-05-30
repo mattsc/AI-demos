@@ -356,6 +356,80 @@ function fred_ops_utils.update_protect_goals(ops_data, fred_data)
     end
 end
 
+
+function fred_ops_utils.behavior_output(ops_data, fred_data)
+    local behavior = fred_data.turn_data.behavior
+    local fred_behavior_str = '--- Behavior instructions ---'
+
+    local overall_str = 'roughly equal'
+    if (behavior.orders.neutral_power_ratio > FCFG.get_cfg_parm('winning_ratio')) then
+        overall_str = 'winning'
+    elseif (behavior.orders.neutral_power_ratio < FCFG.get_cfg_parm('losing_ratio')) then
+        overall_str = 'losing'
+    end
+
+    fred_behavior_str = fred_behavior_str
+      .. string.format('\nBase power ratio : %.3f (%s)', behavior.orders.neutral_power_ratio, overall_str)
+      .. string.format('\n \nvalue_ratio : %.3f', behavior.orders.value_ratio)
+    wml.variables.fred_behavior_str = fred_behavior_str
+
+    local fred_show_behavior = wml.variables.fred_show_behavior or 1
+
+    if (fred_show_behavior > 1) then
+        if (fred_show_behavior >= 3) then
+            fred_behavior_str = fred_behavior_str
+              .. '\n\n-- Zones --\n  try to protect:'
+
+            for zone_id,zone_data in pairs(ops_data.fronts.zones) do
+                local protect_type = zone_data.protect and zone_data.protect.type or '--'
+                local x = zone_data.protect and zone_data.protect.x or 0
+                local y = zone_data.protect and zone_data.protect.y or 0
+                local is_protected = zone_data.protect and zone_data.protect.is_protected
+
+                local comment = ''
+                if is_protected then
+                    comment = '--> try to reinforce'
+                end
+
+                fred_behavior_str = fred_behavior_str
+                  .. string.format('\n    %-8s \t%-8s \t%2d,%2d \tis_protected = %s \t%s',  zone_id, protect_type, x, y, is_protected, comment)
+            end
+        end
+
+        wesnoth.message('Fred', fred_behavior_str)
+        std_print(fred_behavior_str)
+
+        if (fred_show_behavior == 4) then
+            for zone_id,front in pairs(ops_data.fronts.zones) do
+                local raw_cfg = FMC.get_raw_cfgs(zone_id)
+                local zone = wesnoth.get_locations(raw_cfg.ops_slf)
+
+                local front_map = {}
+                local mean_x, mean_y, count = 0, 0, 0
+                for _,loc in ipairs(zone) do
+                    local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc[1], loc[2], 'distance')
+                    if (math.abs(ld - front.ld) <= 0.5) then
+                        FU.set_fgumap_value(front_map, loc[1], loc[2], 'distance', ld)
+                        mean_x, mean_y, count = mean_x + loc[1], mean_y + loc[2], count + 1
+                    end
+                end
+                mean_x, mean_y = math.abs(mean_x / count), math.abs(mean_y / count)
+                local str = string.format('Front in zone %s:  forward distance = %.3f, peak vulnerability = %.3f', zone_id, front.ld, front.peak_vuln)
+
+                local tmp_protect = ops_data.fronts.zones[zone_id].protect
+                if tmp_protect then
+                    wesnoth.wml_actions.item { x = tmp_protect.x, y = tmp_protect.y, halo = "halo/teleport-8.png" }
+                end
+                    DBG.show_fgumap_with_message(front_map, 'distance', str, { x = mean_x, y = mean_y, no_halo = true })
+                if tmp_protect then
+                    wesnoth.wml_actions.remove_item { x = tmp_protect.x, y = tmp_protect.y, halo = "halo/teleport-8.png" }
+                end
+            end
+        end
+    end
+end
+
+
 function fred_ops_utils.set_turn_data(move_data)
     -- Get the needed cfgs
     local raw_cfgs_main = FMC.get_raw_cfgs()
@@ -1433,75 +1507,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(ops_data.fronts)
 
 
-    ---- Behavior output ----
-    local behavior = fred_data.turn_data.behavior
-    local fred_behavior_str = '--- Behavior instructions ---'
-
-    local overall_str = 'roughly equal'
-    if (behavior.orders.neutral_power_ratio > FCFG.get_cfg_parm('winning_ratio')) then
-        overall_str = 'winning'
-    elseif (behavior.orders.neutral_power_ratio < FCFG.get_cfg_parm('losing_ratio')) then
-        overall_str = 'losing'
-    end
-
-    fred_behavior_str = fred_behavior_str
-      .. string.format('\nBase power ratio : %.3f (%s)', behavior.orders.neutral_power_ratio, overall_str)
-      .. string.format('\n \nvalue_ratio : %.3f', behavior.orders.value_ratio)
-    wml.variables.fred_behavior_str = fred_behavior_str
-
-    local fred_show_behavior = wml.variables.fred_show_behavior or 1
-    if (fred_show_behavior > 1) then
-        if (fred_show_behavior >= 3) then
-            fred_behavior_str = fred_behavior_str
-              .. '\n\n-- Zones --\n  try to protect:'
-
-            for zone_id,zone_data in pairs(fronts.zones) do
-                local protect_type = zone_data.protect and zone_data.protect.type or '--'
-                local x = zone_data.protect and zone_data.protect.x or 0
-                local y = zone_data.protect and zone_data.protect.y or 0
-                local is_protected = zone_data.protect and zone_data.protect.is_protected
-
-                local comment = ''
-                if is_protected then
-                    comment = '--> try to reinforce'
-                end
-
-                fred_behavior_str = fred_behavior_str
-                  .. string.format('\n    %-8s \t%-8s \t%2d,%2d \tis_protected = %s \t%s',  zone_id, protect_type, x, y, is_protected, comment)
-            end
-        end
-
-        wesnoth.message('Fred', fred_behavior_str)
-        std_print(fred_behavior_str)
-
-        if (fred_show_behavior == 4) then
-            for zone_id,front in pairs(fronts.zones) do
-                local raw_cfg = FMC.get_raw_cfgs(zone_id)
-                local zone = wesnoth.get_locations(raw_cfg.ops_slf)
-
-                local front_map = {}
-                local mean_x, mean_y, count = 0, 0, 0
-                for _,loc in ipairs(zone) do
-                    local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc[1], loc[2], 'distance')
-                    if (math.abs(ld - front.ld) <= 0.5) then
-                        FU.set_fgumap_value(front_map, loc[1], loc[2], 'distance', ld)
-                        mean_x, mean_y, count = mean_x + loc[1], mean_y + loc[2], count + 1
-                    end
-                end
-                mean_x, mean_y = math.abs(mean_x / count), math.abs(mean_y / count)
-                local str = string.format('Front in zone %s:  forward distance = %.3f, peak vulnerability = %.3f', zone_id, front.ld, front.peak_vuln)
-
-                local tmp_protect = fronts.zones[zone_id].protect
-                if tmp_protect then
-                    wesnoth.wml_actions.item { x = tmp_protect.x, y = tmp_protect.y, halo = "halo/teleport-8.png" }
-                end
-                    DBG.show_fgumap_with_message(front_map, 'distance', str, { x = mean_x, y = mean_y, no_halo = true })
-                if tmp_protect then
-                    wesnoth.wml_actions.remove_item { x = tmp_protect.x, y = tmp_protect.y, halo = "halo/teleport-8.png" }
-                end
-            end
-        end
-    end
+    fred_ops_utils.behavior_output(ops_data, fred_data)
 
     if DBG.show_debug('analysis') then
         std_print('\n----- Behavior table -----')
