@@ -1451,10 +1451,30 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     local fred_show_behavior = wml.variables.fred_show_behavior or 1
     if (fred_show_behavior > 1) then
+        if (fred_show_behavior >= 3) then
+            fred_behavior_str = fred_behavior_str
+              .. '\n\n-- Zones --\n  try to protect:'
+
+            for zone_id,zone_data in pairs(fronts.zones) do
+                local protect_type = zone_data.protect and zone_data.protect.type or '--'
+                local x = zone_data.protect and zone_data.protect.x or 0
+                local y = zone_data.protect and zone_data.protect.y or 0
+                local is_protected = zone_data.protect and zone_data.protect.is_protected
+
+                local comment = ''
+                if is_protected then
+                    comment = '--> try to reinforce'
+                end
+
+                fred_behavior_str = fred_behavior_str
+                  .. string.format('\n    %-8s \t%-8s \t%2d,%2d \tis_protected = %s \t%s',  zone_id, protect_type, x, y, is_protected, comment)
+            end
+        end
+
         wesnoth.message('Fred', fred_behavior_str)
         std_print(fred_behavior_str)
 
-        if (fred_show_behavior == 3) then
+        if (fred_show_behavior == 4) then
             for zone_id,front in pairs(fronts.zones) do
                 local raw_cfg = FMC.get_raw_cfgs(zone_id)
                 local zone = wesnoth.get_locations(raw_cfg.ops_slf)
@@ -1470,7 +1490,15 @@ function fred_ops_utils.set_ops_data(fred_data)
                 end
                 mean_x, mean_y = math.abs(mean_x / count), math.abs(mean_y / count)
                 local str = string.format('Front in zone %s:  forward distance = %.3f, peak vulnerability = %.3f', zone_id, front.ld, front.peak_vuln)
-                DBG.show_fgumap_with_message(front_map, 'distance', str, { x = mean_x, y = mean_y, no_halo = true })
+
+                local tmp_protect = fronts.zones[zone_id].protect
+                if tmp_protect then
+                    wesnoth.wml_actions.item { x = tmp_protect.x, y = tmp_protect.y, halo = "halo/teleport-8.png" }
+                end
+                    DBG.show_fgumap_with_message(front_map, 'distance', str, { x = mean_x, y = mean_y, no_halo = true })
+                if tmp_protect then
+                    wesnoth.wml_actions.remove_item { x = tmp_protect.x, y = tmp_protect.y, halo = "halo/teleport-8.png" }
+                end
             end
         end
     end
