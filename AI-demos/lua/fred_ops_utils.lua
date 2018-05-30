@@ -1196,6 +1196,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     local fronts = { zones = {} }
     local max_push_utility = 0
+    local zone_influence_maps = {}
     for zone_id,zone_map in pairs(zone_maps) do
         local zone_influence_map = {}
         for id,_ in pairs(assigned_units[zone_id]) do
@@ -1219,6 +1220,8 @@ function fred_ops_utils.set_ops_data(fred_data)
             data.tension = (data.my_influence or 0) + (data.enemy_influence or 0)
             data.vulnerability = data.tension - math.abs(data.influence)
         end
+
+        zone_influence_maps[zone_id] = zone_influence_map
 
         if DBG.show_debug('analysis_zone_influence_maps') then
             --DBG.show_fgumap_with_message(zone_influence_map, 'my_influence', 'Zone my influence map ' .. zone_id)
