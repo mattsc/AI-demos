@@ -1265,7 +1265,8 @@ function fred_ops_utils.set_ops_data(fred_data)
         fronts.zones[zone_id] = {
             ld = ld_front,
             peak_vuln = peak_vuln,
-            push_utility = push_utility
+            push_utility = push_utility,
+            power_ratio = zone_power_stats[zone_id].my_power / (zone_power_stats[zone_id].enemy_power + 1e-6)
         }
     end
     --std_print('max_push_utility', max_push_utility)
