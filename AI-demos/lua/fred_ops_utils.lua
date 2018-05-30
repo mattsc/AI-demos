@@ -1275,6 +1275,47 @@ function fred_ops_utils.set_ops_data(fred_data)
         front.push_utility = front.push_utility / max_push_utility
     end
 
+    ---- Calculate what to protect / where to hold ----
+    local behavior = fred_data.turn_data.behavior
+    --std_print('value_ratio: ', behavior.orders.value_ratio)
+
+    for zone_id,village_map in pairs(villages_to_protect_maps) do
+        local min_eld, best_village = math.huge
+        --std_print(zone_id, fronts.zones[zone_id].power_ratio)
+        for x,y,_ in FU.fgumap_iter(village_map) do
+            local eld_vill = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'enemy_leader_distance')
+
+            local my_infl = FU.get_fgumap_value(zone_influence_maps[zone_id], x, y, 'my_influence') or 0
+            local enemy_infl = FU.get_fgumap_value(zone_influence_maps[zone_id], x, y, 'enemy_influence') or 0
+            local infl_ratio = my_infl / (enemy_infl + 1e-6)
+
+            local is_threatened, is_protected = false, true
+            for enemy_id,_ in pairs(move_data.enemies) do
+                if FU.get_fgumap_value(fred_data.turn_data.enemy_initial_reach_maps[enemy_id], x, y, 'moves_left') then
+                    is_threatened = true
+                    if FU.get_fgumap_value(move_data.reach_maps[enemy_id], x, y, 'moves_left') then
+                        is_protected = false
+                    end
+                end
+            end
+
+            if is_threatened and (infl_ratio >= behavior.orders.value_ratio) then
+                if (eld_vill < min_eld) then
+                    min_eld = eld_vill
+                    best_village = {
+                        x = x, y = y,
+                        is_protected = is_protected,
+                        type = 'village'
+                    }
+                end
+            end
+            --std_print(string.format("  %2i,%2i %15.3f %6s %6s", x, y, infl_ratio, is_threatened, is_protected))
+        end
+        fronts.zones[zone_id].protect = best_village
+    end
+    --DBG.dbms(fronts)
+    --DBG.dbms(assigned_enemies)
+    --DBG.dbms(fred_data.turn_data.unit_attacks)
 
 
     ---- Behavior output ----
