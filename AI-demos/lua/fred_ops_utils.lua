@@ -261,6 +261,100 @@ function fred_ops_utils.assess_leader_threats(leader_threats, protect_locs, lead
     --DBG.dbms(leader_threats)
 end
 
+function fred_ops_utils.update_protect_goals(ops_data, fred_data)
+    -- Check if you should protect any of the units protecting the protect location.
+    -- Generally this will not find anything if a protect action has already taken
+    -- place, as the best units will have been chosen for that. This does, however,
+    -- trigger in cases such as an attack resulting in the location to be protected
+    -- but leaving one of the attackers vulnerable
+    local protect_others_ratio = FCFG.get_cfg_parm('protect_others_ratio')
+    for zone_id,zone_data in pairs(ops_data.fronts.zones) do
+        if (not zone_data.protect) or zone_data.protect.is_protected then
+            local units_to_protect, protectors = {}, {}
+            for id,loc in pairs(ops_data.assigned_units[zone_id]) do
+
+                -- We don't need to consider units that have no MP left and cannot
+                -- be attacked by the enemy
+                local skip_unit = false
+                if (fred_data.move_data.unit_infos[id].moves == 0)
+                   and (not FU.get_fgumap_value(fred_data.move_data.enemy_attack_map[1], loc[1], loc[2], 'ids'))
+                then
+                    skip_unit = true
+                end
+                --std_print(id, skip_unit)
+
+                if (not skip_unit) then
+                    local unit_value = FU.unit_value(fred_data.move_data.unit_infos[id])
+                    --std_print(string.format('  %-25s    %2d,%2d  %5.2f', id, loc[1], loc[2], unit_value))
+
+                    local tmp_damages = {}
+                    for enemy_id,enemy_loc in pairs(ops_data.assigned_enemies[zone_id]) do
+                        local counter = fred_data.turn_data.unit_attacks[id][enemy_id].damage_counter
+
+                        -- For units that have moved, we can use the actual hit_chance
+                        -- TODO: we just use the defense here for now, not taking weapon specials into account
+                        local enemy_hc
+                        if (fred_data.move_data.unit_infos[id].moves == 0) then
+                            enemy_hc = 1 - FGUI.get_unit_defense(fred_data.move_data.unit_copies[id], loc[1], loc[2], fred_data.move_data.defense_maps)
+                        else
+                            enemy_hc = counter.enemy_gen_hc
+                        end
+
+                        local dam = (counter.base_taken + counter.extra_taken) * enemy_hc
+                        --std_print('    ' .. enemy_id, dam, enemy_hc)
+                        table.insert(tmp_damages, { damage = dam })
+                    end
+                    table.sort(tmp_damages, function(a, b) return a.damage > b.damage end)
+
+                    local sum_damage = 0
+                    for i=1,math.min(3, #tmp_damages) do
+                        sum_damage = sum_damage + tmp_damages[i].damage
+                    end
+
+                    local block_utility = fred_data.move_data.unit_infos[id].hitpoints / sum_damage
+                    local protect_rating = unit_value / block_utility
+                    --std_print('      ' .. sum_damage, block_utility, protect_rating)
+
+                    if (fred_data.move_data.unit_infos[id].moves == 0) then
+                        units_to_protect[id] = protect_rating
+                    else
+                        protectors[id] = protect_rating
+                    end
+                end
+            end
+            --DBG.dbms(units_to_protect)
+            --DBG.dbms(protectors)
+
+            -- TODO: currently still working with only one protect unit/location
+            --   Keeping the option open to use several, otherwise the following could be put into the loop above
+            local max_protect_value, protect_id = 0
+            for id,rating in pairs(units_to_protect) do
+                if (rating > max_protect_value) then
+                    max_protect_value = rating
+                    protect_id = id
+                end
+            end
+
+            local try_protect = false
+            for id,rating in pairs(protectors) do
+                if (rating * protect_others_ratio < max_protect_value) then
+                    try_protect = true
+                    break
+                end
+            end
+            --std_print(zone_id ..': protect unit: ' .. (protect_id or 'none'), max_protect_value, try_protect)
+
+            if try_protect then
+                loc = fred_data.move_data.my_units[protect_id]
+                zone_data.protect = {
+                    x = loc[1], y = loc[2],
+                    is_protected = false,
+                    type = 'unit'
+                }
+            end
+        end
+    end
+end
 
 function fred_ops_utils.set_turn_data(move_data)
     -- Get the needed cfgs
@@ -1333,6 +1427,12 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(ops_data.assigned_enemies)
     --DBG.dbms(ops_data.assigned_units)
 
+
+    -- This currently has no effect when run at the start of the turn, but it might eventually
+    fred_ops_utils.update_protect_goals(ops_data, fred_data)
+    --DBG.dbms(ops_data.fronts)
+
+
     ---- Behavior output ----
     local behavior = fred_data.turn_data.behavior
     local fred_behavior_str = '--- Behavior instructions ---'
@@ -1535,6 +1635,10 @@ function fred_ops_utils.update_ops_data(fred_data)
 
         fred_ops_utils.assess_leader_threats(ops_data.leader_threats, ops_data.protect_locs, leader_proxy, raw_cfgs_main, side_cfgs, fred_data)
     end
+
+
+    fred_ops_utils.update_protect_goals(ops_data, fred_data)
+    --DBG.dbms(ops_data.fronts)
 
 
     -- Remove prerecruit actions, if the hexes are not available any more

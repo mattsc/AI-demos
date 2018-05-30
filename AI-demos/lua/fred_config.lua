@@ -24,6 +24,8 @@ local cfg = {
     winning_ratio = 1.25,
     losing_ratio = 0.8,
 
+    protect_others_ratio = 1.2,
+
     -- Village grabbing parameters
     villages_per_unit = 2,
 
