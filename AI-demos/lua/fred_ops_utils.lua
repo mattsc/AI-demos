@@ -357,43 +357,42 @@ function fred_ops_utils.update_protect_goals(ops_data, fred_data)
 end
 
 
-function fred_ops_utils.behavior_output(ops_data, fred_data)
+function fred_ops_utils.behavior_output(is_turn_start, ops_data, fred_data)
     local behavior = fred_data.turn_data.behavior
     local fred_behavior_str = '--- Behavior instructions ---'
 
-    local overall_str = 'roughly equal'
-    if (behavior.orders.neutral_power_ratio > FCFG.get_cfg_parm('winning_ratio')) then
-        overall_str = 'winning'
-    elseif (behavior.orders.neutral_power_ratio < FCFG.get_cfg_parm('losing_ratio')) then
-        overall_str = 'losing'
-    end
-
-    fred_behavior_str = fred_behavior_str
-      .. string.format('\nBase power ratio : %.3f (%s)', behavior.orders.neutral_power_ratio, overall_str)
-      .. string.format('\n \nvalue_ratio : %.3f', behavior.orders.value_ratio)
-    wml.variables.fred_behavior_str = fred_behavior_str
-
     local fred_show_behavior = wml.variables.fred_show_behavior or 1
+    if ((fred_show_behavior > 1) and is_turn_start)
+        or (fred_show_behavior > 2)
+    then
+        local overall_str = 'roughly equal'
+        if (behavior.orders.neutral_power_ratio > FCFG.get_cfg_parm('winning_ratio')) then
+            overall_str = 'winning'
+        elseif (behavior.orders.neutral_power_ratio < FCFG.get_cfg_parm('losing_ratio')) then
+            overall_str = 'losing'
+        end
 
-    if (fred_show_behavior > 1) then
-        if (fred_show_behavior >= 3) then
-            fred_behavior_str = fred_behavior_str
-              .. '\n\n-- Zones --\n  try to protect:'
+        fred_behavior_str = fred_behavior_str
+            .. string.format('\nBase power ratio : %.3f (%s)', behavior.orders.neutral_power_ratio, overall_str)
+            .. string.format('\n \nvalue_ratio : %.3f', behavior.orders.value_ratio)
+        wml.variables.fred_behavior_str = fred_behavior_str
 
-            for zone_id,zone_data in pairs(ops_data.fronts.zones) do
-                local protect_type = zone_data.protect and zone_data.protect.type or '--'
-                local x = zone_data.protect and zone_data.protect.x or 0
-                local y = zone_data.protect and zone_data.protect.y or 0
-                local is_protected = zone_data.protect and zone_data.protect.is_protected
+        fred_behavior_str = fred_behavior_str
+          .. '\n\n-- Zones --\n  try to protect:'
 
-                local comment = ''
-                if is_protected then
-                    comment = '--> try to reinforce'
-                end
+        for zone_id,zone_data in pairs(ops_data.fronts.zones) do
+            local protect_type = zone_data.protect and zone_data.protect.type or '--'
+            local x = zone_data.protect and zone_data.protect.x or 0
+            local y = zone_data.protect and zone_data.protect.y or 0
+            local is_protected = zone_data.protect and zone_data.protect.is_protected
 
-                fred_behavior_str = fred_behavior_str
-                  .. string.format('\n    %-8s \t%-8s \t%2d,%2d \tis_protected = %s \t%s',  zone_id, protect_type, x, y, is_protected, comment)
+            local comment = ''
+            if is_protected then
+                comment = '--> try to reinforce'
             end
+
+            fred_behavior_str = fred_behavior_str
+              .. string.format('\n    %-8s \t%-8s \t%2d,%2d \tis_protected = %s \t%s',  zone_id, protect_type, x, y, is_protected, comment)
         end
 
         wesnoth.message('Fred', fred_behavior_str)
@@ -1507,7 +1506,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(ops_data.fronts)
 
 
-    fred_ops_utils.behavior_output(ops_data, fred_data)
+    fred_ops_utils.behavior_output(true, ops_data, fred_data)
 
     if DBG.show_debug('analysis') then
         std_print('\n----- Behavior table -----')
@@ -1683,6 +1682,8 @@ function fred_ops_utils.update_ops_data(fred_data)
             table.remove(ops_data.prerecruit.units, i)
         end
     end
+
+    fred_ops_utils.behavior_output(false, ops_data, fred_data)
 end
 
 
