@@ -1317,6 +1317,21 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(assigned_enemies)
     --DBG.dbms(fred_data.turn_data.unit_attacks)
 
+    local ops_data = {
+        leader_threats = leader_threats,
+        assigned_enemies = assigned_enemies,
+        unassigned_enemies = unassigned_enemies,
+        assigned_units = assigned_units,
+        retreaters = retreaters,
+        fronts = fronts,
+        protect_locs = protect_locs,
+        actions = actions,
+        prerecruit = prerecruit
+    }
+    --DBG.dbms(ops_data)
+    --DBG.dbms(ops_data.protect_locs)
+    --DBG.dbms(ops_data.assigned_enemies)
+    --DBG.dbms(ops_data.assigned_units)
 
     ---- Behavior output ----
     local behavior = fred_data.turn_data.behavior
@@ -1367,23 +1382,6 @@ function fred_ops_utils.set_ops_data(fred_data)
         DBG.dbms(fronts)
         --DBG.dbms(behavior)
     end
-
-
-    local ops_data = {
-        leader_threats = leader_threats,
-        assigned_enemies = assigned_enemies,
-        unassigned_enemies = unassigned_enemies,
-        assigned_units = assigned_units,
-        retreaters = retreaters,
-        fronts = fronts,
-        protect_locs = protect_locs,
-        actions = actions,
-        prerecruit = prerecruit
-    }
-    --DBG.dbms(ops_data)
-    --DBG.dbms(ops_data.protect_locs)
-    --DBG.dbms(ops_data.assigned_enemies)
-    --DBG.dbms(ops_data.assigned_units)
 
     return ops_data
 end
