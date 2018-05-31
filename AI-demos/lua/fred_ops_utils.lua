@@ -125,7 +125,7 @@ function fred_ops_utils.zone_power_stats(zones, assigned_units, assigned_enemies
     end
 
 
-    local total_ratio_factor = fred_data.turn_data.behavior.orders.neutral_power_ratio
+    local total_ratio_factor = fred_data.turn_data.behavior.orders.base_power_ratio
     if (total_ratio_factor > 1) then
         total_ratio_factor = math.sqrt(total_ratio_factor)
     end
@@ -366,14 +366,14 @@ function fred_ops_utils.behavior_output(is_turn_start, ops_data, fred_data)
         or (fred_show_behavior > 2)
     then
         local overall_str = 'roughly equal'
-        if (behavior.orders.neutral_power_ratio > FCFG.get_cfg_parm('winning_ratio')) then
+        if (behavior.orders.base_power_ratio > FCFG.get_cfg_parm('winning_ratio')) then
             overall_str = 'winning'
-        elseif (behavior.orders.neutral_power_ratio < FCFG.get_cfg_parm('losing_ratio')) then
+        elseif (behavior.orders.base_power_ratio < FCFG.get_cfg_parm('losing_ratio')) then
             overall_str = 'losing'
         end
 
         fred_behavior_str = fred_behavior_str
-            .. string.format('\nBase power ratio : %.3f (%s)', behavior.orders.neutral_power_ratio, overall_str)
+            .. string.format('\nBase power ratio : %.3f (%s)', behavior.orders.base_power_ratio, overall_str)
             .. string.format('\n \nvalue_ratio : %.3f', behavior.orders.value_ratio)
         wml.variables.fred_behavior_str = fred_behavior_str
 
@@ -483,9 +483,10 @@ function fred_ops_utils.set_turn_data(move_data)
     local leader_derating = FCFG.get_cfg_parm('leader_derating')
 
     local my_base_power, enemy_base_power = 0, 0
-    local my_total_influence, enemy_total_influence = 0, 0
-    local my_influence_next_turn, my_weight = 0, 0
-    local enemy_influence_next_turn, enemy_weight = 0, 0
+    local my_power, enemy_power = {}, {}
+    -- Consider 6 turns total. That covers the full default schedule, but even
+    -- for other schedules it probably does not make sense to look farther ahead.
+    local n_turns = 6
     for id,_ in pairs(move_data.units) do
         local unit_base_power = FU.unit_base_power(move_data.unit_infos[id])
         local unit_influence = FU.unit_current_power(move_data.unit_infos[id])
@@ -494,59 +495,83 @@ function fred_ops_utils.set_turn_data(move_data)
             unit_base_power = unit_base_power * leader_derating
         end
 
-        local alignment = move_data.unit_infos[id].alignment
-        local is_fearless = move_data.unit_infos[id].traits.fearless
-        local tod_bonus_next_turn = FU.get_unit_time_of_day_bonus(alignment, is_fearless, wesnoth.get_time_of_day(wesnoth.current.turn + 1).lawful_bonus)
-        local tod_mod_ratio = tod_bonus_next_turn / move_data.unit_infos[id].tod_mod
-        --std_print(id, unit_influence, alignment, move_data.unit_infos[id].tod_mod, tod_bonus_next_turn, tod_mod_ratio)
+        if (not my_power[0]) then
+            my_power[0], enemy_power[0] = 0, 0
+        end
 
         if (move_data.unit_infos[id].side == wesnoth.current.side) then
-            my_total_influence = my_total_influence + unit_influence
-            my_influence_next_turn = my_influence_next_turn + unit_influence * tod_mod_ratio
-            my_weight = my_weight + unit_influence
             my_base_power = my_base_power + unit_base_power
+            my_power[0] = my_power[0] + unit_influence
         else
-            enemy_total_influence = enemy_total_influence + unit_influence
-            enemy_influence_next_turn = enemy_influence_next_turn + unit_influence * tod_mod_ratio
-            enemy_weight = enemy_weight + unit_influence
             enemy_base_power = enemy_base_power + unit_base_power
+            enemy_power[0] = enemy_power[0] + unit_influence
+        end
+
+        local alignment = move_data.unit_infos[id].alignment
+        local is_fearless = move_data.unit_infos[id].traits.fearless
+
+        for d_turn = 1,n_turns-1 do
+            if (not my_power[d_turn]) then
+                my_power[d_turn], enemy_power[d_turn] = 0, 0
+            end
+
+            local tod_bonus = FU.get_unit_time_of_day_bonus(alignment, is_fearless, wesnoth.get_time_of_day(wesnoth.current.turn + d_turn).lawful_bonus)
+            local tod_mod_ratio = tod_bonus / move_data.unit_infos[id].tod_mod
+            --std_print(id, unit_influence, alignment, move_data.unit_infos[id].tod_mod, tod_bonus, tod_mod_ratio)
+
+            if (move_data.unit_infos[id].side == wesnoth.current.side) then
+                my_power[d_turn] = my_power[d_turn] + unit_influence * tod_mod_ratio
+            else
+                enemy_power[d_turn] = enemy_power[d_turn] + unit_influence * tod_mod_ratio
+            end
         end
     end
+    --DBG.dbms(my_power)
+    --DBG.dbms(enemy_power)
 
-    local neutral_power_ratio = my_base_power / enemy_base_power
+    local base_power_ratio = my_base_power / enemy_base_power
+    --std_print('base: ', base_power_ratio)
 
-    local influence_mult_next_turn = my_influence_next_turn / my_weight / (enemy_influence_next_turn / enemy_weight)
-    --std_print(my_influence_next_turn / my_weight, enemy_influence_next_turn / enemy_weight, influence_mult_next_turn)
+    local power_ratio = {}
+    local min_power_ratio, max_power_ratio = math.huge, - math.huge
+    for t = 0,n_turns-1 do
+        power_ratio[t] = my_power[t] / enemy_power[t]
+        --std_print(t, power_ratio[t])
+
+        min_power_ratio = math.min(power_ratio[t], min_power_ratio)
+        max_power_ratio = math.max(power_ratio[t], max_power_ratio)
+    end
+    --DBG.dbms(power_ratio)
+    --std_print('min, max:', min_power_ratio, max_power_ratio)
+
+    local power_mult_next_turn = my_power[1] / my_power[0] / (enemy_power[1] / enemy_power[0])
 
     -- Take fraction of influence ratio change on next turn into account for calculating value_ratio
     local weight = FCFG.get_cfg_parm('next_turn_influence_weight')
-    local factor = 1 / (1 + (influence_mult_next_turn - 1) * weight)
-    --std_print(influence_mult_next_turn, weight, factor)
+    local factor = 1 / (1 + (power_mult_next_turn - 1) * weight)
+    --std_print(power_mult_next_turn, weight, factor)
 
     local base_value_ratio = 1 / FCFG.get_cfg_parm('aggression')
     local max_value_ratio = 1 / FCFG.get_cfg_parm('min_aggression')
-    local ratio = factor * enemy_total_influence / my_total_influence
+    local ratio = factor * enemy_power[0] / my_power[0]
     local value_ratio = ratio * base_value_ratio
     if (value_ratio > max_value_ratio) then
         value_ratio = max_value_ratio
     end
 
     local behavior = {
-        influence = {
-            my = my_total_influence,
-            enemy = enemy_total_influence
-        },
-        ratios = {
-            influence = my_total_influence / enemy_total_influence,
-            influence_next_turn = my_influence_next_turn / enemy_influence_next_turn,
-            influence_mult_next_turn = influence_mult_next_turn,
-            base_value_ratio = base_value_ratio,
-            max_value_ratio = max_value_ratio,
-            next_turn_influence_weight = weight
+        power = {
+            base_ratio = base_power_ratio,
+            current_ratio = power_ratio[0],
+            next_turn_ratio = power_ratio[1],
+            min_ratio = min_power_ratio,
+            max_ratio = max_power_ratio
         },
         orders = {
+            base_value_ratio = base_value_ratio,
+            max_value_ratio = max_value_ratio,
             value_ratio = value_ratio,
-            neutral_power_ratio = neutral_power_ratio
+            base_power_ratio = base_power_ratio
         }
     }
 
@@ -570,10 +595,10 @@ function fred_ops_utils.set_turn_data(move_data)
         n_total = n_vill_total
     }
 
-    behavior.ratios.assets = n_vill_my / (n_vill_total - n_vill_my + 1e-6)
+    --behavior.ratios.assets = n_vill_my / (n_vill_total - n_vill_my + 1e-6)
+    --behavior.orders.expansion = behavior.ratios.influence / behavior.ratios.assets
 
-    behavior.orders.expansion = behavior.ratios.influence / behavior.ratios.assets
-
+    --DBG.dbms(behavior)
 
     -- Find the unit-vs-unit ratings
     -- TODO: can functions in attack_utils be used for this?
@@ -1281,7 +1306,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
     --std_print('total_weight', total_weight)
 
-    local total_ratio_factor = fred_data.turn_data.behavior.orders.neutral_power_ratio
+    local total_ratio_factor = fred_data.turn_data.behavior.orders.base_power_ratio
     if (total_ratio_factor > 1) then
         total_ratio_factor = math.sqrt(total_ratio_factor)
     end

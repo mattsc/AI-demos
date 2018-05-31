@@ -1184,7 +1184,7 @@ local function get_hold_action(zone_cfg, fred_data)
     --std_print('forward_weight, forward_rating_weight', forward_weight, forward_rating_weight)
 
     local influence_ratio = fred_data.turn_data.behavior.ratios.influence
-    local base_value_ratio = fred_data.turn_data.behavior.ratios.base_value_ratio
+    local base_value_ratio = fred_data.turn_data.behavior.orders.base_value_ratio
     local protect_forward_rating_weight = (influence_ratio / base_value_ratio) - 1
     protect_forward_rating_weight = protect_forward_rating_weight * FCFG.get_cfg_parm('protect_forward_weight')
     --std_print('protect_forward_rating_weight', protect_forward_rating_weight)
@@ -1952,7 +1952,7 @@ local function get_hold_action(zone_cfg, fred_data)
                 -- TODO: this might be too simplistic
                 if protect_leader then
                     local mult = 0
-                    local power_ratio = fred_data.turn_data.behavior.orders.neutral_power_ratio
+                    local power_ratio = fred_data.turn_data.behavior.orders.base_power_ratio
                     if (power_ratio < 1) then
                         mult = (1 / power_ratio - 1)
                     end
