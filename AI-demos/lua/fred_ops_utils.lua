@@ -246,8 +246,6 @@ function fred_ops_utils.assess_leader_threats(leader_threats, protect_locs, lead
     leader_threats.significant_threat = false
     if (max_total_loss >= leader_proxy.hitpoints / 2.) or (av_total_loss >= leader_proxy.max_hitpoints / 4.) then
         leader_threats.significant_threat = true
-    else
-        leader_threats.significant_threat = false
     end
     DBG.print_debug('analysis', '  significant_threat', leader_threats.significant_threat)
 
@@ -255,9 +253,6 @@ function fred_ops_utils.assess_leader_threats(leader_threats, protect_locs, lead
     if (not leader_threats.significant_threat) then
         leader_threats.enemies = nil
     end
-
-    local zone_power_stats = fred_ops_utils.zone_power_stats({}, {}, {}, fred_data)
-    --DBG.dbms(zone_power_stats)
     --DBG.dbms(leader_threats)
 end
 
