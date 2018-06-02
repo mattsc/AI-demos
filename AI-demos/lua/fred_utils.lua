@@ -490,7 +490,7 @@ function fred_utils.get_influence_maps(move_data)
                     fred_utils.fgumap_add(influence_maps, x, y, 'my_influence', my_influence)
                     fred_utils.fgumap_add(influence_maps, x, y, 'my_number', 1)
 
-                    fred_utils.fgumap_add(influence_maps, x, y, 'my_full_move_influence', my_influence)
+                    fred_utils.fgumap_add(influence_maps, x, y, 'my_full_move_influence', unit_influence)
 
                     if (not unit_influence_maps[id]) then
                         unit_influence_maps[id] = {}
@@ -498,7 +498,7 @@ function fred_utils.get_influence_maps(move_data)
                     fred_utils.fgumap_add(unit_influence_maps[id], x, y, 'influence', my_influence)
                 end
                 if (int_turns == 2) and (move_data.unit_infos[id].moves == 0) then
-                    fred_utils.fgumap_add(influence_maps, x, y, 'my_full_move_influence', my_influence)
+                    fred_utils.fgumap_add(influence_maps, x, y, 'my_full_move_influence', unit_influence)
                 end
             end
         end
@@ -520,7 +520,7 @@ function fred_utils.get_influence_maps(move_data)
             enemy_influence = unit_influence * inf_falloff
             fred_utils.fgumap_add(influence_maps, x, y, 'enemy_influence', enemy_influence)
             fred_utils.fgumap_add(influence_maps, x, y, 'enemy_number', 1)
-            fred_utils.fgumap_add(influence_maps, x, y, 'enemy_full_move_influence', enemy_influence) -- same as 'enemy_influence' for now
+            fred_utils.fgumap_add(influence_maps, x, y, 'enemy_full_move_influence', unit_influence) -- same as 'enemy_influence' for now
 
             if (not unit_influence_maps[enemy_id]) then
                 unit_influence_maps[enemy_id] = {}
