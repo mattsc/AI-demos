@@ -114,6 +114,7 @@ function debug_utils.put_fgumap_labels(map, key, cfg)
     debug_utils.clear_labels()
 
     local min, max = 9e99, -9e99
+    -- Do the loop this way, rather than with fgumap_iter(), so that we do not need to include fred_utils.lua
     for x,arr in pairs(map) do
         for y,data in pairs(arr) do
             local out = data[key]
@@ -135,6 +136,7 @@ function debug_utils.put_fgumap_labels(map, key, cfg)
 
     min = min - (max - min) * 0.2
 
+    -- Do the loop this way, rather than with fgumap_iter(), so that we do not need to include fred_utils.lua
     for x,arr in pairs(map) do
         for y,data in pairs(arr) do
             local out = data[key]

@@ -238,6 +238,7 @@ function fred_gamestate_utils.get_move_data()
                 end
             end
 
+            -- This is not a standard fgumap
             for x,arr in pairs(attack_range) do
                 for y,int_turns in pairs(arr) do
                     FU.fgumap_add(my_attack_map[int_turns], x, y, units, 1)
@@ -326,21 +327,19 @@ function fred_gamestate_utils.get_move_data()
 
         -- Note that this is not strictly castle reachable by the leader, but
         -- castles connected to keeps reachable by the leader
-        for x,arr in pairs(reachable_keeps_map[side]) do
-            for y,data in pairs(arr) do
-                local reachable_castles = wesnoth.get_locations {
-                    x = "1-"..width, y = "1-"..height,
-                    { "and", {
-                        x = x, y = y, radius = 200,
-                        { "filter_radius", { terrain = 'C*,K*,C*^*,K*^*,*^K*,*^C*' } }
-                    } }
-                }
+        for x,y,_ in FU.fgumap_iter(reachable_keeps_map[side]) do
+            local reachable_castles = wesnoth.get_locations {
+                x = "1-"..width, y = "1-"..height,
+                { "and", {
+                    x = x, y = y, radius = 200,
+                    { "filter_radius", { terrain = 'C*,K*,C*^*,K*^*,*^K*,*^C*' } }
+                } }
+            }
 
-                for _,loc in ipairs(reachable_castles) do
-                    FU.set_fgumap_value(reachable_castles_map[side], loc[1], loc[2], 'castle', true)
-                    if wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).keep then
-                        reachable_castles_map[side][loc[1]][loc[2]].keep = true
-                    end
+            for _,loc in ipairs(reachable_castles) do
+                FU.set_fgumap_value(reachable_castles_map[side], loc[1], loc[2], 'castle', true)
+                if wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).keep then
+                    reachable_castles_map[side][loc[1]][loc[2]].keep = true
                 end
             end
         end
@@ -440,6 +439,7 @@ function fred_gamestate_utils.get_move_data()
             trapped_enemies[enemy_id] = true
         end
 
+        -- This is not a standard fgumap
         for x,arr in pairs(attack_range) do
             for y,int_turns in pairs(arr) do
                 FU.fgumap_add(enemy_attack_map[int_turns], x, y, units, 1)
