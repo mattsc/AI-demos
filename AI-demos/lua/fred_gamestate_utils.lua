@@ -307,6 +307,17 @@ function fred_gamestate_utils.get_move_data()
         end
     end
 
+    -- Also mark units that can only get to hexes occupied by own units
+    for x,y,data in FU.fgumap_iter(my_unit_map_MP) do
+        my_unit_map_MP[x][y].can_move_away = false
+        for x2,y2,_ in FU.fgumap_iter(reach_maps[data.id]) do
+            if (not FU.get_fgumap_value(my_unit_map, x2, y2, 'id')) then
+                my_unit_map_MP[x][y].can_move_away = true
+                break
+            end
+        end
+    end
+
     -- Leader and enemy leader coordinates. These are needed often enough that
     -- it is worth not extracting them from the leaders table every time
     local reachable_keeps_map, reachable_castles_map = {}, {}
