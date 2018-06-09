@@ -26,6 +26,13 @@ local cfg = {
 
     protect_others_ratio = 1.2,
 
+    -- Leader rating parameters
+    leader_turns_rating = - 1000,
+    leader_unthreatened_hex_bonus = 500,
+    leader_moves_left_factor = 0.1,
+    leader_unit_in_way_penalty = - 0.01,
+    leader_eld_factor = - 0.01,
+
     -- Village grabbing parameters
     villages_per_unit = 2,
 

@@ -942,9 +942,9 @@ local function get_attack_action(zone_cfg, fred_data)
                 local is_leader_threat = false
 
                 -- If this is a leader threat, we do not check for exposure
-                if fred_data.ops_data.leader_threats
-                    and fred_data.ops_data.leader_threats.enemies
-                    and fred_data.ops_data.leader_threats.enemies[target_id]
+                if fred_data.ops_data.leader_objectives.leader_threats
+                    and fred_data.ops_data.leader_objectives.leader_threats.enemies
+                    and fred_data.ops_data.leader_objectives.leader_threats.enemies[target_id]
                 then
                     check_exposure = false
                     is_leader_threat = true
@@ -1402,7 +1402,7 @@ local function get_hold_action(zone_cfg, fred_data)
         local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, leader[1], leader[2], 'distance')
         protect_leader_distance = { min = ld, max = ld }
         protect_locs = { { leader[1], leader[2], is_protected = false } }
-        assigned_enemies = fred_data.ops_data.leader_threats.enemies
+        assigned_enemies = fred_data.ops_data.leader_objectives.leader_threats.enemies
         min_btw_dist = -1.5
     else
         protect_leader_distance = fred_data.ops_data.protect_locs[zone_cfg.zone_id].leader_distance
@@ -2361,16 +2361,16 @@ local function get_advance_action(zone_cfg, fred_data)
                             end
 
                             local include_leader_locs = false
-                            if fred_data.ops_data.assigned_enemies[zone_cfg.zone_id] and fred_data.ops_data.leader_threats.enemies then
+                            if fred_data.ops_data.assigned_enemies[zone_cfg.zone_id] and fred_data.ops_data.leader_objectives.leader_threats.enemies then
                                 for enemy_id,_ in pairs(fred_data.ops_data.assigned_enemies[zone_cfg.zone_id]) do
-                                    if fred_data.ops_data.leader_threats.enemies[enemy_id] then
+                                    if fred_data.ops_data.leader_objectives.leader_threats.enemies[enemy_id] then
                                         include_leader_locs = true
                                         break
                                     end
                                 end
                             end
                             if include_leader_locs then
-                                for _,loc in ipairs(fred_data.ops_data.leader_threats.protect_locs) do
+                                for _,loc in ipairs(fred_data.ops_data.leader_objectives.leader_threats.protect_locs) do
                                     table.insert(hexes, loc)
                                 end
                             end
