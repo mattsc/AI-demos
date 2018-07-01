@@ -2,6 +2,7 @@ local H = wesnoth.require "helper"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
+local FHU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_hold_utils.lua"
 local FRU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_retreat_utils.lua"
 local FVU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_village_utils.lua"
 local FMLU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_move_leader_utils.lua"
@@ -144,14 +145,68 @@ end
 
 
 function fred_ops_utils.update_protect_goals(ops_data, fred_data)
-    -- Check if you should protect any of the units protecting the protect location.
+    -- 1. Weigh village vs. leader protecting
+    -- 2. Check if you should protect any of the units protecting the protect location.
     -- Generally this will not find anything if a protect action has already taken
     -- place, as the best units will have been chosen for that. This does, however,
     -- trigger in cases such as an attack resulting in the location to be protected
     -- but leaving one of the attackers vulnerable
+
+    -- Get all villages in each zone that are in between all enemies and the
+    -- goal location of the leader
+    local goal_loc = ops_data.leader_objectives.village or ops_data.leader_objectives.keep
+    for zone_id,protect_locs in pairs(ops_data.protect_obj.zones) do
+        --std_print(zone_id)
+
+        ops_data.protect_obj.zones[zone_id].protect_leader = false
+        for enemy_id,enemy_loc in pairs(ops_data.leader_objectives.leader_threats.enemies) do
+            if ops_data.assigned_enemies[zone_id][enemy_id] then
+                ops_data.protect_obj.zones[zone_id].protect_leader = true
+
+                local enemy = {}
+                enemy[enemy_id] = enemy_loc
+                local between_map = FHU.get_between_map({ goal_loc}, goal_loc, enemy, fred_data.move_data)
+                if false then
+                    DBG.show_fgumap_with_message(between_map, 'distance', zone_id .. ' between_map: distance', fred_data.move_data.unit_copies[enemy_id])
+                end
+
+                for _,village in ipairs(ops_data.protect_obj.zones[zone_id].villages) do
+                    local btw_dist = FU.get_fgumap_value(between_map, village.x, village.y, 'distance')
+                    local btw_perp_dist = FU.get_fgumap_value(between_map, village.x, village.y, 'perp_distance')
+
+                    local is_between = (btw_dist >= math.abs(btw_perp_dist))
+                    --std_print('  ' .. zone_id, enemy_id, village.x .. ',' .. village.y, btw_dist, btw_perp_dist, is_between)
+
+                    if (not is_between) then
+                        village.do_not_protect = true
+                    end
+                end
+
+                -- Now remove those villages
+                -- TODO: is there a reason to keep them and check for the flag instead?
+                for i = #ops_data.protect_obj.zones[zone_id].villages,1,-1 do
+                    if ops_data.protect_obj.zones[zone_id].villages[i].do_not_protect then
+                        table.remove(ops_data.protect_obj.zones[zone_id].villages, i)
+                    end
+                end
+            end
+        end
+    end
+    --DBG.dbms(ops_data.protect_obj)
+
+
+    -- Now check whether there are also units that should be protected
     local protect_others_ratio = FCFG.get_cfg_parm('protect_others_ratio')
-    for zone_id,zone_data in pairs(ops_data.fronts.zones) do
-        if (not zone_data.protect) or zone_data.protect.is_protected then
+    for zone_id,zone_data in pairs(ops_data.protect_obj.zones) do
+        --std_print(zone_id)
+
+        zone_data.units = {}
+        -- TODO: do this also in some cases when the leader needs to be protected?
+        if (not zone_data.protect_leader)
+            and ((#zone_data.villages == 0) or (zone_data.villages[1].is_protected))
+        then
+            --std_print('  checking whether units should be protected')
+            -- TODO: does this take appreciable time? If so, can be skipped when no no_MP units exist
             local units_to_protect, protectors = {}, {}
             for id,loc in pairs(ops_data.assigned_units[zone_id]) do
 
@@ -163,11 +218,11 @@ function fred_ops_utils.update_protect_goals(ops_data, fred_data)
                 then
                     skip_unit = true
                 end
-                --std_print(id, skip_unit)
+                --std_print('    ' .. id, skip_unit)
 
                 if (not skip_unit) then
                     local unit_value = FU.unit_value(fred_data.move_data.unit_infos[id])
-                    --std_print(string.format('  %-25s    %2d,%2d  %5.2f', id, loc[1], loc[2], unit_value))
+                    --std_print(string.format('      %-25s    %2d,%2d  %5.2f', id, loc[1], loc[2], unit_value))
 
                     local tmp_damages = {}
                     for enemy_id,enemy_loc in pairs(ops_data.assigned_enemies[zone_id]) do
@@ -193,8 +248,13 @@ function fred_ops_utils.update_protect_goals(ops_data, fred_data)
                         sum_damage = sum_damage + tmp_damages[i].damage
                     end
 
-                    local block_utility = fred_data.move_data.unit_infos[id].hitpoints / sum_damage
-                    local protect_rating = unit_value / block_utility
+                    -- Don't let block_utility drop below 0.5, or go above 1,
+                    -- otherwise weak units are overrated.
+                    -- TODO: this needs to be refined.
+                    local block_utility = 0.5 + sum_damage / fred_data.move_data.unit_infos[id].hitpoints / 2
+                    if (block_utility > 1) then block_utility = 1 end
+
+                    local protect_rating = unit_value * block_utility
                     --std_print('      ' .. sum_damage, block_utility, protect_rating)
 
                     if (fred_data.move_data.unit_infos[id].moves == 0) then
@@ -204,38 +264,42 @@ function fred_ops_utils.update_protect_goals(ops_data, fred_data)
                     end
                 end
             end
-            --DBG.dbms(units_to_protect)
-            --DBG.dbms(protectors)
+            --DBG.dbms(units_to_protect, false, zone_id .. ':' .. 'units_to_protect')
+            --DBG.dbms(protectors, false, zone_id .. ':' .. 'protectors')
 
             -- TODO: currently still working with only one protect unit/location
             --   Keeping the option open to use several, otherwise the following could be put into the loop above
+
             local max_protect_value, protect_id = 0
-            for id,rating in pairs(units_to_protect) do
-                if (rating > max_protect_value) then
-                    max_protect_value = rating
-                    protect_id = id
-                end
-            end
 
-            local try_protect = false
-            for id,rating in pairs(protectors) do
-                if (rating * protect_others_ratio < max_protect_value) then
-                    try_protect = true
-                    break
-                end
-            end
-            --std_print(zone_id ..': protect unit: ' .. (protect_id or 'none'), max_protect_value, try_protect)
 
-            if try_protect then
-                loc = fred_data.move_data.my_units[protect_id]
-                zone_data.protect = {
-                    x = loc[1], y = loc[2],
-                    is_protected = false,
-                    type = 'unit'
-                }
+
+            for id_protectee,rating_protectee in pairs(units_to_protect) do
+                local try_protect = false
+                for id_protector,rating_protector in pairs(protectors) do
+                    --std_print('    ', id_protectee, rating_protectee, id_protector, rating_protector, protect_others_ratio)
+                    if (rating_protector * protect_others_ratio < rating_protectee) then
+                        try_protect = true
+                        break
+                    end
+                end
+
+                --std_print(zone_id ..': protect unit: ' .. (id_protectee or 'none'), rating_protectee, try_protect)
+
+                if try_protect then
+                    loc = fred_data.move_data.my_units[id_protectee]
+                    table.insert(zone_data.units, {
+                        x = loc[1], y = loc[2],
+                        id = id_protectee,
+                        is_protected = false,
+                        rating = rating_protectee,
+                        type = 'unit'
+                    })
+                end
             end
         end
     end
+    --DBG.dbms(ops_data.protect_obj)
 end
 
 
@@ -244,6 +308,7 @@ function fred_ops_utils.behavior_output(is_turn_start, ops_data, fred_data)
     local fred_behavior_str = '--- Behavior instructions ---'
 
     local fred_show_behavior = wml.variables.fred_show_behavior or 1
+--fred_show_behavior = 3
     if ((fred_show_behavior > 1) and is_turn_start)
         or (fred_show_behavior > 2)
     then
@@ -743,7 +808,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
     --DBG.dbms(goal_hexes)
 
-
+-- TODO: what's this?
     local distance_from_front = {}
     for id,l in pairs(move_data.my_units) do
         --std_print(id, l[1], l[2])
@@ -1249,8 +1314,10 @@ function fred_ops_utils.set_ops_data(fred_data)
     local behavior = fred_data.turn_data.behavior
     --std_print('value_ratio: ', behavior.orders.value_ratio)
 
+    -- TODO: rename this to protect_locs later, when the old variable has been removed
+    local protect_obj = { zones = {} }
     for zone_id,village_map in pairs(villages_to_protect_maps) do
-        local min_eld, best_village = math.huge
+        protect_obj.zones[zone_id] = { villages = {} }
         --std_print(zone_id, fronts.zones[zone_id].power_ratio)
         for x,y,_ in FU.fgumap_iter(village_map) do
             local eld_vill = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'enemy_leader_distance')
@@ -1270,20 +1337,21 @@ function fred_ops_utils.set_ops_data(fred_data)
             end
 
             if is_threatened and (infl_ratio >= behavior.orders.value_ratio) then
-                if (eld_vill < min_eld) then
-                    min_eld = eld_vill
-                    best_village = {
-                        x = x, y = y,
-                        is_protected = is_protected,
-                        type = 'village'
-                    }
-                end
+                local v = {
+                    x = x, y = y,
+                    is_protected = is_protected,
+                    type = 'village',
+                    eld = eld_vill
+                }
+                table.insert(protect_obj.zones[zone_id].villages, v)
             end
             --std_print(string.format("  %2i,%2i %15.3f %6s %6s", x, y, infl_ratio, is_threatened, is_protected))
         end
-        fronts.zones[zone_id].protect = best_village
+
+        table.sort(protect_obj.zones[zone_id].villages, function(a, b) return a.eld < b.eld end)
     end
     --DBG.dbms(fronts)
+    --DBG.dbms(protect_obj)
     --DBG.dbms(assigned_enemies)
     --DBG.dbms(fred_data.turn_data.unit_attacks)
 
@@ -1294,6 +1362,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         assigned_units = assigned_units,
         retreaters = retreaters,
         fronts = fronts,
+        protect_obj = protect_obj,
         protect_locs = protect_locs,
         actions = actions
     }
@@ -1303,7 +1372,6 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(ops_data.assigned_units)
 
 
-    -- This currently has no effect when run at the start of the turn, but it might eventually
     fred_ops_utils.update_protect_goals(ops_data, fred_data)
     --DBG.dbms(ops_data.fronts)
 
