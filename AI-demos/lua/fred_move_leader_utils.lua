@@ -251,7 +251,6 @@ function fred_move_leader_utils.leader_objectives(fred_data)
     -- TODO: if the leader cannot recruit, no need to go back to keep, as long as we stay within one move?
 
     local leader_objectives = {
-        leader = leader,
         village = village,
         keep = keep
     }
@@ -266,7 +265,7 @@ end
 function fred_move_leader_utils.assess_leader_threats(leader_objectives, raw_cfgs_main, side_cfgs, fred_data)
     local move_data = fred_data.move_data
 
-    local leader = leader_objectives.leader
+    local leader = move_data.leaders[wesnoth.current.side]
     local leader_info = move_data.unit_infos[leader.id]
     local leader_proxy = wesnoth.get_unit(leader[1], leader[2])
 

@@ -154,14 +154,14 @@ function fred_ops_utils.update_protect_goals(ops_data, fred_data)
 
     -- Get all villages in each zone that are in between all enemies and the
     -- goal location of the leader
-    local goal_loc = ops_data.leader_objectives.village or ops_data.leader_objectives.keep
-    for zone_id,protect_locs in pairs(ops_data.protect_obj.zones) do
+    local goal_loc = ops_data.objectives.leader.village or ops_data.objectives.leader.keep
+    for zone_id,protect_locs in pairs(ops_data.objectives.protect.zones) do
         --std_print(zone_id)
 
-        ops_data.protect_obj.zones[zone_id].protect_leader = false
-        for enemy_id,enemy_loc in pairs(ops_data.leader_objectives.leader_threats.enemies) do
+        ops_data.objectives.protect.zones[zone_id].protect_leader = false
+        for enemy_id,enemy_loc in pairs(ops_data.objectives.leader.leader_threats.enemies) do
             if ops_data.assigned_enemies[zone_id][enemy_id] then
-                ops_data.protect_obj.zones[zone_id].protect_leader = true
+                ops_data.objectives.protect.zones[zone_id].protect_leader = true
 
                 local enemy = {}
                 enemy[enemy_id] = enemy_loc
@@ -170,7 +170,7 @@ function fred_ops_utils.update_protect_goals(ops_data, fred_data)
                     DBG.show_fgumap_with_message(between_map, 'distance', zone_id .. ' between_map: distance', fred_data.move_data.unit_copies[enemy_id])
                 end
 
-                for _,village in ipairs(ops_data.protect_obj.zones[zone_id].villages) do
+                for _,village in ipairs(ops_data.objectives.protect.zones[zone_id].villages) do
                     local btw_dist = FU.get_fgumap_value(between_map, village.x, village.y, 'distance')
                     local btw_perp_dist = FU.get_fgumap_value(between_map, village.x, village.y, 'perp_distance')
 
@@ -184,20 +184,20 @@ function fred_ops_utils.update_protect_goals(ops_data, fred_data)
 
                 -- Now remove those villages
                 -- TODO: is there a reason to keep them and check for the flag instead?
-                for i = #ops_data.protect_obj.zones[zone_id].villages,1,-1 do
-                    if ops_data.protect_obj.zones[zone_id].villages[i].do_not_protect then
-                        table.remove(ops_data.protect_obj.zones[zone_id].villages, i)
+                for i = #ops_data.objectives.protect.zones[zone_id].villages,1,-1 do
+                    if ops_data.objectives.protect.zones[zone_id].villages[i].do_not_protect then
+                        table.remove(ops_data.objectives.protect.zones[zone_id].villages, i)
                     end
                 end
             end
         end
     end
-    --DBG.dbms(ops_data.protect_obj)
+    --DBG.dbms(ops_data.objectives.protect)
 
 
     -- Now check whether there are also units that should be protected
     local protect_others_ratio = FCFG.get_cfg_parm('protect_others_ratio')
-    for zone_id,zone_data in pairs(ops_data.protect_obj.zones) do
+    for zone_id,zone_data in pairs(ops_data.objectives.protect.zones) do
         --std_print(zone_id)
 
         zone_data.units = {}
@@ -299,7 +299,7 @@ function fred_ops_utils.update_protect_goals(ops_data, fred_data)
             end
         end
     end
-    --DBG.dbms(ops_data.protect_obj)
+    --DBG.dbms(ops_data.objectives.protect)
 end
 
 
@@ -722,10 +722,10 @@ function fred_ops_utils.set_ops_data(fred_data)
 
 
     -- TODO: is there a need to keep the following two functions separate?
-    local leader_objectives = FMLU.leader_objectives(fred_data)
-    --DBG.dbms(leader_objectives)
-    FMLU.assess_leader_threats(leader_objectives, raw_cfgs_main, side_cfgs, fred_data)
-    --DBG.dbms(leader_objectives)
+    local objectives = { leader = FMLU.leader_objectives(fred_data) }
+    --DBG.dbms(objectives)
+    FMLU.assess_leader_threats(objectives.leader, raw_cfgs_main, side_cfgs, fred_data)
+    --DBG.dbms(objectives)
 
 
     -- Attributing enemy units to zones
@@ -1314,7 +1314,6 @@ function fred_ops_utils.set_ops_data(fred_data)
     local behavior = fred_data.turn_data.behavior
     --std_print('value_ratio: ', behavior.orders.value_ratio)
 
-    -- TODO: rename this to protect_locs later, when the old variable has been removed
     local protect_obj = { zones = {} }
     for zone_id,village_map in pairs(villages_to_protect_maps) do
         protect_obj.zones[zone_id] = { villages = {} }
@@ -1350,19 +1349,20 @@ function fred_ops_utils.set_ops_data(fred_data)
 
         table.sort(protect_obj.zones[zone_id].villages, function(a, b) return a.eld < b.eld end)
     end
+    objectives.protect = protect_obj
+
     --DBG.dbms(fronts)
-    --DBG.dbms(protect_obj)
+    --DBG.dbms(objectives)
     --DBG.dbms(assigned_enemies)
     --DBG.dbms(fred_data.turn_data.unit_attacks)
 
     local ops_data = {
-        leader_objectives = leader_objectives,
+        objectives = objectives,
         assigned_enemies = assigned_enemies,
         unassigned_enemies = unassigned_enemies,
         assigned_units = assigned_units,
         retreaters = retreaters,
         fronts = fronts,
-        protect_obj = protect_obj,
         protect_locs = protect_locs,
         actions = actions
     }
@@ -1373,7 +1373,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
 
     fred_ops_utils.update_protect_goals(ops_data, fred_data)
-    --DBG.dbms(ops_data.fronts)
+    --DBG.dbms(ops_data.objectives)
 
 
     fred_ops_utils.behavior_output(true, ops_data, fred_data)
@@ -1677,7 +1677,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     for zone_id,threats in pairs(threats_by_zone) do
         for id,loc in pairs(threats) do
             --std_print(zone_id,id)
-            if ops_data.leader_objectives.leader_threats.enemies and ops_data.leader_objectives.leader_threats.enemies[id] then
+            if ops_data.objectives.leader.leader_threats.enemies and ops_data.objectives.leader.leader_threats.enemies[id] then
                 if (not leader_threats_by_zone[zone_id]) then
                     leader_threats_by_zone[zone_id] = {}
                 end
@@ -1693,7 +1693,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 
     ----- Leader threat actions -----
 
-    if ops_data.leader_objectives.leader_threats.significant_threat then
+    if ops_data.objectives.leader.leader_threats.significant_threat then
         local leader_base_ratings = {
             attack = 35000,
             move_to_keep = 34000,
@@ -1720,32 +1720,32 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 
         -- Full move to next_hop
         --[[
-        if ops_data.leader_objectives.leader_threats.leader_locs.next_hop
+        if ops_data.objectives.leader.leader_threats.leader_locs.next_hop
             and move_data.my_units_MP[leader.id]
-            and ((ops_data.leader_objectives.leader_threats.leader_locs.next_hop[1] ~= leader[1]) or (ops_data.leader_objectives.leader_threats.leader_locs.next_hop[2] ~= leader[2]))
+            and ((ops_data.objectives.leader.leader_threats.leader_locs.next_hop[1] ~= leader[1]) or (ops_data.objectives.leader.leader_threats.leader_locs.next_hop[2] ~= leader[2]))
         then
             table.insert(fred_data.zone_cfgs, {
                 action = {
                     zone_id = zone_id,
                     action_str = zone_id .. ': move leader toward keep',
                     units = { leader },
-                    dsts = { ops_data.leader_objectives.leader_threats.leader_locs.next_hop }
+                    dsts = { ops_data.objectives.leader.leader_threats.leader_locs.next_hop }
                 },
                 rating = leader_base_ratings.move_to_keep
             })
         end
 
         -- Partial move to keep
-        if ops_data.leader_objectives.leader_threats.leader_locs.closest_keep
+        if ops_data.objectives.leader.leader_threats.leader_locs.closest_keep
             and move_data.my_units_MP[leader.id]
-            and ((ops_data.leader_objectives.leader_threats.leader_locs.closest_keep[1] ~= leader[1]) or (ops_data.leader_objectives.leader_threats.leader_locs.closest_keep[2] ~= leader[2]))
+            and ((ops_data.objectives.leader.leader_threats.leader_locs.closest_keep[1] ~= leader[1]) or (ops_data.objectives.leader.leader_threats.leader_locs.closest_keep[2] ~= leader[2]))
         then
             table.insert(fred_data.zone_cfgs, {
                 action = {
                     zone_id = zone_id,
                     action_str = zone_id .. ': move leader to keep',
                     units = { leader },
-                    dsts = { ops_data.leader_objectives.leader_threats.leader_locs.closest_keep },
+                    dsts = { ops_data.objectives.leader.leader_threats.leader_locs.closest_keep },
                     partial_move = true
                 },
                 rating = leader_base_ratings.move_to_keep
@@ -1754,19 +1754,19 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         --]]
 
         -- Recruiting
-        if ops_data.leader_objectives.prerecruit and ops_data.leader_objectives.prerecruit.units[1] then
+        if ops_data.objectives.leader.prerecruit and ops_data.objectives.leader.prerecruit.units[1] then
             -- TODO: This check should not be necessary, but something can
             -- go wrong occasionally. Will eventually have to check why, for
             -- now I just put in this workaround.
             local current_gold = wesnoth.sides[wesnoth.current.side].gold
-            local cost = wesnoth.unit_types[ops_data.leader_objectives.prerecruit.units[1].recruit_type].cost
+            local cost = wesnoth.unit_types[ops_data.objectives.leader.prerecruit.units[1].recruit_type].cost
             if (current_gold >= cost) then
                 table.insert(fred_data.zone_cfgs, {
                     action = {
                         zone_id = zone_id,
                         action_str = zone_id .. ': recruit for leader protection',
                         type = 'recruit',
-                        recruit_units = ops_data.leader_objectives.prerecruit.units
+                        recruit_units = ops_data.objectives.leader.prerecruit.units
                     },
                     rating = leader_base_ratings.recruit
                 })
