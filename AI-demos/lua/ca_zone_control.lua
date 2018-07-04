@@ -1405,7 +1405,7 @@ local function get_hold_action(zone_cfg, fred_data)
         assigned_enemies = fred_data.ops_data.objectives.leader.leader_threats.enemies
         min_btw_dist = -1.5
     else
-        protect_leader_distance = fred_data.ops_data.protect_locs[zone_cfg.zone_id].leader_distance
+        local min_ld, max_ld = math.huge, - math.huge
         if fred_data.ops_data.protect_locs[zone_cfg.zone_id].locs then
             for _,loc in ipairs(fred_data.ops_data.protect_locs[zone_cfg.zone_id].locs) do
                 if (not loc.is_protected) then
@@ -1413,9 +1413,15 @@ local function get_hold_action(zone_cfg, fred_data)
                         protect_locs = {}
                     end
                     table.insert(protect_locs, loc)
+
+                    local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc[1], loc[2], 'distance')
+                    if (ld < min_ld) then min_ld = ld end
+                    if (ld > max_ld) then max_ld = ld end
+
                 end
             end
         end
+        protect_leader_distance = { min = min_ld, max = max_ld }
         min_btw_dist = -1.5
         assigned_enemies = fred_data.ops_data.assigned_enemies[zone_cfg.zone_id]
     end
