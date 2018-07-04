@@ -243,7 +243,7 @@ function fred_move_leader_utils.leader_objectives(fred_data)
     --DBG.dbms(keep)
 
     -- If no village was found, we go for the best keep, no matter what the reason
-    if (not village) then
+    if (not village) and prerecruit.units[1] then
         keep = get_best_keep(leader, fred_data)
     end
     --DBG.dbms(keep)
