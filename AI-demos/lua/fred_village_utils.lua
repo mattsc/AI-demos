@@ -91,50 +91,6 @@ function fred_village_utils.village_goals(villages_to_protect_maps, move_data)
 end
 
 
-function fred_village_utils.protect_locs(villages_to_protect_maps, fred_data)
-    -- For now, every village on our side of the map that can be reached
-    -- by an enemy needs to be protected
-
-    local protect_locs = {}
-    for zone_id,villages in pairs(villages_to_protect_maps) do
-        protect_locs[zone_id] = {}
-        local max_ld, loc
-        for x,y,village_data in FU.fgumap_iter(villages) do
-            if village_data.protect then
-                local is_protected = true
-                for enemy_id,_ in pairs(fred_data.move_data.enemies) do
-                    if FU.get_fgumap_value(fred_data.turn_data.enemy_initial_reach_maps[enemy_id], x, y, 'moves_left') then
-                        if FU.get_fgumap_value(fred_data.move_data.reach_maps[enemy_id], x, y, 'moves_left') then
-                            is_protected = false
-                        end
-
-                        local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
-                        if (not max_ld) or (ld > max_ld) then
-                            max_ld = ld
-                            loc = { x, y }
-                        end
-                    end
-                end
-                if loc then
-                    loc.is_protected = is_protected
-                end
-            end
-        end
-
-        if max_ld then
-            -- In this case, we want both min and max to be the same
-            protect_locs[zone_id].leader_distance = {
-                min = max_ld,
-                max = max_ld
-            }
-            protect_locs[zone_id].locs = { loc }
-        end
-    end
-
-    return protect_locs
-end
-
-
 function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_protect_maps, assigned_units, village_actions, fred_data)
     -- assigned_units and village_actions are modified directly in place
 

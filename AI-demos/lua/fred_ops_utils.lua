@@ -14,7 +14,7 @@ local FMC = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_map_config.lua"
 
 local fred_ops_utils = {}
 
-function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_locs, actions)
+function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_objectives, actions)
     -- Combine several zones into one, if the conditions for it are met.
     -- For example, on Freelands the 'east' and 'center' zones are combined
     -- into the 'top' zone if enemies are close enough to the leader.
@@ -56,16 +56,19 @@ function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_
             actions.hold_zones[zone_id] = nil
         end
 
-        -- Also combine assigned_units, assigned_enemies, protect_locs
+        -- Also combine assigned_units, assigned_enemies, protect_objectives
         -- from the zones to be replaced. We don't actually replace the
         -- respective tables for those zones, just add those for the super zone,
         -- because advancing and some other functions still use the original zones
         assigned_units[raw_cfg_new.zone_id] = {}
         assigned_enemies[raw_cfg_new.zone_id] = {}
-        protect_locs[raw_cfg_new.zone_id] = {}
+        protect_objectives.zones[raw_cfg_new.zone_id] = {
+            protect_leader = false,
+            units = {},
+            villages = {}
+        }
+        local new_objectives = protect_objectives.zones[raw_cfg_new.zone_id]
 
-        local hld_min, hld_max
-        local zone_count = 0
         for _,zone_id in ipairs(replace_zone_ids.old) do
             for id,loc in pairs(assigned_units[zone_id] or {}) do
                 assigned_units[raw_cfg_new.zone_id][id] = loc
@@ -74,29 +77,18 @@ function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_
                 assigned_enemies[raw_cfg_new.zone_id][id] = loc
             end
 
-            if protect_locs[zone_id].locs then
-                for _,loc in ipairs(protect_locs[zone_id].locs) do
-                    if (not protect_locs[raw_cfg_new.zone_id].locs) then
-                        protect_locs[raw_cfg_new.zone_id].locs = {}
-                    end
-                    table.insert(protect_locs[raw_cfg_new.zone_id].locs, loc)
-                end
-                if (not hld_min) or (protect_locs[zone_id].leader_distance.min < hld_min) then
-                    hld_min = protect_locs[zone_id].leader_distance.min
-                end
-                if (not hld_max) or (protect_locs[zone_id].leader_distance.max > hld_max) then
-                    hld_max = protect_locs[zone_id].leader_distance.max
-                end
+            local old_objectives = protect_objectives.zones[zone_id]
+            new_objectives.protect_leader = new_objectives.protect_leader or old_objectives.protect_leader
+            for _,loc in ipairs(old_objectives.villages) do
+                table.insert(new_objectives.villages, loc)
             end
-
-            zone_count = zone_count + 1
+            for _,unit in ipairs(old_objectives.units) do
+                table.insert(new_objectives.units, unit)
+            end
         end
 
-        if hld_min then
-            protect_locs[raw_cfg_new.zone_id].leader_distance = {
-                min = hld_min, max = hld_max
-            }
-        end
+        table.sort(new_objectives.villages, function(a, b) return a.eld < b.eld end)
+        table.sort(new_objectives.units, function(a, b) return a.rating < b.rating end)
     end
 end
 
@@ -144,7 +136,7 @@ function fred_ops_utils.zone_power_stats(zones, assigned_units, assigned_enemies
 end
 
 
-function fred_ops_utils.update_protect_goals(ops_data, fred_data)
+function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigned_enemies, fred_data)
     -- 1. Weigh village vs. leader protecting
     -- 2. Check if you should protect any of the units protecting the protect location.
     -- Generally this will not find anything if a protect action has already taken
@@ -154,14 +146,14 @@ function fred_ops_utils.update_protect_goals(ops_data, fred_data)
 
     -- Get all villages in each zone that are in between all enemies and the
     -- goal location of the leader
-    local goal_loc = ops_data.objectives.leader.village or ops_data.objectives.leader.keep or fred_data.move_data.leaders[wesnoth.current.side]
-    for zone_id,protect_locs in pairs(ops_data.objectives.protect.zones) do
+    local goal_loc = objectives.leader.village or objectives.leader.keep or fred_data.move_data.leaders[wesnoth.current.side]
+    for zone_id,protect_onjective in pairs(objectives.protect.zones) do
         --std_print(zone_id)
 
-        ops_data.objectives.protect.zones[zone_id].protect_leader = false
-        for enemy_id,enemy_loc in pairs(ops_data.objectives.leader.leader_threats.enemies) do
-            if ops_data.assigned_enemies[zone_id][enemy_id] then
-                ops_data.objectives.protect.zones[zone_id].protect_leader = true
+        protect_onjective.protect_leader = false
+        for enemy_id,enemy_loc in pairs(objectives.leader.leader_threats.enemies) do
+            if assigned_enemies[zone_id][enemy_id] then
+                protect_onjective.protect_leader = true
 
                 local enemy = {}
                 enemy[enemy_id] = enemy_loc
@@ -170,7 +162,7 @@ function fred_ops_utils.update_protect_goals(ops_data, fred_data)
                     DBG.show_fgumap_with_message(between_map, 'distance', zone_id .. ' between_map: distance', fred_data.move_data.unit_copies[enemy_id])
                 end
 
-                for _,village in ipairs(ops_data.objectives.protect.zones[zone_id].villages) do
+                for _,village in ipairs(protect_onjective.villages) do
                     local btw_dist = FU.get_fgumap_value(between_map, village.x, village.y, 'distance')
                     local btw_perp_dist = FU.get_fgumap_value(between_map, village.x, village.y, 'perp_distance')
 
@@ -184,31 +176,31 @@ function fred_ops_utils.update_protect_goals(ops_data, fred_data)
 
                 -- Now remove those villages
                 -- TODO: is there a reason to keep them and check for the flag instead?
-                for i = #ops_data.objectives.protect.zones[zone_id].villages,1,-1 do
-                    if ops_data.objectives.protect.zones[zone_id].villages[i].do_not_protect then
-                        table.remove(ops_data.objectives.protect.zones[zone_id].villages, i)
+                for i = #protect_onjective.villages,1,-1 do
+                    if protect_onjective.villages[i].do_not_protect then
+                        table.remove(protect_onjective.villages, i)
                     end
                 end
             end
         end
     end
-    --DBG.dbms(ops_data.objectives.protect)
+    --DBG.dbms(objectives.protect)
 
 
     -- Now check whether there are also units that should be protected
     local protect_others_ratio = FCFG.get_cfg_parm('protect_others_ratio')
-    for zone_id,zone_data in pairs(ops_data.objectives.protect.zones) do
+    for zone_id,protect_onjective in pairs(objectives.protect.zones) do
         --std_print(zone_id)
 
-        zone_data.units = {}
+        protect_onjective.units = {}
         -- TODO: do this also in some cases when the leader needs to be protected?
-        if (not zone_data.protect_leader)
-            and ((#zone_data.villages == 0) or (zone_data.villages[1].is_protected))
+        if (not protect_onjective.protect_leader)
+            and ((#protect_onjective.villages == 0) or (protect_onjective.villages[1].is_protected))
         then
             --std_print('  checking whether units should be protected')
             -- TODO: does this take appreciable time? If so, can be skipped when no no_MP units exist
             local units_to_protect, protectors = {}, {}
-            for id,loc in pairs(ops_data.assigned_units[zone_id]) do
+            for id,loc in pairs(assigned_units[zone_id]) do
 
                 -- We don't need to consider units that have no MP left and cannot
                 -- be attacked by the enemy
@@ -225,7 +217,7 @@ function fred_ops_utils.update_protect_goals(ops_data, fred_data)
                     --std_print(string.format('      %-25s    %2d,%2d  %5.2f', id, loc[1], loc[2], unit_value))
 
                     local tmp_damages = {}
-                    for enemy_id,enemy_loc in pairs(ops_data.assigned_enemies[zone_id]) do
+                    for enemy_id,enemy_loc in pairs(assigned_enemies[zone_id]) do
                         local counter = fred_data.turn_data.unit_attacks[id][enemy_id].damage_counter
 
                         -- For units that have moved, we can use the actual hit_chance
@@ -288,7 +280,7 @@ function fred_ops_utils.update_protect_goals(ops_data, fred_data)
 
                 if try_protect then
                     loc = fred_data.move_data.my_units[id_protectee]
-                    table.insert(zone_data.units, {
+                    table.insert(protect_onjective.units, {
                         x = loc[1], y = loc[2],
                         id = id_protectee,
                         is_protected = false,
@@ -297,9 +289,11 @@ function fred_ops_utils.update_protect_goals(ops_data, fred_data)
                     })
                 end
             end
+
+            table.sort(protect_onjective.units, function(a, b) return a.rating < b.rating end)
         end
     end
-    --DBG.dbms(ops_data.objectives.protect)
+    --DBG.dbms(objectives.protect)
 end
 
 
@@ -715,10 +709,8 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     local villages_to_protect_maps = FVU.villages_to_protect(raw_cfgs_main, side_cfgs, move_data)
     local zone_village_goals = FVU.village_goals(villages_to_protect_maps, move_data)
-    local protect_locs = FVU.protect_locs(villages_to_protect_maps, fred_data)
     --DBG.dbms(zone_village_goals)
     --DBG.dbms(villages_to_protect_maps)
-    --DBG.dbms(protect_locs)
 
 
     -- TODO: is there a need to keep the following two functions separate?
@@ -1249,13 +1241,6 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
     --DBG.dbms(zone_power_stats)
 
-    fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_locs, delayed_actions)
-
-
-    -- Calculate where the fronts are in the zones (in leader_distance values)
-    -- based on a vulnerability-weighted sum over the zones
-    -- Note: assigned_units includes both the old and new zones from replace_zones()
-    --   This is intentional, as some actions use the individual, some the combined zones
     local zone_maps = {}
     for zone_id,_ in pairs(assigned_units) do
         zone_maps[zone_id] = {}
@@ -1265,20 +1250,6 @@ function fred_ops_utils.set_ops_data(fred_data)
         end
     end
 
-    local side_cfgs = FMC.get_side_cfgs()
-    local my_start_hex, enemy_start_hex
-    for side,cfgs in ipairs(side_cfgs) do
-        if (side == wesnoth.current.side) then
-            my_start_hex = cfgs.start_hex
-        else
-            enemy_start_hex = cfgs.start_hex
-        end
-    end
-    local my_ld0 = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, my_start_hex[1], my_start_hex[2], 'distance')
-    local enemy_ld0 = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, enemy_start_hex[1], enemy_start_hex[2], 'distance')
-
-    local fronts = { zones = {} }
-    local max_push_utility = 0
     local zone_influence_maps = {}
     for zone_id,zone_map in pairs(zone_maps) do
         local zone_influence_map = {}
@@ -1313,9 +1284,75 @@ function fred_ops_utils.set_ops_data(fred_data)
             --DBG.show_fgumap_with_message(zone_influence_map, 'tension', 'Zone tension map ' .. zone_id)
             DBG.show_fgumap_with_message(zone_influence_map, 'vulnerability', 'Zone vulnerability map ' .. zone_id)
         end
+    end
 
+    ---- Calculate what to protect / where to hold ----
+    local protect_obj = { zones = {} }
+    for zone_id,village_map in pairs(villages_to_protect_maps) do
+        protect_obj.zones[zone_id] = { villages = {} }
+        --std_print(zone_id, fronts.zones[zone_id].power_ratio)
+        for x,y,_ in FU.fgumap_iter(village_map) do
+            local eld_vill = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'enemy_leader_distance')
+
+            local my_infl = FU.get_fgumap_value(zone_influence_maps[zone_id], x, y, 'my_influence') or 0
+            local enemy_infl = FU.get_fgumap_value(zone_influence_maps[zone_id], x, y, 'enemy_influence') or 0
+            local infl_ratio = my_infl / (enemy_infl + 1e-6)
+
+            local is_threatened, is_protected = false, true
+            for enemy_id,_ in pairs(move_data.enemies) do
+                if FU.get_fgumap_value(fred_data.turn_data.enemy_initial_reach_maps[enemy_id], x, y, 'moves_left') then
+                    is_threatened = true
+                    if FU.get_fgumap_value(move_data.reach_maps[enemy_id], x, y, 'moves_left') then
+                        is_protected = false
+                    end
+                end
+            end
+
+            if is_threatened and (infl_ratio >= fred_data.turn_data.behavior.orders.value_ratio) then
+                local v = {
+                    x = x, y = y,
+                    is_protected = is_protected,
+                    type = 'village',
+                    eld = eld_vill
+                }
+                table.insert(protect_obj.zones[zone_id].villages, v)
+            end
+            --std_print(string.format("  %2i,%2i %15.3f %6s %6s", x, y, infl_ratio, is_threatened, is_protected))
+        end
+
+        table.sort(protect_obj.zones[zone_id].villages, function(a, b) return a.eld < b.eld end)
+    end
+    objectives.protect = protect_obj
+
+    fred_ops_utils.update_protect_goals(objectives, assigned_units, assigned_enemies, fred_data)
+    --DBG.dbms(objectives)
+
+
+    fred_ops_utils.replace_zones(assigned_units, assigned_enemies, objectives.protect, delayed_actions)
+
+
+    -- Calculate where the fronts are in the zones (in leader_distance values)
+    -- based on a vulnerability-weighted sum over the zones
+    -- Note: assigned_units includes both the old and new zones from replace_zones()
+    --   This is intentional, as some actions use the individual, some the combined zones
+
+    local side_cfgs = FMC.get_side_cfgs()
+    local my_start_hex, enemy_start_hex
+    for side,cfgs in ipairs(side_cfgs) do
+        if (side == wesnoth.current.side) then
+            my_start_hex = cfgs.start_hex
+        else
+            enemy_start_hex = cfgs.start_hex
+        end
+    end
+    local my_ld0 = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, my_start_hex[1], my_start_hex[2], 'distance')
+    local enemy_ld0 = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, enemy_start_hex[1], enemy_start_hex[2], 'distance')
+
+    local fronts = { zones = {} }
+    local max_push_utility = 0
+    for zone_id,zone_map in pairs(zone_maps) do
         local num, denom = 0, 0
-        for x,y,data in FU.fgumap_iter(zone_influence_map) do
+        for x,y,data in FU.fgumap_iter(zone_influence_maps[zone_id]) do
             local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
             num = num + data.vulnerability^2 * ld
             denom = denom + data.vulnerability^2
@@ -1324,7 +1361,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         --std_print(zone_id, ld_max)
 
         local front_hexes = {}
-        for x,y,data in FU.fgumap_iter(zone_influence_map) do
+        for x,y,data in FU.fgumap_iter(zone_influence_maps[zone_id]) do
             local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
             if (math.abs(ld - ld_front) <= 0.5) then
                 table.insert(front_hexes, { x, y, data.vulnerability })
@@ -1357,52 +1394,8 @@ function fred_ops_utils.set_ops_data(fred_data)
     for _,front in pairs(fronts.zones) do
         front.push_utility = front.push_utility / max_push_utility
     end
-
-    ---- Calculate what to protect / where to hold ----
-    local behavior = fred_data.turn_data.behavior
-    --std_print('value_ratio: ', behavior.orders.value_ratio)
-
-    local protect_obj = { zones = {} }
-    for zone_id,village_map in pairs(villages_to_protect_maps) do
-        protect_obj.zones[zone_id] = { villages = {} }
-        --std_print(zone_id, fronts.zones[zone_id].power_ratio)
-        for x,y,_ in FU.fgumap_iter(village_map) do
-            local eld_vill = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'enemy_leader_distance')
-
-            local my_infl = FU.get_fgumap_value(zone_influence_maps[zone_id], x, y, 'my_influence') or 0
-            local enemy_infl = FU.get_fgumap_value(zone_influence_maps[zone_id], x, y, 'enemy_influence') or 0
-            local infl_ratio = my_infl / (enemy_infl + 1e-6)
-
-            local is_threatened, is_protected = false, true
-            for enemy_id,_ in pairs(move_data.enemies) do
-                if FU.get_fgumap_value(fred_data.turn_data.enemy_initial_reach_maps[enemy_id], x, y, 'moves_left') then
-                    is_threatened = true
-                    if FU.get_fgumap_value(move_data.reach_maps[enemy_id], x, y, 'moves_left') then
-                        is_protected = false
-                    end
-                end
-            end
-
-            if is_threatened and (infl_ratio >= behavior.orders.value_ratio) then
-                local v = {
-                    x = x, y = y,
-                    is_protected = is_protected,
-                    type = 'village',
-                    eld = eld_vill
-                }
-                table.insert(protect_obj.zones[zone_id].villages, v)
-            end
-            --std_print(string.format("  %2i,%2i %15.3f %6s %6s", x, y, infl_ratio, is_threatened, is_protected))
-        end
-
-        table.sort(protect_obj.zones[zone_id].villages, function(a, b) return a.eld < b.eld end)
-    end
-    objectives.protect = protect_obj
-
     --DBG.dbms(fronts)
-    --DBG.dbms(objectives)
-    --DBG.dbms(assigned_enemies)
-    --DBG.dbms(fred_data.turn_data.unit_attacks)
+
 
     local ops_data = {
         objectives = objectives,
@@ -1411,23 +1404,19 @@ function fred_ops_utils.set_ops_data(fred_data)
         assigned_units = assigned_units,
         retreaters = retreaters,
         fronts = fronts,
-        protect_locs = protect_locs,
         delayed_actions = delayed_actions
     }
     --DBG.dbms(ops_data)
-    --DBG.dbms(ops_data.protect_locs)
     --DBG.dbms(ops_data.assigned_enemies)
     --DBG.dbms(ops_data.assigned_units)
-
-
-    fred_ops_utils.update_protect_goals(ops_data, fred_data)
     --DBG.dbms(ops_data.objectives)
 
 
     fred_ops_utils.behavior_output(true, ops_data, fred_data)
 
     if DBG.show_debug('analysis') then
-        std_print('\n----- Behavior table -----')
+        local behavior = fred_data.turn_data.behavior
+        --std_print('value_ratio: ', behavior.orders.value_ratio)
         --DBG.dbms(behavior.ratios)
         --DBG.dbms(behavior.orders)
         DBG.dbms(fronts)
@@ -1446,7 +1435,6 @@ function fred_ops_utils.update_ops_data(fred_data)
 
     -- After each move, we update:
     --  - village grabbers (as a village might have opened, or units be used for attacks)
-    --  - protect_locs
     --
     -- TODO:
     --  - leader_locs
@@ -1573,8 +1561,7 @@ function fred_ops_utils.update_ops_data(fred_data)
 
     -- Also update the protect locations, as a location might not be threatened
     -- any more
-    ops_data.protect_locs = FVU.protect_locs(villages_to_protect_maps, fred_data)
-    fred_ops_utils.replace_zones(ops_data.assigned_units, ops_data.assigned_enemies, ops_data.protect_locs, ops_data.delayed_actions)
+    fred_ops_utils.replace_zones(ops_data.assigned_units, ops_data.assigned_enemies, ops_data.objectives.protect, ops_data.delayed_actions)
 
 
     -- Once the leader has no MP left, we reconsider the leader threats
@@ -1584,11 +1571,11 @@ function fred_ops_utils.update_ops_data(fred_data)
         ops_data.leader_threats.leader_locs = {}
         ops_data.leader_threats.protect_locs = { { leader_proxy.x, leader_proxy.y } }
 
-        fred_ops_utils.assess_leader_threats(ops_data.leader_threats, ops_data.protect_locs, leader_proxy, raw_cfgs_main, side_cfgs, fred_data)
+        FMLU.assess_leader_threats(ops_data.objectives.leader, raw_cfgs_main, side_cfgs, fred_data)
     end
 
 
-    fred_ops_utils.update_protect_goals(ops_data, fred_data)
+    fred_ops_utils.update_protect_goals(ops_data.objectives, ops_data.assigned_units, ops_data.assigned_enemies, fred_data, fred_data)
     --DBG.dbms(ops_data.fronts)
 
 

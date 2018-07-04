@@ -1405,20 +1405,32 @@ local function get_hold_action(zone_cfg, fred_data)
         assigned_enemies = fred_data.ops_data.objectives.leader.leader_threats.enemies
         min_btw_dist = -1.5
     else
+        -- TODO: change format of protect_locs, so that simply objectives.protect can be taken
         local min_ld, max_ld = math.huge, - math.huge
-        if fred_data.ops_data.protect_locs[zone_cfg.zone_id].locs then
-            for _,loc in ipairs(fred_data.ops_data.protect_locs[zone_cfg.zone_id].locs) do
-                if (not loc.is_protected) then
-                    if (not protect_locs) then
-                        protect_locs = {}
-                    end
-                    table.insert(protect_locs, loc)
 
-                    local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc[1], loc[2], 'distance')
-                    if (ld < min_ld) then min_ld = ld end
-                    if (ld > max_ld) then max_ld = ld end
+        -- Always take units when there are some to protect, otherwise take villages
+        -- TODO: is this the correct thing to do?
+        local protect_objectives = fred_data.ops_data.objectives.protect.zones[zone_cfg.zone_id]
+        local locs = {}
+        if protect_objectives.units[1] then
+            locs = protect_objectives.units
+        elseif protect_objectives.villages[1] then
+            locs = protect_objectives.villages
+        end
 
+        for _,loc in ipairs(locs) do
+            if (not loc.is_protected) then
+                if (not protect_locs) then
+                    protect_locs = {}
                 end
+
+                local protect_loc = { loc.x, loc.y }
+                table.insert(protect_locs, protect_loc)
+
+                local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc[1], loc[2], 'distance')
+                if (ld < min_ld) then min_ld = ld end
+                if (ld > max_ld) then max_ld = ld end
+
             end
         end
         protect_leader_distance = { min = min_ld, max = max_ld }
@@ -2353,12 +2365,10 @@ local function get_advance_action(zone_cfg, fred_data)
                             -- Cannot just assign here, as we do not want to change the input tables later
                             -- TODO: This currently includes already protected protect_locs. I think
                             -- that that's the right thing to do, re-examine later.
-                            if fred_data.ops_data.protect_locs[zone_cfg.zone_id]
-                                and fred_data.ops_data.protect_locs[zone_cfg.zone_id].locs
-                                and fred_data.ops_data.protect_locs[zone_cfg.zone_id].locs[1]
+                            if fred_data.ops_data.objectives.protect.zones[zone_cfg.zone_id].locs[1]
                             then
                                 for _,loc in ipairs(fred_data.ops_data.protect_locs[zone_cfg.zone_id].locs) do
-                                    table.insert(hexes, loc)
+                                    table.insert(hexes, { loc.x, loc.y })
                                 end
                             else
                                 for _,loc in ipairs(raw_cfg.center_hexes) do
