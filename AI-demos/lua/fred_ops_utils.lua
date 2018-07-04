@@ -764,7 +764,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         end
     end
     table.sort(delayed_actions, function(a, b) return a.score > b.score end)
-    DBG.dbms(delayed_actions)
+    --DBG.dbms(delayed_actions)
 
 
     -- Attributing enemy units to zones
