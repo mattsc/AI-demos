@@ -154,7 +154,7 @@ function fred_ops_utils.update_protect_goals(ops_data, fred_data)
 
     -- Get all villages in each zone that are in between all enemies and the
     -- goal location of the leader
-    local goal_loc = ops_data.objectives.leader.village or ops_data.objectives.leader.keep
+    local goal_loc = ops_data.objectives.leader.village or ops_data.objectives.leader.keep or fred_data.move_data.leaders[wesnoth.current.side]
     for zone_id,protect_locs in pairs(ops_data.objectives.protect.zones) do
         --std_print(zone_id)
 
@@ -165,7 +165,7 @@ function fred_ops_utils.update_protect_goals(ops_data, fred_data)
 
                 local enemy = {}
                 enemy[enemy_id] = enemy_loc
-                local between_map = FHU.get_between_map({ goal_loc}, goal_loc, enemy, fred_data.move_data)
+                local between_map = FHU.get_between_map({ goal_loc }, goal_loc, enemy, fred_data.move_data)
                 if false then
                     DBG.show_fgumap_with_message(between_map, 'distance', zone_id .. ' between_map: distance', fred_data.move_data.unit_copies[enemy_id])
                 end

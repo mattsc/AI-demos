@@ -248,6 +248,11 @@ function fred_move_leader_utils.leader_objectives(fred_data)
     end
     --DBG.dbms(keep)
 
+    -- Don't need to go to keep if the leader is already there
+    if keep and (keep[1] == leader[1]) and (keep[2] == leader[2]) then
+        keep = nil
+    end
+
     -- TODO: if the leader cannot recruit, no need to go back to keep, as long as we stay within one move?
 
     local leader_objectives = {
