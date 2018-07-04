@@ -727,6 +727,45 @@ function fred_ops_utils.set_ops_data(fred_data)
     FMLU.assess_leader_threats(objectives.leader, raw_cfgs_main, side_cfgs, fred_data)
     --DBG.dbms(objectives)
 
+    local delayed_actions = {}
+    local leader = move_data.leaders[wesnoth.current.side]
+    if objectives.leader.village then
+        local action = {
+            id = leader.id,
+            x = objectives.leader.village[1],
+            y = objectives.leader.village[2],
+            type = 'full_move',
+            score = FCFG.get_cfg_parm('score_leader_to_village')
+        }
+        table.insert(delayed_actions, action)
+    end
+
+    if objectives.leader.keep then
+        local action = {
+            id = leader.id,
+            x = objectives.leader.keep[1],
+            y = objectives.leader.keep[2],
+            type = 'partial_move',
+            score = FCFG.get_cfg_parm('score_leader_to_keep')
+        }
+        table.insert(delayed_actions, action)
+    end
+
+    if objectives.leader.prerecruit then
+        for _,unit in ipairs(objectives.leader.prerecruit.units) do
+            local action = {
+                recruit_type = unit.recruit_type,
+                x = unit.recruit_hex[1],
+                y = unit.recruit_hex[2],
+                type = 'recruit',
+                score = FCFG.get_cfg_parm('score_recruit')
+            }
+            table.insert(delayed_actions, action)
+        end
+    end
+    table.sort(delayed_actions, function(a, b) return a.score > b.score end)
+    DBG.dbms(delayed_actions)
+
 
     -- Attributing enemy units to zones
     -- Use base_power for this as it is not only for the current turn

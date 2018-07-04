@@ -49,7 +49,12 @@ local cfg = {
     protect_forward_weight = 1,
 
     -- Retreat rating parameters
-    hp_inflection_base = 20
+    hp_inflection_base = 20,
+
+    -- Action scores
+    score_leader_to_keep = 10,
+    score_recruit = 9,
+    score_leader_to_village = 8
 }
 
 local fred_config = {}
