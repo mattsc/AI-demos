@@ -328,14 +328,17 @@ function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_prot
         -- This currently only works for single-unit actions; can be expanded as needed
         local unit = move_data.my_units[capture.id]
         unit.id = capture.id
-        table.insert(village_actions, {
-            action = {
-                zone_id = capture.zone_id,
-                action_str = 'grab_village',
-                units = { unit },
-                dsts = { { capture.x, capture.y } }
-            }
-        })
+
+        local action = {
+            id = capture.id,
+            x = capture.x,
+            y = capture.y,
+            type = 'full_move',
+            zone_id = capture.zone_id,
+            action_str = 'grab_village',
+            score = FCFG.get_cfg_parm('score_grab_village')
+        }
+        table.insert(village_actions, action)
     end
 end
 

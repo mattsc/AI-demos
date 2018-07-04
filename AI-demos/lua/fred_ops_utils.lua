@@ -735,6 +735,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             x = objectives.leader.village[1],
             y = objectives.leader.village[2],
             type = 'full_move',
+            action_str = 'move_leader_to_village',
             score = FCFG.get_cfg_parm('score_leader_to_village')
         }
         table.insert(delayed_actions, action)
@@ -746,6 +747,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             x = objectives.leader.keep[1],
             y = objectives.leader.keep[2],
             type = 'partial_move',
+            action_str = 'move_leader_to_keep',
             score = FCFG.get_cfg_parm('score_leader_to_keep')
         }
         table.insert(delayed_actions, action)
@@ -758,6 +760,7 @@ function fred_ops_utils.set_ops_data(fred_data)
                 x = unit.recruit_hex[1],
                 y = unit.recruit_hex[2],
                 type = 'recruit',
+                action_str = 'recruit',
                 score = FCFG.get_cfg_parm('score_recruit')
             }
             table.insert(delayed_actions, action)
@@ -808,15 +811,21 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     ----- Village goals -----
 
-    local actions = { villages = {} }
+    local village_actions = {}
     local assigned_units = {}
 
-    FVU.assign_grabbers( zone_village_goals, villages_to_protect_maps, assigned_units, actions.villages, fred_data)
+    FVU.assign_grabbers( zone_village_goals, villages_to_protect_maps, assigned_units, village_actions, fred_data)
 
     --DBG.dbms(assigned_units)
     FVU.assign_scouts(zone_village_goals, assigned_units, retreat_utilities, move_data)
-    --DBG.dbms(actions.villages)
+    --DBG.dbms(village_actions)
     --DBG.dbms(assigned_enemies)
+
+    for _,action in ipairs(village_actions) do
+        table.insert(delayed_actions, action)
+    end
+    table.sort(delayed_actions, function(a, b) return a.score > b.score end)
+    --DBG.dbms(delayed_actions)
 
 
     -- Finding areas and units for attacking/defending in each zone
@@ -1240,7 +1249,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
     --DBG.dbms(zone_power_stats)
 
-    fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_locs, actions)
+    fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_locs, delayed_actions)
 
 
     -- Calculate where the fronts are in the zones (in leader_distance values)
@@ -1403,7 +1412,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         retreaters = retreaters,
         fronts = fronts,
         protect_locs = protect_locs,
-        actions = actions
+        delayed_actions = delayed_actions
     }
     --DBG.dbms(ops_data)
     --DBG.dbms(ops_data.protect_locs)
@@ -1565,7 +1574,7 @@ function fred_ops_utils.update_ops_data(fred_data)
     -- Also update the protect locations, as a location might not be threatened
     -- any more
     ops_data.protect_locs = FVU.protect_locs(villages_to_protect_maps, fred_data)
-    fred_ops_utils.replace_zones(ops_data.assigned_units, ops_data.assigned_enemies, ops_data.protect_locs, ops_data.actions)
+    fred_ops_utils.replace_zones(ops_data.assigned_units, ops_data.assigned_enemies, ops_data.protect_locs, ops_data.delayed_actions)
 
 
     -- Once the leader has no MP left, we reconsider the leader threats
@@ -1615,6 +1624,10 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     fred_data.zone_cfgs = {}
 
     -- For all of the main zones, find assigned units that have moves left
+
+    -- TODO: this is a place_holder for now, needs to be updated to work with delayed_actions
+    ops_data.actions = { hold_zones = {}, villages = {} }
+
     local holders_by_zone, attackers_by_zone = {}, {}
     for zone_id,_ in pairs(ops_data.actions.hold_zones) do
         if ops_data.assigned_units[zone_id] then

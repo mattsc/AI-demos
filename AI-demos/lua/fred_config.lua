@@ -51,7 +51,8 @@ local cfg = {
     -- Retreat rating parameters
     hp_inflection_base = 20,
 
-    -- Action scores
+    -- Delayed action scores
+    score_grab_village = 20,
     score_leader_to_keep = 10,
     score_recruit = 9,
     score_leader_to_village = 8
