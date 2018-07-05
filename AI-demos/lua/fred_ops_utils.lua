@@ -730,9 +730,23 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(assigned_enemies)
     --DBG.dbms(unassigned_enemies)
 
+    -- Pre-assign units to the zone into/toward which they have moved.
+    -- They will preferably, but not strictly be used in those zones.
+    local pre_assigned_units = {}
+    for id,_ in pairs(move_data.my_units) do
+        local unit_copy = move_data.unit_copies[id]
+        if (not unit_copy.canrecruit)
+            and (not FU.get_fgumap_value(move_data.reachable_castles_map[unit_copy.side], unit_copy.x, unit_copy.y, 'castle') or false)
+        then
+            local zone_id = FU.moved_toward_zone(unit_copy, raw_cfgs_main, side_cfgs)
+            pre_assigned_units[id] =  zone_id
+        end
+    end
+    --DBG.dbms(pre_assigned_units)
 
 
-    -- TODO: is there a need to keep the following two functions separate?
+    ----- Get objectives for the leader -----
+
     local objectives = { leader = FMLU.leader_objectives(fred_data) }
     --DBG.dbms(objectives)
     FMLU.assess_leader_threats(objectives.leader, assigned_enemies, raw_cfgs_main, side_cfgs, fred_data)
@@ -783,17 +797,6 @@ function fred_ops_utils.set_ops_data(fred_data)
 
 
 
-    local pre_assigned_units = {}
-    for id,_ in pairs(move_data.my_units) do
-        local unit_copy = move_data.unit_copies[id]
-        if (not unit_copy.canrecruit)
-            and (not FU.get_fgumap_value(move_data.reachable_castles_map[unit_copy.side], unit_copy.x, unit_copy.y, 'castle') or false)
-        then
-            local zone_id = FU.moved_toward_zone(unit_copy, raw_cfgs_main, side_cfgs)
-            pre_assigned_units[id] =  zone_id
-        end
-    end
-    --DBG.dbms(pre_assigned_units)
 
 
     local retreat_utilities = FRU.retreat_utilities(move_data, fred_data.turn_data.behavior.orders.value_ratio)
