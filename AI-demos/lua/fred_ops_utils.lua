@@ -707,11 +707,6 @@ function fred_ops_utils.set_ops_data(fred_data)
     local side_cfgs = FMC.get_side_cfgs()
 
 
-    local villages_to_protect_maps = FVU.villages_to_protect(raw_cfgs_main, side_cfgs, move_data)
-    local zone_village_goals = FVU.village_goals(villages_to_protect_maps, move_data)
-    --DBG.dbms(zone_village_goals)
-    --DBG.dbms(villages_to_protect_maps)
-
     ----- Get situation on the map first -----
 
     -- Attributing enemy units to zones
@@ -809,6 +804,11 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     local village_actions = {}
     local assigned_units = {}
+
+    local villages_to_protect_maps = FVU.villages_to_protect(raw_cfgs_main, side_cfgs, move_data)
+    local zone_village_goals = FVU.village_goals(villages_to_protect_maps, move_data)
+    --DBG.dbms(zone_village_goals)
+    --DBG.dbms(villages_to_protect_maps)
 
     FVU.assign_grabbers( zone_village_goals, villages_to_protect_maps, assigned_units, village_actions, fred_data)
 
