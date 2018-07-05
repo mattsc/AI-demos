@@ -300,9 +300,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigne
         end
         threat.zone_id = zone_id
     end
-
-
-    DBG.dbms(leader_threats)
+    --DBG.dbms(leader_threats)
 
 
     -- Check out how much of a threat these units pose in combination
