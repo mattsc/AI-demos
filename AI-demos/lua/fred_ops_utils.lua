@@ -740,7 +740,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     -- TODO: is there a need to keep the following two functions separate?
     local objectives = { leader = FMLU.leader_objectives(fred_data) }
     --DBG.dbms(objectives)
-    FMLU.assess_leader_threats(objectives.leader, raw_cfgs_main, side_cfgs, fred_data)
+    FMLU.assess_leader_threats(objectives.leader, assigned_enemies, raw_cfgs_main, side_cfgs, fred_data)
     --DBG.dbms(objectives)
 
     local delayed_actions = {}
@@ -1575,7 +1575,7 @@ function fred_ops_utils.update_ops_data(fred_data)
         ops_data.leader_threats.leader_locs = {}
         ops_data.leader_threats.protect_locs = { { leader_proxy.x, leader_proxy.y } }
 
-        FMLU.assess_leader_threats(ops_data.objectives.leader, raw_cfgs_main, side_cfgs, fred_data)
+        FMLU.assess_leader_threats(ops_data.objectives.leader, ops_data.assigned_enemies, raw_cfgs_main, side_cfgs, fred_data)
     end
 
 

@@ -267,7 +267,7 @@ function fred_move_leader_utils.leader_objectives(fred_data)
     return leader_objectives
 end
 
-function fred_move_leader_utils.assess_leader_threats(leader_objectives, raw_cfgs_main, side_cfgs, fred_data)
+function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigned_enemies, raw_cfgs_main, side_cfgs, fred_data)
     local move_data = fred_data.move_data
 
     local leader = move_data.leaders[wesnoth.current.side]
@@ -289,7 +289,20 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, raw_cfg
             leader_threats.enemies[id] = move_data.units[id]
         end
     end
-    --DBG.dbms(leader_threats)
+
+    for id,threat in pairs(leader_threats.enemies) do
+        local zone_id = 'none'
+        for zid,enemies in pairs(assigned_enemies) do
+            if enemies[id] then
+                zone_id = zid
+                break
+            end
+        end
+        threat.zone_id = zone_id
+    end
+
+
+    DBG.dbms(leader_threats)
 
 
     -- Check out how much of a threat these units pose in combination
