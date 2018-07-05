@@ -152,7 +152,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
 
         protect_onjective.protect_leader = false
         for enemy_id,enemy_loc in pairs(objectives.leader.leader_threats.enemies) do
-            if assigned_enemies[zone_id][enemy_id] then
+            if (enemy_loc.zone_id == zone_id) then
                 protect_onjective.protect_leader = true
 
                 local enemy = {}
