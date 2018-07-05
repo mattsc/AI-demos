@@ -712,6 +712,30 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(zone_village_goals)
     --DBG.dbms(villages_to_protect_maps)
 
+    ----- Get situation on the map first -----
+
+    -- Attributing enemy units to zones
+    -- Use base_power for this as it is not only for the current turn
+    local assigned_enemies, unassigned_enemies = {}, {}
+    for id,loc in pairs(move_data.enemies) do
+        if (not move_data.unit_infos[id].canrecruit)
+            and (not FU.get_fgumap_value(move_data.reachable_castles_map[move_data.unit_infos[id].side], loc[1], loc[2], 'castle') or false)
+        then
+            local unit_copy = move_data.unit_copies[id]
+            local zone_id = FU.moved_toward_zone(unit_copy, raw_cfgs_main, side_cfgs)
+
+            if (not assigned_enemies[zone_id]) then
+                assigned_enemies[zone_id] = {}
+            end
+            assigned_enemies[zone_id][id] = move_data.units[id]
+        else
+            unassigned_enemies[id] = move_data.units[id]
+        end
+    end
+    --DBG.dbms(assigned_enemies)
+    --DBG.dbms(unassigned_enemies)
+
+
 
     -- TODO: is there a need to keep the following two functions separate?
     local objectives = { leader = FMLU.leader_objectives(fred_data) }
@@ -762,26 +786,6 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(delayed_actions)
 
 
-    -- Attributing enemy units to zones
-    -- Use base_power for this as it is not only for the current turn
-    local assigned_enemies, unassigned_enemies = {}, {}
-    for id,loc in pairs(move_data.enemies) do
-        if (not move_data.unit_infos[id].canrecruit)
-            and (not FU.get_fgumap_value(move_data.reachable_castles_map[move_data.unit_infos[id].side], loc[1], loc[2], 'castle') or false)
-        then
-            local unit_copy = move_data.unit_copies[id]
-            local zone_id = FU.moved_toward_zone(unit_copy, raw_cfgs_main, side_cfgs)
-
-            if (not assigned_enemies[zone_id]) then
-                assigned_enemies[zone_id] = {}
-            end
-            assigned_enemies[zone_id][id] = move_data.units[id]
-        else
-            unassigned_enemies[id] = move_data.units[id]
-        end
-    end
-    --DBG.dbms(assigned_enemies)
-    --DBG.dbms(unassigned_enemies)
 
 
     local pre_assigned_units = {}
