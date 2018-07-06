@@ -1,5 +1,6 @@
 local H = wesnoth.require "helper"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
+local FBU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utilities.lua"
 local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
 local FHU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_hold_utils.lua"
@@ -796,10 +797,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
 
 
-
-
-
-    local retreat_utilities = FRU.retreat_utilities(move_data, fred_data.turn_data.behavior.orders.value_ratio)
+    local retreat_utilities = FBU.retreat_utilities(move_data, fred_data.turn_data.behavior.orders.value_ratio)
     --DBG.dbms(retreat_utilities)
 
 
@@ -1518,7 +1516,7 @@ function fred_ops_utils.update_ops_data(fred_data)
         end
     end
 
-    local retreat_utilities = FRU.retreat_utilities(move_data, fred_data.turn_data.behavior.orders.value_ratio)
+    local retreat_utilities = FBU.retreat_utilities(move_data, fred_data.turn_data.behavior.orders.value_ratio)
     --DBG.dbms(retreat_utilities)
 
 
