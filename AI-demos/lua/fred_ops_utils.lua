@@ -1,6 +1,6 @@
 local H = wesnoth.require "helper"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
-local FBU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utilities.lua"
+local FBU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_benefits_utilities.lua"
 local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
 local FHU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_hold_utils.lua"
