@@ -1375,10 +1375,11 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, cfg, 
     --
     -- INPUTS:
     -- @target: id and location of the unit for which to calculated the counter attack outcomes; syntax: { id = { x, y } }
+    --          in other words, the location needs to be the new location of the unit
     -- @old_locs, @new_locs: arrays of locations of the current and goal locations
     --   of all AI units to be moved into different positions, such as all units
     --   involved in an attack combination
-    --  @cfg: configuration parameters to be passed through the attack_outcome, attack_rating
+    --  @cfg: configuration parameters to be passed through to attack_outcome, attack_rating
 
     -- Two arrays to be made available below via closure
     local stored_units, ids = {}, {}
