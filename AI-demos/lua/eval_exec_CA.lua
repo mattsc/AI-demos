@@ -158,11 +158,10 @@ return {
         local tmp_units = wesnoth.get_units()
         local str = ''
         for _,u in ipairs(tmp_units) do
-            str = str .. u.id .. ':    ' .. u.x .. ',' .. u.y
-            str = str .. '    HP: ' .. u.hitpoints .. '/' .. u.max_hitpoints
-            str = str .. '    XP: ' .. u.experience .. '/' .. u.max_experience
-            str = str .. '    ' .. tostring(u.name)
-            str = str .. '\n'
+            str = str .. string.format('%2d,%2d    HP: %3d/%3d    XP: %3d/%3d        %s      (%s)\n',
+            u.x, u.y,
+            u.hitpoints, u.max_hitpoints, u.experience, u.max_experience,
+            u.id, tostring(u.name))
         end
 
         std_print(str)
