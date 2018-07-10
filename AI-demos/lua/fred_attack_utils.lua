@@ -617,6 +617,79 @@ function fred_attack_utils.get_total_damage_attack(weapon, attack, is_attacker, 
     return total_damage, base_damage, extra_damage, regen_damage
 end
 
+function fred_attack_utils.attstat_to_outcome(unit_info, stat, enemy_ctd, enemy_level)
+    -- Convert @stat as returned by wesnoth.simulate_combat to attack_outcome
+    -- format. In addition to extracting information from @stat, this includes:
+    --  - Only keep non-zero hp_chance values, except hp_chance[0] which is always needed
+    --  - Setting up level-up information (and recalculating average_hp)
+    --  - Setting min_hp
+    --  - Poison/slow: correctly account for level-up and do not count HP=0
+
+    local outcome = init_attack_outcome()
+    for hp,chance in pairs(stat.hp_chance) do
+        if (chance ~= 0) then
+            outcome.hp_chance[hp] = chance
+        end
+    end
+
+    if (enemy_level == 0) then enemy_level = 0.5 end  -- L0 units
+    local levelup_chance = 0.
+    -- If missing XP is <= level of attacker, it's a guaranteed level-up as long as the unit does not die
+    -- This does work even for L0 units (with enemy_level = 0.5)
+    if (unit_info.max_experience - unit_info.experience <= enemy_level) then
+        levelup_chance = 1. - outcome.hp_chance[0]
+    -- Otherwise, if a kill is needed, the level-up chance is that of the enemy dying
+    elseif (unit_info.max_experience - unit_info.experience <= enemy_level * 8) then
+        levelup_chance = enemy_ctd
+    end
+
+    if (levelup_chance > 0) then
+        if unit_info.advances_to then
+            outcome.levelup.type = unit_info.advances_to
+            outcome.levelup.max_hp = wesnoth.unit_types[unit_info.advances_to].max_hitpoints
+        else
+            outcome.levelup.type = unit_info.type
+            outcome.levelup.max_hp = unit_info.max_hitpoints + 3 -- Default AMLA
+        end
+        outcome.levelup.hp_chance[outcome.levelup.max_hp] = levelup_chance
+
+        -- wesnoth.simulate_combat returns the level-up chance as part of the
+        -- maximum hitpoints in the stats -> need to reset that
+        local max_hp_chance = outcome.hp_chance[unit_info.max_hitpoints] - levelup_chance
+        if (math.abs(max_hp_chance) < 1e-6) then
+            outcome.hp_chance[unit_info.max_hitpoints] = nil
+        else
+            outcome.hp_chance[unit_info.max_hitpoints] = max_hp_chance
+        end
+    end
+
+    -- We also need to adjust poison and slow for two reasons:
+    --  1. If a level-up is involved, wesnoth.simulate_combat does not "heal" the unit
+    --  2. We want the case of HP=0 to count as not poisoned/slowed
+    outcome.poisoned = 0
+    if (stat.poisoned > 0) then
+        for hp,chance in pairs(outcome.hp_chance) do
+            -- TODO: this will not always work 100% correctly with drain; others?
+            if (hp < unit_info.hitpoints) and (hp ~= 0) then
+                outcome.poisoned = outcome.poisoned + chance
+            end
+        end
+    end
+    outcome.slowed = 0
+    if (stat.slowed > 0) then
+        for hp,chance in pairs(outcome.hp_chance) do
+            -- TODO: this will not always work 100% correctly with drain; others?
+            if (hp < unit_info.hitpoints) and (hp ~= 0) then
+                outcome.slowed = outcome.slowed + chance
+            end
+        end
+    end
+
+    calc_stats_attack_outcome(outcome)
+
+    return outcome
+end
+
 function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, attacker_info, defender_info, move_data, move_cache)
     -- Calculate the outcome of a combat by @attacker_copy vs. @defender_proxy at location @dst
     -- We use wesnoth.simulate_combat for this, but cache results when possible
@@ -628,82 +701,6 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
     --   themselves in order to speed things up)
     --  @move_data: table with the game state as produced by fred_gamestate_utils.move_data()
     --  @move_cache: for caching data *for this move only*, needs to be cleared after a gamestate change
-
-    ----- Begin attstat_to_outcome() -----
-    local function attstat_to_outcome(unit_info, stat, enemy_ctd, enemy_level)
-        -- Convert @stat as returned by wesnoth.simulate_combat to attack_outcome
-        -- format. In addition to extracting information from @stat, this includes:
-        --  - Only keep non-zero hp_chance values, except hp_chance[0] which is always needed
-        --  - Setting up level-up information (and recalculating average_hp)
-        --  - Setting min_hp
-        --  - Poison/slow: correctly account for level-up and do not count HP=0
-
-        local outcome = init_attack_outcome()
-        for hp,chance in pairs(stat.hp_chance) do
-            if (chance ~= 0) then
-                outcome.hp_chance[hp] = chance
-            end
-        end
-
-        if (enemy_level == 0) then enemy_level = 0.5 end  -- L0 units
-        local levelup_chance = 0.
-        -- If missing XP is <= level of attacker, it's a guaranteed level-up as long as the unit does not die
-        -- This does work even for L0 units (with enemy_level = 0.5)
-        if (unit_info.max_experience - unit_info.experience <= enemy_level) then
-            levelup_chance = 1. - outcome.hp_chance[0]
-        -- Otherwise, if a kill is needed, the level-up chance is that of the enemy dying
-        elseif (unit_info.max_experience - unit_info.experience <= enemy_level * 8) then
-            levelup_chance = enemy_ctd
-        end
-
-        if (levelup_chance > 0) then
-            if unit_info.advances_to then
-                outcome.levelup.type = unit_info.advances_to
-                outcome.levelup.max_hp = wesnoth.unit_types[unit_info.advances_to].max_hitpoints
-            else
-                outcome.levelup.type = unit_info.type
-                outcome.levelup.max_hp = unit_info.max_hitpoints + 3 -- Default AMLA
-            end
-            outcome.levelup.hp_chance[outcome.levelup.max_hp] = levelup_chance
-
-            -- wesnoth.simulate_combat returns the level-up chance as part of the
-            -- maximum hitpoints in the stats -> need to reset that
-            local max_hp_chance = outcome.hp_chance[unit_info.max_hitpoints] - levelup_chance
-            if (math.abs(max_hp_chance) < 1e-6) then
-                outcome.hp_chance[unit_info.max_hitpoints] = nil
-            else
-                outcome.hp_chance[unit_info.max_hitpoints] = max_hp_chance
-            end
-        end
-
-        -- We also need to adjust poison and slow for two reasons:
-        --  1. If a level-up is involved, wesnoth.simulate_combat does not "heal" the unit
-        --  2. We want the case of HP=0 to count as not poisoned/slowed
-        outcome.poisoned = 0
-        if (stat.poisoned > 0) then
-            for hp,chance in pairs(outcome.hp_chance) do
-                -- TODO: this will not always work 100% correctly with drain; others?
-                if (hp < unit_info.hitpoints) and (hp ~= 0) then
-                    outcome.poisoned = outcome.poisoned + chance
-                end
-            end
-        end
-        outcome.slowed = 0
-        if (stat.slowed > 0) then
-            for hp,chance in pairs(outcome.hp_chance) do
-                -- TODO: this will not always work 100% correctly with drain; others?
-                if (hp < unit_info.hitpoints) and (hp ~= 0) then
-                    outcome.slowed = outcome.slowed + chance
-                end
-            end
-        end
-
-        calc_stats_attack_outcome(outcome)
-
-        return outcome
-    end
-    ----- End attstat_to_outcome() -----
-
 
     local defender_defense = FGUI.get_unit_defense(defender_proxy, defender_proxy.x, defender_proxy.y, move_data.defense_maps)
     local attacker_defense = FGUI.get_unit_defense(attacker_copy, dst[1], dst[2], move_data.defense_maps)
@@ -819,8 +816,8 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
     attacker_copy.x, attacker_copy.y = old_x, old_y
 
 
-    local att_outcome = attstat_to_outcome(attacker_info, tmp_att_stat, tmp_def_stat.hp_chance[0], defender_info.level)
-    local def_outcome = attstat_to_outcome(defender_info, tmp_def_stat, tmp_att_stat.hp_chance[0], attacker_info.level)
+    local att_outcome = fred_attack_utils.attstat_to_outcome(attacker_info, tmp_att_stat, tmp_def_stat.hp_chance[0], defender_info.level)
+    local def_outcome = fred_attack_utils.attstat_to_outcome(defender_info, tmp_def_stat, tmp_att_stat.hp_chance[0], attacker_info.level)
 
 
     if (not move_cache[cache_att_id]) then
