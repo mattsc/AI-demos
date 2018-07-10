@@ -557,6 +557,7 @@ function fred_ops_utils.set_turn_data(move_data)
 
     -- Find the effectiveness of each AI unit vs. each enemy unit
     local attack_locs = FMC.get_attack_test_locs()
+    local cfg_attack = { value_ratio = value_ratio }
 
     local unit_attacks = {}
     for my_id,_ in pairs(move_data.my_units) do
@@ -584,11 +585,16 @@ function fred_ops_utils.set_turn_data(move_data)
             local bonus_slow = 4
             local bonus_regen = 8
 
-            local max_diff_forward
+            local max_rating = - math.huge
             for i_w,attack in ipairs(move_data.unit_infos[my_id].attacks) do
                 --std_print('attack weapon: ' .. i_w)
 
-                local _, _, my_weapon, enemy_weapon = wesnoth.simulate_combat(my_proxy, i_w, enemy_proxy)
+                local att_stat, def_stat, my_weapon, enemy_weapon = wesnoth.simulate_combat(my_proxy, i_w, enemy_proxy)
+                local att_outcome = FAU.attstat_to_outcome(move_data.unit_infos[my_id], att_stat, def_stat.hp_chance[0], move_data.unit_infos[enemy_id].level)
+                local def_outcome = FAU.attstat_to_outcome(move_data.unit_infos[enemy_id], def_stat, att_stat.hp_chance[0], move_data.unit_infos[my_id].level)
+-- TODO: this also returns damages
+                local rating_table = FAU.attack_rating({ move_data.unit_infos[my_id] }, move_data.unit_infos[enemy_id], { attack_locs.attacker_loc }, { att_outcome }, def_outcome, cfg_attack, move_data)
+
                 local _, my_base_damage, my_extra_damage, my_regen_damage
                     = FAU.get_total_damage_attack(my_weapon, attack, true, move_data.unit_infos[enemy_id])
 
@@ -600,16 +606,12 @@ function fred_ops_utils.set_turn_data(move_data)
                 local _, enemy_base_damage, enemy_extra_damage, enemy_regen_damage
                     = FAU.get_total_damage_attack(enemy_weapon, enemy_attack, false, move_data.unit_infos[my_id])
 
-                -- TODO: the factor of 2 is somewhat arbitrary and serves to emphasize
-                -- the strongest attack weapon. Might be changed later. Use 1/value_ratio?
-                local diff = 2 * (my_base_damage + my_extra_damage) - enemy_base_damage - enemy_extra_damage
-                --std_print('  ' .. my_base_damage, enemy_base_damage, my_extra_damage, enemy_extra_damage, '-->', diff)
-
-                if (not max_diff_forward) or (diff > max_diff_forward) then
-                    max_diff_forward = diff
+                if (rating_table.rating > max_rating) then
+                    max_rating = rating_table.rating
                     tmp_attacks[enemy_id] = {
                         my_regen = - enemy_regen_damage, -- not that this is (must be) backwards as this is
                         enemy_regen = - my_regen_damage, -- regeneration "damage" to the _opponent_
+                        rating_forward = rating_table.rating,
                         damage_forward = {
                             base_done = my_base_damage,
                             base_taken = enemy_base_damage,
@@ -623,11 +625,16 @@ function fred_ops_utils.set_turn_data(move_data)
             end
             --DBG.dbms(tmp_attacks[enemy_id])
 
-            local max_diff_counter, max_damage_counter
+            local max_rating_counter, max_damage_counter = - math.huge
             for i_w,attack in ipairs(move_data.unit_infos[enemy_id].attacks) do
                 --std_print('counter weapon: ' .. i_w)
 
-                local _, _, enemy_weapon, my_weapon = wesnoth.simulate_combat(enemy_proxy, i_w, my_proxy)
+                local att_stat_counter, def_stat_counter, enemy_weapon, my_weapon = wesnoth.simulate_combat(enemy_proxy, i_w, my_proxy)
+                local att_outcome_counter = FAU.attstat_to_outcome(move_data.unit_infos[enemy_id], att_stat_counter, def_stat_counter.hp_chance[0], move_data.unit_infos[my_id].level)
+                local def_outcome_counter = FAU.attstat_to_outcome(move_data.unit_infos[my_id], def_stat_counter, att_stat_counter.hp_chance[0], move_data.unit_infos[enemy_id].level)
+-- TODO: this also returns damages
+                local rating_table_counter = FAU.attack_rating({ move_data.unit_infos[enemy_id] }, move_data.unit_infos[my_id], { attack_locs.defender_loc }, { att_outcome_counter }, def_outcome_counter, cfg_attack, move_data)
+
                 local _, enemy_base_damage, enemy_extra_damage, _
                     = FAU.get_total_damage_attack(enemy_weapon, attack, true, move_data.unit_infos[my_id])
 
@@ -639,13 +646,9 @@ function fred_ops_utils.set_turn_data(move_data)
                 local _, my_base_damage, my_extra_damage, _
                     = FAU.get_total_damage_attack(my_weapon, my_attack, false, move_data.unit_infos[enemy_id])
 
-                -- TODO: the factor of 2 is somewhat arbitrary and serves to emphasize
-                -- the strongest attack weapon. Might be changed later. Use 1/value_ratio?
-                local diff = 2 * (enemy_base_damage + enemy_extra_damage) - my_base_damage - my_extra_damage
-                --std_print('  ' .. enemy_base_damage, my_base_damage, enemy_extra_damage, my_extra_damage, '-->', diff)
-
-                if (not max_diff_counter) or (diff > max_diff_counter) then
-                    max_diff_counter = diff
+                if (rating_table_counter.rating > max_rating_counter) then
+                    max_rating_counter = rating_table_counter.rating
+                    tmp_attacks[enemy_id].rating_counter = rating_table_counter.rating
                     tmp_attacks[enemy_id].damage_counter = {
                         base_done = my_base_damage,
                         base_taken = enemy_base_damage,
