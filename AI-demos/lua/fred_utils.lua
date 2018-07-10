@@ -872,7 +872,7 @@ function fred_utils.single_unit_info(unit_proxy)
     return single_unit_info
 end
 
-function fred_utils.get_unit_hex_combos(dst_src, get_best_combo)
+function fred_utils.get_unit_hex_combos(dst_src, get_best_combo, add_rating)
     -- Recursively find all combinations of distributing
     -- units on hexes. The number of units and hexes does not have to be the same.
     -- @dst_src lists all units which can reach each hex in format:
@@ -897,6 +897,9 @@ function fred_utils.get_unit_hex_combos(dst_src, get_best_combo)
     --      dst = 20026
     --  }
     --    The combo rating is then the sum of all the individual ratings entering a combo.
+    --  @add_rating: add the sum of the individual ratings to each combo, using rating= field.
+    --    Note that this means that this field needs to be separated out from the actual dst-src
+    --    info when reading the table. Input needs to be of same format as for @get_best_combo.
 
     local all_combos, combo = {}, {}
     local num_hexes = #dst_src
@@ -923,7 +926,7 @@ function fred_utils.get_unit_hex_combos(dst_src, get_best_combo)
 
                 combo[ds.src] = dst_src[hex].dst
 
-                if get_best_combo then
+                if get_best_combo or add_rating then
                     if (count > 1000) then break end
                     rating = rating + ds.rating  -- Rating is simply the sum of the individual ratings
                 end
@@ -948,12 +951,13 @@ function fred_utils.get_unit_hex_combos(dst_src, get_best_combo)
                     else
                         local new_combo = {}
                         for k,v in pairs(combo) do new_combo[k] = v end
+                        if add_rating then new_combo.rating = rating end
                         table.insert(all_combos, new_combo)
                     end
                 end
 
                 -- Remove this element from the table again
-                if get_best_combo then
+                if get_best_combo or add_rating then
                     rating = rating - ds.rating
                 end
 
@@ -984,6 +988,7 @@ function fred_utils.get_unit_hex_combos(dst_src, get_best_combo)
             else
                 local new_combo = {}
                 for k,v in pairs(combo) do new_combo[k] = v end
+                if add_rating then new_combo.rating = rating end
                 table.insert(all_combos, new_combo)
             end
         end
