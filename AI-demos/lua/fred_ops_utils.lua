@@ -13,6 +13,24 @@ local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 -- Trying to set things up so that FMC is _only_ used in ops_utils
 local FMC = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_map_config.lua"
 
+
+local function assignments_to_assigned_units(assignments, move_data)
+    local assigned_units = {}
+    for id,action in pairs(assignments) do
+        local i = string.find(action, ':')
+        local zone_id = string.sub(action, i + 1)
+        std_print(action, i, zone_id)
+
+        if (not move_data.unit_infos[id].canrecruit) then
+            if (not assigned_units[zone_id]) then assigned_units[zone_id] = {} end
+            assigned_units[zone_id][id] = move_data.my_units[id]
+        end
+    end
+
+    return assigned_units
+end
+
+
 local fred_ops_utils = {}
 
 function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_objectives, actions)
@@ -94,7 +112,7 @@ function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_
 end
 
 
-function fred_ops_utils.zone_power_stats(zones, assigned_units, assigned_enemies, fred_data)
+function fred_ops_utils.zone_power_stats(zones, assigned_units, assigned_enemies, power_ratio, fred_data)
     local zone_power_stats = {}
 
     for zone_id,_ in pairs(zones) do
@@ -118,15 +136,14 @@ function fred_ops_utils.zone_power_stats(zones, assigned_units, assigned_enemies
         end
     end
 
-
-    local total_ratio_factor = fred_data.turn_data.behavior.orders.base_power_ratio
-    if (total_ratio_factor > 1) then
-        total_ratio_factor = math.sqrt(total_ratio_factor)
+    -- TODO: do we keep this?  Do we move it outside the function?
+    if (power_ratio > 1) then
+        power_ratio = math.sqrt(power_ratio)
     end
     for zone_id,_ in pairs(zones) do
         -- Note: both power_needed and power_missing take ratio into account, the other values do not
         -- For large ratios in Fred's favor, we also take the square root of it
-        local power_needed = zone_power_stats[zone_id].enemy_power * total_ratio_factor
+        local power_needed = zone_power_stats[zone_id].enemy_power * power_ratio
         local power_missing = power_needed - zone_power_stats[zone_id].my_power
         if (power_missing < 0) then power_missing = 0 end
         zone_power_stats[zone_id].power_needed = power_needed
@@ -749,6 +766,23 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(pre_assigned_units)
 
 
+    local value_ratio = fred_data.turn_data.behavior.orders.value_ratio
+
+
+    ----- Village goals -----
+
+    local villages_to_protect_maps = FVU.villages_to_protect(raw_cfgs_main, side_cfgs, move_data)
+    local zone_village_goals = FVU.village_goals(villages_to_protect_maps, move_data)
+    --DBG.dbms(zone_village_goals)
+    --DBG.dbms(villages_to_protect_maps)
+
+    local village_grabs = FVU.assign_grabbers(zone_village_goals, villages_to_protect_maps, {}, {}, fred_data)
+
+    local village_benefits = FBU.village_benefits(village_grabs, fred_data)
+    --DBG.dbms(village_benefits, false, 'village_benefits')
+
+
+
     ----- Get objectives for the leader -----
 
     local objectives = { leader = FMLU.leader_objectives(fred_data) }
@@ -800,37 +834,122 @@ function fred_ops_utils.set_ops_data(fred_data)
 
 
 
-    local retreat_utilities = FBU.retreat_utilities(move_data, fred_data.turn_data.behavior.orders.value_ratio)
-    --DBG.dbms(retreat_utilities)
 
+    -- Find goal hexes for leader protection
+    -- We use the closest enemy to the leader in each zone
+    local leader_goal = objectives.leader.village or objectives.leader.keep or move_data.leaders[wesnoth.current.side]
+    --DBG.dbms(leader_goal, false, 'leader_goal')
 
-    ----- Village goals -----
+    local goal_hexes_leader, enemies = {}, {}
+    for enemy_id,enemy_loc in pairs(objectives.leader.leader_threats.enemies) do
+        -- TODO: simply using the middle point here might not be the best thing to do
+        local goal_loc = {
+            math.floor((enemy_loc[1] + leader_goal[1]) / 2 + 0.5),
+            math.floor((enemy_loc[2] + leader_goal[2]) / 2 + 0.5)
+        }
+        --DBG.dbms(goal_loc, false, 'goal_loc')
+        local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, goal_loc[1], goal_loc[2], 'my_leader_distance')
+        --std_print(enemy_id, enemy_loc.zone_id, goal_loc[1], goal_loc[2], ld)
 
-    local village_actions = {}
-    local assigned_units = {}
-
-    local villages_to_protect_maps = FVU.villages_to_protect(raw_cfgs_main, side_cfgs, move_data)
-    local zone_village_goals = FVU.village_goals(villages_to_protect_maps, move_data)
-    --DBG.dbms(zone_village_goals)
-    --DBG.dbms(villages_to_protect_maps)
-
-    FVU.assign_grabbers( zone_village_goals, villages_to_protect_maps, assigned_units, village_actions, fred_data)
-
-    --DBG.dbms(assigned_units)
-    FVU.assign_scouts(zone_village_goals, assigned_units, retreat_utilities, move_data)
-    --DBG.dbms(village_actions)
-    --DBG.dbms(assigned_enemies)
-
-    for _,action in ipairs(village_actions) do
-        table.insert(delayed_actions, action)
+        if (not goal_hexes_leader[enemy_loc.zone_id]) then
+            goal_hexes_leader[enemy_loc.zone_id] = goal_loc
+            goal_hexes_leader[enemy_loc.zone_id].ld = ld
+            enemies[enemy_loc.zone_id] = {}
+        elseif (ld < goal_hexes_leader[enemy_loc.zone_id].ld) then
+            goal_hexes_leader[enemy_loc.zone_id] = goal_loc
+            goal_hexes_leader[enemy_loc.zone_id].ld = ld
+        end
+        enemies[enemy_loc.zone_id][enemy_id] = enemy_loc
     end
-    table.sort(delayed_actions, function(a, b) return a.score > b.score end)
-    --DBG.dbms(delayed_actions)
+    --DBG.dbms(goal_hexes_leader, false, 'goal_hexes_leader')
+    --DBG.dbms(enemies, false, 'enemies')
+
+    local cfg = {}
+    -- We want to match enemy threats one-to-one
+    -- TODO: is this always correct, even if there are more enemie threats than we have total power?
+    cfg.power_ratio = 1
+    cfg.use_all_units = true
+
+
+    -- Assess village grabbing by itself; this is for testing only
+    --DBG.dbms(village_benefits)
+    --local village_assignments = FBU.assign_units(village_benefits, move_data)
+    --DBG.dbms(village_assignments)
+
+
+    local attack_benefits = FBU.attack_benefits(enemies, goal_hexes_leader, false, fred_data)
+    --DBG.dbms(attack_benefits, false, 'attack_benefits')
+
+    local power_needed, enemy_total_power = {}, 0
+    for enemy_id,data in pairs(objectives.leader.leader_threats.enemies) do
+        local unit_power = FU.unit_base_power(fred_data.move_data.unit_infos[enemy_id])
+        power_needed[data.zone_id] = (power_needed[data.zone_id] or 0) + unit_power
+        enemy_total_power = enemy_total_power + unit_power
+    end
+    --DBG.dbms(power_needed, false, 'power_needed')
+
+    local leader_threat_benefits = {}
+    local leader_defenders = {}
+    for zone_id,benefits in pairs(attack_benefits) do
+        local action = 'protect_leader:' .. zone_id
+        leader_threat_benefits[action] = {
+            units = {},
+            required = { power = power_needed[zone_id] }
+        }
+
+        for id,data in pairs(benefits) do
+            if (not move_data.unit_infos[id].canrecruit) and (data.turns <= 1) then
+                leader_threat_benefits[action].units[id] = { benefit = data.benefit, penalty = 0 }
+                local unit_power = FU.unit_base_power(fred_data.move_data.unit_infos[id])
+
+                leader_defenders[id] = unit_power
+
+                -- Don't need inertia here, as these are only the units who can get there this turn
+            end
+        end
+    end
+    --DBG.dbms(leader_defenders)
+    --DBG.dbms(leader_threat_benefits, false, 'leader_threat_benefits')
+
+
+    local my_total_power = 0
+    for id,power in pairs(leader_defenders) do
+        if (not move_data.unit_infos[id].canrecruit) then
+            my_total_power = my_total_power + power
+        end
+    end
+    local power_ratio = my_total_power / enemy_total_power
+    std_print('total power (my, enemy)', my_total_power, enemy_total_power, power_ratio)
+
+    if (power_ratio < 1) then
+        for _,benefit in pairs(leader_threat_benefits) do
+            benefit.required.power = benefit.required.power * power_ratio
+        end
+    end
+    --DBG.dbms(leader_threat_benefits, false, 'leader_threat_benefits')
+
+
+    -- Assess leader protecting by itself; this is for testing only
+    --local assignments = FBU.assign_units(leader_threat_benefits, move_data)
+    --DBG.dbms(assignments)
+
+
+    local combined_benefits = {}
+    for action,data in pairs(village_benefits) do
+        combined_benefits[action] = data
+    end
+    for action,data in pairs(leader_threat_benefits) do
+        combined_benefits[action] = data
+    end
+    --DBG.dbms(combined_benefits, false, 'combined_benefits')
+
+    local protect_leader_assignments = FBU.assign_units(combined_benefits, move_data)
+    --DBG.dbms(protect_leader_assignments)
 
 
     -- Finding areas and units for attacking/defending in each zone
     --std_print('Move toward (highest blurred vulnerability):')
-    local goal_hexes = {}
+    local goal_hexes_zones = {}
     for zone_id,cfg in pairs(raw_cfgs_main) do
         local max_ld, loc
         for x,y,village_data in FU.fgumap_iter(villages_to_protect_maps[zone_id]) do
@@ -849,293 +968,142 @@ function fred_ops_utils.set_ops_data(fred_data)
 
         if max_ld then
             --std_print('max protect ld:', zone_id, max_ld, loc[1], loc[2])
-            goal_hexes[zone_id] = { loc }
+            goal_hexes_zones[zone_id] = loc
         else
-            goal_hexes[zone_id] = cfg.center_hexes
+            -- TODO: adapt for several goal hexes
+            goal_hexes_zones[zone_id] = cfg.center_hexes[1]
         end
     end
-    --DBG.dbms(goal_hexes)
+    --DBG.dbms(goal_hexes_zones)
 
--- TODO: what's this?
-    local distance_from_front = {}
-    for id,l in pairs(move_data.my_units) do
-        --std_print(id, l[1], l[2])
-        distance_from_front[id] = {}
-        for zone_id,locs in pairs(goal_hexes) do
-            --std_print('  ' .. zone_id)
-            local min_dist
-            for _,loc in ipairs(locs) do
-                local _, cost = wesnoth.find_path(move_data.unit_copies[id], loc[1], loc[2], { ignore_units = true })
-                cost = cost + move_data.unit_infos[id].max_moves - move_data.unit_infos[id].moves
-                --std_print('    ' .. loc[1] .. ',' .. loc[2], cost)
-
-                if (not min_dist) or (min_dist > cost) then
-                    min_dist = cost
-                end
-            end
-            --std_print('    -> ' .. min_dist, move_data.unit_infos[id].max_moves)
-            distance_from_front[id][zone_id] = min_dist / move_data.unit_infos[id].max_moves
-        end
-    end
-    goal_hexes = nil
-    --DBG.dbms(distance_from_front)
+    -- We use all assigned enemies for this part, incl. those that were already considered as leader threats
+    --DBG.dbms(assigned_enemies, false, 'assigned_enemies')
 
 
-    --local used_ids = {}
-    --for zone_id,units in pairs(assigned_units) do
-    --    for id,_ in pairs(units) do
-    --        used_ids[id] = true
-    --    end
-    --end
-
-    local value_ratio = fred_data.turn_data.behavior.orders.value_ratio
-
-    local attack_utilities = FBU.attack_utilities(assigned_enemies, value_ratio, fred_data)
-    --DBG.dbms(attack_utilities)
-
-    local unit_ratings = {}
-    for id,zone_ratings in pairs(attack_utilities) do
-        --std_print(id)
-        unit_ratings[id] = {}
-
-        for zone_id,rating in pairs(zone_ratings) do
-            local distance = distance_from_front[id][zone_id]
-            if (distance < 1) then distance = 1 end
-            local distance_rating = 1 / distance
-            --std_print('  ' .. zone_id, distance, distance_rating, rating)
-
-            local unit_rating = rating * distance_rating
-            unit_ratings[id][zone_id] = { this_zone = unit_rating }
-        end
-    end
-    --DBG.dbms(unit_ratings)
-
-    for id,zone_ratings in pairs(unit_ratings) do
-        for zone_id,ratings in pairs(zone_ratings) do
-            local max_other_zone
-            for zid2,ratings2 in pairs(zone_ratings) do
-                if (zid2 ~= zone_id) then
-                    if (not max_other_zone) or (ratings2.this_zone > max_other_zone) then
-                        max_other_zone = ratings2.this_zone
-                    end
-                end
-            end
-
-            local total_rating = ratings.this_zone
-            if max_other_zone and (total_rating > max_other_zone) then
-                total_rating = total_rating / math.sqrt(max_other_zone / total_rating)
-            end
-            -- TODO: might or might not want to normalize this again
-            -- currently don't think it's needed
-
-            unit_ratings[id][zone_id].max_other_zone = max_other_zone
-            unit_ratings[id][zone_id].rating = total_rating
-        end
-    end
-    --DBG.dbms(unit_ratings)
+    local assigned_units = assignments_to_assigned_units(protect_leader_assignments, move_data)
+    --DBG.dbms(assigned_units, false, 'assigned_units')
 
 
-    local n_enemies = {}
+    local enemy_total_power = 0
     for zone_id,enemies in pairs(assigned_enemies) do
-        local n = 0
-        for _,_ in pairs(enemies) do
-            n = n + 1
+        for enemy_id,_ in pairs(enemies) do
+            local unit_power = FU.unit_base_power(move_data.unit_infos[enemy_id])
+            enemy_total_power = enemy_total_power + unit_power
         end
-        n_enemies[zone_id] = n
     end
-    --DBG.dbms(n_enemies)
-
-    local zone_power_stats = fred_ops_utils.zone_power_stats(raw_cfgs_main, assigned_units, assigned_enemies, fred_data)
-    --DBG.dbms(zone_power_stats)
-
-    local keep_trying = true
-    while keep_trying do
-        keep_trying = false
-        --std_print()
-
-        local n_units = {}
-        for zone_id,units in pairs(assigned_units) do
-            local n = 0
-            for _,_ in pairs(units) do
-                n = n + 1
-            end
-            n_units[zone_id] = n
+    local my_total_power = 0
+    for id,_ in pairs(move_data.my_units) do
+        if (not move_data.unit_infos[id].canrecruit) then
+            local unit_power = FU.unit_base_power(move_data.unit_infos[id])
+            my_total_power = my_total_power + unit_power
         end
-        --DBG.dbms(n_units)
+    end
 
-        local hold_utility = {}
-        for zone_id,data in pairs(zone_power_stats) do
-            local frac_needed = 0
-            if (data.power_needed > 0) then
-                frac_needed = data.power_missing / data.power_needed
-            end
-            --std_print(zone_id, frac_needed, data.power_missing, data.power_needed)
-            local utility = math.sqrt(frac_needed)
-            hold_utility[zone_id] = utility
-        end
-        --DBG.dbms(hold_utility)
+    local power_ratio = my_total_power / enemy_total_power
+    if (power_ratio > 1) then power_ratio = 1 end
+    --std_print(my_total_power, enemy_total_power, power_ratio, fred_data.turn_data.behavior.orders.base_power_ratio)
 
-        local max_rating, best_zone, best_unit
-        for zone_id,data in pairs(zone_power_stats) do
-            -- Base rating for the zone is the power missing times the ratio of
-            -- power missing to power needed
-            local ratio = 1
-            if (data.power_needed > 0) then
-                ratio = data.power_missing / data.power_needed
-            end
+    local zone_power_stats = fred_ops_utils.zone_power_stats(raw_cfgs_main, assigned_units, assigned_enemies, power_ratio, fred_data)
+    --DBG.dbms(zone_power_stats, false, 'zone_power_stats')
 
-            local zone_rating = data.power_missing
-            --if ((n_units[zone_id] or 0) + 1 >= (n_enemies[zone_id] or 0)) then
-            --    zone_rating = zone_rating * math.sqrt(ratio)
-            --    std_print('    -- decreasing zone_rating by factor ' .. math.sqrt(ratio), zone_rating)
-            --end
-            --std_print(zone_id, data.power_missing .. '/' .. data.power_needed .. ' = ' .. ratio, zone_rating)
-            --std_print('  zone_rating', zone_rating)
 
-            for id,unit_zone_ratings in pairs(unit_ratings) do
-                local unit_rating = 0
-                local unit_zone_rating = 1
-                if unit_zone_ratings[zone_id] and unit_zone_ratings[zone_id].rating then
-                    unit_zone_rating = unit_zone_ratings[zone_id].rating
-                    unit_rating = unit_zone_rating * zone_rating
-                    --std_print('  ' .. id, unit_zone_rating, zone_rating, unit_rating)
+    local zone_attack_benefits = FBU.attack_benefits(assigned_enemies, goal_hexes_zones, false, fred_data)
+    --DBG.dbms(attack_benefits, false, 'attack_benefits')
+
+    local zone_benefits = {}
+    for zone_id,benefits in pairs(zone_attack_benefits) do
+        local power_missing = zone_power_stats[zone_id].power_missing
+        if (power_missing > 0) then
+            local action = 'zone:' .. zone_id
+            zone_benefits[action] = {
+                units = {},
+                required = { power = power_missing }
+            }
+
+            for id,data in pairs(benefits) do
+                if (not move_data.unit_infos[id].canrecruit)
+                    and (not protect_leader_assignments[id])
+                then
+                    -- TODO: these will have to be tweaked
+                    local unit_value = FU.unit_value(fred_data.move_data.unit_infos[id])
+
+                    local turn_penalty = 0
+                    if (data.turns > 1) then
+                        turn_penalty = unit_value / 2 * data.turns
+                    end
+
+                    local inertia = 0
+                    if pre_assigned_units[id] and (pre_assigned_units[id] == zone_id) then
+                        inertia = 0.25 * unit_value
+                    end
+                    --std_print(zone_id, id, data.turns, turn_penalty, inertia)
+
+                    zone_benefits[action].units[id] = {
+                        benefit = data.benefit,
+                        penalty = turn_penalty - inertia
+                    }
                 end
-
-                local inertia = 0
-                if pre_assigned_units[id] and (pre_assigned_units[id] == zone_id) then
-                    inertia = 0.1 * FU.unit_base_power(move_data.unit_infos[id]) * unit_zone_rating
-                end
-
-                unit_rating = unit_rating + inertia
-
-                --std_print('    ' .. zone_id .. ' ' .. id, retreat_utilities[id], hold_utility[zone_id])
-                -- TODO: the factor 0.8 is just a placeholder for now, so that
-                -- very injured units are not used for holding. This should be
-                -- replaced by a more accurate method
-                if (retreat_utilities[id] > hold_utility[zone_id] * 0.8) then
-                    unit_rating = -1
-                end
-
-                if (unit_rating > 0) and ((not max_rating) or (unit_rating > max_rating)) then
-                    max_rating = unit_rating
-                    best_zone = zone_id
-                    best_unit = id
-                end
-                --std_print('  ' .. id .. '  ' .. move_data.unit_infos[id].hitpoints .. '/' .. move_data.unit_infos[id].max_hitpoints, unit_rating, inertia)
-            end
-        end
-
-        if best_unit then
-            --std_print('--> ' .. best_zone, best_unit, move_data.unit_copies[best_unit].x .. ',' .. move_data.unit_copies[best_unit].y)
-            if (not assigned_units[best_zone]) then
-                assigned_units[best_zone] = {}
-            end
-            assigned_units[best_zone][best_unit] = move_data.units[best_unit]
-
-            unit_ratings[best_unit] = nil
-            zone_power_stats = fred_ops_utils.zone_power_stats(raw_cfgs_main, assigned_units, assigned_enemies, fred_data)
-
-            --DBG.dbms(assigned_units)
-            --DBG.dbms(unit_ratings)
-            --DBG.dbms(zone_power_stats)
-
-            if (next(unit_ratings)) then
-                keep_trying = true
             end
         end
     end
-    pre_assigned_units = nil
-    --DBG.dbms(assigned_units)
-    --DBG.dbms(zone_power_stats)
+    --DBG.dbms(zone_benefits, false, 'zone_benefits')
+
+    local zone_assignments = FBU.assign_units(zone_benefits, move_data)
 
 
-    -- All units with non-zero retreat utility are put on the list of possible retreaters
+    --DBG.dbms(protect_leader_assignments, false, 'protect_leader_assignments')
+    --DBG.dbms(zone_assignments, false, 'zone_assignments')
+
+    local assignments = {}
+    for action,id in pairs(protect_leader_assignments) do
+        assignments[action] = id
+    end
+    for action,id in pairs(zone_assignments) do
+        assignments[action] = id
+    end
+    --DBG.dbms(assignments, false, 'assignments')
+
+    local assigned_units = assignments_to_assigned_units(assignments, move_data)
+    --DBG.dbms(assigned_units, false, 'assigned_units')
+
+    local unused_units = {}
+    for id,_ in pairs(move_data.my_units_MP) do
+        if (not assignments[id]) then
+            unused_units[id] = 'none'
+        end
+    end
+    --DBG.dbms(unused_units, false, 'unused_units')
+
+
+    -- All remaining units with non-zero retreat utility are assigned as retreaters
+    local utilities = {}
+    utilities.retreat = FBU.retreat_utilities(move_data, fred_data.turn_data.behavior.orders.value_ratio)
+
     local retreaters = {}
-    for id,_ in pairs(unit_ratings) do
-        if (retreat_utilities[id] > 0) then
+    for id,_ in pairs(unused_units) do
+        if (utilities.retreat[id] > 0) then
             retreaters[id] = move_data.units[id]
-            unit_ratings[id] = nil
+            unused_units[id] = nil
         end
     end
     --DBG.dbms(retreaters)
+    --DBG.dbms(unused_units, false, 'unused_units')
 
 
-    -- Everybody left at this time goes on the reserve list
-    --DBG.dbms(unit_ratings)
-    local reserve_units = {}
-    for id,_ in pairs(unit_ratings) do
-        reserve_units[id] = true
+
+--[[
+    FVU.assign_scouts(zone_village_goals, assigned_units, utilities.retreat, move_data)
+
+    for _,action in ipairs(village_actions) do
+        table.insert(delayed_actions, action)
     end
-    attack_utilities = nil
-    unit_ratings = nil
-
-    zone_power_stats = fred_ops_utils.zone_power_stats(raw_cfgs_main, assigned_units, assigned_enemies, fred_data)
-    --DBG.dbms(zone_power_stats)
-    --DBG.dbms(reserve_units)
+    table.sort(delayed_actions, function(a, b) return a.score > b.score end)
+    --DBG.dbms(delayed_actions)
 
 
-    -- There will likely only be units on the reserve list at the very beginning
-    -- or maybe when the AI is winning.  So for now, we'll just distribute
-    -- them between the zones.
-    -- TODO: reconsider later whether this is the best thing to do.
-    local total_weight = 0
-    for zone_id,cfg in pairs(raw_cfgs_main) do
-        --std_print(zone_id, cfg.zone_weight)
-        total_weight = total_weight + cfg.zone_weight
-    end
-    --std_print('total_weight', total_weight)
+--]]
 
-    local total_ratio_factor = fred_data.turn_data.behavior.orders.base_power_ratio
-    if (total_ratio_factor > 1) then
-        total_ratio_factor = math.sqrt(total_ratio_factor)
-    end
 
-    while next(reserve_units) do
-        --std_print('power: assigned / desired --> deficit')
-        local max_deficit, best_zone_id
-        for zone_id,cfg in pairs(raw_cfgs_main) do
-            local desired_power = total_ratio_factor * cfg.zone_weight / total_weight
-            local assigned_power = zone_power_stats[zone_id].my_power
-            local deficit = desired_power - assigned_power
-            --std_print(zone_id, assigned_power .. ' / ' .. desired_power, deficit)
-
-            if (not max_deficit) or (deficit > max_deficit) then
-                max_deficit, best_zone_id = deficit, zone_id
-            end
-        end
-        --std_print('most in need: ' .. best_zone_id)
-
-        -- Find the best unit for this zone
-        local max_rating, best_id
-        for id,_ in pairs(reserve_units) do
-            for _,center_hex in ipairs(raw_cfgs_main[best_zone_id].center_hexes) do
-                local _, cost = wesnoth.find_path(move_data.unit_copies[id], center_hex[1], center_hex[2], { ignore_units = true })
-                local turns = math.ceil(cost / move_data.unit_infos[id].max_moves)
-
-                -- Significant difference in power can override difference in turns to get there
-                local power_rating = FU.unit_base_power(move_data.unit_infos[id])
-                power_rating = power_rating / 10
-
-                local rating = - turns + power_rating
-                --std_print(id, cost, turns, power_rating)
-                --std_print('  --> rating: ' .. rating)
-
-                if (not max_rating) or (rating > max_rating) then
-                    max_rating, best_id = rating, id
-                end
-            end
-        end
-        --std_print('best:', best_zone_id, best_id)
-        if (not assigned_units[best_zone_id]) then
-            assigned_units[best_zone_id] = {}
-        end
-        assigned_units[best_zone_id][best_id] = move_data.units[best_id]
-        reserve_units[best_id] = nil
-
-        zone_power_stats = fred_ops_utils.zone_power_stats(raw_cfgs_main, assigned_units, assigned_enemies, fred_data)
-        --DBG.dbms(zone_power_stats)
-    end
-    --DBG.dbms(zone_power_stats)
 
     local zone_maps = {}
     for zone_id,_ in pairs(assigned_units) do
@@ -1181,6 +1149,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             DBG.show_fgumap_with_message(zone_influence_map, 'vulnerability', 'Zone vulnerability map ' .. zone_id)
         end
     end
+
 
     ---- Calculate what to protect / where to hold ----
     local protect_obj = { zones = {} }
@@ -1622,7 +1591,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     end
     --DBG.dbms(leader_threats_by_zone)
 
-    local zone_power_stats = fred_ops_utils.zone_power_stats(ops_data.actions.hold_zones, ops_data.assigned_units, ops_data.assigned_enemies, fred_data)
+    local zone_power_stats = fred_ops_utils.zone_power_stats(ops_data.actions.hold_zones, ops_data.assigned_units, ops_data.assigned_enemies, fred_data.turn_data.behavior.orders.base_power_ratio, fred_data)
     --DBG.dbms(zone_power_stats)
 
 
