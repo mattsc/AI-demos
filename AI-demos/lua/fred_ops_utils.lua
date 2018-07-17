@@ -766,7 +766,6 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(pre_assigned_units)
 
 
-    local value_ratio = fred_data.turn_data.behavior.orders.value_ratio
 
 
     ----- Village goals -----
