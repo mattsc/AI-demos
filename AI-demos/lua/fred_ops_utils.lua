@@ -165,13 +165,13 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
     -- Get all villages in each zone that are in between all enemies and the
     -- goal location of the leader
     local goal_loc = objectives.leader.village or objectives.leader.keep or fred_data.move_data.leaders[wesnoth.current.side]
-    for zone_id,protect_onjective in pairs(objectives.protect.zones) do
+    for zone_id,protect_objective in pairs(objectives.protect.zones) do
         --std_print(zone_id)
 
-        protect_onjective.protect_leader = false
+        protect_objective.protect_leader = false
         for enemy_id,enemy_loc in pairs(objectives.leader.leader_threats.enemies) do
             if (enemy_loc.zone_id == zone_id) then
-                protect_onjective.protect_leader = true
+                protect_objective.protect_leader = true
 
                 local enemy = {}
                 enemy[enemy_id] = enemy_loc
@@ -180,7 +180,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
                     DBG.show_fgumap_with_message(between_map, 'distance', zone_id .. ' between_map: distance', fred_data.move_data.unit_copies[enemy_id])
                 end
 
-                for _,village in ipairs(protect_onjective.villages) do
+                for _,village in ipairs(protect_objective.villages) do
                     local btw_dist = FU.get_fgumap_value(between_map, village.x, village.y, 'distance')
                     local btw_perp_dist = FU.get_fgumap_value(between_map, village.x, village.y, 'perp_distance')
 
@@ -194,9 +194,9 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
 
                 -- Now remove those villages
                 -- TODO: is there a reason to keep them and check for the flag instead?
-                for i = #protect_onjective.villages,1,-1 do
-                    if protect_onjective.villages[i].do_not_protect then
-                        table.remove(protect_onjective.villages, i)
+                for i = #protect_objective.villages,1,-1 do
+                    if protect_objective.villages[i].do_not_protect then
+                        table.remove(protect_objective.villages, i)
                     end
                 end
             end
@@ -207,13 +207,13 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
 
     -- Now check whether there are also units that should be protected
     local protect_others_ratio = FCFG.get_cfg_parm('protect_others_ratio')
-    for zone_id,protect_onjective in pairs(objectives.protect.zones) do
+    for zone_id,protect_objective in pairs(objectives.protect.zones) do
         --std_print(zone_id)
 
-        protect_onjective.units = {}
+        protect_objective.units = {}
         -- TODO: do this also in some cases when the leader needs to be protected?
-        if (not protect_onjective.protect_leader)
-            and ((#protect_onjective.villages == 0) or (protect_onjective.villages[1].is_protected))
+        if (not protect_objective.protect_leader)
+            and ((#protect_objective.villages == 0) or (protect_objective.villages[1].is_protected))
         then
             --std_print('  checking whether units should be protected')
             -- TODO: does this take appreciable time? If so, can be skipped when no no_MP units exist
@@ -298,7 +298,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
 
                 if try_protect then
                     loc = fred_data.move_data.my_units[id_protectee]
-                    table.insert(protect_onjective.units, {
+                    table.insert(protect_objective.units, {
                         x = loc[1], y = loc[2],
                         id = id_protectee,
                         is_protected = false,
@@ -308,7 +308,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
                 end
             end
 
-            table.sort(protect_onjective.units, function(a, b) return a.rating < b.rating end)
+            table.sort(protect_objective.units, function(a, b) return a.rating < b.rating end)
         end
     end
     --DBG.dbms(objectives.protect, false, 'objectives.protect')
