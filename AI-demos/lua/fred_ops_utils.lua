@@ -767,6 +767,10 @@ function fred_ops_utils.set_ops_data(fred_data)
 
 
 
+    local objectives = { leader = FMLU.leader_objectives(fred_data) }
+    --DBG.dbms(objectives)
+    FMLU.assess_leader_threats(objectives.leader, assigned_enemies, raw_cfgs_main, side_cfgs, fred_data)
+    --DBG.dbms(objectives)
 
     ----- Village goals -----
 
@@ -779,59 +783,6 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     local village_benefits = FBU.village_benefits(village_grabs, fred_data)
     --DBG.dbms(village_benefits, false, 'village_benefits')
-
-
-
-    ----- Get objectives for the leader -----
-
-    local objectives = { leader = FMLU.leader_objectives(fred_data) }
-    --DBG.dbms(objectives)
-    FMLU.assess_leader_threats(objectives.leader, assigned_enemies, raw_cfgs_main, side_cfgs, fred_data)
-    --DBG.dbms(objectives)
-
-    local delayed_actions = {}
-    local leader = move_data.leaders[wesnoth.current.side]
-    if objectives.leader.village then
-        local action = {
-            id = leader.id,
-            x = objectives.leader.village[1],
-            y = objectives.leader.village[2],
-            type = 'full_move',
-            action_str = 'move_leader_to_village',
-            score = FCFG.get_cfg_parm('score_leader_to_village')
-        }
-        table.insert(delayed_actions, action)
-    end
-
-    if objectives.leader.keep then
-        local action = {
-            id = leader.id,
-            x = objectives.leader.keep[1],
-            y = objectives.leader.keep[2],
-            type = 'partial_move',
-            action_str = 'move_leader_to_keep',
-            score = FCFG.get_cfg_parm('score_leader_to_keep')
-        }
-        table.insert(delayed_actions, action)
-    end
-
-    if objectives.leader.prerecruit then
-        for _,unit in ipairs(objectives.leader.prerecruit.units) do
-            local action = {
-                recruit_type = unit.recruit_type,
-                x = unit.recruit_hex[1],
-                y = unit.recruit_hex[2],
-                type = 'recruit',
-                action_str = 'recruit',
-                score = FCFG.get_cfg_parm('score_recruit')
-            }
-            table.insert(delayed_actions, action)
-        end
-    end
-    table.sort(delayed_actions, function(a, b) return a.score > b.score end)
-    --DBG.dbms(delayed_actions)
-
-
 
 
     -- Find goal hexes for leader protection
@@ -1089,6 +1040,50 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(unused_units, false, 'unused_units')
 
 
+
+
+
+    local delayed_actions = {}
+    local leader = move_data.leaders[wesnoth.current.side]
+    if objectives.leader.village then
+        local action = {
+            id = leader.id,
+            x = objectives.leader.village[1],
+            y = objectives.leader.village[2],
+            type = 'full_move',
+            action_str = 'move_leader_to_village',
+            score = FCFG.get_cfg_parm('score_leader_to_village')
+        }
+        table.insert(delayed_actions, action)
+    end
+
+    if objectives.leader.keep then
+        local action = {
+            id = leader.id,
+            x = objectives.leader.keep[1],
+            y = objectives.leader.keep[2],
+            type = 'partial_move',
+            action_str = 'move_leader_to_keep',
+            score = FCFG.get_cfg_parm('score_leader_to_keep')
+        }
+        table.insert(delayed_actions, action)
+    end
+
+    if objectives.leader.prerecruit then
+        for _,unit in ipairs(objectives.leader.prerecruit.units) do
+            local action = {
+                recruit_type = unit.recruit_type,
+                x = unit.recruit_hex[1],
+                y = unit.recruit_hex[2],
+                type = 'recruit',
+                action_str = 'recruit',
+                score = FCFG.get_cfg_parm('score_recruit')
+            }
+            table.insert(delayed_actions, action)
+        end
+    end
+    table.sort(delayed_actions, function(a, b) return a.score > b.score end)
+    --DBG.dbms(delayed_actions)
 
 --[[
     FVU.assign_scouts(zone_village_goals, assigned_units, utilities.retreat, move_data)
