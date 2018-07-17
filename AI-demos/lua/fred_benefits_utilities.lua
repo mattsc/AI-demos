@@ -298,14 +298,14 @@ function utility_functions.attack_utilities(assigned_enemies, value_ratio, fred_
         -- TODO: eventually put some conditional here so that we do not have
         -- to do this for all units all the time
         if true then
-            std_print(id)
+            --std_print(id)
             attack_utilities[id] = {}
             for zone_id,data in pairs(assigned_enemies) do
-                std_print('  ' .. zone_id)
+                --std_print('  ' .. zone_id)
 
                 local tmp_enemies = {}
                 for enemy_id,_ in pairs(data) do
-                    std_print('    ' .. enemy_id)
+                    --std_print('    ' .. enemy_id)
                     local att = fred_data.turn_data.unit_attacks[id][enemy_id]
 
                     local damage_taken = att.damage_counter.enemy_gen_hc * att.damage_counter.base_taken + att.damage_counter.extra_taken
@@ -528,7 +528,7 @@ function utility_functions.assign_units(benefits, move_data)
 
         local id, action = find_best_assignment(task_ratings, power_used)
         assignments[id] = action
-        std_print('assigned: ' .. id .. ' -> ' .. action)
+        --std_print('assigned: ' .. id .. ' -> ' .. action)
         --DBG.dbms(assignments)
 
         local unit_power = FU.unit_base_power(move_data.unit_infos[id])

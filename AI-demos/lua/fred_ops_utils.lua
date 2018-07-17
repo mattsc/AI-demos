@@ -19,7 +19,7 @@ local function assignments_to_assigned_units(assignments, move_data)
     for id,action in pairs(assignments) do
         local i = string.find(action, ':')
         local zone_id = string.sub(action, i + 1)
-        std_print(action, i, zone_id)
+        --std_print(action, i, zone_id)
 
         if (not move_data.unit_infos[id].canrecruit) then
             if (not assigned_units[zone_id]) then assigned_units[zone_id] = {} end
@@ -874,7 +874,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         end
     end
     local power_ratio = my_total_power / enemy_total_power
-    std_print('total power (my, enemy)', my_total_power, enemy_total_power, power_ratio)
+    --std_print('total power (my, enemy)', my_total_power, enemy_total_power, power_ratio)
 
     if (power_ratio < 1) then
         for _,benefit in pairs(leader_threat_benefits) do

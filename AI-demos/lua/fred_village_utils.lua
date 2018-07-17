@@ -97,7 +97,6 @@ function fred_village_utils.village_grabs(villages_to_grab, fred_data)
     local village_grabs = {}
     for _,village in pairs(villages_to_grab) do
         local x, y = village.x, village.y
-        std_print(x, y)
 
         local ids = FU.get_fgumap_value(move_data.my_move_map[1], x, y, 'ids') or {}
         for _,id in pairs(ids) do
@@ -107,8 +106,6 @@ function fred_village_utils.village_grabs(villages_to_grab, fred_data)
             if (not move_data.unit_infos[id].canrecruit)
                 or wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).keep
             then
-                std_print('  ' .. id, loc[1], loc[2], x, y)
-
                 local target = {}
                 target[id] = { x, y }
 
