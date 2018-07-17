@@ -160,8 +160,8 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
             end
         end
     end
-    --DBG.dbms(heal_maps_regen)
-    --DBG.dbms(heal_maps_no_regen)
+    --DBG.dbms(heal_maps_regen, false, 'heal_maps_regen')
+    --DBG.dbms(heal_maps_no_regen, false, 'heal_maps_no_regen')
 
 
     -- No-regenerating units are dealt with first, and need to be considered
@@ -191,17 +191,17 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
             DBG.show_fgumap_with_message(rating_map, 'rating', 'Retreat rating map (no-regen unit)', move_data.unit_copies[id])
         end
     end
-    --DBG.dbms(tmp_dst_src)
+    --DBG.dbms(tmp_dst_src, false, 'tmp_dst_src')
 
     if next(tmp_dst_src) then
         local dst_src = {}
         for _,data in pairs(tmp_dst_src) do
             table.insert(dst_src, data)
         end
-        --DBG.dbms(dst_src)
+        --DBG.dbms(dst_src, false, 'dst_src')
 
         local tmp_combos = FU.get_unit_hex_combos(dst_src, true)
-        --DBG.dbms(tmp_combos)
+        --DBG.dbms(tmp_combos, false, 'tmp_combos')
 
         local combos, rest_heal_combos, rest_heal_amounts
         -- It seems like there should be an easier way to do the following ...
@@ -285,7 +285,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
             retreaters_no_regen[id] = loc
         end
     end
-    --DBG.dbms(retreaters_no_regen)
+    --DBG.dbms(retreaters_no_regen, false, 'retreaters_no_regen')
 
     if next(retreaters_no_regen) then
         local max_rating, best_loc, best_id
@@ -325,7 +325,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
                     end
                 end
             end
-            --DBG.dbms(villages)
+            --DBG.dbms(villages, false, 'villages')
 
             if (not min_turns) then break end
 
@@ -339,7 +339,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
                     goal_villages[v.loc[1]][v.loc[2]].cost = v.cost
                 end
             end
-            --DBG.dbms(goal_villages)
+            --DBG.dbms(goal_villages, false, 'goal_villages')
 
             local rating_map = {}
             for x,y,_ in FU.fgumap_iter(move_data.reach_maps[id]) do

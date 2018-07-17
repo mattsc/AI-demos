@@ -395,7 +395,7 @@ function utility_functions.attack_utilities(assigned_enemies, value_ratio, fred_
             end
         end
     end
-    --DBG.dbms(attack_utilities)
+    --DBG.dbms(attack_utilities, false, 'attack_utilities')
 
     -- Normalize the utilities
     for id,zone_ratings in pairs(attack_utilities) do
@@ -403,7 +403,7 @@ function utility_functions.attack_utilities(assigned_enemies, value_ratio, fred_
             zone_ratings[zone_id] = zone_ratings[zone_id] / max_rating
         end
     end
-    --DBG.dbms(attack_utilities)
+    --DBG.dbms(attack_utilities, false, 'attack_utilities')
 
     return attack_utilities
 end
@@ -529,7 +529,7 @@ function utility_functions.assign_units(benefits, move_data)
         local id, action = find_best_assignment(task_ratings, power_used)
         assignments[id] = action
         --std_print('assigned: ' .. id .. ' -> ' .. action)
-        --DBG.dbms(assignments)
+        --DBG.dbms(assignments, false, assignments)
 
         local unit_power = FU.unit_base_power(move_data.unit_infos[id])
         power_used[action] = (power_used[action] or 0) + unit_power

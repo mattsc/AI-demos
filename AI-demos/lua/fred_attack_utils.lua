@@ -507,7 +507,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
         extra_rating = extra_rating,
         value_ratio = value_ratio
     }
-    --DBG.dbms(rating_table)
+    --DBG.dbms(rating_table, false, 'rating_table')
 
     return rating_table, attacker_damages, defender_damage
 end
@@ -946,13 +946,13 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
 
         table.insert(tmp_dsts, { math.floor(dst / 1000), dst % 1000 } )
     end
-    --DBG.dbms(tmp_dsts)
-    --DBG.dbms(tmp_attacker_infos)
+    --DBG.dbms(tmp_dsts, false, 'tmp_dsts')
+    --DBG.dbms(tmp_attacker_infos, false, 'tmp_attacker_infos')
 
     local defender_id, defender_loc = next(defender)
     local defender_proxy = wesnoth.get_unit(defender_loc[1], defender_loc[2])
     local defender_info = move_data.unit_infos[defender_id]
-    --DBG.dbms(defender_info)
+    --DBG.dbms(defender_info, false, 'defender_info')
 
     -- We first simulate and rate the individual attacks
     local ratings, tmp_att_outcomes, tmp_def_outcomes, tmp_att_weapons_i = {}, {}, {}, {}
@@ -972,7 +972,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
 
         --std_print(attacker_copy.id .. ' --> ' .. defender_proxy.id)
         --std_print('  CTD att, def:', tmp_att_outcomes[i].hp_chance[0], tmp_def_outcomes[i].hp_chance[0])
-        --DBG.dbms(rating_table)
+        --DBG.dbms(rating_table, false, 'rating_table')
 
         -- Need the 'i' here in order to specify the order of attackers, dsts below
         table.insert(ratings, { i, rating_table })

@@ -32,7 +32,7 @@ end
 
 -- Add shortcut to debug ai table
 ai = wesnoth.debug_ai(wesnoth.current.side).ai
---DBG.dbms(ai)
+--DBG.dbms(ai, false, 'ai')
 
 local fn = "~add-ons/AI-demos/lua/fred.lua"
 fn = "ai/micro_ais/cas/ca_fast_move.lua"
@@ -75,7 +75,7 @@ else  -- ... or do manual testing
     --local fred = wesnoth.dofile(fn).init()
     --fred.data = {}
     --fred:reset_vars_move_eval()  -- sets fred.data.move_data and fred.data.move_cache
-    --DBG.dbms(fred)
+    --DBG.dbms(fred, false, 'fred')
 
     local leader = wesnoth.get_units { side = 1, canrecruit = 'yes' }[1]
     local units = wesnoth.get_units { side = 1, canrecruit = 'no' }

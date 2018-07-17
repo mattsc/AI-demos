@@ -85,7 +85,7 @@ local function get_best_village(leader, recruit_first, move_data)
             end
         end
     end
-    --DBG.dbms(village_map)
+    --DBG.dbms(village_map, false, 'village_map')
 
     -- Now select best village
     local leader_unthreatened_hex_bonus = FCFG.get_cfg_parm('leader_unthreatened_hex_bonus')
@@ -112,7 +112,7 @@ local function get_best_village(leader, recruit_first, move_data)
             best_village = { x, y }
         end
     end
-    --DBG.dbms(best_village)
+    --DBG.dbms(best_village, false, 'best_village')
 
     local keep_on_way
     if best_village then
@@ -121,7 +121,7 @@ local function get_best_village(leader, recruit_first, move_data)
             keep_on_way = info.keep
         end
     end
-    --DBG.dbms(keep_on_way)
+    --DBG.dbms(keep_on_way, false, 'keep_on_way')
 
     return best_village, keep_on_way
 end
@@ -228,7 +228,7 @@ function fred_move_leader_utils.leader_objectives(fred_data)
 
         break
     end
-    --DBG.dbms(prerecruit)
+    --DBG.dbms(prerecruit, false, 'prerecruit')
 
     -- If the eventual goal is a village, we do not need to rate the keep that we might
     -- stop by for recruiting. The village function will also return whatever keep
@@ -239,14 +239,14 @@ function fred_move_leader_utils.leader_objectives(fred_data)
     then
         village, keep = get_best_village(leader, prerecruit.units[1], move_data)
     end
-    --DBG.dbms(village)
-    --DBG.dbms(keep)
+    --DBG.dbms(village, false, 'village')
+    --DBG.dbms(keep, false, 'keep')
 
     -- If no village was found, we go for the best keep, no matter what the reason
     if (not village) and prerecruit.units[1] then
         keep = get_best_keep(leader, fred_data)
     end
-    --DBG.dbms(keep)
+    --DBG.dbms(keep, false, 'keep')
 
     -- Don't need to go to keep if the leader is already there
     if keep and (keep[1] == leader[1]) and (keep[2] == leader[2]) then
@@ -300,7 +300,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigne
         end
         threat.zone_id = zone_id
     end
-    --DBG.dbms(leader_threats)
+    --DBG.dbms(leader_threats, false, 'leader_threats')
 
 
     -- Check out how much of a threat these units pose in combination
@@ -324,8 +324,8 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigne
             move_data.unit_infos[id], move_data.unit_infos[leader_proxy.id],
             move_data, fred_data.move_cache
         )
-        --DBG.dbms(att_outcome)
-        --DBG.dbms(def_outcome)
+        --DBG.dbms(att_outcome, false, 'att_outcome')
+        --DBG.dbms(def_outcome, false, 'def_outcome')
 
         local max_loss = leader_proxy.hitpoints - def_outcome.min_hp
         local av_loss = leader_proxy.hitpoints - def_outcome.average_hp
@@ -350,7 +350,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigne
     --if (not leader_threats.significant_threat) then
     --    leader_threats.enemies = nil
     --end
-    --DBG.dbms(leader_threats)
+    --DBG.dbms(leader_threats, false, 'leader_threats')
 
     leader_objectives.leader_threats = leader_threats
 end

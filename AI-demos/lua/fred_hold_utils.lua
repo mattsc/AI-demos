@@ -25,7 +25,7 @@ function fred_hold_utils.get_between_map(locs, toward_loc, units, move_data)
     for id,weight in pairs(weights) do
         weights[id] = weight / cum_weight / #locs
     end
-    --DBG.dbms(weights)
+    --DBG.dbms(weights, false, 'weights')
 
     local between_map = {}
     for id,unit_loc in pairs(units) do
@@ -278,7 +278,7 @@ function fred_hold_utils.unit_rating_maps_to_dstsrc(unit_rating_maps, key, move_
         end
         table.sort(sorted_ratings[id], function(a, b) return a[key] > b[key] end)
     end
-    --DBG.dbms(sorted_ratings)
+    --DBG.dbms(sorted_ratings, false, 'sorted_ratings')
 
 
     -- The best units are those with the highest total rating
@@ -308,14 +308,14 @@ function fred_hold_utils.unit_rating_maps_to_dstsrc(unit_rating_maps, key, move_
         table.insert(best_units, { id = id, top_ratings = top_ratings })
     end
     table.sort(best_units, function(a, b) return a.top_ratings > b.top_ratings end)
-    --DBG.dbms(best_units)
+    --DBG.dbms(best_units, false, 'best_units')
 
 
     -- Units to be used
     local n_units = math.min(max_units, #best_units)
     local use_units = {}
     for i = 1,n_units do use_units[i] = best_units[i] end
-    --DBG.dbms(use_units)
+    --DBG.dbms(use_units, false, 'use_units')
 
 
     -- Show the units and hexes to be used
@@ -348,7 +348,7 @@ function fred_hold_utils.unit_rating_maps_to_dstsrc(unit_rating_maps, key, move_
             ratings[dst][src] = sorted_ratings[unit.id][i]
         end
     end
-    --DBG.dbms(ratings)
+    --DBG.dbms(ratings, false, 'ratings')
 
     local dst_src = {}
     for dst,srcs in pairs(ratings) do
@@ -358,7 +358,7 @@ function fred_hold_utils.unit_rating_maps_to_dstsrc(unit_rating_maps, key, move_
         end
         table.insert(dst_src, tmp)
     end
-    --DBG.dbms(dst_src)
+    --DBG.dbms(dst_src, false, 'dst_src')
 
     return dst_src, ratings
 end
@@ -472,7 +472,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     --std_print('#valid_combos: ' .. #valid_combos .. '/' .. #combos)
 
     table.sort(valid_combos, function(a, b) return a.base_rating > b.base_rating end)
-    --DBG.dbms(valid_combos)
+    --DBG.dbms(valid_combos, false, 'valid_combos')
 
 
     -- This loop does two things:
@@ -664,7 +664,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 end
                 table.sort(dists, function(a, b) return a.perp_rank < b.perp_rank end)
             end
-            --DBG.dbms(dists)
+            --DBG.dbms(dists, false, 'dists')
 
             local min_angle  -- This is the worst angle as far as blocking the enemy is concerned
             for i_h=1,#dists-1 do
@@ -758,7 +758,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     --std_print('#good_combos: ' .. #good_combos .. '/' .. #valid_combos .. '/' .. #combos)
 
     table.sort(good_combos, function(a, b) return a.formation_rating > b.formation_rating end)
-    --DBG.dbms(good_combos)
+    --DBG.dbms(good_combos, false, 'good_combos')
 
 
     -- Full counter attack analysis for the best combos
@@ -797,7 +797,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 target, old_locs, new_locs, cfg_attack, move_data, fred_data.move_cache
             )
             if counter_outcomes then
-                --DBG.dbms(counter_outcomes.rating_table)
+                --DBG.dbms(counter_outcomes.rating_table, false, 'counter_outcomes.rating_table')
                 -- If this does not protect the asset, we do not do it if the
                 -- chance to die is too high.
                 -- Only do this if position is in front of protect_loc
@@ -851,14 +851,14 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                     if (not max_rating) or (counter_rating > max_rating) then
                         max_rating = counter_rating
                         best_combo = combo
-                        --DBG.dbms(best_combo)
+                        --DBG.dbms(best_combo, false, 'best_combo')
                     end
                 end
 
                 if (not all_max_rating) or (counter_rating > all_max_rating) then
                     all_max_rating = counter_rating
                     all_best_combo = combo
-                    --DBG.dbms(all_best_combo)
+                    --DBG.dbms(all_best_combo, false, 'all_best_combo')
                 end
             else
                 local reduced_combo = {
@@ -876,13 +876,13 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                     if (not reduced_max_rating) or (counter_rating > reduced_max_rating) then
                         reduced_max_rating = counter_rating
                         reduced_best_combo = reduced_combo
-                        --DBG.dbms(reduced_best_combo)
+                        --DBG.dbms(reduced_best_combo, false, 'reduced_best_combo')
                     end
                 end
                 if (not reduced_all_max_rating) or (counter_rating > reduced_all_max_rating) then
                     reduced_all_max_rating = counter_rating
                     reduced_all_best_combo = reduced_combo
-                    --DBG.dbms(reduced_all_best_combo)
+                    --DBG.dbms(reduced_all_best_combo, false, 'reduced_all_best_combo')
                 end
             end
         end

@@ -16,7 +16,7 @@ local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
 ----- Attack: -----
 local function get_attack_action(zone_cfg, fred_data)
     DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> attack evaluation: ' .. zone_cfg.zone_id)
-    --DBG.dbms(zone_cfg)
+    --DBG.dbms(zone_cfg, false, 'zone_cfg')
 
     local move_data = fred_data.move_data
     local move_cache = fred_data.move_cache
@@ -29,7 +29,7 @@ local function get_attack_action(zone_cfg, fred_data)
     else
         targets = move_data.enemies
     end
-    --DBG.dbms(targets)
+    --DBG.dbms(targets, false, 'targets')
 
 
     -- Determine whether we need to keep a keep hex open for the leader
@@ -54,7 +54,7 @@ local function get_attack_action(zone_cfg, fred_data)
         end
 
     end
-    --DBG.dbms(available_keeps)
+    --DBG.dbms(available_keeps, false, 'available_keeps')
 
     -- Attackers is everybody in zone_cfg.zone_units is set,
     -- or all units with attacks left otherwise
@@ -78,7 +78,7 @@ local function get_attack_action(zone_cfg, fred_data)
             end
         end
     end
-    --DBG.dbms(zone_units_attacks)
+    --DBG.dbms(zone_units_attacks, false, 'zone_units_attacks')
 
     local attacker_map = {}
     for id,loc in pairs(zone_units_attacks) do
@@ -134,7 +134,7 @@ local function get_attack_action(zone_cfg, fred_data)
 
             local bonus_rating = 0
 
-            --DBG.dbms(combo_outcome.rating_table)
+            --DBG.dbms(combo_outcome.rating_table, false, 'combo_outcome.rating_table')
             --std_print('   combo ratings: ', combo_outcome.rating_table.rating, combo_outcome.rating_table.attacker.rating, combo_outcome.rating_table.defender.rating)
 
             -- Don't attack if the leader is involved and has chance to die > 0
@@ -542,12 +542,12 @@ local function get_attack_action(zone_cfg, fred_data)
                     defender_damage = combo_outcome.defender_damage
                 })
 
-                --DBG.dbms(combo_ratings)
+                --DBG.dbms(combo_ratings, false, 'combo_ratings')
             end
         end
     end
     table.sort(combo_ratings, function(a, b) return a.pre_rating > b.pre_rating end)
-    --DBG.dbms(combo_ratings)
+    --DBG.dbms(combo_ratings, false, 'combo_ratings')
     DBG.print_debug('attack_print_output', '#combo_ratings', #combo_ratings)
 
     -- Now check whether counter attacks are acceptable
@@ -661,7 +661,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 local counter_outcomes = FAU.calc_counter_attack(
                     attacker_moved, old_locs, combo.dsts, cfg_attack, move_data, move_cache
                 )
-                --DBG.dbms(counter_outcomes)
+                --DBG.dbms(counter_outcomes, false, 'counter_outcomes')
 
 
                 -- forward attack: attacker damage rating and defender total rating
@@ -679,7 +679,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 -- This is the damage on the AI attacker considered here
                 -- in the counter attack
                 local dam2 = counter_outcomes and counter_outcomes.defender_damage
-                --DBG.dbms(dam2)
+                --DBG.dbms(dam2, false, 'dam2')
 
                 local damages_my_units = {}
                 for i_d,dam1 in ipairs(combo.attacker_damages) do
@@ -720,13 +720,13 @@ local function get_attack_action(zone_cfg, fred_data)
 
                     damages_my_units[i_d] = dam
                 end
-                --DBG.dbms(damages_my_units)
+                --DBG.dbms(damages_my_units, false, 'damages_my_units')
 
 
                 -- Same for all the enemy units in the counter attack
                 -- Delayed damages do not apply for same reason
                 local dam1 = combo.defender_damage
-                --DBG.dbms(dam1)
+                --DBG.dbms(dam1, false, 'dam1')
 
                 local damages_enemy_units = {}
                 local target_included = false
@@ -742,7 +742,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         -- For the unit considered here, combine the results
                         -- For all other units they remain unchanged
                         if dam1 and (dam1.id == dam2.id) then
-                            --DBG.dbms(dam2)
+                            --DBG.dbms(dam2, false, 'dam2')
 
                             -- For the target, we need to use the hitpoints from before the
                             -- forward attack, not from before the counter attack
@@ -794,8 +794,8 @@ local function get_attack_action(zone_cfg, fred_data)
                     table.insert(damages_enemy_units, dam1)
                 end
 
-                --DBG.dbms(damages_enemy_units)
-                --DBG.dbms(combo)
+                --DBG.dbms(damages_enemy_units, false, 'damages_enemy_units')
+                --DBG.dbms(combo, false, 'combo')
 
                 --std_print('\nratings my units:')
                 local my_rating = 0
@@ -903,7 +903,7 @@ local function get_attack_action(zone_cfg, fred_data)
                                 end
                             end
                         end
-                        --DBG.dbms(combined_hp_probs)
+                        --DBG.dbms(combined_hp_probs, false, 'combined_hp_probs')
 
                         local die_chance = 0
                         for hp,chance in pairs(combined_hp_probs) do
@@ -1058,7 +1058,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         local counter_outcomes = FAU.calc_counter_attack(
                             attacker_moved, old_locs, combo.dsts, cfg_attack, move_data, move_cache
                         )
-                        --DBG.dbms(counter_outcomes)
+                        --DBG.dbms(counter_outcomes, false, 'counter_outcomes')
 
                         --DBG.print_ts_delta(fred_data.turn_start_time, '   counter ratings no attack:', counter_outcomes.rating_table.rating, counter_outcomes.def_outcome.hp_chance[0])
 
@@ -1145,7 +1145,7 @@ local function get_attack_action(zone_cfg, fred_data)
         end
     end
 
-    --DBG.dbms(disqualified_attacks)
+    --DBG.dbms(disqualified_attacks, false, 'disqualified_attacks')
 
     return action  -- returns nil is no acceptable attack was found
 end
@@ -1192,8 +1192,8 @@ local function get_hold_action(zone_cfg, fred_data)
 
 
     local raw_cfg = fred_data.turn_data.raw_cfgs[zone_cfg.zone_id]
-    --DBG.dbms(raw_cfg)
-    --DBG.dbms(zone_cfg)
+    --DBG.dbms(raw_cfg, false, 'raw_cfg')
+    --DBG.dbms(zone_cfg, false, 'zone_cfg')
 
     local move_data = fred_data.move_data
 
@@ -1209,7 +1209,7 @@ local function get_hold_action(zone_cfg, fred_data)
         end
     end
     if (not next(holders)) then return end
-    --DBG.dbms(holders)
+    --DBG.dbms(holders, false, 'holders')
 
     local protect_leader = zone_cfg.protect_leader
     --std_print('protect_leader', protect_leader)
@@ -1378,7 +1378,7 @@ local function get_hold_action(zone_cfg, fred_data)
         enemy_weights[id] = {}
         for enemy_id,_ in pairs(move_data.enemies) do
             local att = fred_data.turn_data.unit_attacks[id][enemy_id]
-            --DBG.dbms(att)
+            --DBG.dbms(att, false, 'att')
 
             -- It's probably okay to keep the hard-coded weight of 0.5 here, as the
             -- damage taken is most important for which units the enemy will select
@@ -1389,7 +1389,7 @@ local function get_hold_action(zone_cfg, fred_data)
             enemy_weights[id][enemy_id] = { weight = weight }
         end
     end
-    --DBG.dbms(enemy_weights)
+    --DBG.dbms(enemy_weights, false, 'enemy_weights')
 
     -- Eventual TODO: this contains both the leader hex and id;
     --   Eventually do this consistently as for other units, by changing one or the other
@@ -1444,7 +1444,7 @@ local function get_hold_action(zone_cfg, fred_data)
         wesnoth.message('!!!!!!!!!! This should never happen: protect_locs table is empty !!!!!!!!!!')
         protect_locs = nil
     end
-    --DBG.dbms(assigned_enemies)
+    --DBG.dbms(assigned_enemies, false, 'assigned_enemies')
 
     local between_map
     if protect_locs and assigned_enemies then
@@ -1857,7 +1857,7 @@ local function get_hold_action(zone_cfg, fred_data)
             end
         end
     end
-    --DBG.dbms(hold_rating_maps)
+    --DBG.dbms(hold_rating_maps, false, 'hold_rating_maps')
 
     -- If protecting is needed, do not do a no-protect hold with fewer
     -- than 3 units, unless that's all the holders available
@@ -2028,7 +2028,7 @@ local function get_hold_action(zone_cfg, fred_data)
             end
         end
     end
-    --DBG.dbms(adjacent_village_map)
+    --DBG.dbms(adjacent_village_map, false, 'adjacent_village_map')
 
     if false then
         DBG.show_fgumap_with_message(adjacent_village_map, 'village_xy', 'Adjacent vulnerable villages')
@@ -2054,7 +2054,7 @@ local function get_hold_action(zone_cfg, fred_data)
         --std_print('--> checking hold combos')
         hold_dst_src, hold_ratings = FHU.unit_rating_maps_to_dstsrc(hold_rating_maps, 'vuln_rating', move_data, cfg_combos)
         local hold_combos = FU.get_unit_hex_combos(hold_dst_src)
-        --DBG.dbms(hold_combos)
+        --DBG.dbms(hold_combos, false, 'hold_combos')
         --std_print('#hold_combos', #hold_combos)
 
         best_hold_combo, all_best_hold_combo = FHU.find_best_combo(hold_combos, hold_ratings, 'vuln_rating', adjacent_village_map, between_map, fred_data, cfg_best_combo_hold)
@@ -2066,7 +2066,7 @@ local function get_hold_action(zone_cfg, fred_data)
         --std_print('--> checking protect combos')
         protect_dst_src, protect_ratings = FHU.unit_rating_maps_to_dstsrc(protect_rating_maps, 'protect_rating', move_data, cfg_combos)
         local protect_combos = FU.get_unit_hex_combos(protect_dst_src)
-        --DBG.dbms(protect_combos)
+        --DBG.dbms(protect_combos, false, 'protect_combos')
         --std_print('#protect_combos', #protect_combos)
 
         best_protect_combo, all_best_protect_combo, protect_loc_str = FHU.find_best_combo(protect_combos, protect_ratings, 'protect_rating', adjacent_village_map, between_map, fred_data, cfg_best_combo_protect)
@@ -2076,8 +2076,8 @@ local function get_hold_action(zone_cfg, fred_data)
             best_protect_combo = all_best_protect_combo
         end
     end
-    --DBG.dbms(best_hold_combo)
-    --DBG.dbms(best_protect_combo)
+    --DBG.dbms(best_hold_combo, false, 'best_hold_combo')
+    --DBG.dbms(best_protect_combo, false, 'best_protect_combo')
 
     if (not best_hold_combo) and (not all_best_hold_combo) and (not best_protect_combo) then
         return
@@ -2125,7 +2125,7 @@ local function get_hold_action(zone_cfg, fred_data)
     if (not best_combo) then
         best_combo, ratings = all_best_hold_combo, hold_ratings
     end
-    --DBG.dbms(best_combo)
+    --DBG.dbms(best_combo, false, 'best_combo')
 
     if DBG.show_debug('hold_best_combo') then
         local x, y
@@ -2156,7 +2156,7 @@ local function get_hold_action(zone_cfg, fred_data)
         table.insert(action.units, tmp_unit)
         table.insert(action.dsts, { dst_x, dst_y })
     end
-    --DBG.dbms(action)
+    --DBG.dbms(action, false, 'action')
 
     return action
 end
@@ -2169,9 +2169,9 @@ local function get_advance_action(zone_cfg, fred_data)
 
     DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> advance evaluation: ' .. zone_cfg.zone_id)
 
-    --DBG.dbms(zone_cfg)
+    --DBG.dbms(zone_cfg, false, 'zone_cfg')
     local raw_cfg = fred_data.turn_data.raw_cfgs[zone_cfg.zone_id]
-    --DBG.dbms(raw_cfg)
+    --DBG.dbms(raw_cfg, false, 'raw_cfg')
 
     local move_data = fred_data.move_data
     local move_cache = fred_data.move_cache
@@ -2335,7 +2335,7 @@ local function get_advance_action(zone_cfg, fred_data)
                             for i,data in pairs(forward_influence) do
                                 data_arr[i] = data.inf / data.count
                             end
-                            --DBG.dbms(forward_influence)
+                            --DBG.dbms(forward_influence, false, 'forward_influence')
 
                             local slope, y0 = FU.linear_regression(data_arr)
                             local x0 = - y0 / slope
@@ -2423,7 +2423,7 @@ local function get_advance_action(zone_cfg, fred_data)
                     local counter_outcomes = FAU.calc_counter_attack(
                         unit_moved, old_locs, new_locs, cfg_attack, move_data, move_cache
                     )
-                    --DBG.dbms(counter_outcomes.def_outcome.ctd_progression)
+                    --DBG.dbms(counter_outcomes.def_outcome.ctd_progression, false, 'counter_outcomes.def_outcome.ctd_progression')
                     --std_print('  die_chance', counter_outcomes.def_outcome.hp_chance[0])
 
                     if counter_outcomes then
@@ -2534,7 +2534,7 @@ local function get_advance_action(zone_cfg, fred_data)
                     for _,combo in ipairs(attack_combos) do
                         local combo_outcome = FAU.attack_combo_eval(combo, target, cfg_attack, move_data, move_cache)
                         --std_print(next(combo))
-                        --DBG.dbms(combo_outcome.rating_table)
+                        --DBG.dbms(combo_outcome.rating_table, false, 'combo_outcome.rating_table')
 
                         local do_attack = true
 
@@ -2746,10 +2746,10 @@ function ca_zone_control:evaluation(cfg, data, ai_debug)
     end
 
     FOU.get_action_cfgs(data)
-    --DBG.dbms(data.zone_cfgs)
+    --DBG.dbms(data.zone_cfgs, false, 'data.zone_cfgs')
 
     for i_c,cfg in ipairs(data.zone_cfgs) do
-        --DBG.dbms(cfg)
+        --DBG.dbms(cfg, false, 'cfg')
 
         -- Execute any actions with an 'action' table already set right away.
         -- We first need to validate that the existing actions are still doable
@@ -2836,7 +2836,7 @@ function ca_zone_control:evaluation(cfg, data, ai_debug)
 
             if zone_action then
                 zone_action.zone_id = cfg.zone_id
-                --DBG.dbms(zone_action)
+                --DBG.dbms(zone_action, false, 'zone_action')
                 data.zone_action = zone_action
                 return score_zone_control, zone_action
             end
@@ -2852,7 +2852,7 @@ function ca_zone_control:execution(cfg, data, ai_debug)
     local ai = ai_debug or ai
 
     local action = data.zone_action.zone_id .. ': ' .. data.zone_action.action_str
-    --DBG.dbms(data.zone_action)
+    --DBG.dbms(data.zone_action, false, 'data.zone_action')
 
 
     -- If recruiting is set, we just do that, nothing else needs to be checked:
@@ -2955,7 +2955,7 @@ function ca_zone_control:execution(cfg, data, ai_debug)
 
                 levelups[ind] = { certain = levelup_certain, possible = levelup_possible}
             end
-            --DBG.dbms(levelups)
+            --DBG.dbms(levelups, false, 'levelups')
 
 
             --DBG.print_ts_delta(data.turn_start_time, 'Reordering units for attack')

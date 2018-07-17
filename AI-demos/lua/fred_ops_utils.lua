@@ -43,8 +43,8 @@ function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_
     local replace_zone_ids = FMC.replace_zone_ids()
     local raw_cfgs_main = FMC.get_raw_cfgs()
     local raw_cfg_new = FMC.get_raw_cfgs(replace_zone_ids.new)
-    --DBG.dbms(replace_zone_ids)
-    --DBG.dbms(raw_cfg_new)
+    --DBG.dbms(replace_zone_ids, false, 'replace_zone_ids')
+    --DBG.dbms(replace_zone_ids, false, 'replace_zone_ids')
 
     actions.hold_zones = {}
     for zone_id,_ in pairs(raw_cfgs_main) do
@@ -202,7 +202,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
             end
         end
     end
-    --DBG.dbms(objectives.protect)
+    --DBG.dbms(objectives.protect, false, 'objectives.protect')
 
 
     -- Now check whether there are also units that should be protected
@@ -311,7 +311,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
             table.sort(protect_onjective.units, function(a, b) return a.rating < b.rating end)
         end
     end
-    --DBG.dbms(objectives.protect)
+    --DBG.dbms(objectives.protect, false, 'objectives.protect')
 end
 
 
@@ -485,8 +485,8 @@ function fred_ops_utils.set_turn_data(move_data)
             end
         end
     end
-    --DBG.dbms(my_power)
-    --DBG.dbms(enemy_power)
+    --DBG.dbms(my_power, false, 'my_power')
+    --DBG.dbms(enemy_power, false, 'enemy_power')
 
     local base_power_ratio = my_base_power / enemy_base_power
     --std_print('base: ', base_power_ratio)
@@ -500,7 +500,7 @@ function fred_ops_utils.set_turn_data(move_data)
         min_power_ratio = math.min(power_ratio[t], min_power_ratio)
         max_power_ratio = math.max(power_ratio[t], max_power_ratio)
     end
-    --DBG.dbms(power_ratio)
+    --DBG.dbms(power_ratio, false, 'power_ratio')
     --std_print('min, max:', min_power_ratio, max_power_ratio)
 
     local power_mult_next_turn = my_power[1] / my_power[0] / (enemy_power[1] / enemy_power[0])
@@ -557,7 +557,7 @@ function fred_ops_utils.set_turn_data(move_data)
     --behavior.ratios.assets = n_vill_my / (n_vill_total - n_vill_my + 1e-6)
     --behavior.orders.expansion = behavior.ratios.influence / behavior.ratios.assets
 
-    --DBG.dbms(behavior)
+    --DBG.dbms(behavior, false, 'behavior')
 
     -- Find the unit-vs-unit ratings
     -- TODO: can functions in attack_utils be used for this?
@@ -640,7 +640,7 @@ function fred_ops_utils.set_turn_data(move_data)
                     }
                 end
             end
-            --DBG.dbms(tmp_attacks[enemy_id])
+            --DBG.dbms(tmp_attacks[enemy_id], false, 'tmp_attacks[' .. enemy_id .. ']')
 
             local max_rating_counter, max_damage_counter = - math.huge
             for i_w,attack in ipairs(move_data.unit_infos[enemy_id].attacks) do
@@ -703,7 +703,7 @@ function fred_ops_utils.set_turn_data(move_data)
 
     for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
 
-    --DBG.dbms(unit_attacks)
+    --DBG.dbms(unit_attacks, false, 'unit_attacks')
 
     local turn_data = {
         turn_number = wesnoth.current.turn,
@@ -748,8 +748,8 @@ function fred_ops_utils.set_ops_data(fred_data)
             unassigned_enemies[id] = move_data.units[id]
         end
     end
-    --DBG.dbms(assigned_enemies)
-    --DBG.dbms(unassigned_enemies)
+    --DBG.dbms(assigned_enemies, false, 'assigned_enemies')
+    --DBG.dbms(unassigned_enemies, false, 'unassigned_enemies')
 
     -- Pre-assign units to the zone into/toward which they have moved.
     -- They will preferably, but not strictly be used in those zones.
@@ -763,14 +763,13 @@ function fred_ops_utils.set_ops_data(fred_data)
             pre_assigned_units[id] =  zone_id
         end
     end
-    --DBG.dbms(pre_assigned_units)
-
+    --DBG.dbms(pre_assigned_units, false, 'pre_assigned_units')
 
 
     local objectives = { leader = FMLU.leader_objectives(fred_data) }
-    --DBG.dbms(objectives)
+    --DBG.dbms(objectives, false, 'objectives')
     FMLU.assess_leader_threats(objectives.leader, assigned_enemies, raw_cfgs_main, side_cfgs, fred_data)
-    --DBG.dbms(objectives)
+    --DBG.dbms(objectives, false, 'objectives')
 
 
     local village_objectives, villages_to_grab = FVU.village_objectives(raw_cfgs_main, side_cfgs, fred_data)
@@ -783,7 +782,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
 
     --fred_ops_utils.update_protect_goals(objectives, assigned_units, assigned_enemies, fred_data)
-    --DBG.dbms(objectives)
+    --DBG.dbms(objectives, false, 'objectives')
 
 
     local village_benefits = FBU.village_benefits(village_grabs, fred_data)
@@ -827,9 +826,9 @@ function fred_ops_utils.set_ops_data(fred_data)
 
 
     -- Assess village grabbing by itself; this is for testing only
-    --DBG.dbms(village_benefits)
+    --DBG.dbms(village_benefits, false, 'village_benefits')
     --local village_assignments = FBU.assign_units(village_benefits, move_data)
-    --DBG.dbms(village_assignments)
+    --DBG.dbms(village_assignments, false, 'village_assignments')
 
 
     local attack_benefits = FBU.attack_benefits(enemies, goal_hexes_leader, false, fred_data)
@@ -863,7 +862,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             end
         end
     end
-    --DBG.dbms(leader_defenders)
+    --DBG.dbms(leader_defenders, false, 'leader_defenders')
     --DBG.dbms(leader_threat_benefits, false, 'leader_threat_benefits')
 
 
@@ -886,7 +885,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     -- Assess leader protecting by itself; this is for testing only
     --local assignments = FBU.assign_units(leader_threat_benefits, move_data)
-    --DBG.dbms(assignments)
+    --DBG.dbms(assignments, false, 'assignments')
 
 
     local combined_benefits = {}
@@ -899,7 +898,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(combined_benefits, false, 'combined_benefits')
 
     local protect_leader_assignments = FBU.assign_units(combined_benefits, move_data)
-    --DBG.dbms(protect_leader_assignments)
+    --DBG.dbms(protect_leader_assignments, false, 'protect_leader_assignments')
 
 
     -- Finding areas and units for attacking/defending in each zone
@@ -929,7 +928,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             goal_hexes_zones[zone_id] = cfg.center_hexes[1]
         end
     end
-    --DBG.dbms(goal_hexes_zones)
+    --DBG.dbms(goal_hexes_zones, false, 'goal_hexes_zones')
 
     -- We use all assigned enemies for this part, incl. those that were already considered as leader threats
     --DBG.dbms(assigned_enemies, false, 'assigned_enemies')
@@ -1041,7 +1040,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             unused_units[id] = nil
         end
     end
-    --DBG.dbms(retreaters)
+    --DBG.dbms(retreaters, false, 'retreaters')
     --DBG.dbms(unused_units, false, 'unused_units')
 
 
@@ -1088,7 +1087,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         end
     end
     table.sort(delayed_actions, function(a, b) return a.score > b.score end)
-    --DBG.dbms(delayed_actions)
+    --DBG.dbms(delayed_actions, false, 'delayed_actions')
 
 --[[
     FVU.assign_scouts(zone_village_goals, assigned_units, utilities.retreat, move_data)
@@ -1097,7 +1096,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         table.insert(delayed_actions, action)
     end
     table.sort(delayed_actions, function(a, b) return a.score > b.score end)
-    --DBG.dbms(delayed_actions)
+    --DBG.dbms(delayed_actions, false, 'delayed_actions')
 
 
 --]]
@@ -1217,7 +1216,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     for _,front in pairs(fronts.zones) do
         front.push_utility = front.push_utility / max_push_utility
     end
-    --DBG.dbms(fronts)
+    --DBG.dbms(fronts, false, 'fronts')
 
 
     local ops_data = {
@@ -1229,10 +1228,10 @@ function fred_ops_utils.set_ops_data(fred_data)
         fronts = fronts,
         delayed_actions = delayed_actions
     }
-    --DBG.dbms(ops_data)
-    --DBG.dbms(ops_data.assigned_enemies)
-    --DBG.dbms(ops_data.assigned_units)
-    --DBG.dbms(ops_data.objectives)
+    --DBG.dbms(ops_data, false, 'ops_data')
+    --DBG.dbms(ops_data.assigned_enemies, false, 'ops_data.assigned_enemies')
+    --DBG.dbms(ops_data.assigned_units, false, 'ops_data.assigned_units')
+    --DBG.dbms(ops_data.objectives, false, 'ops_data.objectives')
 
 
     fred_ops_utils.behavior_output(true, ops_data, fred_data)
@@ -1240,10 +1239,10 @@ function fred_ops_utils.set_ops_data(fred_data)
     if DBG.show_debug('analysis') then
         local behavior = fred_data.turn_data.behavior
         --std_print('value_ratio: ', behavior.orders.value_ratio)
-        --DBG.dbms(behavior.ratios)
-        --DBG.dbms(behavior.orders)
-        DBG.dbms(fronts)
-        --DBG.dbms(behavior)
+        --DBG.dbms(behavior.ratios, false, 'behavior.ratios')
+        --DBG.dbms(behavior.orders, false, 'behavior.orders')
+        DBG.dbms(fronts, false, 'fronts')
+        --DBG.dbms(behavior, false, 'behavior')
     end
 
     return ops_data
@@ -1300,8 +1299,8 @@ function fred_ops_utils.update_ops_data(fred_data)
 
     local villages_to_protect_maps = FVU.villages_to_protect(raw_cfgs_main, side_cfgs, move_data)
     local zone_village_goals = FVU.village_goals(villages_to_protect_maps, move_data)
-    --DBG.dbms(zone_village_goals)
-    --DBG.dbms(villages_to_protect_maps)
+    --DBG.dbms(zone_village_goals, false, 'zone_village_goals')
+    --DBG.dbms(villages_to_protect_maps, false, 'villages_to_protect_maps')
 
     -- Remove existing village actions that are not possible any more because
     -- 1. the reserved unit has moved
@@ -1335,7 +1334,7 @@ function fred_ops_utils.update_ops_data(fred_data)
     end
 
     local retreat_utilities = FBU.retreat_utilities(move_data, fred_data.turn_data.behavior.orders.value_ratio)
-    --DBG.dbms(retreat_utilities)
+    --DBG.dbms(retreat_utilities, false, 'retreat_utilities')
 
 
     local actions = { villages = {} }
@@ -1343,10 +1342,10 @@ function fred_ops_utils.update_ops_data(fred_data)
 
     FVU.assign_grabbers( zone_village_goals, villages_to_protect_maps, assigned_units, actions.villages, fred_data)
     FVU.assign_scouts(zone_village_goals, assigned_units, retreat_utilities, move_data)
-    --DBG.dbms(assigned_units)
-    --DBG.dbms(ops_data.assigned_units)
-    --DBG.dbms(actions.villages)
-    --DBG.dbms(ops_data.actions.villages)
+    --DBG.dbms(assigned_units, false, 'assigned_units')
+    --DBG.dbms(ops_data.assigned_units, false, 'ops_data.assigned_units')
+    --DBG.dbms(actions.villages, false, 'actions.villages')
+    --DBG.dbms(ops_data.actions.villages, false, 'ops_data.actions.villages')
 
     -- For now, we simply take the new actions and (re)assign the units
     -- accordingly.
@@ -1399,7 +1398,7 @@ function fred_ops_utils.update_ops_data(fred_data)
 
 
     fred_ops_utils.update_protect_goals(ops_data.objectives, ops_data.assigned_units, ops_data.assigned_enemies, fred_data, fred_data)
-    --DBG.dbms(ops_data.fronts)
+    --DBG.dbms(ops_data.fronts, false, 'ops_data.fronts')
 
 
     -- Remove prerecruit actions, if the hexes are not available any more
@@ -1422,13 +1421,13 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 
     local move_data = fred_data.move_data
     local ops_data = fred_data.ops_data
-    --DBG.dbms(ops_data)
+    --DBG.dbms(ops_data, false, 'ops_data')
 
     -- These are only the raw_cfgs of the 3 main zones
     --local raw_cfgs = FMC.get_raw_cfgs('all')
     --local raw_cfgs_main = FMC.get_raw_cfgs()
-    --DBG.dbms(raw_cfgs_main)
-    --DBG.dbms(fred_data.analysis)
+    --DBG.dbms(raw_cfgs_main, false, 'raw_cfgs_main')
+    --DBG.dbms(fred_data.analysis, false, 'fred_data.analysis')
 
 
     fred_data.zone_cfgs = {}
@@ -1491,7 +1490,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
             end
         end
     end
-    --DBG.dbms(attackers_by_zone)
+    --DBG.dbms(attackers_by_zone, false, 'attackers_by_zone')
 
     -- The following is done to simplify the cfg creation below, because
     -- ops_data.assigned_enemies might contain empty tables for zones
@@ -1522,7 +1521,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         end
     end
     tmp_enemies = nil
-    --DBG.dbms(other_enemies)
+    --DBG.dbms(other_enemies, false, 'other_enemies')
 
     for enemy_id,loc in pairs(other_enemies) do
         for zone_id,_ in pairs(ops_data.actions.hold_zones) do
@@ -1531,9 +1530,9 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         end
     end
 
-    --DBG.dbms(holders_by_zone)
-    --DBG.dbms(attackers_by_zone)
-    --DBG.dbms(threats_by_zone)
+    --DBG.dbms(holders_by_zone, false, 'holders_by_zone')
+    --DBG.dbms(attackers_by_zone, false, 'attackers_by_zone')
+    --DBG.dbms(threats_by_zone, false, 'threats_by_zone')
 
     local leader_threats_by_zone = {}
     for zone_id,threats in pairs(threats_by_zone) do
@@ -1547,10 +1546,10 @@ function fred_ops_utils.get_action_cfgs(fred_data)
             end
         end
     end
-    --DBG.dbms(leader_threats_by_zone)
+    --DBG.dbms(leader_threats_by_zone, false, 'leader_threats_by_zone')
 
     local zone_power_stats = fred_ops_utils.zone_power_stats(ops_data.actions.hold_zones, ops_data.assigned_units, ops_data.assigned_enemies, fred_data.turn_data.behavior.orders.base_power_ratio, fred_data)
-    --DBG.dbms(zone_power_stats)
+    --DBG.dbms(zone_power_stats, false, 'zone_power_stats')
 
 
     ----- Leader threat actions -----
@@ -1564,7 +1563,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         }
 
         local zone_id = 'leader_threat'
-        --DBG.dbms(leader)
+        --DBG.dbms(leader, false, 'leader')
 
         -- Attacks -- for the time being, this is always done, and always first
         for zone_id,threats in pairs(leader_threats_by_zone) do
@@ -1720,7 +1719,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
             end
         end
     end
-    --DBG.dbms(retreaters)
+    --DBG.dbms(retreaters, false, 'retreaters')
 
 
     if retreaters then
@@ -1746,7 +1745,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
             end
         end
     end
-    --DBG.dbms(advancers_by_zone)
+    --DBG.dbms(advancers_by_zone, false, 'advancers_by_zone')
 
     for zone_id,zone_units in pairs(advancers_by_zone) do
         local power_rating = 0
@@ -1782,12 +1781,12 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         rating = base_ratings.advance_all
     })
 
-    --DBG.dbms(fred_data.zone_cfgs)
+    --DBG.dbms(fred_data.zone_cfgs, false, 'fred_data.zone_cfgs')
 
     -- Now sort by the ratings embedded in the cfgs
     table.sort(fred_data.zone_cfgs, function(a, b) return a.rating > b.rating end)
 
-    --DBG.dbms(fred_data.zone_cfgs)
+    --DBG.dbms(fred_data.zone_cfgs, false, 'fred_data.zone_cfgs')
 end
 
 return fred_ops_utils

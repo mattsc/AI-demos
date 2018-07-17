@@ -112,7 +112,7 @@ function fred_village_utils.village_grabs(villages_to_grab, fred_data)
                 local counter_outcomes = FAU.calc_counter_attack(
                     target, { loc }, { { x, y } }, cfg_attack, move_data, fred_data.move_cache
                 )
-                --if counter_outcomes then DBG.dbms(counter_outcomes.def_outcome) end
+                --if counter_outcomes then DBG.dbms(counter_outcomes.def_outcome, false, 'counter_outcomes.def_outcome') end
 
                 local allow_grab = true
                 local die_chance = 0
