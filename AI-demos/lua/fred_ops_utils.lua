@@ -809,12 +809,12 @@ function fred_ops_utils.set_ops_data(fred_data)
         --std_print(enemy_id, enemy_loc.zone_id, goal_loc[1], goal_loc[2], ld)
 
         if (not goal_hexes_leader[enemy_loc.zone_id]) then
-            goal_hexes_leader[enemy_loc.zone_id] = goal_loc
-            goal_hexes_leader[enemy_loc.zone_id].ld = ld
+            goal_hexes_leader[enemy_loc.zone_id] = { goal_loc }
+            goal_hexes_leader[enemy_loc.zone_id][1].ld = ld
             enemies[enemy_loc.zone_id] = {}
-        elseif (ld < goal_hexes_leader[enemy_loc.zone_id].ld) then
-            goal_hexes_leader[enemy_loc.zone_id] = goal_loc
-            goal_hexes_leader[enemy_loc.zone_id].ld = ld
+        elseif (ld < goal_hexes_leader[enemy_loc.zone_id][1].ld) then
+            goal_hexes_leader[enemy_loc.zone_id] = { goal_loc }
+            goal_hexes_leader[enemy_loc.zone_id][1].ld = ld
         end
         enemies[enemy_loc.zone_id][enemy_id] = enemy_loc
     end
@@ -925,10 +925,10 @@ function fred_ops_utils.set_ops_data(fred_data)
 
         if max_ld then
             --std_print('max protect ld:', zone_id, max_ld, loc[1], loc[2])
-            goal_hexes_zones[zone_id] = loc
+            goal_hexes_zones[zone_id] = { loc }
         else
             -- TODO: adapt for several goal hexes
-            goal_hexes_zones[zone_id] = cfg.center_hexes[1]
+            goal_hexes_zones[zone_id] = { cfg.center_hexes[1] }
         end
     end
     --DBG.dbms(goal_hexes_zones, false, 'goal_hexes_zones')

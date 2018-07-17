@@ -243,20 +243,26 @@ function utility_functions.attack_benefits(assigned_enemies, goal_hexes, use_ave
             --std_print('        ' .. av_rating_forward, av_rating_counter)
 
             -- Also check if we are close enough to the goal hex instead
+            -- TODO: check whether we need to be able to reach those hexes, rather than
+            -- attack them. Might have to be different depending on whether there's an enemy there
             if (not can_reach_1) then
-                local ids1 = FU.get_fgumap_value(move_data.my_attack_map[1], goal_hexes[zone_id][1], goal_hexes[zone_id][2], 'ids') or {}
-                for _,attack_id in ipairs(ids1) do
-                    if (id == attack_id) then
-                        can_reach_1 = true
-                        break
+                for _,goal_hex in ipairs(goal_hexes[zone_id]) do
+                    local ids1 = FU.get_fgumap_value(move_data.my_attack_map[1], goal_hex[1], goal_hex[2], 'ids') or {}
+                    for _,attack_id in ipairs(ids1) do
+                        if (id == attack_id) then
+                            can_reach_1 = true
+                            break
+                        end
                     end
                 end
                 if (not can_reach_1) and (not can_reach_2) then
-                    local ids2 = FU.get_fgumap_value(move_data.my_attack_map[2], goal_hexes[zone_id][1], goal_hexes[zone_id][2], 'ids') or {}
-                    for _,attack_id in ipairs(ids2) do
-                        if (id == attack_id) then
-                            can_reach_2 = true
-                            break
+                  for _,goal_hex in ipairs(goal_hexes[zone_id]) do
+                        local ids2 = FU.get_fgumap_value(move_data.my_attack_map[2], goal_hex[1], goal_hex[2], 'ids') or {}
+                        for _,attack_id in ipairs(ids2) do
+                            if (id == attack_id) then
+                                can_reach_2 = true
+                                break
+                            end
                         end
                     end
                 end
