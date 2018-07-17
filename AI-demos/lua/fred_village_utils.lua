@@ -6,15 +6,8 @@ local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local fred_village_utils = {}
 
-function fred_village_utils.villages_to_protect(zone_cfgs, side_cfgs, move_data)
-    local my_start_hex, enemy_start_hex
-    for side,cfgs in ipairs(side_cfgs) do
-        if (side == wesnoth.current.side) then
-            my_start_hex = cfgs.start_hex
-        else
-            enemy_start_hex = cfgs.start_hex
-        end
-    end
+function fred_village_utils.village_objectives(zone_cfgs, side_cfgs, fred_data)
+    local move_data = fred_data.move_data
 
     -- TODO: this is needed in several places, could be pulled into move_data or something
     local zone_maps = {}
@@ -26,11 +19,8 @@ function fred_village_utils.villages_to_protect(zone_cfgs, side_cfgs, move_data)
         end
     end
 
-    local villages_to_protect_maps = {}
+    local village_objectives, villages_to_grab = { zones = {} }, {}
     for x,y,_ in FU.fgumap_iter(move_data.village_map) do
-        local my_distance = wesnoth.map.distance_between(x, y, my_start_hex[1], my_start_hex[2])
-        local enemy_distance = wesnoth.map.distance_between(x, y, enemy_start_hex[1], enemy_start_hex[2])
-
         local village_zone
         for zone_id,_ in pairs(zone_maps) do
             if FU.get_fgumap_value(zone_maps[zone_id], x, y, 'in_zone') then
@@ -40,289 +30,142 @@ function fred_village_utils.villages_to_protect(zone_cfgs, side_cfgs, move_data)
         end
         if (not village_zone) then village_zone = 'other' end
 
-        if (not villages_to_protect_maps[village_zone]) then
-            villages_to_protect_maps[village_zone] = {}
-        end
-        if (my_distance <= enemy_distance) then
-            FU.set_fgumap_value(villages_to_protect_maps[village_zone], x, y, 'protect', true)
-        else
-            FU.set_fgumap_value(villages_to_protect_maps[village_zone], x, y, 'protect', false)
-        end
-    end
+        local eld_vill = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'enemy_leader_distance')
 
-    return villages_to_protect_maps
-end
+        local my_infl = FU.get_fgumap_value(move_data.influence_maps, x, y, 'my_influence') or 0
+        local enemy_infl = FU.get_fgumap_value(move_data.influence_maps, x, y, 'enemy_influence') or 0
+        local infl_ratio = my_infl / (enemy_infl + 1e-6)
 
+        if (infl_ratio >= fred_data.turn_data.behavior.orders.value_ratio) then
 
-function fred_village_utils.village_goals(villages_to_protect_maps, move_data)
-    -- Village goals are those that are:
-    --  - on my side of the map
-    --  - not owned by me
-    -- We set those up as arrays, one for each zone
-    --  - if a village is found that is not in a zone, assign it zone 'other'
-
-    local zone_village_goals = {}
-    for zone_id, villages in pairs(villages_to_protect_maps) do
-        for x,y,village_data in FU.fgumap_iter(villages) do
-            local owner = FU.get_fgumap_value(move_data.village_map, x, y, 'owner')
-
-            if (owner ~= wesnoth.current.side) then
-                if (not zone_village_goals[zone_id]) then
-                    zone_village_goals[zone_id] = {}
+            local is_threatened, is_protected = false, true
+            for enemy_id,_ in pairs(move_data.enemies) do
+                if FU.get_fgumap_value(fred_data.turn_data.enemy_initial_reach_maps[enemy_id], x, y, 'moves_left') then
+                    is_threatened = true
+                    if FU.get_fgumap_value(move_data.reach_maps[enemy_id], x, y, 'moves_left') then
+                        is_protected = false
+                    end
                 end
+            end
 
-                local grab_only = true
-                if village_data.protect then
-                    grab_only = false
+            if is_threatened then
+                if (not village_objectives.zones[village_zone]) then
+                    village_objectives.zones[village_zone] = { villages = {} }
                 end
-
-                table.insert(zone_village_goals[zone_id], {
+                local v = {
                     x = x, y = y,
-                    owner = owner,
-                    grab_only = grab_only
-                })
+                    is_protected = is_protected,
+                    type = 'village',
+                    eld = eld_vill
+                }
+                table.insert(village_objectives.zones[village_zone].villages, v)
             end
         end
+
+        local owner = FU.get_fgumap_value(move_data.village_map, x, y, 'owner')
+        if (owner ~= wesnoth.current.side) then
+            table.insert(villages_to_grab, {
+                x = x, y = y,
+                owner = owner,
+                zone_id = village_zone
+            })
+        end
     end
 
-    return zone_village_goals
+    for _,objectives in pairs(village_objectives.zones) do
+        table.sort(objectives.villages, function(a, b) return a.eld < b.eld end)
+    end
+
+    return village_objectives, villages_to_grab
 end
 
 
-function fred_village_utils.assign_grabbers(zone_village_goals, villages_to_protect_maps, assigned_units, village_actions, fred_data)
-    -- assigned_units and village_actions are modified directly in place
-
-    local value_ratio = fred_data.turn_data.behavior.orders.value_ratio
-    local leader_derating = FCFG.get_cfg_parm('leader_derating')
-
+function fred_village_utils.village_grabs(villages_to_grab, fred_data)
     local move_data = fred_data.move_data
-    -- Villages that can be reached are dealt with separately from others
-    -- Only go over those found above
-    local villages_in_reach = { by_village = {}, by_unit = {} }
-    local village_grabs = {}
+    local value_ratio = fred_data.turn_data.behavior.orders.value_ratio
 
     local cfg_attack = { value_ratio = fred_data.turn_data.behavior.orders.value_ratio }
 
-            local extracted_units = {}
-            for id,loc in pairs(move_data.my_units_MP) do
-                local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
-                wesnoth.extract_unit(unit_proxy)
-                table.insert(extracted_units, unit_proxy)  -- Not a proxy unit any more at this point
-            end
+    -- Units with MP need to be taken off the map, for counter attack calculation
+    local extracted_units = {}
+    for id,loc in pairs(move_data.my_units_MP) do
+        local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
+        wesnoth.extract_unit(unit_proxy)
+        table.insert(extracted_units, unit_proxy)  -- Not a proxy unit any more at this point
+    end
 
-    for zone_id,villages in pairs(zone_village_goals) do
-        for _,village in ipairs(villages) do
-            local x, y = village.x, village.y
+    local village_grabs = {}
+    for _,village in pairs(villages_to_grab) do
+        local x, y = village.x, village.y
+        std_print(x, y)
 
-            local tmp_in_reach = {
-                x = x, y = y,
-                owner = village.owner, zone_id = zone_id,
-                units = {}
-            }
-            --std_print(x, y)
+        local ids = FU.get_fgumap_value(move_data.my_move_map[1], x, y, 'ids') or {}
+        for _,id in pairs(ids) do
+            local loc = move_data.my_units[id]
+            -- Only include the leader if he's on the keep
+            -- TODO: not necessarily true any more
+            if (not move_data.unit_infos[id].canrecruit)
+                or wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).keep
+            then
+                std_print('  ' .. id, loc[1], loc[2], x, y)
 
-            local ids = FU.get_fgumap_value(move_data.my_move_map[1], x, y, 'ids') or {}
+                local target = {}
+                target[id] = { x, y }
 
-            for _,id in pairs(ids) do
-                local loc = move_data.my_units[id]
-                -- Only include the leader if he's on the keep
-                -- TODO: not necessarily any more
-                if (not move_data.unit_infos[id].canrecruit)
-                    or wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).keep
-                then
-                    --std_print('  ' .. id, loc[1], loc[2], x, y)
+                local counter_outcomes = FAU.calc_counter_attack(
+                    target, { loc }, { { x, y } }, cfg_attack, move_data, fred_data.move_cache
+                )
+                --if counter_outcomes then DBG.dbms(counter_outcomes.def_outcome) end
 
-                    local target = {}
-                    target[id] = { x, y }
+                local allow_grab = true
+                local die_chance = 0
+                local counter_rating
+                if counter_outcomes then
+                    local average_hp = counter_outcomes.def_outcome.average_hp
+                    die_chance = counter_outcomes.def_outcome.hp_chance[0]
+                    counter_rating = counter_outcomes.rating_table.rating
+                    --std_print('  -> ' .. average_hp, die_chance)
 
-                    local counter_outcomes = FAU.calc_counter_attack(
-                        target, { loc }, { { x, y } }, cfg_attack, move_data, fred_data.move_cache
-                    )
-                    --if counter_outcomes then DBG.dbms(counter_outcomes.def_outcome) end
-
-                    local allow_grab = true
-                    local die_chance = 0
-                    local counter_rating
-                    if counter_outcomes then
-                        local average_hp = counter_outcomes.def_outcome.average_hp
-                        die_chance = counter_outcomes.def_outcome.hp_chance[0]
-                        counter_rating = counter_outcomes.rating_table.rating
-                        --std_print('  -> ' .. average_hp, die_chance)
-
-                        if move_data.unit_infos[id].canrecruit then
-                            local min_hp = move_data.unit_infos[id].max_hitpoints
-                            for hp,chance in pairs(counter_outcomes.def_outcome.hp_chance) do
-                                --std_print(hp,chance)
-                                if (chance > 0) and (hp < min_hp) then
-                                    min_hp = hp
-                                end
+                    if move_data.unit_infos[id].canrecruit then
+                        local min_hp = move_data.unit_infos[id].max_hitpoints
+                        for hp,chance in pairs(counter_outcomes.def_outcome.hp_chance) do
+                            --std_print(hp,chance)
+                            if (chance > 0) and (hp < min_hp) then
+                                min_hp = hp
                             end
-                            if (min_hp < move_data.unit_infos[id].max_hitpoints / 2) then
-                                allow_grab = false
-                            end
-                            --std_print(id, min_hp, move_data.unit_infos[id].max_hitpoints, allow_grab)
-                        else
-                            local xp_mult = FU.weight_s(move_data.unit_infos[id].experience / move_data.unit_infos[id].max_experience, 0.5)
-                            local level = move_data.unit_infos[id].level
-                            -- TODO: this equation needs to be tweaked
-                            local die_chance_threshold = (0.5 + 0.5 * (1 - value_ratio)) * (1 - xp_mult) / level^2
-                            if (die_chance > die_chance_threshold) then
-                                allow_grab = false
-                            end
-                            --std_print(id, value_ratio, xp_mult, level, die_chance_threshold, allow_grab)
                         end
-                    end
-
-                    if allow_grab then
-                        table.insert(tmp_in_reach.units, id)
-
-                        -- For this is sufficient to just count how many villages a unit can get to
-                        if (not villages_in_reach.by_unit[id]) then
-                            villages_in_reach.by_unit[id] = 1
-                        else
-                            villages_in_reach.by_unit[id] = villages_in_reach.by_unit[id] + 1
+                        if (min_hp < move_data.unit_infos[id].max_hitpoints / 2) then
+                            allow_grab = false
                         end
-
-                        local grabber = {
-                            x = x, y = y,
-                            id = id,
-                            die_chance = die_chance,
-                            counter_rating = counter_rating,
-                            zone_id = zone_id
-                        }
-                        table.insert(village_grabs, grabber)
+                        --std_print(id, min_hp, move_data.unit_infos[id].max_hitpoints, allow_grab)
+                    else
+                        local xp_mult = FU.weight_s(move_data.unit_infos[id].experience / move_data.unit_infos[id].max_experience, 0.5)
+                        local level = move_data.unit_infos[id].level
+                        -- TODO: this equation needs to be tweaked
+                        local die_chance_threshold = (0.5 + 0.5 * (1 - value_ratio)) * (1 - xp_mult) / level^2
+                        if (die_chance > die_chance_threshold) then
+                            allow_grab = false
+                        end
+                        --std_print(id, value_ratio, xp_mult, level, die_chance_threshold, allow_grab)
                     end
                 end
-            end
 
-            if (#tmp_in_reach.units > 0) then
-                table.insert(villages_in_reach.by_village, tmp_in_reach)
+                if allow_grab then
+                    local grabber = {
+                        x = x, y = y,
+                        id = id,
+                        die_chance = die_chance,
+                        counter_rating = counter_rating,
+                        zone_id = village.zone_id
+                    }
+                    table.insert(village_grabs, grabber)
+                end
             end
         end
     end
+
+    -- Put the units back on the map
     for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
-
-    --DBG.dbms(villages_in_reach)
-    --DBG.dbms(village_grabs)
-
-
-    -- Now find best villages for those units
-    -- This is one where we need to do the full analysis at this layer,
-    -- as it determines which units goes into which zone
-    local best_captures = {}
-    local keep_trying = true
-    while keep_trying do
-        keep_trying = false
-
-        local max_rating, best_id, best_index
-        for i_v,village in ipairs(villages_in_reach.by_village) do
-            local base_rating = 1000
-            if (village.owner ~= 0) then
-                base_rating = base_rating + 1200
-            end
-            base_rating = base_rating / #village.units
-
-            -- Prefer villages farther back
-            local add_rating_village = -2 * FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, village.x, village.y, 'distance')
-
-            for _,id in ipairs(village.units) do
-                local unit_rating = base_rating / (villages_in_reach.by_unit[id]^2)
-
-                local ui = move_data.unit_infos[id]
-
-                -- Use most injured unit first (but less important than choice of village)
-                -- Don't give an injured bonus for regenerating units
-                local add_rating_unit = 0
-                if (not ui.abilities.regenerate) then
-                    add_rating_unit = add_rating_unit + (ui.max_hitpoints - ui.hitpoints) / ui.max_hitpoints
-
-                    if ui.status.poisoned then
-                        local poison_damage = 8
-                        if ui.traits.healthy then
-                            poison_damage = poison_damage * 0.75
-                        end
-                        add_rating_unit = add_rating_unit + poison_damage / ui.max_hitpoints
-                    end
-                end
-
-                if ui.traits.healthy then
-                    add_rating_unit = add_rating_unit - 2 / ui.max_hitpoints
-                end
-
-                -- And finally, prefer the fastest unit, but at an even lesser level
-                add_rating_unit = add_rating_unit + ui.max_moves / 100.
-
-                -- Finally, prefer the leader, if possible, but only in the minor ratings
-                if ui.canrecruit then
-                    -- Note that add_rating_unit can be negative, but that's okay here
-                    add_rating_unit = add_rating_unit * 2
-                end
-
-                local total_rating = unit_rating + add_rating_village + add_rating_unit
-                --std_print(id, add_rating_unit, total_rating, ui.canrecruit)
-
-                if (not max_rating) or (total_rating > max_rating) then
-                    max_rating = total_rating
-                    best_id, best_index = id, i_v
-                end
-            end
-        end
-
-        if best_id then
-            table.insert(best_captures, {
-                id = best_id ,
-                x = villages_in_reach.by_village[best_index].x,
-                y = villages_in_reach.by_village[best_index].y,
-                zone_id = villages_in_reach.by_village[best_index].zone_id
-            })
-
-            -- We also need to delete both this village and unit from the list
-            -- before considering the next village/unit
-            -- 1. Each unit that could reach this village can reach one village less overall
-            for _,id in ipairs(villages_in_reach.by_village[best_index].units) do
-                villages_in_reach.by_unit[id] = villages_in_reach.by_unit[id] - 1
-            end
-
-            -- 2. Remove theis village
-            table.remove(villages_in_reach.by_village, best_index)
-
-            -- 3. Remove this unit
-            villages_in_reach.by_unit[best_id] = nil
-
-            -- 4. Remove this unit from all other villages
-            for _,village in ipairs(villages_in_reach.by_village) do
-                for i = #village.units,1,-1 do
-                    if (village.units[i] == best_id) then
-                        table.remove(village.units, i)
-                    end
-                end
-            end
-
-            keep_trying = true
-        end
-    end
-
-    for _,capture in ipairs(best_captures) do
-        if (not assigned_units[capture.zone_id]) then
-            assigned_units[capture.zone_id] = {}
-        end
-        assigned_units[capture.zone_id][capture.id] = move_data.units[capture.id]
-
-        -- This currently only works for single-unit actions; can be expanded as needed
-        local unit = move_data.my_units[capture.id]
-        unit.id = capture.id
-
-        local action = {
-            id = capture.id,
-            x = capture.x,
-            y = capture.y,
-            type = 'full_move',
-            zone_id = capture.zone_id,
-            action_str = 'grab_village',
-            score = FCFG.get_cfg_parm('score_grab_village')
-        }
-        table.insert(village_actions, action)
-    end
 
     return village_grabs
 end
