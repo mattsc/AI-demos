@@ -154,7 +154,7 @@ function fred_ops_utils.zone_power_stats(zones, assigned_units, assigned_enemies
 end
 
 
-function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigned_enemies, fred_data)
+function fred_ops_utils.set_protect_goals(objectives, fred_data)
     -- 1. Weigh village vs. leader protecting
     -- 2. Check if you should protect any of the units protecting the protect location.
     -- Generally this will not find anything if a protect action has already taken
@@ -203,8 +203,10 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
         end
     end
     --DBG.dbms(objectives.protect, false, 'objectives.protect')
+end
 
 
+function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigned_enemies, fred_data)
     -- Now check whether there are also units that should be protected
     local protect_others_ratio = FCFG.get_cfg_parm('protect_others_ratio')
     for zone_id,protect_objective in pairs(objectives.protect.zones) do
@@ -781,7 +783,8 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(village_grabs, false, 'village_grabs')
 
 
-    --fred_ops_utils.update_protect_goals(objectives, assigned_units, assigned_enemies, fred_data)
+    fred_ops_utils.set_protect_goals(objectives, fred_data)
+    --DBG.dbms(objectives.protect, false, 'objectives.protect')
     --DBG.dbms(objectives, false, 'objectives')
 
 
@@ -1148,7 +1151,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         end
     end
 
-
+    fred_ops_utils.update_protect_goals(objectives, assigned_units, assigned_enemies, fred_data)
 
     fred_ops_utils.replace_zones(assigned_units, assigned_enemies, objectives.protect, delayed_actions)
 
