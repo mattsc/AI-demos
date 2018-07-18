@@ -867,7 +867,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(leader_defenders, false, 'leader_defenders')
     --DBG.dbms(leader_threat_benefits, false, 'leader_threat_benefits')
 
-
+    -- Cannot add up the power above, because units might be in several zones
     local my_total_power = 0
     for id,power in pairs(leader_defenders) do
         if (not move_data.unit_infos[id].canrecruit) then
@@ -903,8 +903,8 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(protect_leader_assignments, false, 'protect_leader_assignments')
 
 
-    -- Finding areas and units for attacking/defending in each zone
-    --std_print('Move toward (highest blurred vulnerability):')
+    -- Now we add units to the zones based on the total power of enemies in the
+    -- zones, not just those that are threats to the leader
     local goal_hexes_zones = {}
     for zone_id,cfg in pairs(raw_cfgs_main) do
         local max_ld, loc
@@ -932,14 +932,10 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
     --DBG.dbms(goal_hexes_zones, false, 'goal_hexes_zones')
 
-    -- We use all assigned enemies for this part, incl. those that were already considered as leader threats
-    --DBG.dbms(assigned_enemies, false, 'assigned_enemies')
-
-
     local assigned_units = assignments_to_assigned_units(protect_leader_assignments, move_data)
     --DBG.dbms(assigned_units, false, 'assigned_units')
 
-
+    -- We use all assigned enemies for this part, incl. those that were already considered as leader threats
     local enemy_total_power = 0
     for zone_id,enemies in pairs(assigned_enemies) do
         for enemy_id,_ in pairs(enemies) do
@@ -1038,7 +1034,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     local retreaters = {}
     for id,_ in pairs(unused_units) do
         if (utilities.retreat[id] > 0) then
-            retreaters[id] = move_data.units[id]
+            retreaters[id] = 'retreat:all'
             unused_units[id] = nil
         end
     end
@@ -1046,7 +1042,17 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(unused_units, false, 'unused_units')
 
 
+--[[
+    FVU.assign_scouts(zone_village_goals, assigned_units, utilities.retreat, move_data)
 
+    for _,action in ipairs(village_actions) do
+        table.insert(delayed_actions, action)
+    end
+    table.sort(delayed_actions, function(a, b) return a.score > b.score end)
+    --DBG.dbms(delayed_actions, false, 'delayed_actions')
+
+
+--]]
 
 
     local delayed_actions = {}
@@ -1090,18 +1096,6 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
     table.sort(delayed_actions, function(a, b) return a.score > b.score end)
     --DBG.dbms(delayed_actions, false, 'delayed_actions')
-
---[[
-    FVU.assign_scouts(zone_village_goals, assigned_units, utilities.retreat, move_data)
-
-    for _,action in ipairs(village_actions) do
-        table.insert(delayed_actions, action)
-    end
-    table.sort(delayed_actions, function(a, b) return a.score > b.score end)
-    --DBG.dbms(delayed_actions, false, 'delayed_actions')
-
-
---]]
 
 
 
