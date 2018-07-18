@@ -1015,9 +1015,6 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
     --DBG.dbms(assignments, false, 'assignments')
 
-    local assigned_units = assignments_to_assigned_units(assignments, move_data)
-    --DBG.dbms(assigned_units, false, 'assigned_units')
-
     local unused_units = {}
     for id,_ in pairs(move_data.my_units_MP) do
         if (not assignments[id]) then
@@ -1041,6 +1038,18 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(retreaters, false, 'retreaters')
     --DBG.dbms(unused_units, false, 'unused_units')
 
+    -- Pre-assigned units left at this time get assigned to their zones
+    for id,_ in pairs(unused_units) do
+        if pre_assigned_units[id] then
+            local zone_id = pre_assigned_units[id]
+            std_print('assigning ' .. id .. ' -> ' .. zone_id)
+            assignments[id] = 'zone:' .. zone_id
+            unused_units[id] = nil
+        end
+    end
+    --DBG.dbms(assignments, false, 'assignments')
+    --DBG.dbms(unused_units, false, 'unused_units')
+
 
 --[[
     FVU.assign_scouts(zone_village_goals, assigned_units, utilities.retreat, move_data)
@@ -1053,6 +1062,9 @@ function fred_ops_utils.set_ops_data(fred_data)
 
 
 --]]
+
+    local assigned_units = assignments_to_assigned_units(assignments, move_data)
+    --DBG.dbms(assigned_units, false, 'assigned_units')
 
 
     local delayed_actions = {}
