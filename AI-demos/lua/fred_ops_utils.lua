@@ -793,7 +793,8 @@ function fred_ops_utils.set_ops_data(fred_data)
 
 
     -- Find goal hexes for leader protection
-    -- We use the closest enemy to the leader in each zone
+    -- Currently we use the middle between the closest enemy and the leader
+    -- and all villages needing protection
     local leader_goal = objectives.leader.village or objectives.leader.keep or move_data.leaders[wesnoth.current.side]
     --DBG.dbms(leader_goal, false, 'leader_goal')
 
@@ -817,6 +818,12 @@ function fred_ops_utils.set_ops_data(fred_data)
             goal_hexes_leader[enemy_loc.zone_id][1].ld = ld
         end
         enemies[enemy_loc.zone_id][enemy_id] = enemy_loc
+    end
+
+    for zone_id,protect in pairs(objectives.protect.zones) do
+        for _,village in ipairs(protect.villages) do
+            table.insert(goal_hexes_leader[zone_id], { village.x, village.y })
+        end
     end
     --DBG.dbms(goal_hexes_leader, false, 'goal_hexes_leader')
     --DBG.dbms(enemies, false, 'enemies')
