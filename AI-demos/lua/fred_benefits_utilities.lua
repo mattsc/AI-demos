@@ -245,6 +245,7 @@ function utility_functions.attack_benefits(assigned_enemies, goal_hexes, use_ave
             -- Also check if we are close enough to the goal hex instead
             -- TODO: check whether we need to be able to reach those hexes, rather than
             -- attack them. Might have to be different depending on whether there's an enemy there
+            -- TODO: do we need to consider enemies and goal hexes serially?
             if (not can_reach_1) then
                 for _,goal_hex in ipairs(goal_hexes[zone_id]) do
                     local ids1 = FU.get_fgumap_value(move_data.my_attack_map[1], goal_hex[1], goal_hex[2], 'ids') or {}
