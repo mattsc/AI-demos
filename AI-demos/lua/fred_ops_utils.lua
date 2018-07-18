@@ -828,12 +828,6 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(goal_hexes_leader, false, 'goal_hexes_leader')
     --DBG.dbms(enemies, false, 'enemies')
 
-    local cfg = {}
-    -- We want to match enemy threats one-to-one
-    -- TODO: is this always correct, even if there are more enemie threats than we have total power?
-    cfg.power_ratio = 1
-    cfg.use_all_units = true
-
 
     -- Assess village grabbing by itself; this is for testing only
     --DBG.dbms(village_benefits, false, 'village_benefits')
