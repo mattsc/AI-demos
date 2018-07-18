@@ -791,6 +791,10 @@ function fred_ops_utils.set_ops_data(fred_data)
     local village_benefits = FBU.village_benefits(village_grabs, fred_data)
     --DBG.dbms(village_benefits, false, 'village_benefits')
 
+    -- Assess village grabbing by itself; this is for testing only
+    --local village_assignments = FBU.assign_units(village_benefits, move_data)
+    --DBG.dbms(village_assignments, false, 'village_assignments')
+
 
     -- Find goal hexes for leader protection
     -- Currently we use the middle between the closest enemy and the leader
@@ -827,12 +831,6 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
     --DBG.dbms(goal_hexes_leader, false, 'goal_hexes_leader')
     --DBG.dbms(enemies, false, 'enemies')
-
-
-    -- Assess village grabbing by itself; this is for testing only
-    --DBG.dbms(village_benefits, false, 'village_benefits')
-    --local village_assignments = FBU.assign_units(village_benefits, move_data)
-    --DBG.dbms(village_assignments, false, 'village_assignments')
 
 
     local attack_benefits = FBU.attack_benefits(enemies, goal_hexes_leader, false, fred_data)
