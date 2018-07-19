@@ -1050,18 +1050,19 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(assignments, false, 'assignments')
     --DBG.dbms(unused_units, false, 'unused_units')
 
+    local assigned_units = assignments_to_assigned_units(assignments, move_data)
 
---[[
-    FVU.assign_scouts(zone_village_goals, assigned_units, utilities.retreat, move_data)
+    --DBG.dbms(villages_to_grab, false, 'villages_to_grab')
+    local scout_assignments = FVU.assign_scouts(villages_to_grab, unused_units, assigned_units, move_data)
+    --DBG.dbms(scout_assignments, false, 'scout_assignments')
 
-    for _,action in ipairs(village_actions) do
-        table.insert(delayed_actions, action)
+    for id,action in pairs(scout_assignments) do
+        assignments[id] = action
+        unused_units[id] = nil
     end
-    table.sort(delayed_actions, function(a, b) return a.score > b.score end)
-    --DBG.dbms(delayed_actions, false, 'delayed_actions')
+    --DBG.dbms(assignments, false, 'assignments')
+    --DBG.dbms(unused_units, false, 'unused_units')
 
-
---]]
 
     local assigned_units = assignments_to_assigned_units(assignments, move_data)
     --DBG.dbms(assigned_units, false, 'assigned_units')
@@ -1109,6 +1110,12 @@ function fred_ops_utils.set_ops_data(fred_data)
     table.sort(delayed_actions, function(a, b) return a.score > b.score end)
     --DBG.dbms(delayed_actions, false, 'delayed_actions')
 
+
+    --for _,action in ipairs(village_actions) do
+    --    table.insert(delayed_actions, action)
+    --end
+    --table.sort(delayed_actions, function(a, b) return a.score > b.score end)
+    --DBG.dbms(delayed_actions, false, 'delayed_actions')
 
 
     local zone_maps = {}

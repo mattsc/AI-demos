@@ -168,25 +168,24 @@ function fred_village_utils.village_grabs(villages_to_grab, fred_data)
 end
 
 
-function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, retreat_utilities, move_data)
+function fred_village_utils.assign_scouts(villages_to_grab, unused_units, assigned_units, move_data)
     -- Potential TODOs:
     --  - Add threat assessment for scout routes; it might in fact make sense to use
     --    injured units to scout in unthreatened areas
     --  - Actually assigning scouting actions
     -- Find how many units are needed in each zone for moving toward villages ('exploring')
-    local units_needed_villages = {}
+    local units_needed_villages, zone_villages = {}, {}
     local villages_per_unit = FCFG.get_cfg_parm('villages_per_unit')
-    for zone_id,villages in pairs(zone_village_goals) do
-        local n_villages = 0
-        for _,village in pairs(villages) do
-            if (not village.grab_only) then
-                n_villages = n_villages + 1
-            end
+    for _,village in pairs(villages_to_grab) do
+        if (not units_needed_villages[village.zone_id]) then
+            units_needed_villages[village.zone_id] = 0
+            zone_villages[village.zone_id] = {}
         end
-
-        local n_units = math.ceil(n_villages / villages_per_unit)
-        units_needed_villages[zone_id] = n_units
+        units_needed_villages[village.zone_id] = units_needed_villages[village.zone_id] + 1 / villages_per_unit
+        table.insert(zone_villages[village.zone_id], { x = village.x, y = village.y })
     end
+    --DBG.dbms(units_needed_villages, false, 'units_needed_villages')
+    --DBG.dbms(zone_villages, false, 'zone_villages')
 
     local units_assigned_villages = {}
     local used_ids = {}
@@ -196,17 +195,22 @@ function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, re
             used_ids[id] = true
         end
     end
+    --DBG.dbms(units_assigned_villages, false, 'units_assigned_villages')
+
 
     -- Check out what other units to send in this direction
     local scouts = {}
-    for zone_id,villages in pairs(zone_village_goals) do
-        if (units_needed_villages[zone_id] > (units_assigned_villages[zone_id] or 0)) then
-            --std_print(zone_id)
+    for zone_id,units_needed in pairs(units_needed_villages) do
+        if (units_needed > (units_assigned_villages[zone_id] or 0)) then
+            --std_print(zone_id, units_needed)
             scouts[zone_id] = {}
-            for _,village in ipairs(villages) do
+            for _,village in ipairs(zone_villages[zone_id]) do
+                -- TODO: 'grab_only' is currently not set and the 'if' below is always true.
+                --   Keep for now anyway, as we might want to reactivate this
                 if (not village.grab_only) then
                     --std_print('  ' .. village.x, village.y)
-                    for id,loc in pairs(move_data.my_units) do
+                    for id,_ in pairs(unused_units) do
+                        --std_print('  ' .. id)
                         -- The leader is always excluded here, plus any unit that has already been assigned
                         -- TODO: set up an array of unassigned units?
                         if (not move_data.unit_infos[id].canrecruit) and (not used_ids[id]) then
@@ -216,33 +220,37 @@ function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, re
                             local _, cost_ign = wesnoth.find_path(move_data.unit_copies[id], village.x, village.y, { ignore_units = true })
                             cost_ign = cost_ign + move_data.unit_infos[id].max_moves - move_data.unit_infos[id].moves
 
-                            local unit_rating = - cost / #villages / move_data.unit_infos[id].max_moves
+                            local unit_rating = - cost / #zone_villages[zone_id] / move_data.unit_infos[id].max_moves
 
+                            --TODO: retreaters are assigned earlier now, but keep code for the time being, just in case
+                            --[[
                             -- Scout utility to compare to retreat utility
                             local int_turns = math.ceil(cost / move_data.unit_infos[id].max_moves)
                             local int_turns_ign = math.ceil(cost_ign / move_data.unit_infos[id].max_moves)
                             local scout_utility = math.sqrt(1 / math.max(1, int_turns - 1))
                             scout_utility = scout_utility * int_turns_ign / int_turns
+                            --]]
 
                             if scouts[zone_id][id] then
                                 unit_rating = unit_rating + scouts[zone_id][id].rating
                             end
                             scouts[zone_id][id] = { rating = unit_rating }
 
-                            if (not scouts[zone_id][id].utility) or (scout_utiltiy > scouts[zone_id][id].utility) then
-                                scouts[zone_id][id].utility = scout_utility
-                            end
+                            --if (not scouts[zone_id][id].utility) or (scout_utiltiy > scouts[zone_id][id].utility) then
+                            --    scouts[zone_id][id].utility = scout_utility
+                            --end
                         end
                     end
                 end
             end
         end
     end
+    --DBG.dbms(scouts, false, 'scouts')
 
     local sorted_scouts = {}
     for zone_id,units in pairs(scouts) do
         for id,data in pairs(units) do
-            if (data.utility > retreat_utilities[id]) then
+            --if (data.utility > retreat_utilities[id]) then
                 if (not sorted_scouts[zone_id]) then
                     sorted_scouts[zone_id] = {}
                 end
@@ -252,14 +260,15 @@ function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, re
                     rating = data.rating,
                     org_rating = data.rating
                 })
-            else
+            --else
                 --std_print('needs to retreat instead:', id)
-            end
+            --end
         end
         if sorted_scouts[zone_id] then
             table.sort(sorted_scouts[zone_id], function(a, b) return a.rating > b.rating end)
         end
     end
+    --DBG.dbms(sorted_scouts, false, 'sorted_scouts')
 
     local keep_trying = true
     local zone_id,units = next(sorted_scouts)
@@ -267,6 +276,7 @@ function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, re
         keep_trying = false
     end
 
+    local scout_assignments = {}
     while keep_trying do
         keep_trying = false
 
@@ -314,10 +324,7 @@ function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, re
             end
         end
 
-        if (not assigned_units[best_zone]) then
-            assigned_units[best_zone] = {}
-        end
-        assigned_units[best_zone][best_id] = move_data.units[best_id]
+        scout_assignments[best_id] = 'scout:' .. best_zone
 
         units_assigned_villages[best_zone] = (units_assigned_villages[best_zone] or 0) + 1
 
@@ -333,6 +340,8 @@ function fred_village_utils.assign_scouts(zone_village_goals, assigned_units, re
             keep_trying = true
         end
     end
+
+    return scout_assignments
 end
 
 
