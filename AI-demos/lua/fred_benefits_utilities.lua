@@ -512,6 +512,11 @@ function utility_functions.assign_units(benefits, move_data)
     end
     ----- End find_best_assignment -----
 
+
+    if (not next(benefits)) then
+        return {}
+    end
+
     -- Convert the benefits table to a ratings table that can be used above.
     -- Also, we need a local copy as we're going to modify it and don't want to change the input table.
     local task_ratings = {}
