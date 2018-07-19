@@ -1007,11 +1007,11 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(zone_assignments, false, 'zone_assignments')
 
     local assignments = {}
-    for action,id in pairs(protect_leader_assignments) do
-        assignments[action] = id
+    for id,action in pairs(protect_leader_assignments) do
+        assignments[id] = action
     end
-    for action,id in pairs(zone_assignments) do
-        assignments[action] = id
+    for id,action in pairs(zone_assignments) do
+        assignments[id] = action
     end
     --DBG.dbms(assignments, false, 'assignments')
 
