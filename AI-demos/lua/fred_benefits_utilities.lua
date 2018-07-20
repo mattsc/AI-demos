@@ -94,7 +94,7 @@ function utility_functions.village_benefits(village_grabs, fred_data)
         local benefit = income_benefit + unit_benefit + extras
         --std_print('  -> benefit: ' .. benefit)
 
-        local xy = 'grab_village_' .. (grab.x * 1000 + grab.y) .. ':' .. grab.zone_id
+        local xy = 'grab_village-' .. (grab.x * 1000 + grab.y) .. ':' .. grab.zone_id
         if (not village_benefits[xy]) then
             village_benefits[xy] = { units = {} }
         end

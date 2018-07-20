@@ -1107,14 +1107,25 @@ function fred_ops_utils.set_ops_data(fred_data)
             table.insert(delayed_actions, action)
         end
     end
+
+    for id,action in pairs(assignments) do
+        if string.find(action, 'grab_village') then
+            local i = string.find(action, '-')
+            local xy = tonumber(string.sub(action, i + 1, i + 5))
+            local x, y = math.floor(xy / 1000), xy % 1000
+            std_print(id,action,i,xy,x,y)
+
+            local action = {
+                id = id,
+                x = x, y = y,
+                type = 'full_move',
+                action_str = 'grab_village',
+                score = FCFG.get_cfg_parm('score_grab_village')
+            }
+            table.insert(delayed_actions, action)
+        end
+    end
     table.sort(delayed_actions, function(a, b) return a.score > b.score end)
-    --DBG.dbms(delayed_actions, false, 'delayed_actions')
-
-
-    --for _,action in ipairs(village_actions) do
-    --    table.insert(delayed_actions, action)
-    --end
-    --table.sort(delayed_actions, function(a, b) return a.score > b.score end)
     --DBG.dbms(delayed_actions, false, 'delayed_actions')
 
 
