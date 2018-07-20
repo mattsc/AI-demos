@@ -824,9 +824,9 @@ function fred_ops_utils.set_ops_data(fred_data)
         enemies[enemy_loc.zone_id][enemy_id] = enemy_loc
     end
 
-    for zone_id,protect in pairs(objectives.protect.zones) do
-        for _,village in ipairs(protect.villages) do
-            table.insert(goal_hexes_leader[zone_id], { village.x, village.y })
+    for zone_id,goal_hexes in pairs(goal_hexes_leader) do
+        for _,village in ipairs(objectives.protect.zones[zone_id].villages) do
+            table.insert(goal_hexes, { village.x, village.y })
         end
     end
     --DBG.dbms(goal_hexes_leader, false, 'goal_hexes_leader')
