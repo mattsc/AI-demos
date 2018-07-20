@@ -207,7 +207,7 @@ end
 
 
 function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigned_enemies, fred_data)
-    -- Now check whether there are also units that should be protected
+    -- Check whether there are also units that should be protected
     local protect_others_ratio = FCFG.get_cfg_parm('protect_others_ratio')
     for zone_id,protect_objective in pairs(objectives.protect.zones) do
         --std_print(zone_id)
@@ -1113,7 +1113,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             local i = string.find(action, '-')
             local xy = tonumber(string.sub(action, i + 1, i + 5))
             local x, y = math.floor(xy / 1000), xy % 1000
-            std_print(id,action,i,xy,x,y)
+            --std_print(id,action,i,xy,x,y)
 
             local action = {
                 id = id,
@@ -1175,6 +1175,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
 
     fred_ops_utils.update_protect_goals(objectives, assigned_units, assigned_enemies, fred_data)
+    --DBG.dbms(objectives.protect, false, 'objectives.protect')
 
     fred_ops_utils.replace_zones(assigned_units, assigned_enemies, objectives.protect, delayed_actions)
 
