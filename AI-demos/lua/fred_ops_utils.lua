@@ -33,7 +33,7 @@ end
 
 local fred_ops_utils = {}
 
-function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_objectives, actions)
+function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_objectives, hold_zones)
     -- Combine several zones into one, if the conditions for it are met.
     -- For example, on Freelands the 'east' and 'center' zones are combined
     -- into the 'top' zone if enemies are close enough to the leader.
@@ -46,10 +46,9 @@ function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_
     --DBG.dbms(replace_zone_ids, false, 'replace_zone_ids')
     --DBG.dbms(replace_zone_ids, false, 'replace_zone_ids')
 
-    actions.hold_zones = {}
     for zone_id,_ in pairs(raw_cfgs_main) do
         if assigned_units[zone_id] then
-            actions.hold_zones[zone_id] = true
+            hold_zones[zone_id] = true
         end
     end
 
@@ -69,10 +68,10 @@ function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_
     --std_print('replace_zones', replace_zones)
 
     if replace_zones then
-        actions.hold_zones[raw_cfg_new.zone_id] = true
+        hold_zones[raw_cfg_new.zone_id] = true
 
         for _,zone_id in ipairs(replace_zone_ids.old) do
-            actions.hold_zones[zone_id] = nil
+            hold_zones[zone_id] = nil
         end
 
         -- Also combine assigned_units, assigned_enemies, protect_objectives
@@ -1177,8 +1176,9 @@ function fred_ops_utils.set_ops_data(fred_data)
     fred_ops_utils.update_protect_goals(objectives, assigned_units, assigned_enemies, fred_data)
     --DBG.dbms(objectives.protect, false, 'objectives.protect')
 
-    fred_ops_utils.replace_zones(assigned_units, assigned_enemies, objectives.protect, delayed_actions)
-
+    objectives.hold_zones = {}
+    fred_ops_utils.replace_zones(assigned_units, assigned_enemies, objectives.protect, objectives.hold_zones)
+    --DBG.dbms(objectives.hold_zones, false, 'objectives.hold_zones')
 
     -- Calculate where the fronts are in the zones (in leader_distance values)
     -- based on a vulnerability-weighted sum over the zones
@@ -1410,7 +1410,7 @@ function fred_ops_utils.update_ops_data(fred_data)
 
     -- Also update the protect locations, as a location might not be threatened
     -- any more
-    fred_ops_utils.replace_zones(ops_data.assigned_units, ops_data.assigned_enemies, ops_data.objectives.protect, ops_data.delayed_actions)
+    fred_ops_utils.replace_zones(ops_data.assigned_units, ops_data.assigned_enemies, ops_data.objectives.protect, ops_data.hold_zones)
 
 
     -- Once the leader has no MP left, we reconsider the leader threats
