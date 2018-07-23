@@ -1460,12 +1460,8 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     fred_data.zone_cfgs = {}
 
     -- For all of the main zones, find assigned units that have moves left
-
-    -- TODO: this is a place_holder for now, needs to be updated to work with delayed_actions
-    ops_data.actions = { hold_zones = {}, villages = {} }
-
     local holders_by_zone, attackers_by_zone = {}, {}
-    for zone_id,_ in pairs(ops_data.actions.hold_zones) do
+    for zone_id,_ in pairs(ops_data.objectives.hold_zones) do
         if ops_data.assigned_units[zone_id] then
             for id,_ in pairs(ops_data.assigned_units[zone_id]) do
                 if move_data.my_units_MP[id] then
@@ -1492,6 +1488,8 @@ function fred_ops_utils.get_action_cfgs(fred_data)
             end
         end
     end
+    --DBG.dbms(holders_by_zone, false, 'holders_by_zone')
+    --DBG.dbms(attackers_by_zone, false, 'attackers_by_zone')
 
     -- We add the leader as a potential attacker to all zones but only if he's on the keep
     local leader = move_data.leaders[wesnoth.current.side]
@@ -1511,7 +1509,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         end
 
         if is_attacker then
-            for zone_id,_ in pairs(ops_data.actions.hold_zones) do
+            for zone_id,_ in pairs(ops_data.objectives.hold_zones) do
                 if (not attackers_by_zone[zone_id]) then attackers_by_zone[zone_id] = {} end
                 attackers_by_zone[zone_id][leader.id] = move_data.units[leader.id]
             end
@@ -1525,7 +1523,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     -- it's quick and easy, we just do it again.
     local threats_by_zone = {}
     local tmp_enemies = {}
-    for zone_id,_ in pairs(ops_data.actions.hold_zones) do
+    for zone_id,_ in pairs(ops_data.objectives.hold_zones) do
         if ops_data.assigned_enemies[zone_id] then
             for enemy_id,_ in pairs(ops_data.assigned_enemies[zone_id]) do
                 if move_data.enemies[enemy_id] then
@@ -1551,7 +1549,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     --DBG.dbms(other_enemies, false, 'other_enemies')
 
     for enemy_id,loc in pairs(other_enemies) do
-        for zone_id,_ in pairs(ops_data.actions.hold_zones) do
+        for zone_id,_ in pairs(ops_data.objectives.hold_zones) do
             if (not threats_by_zone[zone_id]) then threats_by_zone[zone_id] = {} end
             threats_by_zone[zone_id][enemy_id] = loc
         end
@@ -1575,7 +1573,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     end
     --DBG.dbms(leader_threats_by_zone, false, 'leader_threats_by_zone')
 
-    local zone_power_stats = fred_ops_utils.zone_power_stats(ops_data.actions.hold_zones, ops_data.assigned_units, ops_data.assigned_enemies, fred_data.turn_data.behavior.orders.base_power_ratio, fred_data)
+    local zone_power_stats = fred_ops_utils.zone_power_stats(ops_data.objectives.hold_zones, ops_data.assigned_units, ops_data.assigned_enemies, fred_data.turn_data.behavior.orders.base_power_ratio, fred_data)
     --DBG.dbms(zone_power_stats, false, 'zone_power_stats')
 
 
@@ -1683,6 +1681,8 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 
     ----- Village actions -----
 
+    -- TODO: this is a place_holder for now, needs to be updated to work with delayed_actions
+    ops_data.actions = { villages = {} }
     for i,action in ipairs(ops_data.actions.villages) do
         action.rating = 20000 - i
         table.insert(fred_data.zone_cfgs, action)
