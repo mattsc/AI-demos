@@ -2400,7 +2400,8 @@ local function get_advance_action(zone_cfg, fred_data)
                             -- Cannot just assign here, as we do not want to change the input tables later
                             -- TODO: This currently includes already protected protect_locs. I think
                             -- that that's the right thing to do, re-examine later.
-                            if fred_data.ops_data.objectives.protect.zones[zone_cfg.zone_id].locs[1]
+                            if fred_data.ops_data.objectives.protect.zones[zone_cfg.zone_id]
+                                and fred_data.ops_data.objectives.protect.zones[zone_cfg.zone_id].locs[1]
                             then
                                 for _,loc in ipairs(fred_data.ops_data.protect_locs[zone_cfg.zone_id].locs) do
                                     table.insert(hexes, { loc.x, loc.y })
