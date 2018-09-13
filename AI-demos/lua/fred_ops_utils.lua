@@ -991,6 +991,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
                     zone_benefits[action].units[id] = {
                         benefit = data.benefit,
+                        -- TODO: this can result in negative penalty
                         penalty = turn_penalty - inertia
                     }
                 end
@@ -1258,9 +1259,12 @@ function fred_ops_utils.set_ops_data(fred_data)
         delayed_actions = delayed_actions
     }
     --DBG.dbms(ops_data, false, 'ops_data')
+    --DBG.dbms(ops_data.objectives, false, 'ops_data.objectives')
     --DBG.dbms(ops_data.assigned_enemies, false, 'ops_data.assigned_enemies')
     --DBG.dbms(ops_data.assigned_units, false, 'ops_data.assigned_units')
-    --DBG.dbms(ops_data.objectives, false, 'ops_data.objectives')
+    --DBG.dbms(ops_data.retreaters, false, 'ops_data.retreaters')
+    --DBG.dbms(ops_data.fronts, false, 'ops_data.fronts')
+    --DBG.dbms(ops_data.delayed_actions, false, 'ops_data.delayed_actions')
 
 
     fred_ops_utils.behavior_output(true, ops_data, fred_data)
