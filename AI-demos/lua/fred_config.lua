@@ -8,6 +8,7 @@ local cfg = {
 
     aggression = 1.5,                  -- To first order, base ratio of acceptable damage: own / enemy
     min_aggression = 1.25,
+    leader_threat_mult = 1.33,
     next_turn_influence_weight = 1,  -- Fraction of ToD influence change of next turn to take into account
 
 

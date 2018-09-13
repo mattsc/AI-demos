@@ -1561,19 +1561,6 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     --DBG.dbms(attackers_by_zone, false, 'attackers_by_zone')
     --DBG.dbms(threats_by_zone, false, 'threats_by_zone')
 
-    local leader_threats_by_zone = {}
-    for zone_id,threats in pairs(threats_by_zone) do
-        for id,loc in pairs(threats) do
-            --std_print(zone_id,id)
-            if ops_data.objectives.leader.leader_threats.enemies and ops_data.objectives.leader.leader_threats.enemies[id] then
-                if (not leader_threats_by_zone[zone_id]) then
-                    leader_threats_by_zone[zone_id] = {}
-                end
-                leader_threats_by_zone[zone_id][id] = loc
-            end
-        end
-    end
-    --DBG.dbms(leader_threats_by_zone, false, 'leader_threats_by_zone')
 
     local zone_power_stats = fred_ops_utils.zone_power_stats(ops_data.objectives.hold_zones, ops_data.assigned_units, ops_data.assigned_enemies, fred_data.turn_data.behavior.orders.base_power_ratio, fred_data)
     --DBG.dbms(zone_power_stats, false, 'zone_power_stats')
@@ -1581,7 +1568,10 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 
     ----- Leader threat actions -----
 
-    if ops_data.objectives.leader.leader_threats.significant_threat then
+    --DBG.dbms(ops_data.objectives, false, 'ops_data.objectives')
+    local leader_threats = ops_data.objectives.leader.leader_threats
+    --DBG.dbms(leader_threats, false, 'leader_threats')
+    if leader_threats.significant_threat then
         local leader_base_ratings = {
             attack = 35000,
             move_to_keep = 34000,
@@ -1589,18 +1579,42 @@ function fred_ops_utils.get_action_cfgs(fred_data)
             move_to_village = 32000
         }
 
+        local leader_threats_by_zone = {}
+        for zone_id,threats in pairs(threats_by_zone) do
+            for id,loc in pairs(threats) do
+                --std_print(zone_id,id)
+                if leader_threats.enemies and leader_threats.enemies[id] then
+                    if (not leader_threats_by_zone[zone_id]) then
+                        leader_threats_by_zone[zone_id] = {}
+                    end
+                    leader_threats_by_zone[zone_id][id] = loc
+                end
+            end
+        end
+        --DBG.dbms(leader_threats_by_zone, false, 'leader_threats_by_zone')
+
+        local value_ratio = fred_data.turn_data.behavior.orders.value_ratio
+        local leader_threat_mult = FCFG.get_cfg_parm('leader_threat_mult')
+
         local zone_id = 'leader_threat'
         --DBG.dbms(leader, false, 'leader')
 
         -- Attacks -- for the time being, this is always done, and always first
         for zone_id,threats in pairs(leader_threats_by_zone) do
+            -- Use higher aggression value when there are no villages to protect in between
+            local vr_mult = 1
+            if (not ops_data.objectives.protect.zones[zone_id].villages[1]) then
+                vr_mult = 1 / leader_threat_mult
+            end
+
             if attackers_by_zone[zone_id] then
                 table.insert(fred_data.zone_cfgs, {
                     zone_id = zone_id,
                     action_type = 'attack',
                     zone_units = attackers_by_zone[zone_id],
                     targets = threats,
-                    value_ratio = 0.6, -- more aggressive for direct leader threats, but not too much
+                    value_ratio = value_ratio * vr_mult,
+                    delayed_action_factor = 1,
                     rating = leader_base_ratings.attack + zone_power_stats[zone_id].power_needed
                 })
             end
