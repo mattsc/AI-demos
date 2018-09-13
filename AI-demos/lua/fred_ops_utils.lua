@@ -1109,10 +1109,11 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     for id,action in pairs(assignments) do
         if string.find(action, 'grab_village') then
-            local i = string.find(action, '-')
-            local xy = tonumber(string.sub(action, i + 1, i + 5))
+            local i1 = string.find(action, '-')
+            local i2 = string.find(action, ':')
+            local xy = tonumber(string.sub(action, i1 + 1, i2 - 1))
             local x, y = math.floor(xy / 1000), xy % 1000
-            --std_print(id,action,i,xy,x,y)
+            --std_print(id,action,xy,x,y)
 
             local action = {
                 id = id,
