@@ -1115,14 +1115,14 @@ function fred_ops_utils.set_ops_data(fred_data)
             local x, y = math.floor(xy / 1000), xy % 1000
             --std_print(id,action,xy,x,y)
 
-            local action = {
+            local new_action = {
                 id = id,
                 x = x, y = y,
                 type = 'full_move',
                 action_str = 'grab_village',
                 score = FCFG.get_cfg_parm('score_grab_village')
             }
-            table.insert(delayed_actions, action)
+            table.insert(delayed_actions, new_action)
         end
     end
     table.sort(delayed_actions, function(a, b) return a.score > b.score end)
