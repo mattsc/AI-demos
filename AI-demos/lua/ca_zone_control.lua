@@ -834,7 +834,7 @@ local function get_attack_action(zone_cfg, fred_data)
                     my_rating = my_rating + unit_rating
                     --std_print('  ' .. damage.id, unit_rating)
                 end
-                DBG.print_debug('attack_print_output', '  --> total my unit rating:', my_rating)
+                DBG.print_debug('attack_print_output', '    --> total my unit rating:', my_rating)
 
 
                 --std_print('ratings enemy units:')
@@ -845,14 +845,14 @@ local function get_attack_action(zone_cfg, fred_data)
                     enemy_rating = enemy_rating + unit_rating
                     --std_print('  ' .. damage.id, unit_rating)
                 end
-                DBG.print_debug('attack_print_output', '  --> total enemy unit rating:', enemy_rating)
+                DBG.print_debug('attack_print_output', '    --> total enemy unit rating:', enemy_rating)
 
                 local extra_rating = combo.rating_table.extra_rating
-                DBG.print_debug('attack_print_output', '  --> extra rating:', extra_rating)
-                DBG.print_debug('attack_print_output', '  --> bonus rating:', combo.bonus_rating)
+                DBG.print_debug('attack_print_output', '    --> extra rating:', extra_rating)
+                DBG.print_debug('attack_print_output', '    --> bonus rating:', combo.bonus_rating)
 
                 local value_ratio = combo.rating_table.value_ratio
-                DBG.print_debug('attack_print_output', '  --> value_ratio:', value_ratio)
+                DBG.print_debug('attack_print_output', '    --> value_ratio:', value_ratio)
 
                 local damage_rating = my_rating * value_ratio + enemy_rating
 
@@ -861,7 +861,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 -- whether an attack is acceptable
                 damage_rating = damage_rating + extra_rating + combo.bonus_rating
 
-                DBG.print_debug('attack_print_output', '     --> damage_rating:', damage_rating)
+                DBG.print_debug('attack_print_output', '       --> damage_rating:', damage_rating)
 
 
                 if (damage_rating < min_total_damage_rating) then
@@ -881,14 +881,14 @@ local function get_attack_action(zone_cfg, fred_data)
                     if attacker.canrecruit then
                         --std_print('Leader: slowed, poisoned %', counter_outcomes.def_outcome.slowed, counter_outcomes.def_outcome.poisoned)
                         if (counter_outcomes.def_outcome.slowed > 0.0) and (not attacker.status.slowed) then
-                            DBG.print_debug('attack_print_output', '       leader: counter attack slow chance too high', counter_outcomes.def_outcome.slowed)
+                            DBG.print_debug('attack_print_output', '    leader: counter attack slow chance too high', counter_outcomes.def_outcome.slowed)
                             acceptable_counter = false
                             FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                             break
                         end
 
                         if (counter_outcomes.def_outcome.poisoned > 0.0) and (not attacker.status.poisoned) and (not attacker.abilities.regenerate) then
-                            DBG.print_debug('attack_print_output', '       leader: counter attack poison chance too high', counter_outcomes.def_outcome.poisoned)
+                            DBG.print_debug('attack_print_output', '    leader: counter attack poison chance too high', counter_outcomes.def_outcome.poisoned)
                             acceptable_counter = false
                             FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                             break
@@ -947,7 +947,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         --std_print('Leader: av_outcome', av_outcome)
 
                         if (die_chance > leader_max_die_chance) or (av_outcome < attacker.max_hitpoints / 2) then
-                            DBG.print_debug('attack_print_output', '       leader: counter attack outcome too low', die_chance)
+                            DBG.print_debug('attack_print_output', '    leader: counter attack outcome too low', die_chance)
                             acceptable_counter = false
                             FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                             break
@@ -956,7 +956,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         -- is_acceptable_attack takes the damage to the side, so it needs
                         -- to be the negative of the rating for own units
                         if (not FAU.is_acceptable_attack(-my_rating, enemy_rating, value_ratio)) then
-                            DBG.print_debug('attack_print_output', '       non-leader: counter attack rating too low', my_rating, enemy_rating, value_ratio)
+                            DBG.print_debug('attack_print_output', '    non-leader: counter attack rating too low', my_rating, enemy_rating, value_ratio)
                             acceptable_counter = false
                             FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                             break
@@ -1006,7 +1006,7 @@ local function get_attack_action(zone_cfg, fred_data)
                     --std_print('  ' .. xp_thresh, survival_chance)
 
                     if (survival_chance < xp_thresh) then
-                        DBG.print_debug('attack_print_output', '       non-leader: counter attack too dangerous for high-XP unit', survival_chance, xp_thresh, xp)
+                        DBG.print_debug('attack_print_output', '    non-leader: counter attack too dangerous for high-XP unit', survival_chance, xp_thresh, xp)
                         acceptable_counter = false
                         FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                         break
@@ -1044,7 +1044,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         --std_print('         kill chance, kill_value: ', kill_chance, kill_value)
 
                         if (kill_chance < 0.33) or (kill_value < die_value * 2) then
-                            DBG.print_debug('attack_print_output', '       non-leader: counter attack too exposed', die_value, kill_value, kill_chance)
+                            DBG.print_debug('attack_print_output', '    non-leader: counter attack too exposed', die_value, kill_value, kill_chance)
                             acceptable_counter = false
                             FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                             break
@@ -1122,15 +1122,15 @@ local function get_attack_action(zone_cfg, fred_data)
             --DBG.print_ts_delta(fred_data.turn_start_time, '  acceptable_counter', acceptable_counter)
             local total_rating = -9999
             if acceptable_counter then
-                DBG.print_debug('attack_print_output', '    Acceptable counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating_table.rating)
-                DBG.print_debug('attack_print_output', '      --> total_rating', total_rating)
                 total_rating = min_total_damage_rating + combo.penalty_rating
                 DBG.print_debug('attack_print_output', '  Penalty rating:', combo.penalty_rating, combo.penalty_str)
+                DBG.print_debug('attack_print_output', '  Acceptable counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating_table.rating)
+                DBG.print_debug('attack_print_output', '    --> total_rating', total_rating)
 
                 if (total_rating > 0) then
                     total_rating = total_rating * combo.derating
                 end
-                DBG.print_debug('attack_print_output', '      --> total_rating adjusted', total_rating)
+                DBG.print_debug('attack_print_output', '    --> total_rating adjusted', total_rating)
 
                 if (not max_total_rating) or (total_rating > max_total_rating) then
                     max_total_rating = total_rating
@@ -1152,8 +1152,11 @@ local function get_attack_action(zone_cfg, fred_data)
             end
 
             if DBG.show_debug('attack_combos') then
+                local msg_str = string.format('Attack combo %d/%d:    %.3f    (%.3f  max)\n      pre_rating:    %.3f\n      penalties:      %.3f      %s',
+                    count, #combo_ratings, total_rating, (max_total_rating or 0), combo.pre_rating, combo.penalty_rating, combo.penalty_str
+                )
                 wesnoth.scroll_to_tile(target_loc[1], target_loc[2])
-                wesnoth.wml_actions.message { speaker = 'narrator', message = 'Attack combo ' .. count .. '/' .. #combo_ratings .. ': ' .. total_rating .. ' / ' .. (max_total_rating or 0) .. '    (pre-rating: ' .. combo.pre_rating .. ')' }
+                wesnoth.wml_actions.message { speaker = 'narrator', message = msg_str}
                 for i_a,attacker_info in ipairs(combo.attackers) do
                     local x, y = combo.dsts[i_a][1], combo.dsts[i_a][2]
                     wesnoth.wml_actions.label { x = x, y = y, text = "" }
