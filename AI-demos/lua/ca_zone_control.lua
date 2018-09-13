@@ -93,6 +93,19 @@ local function get_attack_action(zone_cfg, fred_data)
     -- the comparison is not fair.
     local cfg_attack = { value_ratio = value_ratio }
 
+    -- Set up easy to use array of penalties for delayed actions
+    local penalties = {}
+    for _,delayed_action in ipairs(fred_data.ops_data.delayed_actions) do
+        local id = delayed_action.id
+        local src = fred_data.move_data.units[id][1] * 1000 + fred_data.move_data.units[id][2]
+        penalties[src] = {
+            dst = 1000 * delayed_action.x + delayed_action.y,
+            id = id,
+            penalty = - delayed_action.benefit * zone_cfg.delayed_action_factor
+        }
+    end
+    --DBG.dbms(penalties, false, 'penalties')
+
     local combo_ratings = {}
     for target_id, target_loc in pairs(targets) do
         local target = {}
@@ -131,6 +144,16 @@ local function get_attack_action(zone_cfg, fred_data)
             -- the state at the end of the attack, it gives a good overall rating
             -- for the attacker/defender pairings involved.
             local combo_rating = combo_outcome.rating_table.rating
+
+            -- Penalty for units planned to be used otherwise
+            local penalty_rating = 0
+            local penalty_str = ''
+            for src,dst in pairs(combo) do
+                if penalties[src] then
+                    penalty_rating = penalty_rating + penalties[src].penalty
+                    penalty_str = penalty_str .. string.format("    %s %6.3f", penalties[src].id, penalties[src].penalty)
+                end
+            end
 
             local bonus_rating = 0
 
@@ -527,10 +550,17 @@ local function get_attack_action(zone_cfg, fred_data)
                     pre_rating = pre_rating * derating
                 end
 
+
+                -- TODO: should penalty be applied before or after derating?
+                local pre_rating = combo_rating + penalty_rating
+
+
                 table.insert(combo_ratings, {
                     pre_rating = pre_rating,
                     bonus_rating = bonus_rating,
                     derating = derating,
+                    penalty_rating = penalty_rating,
+                    penalty_str = penalty_str,
                     attackers = combo_outcome.attacker_infos,
                     dsts = combo_outcome.dsts,
                     weapons = combo_outcome.att_weapons_i,
@@ -1092,9 +1122,10 @@ local function get_attack_action(zone_cfg, fred_data)
             --DBG.print_ts_delta(fred_data.turn_start_time, '  acceptable_counter', acceptable_counter)
             local total_rating = -9999
             if acceptable_counter then
-                total_rating = min_total_damage_rating
                 DBG.print_debug('attack_print_output', '    Acceptable counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating_table.rating)
                 DBG.print_debug('attack_print_output', '      --> total_rating', total_rating)
+                total_rating = min_total_damage_rating + combo.penalty_rating
+                DBG.print_debug('attack_print_output', '  Penalty rating:', combo.penalty_rating, combo.penalty_str)
 
                 if (total_rating > 0) then
                     total_rating = total_rating * combo.derating
