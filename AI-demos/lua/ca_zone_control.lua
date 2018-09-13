@@ -149,7 +149,7 @@ local function get_attack_action(zone_cfg, fred_data)
             local penalty_rating = 0
             local penalty_str = ''
             for src,dst in pairs(combo) do
-                if penalties[src] then
+                if penalties[src] and (penalties[src].dst ~= dst) then
                     penalty_rating = penalty_rating + penalties[src].penalty
                     penalty_str = penalty_str .. string.format("    %s %6.3f", penalties[src].id, penalties[src].penalty)
                 end
