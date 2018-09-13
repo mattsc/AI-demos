@@ -1120,7 +1120,8 @@ function fred_ops_utils.set_ops_data(fred_data)
                 x = x, y = y,
                 type = 'full_move',
                 action_str = 'grab_village',
-                score = FCFG.get_cfg_parm('score_grab_village')
+                score = FCFG.get_cfg_parm('score_grab_village'),
+                benefit = combined_benefits[action].units[id].benefit
             }
             table.insert(delayed_actions, new_action)
         end
