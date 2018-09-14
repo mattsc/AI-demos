@@ -1476,11 +1476,13 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     --DBG.dbms(holders_by_zone, false, 'holders_by_zone')
     --DBG.dbms(attackers_by_zone, false, 'attackers_by_zone')
 
-    -- We add the leader as a potential attacker to all zones but only if he's on the keep
+    -- We add the leader as a potential attacker to all zones when he is not
+    -- scheduled to go to the keep. That could mean that he is already on the
+    -- keep, or that there is no need to do to the keep
     local leader = move_data.leaders[wesnoth.current.side]
     --std_print('leader.id', leader.id)
     if (move_data.unit_copies[leader.id].attacks_left > 0)
-       and wesnoth.get_terrain_info(wesnoth.get_terrain(leader[1], leader[2])).keep
+       and (not ops_data.objectives.leader.keep)
     then
         local is_attacker = true
         if move_data.my_units_noMP[leader.id] then
