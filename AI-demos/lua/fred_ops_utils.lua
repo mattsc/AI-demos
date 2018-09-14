@@ -1082,32 +1082,6 @@ function fred_ops_utils.set_ops_data(fred_data)
         table.insert(delayed_actions, action)
     end
 
-    if objectives.leader.keep then
-        local action = {
-            id = leader.id,
-            x = objectives.leader.keep[1],
-            y = objectives.leader.keep[2],
-            type = 'partial_move',
-            action_str = 'move_leader_to_keep',
-            score = FCFG.get_cfg_parm('score_leader_to_keep')
-        }
-        table.insert(delayed_actions, action)
-    end
-
-    if objectives.leader.prerecruit then
-        for _,unit in ipairs(objectives.leader.prerecruit.units) do
-            local action = {
-                recruit_type = unit.recruit_type,
-                x = unit.recruit_hex[1],
-                y = unit.recruit_hex[2],
-                type = 'recruit',
-                action_str = 'recruit',
-                score = FCFG.get_cfg_parm('score_recruit')
-            }
-            table.insert(delayed_actions, action)
-        end
-    end
-
     for id,action in pairs(assignments) do
         if string.find(action, 'grab_village') then
             local i1 = string.find(action, '-')
