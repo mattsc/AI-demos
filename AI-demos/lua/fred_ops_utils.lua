@@ -1071,13 +1071,18 @@ function fred_ops_utils.set_ops_data(fred_data)
     local delayed_actions = {}
     local leader = move_data.leaders[wesnoth.current.side]
     if objectives.leader.village then
+        local leader_heal_benefit = math.min(8, move_data.unit_infos[leader.id].max_hitpoints - move_data.unit_infos[leader.id].hitpoints)
+        -- Multiply benefit * 1.5 for this being the leader
+        -- Not putting the leader into too much danger is taken care of elsewhere
+        leader_heal_benefit = 1.5 * leader_heal_benefit / move_data.unit_infos[leader.id].max_hitpoints * move_data.unit_infos[leader.id].cost
         local action = {
             id = leader.id,
             x = objectives.leader.village[1],
             y = objectives.leader.village[2],
             type = 'full_move',
             action_str = 'move_leader_to_village',
-            score = FCFG.get_cfg_parm('score_leader_to_village')
+            score = FCFG.get_cfg_parm('score_leader_to_village'),
+            benefit = leader_heal_benefit
         }
         table.insert(delayed_actions, action)
     end
