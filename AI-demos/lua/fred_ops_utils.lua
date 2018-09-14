@@ -1574,7 +1574,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         local value_ratio = fred_data.turn_data.behavior.orders.value_ratio
         local leader_threat_mult = FCFG.get_cfg_parm('leader_threat_mult')
 
-        local zone_id = 'leader_threat'
+        local zone_id = 'leader'
         --DBG.dbms(leader, false, 'leader')
 
         -- Attacks -- for the time being, this is always done, and always first
@@ -1614,24 +1614,22 @@ function fred_ops_utils.get_action_cfgs(fred_data)
                 rating = leader_base_ratings.move_to_keep
             })
         end
+        --]]
 
         -- Partial move to keep
-        if ops_data.objectives.leader.leader_threats.leader_locs.closest_keep
-            and move_data.my_units_MP[leader.id]
-            and ((ops_data.objectives.leader.leader_threats.leader_locs.closest_keep[1] ~= leader[1]) or (ops_data.objectives.leader.leader_threats.leader_locs.closest_keep[2] ~= leader[2]))
-        then
+        if ops_data.objectives.leader.keep then
             table.insert(fred_data.zone_cfgs, {
                 action = {
                     zone_id = zone_id,
                     action_str = zone_id .. ': move leader to keep',
                     units = { leader },
-                    dsts = { ops_data.objectives.leader.leader_threats.leader_locs.closest_keep },
+                    dsts = { ops_data.objectives.leader.keep },
                     partial_move = true
                 },
                 rating = leader_base_ratings.move_to_keep
             })
         end
-        --]]
+        --DBG.dbms(fred_data.zone_cfgs, false, 'fred_data.zone_cfgs')
 
         -- Recruiting
         if ops_data.objectives.leader.prerecruit and ops_data.objectives.leader.prerecruit.units[1] then
