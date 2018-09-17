@@ -154,7 +154,7 @@ function fred_ops_utils.zone_power_stats(zones, assigned_units, assigned_enemies
 end
 
 
-function fred_ops_utils.set_protect_goals(objectives, fred_data)
+function fred_ops_utils.set_protect_goals(objectives, enemy_zones, fred_data)
     -- 1. Weigh village vs. leader protecting
     -- 2. Check if you should protect any of the units protecting the protect location.
     -- Generally this will not find anything if a protect action has already taken
@@ -169,8 +169,10 @@ function fred_ops_utils.set_protect_goals(objectives, fred_data)
         --std_print(zone_id)
 
         protect_objective.protect_leader = false
-        for enemy_id,enemy_loc in pairs(objectives.leader.leader_threats.enemies) do
-            if (enemy_loc.zone_id == zone_id) then
+        for enemy_id,_ in pairs(objectives.leader.leader_threats.enemies) do
+            local enemy_loc = fred_data.move_data.units[enemy_id]
+            local enemy_zone_id = enemy_zones[enemy_id]
+            if (enemy_zone_id == zone_id) then
                 protect_objective.protect_leader = true
 
                 local enemy = {}
@@ -788,7 +790,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(village_grabs, false, 'village_grabs')
 
 
-    fred_ops_utils.set_protect_goals(objectives, fred_data)
+    fred_ops_utils.set_protect_goals(objectives, enemy_zones, fred_data)
     --DBG.dbms(objectives.protect, false, 'objectives.protect')
     --DBG.dbms(objectives, false, 'objectives')
 
