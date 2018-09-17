@@ -280,13 +280,13 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigne
     for x,y,_ in FU.fgumap_iter(move_data.reachable_castles_map[wesnoth.current.side]) do
         local ids = FU.get_fgumap_value(move_data.enemy_attack_map[1], x, y, 'ids') or {}
         for _,id in ipairs(ids) do
-            leader_threats.enemies[id] = move_data.units[id]
+            leader_threats.enemies[id] = move_data.units[id][1] * 1000 + move_data.units[id][2]
         end
     end
     if leader_objectives.village then
         local ids = FU.get_fgumap_value(move_data.enemy_attack_map[1], leader_objectives.village[1], leader_objectives.village[2], 'ids') or {}
         for _,id in ipairs(ids) do
-            leader_threats.enemies[id] = move_data.units[id]
+            leader_threats.enemies[id] = move_data.units[id][1] * 1000 + move_data.units[id][2]
         end
     end
 
@@ -298,7 +298,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigne
                 break
             end
         end
-        threat.zone_id = zone_id
+        leader_threats.enemies[id] = threat .. ':' .. zone_id
     end
     --DBG.dbms(leader_threats, false, 'leader_threats')
 

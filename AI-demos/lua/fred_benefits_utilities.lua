@@ -198,7 +198,8 @@ function utility_functions.attack_benefits(assigned_enemies, goal_hexes, use_ave
             local can_reach_1, can_reach_2 = false, false
             local max_rating_forward, max_rating_counter = - math.huge, - math.huge
             local av_rating_forward, av_rating_counter, count = 0, 0, 0
-            for enemy_id,enemy_loc in pairs(data) do
+            for enemy_id,_ in pairs(data) do
+                local enemy_loc = fred_data.move_data.units[enemy_id]
                 local rating_forward = fred_data.turn_data.unit_attacks[id][enemy_id].rating_forward
                 local rating_counter = fred_data.turn_data.unit_attacks[id][enemy_id].rating_counter
                 --std_print('    ' .. enemy_id, rating_forward, rating_counter)

@@ -23,7 +23,7 @@ local function assignments_to_assigned_units(assignments, move_data)
 
         if (not move_data.unit_infos[id].canrecruit) then
             if (not assigned_units[zone_id]) then assigned_units[zone_id] = {} end
-            assigned_units[zone_id][id] = move_data.my_units[id]
+            assigned_units[zone_id][id] = move_data.my_units[id][1] * 1000 + move_data.my_units[id][2]
         end
     end
 
@@ -33,7 +33,7 @@ end
 
 local fred_ops_utils = {}
 
-function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_objectives, hold_zones)
+function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_objectives, hold_zones, move_data)
     -- Combine several zones into one, if the conditions for it are met.
     -- For example, on Freelands the 'east' and 'center' zones are combined
     -- into the 'top' zone if enemies are close enough to the leader.
@@ -55,8 +55,9 @@ function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_
     local replace_zones = false
     for _,zone_id in ipairs(replace_zone_ids.old) do
         if assigned_enemies[zone_id] then
-            for enemy_id,loc in pairs(assigned_enemies[zone_id]) do
-                if wesnoth.match_location(loc[1], loc[2], raw_cfg_new.ops_slf) then
+            for enemy_id,_ in pairs(assigned_enemies[zone_id]) do
+                local enemy_loc = move_data.units[enemy_id]
+                if wesnoth.match_location(enemy_loc[1], enemy_loc[2], raw_cfg_new.ops_slf) then
                     replace_zones = true
                     break
                 end
@@ -88,17 +89,17 @@ function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_
         local new_objectives = protect_objectives.zones[raw_cfg_new.zone_id]
 
         for _,zone_id in ipairs(replace_zone_ids.old) do
-            for id,loc in pairs(assigned_units[zone_id] or {}) do
-                assigned_units[raw_cfg_new.zone_id][id] = loc
+            for id,xy in pairs(assigned_units[zone_id] or {}) do
+                assigned_units[raw_cfg_new.zone_id][id] = xy
             end
-            for id,loc in pairs(assigned_enemies[zone_id] or {}) do
-                assigned_enemies[raw_cfg_new.zone_id][id] = loc
+            for id,xy in pairs(assigned_enemies[zone_id] or {}) do
+                assigned_enemies[raw_cfg_new.zone_id][id] = xy
             end
 
             local old_objectives = protect_objectives.zones[zone_id]
             new_objectives.protect_leader = new_objectives.protect_leader or old_objectives.protect_leader
-            for _,loc in ipairs(old_objectives.villages) do
-                table.insert(new_objectives.villages, loc)
+            for _,xy in ipairs(old_objectives.villages) do
+                table.insert(new_objectives.villages, xy)
             end
             for _,unit in ipairs(old_objectives.units) do
                 table.insert(new_objectives.units, unit)
@@ -219,7 +220,8 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
             --std_print('  checking whether units should be protected')
             -- TODO: does this take appreciable time? If so, can be skipped when no no_MP units exist
             local units_to_protect, protectors = {}, {}
-            for id,loc in pairs(assigned_units[zone_id]) do
+            for id,_ in pairs(assigned_units[zone_id]) do
+                local loc = fred_data.move_data.units[id]
 
                 -- We don't need to consider units that have no MP left and cannot
                 -- be attacked by the enemy
@@ -734,6 +736,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     -- Attributing enemy units to zones
     -- Use base_power for this as it is not only for the current turn
     local assigned_enemies, unassigned_enemies = {}, {}
+    local enemy_zones = {}
     for id,loc in pairs(move_data.enemies) do
         if (not move_data.unit_infos[id].canrecruit)
             and (not FU.get_fgumap_value(move_data.reachable_castles_map[move_data.unit_infos[id].side], loc[1], loc[2], 'castle') or false)
@@ -744,13 +747,16 @@ function fred_ops_utils.set_ops_data(fred_data)
             if (not assigned_enemies[zone_id]) then
                 assigned_enemies[zone_id] = {}
             end
-            assigned_enemies[zone_id][id] = move_data.units[id]
+            assigned_enemies[zone_id][id] = move_data.units[id][1] * 1000 + move_data.units[id][2]
+            enemy_zones[id] = zone_id
         else
-            unassigned_enemies[id] = move_data.units[id]
+            unassigned_enemies[id] = move_data.units[id][1] * 1000 + move_data.units[id][2]
+            enemy_zones[id] = 'none'
         end
     end
     --DBG.dbms(assigned_enemies, false, 'assigned_enemies')
     --DBG.dbms(unassigned_enemies, false, 'unassigned_enemies')
+    --DBG.dbms(enemy_zones, false, 'enemy_zones')
 
     -- Pre-assign units to the zone into/toward which they have moved.
     -- They will preferably, but not strictly be used in those zones.
@@ -802,8 +808,9 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(leader_goal, false, 'leader_goal')
 
     local goal_hexes_leader, enemies = {}, {}
-    for enemy_id,enemy_loc in pairs(objectives.leader.leader_threats.enemies) do
+    for enemy_id,_ in pairs(objectives.leader.leader_threats.enemies) do
         -- TODO: simply using the middle point here might not be the best thing to do
+        local enemy_loc = fred_data.move_data.units[enemy_id]
         local goal_loc = {
             math.floor((enemy_loc[1] + leader_goal[1]) / 2 + 0.5),
             math.floor((enemy_loc[2] + leader_goal[2]) / 2 + 0.5)
@@ -812,15 +819,16 @@ function fred_ops_utils.set_ops_data(fred_data)
         local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, goal_loc[1], goal_loc[2], 'my_leader_distance')
         --std_print(enemy_id, enemy_loc.zone_id, goal_loc[1], goal_loc[2], ld)
 
+        local enemy_zone_id = enemy_zones[enemy_id]
         if (not goal_hexes_leader[enemy_loc.zone_id]) then
-            goal_hexes_leader[enemy_loc.zone_id] = { goal_loc }
-            goal_hexes_leader[enemy_loc.zone_id][1].ld = ld
-            enemies[enemy_loc.zone_id] = {}
+            goal_hexes_leader[enemy_zone_id] = { goal_loc }
+            goal_hexes_leader[enemy_zone_id][1].ld = ld
+            enemies[enemy_zone_id] = {}
         elseif (ld < goal_hexes_leader[enemy_loc.zone_id][1].ld) then
-            goal_hexes_leader[enemy_loc.zone_id] = { goal_loc }
-            goal_hexes_leader[enemy_loc.zone_id][1].ld = ld
+            goal_hexes_leader[enemy_zone_id] = { goal_loc }
+            goal_hexes_leader[enemy_zone_id][1].ld = ld
         end
-        enemies[enemy_loc.zone_id][enemy_id] = enemy_loc
+        enemies[enemy_zone_id][enemy_id] = enemy_loc[1] * 1000 + enemy_loc[2]
     end
 
     for zone_id,goal_hexes in pairs(goal_hexes_leader) do
@@ -836,9 +844,10 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(attack_benefits, false, 'attack_benefits')
 
     local power_needed, enemy_total_power = {}, 0
-    for enemy_id,data in pairs(objectives.leader.leader_threats.enemies) do
+    for enemy_id,_ in pairs(objectives.leader.leader_threats.enemies) do
+        local zone_id = enemy_zones[enemy_id]
         local unit_power = FU.unit_base_power(fred_data.move_data.unit_infos[enemy_id])
-        power_needed[data.zone_id] = (power_needed[data.zone_id] or 0) + unit_power
+        power_needed[zone_id] = (power_needed[zone_id] or 0) + unit_power
         enemy_total_power = enemy_total_power + unit_power
     end
     --DBG.dbms(power_needed, false, 'power_needed')
@@ -1159,8 +1168,8 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(objectives.protect, false, 'objectives.protect')
 
     objectives.hold_zones = {}
-    fred_ops_utils.replace_zones(assigned_units, assigned_enemies, objectives.protect, objectives.hold_zones)
     --DBG.dbms(objectives.hold_zones, false, 'objectives.hold_zones')
+    fred_ops_utils.replace_zones(assigned_units, assigned_enemies, objectives.protect, objectives.hold_zones, fred_data.move_data)
 
     -- Calculate where the fronts are in the zones (in leader_distance values)
     -- based on a vulnerability-weighted sum over the zones
