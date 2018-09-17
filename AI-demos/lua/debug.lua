@@ -192,7 +192,7 @@ function debug_utils.put_fgumap_labels(map, key, cfg)
 end
 
 function debug_utils.show_fgumap_with_message(map, key, text, cfg)
-    -- @cfg: optional table with display configuration paramters:
+    -- @cfg: optional table with display configuration parameters:
     --   @x,@y: coordinates to scroll to; if omitted, no scrolling is done
     --   @id: speaker id; if omitted, a narrator message is shown
     --   @no_halo: if set, do not display a halo in the speaker unit location
