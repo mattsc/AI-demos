@@ -162,6 +162,8 @@ function fred_ops_utils.set_protect_goals(objectives, enemy_zones, fred_data)
     -- trigger in cases such as an attack resulting in the location to be protected
     -- but leaving one of the attackers vulnerable
 
+    objectives.enemies_between = {}
+
     -- Get all villages in each zone that are in between all enemies and the
     -- goal location of the leader
     local goal_loc = objectives.leader.village or objectives.leader.keep or fred_data.move_data.leaders[wesnoth.current.side]
@@ -200,6 +202,8 @@ function fred_ops_utils.set_protect_goals(objectives, enemy_zones, fred_data)
                         table.remove(protect_objective.villages, i)
                     end
                 end
+
+                -- Also find other enemies between leader-threat enemies and leader
             end
         end
     end
@@ -1052,7 +1056,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     for id,_ in pairs(unused_units) do
         if pre_assigned_units[id] then
             local zone_id = pre_assigned_units[id]
-            std_print('assigning ' .. id .. ' -> ' .. zone_id)
+            --std_print('assigning ' .. id .. ' -> ' .. zone_id)
             assignments[id] = 'zone:' .. zone_id
             unused_units[id] = nil
         end
