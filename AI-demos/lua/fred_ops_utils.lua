@@ -154,13 +154,11 @@ function fred_ops_utils.zone_power_stats(zones, assigned_units, assigned_enemies
 end
 
 
-function fred_ops_utils.set_protect_goals(objectives, enemy_zones, fred_data)
-    -- 1. Weigh village vs. leader protecting
-    -- 2. Check if you should protect any of the units protecting the protect location.
-    -- Generally this will not find anything if a protect action has already taken
-    -- place, as the best units will have been chosen for that. This does, however,
-    -- trigger in cases such as an attack resulting in the location to be protected
-    -- but leaving one of the attackers vulnerable
+function fred_ops_utils.set_between_objectives(objectives, enemy_zones, fred_data)
+    -- Set other goals that are in between leader and leader threats:
+    -- 1. Villages to protect
+    -- 2. Enemies to attack
+    -- TODO: need better name for this when finished. Combine with the next function?
 
     objectives.enemies_between = {}
 
@@ -204,10 +202,23 @@ function fred_ops_utils.set_protect_goals(objectives, enemy_zones, fred_data)
                 end
 
                 -- Also find other enemies between leader-threat enemies and leader
+                for other_enemy_id,other_enemy_loc in pairs(fred_data.move_data.enemies) do
+                    local other_enemy_zone_id = enemy_zones[other_enemy_id]
+                    if (enemy_zone_id == other_enemy_zone_id) and (other_enemy_id ~= enemy_id) then
+                        local is_between = FU.get_fgumap_value(between_map, other_enemy_loc[1], other_enemy_loc[2], 'is_between')
+                        --std_print('other enemy:', enemy_id, other_enemy_id, enemy_zone_id, is_between)
+                        if is_between then
+                            if (not objectives.enemies_between[zone_id]) then
+                                objectives.enemies_between[zone_id] = {}
+                            end
+                            objectives.enemies_between[zone_id][other_enemy_id] = other_enemy_loc[1] * 1000 + other_enemy_loc[2]
+                        end
+                    end
+                end
             end
         end
     end
-    --DBG.dbms(objectives.protect, false, 'objectives.protect')
+    --DBG.dbms(objectives, false, 'objectives')
 end
 
 
@@ -793,7 +804,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(village_grabs, false, 'village_grabs')
 
 
-    fred_ops_utils.set_protect_goals(objectives, enemy_zones, fred_data)
+    fred_ops_utils.set_between_objectives(objectives, enemy_zones, fred_data)
     --DBG.dbms(objectives.protect, false, 'objectives.protect')
     --DBG.dbms(objectives, false, 'objectives')
 
