@@ -152,6 +152,10 @@ function fred_hold_utils.get_between_map(locs, toward_loc, units, move_data)
     FU.fgumap_blur(between_map, 'distance')
     FU.fgumap_blur(between_map, 'perp_distance')
 
+    for x,y,data in FU.fgumap_iter(between_map) do
+        data.is_between = data.distance > math.abs(data.perp_distance)
+    end
+
     return between_map
 end
 
