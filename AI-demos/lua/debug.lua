@@ -140,6 +140,7 @@ function debug_utils.put_fgumap_labels(map, key, cfg)
     for x,arr in pairs(map) do
         for y,data in pairs(arr) do
             local out = data[key]
+            local red_fac, green_fac, blue_fac = 1, 1, 1
 
             if cfg and cfg.show_coords then
                 out = x .. ',' .. y
@@ -151,6 +152,7 @@ function debug_utils.put_fgumap_labels(map, key, cfg)
                         out = 'true'
                     else
                         out = 'false'
+                        red_fac, green_fac, blue_fac = 1, 0, 0
                     end
                 else
                     if out then
@@ -161,7 +163,6 @@ function debug_utils.put_fgumap_labels(map, key, cfg)
                 end
             end
 
-            local red_fac, green_fac, blue_fac = 1, 1, 1
             if (type(out) == 'number') then
                 color_fac = (out - min) / (max - min)
                 if (color_fac < 0.5) then
