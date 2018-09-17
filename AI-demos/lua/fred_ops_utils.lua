@@ -180,14 +180,13 @@ function fred_ops_utils.set_protect_goals(objectives, enemy_zones, fred_data)
                 local between_map = FHU.get_between_map({ goal_loc }, goal_loc, enemy, fred_data.move_data)
                 if false then
                     DBG.show_fgumap_with_message(between_map, 'distance', zone_id .. ' between_map: distance', fred_data.move_data.unit_copies[enemy_id])
+                    DBG.show_fgumap_with_message(between_map, 'perp_distance', zone_id .. ' between_map: perp_distance', fred_data.move_data.unit_copies[enemy_id])
+                    DBG.show_fgumap_with_message(between_map, 'is_between', zone_id .. ' between_map: is_between', fred_data.move_data.unit_copies[enemy_id])
                 end
 
                 for _,village in ipairs(protect_objective.villages) do
-                    local btw_dist = FU.get_fgumap_value(between_map, village.x, village.y, 'distance')
-                    local btw_perp_dist = FU.get_fgumap_value(between_map, village.x, village.y, 'perp_distance')
-
-                    local is_between = (btw_dist >= math.abs(btw_perp_dist))
-                    --std_print('  ' .. zone_id, enemy_id, village.x .. ',' .. village.y, btw_dist, btw_perp_dist, is_between)
+                    local is_between = FU.get_fgumap_value(between_map, village.x, village.y, 'is_between')
+                    --std_print('  ' .. zone_id, enemy_id, village.x .. ',' .. village.y, is_between)
 
                     if (not is_between) then
                         village.do_not_protect = true
