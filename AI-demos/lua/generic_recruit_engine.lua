@@ -476,7 +476,7 @@ return {
         end
 
         -- Select a unit and hex to recruit to.
-        function select_recruit(leader, avoid_map, outofway_units)
+        function select_recruit(leader, avoid_map, outofway_units, cfg)
             local enemy_counts = recruit_data.recruit.enemy_counts
             local enemy_types = recruit_data.recruit.enemy_types
             local num_enemies =  recruit_data.recruit.num_enemies
@@ -590,7 +590,7 @@ return {
             local recruit_type = nil
 
             repeat
-                recruit_data.recruit.best_hex, recruit_data.recruit.target_hex = ai_cas:find_best_recruit_hex(leader, recruit_data, avoid_map, outofway_units)
+                recruit_data.recruit.best_hex, recruit_data.recruit.target_hex = ai_cas:find_best_recruit_hex(leader, recruit_data, avoid_map, outofway_units, cfg)
                 if recruit_data.recruit.best_hex == nil or recruit_data.recruit.best_hex[1] == nil then
                     return nil
                 end
@@ -603,7 +603,7 @@ return {
         -- Consider recruiting as many units as possible at a location where the leader currently isn't
         -- These units will eventually be considered already recruited when trying to recruit at the current location
         -- Recruit will also recruit these units first once the leader moves to that location
-        function ai_cas:prerecruit_units(from_loc, outofway_units)
+        function ai_cas:prerecruit_units(from_loc, outofway_units, cfg)
             if recruit_data.recruit == nil then
                 recruit_data.recruit = init_data()
             end
@@ -630,7 +630,7 @@ return {
 
             -- recruit as many units as possible at that location
             while #recruit_data.castle.locs > 0 do
-                local recruit_type = select_recruit(leader, nil, outofway_units)
+                local recruit_type = select_recruit(leader, nil, outofway_units, cfg)
                 if recruit_type == nil then
                     break
                 end
@@ -658,7 +658,7 @@ return {
         end
 
         -- recruit a unit
-        function ai_cas:recruit_rushers_exec(ai_local, avoid_map, outofway_units, no_exec)
+        function ai_cas:recruit_rushers_exec(ai_local, avoid_map, outofway_units, no_exec, cfg)
             -- Optional input:
             --  @no_exec: if set, only go through the calculation and return true,
             --    but don't actually do anything. This is just a hack for now until
@@ -686,7 +686,7 @@ return {
                 end
                 recruit_data.recruit.prerecruit.total_cost = recruit_data.recruit.prerecruit.total_cost - wesnoth.unit_types[recruit_type].cost
             else
-                recruit_type = select_recruit(leader, avoid_map, outofway_units)
+                recruit_type = select_recruit(leader, avoid_map, outofway_units, cfg)
                 if recruit_type == nil then
                     return false
                 end
@@ -767,7 +767,7 @@ return {
             end
         end
 
-        function ai_cas:find_best_recruit_hex(leader, data, avoid_map, outofway_units)
+        function ai_cas:find_best_recruit_hex(leader, data, avoid_map, outofway_units, cfg)
             -- Find the best recruit hex
             -- First choice: a hex that can reach an unowned village
             -- Second choice: a hex close to the enemy
@@ -777,8 +777,14 @@ return {
             --    not recruit, unless no other hexes are available
             --  @outofway_units: a table of type { id = true } listing units that
             --    can move out of the way to make place for recruiting
+            --  @cfg: table containing parameters to configure the hex rating
+            --    castle_rating_map: an FGUmap containing an additive rating contribution
+            --       Note: we do not include the fgumap functions here, but can access it manually
+            --    outofway_penalty: penalty to be used for hexes with units that can
+            --      move out of the way (default: -100)
 
             outofway_units = outofway_units or {}
+            local outofway_penalty = cfg and cfg.outofway_penalty or -100
 
             get_current_castle(leader, data)
 
@@ -809,14 +815,24 @@ return {
                         -- to move out of the way, otherwise we don't get here), give
                         -- a pretty stiff penalty, but make it possible to recruit here
                         if unit then
-                            --std_print('Out of way penalty', c[1], c[2], unit.id)
-                            rating = rating - 100.
+                            --std_print('  Out of way penalty', c[1], c[2], unit.id)
+                            rating = rating + outofway_penalty
                         end
 
                         if avoid_map and avoid_map:get(c[1], c[2]) then
                             --std_print('Avoid hex for recruiting:', c[1], c[2])
                             rating = rating - 1000.
                         end
+
+                        if cfg and cfg.castle_rating_map
+                            and cfg.castle_rating_map[c[1]] and cfg.castle_rating_map[c[1]][c[2]]
+                        then
+                            local custom_rating = cfg.castle_rating_map[c[1]][c[2]].rating or 0
+                            --std_print('custom_rating:', c[1] .. ',' .. c[2], custom_rating)
+                            rating = rating + custom_rating
+                        end
+
+                        --std_print(c[1], c[2], rating)
                         if (rating > max_rating) then
                             max_rating, best_hex = rating, { c[1], c[2] }
                         end
