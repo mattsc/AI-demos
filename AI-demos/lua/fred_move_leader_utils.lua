@@ -260,10 +260,6 @@ function fred_move_leader_utils.leader_objectives(fred_data)
         keep = keep
     }
 
-    if prerecruit.units[1] then
-        leader_objectives.prerecruit = prerecruit
-    end
-
     return leader_objectives
 end
 
@@ -347,9 +343,52 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigne
     DBG.print_debug('analysis', '  significant_threat', leader_threats.significant_threat)
 
     -- Only count leader threats if they are significant
-    --if (not leader_threats.significant_threat) then
-    --    leader_threats.enemies = nil
-    --end
+    if (not leader_threats.significant_threat) then
+        leader_threats.enemies = nil
+    elseif leader_objectives.keep then
+        -- Now find prerecruits so that they are in between leader and threats
+        -- TODO: is there a way of doing this without duplicating the prerecruit eval from before?
+        local castle_rating_map = {}
+        for x,y,_ in FU.fgumap_iter(move_data.reachable_castles_map[wesnoth.current.side]) do
+            for enemy_id,_ in pairs(leader_threats.enemies) do
+                local max_moves_left = 0
+                for xa,ya in H.adjacent_tiles(x, y) do
+                    local moves_left = FU.get_fgumap_value(fred_data.turn_data.enemy_initial_reach_maps[enemy_id], xa, ya, 'moves_left')
+                    if moves_left then
+                        -- to distinguish moves_left = 0 from unreachable hexes
+                        moves_left = moves_left + 1
+                        if (moves_left > max_moves_left) then
+                            max_moves_left = moves_left
+                        end
+                    end
+                end
+
+                -- We also simply add, rather than taking an average, in order
+                -- to emphasize hexes that can be reach by several units
+                FU.fgumap_add(castle_rating_map, x, y, 'rating', max_moves_left)
+            end
+        end
+        --DBG.show_fgumap_with_message(castle_rating_map, 'rating', 'castle_rating_map')
+
+        local outofway_units = {}
+        -- Note that the leader is included in the following, as he might
+        -- be on a castle hex other than a keep. His recruit location is
+        -- automatically excluded by the prerecruit code
+        for _,_,data in FU.fgumap_iter(move_data.my_unit_map_MP) do
+            if data.can_move_away then
+                outofway_units[data.id] = true
+            end
+        end
+
+        local x, y = leader_objectives.keep[1], leader_objectives.keep[2]
+        local cfg = { castle_rating_map = castle_rating_map, outofway_penalty = -0.1 }
+        prerecruit = fred_data.recruit:prerecruit_units({ x, y }, outofway_units, cfg)
+        --DBG.dbms(prerecruit, false, 'prerecruit')
+
+        if prerecruit.units[1] then
+            leader_objectives.prerecruit = prerecruit
+        end
+    end
     --DBG.dbms(leader_threats, false, 'leader_threats')
 
     leader_objectives.leader_threats = leader_threats
