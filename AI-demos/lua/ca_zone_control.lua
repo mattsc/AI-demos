@@ -2865,7 +2865,30 @@ function ca_zone_control:evaluation(cfg, data, ai_debug)
                 table.insert(extracted_units, unit_proxy)  -- Not a proxy unit any more at this point
             end
 
+            -- Put the prerecruited units onto the map
+            --DBG.dbms(data.ops_data.objectives.leader.prerecruit)
+            if data.ops_data.objectives.leader.prerecruit then
+                for _,recruit in ipairs(data.ops_data.objectives.leader.prerecruit.units) do
+                    --std_print('Putting pre-recruit onto map: ' .. recruit.recruit_type, recruit.recruit_hex[1] .. ',' .. recruit.recruit_hex[2])
+                    wesnoth.put_unit({
+                        type = recruit.recruit_type,
+                        random_traits = false,
+                        name = "X",
+                        random_gender = false,
+                        moves = 0
+                    },
+                    recruit.recruit_hex[1], recruit.recruit_hex[2])
+                end
+            end
+
             local zone_action = get_zone_action(cfg, data)
+
+            if data.ops_data.objectives.leader.prerecruit then
+                for _,recruit in ipairs(data.ops_data.objectives.leader.prerecruit.units) do
+                    --std_print('Removing pre-recruit onto map: ' .. recruit.recruit_type, recruit.recruit_hex[1] .. ',' .. recruit.recruit_hex[2])
+                    wesnoth.erase_unit(recruit.recruit_hex[1], recruit.recruit_hex[2])
+                end
+            end
 
             for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
 
