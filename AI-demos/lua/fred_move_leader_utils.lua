@@ -8,9 +8,11 @@ local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local function get_best_village(leader, recruit_first, move_data)
     -- If we're trying to retreat to a village, check whether we do so directly,
-    -- or go to a keep first.
+    -- or go to a keep first. Returns nil for keep if it is not necessary to go
+    -- to the keep for recruiting, or if it is not possible to do so and still
+    -- reach a village.
 
-    local village_map = {}
+    local village_map, village_found = {}, false
 
     if recruit_first then
         -- Go to (any) keep, then to a village
@@ -48,12 +50,15 @@ local function get_best_village(leader, recruit_first, move_data)
                                 moves_left = loc[3]
                             }
                             FU.set_fgumap_value(village_map, loc[1], loc[2], 'info', info)
+                            village_found = true
                         end
                     end
                 end
             end
         end
-    else
+    end
+
+    if (not village_found) then
         -- Go directly to a village (but must be within one move of keep)
         -- Need list of all those villages
         for x,y,_ in FU.fgumap_iter(move_data.reach_maps[leader.id]) do
@@ -208,7 +213,7 @@ function fred_move_leader_utils.leader_objectives(fred_data)
     local move_data = fred_data.move_data
     local leader = move_data.leaders[wesnoth.current.side]
 
-    local prerecruit = { units = {} }
+    local do_recruit = false
     -- TODO: for now we only check if recruiting will be done for any one keep hex.
     --   Might have to be extended when taking this to other maps.
     for x,y,_ in FU.fgumap_iter(move_data.reachable_keeps_map[wesnoth.current.side]) do
@@ -230,6 +235,10 @@ function fred_move_leader_utils.leader_objectives(fred_data)
     end
     --DBG.dbms(prerecruit, false, 'prerecruit')
 
+    if prerecruit.units[1] then
+        do_recruit = true
+    end
+
     -- If the eventual goal is a village, we do not need to rate the keep that we might
     -- stop by for recruiting. The village function will also return whatever keep
     -- works for getting to that village
@@ -237,15 +246,25 @@ function fred_move_leader_utils.leader_objectives(fred_data)
     if (not move_data.unit_infos[leader.id].abilities.regenerate)
         and (move_data.unit_infos[leader.id].hitpoints < move_data.unit_infos[leader.id].max_hitpoints)
     then
-        village, keep = get_best_village(leader, prerecruit.units[1], move_data)
+        village, keep = get_best_village(leader, do_recruit, move_data)
     end
     --DBG.dbms(village, false, 'village')
     --DBG.dbms(keep, false, 'keep')
 
-    -- If no village was found, we go for the best keep, no matter what the reason
-    if (not village) and prerecruit.units[1] then
+    -- At this point, keep might be nil even if do_recruit=true because
+    -- 1. We did not check for a village/keep combination
+    -- 2. It is not possible to go to a keep and village on the same turn
+    -- Either way, we check for the best keep.
+    if (not keep) and do_recruit then
         keep = get_best_keep(leader, fred_data)
+
+        -- TODO: if it is only possible to go to either a keep or a villagem we
+        -- should evaluate which one is more important. For now, we always choose the keep
+        if keep and village then
+            village=nil
+        end
     end
+    --DBG.dbms(village, false, 'village')
     --DBG.dbms(keep, false, 'keep')
 
     -- Don't need to go to keep if the leader is already there
