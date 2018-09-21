@@ -276,12 +276,9 @@ function fred_move_leader_utils.leader_objectives(fred_data)
 
     local leader_objectives = {
         village = village,
-        keep = keep
+        keep = keep,
+        do_recruit = do_recruit
     }
-
-    if prerecruit.units[1] then
-        leader_objectives.recruit = true
-    end
 
     return leader_objectives
 end
@@ -368,7 +365,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigne
     -- Only count leader threats if they are significant
     if (not leader_threats.significant_threat) then
         leader_threats.enemies = {}
-    elseif leader_objectives.recruit then
+    elseif leader_objectives.do_recruit then
         -- Now find prerecruits so that they are in between leader and threats
         -- TODO: is there a way of doing this without duplicating the prerecruit eval from before?
         local castle_rating_map = {}
