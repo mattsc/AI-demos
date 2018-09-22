@@ -6,102 +6,153 @@ local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_increme
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
-local function get_best_village(leader, recruit_first, move_data)
-    -- If we're trying to retreat to a village, check whether we do so directly,
-    -- or go to a keep first. Returns nil for keep if it is not necessary to go
-    -- to the keep for recruiting, or if it is not possible to do so and still
-    -- reach a village.
+local function get_reach_map_via_keep(leader, move_data)
+    -- Map of hexes the leader can reach after going to a keep.
+    -- Hexes with own units with MP=0 are excluded.
+    -- x,y in the output map denote the keep by which this is done
+    -- This can be used to find the range the leader has after recruiting.
 
-    local village_map, village_found = {}, false
+    local old_loc = { leader[1], leader[2] }
+    local old_moves = move_data.unit_infos[leader.id].moves
+    local leader_copy = move_data.unit_copies[leader.id]
 
-    if recruit_first then
-        -- Go to (any) keep, then to a village
-        -- Need list of all those villages
-        for x,y,_ in FU.fgumap_iter(move_data.reachable_keeps_map[wesnoth.current.side]) do
-            --std_print('keep:', x .. ',' .. y)
-            -- Note that reachable_keeps_map contains moves_left assuming max_mp for the leader
-            -- This should generally be the same at this stage as the real situation, but
-            -- might not work depending on how this is used in the future.
-            local ml = FU.get_fgumap_value(move_data.reach_maps[leader.id], x, y, 'moves_left')
-            if ml then
-                -- Can the leader get to any villages from here?
-                local old_loc = { leader[1], leader[2] }
-                local old_moves = move_data.unit_infos[leader.id].moves
-                local leader_copy = move_data.unit_copies[leader.id]
-                leader_copy.x, leader_copy.y = x, y
-                leader_copy.moves = ml
-                local reach_from_keep = wesnoth.find_reach(leader_copy)
-                leader_copy.x, leader_copy.y = old_loc[1], old_loc[2]
-                leader_copy.moves = old_moves
+    local effective_reach_map = {}
+    for x,y,_ in FU.fgumap_iter(move_data.reachable_keeps_map[wesnoth.current.side]) do
+        -- Note that reachable_keeps_map contains moves_left assuming max_mp for the leader.
+        -- That's why we check reach_maps as well.
+        local ml = FU.get_fgumap_value(move_data.reach_maps[leader.id], x, y, 'moves_left')
+        if ml then
+            leader_copy.x, leader_copy.y = x, y
+            leader_copy.moves = ml
+            local reach_from_keep = wesnoth.find_reach(leader_copy)
 
-                for _,loc in ipairs(reach_from_keep) do
-                    local owner = FU.get_fgumap_value(move_data.village_map, loc[1], loc[2], 'owner')
-
-                    if owner then
-                        local max_ml = (FU.get_fgumap_value(village_map, loc[1], loc[2], 'info') or {}).moves_left
-                        --std_print('  village:', loc[1] .. ',' .. loc[2], loc[3], max_ml)
-                        -- TODO: this does not necessarily gives the closest
-                        -- village to any keep, but the closest village to get
-                        -- to via a keep from current leader position. Might want
-                        -- to simply add the closest village to reachable_keeps (in gamestate_utils)
-                        if (not max_ml) or (max_ml < loc[3]) then
-                            local info = {
-                                keep = { x, y },
-                                moves_left = loc[3]
-                            }
-                            FU.set_fgumap_value(village_map, loc[1], loc[2], 'info', info)
-                            village_found = true
-                        end
+            for _,loc in ipairs(reach_from_keep) do
+                if (not FU.get_fgumap_value(move_data.my_unit_map_noMP, loc[1], loc[2], 'id')) then
+                    local ml_old = FU.get_fgumap_value(effective_reach_map, loc[1], loc[2], 'moves_left') or -1
+                    if (loc[3] > ml_old) then
+                        FU.set_fgumap_value(effective_reach_map, loc[1], loc[2], 'moves_left', loc[3])
+                        effective_reach_map[loc[1]][loc[2]].from_keep = { x, y }
                     end
                 end
             end
         end
     end
 
-    if (not village_found) then
-        -- Go directly to a village (but must be within one move of keep)
-        -- Need list of all those villages
-        for x,y,_ in FU.fgumap_iter(move_data.reach_maps[leader.id]) do
-            local owner = FU.get_fgumap_value(move_data.village_map, x, y, 'owner')
-            if owner then
-                --std_print('village:', x .. ',' .. y)
+    return effective_reach_map
+end
 
-                -- Can the leader get to any villages from here?
-                local old_loc = { leader[1], leader[2] }
-                local old_moves = move_data.unit_infos[leader.id].moves
-                local leader_copy = move_data.unit_copies[leader.id]
-                leader_copy.x, leader_copy.y = x, y
-                leader_copy.moves = leader_copy.max_moves
-                local reach_from_village = wesnoth.find_reach(leader_copy)
-                leader_copy.x, leader_copy.y = old_loc[1], old_loc[2]
-                leader_copy.moves = old_moves
-                --std_print('#reach_from_village', #reach_from_village)
+local function get_reach_map_to_keep(leader, move_data)
+    -- Map of hexes from which the leader can reach a keep with full MP on the next
+    -- turn. In this case, 'moves_left' denotes MP left after moving to the keep.
+    -- x,y in the output map denote the keep to which this is calculated
+    -- Hexes with own units with MP=0 are excluded.
+    -- This can be used to find how far the leader can wander and still get to a keep next turn.
 
-                for _,loc in ipairs(reach_from_village) do
-                    if FU.get_fgumap_value(move_data.reachable_keeps_map[wesnoth.current.side], loc[1], loc[2], 'moves_left') then
-                        -- Moves left after moving from village to keep
-                        --std_print('  keep:', loc[1] .. ',' .. loc[2], loc[3])
-                        local max_ml = (FU.get_fgumap_value(village_map, x, y, 'info') or {}).moves_left
-                        if (not max_ml) or (max_ml < loc[3]) then
-                            FU.set_fgumap_value(village_map, x, y, 'info', { moves_left = loc[3] })
-                        end
+    local leader_proxy = wesnoth.get_unit(leader[1], leader[2])
+    local max_moves = move_data.unit_infos[leader.id].max_moves
+
+    local effective_reach_map = {}
+    for x_k,y_k,_ in FU.fgumap_iter(move_data.reachable_keeps_map[wesnoth.current.side]) do
+        -- Note that reachable_keeps_map contains moves_left assuming max_mp for the leader.
+        -- That's why we check reach_maps as well.
+        local cost_from_keep = FU.smooth_cost_map(leader_proxy, { x_k, y_k }, true)
+        for x,y,data in FU.fgumap_iter(cost_from_keep) do
+            if (not FU.get_fgumap_value(move_data.my_unit_map_noMP, x, y, 'id'))
+                and FU.get_fgumap_value(move_data.reach_maps[leader.id], x, y, 'moves_left')
+            then
+                local moves_left = max_moves - data.cost
+                if (moves_left >= 0) then
+                    local ml_old = FU.get_fgumap_value(effective_reach_map, x, y, 'moves_left') or -1
+                    if (moves_left > ml_old) then
+                        FU.set_fgumap_value(effective_reach_map, x, y, 'moves_left', moves_left)
+                        effective_reach_map[x][y].to_keep = { x_k, y_k }
                     end
                 end
             end
         end
     end
+
+    return effective_reach_map
+end
+
+local function get_best_village_keep(leader, recruit_first, effective_reach_map, fred_data)
+    -- Find village to retreat to. This is done via effective_reach_map, which
+    -- automatically takes stopping by a keep, and not wandering off too far
+    -- into account, depending on what other moves the leader is supposed to make.
+    --
+    -- TODO: currently if no village can be reached via a keep, we always prefer
+    -- to move to a keep over a village. Might want to add a trade-off eval here.
+
+    local move_data = fred_data.move_data
+    local from_keep_found
+    local village_map
+    if (not move_data.unit_infos[leader.id].abilities.regenerate)
+        and (move_data.unit_infos[leader.id].hitpoints < move_data.unit_infos[leader.id].max_hitpoints)
+    then
+        for x,y,village in FU.fgumap_iter(move_data.village_map) do
+            --std_print('village: ' .. x .. ',' .. y, village.owner)
+            -- This is the effective reach_map
+            local moves_left = FU.get_fgumap_value(effective_reach_map, x, y, 'moves_left')
+            if moves_left then
+                --std_print('  in reach: ' .. x .. ',' .. y)
+                local info = {
+                    moves_left = moves_left,
+                    is_village = true,
+                    from_keep = effective_reach_map[x][y].from_keep,
+                }
+                if (not village_map) then village_map = {} end
+                FU.set_fgumap_value(village_map, x, y, 'info', info)
+
+                -- Also flag if this is done via a keep
+                from_keep_found = info.from_keep
+            end
+        end
+    end
+    --std_print('from_keep_found: ', from_keep_found)
     --DBG.dbms(village_map, false, 'village_map')
 
-    -- Now select best village
+    -- No keep found could mean that either it is not possible to go for a village via
+    -- a keep, or that we don't need to go for a village (and did not search)
+    local keep_map
+    if recruit_first and (not from_keep_found) then
+        for x,y,_ in FU.fgumap_iter(move_data.reachable_keeps_map[wesnoth.current.side]) do
+            --std_print('keep: ' .. x .. ',' .. y)
+            -- Note that reachable_keeps ignores other units, both own units and enemies
+            -- So we need to check that the leader can get there first.
+            -- This is the real reach_map
+            local moves_left = FU.get_fgumap_value(move_data.reach_maps[leader.id], x, y, 'moves_left')
+            if moves_left then
+                --std_print('  in reach: ' .. x .. ',' .. y)
+                local info = {
+                    moves_left = moves_left
+                }
+                if (not keep_map) then keep_map = {} end
+                FU.set_fgumap_value(keep_map, x, y, 'info', info)
+            end
+        end
+    end
+    --DBG.dbms(keep_map, false, 'keep_map')
+
+    -- keep_map is taken over village_map (but is only calculated if a keep is needed
+    -- but none found in the village_map step)
+    -- TODO: might not always take keep over village
+    local hex_map = keep_map or village_map
+    --DBG.dbms(hex_map, false, 'hex_map')
+
+    if (not hex_map) then return end
+
+    -- Now select best village or keep
     local leader_unthreatened_hex_bonus = FCFG.get_cfg_parm('leader_unthreatened_hex_bonus')
+    local leader_village_bonus = FCFG.get_cfg_parm('leader_village_bonus')
     local leader_moves_left_factor = FCFG.get_cfg_parm('leader_moves_left_factor')
+    local leader_unit_in_way_penalty = FCFG.get_cfg_parm('leader_unit_in_way_penalty')
+    local leader_eld_factor = FCFG.get_cfg_parm('leader_eld_factor')
 
-
-    local max_rating, best_village = - math.huge
-    for x,y,village in FU.fgumap_iter(village_map) do
+    local max_rating, best_hex = - math.huge
+    for x,y,hex in FU.fgumap_iter(hex_map) do
         local influence = FU.get_fgumap_value(move_data.influence_maps, x, y, 'influence')
         local enemy_influence = FU.get_fgumap_value(move_data.influence_maps, x, y, 'enemy_influence') or 0
-        local moves_left = village.info.moves_left
+        local moves_left = hex.info.moves_left
 
         local rating = moves_left * leader_moves_left_factor
 
@@ -110,100 +161,59 @@ local function get_best_village(leader, recruit_first, move_data)
         else
             rating = rating + influence
         end
-        --std_print('rating for village: ', x .. ',' .. y, rating, influence, enemy_influence, moves_left)
+        --std_print('rating for hex: ', x .. ',' .. y, rating, influence, enemy_influence, moves_left)
 
-        if (rating > max_rating) then
-            max_rating = rating
-            best_village = { x, y }
+        local owner = FU.get_fgumap_value(move_data.village_map, x, y, 'owner')
+        if owner and (owner ~= wesnoth.current.side) then
+            if (owner == 0) then
+                rating = rating + leader_village_bonus
+            else
+                rating = rating + 2 * leader_village_bonus
+            end
         end
-    end
-    --DBG.dbms(best_village, false, 'best_village')
+        --std_print('rating after village bonus: ', x .. ',' .. y, rating, owner)
 
-    local keep_on_way
-    if best_village then
-        local info = FU.get_fgumap_value(village_map, best_village[1], best_village[2], 'info')
-        if info.keep then
-            keep_on_way = info.keep
-        end
-    end
-    --DBG.dbms(keep_on_way, false, 'keep_on_way')
-
-    return best_village, keep_on_way
-end
-
-
-local function get_best_keep(leader, fred_data)
-    local move_data = fred_data.move_data
-    local leader_info = move_data.unit_infos[leader.id]
-
-    local leader_turns_rating = FCFG.get_cfg_parm('leader_turns_rating')
-    local leader_unit_in_way_penalty = FCFG.get_cfg_parm('leader_unit_in_way_penalty')
-    local leader_unthreatened_hex_bonus = FCFG.get_cfg_parm('leader_unthreatened_hex_bonus')
-    local leader_eld_factor = FCFG.get_cfg_parm('leader_eld_factor')
-
-    local max_rating, best_keep, best_turns = - math.huge
-    for x,y,_ in FU.fgumap_iter(move_data.reachable_keeps_map[wesnoth.current.side]) do
-        -- Note that reachable_keeps ignores other units, both own units and enemies
-        -- So we need to check that the leader can get there first.
-        local path, cost = wesnoth.find_path(move_data.unit_copies[leader.id], x, y)
-        cost = cost + leader_info.max_moves - leader_info.moves
-        local turns = math.ceil(cost / leader_info.max_moves)
-        if (turns == 0) then turns = 1 end
-        --std_print('  cost, turns:', cost, turns)
-
-        local turn_rating = (turns - 1) * leader_turns_rating
-        --std_print('  turn_rating:', turn_rating)
-
-        -- If we can get there this turn, check whether there's a unit in the way,
-        -- and whether it can move away. If it takes us more than a move, we don't
-        -- care. And hexes with enemies have a huge cost (42424242) anyway.
+        -- Check whether there's a unit in the way, and whether it can move away.
         local unit_in_way_rating = 0
-        if (turns == 1) then
-            if (x ~= leader[1]) or (y ~= leader[2]) then
-                if FU.get_fgumap_value(move_data.unit_map, x, y, 'id') then
-                    --std_print('  in way: ' .. FU.get_fgumap_value(move_data.unit_map, x, y, 'id'))
-                    if FU.get_fgumap_value(move_data.my_unit_map_MP, x, y, 'can_move_away') then
-                        unit_in_way_rating = leader_unit_in_way_penalty
-                    else
-                        unit_in_way_rating = leader_turns_rating + leader_unit_in_way_penalty
-                    end
+        if (x ~= leader[1]) or (y ~= leader[2]) then
+            if FU.get_fgumap_value(move_data.unit_map, x, y, 'id') then
+                --std_print('  in way: ' .. FU.get_fgumap_value(move_data.unit_map, x, y, 'id'))
+                if FU.get_fgumap_value(move_data.my_unit_map_MP, x, y, 'can_move_away') then
+                    unit_in_way_rating = leader_unit_in_way_penalty
+                else
+                    unit_in_way_rating = leader_turns_rating + leader_unit_in_way_penalty
                 end
             end
         end
         --std_print('  unit_in_way_rating:', unit_in_way_rating)
-
-        local influence = FU.get_fgumap_value(move_data.influence_maps, x, y, 'influence')
-        local enemy_influence = FU.get_fgumap_value(move_data.influence_maps, x, y, 'enemy_influence') or 0
-        --std_print('  influence, enemy_influence: ', influence, enemy_influence)
-
-        local rating = turn_rating + unit_in_way_rating
-
-        if (enemy_influence == 0) then
-            rating = rating + leader_unthreatened_hex_bonus
-        else
-            rating = rating + influence
-        end
+        local rating = rating + unit_in_way_rating
 
         -- Minor rating is distance from enemy leader (the closer the better)
         local eld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'enemy_leader_distance')
         --std_print('  eld', eld)
-
         rating = rating + eld * leader_eld_factor
+
         --std_print('rating for keep: ', x .. ',' .. y, rating)
 
         if (rating > max_rating) then
             max_rating = rating
-            best_keep = { x, y }
-            best_turns = turns
+            best_hex = hex
+            best_hex.loc = { x, y }
         end
     end
+    --DBG.dbms(best_hex, false, 'best_hex')
 
-    -- If the leader cannot get to the keep this turn, find the best location to go to instead
-    if (best_turns > 1) then
-        -- TODO
+    local village, keep
+    if best_hex.info.is_village then
+        village = best_hex.loc
+        keep = best_hex.info.from_keep
+    else
+        keep = best_hex.loc
     end
+    --DBG.dbms(village, false, 'village')
+    --DBG.dbms(keep, false, 'keep')
 
-    return best_keep
+    return village, keep
 end
 
 
@@ -235,44 +245,27 @@ function fred_move_leader_utils.leader_objectives(fred_data)
     end
     --DBG.dbms(prerecruit, false, 'prerecruit')
 
+    -- These are used for other purposes also, so they are not linked to whether we
+    -- can reach the desired villages and keeps
+    local effective_reach_map
     if prerecruit.units[1] then
         do_recruit = true
+        effective_reach_map = get_reach_map_via_keep(leader, move_data)
     end
+    -- Even if we want to recruit, we need the other effective_reach_map if no
+    -- keep can be reached
+    if (not effective_reach_map) or (not next(effective_reach_map)) then
+        effective_reach_map = get_reach_map_to_keep(leader, move_data)
+    end
+    --DBG.show_fgumap_with_message(effective_reach_map, 'moves_left', 'effective_reach_map')
 
     -- If the eventual goal is a village, we do not need to rate the keep that we might
     -- stop by for recruiting. The village function will also return whatever keep
     -- works for getting to that village
     local village, keep
-    if (not move_data.unit_infos[leader.id].abilities.regenerate)
-        and (move_data.unit_infos[leader.id].hitpoints < move_data.unit_infos[leader.id].max_hitpoints)
-    then
-        village, keep = get_best_village(leader, do_recruit, move_data)
-    end
+    village, keep = get_best_village_keep(leader, do_recruit, effective_reach_map, fred_data)
     --DBG.dbms(village, false, 'village')
     --DBG.dbms(keep, false, 'keep')
-
-    -- At this point, keep might be nil even if do_recruit=true because
-    -- 1. We did not check for a village/keep combination
-    -- 2. It is not possible to go to a keep and village on the same turn
-    -- Either way, we check for the best keep.
-    if (not keep) and do_recruit then
-        keep = get_best_keep(leader, fred_data)
-
-        -- TODO: if it is only possible to go to either a keep or a villagem we
-        -- should evaluate which one is more important. For now, we always choose the keep
-        if keep and village then
-            village=nil
-        end
-    end
-    --DBG.dbms(village, false, 'village')
-    --DBG.dbms(keep, false, 'keep')
-
-    -- Don't need to go to keep if the leader is already there
-    if keep and (keep[1] == leader[1]) and (keep[2] == leader[2]) then
-        keep = nil
-    end
-
-    -- TODO: if the leader cannot recruit, no need to go back to keep, as long as we stay within one move?
 
     local leader_objectives = {
         village = village,
@@ -280,7 +273,7 @@ function fred_move_leader_utils.leader_objectives(fred_data)
         do_recruit = do_recruit
     }
 
-    return leader_objectives
+    return leader_objectives, effective_reach_map
 end
 
 function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigned_enemies, raw_cfgs_main, side_cfgs, fred_data)

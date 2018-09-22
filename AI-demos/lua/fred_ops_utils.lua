@@ -788,9 +788,10 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
     --DBG.dbms(pre_assigned_units, false, 'pre_assigned_units')
 
-
-    local objectives = { leader = FMLU.leader_objectives(fred_data) }
+    local leader_objectives, leader_effective_reach_map = FMLU.leader_objectives(fred_data)
+    local objectives = { leader = leader_objectives }
     --DBG.dbms(objectives, false, 'objectives')
+    --DBG.show_fgumap_with_message(leader_effective_reach_map, 'moves_left', 'leader_effective_reach_map')
     FMLU.assess_leader_threats(objectives.leader, assigned_enemies, raw_cfgs_main, side_cfgs, fred_data)
     --DBG.dbms(objectives, false, 'objectives')
 
