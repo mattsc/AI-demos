@@ -796,6 +796,63 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(objectives, false, 'objectives')
 
 
+    local reserved_actions = { actions = {}, units = {}, locs = {} }
+    local leader = move_data.leaders[wesnoth.current.side]
+
+    if objectives.leader.village then
+        local leader_heal_benefit = math.min(8, move_data.unit_infos[leader.id].max_hitpoints - move_data.unit_infos[leader.id].hitpoints)
+        -- Multiply benefit * 1.5 for this being the leader
+        -- Not putting the leader into too much danger is taken care of elsewhere
+        leader_heal_benefit = 1.5 * leader_heal_benefit / move_data.unit_infos[leader.id].max_hitpoints * move_data.unit_infos[leader.id].cost
+        local x, y = objectives.leader.village[1], objectives.leader.village[2]
+        local action = {
+            id = leader.id,
+            x = x,
+            y = y,
+            type = 'full_move',
+            action_str = 'move_leader_to_village',
+            action_type = 'MtS',
+            benefit = leader_heal_benefit
+        }
+        local action_id = 'leader_village:' .. (x * 1000 + y)
+        reserved_actions.actions[action_id] = action
+
+        if (not reserved_actions.units[leader.id]) then reserved_actions.units[leader.id] = {} end
+        table.insert(reserved_actions.units[leader.id], action_id)
+
+        local tmp = FU.get_fgumap_value(reserved_actions.locs, x, y, 'action_ids') or {}
+        table.insert(tmp, action_id)
+        FU.set_fgumap_value(reserved_actions.locs, x, y, 'action_ids', tmp)
+    end
+
+    if objectives.leader.keep then
+        -- For now, let's use half the value of the remaining gold as the benefit
+        -- TODO: this has to be refined
+        local leader_recruit_benefit = wesnoth.sides[wesnoth.current.side].gold / 2
+        local x, y = objectives.leader.keep[1], objectives.leader.keep[2]
+        local action = {
+            id = leader.id,
+            x = x,
+            y = y,
+            type = 'partial_move',
+            action_str = 'move_leader_to_keep',
+            action_type = 'Rec',
+            benefit = leader_recruit_benefit
+        }
+        local action_id = 'leader_keep:' .. (x * 1000 + y)
+        reserved_actions.actions[action_id] = action
+
+        if (not reserved_actions.units[leader.id]) then reserved_actions.units[leader.id] = {} end
+        table.insert(reserved_actions.units[leader.id], action_id)
+
+        local tmp = FU.get_fgumap_value(reserved_actions.locs, x, y, 'action_ids') or {}
+        table.insert(tmp, action_id)
+        FU.set_fgumap_value(reserved_actions.locs, x, y, 'action_ids', tmp)
+    end
+
+    --DBG.dbms(reserved_actions, false, 'reserved_actions')
+
+
     local village_objectives, villages_to_grab = FVU.village_objectives(raw_cfgs_main, side_cfgs, fred_data)
     objectives.protect = village_objectives
     --DBG.dbms(objectives.protect, false, 'objectives.protect')
