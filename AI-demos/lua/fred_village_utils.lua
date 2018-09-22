@@ -80,7 +80,7 @@ function fred_village_utils.village_objectives(zone_cfgs, side_cfgs, fred_data)
 end
 
 
-function fred_village_utils.village_grabs(villages_to_grab, fred_data)
+function fred_village_utils.village_grabs(villages_to_grab, reserved_actions, fred_data)
     local move_data = fred_data.move_data
     local value_ratio = fred_data.turn_data.behavior.orders.value_ratio
 
@@ -97,14 +97,18 @@ function fred_village_utils.village_grabs(villages_to_grab, fred_data)
     local village_grabs = {}
     for _,village in pairs(villages_to_grab) do
         local x, y = village.x, village.y
-
-        local ids = FU.get_fgumap_value(move_data.my_move_map[1], x, y, 'ids') or {}
+        local is_reserved_loc = FU.get_fgumap_value(reserved_actions.locs, x, y, 'action_ids')
+        local ids = {}
+        if (not is_reserved_loc) then
+            ids = FU.get_fgumap_value(move_data.my_move_map[1], x, y, 'ids') or {}
+        end
         for _,id in pairs(ids) do
             local loc = move_data.my_units[id]
             -- Only include the leader if he's on the keep
             -- TODO: not necessarily true any more
-            if (not move_data.unit_infos[id].canrecruit)
-                or wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).keep
+            if (not reserved_actions.units[id])
+                and ((not move_data.unit_infos[id].canrecruit)
+                or wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).keep)
             then
                 local target = {}
                 target[id] = { x, y }
