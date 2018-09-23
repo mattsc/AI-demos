@@ -796,8 +796,11 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(objectives, false, 'objectives')
 
 
-    local reserved_actions = { actions = {}, units = {}, locs = {} }
     local leader = move_data.leaders[wesnoth.current.side]
+    local effective_reach_maps = {}
+    effective_reach_maps[leader.id] = leader_effective_reach_map
+
+    local reserved_actions = { actions = {}, units = {}, locs = {} }
 
     if objectives.leader.village then
         local leader_heal_benefit = math.min(8, move_data.unit_infos[leader.id].max_hitpoints - move_data.unit_infos[leader.id].hitpoints)
@@ -842,8 +845,11 @@ function fred_ops_utils.set_ops_data(fred_data)
         local action_id = 'leader_keep:' .. (x * 1000 + y)
         reserved_actions.actions[action_id] = action
 
-        if (not reserved_actions.units[leader.id]) then reserved_actions.units[leader.id] = {} end
-        table.insert(reserved_actions.units[leader.id], action_id)
+        -- Important: we reserve the hex, so that the leader can recruit, but not the
+        -- unit, as the leader should be able to do something else after recruiting.
+        -- The reduced range is taken care of by effective_reach_maps.
+        --if (not reserved_actions.units[leader.id]) then reserved_actions.units[leader.id] = {} end
+        --table.insert(reserved_actions.units[leader.id], action_id)
 
         local tmp = FU.get_fgumap_value(reserved_actions.locs, x, y, 'action_ids') or {}
         table.insert(tmp, action_id)
@@ -858,12 +864,12 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(objectives.protect, false, 'objectives.protect')
     --DBG.dbms(villages_to_grab, false, 'villages_to_grab')
 
-    --DBG.dbms(village_grabs, false, 'village_grabs')
     -- Exclude villages already taken (i.e. at this point only the retreat village for the leader)
     -- and units marked in reserved_actions (also only the leader)
     -- TODO: we do not exclude them previously, as we might add a utility function later
     -- if there are several villages the leader might go to
-    local village_grabs = FVU.village_grabs(villages_to_grab, reserved_actions, fred_data)
+    local village_grabs = FVU.village_grabs(villages_to_grab, reserved_actions, effective_reach_maps, fred_data)
+    --DBG.dbms(village_grabs, false, 'village_grabs')
 
 
     fred_ops_utils.set_between_objectives(objectives, enemy_zones, fred_data)

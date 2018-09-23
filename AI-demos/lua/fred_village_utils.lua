@@ -80,7 +80,7 @@ function fred_village_utils.village_objectives(zone_cfgs, side_cfgs, fred_data)
 end
 
 
-function fred_village_utils.village_grabs(villages_to_grab, reserved_actions, fred_data)
+function fred_village_utils.village_grabs(villages_to_grab, reserved_actions, effective_reach_maps, fred_data)
     local move_data = fred_data.move_data
     local value_ratio = fred_data.turn_data.behavior.orders.value_ratio
 
@@ -104,12 +104,16 @@ function fred_village_utils.village_grabs(villages_to_grab, reserved_actions, fr
         end
         for _,id in pairs(ids) do
             local loc = move_data.my_units[id]
-            -- Only include the leader if he's on the keep
-            -- TODO: not necessarily true any more
-            if (not reserved_actions.units[id])
-                and ((not move_data.unit_infos[id].canrecruit)
-                or wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).keep)
-            then
+
+            local may_reach = true
+            if effective_reach_maps[id] then
+                if (not FU.get_fgumap_value(effective_reach_maps[id], x, y, 'moves_left')) then
+                    may_reach = false
+                end
+                --std_print('checking effective_reach_maps: ' .. id, x .. ',' .. y, may_reach)
+            end
+
+            if may_reach and (not reserved_actions.units[id]) then
                 local target = {}
                 target[id] = { x, y }
 
