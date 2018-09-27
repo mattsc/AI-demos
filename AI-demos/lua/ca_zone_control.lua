@@ -95,13 +95,13 @@ local function get_attack_action(zone_cfg, fred_data)
 
     -- Set up easy to use array of penalties for delayed actions
     local penalties = {}
-    for _,delayed_action in ipairs(fred_data.ops_data.delayed_actions) do
-        local id = delayed_action.id
+    for _,reserved_action in ipairs(fred_data.ops_data.reserved_actions) do
+        local id = reserved_action.id
         local src = fred_data.move_data.units[id][1] * 1000 + fred_data.move_data.units[id][2]
         penalties[src] = {
-            dst = 1000 * delayed_action.x + delayed_action.y,
+            dst = 1000 * reserved_action.x + reserved_action.y,
             id = id,
-            penalty = - delayed_action.benefit * zone_cfg.delayed_action_factor
+            penalty = - reserved_action.benefit
         }
     end
     --DBG.dbms(penalties, false, 'penalties')

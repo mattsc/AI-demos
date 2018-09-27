@@ -97,9 +97,13 @@ function fred_village_utils.village_grabs(villages_to_grab, reserved_actions, ef
     local village_grabs = {}
     for _,village in pairs(villages_to_grab) do
         local x, y = village.x, village.y
-        local is_reserved_loc = FU.get_fgumap_value(reserved_actions.locs, x, y, 'action_ids')
+
+        -- Exclude reserved locations here (and units below) without checking for
+        -- combined unit/hex availability, as we do not want to enter those units
+        -- and villages into the pool for grabbable villages
+        local is_available_loc = FU.is_available(nil, { x, y }, reserved_actions)
         local ids = {}
-        if (not is_reserved_loc) then
+        if is_available_loc then
             ids = FU.get_fgumap_value(move_data.my_move_map[1], x, y, 'ids') or {}
         end
         for _,id in pairs(ids) do
@@ -113,7 +117,8 @@ function fred_village_utils.village_grabs(villages_to_grab, reserved_actions, ef
                 --std_print('checking effective_reach_maps: ' .. id, x .. ',' .. y, may_reach)
             end
 
-            if may_reach and (not reserved_actions.units[id]) then
+            local is_available_unit = FU.is_available(id, nil, reserved_actions)
+            if may_reach and is_available_unit then
                 local target = {}
                 target[id] = { x, y }
 

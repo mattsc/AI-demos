@@ -272,6 +272,44 @@ function fred_utils.unittype_base_power(unit_type)
     return fred_utils.unit_base_power(unittype_info)
 end
 
+function fred_utils.is_available(id, loc, reserved_actions)
+    -- Check whether a unit and/or hex has a reserved action. If only one or the
+    -- other is given, the unit/hex counts as available if there is no action
+    -- associated with it. If both are given, they also count as available if
+    -- this is the hex for which the unit is reserved, independent of whether
+    -- the action is the one currently being considered.
+    --
+    -- Return values:
+    --  - is_available: boolean flagging whether the unit/hex is available
+    --  - penalty: sum of all penalties for a unit/hex
+
+    local is_available, penalty = true, 0
+
+    for _,action in pairs(reserved_actions) do
+        local same_hex = false
+        if loc and (loc[1] == action.x) and (loc[2] == action.y) then
+            same_hex = true
+        end
+        local same_unit = false
+        if id and (id == action.id) then
+            same_unit = true
+        end
+
+        if same_hex and same_unit then
+            -- In this case, the unit+hex counts as available even if there
+            -- are other actions using the same hex or unit
+            -- TODO: are there exceptions from this?
+            is_available, penalty = true, 0
+            break
+        elseif same_hex or same_unit then
+            is_available = false
+            penalty = penalty - action.benefit
+        end
+    end
+
+    return is_available, penalty
+end
+
 function fred_utils.moved_toward_zone(unit_copy, zone_cfgs, side_cfgs)
     --std_print(unit_copy.id, unit_copy.x, unit_copy.y)
 

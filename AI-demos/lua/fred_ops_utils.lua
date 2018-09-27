@@ -800,7 +800,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     local effective_reach_maps = {}
     effective_reach_maps[leader.id] = leader_effective_reach_map
 
-    local reserved_actions = { actions = {}, units = {}, locs = {} }
+    local reserved_actions = {}
 
     if objectives.leader.village then
         local leader_heal_benefit = math.min(8, move_data.unit_infos[leader.id].max_hitpoints - move_data.unit_infos[leader.id].hitpoints)
@@ -814,27 +814,23 @@ function fred_ops_utils.set_ops_data(fred_data)
             y = y,
             type = 'full_move',
             action_str = 'move_leader_to_village',
-            action_type = 'MtS',
+            action_type = 'MtS',  -- This is for setting up action interaction matrix
             benefit = leader_heal_benefit
         }
         local action_id = 'leader_village:' .. (x * 1000 + y)
-        reserved_actions.actions[action_id] = action
-
-        if (not reserved_actions.units[leader.id]) then reserved_actions.units[leader.id] = {} end
-        table.insert(reserved_actions.units[leader.id], action_id)
-
-        local tmp = FU.get_fgumap_value(reserved_actions.locs, x, y, 'action_ids') or {}
-        table.insert(tmp, action_id)
-        FU.set_fgumap_value(reserved_actions.locs, x, y, 'action_ids', tmp)
+        reserved_actions[action_id] = action
     end
 
     if objectives.leader.keep then
         -- For now, let's use half the value of the remaining gold as the benefit
         -- TODO: this has to be refined
-        local leader_recruit_benefit = wesnoth.sides[wesnoth.current.side].gold / 2
+        local leader_recruit_benefit = 0.5 * wesnoth.sides[wesnoth.current.side].gold
         local x, y = objectives.leader.keep[1], objectives.leader.keep[2]
         local action = {
-            id = leader.id,
+            -- Important: we reserve the hex, so that the leader can recruit, but not the
+            -- unit, as the leader should be able to do something else after recruiting.
+            -- The reduced range is taken care of by effective_reach_maps.
+            id = '',
             x = x,
             y = y,
             type = 'partial_move',
@@ -843,17 +839,27 @@ function fred_ops_utils.set_ops_data(fred_data)
             benefit = leader_recruit_benefit
         }
         local action_id = 'leader_keep:' .. (x * 1000 + y)
-        reserved_actions.actions[action_id] = action
+        reserved_actions[action_id] = action
+    end
 
-        -- Important: we reserve the hex, so that the leader can recruit, but not the
-        -- unit, as the leader should be able to do something else after recruiting.
-        -- The reduced range is taken care of by effective_reach_maps.
-        --if (not reserved_actions.units[leader.id]) then reserved_actions.units[leader.id] = {} end
-        --table.insert(reserved_actions.units[leader.id], action_id)
-
-        local tmp = FU.get_fgumap_value(reserved_actions.locs, x, y, 'action_ids') or {}
-        table.insert(tmp, action_id)
-        FU.set_fgumap_value(reserved_actions.locs, x, y, 'action_ids', tmp)
+    if objectives.leader.prerecruit then
+        -- For now, use half the unit's cost as the benefit
+        -- TODO: to be refined?
+        for _,unit in ipairs(objectives.leader.prerecruit.units) do
+            local recruit_benefit = 0.5 * wesnoth.unit_types[unit.recruit_type].cost
+            local x, y = unit.recruit_hex[1], unit.recruit_hex[2]
+            local action = {
+                id = '',
+                x = x,
+                y = y,
+                type = 'recruit',
+                action_str = 'recruit',
+                action_type = 'Rec',
+                benefit = recruit_benefit
+            }
+            local action_id = 'recruit:' .. (x * 1000 + y)
+            reserved_actions[action_id] = action
+        end
     end
 
     --DBG.dbms(reserved_actions, false, 'reserved_actions')
@@ -1161,25 +1167,6 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(assigned_units, false, 'assigned_units')
 
 
-    local delayed_actions = {}
-    local leader = move_data.leaders[wesnoth.current.side]
-    if objectives.leader.village then
-        local leader_heal_benefit = math.min(8, move_data.unit_infos[leader.id].max_hitpoints - move_data.unit_infos[leader.id].hitpoints)
-        -- Multiply benefit * 1.5 for this being the leader
-        -- Not putting the leader into too much danger is taken care of elsewhere
-        leader_heal_benefit = 1.5 * leader_heal_benefit / move_data.unit_infos[leader.id].max_hitpoints * move_data.unit_infos[leader.id].cost
-        local action = {
-            id = leader.id,
-            x = objectives.leader.village[1],
-            y = objectives.leader.village[2],
-            type = 'full_move',
-            action_str = 'move_leader_to_village',
-            score = FCFG.get_cfg_parm('score_leader_to_village'),
-            benefit = leader_heal_benefit
-        }
-        table.insert(delayed_actions, action)
-    end
-
     for id,action in pairs(assignments) do
         if string.find(action, 'grab_village') then
             local i1 = string.find(action, '-')
@@ -1188,19 +1175,37 @@ function fred_ops_utils.set_ops_data(fred_data)
             local x, y = math.floor(xy / 1000), xy % 1000
             --std_print(id,action,xy,x,y)
 
-            local new_action = {
+            local action = {
                 id = id,
-                x = x, y = y,
+                x = x,
+                y = y,
                 type = 'full_move',
                 action_str = 'grab_village',
-                score = FCFG.get_cfg_parm('score_grab_village'),
+                action_type = 'GV',
                 benefit = combined_benefits[action].units[id].benefit
             }
-            table.insert(delayed_actions, new_action)
+            local action_id = 'grab_village:' .. (x * 1000 + y)
+            reserved_actions[action_id] = action
         end
     end
-    table.sort(delayed_actions, function(a, b) return a.score > b.score end)
-    --DBG.dbms(delayed_actions, false, 'delayed_actions')
+
+    for id,_ in pairs(retreaters) do
+        -- Use half of missing HP
+        -- TODO: refine
+        local heal_benefit = 0.5 * (move_data.unit_infos[id].max_hitpoints - move_data.unit_infos[id].hitpoints)
+        heal_benefit = heal_benefit / move_data.unit_infos[id].max_hitpoints * move_data.unit_infos[id].cost
+        local action = {
+            id = id,
+            type = 'full_move',
+            action_str = 'retreat',
+            action_type = 'Ret',  -- This is for setting up action interaction matrix
+            benefit = heal_benefit
+        }
+        local action_id = 'retreat:' .. id
+        reserved_actions[action_id] = action
+    end
+
+    --DBG.dbms(reserved_actions, false, 'reserved_actions')
 
 
     local zone_maps = {}
@@ -1328,7 +1333,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         assigned_units = assigned_units,
         retreaters = retreaters,
         fronts = fronts,
-        delayed_actions = delayed_actions
+        reserved_actions = reserved_actions
     }
     --DBG.dbms(ops_data, false, 'ops_data')
     --DBG.dbms(ops_data.objectives, false, 'ops_data.objectives')
@@ -1336,7 +1341,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(ops_data.assigned_units, false, 'ops_data.assigned_units')
     --DBG.dbms(ops_data.retreaters, false, 'ops_data.retreaters')
     --DBG.dbms(ops_data.fronts, false, 'ops_data.fronts')
-    --DBG.dbms(ops_data.delayed_actions, false, 'ops_data.delayed_actions')
+    --DBG.dbms(ops_data.reserved_actions, false, 'ops_data.reserved_actions')
 
 
     fred_ops_utils.behavior_output(true, ops_data, fred_data)
@@ -1707,7 +1712,6 @@ function fred_ops_utils.get_action_cfgs(fred_data)
                     zone_units = attackers_by_zone[zone_id],
                     targets = threats,
                     value_ratio = value_ratio * vr_mult,
-                    delayed_action_factor = 1,
                     rating = leader_base_ratings.attack + zone_power_stats[zone_id].power_needed
                 })
             end
