@@ -1150,6 +1150,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(unused_units, false, 'unused_units')
 
     local assigned_units = assignments_to_assigned_units(assignments, move_data)
+    --DBG.dbms(assigned_units, false, 'assigned_units')
 
     --DBG.dbms(villages_to_grab, false, 'villages_to_grab')
     local scout_assignments = FVU.assign_scouts(villages_to_grab, unused_units, assigned_units, move_data)
@@ -1162,6 +1163,32 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(assignments, false, 'assignments')
     --DBG.dbms(unused_units, false, 'unused_units')
 
+    -- If there are unused unit left now, we simply assign them to the zones
+    -- with the largest difference between needed and assigned power
+    if next(unused_units) then
+        local zone_power_stats = fred_ops_utils.zone_power_stats(raw_cfgs_main, assigned_units, assigned_enemies, power_ratio, fred_data)
+        --DBG.dbms(zone_power_stats, false, 'zone_power_stats')
+        local power_diffs = {}
+        for zone_id,power in pairs(zone_power_stats) do
+            power_diffs[zone_id] = power.power_needed - power.my_power
+        end
+        --DBG.dbms(power_diffs, false, power_diffs)
+
+        for id,_ in pairs(unused_units) do
+            local max_diff, best_zone_id = - math.huge
+            for zone_id, diff in pairs(power_diffs) do
+                if (diff > max_diff) then
+                    max_diff, best_zone_id = diff, zone_id
+                end
+            end
+            --std_print(id, best_zone_id, max_diff)
+
+            assignments[id] = 'zone:' .. best_zone_id
+            power_diffs[best_zone_id] = power_diffs[best_zone_id] - FU.unit_base_power(move_data.unit_infos[id])
+        end
+    end
+    unused_units = nil
+    --DBG.dbms(assignments, false, 'assignments')
 
     local assigned_units = assignments_to_assigned_units(assignments, move_data)
     --DBG.dbms(assigned_units, false, 'assigned_units')
