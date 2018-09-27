@@ -1116,7 +1116,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     local unused_units = {}
     for id,_ in pairs(move_data.my_units_MP) do
-        if (not assignments[id]) then
+        if (not assignments[id]) and (not move_data.unit_infos[id].canrecruit) then
             unused_units[id] = 'none'
         end
     end
