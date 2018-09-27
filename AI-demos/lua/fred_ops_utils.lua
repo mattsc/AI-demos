@@ -1123,19 +1123,31 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(unused_units, false, 'unused_units')
 
 
-    -- All remaining units with non-zero retreat utility are assigned as retreaters
+    -- All remaining units with non-zero retreat utility are added to reserved_actions
+    -- as retreaters, but are not deleted from the unused_units table. They get
+    -- assigned to zones for potential use just as other units.
     local utilities = {}
     utilities.retreat = FBU.retreat_utilities(move_data, fred_data.turn_data.behavior.orders.value_ratio)
 
-    local retreaters = {}
     for id,_ in pairs(unused_units) do
         if (utilities.retreat[id] > 0) then
-            retreaters[id] = 'retreat:all'
-            unused_units[id] = nil
+            -- Use half of missing HP
+            -- TODO: refine
+            local heal_benefit = 0.5 * (move_data.unit_infos[id].max_hitpoints - move_data.unit_infos[id].hitpoints)
+            heal_benefit = heal_benefit / move_data.unit_infos[id].max_hitpoints * move_data.unit_infos[id].cost
+            local action = {
+                id = id,
+                x = -1, y = -1, -- Don't have reserved location
+                type = 'full_move',
+                action_str = 'retreat',
+                action_type = 'Ret',  -- This is for setting up action interaction matrix
+                benefit = heal_benefit
+            }
+            local action_id = 'retreat:' .. id
+            reserved_actions[action_id] = action
         end
     end
-    --DBG.dbms(retreaters, false, 'retreaters')
-    --DBG.dbms(unused_units, false, 'unused_units')
+    --DBG.dbms(reserved_actions, false, 'reserved_actions')
 
     -- Pre-assigned units left at this time get assigned to their zones
     for id,_ in pairs(unused_units) do
@@ -1215,23 +1227,6 @@ function fred_ops_utils.set_ops_data(fred_data)
             reserved_actions[action_id] = action
         end
     end
-
-    for id,_ in pairs(retreaters) do
-        -- Use half of missing HP
-        -- TODO: refine
-        local heal_benefit = 0.5 * (move_data.unit_infos[id].max_hitpoints - move_data.unit_infos[id].hitpoints)
-        heal_benefit = heal_benefit / move_data.unit_infos[id].max_hitpoints * move_data.unit_infos[id].cost
-        local action = {
-            id = id,
-            type = 'full_move',
-            action_str = 'retreat',
-            action_type = 'Ret',  -- This is for setting up action interaction matrix
-            benefit = heal_benefit
-        }
-        local action_id = 'retreat:' .. id
-        reserved_actions[action_id] = action
-    end
-
     --DBG.dbms(reserved_actions, false, 'reserved_actions')
 
 
@@ -1358,7 +1353,6 @@ function fred_ops_utils.set_ops_data(fred_data)
         assigned_enemies = assigned_enemies,
         unassigned_enemies = unassigned_enemies,
         assigned_units = assigned_units,
-        retreaters = retreaters,
         fronts = fronts,
         reserved_actions = reserved_actions
     }
@@ -1366,7 +1360,6 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(ops_data.objectives, false, 'ops_data.objectives')
     --DBG.dbms(ops_data.assigned_enemies, false, 'ops_data.assigned_enemies')
     --DBG.dbms(ops_data.assigned_units, false, 'ops_data.assigned_units')
-    --DBG.dbms(ops_data.retreaters, false, 'ops_data.retreaters')
     --DBG.dbms(ops_data.fronts, false, 'ops_data.fronts')
     --DBG.dbms(ops_data.reserved_actions, false, 'ops_data.reserved_actions')
 
@@ -1862,7 +1855,10 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 
 
     -- Retreating is done zone independently
+
+--TODO: needs to be updated with new delayed_actions table
     local retreaters
+--[[
     if ops_data.retreaters then
         for id,_ in pairs(ops_data.retreaters) do
             if move_data.my_units_MP[id] then
@@ -1872,7 +1868,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         end
     end
     --DBG.dbms(retreaters, false, 'retreaters')
-
+--]]
 
     if retreaters then
         table.insert(fred_data.zone_cfgs, {
