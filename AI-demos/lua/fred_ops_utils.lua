@@ -1562,14 +1562,14 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 
     fred_data.zone_cfgs = {}
 
-    -- For all of the main zones, find assigned units that have moves left
+    -- For all of the main zones, find assigned units that have moves and attacks left
     local holders_by_zone, attackers_by_zone = {}, {}
     for zone_id,_ in pairs(ops_data.objectives.hold_zones) do
         if ops_data.assigned_units[zone_id] then
             for id,_ in pairs(ops_data.assigned_units[zone_id]) do
                 if move_data.my_units_MP[id] then
                     if (not holders_by_zone[zone_id]) then holders_by_zone[zone_id] = {} end
-                    holders_by_zone[zone_id][id] = move_data.units[id]
+                    holders_by_zone[zone_id][id] = move_data.units[id][1] * 1000 + move_data.units[id][2]
                 end
                 if (move_data.unit_copies[id].attacks_left > 0) then
                     local is_attacker = true
@@ -1585,7 +1585,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 
                     if is_attacker then
                         if (not attackers_by_zone[zone_id]) then attackers_by_zone[zone_id] = {} end
-                        attackers_by_zone[zone_id][id] = move_data.units[id]
+                        attackers_by_zone[zone_id][id] = move_data.units[id][1] * 1000 + move_data.units[id][2]
                     end
                 end
             end
@@ -1616,7 +1616,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         if is_attacker then
             for zone_id,_ in pairs(ops_data.objectives.hold_zones) do
                 if (not attackers_by_zone[zone_id]) then attackers_by_zone[zone_id] = {} end
-                attackers_by_zone[zone_id][leader.id] = move_data.units[leader.id]
+                attackers_by_zone[zone_id][leader.id] = move_data.units[leader.id][1] * 1000 + move_data.units[leader.id][2]
             end
         end
     end
@@ -1625,7 +1625,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     -- The following is done to simplify the cfg creation below, because
     -- ops_data.assigned_enemies might contain empty tables for zones
     -- Killed enemies should, in principle be already removed, but since
-    -- it's quick and easy, we just do it again.
+    -- it's quick and easy, we just check for it again.
     local threats_by_zone = {}
     local tmp_enemies = {}
     for zone_id,_ in pairs(ops_data.objectives.hold_zones) do
@@ -1633,12 +1633,13 @@ function fred_ops_utils.get_action_cfgs(fred_data)
             for enemy_id,_ in pairs(ops_data.assigned_enemies[zone_id]) do
                 if move_data.enemies[enemy_id] then
                     if (not threats_by_zone[zone_id]) then threats_by_zone[zone_id] = {} end
-                    threats_by_zone[zone_id][enemy_id] = move_data.units[enemy_id]
+                    threats_by_zone[zone_id][enemy_id] = move_data.units[enemy_id][1] * 1000 + move_data.units[enemy_id][2]
                     tmp_enemies[enemy_id] = true
                 end
             end
         end
     end
+    --DBG.dbms(tmp_enemies, false, 'tmp_enemies')
 
     -- Also add all other enemies to the three main zones
     -- Mostly this will just be the leader and enemies on the keep, so
@@ -1647,16 +1648,16 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     local other_enemies = {}
     for enemy_id,loc in pairs(move_data.enemies) do
         if (not tmp_enemies[enemy_id]) then
-            other_enemies[enemy_id] = loc
+            other_enemies[enemy_id] = loc[1] * 1000 + loc[2]
         end
     end
     tmp_enemies = nil
     --DBG.dbms(other_enemies, false, 'other_enemies')
 
-    for enemy_id,loc in pairs(other_enemies) do
+    for enemy_id,xy in pairs(other_enemies) do
         for zone_id,_ in pairs(ops_data.objectives.hold_zones) do
             if (not threats_by_zone[zone_id]) then threats_by_zone[zone_id] = {} end
-            threats_by_zone[zone_id][enemy_id] = loc
+            threats_by_zone[zone_id][enemy_id] = xy
         end
     end
 
@@ -1684,13 +1685,13 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 
         local leader_threats_by_zone = {}
         for zone_id,threats in pairs(threats_by_zone) do
-            for id,loc in pairs(threats) do
+            for id,xy in pairs(threats) do
                 --std_print(zone_id,id)
                 if leader_threats.enemies and leader_threats.enemies[id] then
                     if (not leader_threats_by_zone[zone_id]) then
                         leader_threats_by_zone[zone_id] = {}
                     end
-                    leader_threats_by_zone[zone_id][id] = loc
+                    leader_threats_by_zone[zone_id][id] = xy
                 end
             end
         end

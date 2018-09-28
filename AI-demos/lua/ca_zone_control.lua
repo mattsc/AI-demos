@@ -60,7 +60,9 @@ local function get_attack_action(zone_cfg, fred_data)
     -- or all units with attacks left otherwise
     local zone_units_attacks = {}
     if zone_cfg.zone_units then
-        zone_units_attacks = zone_cfg.zone_units
+        for id,xy in pairs(zone_cfg.zone_units) do
+            zone_units_attacks[id] = { move_data.units[id][1], move_data.units[id][2] }
+        end
     else
         for id,loc in pairs(move_data.my_units) do
             local is_leader_and_off_keep = false
@@ -107,7 +109,8 @@ local function get_attack_action(zone_cfg, fred_data)
     --DBG.dbms(penalties, false, 'penalties')
 
     local combo_ratings = {}
-    for target_id, target_loc in pairs(targets) do
+    for target_id, target_xy in pairs(targets) do
+        local target_loc = move_data.units[target_id]
         local target = {}
         target[target_id]= target_loc
 
