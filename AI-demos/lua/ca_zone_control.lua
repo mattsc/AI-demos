@@ -2673,9 +2673,6 @@ end
 
 
 
------ CA: Recruitment (max_score: 461000; default score: 181000) -----
-
-
 ----- CA: Zone control (max_score: 350000) -----
 -- TODO: rename?
 function get_zone_action(cfg, fred_data)
@@ -2948,14 +2945,6 @@ function ca_zone_control:execution(cfg, data, ai_debug)
                 local _, recruit_proxy = data.recruit:recruit_rushers_exec(nil, nil, data.zone_action.outofway_units)
                 if (not recruit_proxy) then
                     break
-                else
-                    -- Unlike for the recruit loop above, these units do
-                    -- get counted into the current zone (which should
-                    -- always be the leader zone)
-                    --data.analysis.status.units_used[recruit_proxy.id] = {
-                    --    zone_id = data.zone_action.zone_id or 'other',
-                    --    action = data.zone_action.action_str or 'other'
-                    --}
                 end
             end
         end
@@ -3268,16 +3257,7 @@ function ca_zone_control:execution(cfg, data, ai_debug)
             end
         end
 
-        -- Add units_used to status table
-        if unit and unit.valid then
-        --    data.analysis.status.units_used[unit.id] = {
-        --        zone_id = data.zone_action.zone_id or 'other',
-        --        action = data.zone_action.action_str or 'other'
-        --    }
-        else
-            -- If an AI unit died in the attack, we stop and reconsider
-            -- This is not so much because this is an unfavorable outcome,
-            -- but because that hex might be useful to another AI unit now.
+        if (not unit) or (not unit.valid) then
             data.zone_action.units = nil
         end
     end
