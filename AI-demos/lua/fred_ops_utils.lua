@@ -1766,12 +1766,9 @@ function fred_ops_utils.get_action_cfgs(fred_data)
             local cost = wesnoth.unit_types[ops_data.objectives.leader.prerecruit.units[1].recruit_type].cost
             if (current_gold >= cost) then
                 table.insert(fred_data.zone_cfgs, {
-                    action = {
-                        zone_id = zone_id,
-                        action_str = zone_id .. ': recruit for leader protection',
-                        type = 'recruit',
-                        recruit_units = ops_data.objectives.leader.prerecruit.units
-                    },
+                    zone_id = zone_id,
+                    action_str = zone_id .. ': recruit',
+                    action_type = 'recruit',
                     rating = leader_base_ratings.recruit
                 })
             end

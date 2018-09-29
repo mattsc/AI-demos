@@ -2737,7 +2737,6 @@ function get_zone_action(cfg, fred_data)
     end
 
     -- **** Recruit evaluation ****
-    -- TODO: does it make sense to keep this also as a separate CA?
     if (cfg.action_type == 'recruit') then
         --DBG.print_ts_delta(fred_data.turn_start_time, '  ' .. cfg.zone_id .. ': recruit eval')
         -- Important: we cannot check recruiting here, as the units
@@ -2746,12 +2745,48 @@ function get_zone_action(cfg, fred_data)
         local action = {
             action_str = 'recruit',
             type = 'recruit',
-            outofway_units = cfg.outofway_units
         }
         return action
     end
 
     return nil  -- This is technically unnecessary, just for clarity
+end
+
+
+local function do_recruit(data, ai)
+    local leader_objectives = data.ops_data.objectives.leader
+    --DBG.dbms(leader_objectives, false, 'leader_objectives')
+
+    -- This is just a safeguard for now, to make sure nothing goes wrong
+    if (not leader_objectives.prerecruit) or (not leader_objectives.prerecruit.units) or (not leader_objectives.prerecruit.units[1]) then
+        error("Leader was instructed to recruit, but no units to be recruited are set.")
+    end
+
+   for _,recruit_unit in ipairs(leader_objectives.prerecruit.units) do
+       --std_print('  ' .. recruit_unit.recruit_type .. ' at ' .. recruit_unit.recruit_hex[1] .. ',' .. recruit_unit.recruit_hex[2])
+       local uiw = wesnoth.get_unit(recruit_unit.recruit_hex[1], recruit_unit.recruit_hex[2])
+       if uiw then
+           -- Generally, move out of way in direction of own leader
+           -- TODO: change this
+           local leader_loc = data.move_data.leaders[wesnoth.current.side]
+           local dx, dy  = leader_loc[1] - recruit_unit.recruit_hex[1], leader_loc[2] - recruit_unit.recruit_hex[2]
+           local r = math.sqrt(dx * dx + dy * dy)
+           if (r ~= 0) then dx, dy = dx / r, dy / r end
+
+           --std_print('    uiw: ' .. uiw.id)
+           AH.move_unit_out_of_way(ai, uiw, { dx = dx, dy = dy })
+
+           -- Make sure the unit really is gone now
+           uiw = wesnoth.get_unit(recruit_unit.recruit_hex[1], recruit_unit.recruit_hex[2])
+           if uiw then
+               error('Unit was supposed to move out of the way for recruiting : ' .. uiw.id .. ' at ' .. uiw.x .. ',' .. uiw.y)
+           end
+       end
+
+       if (not uiw) then
+           AH.checked_recruit(ai, recruit_unit.recruit_type, recruit_unit.recruit_hex[1], recruit_unit.recruit_hex[2])
+       end
+   end
 end
 
 
@@ -2797,34 +2832,8 @@ function ca_zone_control:evaluation(cfg, data, ai_debug)
             if (not cfg.invalid) then
                 local is_good = true
 
-                if (cfg.action.type == 'recruit') then
-                    is_good = false
-                    -- All the recruiting is done in one call to exec, so
-                    -- we simply check here if any one of the recruiting is possible
-
-                    local leader = data.move_data.leaders[wesnoth.current.side]
-                    if (wesnoth.get_terrain_info(wesnoth.get_terrain(leader[1], leader[2])).keep) then
-                        for _,recruit_unit in ipairs(cfg.action.recruit_units) do
-                            --std_print('  ' .. recruit_unit.recruit_type .. ' at ' .. recruit_unit.recruit_hex[1] .. ',' .. recruit_unit.recruit_hex[2])
-                            local uiw = wesnoth.get_unit(recruit_unit.recruit_hex[1], recruit_unit.recruit_hex[2])
-                            if (not uiw) then
-                                -- If there is no unit in the way, we're good
-                                is_good = true
-                                break
-                            else
-                                -- Otherwise we check whether it has an empty hex to move to
-                                for x,y,_ in FU.fgumap_iter(data.move_data.reach_maps[uiw.id]) do
-                                    if (not FU.get_fgumap_value(data.move_data.my_unit_map, x, y, 'id')) then
-                                       is_good = true
-                                       break
-                                    end
-                                end
-                                if is_good then break end
-                            end
-                        end
-                    end
-                else
-                    for _,u in ipairs(cfg.action.units) do
+                if (cfg.action.type ~= 'recruit') then
+                   for _,u in ipairs(cfg.action.units) do
                         local unit = wesnoth.get_units { id = u.id }[1]
                         --std_print(unit.id, unit.x, unit.y)
 
@@ -2913,42 +2922,10 @@ function ca_zone_control:execution(cfg, data, ai_debug)
     --DBG.dbms(data.zone_action, false, 'data.zone_action')
 
 
-    -- If recruiting is set, we just do that, nothing else needs to be checked:
+    -- If recruiting is set, we just do that, nothing else needs to be checked
     if (data.zone_action.type == 'recruit') then
         DBG.print_debug_time('exec', data.turn_start_time, '=> exec: ' .. action)
-
-        if data.zone_action.recruit_units then
-            --std_print('Recruiting pre-evaluated units')
-            for _,recruit_unit in ipairs(data.zone_action.recruit_units) do
-                --std_print('  ' .. recruit_unit.recruit_type .. ' at ' .. recruit_unit.recruit_hex[1] .. ',' .. recruit_unit.recruit_hex[2])
-                local uiw = wesnoth.get_unit(recruit_unit.recruit_hex[1], recruit_unit.recruit_hex[2])
-                if uiw then
-                    -- Generally, move out of way in direction of own leader
-                    local leader_loc = data.move_data.leaders[wesnoth.current.side]
-                    local dx, dy  = leader_loc[1] - recruit_unit.recruit_hex[1], leader_loc[2] - recruit_unit.recruit_hex[2]
-                    local r = math.sqrt(dx * dx + dy * dy)
-                    if (r ~= 0) then dx, dy = dx / r, dy / r end
-
-                    --std_print('    uiw: ' .. uiw.id)
-                    AH.move_unit_out_of_way(ai, uiw, { dx = dx, dy = dy })
-
-                    -- Make sure the unit really is gone now
-                    uiw = wesnoth.get_unit(recruit_unit.recruit_hex[1], recruit_unit.recruit_hex[2])
-                end
-
-                if (not uiw) then
-                    AH.checked_recruit(ai, recruit_unit.recruit_type, recruit_unit.recruit_hex[1], recruit_unit.recruit_hex[2])
-                end
-            end
-        else
-            while (data.recruit:recruit_rushers_eval(data.zone_action.outofway_units) > 0) do
-                local _, recruit_proxy = data.recruit:recruit_rushers_exec(nil, nil, data.zone_action.outofway_units)
-                if (not recruit_proxy) then
-                    break
-                end
-            end
-        end
-
+        do_recruit(data, ai)
         return
     end
 
@@ -3098,28 +3075,10 @@ function ca_zone_control:execution(cfg, data, ai_debug)
 
         local dst = data.zone_action.dsts[next_unit_ind]
 
-        -- If this is the leader (and he has MP left), recruit first
-        -- We're doing that by running a mini CA eval/exec loop
+        -- If this is the leader (and has MP left), recruit first
         if unit.canrecruit and (unit.moves > 0) then
-            --std_print('-------------------->  This is the leader. Recruit first.')
-            local avoid_map = LS.create()
-            for _,loc in ipairs(data.zone_action.dsts) do
-                avoid_map:insert(dst[1], dst[2])
-            end
-
-            local have_recruited
-            while (data.recruit:recruit_rushers_eval() > 0) do
-                if (not data.recruit:recruit_rushers_exec(ai, avoid_map)) then
-                    break
-                else
-                    -- Note (TODO?): these units do not get counted as used in any zone
-                    have_recruited = true
-                    gamestate_changed = true
-                end
-            end
-
-            -- Then we stop the outside loop to reevaluate
-            if have_recruited then break end
+            DBG.print_debug_time('exec', data.turn_start_time, '=> exec: ' .. action .. ' (leader used -> recruit first)')
+            do_recruit(data, ai)
         end
 
         DBG.print_debug_time('exec', data.turn_start_time, '=> exec: ' .. action)
