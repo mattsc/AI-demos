@@ -844,13 +844,9 @@ end
 
 function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, move_cache)
     -- Evaluate attack combination outcomes using
-    -- @tmp_attacker_copies: array of attacker unit copies (must be copies, does not work with the proxy table)
-    -- @defender_proxy: the unit being attacked (must be a unit proxy table on the map, does not work with a copy)
-    -- @tmp_dsts: array of the hexes (format { x, y }) from which the attackers attack
-    --   must be in same order as @attackers
-    -- @tmp_attacker_infos, @defender_info: unit info for the attackers and defenders (needed in addition to the units
-    --   themselves in order to speed things up)
-    --  @cfg: configuration parameters to be passed through to attack_outcome, attack_rating
+    -- @combo: attack combo table in the format returned by fred_attack_utils.get_attack_combos()
+    -- @defender: table describing the defender in form { id = loc }
+    -- @cfg: configuration parameters to be passed through to attack_outcome, attack_rating
     -- @move_data, @move_cache: only needed to pass to the functions being called
     --    see fred_attack_utils.attack_outcome() for descriptions
     --
@@ -862,7 +858,8 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
     --       which contains the chance to die in each of the attacks
     --   - rating_table: rating for this attack combination calculated from fred_attack_utils.attack_rating() results
     --   - attacker_damages, defender_damage: damage table for all attackers, and the combined damage for the defender
-    --   - attacker_infos, dsts: attacker_infos and dsts arrays, sorted in order of the individual attacks
+    --   - attacker_infos, dsts, att_weapons_i: attacker_infos, dsts and attacker weapon number arrays, sorted
+    --       in order of the individual attacks
 
 
     ----- Begin combine_outcomes() -----
