@@ -2723,19 +2723,6 @@ function get_zone_action(cfg, fred_data)
         end
     end
 
-    -- **** Force leader to go to keep if needed ****
-    -- TODO: This should be consolidated at some point into one
-    -- CA, but for simplicity we keep it like this for now until
-    -- we know whether it works as desired
-    if (cfg.action_type == 'move_leader_to_keep') then
-        --DBG.print_ts_delta(fred_data.turn_start_time, '  ' .. cfg.zone_id .. ': move_leader_to_keep eval')
-        local score, action = FMLU.move_eval(true, fred_data)
-        if action then
-            --DBG.print_ts_delta(fred_data.turn_start_time, action.action_str)
-            return action
-        end
-    end
-
     -- **** Recruit evaluation ****
     if (cfg.action_type == 'recruit') then
         --DBG.print_ts_delta(fred_data.turn_start_time, '  ' .. cfg.zone_id .. ': recruit eval')
@@ -2762,7 +2749,16 @@ local function do_recruit(data, ai)
         error("Leader was instructed to recruit, but no units to be recruited are set.")
     end
 
-   for _,recruit_unit in ipairs(leader_objectives.prerecruit.units) do
+    -- Move leader to keep, if needed
+    local leader = data.move_data.leaders[wesnoth.current.side]
+    local recruit_loc = leader_objectives.prerecruit.loc
+    if (leader[1] ~= recruit_loc[1]) or (leader[2] ~= recruit_loc[2]) then
+        --std_print('Need to move leader to keep first')
+        local unit = wesnoth.get_unit(leader[1], leader[2])
+        AHL.movepartial_outofway_stopunit(ai, unit, recruit_loc[1], recruit_loc[2])
+    end
+
+    for _,recruit_unit in ipairs(leader_objectives.prerecruit.units) do
        --std_print('  ' .. recruit_unit.recruit_type .. ' at ' .. recruit_unit.recruit_hex[1] .. ',' .. recruit_unit.recruit_hex[2])
        local uiw = wesnoth.get_unit(recruit_unit.recruit_hex[1], recruit_unit.recruit_hex[2])
        if uiw then

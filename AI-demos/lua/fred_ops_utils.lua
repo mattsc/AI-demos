@@ -1677,7 +1677,6 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     --DBG.dbms(leader_threats, false, 'leader_threats')
     if leader_threats.significant_threat then
         local leader_base_ratings = {
-            move_to_keep = 40000,
             attack = 35000,
             recruit = 33000,
             move_to_village = 32000
@@ -1703,20 +1702,6 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         local zone_id = 'leader'
         --DBG.dbms(leader, false, 'leader')
 
-        -- Partial move to keep
-        if ops_data.objectives.leader.keep then
-            table.insert(fred_data.zone_cfgs, {
-                action = {
-                    zone_id = zone_id,
-                    action_str = zone_id .. ': move leader to keep',
-                    units = { leader },
-                    dsts = { ops_data.objectives.leader.keep },
-                    partial_move = true
-                },
-                rating = leader_base_ratings.move_to_keep
-            })
-        end
-        --DBG.dbms(fred_data.zone_cfgs, false, 'fred_data.zone_cfgs')
 
         -- Attacks -- for the time being, this is always done, and always first
         for zone_id,threats in pairs(leader_threats_by_zone) do
