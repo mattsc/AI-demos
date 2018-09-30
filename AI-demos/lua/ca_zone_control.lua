@@ -3072,7 +3072,10 @@ function ca_zone_control:execution(cfg, data, ai_debug)
         local dst = data.zone_action.dsts[next_unit_ind]
 
         -- If this is the leader (and has MP left), recruit first
-        if unit.canrecruit and (unit.moves > 0) then
+        local leader_objectives = data.ops_data.objectives.leader
+        if unit.canrecruit and (unit.moves > 0)
+            and leader_objectives.prerecruit and leader_objectives.prerecruit.units and leader_objectives.prerecruit.units[1]
+        then
             DBG.print_debug_time('exec', data.turn_start_time, '=> exec: ' .. action .. ' (leader used -> recruit first)')
             do_recruit(data, ai)
         end
