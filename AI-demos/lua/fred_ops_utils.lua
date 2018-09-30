@@ -1834,31 +1834,18 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         end
     end
 
+    -- Retreating is done zone independently. It handles (in this order):
+    --   1. Moving the leader to a village
+    --   2. Retreating injured units
+    -- It is the last action to be done and can simply always be called.
+    -- There is no advantage in doing the sorting here.
 
-    -- Retreating is done zone independently
+    table.insert(fred_data.zone_cfgs, {
+        zone_id = 'all_map',
+        action_type = 'retreat',
+        rating = base_ratings.retreat
+    })
 
---TODO: needs to be updated with new delayed_actions table
-    local retreaters
---[[
-    if ops_data.retreaters then
-        for id,_ in pairs(ops_data.retreaters) do
-            if move_data.my_units_MP[id] then
-                if (not retreaters) then retreaters = {} end
-                retreaters[id] = move_data.units[id]
-            end
-        end
-    end
-    --DBG.dbms(retreaters, false, 'retreaters')
---]]
-
-    if retreaters then
-        table.insert(fred_data.zone_cfgs, {
-            zone_id = 'all_map',
-            action_type = 'retreat',
-            retreaters = retreaters,
-            rating = base_ratings.retreat
-        })
-    end
 
 
     -- Advancing is still done in the old zones
