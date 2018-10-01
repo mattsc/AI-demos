@@ -2645,6 +2645,10 @@ end
 local function get_retreat_action(zone_cfg, fred_data)
     DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> retreat evaluation: ' .. zone_cfg.zone_id)
 
+    -- Combines moving leader to village or keep, and retreating other units.
+    -- These are put in here together because we might want to weigh which one
+    -- gets done first in the end.
+
     local move_data = fred_data.move_data
     local leader_objectives = fred_data.ops_data.objectives.leader
     local leader = move_data.leaders[wesnoth.current.side]
