@@ -113,8 +113,14 @@ local function get_best_village_keep(leader, recruit_first, effective_reach_map,
 
     -- No keep found could mean that either it is not possible to go for a village via
     -- a keep, or that we don't need to go for a village (and did not search)
+    -- We always search for a keep to go to, except when we do not need to recruit and
+    -- want to go for a village.
+    -- TODO: this should be refined at some point for the case that we cannot recruit
+    -- (no gold) and do not go for a village either, but want to find the safest/best hex
+    -- that is not necessarily a keep
+    -- TODO: also need to include case when leader cannot reach a keep
     local keep_map
-    if recruit_first and (not from_keep_found) then
+    if (not from_keep_found) and (recruit_first or (not village_map)) then
         for x,y,_ in FU.fgumap_iter(move_data.reachable_keeps_map[wesnoth.current.side]) do
             --std_print('keep: ' .. x .. ',' .. y)
             -- Note that reachable_keeps ignores other units, both own units and enemies

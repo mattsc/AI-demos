@@ -2646,16 +2646,32 @@ local function get_retreat_action(zone_cfg, fred_data)
     DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> retreat evaluation: ' .. zone_cfg.zone_id)
 
     local move_data = fred_data.move_data
-
     local leader_objectives = fred_data.ops_data.objectives.leader
+    local leader = move_data.leaders[wesnoth.current.side]
     --DBG.dbms(leader_objectives, false, 'leader_objectives')
+
     if leader_objectives.village then
         local action = {
-            units = { move_data.leaders[wesnoth.current.side] },
+            units = { leader },
             dsts = { { leader_objectives.village[1], leader_objectives.village[2] } },
             action_str = 'move leader to village'
         }
         --DBG.dbms(action, false, 'action')
+
+        return action
+    end
+
+    -- This is only for moving leader back toward keep. Moving to a keep for
+    -- recruiting is done part of the recruitment action
+    if leader_objectives.keep then
+        local action = {
+            units = { leader },
+            dsts = { { leader_objectives.keep[1], leader_objectives.keep[2] } },
+            action_str = 'move leader to keep'
+        }
+        --DBG.dbms(action, false, 'action')
+
+        leader_objectives.keep = nil
 
         return action
     end

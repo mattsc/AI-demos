@@ -822,9 +822,18 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
 
     if objectives.leader.keep then
-        -- For now, let's use half the value of the remaining gold as the benefit
+        -- If prerecruit is not set, then the leader just tries to move to the keep
+        -- In that case, we give a small token benefit, and make it a full move.
+        -- Otherwise, use partial move and use half the value of the remaining gold
+        -- as the benefit
         -- TODO: this has to be refined
-        local leader_recruit_benefit = 0.5 * wesnoth.sides[wesnoth.current.side].gold
+        local leader_recruit_benefit = 1
+        local move_type = 'full_move'
+        if objectives.leader.do_recruit then
+            leader_recruit_benefit = 0.5 * wesnoth.sides[wesnoth.current.side].gold
+            move_type = 'partial_move'
+        end
+
         local x, y = objectives.leader.keep[1], objectives.leader.keep[2]
         local action = {
             -- Important: we reserve the hex, so that the leader can recruit, but not the
@@ -833,7 +842,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             id = '',
             x = x,
             y = y,
-            type = 'partial_move',
+            type = move_type,
             action_str = 'move_leader_to_keep',
             action_type = 'Rec',
             benefit = leader_recruit_benefit
