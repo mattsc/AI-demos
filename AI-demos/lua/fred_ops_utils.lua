@@ -1740,24 +1740,6 @@ function fred_ops_utils.get_action_cfgs(fred_data)
             end
         end
         --DBG.dbms(fred_data.zone_cfgs, false, 'fred_data.zone_cfgs')
-
-        -- Recruiting
-        if ops_data.objectives.leader.prerecruit and ops_data.objectives.leader.prerecruit.units[1] then
-            -- TODO: This check should not be necessary, but something can
-            -- go wrong occasionally. Will eventually have to check why, for
-            -- now I just put in this workaround.
-            local current_gold = wesnoth.sides[wesnoth.current.side].gold
-            local cost = wesnoth.unit_types[ops_data.objectives.leader.prerecruit.units[1].recruit_type].cost
-            if (current_gold >= cost) then
-                table.insert(fred_data.zone_cfgs, {
-                    zone_id = zone_id,
-                    action_str = zone_id .. ': recruit',
-                    action_type = 'recruit',
-                    rating = base_ratings.recruit
-                })
-            end
-        end
-        --DBG.dbms(fred_data.zone_cfgs, false, 'fred_data.zone_cfgs')
     end
 
     ----- Village actions -----
@@ -1807,19 +1789,6 @@ function fred_ops_utils.get_action_cfgs(fred_data)
             })
         end
     end
-
-    -- Retreating is done zone independently. It handles (in this order):
-    --   1. Moving the leader to a village
-    --   3. Retreating injured units
-    --   2. Moving leader to or toward keep
-    -- It is the last action to be done and can simply always be called.
-    -- There is no advantage in doing the sorting here.
-
-    table.insert(fred_data.zone_cfgs, {
-        zone_id = 'all_map',
-        action_type = 'retreat',
-        rating = base_ratings.retreat
-    })
 
 
 
@@ -1873,6 +1842,38 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     })
 
     --DBG.dbms(fred_data.zone_cfgs, false, 'fred_data.zone_cfgs')
+
+   -- Recruiting
+   if ops_data.objectives.leader.prerecruit and ops_data.objectives.leader.prerecruit.units[1] then
+       -- TODO: This check should not be necessary, but something can
+       -- go wrong occasionally. Will eventually have to check why, for
+       -- now I just put in this workaround.
+       local current_gold = wesnoth.sides[wesnoth.current.side].gold
+       local cost = wesnoth.unit_types[ops_data.objectives.leader.prerecruit.units[1].recruit_type].cost
+       if (current_gold >= cost) then
+           table.insert(fred_data.zone_cfgs, {
+               zone_id = 'leader',
+               action_str = 'recruit',
+               action_type = 'recruit',
+               rating = base_ratings.recruit
+           })
+       end
+   end
+   --DBG.dbms(fred_data.zone_cfgs, false, 'fred_data.zone_cfgs')
+
+
+    -- Retreating is done zone independently. It handles (in this order):
+    --   1. Moving the leader to a village
+    --   3. Retreating injured units
+    --   2. Moving leader to or toward keep
+    -- It is the last action to be done and can simply always be called.
+    -- There is no advantage in doing the sorting here.
+    table.insert(fred_data.zone_cfgs, {
+        zone_id = 'all_map',
+        action_type = 'retreat',
+        rating = base_ratings.retreat
+    })
+
 
     -- Now sort by the ratings embedded in the cfgs
     table.sort(fred_data.zone_cfgs, function(a, b) return a.rating > b.rating end)
