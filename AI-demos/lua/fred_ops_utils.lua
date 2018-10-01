@@ -1687,7 +1687,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 
         grab_villages = 13000,
         advance = 12000,
-        recruit = 11000
+        recruit = 11000,
         retreat = 10000
     }
 
