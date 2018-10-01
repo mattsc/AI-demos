@@ -1741,24 +1741,6 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         end
         --DBG.dbms(fred_data.zone_cfgs, false, 'fred_data.zone_cfgs')
 
-        -- Full move to next_hop
-        --[[
-        if ops_data.objectives.leader.leader_threats.leader_locs.next_hop
-            and move_data.my_units_MP[leader.id]
-            and ((ops_data.objectives.leader.leader_threats.leader_locs.next_hop[1] ~= leader[1]) or (ops_data.objectives.leader.leader_threats.leader_locs.next_hop[2] ~= leader[2]))
-        then
-            table.insert(fred_data.zone_cfgs, {
-                action = {
-                    zone_id = zone_id,
-                    action_str = zone_id .. ': move leader toward keep',
-                    units = { leader },
-                    dsts = { ops_data.objectives.leader.leader_threats.leader_locs.next_hop }
-                },
-                rating = base_ratings.retreat
-            })
-        end
-        --]]
-
         -- Recruiting
         if ops_data.objectives.leader.prerecruit and ops_data.objectives.leader.prerecruit.units[1] then
             -- TODO: This check should not be necessary, but something can
@@ -1776,25 +1758,6 @@ function fred_ops_utils.get_action_cfgs(fred_data)
             end
         end
         --DBG.dbms(fred_data.zone_cfgs, false, 'fred_data.zone_cfgs')
-
-        -- If leader injured, full move to village
-        -- (this will automatically force more recruiting, if gold/castle hexes left)
-        --[[
-        if ops_data.leader_threats.leader_locs.closest_village
-            and move_data.my_units_MP[leader.id]
-            and ((ops_data.leader_threats.leader_locs.closest_village[1] ~= leader[1]) or (ops_data.leader_threats.leader_locs.closest_village[2] ~= leader[2]))
-        then
-            table.insert(fred_data.zone_cfgs, {
-                action = {
-                    zone_id = zone_id,
-                    action_str = zone_id .. ': move leader to village',
-                    units = { leader },
-                    dsts = { ops_data.leader_threats.leader_locs.closest_village }
-                },
-                rating = base_ratings.retreat
-            })
-        end
-        --]]
     end
 
     ----- Village actions -----
