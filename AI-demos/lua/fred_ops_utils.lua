@@ -1847,7 +1847,8 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 
     -- Retreating is done zone independently. It handles (in this order):
     --   1. Moving the leader to a village
-    --   2. Retreating injured units
+    --   3. Retreating injured units
+    --   2. Moving leader to or toward keep
     -- It is the last action to be done and can simply always be called.
     -- There is no advantage in doing the sorting here.
 
