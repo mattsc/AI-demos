@@ -1677,17 +1677,27 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     --DBG.dbms(zone_power_stats, false, 'zone_power_stats')
 
 
+    local base_ratings = {
+        attack_leader_threat = 31000,
+        protect_leader = 30000,
+
+        fav_attack = 22000,
+        attack = 21000,
+        hold = 20000,
+
+        grab_villages = 13000,
+        advance = 12000,
+        recruit = 11000
+        retreat = 10000
+    }
+
+
     ----- Leader threat actions -----
 
     --DBG.dbms(ops_data.objectives, false, 'ops_data.objectives')
     local leader_threats = ops_data.objectives.leader.leader_threats
     --DBG.dbms(leader_threats, false, 'leader_threats')
     if leader_threats.significant_threat then
-        local leader_base_ratings = {
-            attack = 35000,
-            recruit = 33000,
-            move_to_village = 32000
-        }
 
         local leader_threats_by_zone = {}
         for zone_id,threats in pairs(threats_by_zone) do
@@ -1725,7 +1735,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
                     zone_units = attackers_by_zone[zone_id],
                     targets = threats,
                     value_ratio = value_ratio * vr_mult,
-                    rating = leader_base_ratings.attack + zone_power_stats[zone_id].power_needed
+                    rating = base_ratings.attack_leader_threat + zone_power_stats[zone_id].power_needed
                 })
             end
         end
@@ -1744,7 +1754,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
                     units = { leader },
                     dsts = { ops_data.objectives.leader.leader_threats.leader_locs.next_hop }
                 },
-                rating = leader_base_ratings.move_to_keep
+                rating = base_ratings.retreat
             })
         end
         --]]
@@ -1761,7 +1771,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
                     zone_id = zone_id,
                     action_str = zone_id .. ': recruit',
                     action_type = 'recruit',
-                    rating = leader_base_ratings.recruit
+                    rating = base_ratings.recruit
                 })
             end
         end
@@ -1781,7 +1791,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
                     units = { leader },
                     dsts = { ops_data.leader_threats.leader_locs.closest_village }
                 },
-                rating = leader_base_ratings.move_to_village
+                rating = base_ratings.retreat
             })
         end
         --]]
@@ -1799,14 +1809,6 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 
     ----- Zone actions -----
 
-    local base_ratings = {
-        attack = 8000,
-        fav_attack = 7000,
-        hold = 4000,
-        retreat = 2100,
-        advance = 2000,
-        advance_all = 1000
-    }
 
     -- TODO: might want to do something more complex (e.g using local info) in ops layer
     local value_ratio = fred_data.turn_data.behavior.orders.value_ratio
@@ -1903,7 +1905,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     table.insert(fred_data.zone_cfgs, {
         zone_id = 'all_map',
         action_type = 'advance',
-        rating = base_ratings.advance_all
+        rating = base_ratings.advance
     })
 
     --DBG.dbms(fred_data.zone_cfgs, false, 'fred_data.zone_cfgs')
