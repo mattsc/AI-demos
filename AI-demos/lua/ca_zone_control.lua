@@ -2865,49 +2865,29 @@ function ca_zone_control:evaluation(cfg, data, ai_debug)
     for i_c,cfg in ipairs(data.zone_cfgs) do
         --DBG.dbms(cfg, false, 'cfg')
 
-        -- Execute any actions with an 'action' table already set right away.
-        -- We first need to validate that the existing actions are still doable
-        -- This is needed because individual actions might interfere with each other
-        -- We also delete executed actions here; it cannot be done right after setting
-        -- up the eval table, as not all action get executed right away by the
-        -- execution code (e.g. if an action involves the leader and recruiting has not
-        -- yet happened)
-        if cfg.action then
-            if (not cfg.invalid) then
-                local is_good = true
+        -- Reserved actions have already been evaluated and checked for validity.
+        -- We can skip changing units on the map, calling evaluation functions etc.
+        if (cfg.action_type == 'reserved_action') then
+            local action = {
+                action_str = cfg.reserved_type,
+                zone_id = cfg.zone_id,
+                units = {},
+                dsts = {}
+            }
 
-                if (cfg.action.type ~= 'recruit') then
-                   for _,u in ipairs(cfg.action.units) do
-                        local unit = wesnoth.get_units { id = u.id }[1]
-                        --std_print(unit.id, unit.x, unit.y)
-
-                        if (not unit) or ((unit.x == cfg.action.dsts[1][1]) and (unit.y == cfg.action.dsts[1][2])) then
-                            is_good = false
-                            break
-                        end
-
-                        local _, cost = wesnoth.find_path(unit, cfg.action.dsts[1][1], cfg.action.dsts[1][2])
-                        --std_print(cost)
-
-                        if (cost > unit.moves) then
-                            is_good = false
-                            break
-                        end
-                    end
-
-                    if (#cfg.action.units == 0) then
-                        is_good = false
-                    end
-                    --std_print('is_good:', is_good)
+            for _,reserved_action in pairs(data.ops_data.reserved_actions) do
+                if (reserved_action.action_type == cfg.reserved_type) then
+                    local tmp_unit = AH.table_copy(data.move_data.units[reserved_action.id])
+                    tmp_unit.id = reserved_action.id
+                    table.insert(action.units, tmp_unit)
+                    table.insert(action.dsts, { reserved_action.x, reserved_action.y })
                 end
+            end
+            --DBG.dbms(action, false, 'action')
 
-                if is_good then
-                    --std_print('  Pre-evaluated action found: ' .. cfg.action.action_str)
-                    data.zone_action = AH.table_copy(cfg.action)
-                    return score_zone_control, cfg.action
-                else
-                    cfg.invalid = true
-                end
+            if action.units[1] then
+                data.zone_action = action
+                return score_zone_control, action
             end
         else
             -- Extract all AI units with MP left (for enemy path finding, counter attack placement etc.)

@@ -1229,7 +1229,7 @@ function fred_ops_utils.set_ops_data(fred_data)
                 y = y,
                 type = 'full_move',
                 action_str = 'grab_village',
-                action_type = 'GV',
+                action_type = 'grab_village',
                 benefit = combined_benefits[action].units[id].benefit
             }
             local action_id = 'grab_village:' .. (x * 1000 + y)
@@ -1742,14 +1742,16 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         --DBG.dbms(fred_data.zone_cfgs, false, 'fred_data.zone_cfgs')
     end
 
+
     ----- Village actions -----
 
-    -- TODO: this is a place_holder for now, needs to be updated to work with delayed_actions
-    ops_data.actions = { villages = {} }
-    for i,action in ipairs(ops_data.actions.villages) do
-        action.rating = 20000 - i
-        table.insert(fred_data.zone_cfgs, action)
-    end
+    -- Village grabs are stored in reserved_actions. This cfg can always be added.
+    table.insert(fred_data.zone_cfgs, {
+        zone_id = 'all_map',
+        action_type = 'reserved_action',
+        reserved_type = 'grab_village',
+        rating = base_ratings.grab_villages
+    })
 
 
     ----- Zone actions -----
