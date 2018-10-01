@@ -2650,30 +2650,32 @@ local function get_retreat_action(zone_cfg, fred_data)
     local leader = move_data.leaders[wesnoth.current.side]
     --DBG.dbms(leader_objectives, false, 'leader_objectives')
 
-    if leader_objectives.village then
-        local action = {
-            units = { leader },
-            dsts = { { leader_objectives.village[1], leader_objectives.village[2] } },
-            action_str = 'move leader to village'
-        }
-        --DBG.dbms(action, false, 'action')
+    if (move_data.unit_infos[leader.id].moves > 0) then
+        if leader_objectives.village then
+            local action = {
+                units = { leader },
+                dsts = { { leader_objectives.village[1], leader_objectives.village[2] } },
+                action_str = 'move leader to village'
+            }
+            --DBG.dbms(action, false, 'action')
 
-        return action
-    end
+            return action
+        end
 
-    -- This is only for moving leader back toward keep. Moving to a keep for
-    -- recruiting is done part of the recruitment action
-    if leader_objectives.keep then
-        local action = {
-            units = { leader },
-            dsts = { { leader_objectives.keep[1], leader_objectives.keep[2] } },
-            action_str = 'move leader to keep'
-        }
-        --DBG.dbms(action, false, 'action')
+        -- This is only for moving leader back toward keep. Moving to a keep for
+        -- recruiting is done part of the recruitment action
+        if leader_objectives.keep then
+            local action = {
+                units = { leader },
+                dsts = { { leader_objectives.keep[1], leader_objectives.keep[2] } },
+                action_str = 'move leader to keep'
+            }
+            --DBG.dbms(action, false, 'action')
 
-        leader_objectives.keep = nil
+            leader_objectives.keep = nil
 
-        return action
+            return action
+        end
     end
 
     --DBG.dbms(fred_data.ops_data.reserved_actions)
