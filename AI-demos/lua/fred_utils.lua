@@ -272,7 +272,7 @@ function fred_utils.unittype_base_power(unit_type)
     return fred_utils.unit_base_power(unittype_info)
 end
 
-function fred_utils.is_available(id, loc, reserved_actions)
+function fred_utils.is_available(id, loc, reserved_actions, interactions)
     -- Check whether a unit and/or hex has a reserved action. If only one or the
     -- other is given, the unit/hex counts as available if there is no action
     -- associated with it. If both are given, they also count as available if
@@ -285,13 +285,19 @@ function fred_utils.is_available(id, loc, reserved_actions)
 
     local is_available, penalty = true, 0
 
-    for _,action in pairs(reserved_actions) do
+    for _,reserved_action in pairs(reserved_actions) do
+        local unit_penalty_mult = interactions.units[reserved_action.action_id] or 0
+        local hex_penalty_mult = interactions.hexes[reserved_action.action_id] or 0
+        --std_print(id, loc and loc[1], loc and loc[2], reserved_action.action_id, unit_penalty_mult, hex_penalty_mult)
+
         local same_hex = false
-        if loc and (loc[1] == action.x) and (loc[2] == action.y) then
+        if loc and (hex_penalty_mult > 0)
+            and (loc[1] == reserved_action.x) and (loc[2] == reserved_action.y)
+         then
             same_hex = true
         end
         local same_unit = false
-        if id and (id == action.id) then
+        if id and (unit_penalty_mult > 0) and (id == reserved_action.id) then
             same_unit = true
         end
 
@@ -303,7 +309,9 @@ function fred_utils.is_available(id, loc, reserved_actions)
             break
         elseif same_hex or same_unit then
             is_available = false
-            penalty = penalty - action.benefit
+            local penalty_mult = math.max(unit_penalty_mult, hex_penalty_mult)
+            penalty = penalty - penalty_mult * reserved_action.benefit
+            --std_print('  ' .. penalty_mult, penalty)
         end
     end
 

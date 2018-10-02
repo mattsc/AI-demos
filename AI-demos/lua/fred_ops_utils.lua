@@ -810,11 +810,8 @@ function fred_ops_utils.set_ops_data(fred_data)
         local x, y = objectives.leader.village[1], objectives.leader.village[2]
         local action = {
             id = leader.id,
-            x = x,
-            y = y,
-            type = 'full_move',
-            action_str = 'move_leader_to_village',
-            action_type = 'MtS',  -- This is for setting up action interaction matrix
+            x = x, y = y,
+            action_id = 'MLV',
             benefit = leader_heal_benefit
         }
         local action_id = 'leader_village:' .. (x * 1000 + y)
@@ -823,15 +820,12 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     if objectives.leader.keep then
         -- If prerecruit is not set, then the leader just tries to move to the keep
-        -- In that case, we give a small token benefit, and make it a full move.
-        -- Otherwise, use partial move and use half the value of the remaining gold
-        -- as the benefit
+        -- In that case, we give a small token benefit, otherwise, use half the
+        -- value of the remaining gold as the benefit
         -- TODO: this has to be refined
         local leader_recruit_benefit = 1
-        local move_type = 'full_move'
         if objectives.leader.do_recruit then
             leader_recruit_benefit = 0.5 * wesnoth.sides[wesnoth.current.side].gold
-            move_type = 'partial_move'
         end
 
         local x, y = objectives.leader.keep[1], objectives.leader.keep[2]
@@ -840,11 +834,8 @@ function fred_ops_utils.set_ops_data(fred_data)
             -- unit, as the leader should be able to do something else after recruiting.
             -- The reduced range is taken care of by effective_reach_maps.
             id = '',
-            x = x,
-            y = y,
-            type = move_type,
-            action_str = 'move_leader_to_keep',
-            action_type = 'Rec',
+            x = x, y = y,
+            action_id = 'MLK',
             benefit = leader_recruit_benefit
         }
         local action_id = 'leader_keep:' .. (x * 1000 + y)
@@ -859,11 +850,8 @@ function fred_ops_utils.set_ops_data(fred_data)
             local x, y = unit.recruit_hex[1], unit.recruit_hex[2]
             local action = {
                 id = '',
-                x = x,
-                y = y,
-                type = 'recruit',
-                action_str = 'recruit',
-                action_type = 'Rec',
+                x = x, y = y,
+                action_id = 'rec',
                 benefit = recruit_benefit
             }
             local action_id = 'recruit:' .. (x * 1000 + y)
@@ -873,6 +861,8 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     --DBG.dbms(reserved_actions, false, 'reserved_actions')
 
+    local interaction_matrix = FCFG.interaction_matrix()
+    --DBG.dbms(interaction_matrix, false, 'interaction_matrix')
 
     local village_objectives, villages_to_grab = FVU.village_objectives(raw_cfgs_main, side_cfgs, fred_data)
     objectives.protect = village_objectives
@@ -883,7 +873,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     -- and units marked in reserved_actions (also only the leader)
     -- TODO: we do not exclude them previously, as we might add a utility function later
     -- if there are several villages the leader might go to
-    local village_grabs = FVU.village_grabs(villages_to_grab, reserved_actions, effective_reach_maps, fred_data)
+    local village_grabs = FVU.village_grabs(villages_to_grab, reserved_actions, interaction_matrix.penalties['GV'], effective_reach_maps, fred_data)
     --DBG.dbms(village_grabs, false, 'village_grabs')
 
 
@@ -1147,9 +1137,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             local action = {
                 id = id,
                 x = -1, y = -1, -- Don't have reserved location
-                type = 'full_move',
-                action_str = 'retreat',
-                action_type = 'Ret',  -- This is for setting up action interaction matrix
+                action_id = 'ret',
                 benefit = heal_benefit
             }
             local action_id = 'retreat:' .. id
@@ -1225,11 +1213,8 @@ function fred_ops_utils.set_ops_data(fred_data)
 
             local action = {
                 id = id,
-                x = x,
-                y = y,
-                type = 'full_move',
-                action_str = 'grab_village',
-                action_type = 'grab_village',
+                x = x, y = y,
+                action_id = 'GV',
                 benefit = combined_benefits[action].units[id].benefit
             }
             local action_id = 'grab_village:' .. (x * 1000 + y)
@@ -1363,7 +1348,8 @@ function fred_ops_utils.set_ops_data(fred_data)
         unassigned_enemies = unassigned_enemies,
         assigned_units = assigned_units,
         fronts = fronts,
-        reserved_actions = reserved_actions
+        reserved_actions = reserved_actions,
+        interaction_matrix = interaction_matrix
     }
     --DBG.dbms(ops_data, false, 'ops_data')
     --DBG.dbms(ops_data.objectives, false, 'ops_data.objectives')
@@ -1749,7 +1735,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     table.insert(fred_data.zone_cfgs, {
         zone_id = 'all_map',
         action_type = 'reserved_action',
-        reserved_type = 'grab_village',
+        reserved_id = 'GV',
         rating = base_ratings.grab_villages
     })
 

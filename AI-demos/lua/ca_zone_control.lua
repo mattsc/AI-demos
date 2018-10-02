@@ -2869,14 +2869,14 @@ function ca_zone_control:evaluation(cfg, data, ai_debug)
         -- We can skip changing units on the map, calling evaluation functions etc.
         if (cfg.action_type == 'reserved_action') then
             local action = {
-                action_str = cfg.reserved_type,
+                action_str = data.ops_data.interaction_matrix.abbrevs[cfg.reserved_id],
                 zone_id = cfg.zone_id,
                 units = {},
                 dsts = {}
             }
 
             for _,reserved_action in pairs(data.ops_data.reserved_actions) do
-                if (reserved_action.action_type == cfg.reserved_type) then
+                if (reserved_action.action_id == cfg.reserved_id) then
                     local tmp_unit = AH.table_copy(data.move_data.units[reserved_action.id])
                     tmp_unit.id = reserved_action.id
                     table.insert(action.units, tmp_unit)
