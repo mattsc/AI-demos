@@ -59,10 +59,39 @@ local cfg = {
     score_leader_to_village = 8
 }
 
+local interaction_matrix = {
+    abbrevs = {
+		ALT = 'attack_leader_threat',
+		PL  = 'protect_leader',
+		FA  = 'favorable_attack',
+		att = 'attack',
+		pro = 'protect',
+		GV  = 'grab_village',
+		adv = 'advance',
+		rec = 'recruit',
+		MLV = 'move_leader_to_village',
+		MLK = 'move_leader_to_keep',
+		ret = 'retreat'
+    },
+    -- A penalty multiplier of 0 is equivalent to not setting it in the first place.
+    -- If one is set to 0 here, that is done to emphasize that it should be ignored.
+    penalties = {
+        GV = {
+            units = { MLV = 1000, Ret = 0 }, -- retreaters may be used
+            hexes = { MLV = 1000 }
+        }
+    }
+}
+
+
 local fred_config = {}
 
 function fred_config.get_cfg_parm(parm)
     return cfg[parm]
+end
+
+function fred_config.interaction_matrix()
+    return interaction_matrix
 end
 
 return fred_config
