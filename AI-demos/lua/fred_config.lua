@@ -76,6 +76,7 @@ local interaction_matrix = {
     -- A penalty multiplier of 0 is equivalent to not setting it in the first place.
     -- If one is set to 0 here, that is done to emphasize that it should be ignored.
     penalties = {
+        -- 'ALT' and 'PL': use 'att'
         att = {
             units = { GV = 1, MLV = 1, MLK = 0, ret = 1 },
             hexes = { GV = 1, rec = 1, MLV = 1, MLK = 1, }
