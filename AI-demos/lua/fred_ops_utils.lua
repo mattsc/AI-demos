@@ -833,7 +833,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             -- Important: we reserve the hex, so that the leader can recruit, but not the
             -- unit, as the leader should be able to do something else after recruiting.
             -- The reduced range is taken care of by effective_reach_maps.
-            id = '',
+            id = leader.id,
             x = x, y = y,
             action_id = 'MLK',
             benefit = leader_recruit_benefit
