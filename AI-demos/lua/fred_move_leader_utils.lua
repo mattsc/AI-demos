@@ -38,6 +38,9 @@ local function get_reach_map_via_keep(leader, move_data)
         end
     end
 
+    leader_copy.x, leader_copy.y = old_loc[1], old_loc[2]
+    leader_copy.moves = old_moves
+
     return effective_reach_map
 end
 
