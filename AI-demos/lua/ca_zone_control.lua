@@ -32,30 +32,6 @@ local function get_attack_action(zone_cfg, fred_data)
     --DBG.dbms(targets, false, 'targets')
 
 
-    -- Determine whether we need to keep a keep hex open for the leader
-    local available_keeps = {}
-    local leader = fred_data.move_data.leaders[wesnoth.current.side]
-    local leader_info = move_data.unit_infos[leader.id]
-
-    -- If the leader cannot move, don't do anything
-    if (leader_info.moves > 0) then
-        local width,height,border = wesnoth.get_map_size()
-        local keeps = wesnoth.get_locations {
-            terrain = 'K*,K*^*,*^K*', -- Keeps
-            x = '1-'..width,
-            y = '1-'..height
-        }
-
-        for _,keep in ipairs(keeps) do
-            local leader_can_reach = FU.get_fgumap_value(move_data.reach_maps[leader_info.id], keep[1], keep[2], 'moves_left')
-            if leader_can_reach then
-                table.insert(available_keeps, keep)
-            end
-        end
-
-    end
-    --DBG.dbms(available_keeps, false, 'available_keeps')
-
     -- Attackers is everybody in zone_cfg.zone_units is set,
     -- or all units with attacks left otherwise
     local zone_units_attacks = {}
@@ -203,31 +179,8 @@ local function get_attack_action(zone_cfg, fred_data)
             --DBG.dbms(combo_outcome.rating_table, false, 'combo_outcome.rating_table')
             --std_print('   combo ratings: ', combo_outcome.rating_table.rating, combo_outcome.rating_table.attacker.rating, combo_outcome.rating_table.defender.rating)
 
-            -- Don't attack if the leader is involved and has chance to die > 0
-            local do_attack = true
 
-            -- Don't do if this would take all the keep hexes away from the leader
-            -- TODO: this is a double loop; do this for now, because both arrays
-            -- are small, but optimize later
-            if do_attack and (#available_keeps > 0) then
-                do_attack = false
-                for _,keep in ipairs(available_keeps) do
-                    local keep_taken = false
-                    for i_d,dst in ipairs(combo_outcome.dsts) do
-                        if (not combo_outcome.attacker_infos[i_d].canrecruit)
-                            and (keep[1] == dst[1]) and (keep[2] == dst[2])
-                        then
-                            keep_taken = true
-                            break
-                        end
-                    end
-                    if (not keep_taken) then
-                        do_attack = true
-                        break
-                    end
-                end
-            end
-            --std_print('  ******* do_attack after keep check:', do_attack)
+            local do_attack = true
 
             -- Don't do this attack if the leader has a chance to get killed, poisoned or slowed
             -- This is only the chance of poison/slow in this attack, if he is already
