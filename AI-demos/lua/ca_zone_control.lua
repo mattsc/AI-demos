@@ -95,16 +95,45 @@ local function get_attack_action(zone_cfg, fred_data)
     -- the comparison is not fair.
     local cfg_attack = { value_ratio = value_ratio }
 
-    -- Set up easy to use array of penalties for delayed actions
+    -- Set up easy to use array of penalties for reserved actions
+    local interactions = fred_data.ops_data.interaction_matrix.penalties['att']
+    --DBG.dbms(interactions, false, 'interactions')
     local penalties = {}
-    for _,reserved_action in ipairs(fred_data.ops_data.reserved_actions) do
+    for action_str,reserved_action in pairs(fred_data.ops_data.reserved_actions) do
+        --DBG.dbms(reserved_action, false, 'reserved_action')
         local id = reserved_action.id
-        local src = fred_data.move_data.units[id][1] * 1000 + fred_data.move_data.units[id][2]
-        penalties[src] = {
-            dst = 1000 * reserved_action.x + reserved_action.y,
-            id = id,
-            penalty = - reserved_action.benefit
-        }
+        local dst = 1000 * reserved_action.x + reserved_action.y
+        local src
+        if fred_data.move_data.units[id] then
+            src = fred_data.move_data.units[id][1] * 1000 + fred_data.move_data.units[id][2]
+        end
+
+        local penalty_mult, hex_only = 0
+        local unit_penalty_mult = interactions.units[reserved_action.action_id] or 0
+        --std_print(action_str, reserved_action.action_id, unit_penalty_mult)
+        if (unit_penalty_mult > 0) then
+            -- If units are reserved, we reserve both the unit and the hex
+            -- unless the correct unit is used on the correct hex.
+            -- Reserved actions that require a unit, but no hex have x = y = -1,
+            -- so this works even then.
+            penalty_mult = unit_penalty_mult
+        else
+            -- Otherwise, we reserve only the hex, as indicated by the hex_only flag.
+            -- Note though that some of these actions still have a unit associated with
+            -- them, meaning that the hex is not penalized if the correct unit is used on it.
+            penalty_mult = interactions.hexes[reserved_action.action_id] or 0
+            hex_only = true
+        end
+
+        if (penalty_mult > 0) then
+            penalties[dst] = {
+                src = src,
+                id = id,
+                penalty = - reserved_action.benefit * penalty_mult,
+                hex_only = hex_only,
+                action_str = action_str -- not strictly necessary, just for debugging
+            }
+        end
     end
     --DBG.dbms(penalties, false, 'penalties')
 
@@ -148,13 +177,24 @@ local function get_attack_action(zone_cfg, fred_data)
             -- for the attacker/defender pairings involved.
             local combo_rating = combo_outcome.rating_table.rating
 
-            -- Penalty for units planned to be used otherwise
+            -- Penalty for units and/or hexes planned to be used otherwise
             local penalty_rating = 0
             local penalty_str = ''
             for src,dst in pairs(combo) do
-                if penalties[src] and (penalties[src].dst ~= dst) then
-                    penalty_rating = penalty_rating + penalties[src].penalty
-                    penalty_str = penalty_str .. string.format("    %s %6.3f", penalties[src].id, penalties[src].penalty)
+                -- Note: penalties has dst/src backwards from combo
+                for dst_p,penalty in pairs(penalties) do
+                    --std_print(src, dst, dst_p, penalty.src)
+
+                    -- It is possible that the hex and the unit are reserved separately,
+                    -- so we cannot break the loop if one is found
+                    if (dst ~= dst_p) or (src ~= penalty.src) then
+                        if (dst == dst_p)
+                            or ((src == penalty.src) and (not penalty.hex_only))
+                        then
+                            penalty_rating = penalty_rating + penalty.penalty
+                            penalty_str = penalty_str .. string.format("    %s %6.3f", penalty.id, penalty.penalty)
+                        end
+                    end
                 end
             end
 
