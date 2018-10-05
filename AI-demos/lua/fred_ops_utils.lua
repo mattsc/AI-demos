@@ -897,8 +897,8 @@ function fred_ops_utils.set_ops_data(fred_data)
     -- and units marked in reserved_actions (also only the leader)
     -- TODO: we do not exclude them previously, as we might add a utility function later
     -- if there are several villages the leader might go to
-    local village_grabs = FVU.village_grabs(villages_to_grab, reserved_actions, interaction_matrix.penalties['GV'], fred_data)
-    --DBG.dbms(village_grabs, false, 'village_grabs')
+    local possible_village_grabs = FVU.village_grabs(villages_to_grab, reserved_actions, interaction_matrix.penalties['GV'], fred_data)
+    --DBG.dbms(possible_village_grabs, false, 'possible_village_grabs')
 
 
     fred_ops_utils.set_between_objectives(objectives, enemy_zones, fred_data)
@@ -906,7 +906,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(objectives, false, 'objectives')
 
 
-    local village_benefits = FBU.village_benefits(village_grabs, fred_data)
+    local village_benefits = FBU.village_benefits(possible_village_grabs, fred_data)
     --DBG.dbms(village_benefits, false, 'village_benefits')
 
     -- Assess village grabbing by itself; this is for testing only
