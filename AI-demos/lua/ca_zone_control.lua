@@ -131,7 +131,7 @@ local function get_attack_action(zone_cfg, fred_data)
         DBG.print_debug('attack_print_output', target_id, '  trappable:', is_trappable_enemy, target_loc[1], target_loc[2])
 
         local attack_combos = FAU.get_attack_combos(
-            zone_units_attacks, target, cfg_attack, move_data.reach_maps, false, move_cache
+            zone_units_attacks, target, cfg_attack, move_data.effective_reach_maps, false, move_cache
         )
         --DBG.print_ts_delta(fred_data.turn_start_time, '#attack_combos', #attack_combos)
 
