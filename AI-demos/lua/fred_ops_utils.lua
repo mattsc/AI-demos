@@ -900,7 +900,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     -- and units marked in reserved_actions (also only the leader)
     -- TODO: we do not exclude them previously, as we might add a utility function later
     -- if there are several villages the leader might go to
-    local village_grabs = FVU.village_grabs(villages_to_grab, reserved_actions, interaction_matrix.penalties['GV'], effective_reach_maps, fred_data)
+    local village_grabs = FVU.village_grabs(villages_to_grab, reserved_actions, interaction_matrix.penalties['GV'], fred_data)
     --DBG.dbms(village_grabs, false, 'village_grabs')
 
 

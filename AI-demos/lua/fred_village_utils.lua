@@ -80,7 +80,7 @@ function fred_village_utils.village_objectives(zone_cfgs, side_cfgs, fred_data)
 end
 
 
-function fred_village_utils.village_grabs(villages_to_grab, reserved_actions, interactions, effective_reach_maps, fred_data)
+function fred_village_utils.village_grabs(villages_to_grab, reserved_actions, interactions, fred_data)
     local move_data = fred_data.move_data
     local value_ratio = fred_data.turn_data.behavior.orders.value_ratio
 
@@ -104,21 +104,13 @@ function fred_village_utils.village_grabs(villages_to_grab, reserved_actions, in
         local is_available_loc = FU.is_available(nil, { x, y }, reserved_actions, interactions)
         local ids = {}
         if is_available_loc then
-            ids = FU.get_fgumap_value(move_data.my_move_map[1], x, y, 'ids') or {}
+            ids = FU.get_fgumap_value(move_data.my_move_map[1], x, y, 'eff_reach_ids') or {}
         end
         for _,id in pairs(ids) do
             local loc = move_data.my_units[id]
 
-            local may_reach = true
-            if effective_reach_maps[id] then
-                if (not FU.get_fgumap_value(effective_reach_maps[id], x, y, 'moves_left')) then
-                    may_reach = false
-                end
-                --std_print('checking effective_reach_maps: ' .. id, x .. ',' .. y, may_reach)
-            end
-
             local is_available_unit = FU.is_available(id, nil, reserved_actions, interactions)
-            if may_reach and is_available_unit then
+            if is_available_unit then
                 local target = {}
                 target[id] = { x, y }
 
