@@ -33,7 +33,7 @@ end
 
 local fred_ops_utils = {}
 
-function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_objectives, hold_zones, move_data)
+function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_objectives, move_data)
     -- Combine several zones into one, if the conditions for it are met.
     -- For example, on Freelands the 'east' and 'center' zones are combined
     -- into the 'top' zone if enemies are close enough to the leader.
@@ -45,12 +45,6 @@ function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_
     local raw_cfg_new = FMC.get_raw_cfgs(replace_zone_ids.new)
     --DBG.dbms(replace_zone_ids, false, 'replace_zone_ids')
     --DBG.dbms(replace_zone_ids, false, 'replace_zone_ids')
-
-    for zone_id,_ in pairs(raw_cfgs_main) do
-        if assigned_units[zone_id] then
-            hold_zones[zone_id] = true
-        end
-    end
 
     local replace_zones = false
     for _,zone_id in ipairs(replace_zone_ids.old) do
@@ -69,12 +63,6 @@ function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_
     --std_print('replace_zones', replace_zones)
 
     if replace_zones then
-        hold_zones[raw_cfg_new.zone_id] = true
-
-        for _,zone_id in ipairs(replace_zone_ids.old) do
-            hold_zones[zone_id] = nil
-        end
-
         -- Also combine assigned_units, assigned_enemies, protect_objectives
         -- from the zones to be replaced. We don't actually replace the
         -- respective tables for those zones, just add those for the super zone,
@@ -1308,9 +1296,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     fred_ops_utils.update_protect_goals(objectives, assigned_units, assigned_enemies, fred_data)
     --DBG.dbms(objectives.protect, false, 'objectives.protect')
 
-    objectives.hold_zones = {}
-    --DBG.dbms(objectives.hold_zones, false, 'objectives.hold_zones')
-    fred_ops_utils.replace_zones(assigned_units, assigned_enemies, objectives.protect, objectives.hold_zones, fred_data.move_data)
+--    fred_ops_utils.replace_zones(assigned_units, assigned_enemies, objectives.protect, fred_data.move_data)
 
     -- Calculate where the fronts are in the zones (in leader_distance values)
     -- based on a vulnerability-weighted sum over the zones
@@ -1545,7 +1531,7 @@ function fred_ops_utils.update_ops_data(fred_data)
 
     -- Also update the protect locations, as a location might not be threatened
     -- any more
-    fred_ops_utils.replace_zones(ops_data.assigned_units, ops_data.assigned_enemies, ops_data.objectives.protect, ops_data.hold_zones)
+    fred_ops_utils.replace_zones(ops_data.assigned_units, ops_data.assigned_enemies, ops_data.objectives.protect)
 
 
     -- Once the leader has no MP left, we reconsider the leader threats
@@ -1596,7 +1582,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 
     -- For all of the main zones, find assigned units that have moves and attacks left
     local holders_by_zone, attackers_by_zone = {}, {}
-    for zone_id,_ in pairs(ops_data.objectives.hold_zones) do
+    for zone_id,_ in pairs(ops_data.assigned_enemies) do
         if ops_data.assigned_units[zone_id] then
             for id,_ in pairs(ops_data.assigned_units[zone_id]) do
                 if move_data.my_units_MP[id] then
@@ -1644,7 +1630,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         end
 
         if is_attacker then
-            for zone_id,_ in pairs(ops_data.objectives.hold_zones) do
+            for zone_id,_ in pairs(ops_data.assigned_enemies) do
                 if (not attackers_by_zone[zone_id]) then attackers_by_zone[zone_id] = {} end
                 attackers_by_zone[zone_id][leader.id] = move_data.units[leader.id][1] * 1000 + move_data.units[leader.id][2]
             end
@@ -1658,7 +1644,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     -- it's quick and easy, we just check for it again.
     local threats_by_zone = {}
     local tmp_enemies = {}
-    for zone_id,_ in pairs(ops_data.objectives.hold_zones) do
+    for zone_id,_ in pairs(ops_data.assigned_enemies) do
         if ops_data.assigned_enemies[zone_id] then
             for enemy_id,_ in pairs(ops_data.assigned_enemies[zone_id]) do
                 if move_data.enemies[enemy_id] then
@@ -1685,7 +1671,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     --DBG.dbms(other_enemies, false, 'other_enemies')
 
     for enemy_id,xy in pairs(other_enemies) do
-        for zone_id,_ in pairs(ops_data.objectives.hold_zones) do
+        for zone_id,_ in pairs(ops_data.assigned_enemies) do
             if (not threats_by_zone[zone_id]) then threats_by_zone[zone_id] = {} end
             threats_by_zone[zone_id][enemy_id] = xy
         end
@@ -1696,7 +1682,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     --DBG.dbms(threats_by_zone, false, 'threats_by_zone')
 
 
-    local zone_power_stats = fred_ops_utils.zone_power_stats(ops_data.objectives.hold_zones, ops_data.assigned_units, ops_data.assigned_enemies, fred_data.turn_data.behavior.orders.base_power_ratio, fred_data)
+    local zone_power_stats = fred_ops_utils.zone_power_stats(ops_data.assigned_enemies, ops_data.assigned_units, ops_data.assigned_enemies, fred_data.turn_data.behavior.orders.base_power_ratio, fred_data)
     --DBG.dbms(zone_power_stats, false, 'zone_power_stats')
 
 
