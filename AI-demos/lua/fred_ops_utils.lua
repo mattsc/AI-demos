@@ -785,14 +785,19 @@ function fred_ops_utils.set_ops_data(fred_data)
 
 
     local leader = move_data.leaders[wesnoth.current.side]
+
+    -- Add effective reach of leader to:
+    --   - reach_maps (via effective_reach_maps)
+    --   - move_map[1]
+    --   - TODO: others?
+    -- Currently, the leader is the only unit for which an effective reach_map is needed.
+    -- This might change later.
+
     local effective_reach_maps = {}
     effective_reach_maps[leader.id] = leader_effective_reach_map
 
-
-    -- Apply effective reach to map_data maps.
-    -- Currently, the leader is the only unit for which an effective reach_map is needed.
-    -- This might change later.
     for id,reach_map in pairs(move_data.reach_maps) do
+        -- Do this only for AI units, not enemies
         if move_data.my_units[id] and (not effective_reach_maps[id]) then
             effective_reach_maps[id] = reach_map
         end
@@ -1731,7 +1736,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         --DBG.dbms(leader, false, 'leader')
 
 
-        -- Attacks -- for the time being, this is always done, and always first
+        -- Attack leader threats
         for zone_id,threats in pairs(leader_threats_by_zone) do
             -- Use higher aggression value when there are no villages to protect in between
             local vr_mult = 1
