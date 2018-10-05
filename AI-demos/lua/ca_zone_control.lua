@@ -264,6 +264,7 @@ local function get_attack_action(zone_cfg, fred_data)
                     if (combo_outcome.def_outcome.hp_chance[0] == 0) then
                         -- TODO: this is probably still too simplistic, should really be
                         -- a function of damage done to both sides vs. healing at village
+                        -- TODO: do we also place the prerecruits here?
                         for i_a,dst in pairs(combo_outcome.dsts) do
                             local id = combo_outcome.attacker_infos[i_a].id
                             --std_print(id, dst[1], dst[2], move_data.unit_copies[id].x, move_data.unit_copies[id].y)
@@ -685,7 +686,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 attacker_moved[attacker.id] = { combo.dsts[i_a][1], combo.dsts[i_a][2] }
 
                 local counter_outcomes = FAU.calc_counter_attack(
-                    attacker_moved, old_locs, combo.dsts, cfg_attack, move_data, move_cache
+                    attacker_moved, old_locs, combo.dsts, fred_data.ops_data.place_holders, cfg_attack, move_data, move_cache
                 )
                 --DBG.dbms(counter_outcomes, false, 'counter_outcomes')
 
@@ -1082,7 +1083,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         attacker_moved[attacker.id] = { combo.dsts[1][1], combo.dsts[1][2] }
 
                         local counter_outcomes = FAU.calc_counter_attack(
-                            attacker_moved, old_locs, combo.dsts, cfg_attack, move_data, move_cache
+                            attacker_moved, old_locs, combo.dsts, fred_data.ops_data.place_holders, cfg_attack, move_data, move_cache
                         )
                         --DBG.dbms(counter_outcomes, false, 'counter_outcomes')
 

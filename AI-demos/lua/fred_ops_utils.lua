@@ -869,6 +869,10 @@ function fred_ops_utils.set_ops_data(fred_data)
         reserved_actions[action_id] = action
     end
 
+    -- place_holders currently only includes the prerecruits. Other reserved actions
+    -- could be added, such as village grabs, but then we also need to check in the
+    -- counter attack calculation that those units are not used in the attack.
+    local place_holders = {}
     if objectives.leader.prerecruit then
         -- For now, use half the unit's cost as the benefit
         -- TODO: to be refined?
@@ -883,6 +887,11 @@ function fred_ops_utils.set_ops_data(fred_data)
             }
             local action_id = 'recruit:' .. (x * 1000 + y)
             reserved_actions[action_id] = action
+
+            table.insert(place_holders, {
+                x, y,
+                type = unit.recruit_type
+            })
         end
     end
 
@@ -1376,6 +1385,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         assigned_units = assigned_units,
         fronts = fronts,
         reserved_actions = reserved_actions,
+        place_holders = place_holders,
         interaction_matrix = interaction_matrix
     }
     --DBG.dbms(ops_data, false, 'ops_data')

@@ -1356,7 +1356,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, cfg, reach_map
     return FU.get_unit_hex_combos(attacks_dst_src, get_strongest_attack)
 end
 
-function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, cfg, move_data, move_cache)
+function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, additional_units, cfg, move_data, move_cache)
     -- Get counter-attack outcomes of an AI unit in a hypothetical map situation
     -- Units are placed on the map and the move_data tables are adjusted inside this
     -- function in order to avoid code duplication and ensure consistency
@@ -1373,6 +1373,10 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, cfg, 
     -- @old_locs, @new_locs: arrays of locations of the current and goal locations
     --   of all AI units to be moved into different positions, such as all units
     --   involved in an attack combination
+    --  @additional_units: optional table for placing other units on the map, such as prerecruits
+    --    calc_counter_attack()  checks whether these units interfere with any of the @new_locs and does
+    --    not place them if so, but it is assumed that interference with e.g. units_noMP
+    --    has been checked.
     --  @cfg: configuration parameters to be passed through to attack_outcome, attack_rating
 
     -- Two arrays to be made available below via closure
@@ -1471,10 +1475,37 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, cfg, 
     -- Mark the new positions of the units in the move_data tables
     adjust_move_data_tables(old_locs, new_locs, true)
 
-    -- Put all the units with MP onto the  map (those without are already there)
+    -- Put all units in old_locs with MP onto the  map (those without are already there)
     -- They need to be proxy units for the counter attack calculation.
     for _,id in pairs(ids) do
         wesnoth.put_unit(move_data.unit_copies[id])
+    end
+
+    -- Also put the additonal units out there
+    local add_units = {}
+    if additional_units then
+        for _,add_unit in ipairs(additional_units) do
+            local place_unit = true
+            for _,new_loc in ipairs(new_locs) do
+                if (add_unit[1] == new_loc[1]) and (add_unit[2] == new_loc[2]) then
+                    place_unit = false
+                    break
+                end
+            end
+            if place_unit then
+                table.insert(add_units, add_unit)
+
+                wesnoth.put_unit({
+                    type = add_unit.type,
+                    random_traits = false,
+                    name = "X",
+                    random_gender = false,
+                    moves = 0
+                },
+                    add_unit[1], add_unit[2]
+                )
+            end
+        end
     end
 
     local target_id, target_loc = next(target)
@@ -1508,6 +1539,9 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, cfg, 
     end
 
     -- Extract the units from the map
+    for _,add_unit in ipairs(add_units) do
+        wesnoth.erase_unit(add_unit[1], add_unit[2])
+    end
     for _,id in pairs(ids) do
         wesnoth.extract_unit(move_data.unit_copies[id])
     end
