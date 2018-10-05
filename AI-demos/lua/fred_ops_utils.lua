@@ -945,8 +945,10 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
 
     for zone_id,goal_hexes in pairs(goal_hexes_leader) do
-        for _,village in ipairs(objectives.protect.zones[zone_id].villages) do
-            table.insert(goal_hexes, { village.x, village.y })
+        if objectives.protect.zones[zone_id] then
+            for _,village in ipairs(objectives.protect.zones[zone_id].villages) do
+                table.insert(goal_hexes, { village.x, village.y })
+            end
         end
     end
     --DBG.dbms(goal_hexes_leader, false, 'goal_hexes_leader')
