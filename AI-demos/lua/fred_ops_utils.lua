@@ -800,6 +800,33 @@ function fred_ops_utils.set_ops_data(fred_data)
     local effective_reach_maps = {}
     effective_reach_maps[leader.id] = leader_effective_reach_map
 
+
+    -- Apply effective reach to map_data maps.
+    -- Currently, the leader is the only unit for which an effective reach_map is needed.
+    -- This might change later.
+    for id,reach_map in pairs(move_data.reach_maps) do
+        if move_data.my_units[id] and (not effective_reach_maps[id]) then
+            effective_reach_maps[id] = reach_map
+        end
+    end
+    move_data.effective_reach_maps = effective_reach_maps
+
+    for x,y,data in FU.fgumap_iter(move_data.my_move_map[1]) do
+        if FU.get_fgumap_value(effective_reach_maps[leader.id], x, y, 'moves_left') then
+            data.eff_reach_ids = data.ids
+        else
+            local eff_reach_ids
+            for _,id in ipairs(data.ids) do
+                if (id ~= leader.id) then
+                    if (not eff_reach_ids) then eff_reach_ids = {} end
+                    table.insert(eff_reach_ids, id)
+                end
+            end
+            data.eff_reach_ids = eff_reach_ids
+        end
+    end
+
+
     local reserved_actions = {}
 
     if objectives.leader.village then
