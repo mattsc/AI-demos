@@ -208,7 +208,7 @@ function fred_gamestate_utils.get_move_data()
                     moves_left_this_turn = max_moves
                 end
 
-                FU.fgumap_add(my_move_map[int_turns], loc[1], loc[2], units, 1)
+                FU.fgumap_add(my_move_map[int_turns], loc[1], loc[2], 'units', 1)
                 if (not my_move_map[int_turns][loc[1]][loc[2]].ids) then my_move_map[int_turns][loc[1]][loc[2]].ids = {} end
                 table.insert(my_move_map[int_turns][loc[1]][loc[2]].ids, id)
 
@@ -241,7 +241,7 @@ function fred_gamestate_utils.get_move_data()
             -- This is not a standard fgumap
             for x,arr in pairs(attack_range) do
                 for y,int_turns in pairs(arr) do
-                    FU.fgumap_add(my_attack_map[int_turns], x, y, units, 1)
+                    FU.fgumap_add(my_attack_map[int_turns], x, y, 'units', 1)
                     if (not my_attack_map[int_turns][x][y].ids) then my_attack_map[int_turns][x][y].ids = {} end
                     table.insert(my_attack_map[int_turns][x][y].ids, id)
 
@@ -442,7 +442,7 @@ function fred_gamestate_utils.get_move_data()
         -- This is not a standard fgumap
         for x,arr in pairs(attack_range) do
             for y,int_turns in pairs(arr) do
-                FU.fgumap_add(enemy_attack_map[int_turns], x, y, units, 1)
+                FU.fgumap_add(enemy_attack_map[int_turns], x, y, 'units', 1)
                 if (not enemy_attack_map[int_turns][x][y].ids) then enemy_attack_map[int_turns][x][y].ids = {} end
                 table.insert(enemy_attack_map[int_turns][x][y].ids, enemy_id)
 
