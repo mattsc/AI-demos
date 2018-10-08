@@ -3106,6 +3106,14 @@ function ca_zone_control:execution(cfg, data, ai_debug)
             DBG.print_debug_time('exec', data.turn_start_time, '=> exec: ' .. action .. ' (leader used -> recruit first)')
             do_recruit(data, ai)
             gamestate_changed = true
+
+            -- We also check here separately whether the leader can still get to dst.
+            -- This is also caught below, but the ops analysis should never let this
+            -- happen, so we want to know about it.
+            local _,cost = wesnoth.find_path(unit, dst[1], dst[2])
+            if (cost > unit.moves) then
+                wesnoth.message('Warning', 'Leader was supposed to move to ' .. dst[1] .. ',' .. dst[2] .. ' after recruiting, but this is not possible. Check operations analysis.')
+            end
         end
 
         DBG.print_debug_time('exec', data.turn_start_time, '=> exec: ' .. action)
