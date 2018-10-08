@@ -3105,6 +3105,7 @@ function ca_zone_control:execution(cfg, data, ai_debug)
         then
             DBG.print_debug_time('exec', data.turn_start_time, '=> exec: ' .. action .. ' (leader used -> recruit first)')
             do_recruit(data, ai)
+            gamestate_changed = true
         end
 
         DBG.print_debug_time('exec', data.turn_start_time, '=> exec: ' .. action)
