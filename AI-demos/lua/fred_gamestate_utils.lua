@@ -310,7 +310,7 @@ function fred_gamestate_utils.get_move_data()
         end
 
         -- Get closest keeps and connected castles
-        -- This might not work on weird maps
+        -- TODO: This might not work on weird maps
         local leader_copy = unit_copies[leader.id]
         local old_moves = leader_copy.moves
         leader_copy.moves = leader_copy.max_moves
@@ -321,7 +321,16 @@ function fred_gamestate_utils.get_move_data()
         reachable_keeps_map[side], reachable_castles_map[side] = {}, {}
         for _,loc in ipairs(reach) do
             if wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).keep then
-                FU.set_fgumap_value(reachable_keeps_map[side], loc[1], loc[2], 'moves_left', loc[3])
+                local is_available = true
+                if (side == wesnoth.current.side)
+                    and ((FU.get_fgumap_value(enemy_map, loc[1], loc[2], 'id'))
+                    or (FU.get_fgumap_value(my_unit_map_noMP, loc[1], loc[2], 'id')))
+                then
+                    is_available = false
+                end
+                if is_available then
+                    FU.set_fgumap_value(reachable_keeps_map[side], loc[1], loc[2], 'moves_left', loc[3])
+                end
             end
         end
 
@@ -337,9 +346,18 @@ function fred_gamestate_utils.get_move_data()
             }
 
             for _,loc in ipairs(reachable_castles) do
-                FU.set_fgumap_value(reachable_castles_map[side], loc[1], loc[2], 'castle', true)
-                if wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).keep then
-                    reachable_castles_map[side][loc[1]][loc[2]].keep = true
+                local is_available = true
+                if (side == wesnoth.current.side)
+                    and ((FU.get_fgumap_value(enemy_map, loc[1], loc[2], 'id'))
+                    or (FU.get_fgumap_value(my_unit_map_noMP, loc[1], loc[2], 'id')))
+                then
+                    is_available = false
+                end
+                if is_available then
+                    FU.set_fgumap_value(reachable_castles_map[side], loc[1], loc[2], 'castle', true)
+                    if wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).keep then
+                        reachable_castles_map[side][loc[1]][loc[2]].keep = true
+                    end
                 end
             end
         end
