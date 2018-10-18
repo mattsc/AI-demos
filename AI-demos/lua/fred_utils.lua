@@ -272,50 +272,52 @@ function fred_utils.unittype_base_power(unit_type)
     return fred_utils.unit_base_power(unittype_info)
 end
 
-function fred_utils.is_available(id, loc, reserved_actions, interactions)
-    -- Check whether a unit and/or hex has a reserved action. If only one or the
-    -- other is given, the unit/hex counts as available if there is no action
+function fred_utils.action_penalty(actions, reserved_actions, interactions)
+    -- Find the penalty for a set of @actions due to @reserved_actions.
+    -- @actions is an array of action tables, with fields .id and .loc,
+    -- both of which are optional. If only one or the other is given, the
+    -- unit/hex counts as available (no penalty) if there is no reserved action
     -- associated with it. If both are given, they also count as available if
-    -- this is the hex for which the unit is reserved, independent of whether
-    -- the action is the one currently being considered.
+    -- this is the hex for which the unit is reserved.
     --
     -- Return values:
-    --  - is_available: boolean flagging whether the unit/hex is available
-    --  - penalty: sum of all penalties for a unit/hex
+    --  - penalty: sum of all penalties for the actions
 
-    local is_available, penalty = true, 0
+    local penalty = 0
 
     for _,reserved_action in pairs(reserved_actions) do
         local unit_penalty_mult = interactions.units[reserved_action.action_id] or 0
         local hex_penalty_mult = interactions.hexes[reserved_action.action_id] or 0
-        --std_print(id, loc and loc[1], loc and loc[2], reserved_action.action_id, unit_penalty_mult, hex_penalty_mult)
 
-        local same_hex = false
-        if loc and (hex_penalty_mult > 0)
-            and (loc[1] == reserved_action.x) and (loc[2] == reserved_action.y)
-         then
-            same_hex = true
-        end
-        local same_unit = false
-        if id and (unit_penalty_mult > 0) and (id == reserved_action.id) then
-            same_unit = true
-        end
+        for _,action in ipairs(actions) do
+            --std_print(action.id, action.loc and action.loc[1], action.loc and action.loc[2], reserved_action.action_id, unit_penalty_mult, hex_penalty_mult)
 
-        if same_hex and same_unit then
-            -- In this case, the unit+hex counts as available even if there
-            -- are other actions using the same hex or unit
-            -- TODO: are there exceptions from this?
-            is_available, penalty = true, 0
-            break
-        elseif same_hex or same_unit then
-            is_available = false
-            local penalty_mult = math.max(unit_penalty_mult, hex_penalty_mult)
-            penalty = penalty - penalty_mult * reserved_action.benefit
-            --std_print('  ' .. penalty_mult, penalty)
+            local same_hex = false
+            if action.loc and (hex_penalty_mult > 0)
+                and (action.loc[1] == reserved_action.x) and (action.loc[2] == reserved_action.y)
+             then
+                same_hex = true
+            end
+            local same_unit = false
+            if action.id and (unit_penalty_mult > 0) and (action.id == reserved_action.id) then
+                same_unit = true
+            end
+            --std_print(same_hex,same_unit)
+
+            if same_hex and same_unit then
+                -- In this case, the unit+hex counts as available even if there
+                -- are other actions using the same hex or unit
+                -- TODO: are there exceptions from this?
+            elseif same_hex or same_unit then
+                local penalty_mult = math.max(unit_penalty_mult, hex_penalty_mult)
+                penalty = penalty - penalty_mult * reserved_action.benefit
+                --std_print('  penalty_mult, penalty: ' .. penalty_mult, penalty)
+            end
         end
     end
+    --std_print('--> total penalty: ' .. penalty)
 
-    return is_available, penalty
+    return penalty
 end
 
 function fred_utils.moved_toward_zone(unit_copy, zone_cfgs, side_cfgs)
