@@ -867,25 +867,42 @@ function fred_ops_utils.set_ops_data(fred_data)
     -- counter attack calculation that those units are not used in the attack.
     local place_holders = {}
     if objectives.leader.prerecruit then
-        -- For now, use half the unit's cost as the benefit
-        -- TODO: to be refined?
-        for _,unit in ipairs(objectives.leader.prerecruit.units) do
-            local recruit_benefit = 0.5 * wesnoth.unit_types[unit.recruit_type].cost
-            local x, y = unit.recruit_hex[1], unit.recruit_hex[2]
-            local action = {
-                id = '',
-                x = x, y = y,
-                action_id = 'rec',
-                benefit = recruit_benefit
-            }
-            local action_id = 'recruit:' .. (x * 1000 + y)
-            reserved_actions[action_id] = action
+        -- Units to recruit do have preferred hexes, but those do not need to be reserved.
+        -- Also, there is no benefit/penalty as long as enough castle hexes are available.
+        local recruit_benefit = {}
 
+        local available_keeps = 0
+        for _,_,_ in FU.fgumap_iter(move_data.reachable_keeps_map[wesnoth.current.side]) do
+            available_keeps = available_keeps + 1
+        end
+        local available_castles = -1 -- need to exclude one of the keeps
+        for _,_,_ in FU.fgumap_iter(move_data.reachable_castles_map[wesnoth.current.side]) do
+            available_castles = available_castles + 1
+        end
+
+        for _,unit in ipairs(objectives.leader.prerecruit.units) do
+            local n_rb = #recruit_benefit
+            local rb = recruit_benefit[n_rb] or 0
+            rb = rb + wesnoth.unit_types[unit.recruit_type].cost
+            recruit_benefit[n_rb + 1] = rb
+
+            local x, y = unit.recruit_hex[1], unit.recruit_hex[2]
             table.insert(place_holders, {
                 x, y,
                 type = unit.recruit_type
             })
         end
+
+        local action = {
+            id = '',
+            x = -1, y = -1,
+            action_id = 'rec',
+            benefit = recruit_benefit,
+            available_keeps = available_keeps,
+            available_castles = available_castles
+        }
+        local action_id = 'recruit'
+        reserved_actions[action_id] = action
     end
 
     --DBG.dbms(reserved_actions, false, 'reserved_actions')

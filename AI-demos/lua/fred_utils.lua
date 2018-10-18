@@ -272,7 +272,7 @@ function fred_utils.unittype_base_power(unit_type)
     return fred_utils.unit_base_power(unittype_info)
 end
 
-function fred_utils.action_penalty(actions, reserved_actions, interactions)
+function fred_utils.action_penalty(actions, reserved_actions, interactions, move_data)
     -- Find the penalty for a set of @actions due to @reserved_actions.
     -- @actions is an array of action tables, with fields .id and .loc,
     -- both of which are optional. If only one or the other is given, the
@@ -289,29 +289,73 @@ function fred_utils.action_penalty(actions, reserved_actions, interactions)
         local unit_penalty_mult = interactions.units[reserved_action.action_id] or 0
         local hex_penalty_mult = interactions.hexes[reserved_action.action_id] or 0
 
-        for _,action in ipairs(actions) do
-            --std_print(action.id, action.loc and action.loc[1], action.loc and action.loc[2], reserved_action.action_id, unit_penalty_mult, hex_penalty_mult)
+        -- Recruiting is different from other reserved actions, as it only
+        -- matters whether enough keeps/castles are available
+        if (reserved_action.action_id == 'rec') then
+            --std_print('recruiting penalty:')
+            if (hex_penalty_mult > 0) then
+                local available_castles = reserved_action.available_castles
+                local available_keeps = reserved_action.available_keeps
+                for _,action in ipairs(actions) do
+                    local x, y = action.loc and action.loc[1], action.loc and action.loc[2]
 
-            local same_hex = false
-            if action.loc and (hex_penalty_mult > 0)
-                and (action.loc[1] == reserved_action.x) and (action.loc[2] == reserved_action.y)
-             then
-                same_hex = true
-            end
-            local same_unit = false
-            if action.id and (unit_penalty_mult > 0) and (action.id == reserved_action.id) then
-                same_unit = true
-            end
-            --std_print(same_hex,same_unit)
+                    -- If this is the side leader and it's on a keep, it does not
+                    -- count toward keep or castle count
+                    if (action.id ~= move_data.leaders[wesnoth.current.side].id)
+                        or (not fred_utils.get_fgumap_value(move_data.reachable_castles_map[wesnoth.current.side], x, y, 'keep'))
+                    then
+                        if x and (fred_utils.get_fgumap_value(move_data.reachable_castles_map[wesnoth.current.side], x, y, 'castle')) then
+                            --std_print('    castle: ', x, y)
+                            available_castles = available_castles - 1
+                        end
+                        if x and (fred_utils.get_fgumap_value(move_data.reachable_castles_map[wesnoth.current.side], x, y, 'keep')) then
+                            --std_print('    keep: ', x, y)
+                            available_keeps = available_keeps - 1
+                        end
+                    end
+                end
+                --std_print('  avail cas, keep: ', available_castles, available_keeps)
 
-            if same_hex and same_unit then
-                -- In this case, the unit+hex counts as available even if there
-                -- are other actions using the same hex or unit
-                -- TODO: are there exceptions from this?
-            elseif same_hex or same_unit then
-                local penalty_mult = math.max(unit_penalty_mult, hex_penalty_mult)
-                penalty = penalty - penalty_mult * reserved_action.benefit
-                --std_print('  penalty_mult, penalty: ' .. penalty_mult, penalty)
+                local recruit_penalty = 0
+                local castles_needed = #reserved_action.benefit
+                -- If no keeps are available, then the penalty is the entire recruiting benefit
+                if (available_keeps < 1) then
+                    recruit_penalty = - reserved_action.benefit[castles_needed]
+                -- Otherwise, if there are not enough castles, it's the missed-out-on benefit
+                elseif (available_castles < castles_needed) then
+                    --std_print('not enough castles')
+                    recruit_penalty = reserved_action.benefit[available_castles] - reserved_action.benefit[castles_needed]
+                end
+
+                --std_print('--> recruit_penalty: ' .. recruit_penalty)
+                penalty = penalty + recruit_penalty
+            end
+
+        else
+            for _,action in ipairs(actions) do
+                --std_print(action.id, action.loc and action.loc[1], action.loc and action.loc[2], reserved_action.action_id, unit_penalty_mult, hex_penalty_mult)
+
+                local same_hex = false
+                if action.loc and (hex_penalty_mult > 0)
+                    and (action.loc[1] == reserved_action.x) and (action.loc[2] == reserved_action.y)
+                 then
+                    same_hex = true
+                end
+                local same_unit = false
+                if action.id and (unit_penalty_mult > 0) and (action.id == reserved_action.id) then
+                    same_unit = true
+                end
+                --std_print(same_hex,same_unit)
+
+                if same_hex and same_unit then
+                    -- In this case, the unit+hex counts as available even if there
+                    -- are other actions using the same hex or unit
+                    -- TODO: are there exceptions from this?
+                elseif same_hex or same_unit then
+                    local penalty_mult = math.max(unit_penalty_mult, hex_penalty_mult)
+                    penalty = penalty - penalty_mult * reserved_action.benefit
+                    --std_print('  penalty_mult, penalty: ' .. penalty_mult, penalty)
+                end
             end
         end
     end
