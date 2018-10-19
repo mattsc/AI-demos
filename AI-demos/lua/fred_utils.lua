@@ -282,8 +282,9 @@ function fred_utils.action_penalty(actions, reserved_actions, interactions, move
     --
     -- Return values:
     --  - penalty: sum of all penalties for the actions
+    --  - penalty_str: string describing the applied penalties
 
-    local penalty = 0
+    local penalty, penalty_str = 0, ''
 
     for _,reserved_action in pairs(reserved_actions) do
         local unit_penalty_mult = interactions.units[reserved_action.action_id] or 0
@@ -328,7 +329,10 @@ function fred_utils.action_penalty(actions, reserved_actions, interactions, move
                 end
 
                 --std_print('--> recruit_penalty: ' .. recruit_penalty)
-                penalty = penalty + recruit_penalty
+                if (recruit_penalty ~= 0) then
+                    penalty = penalty + recruit_penalty
+                    penalty_str = penalty_str .. string.format("recruit: %6.3f    ", recruit_penalty)
+                end
             end
 
         else
@@ -355,13 +359,21 @@ function fred_utils.action_penalty(actions, reserved_actions, interactions, move
                     local penalty_mult = math.max(unit_penalty_mult, hex_penalty_mult)
                     penalty = penalty - penalty_mult * reserved_action.benefit
                     --std_print('  penalty_mult, penalty: ' .. penalty_mult, penalty)
+
+                    if reserved_action.id then
+                        penalty_str = penalty_str .. reserved_action.id
+                    end
+                    if reserved_action.x then
+                        penalty_str = penalty_str .. '(' .. reserved_action.x .. ',' .. reserved_action.y .. ')'
+                    end
+                    penalty_str = penalty_str .. string.format(": %6.3f    ", - penalty_mult * reserved_action.benefit)
                 end
             end
         end
     end
     --std_print('--> total penalty: ' .. penalty)
 
-    return penalty
+    return penalty, penalty_str
 end
 
 function fred_utils.moved_toward_zone(unit_copy, zone_cfgs, side_cfgs)
