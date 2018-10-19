@@ -71,47 +71,10 @@ local function get_attack_action(zone_cfg, fred_data)
     -- the comparison is not fair.
     local cfg_attack = { value_ratio = value_ratio }
 
-    -- Set up easy to use array of penalties for reserved actions
     local interactions = fred_data.ops_data.interaction_matrix.penalties['att']
     --DBG.dbms(interactions, false, 'interactions')
-    local penalties = {}
-    for action_str,reserved_action in pairs(fred_data.ops_data.reserved_actions) do
-        --DBG.dbms(reserved_action, false, 'reserved_action')
-        local id = reserved_action.id
-        local dst = 1000 * reserved_action.x + reserved_action.y
-        local src
-        if fred_data.move_data.units[id] then
-            src = fred_data.move_data.units[id][1] * 1000 + fred_data.move_data.units[id][2]
-        end
-
-        local penalty_mult, hex_only = 0
-        local unit_penalty_mult = interactions.units[reserved_action.action_id] or 0
-        --std_print(action_str, reserved_action.action_id, unit_penalty_mult)
-        if (unit_penalty_mult > 0) then
-            -- If units are reserved, we reserve both the unit and the hex
-            -- unless the correct unit is used on the correct hex.
-            -- Reserved actions that require a unit, but no hex have x = y = -1,
-            -- so this works even then.
-            penalty_mult = unit_penalty_mult
-        else
-            -- Otherwise, we reserve only the hex, as indicated by the hex_only flag.
-            -- Note though that some of these actions still have a unit associated with
-            -- them, meaning that the hex is not penalized if the correct unit is used on it.
-            penalty_mult = interactions.hexes[reserved_action.action_id] or 0
-            hex_only = true
-        end
-
-        if (penalty_mult > 0) then
-            penalties[dst] = {
-                src = src,
-                id = id,
-                penalty = - reserved_action.benefit * penalty_mult,
-                hex_only = hex_only,
-                action_str = action_str -- not strictly necessary, just for debugging
-            }
-        end
-    end
-    --DBG.dbms(penalties, false, 'penalties')
+    local reserved_actions = fred_data.ops_data.reserved_actions
+    local penalty_infos = { src = {}, dst = {} }
 
     local combo_ratings = {}
     for target_id, target_xy in pairs(targets) do
@@ -154,25 +117,25 @@ local function get_attack_action(zone_cfg, fred_data)
             local combo_rating = combo_outcome.rating_table.rating
 
             -- Penalty for units and/or hexes planned to be used otherwise
-            local penalty_rating = 0
-            local penalty_str = ''
+            local penalty_rating, penalty_str = 0, ''
+            local actions = {}
             for src,dst in pairs(combo) do
-                -- Note: penalties has dst/src backwards from combo
-                for dst_p,penalty in pairs(penalties) do
-                    --std_print(src, dst, dst_p, penalty.src)
-
-                    -- It is possible that the hex and the unit are reserved separately,
-                    -- so we cannot break the loop if one is found
-                    if (dst ~= dst_p) or (src ~= penalty.src) then
-                        if (dst == dst_p)
-                            or ((src == penalty.src) and (not penalty.hex_only))
-                        then
-                            penalty_rating = penalty_rating + penalty.penalty
-                            penalty_str = penalty_str .. string.format("    %s %6.3f", penalty.id, penalty.penalty)
-                        end
-                    end
+                if (not penalty_infos.src[src]) then
+                    local x, y = math.floor(src / 1000), src % 1000
+                    penalty_infos.src[src] = FU.get_fgumap_value(move_data.unit_map, x, y, 'id')
                 end
+                if (not penalty_infos.dst[dst]) then
+                    penalty_infos.dst[dst] = { math.floor(dst / 1000), dst % 1000 }
+                end
+                local action = { id = penalty_infos.src[src], loc = penalty_infos.dst[dst] }
+                table.insert(actions, action)
             end
+            --DBG.dbms(actions, false, 'actions')
+            --DBG.dbms(penalty_infos, false, 'penalty_infos')
+
+            local penalty, str = FU.action_penalty(actions, reserved_actions, interactions, move_data)
+            penalty_rating = penalty_rating + penalty
+            penalty_str = penalty_str .. str
 
             local bonus_rating = 0
 
