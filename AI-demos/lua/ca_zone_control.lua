@@ -3196,6 +3196,9 @@ function ca_zone_control:execution(cfg, data, ai_debug)
             end
         end
 
+        if unit_in_way and (dx == 0) and (dy == 0) then
+            error(unit_in_way.id .. " to move out of way with dx = dy = 0")
+        end
 
         if data.zone_action.partial_move then
             AHL.movepartial_outofway_stopunit(ai, unit, dst[1], dst[2], { dx = dx, dy = dy })
