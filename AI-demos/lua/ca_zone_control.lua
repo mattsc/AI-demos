@@ -3140,44 +3140,58 @@ function ca_zone_control:execution(cfg, data, ai_debug)
         if (unit.x ~= dst[1]) or (unit.y ~= dst[2]) then
             unit_in_way = wesnoth.get_unit(dst[1], dst[2])
         end
+
         if unit_in_way then
-            for i_u,u in ipairs(data.zone_action.units) do
-                if (u.id == unit_in_way.id) then
-                    --std_print('  unit is part of the combo', unit_in_way.id, unit_in_way.x, unit_in_way.y)
-                    local path, _ = wesnoth.find_path(unit_in_way, data.zone_action.dsts[i_u][1], data.zone_action.dsts[i_u][2])
+            if unit_in_way.canrecruit then
+                local leader_objectives = data.ops_data.objectives.leader
+                if leader_objectives.keep then
+                    dx = leader_objectives.keep[1] - unit_in_way.x
+                    dy = leader_objectives.keep[2] - unit_in_way.y
+                elseif leader_objectives.village then
+                    dx = leader_objectives.village[1] - unit_in_way.x
+                    dy = leader_objectives.village[2] - unit_in_way.y
+                end
+                local r = math.sqrt(dx * dx + dy * dy)
+                if (r ~= 0) then dx, dy = dx / r, dy / r end
+            else
+                for i_u,u in ipairs(data.zone_action.units) do
+                    if (u.id == unit_in_way.id) then
+                        std_print('  unit is part of the combo', unit_in_way.id, unit_in_way.x, unit_in_way.y)
+                        local path, _ = wesnoth.find_path(unit_in_way, data.zone_action.dsts[i_u][1], data.zone_action.dsts[i_u][2])
 
-                    -- If we can find an unoccupied hex along the path, move the
-                    -- unit_in_way there, in order to maximize the chances of it
-                    -- making it to its goal. However, do not move all the way and
-                    -- do partial move only, in case something changes as result of
-                    -- the original unit's action.
-                    local moveto
-                    for i = 2,#path do
-                        local uiw_uiw = wesnoth.get_unit(path[i][1], path[i][2])
-                        if (not uiw_uiw) then
-                            moveto = { path[i][1], path[i][2] }
-                            break
+                        -- If we can find an unoccupied hex along the path, move the
+                        -- unit_in_way there, in order to maximize the chances of it
+                        -- making it to its goal. However, do not move all the way and
+                        -- do partial move only, in case something changes as result of
+                        -- the original unit's action.
+                        local moveto
+                        for i = 2,#path do
+                            local uiw_uiw = wesnoth.get_unit(path[i][1], path[i][2])
+                            if (not uiw_uiw) then
+                                moveto = { path[i][1], path[i][2] }
+                                break
+                            end
                         end
-                    end
 
-                    if moveto then
-                        --std_print('    ' .. unit_in_way.id .. ': moving out of way to:', moveto[1], moveto[2])
-                        AH.checked_move(ai, unit_in_way, moveto[1], moveto[2])
-                    else
-                        if (not path) or (not path[1]) or (not path[2]) then
-                            std_print('Trying to identify path table error !!!!!!!!')
-                            std_print(i_u, u.id, unit_in_way.id)
-                            std_print(unit.id, unit.x, unit.y)
-                            DBG.dbms(data.zone_action, -1)
-                            DBG.dbms(dst, -1)
-                            DBG.dbms(path, -1)
+                        if moveto then
+                            --std_print('    ' .. unit_in_way.id .. ': moving out of way to:', moveto[1], moveto[2])
+                            AH.checked_move(ai, unit_in_way, moveto[1], moveto[2])
+                        else
+                            if (not path) or (not path[1]) or (not path[2]) then
+                                std_print('Trying to identify path table error !!!!!!!!')
+                                std_print(i_u, u.id, unit_in_way.id)
+                                std_print(unit.id, unit.x, unit.y)
+                                DBG.dbms(data.zone_action, -1)
+                                DBG.dbms(dst, -1)
+                                DBG.dbms(path, -1)
+                            end
+                            dx, dy = path[2][1] - path[1][1], path[2][2] - path[1][2]
+                            local r = math.sqrt(dx * dx + dy * dy)
+                            if (r ~= 0) then dx, dy = dx / r, dy / r end
                         end
-                        dx, dy = path[2][1] - path[1][1], path[2][2] - path[1][2]
-                        local r = math.sqrt(dx * dx + dy * dy)
-                        if (r ~= 0) then dx, dy = dx / r, dy / r end
-                    end
 
-                    break
+                        break
+                    end
                 end
             end
         end
