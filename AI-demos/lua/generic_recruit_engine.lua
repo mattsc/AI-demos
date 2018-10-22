@@ -603,7 +603,7 @@ return {
         -- Consider recruiting as many units as possible at a location where the leader currently isn't
         -- These units will eventually be considered already recruited when trying to recruit at the current location
         -- Recruit will also recruit these units first once the leader moves to that location
-        function ai_cas:prerecruit_units(from_loc, outofway_units, cfg)
+        function ai_cas:prerecruit_units(from_loc, avoid_map, outofway_units, cfg)
             if recruit_data.recruit == nil then
                 recruit_data.recruit = init_data()
             end
@@ -630,7 +630,7 @@ return {
 
             -- recruit as many units as possible at that location
             while #recruit_data.castle.locs > 0 do
-                local recruit_type = select_recruit(leader, nil, outofway_units, cfg)
+                local recruit_type = select_recruit(leader, avoid_map, outofway_units, cfg)
                 if recruit_type == nil then
                     break
                 end

@@ -246,7 +246,7 @@ function fred_move_leader_utils.leader_objectives(fred_data)
             end
         end
 
-        prerecruit = fred_data.recruit:prerecruit_units({ x, y }, outofway_units)
+        prerecruit = fred_data.recruit:prerecruit_units({ x, y }, nil, outofway_units)
         -- Need to do this, or the recruit CA will try to recruit the same units again later
         fred_data.recruit:clear_prerecruit()
 
@@ -409,7 +409,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigne
             x, y = leader_objectives.keep[1], leader_objectives.keep[2]
         end
         local cfg = { castle_rating_map = castle_rating_map, outofway_penalty = -0.1 }
-        prerecruit = fred_data.recruit:prerecruit_units({ x, y }, outofway_units, cfg)
+        prerecruit = fred_data.recruit:prerecruit_units({ x, y }, nil, outofway_units, cfg)
         --DBG.dbms(prerecruit, false, 'prerecruit')
 
         if prerecruit.units[1] then

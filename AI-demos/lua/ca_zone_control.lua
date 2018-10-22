@@ -2779,8 +2779,14 @@ local function do_recruit(data, ai, action, fred_data)
             end
         end
 
+        local avoid_map = LS.create()
+        for _,dst in ipairs(action.dsts) do
+            avoid_map:insert(dst[1], dst[2], true)
+        end
+        --DBG.dbms(avoid_map, false, 'avoid_map')
+
         local cfg = { outofway_penalty = -0.1 }
-        prerecruit = fred_data.recruit:prerecruit_units(from_keep, outofway_units, cfg)
+        prerecruit = fred_data.recruit:prerecruit_units(from_keep, avoid_map, outofway_units, cfg)
         --DBG.dbms(prerecruit, false, 'prerecruit')
     end
 
