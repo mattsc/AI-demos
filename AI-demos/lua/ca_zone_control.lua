@@ -3105,7 +3105,7 @@ function ca_zone_control:execution(cfg, data, ai_debug)
             -- happen, so we want to know about it.
             local _,cost = wesnoth.find_path(unit, dst[1], dst[2])
             if (cost > unit.moves) then
-                wesnoth.message('Warning', 'Leader was supposed to move to ' .. dst[1] .. ',' .. dst[2] .. ' after recruiting, but this is not possible. Check operations analysis.')
+                error('Leader was supposed to move to ' .. dst[1] .. ',' .. dst[2] .. ' after recruiting, but this is not possible. Check operations analysis.')
             end
         end
 
