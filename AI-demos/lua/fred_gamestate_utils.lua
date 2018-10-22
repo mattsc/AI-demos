@@ -288,11 +288,11 @@ function fred_gamestate_utils.get_move_data()
     end
 
     -- Also mark units that can only get to hexes occupied by own units
+    local my_units_can_move_away = {}
     for x,y,data in FU.fgumap_iter(my_unit_map_MP) do
-        my_unit_map_MP[x][y].can_move_away = false
         for x2,y2,_ in FU.fgumap_iter(reach_maps[data.id]) do
             if (not FU.get_fgumap_value(my_unit_map, x2, y2, 'id')) then
-                my_unit_map_MP[x][y].can_move_away = true
+                my_units_can_move_away[data.id] = true
                 break
             end
         end
@@ -367,6 +367,7 @@ function fred_gamestate_utils.get_move_data()
     mapstate.units = units
     mapstate.my_units = my_units
     mapstate.my_units_MP = my_units_MP
+    mapstate.my_units_can_move_away = my_units_can_move_away
     mapstate.my_units_noMP = my_units_noMP
     mapstate.enemies = enemies
     mapstate.leaders = leaders

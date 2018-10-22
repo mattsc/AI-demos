@@ -185,9 +185,10 @@ local function get_best_village_keep(leader, recruit_first, effective_reach_map,
         -- Check whether there's a unit in the way, and whether it can move away.
         local unit_in_way_rating = 0
         if (x ~= leader[1]) or (y ~= leader[2]) then
-            if FU.get_fgumap_value(move_data.unit_map, x, y, 'id') then
-                --std_print('  in way: ' .. FU.get_fgumap_value(move_data.unit_map, x, y, 'id'))
-                if FU.get_fgumap_value(move_data.my_unit_map_MP, x, y, 'can_move_away') then
+            local uiw_id = FU.get_fgumap_value(move_data.unit_map, x, y, 'id')
+            if uiw_id then
+                --std_print('  in way: ' .. uiw_id)
+                if move_data.my_units_can_move_away[uiw_id] then
                     unit_in_way_rating = leader_unit_in_way_penalty
                 else
                     unit_in_way_rating = leader_turns_rating + leader_unit_in_way_penalty
@@ -240,10 +241,8 @@ function fred_move_leader_utils.leader_objectives(fred_data)
         -- Note that the leader is included in the following, as he might
         -- be on a castle hex other than a keep. His recruit location is
         -- automatically excluded by the prerecruit code
-        for _,_,data in FU.fgumap_iter(move_data.my_unit_map_MP) do
-            if data.can_move_away then
-                outofway_units[data.id] = true
-            end
+        for id,_ in pairs(move_data.my_units_can_move_away) do
+            outofway_units[id] = true
         end
 
         prerecruit = fred_data.recruit:prerecruit_units({ x, y }, nil, outofway_units)
@@ -398,10 +397,8 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigne
         -- Note that the leader is included in the following, as he might
         -- be on a castle hex other than a keep. His recruit location is
         -- automatically excluded by the prerecruit code
-        for _,_,data in FU.fgumap_iter(move_data.my_unit_map_MP) do
-            if data.can_move_away then
-                outofway_units[data.id] = true
-            end
+        for id,_ in pairs(move_data.my_units_can_move_away) do
+            outofway_units[id] = true
         end
 
         local x, y = leader[1], leader[2]

@@ -2773,11 +2773,10 @@ local function do_recruit(data, ai, action, fred_data)
         --std_print(leader_id, leader_dst[1] .. ',' .. leader_dst[2] .. '  <--  ' .. from_keep[1] .. ',' .. from_keep[2])
 
         local outofway_units = {}
-        for _,_,data in FU.fgumap_iter(move_data.my_unit_map_MP) do
-            if data.can_move_away then
-                outofway_units[data.id] = true
-            end
+        for id,_ in pairs(move_data.my_units_can_move_away) do
+            outofway_units[id] = true
         end
+        --DBG.dbms(outofway_units, false, 'outofway_units')
 
         local avoid_map = LS.create()
         for _,dst in ipairs(action.dsts) do
