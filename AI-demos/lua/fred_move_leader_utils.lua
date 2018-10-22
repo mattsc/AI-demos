@@ -155,6 +155,7 @@ local function get_best_village_keep(leader, recruit_first, effective_reach_map,
     local leader_village_bonus = FCFG.get_cfg_parm('leader_village_bonus')
     local leader_moves_left_factor = FCFG.get_cfg_parm('leader_moves_left_factor')
     local leader_unit_in_way_penalty = FCFG.get_cfg_parm('leader_unit_in_way_penalty')
+    local leader_unit_in_way_no_moves_penalty = FCFG.get_cfg_parm('leader_unit_in_way_no_moves_penalty')
     local leader_eld_factor = FCFG.get_cfg_parm('leader_eld_factor')
 
     local max_rating, best_hex = - math.huge
@@ -191,7 +192,7 @@ local function get_best_village_keep(leader, recruit_first, effective_reach_map,
                 if move_data.my_units_can_move_away[uiw_id] then
                     unit_in_way_rating = leader_unit_in_way_penalty
                 else
-                    unit_in_way_rating = leader_turns_rating + leader_unit_in_way_penalty
+                    unit_in_way_rating = leader_unit_in_way_no_moves_penalty + leader_unit_in_way_penalty
                 end
             end
         end
