@@ -2745,25 +2745,55 @@ function get_zone_action(cfg, fred_data)
 end
 
 
-local function do_recruit(data, ai)
+local function do_recruit(data, ai, action, fred_data)
+    local move_data = fred_data.move_data
     local leader_objectives = data.ops_data.objectives.leader
     --DBG.dbms(leader_objectives, false, 'leader_objectives')
+    --DBG.dbms(action, false, 'action')
+
+    local prerecruit = leader_objectives.prerecruit
 
     -- This is just a safeguard for now, to make sure nothing goes wrong
-    if (not leader_objectives.prerecruit) or (not leader_objectives.prerecruit.units) or (not leader_objectives.prerecruit.units[1]) then
+    if (not prerecruit) or (not prerecruit.units) or (not prerecruit.units[1]) then
         error("Leader was instructed to recruit, but no units to be recruited are set.")
+    end
+
+    -- If @action is set, this means that recruiting is done because the leader is needed
+    -- in an action. In this case, we need to re-evaluate recruiting, because the leader
+    -- might not be able to reach its hex from the pre-evaluated keep, and because some
+    -- of the pre-evaluated recruit hexes might be used in the action.
+    if action then
+        local leader_id, leader_dst = move_data.leaders[wesnoth.current.side].id
+        for i_u,unit in ipairs(action.units) do
+            if (unit.id == leader_id) then
+                leader_dst = action.dsts[i_u]
+            end
+        end
+        local from_keep = FU.get_fgumap_value(move_data.effective_reach_maps[leader_id], leader_dst[1], leader_dst[2], 'from_keep')
+        --std_print(leader_id, leader_dst[1] .. ',' .. leader_dst[2] .. '  <--  ' .. from_keep[1] .. ',' .. from_keep[2])
+
+        local outofway_units = {}
+        for _,_,data in FU.fgumap_iter(move_data.my_unit_map_MP) do
+            if data.can_move_away then
+                outofway_units[data.id] = true
+            end
+        end
+
+        local cfg = { outofway_penalty = -0.1 }
+        prerecruit = fred_data.recruit:prerecruit_units(from_keep, outofway_units, cfg)
+        --DBG.dbms(prerecruit, false, 'prerecruit')
     end
 
     -- Move leader to keep, if needed
     local leader = data.move_data.leaders[wesnoth.current.side]
-    local recruit_loc = leader_objectives.prerecruit.loc
+    local recruit_loc = prerecruit.loc
     if (leader[1] ~= recruit_loc[1]) or (leader[2] ~= recruit_loc[2]) then
         --std_print('Need to move leader to keep first')
         local unit = wesnoth.get_unit(leader[1], leader[2])
         AHL.movepartial_outofway_stopunit(ai, unit, recruit_loc[1], recruit_loc[2])
     end
 
-    for _,recruit_unit in ipairs(leader_objectives.prerecruit.units) do
+    for _,recruit_unit in ipairs(prerecruit.units) do
        --std_print('  ' .. recruit_unit.recruit_type .. ' at ' .. recruit_unit.recruit_hex[1] .. ',' .. recruit_unit.recruit_hex[2])
        local uiw = wesnoth.get_unit(recruit_unit.recruit_hex[1], recruit_unit.recruit_hex[2])
        if uiw then
@@ -3067,7 +3097,7 @@ function ca_zone_control:execution(cfg, data, ai_debug)
             and leader_objectives.prerecruit and leader_objectives.prerecruit.units and leader_objectives.prerecruit.units[1]
         then
             DBG.print_debug_time('exec', data.turn_start_time, '=> exec: ' .. action .. ' (leader used -> recruit first)')
-            do_recruit(data, ai)
+            do_recruit(data, ai, data.zone_action, data)
             gamestate_changed = true
 
             -- We also check here separately whether the leader can still get to dst.
