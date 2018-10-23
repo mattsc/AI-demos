@@ -1468,7 +1468,7 @@ local function get_hold_action(zone_cfg, fred_data)
     for id,_ in pairs(holders) do
         --std_print('\n' .. id, zone_cfg.zone_id)
         local min_eleader_distance
-        for x,y,_ in FU.fgumap_iter(move_data.reach_maps[id]) do
+        for x,y,_ in FU.fgumap_iter(move_data.effective_reach_maps[id]) do
             if FU.get_fgumap_value(zone_map, x, y, 'flag') then
                 --std_print(x,y)
                 local can_hit = false
@@ -1502,7 +1502,7 @@ local function get_hold_action(zone_cfg, fred_data)
         end
         --std_print('  min_eleader_distance: ' .. min_eleader_distance)
 
-        for x,y,_ in FU.fgumap_iter(move_data.reach_maps[id]) do
+        for x,y,_ in FU.fgumap_iter(move_data.effective_reach_maps[id]) do
             --std_print(x,y)
 
             -- If there is nothing to protect, and we can move farther ahead
@@ -2281,7 +2281,7 @@ local function get_advance_action(zone_cfg, fred_data)
         --std_print(id, rating_moves, rating_power, fraction_hp_missing, hp_rating)
 
         local cost_map, cost_map_key
-        for x,y,_ in FU.fgumap_iter(move_data.reach_maps[id]) do
+        for x,y,_ in FU.fgumap_iter(move_data.effective_reach_maps[id]) do
             if (not FU.get_fgumap_value(avoid_maps[id], x, y, 'avoid')) then
 
                 local rating = rating_moves + rating_power
@@ -2305,7 +2305,7 @@ local function get_advance_action(zone_cfg, fred_data)
                     if (not cost_map) then
                         if is_unit_in_zone then
                             local forward_influence = {}
-                            for x,y,_ in FU.fgumap_iter(move_data.reach_maps[id]) do
+                            for x,y,_ in FU.fgumap_iter(move_data.effective_reach_maps[id]) do
                                 if (not FU.get_fgumap_value(avoid_maps[id], x, y, 'avoid')) then
                                     local ld = FU.get_fgumap_value(fred_data.turn_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
                                     if ld then
@@ -2523,7 +2523,7 @@ local function get_advance_action(zone_cfg, fred_data)
                     local target = {}
                     target[enemy_id] = enemy_loc
                     local attack_combos = FAU.get_attack_combos(
-                        attacker, target, cfg_attack, move_data.reach_maps, false, move_cache
+                        attacker, target, cfg_attack, move_data.effective_reach_maps, false, move_cache
                     )
 
                     for _,combo in ipairs(attack_combos) do

@@ -127,7 +127,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
             heal_maps_no_regen[id] = {}
         end
 
-        for x,y,_ in FU.fgumap_iter(move_data.reach_maps[id]) do
+        for x,y,_ in FU.fgumap_iter(move_data.effective_reach_maps[id]) do
             local heal_amount = 0
 
             if move_data.unit_infos[id].abilities.regenerate then
@@ -342,7 +342,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
             --DBG.dbms(goal_villages, false, 'goal_villages')
 
             local rating_map = {}
-            for x,y,_ in FU.fgumap_iter(move_data.reach_maps[id]) do
+            for x,y,_ in FU.fgumap_iter(move_data.effective_reach_maps[id]) do
                 -- Consider only hexes with acceptable threats
                 -- and only those that reduce the number of turns needed to get to the goal villages.
                 -- Acceptable threats in this case are based on av_damage, not max_damage as above
