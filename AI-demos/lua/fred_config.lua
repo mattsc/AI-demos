@@ -62,17 +62,17 @@ local cfg = {
 
 local interaction_matrix = {
     abbrevs = {
-		ALT = 'attack_leader_threat',
-		PL  = 'protect_leader',
-		FA  = 'favorable_attack',
-		att = 'attack',
-		pro = 'protect',
-		GV  = 'grab_village',
-		adv = 'advance',
-		rec = 'recruit',
-		MLV = 'move_leader_to_village',
-		MLK = 'move_leader_to_keep',
-		ret = 'retreat'
+        ALT = 'attack_leader_threat',
+        PL  = 'protect_leader',
+        FA  = 'favorable_attack',
+        att = 'attack',
+        pro = 'protect',
+        GV  = 'grab_village',
+        adv = 'advance',
+        rec = 'recruit',
+        MLV = 'move_leader_to_village',
+        MLK = 'move_leader_to_keep',
+        ret = 'retreat'
     },
     -- A penalty multiplier of 0 is equivalent to not setting it in the first place.
     -- If one is set to 0 here, that is done to emphasize that it should be ignored.

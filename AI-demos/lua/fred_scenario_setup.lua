@@ -90,12 +90,12 @@ function fred_scenario_setup.fred_scenario_setup()
             { 'command', {
                 { 'lua', {
                     code = "local options = { 'off', 'start turn instructions only', 'each move instructions', 'move instructions and fronts' }"
-					.. " local fred_show_behavior = wml.variables.fred_show_behavior or 1"
-					.. " fred_show_behavior = (fred_show_behavior % #options) + 1"
-					.. " wml.variables.fred_show_behavior = fred_show_behavior"
-					.. " local str = 'Show behavior now set to ' .. fred_show_behavior .. ': ' .. options[fred_show_behavior]"
-					.. " wesnoth.message('Fred', str)"
-					.. " std_print(str)"
+                    .. " local fred_show_behavior = wml.variables.fred_show_behavior or 1"
+                    .. " fred_show_behavior = (fred_show_behavior % #options) + 1"
+                    .. " wml.variables.fred_show_behavior = fred_show_behavior"
+                    .. " local str = 'Show behavior now set to ' .. fred_show_behavior .. ': ' .. options[fred_show_behavior]"
+                    .. " wesnoth.message('Fred', str)"
+                    .. " std_print(str)"
                 } },
             } },
             { 'default_hotkey', { key = 'b' } }
@@ -108,8 +108,8 @@ function fred_scenario_setup.fred_scenario_setup()
             { 'command', {
                 { 'lua', {
                     code = "local fred_behavior_str = wml.variables.fred_behavior_str or 'No behavior instructions yet'"
-					.. " wesnoth.message('Fred', fred_behavior_str)"
-					.. " std_print(fred_behavior_str)"
+                    .. " wesnoth.message('Fred', fred_behavior_str)"
+                    .. " std_print(fred_behavior_str)"
                 } },
             } },
             { 'default_hotkey', { key = 'b', shift = 'yes' } }
