@@ -993,13 +993,15 @@ function fred_ops_utils.set_ops_data(fred_data)
     local leader_defenders = {}
     for zone_id,benefits in pairs(attack_benefits) do
         local action = 'protect_leader:' .. zone_id
-        leader_threat_benefits[action] = {
-            units = {},
-            required = { power = power_needed[zone_id] }
-        }
 
         for id,data in pairs(benefits) do
             if (not move_data.unit_infos[id].canrecruit) and (data.turns <= 1) then
+                if (not leader_threat_benefits[action]) then
+                    leader_threat_benefits[action] = {
+                        units = {},
+                        required = { power = power_needed[zone_id] }
+                    }
+                end
                 leader_threat_benefits[action].units[id] = { benefit = data.benefit, penalty = 0 }
                 local unit_power = FU.unit_base_power(fred_data.move_data.unit_infos[id])
 
