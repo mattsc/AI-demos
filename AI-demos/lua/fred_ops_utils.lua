@@ -1759,7 +1759,9 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         for zone_id,threats in pairs(leader_threats_by_zone) do
             -- Use higher aggression value when there are no villages to protect in between
             local vr_mult = 1
-            if (not ops_data.objectives.protect.zones[zone_id].villages[1]) then
+            if (not ops_data.objectives.protect.zones[zone_id])
+                or (not ops_data.objectives.protect.zones[zone_id].villages[1])
+            then
                 vr_mult = 1 / leader_threat_mult
             end
 
