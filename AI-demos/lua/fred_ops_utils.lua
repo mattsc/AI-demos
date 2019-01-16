@@ -1772,6 +1772,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
                 table.insert(fred_data.zone_cfgs, {
                     zone_id = zone_id,
                     action_type = 'attack',
+                    action_str = 'attack leader threats',
                     zone_units = attackers_by_zone[zone_id],
                     targets = threats,
                     value_ratio = value_ratio * vr_mult,
@@ -1789,6 +1790,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     table.insert(fred_data.zone_cfgs, {
         zone_id = 'all_map',
         action_type = 'reserved_action',
+        action_str = 'grab villages',
         reserved_id = 'GV',
         rating = base_ratings.grab_villages
     })
@@ -1808,6 +1810,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
             table.insert(fred_data.zone_cfgs,  {
                 zone_id = zone_id,
                 action_type = 'attack',
+                action_str = 'zone attack',
                 zone_units = attackers_by_zone[zone_id],
                 targets = threats_by_zone[zone_id],
                 rating = base_ratings.attack + power_rating,
@@ -1913,6 +1916,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     table.insert(fred_data.zone_cfgs, {
         zone_id = 'all_map',
         action_type = 'retreat',
+        action_str = 'retreat injured',
         rating = base_ratings.retreat
     })
 
