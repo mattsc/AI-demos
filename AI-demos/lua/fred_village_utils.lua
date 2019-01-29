@@ -36,8 +36,9 @@ function fred_village_utils.village_objectives(zone_cfgs, side_cfgs, fred_data)
         local enemy_infl = FU.get_fgumap_value(move_data.influence_maps, x, y, 'enemy_influence') or 0
         local infl_ratio = my_infl / (enemy_infl + 1e-6)
 
-        if (infl_ratio >= fred_data.turn_data.behavior.orders.value_ratio) then
+        local owner = FU.get_fgumap_value(move_data.village_map, x, y, 'owner')
 
+        if (infl_ratio >= fred_data.turn_data.behavior.orders.value_ratio) then
             local is_threatened, is_protected = false, true
             for enemy_id,_ in pairs(move_data.enemies) do
                 if FU.get_fgumap_value(fred_data.turn_data.enemy_initial_reach_maps[enemy_id], x, y, 'moves_left') then
@@ -52,17 +53,22 @@ function fred_village_utils.village_objectives(zone_cfgs, side_cfgs, fred_data)
                 if (not village_objectives.zones[village_zone]) then
                     village_objectives.zones[village_zone] = { villages = {} }
                 end
+                -- TODO: this is currently duplicated in the benefits functions
+                local raw_benefit = 3
+                if (owner ~= wesnoth.current.side) and (owner ~= 0) then
+                    raw_benefit = raw_benefit * 2
+                end
                 local v = {
                     x = x, y = y,
                     is_protected = is_protected,
                     type = 'village',
-                    eld = eld_vill
+                    eld = eld_vill,
+                    raw_benefit = raw_benefit
                 }
                 table.insert(village_objectives.zones[village_zone].villages, v)
             end
         end
 
-        local owner = FU.get_fgumap_value(move_data.village_map, x, y, 'owner')
         if (owner ~= wesnoth.current.side) then
             table.insert(villages_to_grab, {
                 x = x, y = y,

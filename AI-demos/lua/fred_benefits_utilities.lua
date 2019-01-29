@@ -35,16 +35,17 @@ function utility_functions.village_benefits(village_grabs, fred_data)
             return
         end
 
-        local income_benefit = 0
+        local raw_benefit, income_benefit = 0, 0
         if (owner ~= wesnoth.current.side) then
             -- For now we assume that each village also provides support
-            local base_benefit = 3
+            raw_benefit = 3
             -- Only get income on next turn if unit survives
-            local my_benefit = base_benefit * (1 - grab.die_chance)
+            local my_benefit = raw_benefit * (1 - grab.die_chance)
             -- Definitely take income from enemy on next turn, and on following turn if unit survives
             local enemy_benefit = 0
             if (owner ~= 0) then
-                enemy_benefit = base_benefit * (1 + 1 - grab.die_chance)
+                enemy_benefit = raw_benefit * (1 + 1 - grab.die_chance)
+                raw_benefit = raw_benefit * 2
             end
             income_benefit = my_benefit + enemy_benefit
             --std_print('      income: ' .. base_benefit, my_benefit, enemy_benefit, grab.die_chance)
@@ -70,7 +71,7 @@ function utility_functions.village_benefits(village_grabs, fred_data)
                 end
                 local heal_amount = math.min(unit_info.max_hitpoints - hp_eff, 8)
                 unit_benefit = heal_amount / unit_info.max_hitpoints * FU.unit_value(unit_info)
-                --std_print('    healing: ' .. hp_eff, heal_amount, FU.unit_value(unit_info), grab.die_chance)
+                std_print('    healing: ' .. hp_eff, heal_amount, FU.unit_value(unit_info), grab.die_chance)
             end
             --std_print('    unit_benefit (healing): ' .. unit_benefit)
         end
@@ -99,6 +100,7 @@ function utility_functions.village_benefits(village_grabs, fred_data)
             village_benefits[xy] = { units = {} }
         end
         village_benefits[xy].units[grab.id] = { benefit = benefit, penalty = 0 }
+        village_benefits[xy].raw = raw_benefit
     end
     --DBG.dbms(village_benefits, false, 'village_benefits')
 
