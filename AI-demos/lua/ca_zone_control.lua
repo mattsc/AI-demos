@@ -649,7 +649,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 attacker_moved[attacker.id] = { combo.dsts[i_a][1], combo.dsts[i_a][2] }
 
                 local counter_outcomes = FAU.calc_counter_attack(
-                    attacker_moved, old_locs, combo.dsts, fred_data.ops_data.place_holders, cfg_attack, move_data, move_cache
+                    attacker_moved, old_locs, combo.dsts, fred_data.ops_data.place_holders, virtual_reach_maps, false, cfg_attack, move_data, move_cache
                 )
                 --DBG.dbms(counter_outcomes, false, 'counter_outcomes')
 
@@ -1046,7 +1046,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         attacker_moved[attacker.id] = { combo.dsts[1][1], combo.dsts[1][2] }
 
                         local counter_outcomes = FAU.calc_counter_attack(
-                            attacker_moved, old_locs, combo.dsts, fred_data.ops_data.place_holders, cfg_attack, move_data, move_cache
+                            attacker_moved, old_locs, combo.dsts, fred_data.ops_data.place_holders, nil, true, cfg_attack, move_data, move_cache
                         )
                         --DBG.dbms(counter_outcomes, false, 'counter_outcomes')
 
@@ -2416,7 +2416,7 @@ local function get_advance_action(zone_cfg, fred_data)
                     local old_locs = { { unit_loc[1], unit_loc[2] } }
                     local new_locs = { { x, y } }
                     local counter_outcomes = FAU.calc_counter_attack(
-                        unit_moved, old_locs, new_locs, cfg_attack, move_data, move_cache
+                        unit_moved, old_locs, new_locs, nil, true, cfg_attack, move_data, move_cache
                     )
                     --DBG.dbms(counter_outcomes.def_outcome.ctd_progression, false, 'counter_outcomes.def_outcome.ctd_progression')
                     --std_print('  die_chance', counter_outcomes.def_outcome.hp_chance[0])

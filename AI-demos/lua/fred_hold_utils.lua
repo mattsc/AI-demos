@@ -384,7 +384,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         local new_locs = { { move_data.leader_x, move_data.leader_y } }
 
         local counter_outcomes = FAU.calc_counter_attack(
-            leader_target, old_locs, new_locs, cfg_attack, move_data, fred_data.move_cache
+            leader_target, old_locs, new_locs, nil, true, cfg_attack, move_data, fred_data.move_cache
         )
 
         local remainging_hp = move_data.unit_infos[leader_id].hitpoints
@@ -507,7 +507,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 protect_loc = { move_data.leader_x, move_data.leader_y }
 
                 local counter_outcomes = FAU.calc_counter_attack(
-                    leader_target, old_locs, new_locs, cfg_attack, move_data, fred_data.move_cache
+                    leader_target, old_locs, new_locs, nil, true, cfg_attack, move_data, fred_data.move_cache
                 )
 
                 local remainging_hp = move_data.unit_infos[leader_id].hitpoints
@@ -798,7 +798,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             target[ids[i_l]] = { new_locs[i_l][1], new_locs[i_l][2] }
 
             local counter_outcomes = FAU.calc_counter_attack(
-                target, old_locs, new_locs, cfg_attack, move_data, fred_data.move_cache
+                target, old_locs, new_locs, nil, true, cfg_attack, move_data, fred_data.move_cache
             )
             if counter_outcomes then
                 --DBG.dbms(counter_outcomes.rating_table, false, 'counter_outcomes.rating_table')

@@ -1,5 +1,6 @@
 local H = wesnoth.require "helper"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
+local FVS = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_virtual_state.lua"
 local FGUI = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
 --local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
@@ -1251,51 +1252,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, cfg, reach_map
 
     -- If reach_maps is not given, we need to calculate them
     if (not reach_maps) then
-        reach_maps = {}
-
-        for attacker_id,_ in pairs(attackers) do
-            reach_maps[attacker_id] = {}
-
-            -- Only calculate reach if the attacker could get there using its
-            -- original reach. It cannot have gotten any better than this.
-            local can_reach = false
-            for xa,ya in H.adjacent_tiles(defender_loc[1], defender_loc[2]) do
-                if move_data.reach_maps[attacker_id][xa] and move_data.reach_maps[attacker_id][xa][ya] then
-                    can_reach = true
-                    break
-                end
-            end
-
-            if can_reach then
-                -- For sides other than the current, we always use max_moves.
-                -- For the current side, we always use current moves.
-                local old_moves
-                if (move_data.unit_infos[attacker_id].side ~= wesnoth.current.side) then
-                    old_moves = move_data.unit_copies[attacker_id].moves
-                    move_data.unit_copies[attacker_id].moves = move_data.unit_copies[attacker_id].max_moves
-                end
-
-                local reach = wesnoth.find_reach(move_data.unit_copies[attacker_id])
-
-                for _,r in ipairs(reach) do
-                    if (not reach_maps[attacker_id][r[1]]) then reach_maps[attacker_id][r[1]] = {} end
-                    reach_maps[attacker_id][r[1]][r[2]] = { moves_left = r[3] }
-                end
-
-                if (move_data.unit_infos[attacker_id].side ~= wesnoth.current.side) then
-                    move_data.unit_copies[attacker_id].moves = old_moves
-                end
-            end
-        end
-
-        -- Eliminate hexes with other units that cannot move out of the way
-        for id,reach_map in pairs(reach_maps) do
-            for id_noMP,loc in pairs(move_data.my_units_noMP) do
-                if (id ~= id_noMP) then
-                    if reach_map[loc[1]] then reach_map[loc[1]][loc[2]] = nil end
-                end
-            end
-        end
+        reach_maps = FVS.virtual_reach_maps(attackers, { defender_loc }, nil, move_data)
     end
 
     ----- First, find which units in @attackers can get to hexes next to @defender -----
@@ -1356,7 +1313,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, cfg, reach_map
     return FU.get_unit_hex_combos(attacks_dst_src, get_strongest_attack)
 end
 
-function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, additional_units, cfg, move_data, move_cache)
+function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, additional_units, virtual_reach_maps, place_units, cfg, move_data, move_cache)
     -- Get counter-attack outcomes of an AI unit in a hypothetical map situation
     -- Units are placed on the map and the move_data tables are adjusted inside this
     -- function in order to avoid code duplication and ensure consistency
@@ -1377,135 +1334,15 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, addit
     --    calc_counter_attack()  checks whether these units interfere with any of the @new_locs and does
     --    not place them if so, but it is assumed that interference with e.g. units_noMP
     --    has been checked.
+    --  @virtual_reach_maps: allow passing a different reach_maps table. This saves time if counter
+    --    attacks are calculated on several units for the same virtual situation, or if the
+    --    reach maps are needed for other evaluations as well.
+    --  @place_units: if true, also place the units on the map and adjust their stats; if set to
+    --    false, it is assumed that this has been done already, e.g. by the virtual_state functions
     --  @cfg: configuration parameters to be passed through to attack_outcome, attack_rating
 
-    -- Two arrays to be made available below via closure
-    local stored_units, ids = {}, {}
-
-
-    ----- Begin adjust_move_data_tables() -----
-    local function adjust_move_data_tables(old_locs, new_locs, store_units_in_way)
-        -- Adjust all the move_data tables to the new position, and reset them again later.
-        -- This is a local function as only counter attack calculations should have to move units.
-        --
-        -- INPUTS:
-        -- @old_locs, @new_locs as above
-        -- @store_units_in_way (boolean): whether to store the locations of the units in the way. Needs to
-        -- be set to 'true' when moving the units into their new locations, needs to be set to
-        -- 'false' when moving them back, in which case the stored information will be used.
-        --
-        -- Output:
-        -- Returns nil if no counter attacks were found, otherwise a table with a
-        -- variety of attack outcomes and ratings
-
-        -- If any of the hexes marked in @new_locs is occupied, we
-        -- need to store that information as it otherwise will be overwritten.
-        -- This needs to be done for all locations before any unit is moved
-        -- in order to avoid conflicts of the units to be moved among themselves
-        if store_units_in_way then
-            for i_l,old_loc in ipairs(old_locs) do
-                local x1, y1 = old_loc[1], old_loc[2]
-                local x2, y2 = new_locs[i_l][1], new_locs[i_l][2]
-
-                -- Store the ids of the units to be put onto the map.
-                -- This includes units with MP that attack from their current position,
-                -- but not units without MP (as the latter are already on the map)
-                -- Note: this array might have missing elements -> needs to be iterated using pairs()
-                if move_data.my_unit_map_MP[x1] and move_data.my_unit_map_MP[x1][y1] then
-                    ids[i_l] = move_data.my_unit_map_MP[x1][y1].id
-                end
-
-                -- By contrast, we only need to store the information about units in the way,
-                -- if a unit  actually gets moved to the hex (independent of whether it has MP left or not)
-                if (x1 ~= x2) or (y1 ~= y2) then
-                    -- If there is another unit at the new location, store it
-                    -- It does not matter for this whether this is a unit involved in the move or not
-                    if move_data.my_unit_map[x2] and move_data.my_unit_map[x2][y2] then
-                        stored_units[move_data.my_unit_map[x2][y2].id] = { x2, y2 }
-                    end
-                end
-            end
-        end
-
-        -- Now adjust all the move_data tables
-        for i_l,old_loc in ipairs(old_locs) do
-            local x1, y1 = old_loc[1], old_loc[2]
-            local x2, y2 = new_locs[i_l][1], new_locs[i_l][2]
-            --std_print('Moving unit:', x1, y1, '-->', x2, y2)
-
-            -- We only need to do this if the unit actually gets moved
-            if (x1 ~= x2) or (y1 ~= y2) then
-                local id = ids[i_l]
-
-                -- Likely, not all of these tables have to be changed, but it takes
-                -- very little time, so better safe than sorry
-                move_data.unit_copies[id].x, move_data.unit_copies[id].y = x2, y2
-
-                move_data.units[id] = { x2, y2 }
-                move_data.my_units[id] = { x2, y2 }
-                move_data.my_units_MP[id] = { x2, y2 }
-
-                if move_data.unit_infos[id].canrecruit then
-                    move_data.leaders[wesnoth.current.side] = { x2, y2, id = id }
-                end
-
-                -- Note that the following might leave empty orphan table elements, but that doesn't matter
-                move_data.my_unit_map[x1][y1] = nil
-                if (not move_data.my_unit_map[x2]) then move_data.my_unit_map[x2] = {} end
-                move_data.my_unit_map[x2][y2] = { id = id }
-
-                move_data.my_unit_map_MP[x1][y1] = nil
-                if (not move_data.my_unit_map_MP[x2]) then move_data.my_unit_map_MP[x2] = {} end
-                move_data.my_unit_map_MP[x2][y2] = { id = id }
-            end
-        end
-
-        -- Finally, if 'store_units_in_way' is not set (this is, when moving units back
-        -- into place), restore the stored units into the maps again
-        if (not store_units_in_way) then
-            for id,loc in pairs(stored_units) do
-                move_data.my_unit_map[loc[1]][loc[2]] = { id = id }
-                move_data.my_unit_map_MP[loc[1]][loc[2]] = { id = id }
-            end
-        end
-    end
-    ----- End adjust_move_data_tables() -----
-
-
-    -- Mark the new positions of the units in the move_data tables
-    adjust_move_data_tables(old_locs, new_locs, true)
-
-    -- Put all units in old_locs with MP onto the  map (those without are already there)
-    -- They need to be proxy units for the counter attack calculation.
-    for _,id in pairs(ids) do
-        wesnoth.put_unit(move_data.unit_copies[id])
-    end
-
-    -- Also put the additonal units out there
-    local add_units = {}
-    if additional_units then
-        for _,add_unit in ipairs(additional_units) do
-            local place_unit = true
-            for _,new_loc in ipairs(new_locs) do
-                if (add_unit[1] == new_loc[1]) and (add_unit[2] == new_loc[2]) then
-                    place_unit = false
-                    break
-                end
-            end
-            if place_unit then
-                table.insert(add_units, add_unit)
-
-                wesnoth.put_unit({
-                    type = add_unit.type,
-                    random_traits = false,
-                    name = "X",
-                    random_gender = false,
-                    moves = 0
-                },
-                    add_unit[1], add_unit[2]
-                )
-            end
-        end
+    if place_units then
+        FVS.set_virtual_state(old_locs, new_locs, additional_units, move_data)
     end
 
     local target_id, target_loc = next(target)
@@ -1524,7 +1361,7 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, addit
     -- Only want the best attack combo for this.
     local counter_attack = fred_attack_utils.get_attack_combos(
         attackers, target, cfg,
-        nil, true, move_data, move_cache
+        virtual_reach_maps, true, move_data, move_cache
     )
 
     local counter_attack_outcome
@@ -1538,16 +1375,9 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, addit
         counter_attack_outcome = fred_attack_utils.attack_combo_eval(counter_attack, target, cfg, move_data, move_cache)
     end
 
-    -- Extract the units from the map
-    for _,add_unit in ipairs(add_units) do
-        wesnoth.erase_unit(add_unit[1], add_unit[2])
+    if place_units then
+        FVS.reset_state(old_locs, new_locs, move_data)
     end
-    for _,id in pairs(ids) do
-        wesnoth.extract_unit(move_data.unit_copies[id])
-    end
-
-    -- And put them back into their original locations
-    adjust_move_data_tables(new_locs, old_locs)
 
     return counter_attack_outcome, counter_attack
 end
