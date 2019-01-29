@@ -651,6 +651,35 @@ local function get_attack_action(zone_cfg, fred_data)
                 end
             end
             local virtual_reach_maps = FVS.virtual_reach_maps(live_enemies, attacker_locs, nil, move_data)
+
+            local village_protect_bonus = 0
+            for _,village in pairs(fred_data.ops_data.objectives.protect.zones[zone_cfg.zone_id].villages) do
+                --DBG.dbms(village, false, 'village')
+                if (not village.is_protected) then
+                    local is_protected = true
+                    for enemy_id,reach_map in pairs(virtual_reach_maps) do
+                        --DBG.show_fgumap_with_message(reach_map, 'moves_left', 'reach_map ' .. enemy_id)
+
+                        if FU.get_fgumap_value(reach_map, village.x, village.y, 'moves_left') then
+                            is_protected = false
+                            --std_print('  ' .. enemy_id)
+                            break
+                        end
+                    end
+                    --std_print('village is protected:', village.x .. ',' .. village.y, is_protected, village.raw_benefit)
+
+                    if is_protected then
+                        -- TODO: not sure if the full benefit should be added here, or a fraction
+                        -- TODO: should this be different if protection is possible otherwise? The problem
+                        -- with that is that it then prefers attacks with more units (which have a higher
+                        -- chance of protecting something behind them.
+                        village_protect_bonus = village_protect_bonus + village.raw_benefit
+                    end
+                end
+            end
+            --std_print('village_protect_bonus', village_protect_bonus)
+
+
             local acceptable_counter = true
 
             local min_total_damage_rating = 9e99
@@ -1096,7 +1125,7 @@ local function get_attack_action(zone_cfg, fred_data)
             --DBG.print_ts_delta(fred_data.turn_start_time, '  acceptable_counter', acceptable_counter)
             local total_rating = -9999
             if acceptable_counter then
-                total_rating = min_total_damage_rating + combo.penalty_rating
+                total_rating = min_total_damage_rating + combo.penalty_rating + village_protect_bonus
                 DBG.print_debug('attack_print_output', '  Penalty rating:', combo.penalty_rating, combo.penalty_str)
                 DBG.print_debug('attack_print_output', '  Acceptable counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating_table.rating)
                 DBG.print_debug('attack_print_output', '    --> total_rating', total_rating)
@@ -1126,8 +1155,8 @@ local function get_attack_action(zone_cfg, fred_data)
             end
 
             if DBG.show_debug('attack_combos') then
-                local msg_str = string.format('Attack combo %d/%d:    %.3f    (%.3f  max)\n      pre_rating:    %.3f\n      penalties:      %.3f      %s',
-                    count, #combo_ratings, total_rating, (max_total_rating or 0), combo.pre_rating, combo.penalty_rating, combo.penalty_str
+                local msg_str = string.format('Attack combo %d/%d:    %.3f    (%.3f  max)\n      damage rating:    %.3f * %.3f    (pre_rating: %.3f)\n      penalties:      %.3f      %s\n      village protect bonus:     %.3f',
+                    count, #combo_ratings, total_rating, (max_total_rating or 0), min_total_damage_rating, combo.derating, combo.pre_rating, combo.penalty_rating, combo.penalty_str, village_protect_bonus
                 )
                 wesnoth.scroll_to_tile(target_loc[1], target_loc[2])
                 wesnoth.wml_actions.message { speaker = 'narrator', message = msg_str}
