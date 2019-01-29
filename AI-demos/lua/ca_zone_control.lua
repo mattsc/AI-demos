@@ -3,6 +3,7 @@ local AH = wesnoth.require "ai/lua/ai_helper.lua"
 local AHL = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper_local.lua"
 local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
+local FVS = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_virtual_state.lua"
 local FBU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_benefits_utilities.lua"
 local FOU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_ops_utils.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
@@ -571,12 +572,6 @@ local function get_attack_action(zone_cfg, fred_data)
         --std_print('  is_disqualified', is_disqualified)
 
         if (not is_disqualified) then
-            -- TODO: the following is slightly inefficient, as it places units and
-            -- takes them off again several times for the same attack combo.
-            -- This could be streamlined if it becomes an issue, but at the expense
-            -- of either duplicating code or adding parameters to FAU.calc_counter_attack()
-            -- I don't think that it is the bottleneck, so we leave it as it is for now.
-
             -- TODO: Need to apply correctly:
             --   - attack locs
             --   - new HP - use average
@@ -638,6 +633,24 @@ local function get_attack_action(zone_cfg, fred_data)
             move_data.unit_copies[target_id].hitpoints = hp
             target_proxy.hitpoints = hp
 
+            -- Finally, calculate the virtual reach maps for this situation
+            FVS.set_virtual_state(old_locs, combo.dsts, fred_data.ops_data.place_holders, move_data)
+
+            local attacker_locs = {}
+            for i_a,attacker in ipairs(combo.attackers) do
+                table.insert(attacker_locs, { combo.dsts[i_a][1], combo.dsts[i_a][2] })
+            end
+            --DBG.dbms(attacker_locs, false, 'attacker_locs')
+
+            -- The enemy being attacked is included here and might have HP=0. Need to
+            -- use only valid enemies.
+            local live_enemies = {}
+            for id,loc in pairs(move_data.enemies) do
+                if (move_data.unit_infos[id].hitpoints > 0) then
+                    live_enemies[id] = loc
+                end
+            end
+            local virtual_reach_maps = FVS.virtual_reach_maps(live_enemies, attacker_locs, nil, move_data)
             local acceptable_counter = true
 
             local min_total_damage_rating = 9e99
@@ -1013,6 +1026,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 end
             end
 
+            FVS.reset_state(old_locs, combo.dsts, move_data)
 
             -- Now reset the hitpoints for attackers and defender
             for i_a,attacker_info in ipairs(combo.attackers) do
