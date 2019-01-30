@@ -217,11 +217,13 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
         --std_print(zone_id)
 
         protect_objective.units = {}
-        -- TODO: do this also in some cases when the leader needs to be protected?
-        if (not protect_objective.protect_leader)
-            and ((#protect_objective.villages == 0) or (protect_objective.villages[1].is_protected))
-        then
-            --std_print('  checking whether units should be protected')
+        -- TODO: comment out the conditional for now. It should be determined in the
+        -- analysis part of the code whether a unit should be protected, here we just want
+        -- to find all the possibilities. Reevaluate later if this should be changed.
+        --if (not protect_objective.protect_leader)
+        --    and ((#protect_objective.villages == 0) or (protect_objective.villages[1].is_protected))
+        --then
+            --std_print('  checking whether units should be protected: ' .. zone_id)
             -- TODO: does this take appreciable time? If so, can be skipped when no no_MP units exist
             local units_to_protect, protectors = {}, {}
             for id,_ in pairs(assigned_units[zone_id]) do
@@ -316,7 +318,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
             end
 
             table.sort(protect_objective.units, function(a, b) return a.rating < b.rating end)
-        end
+        --end
     end
     --DBG.dbms(objectives.protect, false, 'objectives.protect')
 end
