@@ -43,6 +43,9 @@ local cfg = {
     distance_leader_weight = 0.002,
     occupied_hex_penalty = 0.001,
     leader_max_die_chance = 0.02,
+    leader_protect_weight = 1.0,
+    unit_protect_weight = 0.5,
+    village_protect_weight = 0.5,
 
     -- Hold rating parameters
     vuln_weight = 0.25,

@@ -77,6 +77,60 @@ local function get_attack_action(zone_cfg, fred_data)
     local reserved_actions = fred_data.ops_data.reserved_actions
     local penalty_infos = { src = {}, dst = {} }
 
+    local org_protect_leader_rating = 0
+    local leader_id = move_data.leaders[wesnoth.current.side].id
+    local leader_goal = move_data.leaders[wesnoth.current.side]
+    if fred_data.ops_data.objectives.protect.zones[zone_cfg.zone_id] and
+        fred_data.ops_data.objectives.protect.zones[zone_cfg.zone_id].protect_leader
+    then
+        if (move_data.unit_infos[leader_id].moves > 0) then
+            leader_goal = fred_data.ops_data.objectives.leader.village
+                or fred_data.ops_data.objectives.leader.keep
+                or move_data.leaders[wesnoth.current.side]
+        end
+        --std_print('--- need to protect the leader: ' .. leader_id, leader_goal[1] .. ',' .. leader_goal[2])
+
+        local old_locs = { move_data.leaders[wesnoth.current.side] }
+        local new_locs = { leader_goal }
+        FVS.set_virtual_state(old_locs, new_locs, fred_data.ops_data.place_holders, move_data)
+
+        local leader_moved = {}
+        leader_moved[leader_id] = leader_goal
+        local counter_outcomes = FAU.calc_counter_attack(
+            leader_moved, nil, nil, nil, nil, false, cfg_attack, move_data, move_cache
+        )
+        --DBG.dbms(counter_outcomes.rating_table, false, 'counter_outcomes.rating_table')
+
+        if counter_outcomes and (counter_outcomes.rating_table.rating > 0) then
+            org_protect_leader_rating = counter_outcomes.rating_table.rating
+        end
+
+        FVS.reset_state(old_locs, new_locs, move_data)
+    end
+    --std_print('org_protect_leader_rating:', org_protect_leader_rating)
+
+    -- Units to be protected have zero MP, thus do not need to be put on the map
+    local org_protect_units = {}
+    for i_u,unit in ipairs(fred_data.ops_data.objectives.protect.zones[zone_cfg.zone_id].units) do
+        --DBG.dbms(unit, false, "unit")
+        local unit_moved = {}
+        unit_moved[unit.id] = { unit.x, unit.y }
+        local counter_outcomes = FAU.calc_counter_attack(
+            unit_moved, nil, nil, nil, nil, false, cfg_attack, move_data, move_cache
+        )
+        --DBG.dbms(counter_outcomes, false, 'counter_outcomes')
+
+        if counter_outcomes and (counter_outcomes.rating_table.rating > 0) then
+            org_protect_units[i_u] = {
+                id = unit.id,
+                x = unit.x, y = unit.y,
+                counter_rating = counter_outcomes.rating_table.rating
+            }
+        end
+    end
+    --DBG.dbms(org_protect_units, false, 'org_protect_units')
+
+
     local combo_ratings = {}
     for target_id, target_xy in pairs(targets) do
         local target_loc = move_data.units[target_id]
@@ -680,8 +734,72 @@ local function get_attack_action(zone_cfg, fred_data)
             --std_print('village_protect_bonus', village_protect_bonus)
 
 
-            local acceptable_counter = true
+            -- Now check whether this attack protects the leader. If the leader is part
+            -- of the attack, it is checked separately whether this is acceptable, thus
+            -- the check is not performed in that case (note that including those attacks
+            -- would also crash the game, due to how placing units using FVS functions is
+            -- done here.
+            -- For that rasons, this is also implemented as a penalty. Because attacks including
+            -- the leader are considered acceptable. If this were a bonus, attacks without the
+            -- leader would otherwise always be preferred.
+            -- TODO: possibly make all protect checks penalties
+            local attack_includes_leader = false
+            for i_a,attacker in ipairs(combo.attackers) do
+                 if attacker.canrecruit then
+                     attack_includes_leader = true
+                     break
+                 end
+            end
+            --std_print('attack_includes_leader', attack_includes_leader)
 
+            local leader_protect_penalty = 0
+            if (not attack_includes_leader) and (org_protect_leader_rating > 0) then
+                --std_print('--- checking leader protection: ' .. leader_id, leader_goal[1] .. ',' .. leader_goal[2])
+
+                -- Also need to place the leader here, but only the leader, the place holders are already on the map
+                local leader_old_locs = { move_data.leaders[wesnoth.current.side] }
+                local leader_new_locs = { leader_goal }
+                local stored_data = {}
+                FVS.set_virtual_state(leader_old_locs, leader_new_locs, nil, move_data, stored_data)
+
+                local leader_moved = {}
+                leader_moved[leader_id] = leader_goal
+                local counter_outcomes = FAU.calc_counter_attack(
+                    leader_moved, nil, nil, nil, nil, false, cfg_attack, move_data, move_cache
+                )
+                --DBG.dbms(counter_outcomes.rating_table, false, 'counter_outcomes.rating_table')
+
+                local protect_leader_rating = counter_outcomes and counter_outcomes.rating_table.rating or 0
+                if (protect_leader_rating < 0) then protect_leader_rating = 0 end
+                --std_print('leader protection: ' .. org_protect_leader_rating - protect_leader_rating .. ' = ' .. org_protect_leader_rating .. ' - ' .. protect_leader_rating)
+                leader_protect_penalty = - protect_leader_rating
+
+                FVS.reset_state(leader_old_locs, leader_new_locs, move_data, stored_data)
+            end
+            --std_print('leader_protect_penalty:', leader_protect_penalty)
+
+
+            -- How much does protection of units increase
+            local unit_protect_bonus = 0
+            for _,unit in ipairs(org_protect_units) do
+                --DBG.dbms(unit, false, "unit")
+
+                local unit_moved = {}
+                unit_moved[unit.id] = { unit.x, unit.y }
+                local counter_outcomes = FAU.calc_counter_attack(
+                    unit_moved, nil, nil, nil, nil, false, cfg_attack, move_data, move_cache
+                )
+                --DBG.dbms(counter_outcomes, false, 'counter_outcomes')
+
+                local protect_unit_rating = counter_outcomes and counter_outcomes.rating_table.rating or 0
+                if (protect_unit_rating < 0) then protect_unit_rating = 0 end
+                --std_print('protection: ' .. unit.id, unit.counter_rating - protect_unit_rating .. ' = ' .. unit.counter_rating .. ' - ' .. protect_unit_rating)
+                unit_protect_bonus = unit_protect_bonus + unit.counter_rating - protect_unit_rating
+            end
+            --std_print('unit_protect_bonus', unit_protect_bonus)
+
+
+            local acceptable_counter = true
             local min_total_damage_rating = 9e99
             for i_a,attacker in ipairs(combo.attackers) do
                 DBG.print_debug('attack_print_output', '  by', attacker.id, combo.dsts[i_a][1], combo.dsts[i_a][2])
@@ -1124,10 +1242,19 @@ local function get_attack_action(zone_cfg, fred_data)
 
             --DBG.print_ts_delta(fred_data.turn_start_time, '  acceptable_counter', acceptable_counter)
             local total_rating = -9999
+            local leader_protect_weight = FCFG.get_cfg_parm('leader_protect_weight')
+            local unit_protect_weight = FCFG.get_cfg_parm('unit_protect_weight')
+            local village_protect_weight = FCFG.get_cfg_parm('village_protect_weight')
             if acceptable_counter then
-                total_rating = min_total_damage_rating + combo.penalty_rating + village_protect_bonus
+                total_rating = min_total_damage_rating + combo.penalty_rating
+                total_rating = total_rating + leader_protect_penalty * leader_protect_weight
+                total_rating = total_rating + village_protect_bonus * village_protect_weight
+                total_rating = total_rating + unit_protect_bonus * unit_protect_weight
+
                 DBG.print_debug('attack_print_output', '  Penalty rating:', combo.penalty_rating, combo.penalty_str)
                 DBG.print_debug('attack_print_output', '  Acceptable counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating_table.rating)
+                DBG.print_debug('attack_print_output', '  leader protect penalty        ', leader_protect_penalty .. ' * ' .. leader_protect_weight)
+                DBG.print_debug('attack_print_output', '  village and unit protect bonus', village_protect_bonus .. ' * ' .. village_protect_weight, unit_protect_bonus .. ' * ' .. unit_protect_weight)
                 DBG.print_debug('attack_print_output', '    --> total_rating', total_rating)
 
                 if (total_rating > 0) then
@@ -1155,8 +1282,17 @@ local function get_attack_action(zone_cfg, fred_data)
             end
 
             if DBG.show_debug('attack_combos') then
-                local msg_str = string.format('Attack combo %d/%d:    %.3f    (%.3f  max)\n      damage rating:    %.3f * %.3f    (pre_rating: %.3f)\n      penalties:      %.3f      %s\n      village protect bonus:     %.3f',
-                    count, #combo_ratings, total_rating, (max_total_rating or 0), min_total_damage_rating, combo.derating, combo.pre_rating, combo.penalty_rating, combo.penalty_str, village_protect_bonus
+                local msg_str = string.format('Attack combo %d/%d:    %.3f    (%.3f  max)\n'
+                    .. '      damage rating:           %.3f * %.3f    (pre_rating: %.3f)\n'
+                    .. '      penalties:               %.3f      %s\n'
+                    .. '      leader protect penalty:  %.3f * %.2f\n'
+                    .. '      village protect bonus:   %.3f * %.2f\n'
+                    .. '      unit protect bonus:      %.3f * %.2f',
+                    count, #combo_ratings, total_rating, (max_total_rating or 0), min_total_damage_rating,
+                    combo.derating, combo.pre_rating, combo.penalty_rating, combo.penalty_str,
+                    leader_protect_penalty, leader_protect_weight,
+                    village_protect_bonus, village_protect_weight,
+                    unit_protect_bonus, unit_protect_weight
                 )
                 wesnoth.scroll_to_tile(target_loc[1], target_loc[2])
                 wesnoth.wml_actions.message { speaker = 'narrator', message = msg_str}
