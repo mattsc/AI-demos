@@ -461,29 +461,22 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     --DBG.dbms(to_locs, false, 'to_locs')
 
     -- Find exposure of units (other than the leader) to be protected
-    -- TODO: can/should this be done in ops?
-    local org_unit_ratings = {}
-    if cfg.protect_objectives.units then
-        -- Need to put place_holders on map
-        -- All units without MP are off the map at this point, so can just place them
-        for _,add_unit in ipairs(fred_data.ops_data.place_holders) do
-            wesnoth.put_unit({
-                type = add_unit.type,
-                random_traits = false,
-                name = "X",
-                random_gender = false,
-                moves = 0
-            },
-                add_unit[1], add_unit[2]
-            )
-        end
+    -- Also find how many castle hexes can be reached
+    local org_unit_ratings, threatened_castle = {}, {}
+    if cfg.protect_objectives.units or fred_data.ops_data.objectives.leader.leader_threats then
+        -- Need to put leader and place_holders on map
+        local old_locs = { { move_data.leader_x, move_data.leader_y } }
+        local new_locs = { { move_data.leader_x, move_data.leader_y } }
+
+        FVS.set_virtual_state(old_locs, new_locs, fred_data.ops_data.place_holders, move_data)
+        local virtual_reach_maps = FVS.virtual_reach_maps(fred_data.ops_data.objectives.leader.leader_threats.enemies, to_unit_locs, to_locs, move_data)
 
         -- Now check counter attacks
-        for _,unit in ipairs(cfg.protect_objectives.units) do
+        for _,unit in ipairs(cfg.protect_objectives.units or {}) do
             local target = {}
             target[unit.id] = { unit.x, unit.y }
             local counter_outcomes = FAU.calc_counter_attack(
-                target, nil, nil, nil, nil, false, cfg_attack, move_data, fred_data.move_cache
+                target, nil, nil, nil, virtual_reach_maps, false, cfg_attack, move_data, fred_data.move_cache
             )
             --DBG.dbms(counter_outcomes.rating_table, false, 'counter_outcomes.rating_table')
 
@@ -494,11 +487,21 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             end
         end
 
-        for _,add_unit in ipairs(fred_data.ops_data.place_holders) do
-            wesnoth.put_unit(add_unit[1], add_unit[2])
+        for x,y,_ in FU.fgumap_iter(move_data.reachable_castles_map[wesnoth.current.side]) do
+            --std_print('castle: ', x .. ',' .. y)
+            for enemy_id,_ in pairs(fred_data.ops_data.objectives.leader.leader_threats.enemies) do
+                --DBG.show_fgumap_with_message(virtual_reach_maps[enemy_id], 'moves_left', 'virtual_reach_map', move_data.unit_copies[enemy_id])
+                if FU.get_fgumap_value(virtual_reach_maps[enemy_id], x, y, 'moves_left') then
+                    table.insert(threatened_castle, { x = x, y = y })
+                    break
+                end
+            end
         end
+
+        FVS.reset_state(old_locs, new_locs, move_data)
     end
     --DBG.dbms(org_unit_ratings, false, 'org_unit_ratings')
+    --DBG.dbms(threatened_castle, false, 'threatened_castle')
 
 
     -- This loop does two things:
@@ -561,6 +564,23 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 --std_print('  --> leader_protect_mult, leader_protected: ' .. leader_protect_mult, leader_protected)
 
                 protect_loc_str = protect_loc_str .. '    leader: ' .. tostring(leader_protected)
+            end
+
+
+            local n_castles = 0
+            for i,castle in ipairs(threatened_castle) do
+                --std_print('re-check castle: ', castle.x .. ',' .. castle.y)
+                for enemy_id,_ in pairs(fred_data.ops_data.objectives.leader.leader_threats.enemies) do
+                    if FU.get_fgumap_value(virtual_reach_maps[enemy_id], castle.x, castle.y, 'moves_left') then
+                        --std_print('  can_reach ' .. enemy_id)
+                        n_castles = n_castles + 1
+                    end
+                end
+            end
+            local castles_protected = #threatened_castle - n_castles
+            --std_print('castles_protected: ', castles_protected)
+            if (#threatened_castle > 0) then
+                protect_loc_str = protect_loc_str .. '    castles: ' .. tostring(castles_protected)
             end
 
 
@@ -663,9 +683,10 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             for _,unit in pairs(protected_units) do
                 unit_protect_mult = unit_protect_mult + unit / leader_info.cost / 4
             end
+            local castle_protect_mult = 1 + math.sqrt(castles_protected) * 3 / leader_info.cost / 4
 
-            protect_mult = leader_protect_mult * village_protect_mult * unit_protect_mult
-            --std_print('protect_mult ( = l * v * u)', protect_mult, leader_protect_mult, village_protect_mult, unit_protect_mult)
+            protect_mult = leader_protect_mult * village_protect_mult * unit_protect_mult * castle_protect_mult
+            --std_print('protect_mult ( = l * v * u * c)', protect_mult, leader_protect_mult, village_protect_mult, unit_protect_mult, castle_protect_mult)
 
             if cfg.protect_objectives.protect_leader then
                 is_protected = leader_protected
