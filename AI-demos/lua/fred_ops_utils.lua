@@ -1821,18 +1821,12 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         end
 
         if holders_by_zone[zone_id] then
-            local protect_leader = false
-            if leader_threats_by_zone[zone_id] and next(leader_threats_by_zone[zone_id]) then
-                protect_leader = true
-            end
-
             -- Hold --
             table.insert(fred_data.zone_cfgs, {
                 zone_id = zone_id,
                 action_type = 'hold',
                 zone_units = holders_by_zone[zone_id],
-                rating = base_ratings.hold + power_rating,
-                protect_leader = protect_leader
+                rating = base_ratings.hold + power_rating
             })
         end
     end
