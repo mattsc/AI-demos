@@ -279,6 +279,7 @@ function fred_move_leader_utils.leader_objectives(fred_data)
     local leader_objectives = {
         village = village,
         keep = keep,
+        final = village or keep or leader,
         do_recruit = do_recruit
     }
 

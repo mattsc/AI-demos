@@ -152,7 +152,7 @@ function fred_ops_utils.set_between_objectives(objectives, enemy_zones, fred_dat
 
     -- Get all villages in each zone that are in between all enemies and the
     -- goal location of the leader
-    local goal_loc = objectives.leader.village or objectives.leader.keep or fred_data.move_data.leaders[wesnoth.current.side]
+    local goal_loc = objectives.leader.final
     for zone_id,protect_objective in pairs(objectives.protect.zones) do
         --std_print(zone_id)
 
@@ -944,7 +944,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     -- Find goal hexes for leader protection
     -- Currently we use the middle between the closest enemy and the leader
     -- and all villages needing protection
-    local leader_goal = objectives.leader.village or objectives.leader.keep or move_data.leaders[wesnoth.current.side]
+    local leader_goal = objectives.leader.final
     --DBG.dbms(leader_goal, false, 'leader_goal')
 
     local goal_hexes_leader, enemies = {}, {}
