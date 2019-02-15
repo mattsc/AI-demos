@@ -1384,11 +1384,13 @@ local function get_hold_action(zone_cfg, fred_data)
     if (not next(holders)) then return end
     --DBG.dbms(holders, false, 'holders')
 
-    local protect_leader = zone_cfg.protect_leader
-    --std_print('protect_leader', protect_leader)
+    local protect_objectives = fred_data.ops_data.objectives.protect.zones[zone_cfg.zone_id] or {}
+    --DBG.dbms(protect_objectives, false, 'protect_objectives')
+    --std_print('protect_leader ' .. zone_cfg.zone_id, protect_objectives.protect_leader)
+
 
     local zone
-    if protect_leader then
+    if protect_objectives.protect_leader then
         zone = wesnoth.get_locations {
             { "and", raw_cfg.ops_slf },
             { "or", { x = move_data.leader_x, y = move_data.leader_y, radius = 3 } }
@@ -1401,12 +1403,16 @@ local function get_hold_action(zone_cfg, fred_data)
     -- filter above. However, this opens up the option of including [avoid] tags
     -- or similar functionality later.
     local avoid_map = {}
+
     -- If the leader is to be protected, the leader location needs to be excluded
     -- from the hexes to consider, otherwise the check whether the leader is better
     -- protected by a hold doesn't work and causes the AI to crash.
-    if protect_leader then
+    --[[ TODO: don't think this is needed any more
+    if protect_objectives.protect_leader then
         FU.set_fgumap_value(avoid_map, move_data.leader_x, move_data.leader_y, 'flag', true)
     end
+    --]]
+
 
     local zone_map = {}
     for _,loc in ipairs(zone) do
@@ -1419,6 +1425,8 @@ local function get_hold_action(zone_cfg, fred_data)
     end
 
     -- For the enemy rating, we need to put a 1-hex buffer around this
+    -- So this includes the leader position (and at least part of avoid_map).
+    -- TODO: I think this is okay, reconsider later
     local buffered_zone_map = {}
     for x,y,_ in FU.fgumap_iter(zone_map) do
         FU.set_fgumap_value(buffered_zone_map, x, y, 'flag', true)
@@ -1570,9 +1578,11 @@ local function get_hold_action(zone_cfg, fred_data)
 
     -- Eventual TODO: in the end, this might be combined so that it can be dealt with
     -- in the same way. For now, it is intentionally kept separate.
+    -- If leader is to be protected we use that for between_map
+    -- TODO: do we want to combine it with other things?
     local min_btw_dist
     local protect_leader_distance, protect_locs, assigned_enemies
-    if protect_leader then
+    if protect_objectives.protect_leader then
         local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, leader[1], leader[2], 'distance')
         protect_leader_distance = { min = ld, max = ld }
         protect_locs = { { leader[1], leader[2], is_protected = false } }
@@ -1584,11 +1594,10 @@ local function get_hold_action(zone_cfg, fred_data)
 
         -- Always take units when there are some to protect, otherwise take villages
         -- TODO: is this the correct thing to do?
-        local protect_objectives = fred_data.ops_data.objectives.protect.zones[zone_cfg.zone_id]
         local locs = {}
-        if protect_objectives.units[1] then
+        if protect_objectives.units and protect_objectives.units[1] then
             locs = protect_objectives.units
-        elseif protect_objectives.villages[1] then
+        elseif protect_objectives.villages and protect_objectives.villages[1] then
             locs = protect_objectives.villages
         end
 
@@ -1600,8 +1609,7 @@ local function get_hold_action(zone_cfg, fred_data)
 
                 local protect_loc = { loc.x, loc.y }
                 table.insert(protect_locs, protect_loc)
-
-                local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc[1], loc[2], 'distance')
+                local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc.x, loc.y, 'distance')
                 if (ld < min_ld) then min_ld = ld end
                 if (ld > max_ld) then max_ld = ld end
 
@@ -1625,7 +1633,11 @@ local function get_hold_action(zone_cfg, fred_data)
         for _,ploc in ipairs(protect_locs) do
             table.insert(locs, ploc)
         end
-        between_map = FHU.get_between_map(locs, leader, assigned_enemies, move_data)
+        local tmp_enemies = {}
+        for id,_ in pairs(assigned_enemies) do
+            tmp_enemies[id] = move_data.enemies[id]
+        end
+        between_map = FHU.get_between_map(locs, leader, tmp_enemies, move_data)
 
         if DBG.show_debug('hold_between_map') then
             DBG.show_fgumap_with_message(between_map, 'distance', 'Between map: distance')
@@ -2142,7 +2154,7 @@ local function get_hold_action(zone_cfg, fred_data)
                 end
 
                 -- TODO: this might be too simplistic
-                if protect_leader then
+                if protect_objectives.protect_leader then
                     local mult = 0
                     local power_ratio = fred_data.turn_data.behavior.orders.base_power_ratio
                     if (power_ratio < 1) then
@@ -2214,7 +2226,7 @@ local function get_hold_action(zone_cfg, fred_data)
     }
     local cfg_best_combo_hold = {}
     local cfg_best_combo_protect = {
-        protect_leader = protect_leader
+        protect_objectives = protect_objectives -- TODO: can we not just get this from ops_data?
     }
 
     -- protect_locs is only set if there is a location to protect
@@ -2233,7 +2245,7 @@ local function get_hold_action(zone_cfg, fred_data)
         best_hold_combo, all_best_hold_combo = FHU.find_best_combo(hold_combos, hold_ratings, 'vuln_rating', adjacent_village_map, between_map, fred_data, cfg_best_combo_hold)
     end
 
-    local protect_loc_str
+    local protected_str
     local best_protect_combo, all_best_protect_combo, protect_dst_src, protect_ratings
     if protect_locs and next(protect_rating_maps) then
         --std_print('--> checking protect combos')
@@ -2242,7 +2254,7 @@ local function get_hold_action(zone_cfg, fred_data)
         --DBG.dbms(protect_combos, false, 'protect_combos')
         --std_print('#protect_combos', #protect_combos)
 
-        best_protect_combo, all_best_protect_combo, protect_loc_str = FHU.find_best_combo(protect_combos, protect_ratings, 'protect_rating', adjacent_village_map, between_map, fred_data, cfg_best_combo_protect)
+        best_protect_combo, all_best_protect_combo, protected_str = FHU.find_best_combo(protect_combos, protect_ratings, 'protect_rating', adjacent_village_map, between_map, fred_data, cfg_best_combo_protect)
 
         -- If no combo that protects the location was found, use the best of the others
         if (not best_protect_combo) then
@@ -2261,7 +2273,7 @@ local function get_hold_action(zone_cfg, fred_data)
     local best_combo, ratings
     if (not best_hold_combo) then
         best_combo, ratings = best_protect_combo, protect_ratings
-        action_str = 'hold (protect ' .. (protect_loc_str or 'x,x') .. ')'
+        action_str = 'hold (' .. (protected_str or 'x,x') .. ')'
     elseif (not best_protect_combo) then
         best_combo, ratings = best_hold_combo, hold_ratings
     else
@@ -2290,7 +2302,7 @@ local function get_hold_action(zone_cfg, fred_data)
             best_combo, ratings = best_hold_combo, hold_ratings
         else
             best_combo, ratings = best_protect_combo, protect_ratings
-            action_str = 'hold (protect ' .. (protect_loc_str or 'x,x') .. ')'
+            action_str = 'hold (' .. (protected_str or 'x,x') .. ')'
         end
     end
 
