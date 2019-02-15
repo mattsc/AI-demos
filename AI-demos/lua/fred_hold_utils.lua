@@ -829,6 +829,10 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 x, y =  math.floor(dst / 1000), dst % 1000
                 wesnoth.wml_actions.label { x = x, y = y, text = ratings[dst][src].id }
             end
+            for _,unit in ipairs(fred_data.ops_data.place_holders) do
+                wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = 'recruit\n' .. unit.type }
+            end
+
             wesnoth.scroll_to_tile(x, y)
             local rating_str =  string.format("%.4f = %.4f x %.4f x %.4f", formation_rating, angle_fac or -1111, dist_fac or -2222, combo.base_rating or -9999)
             local max_str = string.format("max:  protected: %.4f,  all: %.4f", tmp_max_rating or -9999, tmp_all_max_rating or -9999)
@@ -840,6 +844,9 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             for src,dst in pairs(combo.combo) do
                 x, y =  math.floor(dst / 1000), dst % 1000
                 wesnoth.wml_actions.label { x = x, y = y, text = "" }
+            end
+            for _,unit in ipairs(fred_data.ops_data.place_holders) do
+                wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = "" }
             end
         end
     end
@@ -979,6 +986,9 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             for i_l,loc in pairs(new_locs) do
                 wesnoth.wml_actions.label { x = loc[1], y = loc[2], text = ids[i_l] }
             end
+            for _,unit in ipairs(fred_data.ops_data.place_holders) do
+                wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = 'recruit\n' .. unit.type }
+            end
             wesnoth.scroll_to_tile(new_locs[1][1], new_locs[1][2])
 
             local rating_str =  string.format("%.4f = %.4f x %.4f", counter_rating, rel_rating, combo.formation_rating)
@@ -990,6 +1000,9 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             }
             for i_l,loc in pairs(new_locs) do
                 wesnoth.wml_actions.label { x = loc[1], y = loc[2], text = "" }
+            end
+            for _,unit in ipairs(fred_data.ops_data.place_holders) do
+                wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = "" }
             end
         end
 
