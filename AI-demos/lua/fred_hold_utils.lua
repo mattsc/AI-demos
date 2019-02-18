@@ -470,7 +470,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         local new_locs = { leader_goal }
 
         FVS.set_virtual_state(old_locs, new_locs, fred_data.ops_data.place_holders, move_data)
-        local virtual_reach_maps = FVS.virtual_reach_maps(fred_data.ops_data.objectives.leader.leader_threats.enemies, to_unit_locs, to_locs, move_data)
+        local virtual_reach_maps = FVS.virtual_reach_maps(move_data.enemies, to_unit_locs, to_locs, move_data)
 
         -- Now check counter attacks
         for _,unit in ipairs(cfg.protect_objectives.units or {}) do
@@ -490,7 +490,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
         for x,y,_ in FU.fgumap_iter(move_data.reachable_castles_map[wesnoth.current.side]) do
             --std_print('castle: ', x .. ',' .. y)
-            for enemy_id,_ in pairs(fred_data.ops_data.objectives.leader.leader_threats.enemies) do
+            for enemy_id,_ in pairs(move_data.enemies) do
                 --DBG.show_fgumap_with_message(virtual_reach_maps[enemy_id], 'moves_left', 'virtual_reach_map', move_data.unit_copies[enemy_id])
                 if FU.get_fgumap_value(virtual_reach_maps[enemy_id], x, y, 'moves_left') then
                     table.insert(threatened_castle, { x = x, y = y })
@@ -571,7 +571,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             local n_castles = 0
             for i,castle in ipairs(threatened_castle) do
                 --std_print('re-check castle: ', castle.x .. ',' .. castle.y)
-                for enemy_id,_ in pairs(fred_data.ops_data.objectives.leader.leader_threats.enemies) do
+                for enemy_id,_ in pairs(move_data.enemies) do
                     if FU.get_fgumap_value(virtual_reach_maps[enemy_id], castle.x, castle.y, 'moves_left') then
                         --std_print('  can_reach ' .. enemy_id)
                         n_castles = n_castles + 1
