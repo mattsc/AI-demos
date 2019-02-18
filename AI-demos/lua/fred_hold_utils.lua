@@ -463,7 +463,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
     -- Find exposure of units (other than the leader) to be protected
     -- Also find how many castle hexes can be reached
-    local org_unit_ratings, threatened_castle = {}, {}
+    local org_unit_ratings = {}
     if cfg.protect_objectives.units or fred_data.ops_data.objectives.leader.leader_threats then
         -- Need to put leader and place_holders on map
         local old_locs = { { move_data.leader_x, move_data.leader_y } }
@@ -488,21 +488,9 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             end
         end
 
-        for x,y,_ in FU.fgumap_iter(move_data.reachable_castles_map[wesnoth.current.side]) do
-            --std_print('castle: ', x .. ',' .. y)
-            for enemy_id,_ in pairs(move_data.enemies) do
-                --DBG.show_fgumap_with_message(virtual_reach_maps[enemy_id], 'moves_left', 'virtual_reach_map', move_data.unit_copies[enemy_id])
-                if FU.get_fgumap_value(virtual_reach_maps[enemy_id], x, y, 'moves_left') then
-                    table.insert(threatened_castle, { x = x, y = y })
-                    break
-                end
-            end
-        end
-
         FVS.reset_state(old_locs, new_locs, false, move_data)
     end
     --DBG.dbms(org_unit_ratings, false, 'org_unit_ratings')
-    --DBG.dbms(threatened_castle, false, 'threatened_castle')
 
 
     -- This loop does two things:
@@ -518,8 +506,6 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         local leader_protect_mult, protect_mult = 1, 1
         protect_loc_str = '\nprotecting:'
         if cfg and cfg.protect_objectives then
-
-
             local old_locs = { { move_data.leader_x, move_data.leader_y } }
             local new_locs = { leader_goal }
             for src,dst in pairs(combo.combo) do
@@ -569,18 +555,19 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
 
             local n_castles = 0
-            for i,castle in ipairs(threatened_castle) do
-                --std_print('re-check castle: ', castle.x .. ',' .. castle.y)
+            for x,y,_ in FU.fgumap_iter(move_data.reachable_castles_map[wesnoth.current.side]) do
+                --std_print('re-check castle: ', x .. ',' .. y)
                 for enemy_id,_ in pairs(move_data.enemies) do
-                    if FU.get_fgumap_value(virtual_reach_maps[enemy_id], castle.x, castle.y, 'moves_left') then
+                    if FU.get_fgumap_value(virtual_reach_maps[enemy_id], x, y, 'moves_left') then
                         --std_print('  can_reach ' .. enemy_id)
                         n_castles = n_castles + 1
                     end
                 end
             end
-            local castles_protected = #threatened_castle - n_castles
-            --std_print('castles_protected: ', castles_protected)
-            if (#threatened_castle > 0) then
+            local n_castles_threatened = fred_data.ops_data.objectives.leader.leader_threats.n_castles_threatened
+            local castles_protected = n_castles_threatened - n_castles
+            --std_print('castles_protected: ', castles_protected, n_castles, n_castles_threatened)
+            if (n_castles_threatened > 0) then
                 protect_loc_str = protect_loc_str .. '    castles: ' .. tostring(castles_protected)
             end
 
