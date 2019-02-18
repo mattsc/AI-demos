@@ -555,21 +555,22 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             end
 
 
-            local n_castles = 0
-            for x,y,_ in FU.fgumap_iter(move_data.reachable_castles_map[wesnoth.current.side]) do
-                --std_print('re-check castle: ', x .. ',' .. y)
-                for enemy_id,_ in pairs(move_data.enemies) do
-                    if FU.get_fgumap_value(virtual_reach_maps[enemy_id], x, y, 'moves_left') then
-                        --std_print('  can_reach ' .. enemy_id)
-                        n_castles = n_castles + 1
+            local n_castles_protected = 0
+            local n_castles_threatened = fred_data.ops_data.objectives.leader.leader_threats.n_castles_threatened
+            if (n_castles_threatened > 0) then
+                local n_castles = 0
+                for x,y,_ in FU.fgumap_iter(move_data.reachable_castles_map[wesnoth.current.side]) do
+                    --std_print('re-check castle: ', x .. ',' .. y)
+                    for enemy_id,_ in pairs(move_data.enemies) do
+                        if FU.get_fgumap_value(virtual_reach_maps[enemy_id], x, y, 'moves_left') then
+                            --std_print('  can_reach ' .. enemy_id)
+                            n_castles = n_castles + 1
+                        end
                     end
                 end
-            end
-            local n_castles_threatened = fred_data.ops_data.objectives.leader.leader_threats.n_castles_threatened
-            local castles_protected = n_castles_threatened - n_castles
-            --std_print('castles_protected: ', castles_protected, n_castles, n_castles_threatened)
-            if (n_castles_threatened > 0) then -- not a typo here, want this when there are threatened castles
-                protect_loc_str = protect_loc_str .. '    castles: ' .. tostring(castles_protected)
+                n_castles_protected = n_castles_threatened - n_castles
+                --std_print('n_castles_protected: ', n_castles_protected, n_castles, n_castles_threatened)
+                protect_loc_str = protect_loc_str .. '    castles: ' .. tostring(n_castles_protected)
             end
 
 
@@ -669,7 +670,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             for _,unit in pairs(protected_units) do
                 unit_protect_mult = unit_protect_mult + unit / leader_info.cost / 4
             end
-            local castle_protect_mult = 1 + math.sqrt(castles_protected) * 3 / leader_info.cost / 4
+            local castle_protect_mult = 1 + math.sqrt(n_castles_protected) * 3 / leader_info.cost / 4
 
             protect_mult = leader_protect_mult * village_protect_mult * unit_protect_mult * castle_protect_mult
             --std_print('protect_mult ( = l * v * u * c)', protect_mult, leader_protect_mult, village_protect_mult, unit_protect_mult, castle_protect_mult)
@@ -678,9 +679,9 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 is_protected = leader_protected
                 protected_type = 'leader'
             elseif (n_castles_threatened > 0) then
-                is_protected = (castles_protected > 0)
+                is_protected = (n_castles_protected > 0)
                 protected_type = 'castle'
-                if (castles_protected == n_castles_threatened) then
+                if (n_castles_protected == n_castles_threatened) then
                     protected_type = protected_type .. '/all'
                 else
                     protected_type = protected_type .. '/partial'
