@@ -499,10 +499,11 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     --    with respect to the direction in which the enemies are approaching.
     local good_combos = {}
     local protect_loc_str
+    local protected_type = ''
     local tmp_max_rating, tmp_all_max_rating -- just for debug display purposes
     for i_c,combo in ipairs(valid_combos) do
         -- 1. Check whether a combo protects the locations it is supposed to protect.
-        local is_protected, leader_protected = true, true
+        local is_protected, leader_protected = false, false
         local leader_protect_mult, protect_mult = 1, 1
         protect_loc_str = '\nprotecting:'
         if cfg and cfg.protect_objectives then
@@ -518,8 +519,8 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             FVS.set_virtual_state(old_locs, new_locs, fred_data.ops_data.place_holders, false, move_data)
             local virtual_reach_maps = FVS.virtual_reach_maps(move_data.enemies, to_unit_locs, to_locs, move_data)
 
-            if cfg.protect_objectives.protect_leader then
-                -- For the leader, we check whether it is better protected by the combo
+            if cfg.protect_objectives.protect_leader and (not fred_data.ops_data.objectives.leader.leader_threats.already_protected) then
+                -- For the leader, we check whether it is sufficiently protected by the combo
                 local leader_target = {}
                 leader_target[leader_id] = leader_goal
 
@@ -567,7 +568,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             local n_castles_threatened = fred_data.ops_data.objectives.leader.leader_threats.n_castles_threatened
             local castles_protected = n_castles_threatened - n_castles
             --std_print('castles_protected: ', castles_protected, n_castles, n_castles_threatened)
-            if (n_castles_threatened > 0) then
+            if (n_castles_threatened > 0) then -- not a typo here, want this when there are threatened castles
                 protect_loc_str = protect_loc_str .. '    castles: ' .. tostring(castles_protected)
             end
 
@@ -648,10 +649,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                     end
                     --std_print(unit.id, unit_rating, org_unit_ratings[unit.id])
 
-                    if (unit_rating < org_unit_ratings[unit.id]) then
-                        protected_units[unit.id] = org_unit_ratings[unit.id] - unit_rating
-                    end
-
+                    protected_units[unit.id] = org_unit_ratings[unit.id] - unit_rating
                     protect_loc_str = protect_loc_str .. string.format('    unit %d,%d: %.2f', unit.x, unit.y, protected_units[unit.id] or 0)
 
                 end
@@ -676,21 +674,42 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             protect_mult = leader_protect_mult * village_protect_mult * unit_protect_mult * castle_protect_mult
             --std_print('protect_mult ( = l * v * u * c)', protect_mult, leader_protect_mult, village_protect_mult, unit_protect_mult, castle_protect_mult)
 
-            if cfg.protect_objectives.protect_leader then
+            if cfg.protect_objectives.protect_leader and (not fred_data.ops_data.objectives.leader.leader_threats.already_protected) then
                 is_protected = leader_protected
+                protected_type = 'leader'
+            elseif (n_castles_threatened > 0) then
+                is_protected = (castles_protected > 0)
+                protected_type = 'castle'
+                if (castles_protected == n_castles_threatened) then
+                    protected_type = protected_type .. '/all'
+                else
+                    protected_type = protected_type .. '/partial'
+                end
             else
                 -- Currently we count this as a protecting hold if any of the villages is protected ...
-                if (#protected_villages == 0) then
-                    is_protected = false
+                if (#cfg.protect_objectives.villages > 0) then
+                    protected_type = 'village'
+                    if (#protected_villages > 0) then
+                        is_protected = true
+                    end
                 end
 
                 -- ... or if any of the units is protected with a rating of 3 or higher (equivalent to basic village protection)
                 -- TODO: should this be a variable value?
-                if (not is_protected) then
+                if (#cfg.protect_objectives.units > 0) then
                     for _,unit_protection in pairs(protected_units) do
                         if (unit_protection >= 3) then
+                            if is_protected then
+                                protected_type = protected_type .. '+unit'
+                            else
+                                protected_type = 'unit'
+                            end
                             is_protected = true
                             break
+                        end
+                        --- ... but we only mark units as non-protected if also no protected village was found
+                        if (not is_protected) then
+                            protected_type = protected_type .. '+unit'
                         end
                     end
                 end
@@ -698,7 +717,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         else
             -- If there are no locations to be protected, count hold as protecting by default
         end
-        --std_print('is_protected', is_protected, protect_mult)
+        --std_print('is_protected', is_protected, protect_mult, protected_type)
 
 
         -- 2. Rate the combos based on the shape of the formation and its orientation
@@ -808,8 +827,8 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         formation_rating = formation_rating * protect_mult
         --std_print(i_c, formation_rating, protect_mult, formation_rating / protect_mult)
 
-        local protected_str = 'is_protected = no'
-        if is_protected then protected_str = 'is_protected = yes' end
+        local protected_str = 'is_protected = no (' .. protected_type .. ')'
+        if is_protected then protected_str = 'is_protected = yes (' .. protected_type .. ')' end
         if protect_loc_str then
             protected_str = protected_str .. ' ' .. protect_loc_str
         else
