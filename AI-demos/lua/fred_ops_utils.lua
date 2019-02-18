@@ -5,6 +5,7 @@ local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_increme
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
 local FHU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_hold_utils.lua"
 local FRU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_retreat_utils.lua"
+local FVS = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_virtual_state.lua"
 local FVU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_village_utils.lua"
 local FMLU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_move_leader_utils.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
@@ -898,6 +899,62 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
 
     --DBG.dbms(reserved_actions, false, 'reserved_actions')
+
+    -- Assess whether the leader is already protected at final position
+    -- and with recruits (since castle threats also count as leader threats).
+    -- Also count threatened castle hexes.
+    local to_unit_locs, to_locs = {}, {}
+    table.insert(to_unit_locs, objectives.leader.final)
+    for x,y,_ in FU.fgumap_iter(move_data.reachable_castles_map[wesnoth.current.side]) do
+        table.insert(to_locs, { x, y })
+    end
+
+    local old_locs = { { move_data.leader_x, move_data.leader_y } }
+    local new_locs = { objectives.leader.final }
+
+    FVS.set_virtual_state(old_locs, new_locs, place_holders, true, move_data)
+    local virtual_reach_maps = FVS.virtual_reach_maps(move_data.enemies, to_unit_locs, to_locs, move_data)
+
+    local cfg_attack = { value_ratio = fred_data.turn_data.behavior.orders.value_ratio }
+    local leader_target = {}
+    leader_target[leader.id] = objectives.leader.final
+    local counter_outcomes = FAU.calc_counter_attack(
+        leader_target, nil, nil, nil, virtual_reach_maps, false, cfg_attack, move_data, fred_data.move_cache
+    )
+    --DBG.dbms(counter_outcomes)
+
+    local defender_rating, attacker_rating, is_significant_threat = 0, 0, false
+    if counter_outcomes then
+        defender_rating = counter_outcomes.rating_table.defender_rating
+        attacker_rating = counter_outcomes.rating_table.attacker_rating
+        local leader_info = move_data.unit_infos[leader.id]
+        is_significant_threat = FU.is_significant_threat(
+            leader_info,
+            leader_info.hitpoints - counter_outcomes.def_outcome.average_hp,
+            leader_info.hitpoints - counter_outcomes.def_outcome.min_hp
+        )
+
+    end
+    --std_print('ratings: ' .. defender_rating, attacker_rating, is_significant_threat)
+
+    local n_castles_threatened = 0
+    for x,y,_ in FU.fgumap_iter(move_data.reachable_castles_map[wesnoth.current.side]) do
+        --std_print('castle: ', x .. ',' .. y)
+        for enemy_id,_ in pairs(move_data.enemies) do
+            --DBG.show_fgumap_with_message(virtual_reach_maps[enemy_id], 'moves_left', 'virtual_reach_map', move_data.unit_copies[enemy_id])
+            if FU.get_fgumap_value(virtual_reach_maps[enemy_id], x, y, 'moves_left') then
+                n_castles_threatened = n_castles_threatened + 1
+                break
+            end
+        end
+    end
+    --std_print('n_castles_threatened: ' .. n_castles_threatened)
+
+    objectives.leader.leader_threats.already_protected = not is_significant_threat
+    objectives.leader.leader_threats.n_castles_threatened = n_castles_threatened
+
+    FVS.reset_state(old_locs, new_locs, true, move_data)
+
 
     local interaction_matrix = FCFG.interaction_matrix()
     --DBG.dbms(interaction_matrix, false, 'interaction_matrix')
