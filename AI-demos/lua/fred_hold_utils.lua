@@ -448,9 +448,10 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     --DBG.dbms(valid_combos, false, 'valid_combos')
 
 
+    local leader_goal = fred_data.ops_data.objectives.leader.final
     local to_unit_locs, to_locs = {}, {}
     if cfg.protect_objectives.protect_leader then
-        table.insert(to_unit_locs, { move_data.leader_x, move_data.leader_y })
+        table.insert(to_unit_locs, leader_goal)
     end
     if cfg.protect_objectives.villages then
         for _,village in ipairs(cfg.protect_objectives.villages) do
@@ -466,7 +467,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     if cfg.protect_objectives.units or fred_data.ops_data.objectives.leader.leader_threats then
         -- Need to put leader and place_holders on map
         local old_locs = { { move_data.leader_x, move_data.leader_y } }
-        local new_locs = { { move_data.leader_x, move_data.leader_y } }
+        local new_locs = { leader_goal }
 
         FVS.set_virtual_state(old_locs, new_locs, fred_data.ops_data.place_holders, move_data)
         local virtual_reach_maps = FVS.virtual_reach_maps(fred_data.ops_data.objectives.leader.leader_threats.enemies, to_unit_locs, to_locs, move_data)
@@ -520,7 +521,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
 
             local old_locs = { { move_data.leader_x, move_data.leader_y } }
-            local new_locs = { { move_data.leader_x, move_data.leader_y } }
+            local new_locs = { leader_goal }
             for src,dst in pairs(combo.combo) do
                 local dst_x, dst_y =  math.floor(dst / 1000), dst % 1000
                 local src_x, src_y =  math.floor(src / 1000), src % 1000
@@ -534,7 +535,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             if cfg.protect_objectives.protect_leader then
                 -- For the leader, we check whether it is better protected by the combo
                 local leader_target = {}
-                leader_target[leader_id] = { move_data.leader_x, move_data.leader_y }
+                leader_target[leader_id] = leader_goal
 
                 local counter_outcomes = FAU.calc_counter_attack(
                     leader_target, nil, nil, nil, virtual_reach_maps, false, cfg_attack, move_data, fred_data.move_cache

@@ -1591,6 +1591,8 @@ local function get_hold_action(zone_cfg, fred_data)
     -- Eventual TODO: this contains both the leader hex and id;
     --   Eventually do this consistently as for other units, by changing one or the other
     local leader = move_data.leaders[wesnoth.current.side]
+    local leader_goal = fred_data.ops_data.objectives.leader.final
+    --DBG.dbms(leader_goal, false, 'leader_goal')
 
     -- Eventual TODO: in the end, this might be combined so that it can be dealt with
     -- in the same way. For now, it is intentionally kept separate.
@@ -1599,9 +1601,9 @@ local function get_hold_action(zone_cfg, fred_data)
     local min_btw_dist
     local protect_leader_distance, protect_locs, assigned_enemies
     if protect_objectives.protect_leader then
-        local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, leader[1], leader[2], 'distance')
+        local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, leader_goal[1], leader_goal[2], 'distance')
         protect_leader_distance = { min = ld, max = ld }
-        protect_locs = { { leader[1], leader[2], is_protected = false } }
+        protect_locs = { { leader_goal[1], leader_goal[2], is_protected = false } }
         assigned_enemies = fred_data.ops_data.objectives.leader.leader_threats.enemies
         min_btw_dist = -1.5
     else
@@ -1653,7 +1655,8 @@ local function get_hold_action(zone_cfg, fred_data)
         for id,_ in pairs(assigned_enemies) do
             tmp_enemies[id] = move_data.enemies[id]
         end
-        between_map = FHU.get_between_map(locs, leader, tmp_enemies, move_data)
+-- xxx this needs to be modified for multiple protect locs
+        between_map = FHU.get_between_map(locs, leader_goal, tmp_enemies, move_data)
 
         if DBG.show_debug('hold_between_map') then
             DBG.show_fgumap_with_message(between_map, 'distance', 'Between map: distance')
