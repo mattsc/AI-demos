@@ -854,6 +854,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             for _,unit in ipairs(fred_data.ops_data.place_holders) do
                 wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = 'recruit\n' .. unit.type }
             end
+            wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal' }
 
             wesnoth.scroll_to_tile(x, y)
             local rating_str =  string.format("%.4f = %.4f x %.4f x %.4f", formation_rating, angle_fac or -1111, dist_fac or -2222, combo.base_rating or -9999)
@@ -870,6 +871,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             for _,unit in ipairs(fred_data.ops_data.place_holders) do
                 wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = "" }
             end
+            wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = "" }
         end
     end
     --std_print('#good_combos: ' .. #good_combos .. '/' .. #valid_combos .. '/' .. #combos)
@@ -1011,6 +1013,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             for _,unit in ipairs(fred_data.ops_data.place_holders) do
                 wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = 'recruit\n' .. unit.type }
             end
+            wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal' }
             wesnoth.scroll_to_tile(new_locs[1][1], new_locs[1][2])
 
             local rating_str =  string.format("%.4f = %.4f x %.4f", counter_rating, rel_rating, combo.formation_rating)
@@ -1026,6 +1029,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             for _,unit in ipairs(fred_data.ops_data.place_holders) do
                 wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = "" }
             end
+            wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = "" }
         end
 
         if ((i_c >= max_n_combos) and best_combo) or (i_c >= reduced_max_n_combos) then

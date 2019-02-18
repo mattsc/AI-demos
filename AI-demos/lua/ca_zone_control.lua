@@ -598,6 +598,9 @@ local function get_attack_action(zone_cfg, fred_data)
     -- Now check whether counter attacks are acceptable
     local max_total_rating, action
     local disqualified_attacks = {}
+    local leader_goal = fred_data.ops_data.objectives.leader.final
+    --DBG.dbms(leader_goal, false, 'leader_goal')
+
     for count,combo in ipairs(combo_ratings) do
         if (count > 50) and action then break end
         DBG.print_debug('attack_print_output', '\nChecking counter attack for attack on', count, next(combo.target), combo.rating_table.value_ratio, combo.rating_table.rating, action)
@@ -641,6 +644,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 for _,unit in ipairs(fred_data.ops_data.place_holders) do
                     wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = 'recruit\n' .. unit.type }
                 end
+                wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal' }
             end
 
             for i_a,attacker_info in ipairs(combo.attackers) do
@@ -1310,6 +1314,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 for _,unit in ipairs(fred_data.ops_data.place_holders) do
                     wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = "" }
                 end
+                wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = "" }
             end
         end
     end
@@ -1322,6 +1327,7 @@ local function get_attack_action(zone_cfg, fred_data)
             for _,unit in ipairs(fred_data.ops_data.place_holders) do
                 wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = 'recruit\n' .. unit.type }
             end
+            wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal' }
             local _,target_loc = next(action.enemy)
             wesnoth.scroll_to_tile(target_loc[1], target_loc[2])
             wesnoth.wml_actions.message { speaker = 'narrator', message = 'Best attack combo' }
@@ -1331,6 +1337,7 @@ local function get_attack_action(zone_cfg, fred_data)
             for _,unit in ipairs(fred_data.ops_data.place_holders) do
                 wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = "" }
             end
+            wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = "" }
         end
     end
 
@@ -2341,6 +2348,7 @@ local function get_hold_action(zone_cfg, fred_data)
         for _,unit in ipairs(fred_data.ops_data.place_holders) do
             wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = 'recruit\n' .. unit.type }
         end
+        wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal' }
         wesnoth.scroll_to_tile(x, y)
         wesnoth.wml_actions.message { speaker = 'narrator', message = 'Best hold combo' }
         for src,dst in pairs(best_combo) do
@@ -2350,6 +2358,7 @@ local function get_hold_action(zone_cfg, fred_data)
         for _,unit in ipairs(fred_data.ops_data.place_holders) do
             wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = "" }
         end
+        wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = "" }
     end
 
     local action = {
