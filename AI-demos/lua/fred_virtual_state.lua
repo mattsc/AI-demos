@@ -7,7 +7,7 @@ local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 
 -- Two arrays to be made available below via closure
-local FVS_stored_units, FVS_ids, FVS_add_units
+local FVS_stored_units, FVS_ids, FVS_add_units, FVS_extracted_units
 
 
 ----- Begin adjust_move_data_tables() -----
@@ -113,11 +113,20 @@ end
 
 local fred_virtual_state = {}
 
-function fred_virtual_state.set_virtual_state(old_locs, new_locs, additional_units, move_data, stored_data)
+function fred_virtual_state.set_virtual_state(old_locs, new_locs, additional_units, do_extract_units, move_data, stored_data)
+
     if stored_data then
-        stored_data.FVS_stored_units, stored_data.FVS_ids, stored_data.FVS_add_units = {}, {}, {}
+        stored_data.FVS_stored_units, stored_data.FVS_ids, stored_data.FVS_add_units, stored_data.extracted_units = {}, {}, {}, {}
     else
-        FVS_stored_units, FVS_ids, FVS_add_units = {}, {}, {}
+        FVS_stored_units, FVS_ids, FVS_add_units, FVS_extracted_units = {}, {}, {}, {}
+    end
+
+    if do_extract_units then
+        for id,loc in pairs(move_data.my_units_MP) do
+            local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
+            wesnoth.extract_unit(unit_proxy)
+            table.insert(stored_data and stored_data.extracted_units or FVS_extracted_units, unit_proxy)  -- Not a proxy unit any more at this point
+        end
     end
 
     -- Mark the new positions of the units in the move_data tables
@@ -160,7 +169,7 @@ function fred_virtual_state.set_virtual_state(old_locs, new_locs, additional_uni
     end
 end
 
-function fred_virtual_state.reset_state(old_locs, new_locs, move_data, stored_data)
+function fred_virtual_state.reset_state(old_locs, new_locs, do_extract_units, move_data, stored_data)
     -- Extract the units from the map
     for _,add_unit in ipairs(stored_data and stored_data.FVS_add_units or FVS_add_units) do
         wesnoth.erase_unit(add_unit[1], add_unit[2])
@@ -171,10 +180,18 @@ function fred_virtual_state.reset_state(old_locs, new_locs, move_data, stored_da
 
     -- And put them back into their original locations
     adjust_move_data_tables(new_locs, old_locs, false, move_data, stored_data)
+
+    -- Put the extracted units back on the map
+    if do_extract_units then
+        for _,extracted_unit in ipairs(stored_data and stored_data.extracted_units or FVS_extracted_units) do
+            wesnoth.put_unit(extracted_unit)
+        end
+    end
+
     if stored_data then
-        stored_data.FVS_stored_units, stored_data.FVS_ids, stored_data.FVS_add_units = nil, nil, nil
+        stored_data.FVS_stored_units, stored_data.FVS_ids, stored_data.FVS_add_units, stored_data.extracted_units = nil, nil, nil, nil
     else
-        FVS_stored_units, FVS_ids, FVS_add_units = nil, nil, nil
+        FVS_stored_units, FVS_ids, FVS_add_units, FVS_extracted_units = nil, nil, nil, nil
     end
 end
 

@@ -92,7 +92,7 @@ local function get_attack_action(zone_cfg, fred_data)
 
         local old_locs = { move_data.leaders[wesnoth.current.side] }
         local new_locs = { leader_goal }
-        FVS.set_virtual_state(old_locs, new_locs, fred_data.ops_data.place_holders, move_data)
+        FVS.set_virtual_state(old_locs, new_locs, fred_data.ops_data.place_holders, false, move_data)
 
         local leader_moved = {}
         leader_moved[leader_id] = leader_goal
@@ -105,7 +105,7 @@ local function get_attack_action(zone_cfg, fred_data)
             org_protect_leader_rating = counter_outcomes.rating_table.rating
         end
 
-        FVS.reset_state(old_locs, new_locs, move_data)
+        FVS.reset_state(old_locs, new_locs, false, move_data)
     end
     --std_print('org_protect_leader_rating:', org_protect_leader_rating)
 
@@ -699,7 +699,7 @@ local function get_attack_action(zone_cfg, fred_data)
             target_proxy.hitpoints = hp
 
             -- Finally, calculate the virtual reach maps for this situation
-            FVS.set_virtual_state(old_locs, combo.dsts, fred_data.ops_data.place_holders, move_data)
+            FVS.set_virtual_state(old_locs, combo.dsts, fred_data.ops_data.place_holders, false, move_data)
 
             local attacker_locs = {}
             for i_a,attacker in ipairs(combo.attackers) do
@@ -771,7 +771,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 local leader_old_locs = { move_data.leaders[wesnoth.current.side] }
                 local leader_new_locs = { leader_goal }
                 local stored_data = {}
-                FVS.set_virtual_state(leader_old_locs, leader_new_locs, nil, move_data, stored_data)
+                FVS.set_virtual_state(leader_old_locs, leader_new_locs, nil, false, move_data, stored_data)
 
                 local leader_moved = {}
                 leader_moved[leader_id] = leader_goal
@@ -785,7 +785,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 --std_print('leader protection: ' .. org_protect_leader_rating - protect_leader_rating .. ' = ' .. org_protect_leader_rating .. ' - ' .. protect_leader_rating)
                 leader_protect_penalty = - protect_leader_rating
 
-                FVS.reset_state(leader_old_locs, leader_new_locs, move_data, stored_data)
+                FVS.reset_state(leader_old_locs, leader_new_locs, false, move_data, stored_data)
             end
             --std_print('leader_protect_penalty:', leader_protect_penalty)
 
@@ -1184,7 +1184,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 end
             end
 
-            FVS.reset_state(old_locs, combo.dsts, move_data)
+            FVS.reset_state(old_locs, combo.dsts, false, move_data)
 
             -- Now reset the hitpoints for attackers and defender
             for i_a,attacker_info in ipairs(combo.attackers) do

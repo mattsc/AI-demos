@@ -1342,7 +1342,7 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, addit
     --  @cfg: configuration parameters to be passed through to attack_outcome, attack_rating
 
     if place_units then
-        FVS.set_virtual_state(old_locs, new_locs, additional_units, move_data)
+        FVS.set_virtual_state(old_locs, new_locs, additional_units, false, move_data)
     end
 
     local target_id, target_loc = next(target)
@@ -1376,7 +1376,7 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, addit
     end
 
     if place_units then
-        FVS.reset_state(old_locs, new_locs, move_data)
+        FVS.reset_state(old_locs, new_locs, false, move_data)
     end
 
     return counter_attack_outcome, counter_attack

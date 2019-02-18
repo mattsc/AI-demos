@@ -469,7 +469,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         local old_locs = { { move_data.leader_x, move_data.leader_y } }
         local new_locs = { leader_goal }
 
-        FVS.set_virtual_state(old_locs, new_locs, fred_data.ops_data.place_holders, move_data)
+        FVS.set_virtual_state(old_locs, new_locs, fred_data.ops_data.place_holders, false, move_data)
         local virtual_reach_maps = FVS.virtual_reach_maps(move_data.enemies, to_unit_locs, to_locs, move_data)
 
         -- Now check counter attacks
@@ -499,7 +499,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             end
         end
 
-        FVS.reset_state(old_locs, new_locs, move_data)
+        FVS.reset_state(old_locs, new_locs, false, move_data)
     end
     --DBG.dbms(org_unit_ratings, false, 'org_unit_ratings')
     --DBG.dbms(threatened_castle, false, 'threatened_castle')
@@ -529,7 +529,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 table.insert(new_locs, { dst_x, dst_y })
             end
 
-            FVS.set_virtual_state(old_locs, new_locs, fred_data.ops_data.place_holders, move_data)
+            FVS.set_virtual_state(old_locs, new_locs, fred_data.ops_data.place_holders, false, move_data)
             local virtual_reach_maps = FVS.virtual_reach_maps(move_data.enemies, to_unit_locs, to_locs, move_data)
 
             if cfg.protect_objectives.protect_leader then
@@ -671,7 +671,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             end
             --DBG.dbms(protected_units, false, 'protected_units')
 
-            FVS.reset_state(old_locs, new_locs, move_data)
+            FVS.reset_state(old_locs, new_locs, false, move_data)
 
             -- Now combine all the contributions
             -- Note that everything is divided by the leader cost, in order to make things comparable
