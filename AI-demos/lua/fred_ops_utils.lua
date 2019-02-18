@@ -402,17 +402,6 @@ function fred_ops_utils.set_turn_data(move_data)
     local raw_cfgs_main = FMC.get_raw_cfgs()
     local side_cfgs = FMC.get_side_cfgs()
 
-    local leader_distance_map, enemy_leader_distance_maps = FU.get_leader_distance_map(raw_cfgs_main, side_cfgs, move_data)
-
-    if DBG.show_debug('analysis_leader_distance_map') then
-        --DBG.show_fgumap_with_message(leader_distance_map, 'my_leader_distance', 'my_leader_distance')
-        --DBG.show_fgumap_with_message(leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
-        DBG.show_fgumap_with_message(leader_distance_map, 'distance', 'leader_distance_map')
-        --DBG.show_fgumap_with_message(enemy_leader_distance_maps['west']['Wolf Rider'], 'cost', 'cost Grunt')
-        --DBG.show_fgumap_with_message(enemy_leader_distance_maps['Wolf Rider'], 'cost', 'cost Wolf Rider')
-    end
-
-
     -- The if statement below is so that debugging works when starting the evaluation in the
     -- middle of the turn.  In normal gameplay, we can just use the existing enemy reach maps,
     -- so that we do not have to double-calculate them.
@@ -716,8 +705,6 @@ function fred_ops_utils.set_turn_data(move_data)
 
     local turn_data = {
         turn_number = wesnoth.current.turn,
-        leader_distance_map = leader_distance_map,
-        enemy_leader_distance_maps = enemy_leader_distance_maps,
         enemy_initial_reach_maps = enemy_initial_reach_maps,
         unit_attacks = unit_attacks,
         behavior = behavior,
@@ -946,6 +933,20 @@ function fred_ops_utils.set_ops_data(fred_data)
     -- and all villages needing protection
     local leader_goal = objectives.leader.final
     --DBG.dbms(leader_goal, false, 'leader_goal')
+
+    local leader_distance_map, enemy_leader_distance_maps = FU.get_leader_distance_map(objectives.leader.final, raw_cfgs_main, side_cfgs, move_data)
+    -- We still store this in turn_data for now, as most of the time it will not
+    -- change throughout the turn. Might move it to ops_data later.
+    fred_data.turn_data.leader_distance_map = leader_distance_map
+    fred_data.turn_data.enemy_leader_distance_maps = enemy_leader_distance_maps
+
+    if DBG.show_debug('analysis_leader_distance_map') then
+        --DBG.show_fgumap_with_message(leader_distance_map, 'my_leader_distance', 'my_leader_distance')
+        --DBG.show_fgumap_with_message(leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
+        DBG.show_fgumap_with_message(leader_distance_map, 'distance', 'leader_distance_map')
+        --DBG.show_fgumap_with_message(enemy_leader_distance_maps['west']['Wolf Rider'], 'cost', 'cost Grunt')
+        --DBG.show_fgumap_with_message(enemy_leader_distance_maps['Wolf Rider'], 'cost', 'cost Wolf Rider')
+    end
 
     local goal_hexes_leader, enemies = {}, {}
     for enemy_id,_ in pairs(objectives.leader.leader_threats.enemies) do

@@ -200,7 +200,7 @@ local function get_best_village_keep(leader, recruit_first, effective_reach_map,
         local rating = rating + unit_in_way_rating
 
         -- Minor rating is distance from enemy leader (the closer the better)
-        local eld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'enemy_leader_distance')
+        local eld = wesnoth.map.distance_between(x, y, fred_data.move_data.enemy_leader_x, fred_data.move_data.enemy_leader_y)
         --std_print('  eld', eld)
         rating = rating + eld * leader_eld_factor
 

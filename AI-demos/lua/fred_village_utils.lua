@@ -30,7 +30,7 @@ function fred_village_utils.village_objectives(zone_cfgs, side_cfgs, fred_data)
         end
         if (not village_zone) then village_zone = 'other' end
 
-        local eld_vill = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'enemy_leader_distance')
+        local eld_vill = wesnoth.map.distance_between(x, y, fred_data.move_data.enemy_leader_x, fred_data.move_data.enemy_leader_y)
 
         local my_infl = FU.get_fgumap_value(move_data.influence_maps, x, y, 'my_influence') or 0
         local enemy_infl = FU.get_fgumap_value(move_data.influence_maps, x, y, 'enemy_influence') or 0

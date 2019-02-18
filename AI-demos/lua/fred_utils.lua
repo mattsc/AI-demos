@@ -505,11 +505,11 @@ function fred_utils.smooth_cost_map(unit_proxy, loc, is_inverse_map)
     return cost_map
 end
 
-function fred_utils.get_leader_distance_map(zone_cfgs, side_cfgs, move_data)
-    local leader_loc, enemy_leader_loc
+function fred_utils.get_leader_distance_map(leader_loc, zone_cfgs, side_cfgs, move_data)
+    local enemy_leader_loc
     for side,cfg in ipairs(side_cfgs) do
         if (side == wesnoth.current.side) then
-            leader_loc = cfg.start_hex
+            leader_loc = leader_loc or cfg.start_hex
         else
             enemy_leader_loc = cfg.start_hex
         end

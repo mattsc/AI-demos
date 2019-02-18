@@ -81,7 +81,7 @@ function utility_functions.village_benefits(village_grabs, fred_data)
         -- unless everything else is equal
 
         -- Prefer villages farther back
-        local extras = -0.1 * FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, grab.x, grab.y, 'distance')
+        local extras = -0.1 * wesnoth.map.distance_between(grab.x, grab.y, fred_data.move_data.leader_x, fred_data.move_data.leader_y)
         -- Prefer the fastest unit
         extras = extras + unit_info.max_moves / 100.
 
