@@ -1610,7 +1610,7 @@ local function get_hold_action(zone_cfg, fred_data)
     if protect_objectives.protect_leader then
         local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, leader_goal[1], leader_goal[2], 'distance')
         protect_leader_distance = { min = ld, max = ld }
-        protect_locs = { { leader_goal[1], leader_goal[2], is_protected = false } }
+        protect_locs = { { leader_goal[1], leader_goal[2] } }
         assigned_enemies = fred_data.ops_data.objectives.leader.leader_threats.enemies
         min_btw_dist = -1.5
     else
@@ -2250,8 +2250,9 @@ local function get_hold_action(zone_cfg, fred_data)
         max_units = max_units,
         max_hexes = max_hexes
     }
-    local cfg_best_combo_hold = {}
+    local cfg_best_combo_hold = { zone_id = zone_cfg.zone_id }
     local cfg_best_combo_protect = {
+        zone_id = zone_cfg.zone_id,
         protect_objectives = protect_objectives -- TODO: can we not just get this from ops_data?
     }
 
