@@ -503,7 +503,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     local tmp_max_rating, tmp_all_max_rating -- just for debug display purposes
     for i_c,combo in ipairs(valid_combos) do
         -- 1. Check whether a combo protects the locations it is supposed to protect.
-        local is_protected, leader_protected = false, false
+        local does_protect, leader_protected = false, false
         local leader_protect_mult, protect_mult = 1, 1
         protect_loc_str = '\nprotecting:'
         if cfg and cfg.protect_objectives then
@@ -676,10 +676,10 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             --std_print('protect_mult ( = l * v * u * c)', protect_mult, leader_protect_mult, village_protect_mult, unit_protect_mult, castle_protect_mult)
 
             if cfg.protect_objectives.protect_leader and (not fred_data.ops_data.objectives.leader.leader_threats.already_protected) then
-                is_protected = leader_protected
+                does_protect = leader_protected
                 protected_type = 'leader'
             elseif (n_castles_threatened > 0) then
-                is_protected = (n_castles_protected > 0)
+                does_protect = (n_castles_protected > 0)
                 protected_type = 'castle'
                 if (n_castles_protected == n_castles_threatened) then
                     protected_type = protected_type .. '/all'
@@ -691,7 +691,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 if (#cfg.protect_objectives.villages > 0) then
                     protected_type = 'village'
                     if (#protected_villages > 0) then
-                        is_protected = true
+                        does_protect = true
                     end
                 end
 
@@ -700,16 +700,16 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 if (#cfg.protect_objectives.units > 0) then
                     for _,unit_protection in pairs(protected_units) do
                         if (unit_protection >= 3) then
-                            if is_protected then
+                            if does_protect then
                                 protected_type = protected_type .. '+unit'
                             else
                                 protected_type = 'unit'
                             end
-                            is_protected = true
+                            does_protect = true
                             break
                         end
                         --- ... but we only mark units as non-protected if also no protected village was found
-                        if (not is_protected) then
+                        if (not does_protect) then
                             protected_type = protected_type .. '+unit'
                         end
                     end
@@ -718,7 +718,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         else
             -- If there are no locations to be protected, count hold as protecting by default
         end
-        --std_print('is_protected', is_protected, protect_mult, protected_type)
+        --std_print('does_protect', does_protect, protect_mult, protected_type)
 
 
         -- 2. Rate the combos based on the shape of the formation and its orientation
@@ -828,8 +828,8 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         formation_rating = formation_rating * protect_mult
         --std_print(i_c, formation_rating, protect_mult, formation_rating / protect_mult)
 
-        local protected_str = 'is_protected = no (' .. protected_type .. ')'
-        if is_protected then protected_str = 'is_protected = yes (' .. protected_type .. ')' end
+        local protected_str = 'does_protect = no (' .. protected_type .. ')'
+        if does_protect then protected_str = 'does_protect = yes (' .. protected_type .. ')' end
         if protect_loc_str then
             protected_str = protected_str .. ' ' .. protect_loc_str
         else
@@ -839,7 +839,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         table.insert(good_combos, {
             formation_rating = formation_rating,
             combo = combo.combo,
-            is_protected = is_protected,
+            does_protect = does_protect,
             protected_str = protected_str
         })
 
@@ -847,7 +847,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             if (not tmp_all_max_rating) or (formation_rating > tmp_all_max_rating) then
                 tmp_all_max_rating = formation_rating
             end
-            if is_protected then
+            if does_protect then
                 if (not tmp_max_rating) or (formation_rating > tmp_max_rating) then
                     tmp_max_rating = formation_rating
                 end
@@ -973,7 +973,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             --std_print('  ---> ' .. combo.formation_rating, rel_rating, combo.formation_rating * rel_rating)
 
             if (count == full_count) then
-                if combo.is_protected then
+                if combo.does_protect then
                     if (not max_rating) or (counter_rating > max_rating) then
                         max_rating = counter_rating
                         best_combo = combo
@@ -990,7 +990,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 local reduced_combo = {
                     combo = {},
                     formation_rating = combo.formation_rating,
-                    is_protected = combo.is_protected
+                    does_protect = combo.does_protect
                 }
                 for src,dst in pairs(combo.combo) do
                     if (not remove_src[src]) then
@@ -998,7 +998,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                     end
                 end
 
-                if combo.is_protected then
+                if combo.does_protect then
                     if (not reduced_max_rating) or (counter_rating > reduced_max_rating) then
                         reduced_max_rating = counter_rating
                         reduced_best_combo = reduced_combo
