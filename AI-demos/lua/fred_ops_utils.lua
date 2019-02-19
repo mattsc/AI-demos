@@ -1410,6 +1410,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     local ops_data = {
         objectives = objectives,
+        status = status,
         assigned_enemies = assigned_enemies,
         unassigned_enemies = unassigned_enemies,
         assigned_units = assigned_units,
