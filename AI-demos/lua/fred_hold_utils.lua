@@ -817,7 +817,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 -- chance to die is too high.
                 -- Only do this if position is in front of protect_loc
 
-                if (not combo.is_protected) then
+                if (not combo.does_protect) then
                     if (counter_outcomes.def_outcome.hp_chance[0] > acceptable_ctd) then
                         local ld_protect = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, protect_loc[1], protect_loc[2], 'distance')
                         local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, new_locs[i_l][1], new_locs[i_l][2], 'distance')
