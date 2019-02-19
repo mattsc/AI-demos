@@ -947,7 +947,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         --DBG.show_fgumap_with_message(leader_distance_map, 'my_leader_distance', 'my_leader_distance')
         --DBG.show_fgumap_with_message(leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
         DBG.show_fgumap_with_message(leader_distance_map, 'distance', 'leader_distance_map')
-        --DBG.show_fgumap_with_message(enemy_leader_distance_maps['west']['Wolf Rider'], 'cost', 'cost Grunt')
+        --DBG.show_fgumap_with_message(enemy_leader_distance_maps['west']['Orcish Grunt'], 'cost', 'cost Grunt')
         --DBG.show_fgumap_with_message(enemy_leader_distance_maps['Wolf Rider'], 'cost', 'cost Wolf Rider')
     end
 
