@@ -2,6 +2,7 @@ local H = wesnoth.require "helper"
 local AH = wesnoth.require "ai/lua/ai_helper.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
+local FS = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_status.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
 local FVS = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_virtual_state.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
@@ -448,50 +449,11 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     --DBG.dbms(valid_combos, false, 'valid_combos')
 
 
+    local org_status = fred_data.ops_data.status
+    --DBG.dbms(org_status, false, 'org_status')
     local leader_goal = fred_data.ops_data.objectives.leader.final
-    local to_unit_locs, to_locs = {}, {}
-    if cfg.protect_objectives.protect_leader then
-        table.insert(to_unit_locs, leader_goal)
-    end
-    if cfg.protect_objectives.villages then
-        for _,village in ipairs(cfg.protect_objectives.villages) do
-            table.insert(to_locs, { village.x, village.y })
-        end
-    end
-    --DBG.dbms(to_unit_locs, false, 'to_unit_locs')
-    --DBG.dbms(to_locs, false, 'to_locs')
-
-    -- Find exposure of units (other than the leader) to be protected
-    -- Also find how many castle hexes can be reached
-    local org_unit_ratings = {}
-    if cfg.protect_objectives.units or fred_data.ops_data.objectives.leader.leader_threats then
-        -- Need to put leader and place_holders on map
-        local old_locs = { { move_data.leader_x, move_data.leader_y } }
-        local new_locs = { leader_goal }
-
-        FVS.set_virtual_state(old_locs, new_locs, fred_data.ops_data.place_holders, false, move_data)
-        local virtual_reach_maps = FVS.virtual_reach_maps(move_data.enemies, to_unit_locs, to_locs, move_data)
-
-        -- Now check counter attacks
-        for _,unit in ipairs(cfg.protect_objectives.units or {}) do
-            local target = {}
-            target[unit.id] = { unit.x, unit.y }
-            local counter_outcomes = FAU.calc_counter_attack(
-                target, nil, nil, nil, virtual_reach_maps, false, cfg_attack, move_data, fred_data.move_cache
-            )
-            --DBG.dbms(counter_outcomes.rating_table, false, 'counter_outcomes.rating_table')
-
-            org_unit_ratings[unit.id] = 0
-            if counter_outcomes then
-                org_unit_ratings[unit.id] = counter_outcomes.rating_table.defender_rating
-                    + counter_outcomes.rating_table.attacker_rating / 10
-            end
-        end
-
-        FVS.reset_state(old_locs, new_locs, false, move_data)
-    end
-    --DBG.dbms(org_unit_ratings, false, 'org_unit_ratings')
-
+    local leader_already_protected = org_status.leader.is_protected
+    --std_print('leader_already_protected', leader_already_protected)
 
     -- This loop does two things:
     -- 1. Check whether a combo protects the locations it is supposed to protect.
@@ -517,59 +479,32 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             end
 
             FVS.set_virtual_state(old_locs, new_locs, fred_data.ops_data.place_holders, false, move_data)
-            local virtual_reach_maps = FVS.virtual_reach_maps(move_data.enemies, to_unit_locs, to_locs, move_data)
+            local status = FS.check_exposures(fred_data.ops_data.objectives, { zone_id = cfg.zone_id }, fred_data)
+            FVS.reset_state(old_locs, new_locs, false, move_data)
+            --DBG.dbms(status, false, 'status')
 
-            if cfg.protect_objectives.protect_leader and (not fred_data.ops_data.objectives.leader.leader_threats.already_protected) then
+
+            if cfg.protect_objectives.protect_leader and (not leader_already_protected) then
                 -- For the leader, we check whether it is sufficiently protected by the combo
-                local leader_target = {}
-                leader_target[leader_id] = leader_goal
+                --std_print('leader eposure before - after: ', org_status.leader.exposure .. ' - ' .. status.leader.exposure)
 
-                local counter_outcomes = FAU.calc_counter_attack(
-                    leader_target, nil, nil, nil, virtual_reach_maps, false, cfg_attack, move_data, fred_data.move_cache
-                )
-
-                local defender_rating, attacker_rating, is_significant_threat = 0, 0, false
-                if counter_outcomes then
-                    defender_rating = counter_outcomes.rating_table.defender_rating
-                    attacker_rating = counter_outcomes.rating_table.attacker_rating
-                    is_significant_threat = FU.is_significant_threat(
-                        leader_info,
-                        leader_info.hitpoints - counter_outcomes.def_outcome.average_hp,
-                        leader_info.hitpoints - counter_outcomes.def_outcome.min_hp
-                    )
-
-                end
-                --std_print('ratings: ' .. defender_rating, attacker_rating, is_significant_threat)
-
-
-                local tmp_rating = defender_rating + attacker_rating / 10
-                leader_protect_mult = (leader_info.cost - tmp_rating) / leader_info.cost
+                leader_protect_mult = (leader_info.cost - status.leader.exposure) / leader_info.cost
                 -- It's possible for the number above to be slightly below zero, and
                 -- we probably don't want quite as strong an effect anyway, so:
                 leader_protect_mult = 0.5 + leader_protect_mult / 2
 
-                leader_protected = not is_significant_threat
+                leader_protected = not status.leader.is_significant_threat
                 --std_print('  --> leader_protect_mult, leader_protected: ' .. leader_protect_mult, leader_protected)
 
                 protect_loc_str = protect_loc_str .. '    leader: ' .. tostring(leader_protected)
             end
 
 
+            local n_castles_threatened = org_status.castles.n_threatened
             local n_castles_protected = 0
-            local n_castles_threatened = fred_data.ops_data.objectives.leader.leader_threats.n_castles_threatened
             if (n_castles_threatened > 0) then
-                local n_castles = 0
-                for x,y,_ in FU.fgumap_iter(move_data.reachable_castles_map[wesnoth.current.side]) do
-                    --std_print('re-check castle: ', x .. ',' .. y)
-                    for enemy_id,_ in pairs(move_data.enemies) do
-                        if FU.get_fgumap_value(virtual_reach_maps[enemy_id], x, y, 'moves_left') then
-                            --std_print('  can_reach ' .. enemy_id)
-                            n_castles = n_castles + 1
-                        end
-                    end
-                end
-                n_castles_protected = n_castles_threatened - n_castles
-                --std_print('n_castles_protected: ', n_castles_protected, n_castles, n_castles_threatened)
+                n_castles_protected = n_castles_threatened - status.castles.n_threatened
+                --std_print('n_castles_protected: ', n_castles_protected, status.castles.n_threatened, n_castles_threatened)
                 protect_loc_str = protect_loc_str .. '    castles: ' .. tostring(n_castles_protected)
             end
 
@@ -582,51 +517,19 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
                 for _,village in ipairs(cfg.protect_objectives.villages) do
                     --std_print('  check protection of village: ' .. village.x .. ',' .. village.y)
-
-                    -- First check (because it's quick): if there is a unit on the hex to be protected
-                    local village_protected = false
-                    for src,dst in pairs(combo.combo) do
-                        local x, y =  math.floor(dst / 1000), dst % 1000
-                        --std_print('  ' .. x , y)
-
-                        if (x == village.x) and (y == village.y) then
-                            --std_print('    --> protected by having unit on hex')
-                            village_protected = true
-                            break
-                        end
-                    end
-
-                    -- If that did not find anything, do path finding
-                    -- TODO: use reach_maps if there is more than one for efficiency?
-                    if (not village_protected) then
-                        --std_print('combo ' .. i_c, village.x, village.y)
-                        local can_reach = false
-                        for enemy_id,_ in pairs(move_data.enemies) do
-                            local moves_left = FU.get_fgumap_value(virtual_reach_maps[enemy_id], village.x, village.y, 'moves_left')
-                            if moves_left then
-                                --std_print('  can reach this: ' .. enemy_id, moves_left)
-                                can_reach = true
-                                break
-                            end
-                        end
-                        --std_print('  can_reach: ', can_reach)
-
-                        if (not can_reach) then
-                            village_protected = true
-                        end
-                    end
-
-                    if village_protected then
+                    local xy = 1000 * village.x + village.y
+                    if status.villages[xy].is_protected then
                         table.insert(protected_villages, {
                             x = village.x, y = village.y,
                             raw_benefit = village.raw_benefit
                         })
                     end
 
-                    protect_loc_str = protect_loc_str .. '    vill ' .. village.x .. ',' .. village.y .. ': ' .. tostring(village_protected)
+                    protect_loc_str = protect_loc_str .. '    vill ' .. village.x .. ',' .. village.y .. ': ' .. tostring(status.villages[xy].is_protected)
                 end
             end
             --DBG.dbms(protected_villages, false, 'protected_villages')
+
 
             local protected_units = {}
             if cfg.protect_objectives.units then
@@ -635,29 +538,15 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 -- to count as protected.
 
                 for _,unit in ipairs(cfg.protect_objectives.units) do
+                    local unit_rating  = status.units[unit.id].exposure
+                    --std_print(unit.id, unit_rating, org_status.units[unit.id].exposure)
 
-                    local target = {}
-                    target[unit.id] = { unit.x, unit.y }
-                    local counter_outcomes = FAU.calc_counter_attack(
-                        target, nil, nil, nil, virtual_reach_maps, false, cfg_attack, move_data, fred_data.move_cache
-                    )
-                    --DBG.dbms(counter_outcomes.rating_table, false, 'counter_outcomes.rating_table')
-
-                    local unit_rating  = 0
-                    if counter_outcomes then
-                        unit_rating = counter_outcomes.rating_table.defender_rating
-                            + counter_outcomes.rating_table.attacker_rating / 10
-                    end
-                    --std_print(unit.id, unit_rating, org_unit_ratings[unit.id])
-
-                    protected_units[unit.id] = org_unit_ratings[unit.id] - unit_rating
+                    protected_units[unit.id] = org_status.units[unit.id].exposure - unit_rating
                     protect_loc_str = protect_loc_str .. string.format('    unit %d,%d: %.2f', unit.x, unit.y, protected_units[unit.id] or 0)
-
                 end
             end
             --DBG.dbms(protected_units, false, 'protected_units')
 
-            FVS.reset_state(old_locs, new_locs, false, move_data)
 
             -- Now combine all the contributions
             -- Note that everything is divided by the leader cost, in order to make things comparable
@@ -675,7 +564,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             protect_mult = leader_protect_mult * village_protect_mult * unit_protect_mult * castle_protect_mult
             --std_print('protect_mult ( = l * v * u * c)', protect_mult, leader_protect_mult, village_protect_mult, unit_protect_mult, castle_protect_mult)
 
-            if cfg.protect_objectives.protect_leader and (not fred_data.ops_data.objectives.leader.leader_threats.already_protected) then
+            if cfg.protect_objectives.protect_leader and (not leader_already_protected) then
                 does_protect = leader_protected
                 protected_type = 'leader'
             elseif (n_castles_threatened > 0) then

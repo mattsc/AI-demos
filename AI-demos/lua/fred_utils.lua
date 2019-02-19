@@ -188,25 +188,6 @@ function fred_utils.unit_value(unit_info)
     return unit_value
 end
 
-function fred_utils.is_significant_threat(unit_info, av_total_loss, max_total_loss)
-    -- Currently this is only set up for the leader.
-    -- TODO: generalize?
-    --
-    -- We only consider these leader threats, if they either
-    --   - maximum damage reduces current HP by more than 75%
-    --   - average damage is more than 50% of max HP
-    -- Otherwise we assume the leader can deal with them alone
-
-    local significant_threat = false
-    if (max_total_loss >= unit_info.hitpoints * 0.75)
-        or (av_total_loss >= unit_info.max_hitpoints * 0.5)
-    then
-        significant_threat = true
-    end
-
-    return significant_threat
-end
-
 function fred_utils.approx_value_loss(unit_info, av_damage, max_damage)
     -- This is similar to FAU.damage_rating_unit (but simplified)
     -- TODO: maybe base the two on the same core function at some point

@@ -1,6 +1,7 @@
 local H = wesnoth.require "helper"
 local AH = wesnoth.require "ai/lua/ai_helper.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
+local FS = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_status.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
 local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
@@ -359,7 +360,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigne
     --   - maximum damage reduces current HP by more than 50%
     --   - average damage is more than 25% of max HP
     -- Otherwise we assume the leader can deal with them alone
-    leader_threats.significant_threat = FU.is_significant_threat(leader_proxy, av_total_loss, max_total_loss)
+    leader_threats.significant_threat = FS.is_significant_threat(leader_proxy, av_total_loss, max_total_loss)
     DBG.print_debug('analysis', '  significant_threat', leader_threats.significant_threat)
 
     -- Only count leader threats if they are significant
