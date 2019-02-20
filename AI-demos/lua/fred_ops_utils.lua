@@ -223,7 +223,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
         -- analysis part of the code whether a unit should be protected, here we just want
         -- to find all the possibilities. Reevaluate later if this should be changed.
         --if (not protect_objective.protect_leader)
-        --    and ((#protect_objective.villages == 0) or (protect_objective.villages[1].is_protected))
+        --    and ((#protect_objective.villages == 0) or (protect_objective.villages[1].is_protectedxxx))
         --then
             --std_print('  checking whether units should be protected: ' .. zone_id)
             -- TODO: does this take appreciable time? If so, can be skipped when no no_MP units exist
@@ -312,7 +312,6 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
                     table.insert(protect_objective.units, {
                         x = loc[1], y = loc[2],
                         id = id_protectee,
-                        is_protected = false,
                         rating = rating_protectee,
                         type = 'unit'
                     })
@@ -354,15 +353,9 @@ function fred_ops_utils.behavior_output(is_turn_start, ops_data, fred_data)
             local protect_type = zone_data.protect and zone_data.protect.type or '--'
             local x = zone_data.protect and zone_data.protect.x or 0
             local y = zone_data.protect and zone_data.protect.y or 0
-            local is_protected = zone_data.protect and zone_data.protect.is_protected
-
-            local comment = ''
-            if is_protected then
-                comment = '--> try to reinforce'
-            end
 
             fred_behavior_str = fred_behavior_str
-              .. string.format('\n    %-8s \t%-8s \t%2d,%2d \tis_protected = %s \t%s',  zone_id, protect_type, x, y, is_protected, comment)
+              .. string.format('\n    %-8s \t%-8s \t%2d,%2d',  zone_id, protect_type, x, y)
         end
 
         wesnoth.message('Fred', fred_behavior_str)

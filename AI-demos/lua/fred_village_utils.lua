@@ -39,13 +39,10 @@ function fred_village_utils.village_objectives(zone_cfgs, side_cfgs, fred_data)
         local owner = FU.get_fgumap_value(move_data.village_map, x, y, 'owner')
 
         if (infl_ratio >= fred_data.turn_data.behavior.orders.value_ratio) then
-            local is_threatened, is_protected = false, true
+            local is_threatened = false
             for enemy_id,_ in pairs(move_data.enemies) do
-                if FU.get_fgumap_value(fred_data.turn_data.enemy_initial_reach_maps[enemy_id], x, y, 'moves_left') then
+                if FU.get_fgumap_value(move_data.reach_maps[enemy_id], x, y, 'moves_left') then
                     is_threatened = true
-                    if FU.get_fgumap_value(move_data.reach_maps[enemy_id], x, y, 'moves_left') then
-                        is_protected = false
-                    end
                 end
             end
 
@@ -60,7 +57,6 @@ function fred_village_utils.village_objectives(zone_cfgs, side_cfgs, fred_data)
                 end
                 local v = {
                     x = x, y = y,
-                    is_protected = is_protected,
                     type = 'village',
                     eld = eld_vill,
                     raw_benefit = raw_benefit

@@ -714,8 +714,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 --std_print('  check protection of village: ' .. village.x .. ',' .. village.y)
                 local xy = 1000 * village.x + village.y
                 if status.villages[xy].is_protected then
-                    --std_print('village is protected:', village.x .. ',' .. village.y, is_protected, village.raw_benefit)
-                    -- TODO: not sure if the full benefit should be added here, or a fraction
+                    --std_print('village is protected:', village.x .. ',' .. village.y, status.villages[xy].is_protected, village.raw_benefit)
                     -- TODO: should this be different if protection is possible otherwise? The problem
                     -- with that is that it then prefers attacks with more units (which have a higher
                     -- chance of protecting something behind them.
@@ -1583,18 +1582,15 @@ local function get_hold_action(zone_cfg, fred_data)
         end
 
         for _,loc in ipairs(locs) do
-            if (not loc.is_protected) then
-                if (not protect_locs) then
-                    protect_locs = {}
-                end
+			if (not protect_locs) then
+				protect_locs = {}
+			end
 
-                local protect_loc = { loc.x, loc.y }
-                table.insert(protect_locs, protect_loc)
-                local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc.x, loc.y, 'distance')
-                if (ld < min_ld) then min_ld = ld end
-                if (ld > max_ld) then max_ld = ld end
-
-            end
+			local protect_loc = { loc.x, loc.y }
+			table.insert(protect_locs, protect_loc)
+			local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc.x, loc.y, 'distance')
+			if (ld < min_ld) then min_ld = ld end
+			if (ld > max_ld) then max_ld = ld end
         end
         protect_leader_distance = { min = min_ld, max = max_ld }
         min_btw_dist = -1.5
