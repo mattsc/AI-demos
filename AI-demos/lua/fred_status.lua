@@ -36,8 +36,6 @@ function fred_status.unit_exposure(own_rating, enemy_rating)
     return exposure
 end
 
-
---- xxx leader, castles, units, villages
 function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_data)
     -- The virtual state needs to be set up for this, but virtual_reach_maps are
     -- calculated here unless passed as a parameter
@@ -50,8 +48,8 @@ function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_d
 
     local units = {}
     for zid,protect_objectives in pairs(objectives.protect.zones) do
-        for _,unit in ipairs(protect_objectives.units) do
-            if (not zone_id) or (zone_id == zid) then
+        if (not zone_id) or (zone_id == zid) then
+            for _,unit in ipairs(protect_objectives.units) do
                 units[unit.id] = { unit.x, unit.y }
             end
         end
@@ -60,8 +58,8 @@ function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_d
 
     local villages = {}
     for zid,protect_objectives in pairs(objectives.protect.zones) do
-        for _,village in ipairs(protect_objectives.villages) do
-            if (not zone_id) or (zone_id == zid) then
+        if (not zone_id) or (zone_id == zid) then
+            for _,village in ipairs(protect_objectives.villages) do
                 villages[village.x * 1000 + village.y] = {
                     loc = { village.x, village.y },
                     exposure = village.raw_benefit
