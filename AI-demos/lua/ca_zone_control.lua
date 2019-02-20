@@ -605,7 +605,9 @@ local function get_attack_action(zone_cfg, fred_data)
                 for _,unit in ipairs(fred_data.ops_data.place_holders) do
                     wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = 'recruit\n' .. unit.type }
                 end
-                wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal' }
+                if (not attack_includes_leader) then
+                    wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal' }
+                end
             end
 
             for i_a,attacker_info in ipairs(combo.attackers) do
@@ -1259,20 +1261,28 @@ local function get_attack_action(zone_cfg, fred_data)
                 for _,unit in ipairs(fred_data.ops_data.place_holders) do
                     wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = "" }
                 end
-                wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = "" }
+                if (not attack_includes_leader) then
+                    wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = "" }
+                end
             end
         end
     end
 
     if DBG.show_debug('attack_best_combo') then
         if action then
+            local attack_includes_leader = false
             for i_a,attacker in ipairs(action.units) do
                 wesnoth.wml_actions.label { x = action.dsts[i_a][1], y = action.dsts[i_a][2], text = attacker.id }
+                if move_data.unit_infos[attacker.id].canrecruit then
+                    attack_includes_leader = true
+                end
             end
             for _,unit in ipairs(fred_data.ops_data.place_holders) do
                 wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = 'recruit\n' .. unit.type }
             end
-            wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal' }
+            if (not attack_includes_leader) then
+                wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal' }
+            end
             local _,target_loc = next(action.enemy)
             wesnoth.scroll_to_tile(target_loc[1], target_loc[2])
             wesnoth.wml_actions.message { speaker = 'narrator', message = 'Best attack combo' }
@@ -1282,7 +1292,9 @@ local function get_attack_action(zone_cfg, fred_data)
             for _,unit in ipairs(fred_data.ops_data.place_holders) do
                 wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = "" }
             end
-            wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = "" }
+            if (not attack_includes_leader) then
+                wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = "" }
+            end
         end
     end
 
