@@ -461,7 +461,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     --    with respect to the direction in which the enemies are approaching.
     local good_combos = {}
     local protect_loc_str
-    local protected_type = ''
+    local protected_type = 'no protect objectives'
     local tmp_max_rating, tmp_all_max_rating -- just for debug display purposes
     for i_c,combo in ipairs(valid_combos) do
         -- 1. Check whether a combo protects the locations it is supposed to protect.
@@ -707,7 +707,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
             -- Penalty for too far apart
             local thresh_dist = 3
-            if cfg.protect_objectives.protect_leader then thresh_dist = 2 end
+            if cfg.protect_objectives and cfg.protect_objectives.protect_leader then thresh_dist = 2 end
             if (max_min_dist > thresh_dist) then
                 dist_fac = 1 / ( 1 + (max_min_dist - thresh_dist) / 10)
                 formation_rating = formation_rating * dist_fac

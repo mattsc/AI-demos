@@ -676,11 +676,13 @@ local function get_attack_action(zone_cfg, fred_data)
             for x,y,_ in FU.fgumap_iter(move_data.reachable_castles_map[wesnoth.current.side]) do
                 table.insert(to_locs, { x, y })
             end
-            for _,unit in ipairs(objectives.protect.zones[zone_cfg.zone_id].units) do
-                table.insert(to_unit_locs, { unit.x, unit.y })
-            end
-            for _,village in pairs(objectives.protect.zones[zone_cfg.zone_id].villages) do
-                table.insert(to_locs, { village.x, village.y })
+            if objectives.protect.zones[zone_cfg.zone_id] then
+                for _,unit in ipairs(objectives.protect.zones[zone_cfg.zone_id].units) do
+                    table.insert(to_unit_locs, { unit.x, unit.y })
+                end
+                for _,village in pairs(objectives.protect.zones[zone_cfg.zone_id].villages) do
+                    table.insert(to_locs, { village.x, village.y })
+                end
             end
             for i_a,attacker in ipairs(combo.attackers) do
                 table.insert(to_unit_locs, { combo.dsts[i_a][1], combo.dsts[i_a][2] })
@@ -710,15 +712,17 @@ local function get_attack_action(zone_cfg, fred_data)
 
 
             local village_protect_bonus = 0
-            for _,village in pairs(objectives.protect.zones[zone_cfg.zone_id].villages) do
-                --std_print('  check protection of village: ' .. village.x .. ',' .. village.y)
-                local xy = 1000 * village.x + village.y
-                if status.villages[xy].is_protected then
-                    --std_print('village is protected:', village.x .. ',' .. village.y, status.villages[xy].is_protected, village.raw_benefit)
-                    -- TODO: should this be different if protection is possible otherwise? The problem
-                    -- with that is that it then prefers attacks with more units (which have a higher
-                    -- chance of protecting something behind them.
-                    village_protect_bonus = village_protect_bonus + village.raw_benefit
+            if objectives.protect.zones[zone_cfg.zone_id] then
+                for _,village in pairs(objectives.protect.zones[zone_cfg.zone_id].villages) do
+                    --std_print('  check protection of village: ' .. village.x .. ',' .. village.y)
+                    local xy = 1000 * village.x + village.y
+                    if status.villages[xy].is_protected then
+                        --std_print('village is protected:', village.x .. ',' .. village.y, status.villages[xy].is_protected, village.raw_benefit)
+                        -- TODO: should this be different if protection is possible otherwise? The problem
+                        -- with that is that it then prefers attacks with more units (which have a higher
+                        -- chance of protecting something behind them.
+                        village_protect_bonus = village_protect_bonus + village.raw_benefit
+                    end
                 end
             end
             --std_print('village_protect_bonus', village_protect_bonus)
@@ -742,11 +746,13 @@ local function get_attack_action(zone_cfg, fred_data)
 
             -- How much does protection of units increase
             local unit_protect_bonus = 0
-            for _,unit in ipairs(objectives.protect.zones[zone_cfg.zone_id].units) do
-                --DBG.dbms(unit, false, "unit")
-                local protect_unit_rating = status.units[unit.id].exposure
-                --std_print('protection: ' .. unit.id, org_status.units[unit.id].exposure - protect_unit_rating .. ' = ' .. org_status.units[unit.id].exposure .. ' - ' .. protect_unit_rating)
-                unit_protect_bonus = unit_protect_bonus + org_status.units[unit.id].exposure - protect_unit_rating
+            if objectives.protect.zones[zone_cfg.zone_id] then
+                for _,unit in ipairs(objectives.protect.zones[zone_cfg.zone_id].units) do
+                    --DBG.dbms(unit, false, "unit")
+                    local protect_unit_rating = status.units[unit.id].exposure
+                    --std_print('protection: ' .. unit.id, org_status.units[unit.id].exposure - protect_unit_rating .. ' = ' .. org_status.units[unit.id].exposure .. ' - ' .. protect_unit_rating)
+                    unit_protect_bonus = unit_protect_bonus + org_status.units[unit.id].exposure - protect_unit_rating
+                end
             end
             --std_print('unit_protect_bonus', unit_protect_bonus)
 
@@ -2213,6 +2219,7 @@ local function get_hold_action(zone_cfg, fred_data)
     cfg_best_combo_protect.protect_locs = protect_locs
 
 
+    local protected_str
     local best_hold_combo, all_best_hold_combo, hold_dst_src, hold_ratings
     if (next(hold_rating_maps)) then
         --std_print('--> checking hold combos')
@@ -2221,10 +2228,9 @@ local function get_hold_action(zone_cfg, fred_data)
         --DBG.dbms(hold_combos, false, 'hold_combos')
         --std_print('#hold_combos', #hold_combos)
 
-        best_hold_combo, all_best_hold_combo = FHU.find_best_combo(hold_combos, hold_ratings, 'vuln_rating', adjacent_village_map, between_map, fred_data, cfg_best_combo_hold)
+        best_hold_combo, all_best_hold_combo, protected_str = FHU.find_best_combo(hold_combos, hold_ratings, 'vuln_rating', adjacent_village_map, between_map, fred_data, cfg_best_combo_hold)
     end
 
-    local protected_str
     local best_protect_combo, all_best_protect_combo, protect_dst_src, protect_ratings
     if protect_locs and next(protect_rating_maps) then
         --std_print('--> checking protect combos')
