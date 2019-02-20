@@ -469,6 +469,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         local leader_protect_mult, protect_mult = 1, 1
         protect_loc_str = '\nprotecting:'
         if cfg and cfg.protect_objectives then
+            -- The leader is never part of the holding, so we can just add him
             local old_locs = { { move_data.leader_x, move_data.leader_y } }
             local new_locs = { leader_goal }
             for src,dst in pairs(combo.combo) do

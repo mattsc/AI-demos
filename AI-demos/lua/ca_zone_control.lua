@@ -489,7 +489,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         plague_penalty = plague_penalty + 0.5 * 6. * (number_plaguers - 1)
                     end
 
-                    std_print('Applying plague penalty', bonus_rating, plague_penalty)
+                    --std_print('Applying plague penalty', bonus_rating, plague_penalty)
 
                     bonus_rating = bonus_rating - plague_penalty
                 end
@@ -734,7 +734,6 @@ local function get_attack_action(zone_cfg, fred_data)
             -- TODO: possibly make all protect checks penalties
 
             local leader_protect_penalty = 0
--- Don't need conditional here if in status function?  Other protectees as well?
             if (not attack_includes_leader) then
                 --std_print('--- checking leader protection: ' .. leader_id, leader_goal[1] .. ',' .. leader_goal[2])
                 leader_protect_penalty = - status.leader.exposure
@@ -763,7 +762,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 attacker_moved[attacker.id] = { combo.dsts[i_a][1], combo.dsts[i_a][2] }
 
                 local counter_outcomes = FAU.calc_counter_attack(
-                    attacker_moved, old_locs, combo.dsts, fred_data.ops_data.place_holders, virtual_reach_maps, false, cfg_attack, move_data, move_cache
+                    attacker_moved, nil, nil, nil, virtual_reach_maps, false, cfg_attack, move_data, move_cache
                 )
                 --DBG.dbms(counter_outcomes, false, 'counter_outcomes')
 

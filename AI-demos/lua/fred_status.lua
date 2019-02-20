@@ -38,7 +38,11 @@ end
 
 function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_data)
     -- The virtual state needs to be set up for this, but virtual_reach_maps are
-    -- calculated here unless passed as a parameter
+    -- calculated here unless passed as a parameter.
+    -- Potential TODO: skip evaluation of units/hexes that have already been shown
+    -- to be protected. However, no expensive analysis is done for these anyway,
+    -- they are sorted out both for reach_maps and counter attacks, so the overhead
+    -- is likely small. Eventually can do some timing tests on this.
     --
     -- @cfg: optional parameters
     --   zone_id: if set, use only protect units/villages in that zone
