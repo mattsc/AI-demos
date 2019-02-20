@@ -1335,7 +1335,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     local old_locs = { { move_data.leader_x, move_data.leader_y } }
     local new_locs = { objectives.leader.final }
     FVS.set_virtual_state(old_locs, new_locs, place_holders, true, move_data)
-    local status = FS.check_exposures(objectives, nil, fred_data)
+    local status = FS.check_exposures(objectives, nil, nil, fred_data)
     FVS.reset_state(old_locs, new_locs, true, move_data)
     --DBG.dbms(status, false, 'status')
 

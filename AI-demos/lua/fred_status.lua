@@ -36,10 +36,14 @@ function fred_status.unit_exposure(own_rating, enemy_rating)
     return exposure
 end
 
-function fred_status.check_exposures(objectives, cfg, fred_data)
-    -- The virtual state needs to be set up for this, but virtual_reach_maps are calculated here
 
 --- xxx leader, castles, units, villages
+function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_data)
+    -- The virtual state needs to be set up for this, but virtual_reach_maps are
+    -- calculated here unless passed as a parameter
+    --
+    -- @cfg: optional parameters
+    --   zone_id: if set, use only protect units/villages in that zone
 
     local move_data = fred_data.move_data
     local zone_id = cfg and cfg.zone_id
@@ -67,22 +71,24 @@ function fred_status.check_exposures(objectives, cfg, fred_data)
     end
     --DBG.dbms(villages, false, 'villages')
 
-    local to_unit_locs, to_locs = {}, {}
-    table.insert(to_unit_locs, objectives.leader.final)
-    for x,y,_ in FU.fgumap_iter(move_data.reachable_castles_map[wesnoth.current.side]) do
-        table.insert(to_locs, { x, y })
-    end
-    for id,loc in pairs(units) do
-        table.insert(to_unit_locs, loc)
-    end
-    for xy,village in pairs(villages) do
-        table.insert(to_locs, village.loc)
-    end
-    --DBG.dbms(to_locs, false, 'to_locs')
-    --DBG.dbms(to_unit_locs, false, 'to_unit_locs')
+    if (not virtual_reach_maps) then
+        local to_unit_locs, to_locs = {}, {}
+        table.insert(to_unit_locs, objectives.leader.final)
+        for x,y,_ in FU.fgumap_iter(move_data.reachable_castles_map[wesnoth.current.side]) do
+            table.insert(to_locs, { x, y })
+        end
+        for id,loc in pairs(units) do
+            table.insert(to_unit_locs, loc)
+        end
+        for xy,village in pairs(villages) do
+            table.insert(to_locs, village.loc)
+        end
+        --DBG.dbms(to_locs, false, 'to_locs')
+        --DBG.dbms(to_unit_locs, false, 'to_unit_locs')
 
-    local virtual_reach_maps = FVS.virtual_reach_maps(move_data.enemies, to_unit_locs, to_locs, move_data)
-    --DBG.dbms(virtual_reach_maps, false, 'virtual_reach_maps')
+        virtual_reach_maps = FVS.virtual_reach_maps(move_data.enemies, to_unit_locs, to_locs, move_data)
+        --DBG.dbms(virtual_reach_maps, false, 'virtual_reach_maps')
+    end
 
     local cfg_attack = { value_ratio = fred_data.turn_data.behavior.orders.value_ratio }
     local leader = move_data.leaders[wesnoth.current.side]

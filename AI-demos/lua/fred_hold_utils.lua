@@ -479,7 +479,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             end
 
             FVS.set_virtual_state(old_locs, new_locs, fred_data.ops_data.place_holders, false, move_data)
-            local status = FS.check_exposures(fred_data.ops_data.objectives, { zone_id = cfg.zone_id }, fred_data)
+            local status = FS.check_exposures(fred_data.ops_data.objectives, nil, { zone_id = cfg.zone_id }, fred_data)
             FVS.reset_state(old_locs, new_locs, false, move_data)
             --DBG.dbms(status, false, 'status')
 

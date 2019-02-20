@@ -46,6 +46,7 @@ local cfg = {
     leader_protect_weight = 1.0,
     unit_protect_weight = 0.5,
     village_protect_weight = 0.5,
+    castle_protect_weight = 0.5,
 
     -- Hold rating parameters
     vuln_weight = 0.25,
