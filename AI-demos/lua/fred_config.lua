@@ -86,6 +86,10 @@ local interaction_matrix = {
             units = { GV = 1, MLV = 1, MLK = 0, ret = 1 },
             hexes = { GV = 1, rec = 1, MLV = 1, MLK = 1, }
         },
+        hold = {
+            units = { GV = 1, MLV = 0, MLK = 0, ret = 1 },
+            hexes = { GV = 1, rec = 1, MLV = 1, MLK = 1, }
+        },
         GV = {
             units = { MLV = 1000, Ret = 0 }, -- retreaters may be used
             hexes = { MLV = 1000 }

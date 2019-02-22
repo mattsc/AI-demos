@@ -379,6 +379,10 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     local hold_counter_weight = FCFG.get_cfg_parm('hold_counter_weight')
     local cfg_attack = { value_ratio = value_ratio }
 
+    local interactions = fred_data.ops_data.interaction_matrix.penalties['hold']
+    --DBG.dbms(interactions, false, 'interactions')
+    local reserved_actions = fred_data.ops_data.reserved_actions
+    local penalty_infos = { src = {}, dst = {} }
 
     -- The first loop simply does a weighted sum of the individual unit ratings.
     -- It is done no matter which type of holding we're evaluation.
@@ -435,10 +439,34 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         end
 
         if (not is_dqed) then
-            base_rating = base_rating / cum_weight * count
+            -- Penalty for units and/or hexes planned to be used otherwise
+            local actions = {}
+            for src,dst in pairs(combo) do
+                if (not penalty_infos.src[src]) then
+                    local x, y = math.floor(src / 1000), src % 1000
+                    penalty_infos.src[src] = FU.get_fgumap_value(move_data.unit_map, x, y, 'id')
+                end
+                if (not penalty_infos.dst[dst]) then
+                    penalty_infos.dst[dst] = { math.floor(dst / 1000), dst % 1000 }
+                end
+                local action = { id = penalty_infos.src[src], loc = penalty_infos.dst[dst] }
+                table.insert(actions, action)
+            end
+            --DBG.dbms(actions, false, 'actions')
+            --DBG.dbms(penalty_infos, false, 'penalty_infos')
+
+            -- TODO: does this work? does it work for both hold and protect?
+            local penalty_rating, penalty_str = FU.action_penalty(actions, reserved_actions, interactions, move_data)
+            penalty_rating = (leader_info.cost + penalty_rating) / leader_info.cost
+            penalty_rating = 0.5 + penalty_rating / 2
+            --std_print('penalty combo #' .. i_c, penalty_rating, penalty_str)
+
+            base_rating = base_rating / cum_weight * count * penalty_rating
             table.insert(valid_combos, {
                 combo = combo,
                 base_rating = base_rating,
+                penalty_rating = penalty_rating,
+                penalty_str = penalty_str,
                 count = count
             })
         end
@@ -730,7 +758,9 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             formation_rating = formation_rating,
             combo = combo.combo,
             does_protect = does_protect,
-            protected_str = protected_str
+            protected_str = protected_str,
+            penalty_rating = combo.penalty_rating,
+            penalty_str = combo.penalty_str
         })
 
         if DBG.show_debug('hold_combo_formation_rating') then
@@ -754,7 +784,10 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal' }
 
             wesnoth.scroll_to_tile(x, y)
-            local rating_str =  string.format("%.4f = %.4f x %.4f x %.4f", formation_rating, angle_fac or -1111, dist_fac or -2222, combo.base_rating or -9999)
+            local rating_str =  string.format("%.4f = %.4f x %.4f x %.4f\npenalty_rating: %.4f    %s",
+                formation_rating, angle_fac or -1111, dist_fac or -2222, combo.base_rating or -9999,
+                combo.penalty_rating, combo.penalty_str
+            )
             local max_str = string.format("max:  protected: %.4f,  all: %.4f", tmp_max_rating or -9999, tmp_all_max_rating or -9999)
             wesnoth.wml_actions.message {
                 speaker = 'narrator', caption = 'Combo ' .. i_c .. '/' .. #valid_combos .. ': formation_rating',
@@ -913,7 +946,9 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal' }
             wesnoth.scroll_to_tile(new_locs[1][1], new_locs[1][2])
 
-            local rating_str =  string.format("%.4f = %.4f x %.4f", counter_rating, rel_rating, combo.formation_rating)
+            local rating_str =  string.format("%.4f = %.4f x %.4f\npenalty_rating: %.4f    %s",
+                counter_rating, rel_rating, combo.formation_rating, combo.penalty_rating, combo.penalty_str
+            )
             local max_str = string.format("max:  protected: %.4f,  all: %.4f", max_rating or -9999, all_max_rating or -9999)
             wesnoth.wml_actions.message {
                 speaker = 'narrator', caption = 'Combo ' .. i_c .. '/' .. #valid_combos .. ': counter_rating',
