@@ -1588,15 +1588,15 @@ local function get_hold_action(zone_cfg, fred_data)
         end
 
         for _,loc in ipairs(locs) do
-			if (not protect_locs) then
-				protect_locs = {}
-			end
+            if (not protect_locs) then
+                protect_locs = {}
+            end
 
-			local protect_loc = { loc.x, loc.y }
-			table.insert(protect_locs, protect_loc)
-			local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc.x, loc.y, 'distance')
-			if (ld < min_ld) then min_ld = ld end
-			if (ld > max_ld) then max_ld = ld end
+            local protect_loc = { loc.x, loc.y }
+            table.insert(protect_locs, protect_loc)
+            local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc.x, loc.y, 'distance')
+            if (ld < min_ld) then min_ld = ld end
+            if (ld > max_ld) then max_ld = ld end
         end
         protect_leader_distance = { min = min_ld, max = max_ld }
         min_btw_dist = -1.5
