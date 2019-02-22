@@ -46,9 +46,12 @@ function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_d
     --
     -- @cfg: optional parameters
     --   zone_id: if set, use only protect units/villages in that zone
+    --   exclude_leader: if true, leader exposure is not checked and set to zero; this is
+    --     to be used when the leader is part of the action to be checked
 
     local move_data = fred_data.move_data
     local zone_id = cfg and cfg.zone_id
+    local exclude_leader = cfg and cfg.exclude_leader
 
     local units = {}
     for zid,protect_objectives in pairs(objectives.protect.zones) do
@@ -75,7 +78,9 @@ function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_d
 
     if (not virtual_reach_maps) then
         local to_unit_locs, to_locs = {}, {}
-        table.insert(to_unit_locs, objectives.leader.final)
+        if (not exclude_leader) then
+            table.insert(to_unit_locs, objectives.leader.final)
+        end
         for x,y,_ in FU.fgumap_iter(move_data.reachable_castles_map[wesnoth.current.side]) do
             table.insert(to_locs, { x, y })
         end
@@ -93,29 +98,32 @@ function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_d
     end
 
     local cfg_attack = { value_ratio = fred_data.turn_data.behavior.orders.value_ratio }
-    local leader = move_data.leaders[wesnoth.current.side]
-    local leader_target = {}
-    leader_target[leader.id] = objectives.leader.final
-    local counter_outcomes = FAU.calc_counter_attack(
-        leader_target, nil, nil, nil, virtual_reach_maps, false, cfg_attack, move_data, fred_data.move_cache
-    )
-    --DBG.dbms(counter_outcomes)
 
-    local defender_rating, attacker_rating, leader_exposure = 0, 0, 0
-    local is_protected, is_significant_threat = true, false
-    if counter_outcomes then
-        is_protected = false
-        defender_rating = counter_outcomes.rating_table.defender_rating
-        attacker_rating = counter_outcomes.rating_table.attacker_rating
-        local leader_info = move_data.unit_infos[leader.id]
-        is_significant_threat = fred_status.is_significant_threat(
-            leader_info,
-            leader_info.hitpoints - counter_outcomes.def_outcome.average_hp,
-            leader_info.hitpoints - counter_outcomes.def_outcome.min_hp
+    local leader_exposure, is_protected, is_significant_threat = 0, true, false
+    if (not exclude_leader) then
+        local leader = move_data.leaders[wesnoth.current.side]
+        local leader_target = {}
+        leader_target[leader.id] = objectives.leader.final
+        local counter_outcomes = FAU.calc_counter_attack(
+            leader_target, nil, nil, nil, virtual_reach_maps, false, cfg_attack, move_data, fred_data.move_cache
         )
-        leader_exposure = fred_status.unit_exposure(defender_rating, attacker_rating)
+        --DBG.dbms(counter_outcomes)
+
+        local defender_rating, attacker_rating  = 0, 0
+        if counter_outcomes then
+            is_protected = false
+            defender_rating = counter_outcomes.rating_table.defender_rating
+            attacker_rating = counter_outcomes.rating_table.attacker_rating
+            local leader_info = move_data.unit_infos[leader.id]
+            is_significant_threat = fred_status.is_significant_threat(
+                leader_info,
+                leader_info.hitpoints - counter_outcomes.def_outcome.average_hp,
+                leader_info.hitpoints - counter_outcomes.def_outcome.min_hp
+            )
+            leader_exposure = fred_status.unit_exposure(defender_rating, attacker_rating)
+        end
+        --std_print('ratings: ' .. defender_rating, attacker_rating, is_significant_threat)
     end
-    --std_print('ratings: ' .. defender_rating, attacker_rating, is_significant_threat)
 
     local status = { leader = {
         exposure = leader_exposure,

@@ -701,7 +701,10 @@ local function get_attack_action(zone_cfg, fred_data)
 
             FVS.set_virtual_state(old_locs, new_locs, fred_data.ops_data.place_holders, false, move_data)
             local virtual_reach_maps = FVS.virtual_reach_maps(live_enemies, to_unit_locs, to_locs, move_data)
-            local status = FS.check_exposures(objectives, virtual_reach_maps, { zone_id = zone_cfg.zone_id }, fred_data)
+            local status = FS.check_exposures(objectives, virtual_reach_maps,
+                { zone_id = zone_cfg.zone_id, exclude_leader = attack_includes_leader },
+                fred_data
+            )
             --DBG.dbms(status, false, 'status')
 
             local n_castles_threatened = org_status.castles.n_threatened
