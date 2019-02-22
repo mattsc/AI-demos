@@ -367,6 +367,10 @@ function fred_utils.action_penalty(actions, reserved_actions, interactions, move
                         penalty_str = penalty_str .. '(' .. reserved_action.x .. ',' .. reserved_action.y .. ')'
                     end
                     penalty_str = penalty_str .. string.format(": %6.3f    ", - penalty_mult * reserved_action.benefit)
+
+                    -- Don't apply the same penalty twice; this could otherwise happen if
+                    -- two different actions use the hex and the unit of a reserved action
+                    break
                 end
             end
         end
