@@ -606,9 +606,11 @@ function utility_functions.action_penalty(actions, reserved_actions, interaction
 
     local penalty, penalty_str = 0, ''
 
+    local grab_village_mult = 0
     for _,reserved_action in pairs(reserved_actions) do
         local unit_penalty_mult = interactions.units[reserved_action.action_id] or 0
         local hex_penalty_mult = interactions.hexes[reserved_action.action_id] or 0
+        local penalty_mult = math.max(unit_penalty_mult, hex_penalty_mult)
 
         -- Recruiting is different from other reserved actions, as it only
         -- matters whether enough keeps/castles are available
@@ -676,17 +678,21 @@ function utility_functions.action_penalty(actions, reserved_actions, interaction
                     -- are other actions using the same hex or unit
                     -- TODO: are there exceptions from this?
                 elseif same_hex or same_unit then
-                    local penalty_mult = math.max(unit_penalty_mult, hex_penalty_mult)
-                    penalty = penalty - penalty_mult * reserved_action.benefit
-                    --std_print('  penalty_mult, penalty: ' .. penalty_mult, penalty)
+                    if (reserved_action.action_id == 'GV') then
+                        grab_village_mult = penalty_mult
+                    else
+                        penalty = penalty - penalty_mult * reserved_action.benefit
+                        --std_print('  penalty_mult, penalty: ' .. penalty_mult, penalty)
 
-                    if reserved_action.id then
-                        penalty_str = penalty_str .. reserved_action.id
+
+                        if reserved_action.id then
+                            penalty_str = penalty_str .. reserved_action.id
+                        end
+                        if reserved_action.x then
+                            penalty_str = penalty_str .. '(' .. reserved_action.x .. ',' .. reserved_action.y .. ')'
+                        end
+                        penalty_str = penalty_str .. string.format(": %6.3f    ", - penalty_mult * reserved_action.benefit)
                     end
-                    if reserved_action.x then
-                        penalty_str = penalty_str .. '(' .. reserved_action.x .. ',' .. reserved_action.y .. ')'
-                    end
-                    penalty_str = penalty_str .. string.format(": %6.3f    ", - penalty_mult * reserved_action.benefit)
 
                     -- Don't apply the same penalty twice; this could otherwise happen if
                     -- two different actions use the hex and the unit of a reserved action
@@ -696,6 +702,95 @@ function utility_functions.action_penalty(actions, reserved_actions, interaction
         end
     end
     --std_print('--> total penalty: ' .. penalty)
+
+    -- TODO: probably should add leader-to-village to this at some point
+    local GV_penalty, GV_penalty_str
+    if (grab_village_mult > 0) then
+        --std_print('\ngrab_village_mult: ' .. grab_village_mult)
+        local ungrabbed_villages, units_used = {}, {}
+        local org_benefit, new_benefit = 0, 0
+
+        -- First find whether villages are grabbed by the action
+        for ra_id,reserved_action in pairs(reserved_actions) do
+            if (reserved_action.action_id == "GV") then
+                --std_print('  ' .. ra_id, reserved_action.benefit)
+                org_benefit = org_benefit + reserved_action.benefit
+                local village_grabbed = false
+                for _,action in ipairs(actions) do
+                    --DBG.dbms(action)
+                    units_used[action.id] = true
+                    if (reserved_action.x == action.loc[1]) and (reserved_action.y == action.loc[2]) then
+                        village_grabbed = true
+                        --std_print('    village grabbed: ' .. reserved_action.x .. ',' .. reserved_action.y .. '  ' .. action.id .. ' (' .. reserved_action.id .. ')')
+                        if (reserved_action.id ~= action.id) then
+                            local action_benefit
+                            for _,unit in ipairs(reserved_action.alternate_units) do
+                                if (action.id == unit.id) then
+                                    action_benefit = unit.benefit
+                                    break
+                                end
+                            end
+                            if (not action_benefit) then
+                                -- This should never happen, just a safeguard
+                                error("village grab penalty analysis: alternate unit not found")
+                            end
+                            new_benefit = new_benefit + action_benefit -- by different unit
+                        else
+                            new_benefit = new_benefit + reserved_action.benefit -- by original unit
+                        end
+                    end
+                end
+
+                if (not village_grabbed) then
+                    ungrabbed_villages[ra_id] = true
+                end
+            end
+        end
+        --std_print('org_benefit, new_benefit:', org_benefit, new_benefit)
+
+        --DBG.dbms(ungrabbed_villages, false, 'ungrabbed_villages')
+        --DBG.dbms(units_used, false, 'units_used')
+
+        -- Now set up the benefits table for villages/units not grabbed by or used in action
+        local village_benefits = {}
+        for ra_id,_ in pairs(ungrabbed_villages) do
+            local reserved_action = reserved_actions[ra_id]
+            --std_print('ungrabbed: ' .. ra_id)
+            local alt_units = {}
+            if (not units_used[reserved_action.id]) then
+                alt_units[reserved_action.id] = { benefit = reserved_action.benefit, penalty = 0 }
+            end
+            for _,unit in ipairs(reserved_action.alternate_units) do
+                if (not units_used[unit.id]) then
+                    --std_print('  alternate unit: ' .. unit.id)
+                    alt_units[unit.id] = { benefit = unit.benefit, penalty = 0 }
+                end
+            end
+            --DBG.dbms(alt_units, false, 'alt_units')
+
+            if next(alt_units) then
+                village_benefits[ra_id] = { units = alt_units }
+            end
+        end
+        --DBG.dbms(village_benefits, false, 'village_benefits')
+
+        local village_assignments = utility_functions.assign_units(village_benefits, move_data)
+        --DBG.dbms(village_assignments, false, 'village_assignments')
+
+        for id,action_id in pairs(village_assignments) do
+            --std_print('alt GV: ' .. action_id .. ' <-- ' .. id, village_benefits[action_id].units[id].benefit)
+            new_benefit = new_benefit + village_benefits[action_id].units[id].benefit
+        end
+
+        GV_penalty = new_benefit - org_benefit  -- this is negative
+        GV_penalty_str = string.format('village grabs: %.4f', grab_village_mult * GV_penalty )
+        --std_print('----> GV penalty: ' .. GV_penalty .. '  =  ' .. org_benefit .. ' - ' .. new_benefit)
+    end
+
+    if GV_penalty and (math.abs(GV_penalty) > 1e-6) then
+        penalty = penalty + grab_village_mult * GV_penalty
+        penalty_str = penalty_str .. '  ' .. GV_penalty_str
+    end
 
     return penalty, penalty_str
 end
