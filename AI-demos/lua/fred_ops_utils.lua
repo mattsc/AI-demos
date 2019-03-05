@@ -1255,24 +1255,38 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(assigned_units, false, 'assigned_units')
 
 
-    for id,action in pairs(assignments) do
-        if string.find(action, 'grab_village') then
-            local i1 = string.find(action, '-')
-            local i2 = string.find(action, ':')
-            local xy = tonumber(string.sub(action, i1 + 1, i2 - 1))
+    for id,action_id in pairs(assignments) do
+        if string.find(action_id, 'grab_village') then
+            local i1 = string.find(action_id, '-')
+            local i2 = string.find(action_id, ':')
+            local xy = tonumber(string.sub(action_id, i1 + 1, i2 - 1))
             local x, y = math.floor(xy / 1000), xy % 1000
             --std_print(id,action,xy,x,y)
+
+            local alternate_units = {}
+            for id2,benefit in pairs(village_benefits[action_id].units) do
+                if (id ~= id2) then
+                    table.insert(alternate_units, {
+                        id = id2,
+                        benefit = benefit.benefit
+                    })
+                end
+            end
+            table.sort(alternate_units, function(a, b) return a.benefit > b.benefit end)
 
             local action = {
                 id = id,
                 x = x, y = y,
                 action_id = 'GV',
-                benefit = combined_benefits[action].units[id].benefit
+                benefit = combined_benefits[action_id].units[id].benefit,
+                alternate_units = alternate_units
             }
-            local action_id = 'grab_village:' .. (x * 1000 + y)
-            reserved_actions[action_id] = action
+            local action_id_nozone = 'grab_village:' .. (x * 1000 + y)
+            reserved_actions[action_id_nozone] = action
+
         end
     end
+    --DBG.dbms(village_benefits, false, 'village_benefits')
     --DBG.dbms(reserved_actions, false, 'reserved_actions')
 
 
