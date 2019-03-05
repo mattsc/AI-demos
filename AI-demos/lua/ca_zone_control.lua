@@ -1376,14 +1376,25 @@ local function get_hold_action(zone_cfg, fred_data)
     --std_print('protect_leader ' .. zone_cfg.zone_id, protect_objectives.protect_leader)
 
 
-    local zone
+    local leader_goal = fred_data.ops_data.objectives.leader.final
+    --DBG.dbms(leader_goal, false, 'leader_goal')
+
+    local zone = wesnoth.get_locations(raw_cfg.ops_slf)
     if protect_objectives.protect_leader then
-        zone = wesnoth.get_locations {
-            { "and", raw_cfg.ops_slf },
-            { "or", { x = move_data.leader_x, y = move_data.leader_y, radius = 3 } }
+        -- When leader is threatened, we add area around goal position and all castle hexes
+        -- TODO: this kind of works on Freelands, but probably not on all maps
+        local add_hexes = wesnoth.get_locations {
+            x = leader_goal[1], y = leader_goal[2], radius = 3
         }
-    else
-        zone = wesnoth.get_locations(raw_cfg.ops_slf)
+        for _,hex in ipairs(add_hexes) do
+            table.insert(zone, hex)
+        end
+        for x,y,_ in FU.fgumap_iter(move_data.reachable_castles_map[wesnoth.current.side]) do
+            table.insert(zone, { x, y })
+            for xa,ya in H.adjacent_tiles(x, y) do
+                table.insert(zone, { xa, ya })
+            end
+        end
     end
 
     -- For what it is right now, the following could simply be included in the
@@ -1562,8 +1573,6 @@ local function get_hold_action(zone_cfg, fred_data)
     -- Eventual TODO: this contains both the leader hex and id;
     --   Eventually do this consistently as for other units, by changing one or the other
     local leader = move_data.leaders[wesnoth.current.side]
-    local leader_goal = fred_data.ops_data.objectives.leader.final
-    --DBG.dbms(leader_goal, false, 'leader_goal')
 
     -- Eventual TODO: in the end, this might be combined so that it can be dealt with
     -- in the same way. For now, it is intentionally kept separate.
