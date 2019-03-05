@@ -1397,20 +1397,9 @@ local function get_hold_action(zone_cfg, fred_data)
         end
     end
 
-    -- For what it is right now, the following could simply be included in the
-    -- filter above. However, this opens up the option of including [avoid] tags
+    -- avoid_map is currently unused, but this opens up the option of including [avoid] tags
     -- or similar functionality later.
     local avoid_map = {}
-
-    -- If the leader is to be protected, the leader location needs to be excluded
-    -- from the hexes to consider, otherwise the check whether the leader is better
-    -- protected by a hold doesn't work and causes the AI to crash.
-    --[[ TODO: don't think this is needed any more
-    if protect_objectives.protect_leader then
-        FU.set_fgumap_value(avoid_map, move_data.leader_x, move_data.leader_y, 'flag', true)
-    end
-    --]]
-
 
     local zone_map = {}
     for _,loc in ipairs(zone) do
