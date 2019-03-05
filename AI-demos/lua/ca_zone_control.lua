@@ -137,7 +137,7 @@ local function get_attack_action(zone_cfg, fred_data)
             --DBG.dbms(actions, false, 'actions')
             --DBG.dbms(penalty_infos, false, 'penalty_infos')
 
-            local penalty, str = FU.action_penalty(actions, reserved_actions, interactions, move_data)
+            local penalty, str = FBU.action_penalty(actions, reserved_actions, interactions, move_data)
             penalty_rating = penalty_rating + penalty
             penalty_str = penalty_str .. str
 

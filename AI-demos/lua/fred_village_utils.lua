@@ -2,6 +2,7 @@ local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
+local FBU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_benefits_utilities.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local fred_village_utils = {}
@@ -103,7 +104,7 @@ function fred_village_utils.village_grabs(villages_to_grab, reserved_actions, in
         -- Exclude reserved locations here (and units below) without checking for
         -- combined unit/hex availability, as we do not want to enter those units
         -- and villages into the pool for grabbable villages
-        local penalty_loc = FU.action_penalty({ { loc = { x, y } } }, reserved_actions, interactions, move_data)
+        local penalty_loc = FBU.action_penalty({ { loc = { x, y } } }, reserved_actions, interactions, move_data)
         local ids = {}
         if (penalty_loc == 0) then
             ids = FU.get_fgumap_value(move_data.my_move_map[1], x, y, 'eff_reach_ids') or {}
@@ -111,7 +112,7 @@ function fred_village_utils.village_grabs(villages_to_grab, reserved_actions, in
         for _,id in pairs(ids) do
             local loc = move_data.my_units[id]
 
-            local penalty_unit = FU.action_penalty({ { id = id } }, reserved_actions, interactions, move_data)
+            local penalty_unit = FBU.action_penalty({ { id = id } }, reserved_actions, interactions, move_data)
             if (penalty_unit == 0) then
                 local target = {}
                 target[id] = { x, y }

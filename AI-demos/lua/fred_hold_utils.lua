@@ -1,6 +1,7 @@
 local H = wesnoth.require "helper"
 local AH = wesnoth.require "ai/lua/ai_helper.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
+local FBU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_benefits_utilities.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FS = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_status.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
@@ -456,7 +457,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             --DBG.dbms(penalty_infos, false, 'penalty_infos')
 
             -- TODO: does this work? does it work for both hold and protect?
-            local penalty_rating, penalty_str = FU.action_penalty(actions, reserved_actions, interactions, move_data)
+            local penalty_rating, penalty_str = FBU.action_penalty(actions, reserved_actions, interactions, move_data)
             penalty_rating = (leader_info.cost + penalty_rating) / leader_info.cost
             penalty_rating = 0.5 + penalty_rating / 2
             --std_print('penalty combo #' .. i_c, penalty_rating, penalty_str)
