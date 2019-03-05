@@ -470,6 +470,36 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 penalty_str = penalty_str,
                 count = count
             })
+
+            if DBG.show_debug('hold_combo_base_rating') then
+                local leader_goal = fred_data.ops_data.objectives.leader.final
+                local x, y
+                for _,unit in ipairs(fred_data.ops_data.place_holders) do
+                    wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = 'recruit\n' .. unit.type, color = '160,160,160' }
+                end
+                wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal', color = '200,0,0' }
+                for src,dst in pairs(combo) do
+                    x, y =  math.floor(dst / 1000), dst % 1000
+                    wesnoth.wml_actions.label { x = x, y = y, text = ratings[dst][src].id }
+                end
+
+                wesnoth.scroll_to_tile(x, y)
+                local rating_str =  string.format("%.4f\npenalty_rating: %.4f    %s",
+                    base_rating, penalty_rating, penalty_str
+                )
+                wesnoth.wml_actions.message {
+                    speaker = 'narrator', caption = 'Valid combo ' .. i_c .. '/' .. #combos .. ': base_rating',
+                    message = rating_str
+                }
+                for src,dst in pairs(combo) do
+                    x, y =  math.floor(dst / 1000), dst % 1000
+                    wesnoth.wml_actions.label { x = x, y = y, text = "" }
+                end
+                wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = "" }
+                for _,unit in ipairs(fred_data.ops_data.place_holders) do
+                    wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = "" }
+                end
+            end
         end
     end
     --std_print('#valid_combos: ' .. #valid_combos .. '/' .. #combos)

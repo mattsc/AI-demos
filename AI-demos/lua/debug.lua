@@ -23,6 +23,7 @@ local debug_cfg = {
     hold_rating_maps = false,
     hold_protect_rating_maps = false,
     hold_best_units_hexes = false,
+    hold_combo_base_rating = false,
     hold_combo_formation_rating = false,
     hold_combo_counter_rating = false,
     hold_best_combo = false,
