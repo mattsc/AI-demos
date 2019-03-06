@@ -1167,6 +1167,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         local attacker_moved = {}
                         attacker_moved[attacker.id] = { combo.dsts[1][1], combo.dsts[1][2] }
 
+                        -- TODO: Use FVS here also?
                         local counter_outcomes = FAU.calc_counter_attack(
                             attacker_moved, old_locs, combo.dsts, fred_data.ops_data.place_holders, nil, true, cfg_attack, move_data, move_cache
                         )
@@ -1916,9 +1917,6 @@ local function get_hold_action(zone_cfg, fred_data)
                                 FU.set_fgumap_value(hold_here_maps[id], x, y, 'hold_here', false)
                             end
                         end
-
-
-
                     end
                 end
             end
@@ -2588,6 +2586,7 @@ local function get_advance_action(zone_cfg, fred_data)
                     unit_moved[id] = { x, y }
                     local old_locs = { { unit_loc[1], unit_loc[2] } }
                     local new_locs = { { x, y } }
+                    -- TODO: Use FVS here also?
                     local counter_outcomes = FAU.calc_counter_attack(
                         unit_moved, old_locs, new_locs, nil, true, cfg_attack, move_data, move_cache
                     )

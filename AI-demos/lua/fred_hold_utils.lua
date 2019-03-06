@@ -840,7 +840,6 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     table.sort(good_combos, function(a, b) return a.formation_rating > b.formation_rating end)
     --DBG.dbms(good_combos, false, 'good_combos')
 
-
     -- Full counter attack analysis for the best combos
     local max_n_combos, reduced_max_n_combos = 20, 50
 
@@ -873,6 +872,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             local target = {}
             target[ids[i_l]] = { new_locs[i_l][1], new_locs[i_l][2] }
 
+            -- TODO: Use FVS here also?
             local counter_outcomes = FAU.calc_counter_attack(
                 target, old_locs, new_locs, fred_data.ops_data.place_holders, nil, true, cfg_attack, move_data, fred_data.move_cache
             )
@@ -896,7 +896,6 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                         end
                     end
                 end
-
 
                 local unit_rating = - counter_outcomes.rating_table.rating
 
