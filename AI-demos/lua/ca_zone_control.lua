@@ -1644,11 +1644,6 @@ local function get_hold_action(zone_cfg, fred_data)
         end
     end
 
-    local leader_on_keep = false
-    if (wesnoth.get_terrain_info(wesnoth.get_terrain(leader[1], leader[2])).keep) then
-        leader_on_keep = true
-    end
-
     local pre_rating_maps = {}
     for id,_ in pairs(holders) do
         --std_print('\n' .. id, zone_cfg.zone_id)
@@ -1664,13 +1659,7 @@ local function get_hold_action(zone_cfg, fred_data)
                     end
                 end
 
-                -- Do not move the leader out of the way, if he's on a keep
-                local moves_leader_off_keep = false
-                if leader_on_keep and (id ~= leader.id) and (x == leader[1]) and (y == leader[2]) then
-                    moves_leader_off_keep = true
-                end
-
-                if (not can_hit) and (not moves_leader_off_keep) then
+                if (not can_hit) then
                     local eld
                     if fred_data.turn_data.enemy_leader_distance_maps[zone_cfg.zone_id] then
                         eld = FU.get_fgumap_value(fred_data.turn_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
@@ -1712,11 +1701,6 @@ local function get_hold_action(zone_cfg, fred_data)
                         end
                     end
                 end
-            end
-
-            -- Do not move the leader out of the way, if he's on a keep
-            if leader_on_keep and (id ~= leader.id) and (x == leader[1]) and (y == leader[2]) then
-                move_here = false
             end
 
             local tmp_enemies = {}
