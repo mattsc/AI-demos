@@ -1563,52 +1563,62 @@ local function get_hold_action(zone_cfg, fred_data)
     --   Eventually do this consistently as for other units, by changing one or the other
     local leader = move_data.leaders[wesnoth.current.side]
 
-    -- Eventual TODO: in the end, this might be combined so that it can be dealt with
-    -- in the same way. For now, it is intentionally kept separate.
-    -- If leader is to be protected we use that for between_map
-    -- TODO: do we want to combine it with other things?
-    local min_btw_dist
-    local protect_leader_distance, protect_locs, assigned_enemies
+    -- protect_locs and assigned_enemies are only used to calculate between_map
+    -- protect_locs being set also serves as flag whether a protect hold is desired
+    -- min_btw_dist and protect_leader_distance are used in one place
+    -- If leader is to be protected we use leader_goal and castle hexes for between_map
+    -- Otherwise, all the other hexes/units to be protected are used
+    -- TODO: maybe always use all, but with different weights?
+    local min_btw_dist, protect_leader_distance
+    local protect_locs, assigned_enemies
     if protect_objectives.protect_leader then
-        local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, leader_goal[1], leader_goal[2], 'distance')
-        protect_leader_distance = { min = ld, max = ld }
         protect_locs = { { leader_goal[1], leader_goal[2] } }
+        for x,y,_ in FU.fgumap_iter(move_data.reachable_castles_map[wesnoth.current.side]) do
+            table.insert(protect_locs, { x, y })
+        end
         assigned_enemies = fred_data.ops_data.objectives.leader.leader_threats.enemies
         min_btw_dist = -1.5
     else
         -- TODO: change format of protect_locs, so that simply objectives.protect can be taken
-        local min_ld, max_ld = math.huge, - math.huge
-
-        -- Always take units when there are some to protect, otherwise take villages
-        -- TODO: is this the correct thing to do?
         local locs = {}
-        if protect_objectives.units and protect_objectives.units[1] then
-            locs = protect_objectives.units
-        elseif protect_objectives.villages and protect_objectives.villages[1] then
-            locs = protect_objectives.villages
+        if protect_objectives.units then
+            for _,unit in ipairs(protect_objectives.units) do
+                table.insert(locs, unit)
+            end
         end
-
+        if protect_objectives.villages then
+            for _,village in ipairs(protect_objectives.villages) do
+                table.insert(locs, village)
+            end
+        end
         for _,loc in ipairs(locs) do
             if (not protect_locs) then
                 protect_locs = {}
             end
-
             local protect_loc = { loc.x, loc.y }
             table.insert(protect_locs, protect_loc)
-            local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc.x, loc.y, 'distance')
-            if (ld < min_ld) then min_ld = ld end
-            if (ld > max_ld) then max_ld = ld end
         end
-        protect_leader_distance = { min = min_ld, max = max_ld }
+
         min_btw_dist = -1.5
         assigned_enemies = fred_data.ops_data.assigned_enemies[zone_cfg.zone_id]
     end
 
-    -- Eventual TODO: just a safeguard for now; remove later
+    -- Just a safeguard
     if protect_locs and (not protect_locs[1]) then
         wesnoth.message('!!!!!!!!!! This should never happen: protect_locs table is empty !!!!!!!!!!')
         protect_locs = nil
     end
+
+    local min_ld, max_ld = math.huge, - math.huge
+    for _,loc in ipairs(protect_locs) do
+        local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc[1], loc[2], 'distance')
+        if (ld < min_ld) then min_ld = ld end
+        if (ld > max_ld) then max_ld = ld end
+    end
+    protect_leader_distance = { min = min_ld, max = max_ld }
+
+    --DBG.dbms(protect_locs, false, 'protect_locs')
+    --DBG.dbms(protect_leader_distance, false, 'protect_leader_distance')
     --DBG.dbms(assigned_enemies, false, 'assigned_enemies')
 
     local between_map
@@ -1621,7 +1631,6 @@ local function get_hold_action(zone_cfg, fred_data)
         for id,_ in pairs(assigned_enemies) do
             tmp_enemies[id] = move_data.enemies[id]
         end
--- xxx this needs to be modified for multiple protect locs
         between_map = FHU.get_between_map(locs, leader_goal, tmp_enemies, move_data)
 
         if DBG.show_debug('hold_between_map') then
@@ -2214,11 +2223,6 @@ local function get_hold_action(zone_cfg, fred_data)
         zone_id = zone_cfg.zone_id,
         protect_objectives = protect_objectives -- TODO: can we not just get this from ops_data?
     }
-
-    -- protect_locs is only set if there is a location to protect
-    cfg_best_combo_hold.protect_locs = protect_locs
-    cfg_best_combo_protect.protect_locs = protect_locs
-
 
     local protected_str
     local best_hold_combo, all_best_hold_combo, hold_dst_src, hold_ratings
