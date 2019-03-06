@@ -1610,13 +1610,15 @@ local function get_hold_action(zone_cfg, fred_data)
         protect_locs = nil
     end
 
-    local min_ld, max_ld = math.huge, - math.huge
-    for _,loc in ipairs(protect_locs) do
-        local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc[1], loc[2], 'distance')
-        if (ld < min_ld) then min_ld = ld end
-        if (ld > max_ld) then max_ld = ld end
+    if protect_locs then
+        local min_ld, max_ld = math.huge, - math.huge
+        for _,loc in ipairs(protect_locs) do
+            local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc[1], loc[2], 'distance')
+            if (ld < min_ld) then min_ld = ld end
+            if (ld > max_ld) then max_ld = ld end
+        end
+        protect_leader_distance = { min = min_ld, max = max_ld }
     end
-    protect_leader_distance = { min = min_ld, max = max_ld }
 
     --DBG.dbms(protect_locs, false, 'protect_locs')
     --DBG.dbms(protect_leader_distance, false, 'protect_leader_distance')
