@@ -2888,7 +2888,13 @@ function get_zone_action(cfg, fred_data)
         local action = get_hold_action(cfg, fred_data)
         if action then
             --DBG.print_ts_delta(fred_data.turn_start_time, action.action_str)
-            return action
+            if cfg.evaluate_only then
+                --std_print('eval only: ' .. str)
+                --local str = cfg.action_str .. ':' .. cfg.zone_id
+                --DBG.dbms(fred_data.ops_data.status.leader, false, 'fred_data.ops_data.status.leader')
+            else
+                return action
+            end
         end
     end
 
