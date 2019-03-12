@@ -761,7 +761,51 @@ local function get_attack_action(zone_cfg, fred_data)
 
 
             local acceptable_counter = true
+
+            local power_needed = 0
+            if status.leader.is_significant_threat
+                and objectives.protect.zones[zone_cfg.zone_id]
+                and objectives.protect.zones[zone_cfg.zone_id].protect_leader
+            then
+                power_needed = status.leader.enemy_power - org_status.leader.best_protection[zone_cfg.zone_id].zone_enemy_power
+            end
+            --std_print('power_needed', power_needed)
+
+            if (power_needed > 2) then
+                --std_print('--> checking resources for leader protection; power needed: ' .. power_needed)
+                local power_available = 0
+                for id,_ in pairs(fred_data.ops_data.assigned_units[zone_cfg.zone_id]) do
+                    if move_data.my_units_MP[id] then
+                        local is_used = false
+                        for i_a,attacker in ipairs(combo.attackers) do
+                            if (attacker.id == id) then
+                                is_used = true
+                                break
+                            end
+                        end
+                        -- TODO: should also check that unit can actually get there
+                        if (not is_used) then
+                            --std_print('  is_available: ' .. id)
+                            power_available = power_available + FU.unit_current_power(move_data.unit_infos[id])
+                        end
+                    end
+                end
+                --std_print('power_available: ' .. power_available)
+
+                -- TODO: this is probably too simple, but let's see how it works
+                if (power_available < power_needed / 2) then
+                    DBG.print_debug('attack_print_output', '    not enough units left to protect leader')
+                    acceptable_counter = false
+                end
+            end
+
             local min_total_damage_rating = 9e99
+
+            if (not acceptable_counter) then
+                min_total_damage_rating = -9999 -- this is just for debug display purposes
+                goto skip_counter_analysis
+            end
+
             for i_a,attacker in ipairs(combo.attackers) do
                 DBG.print_debug('attack_print_output', '  by', attacker.id, combo.dsts[i_a][1], combo.dsts[i_a][2])
 
@@ -1133,6 +1177,8 @@ local function get_attack_action(zone_cfg, fred_data)
                     end
                 end
             end
+
+            ::skip_counter_analysis::
 
             FVS.reset_state(old_locs, new_locs, false, move_data)
 
