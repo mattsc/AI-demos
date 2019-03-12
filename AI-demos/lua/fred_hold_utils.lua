@@ -522,6 +522,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     local protect_loc_str
     local protected_type = 'no protect objectives'
     local tmp_max_rating, tmp_all_max_rating -- just for debug display purposes
+    local leader_min_exposure, leader_min_enemy_power = math.huge, 0
     for i_c,combo in ipairs(valid_combos) do
         -- 1. Check whether a combo protects the locations it is supposed to protect.
         local does_protect, leader_protected = false, false
@@ -547,6 +548,11 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             if cfg.protect_objectives.protect_leader and (not leader_already_protected) then
                 -- For the leader, we check whether it is sufficiently protected by the combo
                 --std_print('leader eposure before - after: ', org_status.leader.exposure .. ' - ' .. status.leader.exposure)
+
+                if (status.leader.exposure < leader_min_exposure) then
+                    leader_min_exposure = status.leader.exposure
+                    leader_min_enemy_power = status.leader.enemy_power
+                end
 
                 leader_protect_mult = (leader_info.cost - status.leader.exposure) / leader_info.cost
                 -- It's possible for the number above to be slightly below zero, and
@@ -836,6 +842,16 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         end
     end
     --std_print('#good_combos: ' .. #good_combos .. '/' .. #valid_combos .. '/' .. #combos)
+
+    if cfg.find_best_protect_only then
+        if (not org_status.leader.best_protection) then
+            org_status.leader.best_protection = {}
+        end
+        org_status.leader.best_protection[cfg.zone_id] = {
+            exposure = leader_min_exposure,
+            zone_enemy_power = leader_min_enemy_power
+        }
+    end
 
     table.sort(good_combos, function(a, b) return a.formation_rating > b.formation_rating end)
     --DBG.dbms(good_combos, false, 'good_combos')
