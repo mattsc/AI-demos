@@ -1753,7 +1753,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 
 
     local base_ratings = {
-        protect_leader = 310000, -- eval only
+        protect_leader = 31000, -- eval only
         attack_leader_threat = 30000,
 
         fav_attack = 22000,
