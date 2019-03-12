@@ -731,8 +731,16 @@ function utility_functions.action_penalty(actions, reserved_actions, interaction
                                 end
                             end
                             if (not action_benefit) then
-                                -- This should never happen, just a safeguard
-                                error("village grab penalty analysis: alternate unit not found")
+                                if move_data.unit_infos[action.id].canrecruit then
+                                    -- The leader is not in alternate_units, as leader village grabs
+                                    -- are handled via the move_leader_to_village reserved action
+                                    -- TODO: this is a workaround for now; should really get the
+                                    -- real benefit of the leader getting the village_assignments
+                                    action_benefit = reserved_action.benefit
+                                else
+                                    -- This should never happen, just a safeguard
+                                    error("village grab penalty analysis: alternate unit not found")
+                                end
                             end
                             new_benefit = new_benefit + action_benefit -- by different unit
                         else
