@@ -99,15 +99,16 @@ function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_d
 
     local cfg_attack = { value_ratio = fred_data.turn_data.behavior.orders.value_ratio }
 
-    local leader_exposure, is_protected, is_significant_threat = 0, true, false
+    local leader_exposure, enemy_power, is_protected, is_significant_threat = 0, 0, true, false
     if (not exclude_leader) then
         local leader = move_data.leaders[wesnoth.current.side]
         local leader_target = {}
         leader_target[leader.id] = objectives.leader.final
-        local counter_outcomes = FAU.calc_counter_attack(
+        local counter_outcomes, _, all_attackers = FAU.calc_counter_attack(
             leader_target, nil, nil, nil, virtual_reach_maps, false, cfg_attack, move_data, fred_data.move_cache
         )
         --DBG.dbms(counter_outcomes)
+        --DBG.dbms(all_attackers)
 
         local defender_rating, attacker_rating  = 0, 0
         if counter_outcomes then
@@ -121,6 +122,11 @@ function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_d
                 leader_info.hitpoints - counter_outcomes.def_outcome.min_hp
             )
             leader_exposure = fred_status.unit_exposure(defender_rating, attacker_rating)
+            for enemy_id,_ in pairs(all_attackers) do
+                if (not zone_id) or (fred_data.ops_data.assigned_enemies[zone_id][enemy_id]) then
+                    enemy_power = enemy_power + FU.unit_current_power(move_data.unit_infos[enemy_id])
+                end
+            end
         end
         --std_print('ratings: ' .. defender_rating, attacker_rating, is_significant_threat)
     end
@@ -128,7 +134,8 @@ function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_d
     local status = { leader = {
         exposure = leader_exposure,
         is_protected = is_protected,
-        is_significant_threat = is_significant_threat
+        is_significant_threat = is_significant_threat,
+        enemy_power = enemy_power
     } }
 
 
