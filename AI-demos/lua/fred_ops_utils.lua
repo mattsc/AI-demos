@@ -1443,6 +1443,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(ops_data.objectives, false, 'ops_data.objectives')
     --DBG.dbms(ops_data.assigned_enemies, false, 'ops_data.assigned_enemies')
     --DBG.dbms(ops_data.assigned_units, false, 'ops_data.assigned_units')
+    --DBG.dbms(ops_data.status, false, 'ops_data.status')
     --DBG.dbms(ops_data.fronts, false, 'ops_data.fronts')
     --DBG.dbms(ops_data.reserved_actions, false, 'ops_data.reserved_actions')
 
@@ -1789,10 +1790,6 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 
         local value_ratio = fred_data.turn_data.behavior.orders.value_ratio
         local leader_threat_mult = FCFG.get_cfg_parm('leader_threat_mult')
-
-        local zone_id = 'leader'
-        --DBG.dbms(leader, false, 'leader')
-
 
         -- Attack leader threats
         for zone_id,threats in pairs(leader_threats_by_zone) do
