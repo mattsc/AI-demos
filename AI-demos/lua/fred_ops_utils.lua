@@ -208,6 +208,19 @@ function fred_ops_utils.set_between_objectives(objectives, enemy_zones, fred_dat
             end
         end
     end
+
+    -- Finally, we also want to add leader_protect flags for all zones that have enemies but no villages
+    -- TODO: this is all a bit inefficient; clean up when we know what actually works
+    for zone_id,_ in pairs(objectives.leader.leader_threats.zones) do
+        if (not objectives.protect.zones[zone_id]) then
+            objectives.protect.zones[zone_id] = {
+                protect_leader = true,
+                villages = {},
+                units = {}
+            }
+        end
+    end
+
     --DBG.dbms(objectives, false, 'objectives')
 end
 

@@ -294,9 +294,9 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigne
     local leader_info = move_data.unit_infos[leader.id]
     local leader_proxy = wesnoth.get_unit(leader[1], leader[2])
 
-    -- Threat are all enemies that can attack the castle (whether or not we go there)
+    -- Threats are all enemies that can attack the castle (whether or not we go there)
     -- and the village (if we go there)
-    local leader_threats = { enemies = {} }
+    local leader_threats = { enemies = {}, zones = {} }
     for x,y,_ in FU.fgumap_iter(move_data.reachable_castles_map[wesnoth.current.side]) do
         local ids = FU.get_fgumap_value(move_data.enemy_attack_map[1], x, y, 'ids') or {}
         for _,id in ipairs(ids) do
@@ -319,6 +319,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigne
             end
         end
         leader_threats.enemies[id] = threat .. ':' .. zone_id
+        leader_threats.zones[zone_id] = true
     end
     --DBG.dbms(leader_threats, false, 'leader_threats')
 
@@ -366,6 +367,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigne
     -- Only count leader threats if they are significant
     if (not leader_threats.significant_threat) then
         leader_threats.enemies = {}
+        leader_threats.zones = {}
     end
 
     if leader_objectives.do_recruit then
