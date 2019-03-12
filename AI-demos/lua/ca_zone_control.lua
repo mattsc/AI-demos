@@ -2205,12 +2205,15 @@ local function get_hold_action(zone_cfg, fred_data)
     local cfg_best_combo_hold = { zone_id = zone_cfg.zone_id }
     local cfg_best_combo_protect = {
         zone_id = zone_cfg.zone_id,
-        protect_objectives = protect_objectives -- TODO: can we not just get this from ops_data?
+        protect_objectives = protect_objectives, -- TODO: can we not just get this from ops_data?
+        find_best_protect_only = zone_cfg.find_best_protect_only
     }
 
     local protected_str
     local best_hold_combo, all_best_hold_combo, hold_dst_src, hold_ratings
-    if (next(hold_rating_maps)) then
+
+    -- TODO: also don't need some of the previous steps if find_best_protect_only == true
+    if (not zone_cfg.find_best_protect_only) and (next(hold_rating_maps)) then
         --std_print('--> checking hold combos')
         hold_dst_src, hold_ratings = FHU.unit_rating_maps_to_dstsrc(hold_rating_maps, 'vuln_rating', move_data, cfg_combos)
         local hold_combos = FU.get_unit_hex_combos(hold_dst_src)

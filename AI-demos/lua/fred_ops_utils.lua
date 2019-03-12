@@ -1752,8 +1752,8 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 
 
     local base_ratings = {
-        attack_leader_threat = 31000,
-        protect_leader = 30000,
+        protect_leader = 310000, -- eval only
+        attack_leader_threat = 30000,
 
         fav_attack = 22000,
         attack = 21000,
@@ -1771,9 +1771,9 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     --DBG.dbms(ops_data.objectives, false, 'ops_data.objectives')
     local leader_threats = ops_data.objectives.leader.leader_threats
     --DBG.dbms(leader_threats, false, 'leader_threats')
+    local leader_threats_by_zone = {}
     if leader_threats.significant_threat then
 
-        local leader_threats_by_zone = {}
         for zone_id,threats in pairs(threats_by_zone) do
             for id,xy in pairs(threats) do
                 --std_print(zone_id,id)
@@ -1802,6 +1802,19 @@ function fred_ops_utils.get_action_cfgs(fred_data)
                 or (not ops_data.objectives.protect.zones[zone_id].villages[1])
             then
                 vr_mult = 1 / leader_threat_mult
+            end
+
+            -- TODO: set this up to be called only when needed
+            if holders_by_zone[zone_id] then
+                table.insert(fred_data.zone_cfgs, {
+                    zone_id = zone_id,
+                    action_type = 'hold',
+                    action_str = 'protect leader',
+                    evaluate_only = true,
+                    find_best_protect_only = true,
+                    zone_units = holders_by_zone[zone_id],
+                    rating = base_ratings.protect_leader + zone_power_stats[zone_id].power_needed
+                })
             end
 
             if attackers_by_zone[zone_id] then
