@@ -1242,11 +1242,14 @@ function fred_attack_utils.get_attack_combos(attackers, defender, cfg, reach_map
     -- @get_strongest_attack (boolean): if set to 'true', don't return all attacks, but only the
     --   one deemed strongest as described above. If this is set, @move_data and @move_cache nust be provided
     --
-    -- Return value: attack combinations (either a single one or an array) of form { src = dst }, e.g.:
-    -- {
-    --     [21007] = 19006,
-    --     [19003] = 19007
-    -- }
+    -- Return value:
+    --   - attack combinations (either a single one or an array) of form { src = dst }, e.g.:
+    --     {
+    --         [21007] = 19006,
+    --         [19003] = 19007
+    --     }
+    --   - all_attackers: all enemies which can attack the defender; these might be more units
+    --     than what are used in any combo, depending on available hexes
 
     local defender_id, defender_loc = next(defender)
 
@@ -1264,11 +1267,13 @@ function fred_attack_utils.get_attack_combos(attackers, defender, cfg, reach_map
 
     local tmp_attacks_dst_src = {}
 
+    local all_attackers = {}
     for xa,ya in H.adjacent_tiles(defender_loc[1], defender_loc[2]) do
         local dst = xa * 1000 + ya
 
         for attacker_id,attacker_loc in pairs(attackers) do
             if reach_maps[attacker_id][xa] and reach_maps[attacker_id][xa][ya] then
+                all_attackers[attacker_id] = true
                 local _, rating
                 if get_strongest_attack then
                     local att_outcome, def_outcome = fred_attack_utils.attack_outcome(
@@ -1310,7 +1315,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, cfg, reach_map
         table.insert(attacks_dst_src, dst)
     end
 
-    return FU.get_unit_hex_combos(attacks_dst_src, get_strongest_attack)
+    return FU.get_unit_hex_combos(attacks_dst_src, get_strongest_attack), all_attackers
 end
 
 function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, additional_units, virtual_reach_maps, place_units, cfg, move_data, move_cache)
@@ -1359,7 +1364,7 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, addit
     -- reach_maps must not be given here, as this is for a hypothetical situation
     -- on the map. Needs to be recalculated for that situation.
     -- Only want the best attack combo for this.
-    local counter_attack = fred_attack_utils.get_attack_combos(
+    local counter_attack, all_attackers = fred_attack_utils.get_attack_combos(
         attackers, target, cfg,
         virtual_reach_maps, true, move_data, move_cache
     )
@@ -1379,7 +1384,7 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, addit
         FVS.reset_state(old_locs, new_locs, false, move_data)
     end
 
-    return counter_attack_outcome, counter_attack
+    return counter_attack_outcome, counter_attack, all_attackers
 end
 
 function fred_attack_utils.get_disqualified_attack(combo)
