@@ -235,7 +235,7 @@ function fred_move_leader_utils.leader_objectives(fred_data)
     local move_data = fred_data.move_data
     local leader = move_data.leaders[wesnoth.current.side]
 
-    local do_recruit = false
+    local do_recruit, prerecruit = false
     -- TODO: for now we only check if recruiting will be done for any one keep hex.
     --   Might have to be extended when taking this to other maps.
     for x,y,_ in FU.fgumap_iter(move_data.reachable_keeps_map[wesnoth.current.side]) do
@@ -258,7 +258,7 @@ function fred_move_leader_utils.leader_objectives(fred_data)
     -- These are used for other purposes also, so they are not linked to whether we
     -- can reach the desired villages and keeps
     local effective_reach_map
-    if prerecruit.units[1] then
+    if prerecruit and prerecruit.units[1] then
         do_recruit = true
         effective_reach_map = get_reach_map_via_keep(leader, move_data)
     end
