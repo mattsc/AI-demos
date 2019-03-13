@@ -71,7 +71,7 @@ function utility_functions.village_benefits(village_grabs, fred_data)
                 end
                 local heal_amount = math.min(unit_info.max_hitpoints - hp_eff, 8)
                 unit_benefit = heal_amount / unit_info.max_hitpoints * FU.unit_value(unit_info)
-                std_print('    healing: ' .. hp_eff, heal_amount, FU.unit_value(unit_info), grab.die_chance)
+                --std_print('    healing: ' .. hp_eff, heal_amount, FU.unit_value(unit_info), grab.die_chance)
             end
             --std_print('    unit_benefit (healing): ' .. unit_benefit)
         end
