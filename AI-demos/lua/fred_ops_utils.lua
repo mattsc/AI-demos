@@ -1869,6 +1869,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
             table.insert(fred_data.zone_cfgs, {
                 zone_id = zone_id,
                 action_type = 'hold',
+                action_str = 'zone hold',
                 zone_units = holders_by_zone[zone_id],
                 rating = base_ratings.hold + power_rating
             })
@@ -1903,6 +1904,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         table.insert(fred_data.zone_cfgs, {
             zone_id = zone_id,
             action_type = 'advance',
+            action_str = 'zone advance',
             zone_units = advancers_by_zone[zone_id],
             rating = base_ratings.advance + power_rating
         })
@@ -1913,6 +1915,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     table.insert(fred_data.zone_cfgs, {
         zone_id = 'all_map',
         action_type = 'attack',
+        action_str = 'favorable attack',
         rating = base_ratings.fav_attack,
         value_ratio = 2.0 * value_ratio -- only very favorable attacks will pass this
     })
@@ -1923,6 +1926,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     table.insert(fred_data.zone_cfgs, {
         zone_id = 'all_map',
         action_type = 'advance',
+        action_str = 'all_map advance',
         rating = base_ratings.advance
     })
 
@@ -1938,8 +1942,8 @@ function fred_ops_utils.get_action_cfgs(fred_data)
        if (current_gold >= cost) then
            table.insert(fred_data.zone_cfgs, {
                zone_id = 'leader',
-               action_str = 'recruit',
                action_type = 'recruit',
+               action_str = 'recruit',
                rating = base_ratings.recruit
            })
        end

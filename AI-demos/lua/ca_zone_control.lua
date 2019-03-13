@@ -1287,7 +1287,7 @@ local function get_attack_action(zone_cfg, fred_data)
 
                     action.dsts = combo.dsts
                     action.weapons = combo.weapons
-                    action.action_str = 'attack'
+                    action.action_str = zone_cfg.action_str
                 end
             end
 
@@ -2292,11 +2292,11 @@ local function get_hold_action(zone_cfg, fred_data)
     end
 
 
-    local action_str = 'hold'
+    local action_str = zone_cfg.action_str
     local best_combo, ratings
     if (not best_hold_combo) then
         best_combo, ratings = best_protect_combo, protect_ratings
-        action_str = 'hold (' .. (protected_str or 'x,x') .. ')'
+        action_str = zone_cfg.action_str .. ' (' .. (protected_str or 'x,x') .. ')'
     elseif (not best_protect_combo) then
         best_combo, ratings = best_hold_combo, hold_ratings
     else
@@ -2325,7 +2325,7 @@ local function get_hold_action(zone_cfg, fred_data)
             best_combo, ratings = best_hold_combo, hold_ratings
         else
             best_combo, ratings = best_protect_combo, protect_ratings
-            action_str = 'hold (' .. (protected_str or 'x,x') .. ')'
+            action_str = zone_cfg.action_str .. ' (' .. (protected_str or 'x,x') .. ')'
         end
     end
 
@@ -2727,7 +2727,8 @@ local function get_advance_action(zone_cfg, fred_data)
 
 
     -- If no safe location is found, check for desparate attack
-    local best_target, best_weapons, action_str
+    local best_target, best_weapons
+    local action_str = zone_cfg.action_str
     if (not safe_loc) then
         --std_print('----- no safe advance location found -----')
 
@@ -2789,7 +2790,7 @@ local function get_advance_action(zone_cfg, fred_data)
                             best_target = {}
                             best_target[enemy_id] = enemy_loc
                             best_weapons = combo_outcome.att_weapons_i
-                            action_str = 'desperate attack'
+                            action_str = action_str .. ' (desperate attack)'
                         end
                     end
                 end
@@ -2814,7 +2815,7 @@ local function get_advance_action(zone_cfg, fred_data)
             dsts = { best_hex },
             enemy = best_target,
             weapons = best_weapons,
-            action_str = action_str or 'advance'
+            action_str = action_str
         }
         return action
     end
@@ -2839,7 +2840,7 @@ local function get_retreat_action(zone_cfg, fred_data)
             local action = {
                 units = { leader },
                 dsts = { { leader_objectives.village[1], leader_objectives.village[2] } },
-                action_str = 'move leader to village'
+                action_str = zone_cfg.action_str .. ' (move leader to village)'
             }
             --DBG.dbms(action, false, 'action')
 
@@ -2852,7 +2853,7 @@ local function get_retreat_action(zone_cfg, fred_data)
             local action = {
                 units = { leader },
                 dsts = { { leader_objectives.keep[1], leader_objectives.keep[2] } },
-                action_str = 'move leader to keep'
+                action_str = zone_cfg.action_str .. ' (move leader to keep)'
             }
             --DBG.dbms(action, false, 'action')
 
@@ -2879,7 +2880,7 @@ local function get_retreat_action(zone_cfg, fred_data)
             local action = {
                 units = {},
                 dsts = {},
-                action_str = 'retreat'
+                action_str = zone_cfg.action_str
             }
 
             for src,dst in pairs(retreat_combo) do
@@ -2964,7 +2965,7 @@ function get_zone_action(cfg, fred_data)
         -- are taken off the map at this time, so it needs to be checked
         -- by the function setting up the cfg
         local action = {
-            action_str = 'recruit',
+            action_str = cfg.action_str,
             type = 'recruit',
         }
         return action
