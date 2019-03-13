@@ -2582,11 +2582,12 @@ local function get_advance_action(zone_cfg, fred_data)
                             -- Cannot just assign here, as we do not want to change the input tables later
                             -- TODO: This currently includes already protected protect_locs. I think
                             -- that that's the right thing to do, re-examine later.
-                            if fred_data.ops_data.objectives.protect.zones[zone_cfg.zone_id]
-                                and fred_data.ops_data.objectives.protect.zones[zone_cfg.zone_id].locs[1]
-                            then
-                                for _,loc in ipairs(fred_data.ops_data.protect_locs[zone_cfg.zone_id].locs) do
-                                    table.insert(hexes, { loc.x, loc.y })
+                            if fred_data.ops_data.objectives.protect.zones[zone_cfg.zone_id] then
+                                for _,village in ipairs(fred_data.ops_data.objectives.protect.zones[zone_cfg.zone_id].villages) do
+                                    table.insert(hexes, { village.x, village.y })
+                                end
+                                for _,unit in ipairs(fred_data.ops_data.objectives.protect.zones[zone_cfg.zone_id].units) do
+                                    table.insert(hexes, { unit.x, unit.y })
                                 end
                             else
                                 for _,loc in ipairs(raw_cfg.center_hexes) do
@@ -2639,7 +2640,7 @@ local function get_advance_action(zone_cfg, fred_data)
                     local new_locs = { { x, y } }
                     -- TODO: Use FVS here also?
                     local counter_outcomes = FAU.calc_counter_attack(
-                        unit_moved, old_locs, new_locs, nil, true, cfg_attack, move_data, move_cache
+                        unit_moved, old_locs, new_locs, fred_data.ops_data.place_holders, nil, true, cfg_attack, move_data, move_cache
                     )
                     --DBG.dbms(counter_outcomes.def_outcome.ctd_progression, false, 'counter_outcomes.def_outcome.ctd_progression')
                     --std_print('  die_chance', counter_outcomes.def_outcome.hp_chance[0])
