@@ -2866,7 +2866,7 @@ local function get_retreat_action(zone_cfg, fred_data)
     --DBG.dbms(fred_data.ops_data.reserved_actions)
     local retreaters = {}
     for _,action in pairs(fred_data.ops_data.reserved_actions) do
-        if (action.action_str == 'retreat') then
+        if (action.action_type == 'retreat') then
             retreaters[action.id] = move_data.units[action.id]
         end
     end
