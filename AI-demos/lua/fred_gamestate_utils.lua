@@ -319,8 +319,10 @@ function fred_gamestate_utils.get_move_data()
         leader_copy.moves = old_moves
 
         reachable_keeps_map[side], reachable_castles_map[side] = {}, {}
+        local all_keeps_map = {}
         for _,loc in ipairs(reach) do
             if wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).keep then
+                FU.set_fgumap_value(all_keeps_map, loc[1], loc[2], 'moves_left', loc[3])
                 local is_available = true
                 if (side == wesnoth.current.side) then
                     if FU.get_fgumap_value(enemy_map, loc[1], loc[2], 'id') then
@@ -340,7 +342,7 @@ function fred_gamestate_utils.get_move_data()
 
         -- Note that this is not strictly castle reachable by the leader, but
         -- castles connected to keeps reachable by the leader
-        for x,y,_ in FU.fgumap_iter(reachable_keeps_map[side]) do
+        for x,y,_ in FU.fgumap_iter(all_keeps_map) do
             local reachable_castles = wesnoth.get_locations {
                 x = "1-"..width, y = "1-"..height,
                 { "and", {
