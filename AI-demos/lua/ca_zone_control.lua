@@ -793,7 +793,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 --std_print('power_available: ' .. power_available)
 
                 -- TODO: this is probably too simple, but let's see how it works
-                if (power_available < power_needed / 2) then
+                if (power_available < value_ratio * power_needed) then
                     DBG.print_debug('attack_print_output', '    not enough units left to protect leader')
                     acceptable_counter = false
                 end
