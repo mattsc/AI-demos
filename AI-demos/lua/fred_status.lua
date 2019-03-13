@@ -147,7 +147,8 @@ function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_d
         --std_print('castle: ', x .. ',' .. y)
         for enemy_id,_ in pairs(move_data.enemies) do
             --DBG.show_fgumap_with_message(virtual_reach_maps[enemy_id], 'moves_left', 'virtual_reach_map', move_data.unit_copies[enemy_id])
-            if FU.get_fgumap_value(virtual_reach_maps[enemy_id], x, y, 'moves_left') then
+            -- enemies with 0 HP are not in virtual_reach_maps
+            if virtual_reach_maps[enemy_id] and FU.get_fgumap_value(virtual_reach_maps[enemy_id], x, y, 'moves_left') then
                 n_castles_threatened = n_castles_threatened + 1
                 break
             end
