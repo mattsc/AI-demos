@@ -322,11 +322,15 @@ function fred_gamestate_utils.get_move_data()
         for _,loc in ipairs(reach) do
             if wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).keep then
                 local is_available = true
-                if (side == wesnoth.current.side)
-                    and ((FU.get_fgumap_value(enemy_map, loc[1], loc[2], 'id'))
-                    or (FU.get_fgumap_value(my_unit_map_noMP, loc[1], loc[2], 'id')))
-                then
-                    is_available = false
+                if (side == wesnoth.current.side) then
+                    if FU.get_fgumap_value(enemy_map, loc[1], loc[2], 'id') then
+                        is_available = false
+                    else
+                        local id = FU.get_fgumap_value(my_unit_map_noMP, loc[1], loc[2], 'id')
+                        if id and (id ~= leader.id) then
+                            is_available = false
+                        end
+                    end
                 end
                 if is_available then
                     FU.set_fgumap_value(reachable_keeps_map[side], loc[1], loc[2], 'moves_left', loc[3])
