@@ -2976,9 +2976,9 @@ function get_zone_action(cfg, fred_data)
 end
 
 
-local function do_recruit(data, ai, action, fred_data)
+local function do_recruit(fred_data, ai, action)
     local move_data = fred_data.move_data
-    local leader_objectives = data.ops_data.objectives.leader
+    local leader_objectives = fred_data.ops_data.objectives.leader
     --DBG.dbms(leader_objectives, false, 'leader_objectives')
     --DBG.dbms(action, false, 'action')
 
@@ -3021,7 +3021,7 @@ local function do_recruit(data, ai, action, fred_data)
     end
 
     -- Move leader to keep, if needed
-    local leader = data.move_data.leaders[wesnoth.current.side]
+    local leader = move_data.leaders[wesnoth.current.side]
     local recruit_loc = prerecruit.loc
     if (leader[1] ~= recruit_loc[1]) or (leader[2] ~= recruit_loc[2]) then
         --std_print('Need to move leader to keep first')
@@ -3035,7 +3035,7 @@ local function do_recruit(data, ai, action, fred_data)
        if uiw then
            -- Generally, move out of way in direction of own leader
            -- TODO: change this
-           local leader_loc = data.move_data.leaders[wesnoth.current.side]
+           local leader_loc = move_data.leaders[wesnoth.current.side]
            local dx, dy  = leader_loc[1] - recruit_unit.recruit_hex[1], leader_loc[2] - recruit_unit.recruit_hex[2]
            local r = math.sqrt(dx * dx + dy * dy)
            if (r ~= 0) then dx, dy = dx / r, dy / r end
@@ -3333,7 +3333,7 @@ function ca_zone_control:execution(cfg, data, ai_debug)
             and leader_objectives.prerecruit and leader_objectives.prerecruit.units and leader_objectives.prerecruit.units[1]
         then
             DBG.print_debug_time('exec', data.turn_start_time, '=> exec: ' .. action .. ' (leader used -> recruit first)')
-            do_recruit(data, ai, data.zone_action, data)
+            do_recruit(data, ai, data.zone_action)
             gamestate_changed = true
 
             -- We also check here separately whether the leader can still get to dst.
