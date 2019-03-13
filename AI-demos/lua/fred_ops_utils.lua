@@ -1763,7 +1763,8 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         grab_villages = 13000,
         advance = 12000,
         recruit = 11000,
-        retreat = 10000
+        retreat = 10000,
+        advance_all_map = 1000
     }
 
 
@@ -1927,7 +1928,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         zone_id = 'all_map',
         action_type = 'advance',
         action_str = 'all_map advance',
-        rating = base_ratings.advance
+        rating = base_ratings.advance_all_map
     })
 
     --DBG.dbms(fred_data.zone_cfgs, false, 'fred_data.zone_cfgs')
