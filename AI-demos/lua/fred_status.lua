@@ -123,7 +123,10 @@ function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_d
             )
             leader_exposure = fred_status.unit_exposure(defender_rating, attacker_rating)
             for enemy_id,_ in pairs(all_attackers) do
-                if (not zone_id) or (fred_data.ops_data.assigned_enemies[zone_id][enemy_id]) then
+                if (not zone_id)
+                    or (not fred_data.ops_data.assigned_enemies[zone_id])
+                    or (fred_data.ops_data.assigned_enemies[zone_id][enemy_id])
+                then
                     enemy_power = enemy_power + FU.unit_current_power(move_data.unit_infos[enemy_id])
                 end
             end
