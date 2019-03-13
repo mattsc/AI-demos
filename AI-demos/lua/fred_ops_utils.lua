@@ -1831,23 +1831,18 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     end
 
 
-    ----- Village actions -----
-
-    -- Village grabs are stored in reserved_actions. This cfg can always be added.
-    table.insert(fred_data.zone_cfgs, {
-        zone_id = 'all_map',
-        action_type = 'reserved_action',
-        action_str = 'grab villages',
-        reserved_id = 'GV',
-        rating = base_ratings.grab_villages
-    })
-
-
-    ----- Zone actions -----
-
-
     -- TODO: might want to do something more complex (e.g using local info) in ops layer
     local value_ratio = fred_data.turn_data.behavior.orders.value_ratio
+
+    -- Favorable attacks. These are cross-zone
+    table.insert(fred_data.zone_cfgs, {
+        zone_id = 'all_map',
+        action_type = 'attack',
+        action_str = 'favorable attack',
+        rating = base_ratings.fav_attack,
+        value_ratio = 2.0 * value_ratio -- only very favorable attacks will pass this
+    })
+
 
     for zone_id,zone_units in pairs(holders_by_zone) do
         local power_rating = zone_power_stats[zone_id].power_needed - zone_power_stats[zone_id].my_power / 1000
@@ -1877,6 +1872,15 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         end
     end
 
+
+    -- Village grabs are stored in reserved_actions. This cfg can always be added.
+    table.insert(fred_data.zone_cfgs, {
+        zone_id = 'all_map',
+        action_type = 'reserved_action',
+        action_str = 'grab villages',
+        reserved_id = 'GV',
+        rating = base_ratings.grab_villages
+    })
 
 
     -- Advancing is still done in the old zones
@@ -1912,27 +1916,6 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     end
 
 
-    -- Favorable attacks. These are cross-zone
-    table.insert(fred_data.zone_cfgs, {
-        zone_id = 'all_map',
-        action_type = 'attack',
-        action_str = 'favorable attack',
-        rating = base_ratings.fav_attack,
-        value_ratio = 2.0 * value_ratio -- only very favorable attacks will pass this
-    })
-
-
-    -- TODO: this is a catch all action, that moves all units that were
-    -- missed. Ideally, there will be no need for this in the end.
-    table.insert(fred_data.zone_cfgs, {
-        zone_id = 'all_map',
-        action_type = 'advance',
-        action_str = 'all_map advance',
-        rating = base_ratings.advance_all_map
-    })
-
-    --DBG.dbms(fred_data.zone_cfgs, false, 'fred_data.zone_cfgs')
-
    -- Recruiting
    if ops_data.objectives.leader.prerecruit and ops_data.objectives.leader.prerecruit.units[1] then
        -- TODO: This check should not be necessary, but something can
@@ -1961,9 +1944,20 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     table.insert(fred_data.zone_cfgs, {
         zone_id = 'all_map',
         action_type = 'retreat',
-        action_str = 'retreat injured',
+        action_str = 'retreat',
         rating = base_ratings.retreat
     })
+
+
+    -- TODO: this is a catch all action, that moves all units that were
+    -- missed. Ideally, there will be no need for this in the end.
+    table.insert(fred_data.zone_cfgs, {
+        zone_id = 'all_map',
+        action_type = 'advance',
+        action_str = 'all_map advance',
+        rating = base_ratings.advance_all_map
+    })
+    --DBG.dbms(fred_data.zone_cfgs, false, 'fred_data.zone_cfgs')
 
 
     -- Now sort by the ratings embedded in the cfgs
