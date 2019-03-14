@@ -2255,7 +2255,7 @@ local function get_hold_action(zone_cfg, fred_data)
         find_best_protect_only = zone_cfg.find_best_protect_only
     }
 
-    local protected_str
+    local protected_str, all_protected_str
     local best_hold_combo, all_best_hold_combo, hold_dst_src, hold_ratings
 
     -- TODO: also don't need some of the previous steps if find_best_protect_only == true
@@ -2277,15 +2277,17 @@ local function get_hold_action(zone_cfg, fred_data)
         --DBG.dbms(protect_combos, false, 'protect_combos')
         --std_print('#protect_combos', #protect_combos)
 
-        best_protect_combo, all_best_protect_combo, protected_str = FHU.find_best_combo(protect_combos, protect_ratings, 'protect_rating', adjacent_village_map, between_map, fred_data, cfg_best_combo_protect)
+        best_protect_combo, all_best_protect_combo, protected_str, all_protected_str = FHU.find_best_combo(protect_combos, protect_ratings, 'protect_rating', adjacent_village_map, between_map, fred_data, cfg_best_combo_protect)
+        --DBG.dbms(best_protect_combo, false, 'best_protect_combo')
+        --DBG.dbms(all_best_protect_combo, false, 'all_best_protect_combo')
 
         -- If no combo that protects the location was found, use the best of the others
         if (not best_protect_combo) then
-            best_protect_combo = all_best_protect_combo
+            best_protect_combo, protected_str = all_best_protect_combo, all_protected_str
         end
     end
     --DBG.dbms(best_hold_combo, false, 'best_hold_combo')
-    --DBG.dbms(best_protect_combo, false, 'best_protect_combo')
+    --DBG.dbms(all_best_hold_combo, false, 'all_best_hold_combo')
 
     if (not best_hold_combo) and (not all_best_hold_combo) and (not best_protect_combo) then
         return
@@ -2294,9 +2296,12 @@ local function get_hold_action(zone_cfg, fred_data)
 
     local action_str = zone_cfg.action_str
     local best_combo, ratings
-    if (not best_hold_combo) then
+    if (not best_hold_combo) and (not best_protect_combo) then
+        -- Only as a last resort do we use all_best_hold_combo
+        best_combo, ratings = all_best_hold_combo, hold_ratings
+    elseif (not best_hold_combo) then
         best_combo, ratings = best_protect_combo, protect_ratings
-        action_str = zone_cfg.action_str .. ' (' .. (protected_str or 'x,x') .. ')'
+        action_str = zone_cfg.action_str .. ' (' .. protected_str .. ')'
     elseif (not best_protect_combo) then
         best_combo, ratings = best_hold_combo, hold_ratings
     else
@@ -2325,13 +2330,8 @@ local function get_hold_action(zone_cfg, fred_data)
             best_combo, ratings = best_hold_combo, hold_ratings
         else
             best_combo, ratings = best_protect_combo, protect_ratings
-            action_str = zone_cfg.action_str .. ' (' .. (protected_str or 'x,x') .. ')'
+            action_str = zone_cfg.action_str .. ' (' .. protected_str .. ')'
         end
-    end
-
-    -- Only as a last resort do we use all_best_hold_combo
-    if (not best_combo) then
-        best_combo, ratings = all_best_hold_combo, hold_ratings
     end
     --DBG.dbms(best_combo, false, 'best_combo')
 

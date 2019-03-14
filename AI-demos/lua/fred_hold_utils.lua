@@ -1025,7 +1025,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     --std_print(' ===> max rating:             ' .. (max_rating or 'none'))
     --std_print(' ===> max rating all: ' .. (all_max_rating or 'none'))
 
-    return best_combo and best_combo.combo, all_best_combo and all_best_combo.combo, best_combo and best_combo.protected_str
+    return best_combo and best_combo.combo, all_best_combo and all_best_combo.combo, best_combo and best_combo.protected_str, all_best_combo and all_best_combo.protected_str
 end
 
 
