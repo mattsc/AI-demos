@@ -35,73 +35,6 @@ end
 
 local fred_ops_utils = {}
 
-function fred_ops_utils.replace_zones(assigned_units, assigned_enemies, protect_objectives, move_data)
-    -- Combine several zones into one, if the conditions for it are met.
-    -- For example, on Freelands the 'east' and 'center' zones are combined
-    -- into the 'top' zone if enemies are close enough to the leader.
-    --
-    -- TODO: not sure whether it is better to do this earlier
-    -- TODO: set this up to be configurable by the cfgs
-    local replace_zone_ids = FMC.replace_zone_ids()
-    local raw_cfgs_main = FMC.get_raw_cfgs()
-    local raw_cfg_new = FMC.get_raw_cfgs(replace_zone_ids.new)
-    --DBG.dbms(replace_zone_ids, false, 'replace_zone_ids')
-    --DBG.dbms(replace_zone_ids, false, 'replace_zone_ids')
-
-    local replace_zones = false
-    for _,zone_id in ipairs(replace_zone_ids.old) do
-        if assigned_enemies[zone_id] then
-            for enemy_id,_ in pairs(assigned_enemies[zone_id]) do
-                local enemy_loc = move_data.units[enemy_id]
-                if wesnoth.match_location(enemy_loc[1], enemy_loc[2], raw_cfg_new.ops_slf) then
-                    replace_zones = true
-                    break
-                end
-            end
-        end
-
-        if replace_zones then break end
-    end
-    --std_print('replace_zones', replace_zones)
-
-    if replace_zones then
-        -- Also combine assigned_units, assigned_enemies, protect_objectives
-        -- from the zones to be replaced. We don't actually replace the
-        -- respective tables for those zones, just add those for the super zone,
-        -- because advancing and some other functions still use the original zones
-        assigned_units[raw_cfg_new.zone_id] = {}
-        assigned_enemies[raw_cfg_new.zone_id] = {}
-        protect_objectives.zones[raw_cfg_new.zone_id] = {
-            protect_leader = false,
-            units = {},
-            villages = {}
-        }
-        local new_objectives = protect_objectives.zones[raw_cfg_new.zone_id]
-
-        for _,zone_id in ipairs(replace_zone_ids.old) do
-            for id,xy in pairs(assigned_units[zone_id] or {}) do
-                assigned_units[raw_cfg_new.zone_id][id] = xy
-            end
-            for id,xy in pairs(assigned_enemies[zone_id] or {}) do
-                assigned_enemies[raw_cfg_new.zone_id][id] = xy
-            end
-
-            local old_objectives = protect_objectives.zones[zone_id]
-            new_objectives.protect_leader = new_objectives.protect_leader or old_objectives.protect_leader
-            for _,xy in ipairs(old_objectives.villages) do
-                table.insert(new_objectives.villages, xy)
-            end
-            for _,unit in ipairs(old_objectives.units) do
-                table.insert(new_objectives.units, unit)
-            end
-        end
-
-        table.sort(new_objectives.villages, function(a, b) return a.eld < b.eld end)
-        table.sort(new_objectives.units, function(a, b) return a.rating < b.rating end)
-    end
-end
-
-
 function fred_ops_utils.zone_power_stats(zones, assigned_units, assigned_enemies, power_ratio, fred_data)
     local zone_power_stats = {}
 
@@ -376,7 +309,7 @@ function fred_ops_utils.behavior_output(is_turn_start, ops_data, fred_data)
 
         if (fred_show_behavior == 4) then
             for zone_id,front in pairs(ops_data.fronts.zones) do
-                local raw_cfg = FMC.get_raw_cfgs(zone_id)
+                local raw_cfg = ops_data.raw_cfgs[zone_id]
                 local zone = wesnoth.get_locations(raw_cfg.ops_slf)
 
                 local front_map = {}
@@ -406,10 +339,6 @@ end
 
 
 function fred_ops_utils.set_turn_data(move_data)
-    -- Get the needed cfgs
-    local raw_cfgs_main = FMC.get_raw_cfgs()
-    local side_cfgs = FMC.get_side_cfgs()
-
     -- The if statement below is so that debugging works when starting the evaluation in the
     -- middle of the turn.  In normal gameplay, we can just use the existing enemy reach maps,
     -- so that we do not have to double-calculate them.
@@ -715,9 +644,7 @@ function fred_ops_utils.set_turn_data(move_data)
         turn_number = wesnoth.current.turn,
         enemy_initial_reach_maps = enemy_initial_reach_maps,
         unit_attacks = unit_attacks,
-        behavior = behavior,
-        raw_cfgs = FMC.get_raw_cfgs('all'),
-        raw_cfgs_main = raw_cfgs_main
+        behavior = behavior
     }
 
     return turn_data
@@ -727,9 +654,34 @@ end
 function fred_ops_utils.set_ops_data(fred_data)
     -- Get the needed cfgs
     local move_data = fred_data.move_data
-    local raw_cfgs_main = FMC.get_raw_cfgs()
-    local raw_cfgs_all = FMC.get_raw_cfgs('all')
+    local raw_cfgs = FMC.get_raw_cfgs()
     local side_cfgs = FMC.get_side_cfgs()
+    --DBG.dbms(raw_cfgs, false, 'raw_cfgs')
+
+    -- Combine several zones into one, if the conditions for it are met.
+    -- For example, on Freelands the 'east' and 'center' zones are combined
+    -- into the 'top' zone if enemies are close enough to the leader.
+    -- TODO: set this up to be configurable by the cfgs
+    local replace_zone_ids = FMC.replace_zone_ids()
+    --DBG.dbms(replace_zone_ids, false, 'replace_zone_ids')
+    for _,zone_ids in ipairs(replace_zone_ids) do
+        local raw_cfg_new = FMC.get_raw_cfgs(zone_ids.new)
+        local replace_zones = false
+        for enemy_id,enemy_loc in pairs(move_data.enemies) do
+            if wesnoth.match_location(enemy_loc[1], enemy_loc[2], raw_cfg_new.enemy_slf) then
+                replace_zones = true
+                break
+            end
+        end
+        if replace_zones then
+            --std_print('replace zone: ' .. raw_cfg_new.zone_id)
+            raw_cfgs[raw_cfg_new.zone_id] = raw_cfg_new
+            for _,old_zone_id in ipairs(zone_ids.old) do
+                raw_cfgs[old_zone_id] = nil
+            end
+        end
+    end
+    --DBG.dbms(raw_cfgs, false, 'raw_cfgs')
 
 
     ----- Get situation on the map first -----
@@ -743,7 +695,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             and (not FU.get_fgumap_value(move_data.reachable_castles_map[move_data.unit_infos[id].side], loc[1], loc[2], 'castle') or false)
         then
             local unit_copy = move_data.unit_copies[id]
-            local zone_id = FU.moved_toward_zone(unit_copy, raw_cfgs_main, side_cfgs)
+            local zone_id = FU.moved_toward_zone(unit_copy, raw_cfgs, side_cfgs)
 
             if (not assigned_enemies[zone_id]) then
                 assigned_enemies[zone_id] = {}
@@ -767,7 +719,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         if (not unit_copy.canrecruit)
             and (not FU.get_fgumap_value(move_data.reachable_castles_map[unit_copy.side], unit_copy.x, unit_copy.y, 'castle') or false)
         then
-            local zone_id = FU.moved_toward_zone(unit_copy, raw_cfgs_main, side_cfgs)
+            local zone_id = FU.moved_toward_zone(unit_copy, raw_cfgs, side_cfgs)
             pre_assigned_units[id] =  zone_id
         end
     end
@@ -777,7 +729,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     local objectives = { leader = leader_objectives }
     --DBG.dbms(objectives, false, 'objectives')
     --DBG.show_fgumap_with_message(leader_effective_reach_map, 'moves_left', 'leader_effective_reach_map')
-    FMLU.assess_leader_threats(objectives.leader, assigned_enemies, raw_cfgs_main, side_cfgs, fred_data)
+    FMLU.assess_leader_threats(objectives.leader, assigned_enemies, side_cfgs, fred_data)
     --DBG.dbms(objectives, false, 'objectives')
 
 
@@ -911,7 +863,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     local interaction_matrix = FCFG.interaction_matrix()
     --DBG.dbms(interaction_matrix, false, 'interaction_matrix')
 
-    local village_objectives, villages_to_grab = FVU.village_objectives(raw_cfgs_main, side_cfgs, fred_data)
+    local village_objectives, villages_to_grab = FVU.village_objectives(raw_cfgs, side_cfgs, fred_data)
     objectives.protect = village_objectives
     --DBG.dbms(objectives.protect, false, 'objectives.protect')
     --DBG.dbms(villages_to_grab, false, 'villages_to_grab')
@@ -943,7 +895,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     local leader_goal = objectives.leader.final
     --DBG.dbms(leader_goal, false, 'leader_goal')
 
-    local leader_distance_map, enemy_leader_distance_maps = FU.get_leader_distance_map(objectives.leader.final, raw_cfgs_main, side_cfgs, move_data)
+    local leader_distance_map, enemy_leader_distance_maps = FU.get_leader_distance_map(objectives.leader.final, raw_cfgs, side_cfgs, move_data)
     -- We still store this in turn_data for now, as most of the time it will not
     -- change throughout the turn. Might move it to ops_data later.
     fred_data.turn_data.leader_distance_map = leader_distance_map
@@ -1068,7 +1020,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     -- Now we add units to the zones based on the total power of enemies in the
     -- zones, not just those that are threats to the leader
     local goal_hexes_zones = {}
-    for zone_id,cfg in pairs(raw_cfgs_main) do
+    for zone_id,cfg in pairs(raw_cfgs) do
         local max_ld, loc
         if objectives.protect.zones[zone_id] and objectives.protect.zones[zone_id].villages then
             for _,village in ipairs(objectives.protect.zones[zone_id].villages) do
@@ -1117,7 +1069,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     if (power_ratio > 1) then power_ratio = 1 end
     --std_print(my_total_power, enemy_total_power, power_ratio, fred_data.turn_data.behavior.orders.base_power_ratio)
 
-    local zone_power_stats = fred_ops_utils.zone_power_stats(raw_cfgs_main, assigned_units, assigned_enemies, power_ratio, fred_data)
+    local zone_power_stats = fred_ops_utils.zone_power_stats(raw_cfgs, assigned_units, assigned_enemies, power_ratio, fred_data)
     --DBG.dbms(zone_power_stats, false, 'zone_power_stats')
 
 
@@ -1240,7 +1192,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     -- If there are unused unit left now, we simply assign them to the zones
     -- with the largest difference between needed and assigned power
     if next(unused_units) then
-        local zone_power_stats = fred_ops_utils.zone_power_stats(raw_cfgs_main, assigned_units, assigned_enemies, power_ratio, fred_data)
+        local zone_power_stats = fred_ops_utils.zone_power_stats(raw_cfgs, assigned_units, assigned_enemies, power_ratio, fred_data)
         --DBG.dbms(zone_power_stats, false, 'zone_power_stats')
         local power_diffs = {}
         for zone_id,power in pairs(zone_power_stats) do
@@ -1306,7 +1258,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     local zone_maps = {}
     for zone_id,_ in pairs(assigned_units) do
         zone_maps[zone_id] = {}
-        local zone = wesnoth.get_locations(raw_cfgs_all[zone_id].ops_slf)
+        local zone = wesnoth.get_locations(raw_cfgs[zone_id].ops_slf)
         for _,loc in ipairs(zone) do
             FU.set_fgumap_value(zone_maps[zone_id], loc[1], loc[2], 'flag', true)
         end
@@ -1360,13 +1312,8 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(status, false, 'status')
 
 
---    fred_ops_utils.replace_zones(assigned_units, assigned_enemies, objectives.protect, fred_data.move_data)
-
     -- Calculate where the fronts are in the zones (in leader_distance values)
     -- based on a vulnerability-weighted sum over the zones
-    -- Note: assigned_units includes both the old and new zones from replace_zones()
-    --   This is intentional, as some actions use the individual, some the combined zones
-
     local side_cfgs = FMC.get_side_cfgs()
     local my_start_hex, enemy_start_hex
     for side,cfgs in ipairs(side_cfgs) do
@@ -1429,6 +1376,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
 
     local ops_data = {
+        raw_cfgs = raw_cfgs,
         objectives = objectives,
         status = status,
         assigned_enemies = assigned_enemies,
@@ -1466,7 +1414,6 @@ end
 function fred_ops_utils.update_ops_data(fred_data)
     local ops_data = fred_data.ops_data
     local move_data = fred_data.move_data
-    local raw_cfgs_main = FMC.get_raw_cfgs()
     local side_cfgs = FMC.get_side_cfgs()
 
     -- After each move, we update:
@@ -1595,11 +1542,6 @@ function fred_ops_utils.update_ops_data(fred_data)
     end
 
 
-    -- Also update the protect locations, as a location might not be threatened
-    -- any more
-    fred_ops_utils.replace_zones(ops_data.assigned_units, ops_data.assigned_enemies, ops_data.objectives.protect)
-
-
     -- Once the leader has no MP left, we reconsider the leader threats
     -- TODO: we might want to handle reassessing leader locs and threats differently
     local leader_proxy = wesnoth.get_unit(move_data.leader_x, move_data.leader_y)
@@ -1607,7 +1549,7 @@ function fred_ops_utils.update_ops_data(fred_data)
         ops_data.leader_threats.leader_locs = {}
         ops_data.leader_threats.protect_locs = { { leader_proxy.x, leader_proxy.y } }
 
-        FMLU.assess_leader_threats(ops_data.objectives.leader, ops_data.assigned_enemies, raw_cfgs_main, side_cfgs, fred_data)
+        FMLU.assess_leader_threats(ops_data.objectives.leader, ops_data.assigned_enemies, side_cfgs, fred_data)
     end
 
 
@@ -1883,10 +1825,8 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     })
 
 
-    -- Advancing is still done in the old zones
-    local raw_cfgs_main = FMC.get_raw_cfgs()
     local advancers_by_zone = {}
-    for zone_id,_ in pairs(raw_cfgs_main) do
+    for zone_id,_ in pairs(ops_data.raw_cfgs) do
         if ops_data.assigned_units[zone_id] then
             for id,_ in pairs(ops_data.assigned_units[zone_id]) do
                 if move_data.my_units_MP[id] then

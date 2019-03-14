@@ -1398,7 +1398,7 @@ local function get_hold_action(zone_cfg, fred_data)
     --std_print('protect_forward_rating_weight', protect_forward_rating_weight)
 
 
-    local raw_cfg = fred_data.turn_data.raw_cfgs[zone_cfg.zone_id]
+    local raw_cfg = fred_data.ops_data.raw_cfgs[zone_cfg.zone_id]
     --DBG.dbms(raw_cfg, false, 'raw_cfg')
     --DBG.dbms(zone_cfg, false, 'zone_cfg')
 
@@ -2386,7 +2386,7 @@ local function get_advance_action(zone_cfg, fred_data)
     DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> advance evaluation: ' .. zone_cfg.zone_id)
 
     --DBG.dbms(zone_cfg, false, 'zone_cfg')
-    local raw_cfg = fred_data.turn_data.raw_cfgs[zone_cfg.zone_id]
+    local raw_cfg = fred_data.ops_data.raw_cfgs[zone_cfg.zone_id]
     --DBG.dbms(raw_cfg, false, 'raw_cfg')
 
     local move_data = fred_data.move_data

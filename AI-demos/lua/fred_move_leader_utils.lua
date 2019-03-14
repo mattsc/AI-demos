@@ -287,7 +287,7 @@ function fred_move_leader_utils.leader_objectives(fred_data)
     return leader_objectives, effective_reach_map
 end
 
-function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigned_enemies, raw_cfgs_main, side_cfgs, fred_data)
+function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigned_enemies, side_cfgs, fred_data)
     local move_data = fred_data.move_data
 
     local leader = move_data.leaders[wesnoth.current.side]

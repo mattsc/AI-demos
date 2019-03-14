@@ -50,15 +50,20 @@ function fred_map_config.get_raw_cfgs(zone_id)
         zone_weight = 1,
     }
 
-    local cfg_top = {
-        zone_id = 'top',
-        ops_slf = { x = '17-20,21-34', y = '1-9,1-10' }
-    }
-
     local cfg_all_map = {
         zone_id = 'all_map',
         ops_slf = {},
         center_hexes = { { 20, 20 } }
+    }
+
+    -- Replacement zones below
+    -- TODO: maybe set this up differently, and/or calculate filters automatically
+    --   (that might be slower though)
+    local cfg_top = {
+        zone_id = 'top',
+        enemy_slf = { x = '17-20,21-34', y = '1-9,1-10' },
+        ops_slf = { x = '21-34,16-34,15-34', y = '1-5,6-12,13-24' },
+        center_hexes = { { 18, 12 }, { 20, 12 }, { 28, 13 } },
     }
 
 
@@ -104,10 +109,10 @@ function fred_map_config.get_raw_cfgs(zone_id)
 end
 
 function fred_map_config.replace_zone_ids()
-    local zone_ids = {
+    local zone_ids = { {
         old = { 'center', 'east' },
         new = 'top'
-    }
+    } }
 
     return zone_ids
 end
