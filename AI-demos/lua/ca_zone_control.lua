@@ -1444,9 +1444,13 @@ local function get_hold_action(zone_cfg, fred_data)
         end
     end
 
-    -- avoid_map is currently unused, but this opens up the option of including [avoid] tags
-    -- or similar functionality later.
+    -- avoid_map is currently only used to exclude the leader's goal position from holding
+    -- This is needed because otherwise the hold counter attack analysis of leader threats
+    -- does not work.
+    -- TODO: find a better way of dealing with this, using backup leader goals instead.
+    -- avoid_map also opens up the option of including [avoid] tags or similar functionality later.
     local avoid_map = {}
+    FU.set_fgumap_value(avoid_map, leader_goal[1], leader_goal[2], 'flag', true)
 
     local zone_map = {}
     for _,loc in ipairs(zone) do
