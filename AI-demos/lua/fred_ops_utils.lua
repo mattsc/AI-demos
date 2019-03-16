@@ -313,22 +313,19 @@ function fred_ops_utils.behavior_output(is_turn_start, ops_data, fred_data)
                 local zone = wesnoth.get_locations(raw_cfg.ops_slf)
 
                 local front_map = {}
-                local mean_x, mean_y, count = 0, 0, 0
                 for _,loc in ipairs(zone) do
                     local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc[1], loc[2], 'distance')
                     if (math.abs(ld - front.ld) <= 0.5) then
                         FU.set_fgumap_value(front_map, loc[1], loc[2], 'distance', ld)
-                        mean_x, mean_y, count = mean_x + loc[1], mean_y + loc[2], count + 1
                     end
                 end
-                mean_x, mean_y = math.abs(mean_x / count), math.abs(mean_y / count)
-                local str = string.format('Front in zone %s:  forward distance = %.3f, peak vulnerability = %.3f', zone_id, front.ld, front.peak_vuln)
+                local str = string.format('Front in zone %s: %d,%d\nforward distance = %.3f\npeak vulnerability = %.3f', zone_id, front.x, front.y, front.ld, front.peak_vuln)
 
                 local tmp_protect = ops_data.fronts.zones[zone_id].protect
                 if tmp_protect then
                     wesnoth.wml_actions.item { x = tmp_protect.x, y = tmp_protect.y, halo = "halo/teleport-8.png" }
                 end
-                    DBG.show_fgumap_with_message(front_map, 'distance', str, { x = mean_x, y = mean_y, no_halo = true })
+                DBG.show_fgumap_with_message(front_map, 'distance', str, { x = front.x, y = front.y })
                 if tmp_protect then
                     wesnoth.wml_actions.remove_item { x = tmp_protect.x, y = tmp_protect.y, halo = "halo/teleport-8.png" }
                 end
@@ -1347,6 +1344,14 @@ function fred_ops_utils.set_ops_data(fred_data)
         end
         table.sort(front_hexes, function(a, b) return a[3] > b[3] end)
 
+        local x_front, y_front, weight = 0, 0, 0
+        for _,hex in ipairs(front_hexes) do
+            x_front = x_front + hex[1] * hex[3]^2
+            y_front = y_front + hex[2] * hex[3]^2
+            weight = weight + hex[3]^2
+        end
+        x_front, y_front = H.round(x_front / weight), H.round(y_front / weight)
+
         local n_hexes = math.min(5, #front_hexes)
         local peak_vuln = 0
         for i_h=1,n_hexes do
@@ -1362,6 +1367,8 @@ function fred_ops_utils.set_ops_data(fred_data)
 
         fronts.zones[zone_id] = {
             ld = ld_front,
+            x = x_front,
+            y = y_front,
             peak_vuln = peak_vuln,
             push_utility = push_utility,
             power_ratio = zone_power_stats[zone_id].my_power / (zone_power_stats[zone_id].enemy_power + 1e-6)
