@@ -753,6 +753,46 @@ function fred_ops_utils.set_ops_data(fred_data)
                 raw_cfgs[old_zone_id] = nil
             end
         end
+
+        -- If the zones are different from what they were before on the same turn,
+        -- we need to do a full ops re-analysis -> delete ops_data
+        if fred_data.ops_data then
+            --std_print('checking whether raw_cfgs have changed')
+            local reset_ops_data = false
+            for new_zone_id,_ in pairs(raw_cfgs) do
+                local id_exists = false
+                for old_zone_id,_ in pairs(fred_data.ops_data.raw_cfgs) do
+                    if (new_zone_id == old_zone_id) then
+                        id_exists = true
+                        break
+                    end
+                end
+                if (not id_exists) then
+                    reset_ops_data = true
+                    break
+                end
+            end
+            if (not reset_ops_data) then
+                for old_zone_id,_ in pairs(fred_data.ops_data.raw_cfgs) do
+                    local id_exists = false
+                    for new_zone_id,_ in pairs(raw_cfgs) do
+                        if (old_zone_id == new_zone_id) then
+                            id_exists = true
+                            break
+                        end
+                    end
+                    if (not id_exists) then
+                        reset_ops_data = true
+                        break
+                    end
+                end
+            end
+            --std_print('reset_ops_data', reset_ops_data)
+
+            if reset_ops_data then
+                fred_data.ops_data = nil
+            end
+        end
     end
     --DBG.dbms(raw_cfgs, false, 'raw_cfgs')
 
