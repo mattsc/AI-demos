@@ -799,6 +799,9 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     ----- Get situation on the map first -----
 
+    local used_units = fred_data.ops_data and fred_data.ops_data.used_units or {}
+    --DBG.dbms(used_units, false, 'used_units')
+
     -- Attributing enemy units to zones
     -- Use base_power for this as it is not only for the current turn
     local assigned_enemies, unassigned_enemies = {}, {}
@@ -1437,6 +1440,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         assigned_enemies = assigned_enemies,
         unassigned_enemies = unassigned_enemies,
         assigned_units = assigned_units,
+        used_units = used_units,
         fronts = fronts,
         reserved_actions = reserved_actions,
         place_holders = place_holders,

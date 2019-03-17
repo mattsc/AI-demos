@@ -3471,8 +3471,12 @@ function ca_zone_control:execution(cfg, data, ai_debug)
 
         if data.zone_action.partial_move then
             AHL.movepartial_outofway_stopunit(ai, unit, dst[1], dst[2], { dx = dx, dy = dy })
+            if (unit.moves == 0) then
+                data.ops_data.used_units[unit.id] = data.zone_action.zone_id
+            end
         else
             AH.movefull_outofway_stopunit(ai, unit, dst[1], dst[2], { dx = dx, dy = dy })
+            data.ops_data.used_units[unit.id] = data.zone_action.zone_id
         end
         gamestate_changed = true
 
