@@ -335,9 +335,14 @@ function fred_ops_utils.behavior_output(is_turn_start, ops_data, fred_data)
 end
 
 
-function fred_ops_utils.find_fronts(zone_influence_maps, zone_power_stats, fred_data)
+function fred_ops_utils.find_fronts(zone_maps, zone_influence_maps, raw_cfgs, fred_data)
     -- Calculate where the fronts are in the zones (in leader_distance values)
     -- based on a vulnerability-weighted sum over the zones
+    --
+    -- @zone_influence_maps: if given, use the previously calculated zone_influence_maps,
+    --   otherwise use the overall influence map. This is done because (approximate) fronts
+    --   are also needed before zone_influence_maps are known.
+
     local side_cfgs = FMC.get_side_cfgs()
     local my_start_hex, enemy_start_hex
     for side,cfgs in ipairs(side_cfgs) do
@@ -347,26 +352,38 @@ function fred_ops_utils.find_fronts(zone_influence_maps, zone_power_stats, fred_
             enemy_start_hex = cfgs.start_hex
         end
     end
-    local my_ld0 = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, my_start_hex[1], my_start_hex[2], 'distance')
-    local enemy_ld0 = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, enemy_start_hex[1], enemy_start_hex[2], 'distance')
+
+    -- leader_distance_map should be set with respect to the final leader location.
+    -- However, fronts are needed at times when this information does not exist yet.
+    -- Use the AI side's start_hex in that case.
+    local leader_distance_map = fred_data.turn_data.leader_distance_map
+    if (not leader_distance_map) then
+        leader_distance_map = FU.get_leader_distance_map(my_start_hex, raw_cfgs, side_cfgs, fred_data.move_data, true)
+    end
+
+    local my_ld0 = FU.get_fgumap_value(leader_distance_map, my_start_hex[1], my_start_hex[2], 'distance')
+    local enemy_ld0 = FU.get_fgumap_value(leader_distance_map, enemy_start_hex[1], enemy_start_hex[2], 'distance')
 
     local fronts = { zones = {} }
     local max_push_utility = 0
-    for zone_id,zone_map in pairs(zone_influence_maps) do
+    for zone_id,zone_map in pairs(zone_maps) do
         local num, denom = 0, 0
-        for x,y,data in FU.fgumap_iter(zone_influence_maps[zone_id]) do
-            local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
-            num = num + data.vulnerability^2 * ld
-            denom = denom + data.vulnerability^2
+        local influence_map = zone_influence_maps and zone_influence_maps[zone_id] or fred_data.move_data.influence_maps
+        for x,y,data in FU.fgumap_iter(zone_map) do
+            local ld = FU.get_fgumap_value(leader_distance_map, x, y, 'distance')
+            local vulnerability = FU.get_fgumap_value(influence_map, x, y, 'vulnerability') or 0
+            num = num + vulnerability^2 * ld
+            denom = denom + vulnerability^2
         end
         local ld_front = num / denom
         --std_print(zone_id, ld_max)
 
         local front_hexes = {}
-        for x,y,data in FU.fgumap_iter(zone_influence_maps[zone_id]) do
-            local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
+        for x,y,data in FU.fgumap_iter(zone_map) do
+            local ld = FU.get_fgumap_value(leader_distance_map, x, y, 'distance')
             if (math.abs(ld - ld_front) <= 0.5) then
-                table.insert(front_hexes, { x, y, data.vulnerability })
+                local vulnerability = FU.get_fgumap_value(influence_map, x, y, 'vulnerability') or 0
+                table.insert(front_hexes, { x, y, vulnerability })
             end
         end
         table.sort(front_hexes, function(a, b) return a[3] > b[3] end)
@@ -397,8 +414,7 @@ function fred_ops_utils.find_fronts(zone_influence_maps, zone_power_stats, fred_
             x = x_front,
             y = y_front,
             peak_vuln = peak_vuln,
-            push_utility = push_utility,
-            power_ratio = zone_power_stats[zone_id].my_power / (zone_power_stats[zone_id].enemy_power + 1e-6)
+            push_utility = push_utility
         }
     end
     --std_print('max_push_utility', max_push_utility)
