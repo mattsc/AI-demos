@@ -272,32 +272,30 @@ function fred_utils.unittype_base_power(unit_type)
     return fred_utils.unit_base_power(unittype_info)
 end
 
-function fred_utils.moved_toward_zone(unit_copy, zone_cfgs, side_cfgs)
+function fred_utils.moved_toward_zone(unit_copy, fronts, side_cfgs)
     --std_print(unit_copy.id, unit_copy.x, unit_copy.y)
 
     local start_hex = side_cfgs[unit_copy.side].start_hex
 
     local to_zone_id, score
-    for zone_id,cfg in pairs(zone_cfgs) do
-        for _,center_hex in ipairs(cfg.center_hexes) do
-            local _,cost_new = wesnoth.find_path(unit_copy, center_hex[1], center_hex[2], { ignore_units = true })
+    for zone_id,front in pairs(fronts.zones) do
+        local _,cost_new = wesnoth.find_path(unit_copy, front.x, front.y, { ignore_units = true })
 
-            local old_hex = { unit_copy.x, unit_copy.y }
-            unit_copy.x, unit_copy.y = start_hex[1], start_hex[2]
+        local old_hex = { unit_copy.x, unit_copy.y }
+        unit_copy.x, unit_copy.y = start_hex[1], start_hex[2]
 
-            local _,cost_start = wesnoth.find_path(unit_copy, center_hex[1], center_hex[2], { ignore_units = true })
+        local _,cost_start = wesnoth.find_path(unit_copy, front.x, front.y, { ignore_units = true })
 
-            unit_copy.x, unit_copy.y = old_hex[1], old_hex[2]
+        unit_copy.x, unit_copy.y = old_hex[1], old_hex[2]
 
-            local rating = cost_start - cost_new
-            -- As a tie breaker, prefer zone that is originally farther away
-            rating = rating + cost_start / 1000
+        local rating = cost_start - cost_new
+        -- As a tie breaker, prefer zone that is originally farther away
+        rating = rating + cost_start / 1000
 
-            --std_print('  ' .. zone_id, cost_start, cost_new, rating)
+        --std_print('  ' .. zone_id, cost_start, cost_new, rating)
 
-            if (not score) or (rating > score) then
-               to_zone_id, score = zone_id, rating
-            end
+        if (not score) or (rating > score) then
+           to_zone_id, score = zone_id, rating
         end
     end
 
