@@ -382,7 +382,10 @@ function fred_utils.smooth_cost_map(unit_proxy, loc, is_inverse_map)
     return cost_map
 end
 
-function fred_utils.get_leader_distance_map(leader_loc, zone_cfgs, side_cfgs, move_data)
+function fred_utils.get_leader_distance_map(leader_loc, zone_cfgs, side_cfgs, move_data, skip_enemy_maps)
+    -- @skip_enemy_maps: optional flag to skip calculating enemy_leader_distance_maps.
+    --   These are not always needed and expensive to calculate.
+
     local enemy_leader_loc
     for side,cfg in ipairs(side_cfgs) do
         if (side == wesnoth.current.side) then
@@ -416,6 +419,10 @@ function fred_utils.get_leader_distance_map(leader_loc, zone_cfgs, side_cfgs, mo
             }
 
         end
+    end
+
+    if skip_enemy_maps then
+        return leader_distance_map
     end
 
     -- Enemy leader distance maps. These are calculated using wesnoth.find_cost_map() for
