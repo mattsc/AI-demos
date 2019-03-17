@@ -3081,10 +3081,9 @@ function ca_zone_control:evaluation(cfg, data, ai_debug)
         or (data.turn_data.turn_number ~= wesnoth.current.turn)
     then
         data.turn_data = FOU.set_turn_data(data.move_data)
-        data.ops_data = FOU.set_ops_data(data)
-    else
-        FOU.update_ops_data(data)
+        data.ops_data = nil
     end
+    data.ops_data = FOU.set_ops_data(data)
 
     FOU.get_action_cfgs(data)
     --DBG.dbms(data.zone_cfgs, false, 'data.zone_cfgs')
