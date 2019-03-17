@@ -818,6 +818,29 @@ function fred_ops_utils.set_ops_data(fred_data)
     local used_units = fred_data.ops_data and fred_data.ops_data.used_units or {}
     --DBG.dbms(used_units, false, 'used_units')
 
+
+    local zone_maps = {}
+    for zone_id,raw_cfg in pairs(raw_cfgs) do
+        zone_maps[zone_id] = {}
+        local zone = wesnoth.get_locations(raw_cfg.ops_slf)
+        for _,loc in ipairs(zone) do
+            FU.set_fgumap_value(zone_maps[zone_id], loc[1], loc[2], 'flag', true)
+        end
+    end
+
+    -- Need the fronts for assigning units to zones. These will not be the exact fronts
+    -- needed later (which in turn are based on the assigned units). They will either be
+    -- based on the fronts from the previous move, or on overall influence maps (at the
+    -- beginning of the turn), but those should be close enough for this purpose.
+    -- If necessary, we could do this iteratively, but I don't think this is needed.
+    local fronts
+    if fred_data.ops_data and fred_data.ops_data.fronts then
+        fronts = fred_data.ops_data.fronts
+    else
+        fronts = fred_ops_utils.find_fronts(zone_maps, nil, raw_cfgs, fred_data)
+    end
+    --DBG.dbms(fronts, false, 'fronts')
+
     -- Attributing enemy units to zones
     -- Use base_power for this as it is not only for the current turn
     local assigned_enemies, unassigned_enemies = {}, {}
@@ -1387,15 +1410,6 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(reserved_actions, false, 'reserved_actions')
 
 
-    local zone_maps = {}
-    for zone_id,_ in pairs(assigned_units) do
-        zone_maps[zone_id] = {}
-        local zone = wesnoth.get_locations(raw_cfgs[zone_id].ops_slf)
-        for _,loc in ipairs(zone) do
-            FU.set_fgumap_value(zone_maps[zone_id], loc[1], loc[2], 'flag', true)
-        end
-    end
-
     local zone_influence_maps = {}
     for zone_id,zone_map in pairs(zone_maps) do
         local zone_influence_map = {}
@@ -1444,8 +1458,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(status, false, 'status')
 
 
-    local fronts = fred_ops_utils.find_fronts(zone_influence_maps, zone_power_stats, fred_data)
-
+    local fronts = fred_ops_utils.find_fronts(zone_maps, zone_influence_maps, raw_cfgs, fred_data)
     --DBG.dbms(fronts, false, 'fronts')
 
 
