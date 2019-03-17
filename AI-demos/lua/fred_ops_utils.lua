@@ -841,6 +841,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
     --DBG.dbms(fronts, false, 'fronts')
 
+
     -- Attributing enemy units to zones
     -- Use base_power for this as it is not only for the current turn
     local assigned_enemies, unassigned_enemies = {}, {}
@@ -850,7 +851,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             and (not FU.get_fgumap_value(move_data.reachable_castles_map[move_data.unit_infos[id].side], loc[1], loc[2], 'castle') or false)
         then
             local unit_copy = move_data.unit_copies[id]
-            local zone_id = FU.moved_toward_zone(unit_copy, raw_cfgs, side_cfgs)
+            local zone_id = FU.moved_toward_zone(unit_copy, fronts, side_cfgs)
 
             if (not assigned_enemies[zone_id]) then
                 assigned_enemies[zone_id] = {}
@@ -866,19 +867,35 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(unassigned_enemies, false, 'unassigned_enemies')
     --DBG.dbms(enemy_zones, false, 'enemy_zones')
 
-    -- Pre-assign units to the zone into/toward which they have moved.
+
+    -- Pre-assign units to the zones into/toward which they have moved.
     -- They will preferably, but not strictly be used in those zones.
-    local pre_assigned_units = {}
+    -- Units without moves are put into a separate table, either based on where
+    -- they were used previously (if that corresponds to an existing zone, meaning
+    -- for example that units used in the 'all_map' zone are automatically
+    -- reconsidered) otherwise according to the same criteria as units with moves.
+    -- The latter also works for mid-turn situations or when moves are taken away in events etc.
+    local pre_assigned_units, assigned_units_noMP = {}, {}
     for id,_ in pairs(move_data.my_units) do
         local unit_copy = move_data.unit_copies[id]
         if (not unit_copy.canrecruit)
             and (not FU.get_fgumap_value(move_data.reachable_castles_map[unit_copy.side], unit_copy.x, unit_copy.y, 'castle') or false)
         then
-            local zone_id = FU.moved_toward_zone(unit_copy, raw_cfgs, side_cfgs)
-            pre_assigned_units[id] =  zone_id
+            if used_units[id] and raw_cfgs[used_units[id]] then
+                std_print(id, used_units[id])
+                assigned_units_noMP[id] = used_units[id]
+            else
+                local zone_id = FU.moved_toward_zone(unit_copy, fronts, side_cfgs)
+                if move_data.my_units_MP[id] then
+                    pre_assigned_units[id] = zone_id
+                else
+                    assigned_units_noMP[id] = zone_id
+                end
+            end
         end
     end
     --DBG.dbms(pre_assigned_units, false, 'pre_assigned_units')
+    --DBG.dbms(assigned_units_noMP, false, 'assigned_units_noMP')
 
     local leader_objectives, leader_effective_reach_map = FMLU.leader_objectives(fred_data)
     local objectives = { leader = leader_objectives }
