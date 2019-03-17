@@ -335,6 +335,82 @@ function fred_ops_utils.behavior_output(is_turn_start, ops_data, fred_data)
 end
 
 
+function fred_ops_utils.find_fronts(zone_influence_maps, zone_power_stats, fred_data)
+    -- Calculate where the fronts are in the zones (in leader_distance values)
+    -- based on a vulnerability-weighted sum over the zones
+    local side_cfgs = FMC.get_side_cfgs()
+    local my_start_hex, enemy_start_hex
+    for side,cfgs in ipairs(side_cfgs) do
+        if (side == wesnoth.current.side) then
+            my_start_hex = cfgs.start_hex
+        else
+            enemy_start_hex = cfgs.start_hex
+        end
+    end
+    local my_ld0 = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, my_start_hex[1], my_start_hex[2], 'distance')
+    local enemy_ld0 = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, enemy_start_hex[1], enemy_start_hex[2], 'distance')
+
+    local fronts = { zones = {} }
+    local max_push_utility = 0
+    for zone_id,zone_map in pairs(zone_influence_maps) do
+        local num, denom = 0, 0
+        for x,y,data in FU.fgumap_iter(zone_influence_maps[zone_id]) do
+            local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
+            num = num + data.vulnerability^2 * ld
+            denom = denom + data.vulnerability^2
+        end
+        local ld_front = num / denom
+        --std_print(zone_id, ld_max)
+
+        local front_hexes = {}
+        for x,y,data in FU.fgumap_iter(zone_influence_maps[zone_id]) do
+            local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
+            if (math.abs(ld - ld_front) <= 0.5) then
+                table.insert(front_hexes, { x, y, data.vulnerability })
+            end
+        end
+        table.sort(front_hexes, function(a, b) return a[3] > b[3] end)
+
+        local x_front, y_front, weight = 0, 0, 0
+        for _,hex in ipairs(front_hexes) do
+            x_front = x_front + hex[1] * hex[3]^2
+            y_front = y_front + hex[2] * hex[3]^2
+            weight = weight + hex[3]^2
+        end
+        x_front, y_front = H.round(x_front / weight), H.round(y_front / weight)
+
+        local n_hexes = math.min(5, #front_hexes)
+        local peak_vuln = 0
+        for i_h=1,n_hexes do
+            peak_vuln = peak_vuln + front_hexes[i_h][3]
+        end
+        peak_vuln = peak_vuln / n_hexes
+
+        local push_utility = peak_vuln * math.sqrt((enemy_ld0 - ld_front) / (enemy_ld0 - my_ld0))
+
+        if (push_utility > max_push_utility) then
+            max_push_utility = push_utility
+        end
+
+        fronts.zones[zone_id] = {
+            ld = ld_front,
+            x = x_front,
+            y = y_front,
+            peak_vuln = peak_vuln,
+            push_utility = push_utility,
+            power_ratio = zone_power_stats[zone_id].my_power / (zone_power_stats[zone_id].enemy_power + 1e-6)
+        }
+    end
+    --std_print('max_push_utility', max_push_utility)
+
+    for _,front in pairs(fronts.zones) do
+        front.push_utility = front.push_utility / max_push_utility
+    end
+
+    return fronts
+end
+
+
 function fred_ops_utils.set_turn_data(move_data)
     -- The if statement below is so that debugging works when starting the evaluation in the
     -- middle of the turn.  In normal gameplay, we can just use the existing enemy reach maps,
@@ -1309,76 +1385,8 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(status, false, 'status')
 
 
-    -- Calculate where the fronts are in the zones (in leader_distance values)
-    -- based on a vulnerability-weighted sum over the zones
-    local side_cfgs = FMC.get_side_cfgs()
-    local my_start_hex, enemy_start_hex
-    for side,cfgs in ipairs(side_cfgs) do
-        if (side == wesnoth.current.side) then
-            my_start_hex = cfgs.start_hex
-        else
-            enemy_start_hex = cfgs.start_hex
-        end
-    end
-    local my_ld0 = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, my_start_hex[1], my_start_hex[2], 'distance')
-    local enemy_ld0 = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, enemy_start_hex[1], enemy_start_hex[2], 'distance')
+    local fronts = fred_ops_utils.find_fronts(zone_influence_maps, zone_power_stats, fred_data)
 
-    local fronts = { zones = {} }
-    local max_push_utility = 0
-    for zone_id,zone_map in pairs(zone_maps) do
-        local num, denom = 0, 0
-        for x,y,data in FU.fgumap_iter(zone_influence_maps[zone_id]) do
-            local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
-            num = num + data.vulnerability^2 * ld
-            denom = denom + data.vulnerability^2
-        end
-        local ld_front = num / denom
-        --std_print(zone_id, ld_max)
-
-        local front_hexes = {}
-        for x,y,data in FU.fgumap_iter(zone_influence_maps[zone_id]) do
-            local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
-            if (math.abs(ld - ld_front) <= 0.5) then
-                table.insert(front_hexes, { x, y, data.vulnerability })
-            end
-        end
-        table.sort(front_hexes, function(a, b) return a[3] > b[3] end)
-
-        local x_front, y_front, weight = 0, 0, 0
-        for _,hex in ipairs(front_hexes) do
-            x_front = x_front + hex[1] * hex[3]^2
-            y_front = y_front + hex[2] * hex[3]^2
-            weight = weight + hex[3]^2
-        end
-        x_front, y_front = H.round(x_front / weight), H.round(y_front / weight)
-
-        local n_hexes = math.min(5, #front_hexes)
-        local peak_vuln = 0
-        for i_h=1,n_hexes do
-            peak_vuln = peak_vuln + front_hexes[i_h][3]
-        end
-        peak_vuln = peak_vuln / n_hexes
-
-        local push_utility = peak_vuln * math.sqrt((enemy_ld0 - ld_front) / (enemy_ld0 - my_ld0))
-
-        if (push_utility > max_push_utility) then
-            max_push_utility = push_utility
-        end
-
-        fronts.zones[zone_id] = {
-            ld = ld_front,
-            x = x_front,
-            y = y_front,
-            peak_vuln = peak_vuln,
-            push_utility = push_utility,
-            power_ratio = zone_power_stats[zone_id].my_power / (zone_power_stats[zone_id].enemy_power + 1e-6)
-        }
-    end
-    --std_print('max_push_utility', max_push_utility)
-
-    for _,front in pairs(fronts.zones) do
-        front.push_utility = front.push_utility / max_push_utility
-    end
     --DBG.dbms(fronts, false, 'fronts')
 
 
