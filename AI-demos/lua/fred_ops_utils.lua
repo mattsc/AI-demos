@@ -1272,10 +1272,6 @@ function fred_ops_utils.set_ops_data(fred_data)
         local power_missing = zone_power_stats[zone_id].power_missing
         if (power_missing > 0) then
             local action = 'zone:' .. zone_id
-            zone_benefits[action] = {
-                units = {},
-                required = { power = power_missing }
-            }
 
             for id,data in pairs(benefits) do
                 if (not move_data.unit_infos[id].canrecruit)
@@ -1294,6 +1290,13 @@ function fred_ops_utils.set_ops_data(fred_data)
                         inertia = 0.25 * unit_value
                     end
                     --std_print(zone_id, id, data.turns, turn_penalty, inertia)
+
+                    if (not zone_benefits[action]) then
+                        zone_benefits[action] = {
+                            units = {},
+                            required = { power = power_missing }
+                        }
+                    end
 
                     zone_benefits[action].units[id] = {
                         benefit = data.benefit,
