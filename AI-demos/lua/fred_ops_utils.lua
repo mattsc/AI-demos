@@ -854,7 +854,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             and (not FU.get_fgumap_value(move_data.reachable_castles_map[move_data.unit_infos[id].side], loc[1], loc[2], 'castle') or false)
         then
             local unit_copy = move_data.unit_copies[id]
-            local zone_id = FU.moved_toward_zone(unit_copy, fronts, side_cfgs)
+            local zone_id = FU.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs)
 
             if (not assigned_enemies[zone_id]) then
                 assigned_enemies[zone_id] = {}
@@ -888,7 +888,7 @@ function fred_ops_utils.set_ops_data(fred_data)
                 std_print(id, used_units[id])
                 assigned_units_noMP[id] = used_units[id]
             else
-                local zone_id = FU.moved_toward_zone(unit_copy, fronts, side_cfgs)
+                local zone_id = FU.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs)
                 if move_data.my_units_MP[id] then
                     pre_assigned_units[id] = zone_id
                 else

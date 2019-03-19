@@ -272,19 +272,31 @@ function fred_utils.unittype_base_power(unit_type)
     return fred_utils.unit_base_power(unittype_info)
 end
 
-function fred_utils.moved_toward_zone(unit_copy, fronts, side_cfgs)
-    --std_print(unit_copy.id, unit_copy.x, unit_copy.y)
 
+function fred_utils.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs)
+    --std_print(unit_copy.id, unit_copy.x, unit_copy.y)
     local start_hex = side_cfgs[unit_copy.side].start_hex
 
     local to_zone_id, score
-    for zone_id,front in pairs(fronts.zones) do
-        local _,cost_new = wesnoth.find_path(unit_copy, front.x, front.y, { ignore_units = true })
+    for zone_id,raw_cfg in pairs(raw_cfgs) do
+        local front = fronts.zones[zone_id]
+        local x,y = 0, 0
+        if front then
+            x, y = front.x, front.y
+        else
+            for _,hex in ipairs(raw_cfg.center_hexes) do
+                x, y = x + hex[1], y + hex[2]
+            end
+            x, y = x / #raw_cfg.center_hexes, y / #raw_cfg.center_hexes
+        end
+        --std_print(zone_id, x, y)
+
+        local _,cost_new = wesnoth.find_path(unit_copy, x, y, { ignore_units = true })
 
         local old_hex = { unit_copy.x, unit_copy.y }
         unit_copy.x, unit_copy.y = start_hex[1], start_hex[2]
 
-        local _,cost_start = wesnoth.find_path(unit_copy, front.x, front.y, { ignore_units = true })
+        local _,cost_start = wesnoth.find_path(unit_copy, x, y, { ignore_units = true })
 
         unit_copy.x, unit_copy.y = old_hex[1], old_hex[2]
 
