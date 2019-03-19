@@ -281,7 +281,10 @@ function fred_utils.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs)
     for zone_id,raw_cfg in pairs(raw_cfgs) do
         local front = fronts.zones[zone_id]
         local x,y = 0, 0
-        if front then
+        -- If front hex does not exist or is not passable for a unit, use center hex instead
+        -- TODO: not clear whether using a passable hex close to the front is better in this case
+        -- TODO: check whether this is too expensive
+        if front and (unit_copy:movement(wesnoth.get_terrain(x, y)) < 99) then
             x, y = front.x, front.y
         else
             for _,hex in ipairs(raw_cfg.center_hexes) do
@@ -289,7 +292,6 @@ function fred_utils.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs)
             end
             x, y = x / #raw_cfg.center_hexes, y / #raw_cfg.center_hexes
         end
-        --std_print(zone_id, x, y)
 
         local _,cost_new = wesnoth.find_path(unit_copy, x, y, { ignore_units = true })
 
@@ -304,7 +306,7 @@ function fred_utils.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs)
         -- As a tie breaker, prefer zone that is originally farther away
         rating = rating + cost_start / 1000
 
-        --std_print('  ' .. zone_id, cost_start, cost_new, rating)
+        --std_print('  ' .. zone_id, x .. ',' .. y, cost_start, cost_new, rating)
 
         if (not score) or (rating > score) then
            to_zone_id, score = zone_id, rating
