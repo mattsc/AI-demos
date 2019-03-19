@@ -375,6 +375,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     local move_data = fred_data.move_data
     local leader_id = move_data.leaders[wesnoth.current.side].id
     local leader_info = move_data.unit_infos[leader_id]
+    local leader_value = FU.unit_value(move_data.unit_infos[leader_id])
 
     local value_ratio = fred_data.turn_data.behavior.orders.value_ratio
     local hold_counter_weight = FCFG.get_cfg_parm('hold_counter_weight')
@@ -458,7 +459,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
             -- TODO: does this work? does it work for both hold and protect?
             local penalty_rating, penalty_str = FBU.action_penalty(actions, reserved_actions, interactions, move_data)
-            penalty_rating = (leader_info.cost + penalty_rating) / leader_info.cost
+            penalty_rating = (leader_value + penalty_rating) / leader_value
             penalty_rating = 0.5 + penalty_rating / 2
             --std_print('penalty combo #' .. i_c, penalty_rating, penalty_str)
 
@@ -554,7 +555,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                     leader_min_enemy_power = status.leader.enemy_power
                 end
 
-                leader_protect_mult = (leader_info.cost - status.leader.exposure) / leader_info.cost
+                leader_protect_mult = (leader_value - status.leader.exposure) / leader_value
                 -- It's possible for the number above to be slightly below zero, and
                 -- we probably don't want quite as strong an effect anyway, so:
                 leader_protect_mult = 0.5 + leader_protect_mult / 2
@@ -615,17 +616,17 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
 
             -- Now combine all the contributions
-            -- Note that everything is divided by the leader cost, in order to make things comparable
+            -- Note that everything is divided by the leader value, in order to make things comparable
             -- TODO: is this the right thing to do?
             local village_protect_mult = 1
             for _,village in ipairs(protected_villages) do
-                village_protect_mult = village_protect_mult + village.raw_benefit / leader_info.cost / 4
+                village_protect_mult = village_protect_mult + village.raw_benefit / leader_value / 4
             end
             local unit_protect_mult = 1
             for _,unit in pairs(protected_units) do
-                unit_protect_mult = unit_protect_mult + unit / leader_info.cost / 4
+                unit_protect_mult = unit_protect_mult + unit / leader_value / 4
             end
-            local castle_protect_mult = 1 + math.sqrt(n_castles_protected) * 3 / leader_info.cost / 4
+            local castle_protect_mult = 1 + math.sqrt(n_castles_protected) * 3 / leader_value / 4
 
             protect_mult = leader_protect_mult * village_protect_mult * unit_protect_mult * castle_protect_mult
             --std_print('protect_mult ( = l * v * u * c)', protect_mult, leader_protect_mult, village_protect_mult, unit_protect_mult, castle_protect_mult)

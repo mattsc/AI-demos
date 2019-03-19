@@ -953,7 +953,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         local leader_heal_benefit = math.min(8, move_data.unit_infos[leader.id].max_hitpoints - move_data.unit_infos[leader.id].hitpoints)
         -- Multiply benefit * 1.5 for this being the leader
         -- Not putting the leader into too much danger is taken care of elsewhere
-        leader_heal_benefit = 1.5 * leader_heal_benefit / move_data.unit_infos[leader.id].max_hitpoints * move_data.unit_infos[leader.id].cost
+        leader_heal_benefit = 1.5 * leader_heal_benefit / move_data.unit_infos[leader.id].max_hitpoints * FU.unit_value(move_data.unit_infos[leader.id])
         local x, y = objectives.leader.village[1], objectives.leader.village[2]
         local action = {
             id = leader.id,
@@ -1341,7 +1341,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             -- Use half of missing HP
             -- TODO: refine
             local heal_benefit = 0.5 * (move_data.unit_infos[id].max_hitpoints - move_data.unit_infos[id].hitpoints)
-            heal_benefit = heal_benefit / move_data.unit_infos[id].max_hitpoints * move_data.unit_infos[id].cost
+            heal_benefit = heal_benefit / move_data.unit_infos[id].max_hitpoints * FU.unit_value(move_data.unit_infos[id])
             local action = {
                 id = id,
                 x = -1, y = -1, -- Don't have reserved location
