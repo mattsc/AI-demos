@@ -3063,47 +3063,47 @@ end
 
 local ca_zone_control = {}
 
-function ca_zone_control:evaluation(cfg, data, ai_debug)
+function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
     local ai = ai_debug or ai
 
     local score_zone_control = 350000
     local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
 
-    DBG.print_debug_time('eval', data.turn_start_time, '     - Evaluating zone_control CA:')
+    DBG.print_debug_time('eval', fred_data.turn_start_time, '     - Evaluating zone_control CA:')
 
     -- This forces the turn data to be reset each call (use with care!)
     if DBG.show_debug('reset_turn') then
-        data.turn_data = nil
+        fred_data.turn_data = nil
     end
 
 
-    if (not data.turn_data)
-        or (data.turn_data.turn_number ~= wesnoth.current.turn)
+    if (not fred_data.turn_data)
+        or (fred_data.turn_data.turn_number ~= wesnoth.current.turn)
     then
-        data.turn_data = FOU.set_turn_data(data.move_data)
-        data.ops_data = nil
+        fred_data.turn_data = FOU.set_turn_data(fred_data.move_data)
+        fred_data.ops_data = nil
     end
-    data.ops_data = FOU.set_ops_data(data)
+    fred_data.ops_data = FOU.set_ops_data(fred_data)
 
-    FOU.get_action_cfgs(data)
-    --DBG.dbms(data.zone_cfgs, false, 'data.zone_cfgs')
+    FOU.get_action_cfgs(fred_data)
+    --DBG.dbms(fred_data.zone_cfgs, false, 'fred_data.zone_cfgs')
 
-    for i_c,cfg in ipairs(data.zone_cfgs) do
+    for i_c,cfg in ipairs(fred_data.zone_cfgs) do
         --DBG.dbms(cfg, false, 'cfg')
 
         -- Reserved actions have already been evaluated and checked for validity.
         -- We can skip changing units on the map, calling evaluation functions etc.
         if (cfg.action_type == 'reserved_action') then
             local action = {
-                action_str = data.ops_data.interaction_matrix.abbrevs[cfg.reserved_id],
+                action_str = fred_data.ops_data.interaction_matrix.abbrevs[cfg.reserved_id],
                 zone_id = cfg.zone_id,
                 units = {},
                 dsts = {}
             }
 
-            for _,reserved_action in pairs(data.ops_data.reserved_actions) do
+            for _,reserved_action in pairs(fred_data.ops_data.reserved_actions) do
                 if (reserved_action.action_id == cfg.reserved_id) then
-                    local tmp_unit = AH.table_copy(data.move_data.units[reserved_action.id])
+                    local tmp_unit = AH.table_copy(fred_data.move_data.units[reserved_action.id])
                     tmp_unit.id = reserved_action.id
                     table.insert(action.units, tmp_unit)
                     table.insert(action.dsts, { reserved_action.x, reserved_action.y })
@@ -3112,24 +3112,24 @@ function ca_zone_control:evaluation(cfg, data, ai_debug)
             --DBG.dbms(action, false, 'action')
 
             if action.units[1] then
-                data.zone_action = action
+                fred_data.zone_action = action
                 return score_zone_control, action
             end
         else
             -- Extract all AI units with MP left (for enemy path finding, counter attack placement etc.)
             local extracted_units = {}
-            for id,loc in pairs(data.move_data.my_units_MP) do
+            for id,loc in pairs(fred_data.move_data.my_units_MP) do
                 local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
                 wesnoth.extract_unit(unit_proxy)
                 table.insert(extracted_units, unit_proxy)  -- Not a proxy unit any more at this point
             end
 
             -- Put the prerecruited units onto the map
-            --DBG.dbms(data.ops_data.objectives.leader.prerecruit)
+            --DBG.dbms(fred_data.ops_data.objectives.leader.prerecruit)
             --[[ Do not do this, as hexes should be available with penalty
             -- TODO: delete code later, once we know whether this works
-            if data.ops_data.objectives.leader.prerecruit then
-                for _,recruit in ipairs(data.ops_data.objectives.leader.prerecruit.units) do
+            if fred_data.ops_data.objectives.leader.prerecruit then
+                for _,recruit in ipairs(fred_data.ops_data.objectives.leader.prerecruit.units) do
                     --std_print('Putting pre-recruit onto map: ' .. recruit.recruit_type, recruit.recruit_hex[1] .. ',' .. recruit.recruit_hex[2])
                     wesnoth.put_unit({
                         type = recruit.recruit_type,
@@ -3143,11 +3143,11 @@ function ca_zone_control:evaluation(cfg, data, ai_debug)
             end
             --]]
 
-            local zone_action = get_zone_action(cfg, data)
+            local zone_action = get_zone_action(cfg, fred_data)
 
             --[[
-            if data.ops_data.objectives.leader.prerecruit then
-                for _,recruit in ipairs(data.ops_data.objectives.leader.prerecruit.units) do
+            if fred_data.ops_data.objectives.leader.prerecruit then
+                for _,recruit in ipairs(fred_data.ops_data.objectives.leader.prerecruit.units) do
                     --std_print('Removing pre-recruit onto map: ' .. recruit.recruit_type, recruit.recruit_hex[1] .. ',' .. recruit.recruit_hex[2])
                     wesnoth.erase_unit(recruit.recruit_hex[1], recruit.recruit_hex[2])
                 end
@@ -3159,60 +3159,60 @@ function ca_zone_control:evaluation(cfg, data, ai_debug)
             if zone_action then
                 zone_action.zone_id = cfg.zone_id
                 --DBG.dbms(zone_action, false, 'zone_action')
-                data.zone_action = zone_action
+                fred_data.zone_action = zone_action
                 return score_zone_control, zone_action
             end
         end
     end
 
-    DBG.print_debug_time('eval', data.turn_start_time, '--> done with all cfgs')
+    DBG.print_debug_time('eval', fred_data.turn_start_time, '--> done with all cfgs')
 
     return 0
 end
 
-function ca_zone_control:execution(cfg, data, ai_debug)
+function ca_zone_control:execution(cfg, fred_data, ai_debug)
     local ai = ai_debug or ai
 
-    local action = data.zone_action.zone_id .. ': ' .. data.zone_action.action_str
-    --DBG.dbms(data.zone_action, false, 'data.zone_action')
+    local action = fred_data.zone_action.zone_id .. ': ' .. fred_data.zone_action.action_str
+    --DBG.dbms(fred_data.zone_action, false, 'fred_data.zone_action')
 
 
     -- If recruiting is set, we just do that, nothing else needs to be checked
-    if (data.zone_action.type == 'recruit') then
-        DBG.print_debug_time('exec', data.turn_start_time, '=> exec: ' .. action)
-        do_recruit(data, ai)
+    if (fred_data.zone_action.type == 'recruit') then
+        DBG.print_debug_time('exec', fred_data.turn_start_time, '=> exec: ' .. action)
+        do_recruit(fred_data, ai)
         return
     end
 
 
     local enemy_proxy
-    if data.zone_action.enemy then
-        enemy_proxy = wesnoth.get_units { id = next(data.zone_action.enemy) }[1]
+    if fred_data.zone_action.enemy then
+        enemy_proxy = wesnoth.get_units { id = next(fred_data.zone_action.enemy) }[1]
     end
 
     local gamestate_changed = false
 
-    while data.zone_action.units and (#data.zone_action.units > 0) do
+    while fred_data.zone_action.units and (#fred_data.zone_action.units > 0) do
         local next_unit_ind = 1
 
         -- If this is an attack combo, reorder units to
         --   - Use unit with best rating
         --   - Maximize chance of leveling up
         --   - Give maximum XP to unit closest to advancing
-        if enemy_proxy and data.zone_action.units[2] then
+        if enemy_proxy and fred_data.zone_action.units[2] then
             local attacker_copies, attacker_infos = {}, {}
             local combo = {}
-            for i,unit in ipairs(data.zone_action.units) do
-                table.insert(attacker_copies, data.move_data.unit_copies[unit.id])
-                table.insert(attacker_infos, data.move_data.unit_infos[unit.id])
+            for i,unit in ipairs(fred_data.zone_action.units) do
+                table.insert(attacker_copies, fred_data.move_data.unit_copies[unit.id])
+                table.insert(attacker_infos, fred_data.move_data.unit_infos[unit.id])
 
-                combo[unit[1] * 1000 + unit[2]] = data.zone_action.dsts[i][1] * 1000 + data.zone_action.dsts[i][2]
+                combo[unit[1] * 1000 + unit[2]] = fred_data.zone_action.dsts[i][1] * 1000 + fred_data.zone_action.dsts[i][2]
             end
 
-            local defender_info = data.move_data.unit_infos[enemy_proxy.id]
+            local defender_info = fred_data.move_data.unit_infos[enemy_proxy.id]
 
-            local cfg_attack = { value_ratio = data.turn_data.behavior.orders.value_ratio }
-            local combo_outcome = FAU.attack_combo_eval(combo, data.zone_action.enemy, cfg_attack, data.move_data, data.move_cache)
+            local cfg_attack = { value_ratio = fred_data.turn_data.behavior.orders.value_ratio }
+            local combo_outcome = FAU.attack_combo_eval(combo, fred_data.zone_action.enemy, cfg_attack, fred_data.move_data, fred_data.move_cache)
             --std_print('\noverall kill chance: ', combo_outcome.defender_damage.die_chance)
 
             local enemy_level = defender_info.level
@@ -3221,8 +3221,8 @@ function ca_zone_control:execution(cfg, data, ai_debug)
 
             -- Check if any unit has a chance to level up
             local levelups = { anybody = false }
-            for ind,unit in ipairs(data.zone_action.units) do
-                local unit_info = data.move_data.unit_infos[unit.id]
+            for ind,unit in ipairs(fred_data.zone_action.units) do
+                local unit_info = fred_data.move_data.unit_infos[unit.id]
                 local XP_diff = unit_info.max_experience - unit_info.experience
 
                 local levelup_possible, levelup_certain = false, false
@@ -3240,19 +3240,19 @@ function ca_zone_control:execution(cfg, data, ai_debug)
             --DBG.dbms(levelups, false, 'levelups')
 
 
-            --DBG.print_ts_delta(data.turn_start_time, 'Reordering units for attack')
+            --DBG.print_ts_delta(fred_data.turn_start_time, 'Reordering units for attack')
             local max_rating
-            for ind,unit in ipairs(data.zone_action.units) do
-                local unit_info = data.move_data.unit_infos[unit.id]
+            for ind,unit in ipairs(fred_data.zone_action.units) do
+                local unit_info = fred_data.move_data.unit_infos[unit.id]
 
                 local att_outcome, def_outcome = FAU.attack_outcome(
                     attacker_copies[ind], enemy_proxy,
-                    data.zone_action.dsts[ind],
+                    fred_data.zone_action.dsts[ind],
                     attacker_infos[ind], defender_info,
-                    data.move_data, data.move_cache, cfg_attack
+                    fred_data.move_data, fred_data.move_cache, cfg_attack
                 )
                 local rating_table, att_damage, def_damage =
-                    FAU.attack_rating({ unit_info }, defender_info, { data.zone_action.dsts[ind] }, { att_outcome }, def_outcome, cfg_attack, data.move_data)
+                    FAU.attack_rating({ unit_info }, defender_info, { fred_data.zone_action.dsts[ind] }, { att_outcome }, def_outcome, cfg_attack, fred_data.move_data)
 
                 -- The base rating is the individual attack rating
                 local rating = rating_table.rating
@@ -3317,26 +3317,26 @@ function ca_zone_control:execution(cfg, data, ai_debug)
                     max_rating, next_unit_ind = rating, ind
                 end
             end
-            --DBG.print_ts_delta(data.turn_start_time, 'Best unit to go next:', data.zone_action.units[next_unit_ind].id, max_rating, next_unit_ind)
+            --DBG.print_ts_delta(fred_data.turn_start_time, 'Best unit to go next:', fred_data.zone_action.units[next_unit_ind].id, max_rating, next_unit_ind)
         end
-        --DBG.print_ts_delta(data.turn_start_time, 'next_unit_ind', next_unit_ind)
+        --DBG.print_ts_delta(fred_data.turn_start_time, 'next_unit_ind', next_unit_ind)
 
-        local unit = wesnoth.get_units { id = data.zone_action.units[next_unit_ind].id }[1]
+        local unit = wesnoth.get_units { id = fred_data.zone_action.units[next_unit_ind].id }[1]
         if (not unit) then
-            data.zone_action = nil
+            fred_data.zone_action = nil
             return
         end
 
 
-        local dst = data.zone_action.dsts[next_unit_ind]
+        local dst = fred_data.zone_action.dsts[next_unit_ind]
 
         -- If this is the leader (and has MP left), recruit first
-        local leader_objectives = data.ops_data.objectives.leader
+        local leader_objectives = fred_data.ops_data.objectives.leader
         if unit.canrecruit and (unit.moves > 0)
             and leader_objectives.prerecruit and leader_objectives.prerecruit.units and leader_objectives.prerecruit.units[1]
         then
-            DBG.print_debug_time('exec', data.turn_start_time, '=> exec: ' .. action .. ' (leader used -> recruit first)')
-            do_recruit(data, ai, data.zone_action)
+            DBG.print_debug_time('exec', fred_data.turn_start_time, '=> exec: ' .. action .. ' (leader used -> recruit first)')
+            do_recruit(fred_data, ai, fred_data.zone_action)
             gamestate_changed = true
 
             -- We also check here separately whether the leader can still get to dst.
@@ -3348,7 +3348,7 @@ function ca_zone_control:execution(cfg, data, ai_debug)
             end
         end
 
-        DBG.print_debug_time('exec', data.turn_start_time, '=> exec: ' .. action)
+        DBG.print_debug_time('exec', fred_data.turn_start_time, '=> exec: ' .. action)
 
         -- The following are some tests to make sure the intended move is actually
         -- possible, as there might have been some interference with units moving
@@ -3363,7 +3363,7 @@ function ca_zone_control:execution(cfg, data, ai_debug)
             -- TODO: make sure up front that move combination is possible
             local _,cost = wesnoth.find_path(unit, dst[1], dst[2])
             if (cost > unit.moves) then
-                data.zone_action = nil
+                fred_data.zone_action = nil
                 return
             end
 
@@ -3390,7 +3390,7 @@ function ca_zone_control:execution(cfg, data, ai_debug)
                 end
 
                 if unit_blocked then
-                    data.zone_action = nil
+                    fred_data.zone_action = nil
                     return
                 end
             end
@@ -3398,7 +3398,7 @@ function ca_zone_control:execution(cfg, data, ai_debug)
 
 
         -- Generally, move out of way in direction of own leader
-        local leader_loc = data.move_data.leaders[wesnoth.current.side]
+        local leader_loc = fred_data.move_data.leaders[wesnoth.current.side]
         local dx, dy  = leader_loc[1] - dst[1], leader_loc[2] - dst[2]
         local r = math.sqrt(dx * dx + dy * dy)
         if (r ~= 0) then dx, dy = dx / r, dy / r end
@@ -3412,7 +3412,7 @@ function ca_zone_control:execution(cfg, data, ai_debug)
 
         if unit_in_way then
             if unit_in_way.canrecruit then
-                local leader_objectives = data.ops_data.objectives.leader
+                local leader_objectives = fred_data.ops_data.objectives.leader
                 if leader_objectives.keep then
                     dx = leader_objectives.keep[1] - unit_in_way.x
                     dy = leader_objectives.keep[2] - unit_in_way.y
@@ -3423,10 +3423,10 @@ function ca_zone_control:execution(cfg, data, ai_debug)
                 local r = math.sqrt(dx * dx + dy * dy)
                 if (r ~= 0) then dx, dy = dx / r, dy / r end
             else
-                for i_u,u in ipairs(data.zone_action.units) do
+                for i_u,u in ipairs(fred_data.zone_action.units) do
                     if (u.id == unit_in_way.id) then
                         std_print('  unit is part of the combo', unit_in_way.id, unit_in_way.x, unit_in_way.y)
-                        local path, _ = wesnoth.find_path(unit_in_way, data.zone_action.dsts[i_u][1], data.zone_action.dsts[i_u][2])
+                        local path, _ = wesnoth.find_path(unit_in_way, fred_data.zone_action.dsts[i_u][1], fred_data.zone_action.dsts[i_u][2])
 
                         -- If we can find an unoccupied hex along the path, move the
                         -- unit_in_way there, in order to maximize the chances of it
@@ -3450,7 +3450,7 @@ function ca_zone_control:execution(cfg, data, ai_debug)
                                 std_print('Trying to identify path table error !!!!!!!!')
                                 std_print(i_u, u.id, unit_in_way.id)
                                 std_print(unit.id, unit.x, unit.y)
-                                DBG.dbms(data.zone_action, -1)
+                                DBG.dbms(fred_data.zone_action, -1)
                                 DBG.dbms(dst, -1)
                                 DBG.dbms(path, -1)
                             end
@@ -3469,47 +3469,47 @@ function ca_zone_control:execution(cfg, data, ai_debug)
             error(unit_in_way.id .. " to move out of way with dx = dy = 0")
         end
 
-        if data.zone_action.partial_move then
+        if fred_data.zone_action.partial_move then
             AHL.movepartial_outofway_stopunit(ai, unit, dst[1], dst[2], { dx = dx, dy = dy })
             if (unit.moves == 0) then
-                data.ops_data.used_units[unit.id] = data.zone_action.zone_id
+                fred_data.ops_data.used_units[unit.id] = fred_data.zone_action.zone_id
             end
         else
             AH.movefull_outofway_stopunit(ai, unit, dst[1], dst[2], { dx = dx, dy = dy })
-            data.ops_data.used_units[unit.id] = data.zone_action.zone_id
+            fred_data.ops_data.used_units[unit.id] = fred_data.zone_action.zone_id
         end
         gamestate_changed = true
 
 
         -- Remove these from the table
-        table.remove(data.zone_action.units, next_unit_ind)
-        table.remove(data.zone_action.dsts, next_unit_ind)
+        table.remove(fred_data.zone_action.units, next_unit_ind)
+        table.remove(fred_data.zone_action.dsts, next_unit_ind)
 
         -- Then do the attack, if there is one to do
         if enemy_proxy and (wesnoth.map.distance_between(unit.x, unit.y, enemy_proxy.x, enemy_proxy.y) == 1) then
-            local weapon = data.zone_action.weapons[next_unit_ind]
-            table.remove(data.zone_action.weapons, next_unit_ind)
+            local weapon = fred_data.zone_action.weapons[next_unit_ind]
+            table.remove(fred_data.zone_action.weapons, next_unit_ind)
 
             AH.checked_attack(ai, unit, enemy_proxy, weapon)
 
             -- If enemy got killed, we need to stop here
             if (not enemy_proxy.valid) then
-                data.zone_action.units = nil
+                fred_data.zone_action.units = nil
             end
 
             -- Need to reset the enemy information if there are more attacks in this combo
-            if data.zone_action.units and data.zone_action.units[1] then
-                data.move_data.unit_copies[enemy_proxy.id] = wesnoth.copy_unit(enemy_proxy)
-                data.move_data.unit_infos[enemy_proxy.id] = FU.single_unit_info(enemy_proxy)
+            if fred_data.zone_action.units and fred_data.zone_action.units[1] then
+                fred_data.move_data.unit_copies[enemy_proxy.id] = wesnoth.copy_unit(enemy_proxy)
+                fred_data.move_data.unit_infos[enemy_proxy.id] = FU.single_unit_info(enemy_proxy)
             end
         end
 
         if (not unit) or (not unit.valid) then
-            data.zone_action.units = nil
+            fred_data.zone_action.units = nil
         end
     end
 
-    data.zone_action = nil
+    fred_data.zone_action = nil
 end
 
 return ca_zone_control
