@@ -375,47 +375,50 @@ function fred_ops_utils.find_fronts(zone_maps, zone_influence_maps, raw_cfgs, fr
             num = num + vulnerability^2 * ld
             denom = denom + vulnerability^2
         end
-        local ld_front = num / denom
-        --std_print(zone_id, ld_max)
 
-        local front_hexes = {}
-        for x,y,data in FU.fgumap_iter(zone_map) do
-            local ld = FU.get_fgumap_value(leader_distance_map, x, y, 'distance')
-            if (math.abs(ld - ld_front) <= 0.5) then
-                local vulnerability = FU.get_fgumap_value(influence_map, x, y, 'vulnerability') or 0
-                table.insert(front_hexes, { x, y, vulnerability })
+        if (denom > 0) then
+            local ld_front = num / denom
+            --std_print(zone_id, ld_front)
+
+            local front_hexes = {}
+            for x,y,data in FU.fgumap_iter(zone_map) do
+                local ld = FU.get_fgumap_value(leader_distance_map, x, y, 'distance')
+                if (math.abs(ld - ld_front) <= 0.5) then
+                    local vulnerability = FU.get_fgumap_value(influence_map, x, y, 'vulnerability') or 0
+                    table.insert(front_hexes, { x, y, vulnerability })
+                end
             end
+            table.sort(front_hexes, function(a, b) return a[3] > b[3] end)
+
+            local x_front, y_front, weight = 0, 0, 0
+            for _,hex in ipairs(front_hexes) do
+                x_front = x_front + hex[1] * hex[3]^2
+                y_front = y_front + hex[2] * hex[3]^2
+                weight = weight + hex[3]^2
+            end
+            x_front, y_front = H.round(x_front / weight), H.round(y_front / weight)
+
+            local n_hexes = math.min(5, #front_hexes)
+            local peak_vuln = 0
+            for i_h=1,n_hexes do
+                peak_vuln = peak_vuln + front_hexes[i_h][3]
+            end
+            peak_vuln = peak_vuln / n_hexes
+
+            local push_utility = peak_vuln * math.sqrt((enemy_ld0 - ld_front) / (enemy_ld0 - my_ld0))
+
+            if (push_utility > max_push_utility) then
+                max_push_utility = push_utility
+            end
+
+            fronts.zones[zone_id] = {
+                ld = ld_front,
+                x = x_front,
+                y = y_front,
+                peak_vuln = peak_vuln,
+                push_utility = push_utility
+            }
         end
-        table.sort(front_hexes, function(a, b) return a[3] > b[3] end)
-
-        local x_front, y_front, weight = 0, 0, 0
-        for _,hex in ipairs(front_hexes) do
-            x_front = x_front + hex[1] * hex[3]^2
-            y_front = y_front + hex[2] * hex[3]^2
-            weight = weight + hex[3]^2
-        end
-        x_front, y_front = H.round(x_front / weight), H.round(y_front / weight)
-
-        local n_hexes = math.min(5, #front_hexes)
-        local peak_vuln = 0
-        for i_h=1,n_hexes do
-            peak_vuln = peak_vuln + front_hexes[i_h][3]
-        end
-        peak_vuln = peak_vuln / n_hexes
-
-        local push_utility = peak_vuln * math.sqrt((enemy_ld0 - ld_front) / (enemy_ld0 - my_ld0))
-
-        if (push_utility > max_push_utility) then
-            max_push_utility = push_utility
-        end
-
-        fronts.zones[zone_id] = {
-            ld = ld_front,
-            x = x_front,
-            y = y_front,
-            peak_vuln = peak_vuln,
-            push_utility = push_utility
-        }
     end
     --std_print('max_push_utility', max_push_utility)
 
