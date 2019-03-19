@@ -878,7 +878,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     -- for example that units used in the 'all_map' zone are automatically
     -- reconsidered) otherwise according to the same criteria as units with moves.
     -- The latter also works for mid-turn situations or when moves are taken away in events etc.
-    local pre_assigned_units, assigned_units_noMP = {}, {}
+    local pre_assigned_units, units_noMP_zones = {}, {}
     for id,_ in pairs(move_data.my_units) do
         local unit_copy = move_data.unit_copies[id]
         if (not unit_copy.canrecruit)
@@ -886,19 +886,19 @@ function fred_ops_utils.set_ops_data(fred_data)
         then
             if used_units[id] and raw_cfgs[used_units[id]] then
                 std_print(id, used_units[id])
-                assigned_units_noMP[id] = used_units[id]
+                units_noMP_zones[id] = used_units[id]
             else
                 local zone_id = FU.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs)
                 if move_data.my_units_MP[id] then
                     pre_assigned_units[id] = zone_id
                 else
-                    assigned_units_noMP[id] = zone_id
+                    units_noMP_zones[id] = zone_id
                 end
             end
         end
     end
     --DBG.dbms(pre_assigned_units, false, 'pre_assigned_units')
-    --DBG.dbms(assigned_units_noMP, false, 'assigned_units_noMP')
+    --DBG.dbms(units_noMP_zones, false, 'units_noMP_zones')
 
     local leader_objectives, leader_effective_reach_map = FMLU.leader_objectives(fred_data)
     local objectives = { leader = leader_objectives }
@@ -1031,7 +1031,6 @@ function fred_ops_utils.set_ops_data(fred_data)
         local action_id = 'recruit'
         reserved_actions[action_id] = action
     end
-
     --DBG.dbms(reserved_actions, false, 'reserved_actions')
 
 
@@ -1137,7 +1136,11 @@ function fred_ops_utils.set_ops_data(fred_data)
         local action = 'protect_leader:' .. zone_id
 
         for id,data in pairs(benefits) do
-            if (not move_data.unit_infos[id].canrecruit) and (data.turns <= 1) then
+            -- Need to check for moves here also, as a noMP unit might happen to be
+            -- at one of the leader goal hexes
+            if (not move_data.unit_infos[id].canrecruit)
+                and (data.turns <= 1) and move_data.my_units_MP[id]
+            then
                 if (not leader_threat_benefits[action]) then
                     leader_threat_benefits[action] = {
                         units = {},
@@ -1223,6 +1226,19 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     local assigned_units = assignments_to_assigned_units(protect_leader_assignments, move_data)
     --DBG.dbms(assigned_units, false, 'assigned_units')
+    --DBG.dbms(units_noMP_zones, false, 'units_noMP_zones')
+
+    -- Also add them to protect_leader_assignments
+    -- TODO: not sure if we want to keep them spearate instead (then additional work is needed later)
+    for id,zone_id in pairs(units_noMP_zones) do
+        if (not assigned_units[zone_id]) then assigned_units[zone_id] = {} end
+        assigned_units[zone_id][id] = move_data.my_units[id][1] * 1000 + move_data.my_units[id][2]
+
+        protect_leader_assignments[id] = 'has_moved:' .. zone_id
+    end
+    --DBG.dbms(assigned_units, false, 'assigned_units')
+    --DBG.dbms(protect_leader_assignments, false, 'protect_leader_assignments')
+
 
     -- We use all assigned enemies for this part, incl. those that were already considered as leader threats
     local enemy_total_power = 0
