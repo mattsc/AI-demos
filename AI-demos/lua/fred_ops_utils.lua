@@ -193,7 +193,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
 
                     local tmp_damages = {}
                     for enemy_id,enemy_loc in pairs(assigned_enemies[zone_id]) do
-                        local counter = fred_data.turn_data.unit_attacks[id][enemy_id].damage_counter
+                        local counter = fred_data.ops_data.unit_attacks[id][enemy_id].damage_counter
 
                         -- For units that have moved, we can use the actual hit_chance
                         -- TODO: we just use the defense here for now, not taking weapon specials into account
@@ -272,7 +272,7 @@ end
 
 
 function fred_ops_utils.behavior_output(is_turn_start, ops_data, fred_data)
-    local behavior = fred_data.turn_data.behavior
+    local behavior = fred_data.ops_data.behavior
     local fred_behavior_str = '--- Behavior instructions ---'
 
     local fred_show_behavior = wml.variables.fred_show_behavior or 1
@@ -314,7 +314,7 @@ function fred_ops_utils.behavior_output(is_turn_start, ops_data, fred_data)
 
                 local front_map = {}
                 for _,loc in ipairs(zone) do
-                    local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc[1], loc[2], 'distance')
+                    local ld = FU.get_fgumap_value(fred_data.ops_data.leader_distance_map, loc[1], loc[2], 'distance')
                     if (math.abs(ld - front.ld) <= 0.5) then
                         FU.set_fgumap_value(front_map, loc[1], loc[2], 'distance', ld)
                     end
@@ -356,7 +356,7 @@ function fred_ops_utils.find_fronts(zone_maps, zone_influence_maps, raw_cfgs, fr
     -- leader_distance_map should be set with respect to the final leader location.
     -- However, fronts are needed at times when this information does not exist yet.
     -- Use the AI side's start_hex in that case.
-    local leader_distance_map = fred_data.turn_data.leader_distance_map
+    local leader_distance_map = fred_data.ops_data.leader_distance_map
     if (not leader_distance_map) then
         leader_distance_map = FU.get_leader_distance_map(my_start_hex, raw_cfgs, side_cfgs, fred_data.move_data, true)
     end
@@ -465,6 +465,20 @@ function fred_ops_utils.set_turn_data(move_data)
         end
     end
 
+    local turn_data = {
+        turn_number = wesnoth.current.turn,
+        enemy_initial_reach_maps = enemy_initial_reach_maps
+    }
+
+    return turn_data
+end
+
+
+function fred_ops_utils.set_ops_data(fred_data)
+    local move_data = fred_data.move_data
+    local raw_cfgs = FMC.get_raw_cfgs()
+    local side_cfgs = FMC.get_side_cfgs()
+    --DBG.dbms(raw_cfgs, false, 'raw_cfgs')
 
     local leader_derating = FCFG.get_cfg_parm('leader_derating')
 
@@ -732,23 +746,11 @@ function fred_ops_utils.set_turn_data(move_data)
 
     --DBG.dbms(unit_attacks, false, 'unit_attacks')
 
-    local turn_data = {
-        turn_number = wesnoth.current.turn,
-        enemy_initial_reach_maps = enemy_initial_reach_maps,
-        unit_attacks = unit_attacks,
-        behavior = behavior
-    }
 
-    return turn_data
-end
+    local ops_data = fred_data.ops_data
+    ops_data.unit_attacks = unit_attacks
+    ops_data.behavior = behavior
 
-
-function fred_ops_utils.set_ops_data(fred_data)
-    -- Get the needed cfgs
-    local move_data = fred_data.move_data
-    local raw_cfgs = FMC.get_raw_cfgs()
-    local side_cfgs = FMC.get_side_cfgs()
-    --DBG.dbms(raw_cfgs, false, 'raw_cfgs')
 
     -- Combine several zones into one, if the conditions for it are met.
     -- For example, on Freelands the 'east' and 'center' zones are combined
@@ -775,7 +777,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
         -- If the zones are different from what they were before on the same turn,
         -- we need to do a full ops re-analysis -> delete ops_data
-        if fred_data.ops_data then
+        if fred_data.ops_data.raw_cfgs then
             --std_print('checking whether raw_cfgs have changed')
             local reset_ops_data = false
             for new_zone_id,_ in pairs(raw_cfgs) do
@@ -885,7 +887,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             and (not FU.get_fgumap_value(move_data.reachable_castles_map[unit_copy.side], unit_copy.x, unit_copy.y, 'castle') or false)
         then
             if used_units[id] and raw_cfgs[used_units[id]] then
-                std_print(id, used_units[id])
+                --std_print(id, used_units[id])
                 units_noMP_zones[id] = used_units[id]
             else
                 local zone_id = FU.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs)
@@ -1070,10 +1072,8 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(leader_goal, false, 'leader_goal')
 
     local leader_distance_map, enemy_leader_distance_maps = FU.get_leader_distance_map(objectives.leader.final, raw_cfgs, side_cfgs, move_data)
-    -- We still store this in turn_data for now, as most of the time it will not
-    -- change throughout the turn. Might move it to ops_data later.
-    fred_data.turn_data.leader_distance_map = leader_distance_map
-    fred_data.turn_data.enemy_leader_distance_maps = enemy_leader_distance_maps
+    fred_data.ops_data.leader_distance_map = leader_distance_map
+    fred_data.ops_data.enemy_leader_distance_maps = enemy_leader_distance_maps
 
     if DBG.show_debug('analysis_leader_distance_map') then
         --DBG.show_fgumap_with_message(leader_distance_map, 'my_leader_distance', 'my_leader_distance')
@@ -1092,7 +1092,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             math.floor((enemy_loc[2] + leader_goal[2]) / 2 + 0.5)
         }
         --DBG.dbms(goal_loc, false, 'goal_loc')
-        local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, goal_loc[1], goal_loc[2], 'my_leader_distance')
+        local ld = FU.get_fgumap_value(fred_data.ops_data.leader_distance_map, goal_loc[1], goal_loc[2], 'my_leader_distance')
         --std_print(enemy_id, enemy_loc.zone_id, goal_loc[1], goal_loc[2], ld)
 
         local enemy_zone_id = enemy_zones[enemy_id]
@@ -1204,7 +1204,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             for _,village in ipairs(objectives.protect.zones[zone_id].villages) do
                 for enemy_id,_ in pairs(move_data.enemies) do
                     if FU.get_fgumap_value(move_data.reach_maps[enemy_id], village.x, village.y, 'moves_left') then
-                        local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, village.x, village.y, 'distance')
+                        local ld = FU.get_fgumap_value(fred_data.ops_data.leader_distance_map, village.x, village.y, 'distance')
                         if (not max_ld) or (ld > max_ld) then
                             max_ld = ld
                             loc = { village.x, village.y }
@@ -1258,7 +1258,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     local power_ratio = my_total_power / enemy_total_power
     if (power_ratio > 1) then power_ratio = 1 end
-    --std_print(my_total_power, enemy_total_power, power_ratio, fred_data.turn_data.behavior.orders.base_power_ratio)
+    --std_print(my_total_power, enemy_total_power, power_ratio, fred_data.ops_data.behavior.orders.base_power_ratio)
 
     local zone_power_stats = fred_ops_utils.zone_power_stats(raw_cfgs, assigned_units, assigned_enemies, power_ratio, fred_data)
     --DBG.dbms(zone_power_stats, false, 'zone_power_stats')
@@ -1337,7 +1337,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     -- as retreaters, but are not deleted from the unused_units table. They get
     -- assigned to zones for potential use just as other units.
     local utilities = {}
-    utilities.retreat = FBU.retreat_utilities(move_data, fred_data.turn_data.behavior.orders.value_ratio)
+    utilities.retreat = FBU.retreat_utilities(move_data, fred_data.ops_data.behavior.orders.value_ratio)
 
     for id,_ in pairs(unused_units) do
         if (utilities.retreat[id] > 0) then
@@ -1501,19 +1501,18 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(fronts, false, 'fronts')
 
 
-    local ops_data = {
-        raw_cfgs = raw_cfgs,
-        objectives = objectives,
-        status = status,
-        assigned_enemies = assigned_enemies,
-        unassigned_enemies = unassigned_enemies,
-        assigned_units = assigned_units,
-        used_units = used_units,
-        fronts = fronts,
-        reserved_actions = reserved_actions,
-        place_holders = place_holders,
-        interaction_matrix = interaction_matrix
-    }
+    ops_data.raw_cfgs = raw_cfgs
+    ops_data.objectives = objectives
+    ops_data.status = status
+    ops_data.assigned_enemies = assigned_enemies
+    ops_data.unassigned_enemies = unassigned_enemies
+    ops_data.assigned_units = assigned_units
+    ops_data.used_units = used_units
+    ops_data.fronts = fronts
+    ops_data.reserved_actions = reserved_actions
+    ops_data.place_holders = place_holders
+    ops_data.interaction_matrix = interaction_matrix
+
     --DBG.dbms(ops_data, false, 'ops_data')
     --DBG.dbms(ops_data.objectives, false, 'ops_data.objectives')
     --DBG.dbms(ops_data.assigned_enemies, false, 'ops_data.assigned_enemies')
@@ -1526,15 +1525,13 @@ function fred_ops_utils.set_ops_data(fred_data)
     fred_ops_utils.behavior_output(true, ops_data, fred_data)
 
     if DBG.show_debug('analysis') then
-        local behavior = fred_data.turn_data.behavior
+        local behavior = fred_data.ops_data.behavior
         --std_print('value_ratio: ', behavior.orders.value_ratio)
         --DBG.dbms(behavior.ratios, false, 'behavior.ratios')
         --DBG.dbms(behavior.orders, false, 'behavior.orders')
         DBG.dbms(fronts, false, 'fronts')
         --DBG.dbms(behavior, false, 'behavior')
     end
-
-    return ops_data
 end
 
 
@@ -1656,7 +1653,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     --DBG.dbms(threats_by_zone, false, 'threats_by_zone')
 
 
-    local zone_power_stats = fred_ops_utils.zone_power_stats(ops_data.assigned_enemies, ops_data.assigned_units, ops_data.assigned_enemies, fred_data.turn_data.behavior.orders.base_power_ratio, fred_data)
+    local zone_power_stats = fred_ops_utils.zone_power_stats(ops_data.assigned_enemies, ops_data.assigned_units, ops_data.assigned_enemies, fred_data.ops_data.behavior.orders.base_power_ratio, fred_data)
     --DBG.dbms(zone_power_stats, false, 'zone_power_stats')
 
 
@@ -1697,7 +1694,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         end
         --DBG.dbms(leader_threats_by_zone, false, 'leader_threats_by_zone')
 
-        local value_ratio = fred_data.turn_data.behavior.orders.value_ratio
+        local value_ratio = fred_data.ops_data.behavior.orders.value_ratio
         local leader_threat_mult = FCFG.get_cfg_parm('leader_threat_mult')
 
         -- Attack leader threats
@@ -1740,7 +1737,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 
 
     -- TODO: might want to do something more complex (e.g using local info) in ops layer
-    local value_ratio = fred_data.turn_data.behavior.orders.value_ratio
+    local value_ratio = fred_data.ops_data.behavior.orders.value_ratio
 
     -- Favorable attacks. These are cross-zone
     table.insert(fred_data.zone_cfgs, {

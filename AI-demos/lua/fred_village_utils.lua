@@ -39,7 +39,7 @@ function fred_village_utils.village_objectives(zone_cfgs, side_cfgs, fred_data)
 
         local owner = FU.get_fgumap_value(move_data.village_map, x, y, 'owner')
 
-        if (infl_ratio >= fred_data.turn_data.behavior.orders.value_ratio) then
+        if (infl_ratio >= fred_data.ops_data.behavior.orders.value_ratio) then
             local is_threatened = false
             for enemy_id,_ in pairs(move_data.enemies) do
                 if FU.get_fgumap_value(move_data.reach_maps[enemy_id], x, y, 'moves_left') then
@@ -85,9 +85,9 @@ end
 
 function fred_village_utils.village_grabs(villages_to_grab, reserved_actions, interactions, fred_data)
     local move_data = fred_data.move_data
-    local value_ratio = fred_data.turn_data.behavior.orders.value_ratio
+    local value_ratio = fred_data.ops_data.behavior.orders.value_ratio
 
-    local cfg_attack = { value_ratio = fred_data.turn_data.behavior.orders.value_ratio }
+    local cfg_attack = { value_ratio = fred_data.ops_data.behavior.orders.value_ratio }
 
     -- Units with MP need to be taken off the map, for counter attack calculation
     local extracted_units = {}

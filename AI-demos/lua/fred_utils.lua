@@ -641,7 +641,7 @@ function fred_utils.behind_enemy_map(fred_data)
             return false, false, true
         end
 
-        local ld = fred_utils.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'my_leader_distance')
+        local ld = fred_utils.get_fgumap_value(fred_data.ops_data.leader_distance_map, x, y, 'my_leader_distance')
         if (ld < ld_ref) then
             return false, true, true
         end
@@ -670,7 +670,7 @@ function fred_utils.behind_enemy_map(fred_data)
             local hexes = AH.table_copy(new_hexes)
             new_hexes = {}
             for _,loc in ipairs(hexes) do
-                local ld_ref = fred_utils.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc[1], loc[2], 'my_leader_distance')
+                local ld_ref = fred_utils.get_fgumap_value(fred_data.ops_data.leader_distance_map, loc[1], loc[2], 'my_leader_distance')
                 for xa,ya in H.adjacent_tiles(loc[1], loc[2]) do
                     local is_valid, is_new, is_passable = is_new_behind_hex(xa, ya, enemy_id, unit_behind_map, ld_ref)
                     if is_passable then

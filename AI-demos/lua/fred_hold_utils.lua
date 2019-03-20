@@ -163,7 +163,7 @@ function fred_hold_utils.get_between_map(locs, toward_loc, units, move_data)
 end
 
 
-function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, turn_data)
+function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, ops_data)
     local count = 0
     for id,_ in pairs(rating_maps) do
         count = count + 1
@@ -188,7 +188,7 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, tur
                 perp_dist = FU.get_fgumap_value(between_map, x, y, 'blurred_perp_distance') or 0
             else
                 -- In this case we do not have the perpendicular distance
-                dist = FU.get_fgumap_value(turn_data.leader_distance_map, x, y, 'distance')
+                dist = FU.get_fgumap_value(ops_data.leader_distance_map, x, y, 'distance')
             end
             --std_print(id, x .. ',' .. y, dist, perp_dist)
 
@@ -204,7 +204,7 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, tur
                                 dist2 = FU.get_fgumap_value(between_map, x2, y2, 'blurred_distance') or -999
                                 perp_dist2 = FU.get_fgumap_value(between_map, x2, y2, 'blurred_perp_distance') or 0
                             else
-                                dist2 = FU.get_fgumap_value(turn_data.leader_distance_map, x2, y2, 'distance') or -999
+                                dist2 = FU.get_fgumap_value(ops_data.leader_distance_map, x2, y2, 'distance') or -999
                             end
 
                             local dy = math.abs(dist - dist2)
@@ -377,7 +377,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     local leader_info = move_data.unit_infos[leader_id]
     local leader_value = FU.unit_value(move_data.unit_infos[leader_id])
 
-    local value_ratio = fred_data.turn_data.behavior.orders.value_ratio
+    local value_ratio = fred_data.ops_data.behavior.orders.value_ratio
     local hold_counter_weight = FCFG.get_cfg_parm('hold_counter_weight')
     local cfg_attack = { value_ratio = value_ratio }
 
@@ -714,7 +714,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                     perp_dist = FU.get_fgumap_value(between_map, x, y, 'blurred_perp_distance') or 0
                 else
                     -- In this case we do not have the perpendicular distance
-                    dist = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
+                    dist = FU.get_fgumap_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
                 end
 
                 table.insert(dists, {
@@ -901,8 +901,8 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
                 if (not combo.does_protect) then
                     if (counter_outcomes.def_outcome.hp_chance[0] > acceptable_ctd) then
-                        local ld_protect = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, protect_loc[1], protect_loc[2], 'distance')
-                        local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, new_locs[i_l][1], new_locs[i_l][2], 'distance')
+                        local ld_protect = FU.get_fgumap_value(fred_data.ops_data.leader_distance_map, protect_loc[1], protect_loc[2], 'distance')
+                        local ld = FU.get_fgumap_value(fred_data.ops_data.leader_distance_map, new_locs[i_l][1], new_locs[i_l][2], 'distance')
                         if (ld > ld_protect) then
                             -- We cannot just remove this dst from this hold, as this would
                             -- change the threats to the other dsts. The entire combo needs

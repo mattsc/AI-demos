@@ -97,7 +97,7 @@ function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_d
         --DBG.dbms(virtual_reach_maps, false, 'virtual_reach_maps')
     end
 
-    local cfg_attack = { value_ratio = fred_data.turn_data.behavior.orders.value_ratio }
+    local cfg_attack = { value_ratio = fred_data.ops_data.behavior.orders.value_ratio }
 
     local leader_exposure, enemy_power, is_protected, is_significant_threat = 0, 0, true, false
     if (not exclude_leader) then

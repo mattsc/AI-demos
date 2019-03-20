@@ -1362,7 +1362,7 @@ end
 local function get_hold_action(zone_cfg, fred_data)
     DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> hold evaluation: ' .. zone_cfg.zone_id)
 
-    local value_ratio = fred_data.turn_data.behavior.orders.value_ratio
+    local value_ratio = fred_data.ops_data.behavior.orders.value_ratio
     local max_units = 3
     local max_hexes = 6
     local leader_derating = FCFG.get_cfg_parm('leader_derating')
@@ -1391,8 +1391,8 @@ local function get_hold_action(zone_cfg, fred_data)
     local forward_rating_weight = forward_weight * (1 / value_ratio)
     --std_print('forward_weight, forward_rating_weight', forward_weight, forward_rating_weight)
 
-    local influence_ratio = fred_data.turn_data.behavior.power.current_ratio
-    local base_value_ratio = fred_data.turn_data.behavior.orders.base_value_ratio
+    local influence_ratio = fred_data.ops_data.behavior.power.current_ratio
+    local base_value_ratio = fred_data.ops_data.behavior.orders.base_value_ratio
     local protect_forward_rating_weight = (influence_ratio / base_value_ratio) - 1
     protect_forward_rating_weight = protect_forward_rating_weight * FCFG.get_cfg_parm('protect_forward_weight')
     --std_print('protect_forward_rating_weight', protect_forward_rating_weight)
@@ -1572,7 +1572,7 @@ local function get_hold_action(zone_cfg, fred_data)
             local tension = data.my_influence + data.enemy_influence
             local vulnerability = tension - math.abs(influence)
 
-            local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
+            local ld = FU.get_fgumap_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
             vulnerability = vulnerability + ld / 10
 
             data.tension = tension
@@ -1596,7 +1596,7 @@ local function get_hold_action(zone_cfg, fred_data)
     for id,_ in pairs(holders) do
         enemy_weights[id] = {}
         for enemy_id,_ in pairs(move_data.enemies) do
-            local att = fred_data.turn_data.unit_attacks[id][enemy_id]
+            local att = fred_data.ops_data.unit_attacks[id][enemy_id]
             --DBG.dbms(att, false, 'att')
 
             -- It's probably okay to keep the hard-coded weight of 0.5 here, as the
@@ -1663,7 +1663,7 @@ local function get_hold_action(zone_cfg, fred_data)
     if protect_locs then
         local min_ld, max_ld = math.huge, - math.huge
         for _,loc in ipairs(protect_locs) do
-            local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, loc[1], loc[2], 'distance')
+            local ld = FU.get_fgumap_value(fred_data.ops_data.leader_distance_map, loc[1], loc[2], 'distance')
             if (ld < min_ld) then min_ld = ld end
             if (ld > max_ld) then max_ld = ld end
         end
@@ -1692,8 +1692,8 @@ local function get_hold_action(zone_cfg, fred_data)
             DBG.show_fgumap_with_message(between_map, 'perp_distance', 'Between map: perp_distance')
             DBG.show_fgumap_with_message(between_map, 'blurred_perp_distance', 'Between map: blurred blurred_perp_distance')
             DBG.show_fgumap_with_message(between_map, 'inv_cost', 'Between map: inv_cost')
-            --DBG.show_fgumap_with_message(fred_data.turn_data.leader_distance_map, 'distance', 'leader distance')
-            --DBG.show_fgumap_with_message(fred_data.turn_data.leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
+            --DBG.show_fgumap_with_message(fred_data.ops_data.leader_distance_map, 'distance', 'leader distance')
+            --DBG.show_fgumap_with_message(fred_data.ops_data.leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
         end
     end
 
@@ -1714,11 +1714,11 @@ local function get_hold_action(zone_cfg, fred_data)
 
                 if (not can_hit) then
                     local eld
-                    if fred_data.turn_data.enemy_leader_distance_maps[zone_cfg.zone_id] then
-                        eld = FU.get_fgumap_value(fred_data.turn_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
+                    if fred_data.ops_data.enemy_leader_distance_maps[zone_cfg.zone_id] then
+                        eld = FU.get_fgumap_value(fred_data.ops_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
                     end
                     if (not eld) then
-                        eld = FU.get_fgumap_value(fred_data.turn_data.enemy_leader_distance_maps['all_map'][move_data.unit_infos[id].type], x, y, 'cost') + 99
+                        eld = FU.get_fgumap_value(fred_data.ops_data.enemy_leader_distance_maps['all_map'][move_data.unit_infos[id].type], x, y, 'cost') + 99
                     end
 
                     if (not min_eleader_distance) or (eld < min_eleader_distance) then
@@ -1742,11 +1742,11 @@ local function get_hold_action(zone_cfg, fred_data)
 
                     if (not threats) then
                         local eld
-                        if fred_data.turn_data.enemy_leader_distance_maps[zone_cfg.zone_id] then
-                            eld = FU.get_fgumap_value(fred_data.turn_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
+                        if fred_data.ops_data.enemy_leader_distance_maps[zone_cfg.zone_id] then
+                            eld = FU.get_fgumap_value(fred_data.ops_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
                         end
                         if (not eld) then
-                            eld = FU.get_fgumap_value(fred_data.turn_data.enemy_leader_distance_maps['all_map'][move_data.unit_infos[id].type], x, y, 'cost') + 99
+                            eld = FU.get_fgumap_value(fred_data.ops_data.enemy_leader_distance_maps['all_map'][move_data.unit_infos[id].type], x, y, 'cost') + 99
                         end
 
                         if min_eleader_distance and (eld > min_eleader_distance) then
@@ -1771,7 +1771,7 @@ local function get_hold_action(zone_cfg, fred_data)
                         local enemy_defense = 1 - FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'hit_chance')
                         my_hc = my_hc - enemy_defense / 100
 
-                        local att = fred_data.turn_data.unit_attacks[id][enemy_id]
+                        local att = fred_data.ops_data.unit_attacks[id][enemy_id]
                         local counter_max_taken = att.damage_counter.base_taken + att.damage_counter.extra_taken
                         local counter_actual_taken = my_hc * att.damage_counter.base_taken + att.damage_counter.extra_taken
                         local damage_taken = factor_counter * counter_actual_taken
@@ -1957,7 +1957,7 @@ local function get_hold_action(zone_cfg, fred_data)
                     if (value_loss >= - push_factor) then
                         FU.set_fgumap_value(hold_here_maps[id], x, y, 'hold_here', true)
 
-                        local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
+                        local ld = FU.get_fgumap_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
                         if (ld > front_ld + 1) then
                             local advance_factor = 1 / (ld - front_ld)
 
@@ -1987,7 +1987,7 @@ local function get_hold_action(zone_cfg, fred_data)
                         protect_here = false
                     end
                 else
-                    local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
+                    local ld = FU.get_fgumap_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
                     local dld = ld - protect_leader_distance.min
 
                     if (dld < min_btw_dist) then
@@ -2059,7 +2059,7 @@ local function get_hold_action(zone_cfg, fred_data)
 
                 local vuln_rating_org = base_rating + hold_rating_data.vuln / max_vuln * vuln_rating_weight
 
-                local dist = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
+                local dist = FU.get_fgumap_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
                 vuln_rating_org = vuln_rating_org + forward_rating_weight * dist
 
                 hold_rating_data.base_rating = base_rating
@@ -2087,7 +2087,7 @@ local function get_hold_action(zone_cfg, fred_data)
 
     -- Add bonus for other strong hexes aligned *across* the direction
     -- of advancement of the enemies
-    FHU.convolve_rating_maps(hold_rating_maps, 'vuln_rating', between_map, fred_data.turn_data)
+    FHU.convolve_rating_maps(hold_rating_maps, 'vuln_rating', between_map, fred_data.ops_data)
 
     if DBG.show_debug('hold_rating_maps') then
         for id,hold_rating_map in pairs(hold_rating_maps) do
@@ -2184,7 +2184,7 @@ local function get_hold_action(zone_cfg, fred_data)
                 -- TODO: this might be too simplistic
                 if protect_objectives.protect_leader then
                     local mult = 0
-                    local power_ratio = fred_data.turn_data.behavior.orders.base_power_ratio
+                    local power_ratio = fred_data.ops_data.behavior.orders.base_power_ratio
                     if (power_ratio < 1) then
                         mult = (1 / power_ratio - 1)
                     end
@@ -2203,7 +2203,7 @@ local function get_hold_action(zone_cfg, fred_data)
 
     -- Add bonus for other strong hexes aligned *across* the direction
     -- of advancement of the enemies
-    FHU.convolve_rating_maps(protect_rating_maps, 'protect_rating', between_map, fred_data.turn_data)
+    FHU.convolve_rating_maps(protect_rating_maps, 'protect_rating', between_map, fred_data.ops_data)
 
     if DBG.show_debug('hold_protect_rating_maps') then
         for id,protect_rating_map in pairs(protect_rating_maps) do
@@ -2312,7 +2312,7 @@ local function get_hold_action(zone_cfg, fred_data)
         local hold_distance, count = 0, 0
         for src,dst in pairs(best_hold_combo) do
             local x, y =  math.floor(dst / 1000), dst % 1000
-            local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
+            local ld = FU.get_fgumap_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
             hold_distance = hold_distance + ld
             count = count + 1
         end
@@ -2321,7 +2321,7 @@ local function get_hold_action(zone_cfg, fred_data)
         local protect_distance, count = 0, 0
         for src,dst in pairs(best_protect_combo) do
             local x, y =  math.floor(dst / 1000), dst % 1000
-            local ld = FU.get_fgumap_value(fred_data.turn_data.leader_distance_map, x, y, 'distance')
+            local ld = FU.get_fgumap_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
             protect_distance = protect_distance + ld
             count = count + 1
         end
@@ -2480,7 +2480,7 @@ local function get_advance_action(zone_cfg, fred_data)
         DBG.show_fgumap_with_message(advance_map, 'flag', 'Advance map: ' .. zone_cfg.zone_id)
     end
 
-    local cfg_attack = { value_ratio = fred_data.turn_data.behavior.orders.value_ratio }
+    local cfg_attack = { value_ratio = fred_data.ops_data.behavior.orders.value_ratio }
 
     local safe_loc = false
     local unit_rating_maps = {}
@@ -2523,7 +2523,7 @@ local function get_advance_action(zone_cfg, fred_data)
                     and (not FU.get_fgumap_value(insufficient_support_maps[id], x, y, 'support'))
                 then
                     -- For unthreatened hexes in the zone, the main criterion is the "forward distance"
-                    dist = FU.get_fgumap_value(fred_data.turn_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
+                    dist = FU.get_fgumap_value(fred_data.ops_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
                 else
                     -- When no unthreatened hexes inside the zone can be found,
                     -- the enemy threat needs to be taken into account and hexes outside
@@ -2533,7 +2533,7 @@ local function get_advance_action(zone_cfg, fred_data)
                             local forward_influence = {}
                             for x,y,_ in FU.fgumap_iter(move_data.effective_reach_maps[id]) do
                                 if (not FU.get_fgumap_value(avoid_maps[id], x, y, 'avoid')) then
-                                    local ld = FU.get_fgumap_value(fred_data.turn_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
+                                    local ld = FU.get_fgumap_value(fred_data.ops_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
                                     if ld then
                                         -- We set up an averaged integer leader_distance array here
                                         -- In principle, we could just pass all the numbers to the linear regression function
@@ -2559,7 +2559,7 @@ local function get_advance_action(zone_cfg, fred_data)
 
                             local slope, y0 = FU.linear_regression(data_arr)
                             local x0 = - y0 / slope
-                            local ld_unit = FU.get_fgumap_value(fred_data.turn_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], unit_loc[1], unit_loc[2], 'cost')
+                            local ld_unit = FU.get_fgumap_value(fred_data.ops_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], unit_loc[1], unit_loc[2], 'cost')
 
                             if false then
                                 std_print('forward influences:', id, ld_unit)
@@ -2572,7 +2572,7 @@ local function get_advance_action(zone_cfg, fred_data)
                             end
 
 
-                            cost_map = fred_data.turn_data.leader_distance_map
+                            cost_map = fred_data.ops_data.leader_distance_map
                             if (x0 > ld_unit) then
                                 cost_map_key = 'my_leader_distance'
                             else
@@ -2878,7 +2878,7 @@ local function get_retreat_action(zone_cfg, fred_data)
     --DBG.dbms(retreaters, false, 'retreaters')
 
     if next(retreaters) then
-        local retreat_utilities = FBU.retreat_utilities(move_data, fred_data.turn_data.behavior.orders.value_ratio)
+        local retreat_utilities = FBU.retreat_utilities(move_data, fred_data.ops_data.behavior.orders.value_ratio)
         local retreat_combo = FRU.find_best_retreat(retreaters, retreat_utilities, fred_data)
 
         if retreat_combo then
@@ -3081,9 +3081,9 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
         or (fred_data.turn_data.turn_number ~= wesnoth.current.turn)
     then
         fred_data.turn_data = FOU.set_turn_data(fred_data.move_data)
-        fred_data.ops_data = nil
+        fred_data.ops_data = {}
     end
-    fred_data.ops_data = FOU.set_ops_data(fred_data)
+    FOU.set_ops_data(fred_data)
 
     FOU.get_action_cfgs(fred_data)
     --DBG.dbms(fred_data.zone_cfgs, false, 'fred_data.zone_cfgs')
@@ -3211,7 +3211,7 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
 
             local defender_info = fred_data.move_data.unit_infos[enemy_proxy.id]
 
-            local cfg_attack = { value_ratio = fred_data.turn_data.behavior.orders.value_ratio }
+            local cfg_attack = { value_ratio = fred_data.ops_data.behavior.orders.value_ratio }
             local combo_outcome = FAU.attack_combo_eval(combo, fred_data.zone_action.enemy, cfg_attack, fred_data.move_data, fred_data.move_cache)
             --std_print('\noverall kill chance: ', combo_outcome.defender_damage.die_chance)
 

@@ -202,8 +202,8 @@ function utility_functions.attack_benefits(assigned_enemies, goal_hexes, use_ave
             local av_rating_forward, av_rating_counter, count = 0, 0, 0
             for enemy_id,_ in pairs(data) do
                 local enemy_loc = fred_data.move_data.units[enemy_id]
-                local rating_forward = fred_data.turn_data.unit_attacks[id][enemy_id].rating_forward
-                local rating_counter = fred_data.turn_data.unit_attacks[id][enemy_id].rating_counter
+                local rating_forward = fred_data.ops_data.unit_attacks[id][enemy_id].rating_forward
+                local rating_counter = fred_data.ops_data.unit_attacks[id][enemy_id].rating_counter
                 --std_print('    ' .. enemy_id, rating_forward, rating_counter)
 
                 av_rating_forward = av_rating_forward + rating_forward
@@ -316,7 +316,7 @@ function utility_functions.attack_utilities(assigned_enemies, value_ratio, fred_
                 local tmp_enemies = {}
                 for enemy_id,_ in pairs(data) do
                     --std_print('    ' .. enemy_id)
-                    local att = fred_data.turn_data.unit_attacks[id][enemy_id]
+                    local att = fred_data.ops_data.unit_attacks[id][enemy_id]
 
                     local damage_taken = att.damage_counter.enemy_gen_hc * att.damage_counter.base_taken + att.damage_counter.extra_taken
                     damage_taken = damage_taken + att.damage_forward.enemy_gen_hc * att.damage_forward.base_taken + att.damage_forward.extra_taken
