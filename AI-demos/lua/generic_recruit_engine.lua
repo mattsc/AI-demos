@@ -1026,25 +1026,31 @@ return {
 
             local locsx, locsy = AH.split_location_list_to_strings(data.castle.locs)
 
-            -- get a list of all unowned villages within fastest_unit_speed
-            -- TODO get list of villages not owned by allies instead
+            -- get a list of all unowned and enemy-owned villages within fastest_unit_speed
             -- this may have false positives (villages that can't be reached due to difficult/impassible terrain)
-            local exclude_x, exclude_y = "0", "0"
-            if data.castle.assigned_villages_x ~= nil and data.castle.assigned_villages_x[1] then
-                exclude_x = table.concat(data.castle.assigned_villages_x, ",")
-                exclude_y = table.concat(data.castle.assigned_villages_y, ",")
+            local exclude_map = LS.create()
+            if data.castle.assigned_villages_x and data.castle.assigned_villages_x[1] then
+                for i,x in ipairs(data.castle.assigned_villages_x) do
+                    exclude_map:insert(x, data.castle.assigned_villages_y[i])
+                end
             end
-            local villages = wesnoth.get_villages {
-                owner_side = 0,
-                { "and", {
-                    radius = fastest_unit_speed,
-                    x = locsx, y = locsy
-                }},
-                { "not", {
-                    x = exclude_x,
-                    y = exclude_y
-                }}
-            }
+
+            local all_villages = wesnoth.get_villages()
+            local villages = {}
+            for _,v in ipairs(all_villages) do
+                local owner = wesnoth.get_village_owner(v[1], v[2])
+                if ((not owner) or wesnoth.is_enemy(owner, wesnoth.current.side))
+                    and (not exclude_map:get(v[1], v[2]))
+                then
+                    for _,loc in ipairs(data.castle.locs) do
+                        local dist = wesnoth.map.distance_between(v[1], v[2], loc[1], loc[2])
+                        if (dist <= fastest_unit_speed) then
+                           table.insert(villages, v)
+                           break
+                        end
+                    end
+                end
+            end
 
             local hex, target, shortest_distance = {}, {}, AH.no_path
 
@@ -1081,14 +1087,16 @@ return {
             local width,height,border = wesnoth.get_map_size()
             if (not recruit_data.unit_distances) then recruit_data.unit_distances = {} end
             for i,v in ipairs(villages) do
-                local close_castle_hexes = wesnoth.get_locations {
-                    x = locsx, y = locsy,
-                    { "and", {
-                      x = v[1], y = v[2],
-                      radius = fastest_unit_speed
-                    }},
-                    { "not", { { "filter", {} } } }
-                }
+                local close_castle_hexes = {}
+                for _,loc in ipairs(data.castle.locs) do
+                    local dist = wesnoth.map.distance_between(v[1], v[2], loc[1], loc[2])
+                    if (dist <= fastest_unit_speed) then
+                        if (not wesnoth.get_unit(loc[1], loc[2])) then
+                           table.insert(close_castle_hexes, loc)
+                        end
+                    end
+                end
+
                 for u,unit in ipairs(test_units) do
                     test_units[u].x = v[1]
                     test_units[u].y = v[2]
