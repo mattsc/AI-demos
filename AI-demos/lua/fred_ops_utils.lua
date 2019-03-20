@@ -1071,7 +1071,10 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(leader_goal, false, 'leader_goal')
 
     local leader_distance_map = FU.get_leader_distance_map(leader_goal, side_cfgs)
-    local enemy_leader_distance_maps = FU.get_enemy_leader_distance_maps(raw_cfgs, side_cfgs, move_data)
+    local enemy_leader_distance_maps = ops_data.enemy_leader_distance_maps
+    if (not enemy_leader_distance_maps) then
+        enemy_leader_distance_maps = FU.get_enemy_leader_distance_maps(raw_cfgs, side_cfgs, move_data)
+    end
     fred_data.ops_data.leader_distance_map = leader_distance_map
     fred_data.ops_data.enemy_leader_distance_maps = enemy_leader_distance_maps
 
