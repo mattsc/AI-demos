@@ -430,10 +430,11 @@ function fred_ops_utils.find_fronts(zone_maps, zone_influence_maps, raw_cfgs, fr
 end
 
 
-function fred_ops_utils.set_turn_data(move_data)
+function fred_ops_utils.set_turn_data(fred_data)
     -- The if statement below is so that debugging works when starting the evaluation in the
     -- middle of the turn.  In normal gameplay, we can just use the existing enemy reach maps,
     -- so that we do not have to double-calculate them.
+    local move_data = fred_data.move_data
     local enemy_initial_reach_maps = {}
     if (not next(move_data.my_units_noMP)) then
         --std_print('Using existing enemy move map')
@@ -465,12 +466,10 @@ function fred_ops_utils.set_turn_data(move_data)
         end
     end
 
-    local turn_data = {
+    fred_data.turn_data = {
         turn_number = wesnoth.current.turn,
         enemy_initial_reach_maps = enemy_initial_reach_maps
     }
-
-    return turn_data
 end
 
 
