@@ -358,7 +358,7 @@ function fred_ops_utils.find_fronts(zone_maps, zone_influence_maps, raw_cfgs, fr
     -- Use the AI side's start_hex in that case.
     local leader_distance_map = fred_data.ops_data.leader_distance_map
     if (not leader_distance_map) then
-        leader_distance_map = FU.get_leader_distance_map(my_start_hex, raw_cfgs, side_cfgs, fred_data.move_data, true)
+        leader_distance_map = FU.get_leader_distance_map(my_start_hex, side_cfgs)
     end
 
     local my_ld0 = FU.get_fgumap_value(leader_distance_map, my_start_hex[1], my_start_hex[2], 'distance')
@@ -1070,7 +1070,8 @@ function fred_ops_utils.set_ops_data(fred_data)
     local leader_goal = objectives.leader.final
     --DBG.dbms(leader_goal, false, 'leader_goal')
 
-    local leader_distance_map, enemy_leader_distance_maps = FU.get_leader_distance_map(objectives.leader.final, raw_cfgs, side_cfgs, move_data)
+    local leader_distance_map = FU.get_leader_distance_map(leader_goal, side_cfgs)
+    local enemy_leader_distance_maps = FU.get_enemy_leader_distance_maps(raw_cfgs, side_cfgs, move_data)
     fred_data.ops_data.leader_distance_map = leader_distance_map
     fred_data.ops_data.enemy_leader_distance_maps = enemy_leader_distance_maps
 

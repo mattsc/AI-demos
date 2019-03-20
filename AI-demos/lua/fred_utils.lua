@@ -394,7 +394,7 @@ function fred_utils.smooth_cost_map(unit_proxy, loc, is_inverse_map)
     return cost_map
 end
 
-function fred_utils.get_leader_distance_map(leader_loc, zone_cfgs, side_cfgs, move_data, skip_enemy_maps)
+function fred_utils.get_leader_distance_map(leader_loc, side_cfgs)
     -- @skip_enemy_maps: optional flag to skip calculating enemy_leader_distance_maps.
     --   These are not always needed and expensive to calculate.
 
@@ -411,8 +411,6 @@ function fred_utils.get_leader_distance_map(leader_loc, zone_cfgs, side_cfgs, mo
     -- TODO: Leave like this for now, potentially switch to using smooth_cost_map() later
     local leader_cx, leader_cy = AH.cartesian_coords(leader_loc[1], leader_loc[2])
     local enemy_leader_cx, enemy_leader_cy = AH.cartesian_coords(enemy_leader_loc[1], enemy_leader_loc[2])
-
-    local dist_btw_leaders = math.sqrt( (enemy_leader_cx - leader_cx)^2 + (enemy_leader_cy - leader_cy)^2 )
 
     local leader_distance_map = {}
     local width, height = wesnoth.get_map_size()
@@ -433,14 +431,21 @@ function fred_utils.get_leader_distance_map(leader_loc, zone_cfgs, side_cfgs, mo
         end
     end
 
-    if skip_enemy_maps then
-        return leader_distance_map
-    end
+    return leader_distance_map
+end
 
+function fred_utils.get_enemy_leader_distance_maps(zone_cfgs, side_cfgs, move_data)
     -- Enemy leader distance maps. These are calculated using wesnoth.find_cost_map() for
     -- each unit type from the start hex of the enemy leader.
     -- TODO: Doing this by unit type may cause problems once Fred can play factions
     -- with unit types that have different variations (i.e. Walking Corpses). Fix later.
+    local enemy_leader_loc
+    for side,cfg in ipairs(side_cfgs) do
+        if (side ~= wesnoth.current.side) then
+            enemy_leader_loc = cfg.start_hex
+        end
+    end
+
     local enemy_leader_distance_maps = {}
     for zone_id,cfg in pairs(zone_cfgs) do
         enemy_leader_distance_maps[zone_id] = {}
@@ -483,7 +488,7 @@ function fred_utils.get_leader_distance_map(leader_loc, zone_cfgs, side_cfgs, mo
         end
     end
 
-    return leader_distance_map, enemy_leader_distance_maps
+    return enemy_leader_distance_maps
 end
 
 function fred_utils.get_influence_maps(move_data)
