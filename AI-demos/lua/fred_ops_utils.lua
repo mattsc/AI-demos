@@ -599,6 +599,19 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     --DBG.dbms(behavior, false, 'behavior')
 
+    -- Store parameters relevant to attack effectiveness (independent of terrain)
+    -- for each unit. This is used to determine whether unit_attacks has to be
+    -- recalculated for a unit.
+    local unit_attack_status = {}
+    for id,_ in pairs(move_data.units) do
+        local unit_info = move_data.unit_infos[id]
+        unit_attack_status[id] = string.format('%d-%d-%d', unit_info.hitpoints, unit_info.experience, unit_info.level)
+        if unit_info.status.poisoned then unit_attack_status[id] = unit_attack_status[id] .. 'p' end
+        if unit_info.status.slowed then unit_attack_status[id] = unit_attack_status[id] .. 's' end
+    end
+    --DBG.dbms(unit_attack_status, false, 'unit_attack_status')
+
+
     -- Find the unit-vs-unit ratings
     -- TODO: can functions in attack_utils be used for this?
     -- Extract all AI units
@@ -749,6 +762,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     local ops_data = fred_data.ops_data
     ops_data.unit_attacks = unit_attacks
     ops_data.behavior = behavior
+    ops_data.unit_attack_status = unit_attack_status
 
 
     -- Combine several zones into one, if the conditions for it are met.
