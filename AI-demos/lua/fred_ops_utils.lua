@@ -1518,7 +1518,7 @@ local end_time = wesnoth.get_time_stamp()
     local zone_influence_maps = {}
     for zone_id,zone_map in pairs(zone_maps) do
         local zone_influence_map = {}
-        for id,_ in pairs(assigned_units[zone_id]) do
+        for id,_ in pairs(assigned_units[zone_id] or {}) do
             for x,y,data in FU.fgumap_iter(move_data.unit_influence_maps[id]) do
                 if FU.get_fgumap_value(zone_map, x, y, 'flag') then
                     FU.fgumap_add(zone_influence_map, x, y, 'my_influence', data.influence)
