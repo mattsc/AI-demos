@@ -612,9 +612,10 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(unit_attack_status, false, 'unit_attack_status')
 
 
-    -- Find the unit-vs-unit ratings
+    -- Find the unit-vs-unit ratings: effectiveness of each AI unit vs. each enemy unit.
+    -- This is expensive, so only do it for units which have changed since the last move.
     -- TODO: can functions in attack_utils be used for this?
-    -- Extract all AI units
+    -- Extract all units
     --   - because no two units on the map can have the same underlying_id
     --   - so that we do not accidentally overwrite a unit
     --   - so that we don't accidentally apply leadership, backstab or the like
@@ -625,14 +626,61 @@ function fred_ops_utils.set_ops_data(fred_data)
         table.insert(extracted_units, unit_proxy)  -- Not a proxy unit any more at this point
     end
 
-    -- Find the effectiveness of each AI unit vs. each enemy unit
     local attack_locs = FMC.get_attack_test_locs()
     local cfg_attack = { value_ratio = value_ratio }
 
+    -- This loop flags units which have changed since the previous move, or were
+    -- not previously included (either because it's the first move of the turn, or
+    -- because a unit was created (plague, event, ...)
+    -- It also automatically excludes units that have been killed.
+    local my_units_changed, enemy_units_changed = {}, {}
+    local previous_unit_attack_status = fred_data.ops_data.unit_attack_status or {}
+    for id,loc in pairs(move_data.units) do
+        if (not previous_unit_attack_status[id]) or (unit_attack_status[id] ~= previous_unit_attack_status[id]) then
+            if move_data.my_units[id] then
+                my_units_changed[id] = loc
+            else
+                enemy_units_changed[id] = loc
+            end
+        end
+    end
+    --DBG.dbms(my_units_changed, false, 'my_units_changed')
+    --DBG.dbms(enemy_units_changed, false, 'enemy_units_changed')
+
+    local changed_units_matrix = {}
+    for enemy_id,enemy_loc in pairs(enemy_units_changed) do
+        for id,loc in pairs(move_data.my_units) do
+            if (not changed_units_matrix[id]) then changed_units_matrix[id] = {} end
+            changed_units_matrix[id][enemy_id] = true
+        end
+    end
+    for id,loc in pairs(my_units_changed) do
+        for enemy_id,enemy_loc in pairs(move_data.enemies) do
+            if (not changed_units_matrix[id]) then changed_units_matrix[id] = {} end
+            changed_units_matrix[id][enemy_id] = true
+        end
+    end
+    --DBG.dbms(changed_units_matrix, false, 'changed_units_matrix')
+
+    -- Reuse the previous entries for units that have not changed
     local unit_attacks = {}
-    for my_id,_ in pairs(move_data.my_units) do
+    for id,_ in pairs(move_data.my_units) do
+        for enemy_id,_ in pairs(move_data.enemies) do
+            if (not changed_units_matrix[id]) or (not changed_units_matrix[id][enemy_id]) then
+                if (not unit_attacks[id]) then unit_attacks[id] = {} end
+                unit_attacks[id][enemy_id] = fred_data.ops_data.unit_attacks[id][enemy_id]
+            end
+        end
+    end
+    --DBG.dbms(unit_attacks, false, 'unit_attacks')
+
+local end_time = wesnoth.get_time_stamp()
+    wesnoth.message('Finish time 3:', end_time .. '  ' .. tostring(end_time - start_time))
+    std_print('Finish time X:', end_time .. '  ' .. tostring(end_time - start_time))
+    -- Only calculate new unit_attacks for units that have changed
+    for my_id,enemy_array in pairs(changed_units_matrix) do
         --std_print(my_id)
-        local tmp_attacks = {}
+        if (not unit_attacks[my_id]) then unit_attacks[my_id] = {} end
 
         local old_x = move_data.unit_copies[my_id].x
         local old_y = move_data.unit_copies[my_id].y
@@ -641,8 +689,9 @@ function fred_ops_utils.set_ops_data(fred_data)
         wesnoth.put_unit(move_data.unit_copies[my_id], my_x, my_y)
         local my_proxy = wesnoth.get_unit(my_x, my_y)
 
-        for enemy_id,_ in pairs(move_data.enemies) do
+        for enemy_id,_ in pairs(enemy_array) do
             --std_print('    ' .. enemy_id)
+            local tmp_attacks = {}
 
             local old_x_enemy = move_data.unit_copies[enemy_id].x
             local old_y_enemy = move_data.unit_copies[enemy_id].y
@@ -678,7 +727,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
                 if (rating_table.rating > max_rating) then
                     max_rating = rating_table.rating
-                    tmp_attacks[enemy_id] = {
+                    tmp_attacks = {
                         my_regen = - enemy_regen_damage, -- not that this is (must be) backwards as this is
                         enemy_regen = - my_regen_damage, -- regeneration "damage" to the _opponent_
                         rating_forward = rating_table.rating,
@@ -693,7 +742,7 @@ function fred_ops_utils.set_ops_data(fred_data)
                     }
                 end
             end
-            --DBG.dbms(tmp_attacks[enemy_id], false, 'tmp_attacks[' .. enemy_id .. ']')
+            --DBG.dbms(tmp_attacks, false, 'tmp_attacks')
 
             local max_rating_counter, max_damage_counter = - math.huge
             for i_w,attack in ipairs(move_data.unit_infos[enemy_id].attacks) do
@@ -718,8 +767,8 @@ function fred_ops_utils.set_ops_data(fred_data)
 
                 if (rating_table_counter.rating > max_rating_counter) then
                     max_rating_counter = rating_table_counter.rating
-                    tmp_attacks[enemy_id].rating_counter = rating_table_counter.rating
-                    tmp_attacks[enemy_id].damage_counter = {
+                    tmp_attacks.rating_counter = rating_table_counter.rating
+                    tmp_attacks.damage_counter = {
                         base_done = my_base_damage,
                         base_taken = enemy_base_damage,
                         extra_done = my_extra_damage,
@@ -737,21 +786,21 @@ function fred_ops_utils.set_ops_data(fred_data)
                 end
 
             end
-            tmp_attacks[enemy_id].damage_counter.max_taken_any_weapon = max_damage_counter
+            tmp_attacks.damage_counter.max_taken_any_weapon = max_damage_counter
 
 
             move_data.unit_copies[enemy_id] = wesnoth.copy_unit(enemy_proxy)
             wesnoth.erase_unit(enemy_x, enemy_y)
             move_data.unit_copies[enemy_id].x = old_x_enemy
             move_data.unit_copies[enemy_id].y = old_y_enemy
+
+            unit_attacks[my_id][enemy_id] = tmp_attacks
         end
 
         move_data.unit_copies[my_id] = wesnoth.copy_unit(my_proxy)
         wesnoth.erase_unit(my_x, my_y)
         move_data.unit_copies[my_id].x = old_x
         move_data.unit_copies[my_id].y = old_y
-
-        unit_attacks[my_id] = tmp_attacks
     end
 
     for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
