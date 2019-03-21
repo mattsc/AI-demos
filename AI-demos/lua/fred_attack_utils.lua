@@ -711,7 +711,7 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
     local cache_att_id = attacker_info.id .. '-' .. attacker_info.experience
     local cache_def_id = defender_info.id .. '-' .. defender_info.experience
 
-    -- TODO: this does not include differences due to leadership, illumination etc.
+    -- TODO: this does not include differences due to XP, leadership, illumination etc.
     if move_cache[cache_att_id]
         and move_cache[cache_att_id][cache_def_id]
         and move_cache[cache_att_id][cache_def_id][attacker_defense]

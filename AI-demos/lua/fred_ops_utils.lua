@@ -674,9 +674,6 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
     --DBG.dbms(unit_attacks, false, 'unit_attacks')
 
-local end_time = wesnoth.get_time_stamp()
-    wesnoth.message('Finish time 3:', end_time .. '  ' .. tostring(end_time - start_time))
-    std_print('Finish time X:', end_time .. '  ' .. tostring(end_time - start_time))
     -- Only calculate new unit_attacks for units that have changed
     for my_id,enemy_array in pairs(changed_units_matrix) do
         --std_print(my_id)
