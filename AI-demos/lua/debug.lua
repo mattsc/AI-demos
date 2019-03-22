@@ -5,6 +5,8 @@ local debug_cfg = {
     eval = false,
     exec = true,
 
+    show_behavior = 1,
+
     analysis = false,
     analysis_leader_distance_map = false,
     analysis_enemy_initial_reach_maps = false,

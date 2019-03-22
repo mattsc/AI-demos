@@ -274,9 +274,8 @@ end
 function fred_ops_utils.behavior_output(is_turn_start, ops_data, fred_data)
     local behavior = fred_data.ops_data.behavior
     local fred_behavior_str = '--- Behavior instructions ---'
+    local fred_show_behavior = wml.variables.fred_show_behavior or DBG.show_debug('show_behavior')
 
-    local fred_show_behavior = wml.variables.fred_show_behavior or 1
---fred_show_behavior = 3
     if ((fred_show_behavior > 1) and is_turn_start)
         or (fred_show_behavior > 2)
     then
