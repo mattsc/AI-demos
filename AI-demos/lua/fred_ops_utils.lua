@@ -271,8 +271,9 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
 end
 
 
-function fred_ops_utils.behavior_output(is_turn_start, ops_data, fred_data)
-    local behavior = fred_data.ops_data.behavior
+function fred_ops_utils.behavior_output(is_turn_start, ops_data)
+    local behavior = ops_data.behavior
+    local objectives = ops_data.objectives
     local fred_behavior_str = '--- Behavior instructions ---'
     local fred_show_behavior = wml.variables.fred_show_behavior or DBG.show_debug('show_behavior')
 
@@ -287,20 +288,42 @@ function fred_ops_utils.behavior_output(is_turn_start, ops_data, fred_data)
         end
 
         fred_behavior_str = fred_behavior_str
-            .. string.format('\nBase power ratio : %.3f (%s)', behavior.orders.base_power_ratio, overall_str)
-            .. string.format('\n \nvalue_ratio : %.3f', behavior.orders.value_ratio)
+            .. string.format('\nbase power ratio : %.3f (%s)', behavior.orders.base_power_ratio, overall_str)
+            .. string.format('\nvalue_ratio : %.3f   (inverse: %.3f)', behavior.orders.value_ratio, 1/behavior.orders.value_ratio)
         wml.variables.fred_behavior_str = fred_behavior_str
 
-        fred_behavior_str = fred_behavior_str
-          .. '\n\n-- Zones --\n  try to protect:'
+        fred_behavior_str = fred_behavior_str .. '\nleader:'
+        fred_behavior_str = fred_behavior_str .. '\n    dorecruit:    ' .. tostring(objectives.leader.do_recruit)
+        fred_behavior_str = fred_behavior_str .. '\n    significant threat:    ' .. tostring(objectives.leader.leader_threats.significant_threat)
+        if objectives.leader.keep then
+            fred_behavior_str = fred_behavior_str .. '\n    go to keep:    ' .. objectives.leader.keep[1] .. ',' .. objectives.leader.keep[2]
+        end
+        if objectives.leader.village then
+            fred_behavior_str = fred_behavior_str .. '\n    go to village:    ' .. objectives.leader.village[1] .. ',' .. objectives.leader.village[2]
+        end
 
-        for zone_id,zone_data in pairs(ops_data.fronts.zones) do
-            local protect_type = zone_data.protect and zone_data.protect.type or '--'
-            local x = zone_data.protect and zone_data.protect.x or 0
-            local y = zone_data.protect and zone_data.protect.y or 0
 
-            fred_behavior_str = fred_behavior_str
-              .. string.format('\n    %-8s \t%-8s \t%2d,%2d',  zone_id, protect_type, x, y)
+
+        fred_behavior_str = fred_behavior_str .. '\nzones: try to protect:'
+        for zone_id,zone_data in pairs(objectives.protect.zones) do
+            if zone_data.protect_leader or (#zone_data.villages > 0) or (#zone_data.units > 0) then
+                fred_behavior_str = fred_behavior_str .. '\n    ' .. zone_id .. ':'
+            end
+            if zone_data.protect_leader then
+                fred_behavior_str = fred_behavior_str .. '\n        protect_leader:    true'
+            end
+            if (#zone_data.villages > 0) then
+                fred_behavior_str = fred_behavior_str .. '\n        villages:  '
+            end
+            for _,village in ipairs(zone_data.villages) do
+                fred_behavior_str = fred_behavior_str .. '  ' .. village.x .. ',' .. village.y
+            end
+            if (#zone_data.units > 0) then
+                fred_behavior_str = fred_behavior_str .. '\n        units:  '
+            end
+            for _,unit in ipairs(zone_data.units) do
+                fred_behavior_str = fred_behavior_str .. '  ' .. unit.x .. ',' .. unit.y
+            end
         end
 
         wesnoth.message('Fred', fred_behavior_str)
@@ -313,7 +336,7 @@ function fred_ops_utils.behavior_output(is_turn_start, ops_data, fred_data)
 
                 local front_map = {}
                 for _,loc in ipairs(zone) do
-                    local ld = FU.get_fgumap_value(fred_data.ops_data.leader_distance_map, loc[1], loc[2], 'distance')
+                    local ld = FU.get_fgumap_value(ops_data.leader_distance_map, loc[1], loc[2], 'distance')
                     if (math.abs(ld - front.ld) <= 0.5) then
                         FU.set_fgumap_value(front_map, loc[1], loc[2], 'distance', ld)
                     end
@@ -1584,7 +1607,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(ops_data.reserved_actions, false, 'ops_data.reserved_actions')
 
 
-    fred_ops_utils.behavior_output(true, ops_data, fred_data)
+    fred_ops_utils.behavior_output(true, ops_data)
 
     if DBG.show_debug('analysis') then
         local behavior = fred_data.ops_data.behavior
