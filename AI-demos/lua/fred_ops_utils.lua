@@ -276,6 +276,7 @@ function fred_ops_utils.behavior_output(is_turn_start, ops_data)
     local objectives = ops_data.objectives
     local fred_show_behavior = wml.variables.fred_show_behavior or DBG.show_debug('show_behavior')
 
+    local zone_strs = {}
     if ((fred_show_behavior > 1) and is_turn_start)
         or (fred_show_behavior > 2)
     then
@@ -302,28 +303,29 @@ function fred_ops_utils.behavior_output(is_turn_start, ops_data)
             fred_behavior_str = fred_behavior_str .. '\n    go to village:    ' .. objectives.leader.village[1] .. ',' .. objectives.leader.village[2]
         end
 
-
-
         fred_behavior_str = fred_behavior_str .. '\nzones: try to protect:'
         for zone_id,zone_data in pairs(objectives.protect.zones) do
+            local zone_str = ''
             if zone_data.protect_leader or (#zone_data.villages > 0) or (#zone_data.units > 0) then
                 fred_behavior_str = fred_behavior_str .. '\n    ' .. zone_id .. ':'
             end
             if zone_data.protect_leader then
-                fred_behavior_str = fred_behavior_str .. '\n        protect_leader:    true'
+                zone_str = zone_str .. '\n        protect_leader:    true'
             end
             if (#zone_data.villages > 0) then
-                fred_behavior_str = fred_behavior_str .. '\n        villages:  '
+                zone_str = zone_str .. '\n        villages:  '
             end
             for _,village in ipairs(zone_data.villages) do
-                fred_behavior_str = fred_behavior_str .. '  ' .. village.x .. ',' .. village.y
+                zone_str = zone_str .. '  ' .. village.x .. ',' .. village.y
             end
             if (#zone_data.units > 0) then
-                fred_behavior_str = fred_behavior_str .. '\n        units:  '
+                zone_str = zone_str .. '\n        units:  '
             end
             for _,unit in ipairs(zone_data.units) do
-                fred_behavior_str = fred_behavior_str .. '  ' .. unit.x .. ',' .. unit.y
+                zone_str = zone_str .. '  ' .. unit.x .. ',' .. unit.y
             end
+            fred_behavior_str = fred_behavior_str ..  zone_str
+            zone_strs[zone_id] = zone_str
         end
 
         if (fred_show_behavior == 3) or (fred_show_behavior == 5) then
@@ -343,13 +345,33 @@ function fred_ops_utils.behavior_output(is_turn_start, ops_data)
                         FU.set_fgumap_value(front_map, loc[1], loc[2], 'distance', ld)
                     end
                 end
-                local str = string.format('Front in zone %s: %d,%d\nforward distance = %.3f\npeak vulnerability = %.3f', zone_id, front.x, front.y, front.ld, front.peak_vuln)
+
+                local zone_str = zone_strs[zone_id] or ''
+                local str = string.format('front in zone %s: %d,%d   (white marker)'
+                    .. '\npeak vulnerability = %.3f'
+                    .. '\nprotect:    (red halo: units,  blue halo: villages)%s',
+                    zone_id, front.x, front.y, front.peak_vuln, zone_str
+                )
 
                 local tmp_protect = ops_data.fronts.zones[zone_id].protect
                 if tmp_protect then
                     wesnoth.wml_actions.item { x = tmp_protect.x, y = tmp_protect.y, halo = "halo/teleport-8.png" }
                 end
+
+                local zone_data = objectives.protect.zones[zone_id] or { villages = {}, units = {} }
+                for _,village in ipairs(zone_data.villages) do
+                    wesnoth.wml_actions.item { x = village.x, y = village.y, halo = "halo/illuminates-aura.png~CS(-255,-255,0)" }
+                end
+                for _,unit in ipairs(zone_data.units) do
+                    wesnoth.wml_actions.item { x = unit.x, y = unit.y, halo = "halo/illuminates-aura.png~CS(0,-255,-255)" }
+                end
                 DBG.show_fgumap_with_message(front_map, 'distance', str, { x = front.x, y = front.y })
+                for _,unit in ipairs(zone_data.units) do
+                    wesnoth.wml_actions.remove_item { x = unit.x, y = unit.y, halo = "halo/illuminates-aura.png~CS(0,-255,-255)" }
+                end
+                for _,village in ipairs(zone_data.villages) do
+                    wesnoth.wml_actions.remove_item { x = village.x, y = village.y, halo = "halo/illuminates-aura.png~CS(-255,-255,0)" }
+                end
                 if tmp_protect then
                     wesnoth.wml_actions.remove_item { x = tmp_protect.x, y = tmp_protect.y, halo = "halo/teleport-8.png" }
                 end
