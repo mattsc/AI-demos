@@ -89,7 +89,7 @@ function fred_scenario_setup.fred_scenario_setup()
             image = 'items/ring-white.png~CROP(26,26,20,20)',
             { 'command', {
                 { 'lua', {
-                    code = "local options = { 'off', 'start turn instructions only', 'each move instructions', 'move instructions and fronts' }"
+                    code = "local options = { 'off', 'start turn instructions only', 'move instructions (text)', 'move instructions (map)', 'move instructions (text & map)' }"
                     .. " local fred_show_behavior = wml.variables.fred_show_behavior or 1"
                     .. " fred_show_behavior = (fred_show_behavior % #options) + 1"
                     .. " wml.variables.fred_show_behavior = fred_show_behavior"

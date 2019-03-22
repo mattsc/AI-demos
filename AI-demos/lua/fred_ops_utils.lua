@@ -274,12 +274,12 @@ end
 function fred_ops_utils.behavior_output(is_turn_start, ops_data)
     local behavior = ops_data.behavior
     local objectives = ops_data.objectives
-    local fred_behavior_str = '--- Behavior instructions ---'
     local fred_show_behavior = wml.variables.fred_show_behavior or DBG.show_debug('show_behavior')
 
     if ((fred_show_behavior > 1) and is_turn_start)
         or (fred_show_behavior > 2)
     then
+        local fred_behavior_str = '--- Behavior instructions ---'
         local overall_str = 'roughly equal'
         if (behavior.orders.base_power_ratio > FCFG.get_cfg_parm('winning_ratio')) then
             overall_str = 'winning'
@@ -326,10 +326,12 @@ function fred_ops_utils.behavior_output(is_turn_start, ops_data)
             end
         end
 
-        wesnoth.message('Fred', fred_behavior_str)
-        std_print(fred_behavior_str)
+        if (fred_show_behavior == 3) or (fred_show_behavior == 5) then
+            wesnoth.message('Fred', fred_behavior_str)
+            std_print(fred_behavior_str)
+        end
 
-        if (fred_show_behavior == 4) then
+        if (fred_show_behavior >= 4) then
             for zone_id,front in pairs(ops_data.fronts.zones) do
                 local raw_cfg = ops_data.raw_cfgs[zone_id]
                 local zone = wesnoth.get_locations(raw_cfg.ops_slf)
