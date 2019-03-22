@@ -859,8 +859,6 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
     --       which contains the chance to die in each of the attacks
     --   - rating_table: rating for this attack combination calculated from fred_attack_utils.attack_rating() results
     --   - attacker_damages, defender_damage: damage table for all attackers, and the combined damage for the defender
-    --   - attacker_infos, dsts, att_weapons_i: attacker_infos, dsts and attacker weapon number arrays, sorted
-    --       in order of the individual attacks
 
 
     ----- Begin combine_outcomes() -----
@@ -1208,7 +1206,6 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
         rating_table = rating_table,
         attacker_damages = attacker_damages,
         defender_damage = defender_damage,
-        attacker_infos = attacker_infos,
         dsts = dsts
     }
 
@@ -1394,8 +1391,8 @@ function fred_attack_utils.get_disqualified_attack(combo)
 
     -- This add all attackers in the combo to the sub-table
     -- Note that these keys are different from the key identifying the sub-table as a whole
-    for i_a,attacker_info in ipairs(combo.attackers) do
-        local id, x, y = combo.attackers[i_a].id, combo.dsts[i_a][1], combo.dsts[i_a][2]
+    for i_a,attacker_damage in ipairs(combo.attacker_damages) do
+        local id, x, y = attacker_damage.id, combo.dsts[i_a][1], combo.dsts[i_a][2]
         local key = x * 1000 + y -- only position for this, no id
         att_table[key] = true
     end
@@ -1477,7 +1474,7 @@ function fred_attack_utils.add_disqualified_attack(combo, i_a, disqualified_atta
     -- @i_a: the number of the attacker in the combo that was disqualified
     -- @disqualified_attacks: the table in which disq. attacks are stored
 
-    local id, x, y = combo.attackers[i_a].id, combo.dsts[i_a][1], combo.dsts[i_a][2]
+    local id, x, y = combo.attacker_damages[i_a].id, combo.dsts[i_a][1], combo.dsts[i_a][2]
     local key = id .. (x * 1000 + y)
 
     local exists_already, tmp = false

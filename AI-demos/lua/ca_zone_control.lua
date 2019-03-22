@@ -156,29 +156,30 @@ local function get_attack_action(zone_cfg, fred_data)
             -- cannot move in the first place.
             if do_attack then
                 for k,att_outcome in ipairs(combo_outcome.att_outcomes) do
-                    if (combo_outcome.attacker_infos[k].canrecruit) then
+                    local attacker_info = move_data.unit_infos[combo_outcome.attacker_damages[k].id]
+                    if (attacker_info.canrecruit) then
                         if (att_outcome.hp_chance[0] > 0.0) then
                             do_attack = false
                             break
                         end
 
                         if (att_outcome.slowed > 0.0)
-                            and (not combo_outcome.attacker_infos[k].status.slowed)
+                            and (not attacker_info.status.slowed)
                         then
                             do_attack = false
                             break
                         end
 
                         if (att_outcome.poisoned > 0.0)
-                            and (not combo_outcome.attacker_infos[k].status.poisoned)
-                            and (not combo_outcome.attacker_infos[k].abilities.regenerate)
+                            and (not attacker_info.status.poisoned)
+                            and (not attacker_info.abilities.regenerate)
                         then
                             do_attack = false
                             break
                         end
 
-                        if (combo_outcome.attacker_infos[k].moves > 0) then
-                            if (att_outcome.average_hp < combo_outcome.attacker_infos[k].max_hitpoints / 2) then
+                        if (attacker_info.moves > 0) then
+                            if (att_outcome.average_hp < attacker_info.max_hitpoints / 2) then
                                 do_attack = false
                                 break
                             end
@@ -233,7 +234,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         -- a function of damage done to both sides vs. healing at village
                         -- TODO: do we also place the prerecruits here?
                         for i_a,dst in pairs(combo_outcome.dsts) do
-                            local id = combo_outcome.attacker_infos[i_a].id
+                            local id = combo_outcome.attacker_damages[i_a].id
                             --std_print(id, dst[1], dst[2], move_data.unit_copies[id].x, move_data.unit_copies[id].y)
                             if (not move_data.my_units_noMP[id]) then
                                 wesnoth.put_unit(move_data.unit_copies[id], dst[1], dst[2])
@@ -252,7 +253,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         --std_print('can_reach', can_reach)
 
                         for i_a,dst in pairs(combo_outcome.dsts) do
-                            local id = combo_outcome.attacker_infos[i_a].id
+                            local id = combo_outcome.attacker_damages[i_a].id
                             if (not move_data.my_units_noMP[id]) then
                                 wesnoth.extract_unit(move_data.unit_copies[id])
                                 move_data.unit_copies[id].x, move_data.unit_copies[id].y = move_data.units[id][1], move_data.units[id][2]
@@ -374,9 +375,9 @@ local function get_attack_action(zone_cfg, fred_data)
                 -- from other attack where it may be more useful, rather than the use of
                 -- it in this attack, as that is already taken care of in the attack outcome
                 local number_poisoners = 0
-                for i_a,attacker in ipairs(combo_outcome.attacker_infos) do
+                for i_a,attacker_damage in ipairs(combo_outcome.attacker_damages) do
                     local is_poisoner = false
-                    for _,weapon in ipairs(attacker.attacks) do
+                    for _,weapon in ipairs(move_data.unit_infos[attacker_damage.id].attacks) do
                         if weapon.poison then
                             number_poisoners = number_poisoners + 1
                             break
@@ -421,9 +422,9 @@ local function get_attack_action(zone_cfg, fred_data)
                 --  - Against units which are already slowed
                 --  - More than one slower
                 local number_slowers = 0
-                for i_a,attacker in ipairs(combo_outcome.attacker_infos) do
+                for i_a,attacker_damage in ipairs(combo_outcome.attacker_damages) do
                     local is_slower = false
-                    for _,weapon in ipairs(attacker.attacks) do
+                    for _,weapon in ipairs(move_data.unit_infos[attacker_damage.id].attacks) do
                         if weapon.slow then
                             number_slowers = number_slowers + 1
                             break
@@ -458,9 +459,9 @@ local function get_attack_action(zone_cfg, fred_data)
                 --  - Against unplagueable units
                 --  - More than one plaguer
                 local number_plaguers = 0
-                for i_a,attacker in ipairs(combo_outcome.attacker_infos) do
+                for i_a,attacker_damage in ipairs(combo_outcome.attacker_damages) do
                     local is_plaguer = false
-                    for _,weapon in ipairs(attacker.attacks) do
+                    for _,weapon in ipairs(move_data.unit_infos[attacker_damage.id].attacks) do
                         if weapon.plague then
                             number_plaguers = number_plaguers + 1
                             break
@@ -500,7 +501,7 @@ local function get_attack_action(zone_cfg, fred_data)
 
                 -- Derate combo if it uses too many units for diminishing return
                 local derating = 1
-                local n_att = #combo_outcome.attacker_infos
+                local n_att = #combo_outcome.attacker_damages
                 if (pre_rating > 0) and (n_att > 2) then
                     local progression = combo_outcome.rating_table.progression
                     -- dim_return is 1 if the last units adds exactly 1/n_att to the overall rating
@@ -525,7 +526,6 @@ local function get_attack_action(zone_cfg, fred_data)
                     derating = derating,
                     penalty_rating = penalty_rating,
                     penalty_str = penalty_str,
-                    attackers = combo_outcome.attacker_infos,
                     dsts = combo_outcome.dsts,
                     weapons = combo_outcome.att_weapons_i,
                     target = target,
@@ -566,8 +566,8 @@ local function get_attack_action(zone_cfg, fred_data)
         -- pretty unlikely though.
         local is_disqualified = false
         if (#combo_ratings > 100) then
-            for i_a,attacker_info in ipairs(combo.attackers) do
-                local id, x, y = attacker_info.id, combo.dsts[i_a][1], combo.dsts[i_a][2]
+            for i_a,attacker_damage in ipairs(combo.damages) do
+                local id, x, y = attacker_damage.id, combo.dsts[i_a][1], combo.dsts[i_a][2]
                 local key = id .. (x * 1000 + y)
 
                 if disqualified_attacks[key] then
@@ -591,8 +591,8 @@ local function get_attack_action(zone_cfg, fred_data)
             --   - plague
 
             local attack_includes_leader = false
-            for i_a,attacker in ipairs(combo.attackers) do
-                 if attacker.canrecruit then
+            for i_a,attacker_damage in ipairs(combo.attacker_damages) do
+                 if move_data.unit_infos[attacker_damage.id].canrecruit then
                      attack_includes_leader = true
                      break
                  end
@@ -610,13 +610,13 @@ local function get_attack_action(zone_cfg, fred_data)
                 end
             end
 
-            for i_a,attacker_info in ipairs(combo.attackers) do
+            for i_a,attacker_damage in ipairs(combo.attacker_damages) do
                 if DBG.show_debug('attack_combos') then
                     local x, y = combo.dsts[i_a][1], combo.dsts[i_a][2]
-                    wesnoth.wml_actions.label { x = x, y = y, text = attacker_info.id }
+                    wesnoth.wml_actions.label { x = x, y = y, text = attacker_damage.id }
                 end
 
-                table.insert(old_locs, move_data.my_units[attacker_info.id])
+                table.insert(old_locs, move_data.my_units[attacker_damage.id])
                 table.insert(new_locs, combo.dsts[i_a])
 
                 -- Apply average hitpoints from the forward attack as starting point
@@ -626,7 +626,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 -- counted for both attack and counter attack. This could be done more
                 -- accurately by using a combined chance of getting poisoned/slowed, but
                 -- for now we use this as good enough.
-                table.insert(old_HP_attackers, move_data.unit_infos[attacker_info.id].hitpoints)
+                table.insert(old_HP_attackers, move_data.unit_infos[attacker_damage.id].hitpoints)
 
                 local hp = combo.att_outcomes[i_a].average_hp
                 if (hp < 1) then hp = 1 end
@@ -635,11 +635,11 @@ local function get_attack_action(zone_cfg, fred_data)
                 hp = H.round(hp)
                 --std_print('attacker hp before, after:', old_HP_attackers[i_a], hp)
 
-                move_data.unit_infos[attacker_info.id].hitpoints = hp
-                move_data.unit_copies[attacker_info.id].hitpoints = hp
+                move_data.unit_infos[attacker_damage.id].hitpoints = hp
+                move_data.unit_copies[attacker_damage.id].hitpoints = hp
 
                 -- If the unit is on the map, it also needs to be applied to the unit proxy
-                if move_data.my_units_noMP[attacker_info.id] then
+                if move_data.my_units_noMP[attacker_damage.id] then
                     local unit_proxy = wesnoth.get_unit(old_locs[i_a][1], old_locs[i_a][2])
                     unit_proxy.hitpoints = hp
                 end
@@ -684,7 +684,7 @@ local function get_attack_action(zone_cfg, fred_data)
                     table.insert(to_locs, { village.x, village.y })
                 end
             end
-            for i_a,attacker in ipairs(combo.attackers) do
+            for i_a,_ in ipairs(combo.attacker_damages) do
                 table.insert(to_unit_locs, { combo.dsts[i_a][1], combo.dsts[i_a][2] })
             end
             --DBG.dbms(to_locs, false, 'to_locs')
@@ -777,8 +777,8 @@ local function get_attack_action(zone_cfg, fred_data)
                 for id,_ in pairs(fred_data.ops_data.assigned_units[zone_cfg.zone_id]) do
                     if move_data.my_units_MP[id] then
                         local is_used = false
-                        for i_a,attacker in ipairs(combo.attackers) do
-                            if (attacker.id == id) then
+                        for i_a,attacker_damage in ipairs(combo.attacker_damages) do
+                            if (attacker_damage.id == id) then
                                 is_used = true
                                 break
                             end
@@ -806,12 +806,13 @@ local function get_attack_action(zone_cfg, fred_data)
                 goto skip_counter_analysis
             end
 
-            for i_a,attacker in ipairs(combo.attackers) do
-                DBG.print_debug('attack_print_output', '  by', attacker.id, combo.dsts[i_a][1], combo.dsts[i_a][2])
+            for i_a,attacker_damage in ipairs(combo.attacker_damages) do
+                local attacker_info = move_data.unit_infos[attacker_damage.id]
+                DBG.print_debug('attack_print_output', '  by', attacker_info.id, combo.dsts[i_a][1], combo.dsts[i_a][2])
 
                 -- Now calculate the counter attack outcome
                 local attacker_moved = {}
-                attacker_moved[attacker.id] = { combo.dsts[i_a][1], combo.dsts[i_a][2] }
+                attacker_moved[attacker_info.id] = { combo.dsts[i_a][1], combo.dsts[i_a][2] }
 
                 local counter_outcomes = FAU.calc_counter_attack(
                     attacker_moved, nil, nil, nil, virtual_reach_maps, false, cfg_attack, move_data, move_cache
@@ -999,20 +1000,20 @@ local function get_attack_action(zone_cfg, fred_data)
                 -- Also, it is different for attacks by individual units without MP;
                 -- for those it simply matters whether the attack makes things
                 -- better or worse, since there isn't a coice of moving someplace else
-                if counter_outcomes and ((#combo.attackers > 1) or (attacker.moves > 0)) then
+                if counter_outcomes and ((#combo.attacker_damages > 1) or (attacker_info.moves > 0)) then
                     local counter_min_hp = counter_outcomes.def_outcome.min_hp
                     -- If there's a chance of the leader getting poisoned, slowed or killed, don't do it
                     -- unless he is poisoned/slowed already
-                    if attacker.canrecruit then
+                    if attacker_info.canrecruit then
                         --std_print('Leader: slowed, poisoned %', counter_outcomes.def_outcome.slowed, counter_outcomes.def_outcome.poisoned)
-                        if (counter_outcomes.def_outcome.slowed > 0.0) and (not attacker.status.slowed) then
+                        if (counter_outcomes.def_outcome.slowed > 0.0) and (not attacker_info.status.slowed) then
                             DBG.print_debug('attack_print_output', '    leader: counter attack slow chance too high', counter_outcomes.def_outcome.slowed)
                             acceptable_counter = false
                             FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                             break
                         end
 
-                        if (counter_outcomes.def_outcome.poisoned > 0.0) and (not attacker.status.poisoned) and (not attacker.abilities.regenerate) then
+                        if (counter_outcomes.def_outcome.poisoned > 0.0) and (not attacker_info.status.poisoned) and (not attacker_info.abilities.regenerate) then
                             DBG.print_debug('attack_print_output', '    leader: counter attack poison chance too high', counter_outcomes.def_outcome.poisoned)
                             acceptable_counter = false
                             FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
@@ -1039,7 +1040,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         local combined_hp_probs = {}
                         for hp_counter,chance_counter in pairs(counter_outcomes.def_outcome.hp_chance) do
                             if (chance_counter > 0) then
-                                local dhp = hp_counter - move_data.unit_infos[attacker.id].hitpoints
+                                local dhp = hp_counter - move_data.unit_infos[attacker_info.id].hitpoints
                                 for hp,chance in pairs(combo.att_outcomes[i_a].hp_chance) do
                                     if (chance > 0) then
                                         local new_hp = hp + dhp
@@ -1071,7 +1072,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         local av_outcome = counter_outcomes.def_outcome.average_hp
                         --std_print('Leader: av_outcome', av_outcome)
 
-                        if (die_chance > leader_max_die_chance) or (av_outcome < attacker.max_hitpoints / 2) then
+                        if (die_chance > leader_max_die_chance) or (av_outcome < attacker_info.max_hitpoints / 2) then
                             DBG.print_debug('attack_print_output', '    leader: counter attack outcome too low', die_chance)
                             acceptable_counter = false
                             FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
@@ -1156,10 +1157,10 @@ local function get_attack_action(zone_cfg, fred_data)
                 --std_print('check_exposure', check_exposure)
 
                 if check_exposure and counter_outcomes
-                    and (#combo.attackers < 3) and (1.5 * #combo.attackers < #damages_enemy_units)
-                    and ((#combo.attackers > 1) or (combo.attackers[1].moves > 0))
+                    and (#combo.attacker_damages < 3) and (1.5 * #combo.attacker_damages < #damages_enemy_units)
+                    and ((#combo.attacker_damages > 1) or (move_data.unit_infos[combo.attacker_damages[1].id].moves > 0))
                 then
-                    --std_print('       outnumbered in counter attack: ' .. #combo.attackers .. ' vs. ' .. #damages_enemy_units)
+                    --std_print('       outnumbered in counter attack: ' .. #combo.attacker_damages .. ' vs. ' .. #damages_enemy_units)
                     local die_value = damages_my_units[i_a].die_chance * damages_my_units[i_a].unit_value
                     --std_print('           die value ' .. damages_my_units[i_a].id .. ': ', die_value, damages_my_units[i_a].unit_value)
 
@@ -1183,10 +1184,10 @@ local function get_attack_action(zone_cfg, fred_data)
             FVS.reset_state(old_locs, new_locs, false, move_data)
 
             -- Now reset the hitpoints for attackers and defender
-            for i_a,attacker_info in ipairs(combo.attackers) do
-                move_data.unit_infos[attacker_info.id].hitpoints = old_HP_attackers[i_a]
-                move_data.unit_copies[attacker_info.id].hitpoints = old_HP_attackers[i_a]
-                if move_data.my_units_noMP[attacker_info.id] then
+            for i_a,attacker_damage in ipairs(combo.attacker_damages) do
+                move_data.unit_infos[attacker_damage.id].hitpoints = old_HP_attackers[i_a]
+                move_data.unit_copies[attacker_damage.id].hitpoints = old_HP_attackers[i_a]
+                if move_data.my_units_noMP[attacker_damage.id] then
                     local unit_proxy = wesnoth.get_unit(old_locs[i_a][1], old_locs[i_a][2])
                     unit_proxy.hitpoints = old_HP_attackers[i_a]
                 end
@@ -1202,16 +1203,16 @@ local function get_attack_action(zone_cfg, fred_data)
             -- vs. attacking. If attacking results in a better rating, we do it.
             -- But only if the chance to die in the forward attack is not too
             -- large; otherwise the enemy might as well waste the resources.
-            if acceptable_counter and (#combo.attackers == 1) then
+            if acceptable_counter and (#combo.attacker_damages == 1) then
                 if (combo.att_outcomes[1].hp_chance[0] < 0.25) then
-                    local attacker = combo.attackers[1]
+                    local attacker_info = move_data.unit_infos[combo.attacker_damages[1].id]
 
-                    if (attacker.moves == 0) then
-                        --DBG.print_ts_delta(fred_data.turn_start_time, '  by', attacker.id, combo.dsts[1][1], combo.dsts[1][2])
+                    if (attacker_info.moves == 0) then
+                        --DBG.print_ts_delta(fred_data.turn_start_time, '  by', attacker_info.id, combo.dsts[1][1], combo.dsts[1][2])
 
                         -- Now calculate the counter attack outcome
                         local attacker_moved = {}
-                        attacker_moved[attacker.id] = { combo.dsts[1][1], combo.dsts[1][2] }
+                        attacker_moved[attacker_info.id] = { combo.dsts[1][1], combo.dsts[1][2] }
 
                         -- TODO: Use FVS here also?
                         local counter_outcomes = FAU.calc_counter_attack(
@@ -1277,11 +1278,10 @@ local function get_attack_action(zone_cfg, fred_data)
 
                     action = { units = {}, dsts = {}, enemy = combo.target }
 
-                    -- This is done simply so that the table is shorter when
-                    -- displayed. We could also simply use combo.attackers
-                    for _,attacker in ipairs(combo.attackers) do
-                        local tmp_unit = move_data.my_units[attacker.id]
-                        tmp_unit.id = attacker.id
+                    -- This is done simply so that the table is shorter when displayed.
+                    for _,attacker_damage in ipairs(combo.attacker_damages) do
+                        local tmp_unit = move_data.my_units[attacker_damage.id]
+                        tmp_unit.id = attacker_damage.id
                         table.insert(action.units, tmp_unit)
                     end
 
@@ -1308,7 +1308,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 )
                 wesnoth.scroll_to_tile(target_loc[1], target_loc[2])
                 wesnoth.wml_actions.message { speaker = 'narrator', message = msg_str}
-                for i_a,attacker_info in ipairs(combo.attackers) do
+                for i_a,_ in ipairs(combo.attacker_damages) do
                     local x, y = combo.dsts[i_a][1], combo.dsts[i_a][2]
                     wesnoth.wml_actions.label { x = x, y = y, text = "" }
                 end
