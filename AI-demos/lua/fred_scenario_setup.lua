@@ -118,16 +118,17 @@ function fred_scenario_setup.fred_scenario_setup()
         -- Also remove the variables and menu items at the end of the scenario.
         -- This is only important when playing Fred from the switchboard
         -- scenario in AI-demos, and going back to switchboard afterward.
+        -- The behavior variables also need to be deleted when loading.
         wesnoth.add_event_handler {
             name = 'victory,defeat,time_over,enemies_defeated,preload',
             first_time_only = 'no',
-            { 'clear_variable', { name = 'AI_Demos_version' } },
             { 'clear_variable', { name = 'fred_behavior_str' } },
             { 'clear_variable', { name = 'fred_show_behavior' } }
         }
         wesnoth.add_event_handler {
             name = 'victory,defeat,time_over,enemies_defeated',
             first_time_only = 'no',
+            { 'clear_variable', { name = 'AI_Demos_version' } },
             { 'clear_menu_item', { id = 'm08_show_behavior' } },
             { 'clear_menu_item', { id = 'm09_last_behavior' } }
         }
