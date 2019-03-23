@@ -276,108 +276,119 @@ function fred_ops_utils.behavior_output(is_turn_start, ops_data)
     local objectives = ops_data.objectives
     local fred_show_behavior = wml.variables.fred_show_behavior or DBG.show_debug('show_behavior')
 
-    local zone_strs = {}
-    if ((fred_show_behavior > 1) and is_turn_start)
-        or (fred_show_behavior > 2)
-    then
-        local fred_behavior_str = '--- Behavior instructions ---'
-        local overall_str = 'roughly equal'
-        if (behavior.orders.base_power_ratio > FCFG.get_cfg_parm('winning_ratio')) then
-            overall_str = 'winning'
-        elseif (behavior.orders.base_power_ratio < FCFG.get_cfg_parm('losing_ratio')) then
-            overall_str = 'losing'
-        end
-
-        fred_behavior_str = fred_behavior_str
-            .. string.format('\nbase power ratio : %.3f (%s)', behavior.orders.base_power_ratio, overall_str)
-            .. string.format('\nvalue_ratio : %.3f   (inverse: %.3f)', behavior.orders.value_ratio, 1/behavior.orders.value_ratio)
-        wml.variables.fred_behavior_str = fred_behavior_str
-
-        fred_behavior_str = fred_behavior_str .. '\nleader:'
-        fred_behavior_str = fred_behavior_str .. '\n    dorecruit:    ' .. tostring(objectives.leader.do_recruit)
-        fred_behavior_str = fred_behavior_str .. '\n    significant threat:    ' .. tostring(objectives.leader.leader_threats.significant_threat)
-        if objectives.leader.keep then
-            fred_behavior_str = fred_behavior_str .. '\n    go to keep:    ' .. objectives.leader.keep[1] .. ',' .. objectives.leader.keep[2]
-        end
-        if objectives.leader.village then
-            fred_behavior_str = fred_behavior_str .. '\n    go to village:    ' .. objectives.leader.village[1] .. ',' .. objectives.leader.village[2]
-        end
-
-        fred_behavior_str = fred_behavior_str .. '\nzones: try to protect:'
-        for zone_id,zone_data in pairs(objectives.protect.zones) do
-            local zone_str = ''
-            if zone_data.protect_leader or (#zone_data.villages > 0) or (#zone_data.units > 0) then
-                fred_behavior_str = fred_behavior_str .. '\n    ' .. zone_id .. ':'
-            end
-            if zone_data.protect_leader then
-                zone_str = zone_str .. '\n        protect_leader:    true'
-            end
-            if (#zone_data.villages > 0) then
-                zone_str = zone_str .. '\n        villages:  '
-            end
-            for _,village in ipairs(zone_data.villages) do
-                zone_str = zone_str .. '  ' .. village.x .. ',' .. village.y
-            end
-            if (#zone_data.units > 0) then
-                zone_str = zone_str .. '\n        units:  '
-            end
-            for _,unit in ipairs(zone_data.units) do
-                zone_str = zone_str .. '  ' .. unit.x .. ',' .. unit.y
-            end
-            fred_behavior_str = fred_behavior_str ..  zone_str
-            zone_strs[zone_id] = zone_str
-        end
-
-        if (fred_show_behavior == 3) or (fred_show_behavior == 5) then
-            wesnoth.message('Fred', fred_behavior_str)
-            std_print(fred_behavior_str)
-        end
-
-        if (fred_show_behavior >= 4) then
-            for zone_id,front in pairs(ops_data.fronts.zones) do
-                local raw_cfg = ops_data.raw_cfgs[zone_id]
-                local zone = wesnoth.get_locations(raw_cfg.ops_slf)
-
-                local front_map = {}
-                for _,loc in ipairs(zone) do
-                    local ld = FU.get_fgumap_value(ops_data.leader_distance_map, loc[1], loc[2], 'distance')
-                    if (math.abs(ld - front.ld) <= 0.5) then
-                        FU.set_fgumap_value(front_map, loc[1], loc[2], 'distance', ld)
-                    end
-                end
-
-                local zone_str = zone_strs[zone_id] or ''
-                local str = string.format('front in zone %s: %d,%d   (white marker)'
-                    .. '\npeak vulnerability = %.3f'
-                    .. '\nprotect:    (red halo: units,  blue halo: villages)%s',
-                    zone_id, front.x, front.y, front.peak_vuln, zone_str
-                )
-
-                local tmp_protect = ops_data.fronts.zones[zone_id].protect
-                if tmp_protect then
-                    wesnoth.wml_actions.item { x = tmp_protect.x, y = tmp_protect.y, halo = "halo/teleport-8.png" }
-                end
-
-                local zone_data = objectives.protect.zones[zone_id] or { villages = {}, units = {} }
-                for _,village in ipairs(zone_data.villages) do
-                    wesnoth.wml_actions.item { x = village.x, y = village.y, halo = "halo/illuminates-aura.png~CS(-255,-255,0)" }
-                end
-                for _,unit in ipairs(zone_data.units) do
-                    wesnoth.wml_actions.item { x = unit.x, y = unit.y, halo = "halo/illuminates-aura.png~CS(0,-255,-255)" }
-                end
-                DBG.show_fgumap_with_message(front_map, 'distance', str, { x = front.x, y = front.y })
-                for _,unit in ipairs(zone_data.units) do
-                    wesnoth.wml_actions.remove_item { x = unit.x, y = unit.y, halo = "halo/illuminates-aura.png~CS(0,-255,-255)" }
-                end
-                for _,village in ipairs(zone_data.villages) do
-                    wesnoth.wml_actions.remove_item { x = village.x, y = village.y, halo = "halo/illuminates-aura.png~CS(-255,-255,0)" }
-                end
-                if tmp_protect then
-                    wesnoth.wml_actions.remove_item { x = tmp_protect.x, y = tmp_protect.y, halo = "halo/teleport-8.png" }
-                end
-            end
-        end
+    local str = 'Mid'
+    if is_turn_start then
+        str = 'Beginning/Reload'
     end
+    local fred_behavior_str = '--- Behavior Instructions ' .. str .. ' Turn ' .. wesnoth.current.turn .. '---'
+
+    local zone_strs = {}
+    local overall_str = 'roughly equal'
+    if (behavior.orders.base_power_ratio > FCFG.get_cfg_parm('winning_ratio')) then
+        overall_str = 'winning'
+    elseif (behavior.orders.base_power_ratio < FCFG.get_cfg_parm('losing_ratio')) then
+        overall_str = 'losing'
+    end
+
+    fred_behavior_str = fred_behavior_str
+        .. string.format('\nbase power ratio : %.3f (%s)', behavior.orders.base_power_ratio, overall_str)
+        .. string.format('\nvalue_ratio : %.3f   (inverse: %.3f)', behavior.orders.value_ratio, 1/behavior.orders.value_ratio)
+
+    fred_behavior_str = fred_behavior_str .. '\nleader:'
+    fred_behavior_str = fred_behavior_str .. '\n    dorecruit:    ' .. tostring(objectives.leader.do_recruit)
+    fred_behavior_str = fred_behavior_str .. '\n    significant threat:    ' .. tostring(objectives.leader.leader_threats.significant_threat)
+    if objectives.leader.keep then
+        fred_behavior_str = fred_behavior_str .. '\n    go to keep:    ' .. objectives.leader.keep[1] .. ',' .. objectives.leader.keep[2]
+    end
+    if objectives.leader.village then
+        fred_behavior_str = fred_behavior_str .. '\n    go to village:    ' .. objectives.leader.village[1] .. ',' .. objectives.leader.village[2]
+    end
+
+    for zone_id,zone_data in pairs(objectives.protect.zones) do
+        local zone_str = ''
+        if zone_data.protect_leader or (#zone_data.villages > 0) or (#zone_data.units > 0) then
+            fred_behavior_str = fred_behavior_str .. '\n' .. zone_id .. ':'
+        end
+        if zone_data.protect_leader then
+            zone_str = zone_str .. '\n    protect leader:    true'
+        end
+        if (#zone_data.villages > 0) then
+            zone_str = zone_str .. '\n    protect villages:  '
+        end
+        for _,village in ipairs(zone_data.villages) do
+            zone_str = zone_str .. '  ' .. village.x .. ',' .. village.y
+        end
+        if (#zone_data.units > 0) then
+            zone_str = zone_str .. '\n    protect units:  '
+        end
+        for _,unit in ipairs(zone_data.units) do
+            zone_str = zone_str .. '  ' .. unit.x .. ',' .. unit.y
+        end
+        fred_behavior_str = fred_behavior_str ..  zone_str
+        zone_strs[zone_id] = zone_str
+    end
+
+
+    if (is_turn_start and (fred_show_behavior == 2)) then
+        wesnoth.message('Fred', fred_behavior_str)
+        std_print(fred_behavior_str)
+    end
+
+    if (fred_show_behavior == 3) or (fred_show_behavior == 5) then
+        wesnoth.message('Fred', fred_behavior_str)
+        std_print(fred_behavior_str)
+    end
+
+    if (fred_show_behavior >= 4) then
+       for zone_id,front in pairs(ops_data.fronts.zones) do
+           local raw_cfg = ops_data.raw_cfgs[zone_id]
+           local zone = wesnoth.get_locations(raw_cfg.ops_slf)
+
+           local front_map = {}
+           for _,loc in ipairs(zone) do
+               local ld = FU.get_fgumap_value(ops_data.leader_distance_map, loc[1], loc[2], 'distance')
+               if (math.abs(ld - front.ld) <= 0.5) then
+                   FU.set_fgumap_value(front_map, loc[1], loc[2], 'distance', ld)
+               end
+           end
+
+           local zone_str = zone_strs[zone_id] or ''
+           local str = string.format('front in zone %s: %d,%d   (white marker)'
+               .. '\npeak vulnerability = %.3f'
+               .. '\nprotect:    (red halo: units,  blue halo: villages)%s',
+               zone_id, front.x, front.y, front.peak_vuln, zone_str
+           )
+
+           local tmp_protect = ops_data.fronts.zones[zone_id].protect
+           if tmp_protect then
+               wesnoth.wml_actions.item { x = tmp_protect.x, y = tmp_protect.y, halo = "halo/teleport-8.png" }
+           end
+
+           local zone_data = objectives.protect.zones[zone_id] or { villages = {}, units = {} }
+           for _,village in ipairs(zone_data.villages) do
+               wesnoth.wml_actions.item { x = village.x, y = village.y, halo = "halo/illuminates-aura.png~CS(-255,-255,0)" }
+           end
+           for _,unit in ipairs(zone_data.units) do
+               wesnoth.wml_actions.item { x = unit.x, y = unit.y, halo = "halo/illuminates-aura.png~CS(0,-255,-255)" }
+           end
+           DBG.show_fgumap_with_message(front_map, 'distance', str, { x = front.x, y = front.y })
+           for _,unit in ipairs(zone_data.units) do
+               wesnoth.wml_actions.remove_item { x = unit.x, y = unit.y, halo = "halo/illuminates-aura.png~CS(0,-255,-255)" }
+           end
+           for _,village in ipairs(zone_data.villages) do
+               wesnoth.wml_actions.remove_item { x = village.x, y = village.y, halo = "halo/illuminates-aura.png~CS(-255,-255,0)" }
+           end
+           if tmp_protect then
+               wesnoth.wml_actions.remove_item { x = tmp_protect.x, y = tmp_protect.y, halo = "halo/teleport-8.png" }
+           end
+       end
+    end
+
+    if is_turn_start then
+        wml.variables.fred_behavior_str = fred_behavior_str
+    end
+
+    return fred_behavior_str
 end
 
 
@@ -1631,7 +1642,11 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(ops_data.reserved_actions, false, 'ops_data.reserved_actions')
 
 
-    fred_ops_utils.behavior_output(true, ops_data)
+    if (not ops_data.fred_behavior_str) then
+        ops_data.fred_behavior_str = fred_ops_utils.behavior_output(true, ops_data)
+    else
+        fred_ops_utils.behavior_output(false, ops_data)
+    end
 
     if DBG.show_debug('analysis') then
         local behavior = fred_data.ops_data.behavior

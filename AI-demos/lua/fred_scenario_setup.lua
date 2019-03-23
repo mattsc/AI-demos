@@ -93,7 +93,7 @@ function fred_scenario_setup.fred_scenario_setup()
                     .. " local fred_show_behavior = wml.variables.fred_show_behavior or 1"
                     .. " fred_show_behavior = (fred_show_behavior % #options) + 1"
                     .. " wml.variables.fred_show_behavior = fred_show_behavior"
-                    .. " local str = 'Show behavior now set to ' .. fred_show_behavior .. ': ' .. options[fred_show_behavior]"
+                    .. " local str = 'Show behavior now set to ' .. fred_show_behavior .. ': ' .. options[fred_show_behavior] .. '    (press b to change)'"
                     .. " wesnoth.message('Fred', str)"
                     .. " std_print(str)"
                 } },
@@ -119,11 +119,15 @@ function fred_scenario_setup.fred_scenario_setup()
         -- This is only important when playing Fred from the switchboard
         -- scenario in AI-demos, and going back to switchboard afterward.
         wesnoth.add_event_handler {
-            name = 'victory,defeat,time_over,enemies_defeated',
-
+            name = 'victory,defeat,time_over,enemies_defeated,preload',
+            first_time_only = 'no',
             { 'clear_variable', { name = 'AI_Demos_version' } },
             { 'clear_variable', { name = 'fred_behavior_str' } },
-            { 'clear_variable', { name = 'fred_show_behavior' } },
+            { 'clear_variable', { name = 'fred_show_behavior' } }
+        }
+        wesnoth.add_event_handler {
+            name = 'victory,defeat,time_over,enemies_defeated',
+            first_time_only = 'no',
             { 'clear_menu_item', { id = 'm08_show_behavior' } },
             { 'clear_menu_item', { id = 'm09_last_behavior' } }
         }
