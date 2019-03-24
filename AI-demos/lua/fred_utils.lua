@@ -7,7 +7,15 @@ local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 local fred_utils = {}
 
 function fred_utils.get_fgumap_value(map, x, y, key)
-    return (map[x] and map[x][y] and map[x][y][key])
+    -- @key: if given, return the value of that field (or nil if it does not exist)
+    -- if not given, return true if the map has any entry at this coordinate, otherwise false
+    if key then
+        return (map[x] and map[x][y] and map[x][y][key])
+    elseif (map[x] and map[x][y]) then
+        return true
+    else
+        return false
+    end
 end
 
 function fred_utils.set_fgumap_value(map, x, y, key, value)
