@@ -541,6 +541,72 @@ function fred_ops_utils.set_ops_data(fred_data)
     local side_cfgs = FMC.get_side_cfgs()
     --DBG.dbms(raw_cfgs, false, 'raw_cfgs')
 
+    -- Combine several zones into one, if the conditions for it are met.
+    -- For example, on Freelands the 'east' and 'center' zones are combined
+    -- into the 'top' zone if enemies are close enough to the leader.
+    -- TODO: set this up to be configurable by the cfgs
+    local replace_zone_ids = FMC.replace_zone_ids()
+    --DBG.dbms(replace_zone_ids, false, 'replace_zone_ids')
+    for _,zone_ids in ipairs(replace_zone_ids) do
+        local raw_cfg_new = FMC.get_raw_cfgs(zone_ids.new)
+        local replace_zones = false
+        for enemy_id,enemy_loc in pairs(move_data.enemies) do
+            if wesnoth.match_location(enemy_loc[1], enemy_loc[2], raw_cfg_new.enemy_slf) then
+                replace_zones = true
+                break
+            end
+        end
+        if replace_zones then
+            --std_print('replace zone: ' .. raw_cfg_new.zone_id)
+            raw_cfgs[raw_cfg_new.zone_id] = raw_cfg_new
+            for _,old_zone_id in ipairs(zone_ids.old) do
+                raw_cfgs[old_zone_id] = nil
+            end
+        end
+
+        -- If the zones are different from what they were before on the same turn,
+        -- we need to do a full ops re-analysis -> delete ops_data
+        if fred_data.ops_data.raw_cfgs then
+            --std_print('checking whether raw_cfgs have changed')
+            local reset_ops_data = false
+            for new_zone_id,_ in pairs(raw_cfgs) do
+                local id_exists = false
+                for old_zone_id,_ in pairs(fred_data.ops_data.raw_cfgs) do
+                    if (new_zone_id == old_zone_id) then
+                        id_exists = true
+                        break
+                    end
+                end
+                if (not id_exists) then
+                    reset_ops_data = true
+                    break
+                end
+            end
+            if (not reset_ops_data) then
+                for old_zone_id,_ in pairs(fred_data.ops_data.raw_cfgs) do
+                    local id_exists = false
+                    for new_zone_id,_ in pairs(raw_cfgs) do
+                        if (old_zone_id == new_zone_id) then
+                            id_exists = true
+                            break
+                        end
+                    end
+                    if (not id_exists) then
+                        reset_ops_data = true
+                        break
+                    end
+                end
+            end
+            --std_print('reset_ops_data', reset_ops_data)
+
+            if reset_ops_data then
+                fred_data.ops_data = {}
+            end
+        end
+    end
+    --DBG.dbms(raw_cfgs, false, 'raw_cfgs')
+
+
     local leader_derating = FCFG.get_cfg_parm('leader_derating')
 
     local my_base_power, enemy_base_power = 0, 0
@@ -871,72 +937,6 @@ function fred_ops_utils.set_ops_data(fred_data)
     ops_data.unit_attacks = unit_attacks
     ops_data.behavior = behavior
     ops_data.unit_attack_status = unit_attack_status
-
-
-    -- Combine several zones into one, if the conditions for it are met.
-    -- For example, on Freelands the 'east' and 'center' zones are combined
-    -- into the 'top' zone if enemies are close enough to the leader.
-    -- TODO: set this up to be configurable by the cfgs
-    local replace_zone_ids = FMC.replace_zone_ids()
-    --DBG.dbms(replace_zone_ids, false, 'replace_zone_ids')
-    for _,zone_ids in ipairs(replace_zone_ids) do
-        local raw_cfg_new = FMC.get_raw_cfgs(zone_ids.new)
-        local replace_zones = false
-        for enemy_id,enemy_loc in pairs(move_data.enemies) do
-            if wesnoth.match_location(enemy_loc[1], enemy_loc[2], raw_cfg_new.enemy_slf) then
-                replace_zones = true
-                break
-            end
-        end
-        if replace_zones then
-            --std_print('replace zone: ' .. raw_cfg_new.zone_id)
-            raw_cfgs[raw_cfg_new.zone_id] = raw_cfg_new
-            for _,old_zone_id in ipairs(zone_ids.old) do
-                raw_cfgs[old_zone_id] = nil
-            end
-        end
-
-        -- If the zones are different from what they were before on the same turn,
-        -- we need to do a full ops re-analysis -> delete ops_data
-        if fred_data.ops_data.raw_cfgs then
-            --std_print('checking whether raw_cfgs have changed')
-            local reset_ops_data = false
-            for new_zone_id,_ in pairs(raw_cfgs) do
-                local id_exists = false
-                for old_zone_id,_ in pairs(fred_data.ops_data.raw_cfgs) do
-                    if (new_zone_id == old_zone_id) then
-                        id_exists = true
-                        break
-                    end
-                end
-                if (not id_exists) then
-                    reset_ops_data = true
-                    break
-                end
-            end
-            if (not reset_ops_data) then
-                for old_zone_id,_ in pairs(fred_data.ops_data.raw_cfgs) do
-                    local id_exists = false
-                    for new_zone_id,_ in pairs(raw_cfgs) do
-                        if (old_zone_id == new_zone_id) then
-                            id_exists = true
-                            break
-                        end
-                    end
-                    if (not id_exists) then
-                        reset_ops_data = true
-                        break
-                    end
-                end
-            end
-            --std_print('reset_ops_data', reset_ops_data)
-
-            if reset_ops_data then
-                fred_data.ops_data = nil
-            end
-        end
-    end
-    --DBG.dbms(raw_cfgs, false, 'raw_cfgs')
 
 
     ----- Get situation on the map first -----
