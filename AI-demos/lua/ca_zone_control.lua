@@ -566,7 +566,7 @@ local function get_attack_action(zone_cfg, fred_data)
         -- pretty unlikely though.
         local is_disqualified = false
         if (#combo_ratings > 100) then
-            for i_a,attacker_damage in ipairs(combo.damages) do
+            for i_a,attacker_damage in ipairs(combo.attacker_damages) do
                 local id, x, y = attacker_damage.id, combo.dsts[i_a][1], combo.dsts[i_a][2]
                 local key = id .. (x * 1000 + y)
 
@@ -1375,10 +1375,14 @@ local function get_hold_action(zone_cfg, fred_data)
     local factor_forward = 1 - factor_counter
     --std_print('factor_counter, factor_forward', factor_counter, factor_forward)
 
-    local push_factor = fred_data.ops_data.fronts.zones[zone_cfg.zone_id].push_utility
+    local push_utility, front_ld = 1, 0
+    if fred_data.ops_data.fronts.zones[zone_cfg.zone_id] then
+        push_utility = fred_data.ops_data.fronts.zones[zone_cfg.zone_id].push_utility
+        front_ld = fred_data.ops_data.fronts.zones[zone_cfg.zone_id].ld
+    end
+    local push_factor = push_utility
     push_factor = push_factor / value_ratio
     --std_print('push_factor', push_factor)
-    local front_ld = fred_data.ops_data.fronts.zones[zone_cfg.zone_id].ld
 
     local vuln_weight = FCFG.get_cfg_parm('vuln_weight')
     local vuln_rating_weight = vuln_weight * (1 / value_ratio - 1)

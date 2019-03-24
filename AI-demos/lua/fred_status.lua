@@ -166,7 +166,7 @@ function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_d
         --std_print('  check protection of village: ' .. village.loc[1] .. ',' .. village.loc[2])
         local is_protected, exposure = true, 0
         for enemy_id,_ in pairs(move_data.enemies) do
-            local moves_left = FU.get_fgumap_value(virtual_reach_maps[enemy_id], village.loc[1], village.loc[2], 'moves_left')
+            local moves_left = virtual_reach_maps[enemy_id] and FU.get_fgumap_value(virtual_reach_maps[enemy_id], village.loc[1], village.loc[2], 'moves_left')
             if moves_left then
                 --std_print('  can reach this: ' .. enemy_id, moves_left)
                 is_protected = false

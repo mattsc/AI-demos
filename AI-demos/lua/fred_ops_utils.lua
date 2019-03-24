@@ -174,7 +174,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
             --std_print('  checking whether units should be protected: ' .. zone_id)
             -- TODO: does this take appreciable time? If so, can be skipped when no no_MP units exist
             local units_to_protect, protectors = {}, {}
-            for id,_ in pairs(assigned_units[zone_id]) do
+            for id,_ in pairs(assigned_units[zone_id] or {}) do
                 local loc = fred_data.move_data.units[id]
 
                 -- We don't need to consider units that have no MP left and cannot
@@ -192,7 +192,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
                     --std_print(string.format('      %-25s    %2d,%2d  %5.2f', id, loc[1], loc[2], unit_value))
 
                     local tmp_damages = {}
-                    for enemy_id,enemy_loc in pairs(assigned_enemies[zone_id]) do
+                    for enemy_id,enemy_loc in pairs(assigned_enemies[zone_id] or {}) do
                         local counter = fred_data.ops_data.unit_attacks[id][enemy_id].damage_counter
 
                         -- For units that have moved, we can use the actual hit_chance
@@ -941,7 +941,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     ----- Get situation on the map first -----
 
-    local used_units = fred_data.ops_data and fred_data.ops_data.used_units or {}
+    local used_units = fred_data.ops_data.used_units or {}
     --DBG.dbms(used_units, false, 'used_units')
 
 
@@ -960,7 +960,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     -- beginning of the turn), but those should be close enough for this purpose.
     -- If necessary, we could do this iteratively, but I don't think this is needed.
     local fronts
-    if fred_data.ops_data and fred_data.ops_data.fronts then
+    if fred_data.ops_data.fronts then
         fronts = fred_data.ops_data.fronts
     else
         fronts = fred_ops_utils.find_fronts(zone_maps, nil, raw_cfgs, fred_data)
