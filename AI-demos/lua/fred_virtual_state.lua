@@ -215,7 +215,7 @@ function fred_virtual_state.virtual_reach_maps(units, to_enemy_locs, to_locs, mo
         if to_enemy_locs then
             for _,enemy_loc in ipairs(to_enemy_locs) do
                 for xa,ya in H.adjacent_tiles(enemy_loc[1], enemy_loc[2]) do
-                    if FGM.get_value(move_data.reach_maps[unit_id], xa, ya) then
+                    if FGM.get_value(move_data.reach_maps[unit_id], xa, ya, 'moves_left') then
                         can_reach = true
                         break
                     end
@@ -225,7 +225,7 @@ function fred_virtual_state.virtual_reach_maps(units, to_enemy_locs, to_locs, mo
         end
         if (not can_reach) and to_locs then
             for _,loc in ipairs(to_locs) do
-                if FGM.get_value(move_data.reach_maps[unit_id], loc[1], loc[2]) then
+                if FGM.get_value(move_data.reach_maps[unit_id], loc[1], loc[2], 'moves_left') then
                     can_reach = true
                     break
                 end

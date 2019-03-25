@@ -303,7 +303,7 @@ local function get_attack_action(zone_cfg, fred_data)
                     for xa,ya in H.adjacent_tiles(target_loc[1], target_loc[2]) do
                         if (not FGM.get_value(adj_occ_hex_map, xa, ya, 'is_occ')) then
                             -- Only units without MP on the AI side are on the map here
-                            if FGM.get_value(move_data.my_unit_map_noMP, xa, ya) then
+                            if FGM.get_value(move_data.my_unit_map_noMP, xa, ya, 'id') then
                                 FGM.set_value(adj_occ_hex_map, xa, ya, 'is_occ', true)
                                 count = count + 1
                             end
@@ -1142,7 +1142,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 if check_exposure then
                     for _,dst in pairs(combo.dsts) do
                         for xa,ya in H.adjacent_tiles(dst[1], dst[2]) do
-                            if FGM.get_value(move_data.my_unit_map_noMP, xa, ya) then
+                            if FGM.get_value(move_data.my_unit_map_noMP, xa, ya, 'id') then
                                 check_exposure = false
                                 break
                             end

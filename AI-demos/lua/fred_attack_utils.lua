@@ -189,7 +189,7 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, move_data)
         end
 
         -- Negative delayed damage (healing)
-        local is_village = FGM.get_value(move_data.village_map, dst[1], dst[2])
+        local is_village = FGM.get_value(move_data.village_map, dst[1], dst[2], 'owner')
 
         -- If unit is on a village, we count that as an 8 HP bonus (negative damage)
         -- multiplied by the chance to survive
@@ -419,7 +419,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
 
     -- If defender is on a village, add a bonus rating (we want to get rid of those preferentially)
     -- This is in addition to the damage bonus (penalty, if enemy) already included above (but as an extra rating)
-    local defender_on_village = FGM.get_value(move_data.village_map, defender_x, defender_y)
+    local defender_on_village = FGM.get_value(move_data.village_map, defender_x, defender_y, 'owner')
     if defender_on_village then
         extra_rating = extra_rating + 10.
     end
@@ -1269,7 +1269,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, cfg, reach_map
         local dst = xa * 1000 + ya
 
         for attacker_id,attacker_loc in pairs(attackers) do
-            if FGM.get_value(reach_maps[attacker_id], xa, ya) then
+            if FGM.get_value(reach_maps[attacker_id], xa, ya, 'moves_left') then
                 all_attackers[attacker_id] = true
                 local _, rating
                 if get_strongest_attack then

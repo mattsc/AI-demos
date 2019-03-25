@@ -3,15 +3,7 @@ local H = wesnoth.require "helper"
 local fred_gamestate_map = {}
 
 function fred_gamestate_map.get_value(map, x, y, key)
-    -- @key: if given, return the value of that field (or nil if it does not exist)
-    -- if not given, return true if the map has any entry at this coordinate, otherwise false
-    if key then
-        return (map[x] and map[x][y] and map[x][y][key])
-    elseif (map[x] and map[x][y]) then
-        return true
-    else
-        return false
-    end
+    return (map[x] and map[x][y] and map[x][y][key])
 end
 
 function fred_gamestate_map.set_value(map, x, y, key, value)
