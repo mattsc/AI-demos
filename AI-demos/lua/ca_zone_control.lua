@@ -642,9 +642,22 @@ local function get_attack_action(zone_cfg, fred_data)
                 end
             end
 
-           if (not attack_includes_leader) then
-                table.insert(old_locs, move_data.leaders[wesnoth.current.side])
-                table.insert(new_locs, leader_goal)
+            -- Note: attack_includes_leader and exclude_leader do not quite the same in how they
+            -- apply penalties to the attack.
+            -- TODO: need to rethink whether this is all correct. For example, if the attack does
+            -- not include the leader, but he isn't placed, how do we apply the penalty?
+           local exclude_leader = attack_includes_leader
+           if (not exclude_leader) then
+                for _,dst in ipairs(combo.dsts) do
+                    if (dst[1] == leader_goal[1]) and (dst[2] == leader_goal[2]) then
+                        exclude_leader = true
+                        break
+                    end
+                end
+                if (not exclude_leader) then
+                    table.insert(old_locs, move_data.leaders[wesnoth.current.side])
+                    table.insert(new_locs, leader_goal)
+                end
             end
 
             -- Also set the hitpoints for the defender
@@ -699,7 +712,7 @@ local function get_attack_action(zone_cfg, fred_data)
             FVS.set_virtual_state(old_locs, new_locs, fred_data.ops_data.place_holders, false, move_data)
             local virtual_reach_maps = FVS.virtual_reach_maps(live_enemies, to_unit_locs, to_locs, move_data)
             local status = FS.check_exposures(objectives, virtual_reach_maps,
-                { zone_id = zone_cfg.zone_id, exclude_leader = attack_includes_leader },
+                { zone_id = zone_cfg.zone_id, exclude_leader = exclude_leader },
                 fred_data
             )
             --DBG.dbms(status, false, 'status')
@@ -764,7 +777,8 @@ local function get_attack_action(zone_cfg, fred_data)
                 and objectives.protect.zones[zone_cfg.zone_id]
                 and objectives.protect.zones[zone_cfg.zone_id].protect_leader
             then
-                power_needed = status.leader.enemy_power - org_status.leader.best_protection[zone_cfg.zone_id].zone_enemy_power
+                local org_enemy_power = org_status.leader.best_protection and org_status.leader.best_protection[zone_cfg.zone_id] and org_status.leader.best_protection[zone_cfg.zone_id].zone_enemy_power or 0
+                power_needed = status.leader.enemy_power - org_enemy_power
             end
             --std_print('power_needed', power_needed)
 
