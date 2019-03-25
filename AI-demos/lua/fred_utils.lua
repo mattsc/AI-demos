@@ -1,79 +1,11 @@
 local H = wesnoth.require "helper"
 local AH = wesnoth.require "ai/lua/ai_helper.lua"
+local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local FGUI = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local fred_utils = {}
-
-function fred_utils.get_fgumap_value(map, x, y, key)
-    -- @key: if given, return the value of that field (or nil if it does not exist)
-    -- if not given, return true if the map has any entry at this coordinate, otherwise false
-    if key then
-        return (map[x] and map[x][y] and map[x][y][key])
-    elseif (map[x] and map[x][y]) then
-        return true
-    else
-        return false
-    end
-end
-
-function fred_utils.set_fgumap_value(map, x, y, key, value)
-    if (not map[x]) then map[x] = {} end
-    if (not map[x][y]) then map[x][y] = {} end
-    map[x][y][key] = value
-end
-
-function fred_utils.fgumap_add(map, x, y, key, value)
-    local old_value = fred_utils.get_fgumap_value(map, x, y, key) or 0
-    fred_utils.set_fgumap_value(map, x, y, key, old_value + value)
-end
-
-function fred_utils.fgumap_iter(map)
-    function each_hex(state)
-        while state.x ~= nil do
-            local child = map[state.x]
-            state.y = next(child, state.y)
-            if state.y == nil then
-                state.x = next(map, state.x)
-            else
-                return state.x, state.y, child[state.y]
-            end
-        end
-    end
-
-    return each_hex, { x = next(map) }
-end
-
-function fred_utils.fgumap_normalize(map, key)
-    local mx
-    for _,_,data in fred_utils.fgumap_iter(map) do
-        if (not mx) or (data[key] > mx) then
-            mx = data[key]
-        end
-    end
-    for _,_,data in fred_utils.fgumap_iter(map) do
-        data[key] = data[key] / mx
-    end
-end
-
-function fred_utils.fgumap_blur(map, key)
-    for x,y,data in fred_utils.fgumap_iter(map) do
-        local blurred_data = data[key]
-        if blurred_data then
-            local count = 1
-            local adj_weight = 0.5
-            for xa,ya in H.adjacent_tiles(x, y) do
-                local value = fred_utils.get_fgumap_value(map, xa, ya, key)
-                if value then
-                    blurred_data = blurred_data + value * adj_weight
-                   count = count + adj_weight
-                end
-            end
-            fred_utils.set_fgumap_value(map, x, y, 'blurred_' .. key, blurred_data / count)
-        end
-    end
-end
 
 function fred_utils.weight_s(x, exp)
     -- S curve weighting of a variable that is meant as a fraction of a total.
@@ -391,7 +323,7 @@ function fred_utils.smooth_cost_map(unit_proxy, loc, is_inverse_map)
                 c = c + movecost_0 - movecost
             end
 
-            fred_utils.set_fgumap_value(cost_map, cost[1], cost[2], 'cost', c)
+            FGM.set_value(cost_map, cost[1], cost[2], 'cost', c)
         end
     end
 
@@ -430,12 +362,9 @@ function fred_utils.get_leader_distance_map(leader_loc, side_cfgs)
             local enemy_leader_dist = math.sqrt( (enemy_leader_cx - cx)^2 + (enemy_leader_cy - cy)^2 )
 
             if (not leader_distance_map[x]) then leader_distance_map[x] = {} end
-            leader_distance_map[x][y] = {
-                my_leader_distance = leader_dist,
-                enemy_leader_distance = enemy_leader_dist,
-                distance = (leader_dist - 0.5 * enemy_leader_dist) / 1.5
-            }
-
+            FGM.set_value(leader_distance_map, x, y, 'my_leader_distance', leader_dist)
+            leader_distance_map[x][y].enemy_leader_distance = enemy_leader_dist
+            leader_distance_map[x][y].distance = (leader_dist - 0.5 * enemy_leader_dist) / 1.5
         end
     end
 
@@ -478,7 +407,7 @@ function fred_utils.get_enemy_leader_distance_maps(zone_cfgs, side_cfgs, move_da
             wesnoth.set_terrain(terrain[1], terrain[2], terrain[3])
         end
         -- The above procedure unsets village ownership
-        for x,y,data in fred_utils.fgumap_iter(move_data.village_map) do
+        for x,y,data in FGM.iter(move_data.village_map) do
             if (data.owner > 0) then
                 wesnoth.set_village_owner(x, y, data.owner)
             end
@@ -506,62 +435,62 @@ function fred_utils.get_influence_maps(move_data)
 
     local influence_maps, unit_influence_maps = {}, {}
     for int_turns = 1,2 do
-        for x,y,data in fred_utils.fgumap_iter(move_data.my_attack_map[int_turns]) do
+        for x,y,data in FGM.iter(move_data.my_attack_map[int_turns]) do
             for _,id in pairs(data.ids) do
                 local unit_influence = fred_utils.unit_current_power(move_data.unit_infos[id], x, y, move_data)
                 if move_data.unit_infos[id].canrecruit then
                     unit_influence = unit_influence * leader_derating
                 end
 
-                local moves_left = fred_utils.get_fgumap_value(move_data.unit_attack_maps[int_turns][id], x, y, 'moves_left_this_turn')
+                local moves_left = FGM.get_value(move_data.unit_attack_maps[int_turns][id], x, y, 'moves_left_this_turn')
                 local inf_falloff = 1 - (1 - influence_falloff_floor) * (1 - moves_left / move_data.unit_infos[id].max_moves) ^ influence_falloff_exp
                 local my_influence = unit_influence * inf_falloff
 
                 -- TODO: this is not 100% correct as a unit could have 0<moves<max_moves, but it's close enough for now.
                 if (int_turns == 1) then
-                    fred_utils.fgumap_add(influence_maps, x, y, 'my_influence', my_influence)
-                    fred_utils.fgumap_add(influence_maps, x, y, 'my_number', 1)
+                    FGM.add(influence_maps, x, y, 'my_influence', my_influence)
+                    FGM.add(influence_maps, x, y, 'my_number', 1)
 
-                    fred_utils.fgumap_add(influence_maps, x, y, 'my_full_move_influence', unit_influence)
+                    FGM.add(influence_maps, x, y, 'my_full_move_influence', unit_influence)
 
                     if (not unit_influence_maps[id]) then
                         unit_influence_maps[id] = {}
                     end
-                    fred_utils.fgumap_add(unit_influence_maps[id], x, y, 'influence', my_influence)
+                    FGM.add(unit_influence_maps[id], x, y, 'influence', my_influence)
                 end
                 if (int_turns == 2) and (move_data.unit_infos[id].moves == 0) then
-                    fred_utils.fgumap_add(influence_maps, x, y, 'my_full_move_influence', unit_influence)
+                    FGM.add(influence_maps, x, y, 'my_full_move_influence', unit_influence)
                 end
             end
         end
     end
 
-    for x,y,data in fred_utils.fgumap_iter(move_data.enemy_attack_map[1]) do
+    for x,y,data in FGM.iter(move_data.enemy_attack_map[1]) do
         for _,enemy_id in pairs(data.ids) do
             local unit_influence = fred_utils.unit_current_power(move_data.unit_infos[enemy_id], x, y, move_data)
             if move_data.unit_infos[enemy_id].canrecruit then
                 unit_influence = unit_influence * leader_derating
             end
 
-            local moves_left = fred_utils.get_fgumap_value(move_data.reach_maps[enemy_id], x, y, 'moves_left') or -1
+            local moves_left = FGM.get_value(move_data.reach_maps[enemy_id], x, y, 'moves_left') or -1
             if (moves_left < move_data.unit_infos[enemy_id].max_moves) then
                 moves_left = moves_left + 1
             end
             local inf_falloff = 1 - (1 - influence_falloff_floor) * (1 - moves_left / move_data.unit_infos[enemy_id].max_moves) ^ influence_falloff_exp
 
             enemy_influence = unit_influence * inf_falloff
-            fred_utils.fgumap_add(influence_maps, x, y, 'enemy_influence', enemy_influence)
-            fred_utils.fgumap_add(influence_maps, x, y, 'enemy_number', 1)
-            fred_utils.fgumap_add(influence_maps, x, y, 'enemy_full_move_influence', unit_influence) -- same as 'enemy_influence' for now
+            FGM.add(influence_maps, x, y, 'enemy_influence', enemy_influence)
+            FGM.add(influence_maps, x, y, 'enemy_number', 1)
+            FGM.add(influence_maps, x, y, 'enemy_full_move_influence', unit_influence) -- same as 'enemy_influence' for now
 
             if (not unit_influence_maps[enemy_id]) then
                 unit_influence_maps[enemy_id] = {}
             end
-            fred_utils.fgumap_add(unit_influence_maps[enemy_id], x, y, 'influence', enemy_influence)
+            FGM.add(unit_influence_maps[enemy_id], x, y, 'influence', enemy_influence)
         end
     end
 
-    for x,y,data in fred_utils.fgumap_iter(influence_maps) do
+    for x,y,data in FGM.iter(influence_maps) do
         data.influence = (data.my_influence or 0) - (data.enemy_influence or 0)
         data.full_move_influence = (data.my_full_move_influence or 0) - (data.enemy_full_move_influence or 0)
         data.tension = (data.my_influence or 0) + (data.enemy_influence or 0)
@@ -604,16 +533,16 @@ function fred_utils.support_maps(move_data)
         for _,cost in pairs(cm) do
             local x, y, c = cost[1], cost[2], cost[3]
             if (c > -1) then
-                fred_utils.set_fgumap_value(cost_map, cost[1], cost[2], 'cost', c)
+                FGM.set_value(cost_map, cost[1], cost[2], 'cost', c)
             end
         end
 
         support_maps.units[id] = {}
         for x = 1,width do
             for y = 1,height do
-                local min_cost = fred_utils.get_fgumap_value(cost_map, x, y, 'cost') or 99
+                local min_cost = FGM.get_value(cost_map, x, y, 'cost') or 99
                 for xa,ya in H.adjacent_tiles(x, y) do
-                    local adj_cost = fred_utils.get_fgumap_value(cost_map, xa, ya, 'cost') or 99
+                    local adj_cost = FGM.get_value(cost_map, xa, ya, 'cost') or 99
                     if (adj_cost < min_cost) then
                         min_cost = adj_cost
                     end
@@ -632,8 +561,8 @@ function fred_utils.support_maps(move_data)
                 local support = (1 - 0.5 * frac_turns^2) / (4 ^ (int_turns - 1)) * current_power
 
                 if (min_cost < 99) and (int_turns <= 2) then
-                    fred_utils.set_fgumap_value(support_maps.units[id], x, y, 'support', support)
-                    fred_utils.fgumap_add(support_maps.total, x, y, 'support', support)
+                    FGM.set_value(support_maps.units[id], x, y, 'support', support)
+                    FGM.add(support_maps.total, x, y, 'support', support)
                 end
             end
         end
@@ -650,17 +579,17 @@ function fred_utils.behind_enemy_map(fred_data)
             return false, false, false
         end
 
-        if fred_utils.get_fgumap_value(unit_behind_map, x, y, 'enemy_power') then
+        if FGM.get_value(unit_behind_map, x, y, 'enemy_power') then
             return false, false, true
         end
 
-        local ld = fred_utils.get_fgumap_value(fred_data.ops_data.leader_distance_map, x, y, 'my_leader_distance')
+        local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, x, y, 'my_leader_distance')
         if (ld < ld_ref) then
             return false, true, true
         end
 
-        if (not fred_utils.get_fgumap_value(fred_data.move_data.unit_attack_maps[1][enemy_id], x, y, 'current_power'))
-            and (not fred_utils.get_fgumap_value(fred_data.move_data.unit_attack_maps[2][enemy_id], x, y, 'current_power'))
+        if (not FGM.get_value(fred_data.move_data.unit_attack_maps[1][enemy_id], x, y, 'current_power'))
+            and (not FGM.get_value(fred_data.move_data.unit_attack_maps[2][enemy_id], x, y, 'current_power'))
         then
             return false, true, true
         end
@@ -673,7 +602,7 @@ function fred_utils.behind_enemy_map(fred_data)
         local current_power = fred_utils.unit_current_power(fred_data.move_data.unit_infos[enemy_id])
 
         local unit_behind_map = {}
-        fred_utils.set_fgumap_value(unit_behind_map, enemy_loc[1], enemy_loc[2], 'enemy_power', current_power)
+        FGM.set_value(unit_behind_map, enemy_loc[1], enemy_loc[2], 'enemy_power', current_power)
         local new_hexes = { enemy_loc }
 
         local keep_trying = true
@@ -683,18 +612,18 @@ function fred_utils.behind_enemy_map(fred_data)
             local hexes = AH.table_copy(new_hexes)
             new_hexes = {}
             for _,loc in ipairs(hexes) do
-                local ld_ref = fred_utils.get_fgumap_value(fred_data.ops_data.leader_distance_map, loc[1], loc[2], 'my_leader_distance')
+                local ld_ref = FGM.get_value(fred_data.ops_data.leader_distance_map, loc[1], loc[2], 'my_leader_distance')
                 for xa,ya in H.adjacent_tiles(loc[1], loc[2]) do
                     local is_valid, is_new, is_passable = is_new_behind_hex(xa, ya, enemy_id, unit_behind_map, ld_ref)
                     if is_passable then
                         if is_valid then
-                            fred_utils.set_fgumap_value(unit_behind_map, xa, ya, 'enemy_power', current_power)
+                            FGM.set_value(unit_behind_map, xa, ya, 'enemy_power', current_power)
                             table.insert(new_hexes, { xa, ya })
                             keep_trying = true
                         elseif is_new then
                             -- This gives 2 rows of zeros around the edges, but not for
                             -- impassable terrain; needed for blurring
-                            fred_utils.set_fgumap_value(unit_behind_map, xa, ya, 'enemy_power', 0)
+                            FGM.set_value(unit_behind_map, xa, ya, 'enemy_power', 0)
                         end
 
                         -- Because of the hex geometry, we also need to do a second row
@@ -702,13 +631,13 @@ function fred_utils.behind_enemy_map(fred_data)
                             local is_valid2, is_new2, is_passable2 = is_new_behind_hex(xa2, ya2, enemy_id, unit_behind_map, ld_ref)
                             if is_passable2 then
                                 if is_valid2 then
-                                    fred_utils.set_fgumap_value(unit_behind_map, xa2, ya2, 'enemy_power', current_power)
+                                    FGM.set_value(unit_behind_map, xa2, ya2, 'enemy_power', current_power)
                                     table.insert(new_hexes, { xa2, ya2 })
                                     keep_trying = true
                                 elseif is_new2 then
                                     -- This gives 2 rows of zeros around the edges, but not for
                                     -- impassable terrain; needed for blurring
-                                    fred_utils.set_fgumap_value(unit_behind_map, xa2, ya2, 'enemy_power', 0)
+                                    FGM.set_value(unit_behind_map, xa2, ya2, 'enemy_power', 0)
                                 end
                             end
                         end
@@ -717,15 +646,15 @@ function fred_utils.behind_enemy_map(fred_data)
             end
         end
 
-        fred_utils.fgumap_blur(unit_behind_map, 'enemy_power')
-        fred_utils.fgumap_blur(unit_behind_map, 'blurred_enemy_power')
+        FGM.blur(unit_behind_map, 'enemy_power')
+        FGM.blur(unit_behind_map, 'blurred_enemy_power')
 
         if false then
             DBG.show_fgumap_with_message(unit_behind_map, 'blurred_blurred_enemy_power', 'behind map', fred_data.move_data.unit_copies[enemy_id])
         end
 
-        for x,y,data in fred_utils.fgumap_iter(unit_behind_map) do
-            fred_utils.fgumap_add(behind_enemy_map, x, y, 'enemy_power', data.blurred_blurred_enemy_power)
+        for x,y,data in FGM.iter(unit_behind_map) do
+            FGM.add(behind_enemy_map, x, y, 'enemy_power', data.blurred_blurred_enemy_power)
         end
 
     end

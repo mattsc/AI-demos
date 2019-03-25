@@ -4,6 +4,7 @@ The goal is to make them as consistent as possible.
 ]=]
 
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
+local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
@@ -26,7 +27,7 @@ function utility_functions.village_benefits(village_grabs, fred_data)
 
         local unit_info = move_data.unit_infos[grab.id]
 
-        local owner = FU.get_fgumap_value(move_data.village_map, grab.x, grab.y, 'owner')
+        local owner = FGM.get_value(move_data.village_map, grab.x, grab.y, 'owner')
         --std_print('    owner: ' .. owner)
 
         if (not owner) then
@@ -106,7 +107,7 @@ function utility_functions.village_benefits(village_grabs, fred_data)
 
 --[[
     local vb_dst_src = {}
-    for x,y,data in FU.fgumap_iter(village_benefits) do
+    for x,y,data in FGM.iter(village_benefits) do
         local tmp = { dst = x * 1000 + y }
         for id,rating in pairs(data) do
             local loc = move_data.my_units[id]
@@ -218,7 +219,7 @@ function utility_functions.attack_benefits(assigned_enemies, goal_hexes, use_ave
                 end
 
                 if (not can_reach_1) then
-                    local ids1 = FU.get_fgumap_value(move_data.my_attack_map[1], enemy_loc[1], enemy_loc[2], 'ids') or {}
+                    local ids1 = FGM.get_value(move_data.my_attack_map[1], enemy_loc[1], enemy_loc[2], 'ids') or {}
                     for _,attack_id in ipairs(ids1) do
                         if (id == attack_id) then
                             can_reach_1 = true
@@ -227,7 +228,7 @@ function utility_functions.attack_benefits(assigned_enemies, goal_hexes, use_ave
                     end
                 end
                 if (not can_reach_1) and (not can_reach_2) then
-                    local ids2 = FU.get_fgumap_value(move_data.my_attack_map[2], enemy_loc[1], enemy_loc[2], 'ids') or {}
+                    local ids2 = FGM.get_value(move_data.my_attack_map[2], enemy_loc[1], enemy_loc[2], 'ids') or {}
                     for _,attack_id in ipairs(ids2) do
                         if (id == attack_id) then
                             can_reach_2 = true
@@ -251,7 +252,7 @@ function utility_functions.attack_benefits(assigned_enemies, goal_hexes, use_ave
             -- TODO: do we need to consider enemies and goal hexes serially?
             if (not can_reach_1) then
                 for _,goal_hex in ipairs(goal_hexes[zone_id]) do
-                    local ids1 = FU.get_fgumap_value(move_data.my_attack_map[1], goal_hex[1], goal_hex[2], 'ids') or {}
+                    local ids1 = FGM.get_value(move_data.my_attack_map[1], goal_hex[1], goal_hex[2], 'ids') or {}
                     for _,attack_id in ipairs(ids1) do
                         if (id == attack_id) then
                             can_reach_1 = true
@@ -261,7 +262,7 @@ function utility_functions.attack_benefits(assigned_enemies, goal_hexes, use_ave
                 end
                 if (not can_reach_1) and (not can_reach_2) then
                   for _,goal_hex in ipairs(goal_hexes[zone_id]) do
-                        local ids2 = FU.get_fgumap_value(move_data.my_attack_map[2], goal_hex[1], goal_hex[2], 'ids') or {}
+                        local ids2 = FGM.get_value(move_data.my_attack_map[2], goal_hex[1], goal_hex[2], 'ids') or {}
                         for _,attack_id in ipairs(ids2) do
                             if (id == attack_id) then
                                 can_reach_2 = true
@@ -625,13 +626,13 @@ function utility_functions.action_penalty(actions, reserved_actions, interaction
                     -- If this is the side leader and it's on a keep, it does not
                     -- count toward keep or castle count
                     if (action.id ~= move_data.leaders[wesnoth.current.side].id)
-                        or (not FU.get_fgumap_value(move_data.reachable_castles_map[wesnoth.current.side], x, y, 'keep'))
+                        or (not FGM.get_value(move_data.reachable_castles_map[wesnoth.current.side], x, y, 'keep'))
                     then
-                        if x and (FU.get_fgumap_value(move_data.reachable_castles_map[wesnoth.current.side], x, y, 'castle')) then
+                        if x and (FGM.get_value(move_data.reachable_castles_map[wesnoth.current.side], x, y, 'castle')) then
                             --std_print('    castle: ', x, y)
                             available_castles = available_castles - 1
                         end
-                        if x and (FU.get_fgumap_value(move_data.reachable_castles_map[wesnoth.current.side], x, y, 'keep')) then
+                        if x and (FGM.get_value(move_data.reachable_castles_map[wesnoth.current.side], x, y, 'keep')) then
                             --std_print('    keep: ', x, y)
                             available_keeps = available_keeps - 1
                         end

@@ -5,6 +5,7 @@ Functions to support the retreat of injured units
 local H = wesnoth.require "helper"
 local AH = wesnoth.require "ai/lua/ai_helper.lua"
 local LS = wesnoth.require "location_set"
+local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
@@ -54,7 +55,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
         -- hex, and if it is less than the unit's HP, consider this a valid retreat location
         -- Potential TODO: do actual counter attack evaluation
 
-        local enemy_ids = FU.get_fgumap_value(move_data.enemy_attack_map[1], x, y, 'ids')
+        local enemy_ids = FGM.get_value(move_data.enemy_attack_map[1], x, y, 'ids')
         local max_damage, av_damage = 0, 0
         if enemy_ids then
             for _,enemy_id in ipairs(enemy_ids) do
@@ -97,7 +98,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
             -- Small base penalty plus damage of moving unit
             -- Both of these are small though, really just meant as tie breakers
             -- Units with MP are taken off the map at this point, so cannot just check the map
-            local uiw_id = FU.get_fgumap_value(move_data.my_unit_map_MP, x, y, 'id')
+            local uiw_id = FGM.get_value(move_data.my_unit_map_MP, x, y, 'id')
             --std_print(id, x, y, uiw_id)
             if uiw_id and (uiw_id ~= id) then
                 rating = rating - 0.01
@@ -108,7 +109,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
             -- a threat, or away from the leader when there is not
             local retreat_direction = 1
             if (av_damage > 0) then retreat_direction = -1 end
-            local ld = FU.get_fgumap_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
+            local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
             rating = rating + retreat_direction * ld / 1000
 
             return rating
@@ -127,7 +128,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
             heal_maps_no_regen[id] = {}
         end
 
-        for x,y,_ in FU.fgumap_iter(move_data.effective_reach_maps[id]) do
+        for x,y,_ in FGM.iter(move_data.effective_reach_maps[id]) do
             local heal_amount = 0
 
             if move_data.unit_infos[id].abilities.regenerate then
@@ -153,9 +154,9 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
 
             if (heal_amount > 0) then
                 if move_data.unit_infos[id].abilities.regenerate then
-                    FU.set_fgumap_value(heal_maps_regen[id], x, y, 'heal_amount', heal_amount)
+                    FGM.set_value(heal_maps_regen[id], x, y, 'heal_amount', heal_amount)
                 else
-                    FU.set_fgumap_value(heal_maps_no_regen[id], x, y, 'heal_amount', heal_amount)
+                    FGM.set_value(heal_maps_no_regen[id], x, y, 'heal_amount', heal_amount)
                 end
             end
         end
@@ -173,14 +174,14 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
         local unit_loc = move_data.units[id]
         local src = unit_loc[1] * 1000 + unit_loc[2]
 
-        for x,y,data in FU.fgumap_iter(heal_map) do
+        for x,y,data in FGM.iter(heal_map) do
             local dst = x * 1000 + y
             --std_print(id, x, y, src, dst)
 
             local rating = retreat_rating(id, x, y, data.heal_amount)
 
             if rating then
-                FU.set_fgumap_value(rating_map, x, y, 'rating', rating)
+                FGM.set_value(rating_map, x, y, 'rating', rating)
 
                 if (not tmp_dst_src[dst]) then tmp_dst_src[dst] = { dst = dst } end
                 table.insert(tmp_dst_src[dst], { src = src, rating = rating })
@@ -244,12 +245,12 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
     if best_id then
         local max_rating, best_loc
         local rating_map = {}
-        for x,y,data in FU.fgumap_iter(heal_maps_regen[best_id]) do
+        for x,y,data in FGM.iter(heal_maps_regen[best_id]) do
             local rating = retreat_rating(best_id, x, y, data.heal_amount)
             --std_print(best_id, x, y, rating)
 
             if rating then
-                FU.set_fgumap_value(rating_map, x, y, 'rating', rating)
+                FGM.set_value(rating_map, x, y, 'rating', rating)
 
                 if (not max_rating) or (rating > max_rating) then
                     max_rating = rating
@@ -297,7 +298,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
             --  - worth moving that far (based on retreat_utility)
 
             local villages, min_turns = {}
-            for x,y,_ in FU.fgumap_iter(move_data.village_map) do
+            for x,y,_ in FGM.iter(move_data.village_map) do
                 local hitchance = wesnoth.unit_defense(move_data.unit_copies[id], wesnoth.get_terrain(x, y)) / 100.
                 local max_damage, av_damage = retreat_damages(id, x, y, hitchance, fred_data.ops_data.unit_attacks, move_data)
 
@@ -335,14 +336,14 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
             local goal_villages = {}
             for _,v in ipairs(villages) do
                 if (v.int_turns == min_turns) then
-                    FU.set_fgumap_value(goal_villages, v.loc[1], v.loc[2], 'int_turns', v.int_turns)
+                    FGM.set_value(goal_villages, v.loc[1], v.loc[2], 'int_turns', v.int_turns)
                     goal_villages[v.loc[1]][v.loc[2]].cost = v.cost
                 end
             end
             --DBG.dbms(goal_villages, false, 'goal_villages')
 
             local rating_map = {}
-            for x,y,_ in FU.fgumap_iter(move_data.effective_reach_maps[id]) do
+            for x,y,_ in FGM.iter(move_data.effective_reach_maps[id]) do
                 -- Consider only hexes with acceptable threats
                 -- and only those that reduce the number of turns needed to get to the goal villages.
                 -- Acceptable threats in this case are based on av_damage, not max_damage as above
@@ -353,7 +354,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
                     local rating = 0
 
                     -- TODO: possibly find a more efficient way to do the following?
-                    for xv,yv,vilage_data in FU.fgumap_iter(goal_villages) do
+                    for xv,yv,vilage_data in FGM.iter(goal_villages) do
                         local old_x, old_y = move_data.unit_copies[id].x, move_data.unit_copies[id].y
                         local old_moves = move_data.unit_copies[id].moves
                         move_data.unit_copies[id].x, move_data.unit_copies[id].y = x, y
@@ -371,7 +372,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
                         end
                     end
 
-                    local heal_amount = FU.get_fgumap_value(heal_maps_no_regen[id], x, y, 'heal_amount') or 0
+                    local heal_amount = FGM.get_value(heal_maps_no_regen[id], x, y, 'heal_amount') or 0
 
                     -- We allow hexes that either pass the previous criterion, or that
                     -- are healing locations within one move that were previously
@@ -392,7 +393,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
                             rating = rating - 1000
                         end
 
-                        FU.set_fgumap_value(rating_map, x, y, 'rating', rating)
+                        FGM.set_value(rating_map, x, y, 'rating', rating)
 
                         if (not max_rating) or (rating > max_rating) then
                             max_rating = rating

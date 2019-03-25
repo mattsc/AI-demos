@@ -2,6 +2,7 @@ local H = wesnoth.require "helper"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FS = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_status.lua"
 local FBU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_benefits_utilities.lua"
+local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
 local FHU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_hold_utils.lua"
@@ -108,7 +109,7 @@ function fred_ops_utils.set_between_objectives(objectives, enemy_zones, fred_dat
                 end
 
                 for _,village in ipairs(protect_objective.villages) do
-                    local is_between = FU.get_fgumap_value(between_map, village.x, village.y, 'is_between')
+                    local is_between = FGM.get_value(between_map, village.x, village.y, 'is_between')
                     --std_print('  ' .. zone_id, enemy_id, village.x .. ',' .. village.y, is_between)
 
                     if (not is_between) then
@@ -128,7 +129,7 @@ function fred_ops_utils.set_between_objectives(objectives, enemy_zones, fred_dat
                 for other_enemy_id,other_enemy_loc in pairs(fred_data.move_data.enemies) do
                     local other_enemy_zone_id = enemy_zones[other_enemy_id]
                     if (enemy_zone_id == other_enemy_zone_id) and (other_enemy_id ~= enemy_id) then
-                        local is_between = FU.get_fgumap_value(between_map, other_enemy_loc[1], other_enemy_loc[2], 'is_between')
+                        local is_between = FGM.get_value(between_map, other_enemy_loc[1], other_enemy_loc[2], 'is_between')
                         --std_print('other enemy:', enemy_id, other_enemy_id, enemy_zone_id, is_between)
                         if is_between then
                             if (not objectives.enemies_between[zone_id]) then
@@ -181,7 +182,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
                 -- be attacked by the enemy
                 local skip_unit = false
                 if (fred_data.move_data.unit_infos[id].moves == 0)
-                   and (not FU.get_fgumap_value(fred_data.move_data.enemy_attack_map[1], loc[1], loc[2], 'ids'))
+                   and (not FGM.get_value(fred_data.move_data.enemy_attack_map[1], loc[1], loc[2], 'ids'))
                 then
                     skip_unit = true
                 end
@@ -348,9 +349,9 @@ function fred_ops_utils.behavior_output(is_turn_start, ops_data)
            if front then
                local zone = wesnoth.get_locations(raw_cfg.ops_slf)
 			   for _,loc in ipairs(zone) do
-				   local ld = FU.get_fgumap_value(ops_data.leader_distance_map, loc[1], loc[2], 'distance')
+				   local ld = FGM.get_value(ops_data.leader_distance_map, loc[1], loc[2], 'distance')
 				   if (math.abs(ld - front.ld) <= 0.5) then
-					   FU.set_fgumap_value(front_map, loc[1], loc[2], 'distance', ld)
+					   FGM.set_value(front_map, loc[1], loc[2], 'distance', ld)
 				   end
 			   end
 
@@ -423,17 +424,17 @@ function fred_ops_utils.find_fronts(zone_maps, zone_influence_maps, raw_cfgs, fr
         leader_distance_map = FU.get_leader_distance_map(my_start_hex, side_cfgs)
     end
 
-    local my_ld0 = FU.get_fgumap_value(leader_distance_map, my_start_hex[1], my_start_hex[2], 'distance')
-    local enemy_ld0 = FU.get_fgumap_value(leader_distance_map, enemy_start_hex[1], enemy_start_hex[2], 'distance')
+    local my_ld0 = FGM.get_value(leader_distance_map, my_start_hex[1], my_start_hex[2], 'distance')
+    local enemy_ld0 = FGM.get_value(leader_distance_map, enemy_start_hex[1], enemy_start_hex[2], 'distance')
 
     local fronts = { zones = {} }
     local max_push_utility = 0
     for zone_id,zone_map in pairs(zone_maps) do
         local num, denom = 0, 0
         local influence_map = zone_influence_maps and zone_influence_maps[zone_id] or fred_data.move_data.influence_maps
-        for x,y,data in FU.fgumap_iter(zone_map) do
-            local ld = FU.get_fgumap_value(leader_distance_map, x, y, 'distance')
-            local vulnerability = FU.get_fgumap_value(influence_map, x, y, 'vulnerability') or 0
+        for x,y,data in FGM.iter(zone_map) do
+            local ld = FGM.get_value(leader_distance_map, x, y, 'distance')
+            local vulnerability = FGM.get_value(influence_map, x, y, 'vulnerability') or 0
             num = num + vulnerability^2 * ld
             denom = denom + vulnerability^2
         end
@@ -443,10 +444,10 @@ function fred_ops_utils.find_fronts(zone_maps, zone_influence_maps, raw_cfgs, fr
             --std_print(zone_id, ld_front)
 
             local front_hexes = {}
-            for x,y,data in FU.fgumap_iter(zone_map) do
-                local ld = FU.get_fgumap_value(leader_distance_map, x, y, 'distance')
+            for x,y,data in FGM.iter(zone_map) do
+                local ld = FGM.get_value(leader_distance_map, x, y, 'distance')
                 if (math.abs(ld - ld_front) <= 0.5) then
-                    local vulnerability = FU.get_fgumap_value(influence_map, x, y, 'vulnerability') or 0
+                    local vulnerability = FGM.get_value(influence_map, x, y, 'vulnerability') or 0
                     table.insert(front_hexes, { x, y, vulnerability })
                 end
             end
@@ -502,8 +503,8 @@ function fred_ops_utils.set_turn_data(fred_data)
         --std_print('Using existing enemy move map')
         for enemy_id,_ in pairs(move_data.enemies) do
             enemy_initial_reach_maps[enemy_id] = {}
-            for x,y,data in FU.fgumap_iter(move_data.reach_maps[enemy_id]) do
-                FU.set_fgumap_value(enemy_initial_reach_maps[enemy_id], x, y, 'moves_left', data.moves_left)
+            for x,y,data in FGM.iter(move_data.reach_maps[enemy_id]) do
+                FGM.set_value(enemy_initial_reach_maps[enemy_id], x, y, 'moves_left', data.moves_left)
             end
         end
     else
@@ -517,7 +518,7 @@ function fred_ops_utils.set_turn_data(fred_data)
             move_data.unit_copies[enemy_id].moves = old_moves
 
             for _,loc in ipairs(reach) do
-                FU.set_fgumap_value(enemy_initial_reach_maps[enemy_id], loc[1], loc[2], 'moves_left', loc[3])
+                FGM.set_value(enemy_initial_reach_maps[enemy_id], loc[1], loc[2], 'moves_left', loc[3])
             end
         end
     end
@@ -704,7 +705,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
 
     local n_vill_my, n_vill_enemy, n_vill_unowned, n_vill_total = 0, 0, 0, 0
-    for x,y,data in FU.fgumap_iter(move_data.village_map) do
+    for x,y,data in FGM.iter(move_data.village_map) do
         if (data.owner == 0) then
             n_vill_unowned = n_vill_unowned + 1
         elseif (data.owner == wesnoth.current.side) then
@@ -950,7 +951,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         zone_maps[zone_id] = {}
         local zone = wesnoth.get_locations(raw_cfg.ops_slf)
         for _,loc in ipairs(zone) do
-            FU.set_fgumap_value(zone_maps[zone_id], loc[1], loc[2], 'flag', true)
+            FGM.set_value(zone_maps[zone_id], loc[1], loc[2], 'flag', true)
         end
     end
 
@@ -974,7 +975,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     local enemy_zones = {}
     for id,loc in pairs(move_data.enemies) do
         if (not move_data.unit_infos[id].canrecruit)
-            and (not FU.get_fgumap_value(move_data.reachable_castles_map[move_data.unit_infos[id].side], loc[1], loc[2], 'castle') or false)
+            and (not FGM.get_value(move_data.reachable_castles_map[move_data.unit_infos[id].side], loc[1], loc[2], 'castle') or false)
         then
             local unit_copy = move_data.unit_copies[id]
             local zone_id = FU.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs)
@@ -1005,7 +1006,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     for id,_ in pairs(move_data.my_units) do
         local unit_copy = move_data.unit_copies[id]
         if (not unit_copy.canrecruit)
-            and (not FU.get_fgumap_value(move_data.reachable_castles_map[unit_copy.side], unit_copy.x, unit_copy.y, 'castle') or false)
+            and (not FGM.get_value(move_data.reachable_castles_map[unit_copy.side], unit_copy.x, unit_copy.y, 'castle') or false)
         then
             if used_units[id] and raw_cfgs[used_units[id]] then
                 --std_print(id, used_units[id])
@@ -1054,8 +1055,8 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
     move_data.effective_reach_maps = effective_reach_maps
 
-    for x,y,data in FU.fgumap_iter(move_data.my_move_map[1]) do
-        if FU.get_fgumap_value(effective_reach_maps[leader.id], x, y, 'moves_left') then
+    for x,y,data in FGM.iter(move_data.my_move_map[1]) do
+        if FGM.get_value(effective_reach_maps[leader.id], x, y, 'moves_left') then
             data.eff_reach_ids = data.ids
         else
             local eff_reach_ids
@@ -1122,11 +1123,11 @@ function fred_ops_utils.set_ops_data(fred_data)
         local recruit_benefit = {}
 
         local available_keeps = 0
-        for _,_,_ in FU.fgumap_iter(move_data.reachable_keeps_map[wesnoth.current.side]) do
+        for _,_,_ in FGM.iter(move_data.reachable_keeps_map[wesnoth.current.side]) do
             available_keeps = available_keeps + 1
         end
         local available_castles = -1 -- need to exclude one of the keeps
-        for _,_,_ in FU.fgumap_iter(move_data.reachable_castles_map[wesnoth.current.side]) do
+        for _,_,_ in FGM.iter(move_data.reachable_castles_map[wesnoth.current.side]) do
             available_castles = available_castles + 1
         end
 
@@ -1217,7 +1218,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             math.floor((enemy_loc[2] + leader_goal[2]) / 2 + 0.5)
         }
         --DBG.dbms(goal_loc, false, 'goal_loc')
-        local ld = FU.get_fgumap_value(fred_data.ops_data.leader_distance_map, goal_loc[1], goal_loc[2], 'my_leader_distance')
+        local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, goal_loc[1], goal_loc[2], 'my_leader_distance')
         --std_print(enemy_id, enemy_loc.zone_id, goal_loc[1], goal_loc[2], ld)
 
         local enemy_zone_id = enemy_zones[enemy_id]
@@ -1328,8 +1329,8 @@ function fred_ops_utils.set_ops_data(fred_data)
         if objectives.protect.zones[zone_id] and objectives.protect.zones[zone_id].villages then
             for _,village in ipairs(objectives.protect.zones[zone_id].villages) do
                 for enemy_id,_ in pairs(move_data.enemies) do
-                    if FU.get_fgumap_value(move_data.reach_maps[enemy_id], village.x, village.y, 'moves_left') then
-                        local ld = FU.get_fgumap_value(fred_data.ops_data.leader_distance_map, village.x, village.y, 'distance')
+                    if FGM.get_value(move_data.reach_maps[enemy_id], village.x, village.y, 'moves_left') then
+                        local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, village.x, village.y, 'distance')
                         if (not max_ld) or (ld > max_ld) then
                             max_ld = ld
                             loc = { village.x, village.y }
@@ -1578,22 +1579,22 @@ function fred_ops_utils.set_ops_data(fred_data)
     for zone_id,zone_map in pairs(zone_maps) do
         local zone_influence_map = {}
         for id,_ in pairs(assigned_units[zone_id] or {}) do
-            for x,y,data in FU.fgumap_iter(move_data.unit_influence_maps[id]) do
-                if FU.get_fgumap_value(zone_map, x, y, 'flag') then
-                    FU.fgumap_add(zone_influence_map, x, y, 'my_influence', data.influence)
+            for x,y,data in FGM.iter(move_data.unit_influence_maps[id]) do
+                if FGM.get_value(zone_map, x, y, 'flag') then
+                    FGM.add(zone_influence_map, x, y, 'my_influence', data.influence)
                 end
             end
         end
 
         for enemy_id,_ in pairs(assigned_enemies[zone_id] or {}) do
-            for x,y,data in FU.fgumap_iter(move_data.unit_influence_maps[enemy_id]) do
-                if FU.get_fgumap_value(zone_map, x, y, 'flag') then
-                    FU.fgumap_add(zone_influence_map, x, y, 'enemy_influence', data.influence)
+            for x,y,data in FGM.iter(move_data.unit_influence_maps[enemy_id]) do
+                if FGM.get_value(zone_map, x, y, 'flag') then
+                    FGM.add(zone_influence_map, x, y, 'enemy_influence', data.influence)
                 end
             end
         end
 
-        for x,y,data in FU.fgumap_iter(zone_influence_map) do
+        for x,y,data in FGM.iter(zone_influence_map) do
             data.influence = (data.my_influence or 0) - (data.enemy_influence or 0)
             data.tension = (data.my_influence or 0) + (data.enemy_influence or 0)
             data.vulnerability = data.tension - math.abs(data.influence)
@@ -1694,7 +1695,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
                     if move_data.my_units_noMP[id] then
                         is_attacker = false
                         for xa,ya in H.adjacent_tiles(move_data.my_units_noMP[id][1], move_data.my_units_noMP[id][2]) do
-                            if FU.get_fgumap_value(move_data.enemy_map, xa, ya, 'id') then
+                            if FGM.get_value(move_data.enemy_map, xa, ya, 'id') then
                                 is_attacker = true
                                 break
                             end
@@ -1722,7 +1723,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         if move_data.my_units_noMP[leader.id] then
             is_attacker = false
             for xa,ya in H.adjacent_tiles(move_data.my_units_noMP[leader.id][1], move_data.my_units_noMP[leader.id][2]) do
-                if FU.get_fgumap_value(move_data.enemy_map, xa, ya, 'id') then
+                if FGM.get_value(move_data.enemy_map, xa, ya, 'id') then
                     is_attacker = true
                     break
                 end

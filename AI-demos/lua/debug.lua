@@ -1,3 +1,5 @@
+local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
+
 -- Note: Assigning this table is slow compared to accessing values in it. It is
 -- thus done outside the functions below, so that it is not done over and over
 -- for each function call.
@@ -117,15 +119,12 @@ function debug_utils.put_fgumap_labels(map, key, cfg)
     debug_utils.clear_labels()
 
     local min, max = 9e99, -9e99
-    -- Do the loop this way, rather than with fgumap_iter(), so that we do not need to include fred_utils.lua
-    for x,arr in pairs(map) do
-        for y,data in pairs(arr) do
-            local out = data[key]
+    for x,y,data in FGM.iter(map) do
+        local out = data[key]
 
-            if (type(out) == 'number') then
-                if (out > max) then max = out end
-                if (out < min) then min = out end
-            end
+        if (type(out) == 'number') then
+            if (out > max) then max = out end
+            if (out < min) then min = out end
         end
     end
 
@@ -139,58 +138,55 @@ function debug_utils.put_fgumap_labels(map, key, cfg)
 
     min = min - (max - min) * 0.2
 
-    -- Do the loop this way, rather than with fgumap_iter(), so that we do not need to include fred_utils.lua
-    for x,arr in pairs(map) do
-        for y,data in pairs(arr) do
-            local out = data[key]
-            local red_fac, green_fac, blue_fac = 1, 1, 1
+    for x,y,data in FGM.iter(map) do
+        local out = data[key]
+        local red_fac, green_fac, blue_fac = 1, 1, 1
 
-            if cfg and cfg.show_coords then
-                out = x .. ',' .. y
-            end
-
-            if (type(out) ~= 'string') then
-                if (type(out) == 'boolean') then
-                    if out then
-                        out = 'true'
-                    else
-                        out = 'false'
-                        red_fac, green_fac, blue_fac = 1, 0, 0
-                    end
-                else
-                    if out then
-                        out = tonumber(out) or 'nan'
-                    else
-                        out = 'nil'
-                    end
-                end
-            end
-
-            if (type(out) == 'number') then
-                color_fac = (out - min) / (max - min)
-                if (color_fac < 0.5) then
-                    red_fac = color_fac + 0.5
-                    green_fac = 0
-                    blue_fac = 0
-                elseif (color_fac < 0.75) then
-                    red_fac = 1
-                    green_fac = (color_fac - 0.5) * 4
-                    blue_fac = green_fac / 2
-                else
-                    red_fac = 1
-                    green_fac = 1
-                    blue_fac = (color_fac - 0.75) * 4
-                end
-
-                out = out * factor
-            end
-
-            wesnoth.wml_actions.label {
-                x = x, y = y,
-                text = out,
-                color = 255 * red_fac .. ',' .. 255 * green_fac .. ',' .. 255 * blue_fac
-            }
+        if cfg and cfg.show_coords then
+            out = x .. ',' .. y
         end
+
+        if (type(out) ~= 'string') then
+            if (type(out) == 'boolean') then
+                if out then
+                    out = 'true'
+                else
+                    out = 'false'
+                    red_fac, green_fac, blue_fac = 1, 0, 0
+                end
+            else
+                if out then
+                    out = tonumber(out) or 'nan'
+                else
+                    out = 'nil'
+                end
+            end
+        end
+
+        if (type(out) == 'number') then
+            color_fac = (out - min) / (max - min)
+            if (color_fac < 0.5) then
+                red_fac = color_fac + 0.5
+                green_fac = 0
+                blue_fac = 0
+            elseif (color_fac < 0.75) then
+                red_fac = 1
+                green_fac = (color_fac - 0.5) * 4
+                blue_fac = green_fac / 2
+            else
+                red_fac = 1
+                green_fac = 1
+                blue_fac = (color_fac - 0.75) * 4
+            end
+
+            out = out * factor
+        end
+
+        wesnoth.wml_actions.label {
+            x = x, y = y,
+            text = out,
+            color = 255 * red_fac .. ',' .. 255 * green_fac .. ',' .. 255 * blue_fac
+        }
     end
 end
 

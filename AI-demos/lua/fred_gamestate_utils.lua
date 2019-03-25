@@ -1,4 +1,5 @@
 local H = wesnoth.require "helper"
+local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 --local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
@@ -146,7 +147,7 @@ function fred_gamestate_utils.get_move_data()
     -- Villages
     local village_map = {}
     for _,village in ipairs(wesnoth.get_villages()) do
-        FU.set_fgumap_value(village_map, village[1], village[2], 'owner',
+        FGM.set_value(village_map, village[1], village[2], 'owner',
             wesnoth.get_village_owner(village[1], village[2]) or 0
         )
     end
@@ -180,8 +181,8 @@ function fred_gamestate_utils.get_move_data()
         end
 
         if (unit_copy.side == wesnoth.current.side) then
-            FU.set_fgumap_value(unit_map, unit_copy.x, unit_copy.y, 'id', unit_copy.id)
-            FU.set_fgumap_value(my_unit_map, unit_copy.x, unit_copy.y, 'id', unit_copy.id)
+            FGM.set_value(unit_map, unit_copy.x, unit_copy.y, 'id', unit_copy.id)
+            FGM.set_value(my_unit_map, unit_copy.x, unit_copy.y, 'id', unit_copy.id)
             my_units[unit_copy.id] = { unit_copy.x, unit_copy.y }
 
             -- Hexes the unit can reach in additional_turns+1 turns
@@ -195,7 +196,7 @@ function fred_gamestate_utils.get_move_data()
                 -- Only first-turn moves counts toward reach_maps
                 local max_moves = unit_copy.max_moves
                 if (loc[3] >= (max_moves * additional_turns)) then
-                    FU.set_fgumap_value(reach_maps[id], loc[1], loc[2], 'moves_left', loc[3] - (max_moves * additional_turns))
+                    FGM.set_value(reach_maps[id], loc[1], loc[2], 'moves_left', loc[3] - (max_moves * additional_turns))
                 end
 
                 -- attack_range: for attack_map
@@ -208,7 +209,7 @@ function fred_gamestate_utils.get_move_data()
                     moves_left_this_turn = max_moves
                 end
 
-                FU.fgumap_add(my_move_map[int_turns], loc[1], loc[2], 'units', 1)
+                FGM.add(my_move_map[int_turns], loc[1], loc[2], 'units', 1)
                 if (not my_move_map[int_turns][loc[1]][loc[2]].ids) then my_move_map[int_turns][loc[1]][loc[2]].ids = {} end
                 table.insert(my_move_map[int_turns][loc[1]][loc[2]].ids, id)
 
@@ -238,16 +239,16 @@ function fred_gamestate_utils.get_move_data()
                 end
             end
 
-            -- This is not a standard fgumap
+            -- This is not a standard fgsmap
             for x,arr in pairs(attack_range) do
                 for y,int_turns in pairs(arr) do
-                    FU.fgumap_add(my_attack_map[int_turns], x, y, 'units', 1)
+                    FGM.add(my_attack_map[int_turns], x, y, 'units', 1)
                     if (not my_attack_map[int_turns][x][y].ids) then my_attack_map[int_turns][x][y].ids = {} end
                     table.insert(my_attack_map[int_turns][x][y].ids, id)
 
                     if (int_turns <= 2) then
                         local current_power = FU.unit_current_power(unit_infos[id])
-                        FU.set_fgumap_value(unit_attack_maps[int_turns][id], x, y, 'current_power', current_power)
+                        FGM.set_value(unit_attack_maps[int_turns][id], x, y, 'current_power', current_power)
                         unit_attack_maps[int_turns][id][x][y].moves_left_this_turn = moves_left[x][y]
                     end
                 end
@@ -258,16 +259,16 @@ function fred_gamestate_utils.get_move_data()
             local reach = wesnoth.find_reach(unit_copy)
 
             if (#reach > 1) then
-                FU.set_fgumap_value(my_unit_map_MP, unit_copy.x, unit_copy.y, 'id', unit_copy.id)
+                FGM.set_value(my_unit_map_MP, unit_copy.x, unit_copy.y, 'id', unit_copy.id)
                 my_units_MP[unit_copy.id] = { unit_copy.x, unit_copy.y }
             else
-                FU.set_fgumap_value(my_unit_map_noMP, unit_copy.x, unit_copy.y, 'id', unit_copy.id)
+                FGM.set_value(my_unit_map_noMP, unit_copy.x, unit_copy.y, 'id', unit_copy.id)
                 my_units_noMP[unit_copy.id] = { unit_copy.x, unit_copy.y }
             end
         else
             if wesnoth.is_enemy(unit_copy.side, wesnoth.current.side) then
-                FU.set_fgumap_value(unit_map, unit_copy.x, unit_copy.y, 'id', unit_copy.id)
-                FU.set_fgumap_value(enemy_map, unit_copy.x, unit_copy.y, 'id', unit_copy.id)
+                FGM.set_value(unit_map, unit_copy.x, unit_copy.y, 'id', unit_copy.id)
+                FGM.set_value(enemy_map, unit_copy.x, unit_copy.y, 'id', unit_copy.id)
                 enemies[unit_copy.id] = { unit_copy.x, unit_copy.y }
             end
         end
@@ -289,9 +290,9 @@ function fred_gamestate_utils.get_move_data()
 
     -- Also mark units that can only get to hexes occupied by own units
     local my_units_can_move_away = {}
-    for x,y,data in FU.fgumap_iter(my_unit_map_MP) do
-        for x2,y2,_ in FU.fgumap_iter(reach_maps[data.id]) do
-            if (not FU.get_fgumap_value(my_unit_map, x2, y2, 'id')) then
+    for x,y,data in FGM.iter(my_unit_map_MP) do
+        for x2,y2,_ in FGM.iter(reach_maps[data.id]) do
+            if (not FGM.get_value(my_unit_map, x2, y2, 'id')) then
                 my_units_can_move_away[data.id] = true
                 break
             end
@@ -322,27 +323,27 @@ function fred_gamestate_utils.get_move_data()
         local all_keeps_map = {}
         for _,loc in ipairs(reach) do
             if wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).keep then
-                FU.set_fgumap_value(all_keeps_map, loc[1], loc[2], 'moves_left', loc[3])
+                FGM.set_value(all_keeps_map, loc[1], loc[2], 'moves_left', loc[3])
                 local is_available = true
                 if (side == wesnoth.current.side) then
-                    if FU.get_fgumap_value(enemy_map, loc[1], loc[2], 'id') then
+                    if FGM.get_value(enemy_map, loc[1], loc[2], 'id') then
                         is_available = false
                     else
-                        local id = FU.get_fgumap_value(my_unit_map_noMP, loc[1], loc[2], 'id')
+                        local id = FGM.get_value(my_unit_map_noMP, loc[1], loc[2], 'id')
                         if id and (id ~= leader.id) then
                             is_available = false
                         end
                     end
                 end
                 if is_available then
-                    FU.set_fgumap_value(reachable_keeps_map[side], loc[1], loc[2], 'moves_left', loc[3])
+                    FGM.set_value(reachable_keeps_map[side], loc[1], loc[2], 'moves_left', loc[3])
                 end
             end
         end
 
         -- Note that this is not strictly castle reachable by the leader, but
         -- castles connected to keeps reachable by the leader
-        for x,y,_ in FU.fgumap_iter(all_keeps_map) do
+        for x,y,_ in FGM.iter(all_keeps_map) do
             local reachable_castles = wesnoth.get_locations {
                 x = "1-"..width, y = "1-"..height,
                 { "and", {
@@ -354,13 +355,13 @@ function fred_gamestate_utils.get_move_data()
             for _,loc in ipairs(reachable_castles) do
                 local is_available = true
                 if (side == wesnoth.current.side)
-                    and ((FU.get_fgumap_value(enemy_map, loc[1], loc[2], 'id'))
-                    or (FU.get_fgumap_value(my_unit_map_noMP, loc[1], loc[2], 'id')))
+                    and ((FGM.get_value(enemy_map, loc[1], loc[2], 'id'))
+                    or (FGM.get_value(my_unit_map_noMP, loc[1], loc[2], 'id')))
                 then
                     is_available = false
                 end
                 if is_available then
-                    FU.set_fgumap_value(reachable_castles_map[side], loc[1], loc[2], 'castle', true)
+                    FGM.set_value(reachable_castles_map[side], loc[1], loc[2], 'castle', true)
                     if wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).keep then
                         reachable_castles_map[side][loc[1]][loc[2]].keep = true
                     end
@@ -425,7 +426,7 @@ function fred_gamestate_utils.get_move_data()
             -- Only first-turn moves counts toward reach_maps
             local max_moves = unit_copies[enemy_id].max_moves
             if (loc[3] >= (max_moves * additional_turns)) then
-                FU.set_fgumap_value(reach_maps[enemy_id], loc[1], loc[2], 'moves_left', loc[3] - (max_moves * additional_turns))
+                FGM.set_value(reach_maps[enemy_id], loc[1], loc[2], 'moves_left', loc[3] - (max_moves * additional_turns))
             end
 
             -- We count all enemies that can not move more than 1 hex from their
@@ -433,7 +434,7 @@ function fred_gamestate_utils.get_move_data()
 
             -- turn_map:
             local turns = (additional_turns + 1) - loc[3] / max_moves
-            FU.set_fgumap_value(enemy_turn_maps[enemy_id], loc[1], loc[2], 'turns', turns)
+            FGM.set_value(enemy_turn_maps[enemy_id], loc[1], loc[2], 'turns', turns)
 
 
             -- attack_range: for attack_map
@@ -464,16 +465,16 @@ function fred_gamestate_utils.get_move_data()
             trapped_enemies[enemy_id] = true
         end
 
-        -- This is not a standard fgumap
+        -- This is not a standard fgsmap
         for x,arr in pairs(attack_range) do
             for y,int_turns in pairs(arr) do
-                FU.fgumap_add(enemy_attack_map[int_turns], x, y, 'units', 1)
+                FGM.add(enemy_attack_map[int_turns], x, y, 'units', 1)
                 if (not enemy_attack_map[int_turns][x][y].ids) then enemy_attack_map[int_turns][x][y].ids = {} end
                 table.insert(enemy_attack_map[int_turns][x][y].ids, enemy_id)
 
                 if (int_turns <= 2) then
                     local current_power = FU.unit_current_power(unit_infos[enemy_id])
-                    FU.set_fgumap_value(unit_attack_maps[int_turns][enemy_id], x, y, 'current_power', current_power)
+                    FGM.set_value(unit_attack_maps[int_turns][enemy_id], x, y, 'current_power', current_power)
                 end
             end
         end

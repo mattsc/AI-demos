@@ -1,6 +1,7 @@
 -- Set up (and reset) hypothetical situations on the map that can be used for
 -- analyses of ZoC, counter attacks etc.
 
+local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
 local FVS = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_virtual_state.lua"
@@ -81,7 +82,7 @@ function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_d
         if (not exclude_leader) then
             table.insert(to_unit_locs, objectives.leader.final)
         end
-        for x,y,_ in FU.fgumap_iter(move_data.reachable_castles_map[wesnoth.current.side]) do
+        for x,y,_ in FGM.iter(move_data.reachable_castles_map[wesnoth.current.side]) do
             table.insert(to_locs, { x, y })
         end
         for id,loc in pairs(units) do
@@ -143,12 +144,12 @@ function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_d
 
 
     local n_castles_threatened = 0
-    for x,y,_ in FU.fgumap_iter(move_data.reachable_castles_map[wesnoth.current.side]) do
+    for x,y,_ in FGM.iter(move_data.reachable_castles_map[wesnoth.current.side]) do
         --std_print('castle: ', x .. ',' .. y)
         for enemy_id,_ in pairs(move_data.enemies) do
             --DBG.show_fgumap_with_message(virtual_reach_maps[enemy_id], 'moves_left', 'virtual_reach_map', move_data.unit_copies[enemy_id])
             -- enemies with 0 HP are not in virtual_reach_maps
-            if virtual_reach_maps[enemy_id] and FU.get_fgumap_value(virtual_reach_maps[enemy_id], x, y, 'moves_left') then
+            if virtual_reach_maps[enemy_id] and FGM.get_value(virtual_reach_maps[enemy_id], x, y, 'moves_left') then
                 n_castles_threatened = n_castles_threatened + 1
                 break
             end
@@ -166,7 +167,7 @@ function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_d
         --std_print('  check protection of village: ' .. village.loc[1] .. ',' .. village.loc[2])
         local is_protected, exposure = true, 0
         for enemy_id,_ in pairs(move_data.enemies) do
-            local moves_left = virtual_reach_maps[enemy_id] and FU.get_fgumap_value(virtual_reach_maps[enemy_id], village.loc[1], village.loc[2], 'moves_left')
+            local moves_left = virtual_reach_maps[enemy_id] and FGM.get_value(virtual_reach_maps[enemy_id], village.loc[1], village.loc[2], 'moves_left')
             if moves_left then
                 --std_print('  can reach this: ' .. enemy_id, moves_left)
                 is_protected = false

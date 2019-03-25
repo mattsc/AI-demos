@@ -1,4 +1,5 @@
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
+local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
@@ -16,15 +17,15 @@ function fred_village_utils.village_objectives(zone_cfgs, side_cfgs, fred_data)
         zone_maps[zone_id] = {}
         local zone = wesnoth.get_locations(cfg.ops_slf)
         for _,loc in ipairs(zone) do
-            FU.set_fgumap_value(zone_maps[zone_id], loc[1], loc[2], 'in_zone', true)
+            FGM.set_value(zone_maps[zone_id], loc[1], loc[2], 'in_zone', true)
         end
     end
 
     local village_objectives, villages_to_grab = { zones = {} }, {}
-    for x,y,_ in FU.fgumap_iter(move_data.village_map) do
+    for x,y,_ in FGM.iter(move_data.village_map) do
         local village_zone
         for zone_id,_ in pairs(zone_maps) do
-            if FU.get_fgumap_value(zone_maps[zone_id], x, y, 'in_zone') then
+            if FGM.get_value(zone_maps[zone_id], x, y, 'in_zone') then
                 village_zone = zone_id
                 break
             end
@@ -33,16 +34,16 @@ function fred_village_utils.village_objectives(zone_cfgs, side_cfgs, fred_data)
 
         local eld_vill = wesnoth.map.distance_between(x, y, fred_data.move_data.enemy_leader_x, fred_data.move_data.enemy_leader_y)
 
-        local my_infl = FU.get_fgumap_value(move_data.influence_maps, x, y, 'my_influence') or 0
-        local enemy_infl = FU.get_fgumap_value(move_data.influence_maps, x, y, 'enemy_influence') or 0
+        local my_infl = FGM.get_value(move_data.influence_maps, x, y, 'my_influence') or 0
+        local enemy_infl = FGM.get_value(move_data.influence_maps, x, y, 'enemy_influence') or 0
         local infl_ratio = my_infl / (enemy_infl + 1e-6)
 
-        local owner = FU.get_fgumap_value(move_data.village_map, x, y, 'owner')
+        local owner = FGM.get_value(move_data.village_map, x, y, 'owner')
 
         if (infl_ratio >= fred_data.ops_data.behavior.orders.value_ratio) then
             local is_threatened = false
             for enemy_id,_ in pairs(move_data.enemies) do
-                if FU.get_fgumap_value(move_data.reach_maps[enemy_id], x, y, 'moves_left') then
+                if FGM.get_value(move_data.reach_maps[enemy_id], x, y, 'moves_left') then
                     is_threatened = true
                 end
             end
@@ -107,7 +108,7 @@ function fred_village_utils.village_grabs(villages_to_grab, reserved_actions, in
         local penalty_loc = FBU.action_penalty({ { loc = { x, y } } }, reserved_actions, interactions, move_data)
         local ids = {}
         if (penalty_loc == 0) then
-            ids = FU.get_fgumap_value(move_data.my_move_map[1], x, y, 'eff_reach_ids') or {}
+            ids = FGM.get_value(move_data.my_move_map[1], x, y, 'eff_reach_ids') or {}
         end
         for _,id in pairs(ids) do
             local loc = move_data.my_units[id]

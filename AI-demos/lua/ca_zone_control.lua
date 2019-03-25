@@ -1,6 +1,7 @@
 local H = wesnoth.require "helper"
 local AH = wesnoth.require "ai/lua/ai_helper.lua"
 local AHL = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper_local.lua"
+local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FS = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_status.lua"
@@ -126,7 +127,7 @@ local function get_attack_action(zone_cfg, fred_data)
             for src,dst in pairs(combo) do
                 if (not penalty_infos.src[src]) then
                     local x, y = math.floor(src / 1000), src % 1000
-                    penalty_infos.src[src] = FU.get_fgumap_value(move_data.unit_map, x, y, 'id')
+                    penalty_infos.src[src] = FGM.get_value(move_data.unit_map, x, y, 'id')
                 end
                 if (not penalty_infos.dst[dst]) then
                     penalty_infos.dst[dst] = { math.floor(dst / 1000), dst % 1000 }
@@ -197,12 +198,12 @@ local function get_attack_action(zone_cfg, fred_data)
                 local tmp_adj_villages_map = {}
                 for _,dst in ipairs(combo_outcome.dsts) do
                     for xa,ya in H.adjacent_tiles(dst[1], dst[2]) do
-                        if FU.get_fgumap_value(move_data.village_map, xa, ya, 'owner')
-                            and (not FU.get_fgumap_value(move_data.my_unit_map_noMP, xa, ya, 'id'))
+                        if FGM.get_value(move_data.village_map, xa, ya, 'owner')
+                            and (not FGM.get_value(move_data.my_unit_map_noMP, xa, ya, 'id'))
                             and ((xa ~= target_loc[1]) or (ya ~= target_loc[2]))
                         then
                             --std_print('next to village:')
-                            FU.set_fgumap_value(tmp_adj_villages_map, xa, ya, 'is_village', true)
+                            FGM.set_value(tmp_adj_villages_map, xa, ya, 'is_village', true)
                         end
                     end
                 end
@@ -210,7 +211,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 -- Now check how many of those villages there are that are not used in the attack
                 local adj_villages_map = {}
                 local n_adj_unocc_village = 0
-                for x,y in FU.fgumap_iter(tmp_adj_villages_map) do
+                for x,y in FGM.iter(tmp_adj_villages_map) do
                     local is_used = false
                     for _,dst in ipairs(combo_outcome.dsts) do
                         if (dst[1] == x) and (dst[2] == y) then
@@ -221,7 +222,7 @@ local function get_attack_action(zone_cfg, fred_data)
                     end
                     if (not is_used) then
                         n_adj_unocc_village = n_adj_unocc_village + 1
-                        FU.set_fgumap_value(adj_villages_map, x, y, 'is_village', true)
+                        FGM.set_value(adj_villages_map, x, y, 'is_village', true)
                     end
                 end
                 tmp_adj_villages_map = nil
@@ -242,7 +243,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         end
 
                         local can_reach = false
-                        for x,y in FU.fgumap_iter(adj_villages_map) do
+                        for x,y in FGM.iter(adj_villages_map) do
                             local _, cost = wesnoth.find_path(move_data.unit_copies[target_id], x, y)
                             --std_print('cost', cost)
                             if (cost <= move_data.unit_infos[target_id].max_moves) then
@@ -295,17 +296,15 @@ local function get_attack_action(zone_cfg, fred_data)
                     local adj_occ_hex_map = {}
                     local count = 0
                     for _,dst in ipairs(combo_outcome.dsts) do
-                        if (not adj_occ_hex_map[dst[1]]) then adj_occ_hex_map[dst[1]] = {} end
-                        adj_occ_hex_map[dst[1]][dst[2]] = true
+                        FGM.set_value(adj_occ_hex_map, dst[1], dst[2], 'is_occ', true)
                         count = count + 1
                     end
 
                     for xa,ya in H.adjacent_tiles(target_loc[1], target_loc[2]) do
-                        if (not adj_occ_hex_map[xa]) or (not adj_occ_hex_map[xa][ya]) then
+                        if (not FGM.get_value(adj_occ_hex_map, xa, ya, 'is_occ')) then
                             -- Only units without MP on the AI side are on the map here
-                            if move_data.my_unit_map_noMP[xa] and move_data.my_unit_map_noMP[xa][ya] then
-                                if (not adj_occ_hex_map[xa]) then adj_occ_hex_map[xa] = {} end
-                                adj_occ_hex_map[xa][ya] = true
+                            if FGM.get_value(move_data.my_unit_map_noMP, xa, ya) then
+                                FGM.set_value(adj_occ_hex_map, xa, ya, 'is_occ', true)
                                 count = count + 1
                             end
                         end
@@ -320,7 +319,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         -- except if the target is down to less than half of its hitpoints
                         if (move_data.unit_infos[target_id].hitpoints >= move_data.unit_infos[target_id].max_hitpoints/2) then
                             for xa,ya in H.adjacent_tiles(target_loc[1], target_loc[2]) do
-                                if (not adj_occ_hex_map[xa]) or (not adj_occ_hex_map[xa][ya]) then
+                                if (not FGM.get_value(adj_occ_hex_map, xa, ya, 'is_occ')) then
                                     local defense = FGUI.get_unit_defense(move_data.unit_copies[target_id], xa, ya, move_data.defense_maps)
                                     if (defense >= (1 - move_data.unit_infos[target_id].good_terrain_hit_chance)) then
                                         trapping_bonus = false
@@ -334,13 +333,11 @@ local function get_attack_action(zone_cfg, fred_data)
                         -- check if this would result in trapping
                         if trapping_bonus then
                             trapping_bonus = false
-                            for x,map in pairs(adj_occ_hex_map) do
-                                for y,_ in pairs(map) do
-                                    local opp_hex = AH.find_opposite_hex_adjacent({ x, y }, target_loc)
-                                    if opp_hex and adj_occ_hex_map[opp_hex[1]] and adj_occ_hex_map[opp_hex[1]][opp_hex[2]] then
-                                        trapping_bonus = true
-                                        break
-                                    end
+                            for x,y,_ in FGM.iter(adj_occ_hex_map) do
+                                local opp_hex = AH.find_opposite_hex_adjacent({ x, y }, target_loc)
+                                if opp_hex and FGM.get_value(adj_occ_hex_map, opp_hex[1], opp_hex[2], 'is_occ') then
+                                    trapping_bonus = true
+                                    break
                                 end
                                 if trapping_bonus then break end
                             end
@@ -673,7 +670,7 @@ local function get_attack_action(zone_cfg, fred_data)
             if (not attack_includes_leader) then
                 table.insert(to_unit_locs, leader_goal)
             end
-            for x,y,_ in FU.fgumap_iter(move_data.reachable_castles_map[wesnoth.current.side]) do
+            for x,y,_ in FGM.iter(move_data.reachable_castles_map[wesnoth.current.side]) do
                 table.insert(to_locs, { x, y })
             end
             if objectives.protect.zones[zone_cfg.zone_id] then
@@ -1145,7 +1142,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 if check_exposure then
                     for _,dst in pairs(combo.dsts) do
                         for xa,ya in H.adjacent_tiles(dst[1], dst[2]) do
-                            if move_data.my_unit_map_noMP[xa] and move_data.my_unit_map_noMP[xa][ya] then
+                            if FGM.get_value(move_data.my_unit_map_noMP, xa, ya) then
                                 check_exposure = false
                                 break
                             end
@@ -1440,7 +1437,7 @@ local function get_hold_action(zone_cfg, fred_data)
         for _,hex in ipairs(add_hexes) do
             table.insert(zone, hex)
         end
-        for x,y,_ in FU.fgumap_iter(move_data.reachable_castles_map[wesnoth.current.side]) do
+        for x,y,_ in FGM.iter(move_data.reachable_castles_map[wesnoth.current.side]) do
             table.insert(zone, { x, y })
             for xa,ya in H.adjacent_tiles(x, y) do
                 table.insert(zone, { xa, ya })
@@ -1454,12 +1451,12 @@ local function get_hold_action(zone_cfg, fred_data)
     -- TODO: find a better way of dealing with this, using backup leader goals instead.
     -- avoid_map also opens up the option of including [avoid] tags or similar functionality later.
     local avoid_map = {}
-    FU.set_fgumap_value(avoid_map, leader_goal[1], leader_goal[2], 'flag', true)
+    FGM.set_value(avoid_map, leader_goal[1], leader_goal[2], 'flag', true)
 
     local zone_map = {}
     for _,loc in ipairs(zone) do
-        if (not FU.get_fgumap_value(avoid_map, loc[1], loc[2], 'flag')) then
-            FU.set_fgumap_value(zone_map, loc[1], loc[2], 'flag', true)
+        if (not FGM.get_value(avoid_map, loc[1], loc[2], 'flag')) then
+            FGM.set_value(zone_map, loc[1], loc[2], 'flag', true)
         end
     end
     if DBG.show_debug('hold_zone_map') then
@@ -1470,10 +1467,10 @@ local function get_hold_action(zone_cfg, fred_data)
     -- So this includes the leader position (and at least part of avoid_map).
     -- TODO: I think this is okay, reconsider later
     local buffered_zone_map = {}
-    for x,y,_ in FU.fgumap_iter(zone_map) do
-        FU.set_fgumap_value(buffered_zone_map, x, y, 'flag', true)
+    for x,y,_ in FGM.iter(zone_map) do
+        FGM.set_value(buffered_zone_map, x, y, 'flag', true)
         for xa,ya in H.adjacent_tiles(x, y) do
-            FU.set_fgumap_value(buffered_zone_map, xa, ya, 'flag', true)
+            FGM.set_value(buffered_zone_map, xa, ya, 'flag', true)
         end
     end
     if false then
@@ -1486,19 +1483,19 @@ local function get_hold_action(zone_cfg, fred_data)
     for enemy_id,_ in pairs(move_data.enemies) do
         enemy_zone_maps[enemy_id] = {}
 
-        for x,y,_ in FU.fgumap_iter(buffered_zone_map) do
+        for x,y,_ in FGM.iter(buffered_zone_map) do
             local enemy_defense = FGUI.get_unit_defense(move_data.unit_copies[enemy_id], x, y, move_data.defense_maps)
-            FU.set_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'hit_chance', 1 - enemy_defense)
+            FGM.set_value(enemy_zone_maps[enemy_id], x, y, 'hit_chance', 1 - enemy_defense)
 
-            local moves_left = FU.get_fgumap_value(move_data.reach_maps[enemy_id], x, y, 'moves_left')
+            local moves_left = FGM.get_value(move_data.reach_maps[enemy_id], x, y, 'moves_left')
             if moves_left then
-                FU.set_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'moves_left', moves_left)
+                FGM.set_value(enemy_zone_maps[enemy_id], x, y, 'moves_left', moves_left)
             end
         end
     end
 
     for enemy_id,enemy_loc in pairs(move_data.enemies) do
-        for x,y,_ in FU.fgumap_iter(zone_map) do
+        for x,y,_ in FGM.iter(zone_map) do
             --std_print(x,y)
 
             local enemy_hcs = {}
@@ -1513,9 +1510,9 @@ local function get_hold_action(zone_cfg, fred_data)
                     min_dist = dist
                 end
 
-                local moves_left = FU.get_fgumap_value(enemy_zone_maps[enemy_id], xa, ya, 'moves_left')
+                local moves_left = FGM.get_value(enemy_zone_maps[enemy_id], xa, ya, 'moves_left')
                 if moves_left then
-                    local ehc = FU.get_fgumap_value(enemy_zone_maps[enemy_id], xa, ya, 'hit_chance')
+                    local ehc = FGM.get_value(enemy_zone_maps[enemy_id], xa, ya, 'hit_chance')
                     table.insert(enemy_hcs, {
                         ehc = ehc, dist = dist
                     })
@@ -1536,10 +1533,10 @@ local function get_hold_action(zone_cfg, fred_data)
             -- but that's okay as the AI cannot reach that hex anyway
             if (cum_weight > 0) then
                 adj_hc = adj_hc / cum_weight
-                FU.set_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'adj_hit_chance', adj_hc)
+                FGM.set_value(enemy_zone_maps[enemy_id], x, y, 'adj_hit_chance', adj_hc)
 
-                local enemy_count = (FU.get_fgumap_value(holders_influence, x, y, 'enemy_count') or 0) + 1
-                FU.set_fgumap_value(holders_influence, x, y, 'enemy_count', enemy_count)
+                local enemy_count = (FGM.get_value(holders_influence, x, y, 'enemy_count') or 0) + 1
+                FGM.set_value(holders_influence, x, y, 'enemy_count', enemy_count)
             end
         end
 
@@ -1554,29 +1551,29 @@ local function get_hold_action(zone_cfg, fred_data)
     for id,_ in pairs(holders) do
         --std_print('\n' .. id, zone_cfg.zone_id)
 
-        for x,y,_ in FU.fgumap_iter(move_data.unit_attack_maps[1][id]) do
+        for x,y,_ in FGM.iter(move_data.unit_attack_maps[1][id]) do
             local unit_influence = FU.unit_terrain_power(move_data.unit_infos[id], x, y, move_data)
-            local inf = FU.get_fgumap_value(holders_influence, x, y, 'my_influence') or 0
-            FU.set_fgumap_value(holders_influence, x, y, 'my_influence', inf + unit_influence)
+            local inf = FGM.get_value(holders_influence, x, y, 'my_influence') or 0
+            FGM.set_value(holders_influence, x, y, 'my_influence', inf + unit_influence)
 
-            local my_count = (FU.get_fgumap_value(holders_influence, x, y, 'my_count') or 0) + 1
-            FU.set_fgumap_value(holders_influence, x, y, 'my_count', my_count)
+            local my_count = (FGM.get_value(holders_influence, x, y, 'my_count') or 0) + 1
+            FGM.set_value(holders_influence, x, y, 'my_count', my_count)
 
 
-            local enemy_influence = FU.get_fgumap_value(move_data.influence_maps, x, y, 'enemy_influence') or 0
+            local enemy_influence = FGM.get_value(move_data.influence_maps, x, y, 'enemy_influence') or 0
 
-            FU.set_fgumap_value(holders_influence, x, y, 'enemy_influence', enemy_influence)
+            FGM.set_value(holders_influence, x, y, 'enemy_influence', enemy_influence)
             holders_influence[x][y].influence = inf + unit_influence - enemy_influence
         end
     end
 
-    for x,y,data in FU.fgumap_iter(holders_influence) do
+    for x,y,data in FGM.iter(holders_influence) do
         if data.influence then
             local influence = data.influence
             local tension = data.my_influence + data.enemy_influence
             local vulnerability = tension - math.abs(influence)
 
-            local ld = FU.get_fgumap_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
+            local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
             vulnerability = vulnerability + ld / 10
 
             data.tension = tension
@@ -1628,7 +1625,7 @@ local function get_hold_action(zone_cfg, fred_data)
     local protect_locs, assigned_enemies
     if protect_objectives.protect_leader then
         protect_locs = { { leader_goal[1], leader_goal[2] } }
-        for x,y,_ in FU.fgumap_iter(move_data.reachable_castles_map[wesnoth.current.side]) do
+        for x,y,_ in FGM.iter(move_data.reachable_castles_map[wesnoth.current.side]) do
             table.insert(protect_locs, { x, y })
         end
         assigned_enemies = fred_data.ops_data.objectives.leader.leader_threats.enemies
@@ -1667,7 +1664,7 @@ local function get_hold_action(zone_cfg, fred_data)
     if protect_locs then
         local min_ld, max_ld = math.huge, - math.huge
         for _,loc in ipairs(protect_locs) do
-            local ld = FU.get_fgumap_value(fred_data.ops_data.leader_distance_map, loc[1], loc[2], 'distance')
+            local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, loc[1], loc[2], 'distance')
             if (ld < min_ld) then min_ld = ld end
             if (ld > max_ld) then max_ld = ld end
         end
@@ -1705,12 +1702,12 @@ local function get_hold_action(zone_cfg, fred_data)
     for id,_ in pairs(holders) do
         --std_print('\n' .. id, zone_cfg.zone_id)
         local min_eleader_distance
-        for x,y,_ in FU.fgumap_iter(move_data.effective_reach_maps[id]) do
-            if FU.get_fgumap_value(zone_map, x, y, 'flag') then
+        for x,y,_ in FGM.iter(move_data.effective_reach_maps[id]) do
+            if FGM.get_value(zone_map, x, y, 'flag') then
                 --std_print(x,y)
                 local can_hit = false
                 for enemy_id,enemy_zone_map in pairs(enemy_zone_maps) do
-                    if FU.get_fgumap_value(enemy_zone_map, x, y, 'adj_hit_chance') then
+                    if FGM.get_value(enemy_zone_map, x, y, 'adj_hit_chance') then
                         can_hit = true
                         break
                     end
@@ -1719,10 +1716,10 @@ local function get_hold_action(zone_cfg, fred_data)
                 if (not can_hit) then
                     local eld
                     if fred_data.ops_data.enemy_leader_distance_maps[zone_cfg.zone_id] then
-                        eld = FU.get_fgumap_value(fred_data.ops_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
+                        eld = FGM.get_value(fred_data.ops_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
                     end
                     if (not eld) then
-                        eld = FU.get_fgumap_value(fred_data.ops_data.enemy_leader_distance_maps['all_map'][move_data.unit_infos[id].type], x, y, 'cost') + 99
+                        eld = FGM.get_value(fred_data.ops_data.enemy_leader_distance_maps['all_map'][move_data.unit_infos[id].type], x, y, 'cost') + 99
                     end
 
                     if (not min_eleader_distance) or (eld < min_eleader_distance) then
@@ -1733,24 +1730,24 @@ local function get_hold_action(zone_cfg, fred_data)
         end
         --std_print('  min_eleader_distance: ' .. min_eleader_distance)
 
-        for x,y,_ in FU.fgumap_iter(move_data.effective_reach_maps[id]) do
+        for x,y,_ in FGM.iter(move_data.effective_reach_maps[id]) do
             --std_print(x,y)
 
             -- If there is nothing to protect, and we can move farther ahead
             -- unthreatened than this hold position, don't hold here
             local move_here = false
-            if FU.get_fgumap_value(zone_map, x, y, 'flag') then
+            if FGM.get_value(zone_map, x, y, 'flag') then
                 move_here = true
                 if (not protect_locs) then
-                    local threats = FU.get_fgumap_value(move_data.enemy_attack_map[1], x, y, 'ids')
+                    local threats = FGM.get_value(move_data.enemy_attack_map[1], x, y, 'ids')
 
                     if (not threats) then
                         local eld
                         if fred_data.ops_data.enemy_leader_distance_maps[zone_cfg.zone_id] then
-                            eld = FU.get_fgumap_value(fred_data.ops_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
+                            eld = FGM.get_value(fred_data.ops_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
                         end
                         if (not eld) then
-                            eld = FU.get_fgumap_value(fred_data.ops_data.enemy_leader_distance_maps['all_map'][move_data.unit_infos[id].type], x, y, 'cost') + 99
+                            eld = FGM.get_value(fred_data.ops_data.enemy_leader_distance_maps['all_map'][move_data.unit_infos[id].type], x, y, 'cost') + 99
                         end
 
                         if min_eleader_distance and (eld > min_eleader_distance) then
@@ -1763,7 +1760,7 @@ local function get_hold_action(zone_cfg, fred_data)
             local tmp_enemies = {}
             if move_here then
                 for enemy_id,_ in pairs(move_data.enemies) do
-                    local enemy_adj_hc = FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'adj_hit_chance')
+                    local enemy_adj_hc = FGM.get_value(enemy_zone_maps[enemy_id], x, y, 'adj_hit_chance')
 
                     if enemy_adj_hc then
                         --std_print(x,y)
@@ -1772,7 +1769,7 @@ local function get_hold_action(zone_cfg, fred_data)
                         local my_hc = 1 - FGUI.get_unit_defense(move_data.unit_copies[id], x, y, move_data.defense_maps)
                         -- This is not directly a contribution to damage, it's just meant as a tiebreaker
                         -- Taking away good terrain from the enemy
-                        local enemy_defense = 1 - FU.get_fgumap_value(enemy_zone_maps[enemy_id], x, y, 'hit_chance')
+                        local enemy_defense = 1 - FGM.get_value(enemy_zone_maps[enemy_id], x, y, 'hit_chance')
                         my_hc = my_hc - enemy_defense / 100
 
                         local att = fred_data.ops_data.unit_attacks[id][enemy_id]
@@ -1860,7 +1857,7 @@ local function get_hold_action(zone_cfg, fred_data)
 
                 -- Healing bonus for villages
                 local village_bonus = 0
-                if FU.get_fgumap_value(move_data.village_map, x, y, 'owner') then
+                if FGM.get_value(move_data.village_map, x, y, 'owner') then
                     if move_data.unit_infos[id].abilities.regenerate then
                         -- Still give a bit of a bonus, to prefer villages if no other unit can get there
                         village_bonus = 2
@@ -1888,7 +1885,7 @@ local function get_hold_action(zone_cfg, fred_data)
                 if (not pre_rating_maps[id]) then
                     pre_rating_maps[id] = {}
                 end
-                FU.set_fgumap_value(pre_rating_maps[id], x, y, 'av_outcome', av_outcome)
+                FGM.set_value(pre_rating_maps[id], x, y, 'av_outcome', av_outcome)
                 pre_rating_maps[id][x][y].counter_actual_taken = counter_actual_taken
                 pre_rating_maps[id][x][y].counter_actual_damage = counter_actual_damage
                 pre_rating_maps[id][x][y].counter_max_taken = counter_max_taken
@@ -1923,35 +1920,35 @@ local function get_hold_action(zone_cfg, fred_data)
         hold_here_maps[id] = {}
 
         local hold_here_map = {}
-        for x,y,data in FU.fgumap_iter(pre_rating_map) do
-            FU.set_fgumap_value(hold_here_map, x, y, 'av_outcome', data.av_outcome)
+        for x,y,data in FGM.iter(pre_rating_map) do
+            FGM.set_value(hold_here_map, x, y, 'av_outcome', data.av_outcome)
         end
 
         local adj_hex_map = {}
-        for x,y,data in FU.fgumap_iter(hold_here_map) do
+        for x,y,data in FGM.iter(hold_here_map) do
             for xa,ya in H.adjacent_tiles(x,y) do
-                if (not FU.get_fgumap_value(hold_here_map, xa, ya, 'av_outcome'))
-                    and FU.get_fgumap_value(pre_rating_map, xa, ya, 'av_outcome')
+                if (not FGM.get_value(hold_here_map, xa, ya, 'av_outcome'))
+                    and FGM.get_value(pre_rating_map, xa, ya, 'av_outcome')
                 then
                     --std_print('adjacent :' .. x .. ',' .. y, xa .. ',' .. ya)
-                    FU.set_fgumap_value(adj_hex_map, xa, ya, 'av_outcome', data.av_outcome)
+                    FGM.set_value(adj_hex_map, xa, ya, 'av_outcome', data.av_outcome)
                 end
             end
         end
-        for x,y,data in FU.fgumap_iter(adj_hex_map) do
-            FU.set_fgumap_value(hold_here_map, x, y, 'av_outcome', data.av_outcome)
+        for x,y,data in FGM.iter(adj_hex_map) do
+            FGM.set_value(hold_here_map, x, y, 'av_outcome', data.av_outcome)
         end
 
-        for x,y,data in FU.fgumap_iter(hold_here_map) do
+        for x,y,data in FGM.iter(hold_here_map) do
             if (data.av_outcome >= 0) then
-                local my_count = FU.get_fgumap_value(holders_influence, x, y, 'my_count')
-                local enemy_count = FU.get_fgumap_value(holders_influence, x, y, 'enemy_count')
+                local my_count = FGM.get_value(holders_influence, x, y, 'my_count')
+                local enemy_count = FGM.get_value(holders_influence, x, y, 'enemy_count')
 
                 -- TODO: comment this out for now, but might need a condition like that again later
                 if (my_count >= 3) then
-                    FU.set_fgumap_value(hold_here_maps[id], x, y, 'hold_here', true)
+                    FGM.set_value(hold_here_maps[id], x, y, 'hold_here', true)
                 else
-                    local value_loss = FU.get_fgumap_value(pre_rating_map, x, y, 'value_loss')
+                    local value_loss = FGM.get_value(pre_rating_map, x, y, 'value_loss')
                     --std_print(x, y, value_loss, push_factor)
 
                     -- The overall push forward must be worth it
@@ -1959,18 +1956,18 @@ local function get_hold_action(zone_cfg, fred_data)
                     -- TODO: currently these are done individually; not sure if
                     --   these two conditions should be combined (multiplied)
                     if (value_loss >= - push_factor) then
-                        FU.set_fgumap_value(hold_here_maps[id], x, y, 'hold_here', true)
+                        FGM.set_value(hold_here_maps[id], x, y, 'hold_here', true)
 
-                        local ld = FU.get_fgumap_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
+                        local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
                         if (ld > front_ld + 1) then
                             local advance_factor = 1 / (ld - front_ld)
 
                             advance_factor = advance_factor
-                           --FU.set_fgumap_value(hold_here_maps[id], x, y, 'hold_here', value_loss)
+                           --FGM.set_value(hold_here_maps[id], x, y, 'hold_here', value_loss)
                            --std_print(x, y, ld, front_ld, f)
 
                             if (value_loss < - advance_factor) then
-                                FU.set_fgumap_value(hold_here_maps[id], x, y, 'hold_here', false)
+                                FGM.set_value(hold_here_maps[id], x, y, 'hold_here', false)
                             end
                         end
                     end
@@ -1983,15 +1980,15 @@ local function get_hold_action(zone_cfg, fred_data)
     if protect_locs then
         for id,pre_rating_map in pairs(pre_rating_maps) do
             protect_here_maps[id] = {}
-            for x,y,data in FU.fgumap_iter(pre_rating_map) do
+            for x,y,data in FGM.iter(pre_rating_map) do
                 local protect_here = true
                 if between_map then
-                    local btw_dist = FU.get_fgumap_value(between_map, x, y, 'blurred_distance') or -99
+                    local btw_dist = FGM.get_value(between_map, x, y, 'blurred_distance') or -99
                     if (btw_dist < min_btw_dist) then
                         protect_here = false
                     end
                 else
-                    local ld = FU.get_fgumap_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
+                    local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
                     local dld = ld - protect_leader_distance.min
 
                     if (dld < min_btw_dist) then
@@ -2000,24 +1997,24 @@ local function get_hold_action(zone_cfg, fred_data)
                 end
 
                 if protect_here then
-                    FU.set_fgumap_value(protect_here_maps[id], x, y, 'protect_here', true)
+                    FGM.set_value(protect_here_maps[id], x, y, 'protect_here', true)
                 end
             end
 
             local adj_hex_map = {}
-            for x,y,data in FU.fgumap_iter(protect_here_maps[id]) do
+            for x,y,data in FGM.iter(protect_here_maps[id]) do
                 for xa,ya in H.adjacent_tiles(x,y) do
-                    if (not FU.get_fgumap_value(protect_here_maps[id], xa, ya, 'protect_here'))
-                        and FU.get_fgumap_value(pre_rating_map, xa, ya, 'av_outcome')
+                    if (not FGM.get_value(protect_here_maps[id], xa, ya, 'protect_here'))
+                        and FGM.get_value(pre_rating_map, xa, ya, 'av_outcome')
                     then
                         --std_print('adjacent :' .. x .. ',' .. y, xa .. ',' .. ya)
-                        FU.set_fgumap_value(adj_hex_map, xa, ya, 'protect_here', true)
+                        FGM.set_value(adj_hex_map, xa, ya, 'protect_here', true)
                     end
                 end
             end
 
-            for x,y,data in FU.fgumap_iter(adj_hex_map) do
-                FU.set_fgumap_value(protect_here_maps[id], x, y, 'protect_here', true)
+            for x,y,data in FGM.iter(adj_hex_map) do
+                FGM.set_value(protect_here_maps[id], x, y, 'protect_here', true)
             end
         end
     end
@@ -2038,9 +2035,9 @@ local function get_hold_action(zone_cfg, fred_data)
     for id,hold_here_map in pairs(hold_here_maps) do
         --std_print('\n' .. id, zone_cfg.zone_id)
         local max_vuln
-        for x,y,hold_here_data in FU.fgumap_iter(hold_here_map) do
+        for x,y,hold_here_data in FGM.iter(hold_here_map) do
             if hold_here_data.hold_here then
-                local vuln = FU.get_fgumap_value(holders_influence, x, y, 'vulnerability')
+                local vuln = FGM.get_value(holders_influence, x, y, 'vulnerability')
 
                 if (not max_vuln) or (vuln > max_vuln) then
                     max_vuln = vuln
@@ -2049,13 +2046,13 @@ local function get_hold_action(zone_cfg, fred_data)
                 if (not hold_rating_maps[id]) then
                     hold_rating_maps[id] = {}
                 end
-                FU.set_fgumap_value(hold_rating_maps[id], x, y, 'vuln', vuln)
+                FGM.set_value(hold_rating_maps[id], x, y, 'vuln', vuln)
             end
         end
 
         if hold_rating_maps[id] then
-            for x,y,hold_rating_data in FU.fgumap_iter(hold_rating_maps[id]) do
-                local base_rating = FU.get_fgumap_value(pre_rating_maps[id], x, y, 'av_outcome')
+            for x,y,hold_rating_data in FGM.iter(hold_rating_maps[id]) do
+                local base_rating = FGM.get_value(pre_rating_maps[id], x, y, 'av_outcome')
 
                 base_rating = base_rating / move_data.unit_infos[id].max_hitpoints
                 base_rating = (base_rating + 1) / 2
@@ -2063,7 +2060,7 @@ local function get_hold_action(zone_cfg, fred_data)
 
                 local vuln_rating_org = base_rating + hold_rating_data.vuln / max_vuln * vuln_rating_weight
 
-                local dist = FU.get_fgumap_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
+                local dist = FGM.get_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
                 vuln_rating_org = vuln_rating_org + forward_rating_weight * dist
 
                 hold_rating_data.base_rating = base_rating
@@ -2106,7 +2103,7 @@ local function get_hold_action(zone_cfg, fred_data)
     local max_inv_cost
     if between_map then
         for _,protect_loc in ipairs(protect_locs) do
-            local inv_cost = FU.get_fgumap_value(between_map, protect_loc[1], protect_loc[2], 'inv_cost') or 0
+            local inv_cost = FGM.get_value(between_map, protect_loc[1], protect_loc[2], 'inv_cost') or 0
             if (not max_inv_cost) or (inv_cost > max_inv_cost) then
                 max_inv_cost = inv_cost
             end
@@ -2117,9 +2114,9 @@ local function get_hold_action(zone_cfg, fred_data)
     for id,protect_here_map in pairs(protect_here_maps) do
         --std_print('\n' .. id, zone_cfg.zone_id, protect_leader_distance.min .. ' -- ' .. protect_leader_distance.max)
         local max_vuln
-        for x,y,protect_here_data in FU.fgumap_iter(protect_here_map) do
+        for x,y,protect_here_data in FGM.iter(protect_here_map) do
             if protect_here_data.protect_here then
-                local vuln = FU.get_fgumap_value(holders_influence, x, y, 'vulnerability')
+                local vuln = FGM.get_value(holders_influence, x, y, 'vulnerability')
 
                 if (not max_vuln) or (vuln > max_vuln) then
                     max_vuln = vuln
@@ -2128,21 +2125,21 @@ local function get_hold_action(zone_cfg, fred_data)
                 if (not protect_rating_maps[id]) then
                     protect_rating_maps[id] = {}
                 end
-                FU.set_fgumap_value(protect_rating_maps[id], x, y, 'vuln', vuln)
+                FGM.set_value(protect_rating_maps[id], x, y, 'vuln', vuln)
             end
         end
 
         if protect_rating_maps[id] then
-            for x,y,protect_rating_data in FU.fgumap_iter(protect_rating_maps[id]) do
+            for x,y,protect_rating_data in FGM.iter(protect_rating_maps[id]) do
                 local protect_base_rating, cum_weight = 0, 0
 
                 local my_defense = FGUI.get_unit_defense(move_data.unit_copies[id], x, y, move_data.defense_maps)
                 local scaled_my_defense = FU.weight_s(my_defense, 0.67)
 
                 for enemy_id,enemy_zone_map in pairs(enemy_zone_maps) do
-                    local enemy_adj_hc = FU.get_fgumap_value(enemy_zone_map, x, y, 'adj_hit_chance')
+                    local enemy_adj_hc = FGM.get_value(enemy_zone_map, x, y, 'adj_hit_chance')
                     if enemy_adj_hc then
-                        local enemy_defense = 1 - FU.get_fgumap_value(enemy_zone_map, x, y, 'hit_chance')
+                        local enemy_defense = 1 - FGM.get_value(enemy_zone_map, x, y, 'hit_chance')
                         local scaled_enemy_defense = FU.weight_s(enemy_defense, 0.67)
                         local scaled_enemy_adj_hc = FU.weight_s(enemy_adj_hc, 0.67)
 
@@ -2160,7 +2157,7 @@ local function get_hold_action(zone_cfg, fred_data)
                 local protect_base_rating = protect_base_rating / cum_weight
                 --std_print('    base_rating, protect_base_rating: ' .. base_rating, protect_base_rating, cum_weight)
 
-                if FU.get_fgumap_value(move_data.village_map, x, y, 'owner') then
+                if FGM.get_value(move_data.village_map, x, y, 'owner') then
                     -- Prefer strongest unit on village (for protection)
                     -- Potential TODO: we might want this conditional on the threat to the village
                     protect_base_rating = protect_base_rating + 0.1 * move_data.unit_infos[id].hitpoints / 25 * value_ratio
@@ -2174,7 +2171,7 @@ local function get_hold_action(zone_cfg, fred_data)
                 -- TODO: check if this is the right metric when between map does not exist
                 local inv_cost = 0
                 if between_map then
-                    inv_cost = FU.get_fgumap_value(between_map, x, y, 'inv_cost') or 0
+                    inv_cost = FGM.get_value(between_map, x, y, 'inv_cost') or 0
                 end
                 local d_dist = inv_cost - (max_inv_cost or 0)
                 local protect_rating = protect_base_rating
@@ -2225,12 +2222,12 @@ local function get_hold_action(zone_cfg, fred_data)
 
     -- Map of adjacent villages that can be reached by the enemy
     local adjacent_village_map = {}
-    for x,y,_ in FU.fgumap_iter(move_data.village_map) do
-        if FU.get_fgumap_value(zone_map, x, y, 'flag') then
+    for x,y,_ in FGM.iter(move_data.village_map) do
+        if FGM.get_value(zone_map, x, y, 'flag') then
 
             local can_reach = false
             for enemy_id,enemy_zone_map in pairs(enemy_zone_maps) do
-                if FU.get_fgumap_value(enemy_zone_map, x, y, 'moves_left') then
+                if FGM.get_value(enemy_zone_map, x, y, 'moves_left') then
                     can_reach = true
                     break
                 end
@@ -2240,7 +2237,7 @@ local function get_hold_action(zone_cfg, fred_data)
                 for xa,ya in H.adjacent_tiles(x,y) do
                     -- Eventual TODO: this currently only works for one adjacent village
                     -- which is fine on the Freelands map, but might not be on others
-                    FU.set_fgumap_value(adjacent_village_map, xa, ya, 'village_xy', 1000 * x + y)
+                    FGM.set_value(adjacent_village_map, xa, ya, 'village_xy', 1000 * x + y)
                 end
             end
         end
@@ -2316,7 +2313,7 @@ local function get_hold_action(zone_cfg, fred_data)
         local hold_distance, count = 0, 0
         for src,dst in pairs(best_hold_combo) do
             local x, y =  math.floor(dst / 1000), dst % 1000
-            local ld = FU.get_fgumap_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
+            local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
             hold_distance = hold_distance + ld
             count = count + 1
         end
@@ -2325,7 +2322,7 @@ local function get_hold_action(zone_cfg, fred_data)
         local protect_distance, count = 0, 0
         for src,dst in pairs(best_protect_combo) do
             local x, y =  math.floor(dst / 1000), dst % 1000
-            local ld = FU.get_fgumap_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
+            local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
             protect_distance = protect_distance + ld
             count = count + 1
         end
@@ -2422,7 +2419,7 @@ local function get_advance_action(zone_cfg, fred_data)
         avoid_maps[id] = {}
         if (id ~= leader.id) then
             if (wesnoth.get_terrain_info(wesnoth.get_terrain(leader[1], leader[2])).keep) then
-                FU.set_fgumap_value(avoid_maps[id], leader[1], leader[2], 'avoid', true)
+                FGM.set_value(avoid_maps[id], leader[1], leader[2], 'avoid', true)
             end
         end
     end
@@ -2449,17 +2446,17 @@ local function get_advance_action(zone_cfg, fred_data)
         insufficient_support_maps[id] = {}
         local current_power = FU.unit_current_power(move_data.unit_infos[id])
 
-        for x,y,_ in FU.fgumap_iter(behind_enemy_map) do
+        for x,y,_ in FGM.iter(behind_enemy_map) do
             -- Note: support_maps decay with distance, while behind_enemy_map contain
             -- full enemy power. Thus the somewhat complex calculation here.
-            local all_support = FU.get_fgumap_value(move_data.support_maps.total, x, y, 'support') or 0
-            local own_support = FU.get_fgumap_value(move_data.support_maps.units[id], x, y, 'support') or 0
-            local enemy_power = FU.get_fgumap_value(behind_enemy_map, x, y, 'enemy_power') or 0
+            local all_support = FGM.get_value(move_data.support_maps.total, x, y, 'support') or 0
+            local own_support = FGM.get_value(move_data.support_maps.units[id], x, y, 'support') or 0
+            local enemy_power = FGM.get_value(behind_enemy_map, x, y, 'enemy_power') or 0
 
             local support = all_support - own_support + current_power - enemy_power
 
             if (support < 0) then
-                FU.set_fgumap_value(insufficient_support_maps[id], x, y, 'support', support)
+                FGM.set_value(insufficient_support_maps[id], x, y, 'support', support)
             end
         end
     end
@@ -2475,10 +2472,10 @@ local function get_advance_action(zone_cfg, fred_data)
     local advance_map, zone_map = {}, {}
     local zone = wesnoth.get_locations(raw_cfg.ops_slf)
     for _,loc in ipairs(zone) do
-        if (not FU.get_fgumap_value(move_data.enemy_attack_map[1], loc[1], loc[2], 'ids')) then
-            FU.set_fgumap_value(advance_map, loc[1], loc[2], 'flag', true)
+        if (not FGM.get_value(move_data.enemy_attack_map[1], loc[1], loc[2], 'ids')) then
+            FGM.set_value(advance_map, loc[1], loc[2], 'flag', true)
         end
-        FU.set_fgumap_value(zone_map, loc[1], loc[2], 'flag', true)
+        FGM.set_value(zone_map, loc[1], loc[2], 'flag', true)
     end
     if DBG.show_debug('advance_map') then
         DBG.show_fgumap_with_message(advance_map, 'flag', 'Advance map: ' .. zone_cfg.zone_id)
@@ -2511,8 +2508,8 @@ local function get_advance_action(zone_cfg, fred_data)
         --std_print(id, rating_moves, rating_power, fraction_hp_missing, hp_rating)
 
         local cost_map, cost_map_key
-        for x,y,_ in FU.fgumap_iter(move_data.effective_reach_maps[id]) do
-            if (not FU.get_fgumap_value(avoid_maps[id], x, y, 'avoid')) then
+        for x,y,_ in FGM.iter(move_data.effective_reach_maps[id]) do
+            if (not FGM.get_value(avoid_maps[id], x, y, 'avoid')) then
 
                 local rating = rating_moves + rating_power
 
@@ -2523,11 +2520,11 @@ local function get_advance_action(zone_cfg, fred_data)
                 --     the influence map in the area the unit can reach
                 -- Note that 'dist' is to be minimize, that is, it is subtracted from the rating
                 local dist
-                if FU.get_fgumap_value(advance_map, x, y, 'flag')
-                    and (not FU.get_fgumap_value(insufficient_support_maps[id], x, y, 'support'))
+                if FGM.get_value(advance_map, x, y, 'flag')
+                    and (not FGM.get_value(insufficient_support_maps[id], x, y, 'support'))
                 then
                     -- For unthreatened hexes in the zone, the main criterion is the "forward distance"
-                    dist = FU.get_fgumap_value(fred_data.ops_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
+                    dist = FGM.get_value(fred_data.ops_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
                 else
                     -- When no unthreatened hexes inside the zone can be found,
                     -- the enemy threat needs to be taken into account and hexes outside
@@ -2535,9 +2532,9 @@ local function get_advance_action(zone_cfg, fred_data)
                     if (not cost_map) then
                         if is_unit_in_zone then
                             local forward_influence = {}
-                            for x,y,_ in FU.fgumap_iter(move_data.effective_reach_maps[id]) do
-                                if (not FU.get_fgumap_value(avoid_maps[id], x, y, 'avoid')) then
-                                    local ld = FU.get_fgumap_value(fred_data.ops_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
+                            for x,y,_ in FGM.iter(move_data.effective_reach_maps[id]) do
+                                if (not FGM.get_value(avoid_maps[id], x, y, 'avoid')) then
+                                    local ld = FGM.get_value(fred_data.ops_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
                                     if ld then
                                         -- We set up an averaged integer leader_distance array here
                                         -- In principle, we could just pass all the numbers to the linear regression function
@@ -2547,7 +2544,7 @@ local function get_advance_action(zone_cfg, fred_data)
                                         if (not forward_influence[int_ld]) then
                                             forward_influence[int_ld] = { inf = 0, count = 0 }
                                         end
-                                        local influence = FU.get_fgumap_value(move_data.influence_maps, x, y, 'full_move_influence')
+                                        local influence = FGM.get_value(move_data.influence_maps, x, y, 'full_move_influence')
                                         if influence then
                                             forward_influence[int_ld].inf = forward_influence[int_ld].inf + influence
                                             forward_influence[int_ld].count = forward_influence[int_ld].count + 1
@@ -2563,7 +2560,7 @@ local function get_advance_action(zone_cfg, fred_data)
 
                             local slope, y0 = FU.linear_regression(data_arr)
                             local x0 = - y0 / slope
-                            local ld_unit = FU.get_fgumap_value(fred_data.ops_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], unit_loc[1], unit_loc[2], 'cost')
+                            local ld_unit = FGM.get_value(fred_data.ops_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], unit_loc[1], unit_loc[2], 'cost')
 
                             if false then
                                 std_print('forward influences:', id, ld_unit)
@@ -2628,8 +2625,8 @@ local function get_advance_action(zone_cfg, fred_data)
 
                                 for _,cost in pairs(cm) do
                                     if (cost[3] > -1) then
-                                       local c = FU.get_fgumap_value(cost_map, cost[1], cost[2], 'cost') or 0
-                                       FU.set_fgumap_value(cost_map, cost[1], cost[2], 'cost', c + cost[3])
+                                       local c = FGM.get_value(cost_map, cost[1], cost[2], 'cost') or 0
+                                       FGM.set_value(cost_map, cost[1], cost[2], 'cost', c + cost[3])
                                     end
                                 end
                             end
@@ -2639,7 +2636,7 @@ local function get_advance_action(zone_cfg, fred_data)
                         end
                     end
 
-                    dist = FU.get_fgumap_value(cost_map, x, y, cost_map_key)
+                    dist = FGM.get_value(cost_map, x, y, cost_map_key)
 
                     -- Counter attack outcome
                     local unit_moved = {}
@@ -2687,14 +2684,14 @@ local function get_advance_action(zone_cfg, fred_data)
                 -- is not a hex behind enemy lines without sufficient support.  It's value is -0.75*unit_value
                 -- if missing support is equal to the units HP, and decreases asymptotically to -unit_value from there.
                 -- It's supposed to be (mostly) balanced against the damage rating above.
-                local support = - (FU.get_fgumap_value(insufficient_support_maps[id], x, y, 'support') or 0)
+                local support = - (FGM.get_value(insufficient_support_maps[id], x, y, 'support') or 0)
                 local support_rating = - unit_value * (1 - 0.25 ^ (support / move_data.unit_infos[id].hitpoints))
                 rating = rating + support_rating
 
                 -- Small preference for villages we don't own (although this
                 -- should mostly be covered by the village grabbing action already)
                 -- Equal to gold difference between grabbing and not grabbing (not counting support)
-                local owner = FU.get_fgumap_value(move_data.village_map, x, y, 'owner')
+                local owner = FGM.get_value(move_data.village_map, x, y, 'owner')
                 if owner and (owner ~= wesnoth.current.side) then
                     if (owner == 0) then
                         rating = rating + 2
@@ -2716,7 +2713,7 @@ local function get_advance_action(zone_cfg, fred_data)
                 local my_defense = FGUI.get_unit_defense(move_data.unit_copies[id], x, y, move_data.defense_maps)
                 rating = rating + my_defense / 10
 
-                FU.set_fgumap_value(unit_rating_maps[id], x, y, 'rating', rating)
+                FGM.set_value(unit_rating_maps[id], x, y, 'rating', rating)
 
                 if (not max_rating) or (rating > max_rating) then
                     max_rating = rating
@@ -2750,7 +2747,7 @@ local function get_advance_action(zone_cfg, fred_data)
             local attacker = {}
             attacker[id] = unit_loc
             for enemy_id,enemy_loc in pairs(move_data.enemies) do
-                if FU.get_fgumap_value(move_data.unit_attack_maps[1][id], enemy_loc[1], enemy_loc[2], 'current_power') then
+                if FGM.get_value(move_data.unit_attack_maps[1][id], enemy_loc[1], enemy_loc[2], 'current_power') then
                     --std_print('    potential target:' .. enemy_id)
 
                     local target = {}
@@ -3008,7 +3005,7 @@ local function do_recruit(fred_data, ai, action)
                 leader_dst = action.dsts[i_u]
             end
         end
-        local from_keep = FU.get_fgumap_value(move_data.effective_reach_maps[leader_id], leader_dst[1], leader_dst[2], 'from_keep')
+        local from_keep = FGM.get_value(move_data.effective_reach_maps[leader_id], leader_dst[1], leader_dst[2], 'from_keep')
         --std_print(leader_id, leader_dst[1] .. ',' .. leader_dst[2] .. '  <--  ' .. from_keep[1] .. ',' .. from_keep[2])
 
         local outofway_units = {}

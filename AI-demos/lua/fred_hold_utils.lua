@@ -2,6 +2,7 @@ local H = wesnoth.require "helper"
 local AH = wesnoth.require "ai/lua/ai_helper.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
 local FBU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_benefits_utilities.lua"
+local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FS = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_status.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
@@ -45,7 +46,7 @@ function fred_hold_utils.get_between_map(locs, toward_loc, units, move_data)
 
         local path_map = {}
         for _,loc in ipairs(path) do
-            FU.set_fgumap_value(path_map, loc[1], loc[2], 'sign', 0)
+            FGM.set_value(path_map, loc[1], loc[2], 'sign', 0)
         end
 
         local new_hexes = {}
@@ -59,13 +60,13 @@ function fred_hold_utils.get_between_map(locs, toward_loc, units, move_data)
                 local drad = rad - rad_path
                 --std_print('  ' .. xa .. ',' .. ya .. ':', rad, drad)
 
-                if (not FU.get_fgumap_value(path_map, xa, ya, 'sign')) then
+                if (not FGM.get_value(path_map, xa, ya, 'sign')) then
                     if (drad > 0) and (drad < 3.14) or (drad < -3.14) then
                         table.insert(new_hexes, { xa, ya, 1 })
-                        FU.set_fgumap_value(path_map, xa, ya, 'sign', 1)
+                        FGM.set_value(path_map, xa, ya, 'sign', 1)
                     else
                         table.insert(new_hexes, { xa, ya, -1 })
-                        FU.set_fgumap_value(path_map, xa, ya, 'sign', -1)
+                        FGM.set_value(path_map, xa, ya, 'sign', -1)
                     end
                 end
             end
@@ -77,9 +78,9 @@ function fred_hold_utils.get_between_map(locs, toward_loc, units, move_data)
 
             for _,hex in ipairs(old_hexes) do
                 for xa,ya in H.adjacent_tiles(hex[1], hex[2]) do
-                    if (not FU.get_fgumap_value(path_map, xa, ya, 'sign')) then
+                    if (not FGM.get_value(path_map, xa, ya, 'sign')) then
                         table.insert(new_hexes, { xa, ya, hex[3] })
-                        FU.set_fgumap_value(path_map, xa, ya, 'sign', hex[3])
+                        FGM.set_value(path_map, xa, ya, 'sign', hex[3])
                     end
                 end
             end
@@ -98,14 +99,14 @@ function fred_hold_utils.get_between_map(locs, toward_loc, units, move_data)
             DBG.show_fgumap_with_message(inv_cost_map, 'cost', 'inv_cost_map', move_data.unit_copies[id])
         end
 
-        local cost_full = FU.get_fgumap_value(cost_map, toward_loc[1], toward_loc[2], 'cost')
-        local inv_cost_full = FU.get_fgumap_value(inv_cost_map, unit_loc[1], unit_loc[2], 'cost')
+        local cost_full = FGM.get_value(cost_map, toward_loc[1], toward_loc[2], 'cost')
+        local inv_cost_full = FGM.get_value(inv_cost_map, unit_loc[1], unit_loc[2], 'cost')
 
         for _,loc in ipairs(locs) do
             local unit_map = {}
-            for x,y,data in FU.fgumap_iter(cost_map) do
+            for x,y,data in FGM.iter(cost_map) do
                 local cost = data.cost or 99
-                local inv_cost = FU.get_fgumap_value(inv_cost_map, x, y, 'cost')
+                local inv_cost = FGM.get_value(inv_cost_map, x, y, 'cost')
 
                 -- This gives a rating that is a slanted plane, from the unit to toward_loc
                 local rating = (inv_cost - cost) / 2
@@ -119,19 +120,19 @@ function fred_hold_utils.get_between_map(locs, toward_loc, units, move_data)
                 rating = rating * weights[id]
 
                 local perp_distance = cost + inv_cost - (cost_full + inv_cost_full) / 2
-                perp_distance = perp_distance * FU.get_fgumap_value(path_map, x, y, 'sign')
+                perp_distance = perp_distance * FGM.get_value(path_map, x, y, 'sign')
 
-                FU.set_fgumap_value(unit_map, x, y, 'rating', rating)
-                FU.set_fgumap_value(unit_map, x, y, 'perp_distance', perp_distance * weights[id])
-                FU.fgumap_add(between_map, x, y, 'inv_cost', inv_cost * weights[id])
+                FGM.set_value(unit_map, x, y, 'rating', rating)
+                FGM.set_value(unit_map, x, y, 'perp_distance', perp_distance * weights[id])
+                FGM.add(between_map, x, y, 'inv_cost', inv_cost * weights[id])
             end
 
-            local loc_value = FU.get_fgumap_value(unit_map, loc[1], loc[2], 'rating')
-            local unit_value = FU.get_fgumap_value(unit_map, unit_loc[1], unit_loc[2], 'rating')
+            local loc_value = FGM.get_value(unit_map, loc[1], loc[2], 'rating')
+            local unit_value = FGM.get_value(unit_map, unit_loc[1], unit_loc[2], 'rating')
             local max_value = (loc_value + unit_value) / 2
             --std_print(loc[1], loc[2], loc_value, unit_value, max_value)
 
-            for x,y,data in FU.fgumap_iter(unit_map) do
+            for x,y,data in FGM.iter(unit_map) do
                 local rating = data.rating
 
                 -- Set rating to maximum at midpoint between unit and loc
@@ -146,16 +147,16 @@ function fred_hold_utils.get_between_map(locs, toward_loc, units, move_data)
                 -- Rating falls off in perpendicular direction
                 rating = rating - math.abs((data.perp_distance / move_data.unit_infos[id].max_moves)^2)
 
-                FU.fgumap_add(between_map, x, y, 'distance', rating)
-                FU.fgumap_add(between_map, x, y, 'perp_distance', data.perp_distance)
+                FGM.add(between_map, x, y, 'distance', rating)
+                FGM.add(between_map, x, y, 'perp_distance', data.perp_distance)
             end
         end
     end
 
-    FU.fgumap_blur(between_map, 'distance')
-    FU.fgumap_blur(between_map, 'perp_distance')
+    FGM.blur(between_map, 'distance')
+    FGM.blur(between_map, 'perp_distance')
 
-    for x,y,data in FU.fgumap_iter(between_map) do
+    for x,y,data in FGM.iter(between_map) do
         data.is_between = data.distance > math.abs(data.perp_distance)
     end
 
@@ -171,7 +172,7 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, ops
 
     if (count == 1) then
         for id,rating_map in pairs(rating_maps) do
-            for _,_,data in FU.fgumap_iter(rating_map) do
+            for _,_,data in FGM.iter(rating_map) do
                 data.conv = 1
                 data[key] = data[key .. '_org']
             end
@@ -181,14 +182,14 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, ops
     end
 
     for id,rating_map in pairs(rating_maps) do
-        for x,y,_ in FU.fgumap_iter(rating_map) do
+        for x,y,_ in FGM.iter(rating_map) do
             local dist, perp_dist
             if between_map then
-                dist = FU.get_fgumap_value(between_map, x, y, 'blurred_distance') or -999
-                perp_dist = FU.get_fgumap_value(between_map, x, y, 'blurred_perp_distance') or 0
+                dist = FGM.get_value(between_map, x, y, 'blurred_distance') or -999
+                perp_dist = FGM.get_value(between_map, x, y, 'blurred_perp_distance') or 0
             else
                 -- In this case we do not have the perpendicular distance
-                dist = FU.get_fgumap_value(ops_data.leader_distance_map, x, y, 'distance')
+                dist = FGM.get_value(ops_data.leader_distance_map, x, y, 'distance')
             end
             --std_print(id, x .. ',' .. y, dist, perp_dist)
 
@@ -201,10 +202,10 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, ops
                         if (dr <= 3) then
                             local dist2, perp_dist2
                             if between_map then
-                                dist2 = FU.get_fgumap_value(between_map, x2, y2, 'blurred_distance') or -999
-                                perp_dist2 = FU.get_fgumap_value(between_map, x2, y2, 'blurred_perp_distance') or 0
+                                dist2 = FGM.get_value(between_map, x2, y2, 'blurred_distance') or -999
+                                perp_dist2 = FGM.get_value(between_map, x2, y2, 'blurred_perp_distance') or 0
                             else
-                                dist2 = FU.get_fgumap_value(ops_data.leader_distance_map, x2, y2, 'distance') or -999
+                                dist2 = FGM.get_value(ops_data.leader_distance_map, x2, y2, 'distance') or -999
                             end
 
                             local dy = math.abs(dist - dist2)
@@ -229,7 +230,7 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, ops
                             local conv_sum_units, count = 0, 0
                             for id2,rating_map2 in pairs(rating_maps) do
                                 if (id ~= id2) then
-                                    local pr = FU.get_fgumap_value(rating_map2, x2, y2, key ..'_org')
+                                    local pr = FGM.get_value(rating_map2, x2, y2, key ..'_org')
                                     if pr then
                                         conv_sum_units = conv_sum_units + pr * angle_fac
                                         count = count + 1
@@ -253,11 +254,11 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, ops
                 conv = conv + convs[i].rating
             end
 
-            FU.set_fgumap_value(rating_map, x, y, 'conv', conv)
+            FGM.set_value(rating_map, x, y, 'conv', conv)
         end
 
-        FU.fgumap_normalize(rating_map, 'conv')
-        for _,_,data in FU.fgumap_iter(rating_map) do
+        FGM.normalize(rating_map, 'conv')
+        for _,_,data in FGM.iter(rating_map) do
             -- It is possible for this value to be zero if no other units
             -- can get to surrounding hexes. While it is okay to derate this
             -- hex then, it should not be set to zero
@@ -280,7 +281,7 @@ function fred_hold_utils.unit_rating_maps_to_dstsrc(unit_rating_maps, key, move_
     local sorted_ratings = {}
     for id,unit_rating_map in pairs(unit_rating_maps) do
         sorted_ratings[id] = {}
-        for _,_,data in FU.fgumap_iter(unit_rating_map) do
+        for _,_,data in FGM.iter(unit_rating_map) do
             table.insert(sorted_ratings[id], data)
         end
         table.sort(sorted_ratings[id], function(a, b) return a[key] > b[key] end)
@@ -331,7 +332,7 @@ function fred_hold_utils.unit_rating_maps_to_dstsrc(unit_rating_maps, key, move_
             local tmp_map = {}
             local count = math.min(max_hexes, #sorted_ratings[unit.id])
             for i = 1,count do
-                FU.set_fgumap_value(tmp_map, sorted_ratings[unit.id][i].x, sorted_ratings[unit.id][i].y, 'protect_rating', sorted_ratings[unit.id][i].protect_rating)
+                FGM.set_value(tmp_map, sorted_ratings[unit.id][i].x, sorted_ratings[unit.id][i].y, 'protect_rating', sorted_ratings[unit.id][i].protect_rating)
             end
             DBG.show_fgumap_with_message(tmp_map, 'protect_rating', 'Best protect_rating', move_data.unit_copies[unit.id])
         end
@@ -424,7 +425,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             -- If this is adjacent to a village that is not part of the combo, DQ this combo
             -- TODO: this might be overly retrictive
             local x, y =  math.floor(dst / 1000), dst % 1000
-            local adj_vill_xy = FU.get_fgumap_value(adjacent_village_map, x, y, 'village_xy')
+            local adj_vill_xy = FGM.get_value(adjacent_village_map, x, y, 'village_xy')
             --std_print(x, y, adj_vill_xy)
             if adj_vill_xy then
                 is_dqed = true
@@ -446,7 +447,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             for src,dst in pairs(combo) do
                 if (not penalty_infos.src[src]) then
                     local x, y = math.floor(src / 1000), src % 1000
-                    penalty_infos.src[src] = FU.get_fgumap_value(move_data.unit_map, x, y, 'id')
+                    penalty_infos.src[src] = FGM.get_value(move_data.unit_map, x, y, 'id')
                 end
                 if (not penalty_infos.dst[dst]) then
                     penalty_infos.dst[dst] = { math.floor(dst / 1000), dst % 1000 }
@@ -710,11 +711,11 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 -- Set up an array of the between_map distances for all hexes
                 local dist, perp_dist
                 if between_map then
-                    dist = FU.get_fgumap_value(between_map, x, y, 'blurred_distance') or -999
-                    perp_dist = FU.get_fgumap_value(between_map, x, y, 'blurred_perp_distance') or 0
+                    dist = FGM.get_value(between_map, x, y, 'blurred_distance') or -999
+                    perp_dist = FGM.get_value(between_map, x, y, 'blurred_perp_distance') or 0
                 else
                     -- In this case we do not have the perpendicular distance
-                    dist = FU.get_fgumap_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
+                    dist = FGM.get_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
                 end
 
                 table.insert(dists, {
@@ -880,7 +881,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
             table.insert(old_locs, src)
             table.insert(new_locs, dst)
-            table.insert(ids, FU.get_fgumap_value(move_data.my_unit_map, src[1], src[2], 'id'))
+            table.insert(ids, FGM.get_value(move_data.my_unit_map, src[1], src[2], 'id'))
         end
 
         local counter_rating, rel_rating, count, full_count = 0, 0, 0, 0
@@ -901,8 +902,8 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
                 if (not combo.does_protect) then
                     if (counter_outcomes.def_outcome.hp_chance[0] > acceptable_ctd) then
-                        local ld_protect = FU.get_fgumap_value(fred_data.ops_data.leader_distance_map, protect_loc[1], protect_loc[2], 'distance')
-                        local ld = FU.get_fgumap_value(fred_data.ops_data.leader_distance_map, new_locs[i_l][1], new_locs[i_l][2], 'distance')
+                        local ld_protect = FGM.get_value(fred_data.ops_data.leader_distance_map, protect_loc[1], protect_loc[2], 'distance')
+                        local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, new_locs[i_l][1], new_locs[i_l][2], 'distance')
                         if (ld > ld_protect) then
                             -- We cannot just remove this dst from this hold, as this would
                             -- change the threats to the other dsts. The entire combo needs

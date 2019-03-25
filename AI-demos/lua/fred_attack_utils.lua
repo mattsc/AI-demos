@@ -1,4 +1,5 @@
 local H = wesnoth.require "helper"
+local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FVS = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_virtual_state.lua"
 local FGUI = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
@@ -188,7 +189,7 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, move_data)
         end
 
         -- Negative delayed damage (healing)
-        local is_village = move_data.village_map[dst[1]] and move_data.village_map[dst[1]][dst[2]]
+        local is_village = FGM.get_value(move_data.village_map, dst[1], dst[2])
 
         -- If unit is on a village, we count that as an 8 HP bonus (negative damage)
         -- multiplied by the chance to survive
@@ -418,7 +419,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
 
     -- If defender is on a village, add a bonus rating (we want to get rid of those preferentially)
     -- This is in addition to the damage bonus (penalty, if enemy) already included above (but as an extra rating)
-    local defender_on_village = move_data.village_map[defender_x] and move_data.village_map[defender_x][defender_y]
+    local defender_on_village = FGM.get_value(move_data.village_map, defender_x, defender_y)
     if defender_on_village then
         extra_rating = extra_rating + 10.
     end
@@ -475,10 +476,9 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     -- Note: it must be checked previously that the unit on the hex can move away,
     --    that is we only check move_data.my_unit_map_MP here
     for i,dst in ipairs(dsts) do
-        if move_data.my_unit_map_MP[dst[1]] and move_data.my_unit_map_MP[dst[1]][dst[2]] then
-            if (move_data.my_unit_map_MP[dst[1]][dst[2]].id ~= attacker_infos[i].id) then
-                extra_rating = extra_rating - occupied_hex_penalty
-            end
+        local id = FGM.get_value(move_data.my_unit_map_MP, dst[1], dst[2], 'id')
+        if id and (id ~= attacker_infos[i].id) then
+            extra_rating = extra_rating - occupied_hex_penalty
         end
     end
 
@@ -935,7 +935,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
     local tmp_attacker_copies, tmp_attacker_infos, tmp_dsts = {}, {}, {}
     for src,dst in pairs(combo) do
         local src_x, src_y = math.floor(src / 1000), src % 1000
-        attacker_id = move_data.unit_map[src_x][src_y].id
+        attacker_id = FGM.get_value(move_data.unit_map, src_x, src_y, 'id')
         --std_print(src_x, src_y, attacker_id)
         table.insert(tmp_attacker_infos, move_data.unit_infos[attacker_id])
         table.insert(tmp_attacker_copies, move_data.unit_copies[attacker_id])
@@ -1269,7 +1269,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, cfg, reach_map
         local dst = xa * 1000 + ya
 
         for attacker_id,attacker_loc in pairs(attackers) do
-            if reach_maps[attacker_id][xa] and reach_maps[attacker_id][xa][ya] then
+            if FGM.get_value(reach_maps[attacker_id], xa, ya) then
                 all_attackers[attacker_id] = true
                 local _, rating
                 if get_strongest_attack then

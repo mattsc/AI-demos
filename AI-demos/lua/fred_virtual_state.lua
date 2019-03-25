@@ -2,6 +2,7 @@
 -- analyses of ZoC, counter attacks etc.
 
 local H = wesnoth.require "helper"
+local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
@@ -42,11 +43,12 @@ local function adjust_move_data_tables(old_locs, new_locs, store_units_in_way, m
             -- This includes units with MP that attack from their current position,
             -- but not units without MP (as the latter are already on the map)
             -- Note: this array might have missing elements -> needs to be iterated using pairs()
-            if move_data.my_unit_map_MP[x1] and move_data.my_unit_map_MP[x1][y1] then
+            local id = FGM.get_value(move_data.my_unit_map_MP, x1, y1, 'id')
+            if id then
                 if stored_data then
-                    stored_data.FVS_ids[i_l] = move_data.my_unit_map_MP[x1][y1].id
+                    stored_data.FVS_ids[i_l] = id
                 else
-                    FVS_ids[i_l] = move_data.my_unit_map_MP[x1][y1].id
+                    FVS_ids[i_l] = id
                 end
             end
 
@@ -55,11 +57,12 @@ local function adjust_move_data_tables(old_locs, new_locs, store_units_in_way, m
             if (x1 ~= x2) or (y1 ~= y2) then
                 -- If there is another unit at the new location, store it
                 -- It does not matter for this whether this is a unit involved in the move or not
-                if move_data.my_unit_map[x2] and move_data.my_unit_map[x2][y2] then
+                local id2 = FGM.get_value(move_data.my_unit_map, x2, y2, 'id')
+                if id2 then
                     if stored_data then
-                        stored_data.FVS_stored_units[move_data.my_unit_map[x2][y2].id] = { x2, y2 }
+                        stored_data.FVS_stored_units[id2] = { x2, y2 }
                     else
-                        FVS_stored_units[move_data.my_unit_map[x2][y2].id] = { x2, y2 }
+                        FVS_stored_units[id2] = { x2, y2 }
                     end
                 end
             end
@@ -90,12 +93,9 @@ local function adjust_move_data_tables(old_locs, new_locs, store_units_in_way, m
 
             -- Note that the following might leave empty orphan table elements, but that doesn't matter
             move_data.my_unit_map[x1][y1] = nil
-            if (not move_data.my_unit_map[x2]) then move_data.my_unit_map[x2] = {} end
-            move_data.my_unit_map[x2][y2] = { id = id }
-
+            FGM.set_value(move_data.my_unit_map, x2, y2, 'id', id)
             move_data.my_unit_map_MP[x1][y1] = nil
-            if (not move_data.my_unit_map_MP[x2]) then move_data.my_unit_map_MP[x2] = {} end
-            move_data.my_unit_map_MP[x2][y2] = { id = id }
+            FGM.set_value(move_data.my_unit_map_MP, x2, y2, 'id', id)
         end
     end
 
@@ -103,8 +103,8 @@ local function adjust_move_data_tables(old_locs, new_locs, store_units_in_way, m
     -- into place), restore the stored units into the maps again
     if (not store_units_in_way) then
         for id,loc in pairs(stored_data and stored_data.FVS_stored_units or FVS_stored_units) do
-            move_data.my_unit_map[loc[1]][loc[2]] = { id = id }
-            move_data.my_unit_map_MP[loc[1]][loc[2]] = { id = id }
+            FGM.set_value(move_data.my_unit_map, loc[1], loc[2], 'id', id)
+            FGM.set_value(move_data.my_unit_map_MP, loc[1], loc[2], 'id', id)
         end
     end
 end
@@ -215,7 +215,7 @@ function fred_virtual_state.virtual_reach_maps(units, to_enemy_locs, to_locs, mo
         if to_enemy_locs then
             for _,enemy_loc in ipairs(to_enemy_locs) do
                 for xa,ya in H.adjacent_tiles(enemy_loc[1], enemy_loc[2]) do
-                    if move_data.reach_maps[unit_id][xa] and move_data.reach_maps[unit_id][xa][ya] then
+                    if FGM.get_value(move_data.reach_maps[unit_id], xa, ya) then
                         can_reach = true
                         break
                     end
@@ -225,7 +225,7 @@ function fred_virtual_state.virtual_reach_maps(units, to_enemy_locs, to_locs, mo
         end
         if (not can_reach) and to_locs then
             for _,loc in ipairs(to_locs) do
-                if move_data.reach_maps[unit_id][loc[1]] and move_data.reach_maps[unit_id][loc[1]][loc[2]] then
+                if FGM.get_value(move_data.reach_maps[unit_id], loc[1], loc[2]) then
                     can_reach = true
                     break
                 end
@@ -244,7 +244,7 @@ function fred_virtual_state.virtual_reach_maps(units, to_enemy_locs, to_locs, mo
             local reach = wesnoth.find_reach(move_data.unit_copies[unit_id])
 
             for _,r in ipairs(reach) do
-                FU.set_fgumap_value(reach_maps[unit_id], r[1], r[2], 'moves_left', r[3])
+                FGM.set_value(reach_maps[unit_id], r[1], r[2], 'moves_left', r[3])
             end
 
             if (move_data.unit_infos[unit_id].side ~= wesnoth.current.side) then

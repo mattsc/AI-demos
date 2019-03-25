@@ -2,6 +2,7 @@
 -- This will be blacklisted after first execution each turn
 
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
+local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 
 local ca_stats = {}
 
@@ -36,15 +37,13 @@ function ca_stats:execution(cfg, data)
     end
 
     local total_villages = 0
-    for x,tmp in pairs(data.move_data.village_map) do
-        for y,village in pairs(tmp) do
-            local owner = data.move_data.village_map[x][y].owner
-            if (owner > 0) then
-                sides[owner].num_villages = (sides[owner].num_villages or 0) + 1
-            end
-
-            total_villages = total_villages + 1
+    for x,y,village in FGM.iter(data.move_data.village_map) do
+        local owner = village.owner
+        if (owner > 0) then
+            sides[owner].num_villages = (sides[owner].num_villages or 0) + 1
         end
+
+        total_villages = total_villages + 1
     end
 
     for _,side_info in ipairs(wesnoth.sides) do
