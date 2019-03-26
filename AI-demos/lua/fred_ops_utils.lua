@@ -348,20 +348,20 @@ function fred_ops_utils.behavior_output(is_turn_start, ops_data)
            local str = 'No active front in zone ' .. zone_id
            if front then
                local zone = wesnoth.get_locations(raw_cfg.ops_slf)
-			   for _,loc in ipairs(zone) do
-				   local ld = FGM.get_value(ops_data.leader_distance_map, loc[1], loc[2], 'distance')
-				   if (math.abs(ld - front.ld) <= 0.5) then
-					   FGM.set_value(front_map, loc[1], loc[2], 'distance', ld)
-				   end
-			   end
+               for _,loc in ipairs(zone) do
+                   local ld = FGM.get_value(ops_data.leader_distance_map, loc[1], loc[2], 'distance')
+                   if (math.abs(ld - front.ld) <= 0.5) then
+                       FGM.set_value(front_map, loc[1], loc[2], 'distance', ld)
+                   end
+               end
 
-			   local zone_str = zone_strs[zone_id] or ''
-			   str = string.format('front in zone %s: %d,%d   (white marker)'
-				   .. '\npeak vulnerability = %.3f'
-				   .. '\nprotect:    (red halo: units,  blue halo: villages)%s',
-				   zone_id, front.x, front.y, front.peak_vuln, zone_str
-			   )
-		    end
+               local zone_str = zone_strs[zone_id] or ''
+               str = string.format('front in zone %s: %d,%d   (white marker)'
+                   .. '\npeak vulnerability = %.3f'
+                   .. '\nprotect:    (red halo: units,  blue halo: villages)%s',
+                   zone_id, front.x, front.y, front.peak_vuln, zone_str
+               )
+            end
 
             local tmp_protect = front and front.protect
             if tmp_protect then
