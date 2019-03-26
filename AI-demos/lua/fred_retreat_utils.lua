@@ -4,7 +4,6 @@ Functions to support the retreat of injured units
 
 local H = wesnoth.require "helper"
 local AH = wesnoth.require "ai/lua/ai_helper.lua"
-local LS = wesnoth.require "location_set"
 local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
@@ -12,12 +11,12 @@ local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local retreat_functions = {}
 
-function retreat_functions.get_healing_locations()
+function retreat_functions.get_healing_map()
     local possible_healer_proxies = AH.get_live_units {
         { "filter_side", {{ "allied_with", { side = wesnoth.current.side } }} }
     }
 
-    local healing_locs = LS.create()
+    local healing_map = {}
     for _,u in ipairs(possible_healer_proxies) do
         -- Only consider healers that cannot move this turn
         if u.moves == 0 or u.side ~= wesnoth.current.side then
@@ -34,16 +33,17 @@ function retreat_functions.get_healing_locations()
             end
             if heal_amount + cure > 0 then
                 for x, y in H.adjacent_tiles(u.x, u.y) do
-                    local old_values = healing_locs:get(x, y) or { 0, 0 }
+                    local old_values = FGM.get_value(healing_map, x, y, 'heal') or { 0, 0 }
                     local best_heal = math.max(old_values[1], heal_amount)
                     local best_cure = math.max(old_values[2], cure)
-                    healing_locs:insert(x, y, { best_heal, best_cure })
+                    FGM.set_value(healing_map, x, y, 'heal', { best_heal, best_cure })
                 end
             end
         end
     end
+    --DBG.dbms(healing_map, false, 'healing_map')
 
-    return healing_locs
+    return healing_map
 end
 
 function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred_data)
@@ -118,7 +118,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
     ----- End retreat_rating() -----
 
 
-    local healing_locs = retreat_functions.get_healing_locations()
+    local healing_map = retreat_functions.get_healing_map()
 
     local heal_maps_regen, heal_maps_no_regen = {}, {}
     for id,loc in pairs(retreaters) do
@@ -138,7 +138,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
             end
 
             -- Potential TODO: curing is currently not evaluated (even though it is added for healers)
-            local healer_values = healing_locs:get(x, y) or { 0, 0 }
+            local healer_values = FGM.get_value(healing_map, x, y, 'heal') or { 0, 0 }
             heal_amount = math.max(heal_amount, healer_values[1])
 
             -- Note: cannot use 'resting' parameter in unit_proxy to assess rest healing.
