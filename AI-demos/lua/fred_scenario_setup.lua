@@ -87,6 +87,11 @@ function fred_scenario_setup.fred_scenario_setup()
             id = 'm08_show_behavior',
             description = "Toggle Fred's behavior analysis display",
             image = 'items/ring-white.png~CROP(26,26,20,20)',
+            { 'show_if', {
+                { 'lua', {
+                    code = "return wesnoth.game_config.debug"
+                } },
+            } },
             { 'command', {
                 { 'lua', {
                     code = "local options = { 'off', 'start turn instructions only', 'move instructions (text)', 'move instructions (map)', 'move instructions (text & map)' }"
@@ -105,6 +110,11 @@ function fred_scenario_setup.fred_scenario_setup()
             id = 'm09_last_behavior',
             description = "Fred's most recent behavior instructions",
             image = 'items/ring-white.png~CROP(26,26,20,20)',
+            { 'show_if', {
+                { 'lua', {
+                    code = "return wesnoth.game_config.debug"
+                } },
+            } },
             { 'command', {
                 { 'lua', {
                     code = "local fred_behavior_str = wml.variables.fred_behavior_str or 'No behavior instructions yet'"
