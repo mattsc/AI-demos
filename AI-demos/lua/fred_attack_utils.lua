@@ -847,7 +847,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
     -- Evaluate attack combination outcomes using
     -- @combo: attack combo table in the format returned by fred_attack_utils.get_attack_combos()
     -- @defender: table describing the defender in form { id = loc }
-    -- @cfg: configuration parameters to be passed through to attack_outcome, attack_rating
+    -- @cfg: configuration parameters to be passed through to attack_rating
     -- @move_data, @move_cache: only needed to pass to the functions being called
     --    see fred_attack_utils.attack_outcome() for descriptions
     --
@@ -957,7 +957,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
             fred_attack_utils.attack_outcome(
                 attacker_copy, defender_proxy, tmp_dsts[i],
                 tmp_attacker_infos[i], defender_info,
-                move_data, move_cache, cfg
+                move_data, move_cache
             )
 
         local rating_table =
@@ -1070,7 +1070,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
                 local aoc, doc = fred_attack_utils.attack_outcome(
                     attacker_copies[i], defender_proxy, dsts[i],
                     attacker_infos[i], defender_info,
-                    move_data, move_cache, cfg
+                    move_data, move_cache
                 )
 
                 defender_proxy.hitpoints = org_hp
@@ -1118,7 +1118,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
                     local aoc, doc = fred_attack_utils.attack_outcome(
                         attacker_copies[i], adv_defender_proxy, dsts[i],
                         attacker_infos[i], adv_defender_info,
-                        move_data, move_cache, cfg
+                        move_data, move_cache
                     )
 
                     wesnoth.erase_unit(defender_loc[1], defender_loc[2])
@@ -1223,7 +1223,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, cfg, reach_map
     -- Required inputs:
     -- @attackers: array of attacker ids and locations: { id1 = { x1 , y1 }, id2 = ... }
     -- @defender: defender id and location: { id = { x, y } }
-    --  @cfg: configuration parameters to be passed through the attack_outcome, attack_rating
+    --  @cfg: configuration parameters to be passed through to attack_rating
     --
     -- Optional inputs:
     -- @reach_maps: reach_maps for the attackers in the form as returned by fred_gamestate_utils.get_mapstate()
@@ -1276,7 +1276,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, cfg, reach_map
                     local att_outcome, def_outcome = fred_attack_utils.attack_outcome(
                         move_data.unit_copies[attacker_id], defender_proxy, { xa, ya },
                         move_data.unit_infos[attacker_id], move_data.unit_infos[defender_id],
-                        move_data, move_cache, cfg
+                        move_data, move_cache
                     )
 
                     local rating_table = fred_attack_utils.attack_rating(

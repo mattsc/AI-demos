@@ -2752,7 +2752,7 @@ local function get_advance_action(zone_cfg, fred_data)
     if (not safe_loc) then
         --std_print('----- no safe advance location found -----')
 
-        local cfg_attack = { value_ratio = 0.2 } -- mostly based on damage done to enemy
+        local cfg_attack_desp = { value_ratio = 0.2 } -- mostly based on damage done to enemy
 
         local max_attack_rating, best_attacker_id, best_attack_hex
         for id,unit_loc in pairs(advancers) do
@@ -2767,11 +2767,11 @@ local function get_advance_action(zone_cfg, fred_data)
                     local target = {}
                     target[enemy_id] = enemy_loc
                     local attack_combos = FAU.get_attack_combos(
-                        attacker, target, cfg_attack, move_data.effective_reach_maps, false, move_cache
+                        attacker, target, cfg_attack_desp, move_data.effective_reach_maps, false, move_cache
                     )
 
                     for _,combo in ipairs(attack_combos) do
-                        local combo_outcome = FAU.attack_combo_eval(combo, target, cfg_attack, move_data, move_cache)
+                        local combo_outcome = FAU.attack_combo_eval(combo, target, cfg_attack_desp, move_data, move_cache)
                         --std_print(next(combo))
                         --DBG.dbms(combo_outcome.rating_table, false, 'combo_outcome.rating_table')
 
@@ -3264,7 +3264,7 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
                     attacker_copies[ind], enemy_proxy,
                     fred_data.zone_action.dsts[ind],
                     attacker_infos[ind], defender_info,
-                    fred_data.move_data, fred_data.move_cache, cfg_attack
+                    fred_data.move_data, fred_data.move_cache
                 )
                 local rating_table, att_damage, def_damage =
                     FAU.attack_rating({ unit_info }, defender_info, { fred_data.zone_action.dsts[ind] }, { att_outcome }, def_outcome, cfg_attack, fred_data.move_data)
