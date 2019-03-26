@@ -892,7 +892,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
             -- TODO: Use FVS here also?
             local counter_outcomes = FAU.calc_counter_attack(
-                target, old_locs, new_locs, fred_data.ops_data.place_holders, nil, true, cfg_attack, move_data, fred_data.move_cache
+                target, old_locs, new_locs, fred_data.ops_data.place_holders, nil, cfg_attack, move_data, fred_data.move_cache
             )
             if counter_outcomes then
                 --DBG.dbms(counter_outcomes.rating_table, false, 'counter_outcomes.rating_table')

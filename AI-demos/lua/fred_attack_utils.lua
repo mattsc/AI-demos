@@ -1315,7 +1315,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, cfg, reach_map
     return FU.get_unit_hex_combos(attacks_dst_src, get_strongest_attack), all_attackers
 end
 
-function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, additional_units, virtual_reach_maps, place_units, cfg, move_data, move_cache)
+function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, additional_units, virtual_reach_maps, cfg, move_data, move_cache)
     -- Get counter-attack outcomes of an AI unit in a hypothetical map situation
     -- Units are placed on the map and the move_data tables are adjusted inside this
     -- function in order to avoid code duplication and ensure consistency
@@ -1332,6 +1332,8 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, addit
     -- @old_locs, @new_locs: arrays of locations of the current and goal locations
     --   of all AI units to be moved into different positions, such as all units
     --   involved in an attack combination
+    --   If @old_locs and/or @new_locs is nil, the placing of units is skipped and it is assumed that this
+    --   has already been done, e.g. by the virtual_state functions
     --  @additional_units: optional table for placing other units on the map, such as prerecruits
     --    calc_counter_attack()  checks whether these units interfere with any of the @new_locs and does
     --    not place them if so, but it is assumed that interference with e.g. units_noMP
@@ -1339,11 +1341,9 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, addit
     --  @virtual_reach_maps: allow passing a different reach_maps table. This saves time if counter
     --    attacks are calculated on several units for the same virtual situation, or if the
     --    reach maps are needed for other evaluations as well.
-    --  @place_units: if true, also place the units on the map and adjust their stats; if set to
-    --    false, it is assumed that this has been done already, e.g. by the virtual_state functions
-    --  @cfg: configuration parameters to be passed through to attack_outcome, attack_rating
+    --  @cfg: configuration parameters to be passed through to attack_rating
 
-    if place_units then
+    if old_locs or new_locs then
         FVS.set_virtual_state(old_locs, new_locs, additional_units, false, move_data)
     end
 
@@ -1377,7 +1377,7 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, addit
         counter_attack_outcome = fred_attack_utils.attack_combo_eval(counter_attack, target, cfg, move_data, move_cache)
     end
 
-    if place_units then
+    if old_locs or new_locs then
         FVS.reset_state(old_locs, new_locs, false, move_data)
     end
 
