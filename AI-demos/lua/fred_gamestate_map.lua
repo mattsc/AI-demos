@@ -3,6 +3,7 @@ local H = wesnoth.require "helper"
 local fred_gamestate_map = {}
 
 function fred_gamestate_map.get_value(map, x, y, key)
+    if (not key) then error("Required parameter 'key' is missing in call to fred_gamestate_map.get_value()") end
     return (map[x] and map[x][y] and map[x][y][key])
 end
 

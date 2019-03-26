@@ -351,6 +351,10 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     local occupied_hex_penalty = FCFG.get_cfg_parm('occupied_hex_penalty')
     local value_ratio = cfg.value_ratio
 
+    -- TODO: Make cfg.value_ratio required for now. This is for testing at the moment, so that
+    -- I don't forget to set it. It can be removed later
+    if (not value_ratio) then error('No value_ratio passed to fred_attack_utils.attack_rating()') end
+
     local attacker_damages = {}
     local attacker_rating = 0
     for i,attacker_info in ipairs(attacker_infos) do
