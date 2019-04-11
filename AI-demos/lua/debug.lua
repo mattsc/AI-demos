@@ -23,6 +23,7 @@ local debug_cfg = {
     hold_zone_map = false,
     hold_influence_map = false,
     hold_between_map = false,
+    hold_prerating_maps = false,
     hold_here_map = false,
     hold_rating_maps = false,
     hold_protect_rating_maps = false,

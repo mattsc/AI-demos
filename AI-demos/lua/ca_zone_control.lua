@@ -1914,7 +1914,7 @@ local function get_hold_action(zone_cfg, fred_data)
         end
     end
 
-    if false then
+    if DBG.show_debug('hold_prerating_maps') then
         for id,pre_rating_map in pairs(pre_rating_maps) do
             DBG.show_fgumap_with_message(pre_rating_map, 'av_outcome', 'Average outcome', move_data.unit_copies[id])
             --DBG.show_fgumap_with_message(pre_rating_map, 'counter_actual_taken', 'Actual damage (taken) from counter attack', move_data.unit_copies[id])
