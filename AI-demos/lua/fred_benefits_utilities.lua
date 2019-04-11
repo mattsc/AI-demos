@@ -77,31 +77,34 @@ function utility_functions.village_benefits(village_grabs, fred_data)
             --std_print('    unit_benefit (healing): ' .. unit_benefit)
         end
 
-        -- Finally, we add a couple tie breaker ratings that are not actual benefits
-        -- Their contributions are so small, that they should not make a difference
-        -- unless everything else is equal
+        -- TODO: is this too strict?  Add rating based on how far forward this is?
+        if (income_benefit + unit_benefit >= 0) then
+            -- Finally, we add a couple tie breaker ratings that are not actual benefits
+            -- Their contributions are so small, that they should not make a difference
+            -- unless everything else is equal
 
-        -- Prefer villages farther back
-        local extras = -0.1 * wesnoth.map.distance_between(grab.x, grab.y, fred_data.move_data.leader_x, fred_data.move_data.leader_y)
-        -- Prefer the fastest unit
-        extras = extras + unit_info.max_moves / 100.
+            -- Prefer villages farther back
+            local extras = -0.1 * wesnoth.map.distance_between(grab.x, grab.y, fred_data.move_data.leader_x, fred_data.move_data.leader_y)
+            -- Prefer the fastest unit
+            extras = extras + unit_info.max_moves / 100.
 
-        -- Prefer the leader, if possible; this is larger than the other extra ratings
-        -- but as the damage rating is more conservative for the leader, this should be ok
-        if unit_info.canrecruit then
-            extras = extras + 1
+            -- Prefer the leader, if possible; this is larger than the other extra ratings
+            -- but as the damage rating is more conservative for the leader, this should be ok
+            if unit_info.canrecruit then
+                extras = extras + 1
+            end
+            --std_print('    extras: ' .. extras)
+
+            local benefit = income_benefit + unit_benefit + extras
+            --std_print('  -> benefit: ' .. benefit)
+
+            local xy = 'grab_village-' .. (grab.x * 1000 + grab.y) .. ':' .. grab.zone_id
+            if (not village_benefits[xy]) then
+                village_benefits[xy] = { units = {} }
+            end
+            village_benefits[xy].units[grab.id] = { benefit = benefit, penalty = 0 }
+            village_benefits[xy].raw = raw_benefit
         end
-        --std_print('    extras: ' .. extras)
-
-        local benefit = income_benefit + unit_benefit + extras
-        --std_print('  -> benefit: ' .. benefit)
-
-        local xy = 'grab_village-' .. (grab.x * 1000 + grab.y) .. ':' .. grab.zone_id
-        if (not village_benefits[xy]) then
-            village_benefits[xy] = { units = {} }
-        end
-        village_benefits[xy].units[grab.id] = { benefit = benefit, penalty = 0 }
-        village_benefits[xy].raw = raw_benefit
     end
     --DBG.dbms(village_benefits, false, 'village_benefits')
 
