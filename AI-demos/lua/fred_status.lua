@@ -67,7 +67,7 @@ function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_d
     local villages = {}
     for zid,protect_objectives in pairs(objectives.protect.zones) do
         if (not zone_id) or (zone_id == zid) then
-            for _,village in ipairs(protect_objectives.villages) do
+            for _,village in ipairs(protect_objectives.villages or {}) do
                 villages[village.x * 1000 + village.y] = {
                     loc = { village.x, village.y },
                     exposure = village.raw_benefit
