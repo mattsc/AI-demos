@@ -217,6 +217,11 @@ function fred_utils.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs)
     --std_print(unit_copy.id, unit_copy.x, unit_copy.y)
     local start_hex = side_cfgs[unit_copy.side].start_hex
 
+    -- Want "smooth" movement cost
+    local old_moves = unit_copy.moves
+    local old_max_moves = unit_copy.max_moves
+    unit_copy.moves = 98
+
     local to_zone_id, score
     for zone_id,raw_cfg in pairs(raw_cfgs) do
         local front = fronts.zones[zone_id]
@@ -252,6 +257,8 @@ function fred_utils.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs)
            to_zone_id, score = zone_id, rating
         end
     end
+
+    unit_copy.moves = old_moves
 
     return to_zone_id
 end
