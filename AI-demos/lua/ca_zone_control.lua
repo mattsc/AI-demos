@@ -1386,14 +1386,26 @@ local function get_hold_action(zone_cfg, fred_data)
     local factor_forward = 1 - factor_counter
     --std_print('factor_counter, factor_forward', factor_counter, factor_forward)
 
-    local push_utility, front_ld = 1, 0
+    local front_ld = 0
     if fred_data.ops_data.fronts.zones[zone_cfg.zone_id] then
-        push_utility = fred_data.ops_data.fronts.zones[zone_cfg.zone_id].push_utility
         front_ld = fred_data.ops_data.fronts.zones[zone_cfg.zone_id].ld
     end
-    local push_factor = push_utility
-    push_factor = push_factor / value_ratio
-    --std_print('push_factor', push_factor)
+    local push_factor = fred_data.ops_data.behavior.zone_push_factors[zone_cfg.zone_id]
+    local rel_push_factor = push_factor / value_ratio
+    --std_print('push_factor, rel_push_factor: ' .. zone_cfg.zone_id, push_factor, rel_push_factor)
+
+    local acceptable_ctd = rel_push_factor - 1
+    if (acceptable_ctd < 0) then acceptable_ctd = 0 end
+    --std_print('acceptable_ctd: ' .. acceptable_ctd)
+
+    local acceptable_max_damage_ratio = rel_push_factor / 2
+    --std_print('acceptable_max_damage_ratio: ' .. acceptable_max_damage_ratio)
+
+    -- This uses the absolute push factor, not the relative one;
+    -- It's extremely strong dependence, that's only supposed to kick in at low push factors
+    local acceptable_actual_damage_ratio = push_factor ^ 4
+    --std_print('acceptable_actual_damage_ratio: ' .. acceptable_actual_damage_ratio)
+
 
     local vuln_weight = FCFG.get_cfg_parm('vuln_weight')
     local vuln_rating_weight = vuln_weight * (1 / value_ratio - 1)
@@ -1953,6 +1965,9 @@ local function get_hold_action(zone_cfg, fred_data)
             FGM.set_value(hold_here_map, x, y, 'av_outcome', data.av_outcome)
         end
 
+        local acceptable_max_damage = acceptable_max_damage_ratio * move_data.unit_infos[id].hitpoints
+        local acceptable_actual_damage = acceptable_actual_damage_ratio * move_data.unit_infos[id].hitpoints
+
         for x,y,data in FGM.iter(hold_here_map) do
             if (data.av_outcome >= 0) then
                 local my_count = FGM.get_value(holders_influence, x, y, 'my_count')
@@ -1963,13 +1978,25 @@ local function get_hold_action(zone_cfg, fred_data)
                     FGM.set_value(hold_here_maps[id], x, y, 'hold_here', true)
                 else
                     local value_loss = FGM.get_value(pre_rating_map, x, y, 'value_loss')
-                    --std_print(x, y, value_loss, push_factor)
+                    --std_print(string.format('  %d,%d: %5.3f  %5.3f', x, y, value_loss, rel_push_factor))
+
+                    local approx_ctd = FGM.get_value(pre_rating_map, x, y, 'approx_ctd')
+                    local is_acceptable_ctd = (approx_ctd <= acceptable_ctd)
+                    --std_print(string.format('  %d,%d:  CtD   %5.3f  %6s   (%5.3f)', x, y, approx_ctd, tostring(is_acceptable_ctd), acceptable_ctd))
+
+                    local max_damage = FGM.get_value(pre_rating_map, x, y, 'counter_max_taken')
+                    local is_acceptable_max_damage = (max_damage <= acceptable_max_damage)
+                    --std_print(string.format('  %d,%d:  MaxD  %5.3f  %6s   (%5.3f)', x, y, max_damage, tostring(is_acceptable_max_damage),  acceptable_max_damage))
+
+                    local actual_damage = FGM.get_value(pre_rating_map, x, y, 'counter_actual_damage')
+                    local is_acceptable_actual_damage = (actual_damage <= acceptable_actual_damage)
+                    --std_print(string.format('  %d,%d:  ActD  %5.3f  %6s   (%5.3f)', x, y, actual_damage, tostring(is_acceptable_actual_damage),  acceptable_actual_damage))
 
                     -- The overall push forward must be worth it
                     -- AND it should not be too far ahead of the front
                     -- TODO: currently these are done individually; not sure if
                     --   these two conditions should be combined (multiplied)
-                    if (value_loss >= - push_factor) then
+                    if is_acceptable_ctd and is_acceptable_max_damage and is_acceptable_actual_damage then
                         FGM.set_value(hold_here_maps[id], x, y, 'hold_here', true)
 
                         local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
