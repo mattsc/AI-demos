@@ -357,9 +357,8 @@ function fred_ops_utils.behavior_output(is_turn_start, ops_data)
 
                local zone_str = zone_strs[zone_id] or ''
                str = string.format('front in zone %s: %d,%d   (white marker)'
-                   .. '\npeak vulnerability = %.3f'
                    .. '\nprotect:    (red halo: units,  blue halo: villages)%s',
-                   zone_id, front.x, front.y, front.peak_vuln, zone_str
+                   zone_id, front.x, front.y, zone_str
                )
             end
 
@@ -428,7 +427,6 @@ function fred_ops_utils.find_fronts(zone_maps, zone_influence_maps, raw_cfgs, fr
     local enemy_ld0 = FGM.get_value(leader_distance_map, enemy_start_hex[1], enemy_start_hex[2], 'distance')
 
     local fronts = { zones = {} }
-    local max_push_utility = 0
     for zone_id,zone_map in pairs(zone_maps) do
         local num, denom = 0, 0
         local influence_map = zone_influence_maps and zone_influence_maps[zone_id] or fred_data.move_data.influence_maps
@@ -462,31 +460,13 @@ function fred_ops_utils.find_fronts(zone_maps, zone_influence_maps, raw_cfgs, fr
             x_front, y_front = H.round(x_front / weight), H.round(y_front / weight)
 
             local n_hexes = math.min(5, #front_hexes)
-            local peak_vuln = 0
-            for i_h=1,n_hexes do
-                peak_vuln = peak_vuln + front_hexes[i_h][3]
-            end
-            peak_vuln = peak_vuln / n_hexes
-
-            local push_utility = peak_vuln * math.sqrt((enemy_ld0 - ld_front) / (enemy_ld0 - my_ld0))
-
-            if (push_utility > max_push_utility) then
-                max_push_utility = push_utility
-            end
 
             fronts.zones[zone_id] = {
                 ld = ld_front,
                 x = x_front,
-                y = y_front,
-                peak_vuln = peak_vuln,
-                push_utility = push_utility
+                y = y_front
             }
         end
-    end
-    --std_print('max_push_utility', max_push_utility)
-
-    for _,front in pairs(fronts.zones) do
-        front.push_utility = front.push_utility / max_push_utility
     end
 
     return fronts
