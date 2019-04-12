@@ -726,6 +726,17 @@ function fred_ops_utils.set_ops_data(fred_data)
     --behavior.ratios.assets = n_vill_my / (n_vill_total - n_vill_my + 1e-6)
     --behavior.orders.expansion = behavior.ratios.influence / behavior.ratios.assets
 
+    local midpoint = math.sqrt(max_power_ratio / min_power_ratio) * min_power_ratio
+    --std_print('midpoint: ' .. midpoint)
+    local cycle_ratio, push_factor = {}, {}
+    for i = 0,n_turns-1 do
+        cycle_ratio[i] = power_ratio[i] / midpoint
+        push_factor[i] = cycle_ratio[i] * power_ratio[i]
+    end
+    --DBG.dbms(cycle_ratio, false, 'cycle_ratio')
+    --DBG.dbms(push_factor, false, 'push_factor')
+    behavior.orders.push_factor = push_factor[0]
+
     --DBG.dbms(behavior, false, 'behavior')
 
     -- Store parameters relevant to attack effectiveness (independent of terrain)
@@ -1627,6 +1638,34 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(fronts, false, 'fronts')
 
 
+    local zone_power_stats = fred_ops_utils.zone_power_stats(raw_cfgs, assigned_units, assigned_enemies, power_ratio, fred_data)
+    --DBG.dbms(zone_power_stats, false, 'zone_power_stats')
+
+    local f_zone_power_ratios, zone_push_factors = {}, {}, {}
+    for zone_id,power_stat in pairs(zone_power_stats) do
+        local f_power_ratio = power_stat.my_power / (power_stat.enemy_power + 1e-6) / behavior.power.current_ratio
+        f_zone_power_ratios[zone_id] = f_power_ratio
+        zone_push_factors[zone_id] = f_power_ratio * behavior.orders.push_factor
+    end
+    --DBG.dbms(f_zone_power_ratios, false, 'f_zone_power_ratios')
+    --DBG.dbms(zone_push_factors, false, 'zone_push_factors')
+    behavior.zone_push_factors = zone_push_factors
+
+    local full_influence_map = FU.get_full_influence_map(move_data)
+
+    -- Probably could just use full_influence_map for everything, but doing it separately just in
+    -- case I want the separate information
+    local n_total, n_my_inf = 0, 0
+    for x,y,data in FGM.iter(full_influence_map) do
+        n_total = n_total + 1
+        if (data.influence > 0) then
+            n_my_inf = n_my_inf + 1
+        end
+    end
+    local f_my_inf = n_my_inf / n_total
+    --std_print(string.format('my inf: %4.3f = %d / %d', f_my_inf, n_my_inf, n_total))
+
+
     ops_data.raw_cfgs = raw_cfgs
     ops_data.objectives = objectives
     ops_data.status = status
@@ -1644,6 +1683,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(ops_data.assigned_enemies, false, 'ops_data.assigned_enemies')
     --DBG.dbms(ops_data.assigned_units, false, 'ops_data.assigned_units')
     --DBG.dbms(ops_data.status, false, 'ops_data.status')
+    --DBG.dbms(ops_data.behavior, false, 'ops_data.behavior')
     --DBG.dbms(ops_data.fronts, false, 'ops_data.fronts')
     --DBG.dbms(ops_data.reserved_actions, false, 'ops_data.reserved_actions')
 
