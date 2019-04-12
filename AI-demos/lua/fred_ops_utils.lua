@@ -1832,11 +1832,13 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         protect_leader = 31000, -- eval only
         attack_leader_threat = 30000,
 
-        fav_attack = 22000,
-        attack = 21000,
+        fav_attack = 26000,
+        attack = 25000,
+
+        protect = 22000,
+        grab_villages = 21000,
         hold = 20000,
 
-        grab_villages = 13000,
         recruit = 12000,
         retreat = 11000,
         advance = 10000,
@@ -1938,12 +1940,25 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 
         if holders_by_zone[zone_id] then
             -- Hold --
+            local rating = power_rating
+            local action_str = 'zone hold'
+            local protect_obj = ops_data.objectives.protect.zones[zone_id]
+            if protect_obj and (
+                (protect_obj.villages and protect_obj.villages[1])
+                or (protect_obj.units and protect_obj.units[1])
+            ) then
+                rating = rating + base_ratings.protect
+                action_str = 'zone protect'
+            else
+                rating = rating + base_ratings.hold
+            end
+
             table.insert(fred_data.zone_cfgs, {
                 zone_id = zone_id,
                 action_type = 'hold',
-                action_str = 'zone hold',
+                action_str = action_str,
                 zone_units = holders_by_zone[zone_id],
-                rating = base_ratings.hold + power_rating
+                rating = rating
             })
         end
     end
