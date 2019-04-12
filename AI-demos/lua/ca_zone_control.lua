@@ -2205,7 +2205,7 @@ local function get_hold_action(zone_cfg, fred_data)
 
                     -- For non-regenerating units, we also give a heal bonus
                     if (not move_data.unit_infos[id].abilities.regenerate) then
-                        protect_base_rating = protect_base_rating + 0.1 * 8 / 25 * value_ratio
+                        protect_base_rating = protect_base_rating + 0.25 * 8 / 25 * value_ratio
                     end
                 end
 
