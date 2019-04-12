@@ -529,6 +529,8 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         -- 1. Check whether a combo protects the locations it is supposed to protect.
         local does_protect, leader_protected = false, false
         local leader_protect_mult, protect_mult = 1, 1
+        local protected_value = 0
+
         protect_loc_str = '\nprotecting:'
         if cfg and cfg.protect_objectives then
             -- The leader is never part of the holding, so we can just add him
@@ -560,6 +562,8 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 -- It's possible for the number above to be slightly below zero, and
                 -- we probably don't want quite as strong an effect anyway, so:
                 leader_protect_mult = 0.5 + leader_protect_mult / 2
+
+                protected_value = protected_value + 1.5 * (org_status.leader.exposure - status.leader.exposure)
 
                 leader_protected = not status.leader.is_significant_threat
                 --std_print('  --> leader_protect_mult, leader_protected: ' .. leader_protect_mult, leader_protected)
@@ -621,16 +625,22 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             -- TODO: is this the right thing to do?
             local village_protect_mult = 1
             for _,village in ipairs(protected_villages) do
-                village_protect_mult = village_protect_mult + village.raw_benefit / leader_value / 4
+                -- Benefit here is always 6, as it is difference between Fred and enemy holding the village
+                village_protect_mult = village_protect_mult + 6 / leader_value / 4
+-- Add in enemy healing benefit here?
+                protected_value = protected_value + 6
             end
             local unit_protect_mult = 1
             for _,unit in pairs(protected_units) do
                 unit_protect_mult = unit_protect_mult + unit / leader_value / 4
+                protected_value = protected_value + unit
             end
             local castle_protect_mult = 1 + math.sqrt(n_castles_protected) * 3 / leader_value / 4
+            protected_value = protected_value + math.sqrt(n_castles_protected) * 3
 
             protect_mult = leader_protect_mult * village_protect_mult * unit_protect_mult * castle_protect_mult
             --std_print('protect_mult ( = l * v * u * c)', protect_mult, leader_protect_mult, village_protect_mult, unit_protect_mult, castle_protect_mult)
+            --std_print('protected_value: ' .. protected_value)
 
             if cfg.protect_objectives.protect_leader and (not leader_already_protected) then
                 does_protect = leader_protected
@@ -675,7 +685,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         else
             -- If there are no locations to be protected, count hold as protecting by default
         end
-        --std_print('does_protect', does_protect, protect_mult, protected_type)
+        --std_print('does_protect', does_protect, protect_mult, protected_type, protected_value)
 
 
         -- 2. Rate the combos based on the shape of the formation and its orientation
@@ -798,6 +808,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             combo = combo.combo,
             does_protect = does_protect,
             protected_str = protected_str,
+            protected_value = protected_value,
             penalty_rating = combo.penalty_rating,
             penalty_str = combo.penalty_str
         })
@@ -866,7 +877,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     if (value_ratio < 1) then
         acceptable_ctd = 0.25 + 0.75 * (1 / value_ratio - 1)
     end
-    --std_print(cfg.forward_ratio, acceptable_ctd)
+    --std_print(cfg.forward_ratio, value_ratio, acceptable_ctd)
 
     local max_rating, best_combo, all_max_rating, all_best_combo
     local reduced_max_rating, reduced_best_combo, reduced_all_max_rating, reduced_all_best_combo
@@ -899,6 +910,24 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 -- If this does not protect the asset, we do not do it if the
                 -- chance to die is too high.
                 -- Only do this if position is in front of protect_loc
+
+                -- TODO: exclude extra_rating?
+                local rating = counter_outcomes.rating_table.rating -- this already includes the value_ratio derating
+                local protected_value = combo.protected_value
+                local is_worth_it = (protected_value > rating)
+                --std_print(ids[i_l] .. ' protected_value: ' .. combo.protected_value .. ' > ' .. rating .. ' = ' .. tostring(is_worth_it))
+
+                if combo.does_protect then
+                    if (not is_worth_it) then
+                        -- We cannot just remove this dst from this hold, as this would
+                        -- change the threats to the other dsts. The entire combo needs
+                        -- to be discarded.
+                        --std_print('Not worth the protect value')
+                        count = 0
+                        break
+                    end
+                end
+
 
                 if (not combo.does_protect) then
                     if (counter_outcomes.def_outcome.hp_chance[0] > acceptable_ctd) then
