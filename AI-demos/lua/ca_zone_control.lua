@@ -3467,8 +3467,10 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
             else
                 for i_u,u in ipairs(fred_data.zone_action.units) do
                     if (u.id == unit_in_way.id) then
-                        std_print('  unit is part of the combo', unit_in_way.id, unit_in_way.x, unit_in_way.y)
-                        local path, _ = wesnoth.find_path(unit_in_way, fred_data.zone_action.dsts[i_u][1], fred_data.zone_action.dsts[i_u][2])
+                        --std_print('  unit is part of the combo', unit_in_way.id, unit_in_way.x, unit_in_way.y)
+
+                        local uiw_dst = fred_data.zone_action.dsts[i_u]
+                        local path, _ = wesnoth.find_path(unit_in_way, uiw_dst[1], uiw_dst[2])
 
                         -- If we can find an unoccupied hex along the path, move the
                         -- unit_in_way there, in order to maximize the chances of it
@@ -3487,6 +3489,15 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
                         if moveto then
                             --std_print('    ' .. unit_in_way.id .. ': moving out of way to:', moveto[1], moveto[2])
                             AH.checked_move(ai, unit_in_way, moveto[1], moveto[2])
+
+                            -- If this got to its final destination, attack with this unit first, otherwise it might be stranded
+                            -- TODO: only if other units have chance to kill?
+                            if (moveto[1] == uiw_dst[1]) and (moveto[2] == uiw_dst[2]) then
+                                --std_print('      going to final destination')
+                                dst = uiw_dst
+                                next_unit_ind = i_u
+                                unit = unit_in_way
+                            end
                         else
                             if (not path) or (not path[1]) or (not path[2]) then
                                 std_print('Trying to identify path table error !!!!!!!!')
