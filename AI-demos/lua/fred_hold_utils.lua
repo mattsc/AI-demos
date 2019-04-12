@@ -128,6 +128,9 @@ function fred_hold_utils.get_between_map(locs, toward_loc, units, move_data)
             end
 
             local loc_value = FGM.get_value(unit_map, loc[1], loc[2], 'rating')
+            if false then
+                DBG.show_fgumap_with_message(unit_map, 'rating', 'unit_map rating ' .. id, move_data.unit_copies[id])
+            end
             local unit_value = FGM.get_value(unit_map, unit_loc[1], unit_loc[2], 'rating')
             local max_value = (loc_value + unit_value) / 2
             --std_print(loc[1], loc[2], loc_value, unit_value, max_value)

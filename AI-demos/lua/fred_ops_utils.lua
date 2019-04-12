@@ -1365,7 +1365,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(assigned_units, false, 'assigned_units')
     --DBG.dbms(units_noMP_zones, false, 'units_noMP_zones')
 
-    -- Also add them to protect_leader_assignments
+    -- Also add the noMP units to protect_leader_assignments
     -- TODO: not sure if we want to keep them spearate instead (then additional work is needed later)
     for id,zone_id in pairs(units_noMP_zones) do
         if (not assigned_units[zone_id]) then assigned_units[zone_id] = {} end
@@ -1475,6 +1475,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     -- assigned to zones for potential use just as other units.
     local utilities = {}
     utilities.retreat = FBU.retreat_utilities(move_data, fred_data.ops_data.behavior.orders.value_ratio)
+    --DBG.dbms(utilities, false, 'utilities')
 
     for id,_ in pairs(unused_units) do
         if (utilities.retreat[id] > 0) then

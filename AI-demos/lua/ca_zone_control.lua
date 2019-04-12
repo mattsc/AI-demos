@@ -1969,7 +1969,7 @@ local function get_hold_action(zone_cfg, fred_data)
         local acceptable_actual_damage = acceptable_actual_damage_ratio * move_data.unit_infos[id].hitpoints
 
         for x,y,data in FGM.iter(hold_here_map) do
-            if (data.av_outcome >= 0) then
+--            if (data.av_outcome >= -1000) then
                 local my_count = FGM.get_value(holders_influence, x, y, 'my_count')
                 local enemy_count = FGM.get_value(holders_influence, x, y, 'enemy_count')
 
@@ -2196,7 +2196,7 @@ local function get_hold_action(zone_cfg, fred_data)
                 end
 
                 local protect_base_rating = protect_base_rating / cum_weight
-                --std_print('    base_rating, protect_base_rating: ' .. base_rating, protect_base_rating, cum_weight)
+                --std_print('  ' .. x .. ',' .. y .. ': ' .. protect_base_rating, cum_weight)
 
                 if FGM.get_value(move_data.village_map, x, y, 'owner') then
                     -- Prefer strongest unit on village (for protection)
@@ -2922,6 +2922,7 @@ local function get_retreat_action(zone_cfg, fred_data)
     if next(retreaters) then
         local retreat_utilities = FBU.retreat_utilities(move_data, fred_data.ops_data.behavior.orders.value_ratio)
         local retreat_combo = FRU.find_best_retreat(retreaters, retreat_utilities, fred_data)
+        --DBG.dbms(retreat_combo, false, 'retreat_combo')
 
         if retreat_combo then
             local action = {
