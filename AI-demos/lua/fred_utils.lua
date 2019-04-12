@@ -229,7 +229,9 @@ function fred_utils.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs)
         -- If front hex does not exist or is not passable for a unit, use center hex instead
         -- TODO: not clear whether using a passable hex close to the front is better in this case
         -- TODO: check whether this is too expensive
-        if front and (unit_copy:movement(wesnoth.get_terrain(front.x, front.y)) < 99) then
+        -- Disable using fronts for now, it's too volatile, but leave the code in place
+        -- TODO: reenable or remove later
+        if false and front and (unit_copy:movement(wesnoth.get_terrain(front.x, front.y)) < 99) then
             x, y = front.x, front.y
         else
             for _,hex in ipairs(raw_cfg.center_hexes) do
