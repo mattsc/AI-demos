@@ -428,6 +428,72 @@ function fred_utils.get_enemy_leader_distance_maps(zone_cfgs, side_cfgs, move_da
     return enemy_leader_distance_maps
 end
 
+function fred_utils.get_full_influence_map(move_data)
+    local full_influence_map = {}
+    for id,unit_loc in pairs(move_data.units) do
+        if (not move_data.unit_infos[id].canrecruit) then
+
+            local old_moves = move_data.unit_infos[id].moves
+            move_data.unit_copies[id].moves = move_data.unit_infos[id].max_moves
+            H.modify_unit(
+                { id = id} ,
+                { moves = move_data.unit_infos[id].max_moves }
+            )
+
+            local cm = wesnoth.find_cost_map(unit_loc[1], unit_loc[2], {}, { ignore_units = true })
+            H.modify_unit(
+                { id = id} ,
+                { moves = old_moves }
+            )
+
+            local cost_map = {}
+            for _,cost in pairs(cm) do
+                local x, y, c = cost[1], cost[2], cost[3]
+                if (c > -1) then
+
+                    local unit_influence = fred_utils.unit_current_power(move_data.unit_infos[id], x, y, move_data)
+
+                    local turns = c / move_data.unit_infos[id].max_moves
+                    local int_turns = math.ceil(turns)
+                    if (int_turns == 0) then
+                        int_turns = 1
+                    end
+
+                    unit_influence = unit_influence / int_turns^4 -- very strongly rate by int_turns
+
+                    if (move_data.unit_infos[id].side ~= wesnoth.current.side) then
+                        unit_influence = - unit_influence
+                    end
+
+                    FGM.set_value(cost_map, x, y, 'influence', unit_influence)
+                    FGM.add(full_influence_map, x, y, 'influence', unit_influence)
+                end
+            end
+
+            if false then
+                DBG.show_fgumap_with_message(cost_map, 'influence', 'Unit influence map ' .. id, move_data.unit_copies[id])
+            end
+        end
+    end
+
+    for x,y,data in FGM.iter(full_influence_map) do
+        if (data.influence > 0) then
+            data.owner = 1
+        elseif (data.influence == 0) then
+            data.owner = 0
+        else
+            data.owner = -1
+        end
+    end
+
+    if false then
+        DBG.show_fgumap_with_message(full_influence_map, 'influence', 'full_influence_map')
+        DBG.show_fgumap_with_message(full_influence_map, 'owner', 'full_influence_map')
+    end
+
+    return full_influence_map
+end
+
 function fred_utils.get_influence_maps(move_data)
     local leader_derating = FCFG.get_cfg_parm('leader_derating')
     local influence_falloff_floor = FCFG.get_cfg_parm('influence_falloff_floor')
