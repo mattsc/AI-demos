@@ -2099,13 +2099,13 @@ local function get_hold_action(zone_cfg, fred_data)
                 base_rating = (base_rating + 1) / 2
                 base_rating = FU.weight_s(base_rating, 0.75)
 
-                local vuln_rating_org = base_rating + hold_rating_data.vuln / max_vuln * vuln_rating_weight
+                local vuln_rating = base_rating + hold_rating_data.vuln / max_vuln * vuln_rating_weight
 
                 local dist = FGM.get_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
-                vuln_rating_org = vuln_rating_org + forward_rating_weight * dist
+                vuln_rating = vuln_rating + forward_rating_weight * dist
 
                 hold_rating_data.base_rating = base_rating
-                hold_rating_data.vuln_rating_org = vuln_rating_org
+                hold_rating_data.vuln_rating = vuln_rating
                 hold_rating_data.x = x
                 hold_rating_data.y = y
                 hold_rating_data.id = id
@@ -2129,14 +2129,14 @@ local function get_hold_action(zone_cfg, fred_data)
 
     -- Add bonus for other strong hexes aligned *across* the direction
     -- of advancement of the enemies
-    FHU.convolve_rating_maps(hold_rating_maps, 'vuln_rating', between_map, fred_data.ops_data)
+    --FHU.convolve_rating_maps(hold_rating_maps, 'vuln_rating', between_map, fred_data.ops_data)
 
     if DBG.show_debug('hold_rating_maps') then
         for id,hold_rating_map in pairs(hold_rating_maps) do
             DBG.show_fgumap_with_message(hold_rating_map, 'base_rating', 'base_rating', move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(hold_rating_map, 'vuln_rating_org', 'vuln_rating_org', move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(hold_rating_map, 'conv', 'conv', move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(hold_rating_map, 'vuln_rating', 'vuln_rating', move_data.unit_copies[id])
+            DBG.show_fgumap_with_message(hold_rating_map, 'vuln_rating', 'vuln_rating_org', move_data.unit_copies[id])
+            --DBG.show_fgumap_with_message(hold_rating_map, 'conv', 'conv', move_data.unit_copies[id])
+            --DBG.show_fgumap_with_message(hold_rating_map, 'vuln_rating', 'vuln_rating', move_data.unit_copies[id])
         end
     end
 
@@ -2235,7 +2235,7 @@ local function get_hold_action(zone_cfg, fred_data)
                 end
 
                 protect_rating_data.protect_base_rating = protect_base_rating
-                protect_rating_data.protect_rating_org = protect_rating
+                protect_rating_data.protect_rating = protect_rating
                 protect_rating_data.x = x
                 protect_rating_data.y = y
                 protect_rating_data.id = id
@@ -2245,14 +2245,14 @@ local function get_hold_action(zone_cfg, fred_data)
 
     -- Add bonus for other strong hexes aligned *across* the direction
     -- of advancement of the enemies
-    FHU.convolve_rating_maps(protect_rating_maps, 'protect_rating', between_map, fred_data.ops_data)
+    --FHU.convolve_rating_maps(protect_rating_maps, 'protect_rating', between_map, fred_data.ops_data)
 
     if DBG.show_debug('hold_protect_rating_maps') then
         for id,protect_rating_map in pairs(protect_rating_maps) do
             DBG.show_fgumap_with_message(protect_rating_map, 'protect_base_rating', 'protect_base_rating', move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(protect_rating_map, 'protect_rating_org', 'protect_rating_org', move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(protect_rating_map, 'conv', 'conv', move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(protect_rating_map, 'protect_rating', 'protect_rating', move_data.unit_copies[id])
+            DBG.show_fgumap_with_message(protect_rating_map, 'protect_rating', 'protect_rating_org', move_data.unit_copies[id])
+            --DBG.show_fgumap_with_message(protect_rating_map, 'conv', 'conv', move_data.unit_copies[id])
+            --DBG.show_fgumap_with_message(protect_rating_map, 'protect_rating', 'protect_rating', move_data.unit_copies[id])
         end
     end
 
