@@ -1969,7 +1969,7 @@ local function get_hold_action(zone_cfg, fred_data)
         local acceptable_actual_damage = acceptable_actual_damage_ratio * move_data.unit_infos[id].hitpoints
 
         for x,y,data in FGM.iter(hold_here_map) do
---            if (data.av_outcome >= -1000) then
+            if (data.av_outcome >= 0) then
                 local my_count = FGM.get_value(holders_influence, x, y, 'my_count')
                 local enemy_count = FGM.get_value(holders_influence, x, y, 'enemy_count')
 
