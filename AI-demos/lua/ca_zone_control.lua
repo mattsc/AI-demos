@@ -1294,6 +1294,12 @@ local function get_attack_action(zone_cfg, fred_data)
                     action.dsts = combo.dsts
                     action.weapons = combo.weapons
                     action.action_str = zone_cfg.action_str
+
+                    local enemy_leader_die_chance = 0
+                    if move_data.unit_infos[combo.defender_damage.id].canrecruit then
+                        enemy_leader_die_chance = combo.defender_damage.die_chance
+                    end
+                    action.enemy_leader_die_chance = enemy_leader_die_chance
                 end
             end
 
@@ -2970,6 +2976,55 @@ function get_zone_action(cfg, fred_data)
         --DBG.print_ts_delta(fred_data.turn_start_time, '  ' .. cfg.zone_id .. ': attack eval')
         local action = get_attack_action(cfg, fred_data)
         if action then
+            --DBG.dbms(action, false, 'action')
+
+            local milk_xp_die_chance_limit = FCFG.get_cfg_parm('milk_xp_die_chance_limit')
+            if (milk_xp_die_chance_limit < 0) then milk_xp_die_chance_limit = 0 end
+
+            if (action.enemy_leader_die_chance > milk_xp_die_chance_limit) then
+                --std_print('*** checking if we can get some more XP before killing enemy leader: ' .. action.enemy_leader_die_chance .. ' > ' .. milk_xp_die_chance_limit)
+                local move_data = fred_data.move_data
+
+                -- Attackers are all units that cannot attack the enemy leader
+                local attackers = {}
+                for id,loc in pairs(move_data.my_units) do
+                    if (move_data.unit_copies[id].attacks_left > 0) then
+                        attackers[id] = loc[1] * 1000 + loc[2]
+                    end
+                end
+                local ids = FGM.get_value(move_data.my_attack_map[1], move_data.enemy_leader_x, move_data.enemy_leader_y, 'ids') or {}
+                for _,id in ipairs(ids) do
+                    attackers[id] = nil
+                end
+
+                -- Targets are all enemies except for the leader
+                local targets = {}
+                for enemy_id,enemy_loc in pairs(move_data.enemies) do
+                    if (not move_data.unit_infos[enemy_id].canrecruit) then
+                        targets[enemy_id] = enemy_loc[1] * 1000 + enemy_loc[2]
+                    end
+                end
+
+                if next(attackers) and next(enemies) then
+                    local xp_attack_cfg = {
+                        zone_id = 'all_map',
+                        action_type = 'attack',
+                        action_str = 'XP milking attack',
+                        zone_units = attackers,
+                        targets = targets,
+                        value_ratio = (2 - action.enemy_leader_die_chance) * fred_data.ops_data.behavior.orders.value_ratio
+                    }
+                    --DBG.dbms(xp_attack_cfg, false, 'xp_attack_cfg')
+
+                    local xp_attack_action = get_attack_action(xp_attack_cfg, fred_data)
+                    --DBG.dbms(xp_attack_action, false, 'xp_attack_action')
+
+                    if xp_attack_action then
+                        action = xp_attack_action
+                    end
+                end
+            end
+
             --std_print(action.action_str)
             return action
         end
