@@ -1970,14 +1970,15 @@ local function get_hold_action(zone_cfg, fred_data)
         local acceptable_actual_damage = acceptable_actual_damage_ratio * move_data.unit_infos[id].hitpoints
 
         for x,y,data in FGM.iter(hold_here_map) do
-            if (data.av_outcome >= 0) then
+            -- TODO: comment this out for now, but might need a condition like that again later
+            --if (data.av_outcome >= 0) then
                 local my_count = FGM.get_value(holders_influence, x, y, 'my_count')
                 local enemy_count = FGM.get_value(holders_influence, x, y, 'enemy_count')
 
                 -- TODO: comment this out for now, but might need a condition like that again later
-                if (my_count >= 3) then
-                    FGM.set_value(hold_here_maps[id], x, y, 'hold_here', true)
-                else
+                --if (my_count >= 3) then
+                --    FGM.set_value(hold_here_maps[id], x, y, 'hold_here', true)
+                --else
                     local value_loss = FGM.get_value(pre_rating_map, x, y, 'value_loss')
                     --std_print(string.format('  %d,%d: %5.3f  %5.3f', x, y, value_loss, rel_push_factor))
 
@@ -2013,8 +2014,8 @@ local function get_hold_action(zone_cfg, fred_data)
                             end
                         end
                     end
-                end
-            end
+                --end
+            --end
         end
     end
 
