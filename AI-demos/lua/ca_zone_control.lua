@@ -2637,7 +2637,8 @@ local function get_advance_action(zone_cfg, fred_data)
                                 for _,unit in ipairs(fred_data.ops_data.objectives.protect.zones[zone_cfg.zone_id].units) do
                                     table.insert(hexes, { unit.x, unit.y })
                                 end
-                            else
+                            end
+                            if (#hexes == 0) then
                                 for _,loc in ipairs(raw_cfg.center_hexes) do
                                     table.insert(hexes, loc)
                                 end
@@ -2653,9 +2654,7 @@ local function get_advance_action(zone_cfg, fred_data)
                                 end
                             end
                             if include_leader_locs then
-                                for _,loc in ipairs(fred_data.ops_data.objectives.leader.leader_threats.protect_locs) do
-                                    table.insert(hexes, loc)
-                                end
+                                table.insert(hexes, fred_data.ops_data.objectives.leader.final)
                             end
 
                             -- Potential TODO: maybe replace this with smooth_cost_map()
@@ -2675,7 +2674,7 @@ local function get_advance_action(zone_cfg, fred_data)
                             end
                         end
                         if false then
-                            DBG.show_fgumap_with_message(cost_map, cost_map_key, 'cost_map')
+                            DBG.show_fgumap_with_message(cost_map, cost_map_key, 'cost_map ' .. cost_map_key)
                         end
                     end
 
