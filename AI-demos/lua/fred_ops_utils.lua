@@ -1238,14 +1238,14 @@ function fred_ops_utils.set_ops_data(fred_data)
     local attack_benefits = FBU.attack_benefits(enemies, goal_hexes_leader, false, fred_data)
     --DBG.dbms(attack_benefits, false, 'attack_benefits')
 
-    local power_needed, enemy_total_power = {}, 0
+    local lthreat_power_needed, lthreat_enemy_power = {}, 0
     for enemy_id,_ in pairs(objectives.leader.leader_threats.enemies) do
         local zone_id = enemy_zones[enemy_id]
         local unit_power = FU.unit_base_power(fred_data.move_data.unit_infos[enemy_id])
-        power_needed[zone_id] = (power_needed[zone_id] or 0) + unit_power
-        enemy_total_power = enemy_total_power + unit_power
+        lthreat_power_needed[zone_id] = (lthreat_power_needed[zone_id] or 0) + unit_power
+        lthreat_enemy_power = lthreat_enemy_power + unit_power
     end
-    --DBG.dbms(power_needed, false, 'power_needed')
+    --DBG.dbms(lthreat_power_needed, false, 'lthreat_power_needed')
 
     local leader_threat_benefits = {}
     local leader_defenders = {}
@@ -1261,7 +1261,7 @@ function fred_ops_utils.set_ops_data(fred_data)
                 if (not leader_threat_benefits[action]) then
                     leader_threat_benefits[action] = {
                         units = {},
-                        required = { power = power_needed[zone_id] }
+                        required = { power = lthreat_power_needed[zone_id] }
                     }
                 end
                 leader_threat_benefits[action].units[id] = { benefit = data.benefit, penalty = 0 }
@@ -1277,14 +1277,15 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(leader_threat_benefits, false, 'leader_threat_benefits')
 
     -- Cannot add up the power above, because units might be in several zones
-    local my_total_power = 0
+    local lthreat_my_power = 0
     for id,power in pairs(leader_defenders) do
         if (not move_data.unit_infos[id].canrecruit) then
-            my_total_power = my_total_power + power
+            lthreat_my_power = lthreat_my_power + power
         end
     end
-    local power_ratio = my_total_power / enemy_total_power
-    --std_print('total power (my, enemy)', my_total_power, enemy_total_power, power_ratio)
+
+    local power_ratio = lthreat_my_power / lthreat_enemy_power
+    --std_print('leader_threat power (my / enemy = ratio):  ' .. lthreat_my_power .. ' / ' .. lthreat_enemy_power .. ' = ' .. power_ratio)
 
     if (power_ratio < 1) then
         for _,benefit in pairs(leader_threat_benefits) do
