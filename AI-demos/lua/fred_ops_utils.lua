@@ -634,7 +634,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(enemy_power, false, 'enemy_power')
 
     local base_power_ratio = my_base_power / enemy_base_power
-    --std_print('base: ', base_power_ratio)
+    --std_print('base:  ' .. base_power_ratio .. ' = ' .. my_base_power .. ' / ' .. enemy_base_power)
 
     local power_ratio = {}
     local min_power_ratio, max_power_ratio = math.huge, - math.huge
@@ -957,7 +957,6 @@ function fred_ops_utils.set_ops_data(fred_data)
 
 
     -- Attributing enemy units to zones
-    -- Use base_power for this as it is not only for the current turn
     local assigned_enemies, unassigned_enemies = {}, {}
     local enemy_zones = {}
     for id,loc in pairs(move_data.enemies) do
@@ -1354,32 +1353,17 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(protect_leader_assignments, false, 'protect_leader_assignments')
 
 
-    -- We use all assigned enemies for this part, incl. those that were already considered as leader threats
-    local enemy_total_power = 0
-    for zone_id,enemies in pairs(assigned_enemies) do
-        for enemy_id,_ in pairs(enemies) do
-            local unit_power = FU.unit_base_power(move_data.unit_infos[enemy_id])
-            enemy_total_power = enemy_total_power + unit_power
-        end
-    end
-    local my_total_power = 0
-    for id,_ in pairs(move_data.my_units) do
-        if (not move_data.unit_infos[id].canrecruit) then
-            local unit_power = FU.unit_base_power(move_data.unit_infos[id])
-            my_total_power = my_total_power + unit_power
-        end
-    end
-
-    local power_ratio = my_total_power / enemy_total_power
+    -- Use the total power ratio of all units for this
+    local power_ratio = fred_data.ops_data.behavior.orders.base_power_ratio
     if (power_ratio > 1) then power_ratio = 1 end
-    --std_print(my_total_power, enemy_total_power, power_ratio, fred_data.ops_data.behavior.orders.base_power_ratio)
+    --std_print('power_ratio: ' .. power_ratio)
 
     local zone_power_stats = fred_ops_utils.zone_power_stats(raw_cfgs, assigned_units, assigned_enemies, power_ratio, fred_data)
     --DBG.dbms(zone_power_stats, false, 'zone_power_stats')
 
 
     local zone_attack_benefits = FBU.attack_benefits(assigned_enemies, goal_hexes_zones, false, fred_data)
-    --DBG.dbms(attack_benefits, false, 'attack_benefits')
+    --DBG.dbms(zone_attack_benefits, false, 'zone_attack_benefits')
 
     local zone_benefits = {}
     for zone_id,benefits in pairs(zone_attack_benefits) do
@@ -1424,8 +1408,6 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(zone_benefits, false, 'zone_benefits')
 
     local zone_assignments = FBU.assign_units(zone_benefits, move_data)
-
-
     --DBG.dbms(protect_leader_assignments, false, 'protect_leader_assignments')
     --DBG.dbms(zone_assignments, false, 'zone_assignments')
 
