@@ -60,10 +60,6 @@ function fred_ops_utils.zone_power_stats(zones, assigned_units, assigned_enemies
         end
     end
 
-    -- TODO: do we keep this?  Do we move it outside the function?
-    if (power_ratio > 1) then
-        power_ratio = math.sqrt(power_ratio)
-    end
     for zone_id,_ in pairs(zones) do
         -- Note: both power_needed and power_missing take ratio into account, the other values do not
         -- For large ratios in Fred's favor, we also take the square root of it
