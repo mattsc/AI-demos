@@ -61,11 +61,6 @@ local function get_attack_action(zone_cfg, fred_data)
     end
     --DBG.dbms(zone_units_attacks, false, 'zone_units_attacks')
 
-    local attacker_map = {}
-    for id,loc in pairs(zone_units_attacks) do
-        attacker_map[loc[1] * 1000 + loc[2]] = id
-    end
-
     -- How much more valuable do we consider the enemy units than our own
     local value_ratio = zone_cfg.value_ratio
     --DBG.print_ts_delta(fred_data.turn_start_time, 'value_ratio', value_ratio)
