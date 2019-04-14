@@ -102,35 +102,36 @@ function fred_hold_utils.get_between_map(locs, toward_loc, units, move_data)
         local cost_full = FGM.get_value(cost_map, toward_loc[1], toward_loc[2], 'cost')
         local inv_cost_full = FGM.get_value(inv_cost_map, unit_loc[1], unit_loc[2], 'cost')
 
+        local unit_map = {}
+        for x,y,data in FGM.iter(cost_map) do
+            local cost = data.cost or 99
+            local inv_cost = FGM.get_value(inv_cost_map, x, y, 'cost')
+
+            -- This gives a rating that is a slanted plane, from the unit to toward_loc
+            local rating = (inv_cost - cost) / 2
+            if (cost > cost_full) then
+                rating = rating + (cost_full - cost)
+            end
+            if (inv_cost > inv_cost_full) then
+                rating = rating + (inv_cost - inv_cost_full)
+            end
+
+            rating = rating * weights[id]
+
+            local perp_distance = cost + inv_cost - (cost_full + inv_cost_full) / 2
+            perp_distance = perp_distance * FGM.get_value(path_map, x, y, 'sign')
+
+            FGM.set_value(unit_map, x, y, 'rating', rating)
+            FGM.set_value(unit_map, x, y, 'perp_distance', perp_distance * weights[id])
+            FGM.add(between_map, x, y, 'inv_cost', inv_cost * weights[id])
+        end
+
+        if false then
+            DBG.show_fgumap_with_message(unit_map, 'rating', 'unit_map rating ' .. id, move_data.unit_copies[id])
+        end
+
         for _,loc in ipairs(locs) do
-            local unit_map = {}
-            for x,y,data in FGM.iter(cost_map) do
-                local cost = data.cost or 99
-                local inv_cost = FGM.get_value(inv_cost_map, x, y, 'cost')
-
-                -- This gives a rating that is a slanted plane, from the unit to toward_loc
-                local rating = (inv_cost - cost) / 2
-                if (cost > cost_full) then
-                    rating = rating + (cost_full - cost)
-                end
-                if (inv_cost > inv_cost_full) then
-                    rating = rating + (inv_cost - inv_cost_full)
-                end
-
-                rating = rating * weights[id]
-
-                local perp_distance = cost + inv_cost - (cost_full + inv_cost_full) / 2
-                perp_distance = perp_distance * FGM.get_value(path_map, x, y, 'sign')
-
-                FGM.set_value(unit_map, x, y, 'rating', rating)
-                FGM.set_value(unit_map, x, y, 'perp_distance', perp_distance * weights[id])
-                FGM.add(between_map, x, y, 'inv_cost', inv_cost * weights[id])
-            end
-
             local loc_value = FGM.get_value(unit_map, loc[1], loc[2], 'rating')
-            if false then
-                DBG.show_fgumap_with_message(unit_map, 'rating', 'unit_map rating ' .. id, move_data.unit_copies[id])
-            end
             if (not loc_value) then -- this can happen if the terrain of 'loc' is unreachable for the unit
                 loc_value = 0
                 local count = 0
