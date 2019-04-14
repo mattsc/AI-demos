@@ -932,13 +932,17 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 -- chance to die is too high.
                 -- Only do this if position is in front of protect_loc
 
-                -- TODO: exclude extra_rating?
-                local rating = counter_outcomes.rating_table.rating -- this already includes the value_ratio derating
-                local protected_value = combo.protected_value
-                local is_worth_it = (protected_value > rating)
-                --std_print(ids[i_l] .. ' protected_value: ' .. combo.protected_value .. ' > ' .. rating .. ' = ' .. tostring(is_worth_it))
+                -- If we are trying to protect something, check whether it is worth it
+                if cfg and cfg.protect_objectives then
+                    -- TODO: exclude extra_rating?
+                    -- This already includes the value_ratio derating
+                    -- Note that it is the counter rating, meaning that positive values are bad for Fred
+                    local rating = counter_outcomes.rating_table.rating
+                    local protected_value = combo.protected_value
+                    local is_worth_it = (protected_value > rating)
+                    --std_print(ids[i_l] .. ' protected_value: ' .. combo.protected_value .. ' > ' .. rating .. ' = ' .. tostring(is_worth_it))
+                    --std_print('does_protect, is_worth_it: ' .. tostring(combo.does_protect) .. ', ' .. tostring(is_worth_it))
 
-                if combo.does_protect then
                     if (not is_worth_it) then
                         -- We cannot just remove this dst from this hold, as this would
                         -- change the threats to the other dsts. The entire combo needs
@@ -949,24 +953,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                     end
                 end
 
-
-                if (not combo.does_protect) then
-                    if (counter_outcomes.def_outcome.hp_chance[0] > acceptable_ctd) then
-                        local ld_protect = FGM.get_value(fred_data.ops_data.leader_distance_map, protect_loc[1], protect_loc[2], 'distance')
-                        local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, new_locs[i_l][1], new_locs[i_l][2], 'distance')
-                        if (ld > ld_protect) then
-                            -- We cannot just remove this dst from this hold, as this would
-                            -- change the threats to the other dsts. The entire combo needs
-                            -- to be discarded.
-                            --std_print('Too dangerous for a non-protecting hold', counter_outcomes.def_outcome.hp_chance[0])
-                            count = 0
-                            break
-                        end
-                    end
-                end
-
                 local unit_rating = - counter_outcomes.rating_table.rating
-
                 local unit_value = FU.unit_value(move_data.unit_infos[ids[i_l]])
                 local unit_rel_rating = unit_rating / unit_value
                 if (unit_rel_rating < 0) then
