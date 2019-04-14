@@ -131,6 +131,23 @@ function fred_hold_utils.get_between_map(locs, toward_loc, units, move_data)
             if false then
                 DBG.show_fgumap_with_message(unit_map, 'rating', 'unit_map rating ' .. id, move_data.unit_copies[id])
             end
+            if (not loc_value) then -- this can happen if the terrain of 'loc' is unreachable for the unit
+                loc_value = 0
+                local count = 0
+                for xa,ya in H.adjacent_tiles(loc[1], loc[2]) do
+                    local l = FGM.get_value(unit_map, xa, ya, 'rating')
+                    if l then
+                        loc_value = loc_value + l
+                        count = count + 1
+                    end
+                end
+                if (count > 0) then
+                    loc_value = loc_value / count
+                else
+                    loc_value = 0 -- this is close enough, it should essentially never happen
+                end
+            end
+
             local unit_value = FGM.get_value(unit_map, unit_loc[1], unit_loc[2], 'rating')
             local max_value = (loc_value + unit_value) / 2
             --std_print(loc[1], loc[2], loc_value, unit_value, max_value)
