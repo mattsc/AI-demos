@@ -3018,7 +3018,7 @@ function get_zone_action(cfg, fred_data)
                     end
                 end
 
-                if next(attackers) and next(enemies) then
+                if next(attackers) and next(targets) then
                     local xp_attack_cfg = {
                         zone_id = 'all_map',
                         action_type = 'attack',
