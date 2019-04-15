@@ -89,6 +89,11 @@ local function get_best_village_keep(leader, recruit_first, effective_reach_map,
     -- to move to a keep over a village. Might want to add a trade-off eval here.
 
     local move_data = fred_data.move_data
+
+    if (move_data.unit_infos[leader.id].moves == 0) then
+        return
+    end
+
     local from_keep_found
     local village_map
     if (not move_data.unit_infos[leader.id].abilities.regenerate)
@@ -150,17 +155,34 @@ local function get_best_village_keep(leader, recruit_first, effective_reach_map,
     local hex_map = keep_map or village_map
     --DBG.dbms(hex_map, false, 'hex_map')
 
-    if (not hex_map) then return end
+    -- If no hex_map was found, that means that the leader cannot get to a keep and
+    -- does not need to go to a village. In that case, we use the effective reach map
+    -- to get closer to a keep.
+    -- TODO: refine the rating if leader cannot get to a keep
+    if (not hex_map) then
+        hex_map = {}
+        for x,y,erm in FGM.iter(effective_reach_map) do
+            local info = { moves_left = erm.moves_left }
+            if FGM.get_value(move_data.village_map, x, y, 'owner') then
+                info.is_village = true
+            end
+            FGM.set_value(hex_map, x, y, 'info', info)
+        end
+    end
+    --DBG.dbms(effective_reach_map, false, 'effective_reach_map')
+    --DBG.dbms(hex_map, false, 'hex_map')
 
     -- Now select best village or keep
     local leader_unthreatened_hex_bonus = FCFG.get_cfg_parm('leader_unthreatened_hex_bonus')
     local leader_village_bonus = FCFG.get_cfg_parm('leader_village_bonus')
+    local leader_village_grab_bonus = FCFG.get_cfg_parm('leader_village_grab_bonus')
     local leader_moves_left_factor = FCFG.get_cfg_parm('leader_moves_left_factor')
     local leader_unit_in_way_penalty = FCFG.get_cfg_parm('leader_unit_in_way_penalty')
     local leader_unit_in_way_no_moves_penalty = FCFG.get_cfg_parm('leader_unit_in_way_no_moves_penalty')
     local leader_eld_factor = FCFG.get_cfg_parm('leader_eld_factor')
 
     local max_rating, best_hex = - math.huge
+    local hex_rating_map = {}
     for x,y,hex in FGM.iter(hex_map) do
         local influence = FGM.get_value(move_data.influence_maps, x, y, 'influence')
         local enemy_influence = FGM.get_value(move_data.influence_maps, x, y, 'enemy_influence') or 0
@@ -176,11 +198,15 @@ local function get_best_village_keep(leader, recruit_first, effective_reach_map,
         --std_print('rating for hex: ', x .. ',' .. y, rating, influence, enemy_influence, moves_left)
 
         local owner = FGM.get_value(move_data.village_map, x, y, 'owner')
-        if owner and (owner ~= wesnoth.current.side) then
-            if (owner == 0) then
+        if owner then
+            if (enemy_influence > 0) then
                 rating = rating + leader_village_bonus
-            else
-                rating = rating + 2 * leader_village_bonus
+            end
+
+            if (owner == 0) then
+                rating = rating + leader_village_grab_bonus
+            elseif (owner ~= wesnoth.current.side) then
+                rating = rating + 2 * leader_village_grab_bonus
             end
         end
         --std_print('rating after village bonus: ', x .. ',' .. y, rating, owner)
@@ -207,6 +233,7 @@ local function get_best_village_keep(leader, recruit_first, effective_reach_map,
         rating = rating + eld * leader_eld_factor
 
         --std_print('rating for keep: ', x .. ',' .. y, rating)
+        FGM.set_value(hex_rating_map, x, y, 'rating', rating)
 
         if (rating > max_rating) then
             max_rating = rating
@@ -215,18 +242,23 @@ local function get_best_village_keep(leader, recruit_first, effective_reach_map,
         end
     end
     --DBG.dbms(best_hex, false, 'best_hex')
+    --DBG.show_fgumap_with_message(hex_rating_map, 'rating', 'hex_rating_map', move_data.unit_copies[move_data.leaders[wesnoth.current.side].id])
 
-    local village, keep
+    local village, keep, other
     if best_hex.info.is_village then
         village = best_hex.loc
         keep = best_hex.info.from_keep
-    else
+    elseif wesnoth.get_terrain_info(wesnoth.get_terrain(best_hex.loc[1], best_hex.loc[2])).keep then
+-- except if this is not a keep?
         keep = best_hex.loc
+    else
+        other = best_hex.loc
     end
     --DBG.dbms(village, false, 'village')
     --DBG.dbms(keep, false, 'keep')
+    --DBG.dbms(other, false, 'other')
 
-    return village, keep
+    return village, keep, other
 end
 
 
@@ -274,14 +306,16 @@ function fred_move_leader_utils.leader_objectives(fred_data)
     -- stop by for recruiting. The village function will also return whatever keep
     -- works for getting to that village
     local village, keep
-    village, keep = get_best_village_keep(leader, do_recruit, effective_reach_map, fred_data)
+    village, keep, other = get_best_village_keep(leader, do_recruit, effective_reach_map, fred_data)
     --DBG.dbms(village, false, 'village')
     --DBG.dbms(keep, false, 'keep')
+    --DBG.dbms(other, false, 'other')
 
     local leader_objectives = {
         village = village,
         keep = keep,
-        final = village or keep or leader,
+        other = other,
+        final = village or keep or other or leader,
         do_recruit = do_recruit
     }
 

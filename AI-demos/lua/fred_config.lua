@@ -31,7 +31,8 @@ local cfg = {
 
     -- Leader rating parameters
     leader_unthreatened_hex_bonus = 500,
-    leader_village_bonus = 3,
+    leader_village_bonus = 10,
+    leader_village_grab_bonus = 3,
     leader_moves_left_factor = 0.1,
     leader_unit_in_way_penalty = - 0.01,
     leader_unit_in_way_no_moves_penalty = - 1000,

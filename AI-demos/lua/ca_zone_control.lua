@@ -2896,7 +2896,7 @@ local function get_retreat_action(zone_cfg, fred_data)
         end
 
         -- This is only for moving leader back toward keep. Moving to a keep for
-        -- recruiting is done part of the recruitment action
+        -- recruiting is done as part of the recruitment action
         if leader_objectives.keep then
             local action = {
                 units = { leader },
@@ -2906,6 +2906,19 @@ local function get_retreat_action(zone_cfg, fred_data)
             --DBG.dbms(action, false, 'action')
 
             leader_objectives.keep = nil
+
+            return action
+        end
+
+        if leader_objectives.other then
+            local action = {
+                units = { leader },
+                dsts = { { leader_objectives.other[1], leader_objectives.other[2] } },
+                action_str = zone_cfg.action_str .. ' (move leader toward keep or safety)'
+            }
+            --DBG.dbms(action, false, 'action')
+
+            leader_objectives.other = nil
 
             return action
         end
