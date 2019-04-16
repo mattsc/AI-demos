@@ -290,6 +290,11 @@ function fred_ops_utils.behavior_output(is_turn_start, ops_data)
     fred_behavior_str = fred_behavior_str
         .. string.format('\nbase power ratio : %.3f (%s)', behavior.orders.base_power_ratio, overall_str)
         .. string.format('\nvalue_ratio : %.3f   (inverse: %.3f)', behavior.orders.value_ratio, 1/behavior.orders.value_ratio)
+        .. string.format('\npush factors :  overall:  %.3f', behavior.orders.push_factor)
+
+    for zone_id,push_factor in pairs(behavior.zone_push_factors) do
+        fred_behavior_str = fred_behavior_str .. string.format('\n    %s : %.3f', zone_id, push_factor)
+    end
 
     fred_behavior_str = fred_behavior_str .. '\nleader:'
     fred_behavior_str = fred_behavior_str .. '\n    dorecruit:    ' .. tostring(objectives.leader.do_recruit)
