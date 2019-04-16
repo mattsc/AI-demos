@@ -664,6 +664,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
 
     local behavior = {
+        --[[
         power = {
             base_ratio = base_power_ratio,
             current_ratio = power_ratio[0],
@@ -671,15 +672,18 @@ function fred_ops_utils.set_ops_data(fred_data)
             min_ratio = min_power_ratio,
             max_ratio = max_power_ratio
         },
+        --]]
         orders = {
             base_value_ratio = base_value_ratio,
-            max_value_ratio = max_value_ratio,
+            --max_value_ratio = max_value_ratio,
             value_ratio = value_ratio,
-            base_power_ratio = base_power_ratio
+            base_power_ratio = base_power_ratio,
+            current_power_ratio = power_ratio[0]
         }
     }
 
 
+    --[[
     local n_vill_my, n_vill_enemy, n_vill_unowned, n_vill_total = 0, 0, 0, 0
     for x,y,data in FGM.iter(move_data.village_map) do
         if (data.owner == 0) then
@@ -698,6 +702,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         n_unowned = n_vill_unowned,
         n_total = n_vill_total
     }
+    --]]
 
     --behavior.ratios.assets = n_vill_my / (n_vill_total - n_vill_my + 1e-6)
     --behavior.orders.expansion = behavior.ratios.influence / behavior.ratios.assets
@@ -1603,7 +1608,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     local f_zone_power_ratios, zone_push_factors = {}, {}, {}
     for zone_id,power_stat in pairs(zone_power_stats) do
-        local f_power_ratio = power_stat.my_power / (power_stat.enemy_power + 1e-6) / behavior.power.current_ratio
+        local f_power_ratio = power_stat.my_power / (power_stat.enemy_power + 1e-6) / behavior.orders.current_power_ratio
         f_zone_power_ratios[zone_id] = f_power_ratio
         zone_push_factors[zone_id] = f_power_ratio * behavior.orders.push_factor
     end
@@ -1611,6 +1616,10 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(zone_push_factors, false, 'zone_push_factors')
     behavior.zone_push_factors = zone_push_factors
 
+
+    -- The following is currently unused, but could be useful to determine, for example,
+    -- if we are over-extended (over-expanded) etc.
+    --[[
     local full_influence_map = FU.get_full_influence_map(move_data)
 
     -- Probably could just use full_influence_map for everything, but doing it separately just in
@@ -1624,6 +1633,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
     local f_my_inf = n_my_inf / n_total
     --std_print(string.format('my inf: %4.3f = %d / %d', f_my_inf, n_my_inf, n_total))
+    --]]
 
 
     ops_data.raw_cfgs = raw_cfgs

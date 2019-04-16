@@ -1419,7 +1419,7 @@ local function get_hold_action(zone_cfg, fred_data)
     local forward_rating_weight = forward_weight * (1 / value_ratio)
     --std_print('forward_weight, forward_rating_weight', forward_weight, forward_rating_weight)
 
-    local influence_ratio = fred_data.ops_data.behavior.power.current_ratio
+    local influence_ratio = fred_data.ops_data.behavior.orders.current_power_ratio
     local base_value_ratio = fred_data.ops_data.behavior.orders.base_value_ratio
     local protect_forward_rating_weight = (influence_ratio / base_value_ratio) - 1
     protect_forward_rating_weight = protect_forward_rating_weight * FCFG.get_cfg_parm('protect_forward_weight')
