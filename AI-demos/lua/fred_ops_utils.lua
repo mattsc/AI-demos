@@ -1664,15 +1664,6 @@ function fred_ops_utils.set_ops_data(fred_data)
     else
         fred_ops_utils.behavior_output(false, ops_data)
     end
-
-    if DBG.show_debug('analysis') then
-        local behavior = fred_data.ops_data.behavior
-        --std_print('value_ratio: ', behavior.orders.value_ratio)
-        --DBG.dbms(behavior.ratios, false, 'behavior.ratios')
-        --DBG.dbms(behavior.orders, false, 'behavior.orders')
-        DBG.dbms(fronts, false, 'fronts')
-        --DBG.dbms(behavior, false, 'behavior')
-    end
 end
 
 
