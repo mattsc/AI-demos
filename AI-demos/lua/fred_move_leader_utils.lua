@@ -129,10 +129,6 @@ local function get_best_village_keep(leader, recruit_first, effective_reach_map,
 
     local move_data = fred_data.move_data
 
-    if (move_data.unit_infos[leader.id].moves == 0) then
-        return
-    end
-
     local from_keep_found
     local village_map
     if (not move_data.unit_infos[leader.id].abilities.regenerate)
@@ -281,7 +277,7 @@ local function get_best_village_keep(leader, recruit_first, effective_reach_map,
         end
     end
     --DBG.dbms(best_hex, false, 'best_hex')
-    --DBG.show_fgumap_with_message(hex_rating_map, 'rating', 'hex_rating_map', move_data.unit_copies[move_data.leaders[wesnoth.current.side].id])
+    --DBG.show_fgumap_with_message(hex_rating_map, 'rating', 'hex_rating_map', move_data.unit_copies[leader.id])
 
     local village, keep, other
     if best_hex.info.is_village then
@@ -326,28 +322,32 @@ function fred_move_leader_utils.leader_objectives(fred_data)
     end
     --DBG.dbms(prerecruit, false, 'prerecruit')
 
-    -- These are used for other purposes also, so they are not linked to whether we
-    -- can reach the desired villages and keeps
-    local effective_reach_map
     if prerecruit and prerecruit.units[1] then
         do_recruit = true
-        effective_reach_map = get_reach_map_via_keep(leader, move_data)
     end
-    -- Even if we want to recruit, we need the other effective_reach_map if no
-    -- keep can be reached
-    if (not effective_reach_map) or (not next(effective_reach_map)) then
-        effective_reach_map = get_reach_map_to_keep(leader, move_data)
-    end
-    --DBG.show_fgumap_with_message(effective_reach_map, 'moves_left', 'effective_reach_map')
 
-    -- If the eventual goal is a village, we do not need to rate the keep that we might
-    -- stop by for recruiting. The village function will also return whatever keep
-    -- works for getting to that village
-    local village, keep
-    village, keep, other = get_best_village_keep(leader, do_recruit, effective_reach_map, fred_data)
-    --DBG.dbms(village, false, 'village')
-    --DBG.dbms(keep, false, 'keep')
-    --DBG.dbms(other, false, 'other')
+    local effective_reach_map, village, keep, other
+    if (move_data.unit_infos[leader.id].moves > 0) then
+        -- These are used for other purposes also, so they are not linked to whether we
+        -- can reach the desired villages and keeps
+        if prerecruit and prerecruit.units[1] then
+            effective_reach_map = get_reach_map_via_keep(leader, move_data)
+        end
+        -- Even if we want to recruit, we need the other effective_reach_map if no
+        -- keep can be reached
+        if (not effective_reach_map) or (not next(effective_reach_map)) then
+            effective_reach_map = get_reach_map_to_keep(leader, move_data)
+        end
+        --DBG.show_fgumap_with_message(effective_reach_map, 'moves_left', 'effective_reach_map', move_data.unit_copies[leader.id])
+
+        -- If the eventual goal is a village, we do not need to rate the keep that we might
+        -- stop by for recruiting. The village function will also return whatever keep
+        -- works for getting to that village
+        village, keep, other = get_best_village_keep(leader, do_recruit, effective_reach_map, fred_data)
+        --DBG.dbms(village, false, 'village')
+        --DBG.dbms(keep, false, 'keep')
+        --DBG.dbms(other, false, 'other')
+    end
 
     local leader_objectives = {
         village = village,
