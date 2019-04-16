@@ -56,16 +56,55 @@ local function get_reach_map_to_keep(leader, move_data)
     local leader_proxy = wesnoth.get_unit(leader[1], leader[2])
     local max_moves = move_data.unit_infos[leader.id].max_moves
 
+    -- This is additional turns in the sense that it measures what the leader can do
+    -- after this turn's move. Thus, even the default is 1, rather than 0.
+    local add_turns = 1
+    local keeps_map = {}
+    if next(move_data.reachable_keeps_map[wesnoth.current.side]) then
+        keeps_map = move_data.reachable_keeps_map[wesnoth.current.side]
+    else
+        -- This only happens if the leader is out of reach of any keep, or when all the
+        -- close keeps are occupied by enemies
+        -- This should rarely be needed, so we only do this when required, rather than in gamestate_utils
+        local width, height = wesnoth.get_map_size()
+        local keeps = wesnoth.get_locations {
+            x = "1-"..width, y = "1-"..height,
+            terrain = 'K*,K*^*,*^K*'
+        }
+
+        for _,keep in pairs(keeps) do
+            local _, cost = wesnoth.find_path(move_data.unit_copies[leader.id], keep[1], keep[2], { ignore_units = true })
+
+            keep.add_turns = math.ceil((cost - move_data.unit_infos[leader.id].moves) / move_data.unit_infos[leader.id].max_moves)
+            -- The following happens when a keep is within reach, but occupied by enemies
+            if (keep.add_turns < 1) then keep.add_turns = 1 end
+            --std_print('  ' .. keep[1] .. ',' .. keep[2] .. ': ' .. cost, keep.add_turns)
+        end
+        table.sort(keeps, function(a, b) return a.add_turns < b.add_turns end)
+        --DBG.dbms(keeps, false, 'keeps')
+
+        add_turns = keeps[1].add_turns
+        for _,keep in ipairs(keeps) do
+            if (keep.add_turns == keeps[1].add_turns) then
+                FGM.set_value(keeps_map, keep[1], keep[2], 'add_turns', keep.add_turns)
+            end
+        end
+        --DBG.dbms(keeps)
+    end
+    --DBG.dbms(keeps_map, false, 'keeps_map')
+
     local effective_reach_map = {}
-    for x_k,y_k,_ in FGM.iter(move_data.reachable_keeps_map[wesnoth.current.side]) do
+    for x_k,y_k,_ in FGM.iter(keeps_map) do
         -- Note that reachable_keeps_map contains moves_left assuming max_mp for the leader.
         -- That's why we check reach_maps as well.
         local cost_from_keep = FU.smooth_cost_map(leader_proxy, { x_k, y_k }, true)
+        --DBG.show_fgumap_with_message(cost_from_keep, 'cost', 'cost_from_keep')
+
         for x,y,data in FGM.iter(cost_from_keep) do
             if (not FGM.get_value(move_data.my_unit_map_noMP, x, y, 'id'))
                 and FGM.get_value(move_data.reach_maps[leader.id], x, y, 'moves_left')
             then
-                local moves_left = max_moves - data.cost
+                local moves_left = max_moves * add_turns - data.cost
                 if (moves_left >= 0) then
                     local ml_old = FGM.get_value(effective_reach_map, x, y, 'moves_left') or -1
                     if (moves_left > ml_old) then
@@ -249,7 +288,6 @@ local function get_best_village_keep(leader, recruit_first, effective_reach_map,
         village = best_hex.loc
         keep = best_hex.info.from_keep
     elseif wesnoth.get_terrain_info(wesnoth.get_terrain(best_hex.loc[1], best_hex.loc[2])).keep then
--- except if this is not a keep?
         keep = best_hex.loc
     else
         other = best_hex.loc
