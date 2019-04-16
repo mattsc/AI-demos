@@ -299,6 +299,7 @@ function fred_attack_utils.damage_rating_unit(damage)
 
     -- Additionally, add the chance to die, in order to emphasize units that might die
     -- This might result in fractional_damage > 1 in some cases, although usually not by much
+    -- TODO: potentially balance this vs. damage rating, to limit it to not much more than 1
     local ctd_rating = - 1.5 * damage.die_chance^1.5
     fractional_rating = fractional_rating + ctd_rating
     --std_print('  ctd, ctd_rating, fractional_rating:', damage.die_chance, ctd_rating, fractional_rating)

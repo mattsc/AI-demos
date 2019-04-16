@@ -2330,6 +2330,8 @@ local function get_hold_action(zone_cfg, fred_data)
         --DBG.dbms(all_best_protect_combo, false, 'all_best_protect_combo')
 
         -- If no combo that protects the location was found, use the best of the others
+        -- TODO: check whether it is better to use a normal hold in this case; may depend on
+        --   how desperately we want to protect
         if (not best_protect_combo) then
             best_protect_combo, protected_str = all_best_protect_combo, all_protected_str
         end
@@ -2353,6 +2355,8 @@ local function get_hold_action(zone_cfg, fred_data)
     elseif (not best_protect_combo) then
         best_combo, ratings = best_hold_combo, hold_ratings
     else
+        -- TODO: if there is a best_protect_combo, should we always use it over best_hold_combo?
+        --   This would also mean that we do not need to evaluate best_hold_combo if best_protect_combo is found
         local hold_distance, count = 0, 0
         for src,dst in pairs(best_hold_combo) do
             local x, y =  math.floor(dst / 1000), dst % 1000
@@ -3119,6 +3123,7 @@ local function do_recruit(fred_data, ai, action)
         end
         --DBG.dbms(outofway_units, false, 'outofway_units')
 
+        -- TODO: eventually we might switch this to Fred's own gamestate_utils maps
         local avoid_map = LS.create()
         for _,dst in ipairs(action.dsts) do
             avoid_map:insert(dst[1], dst[2], true)
