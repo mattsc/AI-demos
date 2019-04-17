@@ -1,3 +1,82 @@
+----- 0.14.12, 17 April 2018 (massive operations layer reworking) -----
+
+This release focuses on a major reworking of the operations layer. This includes
+augmenting and refining the decisions that are made up front in this layer as
+opposed to by the individual action evaluation functions, considering actions in
+combination rather than individually, setting up a reserved-actions system and
+switching all evaluations to a gold-based rating system.  It also includes
+significant changes to essentially all action evaluations.
+
+- Fred (Freelands AI for Northerners, Side 1):
+  - Operations layer:
+    - Switch all evaluations consistently from a utility-based (0..1) system
+      to a benefits/penalties based system scored in units of gold
+    - Set up a reserved-actions mechanism which evaluates certain actions
+      (leader moves, recruiting, village grabs, ...) up front but does not execute
+      them until later. These are combined with an interaction matrix that
+      determines whether other actions may use the assigned units instead (taking
+      the appropriate penalties and alternatives to the reserved actions into account)
+    - Rework how units are assigned to the zones and to individual actions
+    - Expand the objectives analysis determining the goals for the current turn,
+      specifically (but not only) for the leader. This includes:
+      - Full up-front evaluation of where the leader is going to end after the turn
+      - Use effective reach maps for the leader to take going to the keep to
+        recruit before heading out for other actions into account, without having
+        to start each turn by moving the leader back to the keep
+      - Don't force the leader to move to the keep if there is nothing to recruit
+      - Recruit preferentially in between leader and threats
+      - Decide what other units and hexes should be protected
+    - Determine up front how hard the AI should push forward in each zone based
+      on power ratios and time of day
+    - The operations assessment is now refined almost entirely after every AI
+      move to take the changed situation on the map into account
+    - Action scoring:
+      - Split up holding into separate actions (with different scores) for
+        protecting and "normal" holding
+      - Add an eval-only protect-leader action, used as baseline for other actions
+      - Grab villages between protecting and holding
+      - Retreat before advancing
+      - Leader moves, except recruiting, are now done by the retreat action
+      - All-map advancing now has a separate score and is the very last thing done
+    - Remove move_leader_to_keep and recruitment candidate actions. These are now
+      also handled by the zone_control CA in order to allow more flexibility
+    - Combine zones at the very beginning of the ops analysis, not at the end
+    - Remember in which zone a unit was used
+    - Improved behavior debug output
+    - Behavior debug output menu options are now shown only in debug mode
+  - Attacking:
+    - Take penalties for reserved actions into account
+    - Attack scores now include contributions for how well the leader, castle
+      hexes, villages and other units are protected
+    - Disqualify attacks which do not sufficiently protect the leader
+    - Add "XP milking" attacks before enemy leader kill
+  - Holding:
+    - Take penalties for reserved actions into account
+    - Protect holds now include a protected value evaluation that is scored
+      against the risks/exposures of the holds
+    - Try to protect castle hexes also; this is evaluated in combination with
+      leader, villages and other unit protecting using benefits based scoring
+    - Acceptable damage limits are now used for both holding and protecting. What
+      counts as acceptable is different for the two types of holds
+    - Use projected leader position at the end of the turn for hold evaluation,
+      rather than the leader's current position or the keep
+  - Villages:
+    - Do not grab villages that are not worth it using, again, the benefits
+      based scoring system
+    - Consider village grab benefits/penalties for combination of all villages,
+      not by individual village
+  - Move execution:
+    - Some fixes and improvements to direction in which units move out of the way
+    - Change order of attacks if units moving out of way end up with no moves
+      left, so that they do not become stranded
+  - General:
+    - Significant refinements to the ratings of many of the actions
+    - Lots of internal clean-up, reorganizing, bug fixes and efficiency improvements
+    - New fred_virtual_state library
+- Misc.
+  - Add the mp_rank parameter (new in Wesnoth 1.15) to the AI configs
+
+
 ----- 0.14.11, 16 May 2018 (drop support for BfW 1.12 and code clean-up) -----
 
 - Remove all the version checks and only keep Wesnoth 1.14 compatible code
