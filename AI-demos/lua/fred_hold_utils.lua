@@ -998,7 +998,8 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 local reduced_combo = {
                     combo = {},
                     formation_rating = combo.formation_rating,
-                    does_protect = combo.does_protect
+                    does_protect = combo.does_protect,
+                    protected_str = combo.protected_str
                 }
                 for src,dst in pairs(combo.combo) do
                     if (not remove_src[src]) then
