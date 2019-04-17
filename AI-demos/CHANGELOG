@@ -1,4 +1,4 @@
------ 0.14.12, 17 April 2018 (massive operations layer reworking) -----
+----- 0.14.12, 17 April 2019 (massive operations layer reworking) -----
 
 This release focuses on a major reworking of the operations layer. This includes
 augmenting and refining the decisions that are made up front in this layer as
