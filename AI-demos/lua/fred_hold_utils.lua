@@ -855,8 +855,8 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             end
 
             wesnoth.scroll_to_tile(x, y)
-            local rating_str =  string.format("%.4f = %.4f x %.4f x %.4f\npenalty_rating: %.4f    %s",
-                formation_rating, angle_fac or -1111, dist_fac or -2222, combo.base_rating or -9999,
+            local rating_str =  string.format("%.4f = %.3f x %.3f x %.3f x %.3f    (protect x angle x dist x base)\npenalty_rating: %.4f    %s",
+                formation_rating, protect_mult, angle_fac or 1, dist_fac or 1, combo.base_rating or -9999,
                 combo.penalty_rating, combo.penalty_str
             )
             local max_str = string.format("max:  protected: %.4f,  all: %.4f", tmp_max_rating or -9999, tmp_all_max_rating or -9999)
