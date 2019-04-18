@@ -3530,6 +3530,10 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
                 elseif leader_objectives.village then
                     dx = leader_objectives.village[1] - unit_in_way.x
                     dy = leader_objectives.village[2] - unit_in_way.y
+                if (dx == 0) and (dy == 0) then -- this can happen if leader is on leader goal hex
+                    -- In this case, as a last resort, move away from the enemy leader
+                    dx = unit_in_way.x - fred_data.move_data.enemy_leader_x
+                    dy = unit_in_way.y - fred_data.move_data.enemy_leader_y
                 end
                 local r = math.sqrt(dx * dx + dy * dy)
                 if (r ~= 0) then dx, dy = dx / r, dy / r end
