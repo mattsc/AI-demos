@@ -15,6 +15,7 @@ local FRU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_retreat_utils.lua"
 local FHU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_hold_utils.lua"
 local FMLU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_move_leader_utils.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
+local FMC = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_map_config.lua"
 
 ----- Attack: -----
 local function get_attack_action(zone_cfg, fred_data)
@@ -2438,7 +2439,7 @@ local function get_advance_action(zone_cfg, fred_data)
     DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> advance evaluation: ' .. zone_cfg.zone_id)
 
     --DBG.dbms(zone_cfg, false, 'zone_cfg')
-    local raw_cfg = fred_data.ops_data.raw_cfgs[zone_cfg.zone_id]
+    local raw_cfg = FMC.get_raw_cfgs(zone_cfg.zone_id)
     --DBG.dbms(raw_cfg, false, 'raw_cfg')
 
     local move_data = fred_data.move_data

@@ -14,6 +14,7 @@ local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 -- Trying to set things up so that FMC is _only_ used in ops_utils
+-- TODO: this is currently not the case any more. Decide later what to do about that
 local FMC = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_map_config.lua"
 
 
