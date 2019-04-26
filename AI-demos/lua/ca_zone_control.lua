@@ -3226,6 +3226,8 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
 
             if action.units[1] then
                 fred_data.zone_action = action
+
+                DBG.print_debug_time('eval', fred_data.turn_start_time, '--> done with all cfgs')
                 return score_zone_control, action
             end
         else
@@ -3273,6 +3275,8 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
                 zone_action.zone_id = cfg.zone_id
                 --DBG.dbms(zone_action, false, 'zone_action')
                 fred_data.zone_action = zone_action
+
+                DBG.print_debug_time('eval', fred_data.turn_start_time, '--> done with all cfgs')
                 return score_zone_control, zone_action
             end
         end
