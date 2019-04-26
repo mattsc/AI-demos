@@ -937,7 +937,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                     -- TODO: exclude extra_rating?
                     -- This already includes the value_ratio derating
                     -- Note that it is the counter rating, meaning that positive values are bad for Fred
-                    local rating = counter_outcomes.rating_table.rating
+                    local rating = counter_outcomes.rating_table.yyy_rating
                     local protected_value = combo.protected_value
                     local is_worth_it = (protected_value > rating)
                     --std_print(ids[i_l] .. ' protected_value: ' .. combo.protected_value .. ' > ' .. rating .. ' = ' .. tostring(is_worth_it))
@@ -953,7 +953,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                     end
                 end
 
-                local unit_rating = - counter_outcomes.rating_table.rating
+                local unit_rating = - counter_outcomes.rating_table.yyy_rating
                 local unit_value = FU.unit_value(move_data.unit_infos[ids[i_l]])
                 local unit_rel_rating = unit_rating / unit_value
                 if (unit_rel_rating < 0) then

@@ -28,11 +28,12 @@ function fred_status.is_significant_threat(unit_info, av_total_loss, max_total_l
     return significant_threat
 end
 
-function fred_status.unit_exposure(own_rating, enemy_rating)
-    -- @own_rating should be counted as positive contribution (that is, as returned by counter attacks)
-    -- opposite for @enemy_rating
+function fred_status.unit_exposure(pos_counter_rating, neg_counter_rating)
+    -- @pos_counter_rating needs to be a positive number (that is, as returned by
+    --   and from the point of view of the counter attack)
+    -- Equivalently, @neg_counter_rating needs to be negative (also as returned by the counter attack eval)
     -- Just done to standardize this
-    local exposure = own_rating + enemy_rating / 10
+    local exposure = pos_counter_rating + neg_counter_rating / 10
     if (exposure < 0) then exposure = 0 end
     return exposure
 end
@@ -111,18 +112,20 @@ function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_d
         --DBG.dbms(counter_outcomes)
         --DBG.dbms(all_attackers)
 
-        local defender_rating, attacker_rating  = 0, 0
+        local pos_rating, neg_rating  = 0, 0
         if counter_outcomes then
             is_protected = false
-            defender_rating = counter_outcomes.rating_table.defender_rating
-            attacker_rating = counter_outcomes.rating_table.attacker_rating
+            pos_rating = counter_outcomes.rating_table.pos_rating
+            neg_rating = counter_outcomes.rating_table.neg_rating
+            --std_print('pos_rating, neg_rating', pos_rating, neg_rating)
             local leader_info = move_data.unit_infos[leader.id]
             is_significant_threat = fred_status.is_significant_threat(
                 leader_info,
                 leader_info.hitpoints - counter_outcomes.def_outcome.average_hp,
                 leader_info.hitpoints - counter_outcomes.def_outcome.min_hp
             )
-            leader_exposure = fred_status.unit_exposure(defender_rating, attacker_rating)
+            leader_exposure = fred_status.unit_exposure(pos_rating, neg_rating)
+            --std_print('leader_exposure', leader_exposure)
             for enemy_id,_ in pairs(all_attackers) do
                 if (not zone_id)
                     or (not fred_data.ops_data.assigned_enemies[zone_id])
@@ -132,7 +135,7 @@ function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_d
                 end
             end
         end
-        --std_print('ratings: ' .. defender_rating, attacker_rating, is_significant_threat)
+        --std_print('ratings: ' .. pos_rating, neg_rating, is_significant_threat)
     end
 
     local status = { leader = {
@@ -194,7 +197,7 @@ function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_d
         if counter_outcomes then
             --DBG.dbms(counter_outcomes.rating_table, false, 'counter_outcomes.rating_table')
             is_protected = false
-            exposure = fred_status.unit_exposure(counter_outcomes.rating_table.defender_rating, counter_outcomes.rating_table.attacker_rating)
+            exposure = fred_status.unit_exposure(counter_outcomes.rating_table.pos_rating, counter_outcomes.rating_table.neg_rating)
         end
         status.units[id] = {
             exposure = exposure,

@@ -105,32 +105,25 @@ end
 
 local fred_attack_utils = {}
 
-function fred_attack_utils.is_acceptable_attack(damage_to_ai, damage_to_enemy, value_ratio)
-    -- Evaluate whether an attack is acceptable, based on the damage to_enemy/to_ai ratio
-    -- As an example, if value_ratio = 0.5 -> it is okay to do only half the damage
-    -- to the enemy as is received. In other words, value own units only half of
-    -- enemy units. The smaller value_ratio, the more aggressive the AI gets.
-    --
-    -- Inputs:
-    -- @damage_to_ai, @damage_to_enemy: should be in gold units as returned by fred_attack_utils.
-    --   Note, however, that attacker_rating (but not defender_rating!) is the negative of the damage!!
-    --   This could be either the attacker (for to_ai) and defender (for to_enemy) rating of a single attack (combo)
-    --   or the overall attack (for to_enemy) and counter attack rating (for to_ai)
-    -- @value_ratio (optional): value for the minimum ratio of damage to_enemy/to_ai that is acceptable
-    --   It is generally okay for the AI to take a little more damage than it deals out,
-    --   so for the most part this value should be slightly smaller than 1.
+function fred_attack_utils.is_acceptable_attack(neg_rating, pos_rating, value_ratio)
+    -- Evaluate whether an attack is acceptable, based on its negative and positive ratings.
+    -- Negative rating comes from damage to the own units and healing of the enemies.
+    -- Positive rating is the opposte.
+    -- The smaller @value_ratio, the more aggressive the AI gets.
+    -- As an example, if value_ratio = 0.5 -> it is okay for the positive rating to be
+    -- only half as big as the negative rating.
+    -- Note that @neg_rating is expected to be a negative number.
 
-    -- Otherwise it depends on whether the numbers are positive or negative
-    -- Negative damage means that one or several of the units are likely to level up
-    if (damage_to_ai < 0) and (damage_to_enemy < 0) then
-        -- Note that this is the inverse of the ratio for positive damages
-        return (damage_to_ai / damage_to_enemy) >= value_ratio
-    end
+    -- TODO: this has become so simple, that it is essentially not worth having a function for it.
+    --   Keeping it for now anyway, as we might expand it later.
 
-    if (damage_to_ai <= 0) then damage_to_ai = 0.001 end
-    if (damage_to_enemy <= 0) then damage_to_enemy = 0.001 end
+    local sum = pos_rating + neg_rating * value_ratio
 
-    return (damage_to_enemy / damage_to_ai) >= value_ratio
+    -- Note: it's important that the equal sign is included here
+    local is_acceptable = (sum >= 0)
+    --std_print(string.format('is_acceptable_attack:  %.3f %.3f * %.3f = %.3f   is >= 0?  :  %s', pos_rating, neg_rating, value_ratio, sum, tostring(is_acceptable)))
+
+    return is_acceptable
 end
 
 function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, move_data)
@@ -251,20 +244,20 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, move_data)
     --std_print('  average_damage:', average_damage)
 
     -- Now add some of the other contributions
-    damage.damage = average_damage
-    damage.die_chance = att_outcome.hp_chance[0]
+    damage.yyy_damage = average_damage
+    damage.yyy_die_chance = att_outcome.hp_chance[0]
 
-    damage.levelup_chance = att_outcome.levelup_chance
+    damage.yyy_levelup_chance = att_outcome.levelup_chance
     --std_print('  levelup_chance', damage.levelup_chance)
 
-    damage.delayed_damage = get_delayed_damage(unit_info, att_outcome, average_damage, dst, move_data)
+    damage.yyy_delayed_damage = get_delayed_damage(unit_info, att_outcome, average_damage, dst, move_data)
 
     -- Slow is somewhat harder to account for correctly. It sort of takes half the
     -- unit away, but since it's temporary, we assign only half of that as "damage".
     -- We also separate it out, as it wears off at the end of the respective side turn.
-    damage.slowed_damage = 0
+    damage.yyy_slowed_damage = 0
     if (att_outcome.slowed ~= 0) and (not unit_info.status.slowed) then
-        damage.slowed_damage = unit_info.max_hitpoints / 4 * att_outcome.slowed
+        damage.yyy_slowed_damage = unit_info.max_hitpoints / 4 * att_outcome.slowed
     end
 
     -- Finally, add some info about the unit, just for convenience
@@ -272,6 +265,8 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, move_data)
     damage.hitpoints = unit_info.hitpoints
     damage.max_hitpoints = unit_info.max_hitpoints
     damage.unit_value = FU.unit_value(unit_info)
+
+    --DBG.dbms(damage)
 
     return damage
 end
@@ -285,6 +280,20 @@ function fred_attack_utils.damage_rating_unit(damage)
     -- !!!! Note !!!!: unlike some previous versions, we count damage as negative
     -- in this rating
 
+    ----- Begin assign_ratings() -----
+    function assign_ratings(new_rating, damage_rating, heal_rating)
+        if (new_rating < 0) then
+            damage_rating = damage_rating + new_rating
+        else
+            heal_rating = heal_rating + new_rating
+        end
+        --std_print('  -> damage_rating, heal_rating', damage_rating, heal_rating, new_rating)
+
+        return damage_rating, heal_rating
+    end
+    ----- End assign_ratings() -----
+
+
     -- In principle, damage is a fraction of max_hitpoints. However, it should be
     -- more important for units already injured. Making it a fraction of hitpoints
     -- would overemphasize units close to dying, as that is also factored in. Thus,
@@ -293,29 +302,54 @@ function fred_attack_utils.damage_rating_unit(damage)
     local injured_fraction = 0.5
     local hp_eff = injured_fraction * damage.hitpoints + (1 - injured_fraction) * damage.max_hitpoints
 
-    local fractional_damage = (damage.damage + damage.delayed_damage + damage.slowed_damage) / hp_eff
+    -- damage and delayed_damage can be both positive and negative
+    -- slowed_damage and die_chance are always negative
+    -- levelup_chance is always positive
+    -- TODO: we do not currently split into positive and negative contributions WITHIN each type
+
+    --std_print(damage.id)
+
+    local damage_rating, heal_rating = 0, 0
+
+    local fractional_damage = damage.yyy_damage / hp_eff
     local fractional_rating = - FU.weight_s(fractional_damage, 0.67)
     --std_print('  fractional_damage, fractional_rating:', fractional_damage, fractional_rating)
+    damage_rating, heal_rating = assign_ratings(fractional_rating, damage_rating, heal_rating)
+
+    local fractional_delayed_damage = damage.yyy_delayed_damage / hp_eff
+    local fractional_delayed_rating = - FU.weight_s(fractional_delayed_damage, 0.67)
+    --std_print('  fractional_delayed_damage, fractional_delayed_rating:', fractional_delayed_damage, fractional_delayed_rating)
+    damage_rating, heal_rating = assign_ratings(fractional_delayed_rating, damage_rating, heal_rating)
+
+    local fractional_slowed_damage = damage.yyy_slowed_damage / hp_eff
+    local fractional_slowed_rating = - FU.weight_s(fractional_slowed_damage, 0.67)
+    --std_print('  fractional_slowed_damage, fractional_slowed_rating:', fractional_slowed_damage, fractional_slowed_rating)
+    damage_rating = damage_rating + fractional_slowed_rating
+    --std_print('  -> damage_rating, heal_rating', damage_rating, heal_rating, fractional_slowed_rating)
 
     -- Additionally, add the chance to die, in order to emphasize units that might die
     -- This might result in fractional_damage > 1 in some cases, although usually not by much
     -- TODO: potentially balance this vs. damage rating, to limit it to not much more than 1
-    local ctd_rating = - 1.5 * damage.die_chance^1.5
-    fractional_rating = fractional_rating + ctd_rating
-    --std_print('  ctd, ctd_rating, fractional_rating:', damage.die_chance, ctd_rating, fractional_rating)
+    local ctd_rating = - 1.5 * damage.yyy_die_chance^1.5
+    --std_print('  ctd, ctd_rating:', damage.yyy_die_chance, ctd_rating)
+    damage_rating = damage_rating + ctd_rating
+    --std_print('  -> damage_rating, heal_rating', damage_rating, heal_rating, ctd_rating)
 
     -- Levelup chance: we use square rating here, as opposed to S-curve rating
     -- for the other contributions
     -- TODO: does that make sense?
-    local lu_rating = damage.levelup_chance^2
-    fractional_rating = fractional_rating + lu_rating
-    --std_print('  lu_chance, lu_rating, fractional_rating:', damage.levelup_chance, lu_rating, fractional_rating)
+    local lu_rating = damage.yyy_levelup_chance^2
+    --std_print('  lu_chance, lu_rating:', damage.yyy_levelup_chance, lu_rating)
+    heal_rating = heal_rating + lu_rating
+    --std_print('  -> damage_rating, heal_rating', damage_rating, heal_rating, lu_rating)
 
     -- Convert all the fractional ratings before to one in "gold units"
-    local rating = fractional_rating * damage.unit_value
-    --std_print('  unit_value, rating:', damage.unit_value, rating)
+    damage_rating = damage_rating * damage.unit_value
+    heal_rating = heal_rating * damage.unit_value
 
-    return rating
+    --std_print('  unit_value, ratings:', damage.unit_value, damage_rating, heal_rating)
+
+    return nil, damage_rating, heal_rating -- TODO: eventually clean this up
 end
 
 function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, att_outcomes, def_outcome, cfg, move_data)
@@ -357,10 +391,14 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     if (not value_ratio) then error('No value_ratio passed to fred_attack_utils.attack_rating()') end
 
     local attacker_damages = {}
-    local attacker_rating = 0
+    --local attacker_rating = 0
+    local neg_rating, pos_rating = 0, 0
     for i,attacker_info in ipairs(attacker_infos) do
         attacker_damages[i] = fred_attack_utils.unit_damage(attacker_info, att_outcomes[i], dsts[i], move_data)
-        attacker_rating = attacker_rating + fred_attack_utils.damage_rating_unit(attacker_damages[i])
+        local _, anr, apr = fred_attack_utils.damage_rating_unit(attacker_damages[i])
+        neg_rating = neg_rating + anr
+        pos_rating = pos_rating + apr
+        --std_print(attacker_info.id, neg_rating, pos_rating, anr, apr)
     end
 
     local defender_x, defender_y
@@ -371,7 +409,10 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     end
     local defender_damage = fred_attack_utils.unit_damage(defender_info, def_outcome, { defender_x, defender_y }, move_data)
     -- Rating for the defender is negative damage rating (as in, damage is good)
-    local defender_rating = - fred_attack_utils.damage_rating_unit(defender_damage)
+    local _, dnr, dpr = fred_attack_utils.damage_rating_unit(defender_damage)
+    neg_rating = neg_rating - dpr -- minus sign and p/n switched
+    pos_rating = pos_rating - dnr
+    --std_print(defender_info.id, neg_rating, pos_rating, dnr, dpr)
 
 
     -- Bonus for turning enemy into walking corpse with plague.
@@ -391,8 +432,8 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
                 local plague_bonus = 8 * ctk
 
                 -- Converting the defender is positive rating for attacker side (new WC)
-                --std_print('  applying attacker plague bonus', plague_bonus, ctk)
-                attacker_rating = attacker_rating + plague_bonus
+                pos_rating = pos_rating + plague_bonus
+                --std_print('  applying attacker plague bonus', pos_rating, plague_bonus, ctk)
 
                 break
             end
@@ -407,8 +448,8 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
                 local plague_penalty = 8 * ctk
 
                 -- Converting the attacker is (negative) contribution to the defender rating
-                --std_print('  applying attacker #' .. i .. ' plague plague_penalty', plague_penalty, ctk)
-                defender_rating = defender_rating - plague_penalty
+                neg_rating = neg_rating - plague_penalty
+                --std_print('  applying attacker #' .. i .. ' plague plague_penalty', neg_rating, plague_penalty, ctk)
             end
 
             break
@@ -486,32 +527,38 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
             extra_rating = extra_rating - occupied_hex_penalty
         end
     end
+    --std_print('extra_rating', extra_rating)
 
     -- Finally add up and apply factor of own unit damage to defender unit damage
     -- This is a number equivalent to 'aggression' in the default AI (but not numerically equal)
     -- TODO: clean up this code block; for the time being, I want it to crash is something's wrong
-    local attacker_weight, defender_weight
+    local pos_weight, neg_weight
     if (attacker_infos[1].side == wesnoth.current.side) then
-        attacker_weight = value_ratio
-        defender_weight = 1
+        neg_weight = value_ratio
+        pos_weight = 1
     end
     if (defender_info.side == wesnoth.current.side) then
-        attacker_weight = 1
-        defender_weight = value_ratio
+        neg_weight = 1
+        pos_weight = value_ratio
     end
+    --std_print('neg_weight, pos_weight', neg_weight, pos_weight)
 
-    local rating = defender_rating * defender_weight + attacker_rating * attacker_weight + extra_rating
+    local rating = neg_rating * neg_weight + pos_rating * pos_weight + extra_rating
 
-    --std_print('rating, attacker_rating, defender_rating, extra_rating:', rating, attacker_rating, defender_rating, extra_rating)
+    --std_print('rating, neg_rating, pos_rating, extra_rating:', rating, neg_rating, pos_rating, extra_rating)
 
     -- The overall ratings take the value_ratio into account, the attacker and
     -- defender tables do not
     local rating_table = {
-        rating = rating,
-        attacker_rating = attacker_rating,
-        defender_rating = defender_rating,
+        yyy_rating = rating,
+        --attacker_rating = attacker_rating,
+        --defender_rating = defender_rating,
+        neg_rating = neg_rating,
+        pos_rating = pos_rating,
         extra_rating = extra_rating,
-        value_ratio = value_ratio
+        neg_weight = neg_weight,
+        pos_weight = pos_weight
+        --value_ratio = value_ratio
     }
     --DBG.dbms(rating_table, false, 'rating_table')
 
@@ -984,7 +1031,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
     -- That's an approximation of the best order, everything else is too expensive
     -- TODO: reconsider whether total rating is what we want here
     -- TODO: find a better way of ordering the attacks?
-    table.sort(ratings, function(a, b) return a[2].rating > b[2].rating end)
+    table.sort(ratings, function(a, b) return a[2].yyy_rating > b[2].yyy_rating end)
 
     -- Reorder attackers, dsts in this order
     local attacker_copies, attacker_infos, att_weapons_i, dsts = {}, {}, {}, {}
@@ -1002,7 +1049,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
     -- Only keep the outcomes/ratings for the first attacker, the rest needs to be recalculated
     local att_outcomes, def_outcomes, rating_progression = {}, {}, {}
     att_outcomes[1], def_outcomes[1] = tmp_att_outcomes[ratings[1][1]], tmp_def_outcomes[ratings[1][1]]
-    rating_progression[1] = ratings[1][2].rating
+    rating_progression[1] = ratings[1][2].yyy_rating
 
     tmp_att_outcomes, tmp_def_outcomes, ratings = nil, nil, nil
 
@@ -1192,7 +1239,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
             tmp_ai, defender_info, tmp_dsts,
             tmp_as, def_outcomes[i], cfg, move_data
         )
-        rating_progression[i] = rating_table.rating
+        rating_progression[i] = rating_table.yyy_rating
     end
 
 
@@ -1291,7 +1338,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, cfg, reach_map
                     )
 
                     -- It's okay to use the full rating here, rather than just damage_rating
-                    rating = rating_table.rating
+                    rating = rating_table.yyy_rating
                     --std_print(xa, ya, attacker_id, rating, rating_table.attacker_rating, rating_table.defender_rating, rating_table.extra_rating)
                 end
 

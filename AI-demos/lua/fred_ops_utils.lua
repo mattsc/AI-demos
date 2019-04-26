@@ -849,12 +849,12 @@ function fred_ops_utils.set_ops_data(fred_data)
                 local _, enemy_base_damage, enemy_extra_damage, enemy_regen_damage
                     = FAU.get_total_damage_attack(enemy_weapon, enemy_attack, false, move_data.unit_infos[my_id])
 
-                if (rating_table.rating > max_rating) then
-                    max_rating = rating_table.rating
+                if (rating_table.yyy_rating > max_rating) then
+                    max_rating = rating_table.yyy_rating
                     tmp_attacks = {
                         my_regen = - enemy_regen_damage, -- not that this is (must be) backwards as this is
                         enemy_regen = - my_regen_damage, -- regeneration "damage" to the _opponent_
-                        rating_forward = rating_table.rating,
+                        rating_forward = rating_table.yyy_rating,
                         damage_forward = {
                             base_done = my_base_damage,
                             base_taken = enemy_base_damage,
@@ -889,9 +889,9 @@ function fred_ops_utils.set_ops_data(fred_data)
                 local _, my_base_damage, my_extra_damage, _
                     = FAU.get_total_damage_attack(my_weapon, my_attack, false, move_data.unit_infos[enemy_id])
 
-                if (rating_table_counter.rating > max_rating_counter) then
-                    max_rating_counter = rating_table_counter.rating
-                    tmp_attacks.rating_counter = rating_table_counter.rating
+                if (rating_table_counter.yyy_rating > max_rating_counter) then
+                    max_rating_counter = rating_table_counter.yyy_rating
+                    tmp_attacks.rating_counter = rating_table_counter.yyy_rating
                     tmp_attacks.damage_counter = {
                         base_done = my_base_damage,
                         base_taken = enemy_base_damage,

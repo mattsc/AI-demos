@@ -130,7 +130,7 @@ function fred_village_utils.village_grabs(villages_to_grab, reserved_actions, in
                 if counter_outcomes then
                     local average_hp = counter_outcomes.def_outcome.average_hp
                     die_chance = counter_outcomes.def_outcome.hp_chance[0]
-                    counter_rating = counter_outcomes.rating_table.rating
+                    counter_rating = counter_outcomes.rating_table.yyy_rating
                     --std_print('  -> ' .. average_hp, die_chance)
 
                     if move_data.unit_infos[id].canrecruit then

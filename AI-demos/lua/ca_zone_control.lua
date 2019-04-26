@@ -115,7 +115,7 @@ local function get_attack_action(zone_cfg, fred_data)
             -- all types of damage, extra rating, etc. While this is not accurate for
             -- the state at the end of the attack, it gives a good overall rating
             -- for the attacker/defender pairings involved.
-            local combo_rating = combo_outcome.rating_table.rating
+            local combo_rating = combo_outcome.rating_table.yyy_rating
 
             -- Penalty for units and/or hexes planned to be used otherwise
             local penalty_rating, penalty_str = 0, ''
@@ -141,7 +141,7 @@ local function get_attack_action(zone_cfg, fred_data)
             local bonus_rating = 0
 
             --DBG.dbms(combo_outcome.rating_table, false, 'combo_outcome.rating_table')
-            --std_print('   combo ratings: ', combo_outcome.rating_table.rating, combo_outcome.rating_table.attacker.rating, combo_outcome.rating_table.defender.rating)
+            --std_print('   combo ratings: ', combo_outcome.rating_table.yyy_rating, combo_outcome.rating_table.attacker.rating, combo_outcome.rating_table.defender.rating)
 
 
             local do_attack = true
@@ -548,7 +548,7 @@ local function get_attack_action(zone_cfg, fred_data)
 
     for count,combo in ipairs(combo_ratings) do
         if (count > 50) and action then break end
-        DBG.print_debug('attack_print_output', '\nChecking counter attack for attack on', count, next(combo.target), combo.rating_table.value_ratio, combo.rating_table.rating, action)
+        DBG.print_debug('attack_print_output', '\nChecking counter attack for attack on', count, next(combo.target), zone_cfg.value_ratio, combo.rating_table.yyy_rating, action)
 
         -- Check whether an position in this combo was previously disqualified
         -- Only do so for large numbers of combos though; there is a small
@@ -660,11 +660,11 @@ local function get_attack_action(zone_cfg, fred_data)
             local target_id, target_loc = next(combo.target)
             local target_proxy = wesnoth.get_unit(target_loc[1], target_loc[2])
             local old_HP_target = target_proxy.hitpoints
-            local hp_org = old_HP_target - combo.defender_damage.damage
+            local hp_org = old_HP_target - combo.defender_damage.yyy_damage
 
             -- As the counter attack happens on the enemy's side next turn,
             -- delayed damage also needs to be applied
-            hp = H.round(hp_org - combo.defender_damage.delayed_damage)
+            hp = H.round(hp_org - combo.defender_damage.yyy_delayed_damage)
 
             if (hp < 1) then hp = math.min(1, H.round(hp_org)) end
             --std_print('target hp before, after:', old_HP_target, hp_org, hp)
@@ -860,25 +860,25 @@ local function get_attack_action(zone_cfg, fred_data)
                         -- Unchanged: unit_value, max_hitpoints, id
 
                         --  damage: just add up the two
-                        dam.damage = dam1.damage + dam2.damage
-                        --std_print('  damage:', dam1.damage, dam2.damage, dam.damage)
+                        dam.yyy_damage = dam1.yyy_damage + dam2.yyy_damage
+                        --std_print('  damage:', dam1.yyy_damage, dam2.yyy_damage, dam.yyy_damage)
 
-                        local normal_damage_chance1 = 1 - dam1.die_chance - dam1.levelup_chance
-                        local normal_damage_chance2 = 1 - dam2.die_chance - dam2.levelup_chance
+                        local normal_damage_chance1 = 1 - dam1.yyy_die_chance - dam1.yyy_levelup_chance
+                        local normal_damage_chance2 = 1 - dam2.yyy_die_chance - dam2.yyy_levelup_chance
                         --std_print('  normal_damage_chance (1, 2)', normal_damage_chance1,normal_damage_chance2)
 
                         --  - delayed_damage: only take that from the counter attack
                         --  TODO: this might underestimate poison etc.
-                        dam.delayed_damage = dam2.delayed_damage
-                        --std_print('  delayed_damage:', dam1.delayed_damage, dam2.delayed_damage, dam.delayed_damage)
+                        dam.yyy_delayed_damage = dam2.yyy_delayed_damage
+                        --std_print('  delayed_damage:', dam1.yyy_delayed_damage, dam2.yyy_delayed_damage, dam.yyy_delayed_damage)
 
                         --  - die_chance
-                        dam.die_chance = dam1.die_chance + dam2.die_chance * normal_damage_chance1
-                        --std_print('  die_chance:', dam1.die_chance, dam2.die_chance, dam.die_chance)
+                        dam.yyy_die_chance = dam1.yyy_die_chance + dam2.yyy_die_chance * normal_damage_chance1
+                        --std_print('  die_chance:', dam1.yyy_die_chance, dam2.yyy_die_chance, dam.yyy_die_chance)
 
                         --  - levelup_chance
-                        dam.levelup_chance = dam1.levelup_chance + dam2.levelup_chance * normal_damage_chance1
-                        --std_print('  levelup_chance:', dam1.levelup_chance, dam2.levelup_chance, dam.levelup_chance)
+                        dam.yyy_levelup_chance = dam1.yyy_levelup_chance + dam2.yyy_levelup_chance * normal_damage_chance1
+                        --std_print('  levelup_chance:', dam1.yyy_levelup_chance, dam2.yyy_levelup_chance, dam.yyy_levelup_chance)
                     end
 
                     damages_my_units[i_d] = dam
@@ -921,30 +921,30 @@ local function get_attack_action(zone_cfg, fred_data)
                             -- when the CTD is high, so that the evaluation does not overrate
                             -- enemy units close to dying.
                             -- TODO: this is currently only done for the enemy rating, not the
-                            -- AI unit rating. It might result in the AI being to timid.
-                            local survival_weight = FU.weight_s(1 - dam2.die_chance, 0.75)
-                            --std_print('  survival_weight, counter die chance', survival_weight, dam2.die_chance)
+                            -- AI unit rating. It might result in the AI being too timid.
+                            local survival_weight = FU.weight_s(1 - dam2.yyy_die_chance, 0.75)
+                            --std_print('  survival_weight, counter die chance', survival_weight, dam2.yyy_die_chance)
 
                             --  damage: just add up the two
-                            dam.damage = dam1.damage + dam2.damage * survival_weight
+                            dam.yyy_damage = dam1.yyy_damage + dam2.yyy_damage * survival_weight
                             --std_print('  damage:', dam1.damage, dam2.damage, dam.damage)
 
-                            local normal_damage_chance1 = 1 - dam1.die_chance - dam1.levelup_chance
-                            local normal_damage_chance2 = 1 - dam2.die_chance - dam2.levelup_chance
+                            local normal_damage_chance1 = 1 - dam1.yyy_die_chance - dam1.yyy_levelup_chance
+                            local normal_damage_chance2 = 1 - dam2.yyy_die_chance - dam2.yyy_levelup_chance
                             --std_print('  normal_damage_chance (1, 2)', normal_damage_chance1,normal_damage_chance2)
 
                             --  - delayed_damage: only take that from the forward attack
                             --  TODO: this might underestimate poison etc.
-                            dam.delayed_damage = dam1.delayed_damage
-                            --std_print('  delayed_damage:', dam1.delayed_damage, dam2.delayed_damage, dam.delayed_damage)
+                            dam.yyy_delayed_damage = dam1.yyy_delayed_damage
+                            --std_print('  delayed_damage:', dam1.yyy_delayed_damage, dam2.yyy_delayed_damage, dam.yyy_delayed_damage)
 
                             --  - die_chance
-                            dam.die_chance = dam1.die_chance + dam2.die_chance * normal_damage_chance1 * survival_weight
-                            --std_print('  die_chance:', dam1.die_chance, dam2.die_chance, dam.die_chance)
+                            dam.yyy_die_chance = dam1.yyy_die_chance + dam2.yyy_die_chance * normal_damage_chance1 * survival_weight
+                            --std_print('  die_chance:', dam1.yyy_die_chance, dam2.yyy_die_chance, dam.yyy_die_chance)
 
                             --  - levelup_chance
-                            dam.levelup_chance = dam1.levelup_chance + dam2.levelup_chance * normal_damage_chance1 * survival_weight
-                            --std_print('  levelup_chance:', dam1.levelup_chance, dam2.levelup_chance, dam.levelup_chance)
+                            dam.yyy_levelup_chance = dam1.yyy_levelup_chance + dam2.yyy_levelup_chance * normal_damage_chance1 * survival_weight
+                            --std_print('  levelup_chance:', dam1.yyy_levelup_chance, dam2.levelup_chance, dam.yyy_yyy_levelup_chance)
                         end
 
                         damages_enemy_units[i_d] = dam
@@ -961,33 +961,34 @@ local function get_attack_action(zone_cfg, fred_data)
                 --DBG.dbms(combo, false, 'combo')
 
                 --std_print('\nratings my units:')
-                local my_rating = 0
+                local neg_rating, pos_rating = 0, 0
                 for _,damage in ipairs(damages_my_units) do
-                    local unit_rating = FAU.damage_rating_unit(damage)
-                    my_rating = my_rating + unit_rating
-                    --std_print('  ' .. damage.id, unit_rating)
+                    local _, nr, pr = FAU.damage_rating_unit(damage)
+                    --std_print('  ' .. damage.id, nr, pr)
+                    neg_rating = neg_rating + nr
+                    pos_rating = pos_rating + pr
                 end
-                DBG.print_debug('attack_print_output', '    --> total my unit rating:', my_rating)
+                DBG.print_debug('attack_print_output', '    --> total my unit ratings:', neg_rating, pos_rating)
 
 
                 --std_print('ratings enemy units:')
-                local enemy_rating = 0
                 for _,damage in ipairs(damages_enemy_units) do
-                    -- Enemy damage rating is negative!
-                    local unit_rating = - FAU.damage_rating_unit(damage)
-                    enemy_rating = enemy_rating + unit_rating
-                    --std_print('  ' .. damage.id, unit_rating)
+                    -- Enemy damage rating needs to be negative, and neg/pos switched
+                    local _, nr, pr = FAU.damage_rating_unit(damage)
+                    --std_print('  ' .. damage.id, nr, pr)
+                    neg_rating = neg_rating - pr
+                    pos_rating = pos_rating - nr
                 end
-                DBG.print_debug('attack_print_output', '    --> total enemy unit rating:', enemy_rating)
+                DBG.print_debug('attack_print_output', '    --> total enemy unit rating:', neg_rating, pos_rating)
 
                 local extra_rating = combo.rating_table.extra_rating
                 DBG.print_debug('attack_print_output', '    --> extra rating:', extra_rating)
                 DBG.print_debug('attack_print_output', '    --> bonus rating:', combo.bonus_rating)
 
-                local value_ratio = combo.rating_table.value_ratio
+                local value_ratio = zone_cfg.value_ratio
                 DBG.print_debug('attack_print_output', '    --> value_ratio:', value_ratio)
 
-                local damage_rating = my_rating * value_ratio + enemy_rating
+                local damage_rating = neg_rating * value_ratio + pos_rating
 
                 -- Also add in the bonus and extra ratings. They are
                 -- used to select the best attack, but not to determine
@@ -1088,8 +1089,8 @@ local function get_attack_action(zone_cfg, fred_data)
                     else  -- Or for normal units, evaluate whether the attack is worth it
                         -- is_acceptable_attack takes the damage to the side, so it needs
                         -- to be the negative of the rating for own units
-                        if (not FAU.is_acceptable_attack(-my_rating, enemy_rating, value_ratio)) then
-                            DBG.print_debug('attack_print_output', '    non-leader: counter attack rating too low', my_rating, enemy_rating, value_ratio)
+                        if (not FAU.is_acceptable_attack(neg_rating, pos_rating, value_ratio)) then
+                            DBG.print_debug('attack_print_output', '    non-leader: counter attack rating too low', pos_rating, neg_rating, value_ratio)
                             acceptable_counter = false
                             FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
                             break
@@ -1227,18 +1228,18 @@ local function get_attack_action(zone_cfg, fred_data)
                         )
                         --DBG.dbms(counter_outcomes, false, 'counter_outcomes')
 
-                        --DBG.print_ts_delta(fred_data.turn_start_time, '   counter ratings no attack:', counter_outcomes.rating_table.rating, counter_outcomes.def_outcome.hp_chance[0])
+                        --DBG.print_ts_delta(fred_data.turn_start_time, '   counter ratings no attack:', counter_outcomes.rating_table.yyy_rating, counter_outcomes.def_outcome.hp_chance[0])
 
                         -- Rating if no forward attack is done is done is only the counter attack rating
                         local no_attack_rating = 0
                         if counter_outcomes then
-                            no_attack_rating = no_attack_rating - counter_outcomes.rating_table.rating
+                            no_attack_rating = no_attack_rating - counter_outcomes.rating_table.yyy_rating
                         end
                         -- If an attack is done, it's the combined forward and counter attack rating
                         local with_attack_rating = min_total_damage_rating
 
-                        --std_print('    V1: no attack rating: ', no_attack_rating, '<---', 0, -counter_outcomes.rating_table.rating)
-                        --std_print('    V2: with attack rating:', with_attack_rating, '<---', combo.rating_table.rating, min_total_damage_rating)
+                        --std_print('    V1: no attack rating: ', no_attack_rating, '<---', 0, -counter_outcomes.rating_table.yyy_rating)
+                        --std_print('    V2: with attack rating:', with_attack_rating, '<---', combo.rating_table.yyy_rating, min_total_damage_rating)
 
                         if (with_attack_rating < no_attack_rating) then
                             acceptable_counter = false
@@ -1270,7 +1271,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 total_rating = total_rating + unit_protect_bonus * unit_protect_weight
 
                 DBG.print_debug('attack_print_output', '  Penalty rating:', combo.penalty_rating, combo.penalty_str)
-                DBG.print_debug('attack_print_output', '  Acceptable counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating_table.rating)
+                DBG.print_debug('attack_print_output', '  Acceptable counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating_table.yyy_rating)
                 DBG.print_debug('attack_print_output', '  leader protect penalty        ', leader_protect_penalty .. ' * ' .. leader_protect_weight)
                 DBG.print_debug('attack_print_output', '  castle, village and unit protect bonus', castle_protect_bonus .. ' * ' .. castle_protect_weight, village_protect_bonus .. ' * ' .. village_protect_weight, unit_protect_bonus .. ' * ' .. unit_protect_weight)
                 DBG.print_debug('attack_print_output', '    --> total_rating', total_rating)
@@ -2699,7 +2700,7 @@ local function get_advance_action(zone_cfg, fred_data)
 
                     if counter_outcomes then
                         -- This is the standard attack rating (roughly) in units of cost (gold)
-                        local counter_rating = - counter_outcomes.rating_table.rating
+                        local counter_rating = - counter_outcomes.rating_table.yyy_rating
 
                         -- The die chance is already included in the rating, but we
                         -- want it to be even more important here (and very non-linear)
@@ -2835,8 +2836,8 @@ local function get_advance_action(zone_cfg, fred_data)
                             end
                         end
 
-                        if do_attack and ((not max_attack_rating) or (combo_outcome.rating_table.rating > max_attack_rating)) then
-                            max_attack_rating = combo_outcome.rating_table.rating
+                        if do_attack and ((not max_attack_rating) or (combo_outcome.rating_table.yyy_rating > max_attack_rating)) then
+                            max_attack_rating = combo_outcome.rating_table.yyy_rating
                             best_attacker_id = id
                             local _, dst = next(combo)
                             best_attack_hex = { math.floor(dst / 1000), dst % 1000 }
@@ -3367,7 +3368,7 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
                     FAU.attack_rating({ unit_info }, defender_info, { fred_data.zone_action.dsts[ind] }, { att_outcome }, def_outcome, cfg_attack, fred_data.move_data)
 
                 -- The base rating is the individual attack rating
-                local rating = rating_table.rating
+                local rating = rating_table.yyy_rating
                 --std_print('  base_rating ' .. unit_info.id, rating)
 
                 -- If the target can die, we might want to reorder, in order
