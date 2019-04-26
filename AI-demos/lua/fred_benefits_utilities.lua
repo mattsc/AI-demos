@@ -531,8 +531,12 @@ function utility_functions.action_penalty(actions, reserved_actions, interaction
                     recruit_penalty = - reserved_action.benefit[castles_needed]
                 -- Otherwise, if there are not enough castles, it's the missed-out-on benefit
                 elseif (available_castles < castles_needed) then
-                    --std_print('not enough castles')
-                    recruit_penalty = reserved_action.benefit[available_castles] - reserved_action.benefit[castles_needed]
+                    if (available_castles > 0) then
+                        recruit_penalty = reserved_action.benefit[available_castles] - reserved_action.benefit[castles_needed]
+                    else
+                        recruit_penalty = - reserved_action.benefit[castles_needed]
+                    end
+                    --std_print('not enough castles', recruit_penalty, available_castles, castles_needed)
                 end
 
                 --std_print('--> recruit_penalty: ' .. recruit_penalty)
