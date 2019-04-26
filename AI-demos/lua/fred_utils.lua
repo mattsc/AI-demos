@@ -963,7 +963,10 @@ function fred_utils.get_unit_hex_combos(dst_src, get_best_combo, add_rating)
                 combo[ds.src] = dst_src[hex].dst
 
                 if get_best_combo or add_rating then
-                    if (count > 1000) then break end
+                    if (count > 1000) then
+                        combo[ds.src] = nil
+                        break
+                    end
                     rating = rating + ds.rating  -- Rating is simply the sum of the individual ratings
                 end
 
