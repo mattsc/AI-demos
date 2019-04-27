@@ -1138,6 +1138,18 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
             end
         end
 
+        -- This could be done to reduce the size of the hp_chance table, and thus the
+        -- calculation time for multi-attacker combat. However, tests show that this
+        -- really only makes a difference in rare-ish cases, and it has the disadvantage
+        -- that hp_chances don't add up to 1 any more then (they could be re-normalized,
+        -- of course). So, commenting this out for now, but leaving it for future reference.
+        --DBG.dbms(def_outcomes[i].hp_chance)
+        --for hp,chance in pairs(def_outcomes[i].hp_chance) do
+        --    if (chance < 0.001) and (hp ~= defender_info.hitpoints) and (hp ~= 0) then
+        --        def_outcomes[i].hp_chance[hp] = nil
+        --    end
+        --end
+
 
         -- The HP distribution after leveling
         if (def_outcomes[i-1].levelup_chance > 0) then
