@@ -1142,39 +1142,63 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
         -- The HP distribution after leveling
         if (def_outcomes[i-1].levelup_chance > 0) then
             for hp1,chance1 in pairs(def_outcomes[i-1].levelup.hp_chance) do -- Note: need pairs(), not ipairs() !!
-                --std_print('  leveled: ', hp1,chance1)
+                --std_print('  leveled: ', defender_info.id, defender_loc[1] .. ',' .. defender_loc[2], hp1, chance1)
 
                 if (hp1 == 0) then
                     -- levelup.hp_chance should never contain a HP=0 entry, as those are
                     -- put directely into hp_chance at the top level
                     std_print('***** error: HP = 0 in levelup outcomes entcountered *****')
                 else
-                    -- We create an entirely new unit in this case, replacing the
-                    -- original defender_proxy by one of the correct advanced type
-                    wesnoth.extract_unit(defender_proxy)
+                    -- This is not as efficient for accessing the tables as the method used
+                    -- for caching normal outcomes, but it is more convenient and is needed
+                    -- much less often, so this is good enough for now.
+                    local def_str = string.format('%s-%d-%d-%d', defender_info.id, defender_loc[1], defender_loc[2], hp1)
+                    local att_str = string.format('%s-%d-%d-%d', attacker_infos[i].id, dsts[i][1], dsts[i][2], attacker_infos[i].hitpoints)
+                    --std_print(def_str, att_str)
 
-                    -- Setting XP to 0, as it is extremely unlikely that a
-                    -- defender will level twice in a single attack combo
-                    wesnoth.put_unit({
-                        id = 'adv_' .. defender_info.id,  -- To distinguish from defender for caching
-                        side = defender_info.side,
-                        hitpoints = hp1,
-                        type = def_outcomes[i-1].levelup.type,
-                        random_traits = false,  -- The rest is needed to avoid OOS errors
-                        name = "X",
-                        random_gender = false
-                    }, defender_loc[1], defender_loc[2])
-                    local adv_defender_proxy = wesnoth.get_unit(defender_loc[1], defender_loc[2])
-                    local adv_defender_info = FU.single_unit_info(adv_defender_proxy)
+                    local lu_outcomes = move_cache.levelup
+                        and move_cache.levelup[def_str]
+                        and move_cache.levelup[def_str][att_str]
+                    if (not lu_outcomes) then
+                        -- We create an entirely new unit in this case, replacing the
+                        -- original defender_proxy by one of the correct advanced type
+                        wesnoth.extract_unit(defender_proxy)
 
-                    local aoc, doc = fred_attack_utils.attack_outcome(
-                        attacker_copies[i], adv_defender_proxy, dsts[i],
-                        attacker_infos[i], adv_defender_info,
-                        move_data, move_cache
-                    )
+                        -- Setting XP to 0, as it is extremely unlikely that a
+                        -- defender will level twice in a single attack combo
+                        wesnoth.put_unit({
+                            id = 'adv_' .. defender_info.id,  -- To distinguish from defender for caching
+                            side = defender_info.side,
+                            hitpoints = hp1,
+                            type = def_outcomes[i-1].levelup.type,
+                            random_traits = false,  -- The rest is needed to avoid OOS errors
+                            name = "X",
+                            random_gender = false
+                        }, defender_loc[1], defender_loc[2])
+                        local adv_defender_proxy = wesnoth.get_unit(defender_loc[1], defender_loc[2])
+                        local adv_defender_info = FU.single_unit_info(adv_defender_proxy)
 
-                    wesnoth.erase_unit(defender_loc[1], defender_loc[2])
-                    wesnoth.put_unit(defender_proxy)
+                        local aoc, doc = fred_attack_utils.attack_outcome(
+                            attacker_copies[i], adv_defender_proxy, dsts[i],
+                            attacker_infos[i], adv_defender_info,
+                            move_data, move_cache
+                        )
+
+                        wesnoth.erase_unit(defender_loc[1], defender_loc[2])
+                        wesnoth.put_unit(defender_proxy)
+
+                        lu_outcomes = { aoc = aoc, doc = doc}
+
+                        if (not move_cache.levelup) then
+                            move_cache.levelup = {}
+                        end
+                        if (not move_cache.levelup[def_str]) then
+                            move_cache.levelup[def_str] = {}
+                        end
+                        if (not move_cache.levelup[def_str][att_str]) then
+                            move_cache.levelup[def_str][att_str] = lu_outcomes
+                        end
+                    end
 
                     -- Attacker outcomes are the same as for the not leveled-up case, since an attacker
                     -- only does one fight -> everything goes into its base-level rating table
@@ -1182,7 +1206,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
                     -- except for the HP=0 case, which always goes into the base hp_chance directly.
                     combine_outcomes(
                         hp1, chance1,
-                        aoc, doc, att_outcomes[i], def_outcomes[i].levelup, def_outcomes[i],
+                        lu_outcomes.aoc, lu_outcomes.doc, att_outcomes[i], def_outcomes[i].levelup, def_outcomes[i],
                         def_poisoned.levelup, def_slowed.levelup, old_def_poisoned.levelup, old_def_slowed.levelup
                     )
                     if def_outcomes[i].levelup.hp_chance[0] then
