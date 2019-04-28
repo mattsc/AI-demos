@@ -31,11 +31,11 @@ if (not wesnoth.game_config.debug) then
 end
 
 -- Add shortcut to debug ai table
-ai = wesnoth.debug_ai(wesnoth.current.side).ai
+local ai = wesnoth.debug_ai(wesnoth.current.side).ai
 --DBG.dbms(ai, false, 'ai')
 
-local fn = "~add-ons/AI-demos/lua/fred.lua"
-fn = "ai/micro_ais/cas/ca_fast_move.lua"
+local fn_fred = "~add-ons/AI-demos/lua/fred.lua"
+local fn = "ai/micro_ais/cas/ca_fast_move.lua"
 local self = { data = {} }
 local cfg = {}
 
@@ -44,7 +44,8 @@ local cfg = {}
 local test_CA, exec_also, exec_loop = true, false, false
 
 if test_CA then  -- Test a specific CA ...
-    cfg = { ca_score = 300000 }
+    --local cfg = { ca_score = 300000 }
+    local cfg = { ca_score = 300000, target_id='Bad Orc', { "filter", { type = 'Orcish Grunt' } } }
 
     eval = 1
 
@@ -71,25 +72,30 @@ if test_CA then  -- Test a specific CA ...
     end
 
 else  -- ... or do manual testing
-    -- To initialize "old-style" AIs that do not use external CAs yet
-    --local fred = wesnoth.dofile(fn).init()
-    --fred.data = {}
-    --fred:reset_vars_move_eval()  -- sets fred.data.move_data and fred.data.move_cache
-    --DBG.dbms(fred, false, 'fred')
+    -- Set up Fred's variables
+    local move_data = FGU.get_move_data()
+    local move_cache = {}
+    --for k,_ in pairs(move_data) do
+    --    std_print(k)
+    --end
+
 
     local leader = wesnoth.get_units { side = 1, canrecruit = 'yes' }[1]
     local units = wesnoth.get_units { side = 1, canrecruit = 'no' }
     local enemies = wesnoth.get_units { side = 2, canrecruit = 'no' }
-    std_print(#units, #enemies)
+    std_print('#units, #enemies', #units, #enemies)
     local unit = units[1]
     local enemy = enemies[1]
 
-    local start_time = wesnoth.get_time_stamp() / 1000.
+    local start_time = wesnoth.get_time_stamp()
     wesnoth.message('Start time:', start_time)
+    std_print('Start time:', start_time)
 
-    ------- Do something with the units here -------
+    ------- Begin: Do something with the units here -------
 
-    local end_time = wesnoth.get_time_stamp() / 1000.
+
+
+    local end_time = wesnoth.get_time_stamp()
     wesnoth.message('Finish time:', end_time .. '  ' .. tostring(end_time - start_time))
     std_print('Finish time:', end_time .. '  ' .. tostring(end_time - start_time))
 end
