@@ -366,22 +366,29 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigne
     local leader = move_data.leaders[wesnoth.current.side]
     local leader_info = move_data.unit_infos[leader.id]
     local leader_proxy = wesnoth.get_unit(leader[1], leader[2])
+    local leader_pos = leader_objectives.final
 
-    -- Threats are all enemies that can attack the castle (whether or not we go there)
-    -- and the village (if we go there)
+    -- Threats are all enemies which can attack the final leader position
+    -- (ignoring AI units, this using enemy_initial_reach_maps)
     local leader_threats = { enemies = {}, zones = {} }
-    for x,y,_ in FGM.iter(move_data.reachable_castles_map[wesnoth.current.side]) do
-        local ids = FGM.get_value(move_data.enemy_attack_map[1], x, y, 'ids') or {}
-        for _,id in ipairs(ids) do
-            leader_threats.enemies[id] = move_data.units[id][1] * 1000 + move_data.units[id][2]
+
+    for enemy_id,eirm in pairs(fred_data.turn_data.enemy_initial_reach_maps) do
+        for xa,ya in H.adjacent_tiles(leader_pos[1], leader_pos[2]) do
+            if FGM.get_value(eirm, xa, ya, 'moves_left') then
+                leader_threats.enemies[enemy_id] = move_data.units[enemy_id][1] * 1000 + move_data.units[enemy_id][2]
+                break
+            end
         end
     end
-    if leader_objectives.village then
-        local ids = FGM.get_value(move_data.enemy_attack_map[1], leader_objectives.village[1], leader_objectives.village[2], 'ids') or {}
-        for _,id in ipairs(ids) do
-            leader_threats.enemies[id] = move_data.units[id][1] * 1000 + move_data.units[id][2]
-        end
-    end
+
+    -- TODO: do we want to add the castles back in here?
+    --   If so, do we use initial or current enemy reach maps?
+    --for x,y,_ in FGM.iter(move_data.reachable_castles_map[wesnoth.current.side]) do
+    --    local ids = FGM.get_value(move_data.enemy_attack_map[1], x, y, 'ids') or {}
+    --    for _,id in ipairs(ids) do
+    --        leader_threats.enemies[id] = move_data.units[id][1] * 1000 + move_data.units[id][2]
+    --    end
+    --end
 
     for id,threat in pairs(leader_threats.enemies) do
         local zone_id = 'none'
