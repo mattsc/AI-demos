@@ -1840,12 +1840,8 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         -- Attack leader threats
         for zone_id,threats in pairs(leader_threats_by_zone) do
             -- Use higher aggression value when there are no villages to protect in between
-            local vr_mult = 1
-            if (not ops_data.objectives.protect.zones[zone_id])
-                or (not ops_data.objectives.protect.zones[zone_id].villages[1])
-            then
-                vr_mult = 1 / leader_threat_mult
-            end
+            local vr = math.min(value_ratio, ops_data.objectives.leader.leader_threats.leader_protect_value_ratio)
+            --std_print('value_ratios:', vr, value_ratio, ops_data.objectives.leader.leader_threats.leader_protect_value_ratio)
 
             -- TODO: set this up to be called only when needed
             if holders_by_zone[zone_id] then
@@ -1867,7 +1863,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
                     action_str = 'attack leader threats',
                     zone_units = attackers_by_zone[zone_id],
                     targets = threats,
-                    value_ratio = value_ratio * vr_mult,
+                    value_ratio = vr,
                     rating = base_ratings.attack_leader_threat + zone_power_stats[zone_id].power_needed
                 })
             end

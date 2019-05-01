@@ -443,6 +443,19 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigne
         leader_threats.zones = {}
     end
 
+    leader_threats.leader_protect_value_ratio = 1
+    if  leader_threats.significant_threat then
+        -- TODO: This is likely to simple. Should also depend on whether we can
+        --   protect the leader, and how much of our own units are close
+        -- Want essentially infinite aggression when there are so many enemies
+        -- that the average attack by all of them would kill the leader (even if
+        -- not all of them can reach the leader simultaneously)
+        local vr = 1 - av_total_loss / leader_info.hitpoints
+        if (vr < 0.01) then vr = 0.01 end
+        leader_threats.leader_protect_value_ratio  = vr
+    end
+    DBG.print_debug('analysis', '  leader_protect_value_ratio', leader_threats.leader_protect_value_ratio)
+
     if leader_objectives.do_recruit then
         -- Now find prerecruits so that they are in between leader and threats
         -- TODO: is there a way of doing this without duplicating the prerecruit eval from before?
