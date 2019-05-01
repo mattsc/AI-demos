@@ -415,14 +415,14 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigne
         local att_outcome, def_outcome = FAU.attack_outcome(
             move_data.unit_copies[id], leader_proxy,
             dst,
-            move_data.unit_infos[id], move_data.unit_infos[leader_proxy.id],
+            move_data.unit_infos[id], leader_info,
             move_data, fred_data.move_cache
         )
         --DBG.dbms(att_outcome, false, 'att_outcome')
         --DBG.dbms(def_outcome, false, 'def_outcome')
 
-        local max_loss = leader_proxy.hitpoints - def_outcome.min_hp
-        local av_loss = leader_proxy.hitpoints - def_outcome.average_hp
+        local max_loss = leader_info.hitpoints - def_outcome.min_hp
+        local av_loss = leader_info.hitpoints - def_outcome.average_hp
         --std_print('    ', id, av_loss, max_loss)
 
         max_total_loss = max_total_loss + max_loss
