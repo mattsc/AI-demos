@@ -827,6 +827,8 @@ local function get_attack_action(zone_cfg, fred_data)
                 --DBG.dbms(counter_outcomes, false, 'counter_outcomes')
 
 
+                -- Note: the following is not strictly divided into attacker vs. defender
+                -- any more, it's positive/negative ratings now, but the principle is still the same.
                 -- forward attack: attacker damage rating and defender total rating
                 -- counter attack: attacker total rating and defender damage rating
                 -- as that is how the delayed damage is applied in game
@@ -1087,8 +1089,6 @@ local function get_attack_action(zone_cfg, fred_data)
                             break
                         end
                     else  -- Or for normal units, evaluate whether the attack is worth it
-                        -- is_acceptable_attack takes the damage to the side, so it needs
-                        -- to be the negative of the rating for own units
                         if (not FAU.is_acceptable_attack(neg_rating, pos_rating, value_ratio)) then
                             DBG.print_debug('attack_print_output', '    non-leader: counter attack rating too low', pos_rating, neg_rating, value_ratio)
                             acceptable_counter = false
@@ -1121,7 +1121,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 -- This might not be sufficiently taken into account in the rating,
                 -- especially if value_ratio is low.
                 -- TODO: the equations used are pretty ad hoc at the moment. Refine?
-                if (not is_leader_threat) and (damages_my_units[i_a].die_chance > 0) then
+                if (not is_leader_threat) and (damages_my_units[i_a].yyy_die_chance > 0) then
                     local id = damages_my_units[i_a].id
                     local xp = move_data.unit_infos[id].experience
                     local max_xp = move_data.unit_infos[id].max_experience
@@ -1135,7 +1135,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         xp_thresh = 0.8 * (xp - min_xp) / (max_xp - 8 - min_xp)
                     end
 
-                    local survival_chance = 1 - damages_my_units[i_a].die_chance
+                    local survival_chance = 1 - damages_my_units[i_a].yyy_die_chance
                     --std_print(id, xp, min_xp, max_xp)
                     --std_print('  ' .. xp_thresh, survival_chance)
 
@@ -1169,7 +1169,7 @@ local function get_attack_action(zone_cfg, fred_data)
                     and ((#combo.attacker_damages > 1) or (move_data.unit_infos[combo.attacker_damages[1].id].moves > 0))
                 then
                     --std_print('       outnumbered in counter attack: ' .. #combo.attacker_damages .. ' vs. ' .. #damages_enemy_units)
-                    local die_value = damages_my_units[i_a].die_chance * damages_my_units[i_a].unit_value
+                    local die_value = damages_my_units[i_a].yyy_die_chance * damages_my_units[i_a].unit_value
                     --std_print('           die value ' .. damages_my_units[i_a].id .. ': ', die_value, damages_my_units[i_a].unit_value)
 
                     if (die_value > 0) then
@@ -1299,7 +1299,7 @@ local function get_attack_action(zone_cfg, fred_data)
 
                     local enemy_leader_die_chance = 0
                     if move_data.unit_infos[combo.defender_damage.id].canrecruit then
-                        enemy_leader_die_chance = combo.defender_damage.die_chance
+                        enemy_leader_die_chance = combo.defender_damage.yyy_die_chance
                     end
                     action.enemy_leader_die_chance = enemy_leader_die_chance
                 end
