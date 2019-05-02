@@ -365,18 +365,28 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigne
 
     local leader = move_data.leaders[wesnoth.current.side]
     local leader_info = move_data.unit_infos[leader.id]
-    local leader_proxy = wesnoth.get_unit(leader[1], leader[2])
     local leader_pos = leader_objectives.final
 
     -- Threats are all enemies which can attack the final leader position
     -- (ignoring AI units, this using enemy_initial_reach_maps)
     local leader_threats = { enemies = {}, zones = {} }
 
+    local best_defenses = {}
     for enemy_id,eirm in pairs(fred_data.turn_data.enemy_initial_reach_maps) do
         for xa,ya in H.adjacent_tiles(leader_pos[1], leader_pos[2]) do
             if FGM.get_value(eirm, xa, ya, 'moves_left') then
                 leader_threats.enemies[enemy_id] = move_data.units[enemy_id][1] * 1000 + move_data.units[enemy_id][2]
-                break
+
+                -- The following ignores that the hex might not be reachable for the enemy
+                -- once the leader is on its final hex
+                if (not best_defenses[enemy_id]) then best_defenses[enemy_id] = { defense = -9e99 } end
+                local current_defense = best_defenses[enemy_id].defense
+                local defense = FGUI.get_unit_defense(move_data.unit_copies[enemy_id], xa, ya, move_data.defense_maps)
+                if (defense > current_defense) then
+                    best_defenses[enemy_id] = {
+                        x = xa, y = ya, defense = defense
+                    }
+                end
             end
         end
     end
@@ -402,27 +412,29 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigne
         leader_threats.zones[zone_id] = true
     end
     --DBG.dbms(leader_threats, false, 'leader_threats')
+    --DBG.dbms(best_defenses, false, 'best_defenses')
 
+
+    local leader_proxy = wesnoth.get_unit(leader[1], leader[2])
+    local unit_in_way
+    if (leader[1] ~= leader_pos[1]) or (leader[2] ~= leader_pos[2]) then
+        unit_in_way = wesnoth.get_unit(leader_pos[1], leader_pos[2])
+        if unit_in_way then
+            wesnoth.extract_unit(unit_in_way)
+        end
+        wesnoth.put_unit(leader_proxy, leader_pos[1], leader_pos[2])
+    end
 
     -- Check out how much of a threat these units pose in combination
     local max_total_loss, av_total_loss = 0, 0
     --std_print('    possible damage by enemies in reach (average, max):')
-    for id,_ in pairs(leader_threats.enemies) do
-        local dst
-        local max_defense = 0
-        for xa,ya in H.adjacent_tiles(move_data.leader_x, move_data.leader_y) do
-            local defense = FGUI.get_unit_defense(move_data.unit_copies[id], xa, ya, move_data.defense_maps)
-
-            if (defense > max_defense) then
-                max_defense = defense
-                dst = { xa, ya }
-            end
-        end
+    for enemy_id,_ in pairs(leader_threats.enemies) do
+        local dst = { best_defenses[enemy_id].x, best_defenses[enemy_id].y }
 
         local att_outcome, def_outcome = FAU.attack_outcome(
-            move_data.unit_copies[id], leader_proxy,
+            move_data.unit_copies[enemy_id], leader_proxy,
             dst,
-            move_data.unit_infos[id], leader_info,
+            move_data.unit_infos[enemy_id], leader_info,
             move_data, fred_data.move_cache
         )
         --DBG.dbms(att_outcome, false, 'att_outcome')
@@ -430,12 +442,20 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigne
 
         local max_loss = leader_info.hitpoints - def_outcome.min_hp
         local av_loss = leader_info.hitpoints - def_outcome.average_hp
-        --std_print('    ', id, av_loss, max_loss)
+        --std_print('    ', enemy_id, av_loss, max_loss)
 
         max_total_loss = max_total_loss + max_loss
         av_total_loss = av_total_loss + av_loss
     end
     DBG.print_debug('analysis', 'leader: max_total_loss, av_total_loss', max_total_loss, av_total_loss)
+
+    if (leader[1] ~= leader_pos[1]) or (leader[2] ~= leader_pos[2]) then
+        wesnoth.put_unit(leader_proxy, leader[1], leader[2])
+        if unit_in_way then
+            wesnoth.put_unit(unit_in_way)
+        end
+    end
+
 
     -- We only consider these leader threats, if they either
     --   - maximum damage reduces current HP by more than 50%
