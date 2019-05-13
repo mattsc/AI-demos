@@ -1216,14 +1216,14 @@ function fred_ops_utils.set_ops_data(fred_data)
         }
         --DBG.dbms(goal_loc, false, 'goal_loc')
         local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, goal_loc[1], goal_loc[2], 'my_leader_distance')
-        --std_print(enemy_id, enemy_loc.zone_id, goal_loc[1], goal_loc[2], ld)
 
         local enemy_zone_id = enemy_zones[enemy_id]
-        if (not goal_hexes_leader[enemy_loc.zone_id]) then
+        --std_print(enemy_id, enemy_zone_id, goal_loc[1], goal_loc[2], ld)
+        if (not goal_hexes_leader[enemy_zone_id]) then
             goal_hexes_leader[enemy_zone_id] = { goal_loc }
             goal_hexes_leader[enemy_zone_id][1].ld = ld
             enemies[enemy_zone_id] = {}
-        elseif (ld < goal_hexes_leader[enemy_loc.zone_id][1].ld) then
+        elseif (ld < goal_hexes_leader[enemy_zone_id][1].ld) then
             goal_hexes_leader[enemy_zone_id] = { goal_loc }
             goal_hexes_leader[enemy_zone_id][1].ld = ld
         end
