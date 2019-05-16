@@ -223,7 +223,11 @@ function fred_utils.urgency(power_fraction_there, n_units_there)
 
     -- For no units already there, this depends quadratically on power_fraction_there
     -- For large number of units already there, it is linear with power_fraction_there
-    return 1 - power_fraction_there ^ (1 + 1 / (1 + n_units_there))
+    local urgency = 1 - power_fraction_there ^ (1 + 1 / (1 + n_units_there))
+
+    if (urgency < 0) then urgency = 0 end
+
+    return urgency
 end
 
 

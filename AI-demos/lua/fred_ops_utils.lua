@@ -1297,7 +1297,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
             if (not move_data.unit_infos[id].canrecruit) and move_data.my_units_MP[id] then
                 --std_print(zone_id .. ' ' .. id .. ' [' .. data.turns .. ']: ' .. urgency .. ' > ' .. utilities.retreat[id] .. ' ?')
-                if (data.turns <= 1) and (utilities.retreat[id] < urgency) then
+                if (data.turns <= 1) and (utilities.retreat[id] <= urgency) then
                     --std_print('  use this unit')
                     if (not leader_threat_benefits[action]) then
                         leader_threat_benefits[action] = {
