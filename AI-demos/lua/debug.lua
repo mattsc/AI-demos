@@ -9,6 +9,7 @@ local debug_cfg = {
 
     show_behavior = 1,
 
+    ops_leader_threats = false,
     analysis_leader_distance_map = false,
     analysis_enemy_initial_reach_maps = false,
     analysis_influence_maps = false,

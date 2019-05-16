@@ -1241,6 +1241,11 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(enemies, false, 'enemies')
 
 
+    local utilities = {}
+    utilities.retreat = FBU.retreat_utilities(move_data, fred_data.ops_data.behavior.orders.value_ratio)
+    --DBG.dbms(utilities, false, 'utilities')
+
+
     local attack_benefits = FBU.attack_benefits(enemies, goal_hexes_leader, false, fred_data)
     --DBG.dbms(attack_benefits, false, 'attack_benefits')
 
@@ -1253,6 +1258,29 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
     --DBG.dbms(lthreat_power_needed, false, 'lthreat_power_needed')
 
+    local already_protecting = {}
+    for zone_id,benefits in pairs(attack_benefits) do
+        local action = 'protect_leader:' .. zone_id
+        for id,data in pairs(benefits) do
+            if (not move_data.unit_infos[id].canrecruit)
+                and (data.turns <= 2) and move_data.my_units_noMP[id]
+            then
+                local unit_power = FU.unit_base_power(fred_data.move_data.unit_infos[id])
+                already_protecting[id] = unit_power
+            end
+        end
+    end
+    --DBG.dbms(already_protecting, false, 'already_protecting')
+
+    -- Units can be found in several zones in the loop above -> need to add up power separately
+    local power_there, n_there = 0, 0
+    for id,unit_power in pairs(already_protecting) do
+        power_there = power_there + unit_power
+        n_there = n_there + 1
+    end
+    local fraction_there = power_there / lthreat_enemy_power
+    local urgency = FU.urgency(fraction_there, n_there)
+
     local leader_threat_benefits = {}
     local leader_defenders = {}
     for zone_id,benefits in pairs(attack_benefits) do
@@ -1261,28 +1289,32 @@ function fred_ops_utils.set_ops_data(fred_data)
         for id,data in pairs(benefits) do
             -- Need to check for moves here also, as a noMP unit might happen to be
             -- at one of the leader goal hexes
-            if (not move_data.unit_infos[id].canrecruit)
-                and (data.turns <= 1) and move_data.my_units_MP[id]
-            then
-                if (not leader_threat_benefits[action]) then
-                    leader_threat_benefits[action] = {
-                        units = {},
-                        required = { power = lthreat_power_needed[zone_id] }
-                    }
+
+            if (not move_data.unit_infos[id].canrecruit) and move_data.my_units_MP[id] then
+                --std_print(zone_id .. ' ' .. id .. ' [' .. data.turns .. ']: ' .. urgency .. ' > ' .. utilities.retreat[id] .. ' ?')
+                if (data.turns <= 1) and (utilities.retreat[id] < urgency) then
+                    --std_print('  use this unit')
+                    if (not leader_threat_benefits[action]) then
+                        leader_threat_benefits[action] = {
+                            units = {},
+                            required = { power = lthreat_power_needed[zone_id] }
+                        }
+                    end
+                    leader_threat_benefits[action].units[id] = { benefit = data.benefit, penalty = 0 }
+                    local unit_power = FU.unit_base_power(fred_data.move_data.unit_infos[id])
+
+                    leader_defenders[id] = unit_power
+
+                    -- Don't need inertia here, as these are only the units who can get there this turn
                 end
-                leader_threat_benefits[action].units[id] = { benefit = data.benefit, penalty = 0 }
-                local unit_power = FU.unit_base_power(fred_data.move_data.unit_infos[id])
-
-                leader_defenders[id] = unit_power
-
-                -- Don't need inertia here, as these are only the units who can get there this turn
             end
         end
     end
     --DBG.dbms(leader_defenders, false, 'leader_defenders')
     --DBG.dbms(leader_threat_benefits, false, 'leader_threat_benefits')
 
-    -- Cannot add up the power above, because units might be in several zones
+
+    -- Cannot add up the power in the loop above, because units might be in several zones
     local lthreat_my_power = 0
     for id,power in pairs(leader_defenders) do
         if (not move_data.unit_infos[id].canrecruit) then
@@ -1290,13 +1322,19 @@ function fred_ops_utils.set_ops_data(fred_data)
         end
     end
 
-    local power_ratio = lthreat_my_power / lthreat_enemy_power
-    --std_print('leader_threat power (my / enemy = ratio):  ' .. lthreat_my_power .. ' / ' .. lthreat_enemy_power .. ' = ' .. power_ratio)
+    local my_total_power = power_there + lthreat_my_power
+    local lp_power_ratio = my_total_power / lthreat_enemy_power
 
-    if (power_ratio < 1) then
-        for _,benefit in pairs(leader_threat_benefits) do
-            benefit.required.power = benefit.required.power * power_ratio
-        end
+    local fraction_missing = math.max(0, 1 - fraction_there)
+
+    local base_power_ratio = fred_data.ops_data.behavior.orders.base_power_ratio
+    if (lp_power_ratio < base_power_ratio) then
+        lp_power_ratio = (lp_power_ratio + base_power_ratio) / 2
+    end
+    if (lp_power_ratio > 1) then lp_power_ratio = 1 end
+
+    for _,benefit in pairs(leader_threat_benefits) do
+        benefit.required.power = benefit.required.power * fraction_missing
     end
     --DBG.dbms(leader_threat_benefits, false, 'leader_threat_benefits')
 
@@ -1315,8 +1353,44 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
     --DBG.dbms(combined_benefits, false, 'combined_benefits')
 
-    local protect_leader_assignments = FBU.assign_units(combined_benefits, move_data)
     --DBG.dbms(protect_leader_assignments, false, 'protect_leader_assignments')
+    local protect_leader_assignments = FBU.assign_units(combined_benefits, move_data)
+
+    local assigned_power, n_assigned = 0, 0
+    for id,assignment in pairs(protect_leader_assignments) do
+        if string.find(assignment, 'protect_leader') then
+            local unit_power = FU.unit_base_power(fred_data.move_data.unit_infos[id])
+            --std_print(id, unit_power)
+            assigned_power = assigned_power + unit_power
+            n_assigned = n_assigned + 1
+        end
+    end
+    local lp_protect_power = power_there + assigned_power
+
+
+    local new_fraction_there = (power_there + assigned_power) / lthreat_enemy_power
+    local new_urgency = FU.urgency(new_fraction_there, n_there + n_assigned)
+    -- TODO: use this to pull in units from farther away?
+
+
+    if DBG.show_debug('ops_leader_threats') then
+        std_print('\nleader threats:')
+        std_print('  enemy power:', lthreat_enemy_power)
+        std_print('  power_there, n_there', power_there, n_there)
+        std_print('  fraction there, missing', fraction_there, fraction_missing)
+        std_print('  urgency', urgency)
+        std_print('  new power available: ' .. lthreat_my_power)
+        std_print('  leader_threat power (my / enemy = ratio):  ' .. my_total_power .. ' / ' .. lthreat_enemy_power .. ' = ' .. lp_power_ratio)
+        std_print('  lp_power_ratio, base_power_ratio', lp_power_ratio, base_power_ratio)
+        std_print('  new assigned power, n:', assigned_power, n_assigned)
+        std_print('  protect power: ', lp_protect_power .. ' = ' .. power_there .. ' + ' .. assigned_power)
+        std_print('  new fraction_there, urgency:', new_fraction_there, new_urgency)
+        std_print('')
+    end
+
+    local assigned_units = assignments_to_assigned_units(protect_leader_assignments, move_data)
+    --DBG.dbms(assigned_units, false, 'assigned_units')
+    --DBG.dbms(units_noMP_zones, false, 'units_noMP_zones')
 
 
     -- Now we add units to the zones based on the total power of enemies in the
@@ -1348,9 +1422,6 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
     --DBG.dbms(goal_hexes_zones, false, 'goal_hexes_zones')
 
-    local assigned_units = assignments_to_assigned_units(protect_leader_assignments, move_data)
-    --DBG.dbms(assigned_units, false, 'assigned_units')
-    --DBG.dbms(units_noMP_zones, false, 'units_noMP_zones')
 
     -- Also add the noMP units to protect_leader_assignments
     -- TODO: not sure if we want to keep them spearate instead (then additional work is needed later)
@@ -1443,10 +1514,6 @@ function fred_ops_utils.set_ops_data(fred_data)
     -- All remaining units with non-zero retreat utility are added to reserved_actions
     -- as retreaters, but are not deleted from the unused_units table. They get
     -- assigned to zones for potential use just as other units.
-    local utilities = {}
-    utilities.retreat = FBU.retreat_utilities(move_data, fred_data.ops_data.behavior.orders.value_ratio)
-    --DBG.dbms(utilities, false, 'utilities')
-
     for id,_ in pairs(unused_units) do
         if (utilities.retreat[id] > 0) then
             -- Use half of missing HP
