@@ -43,7 +43,8 @@ function fred_ops_utils.zone_power_stats(zones, assigned_units, assigned_enemies
     for zone_id,_ in pairs(zones) do
         zone_power_stats[zone_id] = {
             my_power = 0,
-            enemy_power = 0
+            enemy_power = 0,
+            n_units = 0
         }
     end
 
@@ -51,6 +52,7 @@ function fred_ops_utils.zone_power_stats(zones, assigned_units, assigned_enemies
         for id,_ in pairs(assigned_units[zone_id] or {}) do
             local power = FU.unit_base_power(fred_data.move_data.unit_infos[id])
             zone_power_stats[zone_id].my_power = zone_power_stats[zone_id].my_power + power
+            zone_power_stats[zone_id].n_units = zone_power_stats[zone_id].n_units + 1
         end
     end
 
@@ -69,6 +71,9 @@ function fred_ops_utils.zone_power_stats(zones, assigned_units, assigned_enemies
         if (power_missing < 0) then power_missing = 0 end
         zone_power_stats[zone_id].power_needed = power_needed
         zone_power_stats[zone_id].power_missing = power_missing
+
+        local fraction_there = zone_power_stats[zone_id].my_power / power_needed
+        zone_power_stats[zone_id].urgency = FU.urgency(fraction_there, zone_power_stats[zone_id].n_units)
     end
 
     return zone_power_stats
@@ -1451,12 +1456,16 @@ function fred_ops_utils.set_ops_data(fred_data)
     for zone_id,benefits in pairs(zone_attack_benefits) do
         local power_missing = zone_power_stats[zone_id].power_missing
         if (power_missing > 0) then
+            local urgency = zone_power_stats[zone_id].urgency
             local action = 'zone:' .. zone_id
 
             for id,data in pairs(benefits) do
+                --std_print(zone_id .. ' ' .. id .. ' : ' .. urgency .. ' >= ' .. utilities.retreat[id] .. ' ?')
                 if (not move_data.unit_infos[id].canrecruit)
                     and (not protect_leader_assignments[id])
+                    and (urgency >= utilities.retreat[id])
                 then
+                    --std_print('  use this unit')
                     -- TODO: these will have to be tweaked
                     local unit_value = FU.unit_value(fred_data.move_data.unit_infos[id])
 
