@@ -1731,6 +1731,9 @@ function fred_ops_utils.set_ops_data(fred_data)
     ops_data.place_holders = place_holders
     ops_data.interaction_matrix = interaction_matrix
 
+    -- Also need to reset the stored actions
+    ops_data.stored_leader_protection = {}
+
     --DBG.dbms(ops_data, false, 'ops_data')
     --DBG.dbms(ops_data.objectives, false, 'ops_data.objectives')
     --DBG.dbms(ops_data.assigned_enemies, false, 'ops_data.assigned_enemies')
@@ -1872,8 +1875,9 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 
 
     local base_ratings = {
-        protect_leader = 31000, -- eval only
-        attack_leader_threat = 30000,
+        protect_leader_eval = 32000, -- eval only
+        attack_leader_threat = 31000,
+        protect_leader_exec = 30000,
 
         fav_attack = 26000,
         attack = 25000,
@@ -1924,12 +1928,20 @@ function fred_ops_utils.get_action_cfgs(fred_data)
                 table.insert(fred_data.zone_cfgs, {
                     zone_id = zone_id,
                     action_type = 'hold',
-                    action_str = 'protect leader',
+                    action_str = 'protect leader eval',
                     evaluate_only = true,
                     find_best_protect_only = true,
                     value_ratio = vr,
                     zone_units = holders_by_zone[zone_id],
-                    rating = base_ratings.protect_leader + zone_power_stats[zone_id].power_needed
+                    rating = base_ratings.protect_leader_eval + zone_power_stats[zone_id].power_needed
+                })
+
+                table.insert(fred_data.zone_cfgs, {
+                    zone_id = zone_id,
+                    action_type = 'hold',
+                    action_str = 'protect leader exec',
+                    rating = base_ratings.protect_leader_exec + zone_power_stats[zone_id].power_needed,
+                    use_stored_leader_protection = true
                 })
             end
 

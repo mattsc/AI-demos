@@ -3053,17 +3053,29 @@ function get_zone_action(cfg, fred_data)
     -- **** Hold position evaluation ****
     if (cfg.action_type == 'hold') then
         --DBG.print_ts_delta(fred_data.turn_start_time, '  ' .. cfg.zone_id .. ': hold eval')
-        local action = get_hold_action(cfg, fred_data)
+        local action
+        if cfg.use_stored_leader_protection then
+            DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> hold evaluation (using stored leader protection): ' .. cfg.zone_id)
+            action = AH.table_copy(fred_data.ops_data.stored_leader_protection[cfg.zone_id])
+            fred_data.ops_data.stored_leader_protection[cfg.zone_id] = nil
+        else
+            action = get_hold_action(cfg, fred_data)
+        end
+
         if action then
             --DBG.print_ts_delta(fred_data.turn_start_time, action.action_str)
             if cfg.evaluate_only then
                 --std_print('eval only: ' .. str)
                 --local str = cfg.action_str .. ':' .. cfg.zone_id
                 --DBG.dbms(fred_data.ops_data.status.leader, false, 'fred_data.ops_data.status.leader')
+                --DBG.dbms(action, false, 'action')
+
+                fred_data.ops_data.stored_leader_protection[cfg.zone_id] = action
             else
                 return action
             end
         end
+        --DBG.dbms(fred_data.ops_data.stored_leader_protection, false, 'fred_data.ops_data.stored_leader_protection')
     end
 
     -- **** Advance in zone evaluation ****
