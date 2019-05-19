@@ -1374,7 +1374,7 @@ end
 
 ----- Hold: -----
 local function get_hold_action(zone_cfg, fred_data)
-    DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> hold evaluation: ' .. zone_cfg.zone_id)
+    DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> hold evaluation (' .. zone_cfg.action_str .. '): ' .. zone_cfg.zone_id)
 
     local value_ratio = zone_cfg.value_ratio or fred_data.ops_data.behavior.orders.value_ratio
     local max_units = 3
@@ -3055,8 +3055,8 @@ function get_zone_action(cfg, fred_data)
         --DBG.print_ts_delta(fred_data.turn_start_time, '  ' .. cfg.zone_id .. ': hold eval')
         local action
         if cfg.use_stored_leader_protection then
-            DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> hold evaluation (using stored leader protection): ' .. cfg.zone_id)
             if fred_data.ops_data.stored_leader_protection[cfg.zone_id] then
+                DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> hold evaluation (' .. cfg.action_str .. '): ' .. cfg.zone_id)
                 action = AH.table_copy(fred_data.ops_data.stored_leader_protection[cfg.zone_id])
                 fred_data.ops_data.stored_leader_protection[cfg.zone_id] = nil
             end
