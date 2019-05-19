@@ -3056,8 +3056,10 @@ function get_zone_action(cfg, fred_data)
         local action
         if cfg.use_stored_leader_protection then
             DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> hold evaluation (using stored leader protection): ' .. cfg.zone_id)
-            action = AH.table_copy(fred_data.ops_data.stored_leader_protection[cfg.zone_id])
-            fred_data.ops_data.stored_leader_protection[cfg.zone_id] = nil
+            if fred_data.ops_data.stored_leader_protection[cfg.zone_id] then
+                action = AH.table_copy(fred_data.ops_data.stored_leader_protection[cfg.zone_id])
+                fred_data.ops_data.stored_leader_protection[cfg.zone_id] = nil
+            end
         else
             action = get_hold_action(cfg, fred_data)
         end
@@ -3067,10 +3069,15 @@ function get_zone_action(cfg, fred_data)
             if cfg.evaluate_only then
                 --std_print('eval only: ' .. str)
                 --local str = cfg.action_str .. ':' .. cfg.zone_id
-                --DBG.dbms(fred_data.ops_data.status.leader, false, 'fred_data.ops_data.status.leader')
+                local leader_status = fred_data.ops_data.status.leader
+                --DBG.dbms(leader_status, false, 'leader_status')
                 --DBG.dbms(action, false, 'action')
 
-                fred_data.ops_data.stored_leader_protection[cfg.zone_id] = action
+                -- The 0.1 is there to protect against rounding errors and minor protection
+                -- improvements that might not be worth it.
+                if (leader_status.best_protection[cfg.zone_id].exposure < leader_status.exposure - 0.1) then
+                    fred_data.ops_data.stored_leader_protection[cfg.zone_id] = action
+                end
             else
                 return action
             end
