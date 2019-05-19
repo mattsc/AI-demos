@@ -881,6 +881,9 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         if (not org_status.leader.best_protection) then
             org_status.leader.best_protection = {}
         end
+        if (leader_min_enemy_power == 0) then -- otherwise it could still be at 9e99
+            leader_min_exposure = 0
+        end
         org_status.leader.best_protection[cfg.zone_id] = {
             exposure = leader_min_exposure,
             zone_enemy_power = leader_min_enemy_power
