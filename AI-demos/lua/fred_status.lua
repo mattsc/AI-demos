@@ -127,12 +127,14 @@ function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_d
             leader_exposure = fred_status.unit_exposure(pos_rating, neg_rating)
             --std_print('leader_exposure', leader_exposure)
             for enemy_id,_ in pairs(all_attackers) do
-                if (not zone_id)
-                    or (not fred_data.ops_data.assigned_enemies[zone_id])
-                    or (fred_data.ops_data.assigned_enemies[zone_id][enemy_id])
-                then
+                -- TODO: not 100% sure yet whether we should use only the zone enemies,
+                --   or all enemies, or both for different purposes
+                --if (not zone_id)
+                --    or (not fred_data.ops_data.assigned_enemies[zone_id])
+                --    or (fred_data.ops_data.assigned_enemies[zone_id][enemy_id])
+                --then
                     enemy_power = enemy_power + FU.unit_current_power(move_data.unit_infos[enemy_id])
-                end
+                --end
             end
         end
         --std_print('ratings: ' .. pos_rating, neg_rating, is_significant_threat)
