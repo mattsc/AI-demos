@@ -511,7 +511,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                     base_rating, penalty_rating, penalty_str
                 )
                 wesnoth.wml_actions.message {
-                    speaker = 'narrator', caption = 'Valid combo ' .. i_c .. '/' .. #combos .. ': base_rating',
+                    speaker = 'narrator', caption = 'Valid combo ' .. i_c .. '/' .. #combos .. ': base_rating [' .. cfg.zone_id .. ']',
                     message = rating_str
                 }
                 for src,dst in pairs(combo) do
@@ -861,7 +861,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             )
             local max_str = string.format("max:  protected: %.4f,  all: %.4f", tmp_max_rating or -9999, tmp_all_max_rating or -9999)
             wesnoth.wml_actions.message {
-                speaker = 'narrator', caption = 'Combo ' .. i_c .. '/' .. #valid_combos .. ': formation_rating',
+                speaker = 'narrator', caption = 'Combo ' .. i_c .. '/' .. #valid_combos .. ': formation_rating [' .. cfg.zone_id .. ']',
                 message = rating_str .. '\n' .. protected_str
                     .. '\n' .. max_str
             }
@@ -1037,7 +1037,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             )
             local max_str = string.format("max:  protected: %.4f,  all: %.4f", max_rating or -9999, all_max_rating or -9999)
             wesnoth.wml_actions.message {
-                speaker = 'narrator', caption = 'Combo ' .. i_c .. '/' .. #valid_combos .. ': counter_rating',
+                speaker = 'narrator', caption = 'Combo ' .. i_c .. '/' .. #valid_combos .. ': counter_rating [' .. cfg.zone_id .. ']',
                 message = rating_str .. '\n' .. combo.protected_str
                     .. '\n' .. max_str
             }
