@@ -1998,6 +1998,9 @@ function fred_ops_utils.get_action_cfgs(fred_data)
             if protect_obj and (
                 (protect_obj.villages and protect_obj.villages[1])
                 or (protect_obj.units and protect_obj.units[1])
+                -- TODO: check whether this is already taken care of by the separate protect_leader action
+                --   It probably is not, as that only checks for the leader, not castles
+                or protect_obj.protect_leader
             ) then
                 rating = rating + base_ratings.protect
                 action_str = 'zone protect'
