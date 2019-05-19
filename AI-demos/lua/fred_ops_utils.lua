@@ -1927,6 +1927,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
                     action_str = 'protect leader',
                     evaluate_only = true,
                     find_best_protect_only = true,
+                    value_ratio = vr,
                     zone_units = holders_by_zone[zone_id],
                     rating = base_ratings.protect_leader + zone_power_stats[zone_id].power_needed
                 })

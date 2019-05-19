@@ -1376,7 +1376,7 @@ end
 local function get_hold_action(zone_cfg, fred_data)
     DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> hold evaluation: ' .. zone_cfg.zone_id)
 
-    local value_ratio = fred_data.ops_data.behavior.orders.value_ratio
+    local value_ratio = zone_cfg.value_ratio or fred_data.ops_data.behavior.orders.value_ratio
     local max_units = 3
     local max_hexes = 6
     local leader_derating = FCFG.get_cfg_parm('leader_derating')
@@ -1422,7 +1422,7 @@ local function get_hold_action(zone_cfg, fred_data)
     --std_print('forward_weight, forward_rating_weight', forward_weight, forward_rating_weight)
 
     local influence_ratio = fred_data.ops_data.behavior.orders.current_power_ratio
-    local base_value_ratio = fred_data.ops_data.behavior.orders.base_value_ratio
+    local base_value_ratio = fred_data.ops_data.behavior.orders.base_value_ratio / fred_data.ops_data.behavior.orders.value_ratio * value_ratio
     local protect_forward_rating_weight = (influence_ratio / base_value_ratio) - 1
     protect_forward_rating_weight = protect_forward_rating_weight * FCFG.get_cfg_parm('protect_forward_weight')
     --std_print('protect_forward_rating_weight', protect_forward_rating_weight)
@@ -2298,11 +2298,12 @@ local function get_hold_action(zone_cfg, fred_data)
         max_units = max_units,
         max_hexes = max_hexes
     }
-    local cfg_best_combo_hold = { zone_id = zone_cfg.zone_id }
+    local cfg_best_combo_hold = { zone_id = zone_cfg.zone_id, value_ratio = value_ratio }
     local cfg_best_combo_protect = {
         zone_id = zone_cfg.zone_id,
         protect_objectives = protect_objectives, -- TODO: can we not just get this from ops_data?
-        find_best_protect_only = zone_cfg.find_best_protect_only
+        find_best_protect_only = zone_cfg.find_best_protect_only,
+        value_ratio = value_ratio
     }
 
     local protected_str, all_protected_str

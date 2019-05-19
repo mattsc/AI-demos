@@ -399,7 +399,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     local leader_info = move_data.unit_infos[leader_id]
     local leader_value = FU.unit_value(move_data.unit_infos[leader_id])
 
-    local value_ratio = fred_data.ops_data.behavior.orders.value_ratio
+    local value_ratio = cfg.value_ratio
     local hold_counter_weight = FCFG.get_cfg_parm('hold_counter_weight')
     local cfg_attack = { value_ratio = value_ratio }
 
