@@ -1302,7 +1302,7 @@ function fred_ops_utils.set_ops_data(fred_data)
                     if (not leader_threat_benefits[action]) then
                         leader_threat_benefits[action] = {
                             units = {},
-                            required = { power = lthreat_power_needed[zone_id] }
+                            power = { missing = lthreat_power_needed[zone_id] }
                         }
                     end
                     leader_threat_benefits[action].units[id] = { benefit = data.benefit, penalty = 0 }
@@ -1339,7 +1339,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     if (lp_power_ratio > 1) then lp_power_ratio = 1 end
 
     for _,benefit in pairs(leader_threat_benefits) do
-        benefit.required.power = benefit.required.power * fraction_missing
+        benefit.power.missing = benefit.power.missing * fraction_missing
     end
     --DBG.dbms(leader_threat_benefits, false, 'leader_threat_benefits')
 
@@ -1483,7 +1483,7 @@ function fred_ops_utils.set_ops_data(fred_data)
                     if (not zone_benefits[action]) then
                         zone_benefits[action] = {
                             units = {},
-                            required = { power = power_missing }
+                            power = { missing = power_missing }
                         }
                     end
 

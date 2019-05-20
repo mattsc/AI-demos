@@ -315,12 +315,12 @@ function utility_functions.assign_units(benefits, move_data)
 
         local tmp_ratings = {}
         for i_t,task in ipairs(base_ratings) do
-            tmp_ratings[i_t] = { units = {}, action = task.action, required = task.required }
+            tmp_ratings[i_t] = { units = {}, action = task.action, power = task.power }
             for i_u,unit in ipairs(task.units) do
                 local penalty = unit.base_rating - (task.units[i_u + 1] and task.units[i_u + 1].base_rating or 0)
                 --[[ TODO: maybe do something like this later?  Note: that code is no complete yet
-                if task.required and task.required.power then
-                    local power_missing = task.required.power - (power_used[task.action] or 0)
+                if task.power and task.power.missing then
+                    local power_missing = task.power.missing - (power_used[task.action] or 0)
                     std_print('  ' .. task.action .. ': calculating power penalty', power_missing)
                     local j_u = i_u + 1
                     -- TODO: there's a disconnect here with the < 25% of last unit power requirement below
@@ -336,9 +336,9 @@ function utility_functions.assign_units(benefits, move_data)
                 end
                 --]]
 
-                local penalty_required_power = 0
-                if task.required and task.required.power then
-                    penalty_required_power = 1000
+                local penalty_power_missing = 0
+                if task.power and task.power.missing then
+                    penalty_power_missing = 1000
                 end
 
                 local tmp_unit = {
@@ -346,7 +346,7 @@ function utility_functions.assign_units(benefits, move_data)
                     base_rating = unit.base_rating,
                     own_penalty = unit.own_penalty,
                     penalty = penalty,
-                    penalty_required_power = penalty_required_power
+                    penalty_power_missing = penalty_power_missing
                 }
                 table.insert(tmp_ratings[i_t].units, tmp_unit)
             end
@@ -355,7 +355,7 @@ function utility_functions.assign_units(benefits, move_data)
 
         for i,task1 in ipairs(tmp_ratings) do
             for _,unit1 in ipairs(task1.units) do
-                local max_penalty_other, max_penalty_required_power_other = 0, 0
+                local max_penalty_other, max_penalty_power_missing_other = 0, 0
                 for j,task2 in ipairs(tmp_ratings) do
                     --std_print(i .. ' ' .. j)
                     if (i ~= j) then
@@ -365,9 +365,9 @@ function utility_functions.assign_units(benefits, move_data)
                                 if (unit2.penalty > max_penalty_other) then
                                     max_penalty_other = unit2.penalty
                                 end
-                                if (not task1.required) or (not task1.required.power) then
-                                    if (unit2.penalty_required_power > max_penalty_required_power_other) then
-                                        max_penalty_required_power_other = unit2.penalty_required_power
+                                if (not task1.power) or (not task1.power.missing) then
+                                    if (unit2.penalty_power_missing > max_penalty_power_missing_other) then
+                                        max_penalty_power_missing_other = unit2.penalty_power_missing
                                     end
                                 end
                                 break
@@ -375,10 +375,10 @@ function utility_functions.assign_units(benefits, move_data)
                         end
                     end
                 end
-                --std_print('    ' .. max_penalty_other, max_penalty_required_power_other)
+                --std_print('    ' .. max_penalty_other, max_penalty_power_missing_other)
                 unit1.max_penalty_other = max_penalty_other
-                unit1.max_penalty_required_power_other = max_penalty_required_power_other
-                unit1.rating = unit1.base_rating - unit1.own_penalty - max_penalty_other - max_penalty_required_power_other
+                unit1.max_penalty_power_missing_other = max_penalty_power_missing_other
+                unit1.rating = unit1.base_rating - unit1.own_penalty - max_penalty_other - max_penalty_power_missing_other
             end
 
             table.sort(task1.units, function(a, b) return a.rating > b.rating end)
@@ -409,7 +409,7 @@ function utility_functions.assign_units(benefits, move_data)
     -- Also, we need a local copy as we're going to modify it and don't want to change the input table.
     local task_ratings = {}
     for action,data in pairs(benefits) do
-        local tmp = { action = action, units = {}, required = data.required }
+        local tmp = { action = action, units = {}, power = data.power }
         for id,ratings in pairs(data.units) do
             local u = { id = id, base_rating = ratings.benefit, own_penalty = ratings.penalty }
             table.insert(tmp.units, u)
@@ -439,8 +439,8 @@ function utility_functions.assign_units(benefits, move_data)
             if (task.action == action) then
                 -- If there's a power requirement, stop if the remaining power
                 -- missing is less than 25% of the power of the last unit assigned
-                if task.required and task.required.power then
-                    local power_missing = task.required.power - power_used[action]
+                if task.power and task.power.missing then
+                    local power_missing = task.power.missing - power_used[action]
                     local fraction = power_missing / unit_power
                     --std_print('checking power: ' .. task.action .. '  ' .. id, power_missing, fraction)
                     if (fraction < 0.25) then
