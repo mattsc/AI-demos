@@ -304,7 +304,7 @@ function utility_functions.attack_benefits(assigned_enemies, goal_hexes, use_ave
 end
 
 
-function utility_functions.assign_units(benefits, move_data)
+function utility_functions.assign_units(benefits, retreat_utilities, move_data)
     -- Find unit-task combinations that maximize the benefit received
     -- Input table must be of format:
     --   ...
@@ -410,18 +410,32 @@ function utility_functions.assign_units(benefits, move_data)
     local task_ratings = {}
     for action,data in pairs(benefits) do
         local tmp = { action = action, units = {}, power = data.power }
-        for id,ratings in pairs(data.units) do
-            local u = { id = id, base_rating = ratings.benefit, own_penalty = ratings.penalty }
-            table.insert(tmp.units, u)
-        end
-        table.sort(tmp.units, function(a, b) return a.base_rating > b.base_rating end)
 
-        table.insert(task_ratings, tmp)
+        local urgency = 1
+        if data.power and retreat_utilities then
+            local power_fraction = data.power.previous / (data.power.previous + data.power.missing)
+            urgency = FU.urgency(power_fraction, data.power.n_previous)
+            --std_print('power_fraction, urgency', power_fraction, urgency)
+        end
+
+        for id,ratings in pairs(data.units) do
+            if ((retreat_utilities and retreat_utilities[id] or 0) <= urgency) then
+                local u = { id = id, base_rating = ratings.benefit, own_penalty = ratings.penalty }
+                table.insert(tmp.units, u)
+            end
+        end
+        if (#tmp.units > 0) then
+            table.sort(tmp.units, function(a, b) return a.base_rating > b.base_rating end)
+            table.insert(task_ratings, tmp)
+        end
     end
     --DBG.dbms(task_ratings, false, 'task_ratings')
 
+    if (#task_ratings == 0) then
+        return {}
+    end
 
-    local assignments, power_used = {}, {}
+    local assignments, power_used, n_used = {}, {}, {}
     local keep_trying = true
     while keep_trying do
         keep_trying = false
@@ -433,7 +447,9 @@ function utility_functions.assign_units(benefits, move_data)
 
         local unit_power = FU.unit_base_power(move_data.unit_infos[id])
         power_used[action] = (power_used[action] or 0) + unit_power
+        n_used[action] = (n_used[action] or 0) + 1
         --DBG.dbms(power_used, false, 'power_used')
+        --DBG.dbms(n_used, false, 'n_used')
 
         for i,task in ipairs(task_ratings) do
             if (task.action == action) then
@@ -455,13 +471,23 @@ function utility_functions.assign_units(benefits, move_data)
         --DBG.dbms(task_ratings, false, 'task_ratings')
 
         for i_v=#task_ratings,1,-1 do
-            for i_u,unit in ipairs(task_ratings[i_v].units) do
-                if (unit.id == id) then
-                    table.remove(task_ratings[i_v].units, i_u)
-                    break
+            local task = task_ratings[i_v]
+            local urgency = 1
+            if task.power then
+                local power_fraction = (task.power.previous + power_used[action]) / (task.power.previous + power_used[action] + task.power.missing)
+                urgency = FU.urgency(power_fraction, task.power.n_previous + n_used[action])
+                --std_print('power_fraction, urgency', power_fraction, urgency)
+            end
+
+            for i_u=#task.units,1,-1 do
+                local unit = task.units[i_u]
+                --std_print('  ' .. unit.id, retreat_utilities[unit.id]  .. ' < ' .. urgency .. ' ?')
+                if (unit.id == id) or ((retreat_utilities and retreat_utilities[unit.id] or 0) > urgency) then
+                    table.remove(task.units, i_u)
+                    --std_print('    ---> remove')
                 end
             end
-            if (#task_ratings[i_v].units == 0) then
+            if (#task.units == 0) then
                 table.remove(task_ratings, i_v)
             end
         end
@@ -669,7 +695,7 @@ function utility_functions.action_penalty(actions, reserved_actions, interaction
         end
         --DBG.dbms(village_benefits, false, 'village_benefits')
 
-        local village_assignments = utility_functions.assign_units(village_benefits, move_data)
+        local village_assignments = utility_functions.assign_units(village_benefits, nil, move_data)
         --DBG.dbms(village_assignments, false, 'village_assignments')
 
         for id,action_id in pairs(village_assignments) do

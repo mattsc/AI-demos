@@ -1185,7 +1185,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(village_benefits, false, 'village_benefits')
 
     -- Assess village grabbing by itself; this is for testing only
-    --local village_assignments = FBU.assign_units(village_benefits, move_data)
+    --local village_assignments = FBU.assign_units(village_benefits, utilities.retreat, move_data)
     --DBG.dbms(village_assignments, false, 'village_assignments')
 
 
@@ -1296,13 +1296,16 @@ function fred_ops_utils.set_ops_data(fred_data)
             -- at one of the leader goal hexes
 
             if (not move_data.unit_infos[id].canrecruit) and move_data.my_units_MP[id] then
-                --std_print(zone_id .. ' ' .. id .. ' [' .. data.turns .. ']: ' .. urgency .. ' > ' .. utilities.retreat[id] .. ' ?')
-                if (data.turns <= 1) and (utilities.retreat[id] <= urgency) then
+                if (data.turns <= 1)  then
                     --std_print('  use this unit')
                     if (not leader_threat_benefits[action]) then
                         leader_threat_benefits[action] = {
                             units = {},
-                            power = { missing = lthreat_power_needed[zone_id] }
+                            power = {
+                                missing = lthreat_power_needed[zone_id],
+                                previous = power_there,
+                                n_previous = n_there
+                            }
                         }
                     end
                     leader_threat_benefits[action].units[id] = { benefit = data.benefit, penalty = 0 }
@@ -1345,7 +1348,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
 
     -- Assess leader protecting by itself; this is for testing only
-    --local assignments = FBU.assign_units(leader_threat_benefits, move_data)
+    --local assignments = FBU.assign_units(leader_threat_benefits, utilities.retreat, move_data)
     --DBG.dbms(assignments, false, 'assignments')
 
 
@@ -1358,8 +1361,8 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
     --DBG.dbms(combined_benefits, false, 'combined_benefits')
 
+    local protect_leader_assignments = FBU.assign_units(combined_benefits, utilities.retreat, move_data)
     --DBG.dbms(protect_leader_assignments, false, 'protect_leader_assignments')
-    local protect_leader_assignments = FBU.assign_units(combined_benefits, move_data)
 
     local assigned_power, n_assigned = 0, 0
     for id,assignment in pairs(protect_leader_assignments) do
@@ -1456,14 +1459,11 @@ function fred_ops_utils.set_ops_data(fred_data)
     for zone_id,benefits in pairs(zone_attack_benefits) do
         local power_missing = zone_power_stats[zone_id].power_missing
         if (power_missing > 0) then
-            local urgency = zone_power_stats[zone_id].urgency
             local action = 'zone:' .. zone_id
 
             for id,data in pairs(benefits) do
-                --std_print(zone_id .. ' ' .. id .. ' : ' .. urgency .. ' >= ' .. utilities.retreat[id] .. ' ?')
                 if (not move_data.unit_infos[id].canrecruit)
                     and (not protect_leader_assignments[id])
-                    and (urgency >= utilities.retreat[id])
                 then
                     --std_print('  use this unit')
                     -- TODO: these will have to be tweaked
@@ -1483,7 +1483,11 @@ function fred_ops_utils.set_ops_data(fred_data)
                     if (not zone_benefits[action]) then
                         zone_benefits[action] = {
                             units = {},
-                            power = { missing = power_missing }
+                            power = {
+                                missing = power_missing,
+                                previous = zone_power_stats[zone_id].my_power,
+                                n_previous = zone_power_stats[zone_id].n_units
+                            }
                         }
                     end
 
@@ -1498,7 +1502,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
     --DBG.dbms(zone_benefits, false, 'zone_benefits')
 
-    local zone_assignments = FBU.assign_units(zone_benefits, move_data)
+    local zone_assignments = FBU.assign_units(zone_benefits, utilities.retreat, move_data)
     --DBG.dbms(protect_leader_assignments, false, 'protect_leader_assignments')
     --DBG.dbms(zone_assignments, false, 'zone_assignments')
 
