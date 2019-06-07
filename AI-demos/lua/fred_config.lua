@@ -8,7 +8,6 @@ local cfg = {
 
     aggression = 1.5,                  -- To first order, base ratio of acceptable damage: own / enemy
     min_aggression = 1.25,
-    leader_threat_mult = 1.33,
     next_turn_influence_weight = 1,    -- Fraction of ToD influence change of next turn to take into account
     milk_xp_die_chance_limit = 0,      -- Enemy_leader die chance has to be greater than this to check for XP milking attack.
                                        -- Set to >=1 to disable. Engine uses 0 if this is set to negative values.
