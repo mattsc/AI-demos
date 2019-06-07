@@ -73,6 +73,7 @@ function fred_ops_utils.zone_power_stats(zones, assigned_units, assigned_enemies
         zone_power_stats[zone_id].power_missing = power_missing
 
         local fraction_there = zone_power_stats[zone_id].my_power / power_needed
+        if (power_needed == 0) then fraction_there = 1 end
         zone_power_stats[zone_id].urgency = FU.urgency(fraction_there, zone_power_stats[zone_id].n_units)
     end
 
