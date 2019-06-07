@@ -6,6 +6,7 @@ local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
 local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
+local FHU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_hold_utils.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local function get_reach_map_via_keep(leader, move_data)
@@ -360,7 +361,7 @@ function fred_move_leader_utils.leader_objectives(fred_data)
     return leader_objectives, effective_reach_map
 end
 
-function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigned_enemies, side_cfgs, fred_data)
+function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cfgs, fred_data)
     local move_data = fred_data.move_data
 
     local leader = move_data.leaders[wesnoth.current.side]
@@ -369,7 +370,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigne
 
     -- Threats are all enemies which can attack the final leader position
     -- (ignoring AI units, this using enemy_initial_reach_maps)
-    local leader_threats = { enemies = {}, zones = {} }
+    local leader_threats = { enemies = {} }
 
     local best_defenses = {}
     for enemy_id,eirm in pairs(fred_data.turn_data.enemy_initial_reach_maps) do
@@ -400,17 +401,6 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigne
     --    end
     --end
 
-    for id,threat in pairs(leader_threats.enemies) do
-        local zone_id = 'none'
-        for zid,enemies in pairs(assigned_enemies) do
-            if enemies[id] then
-                zone_id = zid
-                break
-            end
-        end
-        leader_threats.enemies[id] = threat .. ':' .. zone_id
-        leader_threats.zones[zone_id] = true
-    end
     --DBG.dbms(leader_threats, false, 'leader_threats')
     --DBG.dbms(best_defenses, false, 'best_defenses')
 
@@ -467,12 +457,11 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigne
     -- Only count leader threats if they are significant
     if (not leader_threats.significant_threat) then
         leader_threats.enemies = {}
-        leader_threats.zones = {}
     end
 
     leader_threats.leader_protect_value_ratio = 1
-    if  leader_threats.significant_threat then
-        -- TODO: This is likely to simple. Should also depend on whether we can
+    if leader_threats.significant_threat then
+        -- TODO: This is likely too simple. Should also depend on whether we can
         --   protect the leader, and how much of our own units are close
         -- Want essentially infinite aggression when there are so many enemies
         -- that the average attack by all of them would kill the leader (even if
@@ -482,6 +471,35 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigne
         leader_threats.leader_protect_value_ratio  = vr
     end
     DBG.print_debug('analysis', '  leader_protect_value_ratio', leader_threats.leader_protect_value_ratio)
+
+
+    local leader_zone_map = {}
+    if leader_threats.significant_threat then
+        local goal_loc = leader_objectives.final
+
+        for enemy_id,_ in pairs(leader_threats.enemies) do
+            local enemy_loc = fred_data.move_data.units[enemy_id]
+            local enemy = {}
+            enemy[enemy_id] = enemy_loc
+            local between_map = FHU.get_between_map({ goal_loc }, goal_loc, enemy, fred_data.move_data)
+
+            for x,y,between in FGM.iter(between_map) do
+                if between.is_between then
+                    FGM.set_value(leader_zone_map, x, y, 'flag', true)
+                end
+            end
+
+            if false then
+                --DBG.show_fgumap_with_message(between_map, 'distance', zone_id .. ' between_map: distance', fred_data.move_data.unit_copies[enemy_id])
+                --DBG.show_fgumap_with_message(between_map, 'perp_distance', zone_id .. ' between_map: perp_distance', fred_data.move_data.unit_copies[enemy_id])
+                DBG.show_fgumap_with_message(between_map, 'is_between', 'between_map: is_between', fred_data.move_data.unit_copies[enemy_id])
+            end
+        end
+        -- TODO: potentially buffer this
+
+        --DBG.show_fgumap_with_message(leader_zone_map, 'flag', 'leader_zone_map')
+    end
+
 
     if leader_objectives.do_recruit then
         -- Now find prerecruits so that they are in between leader and threats
@@ -531,6 +549,8 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, assigne
     --DBG.dbms(leader_threats, false, 'leader_threats')
 
     leader_objectives.leader_threats = leader_threats
+
+    return leader_zone_map
 end
 
 

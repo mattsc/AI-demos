@@ -56,7 +56,7 @@ function fred_ops_utils.zone_power_stats(zones, assigned_units, assigned_enemies
         end
     end
 
-    for zone_id,enemies in pairs(zones) do
+    for zone_id,_ in pairs(zones) do
         for id,_ in pairs(assigned_enemies[zone_id] or {}) do
             local power = FU.unit_base_power(fred_data.move_data.unit_infos[id])
             zone_power_stats[zone_id].enemy_power = zone_power_stats[zone_id].enemy_power + power
@@ -78,87 +78,6 @@ function fred_ops_utils.zone_power_stats(zones, assigned_units, assigned_enemies
     end
 
     return zone_power_stats
-end
-
-
-function fred_ops_utils.set_between_objectives(objectives, enemy_zones, fred_data)
-    -- Set other goals that are in between leader and leader threats:
-    -- 1. Villages to protect
-    -- 2. Enemies to attack
-    -- TODO: need better name for this when finished. Combine with the next function?
-
-    objectives.enemies_between = {}
-
-    -- Get all villages in each zone that are in between all enemies and the
-    -- goal location of the leader
-    local goal_loc = objectives.leader.final
-    for zone_id,protect_objective in pairs(objectives.protect.zones) do
-        --std_print(zone_id)
-
-        protect_objective.protect_leader = false
-        for enemy_id,_ in pairs(objectives.leader.leader_threats.enemies) do
-            local enemy_loc = fred_data.move_data.units[enemy_id]
-            local enemy_zone_id = enemy_zones[enemy_id]
-            if (enemy_zone_id == zone_id) then
-                protect_objective.protect_leader = true
-
-                local enemy = {}
-                enemy[enemy_id] = enemy_loc
-                local between_map = FHU.get_between_map({ goal_loc }, goal_loc, enemy, fred_data.move_data)
-                if false then
-                    DBG.show_fgumap_with_message(between_map, 'distance', zone_id .. ' between_map: distance', fred_data.move_data.unit_copies[enemy_id])
-                    DBG.show_fgumap_with_message(between_map, 'perp_distance', zone_id .. ' between_map: perp_distance', fred_data.move_data.unit_copies[enemy_id])
-                    DBG.show_fgumap_with_message(between_map, 'is_between', zone_id .. ' between_map: is_between', fred_data.move_data.unit_copies[enemy_id])
-                end
-
-                for _,village in ipairs(protect_objective.villages) do
-                    local is_between = FGM.get_value(between_map, village.x, village.y, 'is_between')
-                    --std_print('  ' .. zone_id, enemy_id, village.x .. ',' .. village.y, is_between)
-
-                    if (not is_between) then
-                        village.do_not_protect = true
-                    end
-                end
-
-                -- Now remove those villages
-                -- TODO: is there a reason to keep them and check for the flag instead?
-                for i = #protect_objective.villages,1,-1 do
-                    if protect_objective.villages[i].do_not_protect then
-                        table.remove(protect_objective.villages, i)
-                    end
-                end
-
-                -- Also find other enemies between leader-threat enemies and leader
-                for other_enemy_id,other_enemy_loc in pairs(fred_data.move_data.enemies) do
-                    local other_enemy_zone_id = enemy_zones[other_enemy_id]
-                    if (enemy_zone_id == other_enemy_zone_id) and (other_enemy_id ~= enemy_id) then
-                        local is_between = FGM.get_value(between_map, other_enemy_loc[1], other_enemy_loc[2], 'is_between')
-                        --std_print('other enemy:', enemy_id, other_enemy_id, enemy_zone_id, is_between)
-                        if is_between then
-                            if (not objectives.enemies_between[zone_id]) then
-                                objectives.enemies_between[zone_id] = {}
-                            end
-                            objectives.enemies_between[zone_id][other_enemy_id] = other_enemy_loc[1] * 1000 + other_enemy_loc[2]
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    -- Finally, we also want to add leader_protect flags for all zones that have enemies but no villages
-    -- TODO: this is all a bit inefficient; clean up when we know what actually works
-    for zone_id,_ in pairs(objectives.leader.leader_threats.zones) do
-        if (not objectives.protect.zones[zone_id]) then
-            objectives.protect.zones[zone_id] = {
-                protect_leader = true,
-                villages = {},
-                units = {}
-            }
-        end
-    end
-
-    --DBG.dbms(objectives, false, 'objectives')
 end
 
 
@@ -275,7 +194,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
 end
 
 
-function fred_ops_utils.behavior_output(is_turn_start, ops_data)
+function fred_ops_utils.behavior_output(is_turn_start, zone_maps, ops_data)
     local behavior = ops_data.behavior
     local objectives = ops_data.objectives
     local fred_show_behavior = wml.variables.fred_show_behavior or DBG.show_debug('show_behavior')
@@ -313,7 +232,7 @@ function fred_ops_utils.behavior_output(is_turn_start, ops_data)
         fred_behavior_str = fred_behavior_str .. '\n    go to village:    ' .. objectives.leader.village[1] .. ',' .. objectives.leader.village[2]
     end
 
-    for zone_id,_ in pairs(ops_data.raw_cfgs) do
+    for zone_id,_ in pairs(zone_maps) do
         local zone_data = objectives.protect.zones[zone_id] or { villages = {}, units = {} }
         local zone_str = ''
         if zone_data.protect_leader or (#zone_data.villages > 0) or (#zone_data.units > 0) then
@@ -350,16 +269,15 @@ function fred_ops_utils.behavior_output(is_turn_start, ops_data)
     end
 
     if (fred_show_behavior >= 4) then
-       for zone_id,raw_cfg in pairs(ops_data.raw_cfgs) do
+       for zone_id,zone_map in pairs(zone_maps) do
            local front = ops_data.fronts.zones[zone_id]
            local front_map = {}
            local str = 'No active front in zone ' .. zone_id
            if front then
-               local zone = wesnoth.get_locations(raw_cfg.ops_slf)
-               for _,loc in ipairs(zone) do
-                   local ld = FGM.get_value(ops_data.leader_distance_map, loc[1], loc[2], 'distance')
+               for x,y,_ in FGM.iter(zone_map) do
+                   local ld = FGM.get_value(ops_data.leader_distance_map, x, y, 'distance')
                    if (math.abs(ld - front.ld) <= 0.5) then
-                       FGM.set_value(front_map, loc[1], loc[2], 'distance', ld)
+                       FGM.set_value(front_map, x, y, 'distance', ld)
                    end
                end
 
@@ -383,7 +301,7 @@ function fred_ops_utils.behavior_output(is_turn_start, ops_data)
                 wesnoth.wml_actions.item { x = unit.x, y = unit.y, halo = "halo/illuminates-aura.png~CS(0,-255,-255)" }
             end
             DBG.show_fgumap_with_message(front_map, 'distance', str,
-                { x = (front and front.x or raw_cfg.center_hexes[1]), y = (front and front.y or raw_cfg.center_hexes[2]) }
+                { x = (front and front.x), y = (front and front.y) }
             )
             for _,unit in ipairs(zone_data.units) do
                 wesnoth.wml_actions.remove_item { x = unit.x, y = unit.y, halo = "halo/illuminates-aura.png~CS(0,-255,-255)" }
@@ -405,7 +323,7 @@ function fred_ops_utils.behavior_output(is_turn_start, ops_data)
 end
 
 
-function fred_ops_utils.find_fronts(zone_maps, zone_influence_maps, raw_cfgs, fred_data)
+function fred_ops_utils.find_fronts(zone_maps, zone_influence_maps, fred_data)
     -- Calculate where the fronts are in the zones (in leader_distance values)
     -- based on a vulnerability-weighted sum over the zones
     --
@@ -594,6 +512,14 @@ function fred_ops_utils.set_ops_data(fred_data)
         end
     end
     --DBG.dbms(raw_cfgs, false, 'raw_cfgs')
+
+
+    local leader_objectives, leader_effective_reach_map = FMLU.leader_objectives(fred_data)
+    local objectives = { leader = leader_objectives }
+    --DBG.dbms(objectives, false, 'objectives')
+    --DBG.show_fgumap_with_message(leader_effective_reach_map, 'moves_left', 'leader_effective_reach_map')
+    local leader_zone_map = FMLU.assess_leader_threats(objectives.leader, side_cfgs, fred_data)
+    --DBG.dbms(objectives, false, 'objectives')
 
 
     local leader_derating = FCFG.get_cfg_parm('leader_derating')
@@ -958,6 +884,10 @@ function fred_ops_utils.set_ops_data(fred_data)
             FGM.set_value(zone_maps[zone_id], loc[1], loc[2], 'flag', true)
         end
     end
+    if objectives.leader.leader_threats.significant_threat then
+        zone_maps['leader'] = leader_zone_map
+    end
+
 
     -- Need the fronts for assigning units to zones. These will not be the exact fronts
     -- needed later (which in turn are based on the assigned units). They will either be
@@ -968,7 +898,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     if fred_data.ops_data.fronts then
         fronts = fred_data.ops_data.fronts
     else
-        fronts = fred_ops_utils.find_fronts(zone_maps, nil, raw_cfgs, fred_data)
+        fronts = fred_ops_utils.find_fronts(zone_maps, nil, fred_data)
     end
     --DBG.dbms(fronts, false, 'fronts')
 
@@ -977,7 +907,13 @@ function fred_ops_utils.set_ops_data(fred_data)
     local assigned_enemies, unassigned_enemies = {}, {}
     local enemy_zones = {}
     for id,loc in pairs(move_data.enemies) do
-        if (not move_data.unit_infos[id].canrecruit)
+        if objectives.leader.leader_threats.enemies[id] then
+            if (not assigned_enemies['leader']) then
+                assigned_enemies['leader'] = {}
+            end
+            assigned_enemies['leader'][id] = move_data.units[id][1] * 1000 + move_data.units[id][2]
+            enemy_zones[id] = 'leader'
+        elseif (not move_data.unit_infos[id].canrecruit)
             and (not FGM.get_value(move_data.reachable_castles_map[move_data.unit_infos[id].side], loc[1], loc[2], 'castle') or false)
         then
             local unit_copy = move_data.unit_copies[id]
@@ -1026,13 +962,6 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
     --DBG.dbms(pre_assigned_units, false, 'pre_assigned_units')
     --DBG.dbms(units_noMP_zones, false, 'units_noMP_zones')
-
-    local leader_objectives, leader_effective_reach_map = FMLU.leader_objectives(fred_data)
-    local objectives = { leader = leader_objectives }
-    --DBG.dbms(objectives, false, 'objectives')
-    --DBG.show_fgumap_with_message(leader_effective_reach_map, 'moves_left', 'leader_effective_reach_map')
-    FMLU.assess_leader_threats(objectives.leader, assigned_enemies, side_cfgs, fred_data)
-    --DBG.dbms(objectives, false, 'objectives')
 
 
     local leader = move_data.leaders[wesnoth.current.side]
@@ -1176,8 +1105,28 @@ function fred_ops_utils.set_ops_data(fred_data)
     local possible_village_grabs = FVU.village_grabs(villages_to_grab, reserved_actions, interaction_matrix.penalties['GV'], fred_data)
     --DBG.dbms(possible_village_grabs, false, 'possible_village_grabs')
 
+    -- Add villages to protect between leader and enemies, and remove them from the other zones
+    if objectives.leader.leader_threats.significant_threat then
+        local leader_villages = {}
+        for zone_id,protect_objective in pairs(objectives.protect.zones) do
+            for i_v=#protect_objective.villages,1,-1 do
+                local village = protect_objective.villages[i_v]
+                local in_zone = FGM.get_value(leader_zone_map, village.x, village.y, 'flag')
+                --std_print('  ' .. zone_id, village.x .. ',' .. village.y, in_zone)
 
-    fred_ops_utils.set_between_objectives(objectives, enemy_zones, fred_data)
+                if in_zone then
+                    table.insert(leader_villages, village)
+                    table.remove(protect_objective.villages, i_v)
+                end
+            end
+        end
+        objectives.protect.zones['leader'] = {
+            protect_leader = true,
+            villages = leader_villages
+        }
+
+        -- Potential TODO: do we want to add enemies_between back in?
+    end
     --DBG.dbms(objectives.protect, false, 'objectives.protect')
     --DBG.dbms(objectives, false, 'objectives')
 
@@ -1212,7 +1161,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         --DBG.show_fgumap_with_message(enemy_leader_distance_maps['Wolf Rider'], 'cost', 'cost Wolf Rider')
     end
 
-    local goal_hexes_leader, enemies = {}, {}
+    local goal_hexes_leader, leader_enemies = {}, { leader = {} }
     for enemy_id,_ in pairs(objectives.leader.leader_threats.enemies) do
         -- TODO: simply using the middle point here might not be the best thing to do
         local enemy_loc = fred_data.move_data.units[enemy_id]
@@ -1223,17 +1172,14 @@ function fred_ops_utils.set_ops_data(fred_data)
         --DBG.dbms(goal_loc, false, 'goal_loc')
         local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, goal_loc[1], goal_loc[2], 'my_leader_distance')
 
-        local enemy_zone_id = enemy_zones[enemy_id]
-        --std_print(enemy_id, enemy_zone_id, goal_loc[1], goal_loc[2], ld)
-        if (not goal_hexes_leader[enemy_zone_id]) then
-            goal_hexes_leader[enemy_zone_id] = { goal_loc }
-            goal_hexes_leader[enemy_zone_id][1].ld = ld
-            enemies[enemy_zone_id] = {}
-        elseif (ld < goal_hexes_leader[enemy_zone_id][1].ld) then
-            goal_hexes_leader[enemy_zone_id] = { goal_loc }
-            goal_hexes_leader[enemy_zone_id][1].ld = ld
+        if (not goal_hexes_leader['leader']) then
+            goal_hexes_leader['leader'] = { goal_loc }
+            goal_hexes_leader['leader'][1].ld = ld
+        elseif (ld < goal_hexes_leader['leader'][1].ld) then
+            goal_hexes_leader['leader'] = { goal_loc }
+            goal_hexes_leader['leader'][1].ld = ld
         end
-        enemies[enemy_zone_id][enemy_id] = enemy_loc[1] * 1000 + enemy_loc[2]
+        leader_enemies['leader'][enemy_id] = enemy_loc[1] * 1000 + enemy_loc[2]
     end
 
     for zone_id,goal_hexes in pairs(goal_hexes_leader) do
@@ -1244,7 +1190,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         end
     end
     --DBG.dbms(goal_hexes_leader, false, 'goal_hexes_leader')
-    --DBG.dbms(enemies, false, 'enemies')
+    --DBG.dbms(leader_enemies, false, 'leader_enemies')
 
 
     local utilities = {}
@@ -1252,17 +1198,21 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(utilities, false, 'utilities')
 
 
-    local attack_benefits = FBU.attack_benefits(enemies, goal_hexes_leader, false, fred_data)
+    local attack_benefits = FBU.attack_benefits(leader_enemies, goal_hexes_leader, false, fred_data)
     --DBG.dbms(attack_benefits, false, 'attack_benefits')
 
-    local lthreat_power_needed, lthreat_enemy_power = {}, 0
+
+    local lthreat_power = {
+        enemy = { power = 0, n_units = 0 },
+        previous = { power = 0, n_units = 0 },
+        assigned = { power = 0, n_units = 0 }
+    }
     for enemy_id,_ in pairs(objectives.leader.leader_threats.enemies) do
-        local zone_id = enemy_zones[enemy_id]
         local unit_power = FU.unit_base_power(fred_data.move_data.unit_infos[enemy_id])
-        lthreat_power_needed[zone_id] = (lthreat_power_needed[zone_id] or 0) + unit_power
-        lthreat_enemy_power = lthreat_enemy_power + unit_power
+        lthreat_power.enemy.power = lthreat_power.enemy.power + unit_power
+        lthreat_power.enemy.n_units = lthreat_power.enemy.n_units + 1
     end
-    --DBG.dbms(lthreat_power_needed, false, 'lthreat_power_needed')
+    --DBG.dbms(lthreat_power, false, 'lthreat_power')
 
     local already_protecting = {}
     for zone_id,benefits in pairs(attack_benefits) do
@@ -1278,19 +1228,20 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
     --DBG.dbms(already_protecting, false, 'already_protecting')
 
-    -- Units can be found in several zones in the loop above -> need to add up power separately
-    local power_there, n_there = 0, 0
     for id,unit_power in pairs(already_protecting) do
-        power_there = power_there + unit_power
-        n_there = n_there + 1
+        lthreat_power.previous.power = lthreat_power.previous.power + unit_power
+        lthreat_power.previous.n_units = lthreat_power.previous.n_units + 1
     end
-    local fraction_there = power_there / lthreat_enemy_power
-    local urgency = FU.urgency(fraction_there, n_there)
+    --DBG.dbms(lthreat_power, false, 'lthreat_power')
+
+    local fraction_previous = lthreat_power.previous.power / lthreat_power.enemy.power
+    local urgency = FU.urgency(fraction_previous, lthreat_power.previous.n_units)
 
     local leader_threat_benefits = {}
-    local leader_defenders = {}
+    local lthreat_assigned_power = 0
+    -- TODO: there's only one zone left, so this could be reduced, but keeping for now in case I want to revert this
     for zone_id,benefits in pairs(attack_benefits) do
-        local action = 'protect_leader:' .. zone_id
+        local action_protect = 'protect_leader:leader' -- .. zone_id
 
         for id,data in pairs(benefits) do
             -- Need to check for moves here also, as a noMP unit might happen to be
@@ -1299,51 +1250,27 @@ function fred_ops_utils.set_ops_data(fred_data)
             if (not move_data.unit_infos[id].canrecruit) and move_data.my_units_MP[id] then
                 if (data.turns <= 1)  then
                     --std_print('  use this unit')
-                    if (not leader_threat_benefits[action]) then
-                        leader_threat_benefits[action] = {
+                    if (not leader_threat_benefits[action_protect]) then
+                        leader_threat_benefits[action_protect] = {
                             units = {},
                             power = {
-                                missing = lthreat_power_needed[zone_id],
-                                previous = power_there,
-                                n_previous = n_there
+                                missing = lthreat_power.enemy.power - lthreat_power.previous.power,
+                                previous = lthreat_power.previous.power,
+                                n_previous = lthreat_power.previous.n_units
                             }
                         }
                     end
-                    leader_threat_benefits[action].units[id] = { benefit = data.benefit, penalty = 0 }
+                    leader_threat_benefits[action_protect].units[id] = { benefit = data.benefit, penalty = 0 }
                     local unit_power = FU.unit_base_power(fred_data.move_data.unit_infos[id])
-
-                    leader_defenders[id] = unit_power
+                    lthreat_assigned_power = lthreat_assigned_power + unit_power
 
                     -- Don't need inertia here, as these are only the units who can get there this turn
+
+
+
                 end
             end
         end
-    end
-    --DBG.dbms(leader_defenders, false, 'leader_defenders')
-    --DBG.dbms(leader_threat_benefits, false, 'leader_threat_benefits')
-
-
-    -- Cannot add up the power in the loop above, because units might be in several zones
-    local lthreat_my_power = 0
-    for id,power in pairs(leader_defenders) do
-        if (not move_data.unit_infos[id].canrecruit) then
-            lthreat_my_power = lthreat_my_power + power
-        end
-    end
-
-    local my_total_power = power_there + lthreat_my_power
-    local lp_power_ratio = my_total_power / lthreat_enemy_power
-
-    local fraction_missing = math.max(0, 1 - fraction_there)
-
-    local base_power_ratio = fred_data.ops_data.behavior.orders.base_power_ratio
-    if (lp_power_ratio < base_power_ratio) then
-        lp_power_ratio = (lp_power_ratio + base_power_ratio) / 2
-    end
-    if (lp_power_ratio > 1) then lp_power_ratio = 1 end
-
-    for _,benefit in pairs(leader_threat_benefits) do
-        benefit.power.missing = benefit.power.missing * fraction_missing
     end
     --DBG.dbms(leader_threat_benefits, false, 'leader_threat_benefits')
 
@@ -1351,7 +1278,6 @@ function fred_ops_utils.set_ops_data(fred_data)
     -- Assess leader protecting by itself; this is for testing only
     --local assignments = FBU.assign_units(leader_threat_benefits, utilities.retreat, move_data)
     --DBG.dbms(assignments, false, 'assignments')
-
 
     local combined_benefits = {}
     for action,data in pairs(village_benefits) do
@@ -1364,38 +1290,43 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     local protect_leader_assignments = FBU.assign_units(combined_benefits, utilities.retreat, move_data)
     --DBG.dbms(protect_leader_assignments, false, 'protect_leader_assignments')
+    local assigned_units = assignments_to_assigned_units(protect_leader_assignments, move_data)
+    --DBG.dbms(assigned_units, false, 'assigned_units')
 
-    local assigned_power, n_assigned = 0, 0
     for id,assignment in pairs(protect_leader_assignments) do
+        -- There are village grabbers mixed in here, thus the somewhat complicated way of doing this
         if string.find(assignment, 'protect_leader') then
             local unit_power = FU.unit_base_power(fred_data.move_data.unit_infos[id])
-            --std_print(id, unit_power)
-            assigned_power = assigned_power + unit_power
-            n_assigned = n_assigned + 1
+            lthreat_power.assigned.power = lthreat_power.assigned.power + unit_power
+            lthreat_power.assigned.n_units = lthreat_power.assigned.n_units + 1
         end
     end
-    local lp_protect_power = power_there + assigned_power
+    --DBG.dbms(lthreat_power, false, 'lthreat_power')
 
 
-    local new_fraction_there = (power_there + assigned_power) / lthreat_enemy_power
-    local new_urgency = FU.urgency(new_fraction_there, n_there + n_assigned)
-    -- TODO: use this to pull in units from farther away?
+    local lp_protect_power = lthreat_power.previous.power + lthreat_power.assigned.power
+
 
 
     if DBG.show_debug('ops_leader_threats') then
+        local my_total_power = lthreat_power.previous.power + lthreat_assigned_power
+        local lp_power_ratio = my_total_power / lthreat_power.enemy.power
+        local fraction_missing = math.max(0, 1 - fraction_previous)
+        local new_fraction_there = lp_protect_power / lthreat_power.enemy.power
+        local new_urgency = FU.urgency(new_fraction_there, lthreat_power.previous.n_units + lthreat_power.assigned.n_units)
+
         std_print('\nleader threats:')
-        std_print('  enemy power:', lthreat_enemy_power)
-        std_print('  power_there, n_there', power_there, n_there)
-        std_print('  fraction there, missing', fraction_there, fraction_missing)
+        std_print('  enemy power:', lthreat_power.enemy.power)
+        std_print('  power_there, n_there', lthreat_power.previous.power, lthreat_power.previous.n_units)
+        std_print('  fraction there, missing', fraction_previous, fraction_missing)
         std_print('  urgency', urgency)
-        std_print('  new power available: ' .. lthreat_my_power)
-        std_print('  leader_threat power (my / enemy = ratio):  ' .. my_total_power .. ' / ' .. lthreat_enemy_power .. ' = ' .. lp_power_ratio)
-        std_print('  lp_power_ratio, base_power_ratio', lp_power_ratio, base_power_ratio)
-        std_print('  new assigned power, n:', assigned_power, n_assigned)
-        std_print('  protect power: ', lp_protect_power .. ' = ' .. power_there .. ' + ' .. assigned_power)
+        std_print('  leader_threat power (my / enemy = ratio):  ' .. my_total_power .. ' / ' .. lthreat_power.enemy.power .. ' = ' .. lp_power_ratio)
+        std_print('  new assigned power, n:', lthreat_power.assigned.power, lthreat_power.assigned.n_units)
+        std_print('  protect power: ', lp_protect_power .. ' = ' .. lthreat_power.previous.power .. ' + ' .. lthreat_power.assigned.power)
         std_print('  new fraction_there, urgency:', new_fraction_there, new_urgency)
         std_print('')
     end
+
 
     local assigned_units = assignments_to_assigned_units(protect_leader_assignments, move_data)
     --DBG.dbms(assigned_units, false, 'assigned_units')
@@ -1429,8 +1360,17 @@ function fred_ops_utils.set_ops_data(fred_data)
             goal_hexes_zones[zone_id] = { cfg.center_hexes[1] }
         end
     end
+
+    if goal_hexes_leader.leader[1] then
+        goal_hexes_zones['leader'] = goal_hexes_leader.leader
+    end
     --DBG.dbms(goal_hexes_zones, false, 'goal_hexes_zones')
 
+
+    for id,_ in pairs(already_protecting) do
+        units_noMP_zones[id] = 'leader'
+    end
+    --DBG.dbms(units_noMP_zones)
 
     -- Also add the noMP units to protect_leader_assignments
     -- TODO: not sure if we want to keep them spearate instead (then additional work is needed later)
@@ -1449,9 +1389,10 @@ function fred_ops_utils.set_ops_data(fred_data)
     if (power_ratio > 1) then power_ratio = 1 end
     --std_print('power_ratio: ' .. power_ratio)
 
-    local zone_power_stats = fred_ops_utils.zone_power_stats(raw_cfgs, assigned_units, assigned_enemies, power_ratio, fred_data)
-    --DBG.dbms(zone_power_stats, false, 'zone_power_stats')
 
+    -- This is only needed for zones with enemies -> passing assigned_enemies as first argument
+    local zone_power_stats = fred_ops_utils.zone_power_stats(assigned_enemies, assigned_units, assigned_enemies, power_ratio, fred_data)
+    --DBG.dbms(zone_power_stats, false, 'zone_power_stats')
 
     local zone_attack_benefits = FBU.attack_benefits(assigned_enemies, goal_hexes_zones, false, fred_data)
     --DBG.dbms(zone_attack_benefits, false, 'zone_attack_benefits')
@@ -1547,6 +1488,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(reserved_actions, false, 'reserved_actions')
 
     -- Pre-assigned units left at this time get assigned to their zones
+    -- As mentioned above, this includes the retreaters
     for id,_ in pairs(unused_units) do
         if pre_assigned_units[id] then
             local zone_id = pre_assigned_units[id]
@@ -1575,13 +1517,15 @@ function fred_ops_utils.set_ops_data(fred_data)
     -- If there are unused unit left now, we simply assign them to the zones
     -- with the largest difference between needed and assigned power
     if next(unused_units) then
+        -- Do this for the standard zones only (not needed for leader zone) -> passing @raw_cfgs as first argument
+        -- TODO: do we want to include the leader zone also? If so, need different treatment for those units?
         local zone_power_stats = fred_ops_utils.zone_power_stats(raw_cfgs, assigned_units, assigned_enemies, power_ratio, fred_data)
         --DBG.dbms(zone_power_stats, false, 'zone_power_stats')
         local power_diffs = {}
         for zone_id,power in pairs(zone_power_stats) do
             power_diffs[zone_id] = power.power_needed - power.my_power
         end
-        --DBG.dbms(power_diffs, false, power_diffs)
+        --DBG.dbms(power_diffs, false, 'power_diffs')
 
         for id,_ in pairs(unused_units) do
             local max_diff, best_zone_id = - math.huge
@@ -1594,6 +1538,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
             assignments[id] = 'zone:' .. best_zone_id
             power_diffs[best_zone_id] = power_diffs[best_zone_id] - FU.unit_base_power(move_data.unit_infos[id])
+            --DBG.dbms(power_diffs, false, 'power_diffs')
         end
     end
     unused_units = nil
@@ -1674,6 +1619,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         end
     end
 
+    -- This includes both leader and "normal" zones
     fred_ops_utils.update_protect_goals(objectives, assigned_units, assigned_enemies, fred_data)
     --DBG.dbms(objectives.protect, false, 'objectives.protect')
 
@@ -1686,11 +1632,13 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(status, false, 'status')
 
 
-    local fronts = fred_ops_utils.find_fronts(zone_maps, zone_influence_maps, raw_cfgs, fred_data)
+    local fronts = fred_ops_utils.find_fronts(zone_maps, zone_influence_maps, fred_data)
     --DBG.dbms(fronts, false, 'fronts')
 
 
-    local zone_power_stats = fred_ops_utils.zone_power_stats(raw_cfgs, assigned_units, assigned_enemies, power_ratio, fred_data)
+    -- Push factors are only needed for holding, that is, in zones with enemies.
+    --   -> passing @assigned_enemies as first argument
+    local zone_power_stats = fred_ops_utils.zone_power_stats(assigned_enemies, assigned_units, assigned_enemies, power_ratio, fred_data)
     --DBG.dbms(zone_power_stats, false, 'zone_power_stats')
 
     local f_zone_power_ratios, zone_push_factors = {}, {}, {}
@@ -1750,9 +1698,9 @@ function fred_ops_utils.set_ops_data(fred_data)
 
 
     if (not ops_data.fred_behavior_str) then
-        ops_data.fred_behavior_str = fred_ops_utils.behavior_output(true, ops_data)
+        ops_data.fred_behavior_str = fred_ops_utils.behavior_output(true, zone_maps, ops_data)
     else
-        fred_ops_utils.behavior_output(false, ops_data)
+        fred_ops_utils.behavior_output(false, zone_maps, ops_data)
     end
 end
 
@@ -1875,7 +1823,8 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     --DBG.dbms(threats_by_zone, false, 'threats_by_zone')
 
 
-    local zone_power_stats = fred_ops_utils.zone_power_stats(ops_data.assigned_enemies, ops_data.assigned_units, ops_data.assigned_enemies, fred_data.ops_data.behavior.orders.base_power_ratio, fred_data)
+    -- Do this for the standard zones only (not needed for leader zone) -> passing @raw_cfgs as first argument
+    local zone_power_stats = fred_ops_utils.zone_power_stats(ops_data.raw_cfgs, ops_data.assigned_units, ops_data.assigned_enemies, fred_data.ops_data.behavior.orders.base_power_ratio, fred_data)
     --DBG.dbms(zone_power_stats, false, 'zone_power_stats')
 
 
@@ -1900,68 +1849,46 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 
     ----- Leader threat actions -----
 
-    --DBG.dbms(ops_data.objectives, false, 'ops_data.objectives')
     local leader_threats = ops_data.objectives.leader.leader_threats
     --DBG.dbms(leader_threats, false, 'leader_threats')
-    local leader_threats_by_zone = {}
     if leader_threats.significant_threat then
-
-        for zone_id,threats in pairs(threats_by_zone) do
-            for id,xy in pairs(threats) do
-                --std_print(zone_id,id)
-                if leader_threats.enemies and leader_threats.enemies[id] then
-                    if (not leader_threats_by_zone[zone_id]) then
-                        leader_threats_by_zone[zone_id] = {}
-                    end
-                    leader_threats_by_zone[zone_id][id] = xy
-                end
-            end
-        end
-        --DBG.dbms(leader_threats_by_zone, false, 'leader_threats_by_zone')
-
         local value_ratio = fred_data.ops_data.behavior.orders.value_ratio
-        local leader_threat_mult = FCFG.get_cfg_parm('leader_threat_mult')
+        -- Use higher aggression (lower value_ratio) of overall and leader_threat vr
+        local vr = math.min(value_ratio, leader_threats.leader_protect_value_ratio)
+        --std_print('value_ratios:', vr, value_ratio, leader_threats.leader_protect_value_ratio)
 
-        -- Attack leader threats
-        for zone_id,threats in pairs(leader_threats_by_zone) do
-            -- Use higher aggression value when there are no villages to protect in between
-            local vr = math.min(value_ratio, ops_data.objectives.leader.leader_threats.leader_protect_value_ratio)
-            --std_print('value_ratios:', vr, value_ratio, ops_data.objectives.leader.leader_threats.leader_protect_value_ratio)
+        -- Note: even though we have units assigned to the leader zone, we do not specify
+        -- these for holding and attacking leader threats, as the assignment is approximate.
+        -- By contrast, we do use them for advancing toward the leader
 
-            -- TODO: set this up to be called only when needed
-            if holders_by_zone[zone_id] then
-                table.insert(fred_data.zone_cfgs, {
-                    zone_id = zone_id,
-                    action_type = 'hold',
-                    action_str = 'protect leader eval',
-                    evaluate_only = true,
-                    find_best_protect_only = true,
-                    value_ratio = vr,
-                    zone_units = holders_by_zone[zone_id],
-                    rating = base_ratings.protect_leader_eval + zone_power_stats[zone_id].power_needed
-                })
+        table.insert(fred_data.zone_cfgs, {
+            zone_id = 'leader',
+            action_type = 'hold',
+            action_str = 'protect leader (eval only)',
+            evaluate_only = true,
+            find_best_protect_only = true,
+            value_ratio = vr,
+            rating = base_ratings.protect_leader_eval
+        })
 
-                table.insert(fred_data.zone_cfgs, {
-                    zone_id = zone_id,
-                    action_type = 'hold',
-                    action_str = 'protect leader exec',
-                    rating = base_ratings.protect_leader_exec + zone_power_stats[zone_id].power_needed,
-                    use_stored_leader_protection = true
-                })
-            end
+        table.insert(fred_data.zone_cfgs, {
+            zone_id = 'leader',
+            action_type = 'attack',
+            action_str = 'attack leader threats',
+            --zone_units = attackers_by_zone[zone_id],
+            targets = leader_threats.enemies,
+            value_ratio = vr,
+            rating = base_ratings.attack_leader_threat
+        })
 
-            if attackers_by_zone[zone_id] then
-                table.insert(fred_data.zone_cfgs, {
-                    zone_id = zone_id,
-                    action_type = 'attack',
-                    action_str = 'attack leader threats',
-                    zone_units = attackers_by_zone[zone_id],
-                    targets = threats,
-                    value_ratio = vr,
-                    rating = base_ratings.attack_leader_threat + zone_power_stats[zone_id].power_needed
-                })
-            end
-        end
+        table.insert(fred_data.zone_cfgs, {
+            zone_id = 'leader',
+            action_type = 'hold',
+            action_str = 'protect leader (exec)',
+            rating = base_ratings.protect_leader_exec,
+            use_stored_leader_protection = true
+        })
+
         --DBG.dbms(fred_data.zone_cfgs, false, 'fred_data.zone_cfgs')
     end
 
