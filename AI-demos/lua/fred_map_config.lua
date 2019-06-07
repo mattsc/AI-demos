@@ -25,8 +25,8 @@ end
 
 function fred_map_config.get_raw_cfgs(zone_id)
     local cfg_leader_threat = {
-        zone_id = 'leader_threat',
         ops_slf = {},
+        zone_id = 'leader',
     }
 
     local cfg_west = {
