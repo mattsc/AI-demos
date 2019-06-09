@@ -1967,7 +1967,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
             for id,_ in pairs(ops_data.assigned_units[zone_id]) do
                 if move_data.my_units_MP[id] then
                     if (not advancers_by_zone[zone_id]) then advancers_by_zone[zone_id] = {} end
-                    advancers_by_zone[zone_id][id] = move_data.units[id]
+                    advancers_by_zone[zone_id][id] = move_data.units[id][1] * 1000 + move_data.units[id][2]
                 end
             end
         end

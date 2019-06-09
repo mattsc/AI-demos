@@ -2536,7 +2536,8 @@ local function get_advance_action(zone_cfg, fred_data)
     local safe_loc = false
     local unit_rating_maps = {}
     local max_rating, best_id, best_hex
-    for id,unit_loc in pairs(advancers) do
+    for id,xy in pairs(advancers) do
+        local unit_loc = { math.floor(xy / 1000), xy % 1000 }
         local is_unit_in_zone = wesnoth.match_location(unit_loc[1], unit_loc[2], raw_cfg.ops_slf)
         --std_print('is_unit_in_zone: ' .. id, is_unit_in_zone)
 
