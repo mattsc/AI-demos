@@ -451,6 +451,7 @@ function fred_utils.get_enemy_leader_distance_maps(zone_cfgs, side_cfgs, move_da
             enemy_leader_distance_maps['all_map'][typ] = fred_utils.smooth_cost_map(unit_proxy, enemy_leader_loc, true)
         end
     end
+    enemy_leader_distance_maps['leader'] = enemy_leader_distance_maps['all_map']
 
     return enemy_leader_distance_maps
 end

@@ -1237,11 +1237,12 @@ function fred_ops_utils.set_ops_data(fred_data)
     local fraction_previous = lthreat_power.previous.power / lthreat_power.enemy.power
     local urgency = FU.urgency(fraction_previous, lthreat_power.previous.n_units)
 
-    local leader_threat_benefits = {}
+    local leader_threat_benefits, leader_advance_benefits = {}, {}
     local lthreat_assigned_power = 0
     -- TODO: there's only one zone left, so this could be reduced, but keeping for now in case I want to revert this
     for zone_id,benefits in pairs(attack_benefits) do
         local action_protect = 'protect_leader:leader' -- .. zone_id
+        local action_advance = 'advance_leader:leader' -- .. zone_id
 
         for id,data in pairs(benefits) do
             -- Need to check for moves here also, as a noMP unit might happen to be
@@ -1265,14 +1266,29 @@ function fred_ops_utils.set_ops_data(fred_data)
                     lthreat_assigned_power = lthreat_assigned_power + unit_power
 
                     -- Don't need inertia here, as these are only the units who can get there this turn
+                else
+                    local unit_value = FU.unit_value(fred_data.move_data.unit_infos[id])
+                    local turn_penalty = unit_value / 1 * data.turns
+                    --std_print(zone_id, id, data.turns, turn_penalty)
 
+                    -- No inertia here either, as it is all the same zone
 
-
+                    if (not leader_advance_benefits[action_advance]) then
+                        leader_advance_benefits[action_advance] = {
+                            units = {}
+                        }
+                    end
+                    leader_advance_benefits[action_advance].units[id] = {
+                        benefit = data.benefit,
+                        penalty = turn_penalty
+                    }
+                    local unit_power = FU.unit_base_power(fred_data.move_data.unit_infos[id])
                 end
             end
         end
     end
     --DBG.dbms(leader_threat_benefits, false, 'leader_threat_benefits')
+    --DBG.dbms(leader_advance_benefits, false, 'leader_advance_benefits')
 
 
     -- Assess leader protecting by itself; this is for testing only
@@ -1305,7 +1321,19 @@ function fred_ops_utils.set_ops_data(fred_data)
 
 
     local lp_protect_power = lthreat_power.previous.power + lthreat_power.assigned.power
+    local advance_power_ratio = (1 + ops_data.behavior.orders.base_power_ratio) / 2
+    if (advance_power_ratio > 1) then advance_power_ratio = 1 end
+    local advance_power_missing = advance_power_ratio * lthreat_power.enemy.power - lp_protect_power
+    --DBG.dbms(leader_advance_benefits, false, 'leader_advance_benefits')
 
+    leader_advance_benefits['advance_leader:leader'].power = {
+        missing = advance_power_missing,
+        previous = lp_protect_power,
+        n_previous = lthreat_power.previous.n_units + lthreat_power.assigned.n_units
+    }
+    --DBG.dbms(leader_advance_benefits, false, 'leader_advance_benefits')
+    local leader_advance_assignments = FBU.assign_units(leader_advance_benefits, utilities.retreat, move_data)
+    --DBG.dbms(leader_advance_assignments, false, 'leader_advance_assignments')
 
 
     if DBG.show_debug('ops_leader_threats') then
@@ -1324,6 +1352,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         std_print('  new assigned power, n:', lthreat_power.assigned.power, lthreat_power.assigned.n_units)
         std_print('  protect power: ', lp_protect_power .. ' = ' .. lthreat_power.previous.power .. ' + ' .. lthreat_power.assigned.power)
         std_print('  new fraction_there, urgency:', new_fraction_there, new_urgency)
+        std_print('  advance_power_ratio, advance_power_missing:', advance_power_ratio, advance_power_missing)
         std_print('')
     end
 
@@ -1380,6 +1409,14 @@ function fred_ops_utils.set_ops_data(fred_data)
 
         protect_leader_assignments[id] = 'has_moved:' .. zone_id
     end
+
+    -- And the same for the advancers
+    -- Potential TODO: maybe we want to set these upas reserved actions at some point
+    for id,assignment in pairs(leader_advance_assignments) do
+        assigned_units['leader'][id] = move_data.my_units[id][1] * 1000 + move_data.my_units[id][2]
+        protect_leader_assignments[id] = assignment
+    end
+
     --DBG.dbms(assigned_units, false, 'assigned_units')
     --DBG.dbms(protect_leader_assignments, false, 'protect_leader_assignments')
 
@@ -1833,7 +1870,8 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         attack_leader_threat = 31000,
         protect_leader_exec = 30000,
 
-        fav_attack = 26000,
+        fav_attack = 27000,
+        advance_toward_leader = 26000,
         attack = 25000,
 
         protect = 22000,
@@ -1888,6 +1926,17 @@ function fred_ops_utils.get_action_cfgs(fred_data)
             rating = base_ratings.protect_leader_exec,
             use_stored_leader_protection = true
         })
+
+        if holders_by_zone['leader'] then
+            table.insert(fred_data.zone_cfgs, {
+                zone_id = 'leader',
+                action_type = 'advance',
+                action_str = 'advance toward leader',
+                zone_units = holders_by_zone['leader'],
+                rating = base_ratings.advance_toward_leader
+            })
+        end
+
 
         --DBG.dbms(fred_data.zone_cfgs, false, 'fred_data.zone_cfgs')
     end
