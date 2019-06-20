@@ -448,6 +448,12 @@ function fred_ops_utils.set_ops_data(fred_data)
     local side_cfgs = FMC.get_side_cfgs()
     --DBG.dbms(raw_cfgs, false, 'raw_cfgs')
 
+    for enemy_id,eirm in pairs(fred_data.turn_data.enemy_initial_reach_maps) do
+        if (not move_data.enemies[enemy_id]) then
+            fred_data.turn_data.enemy_initial_reach_maps[enemy_id] = nil
+        end
+    end
+
     -- Combine several zones into one, if the conditions for it are met.
     -- For example, on Freelands the 'east' and 'center' zones are combined
     -- into the 'top' zone if enemies are close enough to the leader.
