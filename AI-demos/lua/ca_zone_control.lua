@@ -2475,6 +2475,7 @@ local function get_advance_action(zone_cfg, fred_data)
     end
 
 
+    --[[
     local behind_enemy_map = FU.behind_enemy_map(fred_data)
     if DBG.show_debug('advance_behind_enemy_map') then
         DBG.show_fgumap_with_message(behind_enemy_map, 'enemy_power', 'behind_enemy_map ')
@@ -2516,6 +2517,7 @@ local function get_advance_action(zone_cfg, fred_data)
             DBG.show_fgumap_with_message(insufficient_support_map, 'support', 'Insufficient support', move_data.unit_copies[id])
         end
     end
+    --]]
 
 
     -- advance_map covers all hexes in the zone which are not threatened by enemies
@@ -2572,7 +2574,7 @@ local function get_advance_action(zone_cfg, fred_data)
                 -- Note that 'dist' is to be minimize, that is, it is subtracted from the rating
                 local dist
                 if FGM.get_value(advance_map, x, y, 'flag')
-                    and (not FGM.get_value(insufficient_support_maps[id], x, y, 'support'))
+                    --and (not FGM.get_value(insufficient_support_maps[id], x, y, 'support'))
                 then
                     -- For unthreatened hexes in the zone, the main criterion is the "forward distance"
                     dist = FGM.get_value(fred_data.ops_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
@@ -2734,9 +2736,11 @@ local function get_advance_action(zone_cfg, fred_data)
                 -- is not a hex behind enemy lines without sufficient support.  It's value is -0.75*unit_value
                 -- if missing support is equal to the units HP, and decreases asymptotically to -unit_value from there.
                 -- It's supposed to be (mostly) balanced against the damage rating above.
+                --[[
                 local support = - (FGM.get_value(insufficient_support_maps[id], x, y, 'support') or 0)
                 local support_rating = - unit_value * (1 - 0.25 ^ (support / move_data.unit_infos[id].hitpoints))
                 rating = rating + support_rating
+                --]]
 
                 -- Small preference for villages we don't own (although this
                 -- should mostly be covered by the village grabbing action already)
