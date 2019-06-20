@@ -1744,11 +1744,11 @@ local function get_hold_action(zone_cfg, fred_data)
 
                 if (not can_hit) then
                     local eld
-                    if fred_data.ops_data.enemy_leader_distance_maps[zone_cfg.zone_id] then
-                        eld = FGM.get_value(fred_data.ops_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
+                    if fred_data.ops_data.advance_distance_maps[zone_cfg.zone_id] then
+                        eld = FGM.get_value(fred_data.ops_data.advance_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
                     end
                     if (not eld) then
-                        eld = FGM.get_value(fred_data.ops_data.enemy_leader_distance_maps['all_map'][move_data.unit_infos[id].type], x, y, 'cost') + 99
+                        eld = FGM.get_value(fred_data.ops_data.advance_distance_maps['all_map'][move_data.unit_infos[id].type], x, y, 'cost') + 99
                     end
 
                     if (not min_eleader_distance) or (eld < min_eleader_distance) then
@@ -1772,11 +1772,11 @@ local function get_hold_action(zone_cfg, fred_data)
 
                     if (not threats) then
                         local eld
-                        if fred_data.ops_data.enemy_leader_distance_maps[zone_cfg.zone_id] then
-                            eld = FGM.get_value(fred_data.ops_data.enemy_leader_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
+                        if fred_data.ops_data.advance_distance_maps[zone_cfg.zone_id] then
+                            eld = FGM.get_value(fred_data.ops_data.advance_distance_maps[zone_cfg.zone_id][move_data.unit_infos[id].type], x, y, 'cost')
                         end
                         if (not eld) then
-                            eld = FGM.get_value(fred_data.ops_data.enemy_leader_distance_maps['all_map'][move_data.unit_infos[id].type], x, y, 'cost') + 99
+                            eld = FGM.get_value(fred_data.ops_data.advance_distance_maps['all_map'][move_data.unit_infos[id].type], x, y, 'cost') + 99
                         end
 
                         if min_eleader_distance and (eld > min_eleader_distance) then

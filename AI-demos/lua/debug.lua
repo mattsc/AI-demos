@@ -15,6 +15,7 @@ local debug_cfg = {
     analysis_influence_maps = false,
     analysis_unit_influence_maps = false,
     analysis_zone_influence_maps = false,
+    ops_advance_distance_map = false,
 
     attack_print_output = false,
     attack_combos = false,

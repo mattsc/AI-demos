@@ -395,24 +395,30 @@ function fred_utils.get_leader_distance_map(leader_loc, side_cfgs)
     return leader_distance_map
 end
 
-function fred_utils.get_enemy_leader_distance_maps(zone_cfgs, side_cfgs, move_data)
+function fred_utils.get_unit_advance_distance_maps(zone_cfgs, side_cfgs, move_data)
     -- Enemy leader distance maps. These are calculated using wesnoth.find_cost_map() for
     -- each unit type from the start hex of the enemy leader.
     -- TODO: Doing this by unit type may cause problems once Fred can play factions
     -- with unit types that have different variations (i.e. Walking Corpses). Fix later.
-    local enemy_leader_loc
+    local my_leader_loc, enemy_leader_loc
     for side,cfg in ipairs(side_cfgs) do
         if (side ~= wesnoth.current.side) then
             enemy_leader_loc = cfg.start_hex
+        else
+            my_leader_loc = cfg.start_hex
         end
     end
 
-    local enemy_leader_distance_maps = {}
+    local unit_advance_distance_maps = {}
     for zone_id,cfg in pairs(zone_cfgs) do
-        enemy_leader_distance_maps[zone_id] = {}
+        unit_advance_distance_maps[zone_id] = {}
+
+        local slf = AH.table_copy(cfg.ops_slf)
+        table.insert(slf, { "or", { x = my_leader_loc[1], y = my_leader_loc[2], radius = 3 } } )
+        local zone_locs = wesnoth.get_locations(slf)
 
         local old_terrain = {}
-        local avoid_locs = wesnoth.get_locations { { "not", cfg.ops_slf  } }
+        local avoid_locs = wesnoth.get_locations { { "not", slf  } }
         for _,avoid_loc in ipairs(avoid_locs) do
             table.insert(old_terrain, {avoid_loc[1], avoid_loc[2], wesnoth.get_terrain(avoid_loc[1], avoid_loc[2])})
             wesnoth.set_terrain(avoid_loc[1], avoid_loc[2], "Xv")
@@ -421,9 +427,30 @@ function fred_utils.get_enemy_leader_distance_maps(zone_cfgs, side_cfgs, move_da
         for id,unit_loc in pairs(move_data.my_units) do
             local typ = move_data.unit_infos[id].type -- can't use type, that's reserved
 
-            if (not enemy_leader_distance_maps[zone_id][typ]) then
+            if (not unit_advance_distance_maps[zone_id][typ]) then
+                unit_advance_distance_maps[zone_id][typ] = {}
+
                 local unit_proxy = wesnoth.get_unit(unit_loc[1], unit_loc[2])
-                enemy_leader_distance_maps[zone_id][typ] = fred_utils.smooth_cost_map(unit_proxy, enemy_leader_loc, true)
+                local eldm = fred_utils.smooth_cost_map(unit_proxy, enemy_leader_loc, true)
+                local ldm = fred_utils.smooth_cost_map(unit_proxy, my_leader_loc, true)
+
+                local min_sum = math.huge
+                for x,y,data in FGM.iter(ldm) do
+                    local my_cost = data.cost
+                    local enemy_cost = eldm[x][y].cost
+                    local sum = my_cost + enemy_cost
+                    local diff = (my_cost - enemy_cost) / 2
+
+                    if (sum < min_sum) then
+                        min_sum = sum
+                    end
+
+                    FGM.set_value(unit_advance_distance_maps[zone_id][typ], x, y, 'forward', diff)
+                    unit_advance_distance_maps[zone_id][typ][x][y].perp = sum
+                end
+                for x,y,data in FGM.iter(unit_advance_distance_maps[zone_id][typ]) do
+                    data.perp = data.perp - min_sum
+                end
             end
         end
 
@@ -438,19 +465,7 @@ function fred_utils.get_enemy_leader_distance_maps(zone_cfgs, side_cfgs, move_da
         end
     end
 
-    -- Also need this for the full map
-    enemy_leader_distance_maps['all_map'] = {}
-    for id,unit_loc in pairs(move_data.my_units) do
-        local typ = move_data.unit_infos[id].type -- can't use type, that's reserved
-
-        if (not enemy_leader_distance_maps['all_map'][typ]) then
-            local unit_proxy = wesnoth.get_unit(unit_loc[1], unit_loc[2])
-            enemy_leader_distance_maps['all_map'][typ] = fred_utils.smooth_cost_map(unit_proxy, enemy_leader_loc, true)
-        end
-    end
-    enemy_leader_distance_maps['leader'] = enemy_leader_distance_maps['all_map']
-
-    return enemy_leader_distance_maps
+    return unit_advance_distance_maps
 end
 
 function fred_utils.get_full_influence_map(move_data)

@@ -1146,19 +1146,19 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(leader_goal, false, 'leader_goal')
 
     local leader_distance_map = FU.get_leader_distance_map(leader_goal, side_cfgs)
-    local enemy_leader_distance_maps = ops_data.enemy_leader_distance_maps
-    if (not enemy_leader_distance_maps) then
-        enemy_leader_distance_maps = FU.get_enemy_leader_distance_maps(raw_cfgs, side_cfgs, move_data)
+    local unit_advance_distance_maps = ops_data.unit_advance_distance_maps
+    if (not unit_advance_distance_maps) then
+        unit_advance_distance_maps = FU.get_unit_advance_distance_maps(raw_cfgs, side_cfgs, move_data)
     end
     fred_data.ops_data.leader_distance_map = leader_distance_map
-    fred_data.ops_data.enemy_leader_distance_maps = enemy_leader_distance_maps
+    fred_data.ops_data.unit_advance_distance_maps = unit_advance_distance_maps
 
     if DBG.show_debug('analysis_leader_distance_map') then
         --DBG.show_fgumap_with_message(leader_distance_map, 'my_leader_distance', 'my_leader_distance')
         --DBG.show_fgumap_with_message(leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
         DBG.show_fgumap_with_message(leader_distance_map, 'distance', 'leader_distance_map')
-        --DBG.show_fgumap_with_message(enemy_leader_distance_maps['west']['Orcish Grunt'], 'cost', 'cost Grunt')
-        --DBG.show_fgumap_with_message(enemy_leader_distance_maps['Wolf Rider'], 'cost', 'cost Wolf Rider')
+        DBG.show_fgumap_with_message(unit_advance_distance_maps['west']['Troll Whelp'], 'forward', 'forward')
+        DBG.show_fgumap_with_message(unit_advance_distance_maps['west']['Troll Whelp'], 'perp', 'perp')
     end
 
     local goal_hexes_leader, leader_enemies = {}, { leader = {} }
@@ -1690,6 +1690,24 @@ function fred_ops_utils.set_ops_data(fred_data)
     behavior.zone_push_factors = zone_push_factors
 
 
+    local advance_distance_maps = {}
+    for zone_id,units in pairs(assigned_units) do
+        advance_distance_maps[zone_id] = {}
+        local n_units = 0
+        for id,_ in pairs(units) do
+            n_units = n_units + 1
+        end
+
+        for id,_ in pairs(units) do
+            local typ = move_data.unit_infos[id].type
+            for x,y,data in FGM.iter(unit_advance_distance_maps[zone_id][typ]) do
+                FGM.add(advance_distance_maps[zone_id], x, y, 'forward', data.forward / n_units)
+                FGM.add(advance_distance_maps[zone_id], x, y, 'perp', data.perp / n_units)
+            end
+        end
+    end
+
+
     -- The following is currently unused, but could be useful to determine, for example,
     -- if we are over-extended (over-expanded) etc.
     --[[
@@ -1717,6 +1735,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     ops_data.assigned_units = assigned_units
     ops_data.used_units = used_units
     ops_data.fronts = fronts
+    ops_data.advance_distance_maps = advance_distance_maps
     ops_data.reserved_actions = reserved_actions
     ops_data.place_holders = place_holders
     ops_data.interaction_matrix = interaction_matrix
