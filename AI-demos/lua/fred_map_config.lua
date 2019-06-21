@@ -33,7 +33,7 @@ function fred_map_config.get_raw_cfgs(zone_id)
 
     local cfg_west = {
         zone_id = 'west',
-        ops_slf = { x = '1-15,1-14,1-21', y = '1-12,13-16,17-24' },
+        ops_slf = { x = '1-15,1-14,1-16,1-21', y = '1-12,13-15,16,17-24' },
         center_hexes = { { 10, 13 } },
         zone_weight = 1,
     }
