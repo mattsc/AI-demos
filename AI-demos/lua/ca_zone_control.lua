@@ -2708,11 +2708,11 @@ local function get_advance_action(zone_cfg, fred_data)
         local cfg_attack_desp = { value_ratio = 0.2 } -- mostly based on damage done to enemy
 
         local max_attack_rating, best_attacker_id, best_attack_hex
-        for id,unit_loc in pairs(advancers) do
+        for id,xy in pairs(advancers) do
             --std_print('checking desparate attacks for ' .. id)
 
             local attacker = {}
-            attacker[id] = unit_loc
+            attacker[id] = move_data.units[id]
             for enemy_id,enemy_loc in pairs(move_data.enemies) do
                 if FGM.get_value(move_data.unit_attack_maps[1][id], enemy_loc[1], enemy_loc[2], 'current_power') then
                     --std_print('    potential target:' .. enemy_id)
