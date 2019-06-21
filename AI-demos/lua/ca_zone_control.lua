@@ -2476,7 +2476,7 @@ local function get_advance_action(zone_cfg, fred_data)
 
     local value_ratio = fred_data.ops_data.behavior.orders.value_ratio
     local push_factor = fred_data.ops_data.behavior.zone_push_factors[zone_cfg.zone_id]
-    std_print('push_factor: ' .. zone_cfg.zone_id, push_factor)
+    --std_print('push_factor: ' .. zone_cfg.zone_id, push_factor)
 
     --[[
     local behind_enemy_map = FU.behind_enemy_map(fred_data)
@@ -2623,7 +2623,6 @@ local function get_advance_action(zone_cfg, fred_data)
                     -- hp_chance[0]=0.85; but then it is the difference between die chances that
                     -- really matters, so we multiply by another factor 2.
                     -- This makes this a huge contribution to the rating.
-                    -- It is meant to override the "behind enemy lines" rating below for high die chances
                     local die_rating = - unit_value * counter_outcomes.def_outcome.hp_chance[0] ^ 2 / 0.85^2 * 2
 
                     rating = rating + counter_rating + die_rating
@@ -2778,7 +2777,7 @@ local function get_advance_action(zone_cfg, fred_data)
 
 
     if best_id then
-        DBG.print_debug('advance', '  best advance:', best_id, best_hex[1], best_hex[2])
+        DBG.print_debug('advance_output', zone_cfg.zone_id .. ': best advance: ' .. best_id .. ' -> ' .. best_hex[1] .. ',' .. best_hex[2])
 
         local best_unit = move_data.my_units[best_id]
         best_unit.id = best_id

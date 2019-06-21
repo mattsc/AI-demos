@@ -34,12 +34,13 @@ local debug_cfg = {
     hold_combo_counter_rating = false,
     hold_best_combo = false,
 
-    advance_unit_rating = false,
+    advance_output = true,
     --advance_behind_enemy_map = false,
     --advance_support_map = false,
     --advance_unit_support_maps = false,
     --advance_insufficient_support_maps = false,
     advance_cost_maps = false,
+    advance_unit_rating = false,
 
     reset_turn = false
 }
