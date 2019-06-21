@@ -2590,8 +2590,9 @@ local function get_advance_action(zone_cfg, fred_data)
                 end
             end
         end
-        if false then
-            DBG.show_fgumap_with_message(cost_map, 'cost', 'cost_map', move_data.unit_copies[id])
+
+        if DBG.show_debug('advance_cost_maps') then
+            DBG.show_fgumap_with_message(cost_map, 'cost', zone_cfg.zone_id ..': advance cost map', move_data.unit_copies[id])
         end
 
         for x,y,_ in FGM.iter(move_data.effective_reach_maps[id]) do
@@ -2693,7 +2694,7 @@ local function get_advance_action(zone_cfg, fred_data)
 
     if DBG.show_debug('advance_unit_rating') then
         for id,unit_rating_map in pairs(unit_rating_maps) do
-            DBG.show_fgumap_with_message(unit_rating_map, 'rating', 'Advance unit rating (unit value = ' .. FU.unit_value(move_data.unit_infos[id]) .. ')', move_data.unit_copies[id])
+            DBG.show_fgumap_with_message(unit_rating_map, 'rating', zone_cfg.zone_id ..': advance unit rating (unit value = ' .. FU.unit_value(move_data.unit_infos[id]) .. ')', move_data.unit_copies[id])
         end
     end
 
