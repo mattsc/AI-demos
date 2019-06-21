@@ -1713,6 +1713,72 @@ function fred_ops_utils.set_ops_data(fred_data)
         end
     end
 
+    local advance_goals = {}
+    for zone_id,ADmap in pairs(advance_distance_maps) do
+        local line_infl, weights = {}, {}
+        for x,y,data in FGM.iter(ADmap) do
+            local my_infl = FGM.get_value(move_data.influence_maps, x, y, 'my_full_move_influence') or 0
+            local enemy_infl = FGM.get_value(move_data.influence_maps, x, y, 'enemy_full_move_influence') or 0
+            -- TODO: use zone-dependent value_ratio here?
+            local infl = my_infl - value_ratio * enemy_infl
+            local int_forward = H.round(2 * data.forward) / 2 -- TODO: make this half integers?
+            local weight = 1 / (1 + data.perp / 5)
+            line_infl[int_forward] = (line_infl[int_forward] or 0) + infl * weight
+            weights[int_forward] = (weights[int_forward] or 0) + weight
+        end
+
+        for forward,data in pairs(line_infl) do
+            line_infl[forward] = line_infl[forward] / weights[forward]
+        end
+        --DBG.dbms(line_infl, false, 'line_infl')
+
+        local max_forward = -9e99
+        for forward,data in pairs(line_infl) do
+            if (data >= 0) and (forward > max_forward) then
+                max_forward = forward
+            end
+        end
+        --std_print(zone_id .. ': max forward = ' .. max_forward)
+
+        local min_perp, goal_hex = 9e99, {}
+        for x,y,data in FGM.iter(ADmap) do
+            if (data.forward >= max_forward - 0.25) and (data.forward <= max_forward + 0.25) and (data.perp < min_perp) then
+                min_perp = data.perp
+                goal_hex = { x, y }
+            end
+        end
+        --std_print('goal_hex: ' .. goal_hex [1] .. ',' .. goal_hex[2], min_perp)
+
+        if DBG.show_debug('ops_advance_distance_map') then
+            local display_map, front_map = {}, {}
+            for x,y,data in FGM.iter(ADmap) do
+                if (data.perp <= 2) then
+                    local int_forward = H.round(data.forward)
+                    FGM.set_value(display_map, x, y, 'influence', line_infl[int_forward])
+                end
+
+                if (data.forward >= max_forward - 0.5) and (data.forward <= max_forward + 0.5) then
+                    FGM.set_value(front_map, x, y, 'front', true)
+                end
+            end
+
+            DBG.show_fgumap_with_message(ADmap, 'forward', 'advance_distance_map ' .. zone_id .. ': forward')
+            DBG.show_fgumap_with_message(ADmap, 'perp', 'advance_distance_map ' .. zone_id .. ': perp')
+            for x,y,_ in FGM.iter(front_map) do
+                wesnoth.wml_actions.item { x = x, y = y, halo = "halo/teleport-8.png" }
+            end
+            wesnoth.wml_actions.item { x = goal_hex[1], y = goal_hex[2], halo = "halo/illuminates-aura.png~CS(-255,-255,0)" }
+            DBG.show_fgumap_with_message(display_map, 'influence', 'advance route influence: ' .. zone_id)
+            wesnoth.wml_actions.remove_item { x = goal_hex[1], y = goal_hex[2], halo = "halo/illuminates-aura.png~CS(-255,-255,0)" }
+            for x,y,_ in FGM.iter(front_map) do
+                wesnoth.wml_actions.remove_item { x = x, y = y, halo = "halo/teleport-8.png" }
+            end
+        end
+
+        advance_goals[zone_id] = goal_hex
+    end
+    --DBG.dbms(advance_goals, false, 'advance_goals')
+
 
     -- The following is currently unused, but could be useful to determine, for example,
     -- if we are over-extended (over-expanded) etc.
@@ -1741,6 +1807,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     ops_data.assigned_units = assigned_units
     ops_data.used_units = used_units
     ops_data.fronts = fronts
+    ops_data.advance_goals = advance_goals
     ops_data.advance_distance_maps = advance_distance_maps
     ops_data.reserved_actions = reserved_actions
     ops_data.place_holders = place_holders
