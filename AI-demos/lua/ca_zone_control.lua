@@ -2548,106 +2548,88 @@ local function get_advance_action(zone_cfg, fred_data)
         local fraction_hp_missing = (move_data.unit_infos[id].max_hitpoints - move_data.unit_infos[id].hitpoints) / move_data.unit_infos[id].max_hitpoints
         local hp_rating = FU.weight_s(fraction_hp_missing, 0.5)
         hp_rating = hp_rating * unit_value / 2
-
         --std_print(id, rating_moves, rating_power, fraction_hp_missing, hp_rating)
 
-        local cost_map
+        local goal = fred_data.ops_data.advance_goals[zone_cfg.zone_id]
+        local cost_map = {}
+        if is_unit_in_zone then
+            -- If the unit is in the zone, use the ops advance_distance_maps
+            local ADmap = fred_data.ops_data.advance_distance_maps[zone_cfg.zone_id]
+            local goal_forward = FGM.get_value(ADmap, goal[1], goal[2], 'forward')
+            local goal_perp = FGM.get_value(ADmap, goal[1], goal[2], 'perp')
+            for x,y,_ in FGM.iter(move_data.effective_reach_maps[id]) do
+                if (not FGM.get_value(avoid_maps[id], x, y, 'avoid')) then
+                    local forward = FGM.get_value(ADmap, x, y, 'forward')
+                    local perp = FGM.get_value(ADmap, x, y, 'perp')
+
+                    if (not forward) then
+                        forward = wesnoth.map.distance_between(x, y, goal[1], goal[2]) + goal_forward
+                        perp = 10
+                    end
+
+                    local df = math.abs(forward - goal_forward) / max_moves
+                    local dp = math.abs(perp - goal_perp) / max_moves
+                    local cost = df ^ 1.5 + dp ^ 2
+                    cost = cost * max_moves
+
+                    FGM.set_value(cost_map, x, y, 'cost', cost)
+                end
+            end
+        else
+            -- If the unit is not in the zone, head straight toward the goal
+            local cm = wesnoth.find_cost_map(
+                { x = -1 }, -- SUF not matching any unit
+                { { goal[1], goal[2], wesnoth.current.side, fred_data.move_data.unit_infos[id].type } },
+                { ignore_units = true }
+            )
+
+            for _,cost in pairs(cm) do
+                if (cost[3] > -1) then
+                   local c = FGM.get_value(cost_map, cost[1], cost[2], 'cost') or 0
+                   FGM.set_value(cost_map, cost[1], cost[2], 'cost', c + cost[3])
+                end
+            end
+        end
+        if false then
+            DBG.show_fgumap_with_message(cost_map, 'cost', 'cost_map', move_data.unit_copies[id])
+        end
+
         for x,y,_ in FGM.iter(move_data.effective_reach_maps[id]) do
             if (not FGM.get_value(avoid_maps[id], x, y, 'avoid')) then
                 local rating = rating_moves + rating_power
+                dist = FGM.get_value(cost_map, x, y, 'cost')
 
-                if false
-                then
-                else
-                    -- When no unthreatened hexes inside the zone can be found,
-                    -- the enemy threat needs to be taken into account and hexes outside
-                    -- the zone are considered
-                    if (not cost_map) then
-                        if is_unit_in_zone then
-                            cost_map = {}
-                            local ADmap = fred_data.ops_data.advance_distance_maps[zone_cfg.zone_id]
-                            local goal = fred_data.ops_data.advance_goals[zone_cfg.zone_id]
-                            local goal_forward = FGM.get_value(ADmap, goal[1], goal[2], 'forward')
-                            local goal_perp = FGM.get_value(ADmap, goal[1], goal[2], 'perp')
-                            for x,y,_ in FGM.iter(move_data.effective_reach_maps[id]) do
-                                if (not FGM.get_value(avoid_maps[id], x, y, 'avoid')) then
-                                    local forward = FGM.get_value(ADmap, x, y, 'forward')
-                                    local perp = FGM.get_value(ADmap, x, y, 'perp')
+                -- Counter attack outcome
+                local unit_moved = {}
+                unit_moved[id] = { x, y }
+                local old_locs = { { unit_loc[1], unit_loc[2] } }
+                local new_locs = { { x, y } }
+                -- TODO: Use FVS here also?
+                local counter_outcomes = FAU.calc_counter_attack(
+                    unit_moved, old_locs, new_locs, fred_data.ops_data.place_holders, nil, cfg_attack, move_data, move_cache
+                )
 
-                                    if (not forward) then
-                                        forward = wesnoth.map.distance_between(x, y, goal[1], goal[2]) + goal_forward
-                                        perp = 10
-                                    end
+                if counter_outcomes then
+                    --DBG.dbms(counter_outcomes.def_outcome.ctd_progression, false, 'counter_outcomes.def_outcome.ctd_progression')
+                    --std_print('  die_chance', counter_outcomes.def_outcome.hp_chance[0])
 
-                                    local df = math.abs(forward - goal_forward) / max_moves
-                                    local dp = math.abs(perp - goal_perp) / max_moves
-                                    local cost = df ^ 1.5 + dp ^ 2
-                                    cost = cost * max_moves
+                    -- This is the standard attack rating (roughly) in units of cost (gold)
+                    local counter_rating = - counter_outcomes.rating_table.yyy_rating
 
-                                    FGM.set_value(cost_map, x, y, 'cost', cost)
-                                end
-                            end
-                        else
-                            cost_map = {}
+                    -- The die chance is already included in the rating, but we
+                    -- want it to be even more important here (and very non-linear)
+                    -- It's set to be quadratic and take unity value at the desperate attack
+                    -- hp_chance[0]=0.85; but then it is the difference between die chances that
+                    -- really matters, so we multiply by another factor 2.
+                    -- This makes this a huge contribution to the rating.
+                    -- It is meant to override the "behind enemy lines" rating below for high die chances
+                    local die_rating = - unit_value * counter_outcomes.def_outcome.hp_chance[0] ^ 2 / 0.85^2 * 2
 
-                            -- if the unit is not in the zone, we move toward the goal hex
-                            local goal = fred_data.ops_data.advance_goals[zone_cfg.zone_id]
+                    rating = rating + counter_rating + die_rating
+                end
 
-
-                            --for _,hex in ipairs(hexes) do
-                                local cm = wesnoth.find_cost_map(
-                                    { x = -1 }, -- SUF not matching any unit
-                                    { { goal[1], goal[2], wesnoth.current.side, fred_data.move_data.unit_infos[id].type } },
-                                    { ignore_units = true }
-                                )
-
-                                for _,cost in pairs(cm) do
-                                    if (cost[3] > -1) then
-                                       local c = FGM.get_value(cost_map, cost[1], cost[2], 'cost') or 0
-                                       FGM.set_value(cost_map, cost[1], cost[2], 'cost', c + cost[3])
-                                    end
-                                end
-                            --end
-                        end
-                        if false then
-                            DBG.show_fgumap_with_message(cost_map, 'cost', 'cost_map', move_data.unit_copies[id])
-                        end
-                    end
-
-                    dist = FGM.get_value(cost_map, x, y, 'cost')
-
-                    -- Counter attack outcome
-                    local unit_moved = {}
-                    unit_moved[id] = { x, y }
-                    local old_locs = { { unit_loc[1], unit_loc[2] } }
-                    local new_locs = { { x, y } }
-                    -- TODO: Use FVS here also?
-                    local counter_outcomes = FAU.calc_counter_attack(
-                        unit_moved, old_locs, new_locs, fred_data.ops_data.place_holders, nil, cfg_attack, move_data, move_cache
-                    )
-
-                    if counter_outcomes then
-                        --DBG.dbms(counter_outcomes.def_outcome.ctd_progression, false, 'counter_outcomes.def_outcome.ctd_progression')
-                        --std_print('  die_chance', counter_outcomes.def_outcome.hp_chance[0])
-
-                        -- This is the standard attack rating (roughly) in units of cost (gold)
-                        local counter_rating = - counter_outcomes.rating_table.yyy_rating
-
-                        -- The die chance is already included in the rating, but we
-                        -- want it to be even more important here (and very non-linear)
-                        -- It's set to be quadratic and take unity value at the desperate attack
-                        -- hp_chance[0]=0.85; but then it is the difference between die chances that
-                        -- really matters, so we multiply by another factor 2.
-                        -- This makes this a huge contribution to the rating.
-                        -- It is meant to override the "behind enemy lines" rating below for high die chances
-                        local die_rating = - unit_value * counter_outcomes.def_outcome.hp_chance[0] ^ 2 / 0.85^2 * 2
-
-                        rating = rating + counter_rating + die_rating
-                    end
-
-                    if (not counter_outcomes) or (counter_outcomes.def_outcome.hp_chance[0] < 0.85) then
-                        safe_loc = true
-                    end
+                if (not counter_outcomes) or (counter_outcomes.def_outcome.hp_chance[0] < 0.85) then
+                    safe_loc = true
                 end
 
                 -- Everything is balanced against the value loss rating from the counter attack
