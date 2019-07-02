@@ -1,4 +1,5 @@
 local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
+local H = wesnoth.require "helper"
 
 -- Note: Assigning this table is slow compared to accessing values in it. It is
 -- thus done outside the functions below, so that it is not done over and over
@@ -116,8 +117,10 @@ function debug_utils.put_fgumap_labels(map, key, cfg)
     -- @cfg: table with optional parameters:
     --   - show_coords: (boolean) use hex coordinates as labels instead of value
     --   - factor=1: (number) if value is a number, multiply by this factor
+    --   - round_to=0.01: (number) round numerical output to integer multiples of this
 
     local factor = (cfg and cfg.factor) or 1
+    local round_to = (cfg and cfg.round_to) or 0.01
 
     debug_utils.clear_labels()
 
@@ -183,6 +186,7 @@ function debug_utils.put_fgumap_labels(map, key, cfg)
             end
 
             out = out * factor
+            out = H.round(out / round_to) * round_to
         end
 
         wesnoth.wml_actions.label {
@@ -198,9 +202,10 @@ function debug_utils.show_fgumap_with_message(map, key, text, cfg)
     --   @x,@y: coordinates to scroll to; if omitted, no scrolling is done
     --   @id: speaker id; if omitted, a narrator message is shown
     --   @no_halo: if set, do not display a halo in the speaker unit location
+    --   @round_to=0.01: (number) round numerical output to integer multiples of this
     -- Thus, it's possible to pass a unit as @cfg
 
-    debug_utils.put_fgumap_labels(map, key)
+    debug_utils.put_fgumap_labels(map, key, cfg)
     if cfg and cfg.x and cfg.y then
         wesnoth.scroll_to_tile(cfg.x,cfg.y)
         if (not cfg.no_halo) then
