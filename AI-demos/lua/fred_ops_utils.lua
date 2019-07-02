@@ -2025,6 +2025,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
                 action_type = 'advance',
                 action_str = 'advance toward leader',
                 zone_units = holders_by_zone['leader'],
+                value_ratio = vr,
                 rating = base_ratings.advance_toward_leader
             })
         end
