@@ -1957,11 +1957,6 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     --DBG.dbms(threats_by_zone, false, 'threats_by_zone')
 
 
-    -- Do this for the standard zones only (not needed for leader zone) -> passing @raw_cfgs as first argument
-    local zone_power_stats = fred_ops_utils.zone_power_stats(ops_data.raw_cfgs, ops_data.assigned_units, ops_data.assigned_enemies, fred_data.ops_data.behavior.orders.base_power_ratio, fred_data)
-    --DBG.dbms(zone_power_stats, false, 'zone_power_stats')
-
-
     local base_ratings = {
         protect_leader_eval = 32000, -- eval only
         attack_leader_threat = 31000,
@@ -2050,6 +2045,11 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         rating = base_ratings.fav_attack,
         value_ratio = 2.0 * value_ratio -- only very favorable attacks will pass this
     })
+
+
+    -- Do this for the standard zones only (not needed for leader zone) -> passing @raw_cfgs as first argument
+    local zone_power_stats = fred_ops_utils.zone_power_stats(ops_data.raw_cfgs, ops_data.assigned_units, ops_data.assigned_enemies, fred_data.ops_data.behavior.orders.base_power_ratio, fred_data)
+    --DBG.dbms(zone_power_stats, false, 'zone_power_stats')
 
 
     for zone_id,zone_units in pairs(holders_by_zone) do
