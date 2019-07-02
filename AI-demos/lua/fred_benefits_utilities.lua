@@ -409,24 +409,26 @@ function utility_functions.assign_units(benefits, retreat_utilities, move_data)
     -- Also, we need a local copy as we're going to modify it and don't want to change the input table.
     local task_ratings = {}
     for action,data in pairs(benefits) do
-        local tmp = { action = action, units = {}, power = data.power }
+        if (not data.power) or (data.power.missing > 0) then
+            local tmp = { action = action, units = {}, power = data.power }
 
-        local urgency = 1
-        if data.power and retreat_utilities then
-            local power_fraction = data.power.previous / (data.power.previous + data.power.missing)
-            urgency = FU.urgency(power_fraction, data.power.n_previous)
-            --std_print('power_fraction, urgency', power_fraction, urgency)
-        end
-
-        for id,ratings in pairs(data.units) do
-            if ((retreat_utilities and retreat_utilities[id] or 0) <= urgency) then
-                local u = { id = id, base_rating = ratings.benefit, own_penalty = ratings.penalty }
-                table.insert(tmp.units, u)
+            local urgency = 1
+            if data.power and retreat_utilities then
+                local power_fraction = data.power.previous / (data.power.previous + data.power.missing)
+                urgency = FU.urgency(power_fraction, data.power.n_previous)
+                --std_print('power_fraction, urgency', power_fraction, urgency)
             end
-        end
-        if (#tmp.units > 0) then
-            table.sort(tmp.units, function(a, b) return a.base_rating > b.base_rating end)
-            table.insert(task_ratings, tmp)
+
+            for id,ratings in pairs(data.units) do
+                if ((retreat_utilities and retreat_utilities[id] or 0) <= urgency) then
+                    local u = { id = id, base_rating = ratings.benefit, own_penalty = ratings.penalty }
+                    table.insert(tmp.units, u)
+                end
+            end
+            if (#tmp.units > 0) then
+                table.sort(tmp.units, function(a, b) return a.base_rating > b.base_rating end)
+                table.insert(task_ratings, tmp)
+            end
         end
     end
     --DBG.dbms(task_ratings, false, 'task_ratings')
