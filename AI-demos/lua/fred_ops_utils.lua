@@ -894,6 +894,11 @@ function fred_ops_utils.set_ops_data(fred_data)
         zone_maps['leader'] = leader_zone_map
     end
 
+    if DBG.show_debug('ops_zone_maps') then
+        for zone_id,zone_map in pairs(zone_maps) do
+            DBG.show_fgumap_with_message(zone_map, 'flag', 'zone_map ' .. zone_id)
+        end
+    end
 
     -- Need the fronts for assigning units to zones. These will not be the exact fronts
     -- needed later (which in turn are based on the assigned units). They will either be
