@@ -141,8 +141,7 @@ function debug_utils.put_fgumap_labels(map, key, cfg)
     if (min == max) then
         min = max - 1
     end
-
-    min = min - (max - min) * 0.2
+    --min = min - (max - min) * 0.01
 
     for x,y,data in FGM.iter(map) do
         local out = data[key]
@@ -171,13 +170,13 @@ function debug_utils.put_fgumap_labels(map, key, cfg)
 
         if (type(out) == 'number') then
             color_fac = (out - min) / (max - min)
-            if (color_fac < 0.5) then
-                red_fac = color_fac + 0.5
+            if (color_fac < 0.25) then
+                red_fac = color_fac * 4
                 green_fac = 0
-                blue_fac = 0
+                blue_fac = 1 - color_fac * 4
             elseif (color_fac < 0.75) then
                 red_fac = 1
-                green_fac = (color_fac - 0.5) * 4
+                green_fac = (color_fac - 0.25) * 2
                 blue_fac = green_fac / 2
             else
                 red_fac = 1
