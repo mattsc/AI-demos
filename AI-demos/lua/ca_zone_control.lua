@@ -2624,7 +2624,7 @@ local function get_advance_action(zone_cfg, fred_data)
                     -- hp_chance[0]=0.85; but then it is the difference between die chances that
                     -- really matters, so we multiply by another factor 2.
                     -- This makes this a huge contribution to the rating.
-                    local die_rating = - unit_value * counter_outcomes.def_outcome.hp_chance[0] ^ 2 / 0.85^2 * 2
+                    local die_rating = - value_ratio * unit_value * counter_outcomes.def_outcome.hp_chance[0] ^ 2 / 0.85^2 * 2
 
                     rating = rating + counter_rating + die_rating
                 end
@@ -2658,12 +2658,13 @@ local function get_advance_action(zone_cfg, fred_data)
                 -- Small preference for villages we don't own (although this
                 -- should mostly be covered by the village grabbing action already)
                 -- Equal to gold difference between grabbing and not grabbing (not counting support)
+                local village_bonus = 0
                 local owner = FGM.get_value(move_data.village_map, x, y, 'owner')
                 if owner and (owner ~= wesnoth.current.side) then
                     if (owner == 0) then
-                        rating = rating + 2
+                        village_bonus = village_bonus + 2
                     else
-                        rating = rating + 4
+                        village_bonus = village_bonus + 4
                     end
                 end
 
@@ -2671,8 +2672,10 @@ local function get_advance_action(zone_cfg, fred_data)
                 -- Also add a half-hex bonus for villages in general; no need not to go there
                 -- all else being equal
                 if owner and (not move_data.unit_infos[id].abilities.regenerate) then
-                    rating = rating + 0.5 + hp_rating
+                    village_bonus = village_bonus + 0.5 + hp_rating
                 end
+
+                rating = rating + village_bonus * value_ratio
 
                 -- Small bonus for the terrain; this does not really matter for
                 -- unthreatened hexes and is already taken into account in the
