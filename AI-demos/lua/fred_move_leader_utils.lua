@@ -473,11 +473,13 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
     DBG.print_debug('analysis', '  leader_protect_value_ratio', leader_threats.leader_protect_value_ratio)
 
 
-    local leader_zone_map = {}
+    -- Note that 'perp_map' covers the entire map, while 'leader_zone_map' is only the zone
+    local leader_zone_map, perp_map = {}, {}
     if leader_threats.significant_threat then
         local goal_loc = leader_objectives.final
 
         for enemy_id,_ in pairs(leader_threats.enemies) do
+            local enemy_value = FU.unit_current_power(move_data.unit_infos[enemy_id])
             local enemy_loc = fred_data.move_data.units[enemy_id]
             local enemy = {}
             enemy[enemy_id] = enemy_loc
@@ -487,17 +489,25 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
                 if between.is_between then
                     FGM.set_value(leader_zone_map, x, y, 'flag', true)
                 end
+
+                FGM.add(perp_map, x, y, 'perp', math.abs(between.perp_distance) * enemy_value)
+                FGM.add(perp_map, x, y, 'weight', enemy_value)
+            end
+            for x,y,map in FGM.iter(perp_map) do
+                map.perp = map.perp / map.weight
+                map.weight = nil
             end
 
             if false then
-                --DBG.show_fgumap_with_message(between_map, 'distance', zone_id .. ' between_map: distance', fred_data.move_data.unit_copies[enemy_id])
-                --DBG.show_fgumap_with_message(between_map, 'perp_distance', zone_id .. ' between_map: perp_distance', fred_data.move_data.unit_copies[enemy_id])
+                --DBG.show_fgumap_with_message(between_map, 'distance', 'between_map: distance', fred_data.move_data.unit_copies[enemy_id])
+                --DBG.show_fgumap_with_message(between_map, 'perp_distance', 'between_map: perp_distance', fred_data.move_data.unit_copies[enemy_id])
                 DBG.show_fgumap_with_message(between_map, 'is_between', 'between_map: is_between', fred_data.move_data.unit_copies[enemy_id])
             end
         end
         -- TODO: potentially buffer this
 
         --DBG.show_fgumap_with_message(leader_zone_map, 'flag', 'leader_zone_map')
+        --DBG.show_fgumap_with_message(perp_map, 'perp', 'perp_map')
     end
 
 
@@ -550,7 +560,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
 
     leader_objectives.leader_threats = leader_threats
 
-    return leader_zone_map
+    return leader_zone_map, perp_map
 end
 
 
