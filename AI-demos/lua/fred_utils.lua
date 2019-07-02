@@ -395,11 +395,17 @@ function fred_utils.get_leader_distance_map(leader_loc, side_cfgs)
     return leader_distance_map
 end
 
-function fred_utils.get_unit_advance_distance_maps(zone_cfgs, side_cfgs, move_data)
+function fred_utils.get_unit_advance_distance_maps(zone_cfgs, side_cfgs, cfg, move_data)
     -- Enemy leader distance maps. These are calculated using wesnoth.find_cost_map() for
     -- each unit type from the start hex of the enemy leader.
     -- TODO: Doing this by unit type may cause problems once Fred can play factions
     -- with unit types that have different variations (i.e. Walking Corpses). Fix later.
+    --
+    -- @cfg: optional map with config parameters:
+    --   @my_leader_loc: own leader location to use as reference; if not given use the start hex
+
+    cfg = cfg or {}
+
     local my_leader_loc, enemy_leader_loc
     for side,cfg in ipairs(side_cfgs) do
         if (side ~= wesnoth.current.side) then
@@ -407,6 +413,10 @@ function fred_utils.get_unit_advance_distance_maps(zone_cfgs, side_cfgs, move_da
         else
             my_leader_loc = cfg.start_hex
         end
+    end
+
+    if cfg.my_leader_loc then
+        my_leader_loc = cfg.my_leader_loc
     end
 
     local unit_advance_distance_maps = {}
@@ -447,6 +457,8 @@ function fred_utils.get_unit_advance_distance_maps(zone_cfgs, side_cfgs, move_da
 
                     FGM.set_value(unit_advance_distance_maps[zone_id][typ], x, y, 'forward', diff)
                     unit_advance_distance_maps[zone_id][typ][x][y].perp = sum
+                    unit_advance_distance_maps[zone_id][typ][x][y].my_cost = my_cost
+                    unit_advance_distance_maps[zone_id][typ][x][y].enemy_cost = enemy_cost
                 end
                 for x,y,data in FGM.iter(unit_advance_distance_maps[zone_id][typ]) do
                     data.perp = data.perp - min_sum

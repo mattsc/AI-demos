@@ -1154,7 +1154,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     local leader_distance_map = FU.get_leader_distance_map(leader_goal, side_cfgs)
     local unit_advance_distance_maps = ops_data.unit_advance_distance_maps
     if (not unit_advance_distance_maps) then
-        unit_advance_distance_maps = FU.get_unit_advance_distance_maps(raw_cfgs, side_cfgs, move_data)
+        unit_advance_distance_maps = FU.get_unit_advance_distance_maps(raw_cfgs, side_cfgs, nil, move_data)
     end
     fred_data.ops_data.leader_distance_map = leader_distance_map
     fred_data.ops_data.unit_advance_distance_maps = unit_advance_distance_maps
