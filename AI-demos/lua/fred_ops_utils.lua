@@ -1730,6 +1730,8 @@ function fred_ops_utils.set_ops_data(fred_data)
     behavior.zone_push_factors = zone_push_factors
 
 
+    -- Note: the advance_distance_maps cover more hexes than just the zones,
+    -- but the goal_hexes below are calculated for zone hexes only
     local advance_distance_maps = {}
     for zone_id,units in pairs(assigned_units) do
         advance_distance_maps[zone_id] = {}
@@ -1750,21 +1752,26 @@ function fred_ops_utils.set_ops_data(fred_data)
     local advance_goals = {}
     for zone_id,ADmap in pairs(advance_distance_maps) do
         local line_infl, weights = {}, {}
-        for x,y,data in FGM.iter(ADmap) do
-            local my_infl = FGM.get_value(move_data.influence_maps, x, y, 'my_full_move_influence') or 0
-            local enemy_infl = FGM.get_value(move_data.influence_maps, x, y, 'enemy_full_move_influence') or 0
-            -- TODO: use zone-dependent value_ratio here?
-            local infl = my_infl - value_ratio * enemy_infl
-            local int_forward = H.round(2 * data.forward) / 2 -- TODO: make this half integers?
-            local weight = 1 / (1 + data.perp / 5)
-            line_infl[int_forward] = (line_infl[int_forward] or 0) + infl * weight
-            weights[int_forward] = (weights[int_forward] or 0) + weight
+        -- Note: loops needs to be over zone hexes only, while advance_distance_maps
+        -- also contains hexes outside the zone, in particular for the leader zone
+        for x,y,_ in FGM.iter(zone_maps[zone_id]) do
+            local data = ADmap[x] and ADmap[x][y]
+            if data then
+                local my_infl = FGM.get_value(move_data.influence_maps, x, y, 'my_full_move_influence') or 0
+                local enemy_infl = FGM.get_value(move_data.influence_maps, x, y, 'enemy_full_move_influence') or 0
+                -- TODO: use zone-dependent value_ratio here?
+                local infl = my_infl - value_ratio * enemy_infl
+                local int_forward = H.round(2 * data.forward) / 2
+                local weight = 1 / (1 + data.perp / 5)
+                line_infl[int_forward] = (line_infl[int_forward] or 0) + infl * weight
+                weights[int_forward] = (weights[int_forward] or 0) + weight
+            end
         end
 
         for forward,data in pairs(line_infl) do
             line_infl[forward] = line_infl[forward] / weights[forward]
         end
-        --DBG.dbms(line_infl, false, 'line_infl')
+        --DBG.dbms(line_infl, false, zone_id .. ' line_infl')
 
         local max_forward, min_forward = -9e99, 9e99
         for forward,data in pairs(line_infl) do
@@ -1781,8 +1788,9 @@ function fred_ops_utils.set_ops_data(fred_data)
         end
 
         local min_perp, goal_hex = 9e99, {}
-        for x,y,data in FGM.iter(ADmap) do
-            if (data.forward >= max_forward - 0.25) and (data.forward <= max_forward + 0.25) and (data.perp < min_perp) then
+        for x,y,_ in FGM.iter(zone_maps[zone_id]) do
+            local data = ADmap[x] and ADmap[x][y]
+            if data and (data.forward >= max_forward - 0.25) and (data.forward <= max_forward + 0.25) and (data.perp < min_perp) then
                 min_perp = data.perp
                 goal_hex = { x, y }
             end
@@ -1791,13 +1799,14 @@ function fred_ops_utils.set_ops_data(fred_data)
 
         if DBG.show_debug('ops_advance_distance_map') then
             local display_map, front_map = {}, {}
-            for x,y,data in FGM.iter(ADmap) do
-                if (data.perp <= 2) then
-                    local int_forward = H.round(data.forward)
+            for x,y,_ in FGM.iter(zone_maps[zone_id]) do
+                local data = ADmap[x] and ADmap[x][y]
+                if data and (data.perp <= 2) then
+                    local int_forward = H.round(2 * data.forward) / 2
                     FGM.set_value(display_map, x, y, 'influence', line_infl[int_forward])
                 end
 
-                if (data.forward >= max_forward - 0.5) and (data.forward <= max_forward + 0.5) then
+                if data and (data.forward >= max_forward - 0.5) and (data.forward <= max_forward + 0.5) then
                     FGM.set_value(front_map, x, y, 'front', true)
                 end
             end
