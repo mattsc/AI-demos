@@ -12,7 +12,7 @@ local debug_cfg = {
 
     ops_leader_threats = false,
     ops_zone_maps = false,
-    analysis_leader_distance_map = false,
+    analysis_distance_map = false,
     analysis_enemy_initial_reach_maps = false,
     analysis_influence_maps = false,
     analysis_unit_influence_maps = false,

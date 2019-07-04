@@ -1164,15 +1164,25 @@ function fred_ops_utils.set_ops_data(fred_data)
     fred_data.ops_data.leader_distance_map = leader_distance_map
     fred_data.ops_data.unit_advance_distance_maps = unit_advance_distance_maps
 
-    if DBG.show_debug('analysis_leader_distance_map') then
-        --DBG.show_fgumap_with_message(leader_distance_map, 'my_leader_distance', 'my_leader_distance')
-        --DBG.show_fgumap_with_message(leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
-        DBG.show_fgumap_with_message(leader_distance_map, 'distance', 'leader_distance_map')
-        DBG.show_fgumap_with_message(unit_advance_distance_maps['west']['Troll Whelp'], 'forward', 'forward')
-        DBG.show_fgumap_with_message(unit_advance_distance_maps['west']['Troll Whelp'], 'perp', 'perp')
     end
 
     local goal_hexes_leader, leader_enemies = {}, { leader = {} }
+    if DBG.show_debug('analysis_distance_map') then
+        --DBG.show_fgumap_with_message(leader_distance_map, 'my_leader_distance', 'leader_distance_map: my_leader_distance')
+        --DBG.show_fgumap_with_message(leader_distance_map, 'enemy_leader_distance', 'leader_distance_map: enemy_leader_distance')
+        DBG.show_fgumap_with_message(leader_distance_map, 'distance', 'leader_distance_map: distance')
+        --DBG.show_fgumap_with_message(unit_advance_distance_maps['west']['Troll Whelp'], 'my_cost', 'my_cost')
+        --DBG.show_fgumap_with_message(unit_advance_distance_maps['west']['Troll Whelp'], 'enemy_cost', 'enemy_cost')
+
+        for zone_id,uadm in pairs(unit_advance_distance_maps) do
+            local typ
+            for t,_ in pairs(uadm) do
+                typ = t
+                break
+            end
+            DBG.show_fgumap_with_message(unit_advance_distance_maps[zone_id][typ], 'forward', 'unit_advance_distance_maps[' .. zone_id .. '][' .. typ .. ']: forward')
+            DBG.show_fgumap_with_message(unit_advance_distance_maps[zone_id][typ], 'perp', 'unit_advance_distance_maps[' .. zone_id .. '][' .. typ .. ']: perp')
+        end
     for enemy_id,_ in pairs(objectives.leader.leader_threats.enemies) do
         -- TODO: simply using the middle point here might not be the best thing to do
         local enemy_loc = fred_data.move_data.units[enemy_id]
