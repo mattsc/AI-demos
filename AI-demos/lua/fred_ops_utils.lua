@@ -524,7 +524,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     local objectives = { leader = leader_objectives }
     --DBG.dbms(objectives, false, 'objectives')
     --DBG.show_fgumap_with_message(leader_effective_reach_map, 'moves_left', 'leader_effective_reach_map')
-    local leader_zone_map = FMLU.assess_leader_threats(objectives.leader, side_cfgs, fred_data)
+    local leader_zone_map, leader_perp_map = FMLU.assess_leader_threats(objectives.leader, side_cfgs, fred_data)
     --DBG.dbms(objectives, false, 'objectives')
 
 
@@ -1164,6 +1164,25 @@ function fred_ops_utils.set_ops_data(fred_data)
     fred_data.ops_data.leader_distance_map = leader_distance_map
     fred_data.ops_data.unit_advance_distance_maps = unit_advance_distance_maps
 
+
+    -- The leader zone is different in several respects:
+    --  - The maps need to be recalculated each move (in case the leader gets a new goal etc.)
+    --  - Forward distance is simply distance from leader
+    --  - perp comes from between maps and is calculated for enemies rather than own units
+    --  - The unit maps cover the whole map (but the zone map later is only done for the zone)
+    unit_advance_distance_maps['leader'] = {}
+    if objectives.leader.leader_threats.significant_threat then
+        local zone_cfg = { all_map = FMC.get_raw_cfgs('all_map') }
+        local AADM_cfg = { my_leader_loc = leader_goal }
+        local all_advance_distance_maps = FU.get_unit_advance_distance_maps(zone_cfg, side_cfgs, AADM_cfg, move_data)
+
+        for id,map in pairs(all_advance_distance_maps['all_map']) do
+            unit_advance_distance_maps['leader'][id] = {}
+            for x,y,data in FGM.iter(map) do
+                FGM.set_value(unit_advance_distance_maps['leader'][id], x, y, 'forward', data.my_cost)
+                unit_advance_distance_maps['leader'][id][x][y].perp = FGM.get_value(leader_perp_map, x, y, 'perp')
+            end
+        end
     end
 
     local goal_hexes_leader, leader_enemies = {}, { leader = {} }
