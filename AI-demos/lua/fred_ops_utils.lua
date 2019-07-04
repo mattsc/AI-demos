@@ -887,7 +887,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         zone_maps[zone_id] = {}
         local zone = wesnoth.get_locations(raw_cfg.ops_slf)
         for _,loc in ipairs(zone) do
-            FGM.set_value(zone_maps[zone_id], loc[1], loc[2], 'flag', true)
+            FGM.set_value(zone_maps[zone_id], loc[1], loc[2], 'in_zone', true)
         end
     end
     if objectives.leader.leader_threats.significant_threat then
@@ -896,7 +896,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     if DBG.show_debug('ops_zone_maps') then
         for zone_id,zone_map in pairs(zone_maps) do
-            DBG.show_fgumap_with_message(zone_map, 'flag', 'zone_map ' .. zone_id)
+            DBG.show_fgumap_with_message(zone_map, 'in_zone', 'zone_map ' .. zone_id)
         end
     end
 
@@ -1122,7 +1122,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         for zone_id,protect_objective in pairs(objectives.protect.zones) do
             for i_v=#protect_objective.villages,1,-1 do
                 local village = protect_objective.villages[i_v]
-                local in_zone = FGM.get_value(leader_zone_map, village.x, village.y, 'flag')
+                local in_zone = FGM.get_value(leader_zone_map, village.x, village.y, 'in_zone')
                 --std_print('  ' .. zone_id, village.x .. ',' .. village.y, in_zone)
 
                 if in_zone then
@@ -1668,7 +1668,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         local zone_influence_map = {}
         for id,_ in pairs(assigned_units[zone_id] or {}) do
             for x,y,data in FGM.iter(move_data.unit_influence_maps[id]) do
-                if FGM.get_value(zone_map, x, y, 'flag') then
+                if FGM.get_value(zone_map, x, y, 'in_zone') then
                     FGM.add(zone_influence_map, x, y, 'my_influence', data.influence)
                 end
             end
@@ -1676,7 +1676,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
         for enemy_id,_ in pairs(assigned_enemies[zone_id] or {}) do
             for x,y,data in FGM.iter(move_data.unit_influence_maps[enemy_id]) do
-                if FGM.get_value(zone_map, x, y, 'flag') then
+                if FGM.get_value(zone_map, x, y, 'in_zone') then
                     FGM.add(zone_influence_map, x, y, 'enemy_influence', data.influence)
                 end
             end

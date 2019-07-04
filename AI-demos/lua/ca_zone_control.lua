@@ -1480,16 +1480,16 @@ local function get_hold_action(zone_cfg, fred_data)
     -- TODO: find a better way of dealing with this, using backup leader goals instead.
     -- avoid_map also opens up the option of including [avoid] tags or similar functionality later.
     local avoid_map = {}
-    FGM.set_value(avoid_map, leader_goal[1], leader_goal[2], 'flag', true)
+    FGM.set_value(avoid_map, leader_goal[1], leader_goal[2], 'is_avoided', true)
 
     local zone_map = {}
     for _,loc in ipairs(zone) do
-        if (not FGM.get_value(avoid_map, loc[1], loc[2], 'flag')) then
-            FGM.set_value(zone_map, loc[1], loc[2], 'flag', true)
+        if (not FGM.get_value(avoid_map, loc[1], loc[2], 'is_avoided')) then
+            FGM.set_value(zone_map, loc[1], loc[2], 'in_zone', true)
         end
     end
     if DBG.show_debug('hold_zone_map') then
-        DBG.show_fgumap_with_message(zone_map, 'flag', 'Zone map')
+        DBG.show_fgumap_with_message(zone_map, 'in_zone', 'Zone map')
     end
 
     -- For the enemy rating, we need to put a 1-hex buffer around this
@@ -1497,13 +1497,13 @@ local function get_hold_action(zone_cfg, fred_data)
     -- TODO: I think this is okay, reconsider later
     local buffered_zone_map = {}
     for x,y,_ in FGM.iter(zone_map) do
-        FGM.set_value(buffered_zone_map, x, y, 'flag', true)
+        FGM.set_value(buffered_zone_map, x, y, 'in_zone', true)
         for xa,ya in H.adjacent_tiles(x, y) do
-            FGM.set_value(buffered_zone_map, xa, ya, 'flag', true)
+            FGM.set_value(buffered_zone_map, xa, ya, 'in_zone', true)
         end
     end
     if false then
-        DBG.show_fgumap_with_message(buffered_zone_map, 'flag', 'Buffered zone map')
+        DBG.show_fgumap_with_message(buffered_zone_map, 'in_zone', 'Buffered zone map')
     end
 
 
@@ -1732,7 +1732,7 @@ local function get_hold_action(zone_cfg, fred_data)
         --std_print('\n' .. id, zone_cfg.zone_id)
         local min_eleader_distance
         for x,y,_ in FGM.iter(move_data.effective_reach_maps[id]) do
-            if FGM.get_value(zone_map, x, y, 'flag') then
+            if FGM.get_value(zone_map, x, y, 'in_zone') then
                 --std_print(x,y)
                 local can_hit = false
                 for enemy_id,enemy_zone_map in pairs(enemy_zone_maps) do
@@ -1765,7 +1765,7 @@ local function get_hold_action(zone_cfg, fred_data)
             -- If there is nothing to protect, and we can move farther ahead
             -- unthreatened than this hold position, don't hold here
             local move_here = false
-            if FGM.get_value(zone_map, x, y, 'flag') then
+            if FGM.get_value(zone_map, x, y, 'in_zone') then
                 move_here = true
                 if (not protect_locs) then
                     local threats = FGM.get_value(move_data.enemy_attack_map[1], x, y, 'ids')
@@ -2268,7 +2268,7 @@ local function get_hold_action(zone_cfg, fred_data)
     -- Map of adjacent villages that can be reached by the enemy
     local adjacent_village_map = {}
     for x,y,_ in FGM.iter(move_data.village_map) do
-        if FGM.get_value(zone_map, x, y, 'flag') then
+        if FGM.get_value(zone_map, x, y, 'in_zone') then
 
             local can_reach = false
             for enemy_id,enemy_zone_map in pairs(enemy_zone_maps) do

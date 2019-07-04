@@ -487,7 +487,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
 
             for x,y,between in FGM.iter(between_map) do
                 if between.is_between then
-                    FGM.set_value(leader_zone_map, x, y, 'flag', true)
+                    FGM.set_value(leader_zone_map, x, y, 'in_zone', true)
                 end
 
                 FGM.add(perp_map, x, y, 'perp', math.abs(between.perp_distance) * enemy_value)
@@ -507,7 +507,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
             data.weight = nil
         end
 
-        --DBG.show_fgumap_with_message(leader_zone_map, 'flag', 'leader_zone_map')
+        --DBG.show_fgumap_with_message(leader_zone_map, 'in_zone', 'leader_zone_map')
         --DBG.show_fgumap_with_message(perp_map, 'perp', 'perp_map')
     end
 
