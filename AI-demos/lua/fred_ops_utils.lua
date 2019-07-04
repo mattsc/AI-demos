@@ -1766,13 +1766,19 @@ function fred_ops_utils.set_ops_data(fred_data)
         end
         --DBG.dbms(line_infl, false, 'line_infl')
 
-        local max_forward = -9e99
+        local max_forward, min_forward = -9e99, 9e99
         for forward,data in pairs(line_infl) do
             if (data >= 0) and (forward > max_forward) then
                 max_forward = forward
             end
+            if (forward < min_forward) then
+                min_forward = forward
+            end
         end
-        --std_print(zone_id .. ': max forward = ' .. max_forward)
+        --std_print(zone_id .. ': max, min forward = ', max_forward, min_forward)
+        if (max_forward == -9e99) then
+            max_forward = min_forward
+        end
 
         local min_perp, goal_hex = 9e99, {}
         for x,y,data in FGM.iter(ADmap) do
