@@ -2476,7 +2476,8 @@ local function get_advance_action(zone_cfg, fred_data)
 
     local value_ratio = zone_cfg.value_ratio or fred_data.ops_data.behavior.orders.value_ratio
     --std_print('value_ratio: ' .. zone_cfg.zone_id, value_ratio)
-    local push_factor = fred_data.ops_data.behavior.zone_push_factors[zone_cfg.zone_id]
+    -- Push factors are only set for zones with assigned enemies.
+    local push_factor = fred_data.ops_data.behavior.zone_push_factors[zone_cfg.zone_id] or 1
     --std_print('push_factor: ' .. zone_cfg.zone_id, push_factor)
 
     --[[
