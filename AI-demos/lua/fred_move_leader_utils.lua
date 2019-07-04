@@ -493,10 +493,6 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
                 FGM.add(perp_map, x, y, 'perp', math.abs(between.perp_distance) * enemy_value)
                 FGM.add(perp_map, x, y, 'weight', enemy_value)
             end
-            for x,y,map in FGM.iter(perp_map) do
-                map.perp = map.perp / map.weight
-                map.weight = nil
-            end
 
             if false then
                 --DBG.show_fgumap_with_message(between_map, 'distance', 'between_map: distance', fred_data.move_data.unit_copies[enemy_id])
@@ -505,6 +501,11 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
             end
         end
         -- TODO: potentially buffer this
+
+        for x,y,data in FGM.iter(perp_map) do
+            data.perp = data.perp / data.weight
+            data.weight = nil
+        end
 
         --DBG.show_fgumap_with_message(leader_zone_map, 'flag', 'leader_zone_map')
         --DBG.show_fgumap_with_message(perp_map, 'perp', 'perp_map')
