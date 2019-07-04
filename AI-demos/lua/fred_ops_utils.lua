@@ -1202,6 +1202,9 @@ function fred_ops_utils.set_ops_data(fred_data)
             DBG.show_fgumap_with_message(unit_advance_distance_maps[zone_id][typ], 'forward', 'unit_advance_distance_maps[' .. zone_id .. '][' .. typ .. ']: forward')
             DBG.show_fgumap_with_message(unit_advance_distance_maps[zone_id][typ], 'perp', 'unit_advance_distance_maps[' .. zone_id .. '][' .. typ .. ']: perp')
         end
+    end
+
+
     for enemy_id,_ in pairs(objectives.leader.leader_threats.enemies) do
         -- TODO: simply using the middle point here might not be the best thing to do
         local enemy_loc = fred_data.move_data.units[enemy_id]
