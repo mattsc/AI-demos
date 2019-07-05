@@ -1186,7 +1186,6 @@ function fred_ops_utils.set_ops_data(fred_data)
         end
     end
 
-    local goal_hexes_leader, leader_enemies = {}, { leader = {} }
     if DBG.show_debug('analysis_distance_map') then
         --DBG.show_fgumap_with_message(leader_distance_map, 'my_leader_distance', 'leader_distance_map: my_leader_distance')
         --DBG.show_fgumap_with_message(leader_distance_map, 'enemy_leader_distance', 'leader_distance_map: enemy_leader_distance')
@@ -1206,6 +1205,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
 
 
+    local goal_hexes_leader, leader_enemies = {}, {}
     for enemy_id,_ in pairs(objectives.leader.leader_threats.enemies) do
         -- TODO: simply using the middle point here might not be the best thing to do
         local enemy_loc = fred_data.move_data.units[enemy_id]
@@ -1223,6 +1223,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             goal_hexes_leader['leader'] = { goal_loc }
             goal_hexes_leader['leader'][1].ld = ld
         end
+        if (not leader_enemies['leader']) then leader_enemies['leader'] = {} end
         leader_enemies['leader'][enemy_id] = enemy_loc[1] * 1000 + enemy_loc[2]
     end
 
@@ -1278,7 +1279,10 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
     --DBG.dbms(lthreat_power, false, 'lthreat_power')
 
-    local fraction_previous = lthreat_power.previous.power / lthreat_power.enemy.power
+    local fraction_previous = 1
+    if (lthreat_power.enemy.power > 0) then
+        fraction_previous = lthreat_power.previous.power / lthreat_power.enemy.power
+    end
     local urgency = FU.urgency(fraction_previous, lthreat_power.previous.n_units)
 
     local leader_threat_benefits, leader_advance_benefits = {}, {}
@@ -1370,21 +1374,30 @@ function fred_ops_utils.set_ops_data(fred_data)
     local advance_power_missing = advance_power_ratio * lthreat_power.enemy.power - lp_protect_power
     --DBG.dbms(leader_advance_benefits, false, 'leader_advance_benefits')
 
-    leader_advance_benefits['advance_leader:leader'].power = {
-        missing = advance_power_missing,
-        previous = lp_protect_power,
-        n_previous = lthreat_power.previous.n_units + lthreat_power.assigned.n_units
-    }
-    --DBG.dbms(leader_advance_benefits, false, 'leader_advance_benefits')
-    local leader_advance_assignments = FBU.assign_units(leader_advance_benefits, utilities.retreat, move_data)
+    local leader_advance_assignments = {}
+    if leader_advance_benefits['advance_leader:leader'] then
+        leader_advance_benefits['advance_leader:leader'].power = {
+            missing = advance_power_missing,
+            previous = lp_protect_power,
+            n_previous = lthreat_power.previous.n_units + lthreat_power.assigned.n_units
+        }
+        --DBG.dbms(leader_advance_benefits, false, 'leader_advance_benefits')
+        leader_advance_assignments = FBU.assign_units(leader_advance_benefits, utilities.retreat, move_data)
+    end
     --DBG.dbms(leader_advance_assignments, false, 'leader_advance_assignments')
 
 
     if DBG.show_debug('ops_leader_threats') then
         local my_total_power = lthreat_power.previous.power + lthreat_assigned_power
-        local lp_power_ratio = my_total_power / lthreat_power.enemy.power
+        local lp_power_ratio = 1
+        if (lthreat_power.enemy.power > 0) then
+            lp_power_ratio = my_total_power / lthreat_power.enemy.power
+        end
         local fraction_missing = math.max(0, 1 - fraction_previous)
-        local new_fraction_there = lp_protect_power / lthreat_power.enemy.power
+        local new_fraction_there = 1
+        if (lthreat_power.enemy.power > 0) then
+            new_fraction_there = lp_protect_power / lthreat_power.enemy.power
+        end
         local new_urgency = FU.urgency(new_fraction_there, lthreat_power.previous.n_units + lthreat_power.assigned.n_units)
 
         std_print('\nleader threats:')
@@ -1434,7 +1447,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         end
     end
 
-    if goal_hexes_leader.leader[1] then
+    if goal_hexes_leader.leader and goal_hexes_leader.leader[1] then
         goal_hexes_zones['leader'] = goal_hexes_leader.leader
     end
     --DBG.dbms(goal_hexes_zones, false, 'goal_hexes_zones')
