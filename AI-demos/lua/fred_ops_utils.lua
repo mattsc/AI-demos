@@ -2116,46 +2116,48 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 
 
     for zone_id,zone_units in pairs(holders_by_zone) do
-        local power_rating = zone_power_stats[zone_id].power_needed - zone_power_stats[zone_id].my_power / 1000
+        if (zone_id ~= 'leader') then
+			local power_rating = zone_power_stats[zone_id].power_needed - zone_power_stats[zone_id].my_power / 1000
 
-        if threats_by_zone[zone_id] and attackers_by_zone[zone_id] then
-            -- Attack --
-            table.insert(fred_data.zone_cfgs,  {
-                zone_id = zone_id,
-                action_type = 'attack',
-                action_str = 'zone attack',
-                zone_units = attackers_by_zone[zone_id],
-                targets = threats_by_zone[zone_id],
-                rating = base_ratings.attack + power_rating,
-                value_ratio = value_ratio
-            })
-        end
+			if threats_by_zone[zone_id] and attackers_by_zone[zone_id] then
+				-- Attack --
+				table.insert(fred_data.zone_cfgs,  {
+					zone_id = zone_id,
+					action_type = 'attack',
+					action_str = 'zone attack',
+					zone_units = attackers_by_zone[zone_id],
+					targets = threats_by_zone[zone_id],
+					rating = base_ratings.attack + power_rating,
+					value_ratio = value_ratio
+				})
+			end
 
-        if holders_by_zone[zone_id] then
-            -- Hold --
-            local rating = power_rating
-            local action_str = 'zone hold'
-            local protect_obj = ops_data.objectives.protect.zones[zone_id]
-            if protect_obj and (
-                (protect_obj.villages and protect_obj.villages[1])
-                or (protect_obj.units and protect_obj.units[1])
-                -- TODO: check whether this is already taken care of by the separate protect_leader action
-                --   It probably is not, as that only checks for the leader, not castles
-                or protect_obj.protect_leader
-            ) then
-                rating = rating + base_ratings.protect
-                action_str = 'zone protect'
-            else
-                rating = rating + base_ratings.hold
-            end
+			if holders_by_zone[zone_id] then
+				-- Hold --
+				local rating = power_rating
+				local action_str = 'zone hold'
+				local protect_obj = ops_data.objectives.protect.zones[zone_id]
+				if protect_obj and (
+					(protect_obj.villages and protect_obj.villages[1])
+					or (protect_obj.units and protect_obj.units[1])
+					-- TODO: check whether this is already taken care of by the separate protect_leader action
+					--   It probably is not, as that only checks for the leader, not castles
+					or protect_obj.protect_leader
+				) then
+					rating = rating + base_ratings.protect
+					action_str = 'zone protect'
+				else
+					rating = rating + base_ratings.hold
+				end
 
-            table.insert(fred_data.zone_cfgs, {
-                zone_id = zone_id,
-                action_type = 'hold',
-                action_str = action_str,
-                zone_units = holders_by_zone[zone_id],
-                rating = rating
-            })
+				table.insert(fred_data.zone_cfgs, {
+					zone_id = zone_id,
+					action_type = 'hold',
+					action_str = action_str,
+					zone_units = holders_by_zone[zone_id],
+					rating = rating
+				})
+			end
         end
     end
 
