@@ -311,7 +311,10 @@ function fred_attack_utils.damage_rating_unit(damage)
 
     local damage_rating, heal_rating = 0, 0
 
-    local fractional_damage = damage.yyy_damage / hp_eff
+    -- With this, fractional damage and ctd_rating (below) can still add up to more than 1, but
+    -- not by as ridiculously much as it was before (which peaked at 2.5)
+    local fractional_damage = damage.yyy_damage / hp_eff * (1 - 0.8 * damage.yyy_die_chance)
+
     local fractional_rating = - FU.weight_s(fractional_damage, 0.67)
     --std_print('  fractional_damage, fractional_rating:', fractional_damage, fractional_rating)
     damage_rating, heal_rating = assign_ratings(fractional_rating, damage_rating, heal_rating)
