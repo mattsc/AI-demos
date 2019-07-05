@@ -1104,7 +1104,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     local interaction_matrix = FCFG.interaction_matrix()
     --DBG.dbms(interaction_matrix, false, 'interaction_matrix')
 
-    local village_objectives, villages_to_grab = FVU.village_objectives(raw_cfgs, side_cfgs, fred_data)
+    local village_objectives, villages_to_grab = FVU.village_objectives(raw_cfgs, side_cfgs, zone_maps, fred_data)
     objectives.protect = village_objectives
     --DBG.dbms(objectives.protect, false, 'objectives.protect')
     --DBG.dbms(villages_to_grab, false, 'villages_to_grab')

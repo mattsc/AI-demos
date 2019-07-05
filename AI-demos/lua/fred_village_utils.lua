@@ -8,23 +8,14 @@ local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local fred_village_utils = {}
 
-function fred_village_utils.village_objectives(zone_cfgs, side_cfgs, fred_data)
+function fred_village_utils.village_objectives(zone_cfgs, side_cfgs, zone_maps, fred_data)
     local move_data = fred_data.move_data
-
-    -- TODO: this is needed in several places, could be pulled into move_data or something
-    local zone_maps = {}
-    for zone_id,cfg in pairs(zone_cfgs) do
-        zone_maps[zone_id] = {}
-        local zone = wesnoth.get_locations(cfg.ops_slf)
-        for _,loc in ipairs(zone) do
-            FGM.set_value(zone_maps[zone_id], loc[1], loc[2], 'in_zone', true)
-        end
-    end
 
     local village_objectives, villages_to_grab = { zones = {} }, {}
     for x,y,_ in FGM.iter(move_data.village_map) do
         local village_zone
-        for zone_id,_ in pairs(zone_maps) do
+        -- Note that we iterate over @zone_cfgs here, as @zone_maps can also contain maps for other zones
+        for zone_id,_ in pairs(zone_cfgs) do
             if FGM.get_value(zone_maps[zone_id], x, y, 'in_zone') then
                 village_zone = zone_id
                 break
