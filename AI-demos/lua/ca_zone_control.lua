@@ -1743,13 +1743,7 @@ local function get_hold_action(zone_cfg, fred_data)
                 end
 
                 if (not can_hit) then
-                    local eld
-                    if fred_data.ops_data.advance_distance_maps[zone_cfg.zone_id] then
-                    end
-                    if (not eld) then
-                        eld = FGM.get_value(fred_data.ops_data.advance_distance_maps['all_map'][move_data.unit_infos[id].type], x, y, 'cost') + 99
-                        eld = FGM.get_value(fred_data.ops_data.advance_distance_maps[zone_cfg.zone_id], x, y, 'forward')
-                    end
+                    local eld = FGM.get_value(fred_data.ops_data.advance_distance_maps[zone_cfg.zone_id], x, y, 'forward')
 
                     if (not min_eleader_distance) or (eld < min_eleader_distance) then
                         min_eleader_distance = eld
@@ -1771,13 +1765,7 @@ local function get_hold_action(zone_cfg, fred_data)
                     local threats = FGM.get_value(move_data.enemy_attack_map[1], x, y, 'ids')
 
                     if (not threats) then
-                        local eld
-                        if fred_data.ops_data.advance_distance_maps[zone_cfg.zone_id] then
-                        end
-                        if (not eld) then
-                            eld = FGM.get_value(fred_data.ops_data.advance_distance_maps['all_map'][move_data.unit_infos[id].type], x, y, 'cost') + 99
-                            eld = FGM.get_value(fred_data.ops_data.advance_distance_maps[zone_cfg.zone_id], x, y, 'forward')
-                        end
+                        local eld = FGM.get_value(fred_data.ops_data.advance_distance_maps[zone_cfg.zone_id], x, y, 'forward')
 
                         if min_eleader_distance and (eld > min_eleader_distance) then
                             move_here = false
