@@ -437,7 +437,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
         max_total_loss = max_total_loss + max_loss
         av_total_loss = av_total_loss + av_loss
     end
-    DBG.print_debug('analysis', 'leader: max_total_loss, av_total_loss', max_total_loss, av_total_loss)
+    DBG.print_debug('ops_output', 'leader: max_total_loss, av_total_loss', max_total_loss, av_total_loss)
 
     if (leader[1] ~= leader_pos[1]) or (leader[2] ~= leader_pos[2]) then
         wesnoth.put_unit(leader_proxy, leader[1], leader[2])
@@ -452,7 +452,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
     --   - average damage is more than 25% of max HP
     -- Otherwise we assume the leader can deal with them alone
     leader_threats.significant_threat = FS.is_significant_threat(leader_proxy, av_total_loss, max_total_loss)
-    DBG.print_debug('analysis', '  significant_threat', leader_threats.significant_threat)
+    DBG.print_debug('ops_output', '  significant_threat', leader_threats.significant_threat)
 
     -- Only count leader threats if they are significant
     if (not leader_threats.significant_threat) then
@@ -470,7 +470,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
         if (vr < 0.01) then vr = 0.01 end
         leader_threats.leader_protect_value_ratio  = vr
     end
-    DBG.print_debug('analysis', '  leader_protect_value_ratio', leader_threats.leader_protect_value_ratio)
+    DBG.print_debug('ops_output', '  leader_protect_value_ratio', leader_threats.leader_protect_value_ratio)
 
 
     -- Note that 'perp_map' covers the entire map, while 'leader_zone_map' is only the zone

@@ -429,7 +429,7 @@ function fred_ops_utils.set_turn_data(fred_data)
         end
     end
 
-    if DBG.show_debug('analysis_enemy_initial_reach_maps') then
+    if DBG.show_debug('ops_enemy_initial_reach_maps') then
         for enemy_id,_ in pairs(move_data.enemies) do
             DBG.show_fgumap_with_message(enemy_initial_reach_maps[enemy_id], 'moves_left', 'enemy_initial_reach_maps', move_data.unit_copies[enemy_id])
         end
@@ -1186,7 +1186,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         end
     end
 
-    if DBG.show_debug('analysis_distance_map') then
+    if DBG.show_debug('ops_distance_map') then
         --DBG.show_fgumap_with_message(leader_distance_map, 'my_leader_distance', 'leader_distance_map: my_leader_distance')
         --DBG.show_fgumap_with_message(leader_distance_map, 'enemy_leader_distance', 'leader_distance_map: enemy_leader_distance')
         DBG.show_fgumap_with_message(leader_distance_map, 'distance', 'leader_distance_map: distance')
@@ -1704,7 +1704,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
         zone_influence_maps[zone_id] = zone_influence_map
 
-        if DBG.show_debug('analysis_zone_influence_maps') then
+        if DBG.show_debug('ops_zone_influence_maps') then
             --DBG.show_fgumap_with_message(zone_influence_map, 'my_influence', 'Zone my influence map ' .. zone_id)
             --DBG.show_fgumap_with_message(zone_influence_map, 'enemy_influence', 'Zone enemy influence map ' .. zone_id)
             DBG.show_fgumap_with_message(zone_influence_map, 'influence', 'Zone influence map ' .. zone_id)
@@ -1912,7 +1912,6 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     --local raw_cfgs = FMC.get_raw_cfgs('all')
     --local raw_cfgs_main = FMC.get_raw_cfgs()
     --DBG.dbms(raw_cfgs_main, false, 'raw_cfgs_main')
-    --DBG.dbms(fred_data.analysis, false, 'fred_data.analysis')
 
 
     fred_data.zone_cfgs = {}

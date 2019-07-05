@@ -625,7 +625,7 @@ function fred_utils.get_influence_maps(move_data)
         data.vulnerability = data.tension - math.abs(data.influence)
     end
 
-    if DBG.show_debug('analysis_influence_maps') then
+    if DBG.show_debug('ops_influence_maps') then
         DBG.show_fgumap_with_message(influence_maps, 'my_influence', 'My influence map')
         DBG.show_fgumap_with_message(influence_maps, 'my_full_move_influence', 'My full-move influence map')
         --DBG.show_fgumap_with_message(influence_maps, 'my_number', 'My number')
@@ -638,7 +638,7 @@ function fred_utils.get_influence_maps(move_data)
         DBG.show_fgumap_with_message(influence_maps, 'vulnerability', 'Vulnerability map')
     end
 
-    if DBG.show_debug('analysis_unit_influence_maps') then
+    if DBG.show_debug('ops_unit_influence_maps') then
         for id,unit_influence_map in pairs(unit_influence_maps) do
             DBG.show_fgumap_with_message(unit_influence_map, 'influence', 'Unit influence map ' .. id, move_data.unit_copies[id])
         end

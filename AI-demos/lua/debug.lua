@@ -10,13 +10,14 @@ local debug_cfg = {
 
     show_behavior = 1,
 
+    ops_output = false,
     ops_leader_threats = false,
     ops_zone_maps = false,
-    analysis_distance_map = false,
-    analysis_enemy_initial_reach_maps = false,
-    analysis_influence_maps = false,
-    analysis_unit_influence_maps = false,
-    analysis_zone_influence_maps = false,
+    ops_distance_map = false,
+    ops_enemy_initial_reach_maps = false,
+    ops_influence_maps = false,
+    ops_unit_influence_maps = false,
+    ops_zone_influence_maps = false,
     ops_advance_distance_map = false,
 
     attack_print_output = false,
