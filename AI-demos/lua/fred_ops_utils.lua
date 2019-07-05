@@ -1917,7 +1917,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 
     fred_data.zone_cfgs = {}
 
-    -- For all of the main zones, find assigned units that have moves and attacks left
+    -- For all of the main zones with enemies, find assigned units that have moves and attacks left
     local holders_by_zone, attackers_by_zone = {}, {}
     for zone_id,_ in pairs(ops_data.assigned_enemies) do
         if ops_data.assigned_units[zone_id] then
@@ -1975,6 +1975,22 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     end
     --DBG.dbms(attackers_by_zone, false, 'attackers_by_zone')
 
+    -- Advancers are essentially the same as holders, except that they are found independent of
+    -- whether there are enemies in the zone, and they are only done for the main zones (not leader zone)
+    -- TODO: should we go back to using the original, instead of the combined zones for advancers?
+    local advancers_by_zone = {}
+    for zone_id,_ in pairs(ops_data.raw_cfgs) do
+        if ops_data.assigned_units[zone_id] then
+            for id,_ in pairs(ops_data.assigned_units[zone_id]) do
+                if move_data.my_units_MP[id] then
+                    if (not advancers_by_zone[zone_id]) then advancers_by_zone[zone_id] = {} end
+                    advancers_by_zone[zone_id][id] = move_data.units[id][1] * 1000 + move_data.units[id][2]
+                end
+            end
+        end
+    end
+    --DBG.dbms(advancers_by_zone, false, 'advancers_by_zone')
+
     -- The following is done to simplify the cfg creation below, because
     -- ops_data.assigned_enemies might contain empty tables for zones
     -- Killed enemies should, in principle be already removed, but since
@@ -2016,6 +2032,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 
     --DBG.dbms(holders_by_zone, false, 'holders_by_zone')
     --DBG.dbms(attackers_by_zone, false, 'attackers_by_zone')
+    --DBG.dbms(advancers_by_zone, false, 'advancers_by_zone')
     --DBG.dbms(threats_by_zone, false, 'threats_by_zone')
 
 
@@ -2091,8 +2108,6 @@ function fred_ops_utils.get_action_cfgs(fred_data)
                 rating = base_ratings.advance_toward_leader
             })
         end
-
-
         --DBG.dbms(fred_data.zone_cfgs, false, 'fred_data.zone_cfgs')
     end
 
@@ -2171,19 +2186,6 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         rating = base_ratings.grab_villages
     })
 
-
-    local advancers_by_zone = {}
-    for zone_id,_ in pairs(ops_data.raw_cfgs) do
-        if ops_data.assigned_units[zone_id] then
-            for id,_ in pairs(ops_data.assigned_units[zone_id]) do
-                if move_data.my_units_MP[id] then
-                    if (not advancers_by_zone[zone_id]) then advancers_by_zone[zone_id] = {} end
-                    advancers_by_zone[zone_id][id] = move_data.units[id][1] * 1000 + move_data.units[id][2]
-                end
-            end
-        end
-    end
-    --DBG.dbms(advancers_by_zone, false, 'advancers_by_zone')
 
     for zone_id,zone_units in pairs(advancers_by_zone) do
         local power_rating = 0
