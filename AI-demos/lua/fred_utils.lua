@@ -395,9 +395,10 @@ function fred_utils.get_leader_distance_map(leader_loc, side_cfgs)
     return leader_distance_map
 end
 
-function fred_utils.get_unit_advance_distance_maps(zone_cfgs, side_cfgs, cfg, move_data)
-    -- Enemy leader distance maps. These are calculated using wesnoth.find_cost_map() for
-    -- each unit type from the start hex of the enemy leader.
+function fred_utils.get_unit_advance_distance_maps(unit_advance_distance_maps, zone_cfgs, side_cfgs, cfg, move_data)
+    -- This is expensive, so only do it per unit type (not for each unit) and only add the
+    -- maps that do not already exist.
+    -- This function has no return value. @unit_advance_distance_maps is modified in place.
     -- TODO: Doing this by unit type may cause problems once Fred can play factions
     -- with unit types that have different variations (i.e. Walking Corpses). Fix later.
     --
@@ -419,65 +420,74 @@ function fred_utils.get_unit_advance_distance_maps(zone_cfgs, side_cfgs, cfg, mo
         my_leader_loc = cfg.my_leader_loc
     end
 
-    local unit_advance_distance_maps = {}
     for zone_id,cfg in pairs(zone_cfgs) do
-        unit_advance_distance_maps[zone_id] = {}
-
-        local slf = AH.table_copy(cfg.ops_slf)
-        table.insert(slf, { "or", { x = my_leader_loc[1], y = my_leader_loc[2], radius = 3 } } )
-        local zone_locs = wesnoth.get_locations(slf)
-
-        local old_terrain = {}
-        local avoid_locs = wesnoth.get_locations { { "not", slf  } }
-        for _,avoid_loc in ipairs(avoid_locs) do
-            table.insert(old_terrain, {avoid_loc[1], avoid_loc[2], wesnoth.get_terrain(avoid_loc[1], avoid_loc[2])})
-            wesnoth.set_terrain(avoid_loc[1], avoid_loc[2], "Xv")
+        if (not unit_advance_distance_maps[zone_id]) then
+            unit_advance_distance_maps[zone_id] = {}
         end
 
-        for id,unit_loc in pairs(move_data.my_units) do
+        local new_types = {}
+        for id,_ in pairs(move_data.my_units) do
             local typ = move_data.unit_infos[id].type -- can't use type, that's reserved
-
             if (not unit_advance_distance_maps[zone_id][typ]) then
-                unit_advance_distance_maps[zone_id][typ] = {}
+                -- Note that due to the use of smooth_cost_maps below, things like the fast trait don't matter here
+                new_types[typ] = id
+           end
+        end
+        --DBG.dbms(new_types, false, 'new_types')
 
-                local unit_proxy = wesnoth.get_unit(unit_loc[1], unit_loc[2])
-                local eldm = fred_utils.smooth_cost_map(unit_proxy, enemy_leader_loc, true)
-                local ldm = fred_utils.smooth_cost_map(unit_proxy, my_leader_loc, true)
+        local old_terrain = {}
+        if next(new_types) then
+            local slf = AH.table_copy(cfg.ops_slf)
+            table.insert(slf, { "or", { x = my_leader_loc[1], y = my_leader_loc[2], radius = 3 } } )
+            local zone_locs = wesnoth.get_locations(slf)
 
-                local min_sum = math.huge
-                for x,y,data in FGM.iter(ldm) do
-                    local my_cost = data.cost
-                    local enemy_cost = eldm[x][y].cost
-                    local sum = my_cost + enemy_cost
-                    local diff = (my_cost - enemy_cost) / 2
-
-                    if (sum < min_sum) then
-                        min_sum = sum
-                    end
-
-                    FGM.set_value(unit_advance_distance_maps[zone_id][typ], x, y, 'forward', diff)
-                    unit_advance_distance_maps[zone_id][typ][x][y].perp = sum
-                    unit_advance_distance_maps[zone_id][typ][x][y].my_cost = my_cost
-                    unit_advance_distance_maps[zone_id][typ][x][y].enemy_cost = enemy_cost
-                end
-                for x,y,data in FGM.iter(unit_advance_distance_maps[zone_id][typ]) do
-                    data.perp = data.perp - min_sum
-                end
+            local avoid_locs = wesnoth.get_locations { { "not", slf  } }
+            for _,avoid_loc in ipairs(avoid_locs) do
+                table.insert(old_terrain, {avoid_loc[1], avoid_loc[2], wesnoth.get_terrain(avoid_loc[1], avoid_loc[2])})
+                wesnoth.set_terrain(avoid_loc[1], avoid_loc[2], "Xv")
             end
         end
 
-        for _,terrain in ipairs(old_terrain) do
-            wesnoth.set_terrain(terrain[1], terrain[2], terrain[3])
+        for typ,id in pairs(new_types) do
+            unit_advance_distance_maps[zone_id][typ] = {}
+
+            local unit_proxy = wesnoth.get_units({ id = id })[1]
+            local eldm = fred_utils.smooth_cost_map(unit_proxy, enemy_leader_loc, true)
+            local ldm = fred_utils.smooth_cost_map(unit_proxy, my_leader_loc, true)
+
+            local min_sum = math.huge
+            for x,y,data in FGM.iter(ldm) do
+                local my_cost = data.cost
+                local enemy_cost = eldm[x][y].cost
+                local sum = my_cost + enemy_cost
+                local diff = (my_cost - enemy_cost) / 2
+
+                if (sum < min_sum) then
+                    min_sum = sum
+                end
+
+                FGM.set_value(unit_advance_distance_maps[zone_id][typ], x, y, 'forward', diff)
+                unit_advance_distance_maps[zone_id][typ][x][y].perp = sum
+                unit_advance_distance_maps[zone_id][typ][x][y].my_cost = my_cost
+                unit_advance_distance_maps[zone_id][typ][x][y].enemy_cost = enemy_cost
+            end
+            for x,y,data in FGM.iter(unit_advance_distance_maps[zone_id][typ]) do
+                data.perp = data.perp - min_sum
+            end
         end
-        -- The above procedure unsets village ownership
-        for x,y,data in FGM.iter(move_data.village_map) do
-            if (data.owner > 0) then
-                wesnoth.set_village_owner(x, y, data.owner)
+
+        if next(new_types) then
+            for _,terrain in ipairs(old_terrain) do
+                wesnoth.set_terrain(terrain[1], terrain[2], terrain[3])
+            end
+            -- The above procedure unsets village ownership
+            for x,y,data in FGM.iter(move_data.village_map) do
+                if (data.owner > 0) then
+                    wesnoth.set_village_owner(x, y, data.owner)
+                end
             end
         end
     end
-
-    return unit_advance_distance_maps
 end
 
 function fred_utils.get_full_influence_map(move_data)
