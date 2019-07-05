@@ -2532,8 +2532,11 @@ local function get_advance_action(zone_cfg, fred_data)
     local max_rating, best_id, best_hex
     for id,xy in pairs(advancers) do
         local unit_loc = { math.floor(xy / 1000), xy % 1000 }
-        local is_unit_in_zone = wesnoth.match_location(unit_loc[1], unit_loc[2], raw_cfg.ops_slf)
-        --std_print('is_unit_in_zone: ' .. id, is_unit_in_zone)
+        -- Don't use ops_slf here, but pre-calculated zone_amps. The zone_map used can be
+        -- different from that in the SLF, e.g. for the leader zone or if parts of a zone are
+        -- to be avoided (the latter is not implemented yet).
+        local is_unit_in_zone = FGM.get_value(fred_data.ops_data.zone_maps[zone_cfg.zone_id], unit_loc[1], unit_loc[2], 'in_zone')
+        --std_print('is_unit_in_zone: ' .. id, zone_cfg.zone_id, is_unit_in_zone)
 
         unit_rating_maps[id] = {}
 

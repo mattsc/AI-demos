@@ -1858,6 +1858,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     ops_data.unassigned_enemies = unassigned_enemies
     ops_data.assigned_units = assigned_units
     ops_data.used_units = used_units
+    ops_data.zone_maps = zone_maps
     ops_data.fronts = fronts
     ops_data.advance_goals = advance_goals
     ops_data.advance_distance_maps = advance_distance_maps
