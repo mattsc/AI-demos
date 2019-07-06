@@ -244,20 +244,20 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, move_data)
     --std_print('  average_damage:', average_damage)
 
     -- Now add some of the other contributions
-    damage.yyy_damage = average_damage
-    damage.yyy_die_chance = att_outcome.hp_chance[0]
+    damage.damage = average_damage
+    damage.die_chance = att_outcome.hp_chance[0]
 
-    damage.yyy_levelup_chance = att_outcome.levelup_chance
+    damage.levelup_chance = att_outcome.levelup_chance
     --std_print('  levelup_chance', damage.levelup_chance)
 
-    damage.yyy_delayed_damage = get_delayed_damage(unit_info, att_outcome, average_damage, dst, move_data)
+    damage.delayed_damage = get_delayed_damage(unit_info, att_outcome, average_damage, dst, move_data)
 
     -- Slow is somewhat harder to account for correctly. It sort of takes half the
     -- unit away, but since it's temporary, we assign only half of that as "damage".
     -- We also separate it out, as it wears off at the end of the respective side turn.
-    damage.yyy_slowed_damage = 0
+    damage.slowed_damage = 0
     if (att_outcome.slowed ~= 0) and (not unit_info.status.slowed) then
-        damage.yyy_slowed_damage = unit_info.max_hitpoints / 4 * att_outcome.slowed
+        damage.slowed_damage = unit_info.max_hitpoints / 4 * att_outcome.slowed
     end
 
     -- Finally, add some info about the unit, just for convenience
@@ -313,18 +313,18 @@ function fred_attack_utils.damage_rating_unit(damage)
 
     -- With this, fractional damage and ctd_rating (below) can still add up to more than 1, but
     -- not by as ridiculously much as it was before (which peaked at 2.5)
-    local fractional_damage = damage.yyy_damage / hp_eff * (1 - 0.8 * damage.yyy_die_chance)
+    local fractional_damage = damage.damage / hp_eff * (1 - 0.8 * damage.die_chance)
 
     local fractional_rating = - FU.weight_s(fractional_damage, 0.67)
     --std_print('  fractional_damage, fractional_rating:', fractional_damage, fractional_rating)
     damage_rating, heal_rating = assign_ratings(fractional_rating, damage_rating, heal_rating)
 
-    local fractional_delayed_damage = damage.yyy_delayed_damage / hp_eff
+    local fractional_delayed_damage = damage.delayed_damage / hp_eff
     local fractional_delayed_rating = - FU.weight_s(fractional_delayed_damage, 0.67)
     --std_print('  fractional_delayed_damage, fractional_delayed_rating:', fractional_delayed_damage, fractional_delayed_rating)
     damage_rating, heal_rating = assign_ratings(fractional_delayed_rating, damage_rating, heal_rating)
 
-    local fractional_slowed_damage = damage.yyy_slowed_damage / hp_eff
+    local fractional_slowed_damage = damage.slowed_damage / hp_eff
     local fractional_slowed_rating = - FU.weight_s(fractional_slowed_damage, 0.67)
     --std_print('  fractional_slowed_damage, fractional_slowed_rating:', fractional_slowed_damage, fractional_slowed_rating)
     damage_rating = damage_rating + fractional_slowed_rating
@@ -333,16 +333,16 @@ function fred_attack_utils.damage_rating_unit(damage)
     -- Additionally, add the chance to die, in order to emphasize units that might die
     -- This might result in fractional_damage > 1 in some cases, although usually not by much
     -- TODO: potentially balance this vs. damage rating, to limit it to not much more than 1
-    local ctd_rating = - 1.5 * damage.yyy_die_chance^1.5
-    --std_print('  ctd, ctd_rating:', damage.yyy_die_chance, ctd_rating)
+    local ctd_rating = - 1.5 * damage.die_chance^1.5
+    --std_print('  ctd, ctd_rating:', damage.die_chance, ctd_rating)
     damage_rating = damage_rating + ctd_rating
     --std_print('  -> damage_rating, heal_rating', damage_rating, heal_rating, ctd_rating)
 
     -- Levelup chance: we use square rating here, as opposed to S-curve rating
     -- for the other contributions
     -- TODO: does that make sense?
-    local lu_rating = damage.yyy_levelup_chance^2
-    --std_print('  lu_chance, lu_rating:', damage.yyy_levelup_chance, lu_rating)
+    local lu_rating = damage.levelup_chance^2
+    --std_print('  lu_chance, lu_rating:', damage.levelup_chance, lu_rating)
     heal_rating = heal_rating + lu_rating
     --std_print('  -> damage_rating, heal_rating', damage_rating, heal_rating, lu_rating)
 
@@ -553,7 +553,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     -- The overall ratings take the value_ratio into account, the attacker and
     -- defender tables do not
     local rating_table = {
-        yyy_rating = rating,
+        rating = rating,
         --attacker_rating = attacker_rating,
         --defender_rating = defender_rating,
         neg_rating = neg_rating,
@@ -1034,7 +1034,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
     -- That's an approximation of the best order, everything else is too expensive
     -- TODO: reconsider whether total rating is what we want here
     -- TODO: find a better way of ordering the attacks?
-    table.sort(ratings, function(a, b) return a[2].yyy_rating > b[2].yyy_rating end)
+    table.sort(ratings, function(a, b) return a[2].rating > b[2].rating end)
 
     -- Reorder attackers, dsts in this order
     local attacker_copies, attacker_infos, att_weapons_i, dsts = {}, {}, {}, {}
@@ -1052,7 +1052,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
     -- Only keep the outcomes/ratings for the first attacker, the rest needs to be recalculated
     local att_outcomes, def_outcomes, rating_progression = {}, {}, {}
     att_outcomes[1], def_outcomes[1] = tmp_att_outcomes[ratings[1][1]], tmp_def_outcomes[ratings[1][1]]
-    rating_progression[1] = ratings[1][2].yyy_rating
+    rating_progression[1] = ratings[1][2].rating
 
     tmp_att_outcomes, tmp_def_outcomes, ratings = nil, nil, nil
 
@@ -1278,7 +1278,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
             tmp_ai, defender_info, tmp_dsts,
             tmp_as, def_outcomes[i], cfg, move_data
         )
-        rating_progression[i] = rating_table.yyy_rating
+        rating_progression[i] = rating_table.rating
     end
 
 
@@ -1377,7 +1377,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, cfg, reach_map
                     )
 
                     -- It's okay to use the full rating here, rather than just damage_rating
-                    rating = rating_table.yyy_rating
+                    rating = rating_table.rating
                     --std_print(xa, ya, attacker_id, rating, rating_table.attacker_rating, rating_table.defender_rating, rating_table.extra_rating)
                 end
 
