@@ -513,7 +513,7 @@ function fred_utils.get_full_influence_map(move_data)
                 local x, y, c = cost[1], cost[2], cost[3]
                 if (c > -1) then
 
-                    local unit_influence = fred_utils.unit_current_power(move_data.unit_infos[id], x, y, move_data)
+                    local unit_influence = fred_utils.unit_current_power(move_data.unit_infos[id])
 
                     local turns = c / move_data.unit_infos[id].max_moves
                     local int_turns = math.ceil(turns)
@@ -565,7 +565,7 @@ function fred_utils.get_influence_maps(move_data)
     for int_turns = 1,2 do
         for x,y,data in FGM.iter(move_data.my_attack_map[int_turns]) do
             for _,id in pairs(data.ids) do
-                local unit_influence = fred_utils.unit_current_power(move_data.unit_infos[id], x, y, move_data)
+                local unit_influence = fred_utils.unit_current_power(move_data.unit_infos[id])
                 if move_data.unit_infos[id].canrecruit then
                     unit_influence = unit_influence * leader_derating
                 end
@@ -595,7 +595,7 @@ function fred_utils.get_influence_maps(move_data)
 
     for x,y,data in FGM.iter(move_data.enemy_attack_map[1]) do
         for _,enemy_id in pairs(data.ids) do
-            local unit_influence = fred_utils.unit_current_power(move_data.unit_infos[enemy_id], x, y, move_data)
+            local unit_influence = fred_utils.unit_current_power(move_data.unit_infos[enemy_id])
             if move_data.unit_infos[enemy_id].canrecruit then
                 unit_influence = unit_influence * leader_derating
             end
