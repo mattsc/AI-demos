@@ -1714,7 +1714,7 @@ local function get_hold_action(zone_cfg, fred_data)
         for id,_ in pairs(assigned_enemies) do
             tmp_enemies[id] = move_data.enemies[id]
         end
-        between_map = FHU.get_between_map(locs, leader_goal, tmp_enemies, move_data)
+        between_map = FU.get_between_map(locs, leader_goal, tmp_enemies, move_data)
 
         if DBG.show_debug('hold_between_map') then
             DBG.show_fgumap_with_message(between_map, 'distance', 'Between map: distance')

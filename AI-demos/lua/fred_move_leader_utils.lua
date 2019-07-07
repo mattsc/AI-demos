@@ -6,7 +6,6 @@ local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
 local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
-local FHU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_hold_utils.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local function get_reach_map_via_keep(leader, move_data)
@@ -483,7 +482,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
             local enemy_loc = fred_data.move_data.units[enemy_id]
             local enemy = {}
             enemy[enemy_id] = enemy_loc
-            local between_map = FHU.get_between_map({ goal_loc }, goal_loc, enemy, fred_data.move_data)
+            local between_map = FU.get_between_map({ goal_loc }, goal_loc, enemy, fred_data.move_data)
 
             for x,y,between in FGM.iter(between_map) do
                 if between.is_between then
