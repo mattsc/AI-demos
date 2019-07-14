@@ -2567,7 +2567,7 @@ local function get_advance_action(zone_cfg, fred_data)
                     end
 
                     local df = math.abs(forward - goal_forward) / max_moves
-                    local dp = math.abs(perp - goal_perp) / max_moves
+                    local dp = math.abs(perp - goal_perp) / max_moves / 2
                     local cost = df ^ 1.5 + dp ^ 2
                     cost = cost * max_moves
 
