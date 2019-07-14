@@ -1468,8 +1468,9 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
 
     -- And the same for the advancers
-    -- Potential TODO: maybe we want to set these upas reserved actions at some point
+    -- Potential TODO: maybe we want to set these up as reserved actions at some point
     for id,assignment in pairs(leader_advance_assignments) do
+        if (not assigned_units['leader']) then assigned_units['leader'] = {} end
         assigned_units['leader'][id] = move_data.my_units[id][1] * 1000 + move_data.my_units[id][2]
         protect_leader_assignments[id] = assignment
     end
