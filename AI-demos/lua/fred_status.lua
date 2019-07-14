@@ -83,7 +83,7 @@ function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_d
         if (not exclude_leader) then
             table.insert(to_unit_locs, objectives.leader.final)
         end
-        for x,y,_ in FGM.iter(move_data.reachable_castles_map[wesnoth.current.side]) do
+        for x,y,_ in FGM.iter(move_data.close_castles_map[wesnoth.current.side]) do
             table.insert(to_locs, { x, y })
         end
         for id,loc in pairs(units) do
@@ -149,7 +149,7 @@ function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_d
 
 
     local n_castles_threatened = 0
-    for x,y,_ in FGM.iter(move_data.reachable_castles_map[wesnoth.current.side]) do
+    for x,y,_ in FGM.iter(move_data.close_castles_map[wesnoth.current.side]) do
         --std_print('castle: ', x .. ',' .. y)
         for enemy_id,_ in pairs(move_data.enemies) do
             --DBG.show_fgumap_with_message(virtual_reach_maps[enemy_id], 'moves_left', 'virtual_reach_map', move_data.unit_copies[enemy_id])

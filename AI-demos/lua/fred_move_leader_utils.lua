@@ -19,22 +19,18 @@ local function get_reach_map_via_keep(leader, move_data)
     local leader_copy = move_data.unit_copies[leader.id]
 
     local effective_reach_map = {}
-    for x,y,_ in FGM.iter(move_data.reachable_keeps_map[wesnoth.current.side]) do
-        -- Note that reachable_keeps_map contains moves_left assuming max_mp for the leader.
-        -- That's why we check reach_maps as well.
-        local ml = FGM.get_value(move_data.reach_maps[leader.id], x, y, 'moves_left')
-        if ml then
-            leader_copy.x, leader_copy.y = x, y
-            leader_copy.moves = ml
-            local reach_from_keep = wesnoth.find_reach(leader_copy)
+    for x,y,data in FGM.iter(move_data.reachable_keeps_map[wesnoth.current.side]) do
+        local ml = data.moves_left
+        leader_copy.x, leader_copy.y = x, y
+        leader_copy.moves = ml
+        local reach_from_keep = wesnoth.find_reach(leader_copy)
 
-            for _,loc in ipairs(reach_from_keep) do
-                if (not FGM.get_value(move_data.my_unit_map_noMP, loc[1], loc[2], 'id')) then
-                    local ml_old = FGM.get_value(effective_reach_map, loc[1], loc[2], 'moves_left') or -1
-                    if (loc[3] > ml_old) then
-                        FGM.set_value(effective_reach_map, loc[1], loc[2], 'moves_left', loc[3])
-                        effective_reach_map[loc[1]][loc[2]].from_keep = { x, y }
-                    end
+        for _,loc in ipairs(reach_from_keep) do
+            if (not FGM.get_value(move_data.my_unit_map_noMP, loc[1], loc[2], 'id')) then
+                local ml_old = FGM.get_value(effective_reach_map, loc[1], loc[2], 'moves_left') or -1
+                if (loc[3] > ml_old) then
+                    FGM.set_value(effective_reach_map, loc[1], loc[2], 'moves_left', loc[3])
+                    effective_reach_map[loc[1]][loc[2]].from_keep = { x, y }
                 end
             end
         end
@@ -60,8 +56,8 @@ local function get_reach_map_to_keep(leader, move_data)
     -- after this turn's move. Thus, even the default is 1, rather than 0.
     local add_turns = 1
     local keeps_map = {}
-    if next(move_data.reachable_keeps_map[wesnoth.current.side]) then
-        keeps_map = move_data.reachable_keeps_map[wesnoth.current.side]
+    if next(move_data.close_keeps_map[wesnoth.current.side]) then
+        keeps_map = move_data.close_keeps_map[wesnoth.current.side]
     else
         -- This only happens if the leader is out of reach of any keep, or when all the
         -- close keeps are occupied by enemies
@@ -95,8 +91,6 @@ local function get_reach_map_to_keep(leader, move_data)
 
     local effective_reach_map = {}
     for x_k,y_k,_ in FGM.iter(keeps_map) do
-        -- Note that reachable_keeps_map contains moves_left assuming max_mp for the leader.
-        -- That's why we check reach_maps as well.
         local cost_from_keep = FU.smooth_cost_map(leader_proxy, { x_k, y_k }, true)
         --DBG.show_fgumap_with_message(cost_from_keep, 'cost', 'cost_from_keep')
 
@@ -166,20 +160,15 @@ local function get_best_village_keep(leader, recruit_first, effective_reach_map,
     -- TODO: also need to include case when leader cannot reach a keep
     local keep_map
     if (not from_keep_found) and (recruit_first or (not village_map)) then
-        for x,y,_ in FGM.iter(move_data.reachable_keeps_map[wesnoth.current.side]) do
+        for x,y,data in FGM.iter(move_data.reachable_keeps_map[wesnoth.current.side]) do
             --std_print('keep: ' .. x .. ',' .. y)
-            -- Note that reachable_keeps ignores other units, both own units and enemies
-            -- So we need to check that the leader can get there first.
-            -- This is the real reach_map
-            local moves_left = FGM.get_value(move_data.reach_maps[leader.id], x, y, 'moves_left')
-            if moves_left then
-                --std_print('  in reach: ' .. x .. ',' .. y)
-                local info = {
-                    moves_left = moves_left
-                }
-                if (not keep_map) then keep_map = {} end
-                FGM.set_value(keep_map, x, y, 'info', info)
-            end
+            local moves_left = data.moves_left
+            --std_print('  in reach: ' .. x .. ',' .. y)
+            local info = {
+                moves_left = moves_left
+            }
+            if (not keep_map) then keep_map = {} end
+            FGM.set_value(keep_map, x, y, 'info', info)
         end
     end
     --DBG.dbms(keep_map, false, 'keep_map')

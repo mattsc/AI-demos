@@ -11,6 +11,7 @@ local debug_cfg = {
     show_behavior = 1,
 
     ops_output = false,
+    ops_keep_maps = false,
     ops_leader_threats = false,
     ops_zone_maps = false,
     ops_distance_map = false,

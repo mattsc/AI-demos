@@ -679,6 +679,8 @@ local function get_attack_action(zone_cfg, fred_data)
             if (not attack_includes_leader) then
                 table.insert(to_unit_locs, leader_goal)
             end
+            -- Castles are only added if the leader can get to a keep
+            -- TODO: reevaluate later if this should be changed
             for x,y,_ in FGM.iter(move_data.reachable_castles_map[wesnoth.current.side]) do
                 table.insert(to_locs, { x, y })
             end
@@ -1466,6 +1468,8 @@ local function get_hold_action(zone_cfg, fred_data)
         for _,hex in ipairs(add_hexes) do
             table.insert(zone, hex)
         end
+        -- Castles are only added if the leader can get to a keep
+        -- TODO: reevaluate later if this should be changed
         for x,y,_ in FGM.iter(move_data.reachable_castles_map[wesnoth.current.side]) do
             table.insert(zone, { x, y })
             for xa,ya in H.adjacent_tiles(x, y) do
@@ -1650,6 +1654,8 @@ local function get_hold_action(zone_cfg, fred_data)
     -- If leader is to be protected we use leader_goal and castle hexes for between_map
     -- Otherwise, all the other hexes/units to be protected are used
     -- TODO: maybe always use all, but with different weights?
+    -- Castles are only added if the leader can get to a keep
+    -- TODO: reevaluate later if this should be changed
     local min_btw_dist, protect_leader_distance
     local protect_locs, assigned_enemies
     if protect_objectives.protect_leader then

@@ -925,7 +925,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             assigned_enemies['leader'][id] = move_data.units[id][1] * 1000 + move_data.units[id][2]
             enemy_zones[id] = 'leader'
         elseif (not move_data.unit_infos[id].canrecruit)
-            and (not FGM.get_value(move_data.reachable_castles_map[move_data.unit_infos[id].side], loc[1], loc[2], 'castle') or false)
+            and (not FGM.get_value(move_data.close_castles_map[move_data.unit_infos[id].side], loc[1], loc[2], 'castle') or false)
         then
             local unit_copy = move_data.unit_copies[id]
             local zone_id = FU.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs)
