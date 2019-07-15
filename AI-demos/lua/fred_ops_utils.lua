@@ -1268,8 +1268,10 @@ function fred_ops_utils.set_ops_data(fred_data)
         local action = 'protect_leader:' .. zone_id
         for id,data in pairs(benefits) do
             if (not move_data.unit_infos[id].canrecruit)
-                and (data.turns <= 2) and move_data.my_units_noMP[id]
-                and (not used_units[id])
+                and (
+                    ( (data.turns <= 2) and move_data.my_units_noMP[id] and (not used_units[id]) )
+                    or (used_units[id] == 'leader')
+                )
             then
                 local unit_power = FU.unit_base_power(fred_data.move_data.unit_infos[id])
                 already_protecting[id] = unit_power
