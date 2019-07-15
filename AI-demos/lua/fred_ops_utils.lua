@@ -1265,6 +1265,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         for id,data in pairs(benefits) do
             if (not move_data.unit_infos[id].canrecruit)
                 and (data.turns <= 2) and move_data.my_units_noMP[id]
+                and (not used_units[id])
             then
                 local unit_power = FU.unit_base_power(fred_data.move_data.unit_infos[id])
                 already_protecting[id] = unit_power
