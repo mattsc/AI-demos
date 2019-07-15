@@ -692,7 +692,11 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
 
     local attack_locs = FMC.get_attack_test_locs()
-    local cfg_attack = { value_ratio = value_ratio }
+
+    -- Setting level_up weight to zero is done so that attacks on/by units
+    -- that are very close to leveling up are not overrated.
+    -- TODO: Doing it this way might be an oversimplification.
+    local cfg_attack = { value_ratio = value_ratio, levelup_weight = 0 }
 
     -- This loop flags units which have changed since the previous move, or were
     -- not previously included (either because it's the first move of the turn, or

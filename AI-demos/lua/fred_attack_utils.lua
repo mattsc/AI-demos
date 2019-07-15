@@ -271,14 +271,20 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, move_data)
     return damage
 end
 
-function fred_attack_utils.damage_rating_unit(damage)
+function fred_attack_utils.damage_rating_unit(damage, cfg)
     -- Calculate a damage rating for a unit from the table returned by
     -- fred_attack_utils.unit_damage()
     -- This is a total rating, adding up direct, delayed and slow damage.
     -- TODO: if needed, the function could return a table with separate ratings
     --
+    -- Optional inputs:
+    --  @cfg:
+    --   - @levelup_weight: weight to use for the level-up rating
+    --
     -- !!!! Note !!!!: unlike some previous versions, we count damage as negative
     -- in this rating
+
+    local levelup_weight = cfg and cfg.levelup_weight or 1
 
     ----- Begin assign_ratings() -----
     function assign_ratings(new_rating, damage_rating, heal_rating)
@@ -343,7 +349,8 @@ function fred_attack_utils.damage_rating_unit(damage)
     -- TODO: does that make sense?
     local lu_rating = damage.levelup_chance^2
     --std_print('  lu_chance, lu_rating:', damage.levelup_chance, lu_rating)
-    heal_rating = heal_rating + lu_rating
+    -- TODO: Note that using levelup_weight<0 might underestimate (other) damage received
+    heal_rating = heal_rating + lu_rating * levelup_weight
     --std_print('  -> damage_rating, heal_rating', damage_rating, heal_rating, lu_rating)
 
     -- Convert all the fractional ratings before to one in "gold units"
@@ -368,6 +375,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     --  @cfg:
     --   - @value_ratio: if different from default
     --   - @defender_loc: if different from the position of the unit in the tables
+    --   - @levelup_weight: weight to use for the level-up rating of damage_rating_unit()
     --  @move_data: table with the game state as produced by fred_gamestate_utils.move_data()
     --
     -- Returns:
@@ -398,7 +406,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     local neg_rating, pos_rating = 0, 0
     for i,attacker_info in ipairs(attacker_infos) do
         attacker_damages[i] = fred_attack_utils.unit_damage(attacker_info, att_outcomes[i], dsts[i], move_data)
-        local _, anr, apr = fred_attack_utils.damage_rating_unit(attacker_damages[i])
+        local _, anr, apr = fred_attack_utils.damage_rating_unit(attacker_damages[i], cfg)
         neg_rating = neg_rating + anr
         pos_rating = pos_rating + apr
         --std_print(attacker_info.id, neg_rating, pos_rating, anr, apr)
@@ -412,7 +420,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     end
     local defender_damage = fred_attack_utils.unit_damage(defender_info, def_outcome, { defender_x, defender_y }, move_data)
     -- Rating for the defender is negative damage rating (as in, damage is good)
-    local _, dnr, dpr = fred_attack_utils.damage_rating_unit(defender_damage)
+    local _, dnr, dpr = fred_attack_utils.damage_rating_unit(defender_damage, cfg)
     neg_rating = neg_rating - dpr -- minus sign and p/n switched
     pos_rating = pos_rating - dnr
     --std_print(defender_info.id, neg_rating, pos_rating, dnr, dpr)
