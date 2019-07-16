@@ -1185,7 +1185,28 @@ function fred_ops_utils.set_ops_data(fred_data)
             unit_advance_distance_maps['leader'][id] = {}
             for x,y,data in FGM.iter(map) do
                 FGM.set_value(unit_advance_distance_maps['leader'][id], x, y, 'forward', data.my_cost)
-                unit_advance_distance_maps['leader'][id][x][y].perp = FGM.get_value(leader_perp_map, x, y, 'perp')
+
+                -- Perpendicular map value might not exist if the movement type for the
+                -- enemies is different from that of the own units.
+                -- TODO: the method below works reasonably well (at least on Freelands),
+                --   but we should eventually find a better way
+                local perp = FGM.get_value(leader_perp_map, x, y, 'perp')
+                if (not perp) then
+                    local sum, count = 0, 0
+                    for xa,ya in H.adjacent_tiles(x, y) do
+                        local p = FGM.get_value(leader_perp_map, xa, ya, 'perp')
+                        if p then
+                            sum = sum + p
+                            count = count + 1
+                        end
+                    end
+                    if (count > 0) then
+                        perp = sum / count
+                    else
+                        perp = 20
+                    end
+                end
+                unit_advance_distance_maps['leader'][id][x][y].perp = perp
             end
         end
     end
