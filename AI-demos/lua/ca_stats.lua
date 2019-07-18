@@ -26,6 +26,8 @@ function ca_stats:execution(cfg, data)
 
         if data.move_data.unit_infos[id].canrecruit then
             sides[unit_side].leader_type = data.move_data.unit_copies[id].type
+            sides[unit_side].leader_hp = data.move_data.unit_infos[id].hitpoints
+            sides[unit_side].leader_max_hp = data.move_data.unit_infos[id].max_hitpoints
         else
             if (unit_side == wesnoth.current.side) and (data.move_data.unit_infos[id].level > 1) then
                 if (not leveled_units) then leveled_units = '' end
@@ -52,7 +54,7 @@ function ca_stats:execution(cfg, data)
         std_print('  Side ' .. side .. ': '
             .. sides[side].num_units .. ' Units (' .. sides[side].hitpoints .. ' HP), '
             .. num_villages .. '/' .. total_villages .. ' villages  ('
-            .. sides[side].leader_type .. ', ' .. side_info.gold .. ' gold)'
+            .. sides[side].leader_type .. ', ' .. sides[side].leader_hp .. '/' .. sides[side].leader_max_hp .. ' HP, ' .. side_info.gold .. ' gold)'
         )
     end
 
