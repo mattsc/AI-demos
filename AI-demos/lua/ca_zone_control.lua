@@ -2456,15 +2456,14 @@ local function get_advance_action(zone_cfg, fred_data)
     if (not next(advancers)) then return end
 
     -- Maps of hexes to be avoided for each unit
-    -- Currently this is only the location of the leader, if on a keep
+    -- Currently this is only the final leader position
     local avoid_maps = {}
     local leader = move_data.leaders[wesnoth.current.side]
+    local leader_goal = fred_data.ops_data.objectives.leader.final
     for id,_ in pairs(advancers) do
         avoid_maps[id] = {}
         if (id ~= leader.id) then
-            if (wesnoth.get_terrain_info(wesnoth.get_terrain(leader[1], leader[2])).keep) then
-                FGM.set_value(avoid_maps[id], leader[1], leader[2], 'avoid', true)
-            end
+            FGM.set_value(avoid_maps[id], leader_goal[1], leader_goal[2], 'avoid', true)
         end
     end
 
