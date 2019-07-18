@@ -3110,6 +3110,8 @@ local function do_recruit(fred_data, ai, action)
            AH.checked_recruit(ai, recruit_unit.recruit_type, recruit_unit.recruit_hex[1], recruit_unit.recruit_hex[2])
        end
    end
+
+   fred_data.ops_data.objectives.leader.prerecruit = nil
 end
 
 
