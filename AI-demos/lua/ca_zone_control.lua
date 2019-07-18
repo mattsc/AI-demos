@@ -2560,6 +2560,7 @@ local function get_advance_action(zone_cfg, fred_data)
                     local forward = FGM.get_value(ADmap, x, y, 'forward')
                     local perp = FGM.get_value(ADmap, x, y, 'perp')
 
+                    -- TODO: this is not good, should really expand the map in the first place
                     if (not forward) then
                         forward = wesnoth.map.distance_between(x, y, goal[1], goal[2]) + goal_forward
                         perp = 10

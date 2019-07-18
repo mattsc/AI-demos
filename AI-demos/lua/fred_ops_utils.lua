@@ -161,9 +161,6 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
             --   Keeping the option open to use several, otherwise the following could be put into the loop above
 
             local max_protect_value, protect_id = 0
-
-
-
             for id_protectee,rating_protectee in pairs(units_to_protect) do
                 local try_protect = false
                 for id_protector,rating_protector in pairs(protectors) do
@@ -777,7 +774,7 @@ function fred_ops_utils.set_ops_data(fred_data)
                 local att_stat, def_stat, my_weapon, enemy_weapon = wesnoth.simulate_combat(my_proxy, i_w, enemy_proxy)
                 local att_outcome = FAU.attstat_to_outcome(move_data.unit_infos[my_id], att_stat, def_stat.hp_chance[0], move_data.unit_infos[enemy_id].level)
                 local def_outcome = FAU.attstat_to_outcome(move_data.unit_infos[enemy_id], def_stat, att_stat.hp_chance[0], move_data.unit_infos[my_id].level)
--- TODO: this also returns damages
+                -- TODO: this also returns damages
                 local rating_table = FAU.attack_rating({ move_data.unit_infos[my_id] }, move_data.unit_infos[enemy_id], { attack_locs.attacker_loc }, { att_outcome }, def_outcome, cfg_attack, move_data)
 
                 local _, my_base_damage, my_extra_damage, my_regen_damage
@@ -817,7 +814,7 @@ function fred_ops_utils.set_ops_data(fred_data)
                 local att_stat_counter, def_stat_counter, enemy_weapon, my_weapon = wesnoth.simulate_combat(enemy_proxy, i_w, my_proxy)
                 local att_outcome_counter = FAU.attstat_to_outcome(move_data.unit_infos[enemy_id], att_stat_counter, def_stat_counter.hp_chance[0], move_data.unit_infos[my_id].level)
                 local def_outcome_counter = FAU.attstat_to_outcome(move_data.unit_infos[my_id], def_stat_counter, att_stat_counter.hp_chance[0], move_data.unit_infos[enemy_id].level)
--- TODO: this also returns damages
+                -- TODO: this also returns damages
                 local rating_table_counter = FAU.attack_rating({ move_data.unit_infos[enemy_id] }, move_data.unit_infos[my_id], { attack_locs.defender_loc }, { att_outcome_counter }, def_outcome_counter, cfg_attack, move_data)
 
                 local _, enemy_base_damage, enemy_extra_damage, _
@@ -1344,6 +1341,8 @@ function fred_ops_utils.set_ops_data(fred_data)
                     -- Don't need inertia here, as these are only the units who can get there this turn
                 else
                     local unit_value = FU.unit_value(fred_data.move_data.unit_infos[id])
+
+                    -- Note that data.turns is currently capped at 3 in FBU.attack_benefits()
                     local turn_penalty = unit_value / 1 * data.turns
                     --std_print(zone_id, id, data.turns, turn_penalty)
 

@@ -278,6 +278,8 @@ function utility_functions.attack_benefits(assigned_enemies, goal_hexes, use_ave
 
             end
 
+            -- Potential TODO: don't just set turns = 3 for everything larger than 2.
+            --   Maybe set up and save a cost map for each unit at start of ops analysis
             local turns = 3
             if can_reach_1 then
                 turns = 1
