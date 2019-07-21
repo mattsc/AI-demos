@@ -1,3 +1,35 @@
+----- 0.14.13, 21 July 2019 -----
+
+This is a work-in-progress release of improvements to multiple aspects of Fred's
+behavior, concentrating on improved advancing and leader protection, with many
+other changes to evaluations and bug fixes.
+
+- Fred (Freelands AI for Northerners, Side 1):
+  - Changes to advancing evaluation:
+    - Base advance direction more consistently on power balance on map. This includes
+      defining advancing goals for all zones in the operations layer.
+    - Avoid moving to the edges/corners of the map (and getting stranded there)
+    - Significant changes to the entire advancing rating system
+  - Leader protection:
+    - New dedicated leader protection (holding) action
+    - New dedicated advance-toward-leader action
+    - Leader threat actions are now assigned to a zone separate from the map zones
+    - Distinguish between reachable and close keeps/castles
+    - Anticipate final leader position when evaluating actions
+    - Many smaller changes to leader protection evaluations and actions
+  - Attacks:
+    - Switch from attacker-vs-defender to positive-vs-negative ratings system
+    - Do not overemphasize level-ups and high kill/die-chances
+    - These (and other) changes fix some of the problems of Fred refusing to
+      attack in certain situations
+    - Add caching for level-up attacks. This can significantly reduce evaluation
+      times in some situations.
+  - General:
+    - Fixes for all the known bugs causing on-screen error messages, as well as
+      many internal (invisible) bugs
+    - Add "urgency" parameter to unit assignments
+
+
 ----- 0.14.12, 17 April 2019 (massive operations layer reworking) -----
 
 This release focuses on a major reworking of the operations layer. This includes
