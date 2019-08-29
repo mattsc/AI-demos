@@ -84,10 +84,10 @@ end
 function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigned_enemies, fred_data)
     -- Check whether there are also units that should be protected
     local protect_others_ratio = FCFG.get_cfg_parm('protect_others_ratio')
-    for zone_id,protect_objective in pairs(objectives.protect.zones) do
+    for zone_id,_ in pairs(assigned_enemies) do
         --std_print(zone_id)
 
-        protect_objective.units = {}
+        local protect_units = {}
         -- TODO: comment out the conditional for now. It should be determined in the
         -- analysis part of the code whether a unit should be protected, here we just want
         -- to find all the possibilities. Reevaluate later if this should be changed.
@@ -175,7 +175,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
 
                 if try_protect then
                     loc = fred_data.move_data.my_units[id_protectee]
-                    table.insert(protect_objective.units, {
+                    table.insert(protect_units, {
                         x = loc[1], y = loc[2],
                         id = id_protectee,
                         rating = rating_protectee,
@@ -184,7 +184,13 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
                 end
             end
 
-            table.sort(protect_objective.units, function(a, b) return a.rating < b.rating end)
+            table.sort(protect_units, function(a, b) return a.rating < b.rating end)
+            --DBG.dbms(protect_units, false, 'protect_units')
+
+            if (not objectives.protect.zones[zone_id]) then
+                objectives.protect.zones[zone_id] = { villages = {} }
+            end
+            objectives.protect.zones[zone_id].units = protect_units
         --end
     end
     --DBG.dbms(objectives.protect, false, 'objectives.protect')
