@@ -157,6 +157,10 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
             --DBG.dbms(units_to_protect, false, zone_id .. ':' .. 'units_to_protect')
             --DBG.dbms(protectors, false, zone_id .. ':' .. 'protectors')
 
+            local already_holding = false
+            if next(units_to_protect) then already_holding = true end
+            --std_print('***** already_holding: ' .. zone_id, already_holding)
+
             -- TODO: currently still working with only one protect unit/location
             --   Keeping the option open to use several, otherwise the following could be put into the loop above
 
@@ -191,6 +195,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
                 objectives.protect.zones[zone_id] = { villages = {} }
             end
             objectives.protect.zones[zone_id].units = protect_units
+            objectives.protect.zones[zone_id].already_holding = already_holding
         --end
     end
     --DBG.dbms(objectives.protect, false, 'objectives.protect')
@@ -2195,16 +2200,23 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 					rating = rating + base_ratings.protect
 					action_str = 'zone protect'
 				else
-					rating = rating + base_ratings.hold
+					if protect_obj.already_holding then
+					    rating = 0
+					else
+					    rating = rating + base_ratings.hold
+					end
 				end
+                --std_print('*** hold_rating ' .. zone_id, rating)
 
-				table.insert(fred_data.zone_cfgs, {
-					zone_id = zone_id,
-					action_type = 'hold',
-					action_str = action_str,
-					zone_units = holders_by_zone[zone_id],
-					rating = rating
-				})
+				if (rating > 0) then
+					table.insert(fred_data.zone_cfgs, {
+						zone_id = zone_id,
+						action_type = 'hold',
+						action_str = action_str,
+						zone_units = holders_by_zone[zone_id],
+						rating = rating
+					})
+				end
 			end
         end
     end
