@@ -199,6 +199,14 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
         --end
     end
     --DBG.dbms(objectives.protect, false, 'objectives.protect')
+
+    -- Some other parts of the code might crash when the villages and units tables are not given
+    -- TODO: decide whether that should be changed in the parts using the tables instead
+    for zone_id,protect_objectives in pairs(objectives.protect.zones) do
+        if (not protect_objectives.villages) then protect_objectives.villages = {} end
+        if (not protect_objectives.units) then protect_objectives.units = {} end
+    end
+    --DBG.dbms(objectives.protect, false, 'objectives.protect')
 end
 
 
