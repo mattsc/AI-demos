@@ -103,7 +103,7 @@ function fred_scenario_setup.fred_scenario_setup()
                     .. " std_print(str)"
                 } },
             } },
-            { 'default_hotkey', { key = 'b' } }
+            { 'default_hotkey', { key = 'b', shift = 'yes' } }
         }
 
         wesnoth.wml_actions.set_menu_item {
@@ -122,7 +122,7 @@ function fred_scenario_setup.fred_scenario_setup()
                     .. " std_print(fred_behavior_str)"
                 } },
             } },
-            { 'default_hotkey', { key = 'b', shift = 'yes' } }
+            { 'default_hotkey', { key = 'b' } }
         }
 
         -- Also remove the variables and menu items at the end of the scenario.
