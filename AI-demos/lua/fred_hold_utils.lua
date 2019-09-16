@@ -117,6 +117,165 @@ function fred_hold_utils.convolve_rating_maps(rating_maps, key, between_map, ops
 end
 
 
+function fred_hold_utils.check_hold_protection(combo, protection, cfg, fred_data)
+    local move_data = fred_data.move_data
+    local leader_id = move_data.leaders[wesnoth.current.side].id
+    local leader_value = FU.unit_value(move_data.unit_infos[leader_id])
+
+    local leader_protected, leader_protect_mult = false, 1
+
+    -- The leader is never part of the holding, so we can just add him
+    local old_locs = { { move_data.leader_x, move_data.leader_y } }
+    local new_locs = { protection.overall.leader_goal }
+    for src,dst in pairs(combo.combo) do
+        local dst_x, dst_y =  math.floor(dst / 1000), dst % 1000
+        local src_x, src_y =  math.floor(src / 1000), src % 1000
+        table.insert(old_locs, { src_x, src_y })
+        table.insert(new_locs, { dst_x, dst_y })
+    end
+
+    FVS.set_virtual_state(old_locs, new_locs, fred_data.ops_data.place_holders, false, move_data)
+    local status = FS.check_exposures(fred_data.ops_data.objectives, nil, { zone_id = cfg.zone_id }, fred_data)
+    FVS.reset_state(old_locs, new_locs, false, move_data)
+    --DBG.dbms(status, false, 'status')
+
+
+    if cfg.protect_objectives.protect_leader and (not protection.overall.leader_already_protected) then
+        -- For the leader, we check whether it is sufficiently protected by the combo
+        --std_print('leader eposure before - after: ', protection.overall.org_status.leader.exposure .. ' - ' .. status.leader.exposure)
+
+        if (status.leader.exposure < protection.overall.leader_min_exposure) then
+            leader_min_exposure = status.leader.exposure
+            leader_min_enemy_power = status.leader.enemy_power
+        end
+
+        leader_protect_mult = (leader_value - status.leader.exposure) / leader_value
+        -- It's possible for the number above to be slightly below zero, and
+        -- we probably don't want quite as strong an effect anyway, so:
+        leader_protect_mult = 0.5 + leader_protect_mult / 2
+
+        protection.combo.protected_value = protection.combo.protected_value + 1.5 * (protection.overall.org_status.leader.exposure - status.leader.exposure)
+
+        leader_protected = not status.leader.is_significant_threat
+        --std_print('  --> leader_protect_mult, leader_protected: ' .. leader_protect_mult, leader_protected)
+
+        protection.overall.protect_loc_str = protection.overall.protect_loc_str .. '    leader: ' .. tostring(leader_protected)
+    end
+
+
+    local n_castles_threatened = protection.overall.org_status.castles.n_threatened
+    local n_castles_protected = 0
+    if (n_castles_threatened > 0) then
+        n_castles_protected = n_castles_threatened - status.castles.n_threatened
+        --std_print('n_castles_protected: ', n_castles_protected, status.castles.n_threatened, n_castles_threatened)
+        protection.overall.protect_loc_str = protection.overall.protect_loc_str .. '    castles: ' .. tostring(n_castles_protected)
+    end
+
+
+    local protected_villages = {}
+    if cfg.protect_objectives.villages then
+        --DBG.dbms(cfg.protect_objectives.villages, false, 'cfg.protect_objectives.villages')
+        -- For non-leader protect_locs, they must be unreachable by enemies
+        -- to count as protected.
+
+        for _,village in ipairs(cfg.protect_objectives.villages) do
+            --std_print('  check protection of village: ' .. village.x .. ',' .. village.y)
+            local xy = 1000 * village.x + village.y
+            if status.villages[xy].is_protected then
+                table.insert(protected_villages, {
+                    x = village.x, y = village.y,
+                    raw_benefit = village.raw_benefit
+                })
+            end
+
+            protection.overall.protect_loc_str = protection.overall.protect_loc_str .. '    vill ' .. village.x .. ',' .. village.y .. ': ' .. tostring(status.villages[xy].is_protected)
+        end
+    end
+    --DBG.dbms(protected_villages, false, 'protected_villages')
+
+
+    local protected_units = {}
+    if cfg.protect_objectives.units then
+        --DBG.dbms(cfg.protect_objectives.villages, false, 'cfg.protect_objectives.villages')
+        -- For non-leader protect_locs, they must be unreachable by enemies
+        -- to count as protected.
+
+        for _,unit in ipairs(cfg.protect_objectives.units) do
+            local unit_rating  = status.units[unit.id].exposure
+            --std_print(unit.id, unit_rating, org_status.units[unit.id].exposure)
+
+            protected_units[unit.id] = protection.overall.org_status.units[unit.id].exposure - unit_rating
+            protection.overall.protect_loc_str = protection.overall.protect_loc_str .. string.format('    unit %d,%d: %.2f', unit.x, unit.y, protected_units[unit.id] or 0)
+        end
+    end
+    --DBG.dbms(protected_units, false, 'protected_units')
+
+
+    -- Now combine all the contributions
+    -- Note that everything is divided by the leader value, in order to make things comparable
+    -- TODO: is this the right thing to do?
+    local village_protect_mult = 1
+    for _,village in ipairs(protected_villages) do
+        -- Benefit here is always 6, as it is difference between Fred and enemy holding the village
+        village_protect_mult = village_protect_mult + 6 / leader_value / 4
+        -- TODO: Add in enemy healing benefit here?
+        protection.combo.protected_value = protection.combo.protected_value + 6
+    end
+    local unit_protect_mult = 1
+    for _,unit in pairs(protected_units) do
+        unit_protect_mult = unit_protect_mult + unit / leader_value / 4
+        protection.combo.protected_value = protection.combo.protected_value + unit
+    end
+    local castle_protect_mult = 1 + math.sqrt(n_castles_protected) * 3 / leader_value / 4
+    protection.combo.protected_value = protection.combo.protected_value + math.sqrt(n_castles_protected) * 3
+
+    protection.combo.protect_mult = leader_protect_mult * village_protect_mult * unit_protect_mult * castle_protect_mult
+    --std_print('protect_mult ( = l * v * u * c)', protection.combo.protect_mult, leader_protect_mult, village_protect_mult, unit_protect_mult, castle_protect_mult)
+    --std_print('protected_value: ' .. protection.combo.protected_value)
+
+    if cfg.protect_objectives.protect_leader and (not protection.overall.leader_already_protected) then
+        protection.combo.does_protect = leader_protected
+        protected_type = 'leader'
+    elseif (n_castles_threatened > 0) then
+        protection.combo.does_protect = (n_castles_protected > 0)
+        protected_type = 'castle'
+        if (n_castles_protected == n_castles_threatened) then
+            protected_type = protected_type .. '/all'
+        else
+            protected_type = protected_type .. '/partial'
+        end
+    else
+        -- Currently we count this as a protecting hold if any of the villages is protected ...
+        if (#cfg.protect_objectives.villages > 0) then
+            protected_type = 'village'
+            if (#protected_villages > 0) then
+                protection.combo.does_protect = true
+            end
+        end
+
+        -- ... or if any of the units is protected with a rating of 3 or higher (equivalent to basic village protection)
+        -- TODO: should this be a variable value?
+        if (#cfg.protect_objectives.units > 0) then
+            for _,unit_protection in pairs(protected_units) do
+                if (unit_protection >= 3) then
+                    if protection.combo.does_protect then
+                        protected_type = protected_type .. '+unit'
+                    else
+                        protected_type = 'unit'
+                    end
+                    protection.combo.does_protect = true
+                    break
+                end
+                --- ... but we only mark units as non-protected if also no protected village was found
+                if (not protection.combo.does_protect) then
+                    protected_type = protected_type .. '+unit'
+                end
+            end
+        end
+    end
+end
+
+
 function fred_hold_utils.unit_rating_maps_to_dstsrc(unit_rating_maps, key, move_data, cfg)
     -- It's assumed that all individual unit_rating maps contain at least one rating
 
@@ -357,182 +516,41 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     --DBG.dbms(valid_combos, false, 'valid_combos')
 
 
-    local org_status = fred_data.ops_data.status
-    --DBG.dbms(org_status, false, 'org_status')
-    local leader_goal = fred_data.ops_data.objectives.leader.final
-    local leader_already_protected = org_status.leader.is_protected
-    --std_print('leader_already_protected', leader_already_protected)
-
     -- This loop does two things:
     -- 1. Check whether a combo protects the locations it is supposed to protect.
     -- 2. Rate the combos based on the shape of the formation and its orientation
     --    with respect to the direction in which the enemies are approaching.
+    local protection = { overall = {
+        protect_loc_str = nil,
+        protected_type = 'no protect objectives',
+        leader_min_exposure = math.huge,
+        leader_min_enemy_power = 0,
+        org_status = fred_data.ops_data.status,
+        leader_already_protected = fred_data.ops_data.status.leader.is_protected,
+        leader_goal = fred_data.ops_data.objectives.leader.final
+    } }
+    --std_print('leader_already_protected', protection.overall.leader_already_protected)
+    --DBG.dbms(protection.overall.org_status, false, 'protection.overall.org_status')
+
+
     local good_combos = {}
-    local protect_loc_str
-    local protected_type = 'no protect objectives'
     local tmp_max_rating, tmp_all_max_rating -- just for debug display purposes
-    local leader_min_exposure, leader_min_enemy_power = math.huge, 0
     for i_c,combo in ipairs(valid_combos) do
         -- 1. Check whether a combo protects the locations it is supposed to protect.
-        local does_protect, leader_protected = false, false
-        local leader_protect_mult, protect_mult = 1, 1
-        local protected_value = 0
+        protection.overall.protect_loc_str = '\nprotecting:'
+        protection.combo = {
+            does_protect = false,
+            protect_mult = 1,
+            protected_value = 0,
+        }
 
-        protect_loc_str = '\nprotecting:'
         if cfg and cfg.protect_objectives then
-            -- The leader is never part of the holding, so we can just add him
-            local old_locs = { { move_data.leader_x, move_data.leader_y } }
-            local new_locs = { leader_goal }
-            for src,dst in pairs(combo.combo) do
-                local dst_x, dst_y =  math.floor(dst / 1000), dst % 1000
-                local src_x, src_y =  math.floor(src / 1000), src % 1000
-                table.insert(old_locs, { src_x, src_y })
-                table.insert(new_locs, { dst_x, dst_y })
-            end
-
-            FVS.set_virtual_state(old_locs, new_locs, fred_data.ops_data.place_holders, false, move_data)
-            local status = FS.check_exposures(fred_data.ops_data.objectives, nil, { zone_id = cfg.zone_id }, fred_data)
-            FVS.reset_state(old_locs, new_locs, false, move_data)
-            --DBG.dbms(status, false, 'status')
-
-
-            if cfg.protect_objectives.protect_leader and (not leader_already_protected) then
-                -- For the leader, we check whether it is sufficiently protected by the combo
-                --std_print('leader eposure before - after: ', org_status.leader.exposure .. ' - ' .. status.leader.exposure)
-
-                if (status.leader.exposure < leader_min_exposure) then
-                    leader_min_exposure = status.leader.exposure
-                    leader_min_enemy_power = status.leader.enemy_power
-                end
-
-                leader_protect_mult = (leader_value - status.leader.exposure) / leader_value
-                -- It's possible for the number above to be slightly below zero, and
-                -- we probably don't want quite as strong an effect anyway, so:
-                leader_protect_mult = 0.5 + leader_protect_mult / 2
-
-                protected_value = protected_value + 1.5 * (org_status.leader.exposure - status.leader.exposure)
-
-                leader_protected = not status.leader.is_significant_threat
-                --std_print('  --> leader_protect_mult, leader_protected: ' .. leader_protect_mult, leader_protected)
-
-                protect_loc_str = protect_loc_str .. '    leader: ' .. tostring(leader_protected)
-            end
-
-
-            local n_castles_threatened = org_status.castles.n_threatened
-            local n_castles_protected = 0
-            if (n_castles_threatened > 0) then
-                n_castles_protected = n_castles_threatened - status.castles.n_threatened
-                --std_print('n_castles_protected: ', n_castles_protected, status.castles.n_threatened, n_castles_threatened)
-                protect_loc_str = protect_loc_str .. '    castles: ' .. tostring(n_castles_protected)
-            end
-
-
-            local protected_villages = {}
-            if cfg.protect_objectives.villages then
-                --DBG.dbms(cfg.protect_objectives.villages, false, 'cfg.protect_objectives.villages')
-                -- For non-leader protect_locs, they must be unreachable by enemies
-                -- to count as protected.
-
-                for _,village in ipairs(cfg.protect_objectives.villages) do
-                    --std_print('  check protection of village: ' .. village.x .. ',' .. village.y)
-                    local xy = 1000 * village.x + village.y
-                    if status.villages[xy].is_protected then
-                        table.insert(protected_villages, {
-                            x = village.x, y = village.y,
-                            raw_benefit = village.raw_benefit
-                        })
-                    end
-
-                    protect_loc_str = protect_loc_str .. '    vill ' .. village.x .. ',' .. village.y .. ': ' .. tostring(status.villages[xy].is_protected)
-                end
-            end
-            --DBG.dbms(protected_villages, false, 'protected_villages')
-
-
-            local protected_units = {}
-            if cfg.protect_objectives.units then
-                --DBG.dbms(cfg.protect_objectives.villages, false, 'cfg.protect_objectives.villages')
-                -- For non-leader protect_locs, they must be unreachable by enemies
-                -- to count as protected.
-
-                for _,unit in ipairs(cfg.protect_objectives.units) do
-                    local unit_rating  = status.units[unit.id].exposure
-                    --std_print(unit.id, unit_rating, org_status.units[unit.id].exposure)
-
-                    protected_units[unit.id] = org_status.units[unit.id].exposure - unit_rating
-                    protect_loc_str = protect_loc_str .. string.format('    unit %d,%d: %.2f', unit.x, unit.y, protected_units[unit.id] or 0)
-                end
-            end
-            --DBG.dbms(protected_units, false, 'protected_units')
-
-
-            -- Now combine all the contributions
-            -- Note that everything is divided by the leader value, in order to make things comparable
-            -- TODO: is this the right thing to do?
-            local village_protect_mult = 1
-            for _,village in ipairs(protected_villages) do
-                -- Benefit here is always 6, as it is difference between Fred and enemy holding the village
-                village_protect_mult = village_protect_mult + 6 / leader_value / 4
--- Add in enemy healing benefit here?
-                protected_value = protected_value + 6
-            end
-            local unit_protect_mult = 1
-            for _,unit in pairs(protected_units) do
-                unit_protect_mult = unit_protect_mult + unit / leader_value / 4
-                protected_value = protected_value + unit
-            end
-            local castle_protect_mult = 1 + math.sqrt(n_castles_protected) * 3 / leader_value / 4
-            protected_value = protected_value + math.sqrt(n_castles_protected) * 3
-
-            protect_mult = leader_protect_mult * village_protect_mult * unit_protect_mult * castle_protect_mult
-            --std_print('protect_mult ( = l * v * u * c)', protect_mult, leader_protect_mult, village_protect_mult, unit_protect_mult, castle_protect_mult)
-            --std_print('protected_value: ' .. protected_value)
-
-            if cfg.protect_objectives.protect_leader and (not leader_already_protected) then
-                does_protect = leader_protected
-                protected_type = 'leader'
-            elseif (n_castles_threatened > 0) then
-                does_protect = (n_castles_protected > 0)
-                protected_type = 'castle'
-                if (n_castles_protected == n_castles_threatened) then
-                    protected_type = protected_type .. '/all'
-                else
-                    protected_type = protected_type .. '/partial'
-                end
-            else
-                -- Currently we count this as a protecting hold if any of the villages is protected ...
-                if (#cfg.protect_objectives.villages > 0) then
-                    protected_type = 'village'
-                    if (#protected_villages > 0) then
-                        does_protect = true
-                    end
-                end
-
-                -- ... or if any of the units is protected with a rating of 3 or higher (equivalent to basic village protection)
-                -- TODO: should this be a variable value?
-                if (#cfg.protect_objectives.units > 0) then
-                    for _,unit_protection in pairs(protected_units) do
-                        if (unit_protection >= 3) then
-                            if does_protect then
-                                protected_type = protected_type .. '+unit'
-                            else
-                                protected_type = 'unit'
-                            end
-                            does_protect = true
-                            break
-                        end
-                        --- ... but we only mark units as non-protected if also no protected village was found
-                        if (not does_protect) then
-                            protected_type = protected_type .. '+unit'
-                        end
-                    end
-                end
-            end
+            fred_hold_utils.check_hold_protection(combo, protection, cfg, fred_data)
+            --DBG.dbms(protection, false, 'protection')
         else
             -- If there are no locations to be protected, count hold as protecting by default
         end
-        --std_print('does_protect', does_protect, protect_mult, protected_type, protected_value)
+        --std_print('does_protect', protection.combo.does_protect, protection.combo.protect_mult, protected_type, protection.combo.protected_value)
 
 
         -- 2. Rate the combos based on the shape of the formation and its orientation
@@ -639,13 +657,13 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         end
         --std_print('  formation_rating 2:', formation_rating)
 
-        formation_rating = formation_rating * protect_mult
-        --std_print(i_c, formation_rating, protect_mult, formation_rating / protect_mult)
+        formation_rating = formation_rating * protection.combo.protect_mult
+        --std_print(i_c, formation_rating, protection.combo.protect_mult, formation_rating / protection.combo.protect_mult)
 
         local protected_str = 'does_protect = no (' .. protected_type .. ')'
-        if does_protect then protected_str = 'does_protect = yes (' .. protected_type .. ')' end
-        if protect_loc_str then
-            protected_str = protected_str .. ' ' .. protect_loc_str
+        if protection.combo.does_protect then protected_str = 'does_protect = yes (' .. protected_type .. ')' end
+        if protection.overall.protect_loc_str then
+            protected_str = protected_str .. ' ' .. protection.overall.protect_loc_str
         else
             protected_str = 'n/a'
         end
@@ -653,9 +671,9 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         table.insert(good_combos, {
             formation_rating = formation_rating,
             combo = combo.combo,
-            does_protect = does_protect,
+            does_protect = protection.combo.does_protect,
             protected_str = protected_str,
-            protected_value = protected_value,
+            protected_value = protection.combo.protected_value,
             penalty_rating = combo.penalty_rating,
             penalty_str = combo.penalty_str
         })
@@ -664,12 +682,13 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             if (not tmp_all_max_rating) or (formation_rating > tmp_all_max_rating) then
                 tmp_all_max_rating = formation_rating
             end
-            if does_protect then
+            if protection.combo.does_protect then
                 if (not tmp_max_rating) or (formation_rating > tmp_max_rating) then
                     tmp_max_rating = formation_rating
                 end
             end
 
+            local leader_goal = protection.overall.leader_goal
             local x, y
             for _,unit in ipairs(fred_data.ops_data.place_holders) do
                 wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = 'recruit\n' .. unit.type, color = '160,160,160' }
@@ -682,7 +701,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
             wesnoth.scroll_to_tile(x, y)
             local rating_str =  string.format("%.4f = %.3f x %.3f x %.3f x %.3f    (protect x angle x dist x base)\npenalty_rating: %.4f    %s",
-                formation_rating, protect_mult, angle_fac or 1, dist_fac or 1, combo.base_rating or -9999,
+                formation_rating, protection.combo.protect_mult, angle_fac or 1, dist_fac or 1, combo.base_rating or -9999,
                 combo.penalty_rating, combo.penalty_str
             )
             local max_str = string.format("max:  protected: %.4f,  all: %.4f", tmp_max_rating or -9999, tmp_all_max_rating or -9999)
@@ -704,15 +723,15 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     --std_print('#good_combos: ' .. #good_combos .. '/' .. #valid_combos .. '/' .. #combos)
 
     if cfg.find_best_protect_only then
-        if (not org_status.leader.best_protection) then
-            org_status.leader.best_protection = {}
+        if (not protection.overall.org_status.leader.best_protection) then
+            protection.overall.org_status.leader.best_protection = {}
         end
-        if (leader_min_enemy_power == 0) then -- otherwise it could still be at 9e99
-            leader_min_exposure = 0
+        if (protection.overall.leader_min_enemy_power == 0) then -- otherwise it could still be at 9e99
+            protection.overall.leader_min_exposure = 0
         end
-        org_status.leader.best_protection[cfg.zone_id] = {
-            exposure = leader_min_exposure,
-            zone_enemy_power = leader_min_enemy_power
+        protection.overall.org_status.leader.best_protection[cfg.zone_id] = {
+            exposure = protection.overall.leader_min_exposure,
+            zone_enemy_power = protection.overall.leader_min_enemy_power
         }
     end
 
@@ -852,6 +871,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         end
 
         if DBG.show_debug('hold_combo_counter_rating') then
+            local leader_goal = protection.overall.leader_goal
             for _,unit in ipairs(fred_data.ops_data.place_holders) do
                 wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = 'recruit\n' .. unit.type, color = '160,160,160' }
             end
