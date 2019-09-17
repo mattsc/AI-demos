@@ -158,15 +158,17 @@ function debug_utils.put_fgumap_labels(map, key, cfg)
             if (type(out) == 'boolean') then
                 if out then
                     out = 'true'
+                    red_fac, blue_fac = 0, 0
                 else
                     out = 'false'
-                    red_fac, green_fac, blue_fac = 1, 0, 0
+                    green_fac, blue_fac = 0, 0
                 end
             else
                 if out then
                     out = tonumber(out) or 'nan'
                 else
                     out = 'nil'
+                    red_fac, green_fac = 0, 0
                 end
             end
         end
