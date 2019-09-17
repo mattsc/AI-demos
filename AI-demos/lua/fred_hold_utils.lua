@@ -550,7 +550,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         else
             -- If there are no locations to be protected, count hold as protecting by default
         end
-        --std_print('does_protect', protection.combo.does_protect, protection.combo.protect_mult, protected_type, protection.combo.protected_value)
+        --std_print('does_protect', protection.combo.does_protect, protection.combo.protect_mult, protection.overall.protected_type, protection.combo.protected_value)
 
 
         -- 2. Rate the combos based on the shape of the formation and its orientation
@@ -660,8 +660,8 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         formation_rating = formation_rating * protection.combo.protect_mult
         --std_print(i_c, formation_rating, protection.combo.protect_mult, formation_rating / protection.combo.protect_mult)
 
-        local protected_str = 'does_protect = no (' .. protected_type .. ')'
-        if protection.combo.does_protect then protected_str = 'does_protect = yes (' .. protected_type .. ')' end
+        local protected_str = 'does_protect = no (' .. protection.overall.protected_type .. ')'
+        if protection.combo.does_protect then protected_str = 'does_protect = yes (' .. protection.overall.protected_type .. ')' end
         if protection.overall.protect_loc_str then
             protected_str = protected_str .. ' ' .. protection.overall.protect_loc_str
         else
