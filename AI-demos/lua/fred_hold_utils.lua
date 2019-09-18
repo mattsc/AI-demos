@@ -127,7 +127,7 @@ function fred_hold_utils.check_hold_protection(combo, protection, cfg, fred_data
     -- The leader is never part of the holding, so we can just add him
     local old_locs = { { move_data.leader_x, move_data.leader_y } }
     local new_locs = { protection.overall.leader_goal }
-    for src,dst in pairs(combo.combo) do
+    for src,dst in pairs(combo) do
         local dst_x, dst_y =  math.floor(dst / 1000), dst % 1000
         local src_x, src_y =  math.floor(src / 1000), src % 1000
         table.insert(old_locs, { src_x, src_y })
@@ -540,17 +540,89 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         protection.overall.protect_loc_str = '\nprotecting:'
         protection.combo = {
             does_protect = false,
+            comment = '',
             protect_mult = 1,
             protected_value = 0,
         }
 
         if cfg and cfg.protect_objectives then
-            fred_hold_utils.check_hold_protection(combo, protection, cfg, fred_data)
             --DBG.dbms(protection, false, 'protection')
+            fred_hold_utils.check_hold_protection(combo.combo, protection, cfg, fred_data)
+            --DBG.dbms(protection.combo, false, 'protection.combo')
+
+            -- Check whether protecting can be done with fewer units
+            -- Except for villages, where we want the terrain protection around them too
+            if protection.combo.does_protect and (protection.overall.protected_type ~= 'village') and (combo.count > 1) then
+                local reduced_protection = { overall = {
+                    protect_loc_str = '',
+                    protected_type = 'no protect objectives',
+                    leader_min_exposure = math.huge,
+                    leader_min_enemy_power = 0,
+                    org_status = fred_data.ops_data.status,
+                    leader_already_protected = fred_data.ops_data.status.leader.is_protected,
+                    leader_goal = fred_data.ops_data.objectives.leader.final
+                } }
+
+                for src,dst in pairs(combo.combo) do
+                    local reduced_combo = {}
+                    for src2,dst2 in pairs(combo.combo) do
+                        if (src ~= src2) then
+                            reduced_combo[src2] = dst2
+                        end
+                    end
+                    --DBG.dbms(combo, false, 'combo')
+                    --DBG.dbms(reduced_combo, false, 'reduced_combo')
+
+                    reduced_protection.combo = {
+                        does_protect = false,
+                        protect_mult = 1,
+                        protected_value = 0,
+                    }
+                    fred_hold_utils.check_hold_protection(reduced_combo, reduced_protection, cfg, fred_data)
+                    --DBG.dbms(protection.combo, false, 'protection.combo')
+                    --DBG.dbms(reduced_protection.combo, false, 'reduced_protection.combo')
+
+                    if ((reduced_protection.combo.protected_value / protection.combo.protected_value) > 0.999) then
+                        --std_print('****** reduced combo just as good *****')
+                        -- Rate this combo as useless:
+                        protection.combo.protect_mult = 0
+                        protection.combo.comment = ' -- uses unnecessary units'
+
+                        -- Now make sure that the reduced combo exists in the list of valid combos
+                        local i_reduced_combo = -1
+                        for i_c2,combo2 in ipairs(valid_combos) do
+                            local is_same_combo = false
+                            if (combo.count - 1 == combo2.count) then
+                                is_same_combo = true
+                                for red_src,red_dst in pairs(reduced_combo) do
+                                    if (not combo2.combo[red_src]) or (combo2.combo[red_src] ~= red_dst) then
+                                        is_same_combo = false
+                                        break
+                                    end
+                                end
+                                --std_print(i_c, i_c2, is_same_combo)
+                                if is_same_combo then
+                                    --DBG.dbms(combo2, false, 'combo2')
+                                    i_reduced_combo = i_c2
+                                    break
+                                end
+                            end
+                        end
+                        if (i_reduced_combo > -1) then
+                            --std_print('i_reduced_combo : ' .. i_reduced_combo)
+                        else
+                            DBG.dbms(combo, false, 'combo')
+                            DBG.dbms(reduced_combo, false, 'reduced_combo')
+                            error('reduced combo does not exist')
+                        end
+                    end
+
+                end
+            end
         else
             -- If there are no locations to be protected, count hold as protecting by default
         end
-        --std_print('does_protect', protection.combo.does_protect, protection.combo.protect_mult, protection.overall.protected_type, protection.combo.protected_value)
+        --std_print('does_protect', protection.combo.does_protect, protection.combo.protect_mult, protection.overall.protected_type, protection.combo.protected_value, protection.combo.comment)
 
 
         -- 2. Rate the combos based on the shape of the formation and its orientation
@@ -660,8 +732,8 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         formation_rating = formation_rating * protection.combo.protect_mult
         --std_print(i_c, formation_rating, protection.combo.protect_mult, formation_rating / protection.combo.protect_mult)
 
-        local protected_str = 'does_protect = no (' .. protection.overall.protected_type .. ')'
-        if protection.combo.does_protect then protected_str = 'does_protect = yes (' .. protection.overall.protected_type .. ')' end
+        local protected_str = 'does_protect = no (' .. protection.overall.protected_type .. ')' .. protection.combo.comment
+        if protection.combo.does_protect then protected_str = 'does_protect = yes (' .. protection.overall.protected_type .. ')' .. protection.combo.comment end
         if protection.overall.protect_loc_str then
             protected_str = protected_str .. ' ' .. protection.overall.protect_loc_str
         else
