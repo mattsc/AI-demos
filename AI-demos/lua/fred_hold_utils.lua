@@ -235,19 +235,19 @@ function fred_hold_utils.check_hold_protection(combo, protection, cfg, fred_data
 
     if cfg.protect_objectives.protect_leader and (not protection.overall.leader_already_protected) then
         protection.combo.does_protect = leader_protected
-        protected_type = 'leader'
+        protection.overall.protected_type = 'leader'
     elseif (n_castles_threatened > 0) then
         protection.combo.does_protect = (n_castles_protected > 0)
-        protected_type = 'castle'
+        protection.overall.protected_type = 'castle'
         if (n_castles_protected == n_castles_threatened) then
-            protected_type = protected_type .. '/all'
+            protection.overall.protected_type = protection.overall.protected_type .. '/all'
         else
-            protected_type = protected_type .. '/partial'
+            protection.overall.protected_type = protection.overall.protected_type .. '/partial'
         end
     else
         -- Currently we count this as a protecting hold if any of the villages is protected ...
         if (#cfg.protect_objectives.villages > 0) then
-            protected_type = 'village'
+            protection.overall.protected_type = 'village'
             if (#protected_villages > 0) then
                 protection.combo.does_protect = true
             end
@@ -259,16 +259,16 @@ function fred_hold_utils.check_hold_protection(combo, protection, cfg, fred_data
             for _,unit_protection in pairs(protected_units) do
                 if (unit_protection >= 3) then
                     if protection.combo.does_protect then
-                        protected_type = protected_type .. '+unit'
+                        protection.overall.protected_type = protection.overall.protected_type .. '+unit'
                     else
-                        protected_type = 'unit'
+                        protection.overall.protected_type = 'unit'
                     end
                     protection.combo.does_protect = true
                     break
                 end
                 --- ... but we only mark units as non-protected if also no protected village was found
                 if (not protection.combo.does_protect) then
-                    protected_type = protected_type .. '+unit'
+                    protection.overall.protected_type = protection.overall.protected_type .. '+unit'
                 end
             end
         end
