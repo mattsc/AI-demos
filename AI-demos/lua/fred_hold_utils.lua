@@ -378,6 +378,100 @@ function fred_hold_utils.unit_rating_maps_to_dstsrc(unit_rating_maps, key, move_
 end
 
 
+function fred_hold_utils.get_base_rating(combo, ratings, weights, key, penalty_infos, adjacent_village_map, fred_data)
+    local move_data = fred_data.move_data
+    local leader_id = move_data.leaders[wesnoth.current.side].id
+    local leader_info = move_data.unit_infos[leader_id]
+    local leader_value = FU.unit_value(move_data.unit_infos[leader_id])
+    local interactions = fred_data.ops_data.interaction_matrix.penalties['hold']
+    local reserved_actions = fred_data.ops_data.reserved_actions
+
+    local base_rating = 0
+    local is_dqed = false
+
+    local cum_weight, count = 0, 0
+    for src,dst in pairs(combo) do
+        local id = ratings[dst][src].id
+
+        -- Prefer tanks, i.e. the highest-HP units,
+        -- but be more careful with high-XP units
+        local weight
+        if (not weights[id]) then
+            weight = move_data.unit_infos[id].hitpoints
+
+            if (move_data.unit_infos[id].experience < move_data.unit_infos[id].max_experience - 1) then
+                local xp_penalty = move_data.unit_infos[id].experience / move_data.unit_infos[id].max_experience
+                xp_penalty = FU.weight_s(xp_penalty, 0.5)
+                weight = weight - xp_penalty * 10
+                if (weight < 1) then weight = 1 end
+            end
+
+            weights[id] = weight
+        else
+            weight = weights[id]
+        end
+
+        base_rating = base_rating + ratings[dst][src][key] * weight
+        cum_weight = cum_weight + weight
+        count = count + 1
+
+        -- If this is adjacent to a village that is not part of the combo, DQ this combo
+        -- TODO: this might be overly retrictive
+        local x, y =  math.floor(dst / 1000), dst % 1000
+        local adj_vill_xy = FGM.get_value(adjacent_village_map, x, y, 'village_xy')
+        --std_print(x, y, adj_vill_xy)
+        if adj_vill_xy then
+            is_dqed = true
+            for _,tmp_dst in pairs(combo) do
+                if (adj_vill_xy == tmp_dst) then
+                    is_dqed = false
+                    break
+                end
+            end
+            --std_print('  is_dqed', x, y, is_dqed)
+
+            if is_dqed then break end
+        end
+    end
+
+    local valid_combo
+    if (not is_dqed) then
+        -- Penalty for units and/or hexes planned to be used otherwise
+        local actions = {}
+        for src,dst in pairs(combo) do
+            if (not penalty_infos.src[src]) then
+                local x, y = math.floor(src / 1000), src % 1000
+                penalty_infos.src[src] = FGM.get_value(move_data.unit_map, x, y, 'id')
+            end
+            if (not penalty_infos.dst[dst]) then
+                penalty_infos.dst[dst] = { math.floor(dst / 1000), dst % 1000 }
+            end
+            local action = { id = penalty_infos.src[src], loc = penalty_infos.dst[dst] }
+            table.insert(actions, action)
+        end
+        --DBG.dbms(actions, false, 'actions')
+        --DBG.dbms(penalty_infos, false, 'penalty_infos')
+
+        -- TODO: does this work? does it work for both hold and protect?
+        local penalty_rating, penalty_str = FBU.action_penalty(actions, reserved_actions, interactions, move_data)
+        penalty_rating = (leader_value + penalty_rating) / leader_value
+        penalty_rating = 0.5 + penalty_rating / 2
+        --std_print('penalty combo #' .. i_c, penalty_rating, penalty_str)
+
+        base_rating = base_rating / cum_weight * count * penalty_rating
+        valid_combo = {
+            combo = combo,
+            base_rating = base_rating,
+            penalty_rating = penalty_rating,
+            penalty_str = penalty_str,
+            count = count
+        }
+    end
+
+    return valid_combo, is_dqed
+end
+
+
 function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_map, between_map, fred_data, cfg)
     local move_data = fred_data.move_data
     local leader_id = move_data.leaders[wesnoth.current.side].id
@@ -388,9 +482,6 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     local hold_counter_weight = FCFG.get_cfg_parm('hold_counter_weight')
     local cfg_attack = { value_ratio = value_ratio }
 
-    local interactions = fred_data.ops_data.interaction_matrix.penalties['hold']
-    --DBG.dbms(interactions, false, 'interactions')
-    local reserved_actions = fred_data.ops_data.reserved_actions
     local penalty_infos = { src = {}, dst = {} }
 
     -- The first loop simply does a weighted sum of the individual unit ratings.
@@ -399,85 +490,11 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     local valid_combos, weights = {}, {}
     for i_c,combo in ipairs(combos) do
         --std_print('combo ' .. i_c)
-        local base_rating = 0
-        local is_dqed = false
 
-        local cum_weight, count = 0, 0
-        for src,dst in pairs(combo) do
-            local id = ratings[dst][src].id
-
-            -- Prefer tanks, i.e. the highest-HP units,
-            -- but be more careful with high-XP units
-            local weight
-            if (not weights[id]) then
-                weight = move_data.unit_infos[id].hitpoints
-
-                if (move_data.unit_infos[id].experience < move_data.unit_infos[id].max_experience - 1) then
-                    local xp_penalty = move_data.unit_infos[id].experience / move_data.unit_infos[id].max_experience
-                    xp_penalty = FU.weight_s(xp_penalty, 0.5)
-                    weight = weight - xp_penalty * 10
-                    if (weight < 1) then weight = 1 end
-                end
-
-                weights[id] = weight
-            else
-                weight = weights[id]
-            end
-
-            base_rating = base_rating + ratings[dst][src][key] * weight
-            cum_weight = cum_weight + weight
-            count = count + 1
-
-            -- If this is adjacent to a village that is not part of the combo, DQ this combo
-            -- TODO: this might be overly retrictive
-            local x, y =  math.floor(dst / 1000), dst % 1000
-            local adj_vill_xy = FGM.get_value(adjacent_village_map, x, y, 'village_xy')
-            --std_print(x, y, adj_vill_xy)
-            if adj_vill_xy then
-                is_dqed = true
-                for _,tmp_dst in pairs(combo) do
-                    if (adj_vill_xy == tmp_dst) then
-                        is_dqed = false
-                        break
-                    end
-                end
-                --std_print('  is_dqed', x, y, is_dqed)
-
-                if is_dqed then break end
-            end
-        end
+        local valid_combo, is_dqed = fred_hold_utils.get_base_rating(combo, ratings, weights, key, penalty_infos, adjacent_village_map, fred_data)
 
         if (not is_dqed) then
-            -- Penalty for units and/or hexes planned to be used otherwise
-            local actions = {}
-            for src,dst in pairs(combo) do
-                if (not penalty_infos.src[src]) then
-                    local x, y = math.floor(src / 1000), src % 1000
-                    penalty_infos.src[src] = FGM.get_value(move_data.unit_map, x, y, 'id')
-                end
-                if (not penalty_infos.dst[dst]) then
-                    penalty_infos.dst[dst] = { math.floor(dst / 1000), dst % 1000 }
-                end
-                local action = { id = penalty_infos.src[src], loc = penalty_infos.dst[dst] }
-                table.insert(actions, action)
-            end
-            --DBG.dbms(actions, false, 'actions')
-            --DBG.dbms(penalty_infos, false, 'penalty_infos')
-
-            -- TODO: does this work? does it work for both hold and protect?
-            local penalty_rating, penalty_str = FBU.action_penalty(actions, reserved_actions, interactions, move_data)
-            penalty_rating = (leader_value + penalty_rating) / leader_value
-            penalty_rating = 0.5 + penalty_rating / 2
-            --std_print('penalty combo #' .. i_c, penalty_rating, penalty_str)
-
-            base_rating = base_rating / cum_weight * count * penalty_rating
-            table.insert(valid_combos, {
-                combo = combo,
-                base_rating = base_rating,
-                penalty_rating = penalty_rating,
-                penalty_str = penalty_str,
-                count = count
-            })
+            table.insert(valid_combos, valid_combo)
 
             if DBG.show_debug('hold_combo_base_rating') then
                 local leader_goal = fred_data.ops_data.objectives.leader.final
@@ -493,7 +510,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
                 wesnoth.scroll_to_tile(x, y)
                 local rating_str =  string.format("%.4f\npenalty_rating: %.4f    %s",
-                    base_rating, penalty_rating, penalty_str
+                    valid_combo.base_rating, valid_combo.penalty_rating, valid_combo.penalty_str
                 )
                 wesnoth.wml_actions.message {
                     speaker = 'narrator', caption = 'Valid combo ' .. i_c .. '/' .. #combos .. ': base_rating [' .. cfg.zone_id .. ']',
@@ -611,12 +628,19 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                         if (i_reduced_combo > -1) then
                             --std_print('i_reduced_combo : ' .. i_reduced_combo)
                         else
-                            DBG.dbms(combo, false, 'combo')
-                            DBG.dbms(reduced_combo, false, 'reduced_combo')
-                            error('reduced combo does not exist')
+                            -- By passing {} for adjacent_villages_map, the combo will not get DQed
+                            local valid_combo, is_dqed = fred_hold_utils.get_base_rating(reduced_combo, ratings, weights, key, penalty_infos, {}, fred_data)
+
+                            if (not valid_combo) then
+                                DBG.dbms(combo, false, 'combo')
+                                DBG.dbms(reduced_combo, false, 'reduced_combo')
+                                error('reduced combo does not exist and could not be created')
+                            end
+
+                            -- This appends the combo to the array that we are currently looping over
+                            table.insert(valid_combos, valid_combo)
                         end
                     end
-
                 end
             end
         else
