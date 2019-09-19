@@ -1723,6 +1723,7 @@ local function get_hold_action(zone_cfg, fred_data)
         between_map = FU.get_between_map(locs, leader_goal, tmp_enemies, move_data)
 
         if DBG.show_debug('hold_between_map') then
+            DBG.show_fgumap_with_message(between_map, 'within_one_move', 'Between map: within_one_move')
             DBG.show_fgumap_with_message(between_map, 'distance', 'Between map: distance')
             DBG.show_fgumap_with_message(between_map, 'blurred_distance', 'Between map: blurred distance')
             DBG.show_fgumap_with_message(between_map, 'perp_distance', 'Between map: perp_distance')
@@ -2027,6 +2028,8 @@ local function get_hold_action(zone_cfg, fred_data)
                         protect_here = false
                     end
                 else
+                    -- TODO: this part may be unnecessary due to the check for 'within_one_move' below.
+                    --   Leave for now in case we want to resurrect it later; clean up sometime
                     local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
                     local dld = ld - protect_leader_distance.min
 
@@ -2035,7 +2038,7 @@ local function get_hold_action(zone_cfg, fred_data)
                     end
                 end
 
-                if protect_here then
+                if protect_here and between_map and FGM.get_value(between_map, x, y, 'within_one_move') then
                     FGM.set_value(protect_here_maps[id], x, y, 'protect_here', true)
                 end
             end
@@ -2053,7 +2056,9 @@ local function get_hold_action(zone_cfg, fred_data)
             end
 
             for x,y,data in FGM.iter(adj_hex_map) do
-                FGM.set_value(protect_here_maps[id], x, y, 'protect_here', true)
+                if between_map and FGM.get_value(between_map, x, y, 'within_one_move') then
+                    FGM.set_value(protect_here_maps[id], x, y, 'protect_here', true)
+                end
             end
         end
     end

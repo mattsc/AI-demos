@@ -440,9 +440,9 @@ function fred_utils.get_between_map(locs, toward_loc, units, move_data)
             DBG.show_fgumap_with_message(path_map, 'sign', 'path_map: sign')
         end
 
-
         local cost_map = fred_utils.smooth_cost_map(unit_proxy)
         local inv_cost_map = fred_utils.smooth_cost_map(unit_proxy, toward_loc, true)
+        local max_moves = move_data.unit_copies[id].max_moves
 
         if false then
             DBG.show_fgumap_with_message(cost_map, 'cost', 'cost_map', move_data.unit_copies[id])
@@ -476,8 +476,48 @@ function fred_utils.get_between_map(locs, toward_loc, units, move_data)
             FGM.add(between_map, x, y, 'inv_cost', inv_cost * weights[id])
         end
 
+
+        -- Find the hexes which the unit can reach and still get next to the goal locs
+        for _,loc in pairs(locs) do
+            --std_print('checking within_one_move: ' .. loc[1] .. ',' .. loc[2])
+            local inv_cost_map_goal
+            if (loc[1] == toward_loc[1]) and (loc[2] == toward_loc[2]) then
+                inv_cost_map_goal = inv_cost_map
+                --std_print('  using overall inverse cost map')
+            else
+                inv_cost_map_goal = fred_utils.smooth_cost_map(unit_proxy, loc, true)
+                --std_print('  calculating new inverse cost map')
+            end
+
+            local cost_on_goal = wesnoth.unit_movement_cost(unit_proxy, wesnoth.get_terrain(loc[1], loc[2]))
+            --std_print(id, ' cost_on_goal : ' .. cost_on_goal)
+            for x,y,data in FGM.iter(cost_map) do
+                local cost = data.cost or 99
+                local inv_cost = FGM.get_value(inv_cost_map_goal, x, y, 'cost')
+
+                local total_cost = cost + inv_cost - cost_on_goal
+                if (total_cost <= max_moves) then
+                    FGM.set_value(unit_map, x, y, 'total_cost', total_cost)
+                    unit_map[x][y].within_one_move = true
+                end
+            end
+        end
+
+        -- We also include all hexes adjacent to this
+        for x,y,data in FGM.iter(unit_map) do
+            if data.within_one_move then
+                FGM.set_value(between_map, x, y, 'within_one_move', true)
+                for xa,ya in H.adjacent_tiles(x,y) do
+                    if FGM.get_value(between_map, xa, ya, 'inv_cost') then
+                        FGM.set_value(between_map, xa, ya, 'within_one_move', true)
+                    end
+                end
+            end
+        end
+
         if false then
             DBG.show_fgumap_with_message(unit_map, 'rating', 'unit_map rating ' .. id, move_data.unit_copies[id])
+            DBG.show_fgumap_with_message(unit_map, 'total_cost', 'unit_map total_cost ' .. id, move_data.unit_copies[id])
         end
 
         for _,loc in ipairs(locs) do
