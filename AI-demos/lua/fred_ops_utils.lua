@@ -84,7 +84,7 @@ end
 function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigned_enemies, fred_data)
     -- Check whether there are also units that should be protected
     local protect_others_ratio = FCFG.get_cfg_parm('protect_others_ratio')
-    for zone_id,_ in pairs(assigned_enemies) do
+    for zone_id,zone_units in pairs(assigned_units) do
         --std_print(zone_id)
 
         local protect_units = {}
@@ -97,7 +97,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
             --std_print('  checking whether units should be protected: ' .. zone_id)
             -- TODO: does this take appreciable time? If so, can be skipped when no no_MP units exist
             local units_to_protect, protectors = {}, {}
-            for id,_ in pairs(assigned_units[zone_id] or {}) do
+            for id,_ in pairs(zone_units) do
                 local loc = fred_data.move_data.units[id]
 
                 -- We don't need to consider units that have no MP left and cannot
@@ -108,7 +108,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
                 then
                     skip_unit = true
                 end
-                --std_print('    ' .. id, skip_unit)
+                --std_print('    skip: ' .. id, skip_unit)
 
                 if (not skip_unit) then
                     local unit_value = FU.unit_value(fred_data.move_data.unit_infos[id])
