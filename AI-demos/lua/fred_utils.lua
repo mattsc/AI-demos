@@ -479,26 +479,32 @@ function fred_utils.get_between_map(locs, toward_loc, units, move_data)
 
         -- Find the hexes which the unit can reach and still get next to the goal locs
         for _,loc in pairs(locs) do
-            --std_print('checking within_one_move: ' .. loc[1] .. ',' .. loc[2])
-            local inv_cost_map_goal
-            if (loc[1] == toward_loc[1]) and (loc[2] == toward_loc[2]) then
-                inv_cost_map_goal = inv_cost_map
-                --std_print('  using overall inverse cost map')
-            else
-                inv_cost_map_goal = fred_utils.smooth_cost_map(unit_proxy, loc, true)
-                --std_print('  calculating new inverse cost map')
-            end
-
+            --std_print('checking within_one_move: ' .. loc[1] .. ',' .. loc[2], id)
+            local cost_to_goal = FGM.get_value(cost_map, loc[1], loc[2], 'cost')
             local cost_on_goal = wesnoth.unit_movement_cost(unit_proxy, wesnoth.get_terrain(loc[1], loc[2]))
-            --std_print(id, ' cost_on_goal : ' .. cost_on_goal)
-            for x,y,data in FGM.iter(cost_map) do
-                local cost = data.cost or 99
-                local inv_cost = FGM.get_value(inv_cost_map_goal, x, y, 'cost')
+            --std_print(id, max_moves, cost_to_goal, cost_on_goal)
 
-                local total_cost = cost + inv_cost - cost_on_goal
-                if (total_cost <= max_moves) then
-                    FGM.set_value(unit_map, x, y, 'total_cost', total_cost)
-                    unit_map[x][y].within_one_move = true
+            -- Only need to do this for units that can actually get to the goal
+            if (cost_to_goal - cost_on_goal <= max_moves) then
+                local inv_cost_map_goal
+                if (loc[1] == toward_loc[1]) and (loc[2] == toward_loc[2]) then
+                    inv_cost_map_goal = inv_cost_map
+                    --std_print('  using overall inverse cost map: ' .. id)
+                else
+                    inv_cost_map_goal = fred_utils.smooth_cost_map(unit_proxy, loc, true)
+                    --std_print('  calculating new inverse cost map ' .. id)
+                end
+
+                --std_print(id, ' cost_on_goal : ' .. cost_on_goal)
+                for x,y,data in FGM.iter(cost_map) do
+                    local cost = data.cost or 99
+                    local inv_cost = FGM.get_value(inv_cost_map_goal, x, y, 'cost')
+
+                    local total_cost = cost + inv_cost - cost_on_goal
+                    if (total_cost <= max_moves) then
+                        FGM.set_value(unit_map, x, y, 'total_cost', total_cost)
+                        unit_map[x][y].within_one_move = true
+                    end
                 end
             end
         end
