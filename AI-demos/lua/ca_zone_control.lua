@@ -2396,7 +2396,7 @@ local function get_hold_action(zone_cfg, fred_data)
             wesnoth.wml_actions.label { x = x, y = y, text = id }
         end
         wesnoth.scroll_to_tile(x, y)
-        wesnoth.wml_actions.message { speaker = 'narrator', message = 'Best hold combo [' .. zone_cfg.zone_id .. ']' }
+        wesnoth.wml_actions.message { speaker = 'narrator', caption = 'Best hold combo [' .. zone_cfg.zone_id .. ']', message = action_str }
         for src,dst in pairs(best_combo) do
             x, y =  math.floor(dst / 1000), dst % 1000
             wesnoth.wml_actions.label { x = x, y = y, text = "" }
