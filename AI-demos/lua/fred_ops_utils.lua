@@ -1786,8 +1786,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     for zone_id,power_stat in pairs(zone_power_stats) do
         local f_power_ratio = power_stat.my_power / (power_stat.enemy_power + 1e-6) / behavior.orders.current_power_ratio
         f_zone_power_ratios[zone_id] = f_power_ratio
-        -- TODO: use sqrt here?
-        zone_push_factors[zone_id] = f_power_ratio * behavior.orders.push_factor
+        zone_push_factors[zone_id] = math.sqrt(f_power_ratio) * behavior.orders.push_factor
     end
     --DBG.dbms(f_zone_power_ratios, false, 'f_zone_power_ratios')
     --DBG.dbms(zone_push_factors, false, 'zone_push_factors')
