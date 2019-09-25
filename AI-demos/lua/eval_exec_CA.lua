@@ -39,7 +39,7 @@ local function set_menus()
         image = 'items/ring-red.png~CROP(26,26,20,20)',
         { 'command', {
             { 'lua', {
-                code = 'wesnoth.dofile "~add-ons/AI-demos/lua/eval_exec_CA.lua".eval_exec_CA(false)'
+                code = 'wesnoth.dofile "~add-ons/AI-demos/lua/eval_exec_CA.lua".eval_exec_CA(false, "v")'
             } },
         } },
         { 'default_hotkey', { key = 'v' } }
@@ -51,7 +51,7 @@ local function set_menus()
         image = 'items/ring-gold.png~CROP(26,26,20,20)',
         { 'command', {
             { 'lua', {
-                code = 'wesnoth.dofile "~add-ons/AI-demos/lua/eval_exec_CA.lua".eval_exec_CA(true)'
+                code = 'wesnoth.dofile "~add-ons/AI-demos/lua/eval_exec_CA.lua".eval_exec_CA(true, "x")'
             } },
         } },
         { 'default_hotkey', { key = 'x' } }
@@ -132,12 +132,13 @@ return {
         end
     end,
 
-    eval_exec_CA = function(exec_also)
+    eval_exec_CA = function(exec_also, hotkey)
         if is_wrong_side(1) then return end
 
         local self = dummy_self
         local ai, ca = init_CA(self)
 
+        std_print('\n********** Manual command : ' .. hotkey .. ' **********\n')
         local score, action = ca:evaluation(nil, self, ai)
         local action_str = ''
         if action then
