@@ -71,7 +71,7 @@ local function set_menus()
 
     wesnoth.wml_actions.set_menu_item {
         id = 'm04_units_info',
-        description = "Show Units Info",
+        description = "Show/toggle Units Info",
         image = 'items/ring-silver.png~CROP(26,26,20,20)',
         { 'command', {
             { 'lua', {
@@ -163,6 +163,18 @@ return {
             u.x, u.y,
             u.hitpoints, u.max_hitpoints, u.experience, u.max_experience,
             u.id, tostring(u.name))
+
+            if wml.variables.debug_unit_labels then
+                wesnoth.label { x = u.x, y = u.y, text = '' }
+            else
+                wesnoth.label { x = u.x, y = u.y, text = u.id }
+            end
+        end
+
+        if wml.variables.debug_unit_labels then
+            wml.variables.debug_unit_labels = nil
+        else
+            wml.variables.debug_unit_labels = true
         end
 
         std_print(str)
