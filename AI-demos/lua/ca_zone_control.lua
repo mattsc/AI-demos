@@ -1407,9 +1407,13 @@ local function get_hold_action(zone_cfg, fred_data)
     --std_print('acceptable_max_damage_ratio: ' .. acceptable_max_damage_ratio)
 
     -- This uses the absolute push factor, not the relative one;
-    -- It's extremely strong dependence, that's only supposed to kick in at low push factors
-    local acceptable_actual_damage_ratio = push_factor ^ 4
-    --std_print('acceptable_actual_damage_ratio: ' .. acceptable_actual_damage_ratio)
+    -- Do not hold for push_factors < 1, unless there is very little damage to be expected
+    -- TODO: there's a discontinuity here that might not be good
+    local acceptable_actual_damage_ratio = push_factor
+    if (push_factor < 1) then
+        acceptable_actual_damage_ratio = push_factor^2 / 10.
+    end
+    --std_print(zone_cfg.zone_id .. ': acceptable_actual_damage_ratio: ' .. acceptable_actual_damage_ratio)
 
 
     local vuln_weight = FCFG.get_cfg_parm('vuln_weight')
