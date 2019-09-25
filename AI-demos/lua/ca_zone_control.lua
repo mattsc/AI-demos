@@ -2523,6 +2523,15 @@ local function get_advance_action(zone_cfg, fred_data)
     --]]
 
 
+    -- If we got here and nobody is holding already, that means a hold was attempted (with the same units
+    -- now used for advancing) and either not possible or not deemed worth it.
+    -- Either way, we should be careful with advancing into enemy threats.
+    local already_holding = true
+    if (not next(fred_data.ops_data.objectives.protect.zones[zone_cfg.zone_id].holders)) then
+        already_holding = false
+    end
+    --std_print(zone_cfg.zone_id .. ': already_holding: ', already_holding)
+
     local cfg_attack = { value_ratio = value_ratio }
 
     local safe_loc = false
@@ -2621,6 +2630,27 @@ local function get_advance_action(zone_cfg, fred_data)
                     -- This is the standard attack rating (roughly) in units of cost (gold)
                     local counter_rating = - counter_outcomes.rating_table.rating
 
+                    if already_holding then
+                        rating = rating + counter_rating
+                        --std_print(x .. ',' .. y .. ': counter' , counter_rating)
+                    else
+                        -- If nobody is holding, that means that the hold with these units was
+                        -- considered not worth it, which means we should be much more careful
+                        -- advancing them as well -> use mostly own damage rating
+                        local _, damage_rating, heal_rating = FAU.damage_rating_unit(counter_outcomes.defender_damage)
+                        local enemy_rating = 0
+                        for _,attacker_damage in ipairs(counter_outcomes.attacker_damages) do
+                            local _, er, ehr = FAU.damage_rating_unit(attacker_damage)
+                            enemy_rating = enemy_rating + er + ehr
+                        end
+                        --std_print(x .. ',' .. y .. ': damage: ', counter_outcomes.defender_damage.damage, damage_rating, heal_rating)
+                        --std_print('  enemy rating:', enemy_rating)
+
+                        -- Note that damage ratings are negative
+                        rating = rating + damage_rating + heal_rating
+                        rating = rating - enemy_rating / 10
+                    end
+
                     -- The die chance is already included in the rating, but we
                     -- want it to be even more important here (and very non-linear)
                     -- It's set to be quadratic and take unity value at the desperate attack
@@ -2628,8 +2658,7 @@ local function get_advance_action(zone_cfg, fred_data)
                     -- really matters, so we multiply by another factor 2.
                     -- This makes this a huge contribution to the rating.
                     local die_rating = - value_ratio * unit_value * counter_outcomes.def_outcome.hp_chance[0] ^ 2 / 0.85^2 * 2
-
-                    rating = rating + counter_rating + die_rating
+                    rating = rating + die_rating
                 end
 
                 if (not counter_outcomes) or (counter_outcomes.def_outcome.hp_chance[0] < 0.85) then
