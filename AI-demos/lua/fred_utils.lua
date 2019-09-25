@@ -480,18 +480,42 @@ function fred_utils.get_between_map(locs, toward_loc, units, move_data)
         -- Find the hexes which the unit can reach and still get next to the goal locs
         for _,loc in pairs(locs) do
             --std_print('checking within_one_move: ' .. loc[1] .. ',' .. loc[2], id)
-            local cost_to_goal = FGM.get_value(cost_map, loc[1], loc[2], 'cost')
+
             local cost_on_goal = wesnoth.unit_movement_cost(unit_proxy, wesnoth.get_terrain(loc[1], loc[2]))
+            local goal = AH.table_copy(loc)
+            --DBG.dbms(goal, false, 'goal before')
+
+            -- If the hex is unreachable, we use a reachable adjacent hex instead, as we're checking for attacks
+            -- TODO: eventually we might want to use all adjacent hexes, as it is possible that
+            --   a unit might get to the goal from behind. In the other direction, this now checks for being
+            --   adjacent to the adjacent hex, which adds some more hexes.
+            if (cost_on_goal == 99) then
+                --std_print('  goal hex ' .. loc[1] .. ',' .. loc[2] .. ' is unreachable for ' .. id)
+                local min_cost = math.huge
+                for xa,ya in H.adjacent_tiles(loc[1], loc[2]) do
+                    local adj_cost_on_goal = wesnoth.unit_movement_cost(unit_proxy, wesnoth.get_terrain(xa, ya))
+                    local adj_cost_to_goal = FGM.get_value(cost_map, xa, ya, 'cost')
+                    if (adj_cost_on_goal < 99) and (adj_cost_to_goal < min_cost) then
+                        min_cost = adj_cost_to_goal
+                        cost_on_goal = adj_cost_on_goal
+                        goal = { xa, ya }
+                    end
+                end
+            end
+            --DBG.dbms(goal, false, 'goal after')
+
+            -- This returns nil if goal is unreachable, so it works even if no reachable goal was found above
+            local cost_to_goal = FGM.get_value(cost_map, goal[1], goal[2], 'cost')
             --std_print(id, max_moves, cost_to_goal, cost_on_goal)
 
             -- Only need to do this for units that can actually get to the goal
-            if (cost_to_goal - cost_on_goal <= max_moves) then
+            if cost_to_goal and (cost_to_goal - cost_on_goal <= max_moves) then
                 local inv_cost_map_goal
-                if (loc[1] == toward_loc[1]) and (loc[2] == toward_loc[2]) then
+                if (goal[1] == toward_loc[1]) and (goal[2] == toward_loc[2]) then
                     inv_cost_map_goal = inv_cost_map
                     --std_print('  using overall inverse cost map: ' .. id)
                 else
-                    inv_cost_map_goal = fred_utils.smooth_cost_map(unit_proxy, loc, true)
+                    inv_cost_map_goal = fred_utils.smooth_cost_map(unit_proxy, goal, true)
                     --std_print('  calculating new inverse cost map ' .. id)
                 end
 
