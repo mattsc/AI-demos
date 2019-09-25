@@ -702,7 +702,7 @@ function fred_utils.get_unit_advance_distance_maps(unit_advance_distance_maps, z
             for x,y,data in FGM.iter(ldm) do
                 local my_cost = data.cost
                 local enemy_cost = eldm[x][y].cost
-                local sum = my_cost + enemy_cost
+                local sum = my_cost + enemy_cost + unit_proxy:movement(wesnoth.get_terrain(x, y))
                 local diff = (my_cost - enemy_cost) / 2
 
                 if (sum < min_sum) then
