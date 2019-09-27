@@ -81,7 +81,7 @@ function fred_ops_utils.zone_power_stats(zones, assigned_units, assigned_enemies
 end
 
 
-function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigned_enemies, fred_data)
+function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigned_enemies, raw_cfgs, fred_data)
     -- Check whether there are also units that should be protected
     local protect_others_ratio = FCFG.get_cfg_parm('protect_others_ratio')
     for zone_id,zone_units in pairs(assigned_units) do
@@ -148,7 +148,44 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
                     --std_print('      ' .. sum_damage, block_utility, protect_rating)
 
                     if (fred_data.move_data.unit_infos[id].moves == 0) then
-                        units_to_protect[id] = protect_rating
+                        -- In order to deal with units close to the borders between zones,
+                        -- the unit only counts into the zone if:
+                        -- 1. At least one of the enemies threatening it is in the same zone or
+                        local enemy_ids = FGM.get_value(fred_data.move_data.enemy_attack_map[1], loc[1], loc[2], 'ids')
+                        local counts_into_zone = false
+                        for _,enemy_id in ipairs(enemy_ids) do
+                            local enemy_in_zone = assigned_enemies[zone_id] and assigned_enemies[zone_id][enemy_id]
+                            --std_print(enemy_id, zone_id, enemy_in_zone)
+                            if enemy_in_zone then
+                                counts_into_zone = true
+                                break
+                            end
+                        end
+                        --std_print(zone_id .. ': counts_into_zone', counts_into_zone)
+
+                        -- 2. the path from at least one of the enemies leads through the zone
+                        -- TODO: currently we only check whether the penultimate hex of the path is in
+                        --   the zone. Might use something more accurate later.
+                        if (not counts_into_zone) then
+                            for _,enemy_id in ipairs(enemy_ids) do
+                                --std_print('  checking path: ' .. enemy_id .. ' -> ' .. id)
+                                local unit_loc = fred_data.move_data.my_units[id]
+                                local path = wesnoth.find_path(fred_data.move_data.unit_copies[enemy_id], unit_loc[1], unit_loc[2], { ignore_units = true })
+                                --DBG.dbms(path)
+                                local hex = path[#path - 1]
+                                --DBG.dbms(hex)
+
+                                if (wesnoth.match_location(hex[1], hex[2], raw_cfgs[zone_id].ops_slf)) then
+                                    --std_print('  path is in zone: ' .. zone_id)
+                                    counts_into_zone = true
+                                    break
+                                end
+                            end
+                        end
+
+                        if counts_into_zone then
+                            units_to_protect[id] = protect_rating
+                        end
                     else
                         protectors[id] = protect_rating
                     end
@@ -1761,7 +1798,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
 
     -- This includes both leader and "normal" zones
-    fred_ops_utils.update_protect_goals(objectives, assigned_units, assigned_enemies, fred_data)
+    fred_ops_utils.update_protect_goals(objectives, assigned_units, assigned_enemies, raw_cfgs, fred_data)
     --DBG.dbms(objectives.protect, false, 'objectives.protect')
 
     -- Set original threat status
