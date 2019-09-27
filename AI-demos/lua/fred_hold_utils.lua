@@ -551,6 +551,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
 
     local good_combos = {}
+    local analyze_all_combos = false
     local tmp_max_rating, tmp_all_max_rating -- just for debug display purposes
     for i_c,combo in ipairs(valid_combos) do
         -- 1. Check whether a combo protects the locations it is supposed to protect.
@@ -604,6 +605,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                         -- Rate this combo as useless:
                         protection.combo.protect_mult = 0
                         protection.combo.comment = ' -- uses unnecessary units'
+                        analyze_all_combos = true
 
                         -- Now make sure that the reduced combo exists in the list of valid combos
                         local i_reduced_combo = -1
@@ -834,8 +836,14 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     table.sort(good_combos, function(a, b) return a.formation_rating > b.formation_rating end)
     --DBG.dbms(good_combos, false, 'good_combos')
 
-    -- Full counter attack analysis for the best combos
+    -- Full counter attack analysis for the best combos, except when reduced combos were
+    -- found to protect just as well.  In that case we need to check all combos, otherwise
+    -- we could miss the best reduced combo.
+    -- TODO: if this turns out to take too long, use a smarter way of dealing with this.
     local max_n_combos, reduced_max_n_combos = 20, 50
+    if analyze_all_combos then
+        max_n_combos, reduced_max_n_combos = math.huge, math.huge
+    end
 
     -- Acceptable chance-to-die for non-protect forward holds
     local acceptable_ctd = 0.25
