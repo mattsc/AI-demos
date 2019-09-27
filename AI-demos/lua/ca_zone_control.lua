@@ -1395,7 +1395,7 @@ local function get_hold_action(zone_cfg, fred_data)
     if fred_data.ops_data.fronts.zones[zone_cfg.zone_id] then
         front_ld = fred_data.ops_data.fronts.zones[zone_cfg.zone_id].ld
     end
-    local push_factor = fred_data.ops_data.behavior.zone_push_factors[zone_cfg.zone_id]
+    local push_factor = fred_data.ops_data.behavior.zone_push_factors[zone_cfg.zone_id] or fred_data.ops_data.behavior.orders.push_factor
     local rel_push_factor = push_factor / value_ratio
     --std_print('push_factor, rel_push_factor: ' .. zone_cfg.zone_id, push_factor, rel_push_factor)
 
