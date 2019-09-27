@@ -2046,6 +2046,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     -- Also need to reset the stored actions
     ops_data.stored_leader_protection = {}
 
+    --for k,v in pairs(ops_data) do std_print('ops_data.' .. k) end
     --DBG.dbms(ops_data, false, 'ops_data')
     --DBG.dbms(ops_data.objectives, false, 'ops_data.objectives')
     --DBG.dbms(ops_data.assigned_enemies, false, 'ops_data.assigned_enemies')

@@ -1945,6 +1945,7 @@ local function get_hold_action(zone_cfg, fred_data)
 
     local hold_here_maps = {}
     for id,pre_rating_map in pairs(pre_rating_maps) do
+        --std_print('----- ' .. id .. ' -----')
         hold_here_maps[id] = {}
 
         local hold_here_map = {}
@@ -2314,22 +2315,22 @@ local function get_hold_action(zone_cfg, fred_data)
 
     -- TODO: also don't need some of the previous steps if find_best_protect_only == true
     if (not zone_cfg.find_best_protect_only) and (next(hold_rating_maps)) then
-        --std_print('--> checking hold combos')
+        --std_print('--> checking hold combos ' .. zone_cfg.zone_id)
         hold_dst_src, hold_ratings = FHU.unit_rating_maps_to_dstsrc(hold_rating_maps, 'vuln_rating', move_data, cfg_combos)
         local hold_combos = FU.get_unit_hex_combos(hold_dst_src)
         --DBG.dbms(hold_combos, false, 'hold_combos')
-        --std_print('#hold_combos', #hold_combos)
+        --std_print('#hold_combos ' .. zone_cfg.zone_id, #hold_combos)
 
         best_hold_combo, all_best_hold_combo, protected_str = FHU.find_best_combo(hold_combos, hold_ratings, 'vuln_rating', adjacent_village_map, between_map, fred_data, cfg_best_combo_hold)
     end
 
     local best_protect_combo, all_best_protect_combo, protect_dst_src, protect_ratings
     if protect_locs and next(protect_rating_maps) then
-        --std_print('--> checking protect combos')
+        --std_print('--> checking protect combos ' .. zone_cfg.zone_id)
         protect_dst_src, protect_ratings = FHU.unit_rating_maps_to_dstsrc(protect_rating_maps, 'protect_rating', move_data, cfg_combos)
         local protect_combos = FU.get_unit_hex_combos(protect_dst_src)
         --DBG.dbms(protect_combos, false, 'protect_combos')
-        --std_print('#protect_combos', #protect_combos)
+        --std_print('#protect_combos ' .. zone_cfg.zone_id, #protect_combos)
 
         best_protect_combo, all_best_protect_combo, protected_str, all_protected_str = FHU.find_best_combo(protect_combos, protect_ratings, 'protect_rating', adjacent_village_map, between_map, fred_data, cfg_best_combo_protect)
         --DBG.dbms(best_protect_combo, false, 'best_protect_combo')
