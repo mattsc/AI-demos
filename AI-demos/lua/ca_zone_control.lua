@@ -2394,22 +2394,36 @@ local function get_hold_action(zone_cfg, fred_data)
     --DBG.dbms(best_combo, false, 'best_combo')
 
     if DBG.show_debug('hold_best_combo') then
-        local x, y
+        local function show_hold_units(combo, ratings, combo_str)
+            if combo then
+                local x, y
+                for src,dst in pairs(combo) do
+                    x, y =  math.floor(dst / 1000), dst % 1000
+                    local id = ratings[dst][src].id
+                    wesnoth.wml_actions.label { x = x, y = y, text = id }
+                end
+                wesnoth.scroll_to_tile(x, y)
+                wesnoth.wml_actions.message { speaker = 'narrator', caption = combo_str .. ' [' .. zone_cfg.zone_id .. ']', message = action_str }
+                for src,dst in pairs(combo) do
+                    x, y =  math.floor(dst / 1000), dst % 1000
+                    wesnoth.wml_actions.label { x = x, y = y, text = "" }
+                end
+            else
+                wesnoth.wml_actions.message { speaker = 'narrator', caption = combo_str .. ' [' .. zone_cfg.zone_id .. ']', message = 'None found' }
+            end
+        end
+
         for _,unit in ipairs(fred_data.ops_data.place_holders) do
             wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = 'recruit\n' .. unit.type, color = '160,160,160' }
         end
         wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal', color = '200,0,0' }
-        for src,dst in pairs(best_combo) do
-            x, y =  math.floor(dst / 1000), dst % 1000
-            local id = ratings[dst][src].id
-            wesnoth.wml_actions.label { x = x, y = y, text = id }
-        end
-        wesnoth.scroll_to_tile(x, y)
-        wesnoth.wml_actions.message { speaker = 'narrator', caption = 'Best hold combo [' .. zone_cfg.zone_id .. ']', message = action_str }
-        for src,dst in pairs(best_combo) do
-            x, y =  math.floor(dst / 1000), dst % 1000
-            wesnoth.wml_actions.label { x = x, y = y, text = "" }
-        end
+
+        show_hold_units(best_protect_combo, protect_ratings, 'Best protect combo')
+        show_hold_units(all_best_protect_combo, protect_ratings, 'All best protect combo')
+        show_hold_units(best_hold_combo, hold_ratings, 'Best hold combo')
+        show_hold_units(all_best_hold_combo, hold_ratings, 'All best hold combo')
+        show_hold_units(best_combo, ratings, 'Overall best combo')
+
         wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = "" }
         for _,unit in ipairs(fred_data.ops_data.place_holders) do
             wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = "" }
