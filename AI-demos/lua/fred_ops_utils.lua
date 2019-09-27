@@ -2116,8 +2116,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     -- effective_reach_maps will be used to assess what he can do
     local leader = move_data.leaders[wesnoth.current.side]
     --std_print('leader.id', leader.id)
-    if (move_data.unit_copies[leader.id].attacks_left > 0)
-    then
+    if (move_data.unit_copies[leader.id].attacks_left > 0) then
         local is_attacker = true
         if move_data.my_units_noMP[leader.id] then
             is_attacker = false
