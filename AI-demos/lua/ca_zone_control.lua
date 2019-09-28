@@ -1710,20 +1710,34 @@ local function get_hold_action(zone_cfg, fred_data)
         protect_leader_distance = { min = min_ld, max = max_ld }
     end
 
+    --DBG.dbms(protect_objectives, false, 'protect_objectives')
     --DBG.dbms(protect_locs, false, 'protect_locs')
     --DBG.dbms(protect_leader_distance, false, 'protect_leader_distance')
     --DBG.dbms(assigned_enemies, false, 'assigned_enemies')
 
     local between_map
-    if protect_locs and assigned_enemies then
+    if protect_locs then
         local locs = {}
         for _,ploc in ipairs(protect_locs) do
             table.insert(locs, ploc)
         end
         local tmp_enemies = {}
-        for id,_ in pairs(assigned_enemies) do
-            tmp_enemies[id] = move_data.enemies[id]
+        -- TODO: maybe we should always add both types of enemies, with different weights
+        if assigned_enemies and next(assigned_enemies) then
+            for id,_ in pairs(assigned_enemies) do
+                tmp_enemies[id] = move_data.enemies[id]
+            end
+        elseif protect_objectives.enemies and next(protect_objectives.enemies) then
+            for id,_ in pairs(protect_objectives.enemies) do
+                tmp_enemies[id] = move_data.enemies[id]
+            end
+        else
+            DBG.dbms(assigned_enemies, false, 'assigned_enemies')
+            DBG.dbms(protect_objectives.enemies, false, 'protect_objectives.enemies')
+            error(zone_cfg.zone_id .. ': either assigned_enemies or protect_objectives.enemies must contain enemies if protect_locs is given')
         end
+        --DBG.dbms(tmp_enemies, false, 'tmp_enemies')
+
         between_map = FU.get_between_map(locs, leader_goal, tmp_enemies, move_data)
 
         if DBG.show_debug('hold_between_map') then
