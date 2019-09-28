@@ -1741,12 +1741,12 @@ local function get_hold_action(zone_cfg, fred_data)
         between_map = FU.get_between_map(locs, leader_goal, tmp_enemies, move_data)
 
         if DBG.show_debug('hold_between_map') then
-            DBG.show_fgumap_with_message(between_map, 'within_one_move', 'Between map: within_one_move')
-            DBG.show_fgumap_with_message(between_map, 'distance', 'Between map: distance')
-            DBG.show_fgumap_with_message(between_map, 'blurred_distance', 'Between map: blurred distance')
-            DBG.show_fgumap_with_message(between_map, 'perp_distance', 'Between map: perp_distance')
-            DBG.show_fgumap_with_message(between_map, 'blurred_perp_distance', 'Between map: blurred blurred_perp_distance')
-            DBG.show_fgumap_with_message(between_map, 'inv_cost', 'Between map: inv_cost')
+            DBG.show_fgumap_with_message(between_map, 'within_one_move', zone_cfg.zone_id .. ': between map: within_one_move')
+            DBG.show_fgumap_with_message(between_map, 'distance', zone_cfg.zone_id .. ': between map: distance')
+            --DBG.show_fgumap_with_message(between_map, 'blurred_distance', zone_cfg.zone_id .. ': between map: blurred distance')
+            DBG.show_fgumap_with_message(between_map, 'perp_distance', zone_cfg.zone_id .. ': between map: perp_distance')
+            --DBG.show_fgumap_with_message(between_map, 'blurred_perp_distance', zone_cfg.zone_id .. ': between map: blurred blurred_perp_distance')
+            --DBG.show_fgumap_with_message(between_map, 'inv_cost', zone_cfg.zone_id .. ': between map: inv_cost')
             --DBG.show_fgumap_with_message(fred_data.ops_data.leader_distance_map, 'distance', 'leader distance')
             --DBG.show_fgumap_with_message(fred_data.ops_data.leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
         end
