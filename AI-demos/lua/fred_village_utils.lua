@@ -33,16 +33,19 @@ function fred_village_utils.village_objectives(zone_cfgs, side_cfgs, zone_maps, 
 
         if (infl_ratio >= fred_data.ops_data.behavior.orders.value_ratio) then
             local is_threatened = false
-            for enemy_id,_ in pairs(move_data.enemies) do
+            for enemy_id,enemy_loc in pairs(move_data.enemies) do
                 if FGM.get_value(move_data.reach_maps[enemy_id], x, y, 'moves_left') then
                     is_threatened = true
+
+                    if (not village_objectives.zones[village_zone]) then
+                        village_objectives.zones[village_zone] = { villages = {}, enemies = {} }
+                    end
+
+                    village_objectives.zones[village_zone].enemies[enemy_id] = enemy_loc[1] * 1000 + enemy_loc[2]
                 end
             end
 
             if is_threatened then
-                if (not village_objectives.zones[village_zone]) then
-                    village_objectives.zones[village_zone] = { villages = {} }
-                end
                 -- TODO: this is currently duplicated in the benefits functions
                 local raw_benefit = 3
                 if (owner ~= wesnoth.current.side) and (owner ~= 0) then

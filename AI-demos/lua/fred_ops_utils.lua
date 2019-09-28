@@ -201,6 +201,10 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
             -- TODO: currently still working with only one protect unit/location
             --   Keeping the option open to use several, otherwise the following could be put into the loop above
 
+            if (not objectives.protect.zones[zone_id]) then
+                objectives.protect.zones[zone_id] = { villages = {}, enemies = {} }
+            end
+
             local max_protect_value, protect_id = 0
             for id_protectee,rating_protectee in pairs(units_to_protect) do
                 local try_protect = false
@@ -222,15 +226,18 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
                         rating = rating_protectee,
                         type = 'unit'
                     })
+
+                    local enemy_ids = FGM.get_value(fred_data.move_data.enemy_attack_map[1], loc[1], loc[2], 'ids')
+                    for _,enemy_id in ipairs(enemy_ids) do
+                        local enemy_loc = fred_data.move_data.enemies[enemy_id]
+                        objectives.protect.zones[zone_id].enemies[enemy_id] = enemy_loc[1] * 1000 + enemy_loc[2]
+                    end
                 end
             end
 
             table.sort(protect_units, function(a, b) return a.rating < b.rating end)
             --DBG.dbms(protect_units, false, 'protect_units')
 
-            if (not objectives.protect.zones[zone_id]) then
-                objectives.protect.zones[zone_id] = { villages = {} }
-            end
             objectives.protect.zones[zone_id].units = protect_units
             objectives.protect.zones[zone_id].already_holding = already_holding
             objectives.protect.zones[zone_id].holders = units_to_protect
@@ -2049,6 +2056,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     --for k,v in pairs(ops_data) do std_print('ops_data.' .. k) end
     --DBG.dbms(ops_data, false, 'ops_data')
     --DBG.dbms(ops_data.objectives, false, 'ops_data.objectives')
+    --DBG.dbms(ops_data.objectives.protect.zones, false, 'ops_data.objectives.protect.zones')
     --DBG.dbms(ops_data.assigned_enemies, false, 'ops_data.assigned_enemies')
     --DBG.dbms(ops_data.assigned_units, false, 'ops_data.assigned_units')
     --DBG.dbms(ops_data.status, false, 'ops_data.status')
