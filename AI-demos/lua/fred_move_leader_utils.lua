@@ -466,37 +466,29 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
     if leader_threats.significant_threat then
         local goal_loc = leader_objectives.final
 
+        local enemies = {}
         for enemy_id,_ in pairs(leader_threats.enemies) do
-            local enemy_value = FU.unit_current_power(move_data.unit_infos[enemy_id])
             local enemy_loc = fred_data.move_data.units[enemy_id]
-            local enemy = {}
-            enemy[enemy_id] = enemy_loc
-            local between_map = FU.get_between_map({ goal_loc }, goal_loc, enemy, fred_data.move_data)
+            enemies[enemy_id] = enemy_loc
+        end
+        --DBG.dbms(enemies, false, 'enemies')
 
-            for x,y,between in FGM.iter(between_map) do
-                if between.is_between then
-                    FGM.set_value(leader_zone_map, x, y, 'in_zone', true)
-                end
+        local between_map = FU.get_between_map({ goal_loc }, goal_loc, enemies, fred_data.move_data)
 
-                FGM.add(perp_map, x, y, 'perp', math.abs(between.perp_distance) * enemy_value)
-                FGM.add(perp_map, x, y, 'weight', enemy_value)
-            end
-
-            if false then
-                --DBG.show_fgumap_with_message(between_map, 'distance', 'between_map: distance', fred_data.move_data.unit_copies[enemy_id])
-                --DBG.show_fgumap_with_message(between_map, 'perp_distance', 'between_map: perp_distance', fred_data.move_data.unit_copies[enemy_id])
-                DBG.show_fgumap_with_message(between_map, 'is_between', 'between_map: is_between', fred_data.move_data.unit_copies[enemy_id])
+        for x,y,between in FGM.iter(between_map) do
+            if between.is_between then
+                FGM.set_value(leader_zone_map, x, y, 'in_zone', true)
+                FGM.set_value(perp_map, x, y, 'perp', between.perp_distance)
             end
         end
-        -- TODO: potentially buffer this
 
-        for x,y,data in FGM.iter(perp_map) do
-            data.perp = data.perp / data.weight
-            data.weight = nil
+        if false then
+            DBG.show_fgumap_with_message(between_map, 'distance', 'assess_leader_threats between_map: distance')
+            DBG.show_fgumap_with_message(between_map, 'perp_distance', 'assess_leader_threats between_map: perp_distance')
+            DBG.show_fgumap_with_message(between_map, 'is_between', 'assess_leader_threats between_map: is_between')
         end
-
-        --DBG.show_fgumap_with_message(leader_zone_map, 'in_zone', 'leader_zone_map')
-        --DBG.show_fgumap_with_message(perp_map, 'perp', 'perp_map')
+        --DBG.show_fgumap_with_message(leader_zone_map, 'in_zone', 'assess_leader_threats leader_zone_map')
+        --DBG.show_fgumap_with_message(perp_map, 'perp', 'assess_leader_threats perp_map')
     end
 
 
