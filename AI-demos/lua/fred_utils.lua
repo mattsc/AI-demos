@@ -534,12 +534,12 @@ function fred_utils.get_between_map(locs, toward_loc, units, move_data)
                 -- We also include all hexes adjacent to this
                 for x,y,data in FGM.iter(unit_map) do
                     if data.within_one_move then
-                        FGM.set_value(between_map, x, y, 'within_one_move', true)
+                        FGM.set_value(between_map, x, y, 'is_between', true)
                         for xa,ya in H.adjacent_tiles(x,y) do
                             local cost = FGM.get_value(cost_map, xa, ya, 'cost')
                             local inv_cost = FGM.get_value(inv_cost_map_goal, xa, ya, 'cost')
                             if cost and inv_cost and (cost <= cost_to_goal) and (inv_cost <= cost_to_goal) then
-                                FGM.set_value(between_map, xa, ya, 'within_one_move', true)
+                                FGM.set_value(between_map, xa, ya, 'is_between', true)
                             end
                         end
                     end
@@ -598,10 +598,6 @@ function fred_utils.get_between_map(locs, toward_loc, units, move_data)
 
     FGM.blur(between_map, 'distance')
     FGM.blur(between_map, 'perp_distance')
-
-    for x,y,data in FGM.iter(between_map) do
-        data.is_between = data.distance > math.abs(data.perp_distance)
-    end
 
     return between_map
 end
