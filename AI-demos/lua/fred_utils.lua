@@ -525,21 +525,23 @@ function fred_utils.get_between_map(locs, toward_loc, units, move_data)
                     local inv_cost = FGM.get_value(inv_cost_map_goal, x, y, 'cost')
 
                     local total_cost = cost + inv_cost - cost_on_goal
-                    if (total_cost <= max_moves) then
+                    if (total_cost <= max_moves) and (cost <= cost_to_goal) and (inv_cost <= cost_to_goal) then
                         FGM.set_value(unit_map, x, y, 'total_cost', total_cost)
                         unit_map[x][y].within_one_move = true
                     end
                 end
-            end
-        end
 
-        -- We also include all hexes adjacent to this
-        for x,y,data in FGM.iter(unit_map) do
-            if data.within_one_move then
-                FGM.set_value(between_map, x, y, 'within_one_move', true)
-                for xa,ya in H.adjacent_tiles(x,y) do
-                    if FGM.get_value(between_map, xa, ya, 'inv_cost') then
-                        FGM.set_value(between_map, xa, ya, 'within_one_move', true)
+                -- We also include all hexes adjacent to this
+                for x,y,data in FGM.iter(unit_map) do
+                    if data.within_one_move then
+                        FGM.set_value(between_map, x, y, 'within_one_move', true)
+                        for xa,ya in H.adjacent_tiles(x,y) do
+                            local cost = FGM.get_value(cost_map, xa, ya, 'cost')
+                            local inv_cost = FGM.get_value(inv_cost_map_goal, xa, ya, 'cost')
+                            if cost and inv_cost and (cost <= cost_to_goal) and (inv_cost <= cost_to_goal) then
+                                FGM.set_value(between_map, xa, ya, 'within_one_move', true)
+                            end
+                        end
                     end
                 end
             end
