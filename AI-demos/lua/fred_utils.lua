@@ -388,57 +388,6 @@ function fred_utils.get_between_map(locs, toward_loc, units, move_data)
         unit[id] = unit_loc
         local unit_proxy = wesnoth.get_unit(unit_loc[1], unit_loc[2])
 
-        -- For the perpendicular distance, we need a map denoting which
-        -- hexes are on the "left" and "right" of the path of the unit
-        -- to toward_loc. 'path_map' is set to be zero on the path, +1
-        -- on one side (nominally the right) and -1 on the other side.
-        local path = wesnoth.find_path(unit_proxy, toward_loc[1], toward_loc[2], { ignore_units = true })
-
-        local path_map = {}
-        for _,loc in ipairs(path) do
-            FGM.set_value(path_map, loc[1], loc[2], 'sign', 0)
-        end
-
-        local new_hexes = {}
-        for i_p=1,#path-1 do
-            p1, p2 = path[i_p], path[i_p+1]
-            local rad_path = AH.get_angle(p1, p2)
-            --std_print(p1[1] .. ',' .. p1[2], p2[1] .. ',' .. p2[2], rad_path)
-
-            for xa,ya in H.adjacent_tiles(p1[1], p1[2]) do
-                local rad = AH.get_angle(p1, { xa, ya })
-                local drad = rad - rad_path
-                --std_print('  ' .. xa .. ',' .. ya .. ':', rad, drad)
-
-                if (not FGM.get_value(path_map, xa, ya, 'sign')) then
-                    if (drad > 0) and (drad < 3.14) or (drad < -3.14) then
-                        table.insert(new_hexes, { xa, ya, 1 })
-                        FGM.set_value(path_map, xa, ya, 'sign', 1)
-                    else
-                        table.insert(new_hexes, { xa, ya, -1 })
-                        FGM.set_value(path_map, xa, ya, 'sign', -1)
-                    end
-                end
-            end
-        end
-
-        while (#new_hexes > 0) do
-            local old_hexes = AH.table_copy(new_hexes)
-            new_hexes = {}
-
-            for _,hex in ipairs(old_hexes) do
-                for xa,ya in H.adjacent_tiles(hex[1], hex[2]) do
-                    if (not FGM.get_value(path_map, xa, ya, 'sign')) then
-                        table.insert(new_hexes, { xa, ya, hex[3] })
-                        FGM.set_value(path_map, xa, ya, 'sign', hex[3])
-                    end
-                end
-            end
-        end
-
-        if false then
-            DBG.show_fgumap_with_message(path_map, 'sign', 'path_map: sign')
-        end
 
         local cost_map = fred_utils.smooth_cost_map(unit_proxy)
         local inv_cost_map = fred_utils.smooth_cost_map(unit_proxy, toward_loc, true)
@@ -468,11 +417,7 @@ function fred_utils.get_between_map(locs, toward_loc, units, move_data)
 
             rating = rating * weights[id]
 
-            local perp_distance = cost + inv_cost - (cost_full + inv_cost_full) / 2
-            perp_distance = perp_distance * FGM.get_value(path_map, x, y, 'sign')
-
             FGM.set_value(unit_map, x, y, 'rating', rating)
-            FGM.set_value(unit_map, x, y, 'perp_distance', perp_distance * weights[id])
             FGM.add(between_map, x, y, 'inv_cost', inv_cost * weights[id])
         end
 
@@ -529,9 +474,22 @@ function fred_utils.get_between_map(locs, toward_loc, units, move_data)
                         FGM.set_value(unit_map, x, y, 'total_cost', total_cost)
                         unit_map[x][y].within_one_move = true
                     end
+
+                    local perp_distance = cost + inv_cost + unit_proxy:movement(wesnoth.get_terrain(x, y))
+                    FGM.add(unit_map, x, y, 'perp_distance', perp_distance * weights[id])
                 end
 
-                -- We also include all hexes adjacent to this
+                local min_perp_distance = math.huge
+                for x,y,data in FGM.iter(unit_map) do
+                    if (data.perp_distance < min_perp_distance) then
+                        min_perp_distance = data.perp_distance
+                    end
+                end
+                for x,y,data in FGM.iter(unit_map) do
+                    data.perp_distance = data.perp_distance - min_perp_distance
+                end
+
+                -- We also include adjacent hexes to this
                 for x,y,data in FGM.iter(unit_map) do
                     if data.within_one_move then
                         FGM.set_value(between_map, x, y, 'is_between', true)
@@ -549,7 +507,8 @@ function fred_utils.get_between_map(locs, toward_loc, units, move_data)
 
         if false then
             DBG.show_fgumap_with_message(unit_map, 'rating', 'unit_map rating ' .. id, move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(unit_map, 'total_cost', 'unit_map total_cost ' .. id, move_data.unit_copies[id])
+            DBG.show_fgumap_with_message(unit_map, 'perp_distance', 'unit_map perp_distance ' .. id, move_data.unit_copies[id])
+            --DBG.show_fgumap_with_message(unit_map, 'total_cost', 'unit_map total_cost ' .. id, move_data.unit_copies[id])
         end
 
         for _,loc in ipairs(locs) do
