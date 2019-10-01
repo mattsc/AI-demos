@@ -473,7 +473,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
         end
         --DBG.dbms(enemies, false, 'enemies')
 
-        local between_map = FU.get_between_map({ goal_loc }, goal_loc, enemies, fred_data.move_data)
+        local between_map = FU.get_between_map({ goal_loc }, enemies, fred_data.move_data)
 
         for x,y,between in FGM.iter(between_map) do
             if between.is_between then

@@ -1738,7 +1738,7 @@ local function get_hold_action(zone_cfg, fred_data)
         end
         --DBG.dbms(tmp_enemies, false, 'tmp_enemies')
 
-        between_map = FU.get_between_map(locs, leader_goal, tmp_enemies, move_data)
+        between_map = FU.get_between_map(locs, tmp_enemies, move_data)
 
         if DBG.show_debug('hold_between_map') then
             DBG.show_fgumap_with_message(between_map, 'is_between', zone_cfg.zone_id .. ': between map: is_between')
