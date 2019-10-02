@@ -408,37 +408,9 @@ function fred_utils.get_between_map(locs, units, move_data)
         end
 
 
+        local locs_to_analyze
         for _,loc in pairs(locs) do
             local xy = loc[1] * 1000 + loc[2]
-            -- TODO: is inverse cost map really what I want here, or forward cost from that location?
-            local inv_cost_map = fred_utils.smooth_cost_map(unit_proxy, loc, true)
-            local cost_full = FGM.get_value(cost_map, loc[1], loc[2], 'cost')
-            local inv_cost_full = FGM.get_value(inv_cost_map, unit_loc[1], unit_loc[2], 'cost')
-
-            if false then
-                DBG.show_fgumap_with_message(inv_cost_map, 'cost', 'inv_cost_map to ' .. loc[1] .. ',' .. loc[2], move_data.unit_copies[id])
-            end
-
-            local unit_map = {}
-            for x,y,data in FGM.iter(cost_map) do
-                local cost = data.cost or 99
-                local inv_cost = FGM.get_value(inv_cost_map, x, y, 'cost')
-
-                -- This gives a rating that is a slanted plane, from the unit to loc
-                local rating = (inv_cost - cost) / 2
-                if (cost > cost_full) then
-                    rating = rating + (cost_full - cost)
-                end
-                if (inv_cost > inv_cost_full) then
-                    rating = rating + (inv_cost - inv_cost_full)
-                end
-
-                rating = rating
-
-                FGM.set_value(unit_map, x, y, 'rating', rating)
-                FGM.add(between_map, x, y, 'inv_cost', inv_cost * unit_weights[id] * loc_weights[xy])
-            end
-
 
             -- Find the hexes which the unit can reach and still get next to the goal locs
             --std_print('checking within_one_move: ' .. loc[1] .. ',' .. loc[2], id)
@@ -469,52 +441,86 @@ function fred_utils.get_between_map(locs, units, move_data)
             local cost_to_goal = FGM.get_value(cost_map, goal[1], goal[2], 'cost')
             --std_print(id, max_moves, cost_to_goal, cost_on_goal)
 
+
+
             -- Only need to do this for units that can actually get to the goal
             if cost_to_goal and (cost_to_goal - cost_on_goal <= max_moves) then
-                local inv_cost_map_goal
-                if (goal[1] == loc[1]) and (goal[2] == loc[2]) then
-                    inv_cost_map_goal = inv_cost_map
-                    --std_print('  using existing inverse cost map: ' .. id)
-                else
-                    inv_cost_map_goal = fred_utils.smooth_cost_map(unit_proxy, goal, true)
-                    --std_print('  calculating new inverse cost map ' .. id)
+            -- Note: the indenting is wrong here, that's intentional in preparation for the next commit
+
+            -- TODO: is inverse cost map really what I want here, or forward cost from that location?
+            local inv_cost_map = fred_utils.smooth_cost_map(unit_proxy, loc, true)
+            local cost_full = FGM.get_value(cost_map, loc[1], loc[2], 'cost')
+            local inv_cost_full = FGM.get_value(inv_cost_map, unit_loc[1], unit_loc[2], 'cost')
+
+            if false then
+                DBG.show_fgumap_with_message(inv_cost_map, 'cost', 'inv_cost_map to ' .. loc[1] .. ',' .. loc[2], move_data.unit_copies[id])
+            end
+
+            local unit_map = {}
+            for x,y,data in FGM.iter(cost_map) do
+                local cost = data.cost or 99
+                local inv_cost = FGM.get_value(inv_cost_map, x, y, 'cost')
+
+                -- This gives a rating that is a slanted plane, from the unit to loc
+                local rating = (inv_cost - cost) / 2
+                if (cost > cost_full) then
+                    rating = rating + (cost_full - cost)
+                end
+                if (inv_cost > inv_cost_full) then
+                    rating = rating + (inv_cost - inv_cost_full)
                 end
 
-                --std_print(id, ' cost_on_goal : ' .. cost_on_goal)
-                for x,y,data in FGM.iter(cost_map) do
-                    local cost = data.cost or 99
-                    local inv_cost = FGM.get_value(inv_cost_map_goal, x, y, 'cost')
+                rating = rating
 
-                    local total_cost = cost + inv_cost - cost_on_goal
-                    if (total_cost <= max_moves) and (cost <= cost_to_goal) and (inv_cost <= cost_to_goal) then
-                        --FGM.set_value(unit_map, x, y, 'total_cost', total_cost)
-                        unit_map[x][y].within_one_move = true
-                    end
+                FGM.set_value(unit_map, x, y, 'rating', rating)
+                FGM.add(between_map, x, y, 'inv_cost', inv_cost * unit_weights[id] * loc_weights[xy])
+            end
 
-                    local perp_distance = cost + inv_cost + unit_proxy:movement(wesnoth.get_terrain(x, y))
-                    FGM.set_value(unit_map, x, y, 'perp_distance', perp_distance)
+
+
+            local inv_cost_map_goal
+            if (goal[1] == loc[1]) and (goal[2] == loc[2]) then
+                inv_cost_map_goal = inv_cost_map
+                --std_print('  using existing inverse cost map: ' .. id)
+            else
+                inv_cost_map_goal = fred_utils.smooth_cost_map(unit_proxy, goal, true)
+                --std_print('  calculating new inverse cost map ' .. id)
+            end
+
+            --std_print(id, ' cost_on_goal : ' .. cost_on_goal)
+            for x,y,data in FGM.iter(cost_map) do
+                local cost = data.cost or 99
+                local inv_cost = FGM.get_value(inv_cost_map_goal, x, y, 'cost')
+
+                local total_cost = cost + inv_cost - cost_on_goal
+                if (total_cost <= max_moves) and (cost <= cost_to_goal) and (inv_cost <= cost_to_goal) then
+                    --FGM.set_value(unit_map, x, y, 'total_cost', total_cost)
+                    unit_map[x][y].within_one_move = true
                 end
 
-                local min_perp_distance = math.huge
-                for x,y,data in FGM.iter(unit_map) do
-                    if (data.perp_distance < min_perp_distance) then
-                        min_perp_distance = data.perp_distance
-                    end
-                end
-                for x,y,data in FGM.iter(unit_map) do
-                    data.perp_distance = data.perp_distance - min_perp_distance
-                end
+                local perp_distance = cost + inv_cost + unit_proxy:movement(wesnoth.get_terrain(x, y))
+                FGM.set_value(unit_map, x, y, 'perp_distance', perp_distance)
+            end
 
-                -- Count within_one_move hexes as between; also include adjacent hexes to this
-                for x,y,data in FGM.iter(unit_map) do
-                    if data.within_one_move then
-                        FGM.set_value(between_map, x, y, 'is_between', true)
-                        for xa,ya in H.adjacent_tiles(x,y) do
-                            local cost = FGM.get_value(cost_map, xa, ya, 'cost')
-                            local inv_cost = FGM.get_value(inv_cost_map_goal, xa, ya, 'cost')
-                            if cost and inv_cost and (cost <= cost_to_goal) and (inv_cost <= cost_to_goal) then
-                                FGM.set_value(between_map, xa, ya, 'is_between', true)
-                            end
+            local min_perp_distance = math.huge
+            for x,y,data in FGM.iter(unit_map) do
+                if (data.perp_distance < min_perp_distance) then
+                    min_perp_distance = data.perp_distance
+                end
+            end
+            for x,y,data in FGM.iter(unit_map) do
+                data.perp_distance = data.perp_distance - min_perp_distance
+            end
+
+            -- Count within_one_move hexes as between; also include adjacent hexes to this
+            for x,y,data in FGM.iter(unit_map) do
+                if data.within_one_move then
+                    FGM.set_value(between_map, x, y, 'is_between', true)
+                    for xa,ya in H.adjacent_tiles(x,y) do
+                        local cost = FGM.get_value(cost_map, xa, ya, 'cost')
+                        local inv_cost = FGM.get_value(inv_cost_map_goal, xa, ya, 'cost')
+                        if cost and inv_cost and (cost <= cost_to_goal) and (inv_cost <= cost_to_goal) then
+                            FGM.set_value(between_map, xa, ya, 'is_between', true)
                         end
                     end
                 end
@@ -573,6 +579,8 @@ function fred_utils.get_between_map(locs, units, move_data)
                 DBG.show_fgumap_with_message(unit_map, 'perp_distance', 'unit_map perp_distance ' .. id, move_data.unit_copies[id])
                 --DBG.show_fgumap_with_message(unit_map, 'total_cost', 'unit_map total_cost ' .. id, move_data.unit_copies[id])
             end
+            end
+
         end
 
         if false then
