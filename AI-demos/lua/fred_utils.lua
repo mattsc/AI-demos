@@ -378,18 +378,6 @@ function fred_utils.get_between_map(locs, units, move_data)
         unit_weights[id] = unit_weight / cum_unit_weight
     end
     --DBG.dbms(unit_weights, false, 'unit_weights')
-
-    local loc_weights, cum_loc_weight = {}, 0
-    for _,loc in pairs(locs) do
-        local xy = loc[1] * 1000 + loc[2]
-        local loc_weight = loc.exposure
-        loc_weights[xy] = loc_weight
-        cum_loc_weight = cum_loc_weight + loc_weight
-    end
-    for xy,loc_weight in pairs(loc_weights) do
-        loc_weights[xy] = loc_weight / cum_loc_weight
-    end
-    --DBG.dbms(loc_weights, false, 'loc_weights')
     --DBG.dbms(locs, false, 'locs')
 
     local between_map = {}
@@ -407,8 +395,8 @@ function fred_utils.get_between_map(locs, units, move_data)
             DBG.show_fgumap_with_message(cost_map, 'cost', 'cost_map', move_data.unit_copies[id])
         end
 
-
-        local locs_to_analyze
+        local cum_loc_weight = 0
+        local reachable_locs = {}
         for _,loc in pairs(locs) do
             local xy = loc[1] * 1000 + loc[2]
 
@@ -441,11 +429,30 @@ function fred_utils.get_between_map(locs, units, move_data)
             local cost_to_goal = FGM.get_value(cost_map, goal[1], goal[2], 'cost')
             --std_print(id, max_moves, cost_to_goal, cost_on_goal)
 
-
-
             -- Only need to do this for units that can actually get to the goal
             if cost_to_goal and (cost_to_goal - cost_on_goal <= max_moves) then
-            -- Note: the indenting is wrong here, that's intentional in preparation for the next commit
+                cum_loc_weight = cum_loc_weight + loc.exposure
+                reachable_locs[xy] = {
+                    loc = loc,
+                    goal = goal,
+                    cost_on_goal = cost_on_goal,
+                    cost_to_goal = cost_to_goal
+                }
+            end
+        end
+
+        for xy,reachable_loc in pairs(reachable_locs) do
+            reachable_loc.weight = reachable_loc.loc.exposure / cum_loc_weight
+        end
+        --DBG.dbms(reachable_locs, false, 'reachable_locs')
+
+
+        for xy,reachable_loc in pairs(reachable_locs) do
+            local loc = reachable_loc.loc
+            local goal = reachable_loc.goal
+            local cost_on_goal = reachable_loc.cost_on_goal
+            local cost_to_goal = reachable_loc.cost_to_goal
+            local loc_weight = reachable_loc.weight
 
             -- TODO: is inverse cost map really what I want here, or forward cost from that location?
             local inv_cost_map = fred_utils.smooth_cost_map(unit_proxy, loc, true)
@@ -473,7 +480,7 @@ function fred_utils.get_between_map(locs, units, move_data)
                 rating = rating
 
                 FGM.set_value(unit_map, x, y, 'rating', rating)
-                FGM.add(between_map, x, y, 'inv_cost', inv_cost * unit_weights[id] * loc_weights[xy])
+                FGM.add(between_map, x, y, 'inv_cost', inv_cost * unit_weights[id] * loc_weight)
             end
 
 
@@ -570,8 +577,8 @@ function fred_utils.get_between_map(locs, units, move_data)
                 rating = rating - math.abs((data.perp_distance / max_moves)^2)
 
                 FGM.set_value(unit_map, x, y, 'rating', rating)
-                FGM.add(between_map, x, y, 'distance', rating * unit_weights[id] * loc_weights[xy])
-                FGM.add(between_map, x, y, 'perp_distance', data.perp_distance * unit_weights[id] * loc_weights[xy])
+                FGM.add(between_map, x, y, 'distance', rating * unit_weights[id] * loc_weight)
+                FGM.add(between_map, x, y, 'perp_distance', data.perp_distance * unit_weights[id] * loc_weight)
             end
 
             if false then
@@ -579,8 +586,6 @@ function fred_utils.get_between_map(locs, units, move_data)
                 DBG.show_fgumap_with_message(unit_map, 'perp_distance', 'unit_map perp_distance ' .. id, move_data.unit_copies[id])
                 --DBG.show_fgumap_with_message(unit_map, 'total_cost', 'unit_map total_cost ' .. id, move_data.unit_copies[id])
             end
-            end
-
         end
 
         if false then
