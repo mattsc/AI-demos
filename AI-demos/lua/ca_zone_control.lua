@@ -1671,22 +1671,27 @@ local function get_hold_action(zone_cfg, fred_data)
         min_btw_dist = -1.5
     else
         -- TODO: change format of protect_locs, so that simply objectives.protect can be taken
-        local locs = {}
+        local locs, exposures = {}, {}
         if protect_objectives.units then
             for _,unit in ipairs(protect_objectives.units) do
                 table.insert(locs, unit)
+                table.insert(exposures, fred_data.ops_data.status.units[unit.id].exposure)
             end
         end
         if protect_objectives.villages then
             for _,village in ipairs(protect_objectives.villages) do
                 table.insert(locs, village)
+
+                local xy = village.x * 1000 + village.y
+                table.insert(exposures, fred_data.ops_data.status.villages[xy].exposure)
             end
         end
-        for _,loc in ipairs(locs) do
+
+        for i_l,loc in ipairs(locs) do
             if (not protect_locs) then
                 protect_locs = {}
             end
-            local protect_loc = { loc.x, loc.y }
+            local protect_loc = { loc.x, loc.y, exposure = exposures[i_l] }
             table.insert(protect_locs, protect_loc)
         end
 
@@ -1710,6 +1715,7 @@ local function get_hold_action(zone_cfg, fred_data)
         protect_leader_distance = { min = min_ld, max = max_ld }
     end
 
+    --DBG.dbms(fred_data.ops_data.status, false, 'fred_data.ops_data.status')
     --DBG.dbms(protect_objectives, false, 'protect_objectives')
     --DBG.dbms(protect_locs, false, 'protect_locs')
     --DBG.dbms(protect_leader_distance, false, 'protect_leader_distance')

@@ -368,16 +368,29 @@ function fred_utils.get_between_map(locs, units, move_data)
     -- from the hexes. Whether this makes sense to use all these units needs
     -- to be checked in the calling function
 
-    local weights, cum_weight = {}, 0
+    local unit_weights, cum_unit_weight = {}, 0
     for id,_ in pairs(units) do
-        local weight = fred_utils.unit_current_power(move_data.unit_infos[id])
-        weights[id] = weight
-        cum_weight = cum_weight + weight
+        local unit_weight = fred_utils.unit_current_power(move_data.unit_infos[id])
+        unit_weights[id] = unit_weight
+        cum_unit_weight = cum_unit_weight + unit_weight
     end
-    for id,weight in pairs(weights) do
-        weights[id] = weight / cum_weight / #locs
+    for id,unit_weight in pairs(unit_weights) do
+        unit_weights[id] = unit_weight / cum_unit_weight
     end
-    --DBG.dbms(weights, false, 'weights')
+    --DBG.dbms(unit_weights, false, 'unit_weights')
+
+    local loc_weights, cum_loc_weight = {}, 0
+    for _,loc in pairs(locs) do
+        local xy = loc[1] * 1000 + loc[2]
+        local loc_weight = loc.exposure
+        loc_weights[xy] = loc_weight
+        cum_loc_weight = cum_loc_weight + loc_weight
+    end
+    for xy,loc_weight in pairs(loc_weights) do
+        loc_weights[xy] = loc_weight / cum_loc_weight
+    end
+    --DBG.dbms(loc_weights, false, 'loc_weights')
+    --DBG.dbms(locs, false, 'locs')
 
     local between_map = {}
     for id,unit_loc in pairs(units) do
@@ -395,12 +408,18 @@ function fred_utils.get_between_map(locs, units, move_data)
         end
 
 
-        local unit_map = {}
         for _,loc in pairs(locs) do
+            local xy = loc[1] * 1000 + loc[2]
+            -- TODO: is inverse cost map really what I want here, or forward cost from that location?
             local inv_cost_map = fred_utils.smooth_cost_map(unit_proxy, loc, true)
             local cost_full = FGM.get_value(cost_map, loc[1], loc[2], 'cost')
             local inv_cost_full = FGM.get_value(inv_cost_map, unit_loc[1], unit_loc[2], 'cost')
 
+            if false then
+                DBG.show_fgumap_with_message(inv_cost_map, 'cost', 'inv_cost_map to ' .. loc[1] .. ',' .. loc[2], move_data.unit_copies[id])
+            end
+
+            local unit_map = {}
             for x,y,data in FGM.iter(cost_map) do
                 local cost = data.cost or 99
                 local inv_cost = FGM.get_value(inv_cost_map, x, y, 'cost')
@@ -414,13 +433,10 @@ function fred_utils.get_between_map(locs, units, move_data)
                     rating = rating + (inv_cost - inv_cost_full)
                 end
 
-                rating = rating * weights[id]
+                rating = rating
 
                 FGM.set_value(unit_map, x, y, 'rating', rating)
-                FGM.add(between_map, x, y, 'inv_cost', inv_cost * weights[id])
-            end
-            if false then
-                DBG.show_fgumap_with_message(inv_cost_map, 'cost', 'inv_cost_map to ' .. loc[1] .. ',' .. loc[2], move_data.unit_copies[id])
+                FGM.add(between_map, x, y, 'inv_cost', inv_cost * unit_weights[id] * loc_weights[xy])
             end
 
 
@@ -471,12 +487,12 @@ function fred_utils.get_between_map(locs, units, move_data)
 
                     local total_cost = cost + inv_cost - cost_on_goal
                     if (total_cost <= max_moves) and (cost <= cost_to_goal) and (inv_cost <= cost_to_goal) then
-                        FGM.set_value(unit_map, x, y, 'total_cost', total_cost)
+                        --FGM.set_value(unit_map, x, y, 'total_cost', total_cost)
                         unit_map[x][y].within_one_move = true
                     end
 
                     local perp_distance = cost + inv_cost + unit_proxy:movement(wesnoth.get_terrain(x, y))
-                    FGM.add(unit_map, x, y, 'perp_distance', perp_distance * weights[id])
+                    FGM.set_value(unit_map, x, y, 'perp_distance', perp_distance)
                 end
 
                 local min_perp_distance = math.huge
@@ -489,7 +505,7 @@ function fred_utils.get_between_map(locs, units, move_data)
                     data.perp_distance = data.perp_distance - min_perp_distance
                 end
 
-                -- We also include adjacent hexes to this
+                -- Count within_one_move hexes as between; also include adjacent hexes to this
                 for x,y,data in FGM.iter(unit_map) do
                     if data.within_one_move then
                         FGM.set_value(between_map, x, y, 'is_between', true)
@@ -503,9 +519,13 @@ function fred_utils.get_between_map(locs, units, move_data)
                     end
                 end
             end
-        end
 
-        for _,loc in ipairs(locs) do
+            if false then
+                DBG.show_fgumap_with_message(unit_map, 'rating', 'unit_map intermediate rating to ' .. loc[1] .. ',' .. loc[2], move_data.unit_copies[id])
+                DBG.show_fgumap_with_message(unit_map, 'perp_distance', 'unit_map perp_distance to ' .. loc[1] .. ',' .. loc[2], move_data.unit_copies[id])
+            end
+
+
             local loc_value = FGM.get_value(unit_map, loc[1], loc[2], 'rating')
             if (not loc_value) then -- this can happen if the terrain of 'loc' is unreachable for the unit
                 loc_value = 0
@@ -541,17 +561,25 @@ function fred_utils.get_between_map(locs, units, move_data)
                 rating = rating - loc_value
 
                 -- Rating falls off in perpendicular direction
-                rating = rating - math.abs((data.perp_distance / move_data.unit_infos[id].max_moves)^2)
+                rating = rating - math.abs((data.perp_distance / max_moves)^2)
 
-                FGM.add(between_map, x, y, 'distance', rating)
-                FGM.add(between_map, x, y, 'perp_distance', data.perp_distance)
+                FGM.set_value(unit_map, x, y, 'rating', rating)
+                FGM.add(between_map, x, y, 'distance', rating * unit_weights[id] * loc_weights[xy])
+                FGM.add(between_map, x, y, 'perp_distance', data.perp_distance * unit_weights[id] * loc_weights[xy])
+            end
+
+            if false then
+                DBG.show_fgumap_with_message(unit_map, 'rating', 'unit_map full rating to ' .. loc[1] .. ',' .. loc[2], move_data.unit_copies[id])
+                DBG.show_fgumap_with_message(unit_map, 'perp_distance', 'unit_map perp_distance ' .. id, move_data.unit_copies[id])
+                --DBG.show_fgumap_with_message(unit_map, 'total_cost', 'unit_map total_cost ' .. id, move_data.unit_copies[id])
             end
         end
 
         if false then
-            DBG.show_fgumap_with_message(unit_map, 'rating', 'unit_map rating ' .. id, move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(unit_map, 'perp_distance', 'unit_map perp_distance ' .. id, move_data.unit_copies[id])
-            --DBG.show_fgumap_with_message(unit_map, 'total_cost', 'unit_map total_cost ' .. id, move_data.unit_copies[id])
+            DBG.show_fgumap_with_message(between_map, 'distance', 'between_map distance after adding ' .. id, move_data.unit_copies[id])
+            DBG.show_fgumap_with_message(between_map, 'perp_distance', 'between_map perp_distance after adding ' .. id, move_data.unit_copies[id])
+            DBG.show_fgumap_with_message(between_map, 'inv_cost', 'between_map inv_cost after adding ' .. id, move_data.unit_copies[id])
+            DBG.show_fgumap_with_message(between_map, 'is_between', 'between_map is_between after adding ' .. id, move_data.unit_copies[id])
         end
     end
 
