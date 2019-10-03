@@ -1817,6 +1817,12 @@ function fred_ops_utils.set_ops_data(fred_data)
     FVS.reset_state(old_locs, new_locs, true, move_data)
     --DBG.dbms(status, false, 'status')
 
+    if (status.leader.exposure > 0) or (status.castles.n_threatened > 0) then
+        objectives.leader.leader_threats.try_protecting = true
+    else
+        objectives.leader.leader_threats.try_protecting = false
+    end
+
 
     local fronts = fred_ops_utils.find_fronts(zone_maps, zone_influence_maps, fred_data)
     --DBG.dbms(fronts, false, 'fronts')
@@ -2234,15 +2240,25 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         -- these for holding and attacking leader threats, as the assignment is approximate.
         -- By contrast, we do use them for advancing toward the leader
 
-        table.insert(fred_data.zone_cfgs, {
-            zone_id = 'leader',
-            action_type = 'hold',
-            action_str = 'protect leader (eval only)',
-            evaluate_only = true,
-            find_best_protect_only = true,
-            value_ratio = vr,
-            rating = base_ratings.protect_leader_eval
-        })
+        if leader_threats.try_protecting then
+            table.insert(fred_data.zone_cfgs, {
+                zone_id = 'leader',
+                action_type = 'hold',
+                action_str = 'protect leader (eval only)',
+                evaluate_only = true,
+                find_best_protect_only = true,
+                value_ratio = vr,
+                rating = base_ratings.protect_leader_eval
+            })
+
+            table.insert(fred_data.zone_cfgs, {
+                zone_id = 'leader',
+                action_type = 'hold',
+                action_str = 'protect leader (exec)',
+                rating = base_ratings.protect_leader_exec,
+                use_stored_leader_protection = true
+            })
+        end
 
         table.insert(fred_data.zone_cfgs, {
             zone_id = 'leader',
@@ -2252,14 +2268,6 @@ function fred_ops_utils.get_action_cfgs(fred_data)
             targets = leader_threats.enemies,
             value_ratio = vr,
             rating = base_ratings.attack_leader_threat
-        })
-
-        table.insert(fred_data.zone_cfgs, {
-            zone_id = 'leader',
-            action_type = 'hold',
-            action_str = 'protect leader (exec)',
-            rating = base_ratings.protect_leader_exec,
-            use_stored_leader_protection = true
         })
 
         if holders_by_zone['leader'] then

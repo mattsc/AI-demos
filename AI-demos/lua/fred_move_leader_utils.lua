@@ -461,6 +461,11 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
     DBG.print_debug('ops_output', '  leader_protect_value_ratio', leader_threats.leader_protect_value_ratio)
 
 
+    -- We do not check whether leader threats are already blocked by own units without MP here.
+    -- We set up the leader zone map either way, as that is used for attacks on leader threats
+    -- and advancing toward the leader. However, holding is not necessary in that case. This is
+    -- checked in the ops layer by setting 'try_protecting' flag in the leader_threats table.
+
     -- Note that 'perp_map' covers the entire map, while 'leader_zone_map' is only the zone
     local leader_zone_map, perp_map = {}, {}
     if leader_threats.significant_threat then
