@@ -148,7 +148,7 @@ function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_d
     } }
 
 
-    local n_castles_threatened = 0
+    local n_castles_threatened, castle_hexes = 0, {}
     for x,y,_ in FGM.iter(move_data.close_castles_map[wesnoth.current.side]) do
         --std_print('castle: ', x .. ',' .. y)
         for enemy_id,_ in pairs(move_data.enemies) do
@@ -156,6 +156,7 @@ function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_d
             -- enemies with 0 HP are not in virtual_reach_maps
             if virtual_reach_maps[enemy_id] and FGM.get_value(virtual_reach_maps[enemy_id], x, y, 'moves_left') then
                 n_castles_threatened = n_castles_threatened + 1
+                table.insert(castle_hexes, { x, y })
                 break
             end
         end
@@ -163,7 +164,8 @@ function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_d
     --std_print('n_castles_threatened: ' .. n_castles_threatened)
     status.castles = {
         n_threatened = n_castles_threatened ,
-        exposure = 3 * math.sqrt(n_castles_threatened)
+        exposure = 3 * math.sqrt(n_castles_threatened),
+        locs = castle_hexes
     }
 
 

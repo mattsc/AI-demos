@@ -464,7 +464,10 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
     -- Note that 'perp_map' covers the entire map, while 'leader_zone_map' is only the zone
     local leader_zone_map, perp_map = {}, {}
     if leader_threats.significant_threat then
-        local goal_loc = leader_objectives.final
+        local goal_loc = {
+            leader_objectives.final[1], leader_objectives.final[2],
+            exposure = 1 -- since this is only one location, any non-zero value will do
+        }
 
         local enemies = {}
         for enemy_id,_ in pairs(leader_threats.enemies) do

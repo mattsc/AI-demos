@@ -1663,9 +1663,15 @@ local function get_hold_action(zone_cfg, fred_data)
     local min_btw_dist, protect_leader_distance
     local protect_locs, assigned_enemies
     if protect_objectives.protect_leader then
-        protect_locs = { { leader_goal[1], leader_goal[2] } }
-        for x,y,_ in FGM.iter(move_data.reachable_castles_map[wesnoth.current.side]) do
-            table.insert(protect_locs, { x, y })
+        protect_locs = { {
+            leader_goal[1], leader_goal[2],
+            exposure = fred_data.ops_data.status.leader.exposure
+        } }
+        for _,loc in ipairs(fred_data.ops_data.status.castles.locs) do
+            table.insert(protect_locs, {
+                loc[1], loc[2],
+                exposure = 3
+            })
         end
         assigned_enemies = fred_data.ops_data.objectives.leader.leader_threats.enemies
         min_btw_dist = -1.5
