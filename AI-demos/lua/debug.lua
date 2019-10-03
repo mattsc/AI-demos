@@ -165,7 +165,11 @@ function debug_utils.put_fgumap_labels(map, key, cfg)
                 end
             else
                 if out then
-                    out = tonumber(out) or 'nan'
+                    if (out ~= out) then  -- nan is not equal to anything, including itself
+                        out = 'nan'
+                    else
+                        out = tonumber(out) or 'nan'
+                    end
                 else
                     out = 'nil'
                     red_fac, green_fac = 0, 0
