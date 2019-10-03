@@ -1198,7 +1198,8 @@ function fred_ops_utils.set_ops_data(fred_data)
         end
         objectives.protect.zones['leader'] = {
             protect_leader = true,
-            villages = leader_villages
+            villages = leader_villages,
+            enemies = {}
         }
 
         -- Potential TODO: do we want to add enemies_between back in?
