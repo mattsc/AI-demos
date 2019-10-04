@@ -164,6 +164,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
                         --std_print(zone_id .. ': counts_into_zone', counts_into_zone)
 
                         -- 2. the path from at least one of the enemies leads through the zone
+                        -- This is done for non-leader zones only
                         -- TODO: currently we only check whether the penultimate hex of the path is in
                         --   the zone. Might use something more accurate later.
                         if (not counts_into_zone) then
@@ -175,7 +176,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
                                 local hex = path[#path - 1]
                                 --DBG.dbms(hex)
 
-                                if (wesnoth.match_location(hex[1], hex[2], raw_cfgs[zone_id].ops_slf)) then
+                                if (zone_id ~= 'leader') and (wesnoth.match_location(hex[1], hex[2], raw_cfgs[zone_id].ops_slf)) then
                                     --std_print('  path is in zone: ' .. zone_id)
                                     counts_into_zone = true
                                     break
