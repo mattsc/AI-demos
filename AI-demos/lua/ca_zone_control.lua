@@ -1654,13 +1654,11 @@ local function get_hold_action(zone_cfg, fred_data)
 
     -- protect_locs and assigned_enemies are only used to calculate between_map
     -- protect_locs being set also serves as flag whether a protect hold is desired
-    -- min_btw_dist and protect_leader_distance are used in one place
     -- If leader is to be protected we use leader_goal and castle hexes for between_map
     -- Otherwise, all the other hexes/units to be protected are used
     -- TODO: maybe always use all, but with different weights?
     -- Castles are only added if the leader can get to a keep
     -- TODO: reevaluate later if this should be changed
-    local min_btw_dist, protect_leader_distance
     local protect_locs, assigned_enemies
     if protect_objectives.protect_leader then
         local exposure = fred_data.ops_data.status.leader.exposure
@@ -1678,7 +1676,6 @@ local function get_hold_action(zone_cfg, fred_data)
             })
         end
         assigned_enemies = fred_data.ops_data.objectives.leader.leader_threats.enemies
-        min_btw_dist = -1.5
     else
         -- TODO: change format of protect_locs, so that simply objectives.protect can be taken
         local locs, exposures = {}, {}
@@ -1705,7 +1702,6 @@ local function get_hold_action(zone_cfg, fred_data)
             table.insert(protect_locs, protect_loc)
         end
 
-        min_btw_dist = -1.5
         assigned_enemies = fred_data.ops_data.assigned_enemies[zone_cfg.zone_id]
     end
 
@@ -1722,13 +1718,11 @@ local function get_hold_action(zone_cfg, fred_data)
             if (ld < min_ld) then min_ld = ld end
             if (ld > max_ld) then max_ld = ld end
         end
-        protect_leader_distance = { min = min_ld, max = max_ld }
     end
 
     --DBG.dbms(fred_data.ops_data.status, false, 'fred_data.ops_data.status')
     --DBG.dbms(protect_objectives, false, 'protect_objectives')
     --DBG.dbms(protect_locs, false, 'protect_locs')
-    --DBG.dbms(protect_leader_distance, false, 'protect_leader_distance')
     --DBG.dbms(assigned_enemies, false, 'assigned_enemies')
 
     local between_map
@@ -2056,42 +2050,8 @@ local function get_hold_action(zone_cfg, fred_data)
         for id,pre_rating_map in pairs(pre_rating_maps) do
             protect_here_maps[id] = {}
             for x,y,data in FGM.iter(pre_rating_map) do
-                local protect_here = true
-                if between_map then
-                    local btw_dist = FGM.get_value(between_map, x, y, 'blurred_distance') or -99
-                    if (btw_dist < min_btw_dist) then
-                        protect_here = false
-                    end
-                else
-                    -- TODO: this part may be unnecessary due to the check for 'is_between' below.
-                    --   Leave for now in case we want to resurrect it later; clean up sometime
-                    local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
-                    local dld = ld - protect_leader_distance.min
-
-                    if (dld < min_btw_dist) then
-                        protect_here = false
-                    end
-                end
-
-                if protect_here and between_map and FGM.get_value(between_map, x, y, 'is_between') then
-                    FGM.set_value(protect_here_maps[id], x, y, 'protect_here', true)
-                end
-            end
-
-            local adj_hex_map = {}
-            for x,y,data in FGM.iter(protect_here_maps[id]) do
-                for xa,ya in H.adjacent_tiles(x,y) do
-                    if (not FGM.get_value(protect_here_maps[id], xa, ya, 'protect_here'))
-                        and FGM.get_value(pre_rating_map, xa, ya, 'av_outcome')
-                    then
-                        --std_print('adjacent :' .. x .. ',' .. y, xa .. ',' .. ya)
-                        FGM.set_value(adj_hex_map, xa, ya, 'protect_here', true)
-                    end
-                end
-            end
-
-            for x,y,data in FGM.iter(adj_hex_map) do
-                if between_map and FGM.get_value(between_map, x, y, 'is_between') then
+                -- TODO: do we even need protect_here_maps any more? Just use between_map.is_between directly?
+                if FGM.get_value(between_map, x, y, 'is_between') then
                     FGM.set_value(protect_here_maps[id], x, y, 'protect_here', true)
                 end
             end
@@ -2191,7 +2151,6 @@ local function get_hold_action(zone_cfg, fred_data)
 
     local protect_rating_maps = {}
     for id,protect_here_map in pairs(protect_here_maps) do
-        --std_print('\n' .. id, zone_cfg.zone_id, protect_leader_distance.min .. ' -- ' .. protect_leader_distance.max)
         local max_vuln
         for x,y,protect_here_data in FGM.iter(protect_here_map) do
             if protect_here_data.protect_here then
