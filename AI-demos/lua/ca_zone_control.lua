@@ -1663,11 +1663,15 @@ local function get_hold_action(zone_cfg, fred_data)
     local min_btw_dist, protect_leader_distance
     local protect_locs, assigned_enemies
     if protect_objectives.protect_leader then
-        protect_locs = { {
-            leader_goal[1], leader_goal[2],
-            exposure = fred_data.ops_data.status.leader.exposure
-        } }
+        local exposure = fred_data.ops_data.status.leader.exposure
+        if (exposure > 0) then
+            protect_locs = { {
+                leader_goal[1], leader_goal[2],
+                exposure = exposure
+            } }
+        end
         for _,loc in ipairs(fred_data.ops_data.status.castles.locs) do
+            if (not protect_locs) then protect_locs = {} end
             table.insert(protect_locs, {
                 loc[1], loc[2],
                 exposure = 3
