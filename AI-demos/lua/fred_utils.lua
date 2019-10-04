@@ -443,6 +443,12 @@ function fred_utils.get_between_map(locs, units, move_data)
 
         for xy,reachable_loc in pairs(reachable_locs) do
             reachable_loc.weight = reachable_loc.loc.exposure / cum_loc_weight
+
+            if (reachable_loc.loc.exposure == 0) then
+                DBG.dbms(locs, false, 'locs')
+                DBG.dbms(reachable_locs, false, 'reachable_locs')
+                error('get_between_map(): exposure should never be set to zero.')
+            end
         end
         --DBG.dbms(reachable_locs, false, 'reachable_locs')
 

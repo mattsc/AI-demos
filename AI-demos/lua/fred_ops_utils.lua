@@ -2064,6 +2064,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     --for k,v in pairs(ops_data) do std_print('ops_data.' .. k) end
     --DBG.dbms(ops_data, false, 'ops_data')
     --DBG.dbms(ops_data.objectives, false, 'ops_data.objectives')
+    --DBG.dbms(ops_data.objectives.leader, false, 'ops_data.objectives.leader')
     --DBG.dbms(ops_data.objectives.protect.zones, false, 'ops_data.objectives.protect.zones')
     --DBG.dbms(ops_data.assigned_enemies, false, 'ops_data.assigned_enemies')
     --DBG.dbms(ops_data.assigned_units, false, 'ops_data.assigned_units')
@@ -2432,6 +2433,11 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     table.sort(fred_data.zone_cfgs, function(a, b) return a.rating > b.rating end)
 
     --DBG.dbms(fred_data.zone_cfgs, false, 'fred_data.zone_cfgs')
+    if false then
+        for i,zone_cfg in ipairs(fred_data.zone_cfgs) do
+            std_print(string.format('%2s: %-10s %-15s  %s', i, zone_cfg.zone_id, zone_cfg.action_type, zone_cfg.action_str))
+        end
+    end
 end
 
 return fred_ops_utils

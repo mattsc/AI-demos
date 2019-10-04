@@ -3083,6 +3083,7 @@ local function do_recruit(fred_data, ai, action)
 
     -- This is just a safeguard for now, to make sure nothing goes wrong
     if (not prerecruit) or (not prerecruit.units) or (not prerecruit.units[1]) then
+        DBG.dbms(prerecruit, false, 'prerecruit')
         error("Leader was instructed to recruit, but no units to be recruited are set.")
     end
 
