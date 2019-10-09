@@ -173,6 +173,21 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
                                 local unit_loc = fred_data.move_data.my_units[id]
                                 local path = wesnoth.find_path(fred_data.move_data.unit_copies[enemy_id], unit_loc[1], unit_loc[2], { ignore_units = true })
                                 --DBG.dbms(path)
+
+                                -- In case the unit hex is unreachable for the enemy
+                                if (not path[1]) then
+									--std_print('  unit_loc ' .. unit_loc[1] .. ',' .. unit_loc[2] .. ' is unreachable for ' .. enemy_id)
+									local min_cost = math.huge
+									for xa,ya in H.adjacent_tiles(unit_loc[1], unit_loc[2]) do
+                                        local adj_path, adj_cost = wesnoth.find_path(fred_data.move_data.unit_copies[enemy_id], xa, ya, { ignore_units = true })
+										if (adj_cost < 4242) and (adj_cost < min_cost) then
+											min_cost = adj_cost
+											path = adj_path
+										end
+									end
+                                end
+                                --DBG.dbms(path)
+
                                 local hex = path[#path - 1]
                                 --DBG.dbms(hex)
 
