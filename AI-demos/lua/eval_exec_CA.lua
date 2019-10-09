@@ -173,12 +173,13 @@ return {
 
         if wml.variables.debug_unit_labels then
             wml.variables.debug_unit_labels = nil
+            wesnoth.clear_messages()
         else
             wml.variables.debug_unit_labels = true
+            std_print(str)
+            if (not stdout_only) then wesnoth.message(str) end
         end
 
-        std_print(str)
-        if (not stdout_only) then wesnoth.message(str) end
     end,
 
     play_turn = function(ai)
