@@ -1681,8 +1681,12 @@ local function get_hold_action(zone_cfg, fred_data)
         local locs, exposures = {}, {}
         if protect_objectives.units then
             for _,unit in ipairs(protect_objectives.units) do
-                table.insert(locs, unit)
-                table.insert(exposures, fred_data.ops_data.status.units[unit.id].exposure)
+                -- It's possible for exposure to be zero, if the counter attack is much in favor of the AI unit
+                local exposure = fred_data.ops_data.status.units[unit.id].exposure
+                if (exposure > 0) then
+                    table.insert(locs, unit)
+                    table.insert(exposures, exposure)
+                end
             end
         end
         if protect_objectives.villages then
