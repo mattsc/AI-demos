@@ -159,7 +159,7 @@ function fred_hold_utils.check_hold_protection(combo, protection, cfg, fred_data
         leader_protected = not status.leader.is_significant_threat
         --std_print('  --> leader_protect_mult, leader_protected: ' .. leader_protect_mult, leader_protected)
 
-        protection.overall.protect_loc_str = protection.overall.protect_loc_str .. '    leader: ' .. tostring(leader_protected)
+        protection.combo.protect_loc_str = (protection.combo.protect_loc_str or '') .. '    leader: ' .. tostring(leader_protected)
     end
 
 
@@ -168,7 +168,7 @@ function fred_hold_utils.check_hold_protection(combo, protection, cfg, fred_data
     if (n_castles_threatened > 0) then
         n_castles_protected = n_castles_threatened - status.castles.n_threatened
         --std_print('n_castles_protected: ', n_castles_protected, status.castles.n_threatened, n_castles_threatened)
-        protection.overall.protect_loc_str = protection.overall.protect_loc_str .. '    castles: ' .. tostring(n_castles_protected)
+        protection.combo.protect_loc_str = (protection.combo.protect_loc_str or '') .. '    castles: ' .. tostring(n_castles_protected) .. '/' .. tostring(n_castles_threatened)
     end
 
 
@@ -188,7 +188,7 @@ function fred_hold_utils.check_hold_protection(combo, protection, cfg, fred_data
                 })
             end
 
-            protection.overall.protect_loc_str = protection.overall.protect_loc_str .. '    vill ' .. village.x .. ',' .. village.y .. ': ' .. tostring(status.villages[xy].is_protected)
+            protection.combo.protect_loc_str = (protection.combo.protect_loc_str or '') .. '    vill ' .. village.x .. ',' .. village.y .. ': ' .. tostring(status.villages[xy].is_protected)
         end
     end
     --DBG.dbms(protected_villages, false, 'protected_villages')
@@ -205,7 +205,7 @@ function fred_hold_utils.check_hold_protection(combo, protection, cfg, fred_data
             --std_print(unit.id, unit_rating, org_status.units[unit.id].exposure)
 
             protected_units[unit.id] = protection.overall.org_status.units[unit.id].exposure - unit_rating
-            protection.overall.protect_loc_str = protection.overall.protect_loc_str .. string.format('    unit %d,%d: %.2f', unit.x, unit.y, protected_units[unit.id] or 0)
+            protection.combo.protect_loc_str = (protection.combo.protect_loc_str or '') .. string.format('    unit %d,%d: %.2f', unit.x, unit.y, protected_units[unit.id] or 0)
         end
     end
     --DBG.dbms(protected_units, false, 'protected_units')
@@ -235,19 +235,11 @@ function fred_hold_utils.check_hold_protection(combo, protection, cfg, fred_data
 
     if cfg.protect_objectives.protect_leader and (not protection.overall.leader_already_protected) then
         protection.combo.does_protect = leader_protected
-        protection.overall.protected_type = 'leader'
     elseif (n_castles_threatened > 0) then
         protection.combo.does_protect = (n_castles_protected > 0)
-        protection.overall.protected_type = 'castle'
-        if (n_castles_protected == n_castles_threatened) then
-            protection.overall.protected_type = protection.overall.protected_type .. '/all'
-        else
-            protection.overall.protected_type = protection.overall.protected_type .. '/partial'
-        end
     else
         -- Currently we count this as a protecting hold if any of the villages is protected ...
         if (#cfg.protect_objectives.villages > 0) then
-            protection.overall.protected_type = 'village'
             if (#protected_villages > 0) then
                 protection.combo.does_protect = true
             end
@@ -258,17 +250,8 @@ function fred_hold_utils.check_hold_protection(combo, protection, cfg, fred_data
         if (#cfg.protect_objectives.units > 0) then
             for _,unit_protection in pairs(protected_units) do
                 if (unit_protection >= 3) then
-                    if protection.combo.does_protect then
-                        protection.overall.protected_type = protection.overall.protected_type .. '+unit'
-                    else
-                        protection.overall.protected_type = 'unit'
-                    end
                     protection.combo.does_protect = true
                     break
-                end
-                --- ... but we only mark units as non-protected if also no protected village was found
-                if (not protection.combo.does_protect) then
-                    protection.overall.protected_type = protection.overall.protected_type .. '+unit'
                 end
             end
         end
@@ -538,14 +521,33 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     -- 2. Rate the combos based on the shape of the formation and its orientation
     --    with respect to the direction in which the enemies are approaching.
     local protection = { overall = {
-        protect_loc_str = nil,
-        protected_type = 'no protect objectives',
         leader_min_exposure = math.huge,
         leader_min_enemy_power = 0,
         org_status = fred_data.ops_data.status,
         leader_already_protected = fred_data.ops_data.status.leader.is_protected,
         leader_goal = fred_data.ops_data.objectives.leader.final
     } }
+
+    if cfg and cfg.protect_objectives then
+        if cfg.protect_objectives.protect_leader and (not protection.overall.leader_already_protected) then
+            protection.overall.protect_obj_str = 'leader'
+        elseif (protection.overall.org_status.castles.n_threatened > 0) then
+            protection.overall.protect_obj_str = 'castle'
+        else
+            if (#cfg.protect_objectives.villages > 0) then
+                protection.overall.protect_obj_str = 'village'
+            end
+            if (#cfg.protect_objectives.units > 0) then
+                if protection.overall.protect_obj_str then
+                    protection.overall.protect_obj_str = protection.overall.protect_obj_str .. '+unit'
+                else
+                    protection.overall.protect_obj_str = 'unit'
+                end
+            end
+        end
+    else
+        protection.overall.protect_obj_str = 'no protect objectives'
+    end
     --std_print('leader_already_protected', protection.overall.leader_already_protected)
     --DBG.dbms(protection.overall.org_status, false, 'protection.overall.org_status')
 
@@ -555,7 +557,6 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     local tmp_max_rating, tmp_all_max_rating -- just for debug display purposes
     for i_c,combo in ipairs(valid_combos) do
         -- 1. Check whether a combo protects the locations it is supposed to protect.
-        protection.overall.protect_loc_str = '\nprotecting:'
         protection.combo = {
             does_protect = false,
             comment = '',
@@ -567,13 +568,13 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             --DBG.dbms(protection, false, 'protection')
             fred_hold_utils.check_hold_protection(combo.combo, protection, cfg, fred_data)
             --DBG.dbms(protection.combo, false, 'protection.combo')
+            --DBG.dbms(protection, false, 'protection')
 
             -- Check whether protecting can be done with fewer units
             -- Except for villages, where we want the terrain protection around them too
-            if protection.combo.does_protect and (protection.overall.protected_type ~= 'village') and (combo.count > 1) then
+            if protection.combo.does_protect and (protection.overall.protect_obj_str ~= 'village') and (combo.count > 1) then
                 local reduced_protection = { overall = {
-                    protect_loc_str = '',
-                    protected_type = 'no protect objectives',
+                    protect_obj_str = protection.overall.protect_obj_str,
                     leader_min_exposure = math.huge,
                     leader_min_enemy_power = 0,
                     org_status = fred_data.ops_data.status,
@@ -648,7 +649,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         else
             -- If there are no locations to be protected, count hold as protecting by default
         end
-        --std_print('does_protect', protection.combo.does_protect, protection.combo.protect_mult, protection.overall.protected_type, protection.combo.protected_value, protection.combo.comment)
+        --std_print('does_protect', protection.combo.does_protect, protection.combo.protect_mult, protection.overall.protect_obj_str, protection.combo.protected_value, protection.combo.comment)
 
 
         -- 2. Rate the combos based on the shape of the formation and its orientation
@@ -758,12 +759,11 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         formation_rating = formation_rating * protection.combo.protect_mult
         --std_print(i_c, formation_rating, protection.combo.protect_mult, formation_rating / protection.combo.protect_mult)
 
-        local protected_str = 'does_protect = no (' .. protection.overall.protected_type .. ')' .. protection.combo.comment
-        if protection.combo.does_protect then protected_str = 'does_protect = yes (' .. protection.overall.protected_type .. ')' .. protection.combo.comment end
-        if protection.overall.protect_loc_str then
-            protected_str = protected_str .. ' ' .. protection.overall.protect_loc_str
-        else
-            protected_str = 'n/a'
+        local protected_str = 'does_protect = no (' .. protection.overall.protect_obj_str .. ')' .. protection.combo.comment
+        if protection.combo.does_protect then
+            protected_str = 'does_protect = yes (' .. protection.overall.protect_obj_str .. ')' .. protection.combo.comment end
+        if protection.combo.protect_loc_str then
+            protected_str = protected_str .. '\n    protecting:' .. protection.combo.protect_loc_str
         end
 
         table.insert(good_combos, {
