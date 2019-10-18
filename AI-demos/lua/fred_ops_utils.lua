@@ -1892,25 +1892,25 @@ function fred_ops_utils.set_ops_data(fred_data)
         end
     end
 
-    local advance_goals = {}
+    local advance_goals, hold_goals = {}, {}
     for zone_id,ADmap in pairs(advance_distance_maps) do
-        -- line_infl is currently only used for display purposes.
-        -- Keeping it for now anyway, as it might still be useful.
-        local line_infl, weights = {}, {}
+        local line_vuln, weights = {}, {}
         local line_enemy_infl, min_enemy_infl = {}, math.huge
         -- Note: loops needs to be over zone hexes only, while advance_distance_maps
         -- also contains hexes outside the zone, in particular for the leader zone
         for x,y,_ in FGM.iter(zone_maps[zone_id]) do
             local data = ADmap[x] and ADmap[x][y]
             if data then
-                local my_infl = FGM.get_value(move_data.influence_maps, x, y, 'my_influence') or 0
                 local enemy_infl = FGM.get_value(move_data.influence_maps, x, y, 'enemy_influence') or 0
-                -- TODO: use zone-dependent value_ratio here?
-                local infl = my_infl - value_ratio * enemy_infl
+                local vuln = FGM.get_value(move_data.influence_maps, x, y, 'vulnerability') or 0
+
                 local int_forward = H.round(2 * data.forward) / 2
                 local weight = 1 / (1 + data.perp / 5)
-                line_infl[int_forward] = (line_infl[int_forward] or 0) + infl * weight
-                weights[int_forward] = (weights[int_forward] or 0) + weight
+
+                if (data.perp < 3) then
+                    line_vuln[int_forward] = (line_vuln[int_forward] or 0) + vuln * weight
+                    weights[int_forward] = (weights[int_forward] or 0) + weight
+                end
 
                 if (data.perp < 1.1) and (enemy_infl < (line_enemy_infl[int_forward] or math.huge)) then
                     line_enemy_infl[int_forward] = enemy_infl
@@ -1922,14 +1922,15 @@ function fred_ops_utils.set_ops_data(fred_data)
         end
         --std_print(zone_id, 'min_enemy_infl', min_enemy_infl)
 
-        for forward,data in pairs(line_infl) do
-            line_infl[forward] = line_infl[forward] / weights[forward]
+        for forward,data in pairs(line_vuln) do
+            line_vuln[forward] = line_vuln[forward] / weights[forward]
         end
-        --DBG.dbms(line_infl, false, zone_id .. ' line_infl')
+        --DBG.dbms(line_vuln, false, zone_id .. ' line_vuln')
 
         -- If units are already holding in the zone, we try to move toward the most forward of those
         -- Otherwise we move toward the most forward location with no enemy_influence along center line
         local max_forward, min_forward = -9e99, 9e99
+        local max_vuln, max_forward_hold = - math.huge
         if objectives.protect.zones[zone_id] and objectives.protect.zones[zone_id].holders and next(objectives.protect.zones[zone_id].holders) then
             for id,_ in pairs(objectives.protect.zones[zone_id].holders) do
                 local loc = move_data.units[id]
@@ -1938,6 +1939,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
                 if (forward > max_forward) then
                     max_forward = forward
+                    max_forward_hold = forward
                 end
                 if (forward < min_forward) then
                     min_forward = forward
@@ -1952,13 +1954,24 @@ function fred_ops_utils.set_ops_data(fred_data)
                 if (forward < min_forward) then
                     min_forward = forward
                 end
+
+                if (line_vuln[forward] > max_vuln) then
+                    max_forward_hold = forward
+                    max_vuln = line_vuln[forward]
+                end
             end
         end
+
+        if (not max_forward_hold) then
+            max_forward_hold = min_forward
+        end
+        --std_print(zone_id .. ' max_forward_hold', max_forward_hold, max_forward)
 
         -- max_forward is -9876 when none of the holders is actually in the zone (units do not
         --   get assigned to zones for simply being inside the zone)
         -- In that case, we use the closest zone hex the unit can reach.
         -- TODO: we should find a better way of doing this
+        local goal_hex_hold = {}
         local goal_hex = {}
         if (max_forward == -9876) then
             local max_ld, best_unit_id = - math.huge
@@ -1980,6 +1993,7 @@ function fred_ops_utils.set_ops_data(fred_data)
                         max_moves_left = loc[3]
                         --std_print('  best', max_moves_left)
                         goal_hex = { loc[1], loc[2] }
+                        goal_hex_hold = { loc[1], loc[2] }
                     end
                 end
             end
@@ -1992,6 +2006,8 @@ function fred_ops_utils.set_ops_data(fred_data)
 
             local min_rating = 9e99
             local min_dist, alternate_goal = 9e99, {}
+            local min_rating_hold = 9e99
+            local min_dist_hold, alternate_goal_hold = 9e99, {}
             for x,y,_ in FGM.iter(zone_maps[zone_id]) do
                 local data = ADmap[x] and ADmap[x][y]
                 if data then
@@ -2010,11 +2026,32 @@ function fred_ops_utils.set_ops_data(fred_data)
                             alternate_goal = { x, y }
                         end
                     end
+
+                    if (data.forward >= max_forward_hold - 0.25) and (data.forward <= max_forward_hold + 0.25)  then
+                        local enemy_infl = FGM.get_value(move_data.influence_maps, x, y, 'enemy_full_move_influence') or 0
+                        local rating = data.perp + enemy_infl / 100
+
+                        if (rating < min_rating_hold) then
+                            min_rating_hold = rating
+                            goal_hex_hold = { x, y }
+                        end
+                    else
+                        local dist = data.forward^2 + data.perp^2
+                        if (dist < min_dist_hold) then
+                            min_dist_hold = dist
+                            alternate_goal_hold = { x, y }
+                        end
+                    end
                 end
             end
 
             if (not goal_hex[1]) then
                 goal_hex = alternate_goal
+            end
+            --std_print('goal_hex forward: ' .. goal_hex[1] .. ',' .. goal_hex[2], min_perp)
+
+            if (not goal_hex_hold[1]) then
+                goal_hex_hold = alternate_goal_hold
             end
             --std_print('goal_hex forward: ' .. goal_hex[1] .. ',' .. goal_hex[2], min_perp)
         end
@@ -2025,7 +2062,7 @@ function fred_ops_utils.set_ops_data(fred_data)
                 local data = ADmap[x] and ADmap[x][y]
                 if data and (data.perp <= 2) then
                     local int_forward = H.round(2 * data.forward) / 2
-                    FGM.set_value(display_map, x, y, 'influence', line_infl[int_forward])
+                    FGM.set_value(display_map, x, y, 'vuln', line_vuln[int_forward])
                 end
 
                 if data and (data.forward >= max_forward - 0.5) and (data.forward <= max_forward + 0.5) then
@@ -2039,7 +2076,9 @@ function fred_ops_utils.set_ops_data(fred_data)
                 wesnoth.wml_actions.item { x = x, y = y, halo = "halo/teleport-8.png" }
             end
             wesnoth.wml_actions.item { x = goal_hex[1], y = goal_hex[2], halo = "halo/illuminates-aura.png~CS(-255,-255,0)" }
-            DBG.show_fgumap_with_message(display_map, 'influence', 'advance route influence: ' .. zone_id)
+            wesnoth.wml_actions.item { x = goal_hex_hold[1], y = goal_hex_hold[2], halo = "halo/illuminates-aura.png~CS(0,-255,-255)" }
+            DBG.show_fgumap_with_message(display_map, 'line_vuln', 'advance route vulnerability: ' .. zone_id)
+            wesnoth.wml_actions.remove_item { x = goal_hex_hold[1], y = goal_hex_hold[2], halo = "halo/illuminates-aura.png~CS(0,-255,-255)" }
             wesnoth.wml_actions.remove_item { x = goal_hex[1], y = goal_hex[2], halo = "halo/illuminates-aura.png~CS(-255,-255,0)" }
             for x,y,_ in FGM.iter(front_map) do
                 wesnoth.wml_actions.remove_item { x = x, y = y, halo = "halo/teleport-8.png" }
@@ -2047,8 +2086,10 @@ function fred_ops_utils.set_ops_data(fred_data)
         end
 
         advance_goals[zone_id] = goal_hex
+        hold_goals[zone_id] = goal_hex_hold
     end
     --DBG.dbms(advance_goals, false, 'advance_goals')
+    --DBG.dbms(hold_goals, false, 'hold_goals')
 
 
     -- The following is currently unused, but could be useful to determine, for example,
@@ -2080,6 +2121,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     ops_data.zone_maps = zone_maps
     ops_data.fronts = fronts
     ops_data.advance_goals = advance_goals
+    ops_data.hold_goals = hold_goals
     ops_data.advance_distance_maps = advance_distance_maps
     ops_data.reserved_actions = reserved_actions
     ops_data.place_holders = place_holders
