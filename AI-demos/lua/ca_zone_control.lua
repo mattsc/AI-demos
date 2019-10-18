@@ -1440,9 +1440,23 @@ local function get_hold_action(zone_cfg, fred_data)
 
     local move_data = fred_data.move_data
 
+    local protect_objectives = fred_data.ops_data.objectives.protect.zones[zone_cfg.zone_id] or {}
+    --DBG.dbms(protect_objectives, false, 'protect_objectives')
+    --std_print('protect_leader ' .. zone_cfg.zone_id, protect_objectives.protect_leader)
+
     -- Holders are those specified in zone_units, or all units except the leader otherwise
+    -- Except when we are only trying to protect units (not other protect goals), in that
+    -- case it has been pre-determined who can protect
+    -- TODO: does it make sense to do this in the setup of the zone_cfg instead?
     local holders = {}
-    if zone_cfg.zone_units then
+
+    if protect_objectives.units and (#protect_objectives.units > 0)
+        and (not protect_objectives.protect_leader)
+        and ((not protect_objectives.villages) or (#protect_objectives.villages == 0))
+    then
+        --std_print(zone_cfg.zone_id .. ': units to protect (and only units)')
+        holders = protect_objectives.unit_protectors
+    elseif zone_cfg.zone_units then
         holders = zone_cfg.zone_units
     else
         for id,_ in pairs(move_data.my_units_MP) do
@@ -1453,10 +1467,6 @@ local function get_hold_action(zone_cfg, fred_data)
     end
     if (not next(holders)) then return end
     --DBG.dbms(holders, false, 'holders')
-
-    local protect_objectives = fred_data.ops_data.objectives.protect.zones[zone_cfg.zone_id] or {}
-    --DBG.dbms(protect_objectives, false, 'protect_objectives')
-    --std_print('protect_leader ' .. zone_cfg.zone_id, protect_objectives.protect_leader)
 
 
     local leader_goal = fred_data.ops_data.objectives.leader.final

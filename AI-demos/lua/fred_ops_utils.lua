@@ -224,6 +224,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
             end
 
             local max_protect_value, protect_id = 0
+            local unit_protectors = {}
             for id_protectee,rating_protectee in pairs(units_to_protect) do
                 --std_print('protectee: ' .. id_protectee, rating_protectee.value_loss, rating_protectee.ctd)
                 local try_protect = false
@@ -235,7 +236,9 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
                         and (rating_protector.ctd < rating_protectee.ctd + 0.1)
                     then
                         try_protect = true
-                        break
+                        --std_print('    is protector')
+                        loc = fred_data.move_data.my_units[id_protector]
+                        unit_protectors[id_protector] = loc[1] * 1000 + loc[2]
                     end
                 end
 
@@ -260,8 +263,10 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
 
             table.sort(protect_units, function(a, b) return a.value_loss < b.value_loss end)
             --DBG.dbms(protect_units, false, 'protect_units')
+            --DBG.dbms(unit_protectors, false, 'unit_protectors')
 
             objectives.protect.zones[zone_id].units = protect_units
+            objectives.protect.zones[zone_id].unit_protectors = unit_protectors
             objectives.protect.zones[zone_id].already_holding = already_holding
             objectives.protect.zones[zone_id].holders = units_to_protect
         --end
