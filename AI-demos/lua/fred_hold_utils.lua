@@ -647,7 +647,9 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 end
             end
         else
-            -- If there are no locations to be protected, count hold as protecting by default
+            -- If there are no locations to be protected, count hold as not protecting by default
+            -- does_protect = false, but
+            -- protect_mult = 1
         end
         --std_print('does_protect', protection.combo.does_protect, protection.combo.protect_mult, protection.overall.protect_obj_str, protection.combo.protected_value, protection.combo.comment)
 

@@ -357,7 +357,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
     local leader_pos = leader_objectives.final
 
     -- Threats are all enemies which can attack the final leader position
-    -- (ignoring AI units, this using enemy_initial_reach_maps)
+    -- (ignoring AI units, by using enemy_initial_reach_maps)
     local leader_threats = { enemies = {} }
 
     local best_defenses = {}
