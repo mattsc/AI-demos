@@ -2303,62 +2303,89 @@ local function get_hold_action(zone_cfg, fred_data)
         value_ratio = value_ratio
     }
 
-    local protected_str, all_protected_str
-    local best_hold_combo, all_best_hold_combo, hold_dst_src, hold_ratings
+    local combo_table = { hold = {}, all_hold = {}, protect = {}, all_protect = {} }
 
     -- TODO: also don't need some of the previous steps if find_best_protect_only == true
     if (not zone_cfg.find_best_protect_only) and (next(hold_rating_maps)) then
         --std_print('--> checking hold combos ' .. zone_cfg.zone_id)
-        hold_dst_src, hold_ratings = FHU.unit_rating_maps_to_dstsrc(hold_rating_maps, 'vuln_rating', move_data, cfg_combos)
+        local hold_dst_src, hold_ratings = FHU.unit_rating_maps_to_dstsrc(hold_rating_maps, 'vuln_rating', move_data, cfg_combos)
         local hold_combos = FU.get_unit_hex_combos(hold_dst_src)
         --DBG.dbms(hold_combos, false, 'hold_combos')
         --std_print('#hold_combos ' .. zone_cfg.zone_id, #hold_combos)
 
-        best_hold_combo, all_best_hold_combo, protected_str = FHU.find_best_combo(hold_combos, hold_ratings, 'vuln_rating', adjacent_village_map, between_map, fred_data, cfg_best_combo_hold)
+        local best_hold_combo, all_best_hold_combo, combo_strs = FHU.find_best_combo(hold_combos, hold_ratings, 'vuln_rating', adjacent_village_map, between_map, fred_data, cfg_best_combo_hold)
+        --DBG.dbms(combo_strs, false, 'combo_strs')
+
+        -- There's some duplication in this table, that's just to make it easier later.
+        combo_table.hold = {
+            combo = best_hold_combo,
+            protected_str = combo_strs.protected_str,
+            protect_obj_str = combo_strs.protect_obj_str
+        }
+        combo_table.all_hold = {
+            combo = all_best_hold_combo,
+            protected_str = combo_strs.all_protected_str,
+            protect_obj_str = combo_strs.protect_obj_str
+        }
+
     end
 
-    local best_protect_combo, all_best_protect_combo, protect_dst_src, protect_ratings
     if protect_locs and next(protect_rating_maps) then
         --std_print('--> checking protect combos ' .. zone_cfg.zone_id)
-        protect_dst_src, protect_ratings = FHU.unit_rating_maps_to_dstsrc(protect_rating_maps, 'protect_rating', move_data, cfg_combos)
+        local protect_dst_src, protect_ratings = FHU.unit_rating_maps_to_dstsrc(protect_rating_maps, 'protect_rating', move_data, cfg_combos)
         local protect_combos = FU.get_unit_hex_combos(protect_dst_src)
         --DBG.dbms(protect_combos, false, 'protect_combos')
         --std_print('#protect_combos ' .. zone_cfg.zone_id, #protect_combos)
 
-        best_protect_combo, all_best_protect_combo, protected_str, all_protected_str = FHU.find_best_combo(protect_combos, protect_ratings, 'protect_rating', adjacent_village_map, between_map, fred_data, cfg_best_combo_protect)
-        --DBG.dbms(best_protect_combo, false, 'best_protect_combo')
-        --DBG.dbms(all_best_protect_combo, false, 'all_best_protect_combo')
+        local best_protect_combo, all_best_protect_combo, protect_combo_strs = FHU.find_best_combo(protect_combos, protect_ratings, 'protect_rating', adjacent_village_map, between_map, fred_data, cfg_best_combo_protect)
+        --DBG.dbms(combo_strs, false, 'combo_strs')
 
         -- If no combo that protects the location was found, use the best of the others
         -- TODO: check whether it is better to use a normal hold in this case; may depend on
         --   how desperately we want to protect
-        if (not best_protect_combo) then
-            best_protect_combo, protected_str = all_best_protect_combo, all_protected_str
-        end
-    end
-    --DBG.dbms(best_hold_combo, false, 'best_hold_combo')
-    --DBG.dbms(all_best_hold_combo, false, 'all_best_hold_combo')
+--        if (not best_protect_combo) then
+--            best_protect_combo = all_best_protect_combo
+--        end
 
-    if (not best_hold_combo) and (not all_best_hold_combo) and (not best_protect_combo) then
+        -- There's some duplication in this table, that's just to make it easier later.
+        combo_table.protect = {
+            combo = best_protect_combo,
+            protected_str = protect_combo_strs.protected_str,
+            protect_obj_str = protect_combo_strs.protect_obj_str
+        }
+        combo_table.all_protect = {
+            combo = all_best_protect_combo,
+            protected_str = protect_combo_strs.all_protected_str,
+            protect_obj_str = protect_combo_strs.protect_obj_str
+        }
+    end
+    --DBG.dbms(combo_table, false, 'combo_table')
+
+    if (not combo_table.hold.combo) and (not combo_table.all_hold.combo)
+        and (not combo_table.protect.combo) and (not combo_table.all_protect.combo)
+    then
         return
     end
 
 
     local action_str = zone_cfg.action_str
-    local best_combo, ratings
-    if (not best_hold_combo) and (not best_protect_combo) then
+    local best_combo_type
+    if (not combo_table.hold.combo) and (not combo_table.protect.combo) and (not combo_table.all_protect.combo) then
         -- Only as a last resort do we use all_best_hold_combo
-        best_combo, ratings = all_best_hold_combo, hold_ratings
-    elseif (not best_hold_combo) then
-        best_combo, ratings = best_protect_combo, protect_ratings
-        action_str = zone_cfg.action_str .. ' (' .. protected_str .. ')'
-    elseif (not best_protect_combo) then
-        best_combo, ratings = best_hold_combo, hold_ratings
+        best_combo_type = 'all_hold'
+    elseif (not combo_table.hold.combo) then
+        if combo_table.protect.combo then
+            best_combo_type = 'protect'
+        else
+            best_combo_type = 'all_protect'
+        end
+    elseif (not combo_table.protect.combo) then
+        best_combo_type = 'hold'
     else
         -- TODO: if there is a best_protect_combo, should we always use it over best_hold_combo?
         --   This would also mean that we do not need to evaluate best_hold_combo if best_protect_combo is found
         local hold_distance, count = 0, 0
-        for src,dst in pairs(best_hold_combo) do
+        for src,dst in pairs(combo_table.hold.combo) do
             local x, y =  math.floor(dst / 1000), dst % 1000
             local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
             hold_distance = hold_distance + ld
@@ -2367,7 +2394,7 @@ local function get_hold_action(zone_cfg, fred_data)
         hold_distance = hold_distance / count
 
         local protect_distance, count = 0, 0
-        for src,dst in pairs(best_protect_combo) do
+        for src,dst in pairs(combo_table.protect.combo) do
             local x, y =  math.floor(dst / 1000), dst % 1000
             local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, x, y, 'distance')
             protect_distance = protect_distance + ld
@@ -2379,31 +2406,39 @@ local function get_hold_action(zone_cfg, fred_data)
 
         -- Potential TODO: this criterion might be too simple
         if (hold_distance > protect_distance + 1) then
-            best_combo, ratings = best_hold_combo, hold_ratings
+            best_combo_type = 'hold'
         else
-            best_combo, ratings = best_protect_combo, protect_ratings
-            action_str = zone_cfg.action_str .. ' (' .. protected_str .. ')'
+            best_combo_type = 'protect'
         end
     end
-    --DBG.dbms(best_combo, false, 'best_combo')
+    --std_print('best_combo_type: ' .. best_combo_type)
 
     if DBG.show_debug('hold_best_combo') then
-        local function show_hold_units(combo, ratings, combo_str)
-            if combo then
-                local x, y
-                for src,dst in pairs(combo) do
-                    x, y =  math.floor(dst / 1000), dst % 1000
-                    local id = ratings[dst][src].id
-                    wesnoth.wml_actions.label { x = x, y = y, text = id }
+        local function show_hold_units(combo_type, combo_str, no_protect_locs_str)
+            if combo_table[combo_type].combo then
+                local dst_x, dst_y
+                for src,dst in pairs(combo_table[combo_type].combo) do
+                    src_x, src_y =  math.floor(src / 1000), src % 1000
+                    dst_x, dst_y =  math.floor(dst / 1000), dst % 1000
+                    local id = move_data.my_unit_map[src_x][src_y].id
+                    wesnoth.wml_actions.label { x = dst_x, y = dst_y, text = id }
                 end
-                wesnoth.scroll_to_tile(x, y)
-                wesnoth.wml_actions.message { speaker = 'narrator', caption = combo_str .. ' [' .. zone_cfg.zone_id .. ']', message = action_str }
-                for src,dst in pairs(combo) do
-                    x, y =  math.floor(dst / 1000), dst % 1000
-                    wesnoth.wml_actions.label { x = x, y = y, text = "" }
+                wesnoth.scroll_to_tile(dst_x, dst_y)
+                wesnoth.wml_actions.message {
+                    speaker = 'narrator',
+                    caption = combo_str .. ' [' .. zone_cfg.zone_id .. ']',
+                    message = 'Protect objectives: ' .. combo_table[combo_type].protect_obj_str .. '\nAction: ' .. action_str .. '\n    ' .. (combo_table[combo_type].protected_str or '')
+                }
+                for src,dst in pairs(combo_table[combo_type].combo) do
+                    dst_x, dst_y =  math.floor(dst / 1000), dst % 1000
+                    wesnoth.wml_actions.label { x = dst_x, y = dst_y, text = "" }
                 end
             else
-                wesnoth.wml_actions.message { speaker = 'narrator', caption = combo_str .. ' [' .. zone_cfg.zone_id .. ']', message = 'None found' }
+                wesnoth.wml_actions.message {
+                    speaker = 'narrator',
+                    caption = combo_str .. ' [' .. zone_cfg.zone_id .. ']',
+                    message = 'Protect objectives: ' .. (combo_table[combo_type].protect_obj_str or no_protect_locs_str or 'None') .. '\nAction: ' .. (no_protect_locs_str or 'None found')
+                }
             end
         end
 
@@ -2412,11 +2447,13 @@ local function get_hold_action(zone_cfg, fred_data)
         end
         wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal', color = '200,0,0' }
 
-        show_hold_units(best_protect_combo, protect_ratings, 'Best protect combo')
-        show_hold_units(all_best_protect_combo, protect_ratings, 'All best protect combo')
-        show_hold_units(best_hold_combo, hold_ratings, 'Best hold combo')
-        show_hold_units(all_best_hold_combo, hold_ratings, 'All best hold combo')
-        show_hold_units(best_combo, ratings, 'Overall best combo')
+        local no_protect_locs_str
+        if (not protect_locs) then no_protect_locs_str = 'no protect locs' end
+        show_hold_units('protect', 'Best protect combo', no_protect_locs_str)
+        show_hold_units('all_protect', 'All best protect combo', no_protect_locs_str)
+        show_hold_units('hold', 'Best hold combo')
+        show_hold_units('all_hold', 'All best hold combo')
+        show_hold_units(best_combo_type, 'Overall best combo')
 
         wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = "" }
         for _,unit in ipairs(fred_data.ops_data.place_holders) do
@@ -2425,13 +2462,14 @@ local function get_hold_action(zone_cfg, fred_data)
     end
 
     local action = {
-        action_str = action_str,
+        action_str = action_str  .. '\n    ' .. combo_table[best_combo_type].protected_str,
         units = {},
         dsts = {}
     }
-    for src,dst in pairs(best_combo) do
-        local dst_x, dst_y =  math.floor(dst / 1000), dst % 1000
-        local id = ratings[dst][src].id
+    for src,dst in pairs(combo_table[best_combo_type].combo) do
+        src_x, src_y =  math.floor(src / 1000), src % 1000
+        dst_x, dst_y =  math.floor(dst / 1000), dst % 1000
+        local id = move_data.my_unit_map[src_x][src_y].id
 
         local tmp_unit = move_data.my_units[id]
         tmp_unit.id = id

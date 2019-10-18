@@ -1018,7 +1018,14 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     --std_print(' ===> max rating:             ' .. (max_rating or 'none'))
     --std_print(' ===> max rating all: ' .. (all_max_rating or 'none'))
 
-    return best_combo and best_combo.combo, all_best_combo and all_best_combo.combo, best_combo and best_combo.protected_str, all_best_combo and all_best_combo.protected_str
+    local combo_strs = {
+        protect_obj_str = protection.overall.protect_obj_str,
+        protected_str = best_combo and best_combo.protected_str,
+        all_protected_str = all_best_combo and all_best_combo.protected_str
+    }
+    --DBG.dbms(combo_strs, false, 'combo_strs')
+
+    return best_combo and best_combo.combo, all_best_combo and all_best_combo.combo, combo_strs
 end
 
 
