@@ -1903,8 +1903,8 @@ function fred_ops_utils.set_ops_data(fred_data)
         for x,y,_ in FGM.iter(zone_maps[zone_id]) do
             local data = ADmap[x] and ADmap[x][y]
             if data then
-                local my_infl = FGM.get_value(move_data.influence_maps, x, y, 'my_full_move_influence') or 0
-                local enemy_infl = FGM.get_value(move_data.influence_maps, x, y, 'enemy_full_move_influence') or 0
+                local my_infl = FGM.get_value(move_data.influence_maps, x, y, 'my_influence') or 0
+                local enemy_infl = FGM.get_value(move_data.influence_maps, x, y, 'enemy_influence') or 0
                 -- TODO: use zone-dependent value_ratio here?
                 local infl = my_infl - value_ratio * enemy_infl
                 local int_forward = H.round(2 * data.forward) / 2
