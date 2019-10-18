@@ -94,7 +94,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
         --if (not protect_objective.protect_leader)
         --    and ((#protect_objective.villages == 0) or (protect_objective.villages[1].is_protectedxxx))
         --then
-            --std_print('  checking whether units should be protected: ' .. zone_id)
+            --std_print('----- checking whether units should be protected: ' .. zone_id .. ' -----')
             -- TODO: does this take appreciable time? If so, can be skipped when no no_MP units exist
             local units_to_protect, protectors = {}, {}
             for id,_ in pairs(zone_units) do
@@ -112,7 +112,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
 
                 if (not skip_unit) then
                     local unit_value = FU.unit_value(fred_data.move_data.unit_infos[id])
-                    --std_print(string.format('      %-25s    %2d,%2d  %5.2f', id, loc[1], loc[2], unit_value))
+                    --std_print(string.format('  my unit:  %-25s    %2d,%2d  %5.2f', id, loc[1], loc[2], unit_value))
 
                     local tmp_damages = {}
                     for enemy_id,enemy_loc in pairs(assigned_enemies[zone_id] or {}) do
@@ -127,25 +127,27 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
                             enemy_hc = counter.enemy_gen_hc
                         end
 
-                        local dam = (counter.base_taken + counter.extra_taken) * enemy_hc
-                        --std_print('    ' .. enemy_id, dam, enemy_hc)
-                        table.insert(tmp_damages, { damage = dam })
+                        local max_dam = (counter.max_taken_any_weapon + counter.extra_taken)
+                        local dam = max_dam * enemy_hc
+                        --std_print('    enemy: ' .. enemy_id, dam, max_dam, enemy_hc)
+                        table.insert(tmp_damages, { damage = dam, max_damage = max_dam })
                     end
                     table.sort(tmp_damages, function(a, b) return a.damage > b.damage end)
 
-                    local sum_damage = 0
+                    local sum_damage, sum_max_damage = 0, 0
                     for i=1,math.min(3, #tmp_damages) do
                         sum_damage = sum_damage + tmp_damages[i].damage
+                        sum_max_damage = sum_max_damage + tmp_damages[i].max_damage
                     end
 
-                    -- Don't let block_utility drop below 0.5, or go above 1,
-                    -- otherwise weak units are overrated.
-                    -- TODO: this needs to be refined.
-                    local block_utility = 0.5 + sum_damage / fred_data.move_data.unit_infos[id].hitpoints / 2
-                    if (block_utility > 1) then block_utility = 1 end
+                    local value_loss, approx_ctd = FU.approx_value_loss(fred_data.move_data.unit_infos[id], sum_damage, sum_max_damage)
+                    --std_print('    damage: ' .. sum_damage, sum_max_damage)
+                    --std_print('    loss: ' .. value_loss, approx_ctd, unit_value)
 
-                    local protect_rating = unit_value * block_utility
-                    --std_print('      ' .. sum_damage, block_utility, protect_rating)
+                    local rating_table = {
+                        value_loss = value_loss,
+                        ctd = approx_ctd
+                    }
 
                     if (fred_data.move_data.unit_infos[id].moves == 0) then
                         -- In order to deal with units close to the borders between zones,
@@ -200,10 +202,10 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
                         end
 
                         if counts_into_zone then
-                            units_to_protect[id] = protect_rating
+                            units_to_protect[id] = rating_table
                         end
                     else
-                        protectors[id] = protect_rating
+                        protectors[id] = rating_table
                     end
                 end
             end
@@ -223,23 +225,28 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
 
             local max_protect_value, protect_id = 0
             for id_protectee,rating_protectee in pairs(units_to_protect) do
+                --std_print('protectee: ' .. id_protectee, rating_protectee.value_loss, rating_protectee.ctd)
                 local try_protect = false
                 for id_protector,rating_protector in pairs(protectors) do
-                    --std_print('    ', id_protectee, rating_protectee, id_protector, rating_protector, protect_others_ratio)
-                    if (rating_protector * protect_others_ratio < rating_protectee) then
+                    --std_print('  protector: ' .. id_protector, rating_protector.value_loss, rating_protector.ctd)
+                    -- Note: value_loss is negative
+-- Add another condition
+                    if (rating_protector.value_loss * protect_others_ratio > rating_protectee.value_loss)
+                        and (rating_protector.ctd < rating_protectee.ctd + 0.1)
+                    then
                         try_protect = true
                         break
                     end
                 end
 
-                --std_print(zone_id ..': protect unit: ' .. (id_protectee or 'none'), rating_protectee, try_protect)
+                --std_print('  --> ' .. zone_id .. ': ' .. 'try protect unit: ' .. (id_protectee or 'none'), try_protect, rating_protectee.value_loss)
 
                 if try_protect then
                     loc = fred_data.move_data.my_units[id_protectee]
                     table.insert(protect_units, {
                         x = loc[1], y = loc[2],
                         id = id_protectee,
-                        rating = rating_protectee,
+                        value_loss = rating_protectee.value_loss,
                         type = 'unit'
                     })
 
@@ -251,7 +258,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
                 end
             end
 
-            table.sort(protect_units, function(a, b) return a.rating < b.rating end)
+            table.sort(protect_units, function(a, b) return a.value_loss < b.value_loss end)
             --DBG.dbms(protect_units, false, 'protect_units')
 
             objectives.protect.zones[zone_id].units = protect_units
