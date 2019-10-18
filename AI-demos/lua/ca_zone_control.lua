@@ -2229,7 +2229,8 @@ local function get_hold_action(zone_cfg, fred_data)
                 local protect_rating = protect_base_rating
                 if (protect_forward_rating_weight > 0) then
                     local vuln = protect_rating_data.vuln
-                    protect_rating = protect_rating + vuln / max_vuln * protect_forward_rating_weight
+                    local terrain_mult = FGUI.get_unit_defense(move_data.unit_copies[id], x, y, move_data.defense_maps)
+                    protect_rating = protect_rating + vuln / max_vuln * protect_forward_rating_weight * terrain_mult
                 else
                     protect_rating = protect_rating + (d_dist - 2) / 10 * protect_forward_rating_weight
                 end
@@ -2262,6 +2263,7 @@ local function get_hold_action(zone_cfg, fred_data)
         for id,protect_rating_map in pairs(protect_rating_maps) do
             DBG.show_fgumap_with_message(protect_rating_map, 'protect_base_rating', 'protect_base_rating', move_data.unit_copies[id])
             DBG.show_fgumap_with_message(protect_rating_map, 'protect_rating', 'protect_rating_org', move_data.unit_copies[id])
+            --DBG.show_fgumap_with_message(protect_rating_map, 'vuln', 'vuln', move_data.unit_copies[id])
             --DBG.show_fgumap_with_message(protect_rating_map, 'conv', 'conv', move_data.unit_copies[id])
             --DBG.show_fgumap_with_message(protect_rating_map, 'protect_rating', 'protect_rating', move_data.unit_copies[id])
         end
