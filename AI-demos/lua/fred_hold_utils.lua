@@ -321,9 +321,9 @@ function fred_hold_utils.unit_rating_maps_to_dstsrc(unit_rating_maps, key, move_
             local tmp_map = {}
             local count = math.min(max_hexes, #sorted_ratings[unit.id])
             for i = 1,count do
-                FGM.set_value(tmp_map, sorted_ratings[unit.id][i].x, sorted_ratings[unit.id][i].y, 'protect_rating', sorted_ratings[unit.id][i].protect_rating)
+                FGM.set_value(tmp_map, sorted_ratings[unit.id][i].x, sorted_ratings[unit.id][i].y, 'rating', sorted_ratings[unit.id][i].protect_rating or sorted_ratings[unit.id][i].vuln_rating)
             end
-            DBG.show_fgumap_with_message(tmp_map, 'protect_rating', 'Best protect_rating', move_data.unit_copies[unit.id])
+            DBG.show_fgumap_with_message(tmp_map, 'rating', 'Best rating', move_data.unit_copies[unit.id])
         end
     end
 
