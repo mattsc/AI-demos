@@ -31,7 +31,11 @@ function fred_village_utils.village_objectives(zone_cfgs, side_cfgs, zone_maps, 
 
         local owner = FGM.get_value(move_data.village_map, x, y, 'owner')
 
-        if (infl_ratio >= fred_data.ops_data.behavior.orders.value_ratio) then
+        -- Only add village protect objective if AI units can actually protect it.
+        -- Even if the influence is positive there might be an enemy unit on the village.
+        if (not FGM.get_value(fred_data.move_data.enemy_map, x, y, 'id'))
+            and (infl_ratio >= fred_data.ops_data.behavior.orders.value_ratio)
+        then
             local is_threatened = false
             for enemy_id,enemy_loc in pairs(move_data.enemies) do
                 if FGM.get_value(move_data.reach_maps[enemy_id], x, y, 'moves_left') then
