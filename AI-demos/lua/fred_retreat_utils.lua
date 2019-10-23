@@ -372,9 +372,9 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
                         move_data.unit_copies[id].moves = old_moves
                         --std_print('  ' .. id, x, y, xv, yv, int_turns, vilage_data.int_turns)
 
-                        -- Distance rating is the reduction of moves needed to get there
+                        -- Distance rating is the reduction of cost needed to get there
                         -- This is additive for all villages for this is true
-                        if (int_turns < vilage_data.int_turns) then
+                        if (cost < vilage_data.cost) then
                             rating = rating + vilage_data.cost - cost
                         end
                     end
