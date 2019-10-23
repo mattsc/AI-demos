@@ -760,9 +760,27 @@ local function get_attack_action(zone_cfg, fred_data)
             if objectives.protect.zones[zone_cfg.zone_id] then
                 for _,unit in ipairs(objectives.protect.zones[zone_cfg.zone_id].units) do
                     --DBG.dbms(unit, false, "unit")
-                    local protect_unit_rating = status.units[unit.id].exposure
-                    --std_print('protection: ' .. unit.id, org_status.units[unit.id].exposure - protect_unit_rating .. ' = ' .. org_status.units[unit.id].exposure .. ' - ' .. protect_unit_rating)
-                    unit_protect_bonus = unit_protect_bonus + org_status.units[unit.id].exposure - protect_unit_rating
+
+                    -- Only give the protect bonus for this protectee if _all_ attackers
+                    -- are assigned as protectors for that unit. That not being the case
+                    -- does not invalidate the attack, but we should not give a bonus for
+                    -- protecting a unit with a weaker one.
+                    local protect_pairings = objectives.protect.zones[zone_cfg.zone_id].protect_pairings
+                    local try_protect = true
+                    for i_a,attacker_damage in ipairs(combo.attacker_damages) do
+                        --std_print('attacker: ', attacker_damage.id)
+                        if (not protect_pairings[attacker_damage.id]) or (not protect_pairings[attacker_damage.id][unit.id]) then
+                            try_protect = false
+                            break
+                        end
+                    end
+                    --std_print('  try_protect: ' .. unit.id, try_protect)
+
+                    if try_protect then
+                        local protect_unit_rating = status.units[unit.id].exposure
+                        --std_print('protection: ' .. unit.id, org_status.units[unit.id].exposure - protect_unit_rating .. ' = ' .. org_status.units[unit.id].exposure .. ' - ' .. protect_unit_rating)
+                        unit_protect_bonus = unit_protect_bonus + org_status.units[unit.id].exposure - protect_unit_rating
+                    end
                 end
             end
             --std_print('unit_protect_bonus', unit_protect_bonus)
