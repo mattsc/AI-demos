@@ -161,8 +161,15 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
             end
         end
     end
-    --DBG.dbms(heal_maps_regen, false, 'heal_maps_regen')
-    --DBG.dbms(heal_maps_no_regen, false, 'heal_maps_no_regen')
+
+    if DBG.show_debug('retreat_heal_maps') then
+        for id,heal_map in pairs(heal_maps_no_regen) do
+            DBG.show_fgumap_with_message(heal_map, 'heal_amount', 'Heal map (no-regen unit)', move_data.unit_copies[id])
+        end
+        for id,heal_map in pairs(heal_maps_regen) do
+            DBG.show_fgumap_with_message(heal_map, 'heal_amount', 'Heal map (regen unit)', move_data.unit_copies[id])
+        end
+    end
 
 
     -- No-regenerating units are dealt with first, and need to be considered
@@ -188,7 +195,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
             end
         end
 
-        if false then
+        if DBG.show_debug('retreat_unit_rating') then
             DBG.show_fgumap_with_message(rating_map, 'rating', 'Retreat rating map (no-regen unit)', move_data.unit_copies[id])
         end
     end
@@ -259,7 +266,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
             end
         end
 
-        if false then
+        if DBG.show_debug('retreat_unit_rating') then
             DBG.show_fgumap_with_message(rating_map, 'rating', 'Retreat rating map (regen unit)', move_data.unit_copies[best_id])
         end
 
@@ -404,7 +411,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
                 end
             end
 
-            if false then
+            if DBG.show_debug('retreat_unit_rating') then
                 DBG.show_fgumap_with_message(rating_map, 'rating', 'Retreat rating map (far villages)', move_data.unit_copies[id])
             end
         end
