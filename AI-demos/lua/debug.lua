@@ -216,6 +216,8 @@ function debug_utils.show_fgumap_with_message(map, key, text, cfg)
     --   @round_to=0.01: (number) round numerical output to integer multiples of this
     -- Thus, it's possible to pass a unit as @cfg
 
+    local comment = ''
+    if (not next(map)) then comment = '\n\nMap is empty' end
     debug_utils.put_fgumap_labels(map, key, cfg)
     if cfg and cfg.x and cfg.y then
         wesnoth.scroll_to_tile(cfg.x,cfg.y)
@@ -226,9 +228,9 @@ function debug_utils.show_fgumap_with_message(map, key, text, cfg)
     wesnoth.wml_actions.redraw {}
     local id = cfg and cfg.id
     if id then
-        wesnoth.wml_actions.message { speaker = 'narrator', message = text .. ': ' .. id }
+        wesnoth.wml_actions.message { speaker = 'narrator', message = text .. ': ' .. id .. comment }
     else
-        wesnoth.wml_actions.message { speaker = 'narrator', message = text }
+        wesnoth.wml_actions.message { speaker = 'narrator', message = text .. comment }
     end
     if cfg and cfg.x and cfg.y and (not cfg.no_halo) then
         wesnoth.wml_actions.remove_item { x = cfg.x, y = cfg.y, image = "halo/teleport-8.png" }
