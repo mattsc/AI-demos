@@ -1472,8 +1472,11 @@ local function get_hold_action(zone_cfg, fred_data)
         and (not protect_objectives.protect_leader)
         and ((not protect_objectives.villages) or (#protect_objectives.villages == 0))
     then
-        --std_print(zone_cfg.zone_id .. ': units to protect (and only units)')
-        holders = protect_objectives.unit_protectors
+        std_print(zone_cfg.zone_id .. ': units to protect (and only units)')
+        holders = {}
+        for id,_ in pairs(protect_objectives.protect_pairings) do
+            holders[id] = move_data.units[id][1] * 1000 + move_data.units[id][2]
+        end
     elseif zone_cfg.zone_units then
         holders = zone_cfg.zone_units
     else
