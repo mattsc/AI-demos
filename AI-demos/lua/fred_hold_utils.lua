@@ -194,6 +194,7 @@ function fred_hold_utils.check_hold_protection(combo, protection, cfg, fred_data
     --DBG.dbms(protected_villages, false, 'protected_villages')
 
 
+    local protect_pairings = cfg.protect_objectives.protect_pairings
     local protected_units = {}
     if cfg.protect_objectives.units then
         --DBG.dbms(cfg.protect_objectives.villages, false, 'cfg.protect_objectives.villages')
@@ -204,8 +205,32 @@ function fred_hold_utils.check_hold_protection(combo, protection, cfg, fred_data
             local unit_rating  = status.units[unit.id].exposure
             --std_print(unit.id, unit_rating, org_status.units[unit.id].exposure)
 
-            protected_units[unit.id] = protection.overall.org_status.units[unit.id].exposure - unit_rating
-            protection.combo.protect_loc_str = (protection.combo.protect_loc_str or '') .. string.format('    unit %d,%d: %.2f', unit.x, unit.y, protected_units[unit.id] or 0)
+            -- Only give the protect bonus for this protectee if _all_ holders
+            -- are assigned as protectors for that unit. That not being the case
+            -- might mean that this is not counted as a protecting hold, but there
+            -- should always be some combo that is not excluded (at least no for this
+            -- reason), as the 'holders' table only uses units that can protect at
+            -- least one other unit.
+            local try_protect = true
+            for src,_ in pairs(combo) do
+                local src_x, src_y =  math.floor(src / 1000), src % 1000
+                local id = move_data.my_unit_map[src_x][src_y].id
+                --std_print(unit.id, id)
+
+                if (not protect_pairings[id]) or (not protect_pairings[id][unit.id]) then
+                    try_protect = false
+                    break
+                end
+            end
+            --std_print('  try_protect: ' .. unit.id, try_protect)
+
+            if try_protect then
+                protected_units[unit.id] = protection.overall.org_status.units[unit.id].exposure - unit_rating
+                protection.combo.protect_loc_str = (protection.combo.protect_loc_str or '') .. string.format('    unit %d,%d: %.2f', unit.x, unit.y, protected_units[unit.id])
+            else
+                protected_units[unit.id] = 0
+                protection.combo.protect_loc_str = (protection.combo.protect_loc_str or '') .. string.format('    unit %d,%d: %.2f (weaker unit)', unit.x, unit.y, protected_units[unit.id])
+            end
         end
     end
     --DBG.dbms(protected_units, false, 'protected_units')
