@@ -256,6 +256,8 @@ function fred_hold_utils.check_hold_protection(combo, protection, cfg, fred_data
             end
         end
     end
+
+    protection.combo.terrain = status.terrain
 end
 
 
@@ -570,9 +572,8 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             --DBG.dbms(protection.combo, false, 'protection.combo')
             --DBG.dbms(protection, false, 'protection')
 
-            -- Check whether protecting can be done with fewer units
-            -- Except for villages, where we want the terrain protection around them too
-            if protection.combo.does_protect and (protection.overall.protect_obj_str ~= 'village') and (combo.count > 1) then
+            -- Check whether same protection can be achieved with fewer units
+            if protection.combo.does_protect and (combo.count > 1) then
                 local reduced_protection = { overall = {
                     protect_obj_str = protection.overall.protect_obj_str,
                     leader_min_exposure = math.huge,
@@ -601,7 +602,10 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                     --DBG.dbms(protection.combo, false, 'protection.combo')
                     --DBG.dbms(reduced_protection.combo, false, 'reduced_protection.combo')
 
-                    if ((reduced_protection.combo.protected_value / protection.combo.protected_value) > 0.999) then
+                    -- If there is no additional protected value and there is no terrain advantage
+                    if ((reduced_protection.combo.protected_value / protection.combo.protected_value) > 0.999)
+                        and ((reduced_protection.combo.terrain - protection.combo.terrain) > - 0.001)
+                    then
                         --std_print('****** reduced combo just as good *****')
                         -- Rate this combo as useless:
                         protection.combo.protect_mult = 0
