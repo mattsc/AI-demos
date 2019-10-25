@@ -1654,10 +1654,12 @@ function fred_ops_utils.set_ops_data(fred_data)
                         }
                     end
 
+                    local penalty = turn_penalty - inertia
+                    if (penalty < 0) then penalty = 0 end
+
                     zone_benefits[action].units[id] = {
                         benefit = data.benefit,
-                        -- TODO: this can result in negative penalty
-                        penalty = turn_penalty - inertia
+                        penalty = penalty
                     }
                 end
             end
