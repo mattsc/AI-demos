@@ -247,9 +247,9 @@ function fred_hold_utils.check_hold_protection(combo, protection, cfg, fred_data
         protection.combo.protected_value = protection.combo.protected_value + 6
     end
     local unit_protect_mult = 1
-    for _,unit in pairs(protected_units) do
-        unit_protect_mult = unit_protect_mult + unit / leader_value / 4
-        protection.combo.protected_value = protection.combo.protected_value + unit
+    for _,unit_protection in pairs(protected_units) do
+        unit_protect_mult = unit_protect_mult + unit_protection / leader_value / 4
+        protection.combo.protected_value = protection.combo.protected_value + unit_protection
     end
     local castle_protect_mult = 1 + math.sqrt(n_castles_protected) * 3 / leader_value / 4
     protection.combo.protected_value = protection.combo.protected_value + math.sqrt(n_castles_protected) * 3
