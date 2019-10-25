@@ -990,7 +990,7 @@ local function get_attack_action(zone_cfg, fred_data)
                     neg_rating = neg_rating + nr
                     pos_rating = pos_rating + pr
                 end
-                DBG.print_debug('attack_print_output', '    --> total my unit ratings:', neg_rating, pos_rating)
+                DBG.print_debug('attack_print_output', '    --> neg/pos rating after my units:', neg_rating, pos_rating)
 
 
                 --std_print('ratings enemy units:')
@@ -1001,7 +1001,7 @@ local function get_attack_action(zone_cfg, fred_data)
                     neg_rating = neg_rating - pr
                     pos_rating = pos_rating - nr
                 end
-                DBG.print_debug('attack_print_output', '    --> total enemy unit rating:', neg_rating, pos_rating)
+                DBG.print_debug('attack_print_output', '    --> neg/pos rating after enemies:', neg_rating, pos_rating)
 
                 local extra_rating = combo.rating_table.extra_rating
                 DBG.print_debug('attack_print_output', '    --> extra rating:', extra_rating)
@@ -1291,9 +1291,9 @@ local function get_attack_action(zone_cfg, fred_data)
                 total_rating = total_rating + unit_protect_bonus * unit_protect_weight
 
                 DBG.print_debug('attack_print_output', '  Penalty rating:', combo.penalty_rating, combo.penalty_str)
-                DBG.print_debug('attack_print_output', '  Acceptable counter attack for attack on', count, next(combo.target), combo.value_ratio, combo.rating_table.rating)
+                DBG.print_debug('attack_print_output', '  Acceptable counter attack for attack on', count, next(combo.target), combo.rating_table.rating)
                 DBG.print_debug('attack_print_output', '  leader protect penalty        ', leader_protect_penalty .. ' * ' .. leader_protect_weight)
-                DBG.print_debug('attack_print_output', '  castle, village and unit protect bonus', castle_protect_bonus .. ' * ' .. castle_protect_weight, village_protect_bonus .. ' * ' .. village_protect_weight, unit_protect_bonus .. ' * ' .. unit_protect_weight)
+                DBG.print_debug('attack_print_output', '  castle, village and unit protect bonus', castle_protect_bonus .. ' * ' .. castle_protect_weight .. '   --   ' .. village_protect_bonus .. ' * ' .. village_protect_weight .. '   --   ' .. unit_protect_bonus .. ' * ' .. unit_protect_weight)
                 DBG.print_debug('attack_print_output', '    --> total_rating', total_rating)
 
                 if (total_rating > 0) then
@@ -2717,8 +2717,8 @@ local function get_advance_action(zone_cfg, fred_data)
                 )
 
                 if counter_outcomes then
-                    --DBG.dbms(counter_outcomes.def_outcome.ctd_progression, false, 'counter_outcomes.def_outcome.ctd_progression')
-                    --std_print('  die_chance', counter_outcomes.def_outcome.hp_chance[0])
+                    --DBG.dbms(counter_outcomes, false, 'counter_outcomes')
+                    --std_print('  die_chance', counter_outcomes.def_outcome.hp_chance[0], id .. ': ' .. x .. ',' .. y)
 
                     -- This is the standard attack rating (roughly) in units of cost (gold)
                     local counter_rating = - counter_outcomes.rating_table.rating
