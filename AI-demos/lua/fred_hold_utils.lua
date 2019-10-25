@@ -964,7 +964,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             --std_print('  ---> ' .. combo.formation_rating, rel_rating, combo.formation_rating * rel_rating)
 
             if (count == full_count) then
-                if combo.does_protect then
+                if (not cfg.protect_objectives) or combo.does_protect then
                     if (not max_rating) or (counter_rating > max_rating) then
                         max_rating = counter_rating
                         best_combo = combo
@@ -990,7 +990,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                     end
                 end
 
-                if combo.does_protect then
+                if (not cfg.protect_objectives) or combo.does_protect then
                     if (not reduced_max_rating) or (counter_rating > reduced_max_rating) then
                         reduced_max_rating = counter_rating
                         reduced_best_combo = reduced_combo
