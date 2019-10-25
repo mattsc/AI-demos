@@ -2625,8 +2625,6 @@ local function get_advance_action(zone_cfg, fred_data)
     end
     --std_print(zone_cfg.zone_id .. ': already_holding: ', already_holding)
 
-    local cfg_attack = { value_ratio = value_ratio }
-
     local safe_loc = false
     local unit_rating_maps = {}
     local max_rating, best_id, best_hex
@@ -2648,12 +2646,15 @@ local function get_advance_action(zone_cfg, fred_data)
         local rating_moves = move_data.unit_infos[id].moves / 10
         local rating_power = FU.unit_current_power(move_data.unit_infos[id]) / 1000
 
-        -- If a village is involved, we prefer injured units
-        -- We make this a large contribution, up to half the value of the unit
+        -- Injured units are treated much more carefully by the AI.
+        -- This part sets up a number of parameters for that.
         local fraction_hp_missing = (move_data.unit_infos[id].max_hitpoints - move_data.unit_infos[id].hitpoints) / move_data.unit_infos[id].max_hitpoints
         local hp_rating = FU.weight_s(fraction_hp_missing, 0.5)
-        hp_rating = hp_rating * unit_value / 2
-        --std_print(id, rating_moves, rating_power, fraction_hp_missing, hp_rating)
+        local hp_forward_factor = 1 - hp_rating
+        -- The more injured the unit, the closer to 1 a value_ratio we use
+        local unit_value_ratio = value_ratio + (1 - value_ratio) * hp_rating
+        --std_print('unit_value_ratio', unit_value_ratio, value_ratio)
+        local cfg_attack = { value_ratio = unit_value_ratio }
 
         local goal = fred_data.ops_data.advance_goals[zone_cfg.zone_id]
         local cost_map = {}
@@ -2725,7 +2726,7 @@ local function get_advance_action(zone_cfg, fred_data)
 
                     if already_holding then
                         rating = rating + counter_rating
-                        --std_print(x .. ',' .. y .. ': counter' , counter_rating)
+                        --std_print(x .. ',' .. y .. ': counter' , counter_rating, unit_value_ratio)
                     else
                         -- If nobody is holding, that means that the hold with these units was
                         -- considered not worth it, which means we should be much more careful
@@ -2750,7 +2751,7 @@ local function get_advance_action(zone_cfg, fred_data)
                     -- hp_chance[0]=0.85; but then it is the difference between die chances that
                     -- really matters, so we multiply by another factor 2.
                     -- This makes this a huge contribution to the rating.
-                    local die_rating = - value_ratio * unit_value * counter_outcomes.def_outcome.hp_chance[0] ^ 2 / 0.85^2 * 2
+                    local die_rating = - unit_value_ratio * unit_value * counter_outcomes.def_outcome.hp_chance[0] ^ 2 / 0.85^2 * 2
                     rating = rating + die_rating
                 end
 
@@ -2761,10 +2762,10 @@ local function get_advance_action(zone_cfg, fred_data)
                 -- Everything is balanced against the value loss rating from the counter attack
                 -- For now, let's set being one full move away equal to half the value of the unit,
                 -- multiplied by push_factor
-                -- Note: value_ratio is already taken care of in both the location of the goal hex
+                -- Note: unit_value_ratio is already taken care of in both the location of the goal hex
                 -- and the counter attack rating.  Is including the push factor overdoing it?
 
-                rating = rating - dist * unit_value / 2 * push_factor
+                rating = rating - dist * unit_value / 2 * push_factor * hp_forward_factor
 
                 -- We additionally discourage locations behind enemy lines without sufficient support
                 -- TODO: this is a large effect and it introduces a discontinuity, might
@@ -2797,10 +2798,10 @@ local function get_advance_action(zone_cfg, fred_data)
                 -- Also add a half-hex bonus for villages in general; no need not to go there
                 -- all else being equal
                 if owner and (not move_data.unit_infos[id].abilities.regenerate) then
-                    village_bonus = village_bonus + 0.5 + hp_rating
+                    village_bonus = unit_value * (1 / hp_forward_factor - 1) -- zero for uninjured unit
                 end
 
-                rating = rating + village_bonus * value_ratio
+                rating = rating + village_bonus * unit_value_ratio
 
                 -- Small bonus for the terrain; this does not really matter for
                 -- unthreatened hexes and is already taken into account in the
