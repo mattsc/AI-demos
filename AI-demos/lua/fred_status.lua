@@ -1,6 +1,7 @@
 -- Set up (and reset) hypothetical situations on the map that can be used for
 -- analyses of ZoC, counter attacks etc.
 
+local H = wesnoth.require "helper"
 local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
@@ -38,7 +39,7 @@ function fred_status.unit_exposure(pos_counter_rating, neg_counter_rating)
     return exposure
 end
 
-function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_data)
+function fred_status.check_exposures(objectives, combo, virtual_reach_maps, cfg, fred_data)
     -- The virtual state needs to be set up for this, but virtual_reach_maps are
     -- calculated here unless passed as a parameter.
     -- Potential TODO: skip evaluation of units/hexes that have already been shown
@@ -208,6 +209,58 @@ function fred_status.check_exposures(objectives, virtual_reach_maps, cfg, fred_d
             is_protected = is_protected
         }
     end
+
+
+    -- Add a terrain bonus if the combo hexes have better terrain defense for the enemies
+    -- than those adjacent to the combo hexes that the enemies can reach with the combo in place
+    -- Potential TODOs:
+    --  - The value of status.terrain does not mean anything. Currently it is only used to
+    --    determine whether good terrain is taken away from the enemies, so it's essentially used as a boolean
+    --  - We add up all terrain (dis)advantages for all enemy units on the best adjacent hexes they
+    --    can get to, even if there are more enemies than hexes
+    --  - We might want to add something more sophisticated, indicating how useful the protected
+    --    terrain is or something. It's also only a single-hex (plus adjacents) analysis for now.
+    --    Might want to consider all hexes not reachable for the enemies any more.
+    local unit_values = {}
+    status.terrain = 0
+    if combo then
+        for src,dst in pairs(combo) do
+            local dst_x, dst_y =  math.floor(dst / 1000), dst % 1000
+            --std_print(dst_x, dst_y)
+            for enemy_id,_ in pairs(move_data.enemies) do
+                --std_print(enemy_id)
+                if FGM.get_value(move_data.reach_maps[enemy_id], dst_x, dst_y, 'moves_left') then
+                    local defense = 100 - wesnoth.unit_defense(move_data.unit_copies[enemy_id], wesnoth.get_terrain(dst_x, dst_y))
+                    --std_print('  ' .. dst_x .. ',' .. dst_y .. ': ' .. enemy_id , defense)
+
+                    local best_adj_defense
+                    for xa,ya in H.adjacent_tiles(dst_x, dst_y) do
+                        if FGM.get_value(virtual_reach_maps[enemy_id], xa, ya, 'moves_left') then
+                            local adj_defense = 100 - wesnoth.unit_defense(move_data.unit_copies[enemy_id], wesnoth.get_terrain(xa, ya))
+                            --std_print('    can reach adj: ' .. xa .. ',' .. ya, adj_defense)
+                            if (not best_adj_defense) or (adj_defense > best_adj_defense) then
+                                best_adj_defense = adj_defense
+                            end
+                        end
+                    end
+                    --std_print('  defense, adj_defense: ', defense, best_adj_defense)
+
+                    if best_adj_defense and (defense > best_adj_defense) then
+                        local unit_value = unit_values[enemy_id]
+                        if not unit_value then
+                            unit_value = FU.unit_value(move_data.unit_infos[enemy_id])
+                            --std_print('  value: ' .. enemy_id, unit_value)
+                            unit_values[enemy_id] = unit_value
+                        end
+
+                        local terrain_bonus = (defense - best_adj_defense) / 100 * unit_value
+                        status.terrain = status.terrain + terrain_bonus
+                    end
+                end
+            end
+        end
+    end
+    --std_print('terrain advantage: ' .. status.terrain)
 
     return status
 end
