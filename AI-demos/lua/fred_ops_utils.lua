@@ -84,6 +84,7 @@ end
 function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigned_enemies, raw_cfgs, fred_data)
     -- Check whether there are also units that should be protected
     local protect_others_ratio = FCFG.get_cfg_parm('protect_others_ratio')
+    local protect_min_value = FCFG.get_cfg_parm('protect_min_value')
     for zone_id,zone_units in pairs(assigned_units) do
         --std_print(zone_id)
 
@@ -230,10 +231,10 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
                 local try_protect = false
                 for id_protector,rating_protector in pairs(protectors) do
                     --std_print('  protector: ' .. id_protector, rating_protector.value_loss, rating_protector.ctd)
-                    -- Note: value_loss is negative
--- Add another condition
+                    -- Note: value_loss is negative, so the conditional below might appear backward
                     if (rating_protector.value_loss * protect_others_ratio > rating_protectee.value_loss)
                         and (rating_protector.ctd < rating_protectee.ctd + 0.1)
+                        and (rating_protector.value_loss - rating_protectee.value_loss > protect_min_value)
                     then
                         try_protect = true
                         --std_print('    is protector')

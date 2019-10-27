@@ -26,7 +26,8 @@ local cfg = {
     winning_ratio = 1.25,
     losing_ratio = 0.8,
 
-    protect_others_ratio = 1.2,
+    protect_others_ratio = 1.1,
+    protect_min_value = 2,
 
     -- Leader rating parameters
     leader_unthreatened_hex_bonus = 500,
