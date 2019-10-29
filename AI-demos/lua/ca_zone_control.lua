@@ -2725,7 +2725,7 @@ local function get_advance_action(zone_cfg, fred_data)
                     --std_print('  die_chance', counter_outcomes.def_outcome.hp_chance[0], id .. ': ' .. x .. ',' .. y)
 
                     -- This is the standard attack rating (roughly) in units of cost (gold)
-                    local counter_rating = - counter_outcomes.rating_table.rating
+                    local counter_rating = - counter_outcomes.rating_table.max_weighted_rating
 
                     if already_holding then
                         rating = rating + counter_rating
