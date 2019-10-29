@@ -1910,7 +1910,7 @@ local function get_hold_action(zone_cfg, fred_data)
                 local cum_weight, n_enemies = 0, 0
                 for _,enemy in pairs(tmp_enemies) do
                     local enemy_weight = enemy_weights[id][enemy.enemy_id].weight
-                    --std_print('    ' .. enemy.enemy_id, enemy_weight, x .. ',' .. y, enemy.damage_taken, enemy.damage_done, enemy.counter_actual_taken, enemy.counter_actual_done, enemy.counter_max_taken)
+                    --std_print('    ' .. id .. ' <-> ' .. enemy.enemy_id, enemy_weight, x .. ',' .. y, enemy.damage_taken, enemy.damage_done, enemy.counter_actual_taken, enemy.counter_actual_done, enemy.counter_max_taken)
                     cum_weight = cum_weight + enemy_weight
                     n_enemies = n_enemies + 1
 
@@ -2055,7 +2055,13 @@ local function get_hold_action(zone_cfg, fred_data)
                     local is_acceptable_max_damage = (max_damage <= acceptable_max_damage)
                     --std_print(string.format('  %d,%d:  MaxD  %5.3f  %6s   (%5.3f)', x, y, max_damage, tostring(is_acceptable_max_damage),  acceptable_max_damage))
 
+                    -- counter_actual_damage does not include regeneration
+                    -- Note that it is not included for the enemies either, but this is good enough for now.
+                    -- This is the situation at the beginning of Fred's next turn, before enemies regenerate.
                     local actual_damage = FGM.get_value(pre_rating_map, x, y, 'counter_actual_damage')
+                    if move_data.unit_infos[id].abilities.regenerate then
+                        actual_damage = actual_damage - 8
+                    end
                     local is_acceptable_actual_damage = (actual_damage <= acceptable_actual_damage)
                     --std_print(string.format('  %d,%d:  ActD  %5.3f  %6s   (%5.3f)', x, y, actual_damage, tostring(is_acceptable_actual_damage),  acceptable_actual_damage))
 
