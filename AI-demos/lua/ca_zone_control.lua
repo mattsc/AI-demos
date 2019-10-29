@@ -2122,7 +2122,7 @@ local function get_hold_action(zone_cfg, fred_data)
         local max_vuln
         for x,y,hold_here_data in FGM.iter(hold_here_map) do
             if hold_here_data.hold_here then
-                local vuln = FGM.get_value(holders_influence, x, y, 'vulnerability')
+                local vuln = FGM.get_value(move_data.influence_maps, x, y, 'vulnerability') or 0
 
                 if (not max_vuln) or (vuln > max_vuln) then
                     max_vuln = vuln
