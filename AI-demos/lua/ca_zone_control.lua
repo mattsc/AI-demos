@@ -2027,8 +2027,12 @@ local function get_hold_action(zone_cfg, fred_data)
             FGM.set_value(hold_here_map, x, y, 'av_outcome', data.av_outcome)
         end
 
-        local acceptable_max_damage = acceptable_max_damage_ratio * move_data.unit_infos[id].hitpoints
-        local acceptable_actual_damage = acceptable_actual_damage_ratio * move_data.unit_infos[id].hitpoints
+        local fraction_hp_missing = (move_data.unit_infos[id].max_hitpoints - move_data.unit_infos[id].hitpoints) / move_data.unit_infos[id].max_hitpoints
+        local hp_rating = FU.weight_s(fraction_hp_missing, 0.5)
+        local hp_damage_factor = 1 - hp_rating
+
+        local acceptable_max_damage = acceptable_max_damage_ratio * move_data.unit_infos[id].hitpoints * hp_damage_factor
+        local acceptable_actual_damage = acceptable_actual_damage_ratio * move_data.unit_infos[id].hitpoints * hp_damage_factor
 
         for x,y,data in FGM.iter(hold_here_map) do
             -- TODO: comment this out for now, but might need a condition like that again later
