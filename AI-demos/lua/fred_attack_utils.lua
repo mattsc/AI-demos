@@ -1298,6 +1298,23 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
 
     rating_table.progression = rating_progression
 
+    local weighted_progression, max_weighted_rating = {}, - math.huge
+    for i,rating in ipairs(rating_progression) do
+        local d_rating = rating - (rating_progression[i-1] or 0)
+        local att_ctd = attacker_damages[i].die_chance
+        local weight = 1 - FU.weight_s(att_ctd, 0.5)
+        --std_print(i, rating, d_rating, att_ctd, weight)
+
+        weighted_progression[i] = (weighted_progression[i-1] or 0) + d_rating * weight
+
+        if (weighted_progression[i] > max_weighted_rating) then
+            max_weighted_rating = weighted_progression[i]
+        end
+    end
+
+    rating_table.weighted_progression = weighted_progression
+    rating_table.max_weighted_rating = max_weighted_rating
+
     local combo_outcome = {
         att_outcomes = att_outcomes,
         def_outcome = def_outcomes[#attacker_infos],
