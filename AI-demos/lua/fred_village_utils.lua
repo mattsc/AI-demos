@@ -85,8 +85,7 @@ end
 function fred_village_utils.village_grabs(villages_to_grab, reserved_actions, interactions, fred_data)
     local move_data = fred_data.move_data
     local value_ratio = fred_data.ops_data.behavior.orders.value_ratio
-
-    local cfg_attack = { value_ratio = fred_data.ops_data.behavior.orders.value_ratio }
+    local cfg_attack = { value_ratio = value_ratio }
 
     -- Units with MP need to be taken off the map, for counter attack calculation
     local extracted_units = {}
@@ -99,6 +98,7 @@ function fred_village_utils.village_grabs(villages_to_grab, reserved_actions, in
     local village_grabs = {}
     for _,village in pairs(villages_to_grab) do
         local x, y = village.x, village.y
+        --std_print('village at ' .. x .. ',' .. y)
 
         -- Exclude reserved locations here (and units below) without checking for
         -- combined unit/hex availability, as we do not want to enter those units
@@ -108,6 +108,12 @@ function fred_village_utils.village_grabs(villages_to_grab, reserved_actions, in
         if (penalty_loc == 0) then
             ids = FGM.get_value(move_data.my_move_map[1], x, y, 'eff_reach_ids') or {}
         end
+
+        local influence = FGM.get_value(move_data.influence_maps, x, y, 'full_move_influence') or 0
+        local my_number = FGM.get_value(move_data.influence_maps, x, y, 'my_number') or 0
+        local enemy_number = FGM.get_value(move_data.influence_maps, x, y, 'enemy_number') or 0
+        --std_print('  influence, numbers: ' .. influence, my_number, enemy_number)
+
         for _,id in pairs(ids) do
             local loc = move_data.my_units[id]
 
@@ -126,10 +132,10 @@ function fred_village_utils.village_grabs(villages_to_grab, reserved_actions, in
                 local die_chance = 0
                 local counter_rating
                 if counter_outcomes then
-                    local average_hp = counter_outcomes.def_outcome.average_hp
                     die_chance = counter_outcomes.def_outcome.hp_chance[0]
                     counter_rating = counter_outcomes.rating_table.rating
-                    --std_print('  -> ' .. average_hp, die_chance)
+                    local value_loss = counter_outcomes.rating_table.pos_rating + counter_outcomes.rating_table.neg_rating
+                    --std_print('  ' .. id, die_chance, value_loss)
 
                     if move_data.unit_infos[id].canrecruit then
                         local min_hp = move_data.unit_infos[id].max_hitpoints
@@ -148,10 +154,19 @@ function fred_village_utils.village_grabs(villages_to_grab, reserved_actions, in
                         local level = move_data.unit_infos[id].level
                         -- TODO: this equation needs to be tweaked
                         local die_chance_threshold = (0.5 + 0.5 * (1 - value_ratio)) * (1 - xp_mult) / level^2
-                        if (die_chance > die_chance_threshold) then
+
+                        local value_loss_threshold = math.huge
+
+                        if (my_number < 3) and (my_number < enemy_number) and (influence < 0) then
+                            --std_print('    *** dangerous village')
+                            die_chance_threshold = 0
+                            value_loss_threshold = 6
+                        end
+
+                        if (die_chance > die_chance_threshold) or (value_loss > value_loss_threshold) then
                             allow_grab = false
                         end
-                        --std_print(id, value_ratio, xp_mult, level, die_chance_threshold, allow_grab)
+                        --std_print('  ' .. id, value_ratio, xp_mult, level, die_chance_threshold, allow_grab)
                     end
                 end
 
