@@ -445,9 +445,9 @@ function fred_utils.get_between_map(locs, units, move_data)
             reachable_loc.weight = reachable_loc.loc.exposure / cum_loc_weight
 
             if (reachable_loc.loc.exposure == 0) then
-                DBG.dbms(locs, false, 'locs')
-                DBG.dbms(reachable_locs, false, 'reachable_locs')
-                error('get_between_map(): exposure should never be set to zero.')
+                -- This can happen, for example, when a village is going to be taken by
+                -- the leader; or blocked by the units to be recruited
+                reachable_locs[xy] = nil
             end
         end
         --DBG.dbms(reachable_locs, false, 'reachable_locs')
