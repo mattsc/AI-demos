@@ -220,7 +220,23 @@ function debug_utils.show_fgumap_with_message(map, key, text, cfg)
     if (not next(map)) then comment = '\n\nMap is empty' end
     debug_utils.put_fgumap_labels(map, key, cfg)
     if cfg and cfg.x and cfg.y then
-        wesnoth.scroll_to_tile(cfg.x,cfg.y)
+        -- Scroll to the middle between the center of gravity of the map and the specified coordinates
+        local cog_x, cog_y, count = 0, 0, 0
+        for x,y,_ in FGM.iter(map) do
+            cog_x, cog_y, count = cog_x + x, cog_y + y, count + 1
+        end
+        local width, height = wesnoth.get_map_size()
+        local total_hexes = width * height
+        -- If @map contains more than half of the whole map's hexes, assume that it covers
+        -- the entire map -> do no scroll to its center of gravity in that case
+        if (count > 0) and (count < total_hexes / 2) then
+            cog_x, cog_y = cog_x / count, cog_y / count
+        else
+            cog_x, cog_y = cfg.x, cfg.y
+        end
+
+        -- The '+1' is there because there is a message at the bottom of the screen
+        wesnoth.scroll_to_tile((cfg.x + cog_x) / 2, (cfg.y + cog_y) / 2 + 1)
         if (not cfg.no_halo) then
             wesnoth.wml_actions.item { x = cfg.x, y = cfg.y, halo = "halo/teleport-8.png" }
         end
