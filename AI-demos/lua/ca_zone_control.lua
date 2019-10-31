@@ -2841,7 +2841,7 @@ local function get_advance_action(zone_cfg, fred_data)
     end
 
 
-    -- If no safe location is found, check for desparate attack
+    -- If no safe location is found, check for desperate attack
     local best_target, best_weapons
     local action_str = zone_cfg.action_str
     if (not safe_loc) then
@@ -2851,7 +2851,7 @@ local function get_advance_action(zone_cfg, fred_data)
 
         local max_attack_rating, best_attacker_id, best_attack_hex
         for id,xy in pairs(advancers) do
-            --std_print('checking desparate attacks for ' .. id)
+            --std_print('checking desperate attacks for ' .. id)
 
             local attacker = {}
             attacker[id] = move_data.units[id]
@@ -2912,7 +2912,7 @@ local function get_advance_action(zone_cfg, fred_data)
             end
         end
         if best_attacker_id then
-            --std_print('best desparate attack: ' .. best_attacker_id, best_attack_hex[1], best_attack_hex[2], next(best_target))
+            --std_print('best desperate attack: ' .. best_attacker_id, best_attack_hex[1], best_attack_hex[2], next(best_target))
             best_id = best_attacker_id
             best_hex = best_attack_hex
         end

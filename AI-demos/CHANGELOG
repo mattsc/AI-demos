@@ -393,7 +393,7 @@ version to restore (and surpass) the v0.14.0 performance.
     - More stringent condition on when not to attack from next to a village
   - Improvements to holding and advancing evaluations:
     - Improved evaluation of where and when/if to hold
-    - Add a "desparate hold" action
+    - Add a "desperate hold" action
     - Add a secondary rating to force advancing/retreating when no acceptable
       hexes are found otherwise
     - Do not advance through the center zone, except when AI is clearly winning
