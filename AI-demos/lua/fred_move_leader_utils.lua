@@ -490,6 +490,12 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
             end
         end
 
+        -- Also add castle hexes that are not between to leader_zone_map
+        -- TODO: is this needed?
+        for x,y,_ in FGM.iter(move_data.reachable_castles_map[wesnoth.current.side]) do
+            FGM.set_value(leader_zone_map, x, y, 'in_zone', true)
+        end
+
         if false then
             DBG.show_fgumap_with_message(between_map, 'distance', 'assess_leader_threats between_map: distance')
             DBG.show_fgumap_with_message(between_map, 'perp_distance', 'assess_leader_threats between_map: perp_distance')
