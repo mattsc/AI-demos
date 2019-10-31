@@ -1235,10 +1235,10 @@ local function get_attack_action(zone_cfg, fred_data)
             -- vs. attacking. If attacking results in a better rating, we do it.
             -- But only if the chance to die in the forward attack is not too
             -- large; otherwise the enemy might as well waste the resources.
+            -- Note that the acceptable counter checks above are different for noMP units
             if acceptable_counter and (#combo.attacker_damages == 1) then
+                local attacker_info = move_data.unit_infos[combo.attacker_damages[1].id]
                 if (combo.att_outcomes[1].hp_chance[0] < 0.25) then
-                    local attacker_info = move_data.unit_infos[combo.attacker_damages[1].id]
-
                     if move_data.my_units_noMP[attacker_info.id] then
                         --DBG.print_ts_delta(fred_data.turn_start_time, '  by', attacker_info.id, combo.dsts[1][1], combo.dsts[1][2])
 
@@ -1277,6 +1277,46 @@ local function get_attack_action(zone_cfg, fred_data)
                     -- for the AI unit is not greater than for the enemy
                     if (combo.att_outcomes[1].hp_chance[0] > combo.def_outcome.hp_chance[0]) then
                         acceptable_counter = false
+                    end
+                end
+
+                -- As a last option, if a unit cannot move and the attack with its main weapon has been found
+                -- to be not acceptable, check whether it has another weapon with a range at which the enemy
+                -- has no response. If so, this attack can be used without repercussion - but it should have
+                -- lower priority than other attacks, as it might be possible for other units to free this unit.
+                if (not acceptable_counter) and move_data.my_units_noMP[attacker_info.id] then
+                    local target_id, target_loc = next(combo.target)
+                    --std_print('Checking for unopposed attack: ' .. attacker_info.id, target_id)
+
+                    local unit_attack = fred_data.ops_data.unit_attacks[attacker_info.id][target_id]
+                    if unit_attack.nostrikeback then
+                        --DBG.dbms(unit_attack.nostrikeback, false, 'nostrikeback')
+                        acceptable_counter = true
+
+                        local hitchance = 1 - FGUI.get_unit_defense(move_data.unit_copies[target_id], target_loc[1], target_loc[2], move_data.defense_maps)
+                        min_total_damage_rating = unit_attack.nostrikeback.base_done * hitchance
+                            + unit_attack.nostrikeback.extra_done
+                            - unit_attack.enemy_regen
+                        -- Let's do other attacks first
+                        -- TODO: might make this conditional on whether the unit actually has moves left
+                        --   or is trapped, if it's the leader, ...
+                        min_total_damage_rating = min_total_damage_rating - 100
+
+                        local new_combo = {
+                            attacker_damages = { { id = attacker_info.id } },
+                            defender_damage = { id = target_id },
+                            weapons = { unit_attack.nostrikeback.weapon },
+                            target = combo.target,
+                            dsts = combo.dsts,
+                            rating_table = { rating = min_total_damage_rating },
+                            derating = 1,
+                            pre_rating = -999,
+                            penalty_rating = combo.penalty_rating,
+                            penalty_str = combo.penalty_str
+                        }
+                        -- It should be okay to modify the combo table here
+                        -- This is done so that no incorrect information is accidentally used below
+                        combo = new_combo
                     end
                 end
             end
