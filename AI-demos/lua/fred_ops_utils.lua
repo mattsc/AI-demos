@@ -860,7 +860,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             local bonus_slow = 4
             local bonus_regen = 8
 
-            local max_rating = - math.huge
+            local max_rating, max_rating_nostrikeback = - math.huge, -math.huge
             for i_w,attack in ipairs(move_data.unit_infos[my_id].attacks) do
                 --std_print('attack weapon: ' .. i_w)
 
@@ -884,7 +884,7 @@ function fred_ops_utils.set_ops_data(fred_data)
                 if (rating_table.rating > max_rating) then
                     max_rating = rating_table.rating
                     tmp_attacks = {
-                        my_regen = - enemy_regen_damage, -- not that this is (must be) backwards as this is
+                        my_regen = - enemy_regen_damage, -- note that this is (must be) backwards as this is
                         enemy_regen = - my_regen_damage, -- regeneration "damage" to the _opponent_
                         rating_forward = rating_table.rating,
                         damage_forward = {
@@ -896,6 +896,18 @@ function fred_ops_utils.set_ops_data(fred_data)
                             enemy_gen_hc = enemy_weapon.chance_to_hit / 100
                         }
                     }
+                end
+
+                if (enemy_weapon.attack_num == -1) then
+                    --std_print('no counter', my_id, enemy_id, i_w)
+                    if (rating_table.rating > max_rating_nostrikeback) then
+                        max_rating_nostrikeback = rating_table.rating
+                        tmp_attacks.nostrikeback = {
+                            weapon = i_w,
+                            base_done = my_base_damage,
+                            extra_done = my_extra_damage,
+                        }
+                    end
                 end
             end
             --DBG.dbms(tmp_attacks, false, 'tmp_attacks')
