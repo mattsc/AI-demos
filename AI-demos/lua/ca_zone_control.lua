@@ -1340,8 +1340,10 @@ local function get_attack_action(zone_cfg, fred_data)
                     village_protect_bonus, village_protect_weight,
                     unit_protect_bonus, unit_protect_weight
                 )
+                wesnoth.wml_actions.label { x = target_loc[1], y = target_loc[2], text = "target", color = '255,0,0' }
                 wesnoth.scroll_to_tile(target_loc[1], target_loc[2])
                 wesnoth.wml_actions.message { speaker = 'narrator', message = msg_str}
+                wesnoth.wml_actions.label { x = target_loc[1], y = target_loc[2], text = "" }
                 for i_a,_ in ipairs(combo.attacker_damages) do
                     local x, y = combo.dsts[i_a][1], combo.dsts[i_a][2]
                     wesnoth.wml_actions.label { x = x, y = y, text = "" }
@@ -1372,8 +1374,10 @@ local function get_attack_action(zone_cfg, fred_data)
                 wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal', color = '200,0,0' }
             end
             local _,target_loc = next(action.enemy)
+            wesnoth.wml_actions.label { x = target_loc[1], y = target_loc[2], text = "best target", color = '255,0,0' }
             wesnoth.scroll_to_tile(target_loc[1], target_loc[2])
             wesnoth.wml_actions.message { speaker = 'narrator', message = 'Best attack combo' }
+            wesnoth.wml_actions.label { x = target_loc[1], y = target_loc[2], text = "" }
             for i_a,attacker in ipairs(action.units) do
                 wesnoth.wml_actions.label { x = action.dsts[i_a][1], y = action.dsts[i_a][2], text = "" }
             end
