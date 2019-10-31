@@ -316,7 +316,7 @@ function fred_move_leader_utils.leader_objectives(fred_data)
     end
 
     local effective_reach_map, village, keep, other
-    if (move_data.unit_infos[leader.id].moves > 0) then
+    if move_data.my_units_MP[leader.id] then
         -- These are used for other purposes also, so they are not linked to whether we
         -- can reach the desired villages and keeps
         if prerecruit and prerecruit.units[1] then

@@ -104,7 +104,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
                 -- We don't need to consider units that have no MP left and cannot
                 -- be attacked by the enemy
                 local skip_unit = false
-                if (fred_data.move_data.unit_infos[id].moves == 0)
+                if fred_data.move_data.my_units_noMP[id]
                    and (not FGM.get_value(fred_data.move_data.enemy_attack_map[1], loc[1], loc[2], 'ids'))
                 then
                     skip_unit = true
@@ -122,7 +122,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
                         -- For units that have moved, we can use the actual hit_chance
                         -- TODO: we just use the defense here for now, not taking weapon specials into account
                         local enemy_hc
-                        if (fred_data.move_data.unit_infos[id].moves == 0) then
+                        if fred_data.move_data.my_units_noMP[id] then
                             enemy_hc = 1 - FGUI.get_unit_defense(fred_data.move_data.unit_copies[id], loc[1], loc[2], fred_data.move_data.defense_maps)
                         else
                             enemy_hc = counter.enemy_gen_hc
@@ -150,7 +150,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
                         ctd = approx_ctd
                     }
 
-                    if (fred_data.move_data.unit_infos[id].moves == 0) then
+                    if fred_data.move_data.my_units_noMP[id] then
                         -- In order to deal with units close to the borders between zones,
                         -- the unit only counts into the zone if:
                         -- 1. At least one of the enemies threatening it is in the same zone or

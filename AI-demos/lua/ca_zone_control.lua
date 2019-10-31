@@ -46,7 +46,7 @@ local function get_attack_action(zone_cfg, fred_data)
     else
         for id,loc in pairs(move_data.my_units) do
             local is_leader_and_off_keep = false
-            if move_data.unit_infos[id].canrecruit and (move_data.unit_infos[id].moves > 0) then
+            if move_data.unit_infos[id].canrecruit and move_data.my_units_MP[id] then
                 if (not wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).keep) then
                     is_leader_and_off_keep = true
                 end
@@ -175,7 +175,7 @@ local function get_attack_action(zone_cfg, fred_data)
                             break
                         end
 
-                        if (attacker_info.moves > 0) then
+                        if move_data.my_units_MP[attacker_info.id] then
                             if (att_outcome.average_hp < attacker_info.max_hitpoints / 2) then
                                 do_attack = false
                                 break
@@ -835,7 +835,11 @@ local function get_attack_action(zone_cfg, fred_data)
 
             for i_a,attacker_damage in ipairs(combo.attacker_damages) do
                 local attacker_info = move_data.unit_infos[attacker_damage.id]
-                DBG.print_debug('attack_print_output', '  by', attacker_info.id, combo.dsts[i_a][1], combo.dsts[i_a][2])
+                local attacker_can_move = true
+                if move_data.my_units_noMP[attacker_info.id] then
+                    attacker_can_move = false
+                end
+                DBG.print_debug('attack_print_output', '  by', attacker_info.id, combo.dsts[i_a][1], combo.dsts[i_a][2], 'can move:', attacker_can_move)
 
                 -- Now calculate the counter attack outcome
                 local attacker_moved = {}
@@ -1030,7 +1034,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 -- Also, it is different for attacks by individual units without MP;
                 -- for those it simply matters whether the attack makes things
                 -- better or worse, since there isn't a coice of moving someplace else
-                if counter_outcomes and ((#combo.attacker_damages > 1) or (attacker_info.moves > 0)) then
+                if counter_outcomes and ((#combo.attacker_damages > 1) or attacker_can_move) then
                     local counter_min_hp = counter_outcomes.def_outcome.min_hp
                     -- If there's a chance of the leader getting poisoned, slowed or killed, don't do it
                     -- unless he is poisoned/slowed already
@@ -1186,7 +1190,7 @@ local function get_attack_action(zone_cfg, fred_data)
 
                 if check_exposure and counter_outcomes
                     and (#combo.attacker_damages < 3) and (1.5 * #combo.attacker_damages < #damages_enemy_units)
-                    and ((#combo.attacker_damages > 1) or (move_data.unit_infos[combo.attacker_damages[1].id].moves > 0))
+                    and ((#combo.attacker_damages > 1) or attacker_can_move)
                 then
                     --std_print('       outnumbered in counter attack: ' .. #combo.attacker_damages .. ' vs. ' .. #damages_enemy_units)
                     local die_value = damages_my_units[i_a].die_chance * damages_my_units[i_a].unit_value
@@ -1235,7 +1239,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 if (combo.att_outcomes[1].hp_chance[0] < 0.25) then
                     local attacker_info = move_data.unit_infos[combo.attacker_damages[1].id]
 
-                    if (attacker_info.moves == 0) then
+                    if move_data.my_units_noMP[attacker_info.id] then
                         --DBG.print_ts_delta(fred_data.turn_start_time, '  by', attacker_info.id, combo.dsts[1][1], combo.dsts[1][2])
 
                         -- Now calculate the counter attack outcome
@@ -2954,7 +2958,7 @@ local function get_retreat_action(zone_cfg, fred_data)
     local leader = move_data.leaders[wesnoth.current.side]
     --DBG.dbms(leader_objectives, false, 'leader_objectives')
 
-    if (move_data.unit_infos[leader.id].moves > 0) then
+    if move_data.my_units_MP[leader.id] then
         if leader_objectives.village then
             local action = {
                 units = { leader },
@@ -3536,7 +3540,7 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
 
         -- If this is the leader (and has MP left), recruit first
         local leader_objectives = fred_data.ops_data.objectives.leader
-        if unit.canrecruit and (unit.moves > 0)
+        if unit.canrecruit and fred_data.move_data.my_units_MP[unit.id]
             and leader_objectives.prerecruit and leader_objectives.prerecruit.units and leader_objectives.prerecruit.units[1]
         then
             DBG.print_debug_time('exec', fred_data.turn_start_time, '=> exec: ' .. action .. ' (leader used -> recruit first)')
