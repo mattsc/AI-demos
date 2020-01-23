@@ -175,7 +175,7 @@ function debug_utils.put_fgumap_labels(map, key, cfg)
                     end
                 else
                     out = 'nil'
-                    red_fac, green_fac = 0, 0
+                    red_fac, green_fac = 0.5, 0.7
                 end
             end
         end
