@@ -1890,6 +1890,14 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     -- Note: the advance_distance_maps cover more hexes than just the zones,
     -- but the goal_hexes below are calculated for zone hexes only
+
+    -- Custom cost function to find the path with minimum advance_distance_map.perp values
+    local function adm_custom_cost(x, y, map, key)
+        local cost = FGM.get_value(map, x, y, key) or 99
+        cost = cost * 1000 + 1
+        return cost
+    end
+
     local advance_distance_maps = {}
     for zone_id,units in pairs(assigned_units) do
         advance_distance_maps[zone_id] = {}
@@ -1903,6 +1911,80 @@ function fred_ops_utils.set_ops_data(fred_data)
             for x,y,data in FGM.iter(unit_advance_distance_maps[zone_id][typ]) do
                 FGM.add(advance_distance_maps[zone_id], x, y, 'forward', data.forward / n_units)
                 FGM.add(advance_distance_maps[zone_id], x, y, 'perp', data.perp / n_units)
+            end
+        end
+
+        local min_forward, start_hex = math.huge
+        local max_forward, end_hex = - math.huge
+        for x,y,data in FGM.iter(advance_distance_maps[zone_id]) do
+            if (data.perp < 1) then
+                --std_print(zone_id, x, y, data.forward, min_forward)
+                if (data.forward < min_forward) then
+                    min_forward = data.forward
+                    start_hex = { x = x, y = y }
+                end
+                if (data.forward > max_forward) then
+                    max_forward = data.forward
+                    end_hex = { x = x, y = y }
+                end
+            end
+        end
+        --std_print(zone_id, start_hex.x .. ',' .. start_hex.y, end_hex.x .. ',' .. end_hex.y)
+
+        local path, cost = wesnoth.find_path(start_hex, end_hex.x, end_hex.y,
+            function(x, y, current_cost)
+                return adm_custom_cost(x, y, advance_distance_maps[zone_id], 'perp')
+            end
+        )
+        local path_map = {}
+        for _,loc in ipairs(path) do
+            FGM.set_value(path_map, loc[1], loc[2], 'sign', 0)
+        end
+
+        local new_hexes = {}
+        for i_p=1,#path-1 do
+            p1, p2 = path[i_p], path[i_p+1]
+            local rad_path = AH.get_angle(p1, p2)
+            --std_print(p1[1] .. ',' .. p1[2], p2[1] .. ',' .. p2[2], rad_path)
+
+            for xa,ya in H.adjacent_tiles(p1[1], p1[2]) do
+                local rad = AH.get_angle(p1, { xa, ya })
+                local drad = rad - rad_path
+                --std_print('  ' .. xa .. ',' .. ya .. ':', rad, drad)
+
+                if (not FGM.get_value(path_map, xa, ya, 'sign')) then
+                    if (drad > 0) and (drad < 3.14) or (drad < -3.14) then
+                        table.insert(new_hexes, { xa, ya, 1 })
+                        FGM.set_value(path_map, xa, ya, 'sign', 1)
+                    else
+                        table.insert(new_hexes, { xa, ya, -1 })
+                        FGM.set_value(path_map, xa, ya, 'sign', -1)
+                    end
+                end
+            end
+        end
+
+        while (#new_hexes > 0) do
+            local old_hexes = AH.table_copy(new_hexes)
+            new_hexes = {}
+
+            for _,hex in ipairs(old_hexes) do
+                for xa,ya in H.adjacent_tiles(hex[1], hex[2]) do
+                    if (not FGM.get_value(path_map, xa, ya, 'sign')) then
+                        table.insert(new_hexes, { xa, ya, hex[3] })
+                        FGM.set_value(path_map, xa, ya, 'sign', hex[3])
+                    end
+                end
+            end
+        end
+
+        for x,y,data in FGM.iter(advance_distance_maps[zone_id]) do
+            -- We're not making perp a signed quantity here, but instead add a separate 'sign' entry.
+            -- This is in part due to debug map display purposes, to emphasize low 'perp' values.
+            if (data.perp < 1) then
+                data.sign = 0
+            else
+                data.sign = path_map[x][y].sign
             end
         end
     end
@@ -2091,6 +2173,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
             DBG.show_fgumap_with_message(ADmap, 'forward', 'advance_distance_map ' .. zone_id .. ': forward')
             DBG.show_fgumap_with_message(ADmap, 'perp', 'advance_distance_map ' .. zone_id .. ': perp')
+            DBG.show_fgumap_with_message(ADmap, 'sign', 'advance_distance_map ' .. zone_id .. ': sign')
             for x,y,_ in FGM.iter(front_map) do
                 wesnoth.wml_actions.item { x = x, y = y, halo = "halo/teleport-8.png" }
             end
