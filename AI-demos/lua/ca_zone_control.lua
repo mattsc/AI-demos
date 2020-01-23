@@ -2724,6 +2724,7 @@ local function get_advance_action(zone_cfg, fred_data)
             local ADmap = fred_data.ops_data.advance_distance_maps[zone_cfg.zone_id]
             local goal_forward = FGM.get_value(ADmap, goal[1], goal[2], 'forward')
             local goal_perp = FGM.get_value(ADmap, goal[1], goal[2], 'perp')
+            goal_perp = goal_perp * FGM.get_value(ADmap, goal[1], goal[2], 'sign')
             for x,y,_ in FGM.iter(move_data.effective_reach_maps[id]) do
                 if (not FGM.get_value(avoid_maps[id], x, y, 'avoid')) then
                     local forward = FGM.get_value(ADmap, x, y, 'forward')
@@ -2738,6 +2739,7 @@ local function get_advance_action(zone_cfg, fred_data)
                     local df = math.abs(forward - goal_forward) / max_moves
                     local dp = math.abs(perp - goal_perp) / max_moves / 2
                     local cost = df ^ 1.5 + dp ^ 2
+                    perp = perp * (FGM.get_value(ADmap, x, y, 'sign') or 1)
                     cost = cost * max_moves
 
                     FGM.set_value(cost_map, x, y, 'cost', cost)
