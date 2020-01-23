@@ -45,6 +45,7 @@ local debug_cfg = {
     --advance_insufficient_support_maps = false,
     advance_cost_maps = false,
     advance_unit_rating = false,
+    advance_unit_rating_details = false,
 
     retreat_heal_maps = false,
     retreat_unit_rating = false,

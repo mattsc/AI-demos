@@ -2725,6 +2725,7 @@ local function get_advance_action(zone_cfg, fred_data)
             local goal_forward = FGM.get_value(ADmap, goal[1], goal[2], 'forward')
             local goal_perp = FGM.get_value(ADmap, goal[1], goal[2], 'perp')
             goal_perp = goal_perp * FGM.get_value(ADmap, goal[1], goal[2], 'sign')
+            --std_print('goal forward, perp: ' .. goal_forward .. ', ' .. goal_perp)
             for x,y,_ in FGM.iter(move_data.effective_reach_maps[id]) do
                 if (not FGM.get_value(avoid_maps[id], x, y, 'avoid')) then
                     local forward = FGM.get_value(ADmap, x, y, 'forward')
@@ -2759,6 +2760,10 @@ local function get_advance_action(zone_cfg, fred_data)
                     cost = cost * max_moves
 
                     FGM.set_value(cost_map, x, y, 'cost', cost)
+                    --cost_map[x][y].forward = forward
+                    --cost_map[x][y].perp = perp
+                    cost_map[x][y].df = df
+                    cost_map[x][y].dp = dp
                 end
             end
         else
@@ -2778,12 +2783,18 @@ local function get_advance_action(zone_cfg, fred_data)
         end
 
         if DBG.show_debug('advance_cost_maps') then
+            --DBG.show_fgumap_with_message(cost_map, 'forward', zone_cfg.zone_id ..': advance cost map forward', move_data.unit_copies[id])
+            --DBG.show_fgumap_with_message(cost_map, 'perp', zone_cfg.zone_id ..': advance cost map perp', move_data.unit_copies[id])
+            DBG.show_fgumap_with_message(cost_map, 'df', zone_cfg.zone_id ..': advance cost map delta forward', move_data.unit_copies[id])
+            DBG.show_fgumap_with_message(cost_map, 'dp', zone_cfg.zone_id ..': advance cost map delta perp', move_data.unit_copies[id])
             DBG.show_fgumap_with_message(cost_map, 'cost', zone_cfg.zone_id ..': advance cost map', move_data.unit_copies[id])
         end
 
         for x,y,_ in FGM.iter(move_data.effective_reach_maps[id]) do
             if (not FGM.get_value(avoid_maps[id], x, y, 'avoid')) then
                 local rating = rating_moves + rating_power
+                FGM.set_value(unit_rating_maps[id], x, y, 'unit_rating', rating)
+
                 dist = FGM.get_value(cost_map, x, y, 'cost')
 
                 -- Counter attack outcome
@@ -2801,10 +2812,10 @@ local function get_advance_action(zone_cfg, fred_data)
                     --std_print('  die_chance', counter_outcomes.def_outcome.hp_chance[0], id .. ': ' .. x .. ',' .. y)
 
                     -- This is the standard attack rating (roughly) in units of cost (gold)
-                    local counter_rating = - counter_outcomes.rating_table.max_weighted_rating
+                    local counter_rating = 0
 
                     if already_holding then
-                        rating = rating + counter_rating
+                        counter_rating = - counter_outcomes.rating_table.max_weighted_rating
                         --std_print(x .. ',' .. y .. ': counter' , counter_rating, unit_value_ratio)
                     else
                         -- If nobody is holding, that means that the hold with these units was
@@ -2820,9 +2831,9 @@ local function get_advance_action(zone_cfg, fred_data)
                         --std_print('  enemy rating:', enemy_rating)
 
                         -- Note that damage ratings are negative
-                        rating = rating + damage_rating + heal_rating
-                        rating = rating - enemy_rating / 10
                     end
+                        counter_rating = damage_rating + heal_rating
+                        counter_rating = counter_rating - enemy_rating / 10
 
                     -- The die chance is already included in the rating, but we
                     -- want it to be even more important here (and very non-linear)
@@ -2831,7 +2842,10 @@ local function get_advance_action(zone_cfg, fred_data)
                     -- really matters, so we multiply by another factor 2.
                     -- This makes this a huge contribution to the rating.
                     local die_rating = - unit_value_ratio * unit_value * counter_outcomes.def_outcome.hp_chance[0] ^ 2 / 0.85^2 * 2
-                    rating = rating + die_rating
+                    counter_rating = counter_rating + die_rating
+
+                    rating = rating + counter_rating
+                    FGM.set_value(unit_rating_maps[id], x, y, 'counter_rating', counter_rating)
                 end
 
                 if (not counter_outcomes) or (counter_outcomes.def_outcome.hp_chance[0] < 0.85) then
@@ -2844,7 +2858,9 @@ local function get_advance_action(zone_cfg, fred_data)
                 -- Note: unit_value_ratio is already taken care of in both the location of the goal hex
                 -- and the counter attack rating.  Is including the push factor overdoing it?
 
-                rating = rating - dist * unit_value / 2 * push_factor * hp_forward_factor
+                local dist_rating = - dist * unit_value / 2 * push_factor * hp_forward_factor
+                rating = rating + dist_rating
+                FGM.set_value(unit_rating_maps[id], x, y, 'dist_rating', dist_rating)
 
                 -- We additionally discourage locations behind enemy lines without sufficient support
                 -- TODO: this is a large effect and it introduces a discontinuity, might
@@ -2880,14 +2896,17 @@ local function get_advance_action(zone_cfg, fred_data)
                     village_bonus = unit_value * (1 / hp_forward_factor - 1) -- zero for uninjured unit
                 end
 
-                rating = rating + village_bonus * unit_value_ratio
+                local bonus_rating = village_bonus * unit_value_ratio
 
                 -- Small bonus for the terrain; this does not really matter for
                 -- unthreatened hexes and is already taken into account in the
                 -- counter attack calculation for others. Just a tie breaker.
                 local my_defense = FGUI.get_unit_defense(move_data.unit_copies[id], x, y, move_data.defense_maps)
-                rating = rating + my_defense / 10
+                bonus_rating = bonus_rating + my_defense / 10
 
+                rating = rating + bonus_rating
+
+                FGM.set_value(unit_rating_maps[id], x, y, 'bonus_rating', bonus_rating)
                 FGM.set_value(unit_rating_maps[id], x, y, 'rating', rating)
 
                 if (not max_rating) or (rating > max_rating) then
@@ -2903,6 +2922,15 @@ local function get_advance_action(zone_cfg, fred_data)
     if DBG.show_debug('advance_unit_rating') then
         for id,unit_rating_map in pairs(unit_rating_maps) do
             DBG.show_fgumap_with_message(unit_rating_map, 'rating', zone_cfg.zone_id ..': advance unit rating (unit value = ' .. FU.unit_value(move_data.unit_infos[id]) .. ')', move_data.unit_copies[id])
+        end
+    end
+    if DBG.show_debug('advance_unit_rating_details') then
+        for id,unit_rating_map in pairs(unit_rating_maps) do
+            DBG.show_fgumap_with_message(unit_rating_map, 'unit_rating', zone_cfg.zone_id ..': advance unit_rating (unit value = ' .. FU.unit_value(move_data.unit_infos[id]) .. ')', move_data.unit_copies[id])
+            DBG.show_fgumap_with_message(unit_rating_map, 'dist_rating', zone_cfg.zone_id ..': advance dist_rating (unit value = ' .. FU.unit_value(move_data.unit_infos[id]) .. ')', move_data.unit_copies[id])
+            DBG.show_fgumap_with_message(unit_rating_map, 'counter_rating', zone_cfg.zone_id ..': advance counter_rating (unit value = ' .. FU.unit_value(move_data.unit_infos[id]) .. ')', move_data.unit_copies[id])
+            DBG.show_fgumap_with_message(unit_rating_map, 'bonus_rating', zone_cfg.zone_id ..': advance bonus_rating (unit value = ' .. FU.unit_value(move_data.unit_infos[id]) .. ')', move_data.unit_copies[id])
+            DBG.show_fgumap_with_message(unit_rating_map, 'rating', zone_cfg.zone_id ..': advance total rating (unit value = ' .. FU.unit_value(move_data.unit_infos[id]) .. ')', move_data.unit_copies[id])
         end
     end
 
