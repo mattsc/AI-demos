@@ -754,7 +754,12 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
     --DBG.dbms(cycle_ratio, false, 'cycle_ratio')
     --DBG.dbms(push_factor, false, 'push_factor')
-    behavior.orders.push_factor = push_factor[0]
+
+    -- For now, just use average of current turn and next turn (value_ratio is done differently)
+    -- TODO: this might need to be different if playing side 2
+    --behavior.orders.push_factor = push_factor[0]
+    behavior.orders.push_factor = (push_factor[0] + push_factor[1]) / 2
+    --std_print('behavior.orders.push_factor', behavior.orders.push_factor)
 
     --DBG.dbms(behavior, false, 'behavior')
 
