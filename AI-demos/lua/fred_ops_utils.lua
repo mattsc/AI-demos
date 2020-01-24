@@ -1078,11 +1078,38 @@ function fred_ops_utils.set_ops_data(fred_data)
                 --std_print(id, used_units[id])
                 units_noMP_zones[id] = used_units[id]
             else
-                local zone_id = FU.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs)
+                -- If the unit is in a zone, and there are enemies threatening it in the same zone
+                -- we pre-assign it to that zone
+                -- Otherwise, we checked which zone it moved toward
+                local in_zone
+                for zone_id,raw_cfg in pairs(raw_cfgs) do
+                    if wesnoth.match_location(unit_copy.x, unit_copy.y, raw_cfgs[zone_id].ops_slf) then
+                        in_zone = zone_id
+                        break
+                    end
+                end
+
+                local to_zone
+                if in_zone then
+                    local enemy_ids = FGM.get_value(move_data.enemy_attack_map[1], unit_copy.x, unit_copy.y, 'ids')
+                    -- TODO: maybe check if there are more units in a different zone?
+                    -- TODO: also might want to include some units shielded by own units
+                    for _,enemy_id in ipairs(enemy_ids or {}) do
+                        if (in_zone == enemy_zones[enemy_id]) then
+                            to_zone = in_zone
+                            break
+                        end
+                    end
+                end
+
+                if (not to_zone) then
+                    to_zone = FU.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs)
+                end
+
                 if move_data.my_units_MP[id] then
-                    pre_assigned_units[id] = zone_id
+                    pre_assigned_units[id] = to_zone
                 else
-                    units_noMP_zones[id] = zone_id
+                    units_noMP_zones[id] = to_zone
                 end
             end
         end
