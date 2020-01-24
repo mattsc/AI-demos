@@ -2040,6 +2040,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         -- Otherwise we move toward the most forward location with no enemy_influence along center line
         local max_forward, min_forward = -9e99, 9e99
         local max_vuln, max_forward_hold = - math.huge
+        local max_adj_rating, preset_adv_hex = - math.huge
         if objectives.protect.zones[zone_id] and objectives.protect.zones[zone_id].holders and next(objectives.protect.zones[zone_id].holders) then
             for id,_ in pairs(objectives.protect.zones[zone_id].holders) do
                 local loc = move_data.units[id]
@@ -2052,6 +2053,25 @@ function fred_ops_utils.set_ops_data(fred_data)
                 end
                 if (forward < min_forward) then
                     min_forward = forward
+                end
+
+                -- If units are already holding, set advance goal to be close to the most forward
+                -- unit (as opposed to only going toward the same 'forward' value)
+                -- TODO: this is dealt with really inefficiently (farther below), change later if this turns out to be good
+                --std_print(zone_id, id, loc[1], loc[2], forward)
+                for xa,ya in H.adjacent_tiles(loc[1], loc[2]) do
+                   local adj_forward = FGM.get_value(ADmap, xa, ya, 'forward') or math.huge
+                   if (adj_forward < forward) then
+                       local adj_perp = FGM.get_value(ADmap, xa, ya, 'perp') or math.huge
+                       -- want the most forward of these, and closest to the "center line"
+                       local adj_rating = adj_forward - 0.55 * adj_perp
+                       --std_print('  ' .. xa .. ',' .. ya, adj_rating, adj_forward, adj_perp)
+
+                       if (adj_rating > max_adj_rating) then
+                           max_adj_rating = adj_rating
+                           preset_adv_hex = { xa, ya }
+                       end
+                    end
                 end
             end
         else
@@ -2152,6 +2172,10 @@ function fred_ops_utils.set_ops_data(fred_data)
                         end
                     end
                 end
+            end
+
+            if preset_adv_hex then
+                goal_hex = preset_adv_hex
             end
 
             if (not goal_hex[1]) then
