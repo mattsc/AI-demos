@@ -742,11 +742,15 @@ function fred_ops_utils.set_ops_data(fred_data)
     --behavior.orders.expansion = behavior.ratios.influence / behavior.ratios.assets
 
     local midpoint = math.sqrt(max_power_ratio / min_power_ratio) * min_power_ratio
-    --std_print('midpoint: ' .. midpoint)
+    local pushfactor_min_midpoint = FCFG.get_cfg_parm('pushfactor_min_midpoint')
+    local mid_point_factor = 1
+    if (midpoint < pushfactor_min_midpoint) then mid_point_factor = pushfactor_min_midpoint / midpoint end
+    --std_print('midpoint: ' .. midpoint, mid_point_factor)
+
     local cycle_ratio, push_factor = {}, {}
     for i = 0,n_turns-1 do
         cycle_ratio[i] = power_ratio[i] / midpoint
-        push_factor[i] = cycle_ratio[i] * power_ratio[i]
+        push_factor[i] = cycle_ratio[i] * power_ratio[i] * mid_point_factor
     end
     --DBG.dbms(cycle_ratio, false, 'cycle_ratio')
     --DBG.dbms(push_factor, false, 'push_factor')
