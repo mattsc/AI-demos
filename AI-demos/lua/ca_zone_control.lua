@@ -2166,8 +2166,7 @@ local function get_hold_action(zone_cfg, fred_data)
     --DBG.dbms(goal, false, 'goal')
     local ADmap = fred_data.ops_data.advance_distance_maps[zone_cfg.zone_id]
     local goal_forward = FGM.get_value(ADmap, goal[1], goal[2], 'forward')
-    local goal_perp = FGM.get_value(ADmap, goal[1], goal[2], 'perp')
-    --std_print(zone_cfg.zone_id .. ' hold_goal: ' .. (goal[1] or -1) .. ',' .. (goal[2] or -1), goal_forward, goal_perp)
+    --std_print(zone_cfg.zone_id .. ' hold_goal: ' .. (goal[1] or -1) .. ',' .. (goal[2] or -1), goal_forward)
 
     local hold_rating_maps = {}
     for id,hold_here_map in pairs(hold_here_maps) do
@@ -2200,7 +2199,7 @@ local function get_hold_action(zone_cfg, fred_data)
                 local vuln_rating = base_rating + hold_rating_data.vuln / max_vuln * vuln_rating_weight
 
                 local forward = FGM.get_value(ADmap, x, y, 'forward')
-                local perp = FGM.get_value(ADmap, x, y, 'perp')
+                local perp = FGM.get_value(ADmap, x, y, 'perp') -- don't need sign here, as no difference is calculated
                 local df = math.abs(forward - goal_forward) / max_moves
                 local dp = math.abs(perp) / max_moves
                 local cost = df ^ 1.5 + dp ^ 2
