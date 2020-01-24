@@ -2213,8 +2213,8 @@ function fred_ops_utils.set_ops_data(fred_data)
             end
             wesnoth.wml_actions.item { x = goal_hex[1], y = goal_hex[2], halo = "halo/illuminates-aura.png~CS(-255,-255,0)" }
             wesnoth.wml_actions.item { x = goal_hex_hold[1], y = goal_hex_hold[2], halo = "halo/illuminates-aura.png~CS(0,-255,-255)" }
-            DBG.show_fgumap_with_message(display_map, 'infl', 'advance route influence: ' .. zone_id)
-            DBG.show_fgumap_with_message(display_map, 'vuln', 'advance route vulnerability: ' .. zone_id)
+            DBG.show_fgumap_with_message(display_map, 'infl', 'advance route influence: ' .. zone_id .. '\nred halo: goal hex hold\nblue halo: goal hex advance')
+            DBG.show_fgumap_with_message(display_map, 'vuln', 'advance route vulnerability: ' .. zone_id .. '\nred halo: goal hex hold\nblue halo: goal hex advance')
             wesnoth.wml_actions.remove_item { x = goal_hex_hold[1], y = goal_hex_hold[2], halo = "halo/illuminates-aura.png~CS(0,-255,-255)" }
             wesnoth.wml_actions.remove_item { x = goal_hex[1], y = goal_hex[2], halo = "halo/illuminates-aura.png~CS(-255,-255,0)" }
             for x,y,_ in FGM.iter(front_map) do
