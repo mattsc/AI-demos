@@ -98,7 +98,7 @@ function fred_scenario_setup.fred_scenario_setup()
                     .. " local fred_show_behavior = wml.variables.fred_show_behavior or 1"
                     .. " fred_show_behavior = (fred_show_behavior % #options) + 1"
                     .. " wml.variables.fred_show_behavior = fred_show_behavior"
-                    .. " local str = 'Show behavior now set to ' .. fred_show_behavior .. ': ' .. options[fred_show_behavior] .. '    (press b to change)'"
+                    .. " local str = 'Show behavior now set to ' .. fred_show_behavior .. ': ' .. options[fred_show_behavior] .. '    (press shift-b to change)'"
                     .. " wesnoth.message('Fred', str)"
                     .. " std_print(str)"
                 } },

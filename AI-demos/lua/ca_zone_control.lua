@@ -2074,6 +2074,7 @@ local function get_hold_action(zone_cfg, fred_data)
         for x,y,data in FGM.iter(adj_hex_map) do
             FGM.set_value(hold_here_map, x, y, 'av_outcome', data.av_outcome)
         end
+        --DBG.show_fgumap_with_message(hold_here_map, 'av_outcome', 'hold_here', move_data.unit_copies[id])
 
         local fraction_hp_missing = (move_data.unit_infos[id].max_hitpoints - move_data.unit_infos[id].hitpoints) / move_data.unit_infos[id].max_hitpoints
         local hp_rating = FU.weight_s(fraction_hp_missing, 0.5)
@@ -2125,8 +2126,8 @@ local function get_hold_action(zone_cfg, fred_data)
                             local advance_factor = 1 / (ld - front_ld)
 
                             advance_factor = advance_factor
-                           --FGM.set_value(hold_here_maps[id], x, y, 'hold_here', value_loss)
-                           --std_print(x, y, ld, front_ld, f)
+                            --FGM.set_value(hold_here_maps[id], x, y, 'hold_here', value_loss)
+                            --std_print(x, y, ld, front_ld, f)
 
                             if (value_loss < - advance_factor) then
                                 FGM.set_value(hold_here_maps[id], x, y, 'hold_here', false)
@@ -2690,7 +2691,7 @@ local function get_advance_action(zone_cfg, fred_data)
     local max_rating, best_id, best_hex
     for id,xy in pairs(advancers) do
         local unit_loc = { math.floor(xy / 1000), xy % 1000 }
-        -- Don't use ops_slf here, but pre-calculated zone_amps. The zone_map used can be
+        -- Don't use ops_slf here, but pre-calculated zone_maps. The zone_map used can be
         -- different from that in the SLF, e.g. for the leader zone or if parts of a zone are
         -- to be avoided (the latter is not implemented yet).
         local is_unit_in_zone = FGM.get_value(fred_data.ops_data.zone_maps[zone_cfg.zone_id], unit_loc[1], unit_loc[2], 'in_zone')
