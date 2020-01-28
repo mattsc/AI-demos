@@ -2814,10 +2814,10 @@ local function get_advance_action(zone_cfg, fred_data)
                     -- This is the standard attack rating (roughly) in units of cost (gold)
                     local counter_rating = 0
 
-                    if already_holding then
-                        counter_rating = - counter_outcomes.rating_table.max_weighted_rating
+--                    if already_holding then
+--                        counter_rating = - counter_outcomes.rating_table.max_weighted_rating
                         --std_print(x .. ',' .. y .. ': counter' , counter_rating, unit_value_ratio)
-                    else
+--                    else
                         -- If nobody is holding, that means that the hold with these units was
                         -- considered not worth it, which means we should be much more careful
                         -- advancing them as well -> use mostly own damage rating
@@ -2831,9 +2831,9 @@ local function get_advance_action(zone_cfg, fred_data)
                         --std_print('  enemy rating:', enemy_rating)
 
                         -- Note that damage ratings are negative
-                    end
                         counter_rating = damage_rating + heal_rating
                         counter_rating = counter_rating - enemy_rating / 10
+--                    end
 
                     -- The die chance is already included in the rating, but we
                     -- want it to be even more important here (and very non-linear)

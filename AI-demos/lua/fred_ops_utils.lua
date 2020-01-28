@@ -1355,8 +1355,8 @@ function fred_ops_utils.set_ops_data(fred_data)
         --DBG.show_fgumap_with_message(leader_distance_map, 'my_leader_distance', 'leader_distance_map: my_leader_distance')
         --DBG.show_fgumap_with_message(leader_distance_map, 'enemy_leader_distance', 'leader_distance_map: enemy_leader_distance')
         DBG.show_fgumap_with_message(leader_distance_map, 'distance', 'leader_distance_map: distance')
-        --DBG.show_fgumap_with_message(unit_advance_distance_maps['west']['Troll Whelp'], 'my_cost', 'my_cost')
-        --DBG.show_fgumap_with_message(unit_advance_distance_maps['west']['Troll Whelp'], 'enemy_cost', 'enemy_cost')
+        --DBG.show_fgumap_with_message(unit_advance_distance_maps['right']['Troll Whelp'], 'my_cost', 'my_cost')
+        --DBG.show_fgumap_with_message(unit_advance_distance_maps['right']['Troll Whelp'], 'enemy_cost', 'enemy_cost')
 
         for zone_id,uadm in pairs(unit_advance_distance_maps) do
             local typ

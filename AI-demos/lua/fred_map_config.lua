@@ -31,8 +31,8 @@ function fred_map_config.get_raw_cfgs(zone_id)
         ops_slf = { x = '1-' .. width, y = '1-' .. height},
     }
 
-    local cfg_west = {
-        zone_id = 'west',
+    local cfg_right = {
+        zone_id = 'right',
         ops_slf = { x = '1-15,1-14,1-16,1-21', y = '1-12,13-15,16,17-24' },
         center_hexes = { { 10, 13 } },
         zone_weight = 1,
@@ -45,8 +45,8 @@ function fred_map_config.get_raw_cfgs(zone_id)
         zone_weight = 0.5,
     }
 
-    local cfg_east = {
-        zone_id = 'east',
+    local cfg_left = {
+        zone_id = 'left',
         center_hexes = { { 28, 13 } },
         ops_slf = { x = '21-34,23-34,24-34,23-34,17-34', y = '1-7,8-9,10-12,13-17,18-24' },
         zone_weight = 1,
@@ -75,18 +75,18 @@ function fred_map_config.get_raw_cfgs(zone_id)
 
     if (not zone_id) then
         local zone_cfgs = {
-            west = cfg_west,
+            right = cfg_right,
             center = cfg_center,
-            east = cfg_east
+            left = cfg_left
         }
        return zone_cfgs
 
     elseif (zone_id == 'all') then
         local all_cfgs = {
             leader_threat = cfg_leader_threat,
-            west = cfg_west,
+            right = cfg_right,
             center = cfg_center,
-            east = cfg_east,
+            left = cfg_left,
             top = cfg_top,
             all_map = cfg_all_map
         }
@@ -95,9 +95,9 @@ function fred_map_config.get_raw_cfgs(zone_id)
     else
         local cfgs = {
             leader_threat = cfg_leader_threat,
-            west = cfg_west,
+            right = cfg_right,
             center = cfg_center,
-            east = cfg_east,
+            left = cfg_left,
             top = cfg_top,
             all_map = cfg_all_map
         }
@@ -112,7 +112,7 @@ end
 
 function fred_map_config.replace_zone_ids()
     local zone_ids = { {
-        old = { 'center', 'east' },
+        old = { 'center', 'left' },
         new = 'top'
     } }
 
