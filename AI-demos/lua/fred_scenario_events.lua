@@ -57,7 +57,7 @@ wesnoth.add_event_handler {
     { 'filter', {
         type = 'Orcish Assassin',
         { 'filter_side', {
-            { 'has_unit', { id = 'Fred' } }
+            { 'has_unit', { id = 'Fred1,Fred2' } }
         } }
     } },
     -- Only if the defender is not poisoned after the attack. This also
@@ -141,7 +141,7 @@ wesnoth.add_event_handler {
     { 'filter_second', {
         race = 'goblin',
         { 'filter_side', {
-            { 'has_unit', { id = 'Fred' } }
+            { 'has_unit', { id = 'Fred1,Fred2' } }
         } },
         { 'filter_wml', { hitpoints = 1 } }
     } },
@@ -199,7 +199,7 @@ wesnoth.add_event_handler {
     -- For any unit on Fred's side being attacked
     { 'filter_second', {
         { 'filter_side', {
-            { 'has_unit', { id = 'Fred' } }
+            { 'has_unit', { id = 'Fred1,Fred2' } }
         } },
     } },
 
@@ -260,7 +260,8 @@ wesnoth.add_event_handler {
     name = 'Fred_angry',
 
     { 'message', {
-        id = 'Fred',
+        id = 'Fred1,Fred2',
+        side = '$unit.side',
         message = "You'll pay for that!"
     } }
 }
@@ -273,7 +274,7 @@ wesnoth.add_event_handler {
     { 'filter_second', {
         canrecruit = 'no',
         { 'filter_side', {
-            { 'has_unit', { id = 'Fred' } }
+            { 'has_unit', { id = 'Fred1,Fred2' } }
         } },
     } },
 
@@ -310,7 +311,10 @@ wesnoth.add_event_handler {
                     } },
 
                     { 'then', {
-                        { 'fire_event', { name = 'Fred_angry' } }
+                        { 'fire_event', {
+                            name = 'Fred_angry',
+                            { 'primary_unit' , { id = '$second_unit.id' } }
+                        } }
                     } }
                 } },
 
