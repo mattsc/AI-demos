@@ -63,10 +63,14 @@ wesnoth.add_event_handler {
     -- Only if the defender is not poisoned after the attack. This also
     -- excludes attacks in which then enemy is already poisoned beforehand,
     -- but that does not matter, as it is not supposed to show every time anyway.
+    -- Exclude unpoisonable units, as they may produce a false positive.
     { 'filter_second', {
         { 'filter_wml', {
             { 'not', {
                 { 'status', { poisoned = 'yes' } }
+            } },
+            { 'not', {
+                { 'status', { unpoisonable = 'yes' } }
             } }
         } }
     } },
