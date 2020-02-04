@@ -11,12 +11,18 @@ local function is_CA_debugging_mode()
     return false
 end
 
-local function is_wrong_side(side)
-    if (side ~= wesnoth.current.side) then
-        wesnoth.message("!!!!! Error !!!!! You need to be in control of Side " .. side)
-        return true
+local function is_wrong_side()
+    local side_info = wesnoth.sides[wesnoth.current.side]
+    local stage = wml.get_child(wml.get_child(side_info.__cfg, 'ai'), 'stage')
+    for CA in wml.child_range(stage, 'candidate_action') do
+        --std_print(CA.name)
+        if (CA.name == 'zone_control') then
+            return false
+        end
     end
-    return false
+
+    wesnoth.message("!!!!! Error !!!!! You need to be in control of a side using the Fred AI CAs.")
+    return true
 end
 
 local function CA_name()
@@ -84,7 +90,7 @@ end
 
 local function init_CA(self)
     wesnoth.clear_messages()
-    if is_wrong_side(1) then return end
+    if is_wrong_side() then return end
 
     -- Get the AI table and the CA functions
     local ai = wesnoth.debug_ai(wesnoth.current.side).ai
@@ -133,7 +139,7 @@ return {
     end,
 
     eval_exec_CA = function(exec_also, hotkey)
-        if is_wrong_side(1) then return end
+        if is_wrong_side() then return end
 
         local self = dummy_self
         local ai, ca = init_CA(self)
@@ -184,7 +190,7 @@ return {
 
     play_turn = function(ai)
         -- Play through an entire AI turn (zone_control CA only)
-        if is_wrong_side(1) then return end
+        if is_wrong_side() then return end
 
         local self = dummy_self
 

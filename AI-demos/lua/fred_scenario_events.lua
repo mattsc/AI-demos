@@ -2,6 +2,11 @@
 -- so that they can be inserted conditionally only into Fred games, and not
 -- into every game when AI-demos is active.
 
+-- TODO: the start and end messages will not show up any more, because the id
+--   of the side leader has been change to FredN, where N is the side number.
+--   That's okay, they were getting old anyway. Keep the events for now, but
+--   I'll probably remove them at some point altogether.
+
 ---------- Start message ----------
 wesnoth.add_event_handler {
     name = 'side 1 turn 1',
@@ -9,7 +14,7 @@ wesnoth.add_event_handler {
     { 'message', {
         id = 'Fred',
         caption = "Fred (Freelands AI v$AI_Demos_version)",
-        message = "Good luck, have fun!\n\n<i>Note: This is an <span color='#C00000' weight='bold'>intermediate development release</span> uploaded in the middle of rebalancing Fred's overall behavior. Thus, some new problems with Fred's gameplay are expected and not all of the old issues have been dealt with yet.</i>"
+        message = "Good luck, have fun!\n"
     } }
 }
 

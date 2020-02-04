@@ -12,7 +12,7 @@ end
 
 function ca_stats:execution(cfg, data)
     local tod = wesnoth.get_time_of_day()
-    std_print('\n**** Fred ' .. wesnoth.dofile('~/add-ons/AI-demos/version.lua') .. ' *******************************************************')
+    std_print('\n**** Fred Side ' .. wesnoth.current.side .. ' (version ' .. wesnoth.dofile('~/add-ons/AI-demos/version.lua') .. ') *******************************************************')
     DBG.print_ts('Beginning of Turn ' .. wesnoth.current.turn .. ' (' .. tod.name ..') stats')
 
     local sides = {}
@@ -60,7 +60,7 @@ function ca_stats:execution(cfg, data)
 
     if leveled_units then std_print('    Leveled units: ' .. leveled_units) end
 
-    std_print('************************************************************************')
+    std_print('************************************************************************************')
 end
 
 return ca_stats

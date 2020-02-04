@@ -1,57 +1,54 @@
-local function is_fred()
-    -- Check whether side is played by Fred
+local function fred_sides()
+    -- Check which sides are played by Fred
     -- We do this by testing whether the 'zone_control' CA exists
-    -- Returns the side number of the first side for which the CA is found, false otherwise
+    -- Returns an array of the side numbers played by Fred
 
+    local fred_sides = {}
     for _,side_info in ipairs(wesnoth.sides) do
         local stage = wml.get_child(wml.get_child(side_info.__cfg, 'ai'), 'stage')
         for CA in wml.child_range(stage, 'candidate_action') do
             --std_print(CA.name)
-            if (CA.name == 'zone_control') then return side_info.side end
+            if (CA.name == 'zone_control') then
+                table.insert(fred_sides, side_info.side)
+                break
+            end
         end
     end
 
-    return false
+    return fred_sides
 end
 
 local fred_scenario_setup = {}
 
 function fred_scenario_setup.fred_scenario_setup()
-    local fred_side = is_fred()
-    if fred_side then
-        -- First thing we do is set the name and id of the side leader
-        -- This is done for the messages
-        wesnoth.wml_actions.modify_unit {
-            { 'filter', { side = fred_side, canrecruit = 'yes' } },
-            id = 'Fred',
-            name = 'Fred'
-        }
+    local fred_sides_table = fred_sides()
+
+    if fred_sides_table[1] then
+        -- First we set the names and ids of the leaders of all sides played by Fred
+        -- This is done mostly for the messages
+        for _,fred_side in pairs(fred_sides_table) do
+            wesnoth.wml_actions.modify_unit {
+                { 'filter', { side = fred_side, canrecruit = 'yes' } },
+                id = 'Fred' .. fred_side,
+                name = 'Fred Side ' .. fred_side
+            }
+        end
+
+        -- We put this into a WML variable, so that it can easily be retrieved from replays
+        wml.variables['AI_Demos_version'] = wesnoth.dofile('~/add-ons/AI-demos/version.lua')
 
         local version = wml.variables.AI_Demos_version
         version = version or '?.?.?'
 
-        -- We first add a check here whether the AI is for Side 1, Northerners and the Freelands map
-        -- None of these can be checked directly, but at least for mainline the method is unique anyway
-
-        -- Faction is checked by seeing if the side can recruit orcs
-        local can_recruit_grunts = false
-        for i,r in ipairs(wesnoth.sides[wesnoth.current.side].recruit) do
-            if (r == 'Orcish Grunt') then
-                can_recruit_grunts = true
-                break
-            end
-        end
-
-        -- Map is checked through the map size and the starting location of the AI side
-        -- This also takes care of the side check, so that does not have to be done separately
+        -- Freelands map is checked through the map size and the starting location of side 1
         local width, height = wesnoth.get_map_size()
-        local start_loc = wesnoth.get_starting_location(wesnoth.current.side)
+        local start_loc = wesnoth.get_starting_location(1)
 
-        if (not can_recruit_grunts) or (width ~= 37) or (height ~= 24) or (start_loc[1] ~= 19) or ((start_loc[2] ~= 4) and (start_loc[2] ~= 20)) then
+        if (width ~= 37) or (height ~= 24) or (start_loc[1] ~= 19) or ((start_loc[2] ~= 4) and (start_loc[2] ~= 20)) then
             wesnoth.wml_actions.message {
-                id = 'Fred',
+                id = 'Fred' .. fred_sides_table[1],
                 caption = "Fred (Freelands AI v" .. version .. ")",
-                message = "I currently only know how to play Northerners as Side 1 on the Freelands map. Sorry!"
+                message = "I currently only know how to play the Freelands map. Sorry!"
             }
             wesnoth.wml_actions.endlevel { result = 'victory' }
             return
@@ -66,7 +63,7 @@ function fred_scenario_setup.fred_scenario_setup()
         end
         if fog_set then
             wesnoth.wml_actions.message {
-                id = 'Fred',
+                id = 'Fred' .. fred_sides_table[1],
                 message = "I'm noticing that you have fog/shroud turned on. I'm turning it off in order to help with testing."
             }
             wesnoth.wml_actions.modify_side {
@@ -75,9 +72,6 @@ function fred_scenario_setup.fred_scenario_setup()
                 shroud = false
             }
         end
-
-        -- We put this into a WML variable, so that it can easily be retrieved from replays
-        wml.variables['AI_Demos_version'] = wesnoth.dofile('~/add-ons/AI-demos/version.lua')
 
         -- Set the message and easter egg events
         wesnoth.require "~/add-ons/AI-demos/lua/fred_scenario_events.lua"
