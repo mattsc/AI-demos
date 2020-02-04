@@ -3369,6 +3369,7 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
 
     if (not fred_data.turn_data)
         or (fred_data.turn_data.turn_number ~= wesnoth.current.turn)
+        or (fred_data.turn_data.side_number ~= wesnoth.current.side)
     then
         FOU.set_turn_data(fred_data)
         fred_data.ops_data = {}

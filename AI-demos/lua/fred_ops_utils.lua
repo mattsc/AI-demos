@@ -528,6 +528,7 @@ function fred_ops_utils.set_turn_data(fred_data)
 
     fred_data.turn_data = {
         turn_number = wesnoth.current.turn,
+        side_number = wesnoth.current.side,
         enemy_initial_reach_maps = enemy_initial_reach_maps
     }
 end
