@@ -3474,7 +3474,7 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
 
     -- If recruiting is set, we just do that, nothing else needs to be checked
     if (fred_data.zone_action.type == 'recruit') then
-        DBG.print_debug_time('exec', fred_data.turn_start_time, '=> exec: ' .. action)
+        DBG.print_debug_time('exec', fred_data.turn_start_time, 'exec: ' .. action)
         do_recruit(fred_data, ai)
         return
     end
@@ -3630,7 +3630,7 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
         if unit.canrecruit and fred_data.move_data.my_units_MP[unit.id]
             and leader_objectives.prerecruit and leader_objectives.prerecruit.units and leader_objectives.prerecruit.units[1]
         then
-            DBG.print_debug_time('exec', fred_data.turn_start_time, '=> exec: ' .. action .. ' (leader used -> recruit first)')
+            DBG.print_debug_time('exec', fred_data.turn_start_time, 'exec: ' .. action .. ' (leader used -> recruit first)')
             do_recruit(fred_data, ai, fred_data.zone_action)
             gamestate_changed = true
 
@@ -3643,7 +3643,7 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
             end
         end
 
-        DBG.print_debug_time('exec', fred_data.turn_start_time, '=> exec: ' .. action)
+        DBG.print_debug_time('exec', fred_data.turn_start_time, 'exec: ' .. action .. ' ' .. unit.id)
 
         -- The following are some tests to make sure the intended move is actually
         -- possible, as there might have been some interference with units moving
