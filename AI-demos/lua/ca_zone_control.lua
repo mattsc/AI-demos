@@ -2768,6 +2768,10 @@ local function get_advance_action(zone_cfg, fred_data)
             end
         else
             -- If the unit is not in the zone, head straight toward the goal
+            -- but give a one-move penalty for hexes outside the zone; this is done
+            -- in order to force units to move through the zones on the outside if there
+            -- is a shorter route through the center.
+            -- TODO: this might have to be done differently for maps other than Freelands
             local cm = wesnoth.find_cost_map(
                 { x = -1 }, -- SUF not matching any unit
                 { { goal[1], goal[2], wesnoth.current.side, fred_data.move_data.unit_infos[id].type } },
@@ -2776,8 +2780,10 @@ local function get_advance_action(zone_cfg, fred_data)
 
             for _,cost in pairs(cm) do
                 if (cost[3] > -1) then
-                   local c = FGM.get_value(cost_map, cost[1], cost[2], 'cost') or 0
-                   FGM.set_value(cost_map, cost[1], cost[2], 'cost', c + cost[3])
+                    local c = cost[3]
+                    local in_zone = FGM.get_value(fred_data.ops_data.zone_maps[zone_cfg.zone_id], cost[1], cost[2], 'in_zone')
+                    if (not in_zone) then c = c + max_moves end
+                    FGM.add(cost_map, cost[1], cost[2], 'cost', c)
                 end
             end
         end
