@@ -1000,11 +1000,13 @@ function fred_ops_utils.set_ops_data(fred_data)
 
 
     local zone_maps = {}
+    local combined_zone_map = {} -- can be used to see if all hexes are assigned to a zone; or if any are doubly assigned
     for zone_id,raw_cfg in pairs(raw_cfgs) do
         zone_maps[zone_id] = {}
         local zone = wesnoth.get_locations(raw_cfg.ops_slf)
         for _,loc in ipairs(zone) do
             FGM.set_value(zone_maps[zone_id], loc[1], loc[2], 'in_zone', true)
+            FGM.add(combined_zone_map, loc[1], loc[2], 'count', 1)
         end
     end
     if objectives.leader.leader_threats.significant_threat then
@@ -1015,6 +1017,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         for zone_id,zone_map in pairs(zone_maps) do
             DBG.show_fgumap_with_message(zone_map, 'in_zone', 'zone_map ' .. zone_id)
         end
+        DBG.show_fgumap_with_message(combined_zone_map, 'count', 'combined_zone_map')
     end
 
     -- Need the fronts for assigning units to zones. These will not be the exact fronts
