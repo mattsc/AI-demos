@@ -1290,14 +1290,6 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(objectives, false, 'objectives')
 
 
-    local village_benefits = FBU.village_benefits(possible_village_grabs, fred_data)
-    --DBG.dbms(village_benefits, false, 'village_benefits')
-
-    -- Assess village grabbing by itself; this is for testing only
-    --local village_assignments = FBU.assign_units(village_benefits, utilities.retreat, move_data)
-    --DBG.dbms(village_assignments, false, 'village_assignments')
-
-
     -- Find goal hexes for leader protection
     -- Currently we use the middle between the closest enemy and the leader
     -- and all villages needing protection
@@ -1517,6 +1509,15 @@ function fred_ops_utils.set_ops_data(fred_data)
     --local assignments = FBU.assign_units(leader_threat_benefits, utilities.retreat, move_data)
     --DBG.dbms(assignments, false, 'assignments')
 
+    local village_benefits, village_grabs_dst_src = FBU.village_benefits(possible_village_grabs, fred_data)
+    --DBG.dbms(village_benefits, false, 'village_benefits')
+    --DBG.dbms(village_grabs_dst_src, false, 'village_grabs_dst_src')
+
+    -- Assess village grabbing by itself; this is for testing only
+    --local village_assignments = FBU.assign_units(village_benefits, utilities.retreat, move_data)
+    --DBG.dbms(village_assignments, false, 'village_assignments')
+
+
     local combined_benefits = {}
     for action,data in pairs(village_benefits) do
         combined_benefits[action] = data
@@ -1528,6 +1529,60 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     local protect_leader_assignments = FBU.assign_units(combined_benefits, utilities.retreat, move_data)
     --DBG.dbms(protect_leader_assignments, false, 'protect_leader_assignments')
+
+    -- The above analysis is good for deciding which units should grab villages (as opposed to
+    -- protecting the leader), but assigning specific units to specific villages needs to be
+    -- done in an consider-all-combinations way.
+    -- Potential TODO: the implementation might be more complicated than needed, but
+    --   I do not see a way around doing this as a separate analysis
+    local grabbers = {}
+    for id,assignment in pairs(protect_leader_assignments) do
+        if string.find(assignment, 'grab_village') then
+            local unit_loc = move_data.units[id]
+            grabbers[unit_loc[1] * 1000 + unit_loc[2]] = id
+            protect_leader_assignments[id] = nil
+        end
+    end
+    --DBG.dbms(grabbers, false, 'grabbers')
+
+    if next(grabbers) then
+        local new_grabbing_dst_src = {}
+        for _,dst_table in ipairs(village_grabs_dst_src) do
+            local new_dst_table = {}
+            for _,src_table in ipairs(dst_table) do
+                if (grabbers[src_table.src]) then
+                    new_dst_table.dst = dst_table.dst
+                    table.insert(new_dst_table, src_table)
+                end
+            end
+            if (#new_dst_table > 0) then
+                table.insert(new_grabbing_dst_src, new_dst_table)
+            end
+        end
+        --DBG.dbms(new_grabbing_dst_src, false, 'new_grabbing_dst_src')
+
+        local grab_combos = FU.get_unit_hex_combos(new_grabbing_dst_src, true)
+        --DBG.dbms(grab_combos, false, 'grab_combos')
+
+        -- Reinsert the grab_combos into the assignments table
+        for src,dst in pairs(grab_combos) do
+            local src_x, src_y =  math.floor(src / 1000), src % 1000
+            local dst_x, dst_y =  math.floor(dst / 1000), dst % 1000
+            local id = FGM.get_value(move_data.unit_map, src_x, src_y, 'id')
+
+            local zone_id
+            for _,grab in ipairs(possible_village_grabs) do
+                if (grab.x == dst_x) and (grab.y == dst_y) then
+                    zone_id = grab.zone_id
+                    break
+                end
+            end
+
+            protect_leader_assignments[id] = 'grab_village-' .. dst .. ':' .. zone_id
+        end
+    end
+    --DBG.dbms(protect_leader_assignments, false, 'protect_leader_assignments')
+
     local assigned_units = assignments_to_assigned_units(protect_leader_assignments, move_data)
     --DBG.dbms(assigned_units, false, 'assigned_units')
 

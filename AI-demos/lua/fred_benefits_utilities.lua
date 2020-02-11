@@ -20,7 +20,7 @@ function utility_functions.village_benefits(village_grabs, fred_data)
     --  - Very small tie-breaker contributions that are not actual benefits
 
     local move_data = fred_data.move_data
-    local village_benefits = {}
+    local village_benefits, village_grabs_dst_src = {}, {}
 
     for _,grab in ipairs(village_grabs) do
         --std_print(grab.x .. ',' .. grab.y .. ' by ' .. grab.id)
@@ -98,34 +98,27 @@ function utility_functions.village_benefits(village_grabs, fred_data)
             local benefit = income_benefit + unit_benefit + extras
             --std_print('  -> benefit: ' .. benefit)
 
-            local xy = 'grab_village-' .. (grab.x * 1000 + grab.y) .. ':' .. grab.zone_id
-            if (not village_benefits[xy]) then
-                village_benefits[xy] = { units = {} }
+            local xy = grab.x * 1000 + grab.y
+            local grab_id = 'grab_village-' .. xy .. ':' .. grab.zone_id
+            if (not village_benefits[grab_id]) then
+                village_benefits[grab_id] = { units = {} }
+                table.insert(village_grabs_dst_src, { dst = xy })
             end
-            village_benefits[xy].units[grab.id] = { benefit = benefit, penalty = 0 }
-            village_benefits[xy].raw = raw_benefit
+            village_benefits[grab_id].units[grab.id] = { benefit = benefit, penalty = 0 }
+            village_benefits[grab_id].raw = raw_benefit
+
+            for _,data in ipairs(village_grabs_dst_src) do
+                if (data.dst == xy) then
+                    local unit_loc = move_data.units[grab.id]
+                    table.insert(data, { src = unit_loc[1] * 1000 + unit_loc[2], rating = benefit })
+                end
+            end
         end
     end
     --DBG.dbms(village_benefits, false, 'village_benefits')
+    --DBG.dbms(village_grabs_dst_src, false, 'village_grabs_dst_src')
 
---[[
-    local vb_dst_src = {}
-    for x,y,data in FGM.iter(village_benefits) do
-        local tmp = { dst = x * 1000 + y }
-        for id,rating in pairs(data) do
-            local loc = move_data.my_units[id]
-            table.insert(tmp, { src = loc[1] * 1000 + loc[2], rating = rating } )
-        end
-        table.insert(vb_dst_src, tmp)
-    end
-    --DBG.dbms(vb_dst_src, false, 'vb_dst_src')
-
-    local grab_combos = FU.get_unit_hex_combos(vb_dst_src, false, true)
-    table.sort(grab_combos, function(a, b) return a.rating > b.rating end)
-    --DBG.dbms(grab_combos, false, 'grab_combos')
---]]
-
-    return village_benefits
+    return village_benefits, village_grabs_dst_src
 end
 
 
