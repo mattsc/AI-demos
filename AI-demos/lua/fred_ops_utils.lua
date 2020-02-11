@@ -2080,7 +2080,9 @@ function fred_ops_utils.set_ops_data(fred_data)
             if (data.perp < 1) then
                 data.sign = 0
             else
-                data.sign = path_map[x][y].sign
+                -- TODO: the "or 1" is here because sometimes path_map is not set for the leader zone
+                --   Potentially do that more appropriately at some point.
+                data.sign = FGM.get_value(path_map, x, y, 'sign') or 1
             end
         end
     end
