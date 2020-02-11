@@ -83,10 +83,12 @@ function utility_functions.village_benefits(village_grabs, fred_data)
             -- Their contributions are so small, that they should not make a difference
             -- unless everything else is equal
 
-            -- Prefer villages farther back
-            local extras = -0.1 * wesnoth.map.distance_between(grab.x, grab.y, fred_data.move_data.leader_x, fred_data.move_data.leader_y)
-            -- Prefer the fastest unit
-            extras = extras + unit_info.max_moves / 100.
+            -- Prefer villages farther back, taken by faster units
+            -- Note that the back distance needs to be multiplied by the unit max_moves (not just added to),
+            -- otherwise there could be ties in the summed score, e.g. when two units can both get to the same two villages
+            -- Also note that we cannot use 'distance' from leader_distance_maps as that has both pos and neg signs
+            local mult = 0.01 + unit_info.max_moves / 1000.
+            local extras = mult * FGM.get_value(fred_data.ops_data.leader_distance_map, grab.x, grab.y, 'enemy_leader_distance')
 
             -- Prefer the leader, if possible; this is larger than the other extra ratings
             -- but as the damage rating is more conservative for the leader, this should be ok
