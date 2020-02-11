@@ -64,7 +64,15 @@ local function get_attack_action(zone_cfg, fred_data)
 
     -- How much more valuable do we consider the enemy units than our own
     local value_ratio = zone_cfg.value_ratio
-    --DBG.print_ts_delta(fred_data.turn_start_time, 'value_ratio', value_ratio)
+    local max_value_ratio = 1 / FCFG.get_cfg_parm('min_aggression')
+    local rel_value_ratio = value_ratio / max_value_ratio
+    --DBG.print_ts_delta(fred_data.turn_start_time, 'value_ratio, max_value_ratio, rel_value_ratio', value_ratio, max_value_ratio, rel_value_ratio)
+
+    local acceptable_frac_die_value = (1 - rel_value_ratio)
+    if (acceptable_frac_die_value < 0) then acceptable_frac_die_value = 0 end
+    --acceptable_frac_die_value = acceptable_frac_die_value^2 * 2
+    --DBG.print_ts_delta(fred_data.turn_start_time, zone_cfg.zone_id .. ': acceptable_frac_die_value', acceptable_frac_die_value, acceptable_frac_die_value*12)
+
 
     -- We need to make sure the units always use the same weapon below, otherwise
     -- the comparison is not fair.
@@ -1194,9 +1202,29 @@ local function get_attack_action(zone_cfg, fred_data)
                 then
                     --std_print('       outnumbered in counter attack: ' .. #combo.attacker_damages .. ' vs. ' .. #damages_enemy_units)
                     local die_value = damages_my_units[i_a].die_chance * damages_my_units[i_a].unit_value
-                    --std_print('           die value ' .. damages_my_units[i_a].id .. ': ', die_value, damages_my_units[i_a].unit_value)
+                    local acceptable_die_value = acceptable_frac_die_value * damages_my_units[i_a].unit_value
+                    --std_print('           die value ' .. damages_my_units[i_a].id .. ': ', die_value, damages_my_units[i_a].unit_value, acceptable_die_value)
 
-                    if (die_value > 0) then
+                    local min_infl = math.huge
+                    for _,dst in pairs(combo.dsts) do
+                        local infl = FGM.get_value(move_data.influence_maps, dst[1], dst[2], 'full_move_influence')
+                        --std_print(' full_move_influence ' .. dst[1] .. ',' .. dst[2] .. ': ', infl)
+                        if (infl < min_infl) then min_infl = infl end
+                    end
+                    --std_print(' min full_move_influence: ', min_infl)
+
+                    if (min_infl < 0) then
+                        local actual_rating = pos_rating + neg_rating
+                        --std_print(actual_rating, pos_rating, neg_rating)
+                        if (actual_rating < 0) then
+                            DBG.print_debug('attack_print_output', '    non-leader: counter attack too isolated with negative rating', min_infl, actual_rating)
+                            acceptable_counter = false
+                            FAU.add_disqualified_attack(combo, i_a, disqualified_attacks)
+                            break
+                        end
+                    end
+
+                    if (die_value > acceptable_die_value) then
                         local kill_chance = combo.def_outcome.hp_chance[0]
                         local kill_value = kill_chance * FU.unit_value(move_data.unit_infos[target_id])
                         --std_print('         kill chance, kill_value: ', kill_chance, kill_value)
