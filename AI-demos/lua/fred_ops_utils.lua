@@ -2264,6 +2264,7 @@ function fred_ops_utils.set_ops_data(fred_data)
                             goal_hex_hold = { x, y }
                         end
                     else
+                        -- TODO: not sure if this is what we want, but at least it does not crash for now
                         local dist = data.forward^2 + data.perp^2
                         if (dist < min_dist_hold) then
                             min_dist_hold = dist
