@@ -973,9 +973,11 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 end
 
                 if (not all_max_rating) or (counter_rating > all_max_rating) then
-                    all_max_rating = counter_rating
-                    all_best_combo = combo
-                    --DBG.dbms(all_best_combo, false, 'all_best_combo')
+                    if (not combo.does_protect) then
+                        all_max_rating = counter_rating
+                        all_best_combo = combo
+                        --DBG.dbms(all_best_combo, false, 'all_best_combo')
+                    end
                 end
             else
                 local reduced_combo = {
@@ -998,9 +1000,11 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                     end
                 end
                 if (not reduced_all_max_rating) or (counter_rating > reduced_all_max_rating) then
-                    reduced_all_max_rating = counter_rating
-                    reduced_all_best_combo = reduced_combo
-                    --DBG.dbms(reduced_all_best_combo, false, 'reduced_all_best_combo')
+                    if (not combo.does_protect) then
+                        reduced_all_max_rating = counter_rating
+                        reduced_all_best_combo = reduced_combo
+                        --DBG.dbms(reduced_all_best_combo, false, 'reduced_all_best_combo')
+                    end
                 end
             end
         end
