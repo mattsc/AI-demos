@@ -64,7 +64,7 @@ local function get_attack_action(zone_cfg, fred_data)
 
     -- How much more valuable do we consider the enemy units than our own
     local value_ratio = zone_cfg.value_ratio
-    local max_value_ratio = 1 / FCFG.get_cfg_parm('min_aggression')
+    local max_value_ratio = fred_data.ops_data.behavior.orders.max_value_ratio
     local rel_value_ratio = value_ratio / max_value_ratio
     --DBG.print_ts_delta(fred_data.turn_start_time, 'value_ratio, max_value_ratio, rel_value_ratio', value_ratio, max_value_ratio, rel_value_ratio)
 

@@ -693,6 +693,14 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     local base_value_ratio = 1 / FCFG.get_cfg_parm('aggression')
     local max_value_ratio = 1 / FCFG.get_cfg_parm('min_aggression')
+    local pushfactor_min_midpoint = FCFG.get_cfg_parm('pushfactor_min_midpoint')
+
+    local aggression_multiplier = (wml.variables.fred_aggression_multiplier or 10) / 10
+    --std_print('aggression_multiplier', aggression_multiplier)
+    base_value_ratio = base_value_ratio / aggression_multiplier
+    max_value_ratio = max_value_ratio / aggression_multiplier
+    pushfactor_min_midpoint = pushfactor_min_midpoint * aggression_multiplier
+
     local ratio = factor * enemy_power[0] / my_power[0]
     local value_ratio = ratio * base_value_ratio
     if (value_ratio > max_value_ratio) then
@@ -711,10 +719,13 @@ function fred_ops_utils.set_ops_data(fred_data)
         --]]
         orders = {
             base_value_ratio = base_value_ratio,
-            --max_value_ratio = max_value_ratio,
+            max_value_ratio = max_value_ratio,
             value_ratio = value_ratio,
             base_power_ratio = base_power_ratio,
             current_power_ratio = power_ratio[0]
+        },
+        custom_settings = {
+            aggression_multiplier = aggression_multiplier
         }
     }
 
@@ -744,7 +755,6 @@ function fred_ops_utils.set_ops_data(fred_data)
     --behavior.orders.expansion = behavior.ratios.influence / behavior.ratios.assets
 
     local midpoint = math.sqrt(max_power_ratio / min_power_ratio) * min_power_ratio
-    local pushfactor_min_midpoint = FCFG.get_cfg_parm('pushfactor_min_midpoint')
     local mid_point_factor = 1
     if (midpoint < pushfactor_min_midpoint) then mid_point_factor = pushfactor_min_midpoint / midpoint end
     --std_print('midpoint: ' .. midpoint, mid_point_factor)
