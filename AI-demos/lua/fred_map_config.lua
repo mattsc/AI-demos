@@ -97,7 +97,7 @@ function fred_map_config.get_raw_cfgs(zone_id)
     -- Replacement zones:
     local cfg_top = {
         zone_id = 'top',
-        center_hexes = {},
+        center_hexes = {}
     }
     for _,hex in ipairs(cfg_center.center_hexes) do table.insert(cfg_top.center_hexes, hex) end
     for _,hex in ipairs(cfg_left.center_hexes) do table.insert(cfg_top.center_hexes, hex) end
