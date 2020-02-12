@@ -1,3 +1,26 @@
+----- 0.14.14, 12 February 2020 -----
+
+This release includes a large number of improvements touching essentially all
+aspects of Fred's gameplay. It also allows Fred to play side 2 on the Freelands
+map, lifts the restriction of only playing Northerners and adds a custom option
+to change the overall aggression level.
+
+- Fred (Freelands AI):
+  - Significant changes to all parts of the AI action evaluations, from the
+    operations level to the nitty-gritty details of the individual action
+    ratings, with the goal of making Fred overall more aggressive, while
+    not putting units at unnecessary risk.
+  - Increase the default aggression level
+  - Directly player-visible changes:
+    - Fred can now play side 2 on the Freelands map
+    - Fred can now play any faction
+    - Add a custom option to the MP setup dialog to modify the default aggression
+    - In the Fred test scenario, Fred can now also be chosen for side 2
+    - Remove game start and end messages
+- Other:
+  - Add external AI control demonstration
+
+
 ----- 0.14.13, 21 July 2019 -----
 
 This is a work-in-progress release of improvements to multiple aspects of Fred's
