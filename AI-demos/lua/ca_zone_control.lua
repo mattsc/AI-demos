@@ -2771,6 +2771,7 @@ local function get_advance_action(zone_cfg, fred_data)
                     local dp = math.abs(perp - goal_perp)
 
                     -- We want to emphasize that small offsets are ok, but then have it increase quickly
+                    --[[ TODO: probably don't want to do this, but leave code for now until sure
                     for xa,ya in H.adjacent_tiles(x, y) do
                         local adj_forward = FGM.get_value(ADmap, xa, ya, 'forward')
                         local apj_perp = FGM.get_value(ADmap, xa, ya, 'perp')
@@ -2783,6 +2784,7 @@ local function get_advance_action(zone_cfg, fred_data)
                             if (adj_dp < dp) then dp = adj_dp end
                         end
                     end
+                    --]]
 
                     local cost = (df / max_moves)^ 1.5 + (dp / max_moves) ^ 2
                     cost = cost * max_moves
