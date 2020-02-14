@@ -672,16 +672,16 @@ function fred_ops_utils.set_ops_data(fred_data)
     local base_power_ratio = my_base_power / enemy_base_power
     --std_print('base:  ' .. base_power_ratio .. ' = ' .. my_base_power .. ' / ' .. enemy_base_power)
 
-    local power_ratio = {}
+    local power_ratios = {}
     local min_power_ratio, max_power_ratio = math.huge, - math.huge
     for t = 0,n_turns-1 do
-        power_ratio[t] = my_power[t] / enemy_power[t]
-        --std_print(t, power_ratio[t])
+        power_ratios[t] = my_power[t] / enemy_power[t]
+        --std_print(t, power_ratios[t])
 
-        min_power_ratio = math.min(power_ratio[t], min_power_ratio)
-        max_power_ratio = math.max(power_ratio[t], max_power_ratio)
+        min_power_ratio = math.min(power_ratios[t], min_power_ratio)
+        max_power_ratio = math.max(power_ratios[t], max_power_ratio)
     end
-    --DBG.dbms(power_ratio, false, 'power_ratio')
+    --DBG.dbms(power_ratios, false, 'power_ratios')
     --std_print('min, max:', min_power_ratio, max_power_ratio)
 
     local power_mult_next_turn = my_power[1] / my_power[0] / (enemy_power[1] / enemy_power[0])
@@ -711,8 +711,8 @@ function fred_ops_utils.set_ops_data(fred_data)
         --[[
         power = {
             base_ratio = base_power_ratio,
-            current_ratio = power_ratio[0],
-            next_turn_ratio = power_ratio[1],
+            current_ratio = power_ratios[0],
+            next_turn_ratio = power_ratios[1],
             min_ratio = min_power_ratio,
             max_ratio = max_power_ratio
         },
@@ -722,7 +722,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             max_value_ratio = max_value_ratio,
             value_ratio = value_ratio,
             base_power_ratio = base_power_ratio,
-            current_power_ratio = power_ratio[0]
+            current_power_ratio = power_ratios[0]
         },
         custom_settings = {
             aggression_multiplier = aggression_multiplier
@@ -759,18 +759,18 @@ function fred_ops_utils.set_ops_data(fred_data)
     if (midpoint < pushfactor_min_midpoint) then mid_point_factor = pushfactor_min_midpoint / midpoint end
     --std_print('midpoint: ' .. midpoint, mid_point_factor)
 
-    local cycle_ratio, push_factor = {}, {}
+    local cycle_ratios, push_factors = {}, {}
     for i = 0,n_turns-1 do
-        cycle_ratio[i] = power_ratio[i] / midpoint
-        push_factor[i] = cycle_ratio[i] * power_ratio[i] * mid_point_factor
+        cycle_ratios[i] = power_ratios[i] / midpoint
+        push_factors[i] = cycle_ratios[i] * power_ratios[i] * mid_point_factor
     end
-    --DBG.dbms(cycle_ratio, false, 'cycle_ratio')
-    --DBG.dbms(push_factor, false, 'push_factor')
+    --DBG.dbms(cycle_ratios, false, 'cycle_ratios')
+    --DBG.dbms(push_factors, false, 'push_factors')
 
     -- For now, just use average of current turn and next turn (value_ratio is done differently)
     -- TODO: this might need to be different if playing side 2
-    --behavior.orders.push_factor = push_factor[0]
-    behavior.orders.push_factor = (push_factor[0] + push_factor[1]) / 2
+    --behavior.orders.push_factor = push_factors[0]
+    behavior.orders.push_factor = (push_factors[0] + push_factors[1]) / 2
     --std_print('behavior.orders.push_factor', behavior.orders.push_factor)
 
     --DBG.dbms(behavior, false, 'behavior')
@@ -2346,6 +2346,19 @@ function fred_ops_utils.set_ops_data(fred_data)
     --std_print(string.format('my inf: %4.3f = %d / %d', f_my_inf, n_my_inf, n_total))
     --]]
 
+    if DBG.show_debug('ops_power_output') then
+        std_print(string.format('aggression_multiplier:     %8.3f', aggression_multiplier))
+        std_print(string.format("base, current power ratio: %8.3f %8.3f", behavior.orders.base_power_ratio, behavior.orders.current_power_ratio))
+        std_print('Next 6 turns: (d_turn, power_ratio, cycle_ratio, push_factor)')
+        for t = 0,5 do
+            std_print(string.format("%3d %8.3f %8.3f %8.3f", t, power_ratios[t], cycle_ratios[t], push_factors[t]))
+        end
+        std_print(string.format("value_ratio (actual, base, min): %8.3f %8.3f %8.3f", behavior.orders.value_ratio, behavior.orders.base_value_ratio, behavior.orders.max_value_ratio))
+        std_print("zone push factors:")
+        for zone_id,push_factor in pairs(zone_push_factors) do
+            std_print(string.format("%10s %8.3f", zone_id, push_factor))
+        end
+    end
 
     ops_data.raw_cfgs = raw_cfgs
     ops_data.objectives = objectives
