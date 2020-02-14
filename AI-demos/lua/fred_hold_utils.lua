@@ -509,17 +509,19 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
             if DBG.show_debug('hold_combo_base_rating') then
                 local leader_goal = fred_data.ops_data.objectives.leader.final
-                local x, y
                 for _,unit in ipairs(fred_data.ops_data.place_holders) do
                     wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = 'recruit\n' .. unit.type, color = '160,160,160' }
                 end
                 wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal', color = '200,0,0' }
+                local av_x, av_y, count = 0, 0, 0
                 for src,dst in pairs(combo) do
-                    x, y =  math.floor(dst / 1000), dst % 1000
-                    wesnoth.wml_actions.label { x = x, y = y, text = ratings[dst][src].id }
+                    local dst_x, dst_y =  math.floor(dst / 1000), dst % 1000
+                    wesnoth.wml_actions.label { x = dst_x, y = dst_y, text = ratings[dst][src].id }
+                    av_x, av_y, count = av_x + dst_x, av_y + dst_y, count + 1
                 end
+                av_x, av_y = av_x / count, av_y / count
+                wesnoth.scroll_to_tile(av_x, av_y + 2)
 
-                wesnoth.scroll_to_tile(x, y)
                 local rating_str =  string.format("%.4f\npenalty_rating: %.4f    %s",
                     valid_combo.base_rating, valid_combo.penalty_rating, valid_combo.penalty_str
                 )
@@ -528,8 +530,8 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                     message = rating_str
                 }
                 for src,dst in pairs(combo) do
-                    x, y =  math.floor(dst / 1000), dst % 1000
-                    wesnoth.wml_actions.label { x = x, y = y, text = "" }
+                    local dst_x, dst_y =  math.floor(dst / 1000), dst % 1000
+                    wesnoth.wml_actions.label { x = dst_x, y = dst_y, text = "" }
                 end
                 wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = "" }
                 for _,unit in ipairs(fred_data.ops_data.place_holders) do
@@ -819,17 +821,19 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             end
 
             local leader_goal = protection.overall.leader_goal
-            local x, y
             for _,unit in ipairs(fred_data.ops_data.place_holders) do
                 wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = 'recruit\n' .. unit.type, color = '160,160,160' }
             end
             wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal', color = '200,0,0' }
+            local av_x, av_y, count = 0, 0, 0
             for src,dst in pairs(combo.combo) do
-                x, y =  math.floor(dst / 1000), dst % 1000
-                wesnoth.wml_actions.label { x = x, y = y, text = ratings[dst][src].id }
+                local dst_x, dst_y =  math.floor(dst / 1000), dst % 1000
+                wesnoth.wml_actions.label { x = dst_x, y = dst_y, text = ratings[dst][src].id }
+                av_x, av_y, count = av_x + dst_x, av_y + dst_y, count + 1
             end
+            av_x, av_y = av_x / count, av_y / count
+            wesnoth.scroll_to_tile(av_x, av_y + 2)
 
-            wesnoth.scroll_to_tile(x, y)
             local rating_str =  string.format("%.4f = %.3f x %.3f x %.3f x %.3f    (protect x angle x dist x base)\npenalty_rating: %.4f    %s",
                 formation_rating, protection.combo.protect_mult, angle_fac or 1, dist_fac or 1, combo.base_rating or -9999,
                 combo.penalty_rating, combo.penalty_str
@@ -841,8 +845,8 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                     .. '\n' .. max_str
             }
             for src,dst in pairs(combo.combo) do
-                x, y =  math.floor(dst / 1000), dst % 1000
-                wesnoth.wml_actions.label { x = x, y = y, text = "" }
+                local dst_x, dst_y =  math.floor(dst / 1000), dst % 1000
+                wesnoth.wml_actions.label { x = dst_x, y = dst_y, text = "" }
             end
             wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = "" }
             for _,unit in ipairs(fred_data.ops_data.place_holders) do
@@ -1036,10 +1040,13 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = 'recruit\n' .. unit.type, color = '160,160,160' }
             end
             wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal', color = '200,0,0' }
+            local av_x, av_y = 0, 0
             for i_l,loc in pairs(new_locs) do
                 wesnoth.wml_actions.label { x = loc[1], y = loc[2], text = ids[i_l] }
+                av_x, av_y = av_x + loc[1], av_y + loc[2]
             end
-            wesnoth.scroll_to_tile(new_locs[1][1], new_locs[1][2])
+            av_x, av_y = av_x / #new_locs, av_y / #new_locs
+            wesnoth.scroll_to_tile(av_x, av_y + 2)
 
             local rating_str =  string.format("%.4f = %.4f x %.4f\npenalty_rating: %.4f    %s",
                 counter_rating, rel_rating, combo.formation_rating, combo.penalty_rating, combo.penalty_str

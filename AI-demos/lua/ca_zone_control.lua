@@ -2549,21 +2549,23 @@ local function get_hold_action(zone_cfg, fred_data)
     if DBG.show_debug('hold_best_combo') then
         local function show_hold_units(combo_type, combo_str, no_protect_locs_str)
             if combo_table[combo_type].combo then
-                local dst_x, dst_y
+                local av_x, av_y, count = 0, 0, 0
                 for src,dst in pairs(combo_table[combo_type].combo) do
-                    src_x, src_y =  math.floor(src / 1000), src % 1000
-                    dst_x, dst_y =  math.floor(dst / 1000), dst % 1000
+                    local src_x, src_y =  math.floor(src / 1000), src % 1000
+                    local dst_x, dst_y =  math.floor(dst / 1000), dst % 1000
                     local id = move_data.my_unit_map[src_x][src_y].id
                     wesnoth.wml_actions.label { x = dst_x, y = dst_y, text = id }
+                    av_x, av_y, count = av_x + dst_x, av_y + dst_y, count + 1
                 end
-                wesnoth.scroll_to_tile(dst_x, dst_y)
+                av_x, av_y = av_x / count, av_y / count
+                wesnoth.scroll_to_tile(av_x, av_y + 2)
                 wesnoth.wml_actions.message {
                     speaker = 'narrator',
                     caption = combo_str .. ' [' .. zone_cfg.zone_id .. ']',
                     message = 'Protect objectives: ' .. combo_table[combo_type].protect_obj_str .. '\nAction: ' .. action_str .. '\n    ' .. (combo_table[combo_type].protected_str or '')
                 }
                 for src,dst in pairs(combo_table[combo_type].combo) do
-                    dst_x, dst_y =  math.floor(dst / 1000), dst % 1000
+                    local dst_x, dst_y =  math.floor(dst / 1000), dst % 1000
                     wesnoth.wml_actions.label { x = dst_x, y = dst_y, text = "" }
                 end
             else
