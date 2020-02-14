@@ -89,6 +89,8 @@ end
 
 function fred_utils.unit_value(unit_info)
     -- Get a gold-equivalent value for the unit
+    -- Also returns (as a factor) the increase of value compared to cost,
+    -- with a contribution for the level of the unit
 
     local xp_weight = FCFG.get_cfg_parm('xp_weight')
 
@@ -125,7 +127,10 @@ function fred_utils.unit_value(unit_info)
 
     --std_print('fred_utils.unit_value:', unit_info.id, unit_value, xp_bonus, xp_diff)
 
-    return unit_value
+    -- TODO: probably want to make the unit level contribution configurable
+    local value_factor = unit_value / unit_info.cost * math.sqrt(unit_info.level)
+
+    return unit_value, value_factor
 end
 
 function fred_utils.approx_value_loss(unit_info, av_damage, max_damage)
