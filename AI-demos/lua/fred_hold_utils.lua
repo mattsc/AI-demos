@@ -489,6 +489,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     local leader_value = FU.unit_value(move_data.unit_infos[leader_id])
 
     local value_ratio = cfg.value_ratio
+    local max_value_ratio = fred_data.ops_data.behavior.orders.max_value_ratio
     local hold_counter_weight = FCFG.get_cfg_parm('hold_counter_weight')
     local cfg_attack = { value_ratio = value_ratio }
 
@@ -878,10 +879,10 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
     -- Acceptable chance-to-die for non-protect forward holds
     local acceptable_ctd = 0.25
-    if (value_ratio < 1) then
-        acceptable_ctd = 0.25 + 0.75 * (1 / value_ratio - 1)
+    if (value_ratio < max_value_ratio) then
+        acceptable_ctd = 0.25 + 0.75 * (1 - value_ratio / max_value_ratio)
     end
-    --std_print(cfg.forward_ratio, value_ratio, acceptable_ctd)
+    --std_print(value_ratio, acceptable_ctd)
 
     local max_rating, best_combo, all_max_rating, all_best_combo
     local reduced_max_rating, reduced_best_combo, reduced_all_max_rating, reduced_all_best_combo
@@ -945,6 +946,13 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                         -- change the threats to the other dsts. The entire combo needs
                         -- to be discarded.
                         --std_print('Not worth the protect value')
+                        count = 0
+                        break
+                    end
+                else
+                    local xp_ctd = acceptable_ctd / (value_factor^4) -- make this a very strong dependence
+                    --std_print('xp_ctd: ' .. xp_ctd, counter_outcomes.defender_damage.die_chance)
+                    if (counter_outcomes.defender_damage.die_chance > xp_ctd) then
                         count = 0
                         break
                     end
