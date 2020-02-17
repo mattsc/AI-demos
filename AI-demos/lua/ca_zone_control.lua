@@ -19,7 +19,7 @@ local FMC = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_map_config.lua"
 
 ----- Attack: -----
 local function get_attack_action(zone_cfg, fred_data)
-    DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> attack evaluation: ' .. zone_cfg.zone_id)
+    DBG.print_debug_time('eval', fred_data.turn_start_time, '  - attack evaluation: ' .. zone_cfg.zone_id .. ' (' .. string.format('%.2f', zone_cfg.rating) .. ')')
     --DBG.dbms(zone_cfg, false, 'zone_cfg')
 
     local move_data = fred_data.move_data
@@ -1470,7 +1470,7 @@ end
 
 ----- Hold: -----
 local function get_hold_action(zone_cfg, fred_data)
-    DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> hold evaluation (' .. zone_cfg.action_str .. '): ' .. zone_cfg.zone_id)
+    DBG.print_debug_time('eval', fred_data.turn_start_time, '  - hold evaluation (' .. zone_cfg.action_str .. '): ' .. zone_cfg.zone_id .. ' (' .. string.format('%.2f', zone_cfg.rating) .. ')')
 
     local value_ratio = zone_cfg.value_ratio or fred_data.ops_data.behavior.orders.value_ratio
     local max_units = 3
@@ -2622,7 +2622,7 @@ local function get_advance_action(zone_cfg, fred_data)
     -- Advancing is now only moving onto unthreatened hexes; everything
     -- else should be covered by holding, village grabbing, protecting, etc.
 
-    DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> advance evaluation: ' .. zone_cfg.zone_id)
+    DBG.print_debug_time('eval', fred_data.turn_start_time, '  - advance evaluation: ' .. zone_cfg.zone_id .. ' (' .. string.format('%.2f', zone_cfg.rating) .. ')')
 
     --DBG.dbms(zone_cfg, false, 'zone_cfg')
     local raw_cfg = FMC.get_raw_cfgs(zone_cfg.zone_id)
@@ -3073,7 +3073,7 @@ end
 
 ----- Retreat: -----
 local function get_retreat_action(zone_cfg, fred_data)
-    DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> retreat evaluation: ' .. zone_cfg.zone_id)
+    DBG.print_debug_time('eval', fred_data.turn_start_time, '  - retreat evaluation: ' .. zone_cfg.zone_id .. ' (' .. string.format('%.2f', zone_cfg.rating) .. ')')
 
     -- Combines moving leader to village or keep, and retreating other units.
     -- These are put in here together because we might want to weigh which one
@@ -3250,7 +3250,7 @@ function get_zone_action(cfg, fred_data)
         local action
         if cfg.use_stored_leader_protection then
             if fred_data.ops_data.stored_leader_protection[cfg.zone_id] then
-                DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> hold evaluation (' .. cfg.action_str .. '): ' .. cfg.zone_id)
+                DBG.print_debug_time('eval', fred_data.turn_start_time, '  - hold evaluation (' .. cfg.action_str .. '): ' .. cfg.zone_id .. ' (' .. string.format('%.2f', zone_cfg.rating) .. ')')
                 action = AH.table_copy(fred_data.ops_data.stored_leader_protection[cfg.zone_id])
                 fred_data.ops_data.stored_leader_protection[cfg.zone_id] = nil
             end
@@ -3295,6 +3295,7 @@ function get_zone_action(cfg, fred_data)
         -- Important: we cannot check recruiting here, as the units
         -- are taken off the map at this time, so it needs to be checked
         -- by the function setting up the cfg
+        DBG.print_debug_time('eval', fred_data.turn_start_time, '  - recruit evaluation: ' .. cfg.zone_id .. ' (' .. string.format('%.2f', cfg.rating) .. ')')
         local action = {
             action_str = cfg.action_str,
             type = 'recruit',
@@ -3399,7 +3400,7 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
     local score_zone_control = 350000
     local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
 
-    DBG.print_debug_time('eval', fred_data.turn_start_time, '     - Evaluating zone_control CA:')
+    DBG.print_debug_time('eval', fred_data.turn_start_time, 'Evaluating zone_control CA:')
 
     -- This forces the turn data to be reset each call (use with care!)
     if DBG.show_debug('reset_turn') then
@@ -3419,8 +3420,22 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
     FOU.get_action_cfgs(fred_data)
     --DBG.dbms(fred_data.zone_cfgs, false, 'fred_data.zone_cfgs')
 
+    local previous_action = nil
+
     for i_c,cfg in ipairs(fred_data.zone_cfgs) do
         --DBG.dbms(cfg, false, 'cfg')
+
+        if previous_action then
+            DBG.print_debug_time('eval', fred_data.turn_start_time, '  + previous action found (' .. string.format('%.2f', previous_action.score) .. ')')
+            if (previous_action.score < cfg.rating) then
+                DBG.print_debug_time('eval', fred_data.turn_start_time, '      current action has higher score (' .. string.format('%.2f', cfg.rating) .. ') -> evaluating current action')
+            else
+                fred_data.zone_action = previous_action
+                DBG.print_debug_time('eval', fred_data.turn_start_time, '      current action has lower score (' .. string.format('%.2f', cfg.rating) .. ') -> executing previous action')
+                DBG.print_debug_time('eval', fred_data.turn_start_time, '--> returning action ' .. previous_action.action_str .. ' (' .. previous_action.score .. ')')
+                return score_zone_control, previous_action
+            end
+        end
 
         -- Reserved actions have already been evaluated and checked for validity.
         -- We can skip changing units on the map, calling evaluation functions etc.
@@ -3431,6 +3446,8 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
                 units = {},
                 dsts = {}
             }
+
+            DBG.print_debug_time('eval', fred_data.turn_start_time, '  - reserved action (' .. action.action_str .. ') evaluation: ' .. cfg.zone_id .. ' (' .. string.format('%.2f', cfg.rating) .. ')')
 
             for _,reserved_action in pairs(fred_data.ops_data.reserved_actions) do
                 if (reserved_action.action_id == cfg.reserved_id) then
@@ -3445,7 +3462,7 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
             if action.units[1] then
                 fred_data.zone_action = action
 
-                DBG.print_debug_time('eval', fred_data.turn_start_time, '--> done with all cfgs')
+                DBG.print_debug_time('eval', fred_data.turn_start_time, '--> returning action ' .. action.action_str .. ' (' .. string.format('%.2f', cfg.rating) .. ')')
                 return score_zone_control, action
             end
         else
@@ -3490,17 +3507,42 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
             for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
 
             if zone_action then
+                DBG.print_debug_time('eval', fred_data.turn_start_time, '      --> action found')
+
                 zone_action.zone_id = cfg.zone_id
                 --DBG.dbms(zone_action, false, 'zone_action')
-                fred_data.zone_action = zone_action
 
-                DBG.print_debug_time('eval', fred_data.turn_start_time, '--> done with all cfgs')
-                return score_zone_control, zone_action
+                -- If a score is returned as part of the action table, that means that it is lower than the
+                -- max possible score, and it should be checked whether another action should be done first.
+                -- Currently this only applies to holds vs. village grabbing, but it is set up
+                -- so that it can be used more generally.
+                if zone_action.score
+                    and (zone_action.score < cfg.rating) and (zone_action.score > 0)
+                then
+                    DBG.print_debug_time('eval', fred_data.turn_start_time,
+                        string.format('          score (%.2f) < config rating (%.2f) --> checking next action first', zone_action.score, cfg.rating)
+                    )
+                    if (not previous_action) or (previous_action.score < zone_action.score) then
+                        previous_action = zone_action
+                    end
+                else
+                    fred_data.zone_action = zone_action
+
+                    DBG.print_debug_time('eval', fred_data.turn_start_time, '--> returning action ' .. zone_action.action_str .. ' (' .. cfg.rating .. ')')
+                    return score_zone_control, zone_action
+                end
             end
         end
     end
 
-    DBG.print_debug_time('eval', fred_data.turn_start_time, '--> done with all cfgs')
+    if previous_action then
+        DBG.print_debug_time('eval', fred_data.turn_start_time, '  + previous action left at end of loop (' .. string.format('%.2f', previous_action.score) .. ')')
+        fred_data.zone_action = previous_action
+        DBG.print_debug_time('eval', fred_data.turn_start_time, '--> returning action ' .. previous_action.action_str .. ' (' .. previous_action.score .. ')')
+        return score_zone_control, previous_action
+    end
+
+    DBG.print_debug_time('eval', fred_data.turn_start_time, '--> done with all cfgs: no action found')
 
     return 0
 end
