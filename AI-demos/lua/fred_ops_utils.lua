@@ -2642,7 +2642,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 
             if holders_by_zone[zone_id] then
                 -- Hold --
-                local rating = power_rating
+                local rating, second_rating = 0, 0
                 local action_str = 'zone hold'
                 local protect_obj = ops_data.objectives.protect.zones[zone_id]
                 if protect_obj and (
@@ -2652,13 +2652,12 @@ function fred_ops_utils.get_action_cfgs(fred_data)
                     --   It probably is not, as that only checks for the leader, not castles
                     or protect_obj.protect_leader
                 ) then
-                    rating = rating + base_ratings.protect
+                    rating = power_rating + base_ratings.protect
+                    second_rating = power_rating + base_ratings.hold
                     action_str = 'zone protect'
                 else
-                    if protect_obj.already_holding then
-                        rating = 0
-                    else
-                        rating = rating + base_ratings.hold
+                    if (not protect_obj.already_holding) then
+                        rating = power_rating + base_ratings.hold
                     end
                 end
                 --std_print('*** hold_rating ' .. zone_id, rating)
@@ -2669,7 +2668,8 @@ function fred_ops_utils.get_action_cfgs(fred_data)
                         action_type = 'hold',
                         action_str = action_str,
                         zone_units = holders_by_zone[zone_id],
-                        rating = rating
+                        rating = rating,
+                        second_rating = second_rating
                     })
                 end
 

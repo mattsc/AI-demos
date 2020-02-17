@@ -2613,6 +2613,15 @@ local function get_hold_action(zone_cfg, fred_data)
     end
     --DBG.dbms(action, false, 'action')
 
+    local score = zone_cfg.rating
+    if (best_combo_type == 'hold') then
+        if zone_cfg.second_rating and (zone_cfg.second_rating > 0) then
+            score = zone_cfg.second_rating
+        end
+    end
+    --std_print('score: ' .. score)
+    action.score = score
+
     return action
 end
 
