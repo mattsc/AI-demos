@@ -3259,7 +3259,7 @@ function get_zone_action(cfg, fred_data)
         local action
         if cfg.use_stored_leader_protection then
             if fred_data.ops_data.stored_leader_protection[cfg.zone_id] then
-                DBG.print_debug_time('eval', fred_data.turn_start_time, '  - hold evaluation (' .. cfg.action_str .. '): ' .. cfg.zone_id .. ' (' .. string.format('%.2f', zone_cfg.rating) .. ')')
+                DBG.print_debug_time('eval', fred_data.turn_start_time, '  - hold evaluation (' .. cfg.action_str .. '): ' .. cfg.zone_id .. ' (' .. string.format('%.2f', cfg.rating) .. ')')
                 action = AH.table_copy(fred_data.ops_data.stored_leader_protection[cfg.zone_id])
                 fred_data.ops_data.stored_leader_protection[cfg.zone_id] = nil
             end
