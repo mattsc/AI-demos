@@ -2939,9 +2939,9 @@ local function get_advance_action(zone_cfg, fred_data)
                 local owner = FGM.get_value(move_data.village_map, x, y, 'owner')
                 if owner and (owner ~= wesnoth.current.side) then
                     if (owner == 0) then
-                        village_bonus = village_bonus + 2
+                        village_bonus = village_bonus + 3
                     else
-                        village_bonus = village_bonus + 4
+                        village_bonus = village_bonus + 6
                     end
                 end
 
