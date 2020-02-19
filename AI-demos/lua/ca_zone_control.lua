@@ -2230,6 +2230,13 @@ local function get_hold_action(zone_cfg, fred_data)
 
                 local forward = FGM.get_value(ADmap, x, y, 'forward')
                 local perp = FGM.get_value(ADmap, x, y, 'perp') -- don't need sign here, as no difference is calculated
+
+                -- TODO: this is not good, should really expand the map in the first place
+                if (not forward) then
+                    forward = wesnoth.map.distance_between(x, y, goal[1], goal[2]) + goal_forward
+                    perp = 10
+                end
+
                 local df = math.abs(forward - goal_forward) / max_moves
                 local dp = math.abs(perp) / max_moves
                 local cost = df ^ 1.5 + dp ^ 2
