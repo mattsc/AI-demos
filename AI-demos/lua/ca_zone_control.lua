@@ -2949,7 +2949,7 @@ local function get_advance_action(zone_cfg, fred_data)
                 -- Also add a half-hex bonus for villages in general; no need not to go there
                 -- all else being equal
                 if owner and (not move_data.unit_infos[id].abilities.regenerate) then
-                    village_bonus = unit_value * (1 / hp_forward_factor - 1) -- zero for uninjured unit
+                    village_bonus = village_bonus + unit_value * (1 / hp_forward_factor - 1) -- zero for uninjured unit
                 end
 
                 local bonus_rating = village_bonus * unit_value_ratio
