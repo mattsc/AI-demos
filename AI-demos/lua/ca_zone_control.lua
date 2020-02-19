@@ -2975,7 +2975,7 @@ local function get_advance_action(zone_cfg, fred_data)
                     village_bonus = village_bonus + unit_value * (1 / hp_forward_factor - 1) -- zero for uninjured unit
                 end
 
-                local bonus_rating = village_bonus * unit_value_ratio
+                local bonus_rating = village_bonus
 
                 -- Small bonus for the terrain; this does not really matter for
                 -- unthreatened hexes and is already taken into account in the
