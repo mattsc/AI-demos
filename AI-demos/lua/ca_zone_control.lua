@@ -2755,7 +2755,7 @@ local function get_advance_action(zone_cfg, fred_data)
 
     local safe_loc = false
     local unit_rating_maps = {}
-    local max_rating, best_id, best_hex
+    local max_rating, best_id, best_hex = - math.huge
     for id,xy in pairs(advancers) do
         local unit_loc = { math.floor(xy / 1000), xy % 1000 }
         -- Don't use ops_slf here, but pre-calculated zone_maps. The zone_map used can be
@@ -2865,12 +2865,23 @@ local function get_advance_action(zone_cfg, fred_data)
             DBG.show_fgumap_with_message(cost_map, 'cost', zone_cfg.zone_id ..': advance cost map', move_data.unit_copies[id])
         end
 
+        -- Use a more defensive rating for units that have been isolated in enemy territory.
+        -- However, we do not know whether that is a case until the end of the analysis,
+        -- so we carry both ratings throughout that and use a flag that gets set along the way.
+        local unit_df = FGM.get_value(cost_map, unit_loc[1], unit_loc[2], 'df')
+        local use_defensive_rating = false
+        -- TODO: the condition excludes units outside the zone; should they be included?
+        if unit_df and (unit_df > 2) then
+            use_defensive_rating = true
+        end
+        --std_print(id .. ' unit_df: ', unit_df, use_defensive_rating)
+
+        local max_unit_rating, best_unit_hex = - math.huge
+        local max_unit_def_rating, best_unit_def_hex = - math.huge
         for x,y,_ in FGM.iter(move_data.effective_reach_maps[id]) do
             if (not FGM.get_value(avoid_maps[id], x, y, 'avoid')) then
                 local rating = rating_moves + rating_power
                 FGM.set_value(unit_rating_maps[id], x, y, 'unit_rating', rating)
-
-                dist = FGM.get_value(cost_map, x, y, 'cost')
 
                 -- Counter attack outcome
                 local unit_moved = {}
@@ -2933,9 +2944,6 @@ local function get_advance_action(zone_cfg, fred_data)
                 -- Note: unit_value_ratio is already taken care of in both the location of the goal hex
                 -- and the counter attack rating.  Is including the push factor overdoing it?
 
-                local dist_rating = - dist * unit_value / 2 * push_factor * hp_forward_factor
-                rating = rating + dist_rating
-                FGM.set_value(unit_rating_maps[id], x, y, 'dist_rating', dist_rating)
 
                 -- We additionally discourage locations behind enemy lines without sufficient support
                 -- TODO: this is a large effect and it introduces a discontinuity, might
@@ -2982,17 +2990,47 @@ local function get_advance_action(zone_cfg, fred_data)
                 -- counter attack calculation for others. Just a tie breaker.
                 local my_defense = FGUI.get_unit_defense(move_data.unit_copies[id], x, y, move_data.defense_maps)
                 bonus_rating = bonus_rating + my_defense / 10
-
                 rating = rating + bonus_rating
-
                 FGM.set_value(unit_rating_maps[id], x, y, 'bonus_rating', bonus_rating)
-                FGM.set_value(unit_rating_maps[id], x, y, 'rating', rating)
 
-                if (not max_rating) or (rating > max_rating) then
-                    max_rating = rating
-                    best_id = id
-                    best_hex = { x, y }
+                local dist = FGM.get_value(cost_map, x, y, 'cost')
+                local dist_rating = - dist * unit_value / 2 * push_factor * hp_forward_factor
+                FGM.set_value(unit_rating_maps[id], x, y, 'dist_rating', dist_rating)
+
+                local defensive_rating = rating - dist
+                rating = rating + dist_rating
+
+                FGM.set_value(unit_rating_maps[id], x, y, 'rating', rating)
+                FGM.set_value(unit_rating_maps[id], x, y, 'defensive_rating', defensive_rating)
+
+                local fm_infl = FGM.get_value(move_data.influence_maps, x, y, 'full_move_influence')
+                FGM.set_value(unit_rating_maps[id], x, y, 'fm_infl', fm_infl)
+
+                if (fm_infl >= 0) then use_defensive_rating = false end
+
+                if (rating > max_unit_rating) then
+                    max_unit_rating = rating
+                    best_unit_hex = { x, y }
                 end
+                if (defensive_rating > max_unit_def_rating) then
+                    max_unit_def_rating = defensive_rating
+                    best_unit_def_hex = { x, y }
+                end
+            end
+        end
+        --std_print(id .. ' after use_defensive_rating: ' .. tostring(use_defensive_rating))
+
+        if use_defensive_rating then
+            if (max_unit_def_rating > max_rating) then
+                max_rating = max_unit_def_rating
+                best_id = id
+                best_hex = best_unit_def_hex
+            end
+        else
+            if (max_unit_rating > max_rating) then
+                max_rating = max_unit_rating
+                best_id = id
+                best_hex = best_unit_hex
             end
         end
     end
@@ -3009,7 +3047,9 @@ local function get_advance_action(zone_cfg, fred_data)
             DBG.show_fgumap_with_message(unit_rating_map, 'dist_rating', zone_cfg.zone_id ..': advance dist_rating (unit value = ' .. FU.unit_value(move_data.unit_infos[id]) .. ')', move_data.unit_copies[id])
             DBG.show_fgumap_with_message(unit_rating_map, 'counter_rating', zone_cfg.zone_id ..': advance counter_rating (unit value = ' .. FU.unit_value(move_data.unit_infos[id]) .. ')', move_data.unit_copies[id])
             DBG.show_fgumap_with_message(unit_rating_map, 'bonus_rating', zone_cfg.zone_id ..': advance bonus_rating (unit value = ' .. FU.unit_value(move_data.unit_infos[id]) .. ')', move_data.unit_copies[id])
+            DBG.show_fgumap_with_message(unit_rating_map, 'fm_infl', zone_cfg.zone_id ..': full move influence' .. FU.unit_value(move_data.unit_infos[id]) .. ')', move_data.unit_copies[id])
             DBG.show_fgumap_with_message(unit_rating_map, 'rating', zone_cfg.zone_id ..': advance total rating (unit value = ' .. FU.unit_value(move_data.unit_infos[id]) .. ')', move_data.unit_copies[id])
+            DBG.show_fgumap_with_message(unit_rating_map, 'defensive_rating', zone_cfg.zone_id ..': advance total defensive_rating (unit value = ' .. FU.unit_value(move_data.unit_infos[id]) .. ')', move_data.unit_copies[id])
         end
     end
 
