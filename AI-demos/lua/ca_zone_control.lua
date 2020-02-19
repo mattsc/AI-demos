@@ -2734,6 +2734,25 @@ local function get_advance_action(zone_cfg, fred_data)
     end
     --std_print(zone_cfg.zone_id .. ': already_holding: ', already_holding)
 
+
+    -- Map of adjacent villages that can be reached by the enemy
+    -- TODO: this currently ignores that the advancing unit itself might block the village from the enemy
+    local adjacent_village_map = {}
+    for x,y,_ in FGM.iter(move_data.village_map) do
+        for enemy_id,_ in pairs(move_data.enemies) do
+            local moves_left = FGM.get_value(move_data.reach_maps[enemy_id], x, y, 'moves_left')
+            if moves_left then
+                for xa,ya in H.adjacent_tiles(x,y) do
+                    FGM.set_value(adjacent_village_map, xa, ya, 'village_xy', 1000 * x + y)
+                end
+            end
+        end
+    end
+    if false then
+        DBG.show_fgumap_with_message(adjacent_village_map, 'village_xy', 'Adjacent vulnerable villages')
+    end
+
+
     local safe_loc = false
     local unit_rating_maps = {}
     local max_rating, best_id, best_hex
@@ -2943,6 +2962,10 @@ local function get_advance_action(zone_cfg, fred_data)
                     else
                         village_bonus = village_bonus + 6
                     end
+                end
+
+                if FGM.get_value(adjacent_village_map, x, y, 'village_xy') then
+                    village_bonus = village_bonus - 6
                 end
 
                 -- Somewhat larger preference for villages for injured units
