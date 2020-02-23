@@ -13,7 +13,7 @@ local cfg = {
     milk_xp_die_chance_limit = 0,      -- Enemy_leader die chance has to be greater than this to check for XP milking attack.
                                        -- Set to >=1 to disable. Engine uses 0 if this is set to negative values.
 
-    action_base_ratings = {
+    action_base_ratings = {          -- setting a rating to <= 0 disables the action
         protect_leader_eval = 32000, -- eval only
         attack_leader_threat = 31000,
         protect_leader_exec = 30000,

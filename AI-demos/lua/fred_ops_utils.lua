@@ -2545,36 +2545,42 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         -- By contrast, we do use them for advancing toward the leader
 
         if leader_threats.try_protecting then
-            table.insert(fred_data.zone_cfgs, {
-                zone_id = 'leader',
-                action_type = 'hold',
-                action_str = 'protect leader (eval only)',
-                evaluate_only = true,
-                find_best_protect_only = true,
-                value_ratio = vr,
-                rating = base_ratings.protect_leader_eval
-            })
+            if (base_ratings.protect_leader_eval > 0) then
+                table.insert(fred_data.zone_cfgs, {
+                    zone_id = 'leader',
+                    action_type = 'hold',
+                    action_str = 'protect leader (eval only)',
+                    evaluate_only = true,
+                    find_best_protect_only = true,
+                    value_ratio = vr,
+                    rating = base_ratings.protect_leader_eval
+                })
+            end
 
+            if (base_ratings.protect_leader_exec > 0) then
+                table.insert(fred_data.zone_cfgs, {
+                    zone_id = 'leader',
+                    action_type = 'hold',
+                    action_str = 'protect leader (exec)',
+                    rating = base_ratings.protect_leader_exec,
+                    use_stored_leader_protection = true
+                })
+            end
+        end
+
+        if (base_ratings.attack_leader_threat > 0) then
             table.insert(fred_data.zone_cfgs, {
                 zone_id = 'leader',
-                action_type = 'hold',
-                action_str = 'protect leader (exec)',
-                rating = base_ratings.protect_leader_exec,
-                use_stored_leader_protection = true
+                action_type = 'attack',
+                action_str = 'attack leader threats',
+                --zone_units = attackers_by_zone[zone_id],
+                targets = leader_threats.enemies,
+                value_ratio = vr,
+                rating = base_ratings.attack_leader_threat
             })
         end
 
-        table.insert(fred_data.zone_cfgs, {
-            zone_id = 'leader',
-            action_type = 'attack',
-            action_str = 'attack leader threats',
-            --zone_units = attackers_by_zone[zone_id],
-            targets = leader_threats.enemies,
-            value_ratio = vr,
-            rating = base_ratings.attack_leader_threat
-        })
-
-        if holders_by_zone['leader'] then
+        if (base_ratings.advance_toward_leader > 0) and holders_by_zone['leader'] then
             table.insert(fred_data.zone_cfgs, {
                 zone_id = 'leader',
                 action_type = 'advance',
@@ -2592,13 +2598,15 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     local value_ratio = fred_data.ops_data.behavior.orders.value_ratio
 
     -- Favorable attacks. These are cross-zone
-    table.insert(fred_data.zone_cfgs, {
-        zone_id = 'all_map',
-        action_type = 'attack',
-        action_str = 'favorable attack',
-        rating = base_ratings.fav_attack,
-        value_ratio = 2.0 * value_ratio -- only very favorable attacks will pass this
-    })
+    if (base_ratings.fav_attack > 0) then
+        table.insert(fred_data.zone_cfgs, {
+            zone_id = 'all_map',
+            action_type = 'attack',
+            action_str = 'favorable attack',
+            rating = base_ratings.fav_attack,
+            value_ratio = 2.0 * value_ratio -- only very favorable attacks will pass this
+        })
+    end
 
 
     -- Do this for the standard zones only (not needed for leader zone) -> passing @raw_cfgs as first argument
@@ -2610,7 +2618,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
         if (zone_id ~= 'leader') then
             local power_rating = zone_power_stats[zone_id].power_needed - zone_power_stats[zone_id].my_power / 1000
 
-            if threats_by_zone[zone_id] and attackers_by_zone[zone_id] then
+            if (base_ratings.attack > 0) and threats_by_zone[zone_id] and attackers_by_zone[zone_id] then
                 -- Attack --
                 table.insert(fred_data.zone_cfgs,  {
                     zone_id = zone_id,
@@ -2635,11 +2643,15 @@ function fred_ops_utils.get_action_cfgs(fred_data)
                     --   It probably is not, as that only checks for the leader, not castles
                     or protect_obj.protect_leader
                 ) then
-                    rating = power_rating + base_ratings.protect
-                    second_rating = power_rating + base_ratings.hold
-                    action_str = 'zone protect'
+                    if (base_ratings.protect > 0) then
+                        rating = power_rating + base_ratings.protect
+                        if (base_ratings.hold > 0) then
+                            second_rating = power_rating + base_ratings.hold
+                        end
+                        action_str = 'zone protect'
+                    end
                 else
-                    if (not protect_obj.already_holding) then
+                    if (base_ratings.hold > 0) and (not protect_obj.already_holding) then
                         rating = power_rating + base_ratings.hold
                     end
                 end
@@ -2663,27 +2675,30 @@ function fred_ops_utils.get_action_cfgs(fred_data)
                 end
                 advance_power_rating = advance_power_rating / 1000
 
-                table.insert(fred_data.zone_cfgs, {
-                    zone_id = zone_id,
-                    action_type = 'advance',
-                    action_str = 'zone advance',
-                    zone_units = holders_by_zone[zone_id],
-                    rating = base_ratings.advance + advance_power_rating
-                })
-
+                if (base_ratings.advance > 0) then
+                    table.insert(fred_data.zone_cfgs, {
+                        zone_id = zone_id,
+                        action_type = 'advance',
+                        action_str = 'zone advance',
+                        zone_units = holders_by_zone[zone_id],
+                        rating = base_ratings.advance + advance_power_rating
+                    })
+                end
             end
         end
     end
 
 
     -- Village grabs are stored in reserved_actions. This cfg can always be added.
-    table.insert(fred_data.zone_cfgs, {
-        zone_id = 'all_map',
-        action_type = 'reserved_action',
-        action_str = 'grab villages',
-        reserved_id = 'GV',
-        rating = base_ratings.grab_villages
-    })
+    if (base_ratings.grab_villages > 0) then
+        table.insert(fred_data.zone_cfgs, {
+            zone_id = 'all_map',
+            action_type = 'reserved_action',
+            action_str = 'grab villages',
+            reserved_id = 'GV',
+            rating = base_ratings.grab_villages
+        })
+    end
 
 
    -- Recruiting
@@ -2693,7 +2708,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
        -- now I just put in this workaround.
        local current_gold = wesnoth.sides[wesnoth.current.side].gold
        local cost = wesnoth.unit_types[ops_data.objectives.leader.prerecruit.units[1].recruit_type].cost
-       if (current_gold >= cost) then
+       if (base_ratings.recruit > 0) and (current_gold >= cost) then
            table.insert(fred_data.zone_cfgs, {
                zone_id = 'leader',
                action_type = 'recruit',
@@ -2711,22 +2726,26 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     --   2. Moving leader to or toward keep
     -- It is the last action to be done and can simply always be called.
     -- There is no advantage in doing the sorting here.
-    table.insert(fred_data.zone_cfgs, {
-        zone_id = 'all_map',
-        action_type = 'retreat',
-        action_str = 'retreat',
-        rating = base_ratings.retreat
-    })
+    if (base_ratings.retreat > 0) then
+        table.insert(fred_data.zone_cfgs, {
+            zone_id = 'all_map',
+            action_type = 'retreat',
+            action_str = 'retreat',
+            rating = base_ratings.retreat
+        })
+    end
 
 
     -- TODO: this is a catch all action, that moves all units that were
     -- missed. Ideally, there will be no need for this in the end.
-    table.insert(fred_data.zone_cfgs, {
-        zone_id = 'all_map',
-        action_type = 'advance',
-        action_str = 'all_map advance',
-        rating = base_ratings.advance_all_map
-    })
+    if (base_ratings.advance_all_map > 0) then
+        table.insert(fred_data.zone_cfgs, {
+            zone_id = 'all_map',
+            action_type = 'advance',
+            action_str = 'all_map advance',
+            rating = base_ratings.advance_all_map
+        })
+    end
     --DBG.dbms(fred_data.zone_cfgs, false, 'fred_data.zone_cfgs')
 
 
