@@ -32,6 +32,8 @@ local cfg = {
         advance_all_map = 1000
     },
 
+    leader_joins_action = false,     -- set to true to make leader participate in zone actions
+
 
     ----- Do not change values below unless you know exactly what you are doing -----
 

@@ -26,10 +26,8 @@ local function assignments_to_assigned_units(assignments, move_data)
         local zone_id = string.sub(action, i + 1)
         --std_print(action, i, zone_id)
 
-        if (not move_data.unit_infos[id].canrecruit) then
-            if (not assigned_units[zone_id]) then assigned_units[zone_id] = {} end
-            assigned_units[zone_id][id] = move_data.my_units[id][1] * 1000 + move_data.my_units[id][2]
-        end
+        if (not assigned_units[zone_id]) then assigned_units[zone_id] = {} end
+        assigned_units[zone_id][id] = move_data.my_units[id][1] * 1000 + move_data.my_units[id][2]
     end
 
     return assigned_units
@@ -611,14 +609,26 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
     --DBG.dbms(raw_cfgs, false, 'raw_cfgs')
 
+    local leader_joins_action = FCFG.get_cfg_parm('leader_joins_action')
 
-    local leader_objectives, leader_effective_reach_map = FMLU.leader_objectives(fred_data)
-    local objectives = { leader = leader_objectives }
-    --DBG.dbms(objectives, false, 'objectives')
-    --DBG.show_fgumap_with_message(leader_effective_reach_map, 'moves_left', 'leader_effective_reach_map')
-    local leader_zone_map, leader_perp_map = FMLU.assess_leader_threats(objectives.leader, side_cfgs, fred_data)
-    --DBG.dbms(objectives, false, 'objectives')
+    local objectives = {
+        leader = {
+            final = move_data.leaders[wesnoth.current.side],
+            leader_threats = { significant_threat = false },
+            leader_joins_action = leader_joins_action
+        }
+    }
 
+    local leader_objectives, leader_effective_reach_map
+    local leader_zone_map, leader_perp_map
+    if (not leader_joins_action) then
+        leader_objectives, leader_effective_reach_map = FMLU.leader_objectives(fred_data)
+        objectives = { leader = leader_objectives }
+        --DBG.dbms(objectives, false, 'objectives')
+        --DBG.show_fgumap_with_message(leader_effective_reach_map, 'moves_left', 'leader_effective_reach_map')
+        leader_zone_map, leader_perp_map = FMLU.assess_leader_threats(objectives.leader, side_cfgs, fred_data)
+    end
+    --DBG.dbms(objectives, false, 'objectives')
 
     local leader_derating = FCFG.get_cfg_parm('leader_derating')
 
@@ -1048,7 +1058,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     local assigned_enemies, unassigned_enemies = {}, {}
     local enemy_zones = {}
     for id,loc in pairs(move_data.enemies) do
-        if objectives.leader.leader_threats.enemies[id] then
+        if objectives.leader.leader_threats.enemies and objectives.leader.leader_threats.enemies[id] then
             if (not assigned_enemies['leader']) then
                 assigned_enemies['leader'] = {}
             end
@@ -1085,7 +1095,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     local pre_assigned_units, units_noMP_zones = {}, {}
     for id,_ in pairs(move_data.my_units) do
         local unit_copy = move_data.unit_copies[id]
-        if (not unit_copy.canrecruit)
+        if ((not unit_copy.canrecruit) or leader_joins_action)
             and (not FGM.get_value(move_data.reachable_castles_map[unit_copy.side], unit_copy.x, unit_copy.y, 'castle') or false)
         then
             if used_units[id] and raw_cfgs[used_units[id]] then
@@ -1377,7 +1387,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
 
     local goal_hexes_leader, leader_enemies = {}, {}
-    for enemy_id,_ in pairs(objectives.leader.leader_threats.enemies) do
+    for enemy_id,_ in pairs(objectives.leader.leader_threats.enemies or {}) do
         -- TODO: simply using the middle point here might not be the best thing to do
         local enemy_loc = fred_data.move_data.units[enemy_id]
         local goal_loc = {
@@ -1423,7 +1433,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         previous = { power = 0, n_units = 0 },
         assigned = { power = 0, n_units = 0 }
     }
-    for enemy_id,_ in pairs(objectives.leader.leader_threats.enemies) do
+    for enemy_id,_ in pairs(objectives.leader.leader_threats.enemies or {}) do
         local unit_power = FU.unit_base_power(fred_data.move_data.unit_infos[enemy_id])
         lthreat_power.enemy.power = lthreat_power.enemy.power + unit_power
         lthreat_power.enemy.n_units = lthreat_power.enemy.n_units + 1
@@ -1738,7 +1748,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             local action = 'zone:' .. zone_id
 
             for id,data in pairs(benefits) do
-                if (not move_data.unit_infos[id].canrecruit)
+                if ((not move_data.unit_infos[id].canrecruit) or leader_joins_action)
                     and (not protect_leader_assignments[id])
                 then
                     --std_print('  use this unit')
@@ -1795,7 +1805,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     local unused_units = {}
     for id,_ in pairs(move_data.my_units) do
-        if (not assignments[id]) and (not move_data.unit_infos[id].canrecruit) then
+        if (not assignments[id]) and ((not move_data.unit_infos[id].canrecruit) or leader_joins_action) then
             unused_units[id] = 'none'
         end
     end
@@ -2460,9 +2470,10 @@ function fred_ops_utils.get_action_cfgs(fred_data)
 
     -- We add the leader as a potential attacker to all zones
     -- effective_reach_maps will be used to assess what he can do
+    -- Except if leader_joins_action is set, in which case the leader is assigned to a zone already
     local leader = move_data.leaders[wesnoth.current.side]
     --std_print('leader.id', leader.id)
-    if (move_data.unit_copies[leader.id].attacks_left > 0) then
+    if ((not ops_data.objectives.leader.leader_joins_action) and (move_data.unit_copies[leader.id].attacks_left > 0)) then
         local is_attacker = true
         if move_data.my_units_noMP[leader.id] then
             is_attacker = false

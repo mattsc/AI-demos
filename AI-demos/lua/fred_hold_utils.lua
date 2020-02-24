@@ -124,9 +124,23 @@ function fred_hold_utils.check_hold_protection(combo, protection, cfg, fred_data
 
     local leader_protected, leader_protect_mult = false, 1
 
-    -- The leader is never part of the holding, so we can just add him
-    local old_locs = { { move_data.leader_x, move_data.leader_y } }
-    local new_locs = { protection.overall.leader_goal }
+    -- If the leader is not part of the holding, we add him
+    local old_locs, new_locs = {}, {}
+    local combo_uses_leader = false
+    leader_src = move_data.leader_x * 1000 + move_data.leader_y
+    for src,_ in pairs(combo) do
+        --std_print(src, leader_src)
+        if (src == leader_src) then
+            combo_uses_leader = true
+            break
+        end
+    end
+    --std_print('combo_uses_leader', combo_uses_leader)
+    if (not combo_uses_leader) then
+        old_locs = { { move_data.leader_x, move_data.leader_y } }
+        new_locs = { protection.overall.leader_goal }
+    end
+
     for src,dst in pairs(combo) do
         local dst_x, dst_y =  math.floor(dst / 1000), dst % 1000
         local src_x, src_y =  math.floor(src / 1000), src % 1000
@@ -135,7 +149,7 @@ function fred_hold_utils.check_hold_protection(combo, protection, cfg, fred_data
     end
 
     FVS.set_virtual_state(old_locs, new_locs, fred_data.ops_data.place_holders, false, move_data)
-    local status = FS.check_exposures(fred_data.ops_data.objectives, combo, nil, { zone_id = cfg.zone_id }, fred_data)
+    local status = FS.check_exposures(fred_data.ops_data.objectives, combo, nil, { zone_id = cfg.zone_id, exclude_leader = combo_uses_leader }, fred_data)
     FVS.reset_state(old_locs, new_locs, false, move_data)
     --DBG.dbms(status, false, 'status')
 
