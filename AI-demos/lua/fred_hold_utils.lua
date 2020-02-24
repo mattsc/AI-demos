@@ -809,7 +809,8 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
         local protected_str = 'does_protect = no (' .. protection.overall.protect_obj_str .. ')' .. protection.combo.comment
         if protection.combo.does_protect then
-            protected_str = 'does_protect = yes (' .. protection.overall.protect_obj_str .. ')' .. protection.combo.comment end
+            protected_str = 'does_protect = yes (' .. protection.overall.protect_obj_str .. ')' .. protection.combo.comment
+        end
         if protection.combo.protect_loc_str then
             protected_str = protected_str .. '\n    protecting:' .. protection.combo.protect_loc_str
         end
