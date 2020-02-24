@@ -3305,6 +3305,7 @@ function get_zone_action(cfg, fred_data)
                         action_str = 'XP milking attack',
                         zone_units = attackers,
                         targets = targets,
+                        rating = 999999,
                         value_ratio = (2 - action.enemy_leader_die_chance) * fred_data.ops_data.behavior.orders.value_ratio
                     }
                     --DBG.dbms(xp_attack_cfg, false, 'xp_attack_cfg')
