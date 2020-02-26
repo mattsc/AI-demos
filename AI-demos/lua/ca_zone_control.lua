@@ -2840,23 +2840,58 @@ local function get_advance_action(zone_cfg, fred_data)
                 end
             end
         else
-            -- If the unit is not in the zone, head straight toward the goal
-            -- but give a one-move penalty for hexes outside the zone; this is done
-            -- in order to force units to move through the zones on the outside if there
-            -- is a shorter route through the center.
+            -- If the unit is not in the zone, move toward the goal hex via a path
+            -- that has a penalty rating for hexes with overall negative full-move
+            -- influence. This is done so that units take a somewhat longer router around
+            -- the back of a zone rather than taking the shorter route straight
+            -- into the middle of the enemies.
             -- TODO: this might have to be done differently for maps other than Freelands
+
+            local unit_copy = move_data.unit_copies[id]
+            local unit_infl = FU.unit_current_power(move_data.unit_infos[id])
+            -- We're doing this out here, so that it has not be done for each hex in the custom cost function
+            local influence_mult = 1 / unit_infl
+            --std_print('unit out of zone: ' .. id, unit_infl, influence_mult)
+            --local path, cost = wesnoth.find_path(unit_copy, goal[1], goal[2], { ignore_units = true })
+            local path, cost = wesnoth.find_path(unit_copy, goal[1], goal[2],
+                function(x, y, current_cost)
+                    return FU.influence_custom_cost(x, y, unit_copy, influence_mult, move_data.influence_maps, move_data)
+                end
+            )
+
+            -- Debug code for showing the path
+            if false then
+                local path_map = {}
+                for _,loc in ipairs(path) do
+                    FGM.set_value(path_map, loc[1], loc[2], 'cost', loc[3])
+                end
+                DBG.show_fgumap_with_message(path_map, 'cost', 'path_map', unit_copy[id])
+            end
+
+            -- Find the hex one past the last the unit can reach
+            -- This ignores enemies etc. but that should be fine
+            local total_cost, path_goal_hex = 0
+            for i = 2,#path do
+                local x, y = path[i][1], path[i][2]
+                local movecost = wesnoth.unit_movement_cost(unit_copy, wesnoth.get_terrain(x, y))
+                total_cost = total_cost + movecost
+                --std_print(i, x, y, movecost, total_cost)
+                path_goal_hex = path[i] -- This also works when the path is shorter than the unit's moves
+                if (total_cost > move_data.unit_infos[id].moves) then
+                    break
+                end
+            end
+            --std_print('path goal hex: ', path_goal_hex[1], path_goal_hex[2])
+
             local cm = wesnoth.find_cost_map(
                 { x = -1 }, -- SUF not matching any unit
-                { { goal[1], goal[2], wesnoth.current.side, fred_data.move_data.unit_infos[id].type } },
+                { { path_goal_hex[1], path_goal_hex[2], wesnoth.current.side, fred_data.move_data.unit_infos[id].type } },
                 { ignore_units = true }
             )
 
             for _,cost in pairs(cm) do
                 if (cost[3] > -1) then
-                    local c = cost[3]
-                    local in_zone = FGM.get_value(fred_data.ops_data.zone_maps[zone_cfg.zone_id], cost[1], cost[2], 'in_zone')
-                    if (not in_zone) then c = c + max_moves end
-                    FGM.add(cost_map, cost[1], cost[2], 'cost', c)
+                    FGM.add(cost_map, cost[1], cost[2], 'cost', cost[3])
                 end
             end
         end

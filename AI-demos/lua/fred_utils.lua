@@ -288,6 +288,29 @@ function fred_utils.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs)
     return to_zone_id
 end
 
+
+function fred_utils.influence_custom_cost(x, y, unit_copy, influence_mult, influence_map, move_data)
+    -- Custom cost function for finding path with penalty for negative full-move influence.
+    -- This does not take potential loss of MP at the end of a move into account.
+    local cost = wesnoth.unit_movement_cost(unit_copy, wesnoth.get_terrain(x, y))
+    if (cost >= 99) then return cost end
+
+    if FGM.get_value(move_data.enemy_map, x, y, 'id') then
+        --std_print(x, y, 'enemy')
+        cost = cost + 99
+    end
+
+    local infl = FGM.get_value(influence_map, x, y, 'full_move_influence') or -99
+
+    if (infl < 0) then
+        --std_print(x, y, infl, infl * influence_mult)
+        cost = cost - infl * influence_mult
+    end
+
+    return cost
+end
+
+
 function fred_utils.smooth_cost_map(unit_proxy, loc, is_inverse_map)
     -- Smooth means that it does not add discontinuities for not having enough
     -- MP left to enter certain terrain at the end of a turn. This is done by setting
