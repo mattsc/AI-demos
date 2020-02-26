@@ -694,12 +694,12 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(power_ratios, false, 'power_ratios')
     --std_print('min, max:', min_power_ratio, max_power_ratio)
 
-    local power_mult_next_turn = my_power[1] / my_power[0] / (enemy_power[1] / enemy_power[0])
-
     -- Take fraction of influence ratio change on next turn into account for calculating value_ratio
     local weight = FCFG.get_cfg_parm('next_turn_influence_weight')
-    local factor = 1 / (1 + (power_mult_next_turn - 1) * weight)
-    --std_print(power_mult_next_turn, weight, factor)
+    local i_p, d_i = math.floor(weight)
+    local d_i = weight - i_p
+    local projected_power_ratio = power_ratios[i_p] + d_i * (power_ratios[i_p + 1] - power_ratios[i_p])
+    --std_print(i_p, d_i, projected_power_ratio)
 
     local base_value_ratio = 1 / FCFG.get_cfg_parm('aggression')
     local max_value_ratio = 1 / FCFG.get_cfg_parm('min_aggression')
@@ -711,8 +711,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     max_value_ratio = max_value_ratio / aggression_multiplier
     pushfactor_min_midpoint = pushfactor_min_midpoint * aggression_multiplier
 
-    local ratio = factor * enemy_power[0] / my_power[0]
-    local value_ratio = ratio * base_value_ratio
+    local value_ratio = base_value_ratio / projected_power_ratio
     if (value_ratio > max_value_ratio) then
         value_ratio = max_value_ratio
     end
