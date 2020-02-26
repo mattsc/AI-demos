@@ -781,6 +781,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     -- TODO: this might need to be different if playing side 2
     --behavior.orders.push_factor = push_factors[0]
     behavior.orders.push_factor = (push_factors[0] + push_factors[1]) / 2
+    behavior.orders.hold_push_factor = math.min(push_factors[0], push_factors[1])
     --std_print('behavior.orders.push_factor', behavior.orders.push_factor)
 
     --DBG.dbms(behavior, false, 'behavior')
@@ -2365,6 +2366,8 @@ function fred_ops_utils.set_ops_data(fred_data)
         end
         std_print(string.format("value_ratio (actual, base, min): %8.3f %8.3f %8.3f", behavior.orders.value_ratio, behavior.orders.base_value_ratio, behavior.orders.max_value_ratio))
         std_print("zone push factors:")
+        std_print(string.format("%10s %8.3f", 'overall', ops_data.behavior.orders.push_factor))
+        std_print(string.format("%10s %8.3f", 'hold', ops_data.behavior.orders.hold_push_factor))
         for zone_id,push_factor in pairs(zone_push_factors) do
             std_print(string.format("%10s %8.3f", zone_id, push_factor))
         end
