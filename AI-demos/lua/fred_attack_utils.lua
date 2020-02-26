@@ -1451,7 +1451,7 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, addit
     --   If @old_locs and/or @new_locs is nil, the placing of units is skipped and it is assumed that this
     --   has already been done, e.g. by the virtual_state functions
     --  @additional_units: optional table for placing other units on the map, such as prerecruits
-    --    calc_counter_attack()  checks whether these units interfere with any of the @new_locs and does
+    --    calc_counter_attack() checks whether these units interfere with any of the @new_locs and does
     --    not place them if so, but it is assumed that interference with e.g. units_noMP
     --    has been checked.
     --  @virtual_reach_maps: allow passing a different reach_maps table. This saves time if counter
@@ -1474,6 +1474,26 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, addit
         end
     end
 
+    -- If this is side 2, we set up a time area with the time of the next turn,
+    -- as that is when the counter attack will happen.
+    -- Note: nothing special needs to be done about caching, because the cache index
+    -- contains the attacker and defender in order, with AI vs. enemy always
+    -- happening during the AI turn, and enemy vs. AI always on the enemy turn.
+    if (wesnoth.current.side == 2) then
+        local next_turn_schedule = wesnoth.get_time_of_day(wesnoth.current.turn + 1)
+        -- Setting a large time area is expensive -> use only for small radius around target
+        -- Use radius = 2 to include potential healers or leadership; tested that that takes
+        -- barely any more time than radius = 1.
+        local time_area = {
+            id = 'next_turn',
+            x = target_loc[1],
+            y = target_loc[2],
+            radius = 2,
+            { "time", next_turn_schedule }
+        }
+        wesnoth.add_time_area(time_area)
+    end
+
     -- reach_maps must not be given here, as this is for a hypothetical situation
     -- on the map. Needs to be recalculated for that situation.
     -- Only want the best attack combo for this.
@@ -1481,6 +1501,10 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, addit
         attackers, target, cfg,
         virtual_reach_maps, true, move_data, move_cache
     )
+
+    if (wesnoth.current.side == 2) then
+        wesnoth.remove_time_area('next_turn')
+    end
 
     local counter_attack_outcome
     if (next(counter_attack)) then
