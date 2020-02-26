@@ -696,6 +696,9 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     -- Take fraction of influence ratio change on next turn into account for calculating value_ratio
     local weight = FCFG.get_cfg_parm('next_turn_influence_weight')
+    if (wesnoth.current.side == 2) then
+        weight = weight + 0.5
+    end
     local i_p, d_i = math.floor(weight)
     local d_i = weight - i_p
     local projected_power_ratio = power_ratios[i_p] + d_i * (power_ratios[i_p + 1] - power_ratios[i_p])
@@ -779,8 +782,15 @@ function fred_ops_utils.set_ops_data(fred_data)
     -- For now, just use average of current turn and next turn (value_ratio is done differently)
     -- TODO: this might need to be different if playing side 2
     --behavior.orders.push_factor = push_factors[0]
-    behavior.orders.push_factor = (push_factors[0] + push_factors[1]) / 2
-    behavior.orders.hold_push_factor = math.min(push_factors[0], push_factors[1])
+    if (wesnoth.current.side == 1) then
+        behavior.orders.push_factor = (push_factors[0] + push_factors[1]) / 2
+        behavior.orders.hold_push_factor = math.min(push_factors[0], push_factors[1])
+    elseif (wesnoth.current.side == 2) then
+        behavior.orders.push_factor = push_factors[1]
+        behavior.orders.hold_push_factor = math.min((push_factors[0] + push_factors[1]) / 2, (push_factors[1] + push_factors[2]) / 2)
+    else
+        error("I do not (yet) know how to handle maps with more than two sides.")
+    end
     --std_print('behavior.orders.push_factor', behavior.orders.push_factor)
 
     --DBG.dbms(behavior, false, 'behavior')
