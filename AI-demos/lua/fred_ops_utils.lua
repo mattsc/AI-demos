@@ -1682,28 +1682,31 @@ function fred_ops_utils.set_ops_data(fred_data)
     -- zones, not just those that are threats to the leader
     local goal_hexes_zones = {}
     for zone_id,cfg in pairs(raw_cfgs) do
-        local max_ld, loc
-        if objectives.protect.zones[zone_id] and objectives.protect.zones[zone_id].villages then
-            for _,village in ipairs(objectives.protect.zones[zone_id].villages) do
-                for enemy_id,_ in pairs(move_data.enemies) do
-                    if FGM.get_value(move_data.reach_maps[enemy_id], village.x, village.y, 'moves_left') then
-                        local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, village.x, village.y, 'distance')
-                        if (not max_ld) or (ld > max_ld) then
-                            max_ld = ld
-                            loc = { village.x, village.y }
-                        end
-                    end
-                end
-            end
-        end
+        -- TODO: commenting this out is a work around for now. The problem with changing
+        -- goal hexes is that units might not be assigned to the same zones on consecutive
+        -- move, which sometimes leads to strange (bad) behaviors. This should be revisisted.
+        --local max_ld, loc
+        --if objectives.protect.zones[zone_id] and objectives.protect.zones[zone_id].villages then
+        --    for _,village in ipairs(objectives.protect.zones[zone_id].villages) do
+        --        for enemy_id,_ in pairs(move_data.enemies) do
+        --            if FGM.get_value(move_data.reach_maps[enemy_id], village.x, village.y, 'moves_left') then
+        --                local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, village.x, village.y, 'distance')
+        --                if (not max_ld) or (ld > max_ld) then
+        --                    max_ld = ld
+        --                    loc = { village.x, village.y }
+        --                end
+        --            end
+        --        end
+        --    end
+        --end
 
-        if max_ld then
-            --std_print('max protect ld:', zone_id, max_ld, loc[1], loc[2])
-            goal_hexes_zones[zone_id] = { loc }
-        else
+        --if max_ld then
+        --    --std_print('max protect ld:', zone_id, max_ld, loc[1], loc[2])
+        --    goal_hexes_zones[zone_id] = { loc }
+        --else
             -- TODO: adapt for several goal hexes
             goal_hexes_zones[zone_id] = { cfg.center_hexes[1] }
-        end
+        --end
     end
 
     if goal_hexes_leader.leader and goal_hexes_leader.leader[1] then
