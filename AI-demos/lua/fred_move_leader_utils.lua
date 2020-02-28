@@ -368,7 +368,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
 
                 -- The following ignores that the hex might not be reachable for the enemy
                 -- once the leader is on its final hex
-                if (not best_defenses[enemy_id]) then best_defenses[enemy_id] = { defense = -9e99 } end
+                if (not best_defenses[enemy_id]) then best_defenses[enemy_id] = { defense = - math.huge } end
                 local current_defense = best_defenses[enemy_id].defense
                 local defense = FGUI.get_unit_defense(move_data.unit_copies[enemy_id], xa, ya, move_data.defense_maps)
                 if (defense > current_defense) then

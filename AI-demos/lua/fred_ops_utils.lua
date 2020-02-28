@@ -2160,7 +2160,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
         -- If units are already holding in the zone, we try to move toward the most forward of those
         -- Otherwise we move toward the most forward location with no enemy_influence along center line
-        local max_forward, min_forward = -9e99, 9e99
+        local max_forward, min_forward = - math.huge, math.huge
         local max_vuln, max_forward_hold = - math.huge
         local max_adj_rating, preset_adv_hex = - math.huge
         if objectives.protect.zones[zone_id] and objectives.protect.zones[zone_id].holders and next(objectives.protect.zones[zone_id].holders) then
@@ -2251,14 +2251,14 @@ function fred_ops_utils.set_ops_data(fred_data)
             --std_print('goal_hex unit: ' .. goal_hex[1] .. ',' .. goal_hex[2])
         else
             --std_print(zone_id .. ': max, min forward = ', max_forward, min_forward)
-            if (max_forward == -9e99) then
+            if (max_forward == - math.huge) then
                 max_forward = min_forward
             end
 
-            local min_rating = 9e99
-            local min_dist, alternate_goal = 9e99, {}
-            local min_rating_hold = 9e99
-            local min_dist_hold, alternate_goal_hold = 9e99, {}
+            local min_rating = math.huge
+            local min_dist, alternate_goal = math.huge, {}
+            local min_rating_hold = math.huge
+            local min_dist_hold, alternate_goal_hold = math.huge, {}
             for x,y,_ in FGM.iter(zone_maps[zone_id]) do
                 local data = ADmap[x] and ADmap[x][y]
                 if data then

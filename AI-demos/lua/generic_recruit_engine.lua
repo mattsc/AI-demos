@@ -795,7 +795,7 @@ return {
             else
                 -- no available village, look for hex closest to enemy leader
                 -- and also the closest enemy
-                local max_rating = -9e99
+                local max_rating = - math.huge
 
                 local enemy_leaders = AH.get_live_units { canrecruit = 'yes',
                     { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
@@ -863,7 +863,7 @@ return {
                 distance_to_enemy, enemy_location = AH.get_closest_enemy(best_hex)
             end
 
-            local gold_limit = 9e99
+            local gold_limit = math.huge
             if recruit_data.castle.loose_gold_limit >= recruit_data.recruit.cheapest_unit_cost then
                 gold_limit = recruit_data.castle.loose_gold_limit
             end

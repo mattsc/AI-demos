@@ -834,7 +834,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 end
             end
 
-            local min_total_damage_rating = 9e99
+            local min_total_damage_rating = math.huge
 
             if (not acceptable_counter) then
                 min_total_damage_rating = -9999 -- this is just for debug display purposes

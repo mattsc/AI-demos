@@ -132,7 +132,7 @@ function debug_utils.put_fgumap_labels(map, key, cfg)
 
     debug_utils.clear_labels()
 
-    local min, max = 9e99, -9e99
+    local min, max = math.huge, - math.huge
     for x,y,data in FGM.iter(map) do
         local out = data[key]
 
