@@ -112,7 +112,7 @@ function debug_utils.clear_labels()
     local width, height = wesnoth.get_map_size()
     for x = 1,width do
         for y = 1,height do
-            wesnoth.wml_actions.label { x = x, y = y, text = "" }
+            wesnoth.label { x = x, y = y, text = "" }
         end
     end
 end
@@ -202,7 +202,7 @@ function debug_utils.put_fgumap_labels(map, key, cfg)
             out = H.round(out / round_to) * round_to
         end
 
-        wesnoth.wml_actions.label {
+        wesnoth.label {
             x = x, y = y,
             text = out,
             color = 255 * red_fac .. ',' .. 255 * green_fac .. ',' .. 255 * blue_fac

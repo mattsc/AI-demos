@@ -604,17 +604,17 @@ local function get_attack_action(zone_cfg, fred_data)
 
             if DBG.show_debug('attack_combos') then
                 for _,unit in ipairs(fred_data.ops_data.place_holders) do
-                    wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = 'recruit\n' .. unit.type, color = '160,160,160' }
+                    wesnoth.label { x = unit[1], y = unit[2], text = 'recruit\n' .. unit.type, color = '160,160,160' }
                 end
                 if (not attack_includes_leader) then
-                    wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal', color = '200,0,0' }
+                    wesnoth.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal', color = '200,0,0' }
                 end
             end
 
             for i_a,attacker_damage in ipairs(combo.attacker_damages) do
                 if DBG.show_debug('attack_combos') then
                     local x, y = combo.dsts[i_a][1], combo.dsts[i_a][2]
-                    wesnoth.wml_actions.label { x = x, y = y, text = attacker_damage.id }
+                    wesnoth.label { x = x, y = y, text = attacker_damage.id }
                 end
 
                 table.insert(old_locs, move_data.my_units[attacker_damage.id])
@@ -1412,19 +1412,19 @@ local function get_attack_action(zone_cfg, fred_data)
                     village_protect_bonus, village_protect_weight,
                     unit_protect_bonus, unit_protect_weight
                 )
-                wesnoth.wml_actions.label { x = target_loc[1], y = target_loc[2], text = "target", color = '255,0,0' }
+                wesnoth.label { x = target_loc[1], y = target_loc[2], text = "target", color = '255,0,0' }
                 wesnoth.scroll_to_tile(target_loc[1], target_loc[2])
                 wesnoth.wml_actions.message { speaker = 'narrator', message = msg_str}
-                wesnoth.wml_actions.label { x = target_loc[1], y = target_loc[2], text = "" }
+                wesnoth.label { x = target_loc[1], y = target_loc[2], text = "" }
                 for i_a,_ in ipairs(combo.attacker_damages) do
                     local x, y = combo.dsts[i_a][1], combo.dsts[i_a][2]
-                    wesnoth.wml_actions.label { x = x, y = y, text = "" }
+                    wesnoth.label { x = x, y = y, text = "" }
                 end
                 if (not attack_includes_leader) then
-                    wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = "" }
+                    wesnoth.label { x = leader_goal[1], y = leader_goal[2], text = "" }
                 end
                 for _,unit in ipairs(fred_data.ops_data.place_holders) do
-                    wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = "" }
+                    wesnoth.label { x = unit[1], y = unit[2], text = "" }
                 end
             end
         end
@@ -1434,30 +1434,30 @@ local function get_attack_action(zone_cfg, fred_data)
         if action then
             local attack_includes_leader = false
             for _,unit in ipairs(fred_data.ops_data.place_holders) do
-                wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = 'recruit\n' .. unit.type, color = '160,160,160' }
+                wesnoth.label { x = unit[1], y = unit[2], text = 'recruit\n' .. unit.type, color = '160,160,160' }
             end
             for i_a,attacker in ipairs(action.units) do
-                wesnoth.wml_actions.label { x = action.dsts[i_a][1], y = action.dsts[i_a][2], text = attacker.id }
+                wesnoth.label { x = action.dsts[i_a][1], y = action.dsts[i_a][2], text = attacker.id }
                 if move_data.unit_infos[attacker.id].canrecruit then
                     attack_includes_leader = true
                 end
             end
             if (not attack_includes_leader) then
-                wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal', color = '200,0,0' }
+                wesnoth.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal', color = '200,0,0' }
             end
             local _,target_loc = next(action.enemy)
-            wesnoth.wml_actions.label { x = target_loc[1], y = target_loc[2], text = "best target", color = '255,0,0' }
+            wesnoth.label { x = target_loc[1], y = target_loc[2], text = "best target", color = '255,0,0' }
             wesnoth.scroll_to_tile(target_loc[1], target_loc[2])
             wesnoth.wml_actions.message { speaker = 'narrator', message = 'Best attack combo' }
-            wesnoth.wml_actions.label { x = target_loc[1], y = target_loc[2], text = "" }
+            wesnoth.label { x = target_loc[1], y = target_loc[2], text = "" }
             for i_a,attacker in ipairs(action.units) do
-                wesnoth.wml_actions.label { x = action.dsts[i_a][1], y = action.dsts[i_a][2], text = "" }
+                wesnoth.label { x = action.dsts[i_a][1], y = action.dsts[i_a][2], text = "" }
             end
             if (not attack_includes_leader) then
-                wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = "" }
+                wesnoth.label { x = leader_goal[1], y = leader_goal[2], text = "" }
             end
             for _,unit in ipairs(fred_data.ops_data.place_holders) do
-                wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = "" }
+                wesnoth.label { x = unit[1], y = unit[2], text = "" }
             end
         end
     end
@@ -2561,7 +2561,7 @@ local function get_hold_action(zone_cfg, fred_data)
                     local src_x, src_y =  math.floor(src / 1000), src % 1000
                     local dst_x, dst_y =  math.floor(dst / 1000), dst % 1000
                     local id = move_data.my_unit_map[src_x][src_y].id
-                    wesnoth.wml_actions.label { x = dst_x, y = dst_y, text = id }
+                    wesnoth.label { x = dst_x, y = dst_y, text = id }
                     av_x, av_y, count = av_x + dst_x, av_y + dst_y, count + 1
                 end
                 av_x, av_y = av_x / count, av_y / count
@@ -2573,7 +2573,7 @@ local function get_hold_action(zone_cfg, fred_data)
                 }
                 for src,dst in pairs(combo_table[combo_type].combo) do
                     local dst_x, dst_y =  math.floor(dst / 1000), dst % 1000
-                    wesnoth.wml_actions.label { x = dst_x, y = dst_y, text = "" }
+                    wesnoth.label { x = dst_x, y = dst_y, text = "" }
                 end
             else
                 wesnoth.wml_actions.message {
@@ -2585,9 +2585,9 @@ local function get_hold_action(zone_cfg, fred_data)
         end
 
         for _,unit in ipairs(fred_data.ops_data.place_holders) do
-            wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = 'recruit\n' .. unit.type, color = '160,160,160' }
+            wesnoth.label { x = unit[1], y = unit[2], text = 'recruit\n' .. unit.type, color = '160,160,160' }
         end
-        wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal', color = '200,0,0' }
+        wesnoth.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal', color = '200,0,0' }
 
         local no_protect_locs_str
         if (not protect_locs) then no_protect_locs_str = 'no protect locs' end
@@ -2597,9 +2597,9 @@ local function get_hold_action(zone_cfg, fred_data)
         show_hold_units('all_hold', 'All best hold combo')
         show_hold_units(best_combo_type, 'Overall best combo')
 
-        wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = "" }
+        wesnoth.label { x = leader_goal[1], y = leader_goal[2], text = "" }
         for _,unit in ipairs(fred_data.ops_data.place_holders) do
-            wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = "" }
+            wesnoth.label { x = unit[1], y = unit[2], text = "" }
         end
     end
 

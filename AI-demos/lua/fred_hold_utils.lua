@@ -524,13 +524,13 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             if DBG.show_debug('hold_combo_base_rating') then
                 local leader_goal = fred_data.ops_data.objectives.leader.final
                 for _,unit in ipairs(fred_data.ops_data.place_holders) do
-                    wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = 'recruit\n' .. unit.type, color = '160,160,160' }
+                    wesnoth.label { x = unit[1], y = unit[2], text = 'recruit\n' .. unit.type, color = '160,160,160' }
                 end
-                wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal', color = '200,0,0' }
+                wesnoth.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal', color = '200,0,0' }
                 local av_x, av_y, count = 0, 0, 0
                 for src,dst in pairs(combo) do
                     local dst_x, dst_y =  math.floor(dst / 1000), dst % 1000
-                    wesnoth.wml_actions.label { x = dst_x, y = dst_y, text = ratings[dst][src].id }
+                    wesnoth.label { x = dst_x, y = dst_y, text = ratings[dst][src].id }
                     av_x, av_y, count = av_x + dst_x, av_y + dst_y, count + 1
                 end
                 av_x, av_y = av_x / count, av_y / count
@@ -545,11 +545,11 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 }
                 for src,dst in pairs(combo) do
                     local dst_x, dst_y =  math.floor(dst / 1000), dst % 1000
-                    wesnoth.wml_actions.label { x = dst_x, y = dst_y, text = "" }
+                    wesnoth.label { x = dst_x, y = dst_y, text = "" }
                 end
-                wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = "" }
+                wesnoth.label { x = leader_goal[1], y = leader_goal[2], text = "" }
                 for _,unit in ipairs(fred_data.ops_data.place_holders) do
-                    wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = "" }
+                    wesnoth.label { x = unit[1], y = unit[2], text = "" }
                 end
             end
         end
@@ -837,13 +837,13 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
             local leader_goal = protection.overall.leader_goal
             for _,unit in ipairs(fred_data.ops_data.place_holders) do
-                wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = 'recruit\n' .. unit.type, color = '160,160,160' }
+                wesnoth.label { x = unit[1], y = unit[2], text = 'recruit\n' .. unit.type, color = '160,160,160' }
             end
-            wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal', color = '200,0,0' }
+            wesnoth.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal', color = '200,0,0' }
             local av_x, av_y, count = 0, 0, 0
             for src,dst in pairs(combo.combo) do
                 local dst_x, dst_y =  math.floor(dst / 1000), dst % 1000
-                wesnoth.wml_actions.label { x = dst_x, y = dst_y, text = ratings[dst][src].id }
+                wesnoth.label { x = dst_x, y = dst_y, text = ratings[dst][src].id }
                 av_x, av_y, count = av_x + dst_x, av_y + dst_y, count + 1
             end
             av_x, av_y = av_x / count, av_y / count
@@ -861,11 +861,11 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             }
             for src,dst in pairs(combo.combo) do
                 local dst_x, dst_y =  math.floor(dst / 1000), dst % 1000
-                wesnoth.wml_actions.label { x = dst_x, y = dst_y, text = "" }
+                wesnoth.label { x = dst_x, y = dst_y, text = "" }
             end
-            wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = "" }
+            wesnoth.label { x = leader_goal[1], y = leader_goal[2], text = "" }
             for _,unit in ipairs(fred_data.ops_data.place_holders) do
-                wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = "" }
+                wesnoth.label { x = unit[1], y = unit[2], text = "" }
             end
         end
     end
@@ -1052,12 +1052,12 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         if DBG.show_debug('hold_combo_counter_rating') then
             local leader_goal = protection.overall.leader_goal
             for _,unit in ipairs(fred_data.ops_data.place_holders) do
-                wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = 'recruit\n' .. unit.type, color = '160,160,160' }
+                wesnoth.label { x = unit[1], y = unit[2], text = 'recruit\n' .. unit.type, color = '160,160,160' }
             end
-            wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal', color = '200,0,0' }
+            wesnoth.label { x = leader_goal[1], y = leader_goal[2], text = 'leader goal', color = '200,0,0' }
             local av_x, av_y = 0, 0
             for i_l,loc in pairs(new_locs) do
-                wesnoth.wml_actions.label { x = loc[1], y = loc[2], text = ids[i_l] }
+                wesnoth.label { x = loc[1], y = loc[2], text = ids[i_l] }
                 av_x, av_y = av_x + loc[1], av_y + loc[2]
             end
             av_x, av_y = av_x / #new_locs, av_y / #new_locs
@@ -1073,11 +1073,11 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                     .. '\n' .. max_str
             }
             for i_l,loc in pairs(new_locs) do
-                wesnoth.wml_actions.label { x = loc[1], y = loc[2], text = "" }
+                wesnoth.label { x = loc[1], y = loc[2], text = "" }
             end
-            wesnoth.wml_actions.label { x = leader_goal[1], y = leader_goal[2], text = "" }
+            wesnoth.label { x = leader_goal[1], y = leader_goal[2], text = "" }
             for _,unit in ipairs(fred_data.ops_data.place_holders) do
-                wesnoth.wml_actions.label { x = unit[1], y = unit[2], text = "" }
+                wesnoth.label { x = unit[1], y = unit[2], text = "" }
             end
         end
 
