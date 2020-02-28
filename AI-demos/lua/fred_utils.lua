@@ -1084,9 +1084,9 @@ function fred_utils.single_unit_info(unit_proxy)
         max_experience = unit_proxy.max_experience,
 
         type = unit_proxy.type,
-        alignment = unit_cfg.alignment,
-        cost = unit_cfg.cost,
-        level = unit_cfg.level
+        alignment = unit_proxy.alignment,
+        cost = unit_proxy.cost,
+        level = unit_proxy.level
     }
 
     -- Pick the first of the advances_to types, nil when there is none

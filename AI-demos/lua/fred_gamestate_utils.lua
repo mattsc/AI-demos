@@ -416,7 +416,7 @@ function fred_gamestate_utils.get_move_data()
     end
 
     for enemy_id,_ in pairs(mapstate.enemies) do
-        local unit_cost = unit_copies[enemy_id].__cfg.cost
+        local unit_cost = unit_copies[enemy_id].cost
         local old_moves = unit_copies[enemy_id].moves
         unit_copies[enemy_id].moves = unit_copies[enemy_id].max_moves
 
