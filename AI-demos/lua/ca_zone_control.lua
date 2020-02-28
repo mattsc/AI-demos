@@ -3539,7 +3539,7 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
     FOU.get_action_cfgs(fred_data)
     --DBG.dbms(fred_data.zone_cfgs, false, 'fred_data.zone_cfgs')
 
-    local previous_action = nil
+    local previous_action
 
     for i_c,cfg in ipairs(fred_data.zone_cfgs) do
         --DBG.dbms(cfg, false, 'cfg')

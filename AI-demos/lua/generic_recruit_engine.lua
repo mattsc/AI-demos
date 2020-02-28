@@ -119,7 +119,7 @@ return {
                 -- In several cases this function only approximates the correct value (eg Thunderguard vs Goblin Spearman has damage capped by target health)
                 -- In some cases (like poison), this approximation is preferred to the actual value.
                 local best_damage = 0
-                local best_attack = nil
+                local best_attack
                 local best_poison_damage = 0
                 -- Steadfast is currently disabled because it biases the AI too much in favour of Guardsmen
                 -- Basically it sees the defender stats for damage and wrongfully concludes that the unit is amazing
@@ -573,7 +573,7 @@ return {
                 end
             end
             -- Correct count of units for each range
-            local most_common_range = nil
+            local most_common_range
             local most_common_range_count = 0
             for range, count in pairs(attack_range_count) do
                 attack_range_count[range] = count/enemy_type_count
@@ -587,7 +587,7 @@ return {
                 attack_type_count[attack_type] = count/enemy_type_count
             end
 
-            local recruit_type = nil
+            local recruit_type
 
             repeat
                 recruit_data.recruit.best_hex, recruit_data.recruit.target_hex = ai_cas:find_best_recruit_hex(leader, recruit_data, avoid_map, outofway_units, cfg)
@@ -951,7 +951,7 @@ return {
             end
             local healer_count, healable_count = get_unit_counts_for_healing()
             local best_score = 0
-            local recruit_type = nil
+            local recruit_type
             local offense_weight = 2.5
             local defense_weight = 1/hp_ratio^0.5
             local move_weight = math.max((distance_to_enemy/20)^2, 0.25)

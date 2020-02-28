@@ -791,7 +791,7 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
     attacker_copy.x, attacker_copy.y = dst[1], dst[2]
 
     local tmp_att_stat, tmp_def_stat, att_weapon
-    local att_weapon_i, def_weapon_i = nil, nil
+    local att_weapon_i, def_weapon_i
 
     -- TODO: This is always set to true for now, as it can otherwise cause discontinuities
     -- in the attack evaluations. Either find a better way to do this or remove later.
