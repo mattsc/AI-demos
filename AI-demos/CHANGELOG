@@ -1,3 +1,32 @@
+----- 0.14.15, 28 February 2020 -----
+
+This release features a variety of small but important improvements to the
+action evaluation functions. Most notable, sides 1 and 2 are now dealt with
+equivalently as far as time of day is concerned.
+This version also introduces options for letting the leader take part in zone
+actions, as well as for disabling individual actions. These are added in
+preparation for Fred playing other maps.
+
+- Fred (Freelands AI):
+  - Operations layer:
+    - Use equivalent look-ahead times for sides 1 and 2 to account for time of
+      day asymmetries
+    - Set up mechanism for actions to have secondary score
+    - Add config option for enabling leader to take part in zone actions
+    - Add config options for disabling individual actions
+    - A variety of smaller changes to assessing both overall and zone-specific
+      situations
+  - More cautious treatment of isolated and/or valuable units when protecting,
+    holding and advancing
+  - Attacks: evaluate counter attacks with next-turn attack stats for side 2
+  - Village grabbing: fix side 2 units sometimes missing villages
+  - Advancing:
+    - Improved rating of villages, esp. for injured units and in defensive
+      situations
+    - Prevent individual units from taking path through enemies when outside zone
+  - Several bug fixes
+
+
 ----- 0.14.14, 12 February 2020 -----
 
 This release includes a large number of improvements touching essentially all
