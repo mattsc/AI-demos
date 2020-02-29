@@ -340,7 +340,10 @@ return {
                     if wesnoth.is_enemy(owner, wesnoth.current.side) then village_rating = village_rating + 20000 end
                 end
 
-                local enemy_distance_from_village = AH.get_closest_enemy(v)
+                local enemy_distance_from_village, tmp = AH.get_closest_enemy(v)
+                if wesnoth.compare_versions(wesnoth.game_config.version, '>=', '1.15.0') then
+                    enemy_distance_from_village = tmp
+                end
 
                 -- Now we go on to the unit-dependent rating
                 local best_unit_rating = - math.huge
@@ -373,7 +376,10 @@ return {
                                 end
 
                                 -- Prefer not backtracking and moving more distant units to capture villages
-                                local enemy_distance_from_unit = AH.get_closest_enemy({u.x, u.y})
+                                local enemy_distance_from_unit, tmp = AH.get_closest_enemy({u.x, u.y})
+                                if wesnoth.compare_versions(wesnoth.game_config.version, '>=', '1.15.0') then
+                                    enemy_distance_from_unit = tmp
+                                end
                                 rating = rating - (enemy_distance_from_village + enemy_distance_from_unit)/5
 
                                 if (rating > best_unit_rating) then

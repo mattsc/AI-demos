@@ -800,7 +800,10 @@ return {
                 local enemy_leaders = AH.get_live_units { canrecruit = 'yes',
                     { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
                 }
-                local closest_enemy_distance, closest_enemy_location = AH.get_closest_enemy()
+                local tmp, closest_enemy_location = AH.get_closest_enemy()
+                if wesnoth.compare_versions(wesnoth.game_config.version, '>=', '1.15.0') then
+                    closest_enemy_location = tmp
+                end
 
                 for i,c in ipairs(data.castle.locs) do
                     local rating = 0
@@ -861,6 +864,11 @@ return {
                 distance_to_enemy, enemy_location = AH.get_closest_enemy(target_hex)
             else
                 distance_to_enemy, enemy_location = AH.get_closest_enemy(best_hex)
+            end
+            if wesnoth.compare_versions(wesnoth.game_config.version, '>=', '1.15.0') then
+                local tmp = distance_to_enemy
+                distance_to_enemy = enemy_location
+                enemy_location = tmp
             end
 
             local gold_limit = math.huge
