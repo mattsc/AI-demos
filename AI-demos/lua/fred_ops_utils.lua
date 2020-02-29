@@ -2351,24 +2351,6 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(hold_goals, false, 'hold_goals')
 
 
-    -- The following is currently unused, but could be useful to determine, for example,
-    -- if we are over-extended (over-expanded) etc.
-    --[[
-    local full_influence_map = FU.get_full_influence_map(move_data)
-
-    -- Probably could just use full_influence_map for everything, but doing it separately just in
-    -- case I want the separate information
-    local n_total, n_my_inf = 0, 0
-    for x,y,data in FGM.iter(full_influence_map) do
-        n_total = n_total + 1
-        if (data.influence > 0) then
-            n_my_inf = n_my_inf + 1
-        end
-    end
-    local f_my_inf = n_my_inf / n_total
-    --std_print(string.format('my inf: %4.3f = %d / %d', f_my_inf, n_my_inf, n_total))
-    --]]
-
     if DBG.show_debug('ops_power_output') then
         std_print(string.format('aggression_multiplier:     %8.3f', aggression_multiplier))
         std_print(string.format("base, current power ratio: %8.3f %8.3f", behavior.orders.base_power_ratio, behavior.orders.current_power_ratio))
