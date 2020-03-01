@@ -400,7 +400,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
         if unit_in_way then
             wesnoth.extract_unit(unit_in_way)
         end
-        wesnoth.put_unit(leader_proxy, leader_pos[1], leader_pos[2])
+        leader_proxy.loc = leader_pos
     end
 
     -- Check out how much of a threat these units pose in combination
@@ -428,7 +428,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
     DBG.print_debug('ops_output', 'leader: max_total_loss, av_total_loss', max_total_loss, av_total_loss)
 
     if (leader[1] ~= leader_pos[1]) or (leader[2] ~= leader_pos[2]) then
-        wesnoth.put_unit(leader_proxy, leader[1], leader[2])
+        leader_proxy.loc = leader
         if unit_in_way then
             wesnoth.put_unit(unit_in_way)
         end
