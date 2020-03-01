@@ -2893,7 +2893,7 @@ local function get_advance_action(zone_cfg, fred_data)
             --std_print('path goal hex: ', path_goal_hex[1], path_goal_hex[2])
 
             local cm = wesnoth.find_cost_map(
-                { x = -1 }, -- SUF not matching any unit
+                { type = "xyz" }, -- SUF not matching any unit
                 { { path_goal_hex[1], path_goal_hex[2], wesnoth.current.side, fred_data.move_data.unit_infos[id].type } },
                 { ignore_units = true }
             )
