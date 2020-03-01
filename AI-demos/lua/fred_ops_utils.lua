@@ -1,4 +1,5 @@
 local H = wesnoth.require "helper"
+local I = wesnoth.require "lua/wml/items.lua"
 local AH = wesnoth.require "ai/lua/ai_helper.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FS = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_status.lua"
@@ -379,27 +380,27 @@ function fred_ops_utils.behavior_output(is_turn_start, zone_maps, ops_data)
 
             local tmp_protect = front and front.protect
             if tmp_protect then
-                wesnoth.wml_actions.item { x = tmp_protect.x, y = tmp_protect.y, halo = "halo/teleport-8.png" }
+                I.place_halo(tmp_protect.x, tmp_protect.y, "halo/teleport-8.png")
             end
 
             local zone_data = objectives.protect.zones[zone_id] or { villages = {}, units = {} }
             for _,village in ipairs(zone_data.villages) do
-                wesnoth.wml_actions.item { x = village.x, y = village.y, halo = "halo/illuminates-aura.png~CS(-255,-255,0)" }
+                I.place_halo(village.x, village.y, "halo/illuminates-aura.png~CS(-255,-255,0)")
             end
             for _,unit in ipairs(zone_data.units) do
-                wesnoth.wml_actions.item { x = unit.x, y = unit.y, halo = "halo/illuminates-aura.png~CS(0,-255,-255)" }
+                I.place_halo(unit.x, unit.y, "halo/illuminates-aura.png~CS(0,-255,-255)")
             end
             DBG.show_fgumap_with_message(front_map, 'distance', str,
                 { x = (front and front.x), y = (front and front.y) }
             )
             for _,unit in ipairs(zone_data.units) do
-                wesnoth.wml_actions.remove_item { x = unit.x, y = unit.y, halo = "halo/illuminates-aura.png~CS(0,-255,-255)" }
+                I.remove(unit.x, unit.y, "halo/illuminates-aura.png~CS(0,-255,-255)")
             end
             for _,village in ipairs(zone_data.villages) do
-                wesnoth.wml_actions.remove_item { x = village.x, y = village.y, halo = "halo/illuminates-aura.png~CS(-255,-255,0)" }
+                I.remove(village.x, village.y, "halo/illuminates-aura.png~CS(-255,-255,0)")
             end
             if tmp_protect then
-                wesnoth.wml_actions.remove_item { x = tmp_protect.x, y = tmp_protect.y, halo = "halo/teleport-8.png" }
+                I.remove(tmp_protect.x, tmp_protect.y, "halo/teleport-8.png")
             end
         end
     end
@@ -2341,16 +2342,16 @@ function fred_ops_utils.set_ops_data(fred_data)
             DBG.show_fgumap_with_message(ADmap, 'perp', 'advance_distance_map ' .. zone_id .. ': perp')
             DBG.show_fgumap_with_message(ADmap, 'sign', 'advance_distance_map ' .. zone_id .. ': sign')
             for x,y,_ in FGM.iter(front_map) do
-                wesnoth.wml_actions.item { x = x, y = y, halo = "halo/teleport-8.png" }
+                I.place_halo(x, y, "halo/teleport-8.png")
             end
-            wesnoth.wml_actions.item { x = goal_hex[1], y = goal_hex[2], halo = "halo/illuminates-aura.png~CS(-255,-255,0)" }
-            wesnoth.wml_actions.item { x = goal_hex_hold[1], y = goal_hex_hold[2], halo = "halo/illuminates-aura.png~CS(0,-255,-255)" }
+            I.place_halo(goal_hex[1], goal_hex[2], "halo/illuminates-aura.png~CS(-255,-255,0)")
+            I.place_halo(goal_hex_hold[1], goal_hex_hold[2], "halo/illuminates-aura.png~CS(0,-255,-255)")
             DBG.show_fgumap_with_message(display_map, 'infl', 'advance route influence: ' .. zone_id .. '\nred halo: goal hex hold\nblue halo: goal hex advance')
             DBG.show_fgumap_with_message(display_map, 'vuln', 'advance route vulnerability: ' .. zone_id .. '\nred halo: goal hex hold\nblue halo: goal hex advance')
-            wesnoth.wml_actions.remove_item { x = goal_hex_hold[1], y = goal_hex_hold[2], halo = "halo/illuminates-aura.png~CS(0,-255,-255)" }
-            wesnoth.wml_actions.remove_item { x = goal_hex[1], y = goal_hex[2], halo = "halo/illuminates-aura.png~CS(-255,-255,0)" }
+            I.remove(goal_hex_hold[1], goal_hex_hold[2], "halo/illuminates-aura.png~CS(0,-255,-255)")
+            I.remove(goal_hex[1], goal_hex[2], "halo/illuminates-aura.png~CS(-255,-255,0)")
             for x,y,_ in FGM.iter(front_map) do
-                wesnoth.wml_actions.remove_item { x = x, y = y, halo = "halo/teleport-8.png" }
+                I.remove(x, y, "halo/teleport-8.png")
             end
         end
 
