@@ -60,13 +60,13 @@ local function calc_stats_attack_outcome(outcome)
     -- Values in the main table: stats for both main and levelup combined
     -- Values in levelup table: stats for levelup only
 
-    local min_hp, min_hp_levelup
+    local min_hp, min_hp_levelup = math.huge, math.huge
     local average_hp, average_hp_levelup, levelup_chance = 0, 0, 0
 
     for hp,chance in pairs(outcome.hp_chance) do
         average_hp = average_hp + hp * chance
         if (chance ~= 0) then
-            if (not min_hp) or (hp < min_hp) then min_hp = hp end
+            if (hp < min_hp) then min_hp = hp end
         end
     end
 
@@ -75,8 +75,8 @@ local function calc_stats_attack_outcome(outcome)
         average_hp_levelup = average_hp_levelup + hp * chance
         levelup_chance = levelup_chance + chance
         if (chance ~= 0) then
-            if (not min_hp) or (hp < min_hp) then min_hp = hp end
-            if (not min_hp_levelup) or (hp < min_hp_levelup) then min_hp_levelup = hp end
+            if (hp < min_hp) then min_hp = hp end
+            if (hp < min_hp_levelup) then min_hp_levelup = hp end
         end
     end
 
@@ -810,7 +810,7 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
 
             --std_print(' Finding highest-damage weapons: ', attacker_info.id, defender_proxy.id)
 
-            local best_att, best_def
+            local max_att_damage, max_def_damage = - math.huge, - math.huge
 
 -- TODO: if there is only one weapon, don't need to simulate?
 
@@ -821,12 +821,12 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
                 local total_damage_attack = fred_attack_utils.get_total_damage_attack(att_weapon, att, true, defender_info)
                 --std_print('  i_a:', i_a, total_damage_attack)
 
-                if (not best_att) or (total_damage_attack > best_att) then
-                    best_att = total_damage_attack
+                if (total_damage_attack > max_att_damage) then
+                    max_att_damage = total_damage_attack
                     att_weapon_i = i_a
 
                     -- Only for this attack do we need to check out the defender attacks
-                    best_def, def_weapon_i = nil, nil -- need to reset these again
+                    max_def_damage, def_weapon_i = - math.huge, nil -- need to reset these again
 
                     for i_d,def in ipairs(defender_info.attacks) do
                         if (att.range == def.range) then
@@ -835,8 +835,8 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
 
                             local total_damage_defense = fred_attack_utils.get_total_damage_attack(def_weapon, def, false, attacker_info)
 
-                            if (not best_def) or (total_damage_defense > best_def) then
-                                best_def = total_damage_defense
+                            if (total_damage_defense > max_def_damage) then
+                                max_def_damage = total_damage_defense
                                 def_weapon_i = i_d
                             end
 
@@ -845,7 +845,7 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
                     end
                 end
             end
-            --std_print('  --> best att/def:', att_weapon_i, best_att, def_weapon_i, best_def)
+            --std_print('  --> best att/def:', att_weapon_i, max_att_damage, def_weapon_i, max_def_damage)
 
             if (not move_cache.best_weapons) then
                 move_cache.best_weapons = {}

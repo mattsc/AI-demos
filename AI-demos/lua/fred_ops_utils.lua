@@ -953,7 +953,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             end
             --DBG.dbms(tmp_attacks, false, 'tmp_attacks')
 
-            local max_rating_counter, max_damage_counter = - math.huge
+            local max_rating_counter, max_damage_counter = - math.huge, - math.huge
             for i_w,attack in ipairs(move_data.unit_infos[enemy_id].attacks) do
                 --std_print('counter weapon: ' .. i_w)
 
@@ -990,7 +990,7 @@ function fred_ops_utils.set_ops_data(fred_data)
                 -- Also add the maximum damage either from any of the enemies weapons
                 -- in the counter attack. This is needed, for example, in the retreat
                 -- evaluation
-                if (not max_damage_counter) or (enemy_base_damage > max_damage_counter) then
+                if (enemy_base_damage > max_damage_counter) then
                     max_damage_counter = enemy_base_damage
                 end
 
@@ -1685,13 +1685,13 @@ function fred_ops_utils.set_ops_data(fred_data)
         -- TODO: commenting this out is a work around for now. The problem with changing
         -- goal hexes is that units might not be assigned to the same zones on consecutive
         -- move, which sometimes leads to strange (bad) behaviors. This should be revisisted.
-        --local max_ld, loc
+        --local max_ld, loc = - math.huge
         --if objectives.protect.zones[zone_id] and objectives.protect.zones[zone_id].villages then
         --    for _,village in ipairs(objectives.protect.zones[zone_id].villages) do
         --        for enemy_id,_ in pairs(move_data.enemies) do
         --            if FGM.get_value(move_data.reach_maps[enemy_id], village.x, village.y, 'moves_left') then
         --                local ld = FGM.get_value(fred_data.ops_data.leader_distance_map, village.x, village.y, 'distance')
-        --                if (not max_ld) or (ld > max_ld) then
+        --                if (ld > max_ld) then
         --                    max_ld = ld
         --                    loc = { village.x, village.y }
         --                end
@@ -1700,7 +1700,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         --    end
         --end
 
-        --if max_ld then
+        --if (max_ld > - math.huge) then
         --    --std_print('max protect ld:', zone_id, max_ld, loc[1], loc[2])
         --    goal_hexes_zones[zone_id] = { loc }
         --else

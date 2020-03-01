@@ -321,11 +321,11 @@ function fred_village_utils.assign_scouts(villages_to_grab, unused_units, assign
             end
         end
 
-        local max_rating, best_id, best_zone
+        local max_rating, best_id, best_zone = - math.huge
         for zone_id,units in pairs(sorted_scouts) do
             local rating = sorted_scouts[zone_id][1].rating
 
-            if (not max_rating) or (rating > max_rating) then
+            if (rating > max_rating) then
                 max_rating = rating
                 best_id = sorted_scouts[zone_id][1].id
                 best_zone = zone_id

@@ -598,7 +598,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
     local good_combos = {}
     local analyze_all_combos = false
-    local tmp_max_rating, tmp_all_max_rating -- just for debug display purposes
+    local tmp_max_rating, tmp_all_max_rating = - math.huge, - math.huge -- just for debug display purposes
     for i_c,combo in ipairs(valid_combos) do
         -- 1. Check whether a combo protects the locations it is supposed to protect.
         protection.combo = {
@@ -705,28 +705,28 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         local formation_rating = combo.base_rating
         local angle_fac, dist_fac
         if (combo.count > 1) then
-            local max_min_dist, max_dist, extremes
+            local max_min_dist, max_dist, extremes = - math.huge, - math.huge
             local dists = {}
             for src,dst in pairs(combo.combo) do
                 local x, y =  math.floor(dst / 1000), dst % 1000
 
                 -- Find the maximum distance between any two closest hexes
                 -- We also want the overall maximum distance
-                local min_dist
+                local min_dist = math.huge
                 for src2,dst2 in pairs(combo.combo) do
                     if (src2 ~= src) or (dst2 ~= dst) then
                         x2, y2 =  math.floor(dst2 / 1000), dst2 % 1000
                         local d = wesnoth.map.distance_between(x2, y2, x, y)
-                        if (not min_dist) or (d < min_dist) then
+                        if (d < min_dist) then
                             min_dist = d
                         end
-                        if (not max_dist) or (d > max_dist) then
+                        if (d > max_dist) then
                             max_dist = d
                             extremes = { x = x, y = y, x2 = x2, y2 = y2 }
                         end
                     end
                 end
-                if (not max_min_dist) or (min_dist > max_min_dist) then
+                if (min_dist > max_min_dist) then
                     max_min_dist = min_dist
                 end
 
@@ -762,7 +762,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
             end
             --DBG.dbms(dists, false, 'dists')
 
-            local min_angle  -- This is the worst angle as far as blocking the enemy is concerned
+            local min_angle = math.huge  -- This is the worst angle as far as blocking the enemy is concerned
             for i_h=1,#dists-1 do
                 local dy = math.abs(dists[i_h + 1].dist - dists[i_h].dist)
                 local angle
@@ -781,7 +781,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 end
                 --std_print(i_h, angle)
 
-                if (not min_angle) or (angle < min_angle) then
+                if (angle < min_angle) then
                     min_angle = angle
                 end
             end
@@ -826,11 +826,11 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
         })
 
         if DBG.show_debug('hold_combo_formation_rating') then
-            if (not tmp_all_max_rating) or (formation_rating > tmp_all_max_rating) then
+            if (formation_rating > tmp_all_max_rating) then
                 tmp_all_max_rating = formation_rating
             end
             if protection.combo.does_protect then
-                if (not tmp_max_rating) or (formation_rating > tmp_max_rating) then
+                if (formation_rating > tmp_max_rating) then
                     tmp_max_rating = formation_rating
                 end
             end
@@ -903,8 +903,8 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     end
     --std_print(value_ratio, acceptable_ctd)
 
-    local max_rating, best_combo, all_max_rating, all_best_combo
-    local reduced_max_rating, reduced_best_combo, reduced_all_max_rating, reduced_all_best_combo
+    local max_rating, all_max_rating, best_combo, all_best_combo = - math.huge, - math.huge
+    local reduced_max_rating, reduced_all_max_rating, reduced_best_combo, reduced_all_best_combo = - math.huge, - math.huge
     for i_c,combo in pairs(good_combos) do
         --std_print('combo ' .. i_c)
 
@@ -1005,14 +1005,14 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
 
             if (count == full_count) then
                 if (not cfg.protect_objectives) or combo.does_protect then
-                    if (not max_rating) or (counter_rating > max_rating) then
+                    if (counter_rating > max_rating) then
                         max_rating = counter_rating
                         best_combo = combo
                         --DBG.dbms(best_combo, false, 'best_combo')
                     end
                 end
 
-                if (not all_max_rating) or (counter_rating > all_max_rating) then
+                if (counter_rating > all_max_rating) then
                     if (not combo.does_protect) then
                         all_max_rating = counter_rating
                         all_best_combo = combo
@@ -1033,13 +1033,13 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 end
 
                 if (not cfg.protect_objectives) or combo.does_protect then
-                    if (not reduced_max_rating) or (counter_rating > reduced_max_rating) then
+                    if (counter_rating > reduced_max_rating) then
                         reduced_max_rating = counter_rating
                         reduced_best_combo = reduced_combo
                         --DBG.dbms(reduced_best_combo, false, 'reduced_best_combo')
                     end
                 end
-                if (not reduced_all_max_rating) or (counter_rating > reduced_all_max_rating) then
+                if (counter_rating > reduced_all_max_rating) then
                     if (not combo.does_protect) then
                         reduced_all_max_rating = counter_rating
                         reduced_all_best_combo = reduced_combo

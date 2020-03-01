@@ -241,16 +241,16 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
     -- Now deal with regenerating units. As these each have many locations to
     -- choose from, they can be dealt with one at a time, prioritized by
     -- their retreat_utility
-    local best_id, max_utility
+    local max_utility, best_id = - math.huge
     for id,_ in pairs(heal_maps_regen) do
-        if (not max_utility) or (retreat_utilities[id] > max_utility) then
+        if (retreat_utilities[id] > max_utility) then
             best_id = id
             max_utility = retreat_utilities[id]
         end
     end
 
     if best_id then
-        local max_rating, best_loc
+        local max_rating, best_loc = - math.huge
         local rating_map = {}
         for x,y,data in FGM.iter(heal_maps_regen[best_id]) do
             local rating = retreat_rating(best_id, x, y, data.heal_amount)
@@ -259,7 +259,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
             if rating then
                 FGM.set_value(rating_map, x, y, 'rating', rating)
 
-                if (not max_rating) or (rating > max_rating) then
+                if (rating > max_rating) then
                     max_rating = rating
                     best_loc = { x, y }
                 end
@@ -296,7 +296,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
     --DBG.dbms(retreaters_no_regen, false, 'retreaters_no_regen')
 
     if next(retreaters_no_regen) then
-        local max_rating, best_loc, best_id
+        local max_rating, best_loc, best_id = - math.huge
         for id,loc in pairs(retreaters_no_regen) do
             -- First find all goal villages.  These are:
             --  - low threat
@@ -304,7 +304,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
             --  - no more than 3 turns away
             --  - worth moving that far (based on retreat_utility)
 
-            local villages, min_turns = {}
+            local villages, min_turns = {}, math.huge
             for x,y,_ in FGM.iter(move_data.village_map) do
                 local hitchance = wesnoth.unit_defense(move_data.unit_copies[id], wesnoth.get_terrain(x, y)) / 100.
                 local max_damage, av_damage = retreat_damages(id, x, y, hitchance, fred_data.ops_data.unit_attacks, move_data)
@@ -319,7 +319,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
                         local distance_utility = 1 - 1 / int_turns
                         if (retreat_utilities[id] >= distance_utility) then
                             --std_print(id, x, y, int_turns, distance_utility, retreat_utilities[id])
-                            if (not min_turns) or (int_turns < min_turns) then
+                            if (int_turns < min_turns) then
                                 min_turns = int_turns
                             end
 
@@ -402,7 +402,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
 
                         FGM.set_value(rating_map, x, y, 'rating', rating)
 
-                        if (not max_rating) or (rating > max_rating) then
+                        if (rating > max_rating) then
                             max_rating = rating
                             best_loc = { x, y }
                             best_id = id

@@ -233,19 +233,19 @@ function fred_status.check_exposures(objectives, combo, virtual_reach_maps, cfg,
                     local defense = 100 - wesnoth.unit_defense(move_data.unit_copies[enemy_id], wesnoth.get_terrain(dst_x, dst_y))
                     --std_print('  ' .. dst_x .. ',' .. dst_y .. ': ' .. enemy_id , defense)
 
-                    local best_adj_defense
+                    local max_adj_defense = - math.huge
                     for xa,ya in H.adjacent_tiles(dst_x, dst_y) do
                         if FGM.get_value(virtual_reach_maps[enemy_id], xa, ya, 'moves_left') then
                             local adj_defense = 100 - wesnoth.unit_defense(move_data.unit_copies[enemy_id], wesnoth.get_terrain(xa, ya))
                             --std_print('    can reach adj: ' .. xa .. ',' .. ya, adj_defense)
-                            if (not best_adj_defense) or (adj_defense > best_adj_defense) then
-                                best_adj_defense = adj_defense
+                            if (adj_defense > max_adj_defense) then
+                                max_adj_defense = adj_defense
                             end
                         end
                     end
-                    --std_print('  defense, adj_defense: ', defense, best_adj_defense)
+                    --std_print('  defense, adj_defense: ', defense, max_adj_defense)
 
-                    if best_adj_defense and (defense > best_adj_defense) then
+                    if (defense > max_adj_defense) then
                         local unit_value = unit_values[enemy_id]
                         if not unit_value then
                             unit_value = FU.unit_value(move_data.unit_infos[enemy_id])
@@ -253,7 +253,7 @@ function fred_status.check_exposures(objectives, combo, virtual_reach_maps, cfg,
                             unit_values[enemy_id] = unit_value
                         end
 
-                        local terrain_bonus = (defense - best_adj_defense) / 100 * unit_value
+                        local terrain_bonus = (defense - max_adj_defense) / 100 * unit_value
                         status.terrain = status.terrain + terrain_bonus
                     end
                 end

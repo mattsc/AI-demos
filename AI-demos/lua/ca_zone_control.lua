@@ -546,7 +546,7 @@ local function get_attack_action(zone_cfg, fred_data)
     DBG.print_debug('attack_print_output', '#combo_ratings', #combo_ratings)
 
     -- Now check whether counter attacks are acceptable
-    local max_total_rating, action
+    local max_total_rating, action = - math.huge
     local disqualified_attacks = {}
     local objectives = fred_data.ops_data.objectives
     local leader_goal = objectives.leader.final
@@ -1373,7 +1373,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 end
                 DBG.print_debug('attack_print_output', '    --> total_rating adjusted', total_rating)
 
-                if (not max_total_rating) or (total_rating > max_total_rating) then
+                if (total_rating > max_total_rating) then
                     max_total_rating = total_rating
 
                     action = { units = {}, dsts = {}, enemy = combo.target }
@@ -1644,14 +1644,14 @@ local function get_hold_action(zone_cfg, fred_data)
             --std_print(x,y)
 
             local enemy_hcs = {}
-            local min_dist, max_dist
+            local min_dist, max_dist = math.huge, - math.huge
             for xa,ya in H.adjacent_tiles(x, y) do
                 -- Need the range of distance whether the enemy can get there or not
                 local dist = wesnoth.map.distance_between(enemy_loc[1], enemy_loc[2], xa, ya)
-                if (not max_dist) or (dist > max_dist) then
+                if (dist > max_dist) then
                     max_dist = dist
                 end
-                if (not min_dist) or (dist < min_dist) then
+                if (dist < min_dist) then
                     min_dist = dist
                 end
 
@@ -1877,7 +1877,7 @@ local function get_hold_action(zone_cfg, fred_data)
     local pre_rating_maps = {}
     for id,_ in pairs(holders) do
         --std_print('\n' .. id, zone_cfg.zone_id)
-        local min_eleader_distance
+        local min_eleader_distance = math.huge
         for x,y,_ in FGM.iter(move_data.effective_reach_maps[id]) do
             if FGM.get_value(zone_map, x, y, 'in_zone') then
                 --std_print(x,y)
@@ -1892,7 +1892,7 @@ local function get_hold_action(zone_cfg, fred_data)
                 if (not can_hit) then
                     local eld = FGM.get_value(fred_data.ops_data.advance_distance_maps[zone_cfg.zone_id], x, y, 'forward')
 
-                    if (not min_eleader_distance) or (eld < min_eleader_distance) then
+                    if (eld < min_eleader_distance) then
                         min_eleader_distance = eld
                     end
                 end
@@ -2202,12 +2202,12 @@ local function get_hold_action(zone_cfg, fred_data)
     for id,hold_here_map in pairs(hold_here_maps) do
         local max_moves = move_data.unit_infos[id].max_moves
         --std_print('\n' .. id, zone_cfg.zone_id)
-        local max_vuln
+        local max_vuln = - math.huge
         for x,y,hold_here_data in FGM.iter(hold_here_map) do
             if hold_here_data.hold_here then
                 local vuln = FGM.get_value(move_data.influence_maps, x, y, 'vulnerability') or 0
 
-                if (not max_vuln) or (vuln > max_vuln) then
+                if (vuln > max_vuln) then
                     max_vuln = vuln
                 end
 
@@ -2281,11 +2281,11 @@ local function get_hold_action(zone_cfg, fred_data)
     end
 
 
-    local max_inv_cost
+    local max_inv_cost = - math.huge
     if between_map then
         for _,protect_loc in ipairs(protect_locs) do
             local inv_cost = FGM.get_value(between_map, protect_loc[1], protect_loc[2], 'inv_cost') or 0
-            if (not max_inv_cost) or (inv_cost > max_inv_cost) then
+            if (inv_cost > max_inv_cost) then
                 max_inv_cost = inv_cost
             end
         end
@@ -2293,12 +2293,12 @@ local function get_hold_action(zone_cfg, fred_data)
 
     local protect_rating_maps = {}
     for id,protect_here_map in pairs(protect_here_maps) do
-        local max_vuln
+        local max_vuln = - math.huge
         for x,y,protect_here_data in FGM.iter(protect_here_map) do
             if protect_here_data.protect_here then
                 local vuln = FGM.get_value(holders_influence, x, y, 'vulnerability')
 
-                if (not max_vuln) or (vuln > max_vuln) then
+                if (vuln > max_vuln) then
                     max_vuln = vuln
                 end
 
@@ -3110,7 +3110,7 @@ local function get_advance_action(zone_cfg, fred_data)
 
         local cfg_attack_desp = { value_ratio = 0.2 } -- mostly based on damage done to enemy
 
-        local max_attack_rating, best_attacker_id, best_attack_hex
+        local max_attack_rating, best_attacker_id, best_attack_hex = - math.huge
         for id,xy in pairs(advancers) do
             --std_print('checking desperate attacks for ' .. id)
 
@@ -3158,7 +3158,7 @@ local function get_advance_action(zone_cfg, fred_data)
                             end
                         end
 
-                        if do_attack and ((not max_attack_rating) or (combo_outcome.rating_table.rating > max_attack_rating)) then
+                        if do_attack and (combo_outcome.rating_table.rating > max_attack_rating) then
                             max_attack_rating = combo_outcome.rating_table.rating
                             best_attacker_id = id
                             local _, dst = next(combo)
@@ -3746,7 +3746,7 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
 
 
             --DBG.print_ts_delta(fred_data.turn_start_time, 'Reordering units for attack')
-            local max_rating
+            local max_rating = - math.huge
             for ind,unit in ipairs(fred_data.zone_action.units) do
                 local unit_info = fred_data.move_data.unit_infos[unit.id]
 
@@ -3818,7 +3818,7 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
                     --std_print('    rating', rating)
                 end
 
-                if (not max_rating) or (rating > max_rating) then
+                if (rating > max_rating) then
                     max_rating, next_unit_ind = rating, ind
                 end
             end

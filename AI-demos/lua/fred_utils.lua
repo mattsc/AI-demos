@@ -1201,7 +1201,7 @@ function fred_utils.get_unit_hex_combos(dst_src, get_best_combo, add_rating)
     -- the maximum number of attackers. Otherwise the comparison is not fair
     local max_count = 1 -- Note: must be 1, not 0
     local count = 0
-    local max_rating, best_combo
+    local max_rating, best_combo = - math.huge
     local rating = 0
 
     -- This is the recursive function adding units to each hex
@@ -1231,10 +1231,10 @@ function fred_utils.get_unit_hex_combos(dst_src, get_best_combo, add_rating)
                         local tmp_count = 0
                         for _,_ in pairs(combo) do tmp_count = tmp_count + 1 end
                         -- If this is more than current max_count, reset the max_rating (forcing this combo to be taken)
-                        if (tmp_count > max_count) then max_rating = nil end
+                        if (tmp_count > max_count) then max_rating = - math.huge end
 
                         -- If this is less than current max_count, don't use this combo
-                        if ((not max_rating) or (rating > max_rating)) and (tmp_count >= max_count) then
+                        if (rating > max_rating) and (tmp_count >= max_count) then
                             max_rating = rating
                             max_count = tmp_count
                             best_combo = {}
@@ -1268,10 +1268,10 @@ function fred_utils.get_unit_hex_combos(dst_src, get_best_combo, add_rating)
                 local tmp_count = 0
                 for _,_ in pairs(combo) do tmp_count = tmp_count + 1 end
                 -- If this is more than current max_count, reset the max_rating (forcing this combo to be taken)
-                if (tmp_count > max_count) then max_rating = nil end
+                if (tmp_count > max_count) then max_rating = - math.huge end
 
                 -- If this is less than current max_count, don't use this attack
-                if ((not max_rating) or (rating > max_rating)) and (tmp_count >= max_count)then
+                if (rating > max_rating) and (tmp_count >= max_count)then
                     max_rating = rating
                     max_count = tmp_count
                     best_combo = {}
