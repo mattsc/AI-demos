@@ -2853,11 +2853,20 @@ local function get_advance_action(zone_cfg, fred_data)
             local influence_mult = 1 / unit_infl
             --std_print('unit out of zone: ' .. id, unit_infl, influence_mult)
             --local path, cost = wesnoth.find_path(unit_copy, goal[1], goal[2], { ignore_units = true })
-            local path, cost = wesnoth.find_path(unit_copy, goal[1], goal[2],
-                function(x, y, current_cost)
-                    return FU.influence_custom_cost(x, y, unit_copy, influence_mult, move_data.influence_maps, move_data)
-                end
-            )
+            local path, cost
+            if wesnoth.compare_versions(wesnoth.game_config.version, '>=', '1.15.0') then
+                path, cost = wesnoth.find_path(unit_copy, goal[1], goal[2], {
+                    calculate = function(x, y, current_cost)
+                        return FU.influence_custom_cost(x, y, unit_copy, influence_mult, move_data.influence_maps, move_data)
+                    end
+                })
+            else
+                path, cost = wesnoth.find_path(unit_copy, goal[1], goal[2],
+                    function(x, y, current_cost)
+                        return FU.influence_custom_cost(x, y, unit_copy, influence_mult, move_data.influence_maps, move_data)
+                    end
+                )
+            end
 
             -- Debug code for showing the path
             if false then

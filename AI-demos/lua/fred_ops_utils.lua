@@ -2060,11 +2060,21 @@ function fred_ops_utils.set_ops_data(fred_data)
         end
         --std_print(zone_id, start_hex.x .. ',' .. start_hex.y, end_hex.x .. ',' .. end_hex.y)
 
-        local path, cost = wesnoth.find_path(start_hex, end_hex.x, end_hex.y,
-            function(x, y, current_cost)
-                return adm_custom_cost(x, y, advance_distance_maps[zone_id], 'perp')
-            end
-        )
+        local path, cost
+        if wesnoth.compare_versions(wesnoth.game_config.version, '>=', '1.15.0') then
+            path, cost = wesnoth.find_path(start_hex, end_hex.x, end_hex.y, {
+                calculate = function(x, y, current_cost)
+                    return adm_custom_cost(x, y, advance_distance_maps[zone_id], 'perp')
+                end
+            })
+        else
+            path, cost = wesnoth.find_path(start_hex, end_hex.x, end_hex.y,
+                function(x, y, current_cost)
+                    return adm_custom_cost(x, y, advance_distance_maps[zone_id], 'perp')
+                end
+            )
+        end
+
         local path_map = {}
         for _,loc in ipairs(path) do
             FGM.set_value(path_map, loc[1], loc[2], 'sign', 0)
