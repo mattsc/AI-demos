@@ -186,7 +186,6 @@ end
 function utility_functions.attack_benefits(assigned_enemies, goal_hexes, use_average, fred_data)
     local move_data = fred_data.move_data
     local attack_benefits = {}
-    local max_rating
 
     for zone_id,data in pairs(assigned_enemies) do
         --std_print(zone_id)
