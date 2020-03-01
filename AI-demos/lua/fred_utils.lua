@@ -335,28 +335,33 @@ function fred_utils.smooth_cost_map(unit_proxy, loc, is_inverse_map)
         uiw = wesnoth.get_unit(loc[1], loc[2])
         if uiw then wesnoth.extract_unit(uiw) end
         old_loc = { unit_proxy.x, unit_proxy.y }
-        H.modify_unit(
-            { id = unit_proxy.id} ,
-            { x = loc[1], y = loc[2] }
-        )
+        unit_proxy.loc = loc
     end
     local old_moves, old_max_moves = unit_proxy.moves, unit_proxy.max_moves
-    H.modify_unit(
-        { id = unit_proxy.id} ,
-        { moves = 98, max_moves = 98 }
-    )
+    unit_proxy.moves = 98
+    if wesnoth.compare_versions(wesnoth.game_config.version, '>=', '1.15.0') then
+        unit_proxy.max_moves = 98
+    else
+        H.modify_unit(
+            { id = unit_proxy.id} ,
+            { max_moves = 98 }
+        )
+    end
 
     local cm = wesnoth.find_cost_map(unit_proxy.x, unit_proxy.y, { ignore_units = true })
 
-    H.modify_unit(
-        { id = unit_proxy.id},
-        { moves = old_moves, max_moves = old_max_moves }
-    )
-    if old_loc then
+    if wesnoth.compare_versions(wesnoth.game_config.version, '>=', '1.15.0') then
+        unit_proxy.max_moves = old_max_moves
+    else
         H.modify_unit(
-            { id = unit_proxy.id} ,
-            { x = old_loc[1], y = old_loc[2] }
+            { id = unit_proxy.id},
+            { moves = old_moves, max_moves = old_max_moves }
         )
+    end
+    unit_proxy.moves = old_moves
+
+    if old_loc then
+        unit_proxy.loc = old_loc
         if uiw then wesnoth.put_unit(uiw) end
     end
 
