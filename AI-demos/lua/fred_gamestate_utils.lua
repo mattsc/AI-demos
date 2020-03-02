@@ -116,20 +116,6 @@ local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local fred_gamestate_utils = {}
 
-function fred_gamestate_utils.unit_infos()
-    -- Wrapper function to fred_utils.single_unit_info()
-    -- Assembles information for all units on the map, indexed by unit id
-
-    local unit_proxies = wesnoth.get_units()
-
-    local unit_infos = {}
-    for _,unit_proxy in ipairs(unit_proxies) do
-        unit_infos[unit_proxy.id] = FU.single_unit_info(unit_proxy)
-    end
-
-    return unit_infos
-end
-
 function fred_gamestate_utils.get_move_data()
     -- Returns:
     --   - State of villages and units on the map (all in one variable: gamestate)
@@ -140,7 +126,12 @@ function fred_gamestate_utils.get_move_data()
     --
     -- See above for the information returned
 
-    local unit_infos = fred_gamestate_utils.unit_infos()
+    local unit_proxies = wesnoth.get_units()
+
+    local unit_infos = {}
+    for _,unit_proxy in ipairs(unit_proxies) do
+        unit_infos[unit_proxy.id] = FU.single_unit_info(unit_proxy)
+    end
 
     local mapstate, reach_maps = {}, {}
 
@@ -167,7 +158,7 @@ function fred_gamestate_utils.get_move_data()
         my_move_map[i] = {}
     end
 
-    for _,unit_proxy in ipairs(wesnoth.get_units()) do
+    for _,unit_proxy in ipairs(unit_proxies) do
         local unit_copy = wesnoth.copy_unit(unit_proxy)
         local id = unit_proxy.id
         unit_copies[unit_copy.id] = unit_copy
