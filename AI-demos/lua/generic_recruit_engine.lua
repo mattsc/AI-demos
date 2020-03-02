@@ -200,12 +200,14 @@ return {
                         end
                     end
 
-                    -- Handle drain for defender
+                     -- Handle drain for defender
                     local drain_recovery = 0
-                    for defender_attack in wml.child_range(defender.__cfg, 'attack') do
+                    local defender_attacks = defender.attacks
+                    for i_d = 1,#defender_attacks do
+                        local defender_attack = defender_attacks[i_d]
                         if (defender_attack.range == attack.range) then
-                            for special in wml.child_range(defender_attack, 'specials') do
-                                if wml.get_child(special, 'drains') and drainable(attacker) then
+                            for _,sp in ipairs(defender_attack.specials) do
+                                if (sp[1] == 'drains') and drainable(attacker) then
                                     -- TODO: calculate chance to hit
                                     -- currently assumes 50% chance to hit using supplied constant
                                     local attacker_resistance = wesnoth.unit_resistance(attacker, defender_attack.type)
@@ -300,9 +302,10 @@ return {
         end
 
         function can_slow(unit)
-            for defender_attack in wml.child_range(unit.__cfg, 'attack') do
-                for special in wml.child_range(defender_attack, 'specials') do
-                    if wml.get_child(special, 'slow') then
+            local attacks = unit.attacks
+            for i_a = 1,#attacks do
+                for _,sp in ipairs(attacks[i_a].specials) do
+                    if (sp[1] == 'slow') then
                         return true
                     end
                 end
