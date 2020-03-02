@@ -16,6 +16,8 @@ return {
     --          (default always returns false)
     --      leader_takes_village: function that returns true if and only if the leader is going to move to capture a village this turn
     --          (default always returns true)
+    --      enemy_types: array of default enemy unit types to consider if there are no enemies on the map
+    --          and no enemy sides exist or have recruit lists
     -- params to eval/exec functions:
     --      avoid_map: location set listing hexes on which we should
     --          not recruit, unless no other hexes are available
@@ -447,9 +449,27 @@ return {
                     add_unit_type(unit_type)
                 end
             end
+
+            -- If no enemies were found, check params.enemy_types,
+            -- otherwise add a small number of "representative" unit types
+            if #enemy_types == 0 then
+                if params.enemy_types then
+                    for _,enemy_type in ipairs(params.enemy_types) do
+                        add_unit_type(enemy_type)
+                    end
+                else
+                    add_unit_type('Orcish Grunt')
+                    add_unit_type('Orcish Archer')
+                    add_unit_type('Wolf Rider')
+                    add_unit_type('Spearman')
+                    add_unit_type('Bowman')
+                    add_unit_type('Cavalryman')
+                end
+            end
+
             data.enemy_counts = enemy_counts
             data.enemy_types = enemy_types
-            data.num_enemies = #enemies
+            data.num_enemies = math.max(#enemies, 1)
             data.possible_enemy_recruit_count = possible_enemy_recruit_count
             data.cheapest_unit_cost = AH.get_cheapest_recruit_cost()
 
@@ -859,16 +879,35 @@ return {
             local best_scores = {offense = 0, defense = 0, move = 0}
             local best_hex = recruit_data.recruit.best_hex
             local target_hex = recruit_data.recruit.target_hex
-            local distance_to_enemy, enemy_location
-            if target_hex[1] then
-                distance_to_enemy, enemy_location = AH.get_closest_enemy(target_hex)
-            else
-                distance_to_enemy, enemy_location = AH.get_closest_enemy(best_hex)
-            end
+
+            local reference_hex = target_hex[1] and target_hex or best_hex
+            local distance_to_enemy, enemy_location = AH.get_closest_enemy(reference_hex, wesnoth.current.side, { viewing_side = 0 })
             if wesnoth.compare_versions(wesnoth.game_config.version, '>=', '1.15.0') then
                 local tmp = distance_to_enemy
                 distance_to_enemy = enemy_location
                 enemy_location = tmp
+            end
+
+            -- If no enemy is on the map, then we first use closest enemy start hex,
+            -- and if that does not exist either, a location mirrored w.r.t the center of the map
+            if not enemy_location then
+                local enemy_sides = wesnoth.sides.find({ { "enemy_of", {side = wesnoth.current.side} } })
+                local min_dist = math.huge
+                for _, side in ipairs(enemy_sides) do
+                    local enemy_start_hex = wesnoth.special_locations[side.side]
+                    if enemy_start_hex then
+                        local dist = wesnoth.map.distance_between(reference_hex[1], reference_hex[2], enemy_start_hex[1], enemy_start_hex[2])
+                        if dist < min_dist then
+                            min_dist = dist
+                            enemy_location = { x = enemy_start_hex[1], y = enemy_start_hex[2] }
+                        end
+                    end
+                end
+                if not enemy_location then
+                    local width, height = wesnoth.get_map_size()
+                    enemy_location = { x = width + 1 - reference_hex[1], y = height + 1 - reference_hex[2] }
+                end
+                distance_to_enemy = wesnoth.map.distance_between(reference_hex[1], reference_hex[2], enemy_location.x, enemy_location.y)
             end
 
             local gold_limit = math.huge
