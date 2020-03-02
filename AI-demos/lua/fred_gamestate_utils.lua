@@ -309,7 +309,6 @@ function fred_gamestate_utils.get_move_data()
     -- Close castles: connected to close keeps, not taking other units into account
     local reachable_keeps_map, reachable_castles_map = {}, {}
     local close_keeps_map, close_castles_map = {}, {}
-    local width,height,border = wesnoth.get_map_size()
     for side,leader in ipairs(leaders) do
         if (side == wesnoth.current.side) then
             mapstate.leader_x, mapstate.leader_y = leader[1], leader[2]
@@ -343,7 +342,7 @@ function fred_gamestate_utils.get_move_data()
 
         for x,y,_ in FGM.iter(close_keeps_map[side]) do
             local close_castles = wesnoth.get_locations {
-                x = "1-"..width, y = "1-"..height,
+                include_borders = 'no',
                 { "and", {
                     x = x, y = y, radius = 200,
                     { "filter_radius", { terrain = 'C*,K*,C*^*,K*^*,*^K*,*^C*' } }

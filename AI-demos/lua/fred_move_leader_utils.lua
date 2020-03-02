@@ -62,9 +62,8 @@ local function get_reach_map_to_keep(leader, move_data)
         -- This only happens if the leader is out of reach of any keep, or when all the
         -- close keeps are occupied by enemies
         -- This should rarely be needed, so we only do this when required, rather than in gamestate_utils
-        local width, height = wesnoth.get_map_size()
         local keeps = wesnoth.get_locations {
-            x = "1-"..width, y = "1-"..height,
+            include_borders = 'no',
             terrain = 'K*,K*^*,*^K*'
         }
 
