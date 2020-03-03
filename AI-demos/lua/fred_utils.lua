@@ -340,25 +340,11 @@ function fred_utils.smooth_cost_map(unit_proxy, loc, is_inverse_map)
     end
     local old_moves, old_max_moves = unit_proxy.moves, unit_proxy.max_moves
     unit_proxy.moves = 98
-    if wesnoth.compare_versions(wesnoth.game_config.version, '>=', '1.15.0') then
-        unit_proxy.max_moves = 98
-    else
-        H.modify_unit(
-            { id = unit_proxy.id} ,
-            { max_moves = 98 }
-        )
-    end
+    COMP.change_max_moves(unit_proxy, 98)
 
     local cm = wesnoth.find_cost_map(unit_proxy.x, unit_proxy.y, { ignore_units = true })
 
-    if wesnoth.compare_versions(wesnoth.game_config.version, '>=', '1.15.0') then
-        unit_proxy.max_moves = old_max_moves
-    else
-        H.modify_unit(
-            { id = unit_proxy.id},
-            { moves = old_moves, max_moves = old_max_moves }
-        )
-    end
+    COMP.change_max_moves(unit_proxy, old_max_moves)
     unit_proxy.moves = old_moves
 
     if old_loc then

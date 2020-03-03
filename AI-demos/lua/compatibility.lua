@@ -3,7 +3,21 @@
 -- function names passed as arguments. I am doing it separately intentionally,
 -- so that it is clear which functions are affected.
 
+local AH = wesnoth.dofile "ai/lua/ai_helper.lua"
+local H = wesnoth.require "helper"
+
 local compatibility = {}
+
+function compatibility.change_max_moves(unit_proxy, max_moves)
+    if wesnoth.compare_versions(wesnoth.game_config.version, '>=', '1.15.0') then
+        unit_proxy.max_moves = max_moves
+    else
+        H.modify_unit(
+            { id = unit_proxy.id} ,
+            { max_moves = max_moves }
+        )
+    end
+end
 
 function compatibility.copy_unit(...)
     if wesnoth.compare_versions(wesnoth.game_config.version, '>=', '1.15.0') then
@@ -43,6 +57,24 @@ function compatibility.extract_unit(...)
     else
         return wesnoth.extract_unit(...)
     end
+end
+
+function compatibility.find_path_custom_cost(unit, x, y, cost_function)
+    if wesnoth.compare_versions(wesnoth.game_config.version, '>=', '1.15.0') then
+        return wesnoth.find_path(unit, x, y, { calculate = cost_function })
+    else
+        return wesnoth.find_path(unit, x, y, cost_function)
+    end
+end
+
+function compatibility.get_closest_enemy(...)
+    local distance, enemy = AH.get_closest_enemy(...)
+    if wesnoth.compare_versions(wesnoth.game_config.version, '>=', '1.15.0') then
+        local tmp = distance
+        distance = enemy
+        enemy = tmp
+    end
+    return distance, enemy
 end
 
 function compatibility.get_sides(side_filter)

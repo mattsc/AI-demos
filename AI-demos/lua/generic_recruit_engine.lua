@@ -827,10 +827,7 @@ return {
                 local enemy_leaders = AH.get_live_units { canrecruit = 'yes',
                     { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
                 }
-                local tmp, closest_enemy_location = AH.get_closest_enemy()
-                if wesnoth.compare_versions(wesnoth.game_config.version, '>=', '1.15.0') then
-                    closest_enemy_location = tmp
-                end
+                local _, closest_enemy_location = COMP.get_closest_enemy()
 
                 for i,c in ipairs(data.castle.locs) do
                     local rating = 0
@@ -888,12 +885,7 @@ return {
             local target_hex = recruit_data.recruit.target_hex
 
             local reference_hex = target_hex[1] and target_hex or best_hex
-            local distance_to_enemy, enemy_location = AH.get_closest_enemy(reference_hex, wesnoth.current.side, { viewing_side = 0 })
-            if wesnoth.compare_versions(wesnoth.game_config.version, '>=', '1.15.0') then
-                local tmp = distance_to_enemy
-                distance_to_enemy = enemy_location
-                enemy_location = tmp
-            end
+            local distance_to_enemy, enemy_location = COMP.get_closest_enemy(reference_hex, wesnoth.current.side, { viewing_side = 0 })
 
             -- If no enemy is on the map, then we first use closest enemy start hex,
             -- and if that does not exist either, a location mirrored w.r.t the center of the map
