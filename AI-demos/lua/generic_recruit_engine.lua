@@ -8,7 +8,7 @@ return {
     --     find_best_recruit, find_best_recruit_hex may be useful for writing recruitment code separately from the engine
     -- params: parameters to configure recruitment
     --      score_function: function that returns the CA score when recruit_rushers_eval wants to recruit
-    --          (default returns the Default AI recruitment score)
+    --          (default returns the RCA recruitment score)
     --      randomness: a measure of randomness in recruitment
     --          higher absolute values increase randomness, with values above about 3 being close to completely random
     --          (default = 0.1)
@@ -920,7 +920,6 @@ return {
             if recruit_data.castle.loose_gold_limit >= recruit_data.recruit.cheapest_unit_cost then
                 gold_limit = recruit_data.castle.loose_gold_limit
             end
-            --std_print (recruit_data.castle.loose_gold_limit .. " " .. recruit_data.recruit.cheapest_unit_cost .. " " .. gold_limit)
 
             local recruitable_units = {}
 
@@ -1079,9 +1078,7 @@ return {
                 end
 
                 local score = offense_score*offense_weight + defense_score*defense_weight + move_score*move_weight + bonus + level_bonus
-                --std_print(recruit_id)
-                --std_print('  ' .. offense_score .. ' * ' .. offense_weight .. ' + ' .. defense_score .. ' * ' .. defense_weight .. ' + ' .. move_score .. ' * ' .. move_weight .. ' + ' .. bonus)
-                --std_print('  --> ' .. score)
+
                 if AH.print_eval() then
                     std_print(recruit_id .. " score: " .. offense_score*offense_weight .. " + " .. defense_score*defense_weight .. " + " .. move_score*move_weight  .. " + " .. bonus  .. " + " .. level_bonus  .. " = " .. score)
                 end
@@ -1115,8 +1112,6 @@ return {
                     fastest_unit_speed = wesnoth.unit_types[recruit_id].max_moves
                 end
             end
-
-            local locsx, locsy = AH.split_location_list_to_strings(data.castle.locs)
 
             -- get a list of all unowned and enemy-owned villages within fastest_unit_speed
             -- this may have false positives (villages that can't be reached due to difficult/impassible terrain)
@@ -1208,6 +1203,7 @@ return {
                             else
                                 unit_distance = recruit_data.unit_distances[key]
                             end
+
                             distance = distance + unit_distance
 
                             -- Village is only viable if at least one unit can reach it
