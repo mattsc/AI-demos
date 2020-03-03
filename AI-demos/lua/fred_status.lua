@@ -7,6 +7,7 @@ local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
 local FVS = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_virtual_state.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
+local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
 
 local fred_status = {}
 
@@ -230,13 +231,13 @@ function fred_status.check_exposures(objectives, combo, virtual_reach_maps, cfg,
             for enemy_id,_ in pairs(move_data.enemies) do
                 --std_print(enemy_id)
                 if FGM.get_value(move_data.reach_maps[enemy_id], dst_x, dst_y, 'moves_left') then
-                    local defense = 100 - wesnoth.unit_defense(move_data.unit_copies[enemy_id], wesnoth.get_terrain(dst_x, dst_y))
+                    local defense = 100 - COMP.unit_defense(move_data.unit_copies[enemy_id], wesnoth.get_terrain(dst_x, dst_y))
                     --std_print('  ' .. dst_x .. ',' .. dst_y .. ': ' .. enemy_id , defense)
 
                     local max_adj_defense = - math.huge
                     for xa,ya in H.adjacent_tiles(dst_x, dst_y) do
                         if FGM.get_value(virtual_reach_maps[enemy_id], xa, ya, 'moves_left') then
-                            local adj_defense = 100 - wesnoth.unit_defense(move_data.unit_copies[enemy_id], wesnoth.get_terrain(xa, ya))
+                            local adj_defense = 100 - COMP.unit_defense(move_data.unit_copies[enemy_id], wesnoth.get_terrain(xa, ya))
                             --std_print('    can reach adj: ' .. xa .. ',' .. ya, adj_defense)
                             if (adj_defense > max_adj_defense) then
                                 max_adj_defense = adj_defense

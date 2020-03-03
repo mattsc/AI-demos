@@ -16,6 +16,7 @@ local FHU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_hold_utils.lua"
 local FMLU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_move_leader_utils.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
 local FMC = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_map_config.lua"
+local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
 
 ----- Attack: -----
 local function get_attack_action(zone_cfg, fred_data)
@@ -242,7 +243,7 @@ local function get_attack_action(zone_cfg, fred_data)
                             local id = combo_outcome.attacker_damages[i_a].id
                             --std_print(id, dst[1], dst[2], move_data.unit_copies[id].x, move_data.unit_copies[id].y)
                             if (not move_data.my_units_noMP[id]) then
-                                wesnoth.put_unit(move_data.unit_copies[id], dst[1], dst[2])
+                                COMP.put_unit(move_data.unit_copies[id], dst[1], dst[2])
                             end
                         end
 
@@ -260,7 +261,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         for i_a,dst in pairs(combo_outcome.dsts) do
                             local id = combo_outcome.attacker_damages[i_a].id
                             if (not move_data.my_units_noMP[id]) then
-                                wesnoth.extract_unit(move_data.unit_copies[id])
+                                COMP.extract_unit(move_data.unit_copies[id])
                                 move_data.unit_copies[id].x, move_data.unit_copies[id].y = move_data.units[id][1], move_data.units[id][2]
                             end
                             --std_print(id, dst[1], dst[2], move_data.unit_copies[id].x, move_data.unit_copies[id].y)
@@ -641,7 +642,7 @@ local function get_attack_action(zone_cfg, fred_data)
 
                 -- If the unit is on the map, it also needs to be applied to the unit proxy
                 if move_data.my_units_noMP[attacker_damage.id] then
-                    local unit_proxy = wesnoth.get_unit(old_locs[i_a][1], old_locs[i_a][2])
+                    local unit_proxy = COMP.get_unit(old_locs[i_a][1], old_locs[i_a][2])
                     unit_proxy.hitpoints = hp
                 end
             end
@@ -666,7 +667,7 @@ local function get_attack_action(zone_cfg, fred_data)
 
             -- Also set the hitpoints for the defender
             local target_id, target_loc = next(combo.target)
-            local target_proxy = wesnoth.get_unit(target_loc[1], target_loc[2])
+            local target_proxy = COMP.get_unit(target_loc[1], target_loc[2])
             local old_HP_target = target_proxy.hitpoints
             local hp_org = old_HP_target - combo.defender_damage.damage
 
@@ -1248,7 +1249,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 move_data.unit_infos[attacker_damage.id].hitpoints = old_HP_attackers[i_a]
                 move_data.unit_copies[attacker_damage.id].hitpoints = old_HP_attackers[i_a]
                 if move_data.my_units_noMP[attacker_damage.id] then
-                    local unit_proxy = wesnoth.get_unit(old_locs[i_a][1], old_locs[i_a][2])
+                    local unit_proxy = COMP.get_unit(old_locs[i_a][1], old_locs[i_a][2])
                     unit_proxy.hitpoints = old_HP_attackers[i_a]
                 end
             end
@@ -2882,7 +2883,7 @@ local function get_advance_action(zone_cfg, fred_data)
             local total_cost, path_goal_hex = 0
             for i = 2,#path do
                 local x, y = path[i][1], path[i][2]
-                local movecost = wesnoth.unit_movement_cost(unit_copy, wesnoth.get_terrain(x, y))
+                local movecost = COMP.unit_movement_cost(unit_copy, wesnoth.get_terrain(x, y))
                 total_cost = total_cost + movecost
                 --std_print(i, x, y, movecost, total_cost)
                 path_goal_hex = path[i] -- This also works when the path is shorter than the unit's moves
@@ -3486,13 +3487,13 @@ local function do_recruit(fred_data, ai, action)
     local recruit_loc = prerecruit.loc
     if (leader[1] ~= recruit_loc[1]) or (leader[2] ~= recruit_loc[2]) then
         --std_print('Need to move leader to keep first')
-        local unit = wesnoth.get_unit(leader[1], leader[2])
+        local unit = COMP.get_unit(leader[1], leader[2])
         AHL.movepartial_outofway_stopunit(ai, unit, recruit_loc[1], recruit_loc[2])
     end
 
     for _,recruit_unit in ipairs(prerecruit.units) do
        --std_print('  ' .. recruit_unit.recruit_type .. ' at ' .. recruit_unit.recruit_hex[1] .. ',' .. recruit_unit.recruit_hex[2])
-       local uiw = wesnoth.get_unit(recruit_unit.recruit_hex[1], recruit_unit.recruit_hex[2])
+       local uiw = COMP.get_unit(recruit_unit.recruit_hex[1], recruit_unit.recruit_hex[2])
        if uiw then
            -- Generally, move out of way in direction of own leader
            -- TODO: change this
@@ -3505,7 +3506,7 @@ local function do_recruit(fred_data, ai, action)
            AH.move_unit_out_of_way(ai, uiw, { dx = dx, dy = dy })
 
            -- Make sure the unit really is gone now
-           uiw = wesnoth.get_unit(recruit_unit.recruit_hex[1], recruit_unit.recruit_hex[2])
+           uiw = COMP.get_unit(recruit_unit.recruit_hex[1], recruit_unit.recruit_hex[2])
            if uiw then
                error('Unit was supposed to move out of the way for recruiting : ' .. uiw.id .. ' at ' .. uiw.x .. ',' .. uiw.y)
            end
@@ -3597,8 +3598,8 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
             -- Extract all AI units with MP left (for enemy path finding, counter attack placement etc.)
             local extracted_units = {}
             for id,loc in pairs(fred_data.move_data.my_units_MP) do
-                local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
-                wesnoth.extract_unit(unit_proxy)
+                local unit_proxy = COMP.get_unit(loc[1], loc[2])
+                COMP.extract_unit(unit_proxy)
                 table.insert(extracted_units, unit_proxy)  -- Not a proxy unit any more at this point
             end
 
@@ -3609,7 +3610,7 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
             if fred_data.ops_data.objectives.leader.prerecruit then
                 for _,recruit in ipairs(fred_data.ops_data.objectives.leader.prerecruit.units) do
                     --std_print('Putting pre-recruit onto map: ' .. recruit.recruit_type, recruit.recruit_hex[1] .. ',' .. recruit.recruit_hex[2])
-                    wesnoth.put_unit({
+                    COMP.put_unit({
                         type = recruit.recruit_type,
                         random_traits = false,
                         name = "X",
@@ -3627,12 +3628,12 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
             if fred_data.ops_data.objectives.leader.prerecruit then
                 for _,recruit in ipairs(fred_data.ops_data.objectives.leader.prerecruit.units) do
                     --std_print('Removing pre-recruit onto map: ' .. recruit.recruit_type, recruit.recruit_hex[1] .. ',' .. recruit.recruit_hex[2])
-                    wesnoth.erase_unit(recruit.recruit_hex[1], recruit.recruit_hex[2])
+                    COMP.erase_unit(recruit.recruit_hex[1], recruit.recruit_hex[2])
                 end
             end
             --]]
 
-            for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
+            for _,extracted_unit in ipairs(extracted_units) do COMP.put_unit(extracted_unit) end
 
             if zone_action then
                 DBG.print_debug_time('eval', fred_data.turn_start_time, '      --> action found')
@@ -3692,7 +3693,7 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
 
     local enemy_proxy
     if fred_data.zone_action.enemy then
-        enemy_proxy = wesnoth.get_units { id = next(fred_data.zone_action.enemy) }[1]
+        enemy_proxy = COMP.get_units { id = next(fred_data.zone_action.enemy) }[1]
     end
 
     local gamestate_changed = false
@@ -3826,7 +3827,7 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
         end
         --DBG.print_ts_delta(fred_data.turn_start_time, 'next_unit_ind', next_unit_ind)
 
-        local unit = wesnoth.get_units { id = fred_data.zone_action.units[next_unit_ind].id }[1]
+        local unit = COMP.get_units { id = fred_data.zone_action.units[next_unit_ind].id }[1]
         if (not unit) then
             fred_data.zone_action = nil
             return
@@ -3878,7 +3879,7 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
             -- Just checking for moves > 0 is not always sufficient.
             local unit_in_way
             if (unit.x ~= dst[1]) or (unit.y ~= dst[2]) then
-                unit_in_way = wesnoth.get_unit(dst[1], dst[2])
+                unit_in_way = COMP.get_unit(dst[1], dst[2])
             end
             if unit_in_way then
                 uiw_reach = wesnoth.find_reach(unit_in_way)
@@ -3887,7 +3888,7 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
                 local unit_blocked = true
                 for _,uiw_loc in ipairs(uiw_reach) do
                     -- Unit in the way of the unit in the way
-                    local uiw_uiw = wesnoth.get_unit(uiw_loc[1], uiw_loc[2])
+                    local uiw_uiw = COMP.get_unit(uiw_loc[1], uiw_loc[2])
                     if (not uiw_uiw) then
                         unit_blocked = false
                         break
@@ -3912,7 +3913,7 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
         -- direction of its own goal, otherwise it might not be able to reach it later
         local unit_in_way
         if (unit.x ~= dst[1]) or (unit.y ~= dst[2]) then
-            unit_in_way = wesnoth.get_unit(dst[1], dst[2])
+            unit_in_way = COMP.get_unit(dst[1], dst[2])
         end
 
         if unit_in_way then
@@ -3942,7 +3943,7 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
                         -- the original unit's action.
                         local moveto
                         for i = 2,#path do
-                            local uiw_uiw = wesnoth.get_unit(path[i][1], path[i][2])
+                            local uiw_uiw = COMP.get_unit(path[i][1], path[i][2])
                             if (not uiw_uiw) then
                                 moveto = { path[i][1], path[i][2] }
                                 break
@@ -4015,7 +4016,7 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
 
             -- Need to reset the enemy information if there are more attacks in this combo
             if fred_data.zone_action.units and fred_data.zone_action.units[1] then
-                fred_data.move_data.unit_copies[enemy_proxy.id] = wesnoth.copy_unit(enemy_proxy)
+                fred_data.move_data.unit_copies[enemy_proxy.id] = COMP.copy_unit(enemy_proxy)
                 fred_data.move_data.unit_infos[enemy_proxy.id] = FU.single_unit_info(enemy_proxy)
             end
         end

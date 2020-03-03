@@ -5,6 +5,7 @@ local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
 local FBU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_benefits_utilities.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
+local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
 
 local fred_village_utils = {}
 
@@ -90,8 +91,8 @@ function fred_village_utils.village_grabs(villages_to_grab, reserved_actions, in
     -- Units with MP need to be taken off the map, for counter attack calculation
     local extracted_units = {}
     for id,loc in pairs(move_data.my_units_MP) do
-        local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
-        wesnoth.extract_unit(unit_proxy)
+        local unit_proxy = COMP.get_unit(loc[1], loc[2])
+        COMP.extract_unit(unit_proxy)
         table.insert(extracted_units, unit_proxy)  -- Not a proxy unit any more at this point
     end
 
@@ -185,7 +186,7 @@ function fred_village_utils.village_grabs(villages_to_grab, reserved_actions, in
     end
 
     -- Put the units back on the map
-    for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
+    for _,extracted_unit in ipairs(extracted_units) do COMP.put_unit(extracted_unit) end
 
     return village_grabs
 end

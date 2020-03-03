@@ -7,6 +7,7 @@ local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
+local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
 
 local function get_reach_map_via_keep(leader, move_data)
     -- Map of hexes the leader can reach after going to a keep.
@@ -49,7 +50,7 @@ local function get_reach_map_to_keep(leader, move_data)
     -- Hexes with own units with MP=0 are excluded.
     -- This can be used to find how far the leader can wander and still get to a keep next turn.
 
-    local leader_proxy = wesnoth.get_unit(leader[1], leader[2])
+    local leader_proxy = COMP.get_unit(leader[1], leader[2])
     local max_moves = move_data.unit_infos[leader.id].max_moves
 
     -- This is additional turns in the sense that it measures what the leader can do
@@ -392,12 +393,12 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
     --DBG.dbms(best_defenses, false, 'best_defenses')
 
 
-    local leader_proxy = wesnoth.get_unit(leader[1], leader[2])
+    local leader_proxy = COMP.get_unit(leader[1], leader[2])
     local unit_in_way
     if (leader[1] ~= leader_pos[1]) or (leader[2] ~= leader_pos[2]) then
-        unit_in_way = wesnoth.get_unit(leader_pos[1], leader_pos[2])
+        unit_in_way = COMP.get_unit(leader_pos[1], leader_pos[2])
         if unit_in_way then
-            wesnoth.extract_unit(unit_in_way)
+            COMP.extract_unit(unit_in_way)
         end
         leader_proxy.loc = leader_pos
     end
@@ -429,7 +430,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
     if (leader[1] ~= leader_pos[1]) or (leader[2] ~= leader_pos[2]) then
         leader_proxy.loc = leader
         if unit_in_way then
-            wesnoth.put_unit(unit_in_way)
+            COMP.put_unit(unit_in_way)
         end
     end
 

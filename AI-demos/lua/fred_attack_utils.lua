@@ -4,6 +4,7 @@ local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FVS = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_virtual_state.lua"
 local FGUI = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
+local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
 --local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 -- Functions to perform fast evaluation of attacks and attack combinations.
@@ -1009,7 +1010,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
     --DBG.dbms(tmp_attacker_infos, false, 'tmp_attacker_infos')
 
     local defender_id, defender_loc = next(defender)
-    local defender_proxy = wesnoth.get_unit(defender_loc[1], defender_loc[2])
+    local defender_proxy = COMP.get_unit(defender_loc[1], defender_loc[2])
     local defender_info = move_data.unit_infos[defender_id]
     --DBG.dbms(defender_info, false, 'defender_info')
 
@@ -1185,11 +1186,11 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
                     if (not lu_outcomes) then
                         -- We create an entirely new unit in this case, replacing the
                         -- original defender_proxy by one of the correct advanced type
-                        wesnoth.extract_unit(defender_proxy)
+                        COMP.extract_unit(defender_proxy)
 
                         -- Setting XP to 0, as it is extremely unlikely that a
                         -- defender will level twice in a single attack combo
-                        wesnoth.put_unit({
+                        COMP.put_unit({
                             id = 'adv_' .. defender_info.id,  -- To distinguish from defender for caching
                             side = defender_info.side,
                             hitpoints = hp1,
@@ -1198,7 +1199,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
                             name = "X",
                             random_gender = false
                         }, defender_loc[1], defender_loc[2])
-                        local adv_defender_proxy = wesnoth.get_unit(defender_loc[1], defender_loc[2])
+                        local adv_defender_proxy = COMP.get_unit(defender_loc[1], defender_loc[2])
                         local adv_defender_info = FU.single_unit_info(adv_defender_proxy)
 
                         local aoc, doc = fred_attack_utils.attack_outcome(
@@ -1207,8 +1208,8 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
                             move_data, move_cache
                         )
 
-                        wesnoth.erase_unit(defender_loc[1], defender_loc[2])
-                        wesnoth.put_unit(defender_proxy)
+                        COMP.erase_unit(defender_loc[1], defender_loc[2])
+                        COMP.put_unit(defender_proxy)
 
                         lu_outcomes = { aoc = aoc, doc = doc}
 
@@ -1375,7 +1376,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, cfg, reach_map
 
     local defender_proxy  -- If attack rating is needed, we need the defender proxy unit, not just the unit copy
     if get_strongest_attack then
-        defender_proxy = wesnoth.get_unit(defender_loc[1], defender_loc[2])
+        defender_proxy = COMP.get_unit(defender_loc[1], defender_loc[2])
     end
 
     local tmp_attacks_dst_src = {}

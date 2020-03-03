@@ -4,6 +4,7 @@ local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local FGUI = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
+local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
 
 local fred_utils = {}
 
@@ -254,7 +255,7 @@ function fred_utils.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs)
         -- TODO: check whether this is too expensive
         -- Disable using fronts for now, it's too volatile, but leave the code in place
         -- TODO: reenable or remove later
-        if false and front and (unit_copy:movement(wesnoth.get_terrain(front.x, front.y)) < 99) then
+        if false and front and (COMP.unit_movement_cost(unit_copy, wesnoth.get_terrain(front.x, front.y)) < 99) then
             x, y = front.x, front.y
         else
             for _,hex in ipairs(raw_cfg.center_hexes) do
@@ -292,7 +293,7 @@ end
 function fred_utils.influence_custom_cost(x, y, unit_copy, influence_mult, influence_map, move_data)
     -- Custom cost function for finding path with penalty for negative full-move influence.
     -- This does not take potential loss of MP at the end of a move into account.
-    local cost = wesnoth.unit_movement_cost(unit_copy, wesnoth.get_terrain(x, y))
+    local cost = COMP.unit_movement_cost(unit_copy, wesnoth.get_terrain(x, y))
     if (cost >= 99) then return cost end
 
     if FGM.get_value(move_data.enemy_map, x, y, 'id') then
@@ -332,8 +333,8 @@ function fred_utils.smooth_cost_map(unit_proxy, loc, is_inverse_map)
 
     local old_loc, uiw
     if loc and ((loc[1] ~= unit_proxy.x) or (loc[2] ~= unit_proxy.y)) then
-        uiw = wesnoth.get_unit(loc[1], loc[2])
-        if uiw then wesnoth.extract_unit(uiw) end
+        uiw = COMP.get_unit(loc[1], loc[2])
+        if uiw then COMP.extract_unit(uiw) end
         old_loc = { unit_proxy.x, unit_proxy.y }
         unit_proxy.loc = loc
     end
@@ -362,12 +363,12 @@ function fred_utils.smooth_cost_map(unit_proxy, loc, is_inverse_map)
 
     if old_loc then
         unit_proxy.loc = old_loc
-        if uiw then wesnoth.put_unit(uiw) end
+        if uiw then COMP.put_unit(uiw) end
     end
 
     local movecost_0
     if is_inverse_map then
-        movecost_0 = wesnoth.unit_movement_cost(unit_proxy, wesnoth.get_terrain(loc[1], loc[2]))
+        movecost_0 = COMP.unit_movement_cost(unit_proxy, wesnoth.get_terrain(loc[1], loc[2]))
     end
     -- Just a safeguard against potential future problems:
     if movecost_0 and (movecost_0 > 90) then
@@ -379,7 +380,7 @@ function fred_utils.smooth_cost_map(unit_proxy, loc, is_inverse_map)
         local x, y, c = cost[1], cost[2], cost[3]
         if (c > -1) then
             if is_inverse_map then
-                movecost = wesnoth.unit_movement_cost(unit_proxy, wesnoth.get_terrain(x, y))
+                movecost = COMP.unit_movement_cost(unit_proxy, wesnoth.get_terrain(x, y))
                 c = c + movecost_0 - movecost
             end
 
@@ -418,7 +419,7 @@ function fred_utils.get_between_map(locs, units, move_data)
         --std_print(id, unit_loc[1], unit_loc[2])
         local unit = {}
         unit[id] = unit_loc
-        local unit_proxy = wesnoth.get_unit(unit_loc[1], unit_loc[2])
+        local unit_proxy = COMP.get_unit(unit_loc[1], unit_loc[2])
 
 
         local cost_map = fred_utils.smooth_cost_map(unit_proxy)
@@ -435,7 +436,7 @@ function fred_utils.get_between_map(locs, units, move_data)
 
             -- Find the hexes which the unit can reach and still get next to the goal locs
             --std_print('checking within_one_move: ' .. loc[1] .. ',' .. loc[2], id)
-            local cost_on_goal = wesnoth.unit_movement_cost(unit_proxy, wesnoth.get_terrain(loc[1], loc[2]))
+            local cost_on_goal = COMP.unit_movement_cost(unit_proxy, wesnoth.get_terrain(loc[1], loc[2]))
             local goal = AH.table_copy(loc)
             --DBG.dbms(goal, false, 'goal before')
 
@@ -447,7 +448,7 @@ function fred_utils.get_between_map(locs, units, move_data)
                 --std_print('  goal hex ' .. loc[1] .. ',' .. loc[2] .. ' is unreachable for ' .. id)
                 local min_cost = math.huge
                 for xa,ya in H.adjacent_tiles(loc[1], loc[2]) do
-                    local adj_cost_on_goal = wesnoth.unit_movement_cost(unit_proxy, wesnoth.get_terrain(xa, ya))
+                    local adj_cost_on_goal = COMP.unit_movement_cost(unit_proxy, wesnoth.get_terrain(xa, ya))
                     local adj_cost_to_goal = FGM.get_value(cost_map, xa, ya, 'cost')
                     if (adj_cost_on_goal < 99) and (adj_cost_to_goal < min_cost) then
                         min_cost = adj_cost_to_goal
@@ -531,7 +532,7 @@ function fred_utils.get_between_map(locs, units, move_data)
                     unit_map[x][y].within_one_move = true
                 end
 
-                local perp_distance = cost + inv_cost + unit_proxy:movement(wesnoth.get_terrain(x, y))
+                local perp_distance = cost + inv_cost + COMP.unit_movement_cost(unit_proxy, wesnoth.get_terrain(x, y))
                 FGM.set_value(unit_map, x, y, 'perp_distance', perp_distance)
             end
 
@@ -701,7 +702,7 @@ function fred_utils.get_unit_advance_distance_maps(unit_advance_distance_maps, z
         for typ,id in pairs(new_types) do
             unit_advance_distance_maps[zone_id][typ] = {}
 
-            local unit_proxy = wesnoth.get_units({ id = id })[1]
+            local unit_proxy = COMP.get_units({ id = id })[1]
             local eldm = fred_utils.smooth_cost_map(unit_proxy, enemy_leader_loc, true)
             local ldm = fred_utils.smooth_cost_map(unit_proxy, my_leader_loc, true)
 
@@ -709,7 +710,7 @@ function fred_utils.get_unit_advance_distance_maps(unit_advance_distance_maps, z
             for x,y,data in FGM.iter(ldm) do
                 local my_cost = data.cost
                 local enemy_cost = eldm[x][y].cost
-                local sum = my_cost + enemy_cost + unit_proxy:movement(wesnoth.get_terrain(x, y))
+                local sum = my_cost + enemy_cost + COMP.unit_movement_cost(unit_proxy, wesnoth.get_terrain(x, y))
                 local diff = (my_cost - enemy_cost) / 2
 
                 if (sum < min_sum) then
@@ -902,7 +903,7 @@ end
 
 function fred_utils.behind_enemy_map(fred_data)
     local function is_new_behind_hex(x, y, enemy_id, unit_behind_map, ld_ref)
-        local move_cost = wesnoth.unit_movement_cost(fred_data.move_data.unit_copies[enemy_id], wesnoth.get_terrain(x, y))
+        local move_cost = COMP.unit_movement_cost(fred_data.move_data.unit_copies[enemy_id], wesnoth.get_terrain(x, y))
         if (move_cost >= 99) then
             return false, false, false
         end
@@ -1154,7 +1155,7 @@ function fred_utils.single_unit_info(unit_proxy)
         local attack_types = { "arcane", "blade", "cold", "fire", "impact", "pierce" }
         single_unit_info.resistances = {}
         for _,attack_type in ipairs(attack_types) do
-            single_unit_info.resistances[attack_type] = wesnoth.unit_resistance(unit_proxy, attack_type) / 100.
+            single_unit_info.resistances[attack_type] = COMP.unit_resistance(unit_proxy, attack_type) / 100.
         end
     end
 

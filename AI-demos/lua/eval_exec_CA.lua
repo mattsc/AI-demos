@@ -4,6 +4,7 @@
 -- See the github wiki page for a detailed description of how to use them:
 -- https://github.com/mattsc/Wesnoth-AI-Demos/wiki/CA-debugging
 
+local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
 --local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local function is_CA_debugging_mode()
@@ -93,7 +94,7 @@ local function init_CA(self)
     if is_wrong_side() then return end
 
     -- Get the AI table and the CA functions
-    local ai = wesnoth.debug_ai(wesnoth.current.side).ai
+    local ai = COMP.debug_ai()
     local ca = wesnoth.dofile("~add-ons/AI-demos/lua/ca_zone_control.lua")
 
     -- First time we need to call reset_vars_turn:execution
@@ -162,7 +163,7 @@ return {
     units_info = function(stdout_only)
         -- Shows some information for all units. Specifically, this links the
         -- unit id to its position, name etc. for easier identification
-        local tmp_units = wesnoth.get_units()
+        local tmp_units = COMP.get_units()
         local str = ''
         for _,u in ipairs(tmp_units) do
             str = str .. string.format('%2d,%2d    HP: %3d/%3d    XP: %3d/%3d        %s      (%s)\n',

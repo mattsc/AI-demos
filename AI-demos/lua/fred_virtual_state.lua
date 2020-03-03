@@ -5,6 +5,7 @@ local H = wesnoth.require "helper"
 local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
+local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
 
 
 -- Two arrays to be made available below via closure
@@ -123,8 +124,8 @@ function fred_virtual_state.set_virtual_state(old_locs, new_locs, additional_uni
 
     if do_extract_units then
         for id,loc in pairs(move_data.my_units_MP) do
-            local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
-            wesnoth.extract_unit(unit_proxy)
+            local unit_proxy = COMP.get_unit(loc[1], loc[2])
+            COMP.extract_unit(unit_proxy)
             table.insert(stored_data and stored_data.extracted_units or FVS_extracted_units, unit_proxy)  -- Not a proxy unit any more at this point
         end
     end
@@ -135,7 +136,7 @@ function fred_virtual_state.set_virtual_state(old_locs, new_locs, additional_uni
     -- Put all units in old_locs with MP onto the map (those without are already there)
     -- They need to be proxy units for the counter attack calculation.
     for _,id in pairs(stored_data and stored_data.FVS_ids or FVS_ids) do
-        wesnoth.put_unit(move_data.unit_copies[id])
+        COMP.put_unit(move_data.unit_copies[id])
     end
 
     -- Also put the additonal units out there
@@ -155,7 +156,7 @@ function fred_virtual_state.set_virtual_state(old_locs, new_locs, additional_uni
                     table.insert(FVS_add_units, add_unit)
                 end
 
-                wesnoth.put_unit({
+                COMP.put_unit({
                     type = add_unit.type,
                     random_traits = false,
                     name = "X",
@@ -172,10 +173,10 @@ end
 function fred_virtual_state.reset_state(old_locs, new_locs, do_extract_units, move_data, stored_data)
     -- Extract the units from the map
     for _,add_unit in ipairs(stored_data and stored_data.FVS_add_units or FVS_add_units) do
-        wesnoth.erase_unit(add_unit[1], add_unit[2])
+        COMP.erase_unit(add_unit[1], add_unit[2])
     end
     for _,id in pairs(stored_data and stored_data.FVS_ids or FVS_ids) do
-        wesnoth.extract_unit(move_data.unit_copies[id])
+        COMP.extract_unit(move_data.unit_copies[id])
     end
 
     -- And put them back into their original locations
@@ -184,7 +185,7 @@ function fred_virtual_state.reset_state(old_locs, new_locs, do_extract_units, mo
     -- Put the extracted units back on the map
     if do_extract_units then
         for _,extracted_unit in ipairs(stored_data and stored_data.extracted_units or FVS_extracted_units) do
-            wesnoth.put_unit(extracted_unit)
+            COMP.put_unit(extracted_unit)
         end
     end
 

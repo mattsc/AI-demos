@@ -7,6 +7,7 @@
 -- information is needed for any move evaluation.
 
 local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
+local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
 
 local fred_gamestate_utils_incremental = {}
 
@@ -25,7 +26,7 @@ function fred_gamestate_utils_incremental.get_unit_defense(unit_copy, x, y, defe
     if (not defense_maps[unit_copy.id]) then defense_maps[unit_copy.id] = {} end
     local defense = FGM.get_value(defense_maps[unit_copy.id], x, y, 'defense')
     if (not defense) then
-        defense = (100. - wesnoth.unit_defense(unit_copy, wesnoth.get_terrain(x, y))) / 100.
+        defense = (100. - COMP.unit_defense(unit_copy, wesnoth.get_terrain(x, y))) / 100.
         FGM.set_value(defense_maps[unit_copy.id], x, y, 'defense', defense)
     end
 

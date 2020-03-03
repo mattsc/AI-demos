@@ -1,4 +1,5 @@
 local AH = wesnoth.require "ai/lua/ai_helper.lua"
+local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
 
 local ai_helper_local = {}
 
@@ -16,7 +17,7 @@ function ai_helper_local.movepartial_outofway_stopunit(ai, unit, x, y, cfg)
     -- Only move unit out of way if the main unit can get there
     local path, cost = AH.find_path_with_shroud(unit, x, y, cfg)
     if (cost <= unit.moves) then
-        local unit_in_way = wesnoth.get_unit(x, y)
+        local unit_in_way = COMP.get_unit(x, y)
         if unit_in_way and (unit_in_way ~= unit)
             and AH.is_visible_unit(viewing_side, unit_in_way)
         then

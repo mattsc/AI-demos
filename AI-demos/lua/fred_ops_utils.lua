@@ -14,6 +14,7 @@ local FVU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_village_utils.lua"
 local FMLU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_move_leader_utils.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
+local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
 
 -- Trying to set things up so that FMC is _only_ used in ops_utils
 -- TODO: this is currently not the case any more. Decide later what to do about that
@@ -818,8 +819,8 @@ function fred_ops_utils.set_ops_data(fred_data)
     --   - so that we don't accidentally apply leadership, backstab or the like
     local extracted_units = {}
     for id,loc in pairs(move_data.units) do
-        local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
-        wesnoth.extract_unit(unit_proxy)
+        local unit_proxy = COMP.get_unit(loc[1], loc[2])
+        COMP.extract_unit(unit_proxy)
         table.insert(extracted_units, unit_proxy)  -- Not a proxy unit any more at this point
     end
 
@@ -884,8 +885,8 @@ function fred_ops_utils.set_ops_data(fred_data)
         local old_y = move_data.unit_copies[my_id].y
         local my_x, my_y = attack_locs.attacker_loc[1], attack_locs.attacker_loc[2]
 
-        wesnoth.put_unit(move_data.unit_copies[my_id], my_x, my_y)
-        local my_proxy = wesnoth.get_unit(my_x, my_y)
+        COMP.put_unit(move_data.unit_copies[my_id], my_x, my_y)
+        local my_proxy = COMP.get_unit(my_x, my_y)
 
         for enemy_id,_ in pairs(enemy_array) do
             --std_print('    ' .. enemy_id)
@@ -895,8 +896,8 @@ function fred_ops_utils.set_ops_data(fred_data)
             local old_y_enemy = move_data.unit_copies[enemy_id].y
             local enemy_x, enemy_y = attack_locs.defender_loc[1], attack_locs.defender_loc[2]
 
-            wesnoth.put_unit(move_data.unit_copies[enemy_id], enemy_x, enemy_y)
-            local enemy_proxy = wesnoth.get_unit(enemy_x, enemy_y)
+            COMP.put_unit(move_data.unit_copies[enemy_id], enemy_x, enemy_y)
+            local enemy_proxy = COMP.get_unit(enemy_x, enemy_y)
 
             local bonus_poison = 8
             local bonus_slow = 4
@@ -999,21 +1000,21 @@ function fred_ops_utils.set_ops_data(fred_data)
             tmp_attacks.damage_counter.max_taken_any_weapon = max_damage_counter
 
 
-            move_data.unit_copies[enemy_id] = wesnoth.copy_unit(enemy_proxy)
-            wesnoth.erase_unit(enemy_x, enemy_y)
+            move_data.unit_copies[enemy_id] = COMP.copy_unit(enemy_proxy)
+            COMP.erase_unit(enemy_x, enemy_y)
             move_data.unit_copies[enemy_id].x = old_x_enemy
             move_data.unit_copies[enemy_id].y = old_y_enemy
 
             unit_attacks[my_id][enemy_id] = tmp_attacks
         end
 
-        move_data.unit_copies[my_id] = wesnoth.copy_unit(my_proxy)
-        wesnoth.erase_unit(my_x, my_y)
+        move_data.unit_copies[my_id] = COMP.copy_unit(my_proxy)
+        COMP.erase_unit(my_x, my_y)
         move_data.unit_copies[my_id].x = old_x
         move_data.unit_copies[my_id].y = old_y
     end
 
-    for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
+    for _,extracted_unit in ipairs(extracted_units) do COMP.put_unit(extracted_unit) end
 
     --DBG.dbms(unit_attacks, false, 'unit_attacks')
 

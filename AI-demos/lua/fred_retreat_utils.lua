@@ -8,6 +8,7 @@ local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
+local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
 
 local retreat_functions = {}
 
@@ -73,7 +74,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
 
     ----- Begin retreat_rating() -----
     local function retreat_rating(id, x, y, heal_amount, no_damage_limit)
-        local hitchance = wesnoth.unit_defense(move_data.unit_copies[id], wesnoth.get_terrain(x, y)) / 100.
+        local hitchance = COMP.unit_defense(move_data.unit_copies[id], wesnoth.get_terrain(x, y)) / 100.
         local max_damage, av_damage = retreat_damages(id, x, y, hitchance, fred_data.ops_data.unit_attacks, move_data)
 
         if no_damage_limit or (max_damage < move_data.unit_infos[id].hitpoints) then
@@ -306,7 +307,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
 
             local villages, min_turns = {}, math.huge
             for x,y,_ in FGM.iter(move_data.village_map) do
-                local hitchance = wesnoth.unit_defense(move_data.unit_copies[id], wesnoth.get_terrain(x, y)) / 100.
+                local hitchance = COMP.unit_defense(move_data.unit_copies[id], wesnoth.get_terrain(x, y)) / 100.
                 local max_damage, av_damage = retreat_damages(id, x, y, hitchance, fred_data.ops_data.unit_attacks, move_data)
 
                 if (av_damage < move_data.unit_infos[id].hitpoints) then
@@ -354,7 +355,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
                 -- Consider only hexes with acceptable threats
                 -- and only those that reduce the number of turns needed to get to the goal villages.
                 -- Acceptable threats in this case are based on av_damage, not max_damage as above
-                local hitchance = wesnoth.unit_defense(move_data.unit_copies[id], wesnoth.get_terrain(x, y)) / 100.
+                local hitchance = COMP.unit_defense(move_data.unit_copies[id], wesnoth.get_terrain(x, y)) / 100.
                 local max_damage, av_damage = retreat_damages(id, x, y, hitchance, fred_data.ops_data.unit_attacks, move_data)
 
                 if (av_damage < move_data.unit_infos[id].hitpoints) then

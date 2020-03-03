@@ -2,6 +2,7 @@ local H = wesnoth.require "helper"
 local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
+local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
 
 -- Collection of functions to get information about units and the gamestate and
 -- collect them in tables for easy access. They are expensive, so this should
@@ -126,7 +127,7 @@ function fred_gamestate_utils.get_move_data()
     --
     -- See above for the information returned
 
-    local unit_proxies = wesnoth.get_units()
+    local unit_proxies = COMP.get_units()
 
     local unit_infos = {}
     for _,unit_proxy in ipairs(unit_proxies) do
@@ -159,7 +160,7 @@ function fred_gamestate_utils.get_move_data()
     end
 
     for _,unit_proxy in ipairs(unit_proxies) do
-        local unit_copy = wesnoth.copy_unit(unit_proxy)
+        local unit_copy = COMP.copy_unit(unit_proxy)
         local id = unit_proxy.id
         unit_copies[unit_copy.id] = unit_copy
         unit_attack_maps[1][id] = {}
@@ -257,7 +258,7 @@ function fred_gamestate_utils.get_move_data()
                 my_units_noMP[unit_copy.id] = { unit_copy.x, unit_copy.y }
             end
         else
-            if wesnoth.is_enemy(unit_copy.side, wesnoth.current.side) then
+            if COMP.is_enemy(unit_copy.side, wesnoth.current.side) then
                 FGM.set_value(unit_map, unit_copy.x, unit_copy.y, 'id', unit_copy.id)
                 FGM.set_value(enemy_map, unit_copy.x, unit_copy.y, 'id', unit_copy.id)
                 enemies[unit_copy.id] = { unit_copy.x, unit_copy.y }
@@ -400,8 +401,8 @@ function fred_gamestate_utils.get_move_data()
     -- Take all own units with MP left off the map (for enemy pathfinding)
     local extracted_units = {}
     for id,loc in pairs(mapstate.my_units_MP) do
-        local unit_proxy = wesnoth.get_unit(loc[1], loc[2])
-        wesnoth.extract_unit(unit_proxy)
+        local unit_proxy = COMP.get_unit(loc[1], loc[2])
+        COMP.extract_unit(unit_proxy)
         table.insert(extracted_units, unit_proxy)
     end
 
@@ -481,7 +482,7 @@ function fred_gamestate_utils.get_move_data()
     end
 
     -- Put the own units with MP back out there
-    for _,extracted_unit in ipairs(extracted_units) do wesnoth.put_unit(extracted_unit) end
+    for _,extracted_unit in ipairs(extracted_units) do COMP.put_unit(extracted_unit) end
 
     mapstate.enemy_attack_map = enemy_attack_map
     mapstate.enemy_turn_maps = enemy_turn_maps
