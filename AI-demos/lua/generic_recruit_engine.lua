@@ -395,8 +395,8 @@ return {
             -- Check for space to recruit a unit
             local no_space = true
             for i,c in ipairs(data.castle.locs) do
-                local unit = COMP.get_unit(c[1], c[2])
-                if (not unit) or (outofway_units[unit.id] and (not unit.canrecruit)) then
+                local unit_proxy = COMP.get_unit(c[1], c[2])
+                if (not unit_proxy) or (outofway_units[unit_proxy.id] and (not unit_proxy.canrecruit)) then
                     no_space = false
                     break
                 end
@@ -440,8 +440,8 @@ return {
             end
 
             -- Collect all enemies on map
-            for i, unit in ipairs(enemy_proxies) do
-                add_unit_type(unit.type)
+            for i, enemy_proxy in ipairs(enemy_proxies) do
+                add_unit_type(enemy_proxy.type)
             end
             -- Collect all possible enemy recruits and count them as virtual enemies
             local enemy_sides = COMP.get_sides({
@@ -636,6 +636,8 @@ return {
             if leader_proxy == nil then
                 return nil
             end
+            leader_copy = COMP.copy_unit(leader_proxy)
+            leader_copy.x, leader_copy.y = from_loc[1], from_loc[2]
 
             -- only track one prerecruit location at a time
             if recruit_data.recruit.prerecruit.loc == nil
@@ -648,11 +650,11 @@ return {
                 }
             end
 
-            get_current_castle(leader, recruit_data)
+            get_current_castle(leader_copy, recruit_data)
 
             -- recruit as many units as possible at that location
             while #recruit_data.castle.locs > 0 do
-                local recruit_type = select_recruit(leader, avoid_map, outofway_units, cfg)
+                local recruit_type = select_recruit(leader_copy, avoid_map, outofway_units, cfg)
                 if recruit_type == nil then
                     break
                 end
@@ -737,12 +739,12 @@ return {
 
                 AH.checked_recruit(ai, recruit_type, recruit_hex[1], recruit_hex[2])
 
-                local unit = COMP.get_unit(recruit_hex[1], recruit_hex[2])
+                local unit_proxy = COMP.get_unit(recruit_hex[1], recruit_hex[2])
 
                 -- If the recruited unit cannot reach the target hex, return it to the pool of targets
                 if target_hex and target_hex[1] then
-                    local path, cost = wesnoth.find_path(unit, target_hex[1], target_hex[2], {viewing_side=0, max_cost=unit.max_moves+1})
-                    if cost > unit.max_moves then
+                    local path, cost = wesnoth.find_path(unit_proxy, target_hex[1], target_hex[2], {viewing_side=0, max_cost=unit_proxy.max_moves+1})
+                    if cost > unit_proxy.max_moves then
                         -- The last village added to the list should be the one we tried to aim for, check anyway
                         local last = #recruit_data.castle.assigned_villages_x
                         if (recruit_data.castle.assigned_villages_x[last] == target_hex[1]) and (recruit_data.castle.assigned_villages_y[last] == target_hex[2]) then
@@ -752,7 +754,7 @@ return {
                     end
                 end
 
-                return true, unit
+                return true, unit_proxy
             else
                 -- This results in the CA being blacklisted -> clear cache
                 recruit_data.recruit = nil
@@ -829,8 +831,8 @@ return {
 
                 for i,c in ipairs(data.castle.locs) do
                     local rating = 0
-                    local unit = COMP.get_unit(c[1], c[2])
-                    if (not unit) or outofway_units[unit.id] then
+                    local unit_proxy = COMP.get_unit(c[1], c[2])
+                    if (not unit_proxy) or outofway_units[unit_proxy.id] then
                         for j,e in ipairs(enemy_leader_proxies) do
                             rating = rating + 1 / wesnoth.map.distance_between(c[1], c[2], e.x, e.y) ^ 2.
                         end
@@ -839,8 +841,8 @@ return {
                         -- If there's a unit on the hex (that is marked as being able
                         -- to move out of the way, otherwise we don't get here), give
                         -- a pretty stiff penalty, but make it possible to recruit here
-                        if unit then
-                            --std_print('  Out of way penalty', c[1], c[2], unit.id)
+                        if unit_proxy then
+                            --std_print('  Out of way penalty', c[1], c[2], unit_proxy.id)
                             rating = rating + outofway_penalty
                         end
 
@@ -1007,8 +1009,8 @@ return {
                 { "not", { canrecruit = "yes" }}
             }
             local level_count = {}
-            for _,unit in ipairs(all_unit_proxies) do
-                local level = unit.level
+            for _,unit_proxy in ipairs(all_unit_proxies) do
+                local level = unit_proxy.level
                 level_count[level] = (level_count[level] or 0) + 1
             end
             local min_recruit_level, max_recruit_level = math.huge, -math.huge
