@@ -1083,16 +1083,16 @@ return {
         end
 
         function get_unit_counts_for_healing()
-            local healers = #AH.get_live_units {
+            local num_healers = #AH.get_live_units {
                 side = wesnoth.current.side,
                 ability = "healing",
                 { "not", { canrecruit = "yes" }}
             }
-            local healable = #AH.get_live_units {
+            local num_healable = #AH.get_live_units {
                 side = wesnoth.current.side,
                 { "not", { ability = "regenerates" }}
             }
-            return healers, healable
+            return num_healers, num_healable
         end
 
         function get_village_target(leader, data)
