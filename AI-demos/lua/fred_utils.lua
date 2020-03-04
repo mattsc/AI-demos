@@ -1019,8 +1019,10 @@ function fred_utils.single_unit_info(unit_proxy)
     single_unit_info.advances_to = unit_proxy.advances_to[1]
 
     -- Include the ability type, such as: hides, heals, regenerate, skirmisher (set up as 'hides = true')
+    -- Note that unit_proxy.abilities gives the id of the ability. This is different from
+    -- the value below, which is the name of the tag (e.g. 'heals' vs. 'healing' and/or 'curing')
     single_unit_info.abilities = {}
-    local abilities = wml.get_child(unit_proxy.__cfg, "abilities")
+    local abilities = wml.get_child(unit_cfg, "abilities")
     if abilities then
         for _,ability in ipairs(abilities) do
             single_unit_info.abilities[ability[1]] = true
@@ -1031,35 +1033,30 @@ function fred_utils.single_unit_info(unit_proxy)
     -- including specials (e.g. 'poison = true')
     single_unit_info.attacks = {}
     local max_damage = 0
-    for attack in wml.child_range(unit_cfg, 'attack') do
+    for i,attack in ipairs(unit_proxy.attacks) do
         -- Extract information for specials; we do this first because some
         -- custom special might have the same name as one of the default scalar fields
         local a = {}
-        for special in wml.child_range(attack, 'specials') do
-            for _,sp in ipairs(special) do
-                if (sp[1] == 'damage') then  -- this is 'backstab'
-                    if (sp[2].id == 'backstab') then
-                        a.backstab = true
-                    else
-                        if (sp[2].id == 'charge') then a.charge = true end
-                    end
+        for _,sp in ipairs(attack.specials) do
+            if (sp[1] == 'damage') then  -- this is 'backstab'
+                if (sp[2].id == 'backstab') then
+                    a.backstab = true
                 else
-                    -- magical, marksman
-                    if (sp[1] == 'chance_to_hit') then
-                        a[sp[2].id] = true
-                    else
-                        a[sp[1]] = true
-                    end
+                    if (sp[2].id == 'charge') then a.charge = true end
+                end
+            else
+                -- magical, marksman
+                if (sp[1] == 'chance_to_hit') then
+                    a[sp[2].id] = true
+                else
+                    a[sp[1]] = true
                 end
             end
         end
-
-        -- Now extract the scalar (string and number) values from attack
-        for k,v in pairs(attack) do
-            if (type(v) == 'number') or (type(v) == 'string') then
-                a[k] = v
-            end
-        end
+        a.damage = attack.damage
+        a.number = attack.number
+        a.range = attack.range
+        a.type = attack.type
 
         table.insert(single_unit_info.attacks, a)
 
@@ -1107,8 +1104,7 @@ function fred_utils.single_unit_info(unit_proxy)
         single_unit_info.tod_mod = fred_utils.get_unit_time_of_day_bonus(single_unit_info.alignment, single_unit_info.traits.fearless, wesnoth.get_time_of_day().lawful_bonus)
 
         -- Define what "good terrain" means for a unit
-        local defense = wml.get_child(unit_proxy.__cfg, "defense")
-
+        local defense = wml.get_child(unit_cfg, "defense")
         -- Get the hit chances for all terrains and sort (best = lowest hit chance first)
         local hit_chances = {}
         for _,hit_chance in pairs(defense) do
