@@ -1,5 +1,4 @@
 local H = wesnoth.require "helper"
-local I = wesnoth.require "lua/wml/items.lua"
 local AH = wesnoth.require "ai/lua/ai_helper.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FS = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_status.lua"
@@ -381,27 +380,27 @@ function fred_ops_utils.behavior_output(is_turn_start, zone_maps, ops_data)
 
             local tmp_protect = front and front.protect
             if tmp_protect then
-                I.place_halo(tmp_protect.x, tmp_protect.y, "halo/teleport-8.png")
+                COMP.place_halo(tmp_protect.x, tmp_protect.y, "halo/teleport-8.png")
             end
 
             local zone_data = objectives.protect.zones[zone_id] or { villages = {}, units = {} }
             for _,village in ipairs(zone_data.villages) do
-                I.place_halo(village.x, village.y, "halo/illuminates-aura.png~CS(-255,-255,0)")
+                COMP.place_halo(village.x, village.y, "halo/illuminates-aura.png~CS(-255,-255,0)")
             end
             for _,unit in ipairs(zone_data.units) do
-                I.place_halo(unit.x, unit.y, "halo/illuminates-aura.png~CS(0,-255,-255)")
+                COMP.place_halo(unit.x, unit.y, "halo/illuminates-aura.png~CS(0,-255,-255)")
             end
             DBG.show_fgumap_with_message(front_map, 'distance', str,
                 { x = (front and front.x), y = (front and front.y) }
             )
             for _,unit in ipairs(zone_data.units) do
-                I.remove(unit.x, unit.y, "halo/illuminates-aura.png~CS(0,-255,-255)")
+                COMP.remove(unit.x, unit.y, "halo/illuminates-aura.png~CS(0,-255,-255)")
             end
             for _,village in ipairs(zone_data.villages) do
-                I.remove(village.x, village.y, "halo/illuminates-aura.png~CS(-255,-255,0)")
+                COMP.remove(village.x, village.y, "halo/illuminates-aura.png~CS(-255,-255,0)")
             end
             if tmp_protect then
-                I.remove(tmp_protect.x, tmp_protect.y, "halo/teleport-8.png")
+                COMP.remove(tmp_protect.x, tmp_protect.y, "halo/teleport-8.png")
             end
         end
     end
@@ -2343,16 +2342,16 @@ function fred_ops_utils.set_ops_data(fred_data)
             DBG.show_fgumap_with_message(ADmap, 'perp', 'advance_distance_map ' .. zone_id .. ': perp')
             DBG.show_fgumap_with_message(ADmap, 'sign', 'advance_distance_map ' .. zone_id .. ': sign')
             for x,y,_ in FGM.iter(front_map) do
-                I.place_halo(x, y, "halo/teleport-8.png")
+                COMP.place_halo(x, y, "halo/teleport-8.png")
             end
-            I.place_halo(goal_hex[1], goal_hex[2], "halo/illuminates-aura.png~CS(-255,-255,0)")
-            I.place_halo(goal_hex_hold[1], goal_hex_hold[2], "halo/illuminates-aura.png~CS(0,-255,-255)")
+            COMP.place_halo(goal_hex[1], goal_hex[2], "halo/illuminates-aura.png~CS(-255,-255,0)")
+            COMP.place_halo(goal_hex_hold[1], goal_hex_hold[2], "halo/illuminates-aura.png~CS(0,-255,-255)")
             DBG.show_fgumap_with_message(display_map, 'infl', 'advance route influence: ' .. zone_id .. '\nred halo: goal hex hold\nblue halo: goal hex advance')
             DBG.show_fgumap_with_message(display_map, 'vuln', 'advance route vulnerability: ' .. zone_id .. '\nred halo: goal hex hold\nblue halo: goal hex advance')
-            I.remove(goal_hex_hold[1], goal_hex_hold[2], "halo/illuminates-aura.png~CS(0,-255,-255)")
-            I.remove(goal_hex[1], goal_hex[2], "halo/illuminates-aura.png~CS(-255,-255,0)")
+            COMP.remove(goal_hex_hold[1], goal_hex_hold[2], "halo/illuminates-aura.png~CS(0,-255,-255)")
+            COMP.remove(goal_hex[1], goal_hex[2], "halo/illuminates-aura.png~CS(-255,-255,0)")
             for x,y,_ in FGM.iter(front_map) do
-                I.remove(x, y, "halo/teleport-8.png")
+                COMP.remove(x, y, "halo/teleport-8.png")
             end
         end
 

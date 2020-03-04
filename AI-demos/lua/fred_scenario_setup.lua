@@ -1,3 +1,5 @@
+local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
+
 local function fred_sides()
     -- Check which sides are played by Fred
     -- We do this by testing whether the 'zone_control' CA exists
@@ -42,7 +44,7 @@ function fred_scenario_setup.fred_scenario_setup()
 
         -- Freelands map is checked through the map size and the starting location of side 1
         local width, height = wesnoth.get_map_size()
-        local start_loc = wesnoth.get_starting_location(1)
+        local start_loc = COMP.get_starting_location(1)
 
         if (width ~= 37) or (height ~= 24) or (start_loc[1] ~= 19) or ((start_loc[2] ~= 4) and (start_loc[2] ~= 20)) then
             wesnoth.wml_actions.message {

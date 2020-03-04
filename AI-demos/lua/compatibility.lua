@@ -5,6 +5,7 @@
 
 local AH = wesnoth.dofile "ai/lua/ai_helper.lua"
 local H = wesnoth.require "helper"
+local I = wesnoth.require "lua/wml/items.lua"
 
 local compatibility = {}
 
@@ -85,6 +86,14 @@ function compatibility.get_sides(side_filter)
     end
 end
 
+function compatibility.get_starting_location(side)
+    if wesnoth.compare_versions(wesnoth.game_config.version, '>=', '1.15.0') then
+        return wesnoth.sides[side].starting_location
+    else
+        return wesnoth.get_starting_location(side)
+    end
+end
+
 function compatibility.get_unit(...)
     if wesnoth.compare_versions(wesnoth.game_config.version, '>=', '1.15.0') then
         return wesnoth.units.get(...)
@@ -117,11 +126,27 @@ function compatibility.match_unit(unit, filter)
     end
 end
 
+function compatibility.place_halo(...)
+    if wesnoth.compare_versions(wesnoth.game_config.version, '>=', '1.15.0') then
+        return wesnoth.interface.add_item_halo(...)
+    else
+        return I.place_halo(...)
+    end
+end
+
 function compatibility.put_unit(...)
     if wesnoth.compare_versions(wesnoth.game_config.version, '>=', '1.15.0') then
         return wesnoth.units.to_map(...)
     else
         return wesnoth.put_unit(...)
+    end
+end
+
+function compatibility.remove(...)
+    if wesnoth.compare_versions(wesnoth.game_config.version, '>=', '1.15.0') then
+        return wesnoth.interface.remove_item(...)
+    else
+        return I.remove(...)
     end
 end
 

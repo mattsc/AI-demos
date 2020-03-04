@@ -1,6 +1,5 @@
 local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local H = wesnoth.require "helper"
-local I = wesnoth.require "lua/wml/items.lua"
 
 -- Note: Assigning this table is slow compared to accessing values in it. It is
 -- thus done outside the functions below, so that it is not done over and over
@@ -241,7 +240,7 @@ function debug_utils.show_fgumap_with_message(map, key, text, cfg)
         -- The '+1' is there because there is a message at the bottom of the screen
         wesnoth.scroll_to_tile((cfg.x + cog_x) / 2, (cfg.y + cog_y) / 2 + 1)
         if (not cfg.no_halo) then
-            I.place_halo(cfg.x, cfg.y, "halo/teleport-8.png")
+            COMP.place_halo(cfg.x, cfg.y, "halo/teleport-8.png")
         end
     end
     wesnoth.wml_actions.redraw {}
@@ -252,7 +251,7 @@ function debug_utils.show_fgumap_with_message(map, key, text, cfg)
         wesnoth.wml_actions.message { speaker = 'narrator', message = text .. comment }
     end
     if cfg and cfg.x and cfg.y and (not cfg.no_halo) then
-        I.remove(cfg.x, cfg.y, "halo/teleport-8.png")
+        COMP.remove(cfg.x, cfg.y, "halo/teleport-8.png")
     end
     debug_utils.clear_labels()
     wesnoth.wml_actions.redraw {}
