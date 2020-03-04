@@ -331,10 +331,10 @@ function fred_utils.smooth_cost_map(unit_proxy, loc, is_inverse_map)
     --     almost the same, except for the asymmetry of entering the two extreme hexes
     --     of any path.
 
-    local old_loc, uiw
+    local old_loc, unit_in_way_proxy
     if loc and ((loc[1] ~= unit_proxy.x) or (loc[2] ~= unit_proxy.y)) then
-        uiw = COMP.get_unit(loc[1], loc[2])
-        if uiw then COMP.extract_unit(uiw) end
+        unit_in_way_proxy = COMP.get_unit(loc[1], loc[2])
+        if unit_in_way_proxy then COMP.extract_unit(unit_in_way_proxy) end
         old_loc = { unit_proxy.x, unit_proxy.y }
         unit_proxy.loc = loc
     end
@@ -349,7 +349,7 @@ function fred_utils.smooth_cost_map(unit_proxy, loc, is_inverse_map)
 
     if old_loc then
         unit_proxy.loc = old_loc
-        if uiw then COMP.put_unit(uiw) end
+        if unit_in_way_proxy then COMP.put_unit(unit_in_way_proxy) end
     end
 
     local movecost_0

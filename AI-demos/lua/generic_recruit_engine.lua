@@ -332,16 +332,16 @@ return {
 
             -- Hitpoint ratio of own units / enemy units
             -- Also convert available gold to a hp estimate
-            my_units = AH.get_live_units {
+            my_unit_proxies = AH.get_live_units {
                 { "filter_side", {{"allied_with", {side = wesnoth.current.side} }} }
             }
-            enemies = AH.get_live_units {
+            enemy_proxies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }} }
             }
 
             local my_hp, enemy_hp = 0, 0
-            for i,u in ipairs(my_units) do my_hp = my_hp + u.hitpoints end
-            for i,u in ipairs(enemies) do enemy_hp = enemy_hp + u.hitpoints end
+            for i,u in ipairs(my_unit_proxies) do my_hp = my_hp + u.hitpoints end
+            for i,u in ipairs(enemy_proxies) do enemy_hp = enemy_hp + u.hitpoints end
 
             my_hp = my_hp + sum_gold_for_sides({{"allied_with", {side = wesnoth.current.side} }})*2.3
             enemy_hp = enemy_hp+sum_gold_for_sides({{"enemy_of", {side = wesnoth.current.side} }})*2.3
@@ -354,8 +354,8 @@ return {
             outofway_units = outofway_units or {}
 
             -- Check if leader exists
-            local leader = COMP.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
-            if not leader then
+            local leader_proxy = COMP.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+            if not leader_proxy then
                 return 0
             end
 
@@ -370,16 +370,16 @@ return {
             if data.recruit == nil then
                 data.recruit = init_data()
             end
-            get_current_castle(leader, data)
+            get_current_castle(leader_proxy, data)
 
             -- Do not recruit now if we want to recruit elsewhere unless
             -- a) there is a nearby village recruiting would let us capture, or
             -- b) we have enough gold to recruit at both locations
             -- c) we are now at the other location
-            local village_target_available = get_village_target(leader, data)[1]
+            local village_target_available = get_village_target(leader_proxy, data)[1]
             if (not village_target_available) and
                (cheapest_unit_cost > current_gold - data.recruit.prerecruit.total_cost) and
-               (leader.x ~= data.recruit.prerecruit.loc[1] or leader.y ~= data.recruit.prerecruit.loc[2]) then
+               (leader_proxy.x ~= data.recruit.prerecruit.loc[1] or leader_proxy.y ~= data.recruit.prerecruit.loc[2]) then
                 return 1
             end
 
@@ -388,7 +388,7 @@ return {
                 cant_recruit_at_location_score = 1
             end
 
-            if not wesnoth.get_terrain_info(wesnoth.get_terrain(leader.x, leader.y)).keep then
+            if not wesnoth.get_terrain_info(wesnoth.get_terrain(leader_proxy.x, leader_proxy.y)).keep then
                 return cant_recruit_at_location_score
             end
 
@@ -423,7 +423,7 @@ return {
             local data = {}
 
             -- Count enemies of each type
-            local enemies = AH.get_live_units {
+            local enemy_proxies = AH.get_live_units {
                 { "filter_side", {{"enemy_of", {side = wesnoth.current.side} }}}
             }
             local enemy_counts = {}
@@ -440,7 +440,7 @@ return {
             end
 
             -- Collect all enemies on map
-            for i, unit in ipairs(enemies) do
+            for i, unit in ipairs(enemy_proxies) do
                 add_unit_type(unit.type)
             end
             -- Collect all possible enemy recruits and count them as virtual enemies
@@ -473,7 +473,7 @@ return {
 
             data.enemy_counts = enemy_counts
             data.enemy_types = enemy_types
-            data.num_enemies = math.max(#enemies, 1)
+            data.num_enemies = math.max(#enemy_proxies, 1)
             data.possible_enemy_recruit_count = possible_enemy_recruit_count
             data.cheapest_unit_cost = AH.get_cheapest_recruit_cost()
 
@@ -632,12 +632,10 @@ return {
                 recruit_data.recruit = init_data()
             end
 
-            local leader = COMP.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
-            if leader == nil then
+            local leader_proxy = COMP.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+            if leader_proxy == nil then
                 return nil
             end
-            leader = COMP.copy_unit(leader)
-            leader.x, leader.y = from_loc[1], from_loc[2]
 
             -- only track one prerecruit location at a time
             if recruit_data.recruit.prerecruit.loc == nil
@@ -693,12 +691,12 @@ return {
 
             if AH.show_messages() then wesnoth.wml_actions.message { speaker = 'narrator', message = 'Recruiting' } end
 
-            local leader = COMP.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
+            local leader_proxy = COMP.get_units { side = wesnoth.current.side, canrecruit = 'yes' }[1]
             -- If leader location == prerecruit location, recruit units from prerecruit list instead of trying locally
             local recruit_type
             local max_cost = wesnoth.sides[wesnoth.current.side].gold
             if recruit_data.recruit.prerecruit.loc ~= nil
-            and leader.x == recruit_data.recruit.prerecruit.loc[1] and leader.y == recruit_data.recruit.prerecruit.loc[2]
+            and leader_proxy.x == recruit_data.recruit.prerecruit.loc[1] and leader_proxy.y == recruit_data.recruit.prerecruit.loc[2]
             and #recruit_data.recruit.prerecruit.units > 0 then
                 local recruit_unit_data = table.remove(recruit_data.recruit.prerecruit.units, 1)
                 recruit_hex = recruit_unit_data.recruit_hex
@@ -710,7 +708,7 @@ return {
                 end
                 recruit_data.recruit.prerecruit.total_cost = recruit_data.recruit.prerecruit.total_cost - wesnoth.unit_types[recruit_type].cost
             else
-                recruit_type = select_recruit(leader, avoid_map, outofway_units, cfg)
+                recruit_type = select_recruit(leader_proxy, avoid_map, outofway_units, cfg)
                 if recruit_type == nil then
                     return false
                 end
@@ -731,9 +729,9 @@ return {
                 -- Placeholder: TODO: implement better way of doing this
                 if no_exec then return true end
 
-                local unit_in_way = COMP.get_unit(recruit_hex[1], recruit_hex[2])
-                if unit_in_way then
-                    AH.move_unit_out_of_way(ai, unit_in_way)
+                local unit_in_way_proxy = COMP.get_unit(recruit_hex[1], recruit_hex[2])
+                if unit_in_way_proxy then
+                    AH.move_unit_out_of_way(ai, unit_in_way_proxy)
                 end
 
 
@@ -824,7 +822,7 @@ return {
                 -- and also the closest enemy
                 local max_rating = - math.huge
 
-                local enemy_leaders = AH.get_live_units { canrecruit = 'yes',
+                local enemy_leader_proxies = AH.get_live_units { canrecruit = 'yes',
                     { "filter_side", { { "enemy_of", {side = wesnoth.current.side} } } }
                 }
                 local _, closest_enemy_location = COMP.get_closest_enemy()
@@ -833,7 +831,7 @@ return {
                     local rating = 0
                     local unit = COMP.get_unit(c[1], c[2])
                     if (not unit) or outofway_units[unit.id] then
-                        for j,e in ipairs(enemy_leaders) do
+                        for j,e in ipairs(enemy_leader_proxies) do
                             rating = rating + 1 / wesnoth.map.distance_between(c[1], c[2], e.x, e.y) ^ 2.
                         end
                         rating = rating + 1 / wesnoth.map.distance_between(c[1], c[2], closest_enemy_location.x, closest_enemy_location.y) ^ 2.
@@ -1004,12 +1002,12 @@ return {
 
             -- Bonus for higher-level units, as unit cost is penalized otherwise
             local high_level_fraction = params.high_level_fraction or 0
-            local all_units = AH.get_live_units {
+            local all_unit_proxies = AH.get_live_units {
                 side = wesnoth.current.side,
                 { "not", { canrecruit = "yes" }}
             }
             local level_count = {}
-            for _,unit in ipairs(all_units) do
+            for _,unit in ipairs(all_unit_proxies) do
                 local level = unit.level
                 level_count[level] = (level_count[level] or 0) + 1
             end
@@ -1024,7 +1022,7 @@ return {
             for i=min_recruit_level+1,max_recruit_level do
                 -- If no non-leader units are on the map yet, we set up the situation as if there were
                 -- one of each level. This is in order to get the situation for the first recruit right.
-                local n_units = #all_units
+                local n_units = #all_unit_proxies
                 local n_units_this_level = level_count[i] or 0
                 if (n_units == 0) then
                     n_units = max_recruit_level - min_recruit_level

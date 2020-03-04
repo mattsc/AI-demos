@@ -394,11 +394,11 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
 
 
     local leader_proxy = COMP.get_unit(leader[1], leader[2])
-    local unit_in_way
+    local unit_in_way_proxy
     if (leader[1] ~= leader_pos[1]) or (leader[2] ~= leader_pos[2]) then
-        unit_in_way = COMP.get_unit(leader_pos[1], leader_pos[2])
-        if unit_in_way then
-            COMP.extract_unit(unit_in_way)
+        unit_in_way_proxy = COMP.get_unit(leader_pos[1], leader_pos[2])
+        if unit_in_way_proxy then
+            COMP.extract_unit(unit_in_way_proxy)
         end
         leader_proxy.loc = leader_pos
     end
@@ -429,8 +429,8 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
 
     if (leader[1] ~= leader_pos[1]) or (leader[2] ~= leader_pos[2]) then
         leader_proxy.loc = leader
-        if unit_in_way then
-            COMP.put_unit(unit_in_way)
+        if unit_in_way_proxy then
+            COMP.put_unit(unit_in_way_proxy)
         end
     end
 

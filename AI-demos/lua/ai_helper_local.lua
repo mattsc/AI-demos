@@ -17,11 +17,11 @@ function ai_helper_local.movepartial_outofway_stopunit(ai, unit, x, y, cfg)
     -- Only move unit out of way if the main unit can get there
     local path, cost = AH.find_path_with_shroud(unit, x, y, cfg)
     if (cost <= unit.moves) then
-        local unit_in_way = COMP.get_unit(x, y)
-        if unit_in_way and (unit_in_way ~= unit)
-            and AH.is_visible_unit(viewing_side, unit_in_way)
+        local unit_in_way_proxy = COMP.get_unit(x, y)
+        if unit_in_way_proxy and (unit_in_way_proxy ~= unit)
+            and AH.is_visible_unit(viewing_side, unit_in_way_proxy)
         then
-            AH.move_unit_out_of_way(ai, unit_in_way, cfg)
+            AH.move_unit_out_of_way(ai, unit_in_way_proxy, cfg)
         end
     end
 

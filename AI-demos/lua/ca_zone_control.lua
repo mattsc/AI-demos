@@ -3476,14 +3476,14 @@ local function do_recruit(fred_data, ai, action)
     local recruit_loc = prerecruit.loc
     if (leader[1] ~= recruit_loc[1]) or (leader[2] ~= recruit_loc[2]) then
         --std_print('Need to move leader to keep first')
-        local unit = COMP.get_unit(leader[1], leader[2])
-        AHL.movepartial_outofway_stopunit(ai, unit, recruit_loc[1], recruit_loc[2])
+        local unit_proxy = COMP.get_unit(leader[1], leader[2])
+        AHL.movepartial_outofway_stopunit(ai, unit_proxy, recruit_loc[1], recruit_loc[2])
     end
 
     for _,recruit_unit in ipairs(prerecruit.units) do
        --std_print('  ' .. recruit_unit.recruit_type .. ' at ' .. recruit_unit.recruit_hex[1] .. ',' .. recruit_unit.recruit_hex[2])
-       local uiw = COMP.get_unit(recruit_unit.recruit_hex[1], recruit_unit.recruit_hex[2])
-       if uiw then
+       local unit_in_way_proxy = COMP.get_unit(recruit_unit.recruit_hex[1], recruit_unit.recruit_hex[2])
+       if unit_in_way_proxy then
            -- Generally, move out of way in direction of own leader
            -- TODO: change this
            local leader_loc = move_data.leaders[wesnoth.current.side]
@@ -3491,17 +3491,17 @@ local function do_recruit(fred_data, ai, action)
            local r = math.sqrt(dx * dx + dy * dy)
            if (r ~= 0) then dx, dy = dx / r, dy / r end
 
-           --std_print('    uiw: ' .. uiw.id)
-           AH.move_unit_out_of_way(ai, uiw, { dx = dx, dy = dy })
+           --std_print('    unit_in_way: ' .. unit_in_way_proxy.id)
+           AH.move_unit_out_of_way(ai, unit_in_way_proxy, { dx = dx, dy = dy })
 
            -- Make sure the unit really is gone now
-           uiw = COMP.get_unit(recruit_unit.recruit_hex[1], recruit_unit.recruit_hex[2])
-           if uiw then
-               error('Unit was supposed to move out of the way for recruiting : ' .. uiw.id .. ' at ' .. uiw.x .. ',' .. uiw.y)
+           unit_in_way_proxy = COMP.get_unit(recruit_unit.recruit_hex[1], recruit_unit.recruit_hex[2])
+           if unit_in_way_proxy then
+               error('Unit was supposed to move out of the way for recruiting : ' .. unit_in_way_proxy.id .. ' at ' .. unit_in_way_proxy.x .. ',' .. unit_in_way_proxy.y)
            end
        end
 
-       if (not uiw) then
+       if (not unit_in_way_proxy) then
            AH.checked_recruit(ai, recruit_unit.recruit_type, recruit_unit.recruit_hex[1], recruit_unit.recruit_hex[2])
        end
    end
@@ -3776,7 +3776,7 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
                             extra_rating = extra_rating + att_damage[1].unit_value / 100
                         else
                             local utility = (1 - def_outcome.hp_chance[0]) * (1 - att_outcome.hp_chance[0])
-                            -- Want most advanced and least valuable  unit to go last
+                            -- Want most advanced and least valuable unit to go last
                             extra_rating = 90 * utility + XP_diff / 10
                             extra_rating = extra_rating - att_damage[1].unit_value / 100
                         end
@@ -3816,8 +3816,8 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
         end
         --DBG.print_ts_delta(fred_data.turn_start_time, 'next_unit_ind', next_unit_ind)
 
-        local unit = COMP.get_units { id = fred_data.zone_action.units[next_unit_ind].id }[1]
-        if (not unit) then
+        local unit_proxy = COMP.get_units { id = fred_data.zone_action.units[next_unit_ind].id }[1]
+        if (not unit_proxy) then
             fred_data.zone_action = nil
             return
         end
@@ -3827,7 +3827,7 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
 
         -- If this is the leader (and has MP left), recruit first
         local leader_objectives = fred_data.ops_data.objectives.leader
-        if unit.canrecruit and fred_data.move_data.my_units_MP[unit.id]
+        if unit_proxy.canrecruit and fred_data.move_data.my_units_MP[unit_proxy.id]
             and leader_objectives.prerecruit and leader_objectives.prerecruit.units and leader_objectives.prerecruit.units[1]
         then
             DBG.print_debug_time('exec', fred_data.turn_start_time, 'exec: ' .. action .. ' (leader used -> recruit first)')
@@ -3837,13 +3837,13 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
             -- We also check here separately whether the leader can still get to dst.
             -- This is also caught below, but the ops analysis should never let this
             -- happen, so we want to know about it.
-            local _,cost = wesnoth.find_path(unit, dst[1], dst[2])
-            if (cost > unit.moves) then
+            local _,cost = wesnoth.find_path(unit_proxy, dst[1], dst[2])
+            if (cost > unit_proxy.moves) then
                 error('Leader was supposed to move to ' .. dst[1] .. ',' .. dst[2] .. ' after recruiting, but this is not possible. Check operations analysis.')
             end
         end
 
-        DBG.print_debug_time('exec', fred_data.turn_start_time, 'exec: ' .. action .. ' ' .. unit.id)
+        DBG.print_debug_time('exec', fred_data.turn_start_time, 'exec: ' .. action .. ' ' .. unit_proxy.id)
 
         -- The following are some tests to make sure the intended move is actually
         -- possible, as there might have been some interference with units moving
@@ -3856,8 +3856,8 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
             -- by a move of a previous unit and that it cannot reach the dst
             -- hex any more. In that case we stop and reevaluate.
             -- TODO: make sure up front that move combination is possible
-            local _,cost = wesnoth.find_path(unit, dst[1], dst[2])
-            if (cost > unit.moves) then
+            local _,cost = wesnoth.find_path(unit_proxy, dst[1], dst[2])
+            if (cost > unit_proxy.moves) then
                 fred_data.zone_action = nil
                 return
             end
@@ -3866,19 +3866,18 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
             -- move of this combination is now in the way again and cannot move any more.
             -- We also need to stop execution in that case.
             -- Just checking for moves > 0 is not always sufficient.
-            local unit_in_way
-            if (unit.x ~= dst[1]) or (unit.y ~= dst[2]) then
-                unit_in_way = COMP.get_unit(dst[1], dst[2])
+            local unit_in_way_proxy
+            if (unit_proxy.x ~= dst[1]) or (unit_proxy.y ~= dst[2]) then
+                unit_in_way_proxy = COMP.get_unit(dst[1], dst[2])
             end
-            if unit_in_way then
-                uiw_reach = wesnoth.find_reach(unit_in_way)
+            if unit_in_way_proxy then
+                uiw_reach = wesnoth.find_reach(unit_in_way_proxy)
 
                 -- Check whether the unit to move out of the way has an unoccupied hex to move to.
                 local unit_blocked = true
                 for _,uiw_loc in ipairs(uiw_reach) do
                     -- Unit in the way of the unit in the way
-                    local uiw_uiw = COMP.get_unit(uiw_loc[1], uiw_loc[2])
-                    if (not uiw_uiw) then
+                    if (not COMP.get_unit(uiw_loc[1], uiw_loc[2])) then
                         unit_blocked = false
                         break
                     end
@@ -3900,48 +3899,47 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
 
         -- However, if the unit in the way is part of the move combo, it needs to move in the
         -- direction of its own goal, otherwise it might not be able to reach it later
-        local unit_in_way
-        if (unit.x ~= dst[1]) or (unit.y ~= dst[2]) then
-            unit_in_way = COMP.get_unit(dst[1], dst[2])
+        local unit_in_way_proxy
+        if (unit_proxy.x ~= dst[1]) or (unit_proxy.y ~= dst[2]) then
+            unit_in_way_proxy = COMP.get_unit(dst[1], dst[2])
         end
 
-        if unit_in_way then
-            if unit_in_way.canrecruit then
+        if unit_in_way_proxy then
+            if unit_in_way_proxy.canrecruit then
                 local leader_objectives = fred_data.ops_data.objectives.leader
-                dx = leader_objectives.final[1] - unit_in_way.x
-                dy = leader_objectives.final[2] - unit_in_way.y
+                dx = leader_objectives.final[1] - unit_in_way_proxy.x
+                dy = leader_objectives.final[2] - unit_in_way_proxy.y
                 if (dx == 0) and (dy == 0) then -- this can happen if leader is on leader goal hex
                     -- In this case, as a last resort, move away from the enemy leader
-                    dx = unit_in_way.x - fred_data.move_data.enemy_leader_x
-                    dy = unit_in_way.y - fred_data.move_data.enemy_leader_y
+                    dx = unit_in_way_proxy.x - fred_data.move_data.enemy_leader_x
+                    dy = unit_in_way_proxy.y - fred_data.move_data.enemy_leader_y
                 end
                 local r = math.sqrt(dx * dx + dy * dy)
                 if (r ~= 0) then dx, dy = dx / r, dy / r end
             else
                 for i_u,u in ipairs(fred_data.zone_action.units) do
-                    if (u.id == unit_in_way.id) then
-                        --std_print('  unit is part of the combo', unit_in_way.id, unit_in_way.x, unit_in_way.y)
+                    if (u.id == unit_in_way_proxy.id) then
+                        --std_print('  unit is part of the combo', unit_in_way_proxy.id, unit_in_way_proxy.x, unit_in_way_proxy.y)
 
                         local uiw_dst = fred_data.zone_action.dsts[i_u]
-                        local path, _ = wesnoth.find_path(unit_in_way, uiw_dst[1], uiw_dst[2])
+                        local path, _ = wesnoth.find_path(unit_in_way_proxy, uiw_dst[1], uiw_dst[2])
 
                         -- If we can find an unoccupied hex along the path, move the
-                        -- unit_in_way there, in order to maximize the chances of it
+                        -- unit_in_way_proxy there, in order to maximize the chances of it
                         -- making it to its goal. However, do not move all the way and
                         -- do partial move only, in case something changes as result of
                         -- the original unit's action.
                         local moveto
                         for i = 2,#path do
-                            local uiw_uiw = COMP.get_unit(path[i][1], path[i][2])
-                            if (not uiw_uiw) then
+                            if (not COMP.get_unit(path[i][1], path[i][2])) then
                                 moveto = { path[i][1], path[i][2] }
                                 break
                             end
                         end
 
                         if moveto then
-                            --std_print('    ' .. unit_in_way.id .. ': moving out of way to:', moveto[1], moveto[2])
-                            AH.checked_move(ai, unit_in_way, moveto[1], moveto[2])
+                            --std_print('    ' .. unit_in_way_proxy.id .. ': moving out of way to:', moveto[1], moveto[2])
+                            AH.checked_move(ai, unit_in_way_proxy, moveto[1], moveto[2])
 
                             -- If this got to its final destination, attack with this unit first, otherwise it might be stranded
                             -- TODO: only if other units have chance to kill?
@@ -3949,13 +3947,13 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
                                 --std_print('      going to final destination')
                                 dst = uiw_dst
                                 next_unit_ind = i_u
-                                unit = unit_in_way
+                                unit_proxy = unit_in_way_proxy
                             end
                         else
                             if (not path) or (not path[1]) or (not path[2]) then
                                 std_print('Trying to identify path table error !!!!!!!!')
-                                std_print(i_u, u.id, unit_in_way.id)
-                                std_print(unit.id, unit.x, unit.y)
+                                std_print(i_u, u.id, unit_in_way_proxy.id)
+                                std_print(unit_proxy.id, unit_proxy.x, unit_proxy.y)
                                 DBG.dbms(fred_data.zone_action, -1)
                                 DBG.dbms(dst, -1)
                                 DBG.dbms(path, -1)
@@ -3971,18 +3969,18 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
             end
         end
 
-        if unit_in_way and (dx == 0) and (dy == 0) then
-            error(unit_in_way.id .. " to move out of way with dx = dy = 0")
+        if unit_in_way_proxy and (dx == 0) and (dy == 0) then
+            error(unit_in_way_proxy.id .. " to move out of way with dx = dy = 0")
         end
 
         if fred_data.zone_action.partial_move then
-            AHL.movepartial_outofway_stopunit(ai, unit, dst[1], dst[2], { dx = dx, dy = dy })
-            if (unit.moves == 0) then
-                fred_data.ops_data.used_units[unit.id] = fred_data.zone_action.zone_id
+            AHL.movepartial_outofway_stopunit(ai, unit_proxy, dst[1], dst[2], { dx = dx, dy = dy })
+            if (unit_proxy.moves == 0) then
+                fred_data.ops_data.used_units[unit_proxy.id] = fred_data.zone_action.zone_id
             end
         else
-            AH.movefull_outofway_stopunit(ai, unit, dst[1], dst[2], { dx = dx, dy = dy })
-            fred_data.ops_data.used_units[unit.id] = fred_data.zone_action.zone_id
+            AH.movefull_outofway_stopunit(ai, unit_proxy, dst[1], dst[2], { dx = dx, dy = dy })
+            fred_data.ops_data.used_units[unit_proxy.id] = fred_data.zone_action.zone_id
         end
         gamestate_changed = true
 
@@ -3992,11 +3990,11 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
         table.remove(fred_data.zone_action.dsts, next_unit_ind)
 
         -- Then do the attack, if there is one to do
-        if enemy_proxy and (wesnoth.map.distance_between(unit.x, unit.y, enemy_proxy.x, enemy_proxy.y) == 1) then
+        if enemy_proxy and (wesnoth.map.distance_between(unit_proxy.x, unit_proxy.y, enemy_proxy.x, enemy_proxy.y) == 1) then
             local weapon = fred_data.zone_action.weapons[next_unit_ind]
             table.remove(fred_data.zone_action.weapons, next_unit_ind)
 
-            AH.checked_attack(ai, unit, enemy_proxy, weapon)
+            AH.checked_attack(ai, unit_proxy, enemy_proxy, weapon)
 
             -- If enemy got killed, we need to stop here
             if (not enemy_proxy.valid) then
@@ -4010,7 +4008,7 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
             end
         end
 
-        if (not unit) or (not unit.valid) then
+        if (not unit_proxy) or (not unit_proxy.valid) then
             fred_data.zone_action.units = nil
         end
     end

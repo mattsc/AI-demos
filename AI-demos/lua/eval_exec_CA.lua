@@ -163,9 +163,9 @@ return {
     units_info = function(stdout_only)
         -- Shows some information for all units. Specifically, this links the
         -- unit id to its position, name etc. for easier identification
-        local tmp_units = COMP.get_units()
+        local tmp_unit_proxies = COMP.get_units()
         local str = ''
-        for _,u in ipairs(tmp_units) do
+        for _,u in ipairs(tmp_unit_proxies) do
             str = str .. string.format('%2d,%2d    HP: %3d/%3d    XP: %3d/%3d        %s      (%s)\n',
             u.x, u.y,
             u.hitpoints, u.max_hitpoints, u.experience, u.max_experience,
