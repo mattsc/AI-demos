@@ -15,11 +15,11 @@ function ca_reset_vars_turn:execution(cfg, data, ai_debug)
     data.turn_start_time = wesnoth.get_time_stamp() / 1000.
 
     data.recruit = {}
-    wesnoth.require("~add-ons/AI-demos/lua/generic_recruit_engine.lua").init(ai, data.recruit, params)
     local params = {
         high_level_fraction = 0,
         score_function = function () return 181000 end
     }
+    wesnoth.require("~add-ons/AI-demos/lua/generic_recruit_engine.lua").init(ai, data.recruit, params)
 end
 
 return ca_reset_vars_turn
