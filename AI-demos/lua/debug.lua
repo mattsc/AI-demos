@@ -7,6 +7,9 @@ local H = wesnoth.require "helper"
 local debug_cfg = {
     eval = false,
     exec = true,
+    -- Whether to display timing information (setting this to true automatically
+    -- also sets the 'eval' and 'exec' fields to true, see below):
+    timing = true,
 
     show_behavior = 1,
 
@@ -54,6 +57,12 @@ local debug_cfg = {
     reset_turn = false
 }
 
+if debug_cfg.timing then
+    debug_cfg.eval = true
+    debug_cfg.exec = true
+end
+
+local previous_time
 
 local debug_utils = {}
 
@@ -93,6 +102,32 @@ function debug_utils.print_ts_delta(start_time, ...)
     return ts, delta
 end
 
+function debug_utils.print_delta_first(start_time, ...)
+    -- @start_time: time stamp in seconds as returned by wesnoth.get_time_stamp / 1000.
+    -- Notes: start_time can be negative, in which case no delta-T is displayed. This
+    --   is used for the first call from a given CA (file), as previous_time is
+    --   either not set, or not set correctly yet.
+
+    -- Similar to print_ts_delta(), but displays time information at the beginning
+    -- of the line. Also, the delta-T displayed is with respect to the previous
+    -- call of this function, rather than with respect to start_time
+
+    local ts = wesnoth.get_time_stamp() / 1000.
+    local delta_start = ts - math.abs(start_time)
+
+    local arg = { ... }
+    if (start_time > 0) then
+        local delta_previous = (ts - (previous_time or start_time)) * 1000
+        table.insert(arg, 1, string.format('%.3f s: %6.1f ms ', delta_start, delta_previous))
+    else
+        table.insert(arg, 1, string.format('%.3f s:           ', delta_start))
+    end
+
+    std_print(table.unpack(arg))
+
+    previous_time = ts -- this is available via closure above
+end
+
 function debug_utils.print_debug(debug_type, ...)
     if debug_utils.show_debug(debug_type) then std_print(...) end
 end
@@ -100,7 +135,11 @@ end
 function debug_utils.print_debug_time(debug_type, start_time, ...)
     if debug_utils.show_debug(debug_type) then
         if start_time then
-            debug_utils.print_ts_delta(start_time, ...)
+            if debug_cfg.timing then
+                debug_utils.print_delta_first(start_time, ...)
+            else
+                debug_utils.print_ts_delta(start_time, ...)
+            end
         else
             std_print(...)
         end
