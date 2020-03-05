@@ -9,7 +9,7 @@ local debug_cfg = {
     exec = true,
     -- Whether to display timing information (setting this to true automatically
     -- also sets the 'eval' and 'exec' fields to true, see below):
-    timing = true,
+    timing = false,
 
     show_behavior = 1,
 
@@ -92,7 +92,7 @@ function debug_utils.print_ts_delta(start_time, ...)
     -- Returns time stamp as well as time elapsed
 
     local ts = wesnoth.get_time_stamp() / 1000.
-    local delta = ts - start_time
+    local delta = ts - math.abs(start_time)
 
     local arg = { ... }
     arg[#arg+1] = string.format('[ t = %.3f, dt = %.3f ]', ts, delta)
