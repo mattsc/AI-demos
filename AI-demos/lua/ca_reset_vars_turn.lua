@@ -1,6 +1,8 @@
 ----- CA: Reset variables at beginning of turn (max_score: 999998) -----
 -- This will be blacklisted after first execution each turn
 
+local DBG = wesnoth.require "~/add-ons/AI-demos/lua/debug.lua"
+
 local ca_reset_vars_turn = {}
 
 function ca_reset_vars_turn:evaluation()
@@ -8,11 +10,10 @@ function ca_reset_vars_turn:evaluation()
 end
 
 function ca_reset_vars_turn:execution(cfg, data, ai_debug)
-    local ai = ai_debug or ai
-
-    --std_print(' Resetting variables at beginning of Turn ' .. wesnoth.current.turn)
-
     data.turn_start_time = wesnoth.get_time_stamp() / 1000.
+    DBG.print_debug_time('timing', - data.turn_start_time, 'start reset_vars_turn CA')
+
+    local ai = ai_debug or ai
 
     data.recruit = {}
     local params = {
@@ -20,6 +21,8 @@ function ca_reset_vars_turn:execution(cfg, data, ai_debug)
         score_function = function () return 181000 end
     }
     wesnoth.require("~add-ons/AI-demos/lua/generic_recruit_engine.lua").init(ai, data.recruit, params)
+
+    DBG.print_debug_time('timing', data.turn_start_time, 'end reset_vars_turn CA')
 end
 
 return ca_reset_vars_turn

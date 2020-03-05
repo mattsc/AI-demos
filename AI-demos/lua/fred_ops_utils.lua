@@ -534,6 +534,8 @@ end
 
 
 function fred_ops_utils.set_ops_data(fred_data)
+    DBG.print_debug_time('timing', - fred_data.turn_start_time, '  start set_ops_data()')
+
     local move_data = fred_data.move_data
     local raw_cfgs = FMC.get_raw_cfgs()
     local side_cfgs = FMC.get_side_cfgs()
@@ -816,6 +818,8 @@ function fred_ops_utils.set_ops_data(fred_data)
     --   - because no two units on the map can have the same underlying_id
     --   - so that we do not accidentally overwrite a unit
     --   - so that we don't accidentally apply leadership, backstab or the like
+    DBG.print_debug_time('timing', fred_data.turn_start_time, '    find unit attacks')
+
     local extracted_units = {}
     for id,loc in pairs(move_data.units) do
         local unit_proxy = COMP.get_unit(loc[1], loc[2])
@@ -2415,12 +2419,12 @@ function fred_ops_utils.set_ops_data(fred_data)
     else
         fred_ops_utils.behavior_output(false, zone_maps, ops_data)
     end
+
+    DBG.print_debug_time('timing', fred_data.turn_start_time, '  end set_ops_data()')
 end
 
 
 function fred_ops_utils.get_action_cfgs(fred_data)
-    local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
-
     local move_data = fred_data.move_data
     local ops_data = fred_data.ops_data
     --DBG.dbms(ops_data, false, 'ops_data')

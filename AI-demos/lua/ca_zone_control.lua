@@ -3513,12 +3513,12 @@ end
 local ca_zone_control = {}
 
 function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
+    DBG.print_debug_time('eval', - fred_data.turn_start_time, 'start evaluating zone_control CA:')
+
     local ai = ai_debug or ai
 
     local score_zone_control = 350000
-    local start_time, ca_name = wesnoth.get_time_stamp() / 1000., 'zone_control'
 
-    DBG.print_debug_time('eval', fred_data.turn_start_time, 'Evaluating zone_control CA:')
 
     -- This forces the turn data to be reset each call (use with care!)
     if DBG.show_debug('reset_turn') then
@@ -3533,6 +3533,8 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
         FOU.set_turn_data(fred_data)
         fred_data.ops_data = {}
     end
+
+    DBG.print_debug_time('timing', fred_data.turn_start_time, '  call set_ops_data()')
     FOU.set_ops_data(fred_data)
 
     FOU.get_action_cfgs(fred_data)
@@ -3551,6 +3553,7 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
                 fred_data.zone_action = previous_action
                 DBG.print_debug_time('eval', fred_data.turn_start_time, '      current action has lower score (' .. string.format('%.2f', cfg.rating) .. ') -> executing previous action')
                 DBG.print_debug_time('eval', fred_data.turn_start_time, '--> returning action ' .. previous_action.action_str .. ' (' .. previous_action.score .. ')')
+                DBG.print_debug_time('timing', fred_data.turn_start_time, 'end evaluation zone_control CA')
                 return score_zone_control, previous_action
             end
         end
@@ -3581,6 +3584,7 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
                 fred_data.zone_action = action
 
                 DBG.print_debug_time('eval', fred_data.turn_start_time, '--> returning action ' .. action.action_str .. ' (' .. string.format('%.2f', cfg.rating) .. ')')
+                DBG.print_debug_time('timing', fred_data.turn_start_time, 'end evaluation zone_control CA')
                 return score_zone_control, action
             end
         else
@@ -3646,7 +3650,8 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
                 else
                     fred_data.zone_action = zone_action
 
-                    DBG.print_debug_time('eval', fred_data.turn_start_time, '--> returning action ' .. zone_action.action_str .. ' (' .. cfg.rating .. ')')
+                    DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> returning action ' .. zone_action.action_str .. ' (' .. cfg.rating .. ')')
+                    DBG.print_debug_time('timing', fred_data.turn_start_time, 'end evaluation zone_control CA')
                     return score_zone_control, zone_action
                 end
             end
@@ -3656,11 +3661,13 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
     if previous_action then
         DBG.print_debug_time('eval', fred_data.turn_start_time, '  + previous action left at end of loop (' .. string.format('%.2f', previous_action.score) .. ')')
         fred_data.zone_action = previous_action
-        DBG.print_debug_time('eval', fred_data.turn_start_time, '--> returning action ' .. previous_action.action_str .. ' (' .. previous_action.score .. ')')
+        DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> returning action ' .. previous_action.action_str .. ' (' .. previous_action.score .. ')')
+        DBG.print_debug_time('timing', fred_data.turn_start_time, 'end evaluation zone_control CA')
         return score_zone_control, previous_action
     end
 
-    DBG.print_debug_time('eval', fred_data.turn_start_time, '--> done with all cfgs: no action found')
+    DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> done with all cfgs: no action found')
+    DBG.print_debug_time('timing', fred_data.turn_start_time, 'end evaluation zone_control CA')
 
     return 0
 end

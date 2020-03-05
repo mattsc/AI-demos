@@ -5,7 +5,7 @@
 -- https://github.com/mattsc/Wesnoth-AI-Demos/wiki/CA-debugging
 
 local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
---local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
+local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local function is_CA_debugging_mode()
     -- Edit manually to indicate whether you want CA debugging mode enabled
@@ -142,10 +142,11 @@ return {
     eval_exec_CA = function(exec_also, hotkey)
         if is_wrong_side() then return end
 
+        std_print('\n********** Manual command : ' .. hotkey .. ' **********\n')
+
         local self = dummy_self
         local ai, ca = init_CA(self)
 
-        std_print('\n********** Manual command : ' .. hotkey .. ' **********\n')
         local score, action = ca:evaluation(nil, self, ai)
         local action_str = ''
         if action then
@@ -203,12 +204,14 @@ return {
             if (score > 0) then
                 local action_str = action.zone_id .. '  ' .. action.action_str .. ':  '
 
-                wesnoth.wml_actions.message {
-                    speaker = 'narrator',
-                    caption = "Executing " .. ca_name .. " CA",
-                    image = 'wesnoth-icon.png',
-                    message = "Score for " .. ca_name .. '  ' .. action_str .. score
-                }
+                if (not DBG.show_debug('timing')) then
+                    wesnoth.wml_actions.message {
+                        speaker = 'narrator',
+                        caption = "Executing " .. ca_name .. " CA",
+                        image = 'wesnoth-icon.png',
+                        message = "Score for " .. ca_name .. '  ' .. action_str .. score
+                    }
+                end
 
                 -- Need to evaluate the CA again first, so that 'self.data' gets set up
                 wml.variables.debug_CA_name = ca_name
