@@ -3515,16 +3515,12 @@ local ca_zone_control = {}
 function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
     DBG.print_debug_time('eval', - fred_data.turn_start_time, 'start evaluating zone_control CA:')
 
-    local ai = ai_debug or ai
-
     local score_zone_control = 350000
-
 
     -- This forces the turn data to be reset each call (use with care!)
     if DBG.show_debug('reset_turn') then
         fred_data.turn_data = nil
     end
-
 
     if (not fred_data.turn_data)
         or (fred_data.turn_data.turn_number ~= wesnoth.current.turn)
@@ -3537,6 +3533,7 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
     DBG.print_debug_time('timing', fred_data.turn_start_time, '  call set_ops_data()')
     FOU.set_ops_data(fred_data)
 
+    DBG.print_debug_time('timing', fred_data.turn_start_time, '  call get_action_cfgs()')
     FOU.get_action_cfgs(fred_data)
     --DBG.dbms(fred_data.zone_cfgs, false, 'fred_data.zone_cfgs')
 
@@ -3596,35 +3593,7 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
                 table.insert(extracted_units, unit_proxy)  -- Not a proxy unit any more at this point
             end
 
-            -- Put the prerecruited units onto the map
-            --DBG.dbms(fred_data.ops_data.objectives.leader.prerecruit)
-            --[[ Do not do this, as hexes should be available with penalty
-            -- TODO: delete code later, once we know whether this works
-            if fred_data.ops_data.objectives.leader.prerecruit then
-                for _,recruit in ipairs(fred_data.ops_data.objectives.leader.prerecruit.units) do
-                    --std_print('Putting pre-recruit onto map: ' .. recruit.recruit_type, recruit.recruit_hex[1] .. ',' .. recruit.recruit_hex[2])
-                    COMP.put_unit({
-                        type = recruit.recruit_type,
-                        random_traits = false,
-                        name = "X",
-                        random_gender = false,
-                        moves = 0
-                    },
-                    recruit.recruit_hex[1], recruit.recruit_hex[2])
-                end
-            end
-            --]]
-
             local zone_action = get_zone_action(cfg, fred_data)
-
-            --[[
-            if fred_data.ops_data.objectives.leader.prerecruit then
-                for _,recruit in ipairs(fred_data.ops_data.objectives.leader.prerecruit.units) do
-                    --std_print('Removing pre-recruit onto map: ' .. recruit.recruit_type, recruit.recruit_hex[1] .. ',' .. recruit.recruit_hex[2])
-                    COMP.erase_unit(recruit.recruit_hex[1], recruit.recruit_hex[2])
-                end
-            end
-            --]]
 
             for _,extracted_unit in ipairs(extracted_units) do COMP.put_unit(extracted_unit) end
 
