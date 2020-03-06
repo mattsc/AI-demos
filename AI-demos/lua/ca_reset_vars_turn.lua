@@ -11,7 +11,8 @@ end
 
 function ca_reset_vars_turn:execution(cfg, data, ai_debug)
     data.turn_start_time = wesnoth.get_time_stamp() / 1000.
-    DBG.print_debug_time('timing', - data.turn_start_time, 'start reset_vars_turn CA')
+    data.previous_time = nil -- This is only used for timing debug output
+    DBG.print_timing(data, 0, '-- start reset_vars_turn CA')
 
     local ai = ai_debug or ai
 
@@ -22,7 +23,7 @@ function ca_reset_vars_turn:execution(cfg, data, ai_debug)
     }
     wesnoth.require("~add-ons/AI-demos/lua/generic_recruit_engine.lua").init(ai, data.recruit, params)
 
-    DBG.print_debug_time('timing', data.turn_start_time, 'end reset_vars_turn CA')
+    DBG.print_timing(data, 0, '-- end reset_vars_turn CA')
 end
 
 return ca_reset_vars_turn
