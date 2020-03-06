@@ -987,14 +987,14 @@ function fred_utils.single_unit_info(unit_proxy)
     -- case not all fields will be populated, of course, and anything depending on
     -- traits and the like will not necessarily be correct for the individual unit
     --
-    -- Important: this is slow, so it should only be called once at the  beginning
+    -- Important: this is slow, so it should only be called once at the beginning
     -- of each move, but it does need to be redone after each move, as it contains
-    -- information like HP and XP (or the unit might have level up or been changed
+    -- information like HP and XP (or the unit might have leveled up or been changed
     -- in an event).
     --
     -- Note: unit location information is NOT included
-    -- See above for the format and type of information included.
 
+    -- This is by far the most expensive step in this function, but it cannot be skipped yet
     local unit_cfg = unit_proxy.__cfg
 
     local single_unit_info = {
@@ -1092,13 +1092,11 @@ function fred_utils.single_unit_info(unit_proxy)
             single_unit_info.status[k] = true
         end
 
-
         single_unit_info.traits = {}
         local mods = wml.get_child(unit_cfg, "modifications")
         for trait in wml.child_range(mods, 'trait') do
             single_unit_info.traits[trait.id] = true
         end
-
 
         -- Now we do this again, using the correct value for the fearless trait
         single_unit_info.tod_mod = fred_utils.get_unit_time_of_day_bonus(single_unit_info.alignment, single_unit_info.traits.fearless, wesnoth.get_time_of_day().lawful_bonus)
