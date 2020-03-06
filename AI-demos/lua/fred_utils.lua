@@ -1131,14 +1131,6 @@ function fred_utils.single_unit_info(unit_proxy)
         --std_print('good_terrain_hit_chance', good_terrain_hit_chance)
 
         single_unit_info.good_terrain_hit_chance = good_terrain_hit_chance / 100.
-
-
-        -- Resistances to the 6 default attack types
-        local attack_types = { "arcane", "blade", "cold", "fire", "impact", "pierce" }
-        single_unit_info.resistances = {}
-        for _,attack_type in ipairs(attack_types) do
-            single_unit_info.resistances[attack_type] = COMP.unit_resistance(unit_proxy, attack_type) / 100.
-        end
     end
 
     return single_unit_info
