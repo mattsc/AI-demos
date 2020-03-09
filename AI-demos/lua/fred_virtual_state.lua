@@ -89,7 +89,6 @@ local function adjust_move_data_tables(old_locs, new_locs, store_units_in_way, m
             move_data.my_units_MP[id] = { x2, y2 }
 
             if move_data.unit_infos[id].canrecruit then
-                move_data.leaders[wesnoth.current.side] = { x2, y2, id = id }
             end
 
             -- Note that the following might leave empty orphan table elements, but that doesn't matter

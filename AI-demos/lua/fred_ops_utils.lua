@@ -616,7 +616,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     local objectives = {
         leader = {
-            final = move_data.leaders[wesnoth.current.side],
+            final = move_data.my_leader,
             leader_threats = { significant_threat = false },
             leader_joins_action = leader_joins_action
         }
@@ -1157,7 +1157,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(units_noMP_zones, false, 'units_noMP_zones')
 
 
-    local leader = move_data.leaders[wesnoth.current.side]
+    local leader = move_data.my_leader
 
     -- Add effective reach of leader to:
     --   - reach_maps (via effective_reach_maps)
@@ -1988,7 +1988,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     --DBG.dbms(objectives.protect, false, 'objectives.protect')
 
     -- Set original threat status
-    local old_locs = { { move_data.leader_x, move_data.leader_y } }
+    local old_locs = { move_data.my_leader }
     local new_locs = { objectives.leader.final }
     FVS.set_virtual_state(old_locs, new_locs, place_holders, true, move_data)
     local status = FS.check_exposures(objectives, nil, nil, nil, fred_data)
@@ -2483,7 +2483,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
     -- We add the leader as a potential attacker to all zones
     -- effective_reach_maps will be used to assess what he can do
     -- Except if leader_joins_action is set, in which case the leader is assigned to a zone already
-    local leader = move_data.leaders[wesnoth.current.side]
+    local leader = move_data.my_leader
     --std_print('leader.id', leader.id)
     if ((not ops_data.objectives.leader.leader_joins_action) and (move_data.unit_copies[leader.id].attacks_left > 0)) then
         local is_attacker = true

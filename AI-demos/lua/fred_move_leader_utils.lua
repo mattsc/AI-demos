@@ -252,7 +252,7 @@ local function get_best_village_keep(leader, recruit_first, effective_reach_map,
         local rating = rating + unit_in_way_rating
 
         -- Minor rating is distance from enemy leader (the closer the better)
-        local eld = wesnoth.map.distance_between(x, y, fred_data.move_data.enemy_leader_x, fred_data.move_data.enemy_leader_y)
+        local eld = wesnoth.map.distance_between(x, y, fred_data.move_data.enemy_leader[1], fred_data.move_data.enemy_leader[2])
         --std_print('  eld', eld)
         rating = rating + eld * leader_eld_factor
 
@@ -289,7 +289,7 @@ local fred_move_leader_utils = {}
 
 function fred_move_leader_utils.leader_objectives(fred_data)
     local move_data = fred_data.move_data
-    local leader = move_data.leaders[wesnoth.current.side]
+    local leader = move_data.my_leader
 
     local do_recruit, prerecruit = false
     -- TODO: for now we only check if recruiting will be done for any one keep hex.
@@ -352,7 +352,7 @@ end
 function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cfgs, fred_data)
     local move_data = fred_data.move_data
 
-    local leader = move_data.leaders[wesnoth.current.side]
+    local leader = move_data.my_leader
     local leader_info = move_data.unit_infos[leader.id]
     local leader_pos = leader_objectives.final
 

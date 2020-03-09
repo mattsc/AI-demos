@@ -119,7 +119,7 @@ end
 
 function fred_hold_utils.check_hold_protection(combo, protection, cfg, fred_data)
     local move_data = fred_data.move_data
-    local leader_id = move_data.leaders[wesnoth.current.side].id
+    local leader_id = move_data.my_leader.id
     local leader_value = FU.unit_value(move_data.unit_infos[leader_id])
 
     local leader_protected, leader_protect_mult = false, 1
@@ -127,7 +127,7 @@ function fred_hold_utils.check_hold_protection(combo, protection, cfg, fred_data
     -- If the leader is not part of the holding, we add him
     local old_locs, new_locs = {}, {}
     local combo_uses_leader = false
-    leader_src = move_data.leader_x * 1000 + move_data.leader_y
+    leader_src = move_data.my_leader[1] * 1000 + move_data.my_leader[2]
     for src,_ in pairs(combo) do
         --std_print(src, leader_src)
         if (src == leader_src) then
@@ -137,7 +137,7 @@ function fred_hold_utils.check_hold_protection(combo, protection, cfg, fred_data
     end
     --std_print('combo_uses_leader', combo_uses_leader)
     if (not combo_uses_leader) then
-        old_locs = { { move_data.leader_x, move_data.leader_y } }
+        old_locs = { move_data.my_leader }
         new_locs = { protection.overall.leader_goal }
     end
 
@@ -364,7 +364,7 @@ function fred_hold_utils.unit_rating_maps_to_dstsrc(unit_rating_maps, key, move_
             for i = 1,count do
                 FGM.set_value(tmp_map, sorted_ratings[unit.id][i].x, sorted_ratings[unit.id][i].y, 'rating', sorted_ratings[unit.id][i].protect_rating or sorted_ratings[unit.id][i].vuln_rating)
             end
-            DBG.show_fgumap_with_message(tmp_map, 'rating', 'Best rating', move_data.unit_copies[unit.id])
+            DBG.show_fgumap_with_message(tmp_map, 'rating', 'Best rating', move_data.unit_infos[unit.id])
         end
     end
 
@@ -404,7 +404,7 @@ end
 
 function fred_hold_utils.get_base_rating(combo, ratings, weights, key, penalty_infos, adjacent_village_map, fred_data)
     local move_data = fred_data.move_data
-    local leader_id = move_data.leaders[wesnoth.current.side].id
+    local leader_id = move_data.my_leader.id
     local leader_info = move_data.unit_infos[leader_id]
     local leader_value = FU.unit_value(move_data.unit_infos[leader_id])
     local interactions = fred_data.ops_data.interaction_matrix.penalties['hold']
@@ -498,7 +498,7 @@ end
 
 function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_map, between_map, fred_data, cfg)
     local move_data = fred_data.move_data
-    local leader_id = move_data.leaders[wesnoth.current.side].id
+    local leader_id = move_data.my_leader.id
     local leader_info = move_data.unit_infos[leader_id]
     local leader_value = FU.unit_value(move_data.unit_infos[leader_id])
 

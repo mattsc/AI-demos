@@ -105,7 +105,7 @@ function fred_status.check_exposures(objectives, combo, virtual_reach_maps, cfg,
 
     local leader_exposure, enemy_power, is_protected, is_significant_threat = 0, 0, true, false
     if (not exclude_leader) then
-        local leader = move_data.leaders[wesnoth.current.side]
+        local leader = move_data.my_leader
         local leader_target = {}
         leader_target[leader.id] = objectives.leader.final
         local counter_outcomes, _, all_attackers = FAU.calc_counter_attack(

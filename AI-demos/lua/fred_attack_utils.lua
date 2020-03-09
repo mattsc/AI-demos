@@ -517,18 +517,16 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
 
     -- Get a very small bonus for hexes in between defender and AI leader
     -- 'relative_distances' is larger for attack hexes closer to the side leader (possible values: -1 .. 1)
-    if move_data.leaders[attacker_infos[1].side] then
-        local rel_dist_rating = 0.
-        for _,dst in ipairs(dsts) do
-            local relative_distance =
-                wesnoth.map.distance_between(defender_x, defender_y, move_data.leader_x, move_data.leader_y)
-                - wesnoth.map.distance_between(dst[1], dst[2], move_data.leader_x, move_data.leader_y)
-            rel_dist_rating = rel_dist_rating + relative_distance
-        end
-        rel_dist_rating = rel_dist_rating / #dsts * distance_leader_weight
-
-        extra_rating = extra_rating + rel_dist_rating
+    local rel_dist_rating = 0.
+    for _,dst in ipairs(dsts) do
+        local relative_distance =
+            wesnoth.map.distance_between(defender_x, defender_y, move_data.my_leader[1], move_data.my_leader[2])
+            - wesnoth.map.distance_between(dst[1], dst[2], move_data.my_leader[1], move_data.my_leader[2])
+        rel_dist_rating = rel_dist_rating + relative_distance
     end
+    rel_dist_rating = rel_dist_rating / #dsts * distance_leader_weight
+
+    extra_rating = extra_rating + rel_dist_rating
 
     -- Add a very small penalty for attack hexes occupied by other own units that can move out of the way
     -- Note: it must be checked previously that the unit on the hex can move away,
@@ -809,7 +807,7 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
                 move_cache[cache_att_id][cache_def_id] = {}
             end
 
-            --std_print(' Finding highest-damage weapons: ', attacker_info.id, defender_proxy.id)
+            --std_print(' Finding highest-damage weapons: ', attacker_info.id, defender_info.id)
 
             local max_att_damage, max_def_damage = - math.huge, - math.huge
 
@@ -863,7 +861,7 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
         else
             att_weapon_i = move_cache.best_weapons[attacker_info.id][defender_info.id].att_weapon_i
             def_weapon_i = move_cache.best_weapons[attacker_info.id][defender_info.id].def_weapon_i
-            --std_print(' Reusing weapons: ', cache_att_id, defender_proxy.id, att_weapon_i, def_weapon_i)
+            --std_print(' Reusing weapons: ', cache_att_id, defender_info.id, att_weapon_i, def_weapon_i)
         end
 
         tmp_att_stat, tmp_def_stat, att_weapon = wesnoth.simulate_combat(attacker_copy, att_weapon_i, defender_proxy, def_weapon_i)
@@ -1030,7 +1028,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
                 { tmp_att_outcomes[i] }, tmp_def_outcomes[i], cfg, move_data
             )
 
-        --std_print(attacker_copy.id .. ' --> ' .. defender_proxy.id)
+        --std_print(attacker_copy.id .. ' --> ' .. defender_info.id)
         --std_print('  CTD att, def:', tmp_att_outcomes[i].hp_chance[0], tmp_def_outcomes[i].hp_chance[0])
         --DBG.dbms(rating_table, false, 'rating_table')
 

@@ -533,7 +533,7 @@ function utility_functions.action_penalty(actions, reserved_actions, interaction
 
                     -- If this is the side leader and it's on a keep, it does not
                     -- count toward keep or castle count
-                    if (action.id ~= move_data.leaders[wesnoth.current.side].id)
+                    if (action.id ~= move_data.my_leader.id)
                         or (not FGM.get_value(move_data.reachable_castles_map[wesnoth.current.side], x, y, 'keep'))
                     then
                         if x and (FGM.get_value(move_data.reachable_castles_map[wesnoth.current.side], x, y, 'castle')) then

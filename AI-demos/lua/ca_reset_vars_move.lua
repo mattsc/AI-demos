@@ -9,7 +9,7 @@ local ca_reset_vars_move = {}
 function ca_reset_vars_move:evaluation(cfg, data)
     DBG.print_timing(data, 0, '-- start reset_vars_move CA')
 
-    data.move_data = FGU.get_move_data()
+    FGU.get_move_data(data)
     data.move_cache = {}
 
     DBG.print_timing(data, 0, '-- end reset_vars_move CA')

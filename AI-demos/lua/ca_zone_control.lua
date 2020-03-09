@@ -84,7 +84,7 @@ local function get_attack_action(zone_cfg, fred_data)
     local reserved_actions = fred_data.ops_data.reserved_actions
     local penalty_infos = { src = {}, dst = {} }
 
-    local leader_id = move_data.leaders[wesnoth.current.side].id
+    local leader_id = move_data.my_leader.id
 
     local combo_ratings = {}
     for target_id, target_xy in pairs(targets) do
@@ -660,7 +660,7 @@ local function get_attack_action(zone_cfg, fred_data)
                     end
                 end
                 if (not exclude_leader) then
-                    table.insert(old_locs, move_data.leaders[wesnoth.current.side])
+                    table.insert(old_locs, move_data.my_leader)
                     table.insert(new_locs, leader_goal)
                 end
             end
@@ -1757,10 +1757,6 @@ local function get_hold_action(zone_cfg, fred_data)
     end
     --DBG.dbms(enemy_weights, false, 'enemy_weights')
 
-    -- Eventual TODO: this contains both the leader hex and id;
-    --   Eventually do this consistently as for other units, by changing one or the other
-    local leader = move_data.leaders[wesnoth.current.side]
-
     -- protect_locs and assigned_enemies are only used to calculate between_map
     -- protect_locs being set also serves as flag whether a protect hold is desired
     -- If leader is to be protected we use leader_goal and castle hexes for between_map
@@ -2669,11 +2665,10 @@ local function get_advance_action(zone_cfg, fred_data)
     -- Maps of hexes to be avoided for each unit
     -- Currently this is only the final leader position
     local avoid_maps = {}
-    local leader = move_data.leaders[wesnoth.current.side]
     local leader_goal = fred_data.ops_data.objectives.leader.final
     for id,_ in pairs(advancers) do
         avoid_maps[id] = {}
-        if (id ~= leader.id) then
+        if (id ~= move_data.my_leader.id) then
             FGM.set_value(avoid_maps[id], leader_goal[1], leader_goal[2], 'avoid', true)
         end
     end
@@ -3198,13 +3193,12 @@ local function get_retreat_action(zone_cfg, fred_data)
 
     local move_data = fred_data.move_data
     local leader_objectives = fred_data.ops_data.objectives.leader
-    local leader = move_data.leaders[wesnoth.current.side]
     --DBG.dbms(leader_objectives, false, 'leader_objectives')
 
     if move_data.my_units_MP[leader.id] then
         if leader_objectives.village then
             local action = {
-                units = { leader },
+                units = { move_data.my_leader },
                 dsts = { { leader_objectives.village[1], leader_objectives.village[2] } },
                 action_str = zone_cfg.action_str .. ' (move leader to village)'
             }
@@ -3217,7 +3211,7 @@ local function get_retreat_action(zone_cfg, fred_data)
         -- recruiting is done as part of the recruitment action
         if leader_objectives.keep then
             local action = {
-                units = { leader },
+                units = { move_data.my_leader },
                 dsts = { { leader_objectives.keep[1], leader_objectives.keep[2] } },
                 action_str = zone_cfg.action_str .. ' (move leader to keep)'
             }
@@ -3230,7 +3224,7 @@ local function get_retreat_action(zone_cfg, fred_data)
 
         if leader_objectives.other then
             local action = {
-                units = { leader },
+                units = { move_data.my_leader },
                 dsts = { { leader_objectives.other[1], leader_objectives.other[2] } },
                 action_str = zone_cfg.action_str .. ' (move leader toward keep or safety)'
             }
@@ -3323,7 +3317,7 @@ function get_zone_action(cfg, fred_data)
                         attackers[id] = loc[1] * 1000 + loc[2]
                     end
                 end
-                local ids = FGM.get_value(move_data.my_attack_map[1], move_data.enemy_leader_x, move_data.enemy_leader_y, 'ids') or {}
+                local ids = FGM.get_value(move_data.my_attack_map[1], move_data.my_leader[1], move_data.my_leader[2], 'ids') or {}
                 for _,id in ipairs(ids) do
                     attackers[id] = nil
                 end
@@ -3444,7 +3438,7 @@ local function do_recruit(fred_data, ai, action)
     -- might not be able to reach its hex from the pre-evaluated keep, and because some
     -- of the pre-evaluated recruit hexes might be used in the action.
     if action then
-        local leader_id, leader_dst = move_data.leaders[wesnoth.current.side].id
+        local leader_id, leader_dst = move_data.my_leader.id
         for i_u,unit in ipairs(action.units) do
             if (unit.id == leader_id) then
                 leader_dst = action.dsts[i_u]
@@ -3472,7 +3466,7 @@ local function do_recruit(fred_data, ai, action)
     end
 
     -- Move leader to keep, if needed
-    local leader = move_data.leaders[wesnoth.current.side]
+    local leader = move_data.my_leader
     local recruit_loc = prerecruit.loc
     if (leader[1] ~= recruit_loc[1]) or (leader[2] ~= recruit_loc[2]) then
         --std_print('Need to move leader to keep first')
@@ -3486,8 +3480,7 @@ local function do_recruit(fred_data, ai, action)
        if unit_in_way_proxy then
            -- Generally, move out of way in direction of own leader
            -- TODO: change this
-           local leader_loc = move_data.leaders[wesnoth.current.side]
-           local dx, dy  = leader_loc[1] - recruit_unit.recruit_hex[1], leader_loc[2] - recruit_unit.recruit_hex[2]
+           local dx, dy  = leader[1] - recruit_unit.recruit_hex[1], leader[2] - recruit_unit.recruit_hex[2]
            local r = math.sqrt(dx * dx + dy * dy)
            if (r ~= 0) then dx, dy = dx / r, dy / r end
 
@@ -3869,7 +3862,7 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
 
 
         -- Generally, move out of way in direction of own leader
-        local leader_loc = fred_data.move_data.leaders[wesnoth.current.side]
+        local leader_loc = fred_data.move_data.my_leader
         local dx, dy  = leader_loc[1] - dst[1], leader_loc[2] - dst[2]
         local r = math.sqrt(dx * dx + dy * dy)
         if (r ~= 0) then dx, dy = dx / r, dy / r end
@@ -3888,8 +3881,8 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
                 dy = leader_objectives.final[2] - unit_in_way_proxy.y
                 if (dx == 0) and (dy == 0) then -- this can happen if leader is on leader goal hex
                     -- In this case, as a last resort, move away from the enemy leader
-                    dx = unit_in_way_proxy.x - fred_data.move_data.enemy_leader_x
-                    dy = unit_in_way_proxy.y - fred_data.move_data.enemy_leader_y
+                    dx = unit_in_way_proxy.x - leader_loc[1]
+                    dy = unit_in_way_proxy.y - leader_loc[2]
                 end
                 local r = math.sqrt(dx * dx + dy * dy)
                 if (r ~= 0) then dx, dy = dx / r, dy / r end
