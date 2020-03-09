@@ -5,87 +5,19 @@ local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
 
--- Collection of functions to get information about units and the gamestate and
--- collect them in tables for easy access. They are expensive, so this should
--- be done as infrequently as possible, but it needs to be redone after each move.
+--  Collect information about units and the gamestate and collect them in tables
+--  for easy access. This is expensive, so this should be done as infrequently as
+--  possible, but it needs to be redone after each move.
 --
--- Unlike fred_gamestate_utils_incremental.lua, these functions are called once
--- and assemble information about all units/villages at once, as likely most of
--- this information will be needed during the move evaluation, or is needed to
--- collect some of the other information anyway.
+--  TODO: this does not account for allied sides at this time
 --
--- Variable use and naming conventions:
---  - Singular vs. plural: here, a plural variable name means it is of the same form as
---    the singular variable, but one such variable exists for each unit. Indexed by id.
---    The exception are units, where even the single unit contains the id index.
---    Only the singular variable types are described here.
---    Note: in the main code, plural variables might also be indexed by number or other means
---
---  - Units:
---    - 'unit', 'enemy' etc.: identify units of form: unit = { id = { x, y } }
---    - 'unit_info': various information about a unit, for faster access than through wesnoth.*() functions
---        Note: this does NOT include the unit location
---    - 'unit_copy': private copy of a unit proxy table for when full unit information is needed.
---    - 'unit_proxy': Use of unit proxy tables should be avoided as much as possible, because they are slow to access.
---    Note: these functions cannot deal correctly with allied sides at this time
---
---  - Maps:
---  - *_map: location indexed map: map[x][y] = { key1 = value, ... }
---
----------- Part of both mapstate and move_data ----------
---
------- Unit tables ------
---
--- These are all of form { id = loc }, with loc = { x, y }, e.g:
--- units = { Orcish Assassin-785 = { [1] = 24, [2] = 7 }
---
--- units             -- all units on the map
--- my_units          -- all AI units
--- my_units_MP       -- all AI units that can move (with MP _and_ not blocked)
--- my_units_noMP     -- all AI units that cannot move (MP=0 or blocked)
--- enemies           -- all enemy units
---
---The leader table is slightly different in that it is indexed by side number and contains the id as an additional parameter
---
--- leaders = { [1] = { [1] = 19, [2] = 4, id = 'Fred' }
---
------- Unit maps ------
---
--- my_unit_map          -- all AI units
--- my_unit_map_MP       -- all AI units that can move (with MP _and_ not blocked)
--- my_unit_map_noMP     -- all AI units that cannot move (MP=0 or blocked)
--- enemy_map            -- all enemy units
---   Note: there is currently no map for all units, will be created is needed
---
------- Other maps ------
---
--- village_map[x][y] = { owner = 1 }            -- owner=0 if village is unowned
--- enemy_attack_map[x][y] = {
---              hitpoints = 88,                 -- combined hitpoints
---              Elvish Archer-11 = true,        -- ids of units that can get there
---              Elvish Avenger-13 = true,
---              units = 2                       -- number of units that can attack that hex
---          }
--- my_attack_map[x][y] = { ... }                 -- same for own units
--- enemy_turn_maps[id][x][y] = { turns = 1.2 }  -- How many turns (fraction, cost / max_moves) unit needs to get to hex
---                                              -- Out to max of additional_turns+1 turns (currently hard-coded to 2)
---                                              -- Note that this is 0 for hex the unit is on
---
----------- Separate from mapstate, but part of move_data ----------
---
--- defense_maps[id][x][y] = { defense = 0.4 }         -- defense (fraction) on the terrain; e.g. 0.4 for Grunt on flat
--- reach_maps[id][x][y] = { moves_left = 3 }          -- moves left after moving to this hex
---    - Note: unlike wesnoth.find_reach etc., this map does NOT include hexes occupied by
---      own units that cannot move out of the way
---
--- unit_copies[id] = { private copy of the proxy table  }
---
--- unit_infos[id] = { ...}   -- Easily accessible list of unit information
+-- Unit tables are of form { id = loc }, with loc = { x, y }
+-- except for leader tables, which also include the leader id
 
 local function show_timing_info(fred_data, text)
     -- Set to true or false manually, to enable timing info specifically for this
     -- function. The debug_utils timing flag still needs to be set also.
-    if true then
+    if false then
         DBG.print_timing(fred_data, 1, text)
     end
 end
@@ -145,13 +77,11 @@ function fred_gamestate_utils.get_move_data(fred_data)
         )
     end
 
-    local units = {}
-    local my_units, my_units_MP, my_units_noMP, enemies = {}, {}, {}, {}
+    local units, my_units, my_units_MP, my_units_noMP, enemies = {}, {}, {}, {}, {}
+    local unit_infos, unit_copies = {}, {}
     local unit_map, my_unit_map, my_unit_map_MP, my_unit_map_noMP, enemy_map = {}, {}, {}, {}, {}
     local my_attack_map, my_move_map = {}, {}
     local unit_attack_maps = { {}, {} }
-    local unit_infos = {}
-    local unit_copies = {}
     local reach_maps = {}
 
     local additional_turns = 1
@@ -202,7 +132,6 @@ function fred_gamestate_utils.get_move_data(fred_data)
                     n_reach_this_turn = n_reach_this_turn + 1
                 end
 
-                -- attack_range: for attack_map
                 local turns = (additional_turns + 1) - loc[3] / max_moves
                 local int_turns = math.ceil(turns)
                 if (int_turns == 0) then int_turns = 1 end
@@ -217,6 +146,7 @@ function fred_gamestate_utils.get_move_data(fred_data)
                 if (not my_move_map[int_turns][loc[1]][loc[2]].ids) then my_move_map[int_turns][loc[1]][loc[2]].ids = {} end
                 table.insert(my_move_map[int_turns][loc[1]][loc[2]].ids, id)
 
+                -- attack_range: for attack_map
                 if (not attack_range[loc[1]]) then
                     attack_range[loc[1]] = {}
                     moves_left[loc[1]] = {}
@@ -274,6 +204,8 @@ function fred_gamestate_utils.get_move_data(fred_data)
         end
     end
 
+    show_timing_info(fred_data, '  reachmaps')
+
     -- reach_maps: eliminate hexes with other own units that cannot move out of the way
     -- Also, there might be hidden enemies on the hex
     for id,reach_map in pairs(reach_maps) do
@@ -295,6 +227,8 @@ function fred_gamestate_utils.get_move_data(fred_data)
         end
     end
 
+    show_timing_info(fred_data, '  keeps and castles')
+
     -- Reachable keeps: those the leader can actually move onto (AI side only)
     -- Reachable castles: connected to reachable keeps, independent of whether the leader
     --   can get there or not, but must be available for recruiting (no enemy or noMP units on it)
@@ -310,7 +244,6 @@ function fred_gamestate_utils.get_move_data(fred_data)
             enemy_leader = leader
         end
 
-        -- TODO: This might not work on weird maps
         local leader_copy = unit_copies[leader.id]
         local old_moves = leader_copy.moves
         leader_copy.moves = leader_copy.max_moves
@@ -354,10 +287,11 @@ function fred_gamestate_utils.get_move_data(fred_data)
         end
     end
 
+    show_timing_info(fred_data, '  enemy maps')
 
     -- Get enemy attack and reach maps
     -- These are for max MP of enemy units, and after taking all AI units with MP off the map
-    local enemy_attack_map, enemy_turn_maps, trapped_enemies = {}, {}, {}
+    local enemy_attack_map, trapped_enemies = {}, {}
 
     for i = 1,additional_turns+1 do
         enemy_attack_map[i] = {}
@@ -372,8 +306,7 @@ function fred_gamestate_utils.get_move_data(fred_data)
     end
 
     for enemy_id,_ in pairs(enemies) do
-        local unit_cost = unit_copies[enemy_id].cost
-        local old_moves = unit_copies[enemy_id].moves
+        local old_moves = unit_infos[enemy_id].moves
         unit_copies[enemy_id].moves = unit_copies[enemy_id].max_moves
 
         unit_attack_maps[1][enemy_id] = {}
@@ -384,35 +317,30 @@ function fred_gamestate_utils.get_move_data(fred_data)
 
         unit_copies[enemy_id].moves = old_moves
 
-        reach_maps[enemy_id], enemy_turn_maps[enemy_id] = {}, {}
+        reach_maps[enemy_id] = {}
         local is_trapped = true
         local attack_range = {}
+        local max_moves = unit_infos[enemy_id].max_moves
         for _,loc in ipairs(reach) do
             -- reach_map:
             -- Only first-turn moves counts toward reach_maps
-            local max_moves = unit_copies[enemy_id].max_moves
             if (loc[3] >= (max_moves * additional_turns)) then
                 FGM.set_value(reach_maps[enemy_id], loc[1], loc[2], 'moves_left', loc[3] - (max_moves * additional_turns))
             end
 
-            -- We count all enemies that can not move more than 1 hex from their
-            -- current location (for whatever reason) as trapped
-
-            -- turn_map:
             local turns = (additional_turns + 1) - loc[3] / max_moves
-            FGM.set_value(enemy_turn_maps[enemy_id], loc[1], loc[2], 'turns', turns)
-
-
-            -- attack_range: for attack_map
             local int_turns = math.ceil(turns)
             if (int_turns == 0) then int_turns = 1 end
 
+            -- We count all enemies that cannot move more than 1 hex from their
+            -- current location (for whatever reason) as trapped
             if is_trapped and (int_turns == 1) then
                 if (wesnoth.map.distance_between(loc[1], loc[2], unit_copies[enemy_id].x, unit_copies[enemy_id].y) > 1) then
                     is_trapped = nil
                 end
             end
 
+            -- attack_range: for attack_map
             if (not attack_range[loc[1]]) then attack_range[loc[1]] = {} end
             if (not attack_range[loc[1]][loc[2]]) or (attack_range[loc[1]][loc[2]] > int_turns) then
                 attack_range[loc[1]][loc[2]] = int_turns
@@ -420,7 +348,6 @@ function fred_gamestate_utils.get_move_data(fred_data)
 
             for xa,ya in H.adjacent_tiles(loc[1], loc[2]) do
                 if (not attack_range[xa]) then attack_range[xa] = {} end
-
                 if (not attack_range[xa][ya]) or (attack_range[xa][ya] > int_turns) then
                     attack_range[xa][ya] = int_turns
                 end
@@ -440,8 +367,7 @@ function fred_gamestate_utils.get_move_data(fred_data)
                 table.insert(enemy_attack_map[int_turns][x][y].ids, enemy_id)
 
                 if (int_turns <= 2) then
-                    local current_power = FU.unit_current_power(unit_infos[enemy_id])
-                    FGM.set_value(unit_attack_maps[int_turns][enemy_id], x, y, 'current_power', current_power)
+                    FGM.set_value(unit_attack_maps[int_turns][enemy_id], x, y, 'current_power', FU.unit_current_power(unit_infos[enemy_id]))
                 end
             end
         end
@@ -469,6 +395,8 @@ function fred_gamestate_utils.get_move_data(fred_data)
         village_map = village_map,
 
         unit_map = unit_map,
+        unit_attack_maps = unit_attack_maps,
+
         my_unit_map = my_unit_map,
         my_unit_map_MP = my_unit_map_MP,
         my_unit_map_noMP = my_unit_map_noMP,
@@ -479,14 +407,13 @@ function fred_gamestate_utils.get_move_data(fred_data)
         enemy_attack_map = enemy_attack_map,
         trapped_enemies = trapped_enemies,
 
-        unit_attack_maps = unit_attack_maps,
-
         reach_maps = reach_maps,
         unit_copies = unit_copies,
         unit_infos = unit_infos,
         defense_maps = {}
     }
 
+    show_timing_info(fred_data, '  influence maps')
 
     local influence_maps, unit_influence_maps = FU.get_influence_maps(fred_data.move_data)
 

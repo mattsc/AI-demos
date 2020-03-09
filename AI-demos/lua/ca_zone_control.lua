@@ -3195,7 +3195,7 @@ local function get_retreat_action(zone_cfg, fred_data)
     local leader_objectives = fred_data.ops_data.objectives.leader
     --DBG.dbms(leader_objectives, false, 'leader_objectives')
 
-    if move_data.my_units_MP[leader.id] then
+    if move_data.my_units_MP[move_data.my_leader.id] then
         if leader_objectives.village then
             local action = {
                 units = { move_data.my_leader },
