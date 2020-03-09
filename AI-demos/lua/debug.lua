@@ -1,5 +1,6 @@
 local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local H = wesnoth.require "helper"
+local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
 
 -- Note: Assigning this table is slow compared to accessing values in it. It is
 -- thus done outside the functions below, so that it is not done over and over
