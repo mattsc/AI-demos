@@ -1,3 +1,4 @@
+local AH = wesnoth.dofile "ai/lua/ai_helper.lua"
 local H = wesnoth.require "helper"
 local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
@@ -88,6 +89,40 @@ local function show_timing_info(fred_data, text)
         DBG.print_timing(fred_data, 1, text)
     end
 end
+
+local function find_connected_castles(keeps_map)
+    local castle_map, new_hexes = {}, {}
+    for x,y in FGM.iter(keeps_map) do
+        FGM.set_value(castle_map, x, y, 'castle', true)
+        if wesnoth.get_terrain_info(wesnoth.get_terrain(x, y)).keep then
+            castle_map[x][y].keep = true
+        end
+        table.insert(new_hexes, { x, y })
+    end
+
+    while (#new_hexes > 0) do
+        local old_hexes = AH.table_copy(new_hexes)
+        new_hexes = {}
+
+        for _,hex in ipairs(old_hexes) do
+            for xa,ya in H.adjacent_tiles(hex[1], hex[2]) do
+                local terrain_info = wesnoth.get_terrain_info(wesnoth.get_terrain(xa, ya))
+                if (not FGM.get_value(castle_map, xa, ya, 'castle'))
+                    and terrain_info.castle
+                then
+                    table.insert(new_hexes, { xa, ya })
+                    FGM.set_value(castle_map, xa, ya, 'castle', true)
+                    if terrain_info.keep then
+                        castle_map[xa][ya].keep = true
+                    end
+                end
+            end
+        end
+    end
+
+    return castle_map
+end
+
 
 local fred_gamestate_utils = {}
 
@@ -260,13 +295,10 @@ function fred_gamestate_utils.get_move_data(fred_data)
         end
     end
 
-    -- Leader and enemy leader coordinates. These are needed often enough that
-    -- it is worth not extracting them from the leaders table every time
-    --
     -- Reachable keeps: those the leader can actually move onto (AI side only)
-    -- Close keeps: those within one full move, not taking other units into account (all sides)
     -- Reachable castles: connected to reachable keeps, independent of whether the leader
-    --   can get there or not, but must be available for recruiting (no enemy or noMP units)
+    --   can get there or not, but must be available for recruiting (no enemy or noMP units on it)
+    -- Close keeps: those within one full move, not taking other units into account (all sides)
     -- Close castles: connected to close keeps, not taking other units into account
     local reachable_keeps_map, reachable_castles_map = {}, {}
     local close_keeps_map, close_castles_map = {}, {}
@@ -295,36 +327,19 @@ function fred_gamestate_utils.get_move_data(fred_data)
                 FGM.set_value(close_keeps_map[side], loc[1], loc[2], 'moves_left', loc[3])
                 if (side == wesnoth.current.side) then
                     local ml = FGM.get_value(reach_maps[leader.id], loc[1], loc[2], 'moves_left')
-                    if ml then
+                    if ml then -- this excludes hexes with units without MP
                         FGM.set_value(reachable_keeps_map[side], loc[1], loc[2], 'moves_left', ml)
                     end
                 end
             end
         end
 
-        for x,y,_ in FGM.iter(close_keeps_map[side]) do
-            local close_castles = wesnoth.get_locations {
-                include_borders = 'no',
-                { "and", {
-                    x = x, y = y, radius = 200,
-                    { "filter_radius", { terrain = 'C*,K*,C*^*,K*^*,*^K*,*^C*' } }
-                } }
-            }
-
-            for _,loc in ipairs(close_castles) do
-                FGM.set_value(close_castles_map[side], loc[1], loc[2], 'castle', true)
-                if wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).keep then
-                    close_castles_map[side][loc[1]][loc[2]].keep = true
-                end
-                if (side == wesnoth.current.side)
-                    and (not FGM.get_value(enemy_map, loc[1], loc[2], 'id'))
-                    and (not FGM.get_value(my_unit_map_noMP, loc[1], loc[2], 'id'))
-                    and reachable_keeps_map[side] and FGM.get_value(reachable_keeps_map[side], x, y, 'moves_left')
-                then
-                    FGM.set_value(reachable_castles_map[side], loc[1], loc[2], 'castle', true)
-                    if wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).keep then
-                        reachable_castles_map[side][loc[1]][loc[2]].keep = true
-                    end
+        close_castles_map[side] = find_connected_castles(close_keeps_map[side])
+        if (side == wesnoth.current.side) then
+            reachable_castles_map[side] = find_connected_castles(reachable_keeps_map[side])
+            for x,y in FGM.iter(reachable_castles_map[side]) do
+                if FGM.get_value(enemy_map, x, y, 'id') or FGM.get_value(my_unit_map_noMP, x, y, 'id') then
+                    reachable_castles_map[side][x][y] = nil
                 end
             end
         end
