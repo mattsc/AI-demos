@@ -3529,7 +3529,7 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
 
     DBG.print_timing(fred_data, 0, '   call get_action_cfgs()')
     FOU.get_action_cfgs(fred_data)
-    --DBG.dbms(fred_data.zone_cfgs, false, 'fred_data.zone_cfgs')
+    --DBG.dbms(fred_data.action_cfgs, false, 'fred_data.action_cfgs')
 
     local previous_action
 
