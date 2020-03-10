@@ -2067,11 +2067,35 @@ function fred_ops_utils.set_ops_data(fred_data)
 
         local path, cost
         if wesnoth.compare_versions(wesnoth.game_config.version, '>=', '1.15.0') then
+
+-- TODOs:
+--  1. remove this work around
+--  2. move conditional to compatibility.lua
+
+local tmp_unit = false
+if (not FGM.get_value(move_data.unit_map, start_hex.x, start_hex.y, 'id')) then
+    tmp_unit = true
+    COMP.put_unit({
+        type = "Peasant",
+        random_traits = false,
+        name = "X",
+        random_gender = false
+    },
+        start_hex.x, start_hex.y
+    )
+end
+
             path, cost = wesnoth.find_path(start_hex, end_hex.x, end_hex.y, {
                 calculate = function(x, y, current_cost)
                     return adm_custom_cost(x, y, advance_distance_maps[zone_id], 'perp')
                 end
             })
+
+if tmp_unit then
+    COMP.erase_unit(start_hex.x, start_hex.y)
+end
+tmp_unit = nil
+
         else
             path, cost = wesnoth.find_path(start_hex, end_hex.x, end_hex.y,
                 function(x, y, current_cost)
