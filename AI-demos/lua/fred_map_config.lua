@@ -1,11 +1,12 @@
--- These collect all the scenario/map specific information
--- TODO: generalize so that it can be used on maps other than Freelands
+-- These set all the scenario/map specific information
 
 local AH = wesnoth.require "ai/lua/ai_helper.lua"
 
 local fred_map_config = {}
 
 function fred_map_config.get_side_cfgs()
+    -- These are one off from wesnoth.special_locations[2] on Freelands
+    -- TODO: test whether that makes a difference
     local cfgs = {
         { start_hex = { 18, 4 } },
         { start_hex = { 20, 20 } }
@@ -47,18 +48,15 @@ function fred_map_config.get_raw_cfgs(zone_id)
     local center_hexes_east = { { 28, 13 } }
 
     local cfg_right = {
-        zone_id = 'right',
-        zone_weight = 1
+        zone_id = 'right'
     }
 
     local cfg_center = {
-        zone_id = 'center',
-        zone_weight = 0.5
+        zone_id = 'center'
     }
 
     local cfg_left = {
-        zone_id = 'left',
-        zone_weight = 1
+        zone_id = 'left'
     }
 
     if (wesnoth.current.side == 1) then
@@ -120,7 +118,6 @@ function fred_map_config.get_raw_cfgs(zone_id)
             left = cfg_left
         }
         return zone_cfgs
-
     elseif (zone_id == 'all') then
         local all_cfgs = {
             leader_threat = cfg_leader_threat,
@@ -131,7 +128,6 @@ function fred_map_config.get_raw_cfgs(zone_id)
             all_map = cfg_all_map
         }
        return all_cfgs
-
     else
         local cfgs = {
             leader_threat = cfg_leader_threat,
