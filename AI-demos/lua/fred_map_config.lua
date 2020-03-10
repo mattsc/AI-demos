@@ -26,17 +26,15 @@ function fred_map_config.get_attack_test_locs()
 end
 
 function fred_map_config.get_raw_cfgs(zone_id)
-    local width, height = wesnoth.get_map_size()
-
     local cfg_all_map = {
         zone_id = 'all_map',
-        ops_slf = { x = '1-' .. width, y = '1-' .. height},
+        ops_slf = { include_borders = 'no' },
         center_hexes = { { 20, 20 } }
     }
 
     local cfg_leader_threat = {
         zone_id = 'leader',
-        ops_slf = { x = '1-' .. width, y = '1-' .. height},
+        ops_slf = { include_borders = 'no' },
     }
 
     local ops_slf_west = { x = '4-16,4-15,4-14,4-16,4-17', y = '1-6,7-12,13-15,16,17-23' }
