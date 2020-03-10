@@ -295,15 +295,11 @@ function fred_move_leader_utils.leader_objectives(fred_data)
     -- TODO: for now we only check if recruiting will be done for any one keep hex.
     --   Might have to be extended when taking this to other maps.
     for x,y,_ in FGM.iter(move_data.reachable_keeps_map) do
-        local outofway_units = {}
-        -- Note that the leader is included in the following, as he might
-        -- be on a castle hex other than a keep. His recruit location is
-        -- automatically excluded by the prerecruit code
-        for id,_ in pairs(move_data.my_units_can_move_away) do
-            outofway_units[id] = true
-        end
+        -- Note that the leader is included in the units that can move out of the
+        -- way, as he might be on a castle hex other than a keep. The recruit location is
+        -- is automatically excluded by the prerecruit code.
 
-        prerecruit = fred_data.recruit:prerecruit_units({ x, y }, nil, outofway_units)
+        prerecruit = fred_data.recruit:prerecruit_units({ x, y }, nil, move_data.my_units_can_move_away)
         -- Need to do this, or the recruit CA will try to recruit the same units again later
         fred_data.recruit:clear_prerecruit()
 
@@ -531,20 +527,15 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
         end
         --DBG.show_fgumap_with_message(castle_rating_map, 'rating', 'castle_rating_map')
 
-        local outofway_units = {}
-        -- Note that the leader is included in the following, as he might
-        -- be on a castle hex other than a keep. His recruit location is
-        -- automatically excluded by the prerecruit code
-        for id,_ in pairs(move_data.my_units_can_move_away) do
-            outofway_units[id] = true
-        end
-
+        -- Note that the leader is included in the units that can move out of the
+        -- way, as he might be on a castle hex other than a keep. The recruit location is
+        -- is automatically excluded by the prerecruit code.
         local x, y = leader[1], leader[2]
         if leader_objectives.keep then
             x, y = leader_objectives.keep[1], leader_objectives.keep[2]
         end
         local cfg = { castle_rating_map = castle_rating_map, outofway_penalty = -0.1 }
-        prerecruit = fred_data.recruit:prerecruit_units({ x, y }, nil, outofway_units, cfg)
+        prerecruit = fred_data.recruit:prerecruit_units({ x, y }, nil, move_data.my_units_can_move_away, cfg)
         --DBG.dbms(prerecruit, false, 'prerecruit')
 
         if prerecruit.units[1] then

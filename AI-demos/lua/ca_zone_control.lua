@@ -3447,12 +3447,6 @@ local function do_recruit(fred_data, ai, action)
         local from_keep = FGM.get_value(move_data.effective_reach_maps[leader_id], leader_dst[1], leader_dst[2], 'from_keep')
         --std_print(leader_id, leader_dst[1] .. ',' .. leader_dst[2] .. '  <--  ' .. from_keep[1] .. ',' .. from_keep[2])
 
-        local outofway_units = {}
-        for id,_ in pairs(move_data.my_units_can_move_away) do
-            outofway_units[id] = true
-        end
-        --DBG.dbms(outofway_units, false, 'outofway_units')
-
         -- TODO: eventually we might switch this to Fred's own gamestate_utils maps
         local avoid_map = LS.create()
         for _,dst in ipairs(action.dsts) do
@@ -3461,7 +3455,7 @@ local function do_recruit(fred_data, ai, action)
         --DBG.dbms(avoid_map, false, 'avoid_map')
 
         local cfg = { outofway_penalty = -0.1 }
-        prerecruit = fred_data.recruit:prerecruit_units(from_keep, avoid_map, outofway_units, cfg)
+        prerecruit = fred_data.recruit:prerecruit_units(from_keep, avoid_map, move_data.my_units_can_move_away, cfg)
         --DBG.dbms(prerecruit, false, 'prerecruit')
     end
 
