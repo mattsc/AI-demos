@@ -20,7 +20,7 @@ local function get_reach_map_via_keep(leader, move_data)
     local leader_copy = move_data.unit_copies[leader.id]
 
     local effective_reach_map = {}
-    for x,y,data in FGM.iter(move_data.reachable_keeps_map[wesnoth.current.side]) do
+    for x,y,data in FGM.iter(move_data.reachable_keeps_map) do
         local ml = data.moves_left
         leader_copy.x, leader_copy.y = x, y
         leader_copy.moves = ml
@@ -160,7 +160,7 @@ local function get_best_village_keep(leader, recruit_first, effective_reach_map,
     -- TODO: also need to include case when leader cannot reach a keep
     local keep_map
     if (not from_keep_found) and (recruit_first or (not village_map)) then
-        for x,y,data in FGM.iter(move_data.reachable_keeps_map[wesnoth.current.side]) do
+        for x,y,data in FGM.iter(move_data.reachable_keeps_map) do
             --std_print('keep: ' .. x .. ',' .. y)
             local moves_left = data.moves_left
             --std_print('  in reach: ' .. x .. ',' .. y)
@@ -294,7 +294,7 @@ function fred_move_leader_utils.leader_objectives(fred_data)
     local do_recruit, prerecruit = false
     -- TODO: for now we only check if recruiting will be done for any one keep hex.
     --   Might have to be extended when taking this to other maps.
-    for x,y,_ in FGM.iter(move_data.reachable_keeps_map[wesnoth.current.side]) do
+    for x,y,_ in FGM.iter(move_data.reachable_keeps_map) do
         local outofway_units = {}
         -- Note that the leader is included in the following, as he might
         -- be on a castle hex other than a keep. His recruit location is
@@ -382,7 +382,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
 
     -- TODO: do we want to add the castles back in here?
     --   If so, do we use initial or current enemy reach maps?
-    --for x,y,_ in FGM.iter(move_data.reachable_castles_map[wesnoth.current.side]) do
+    --for x,y,_ in FGM.iter(move_data.reachable_castles_map) do
     --    local ids = FGM.get_value(move_data.enemy_attack_map[1], x, y, 'ids') or {}
     --    for _,id in ipairs(ids) do
     --        leader_threats.enemies[id] = move_data.units[id][1] * 1000 + move_data.units[id][2]
@@ -492,7 +492,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
 
         -- Also add castle hexes that are not between to leader_zone_map
         -- TODO: is this needed?
-        for x,y,_ in FGM.iter(move_data.reachable_castles_map[wesnoth.current.side]) do
+        for x,y,_ in FGM.iter(move_data.reachable_castles_map) do
             FGM.set_value(leader_zone_map, x, y, 'in_zone', true)
         end
 
@@ -510,7 +510,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
         -- Now find prerecruits so that they are in between leader and threats
         -- TODO: is there a way of doing this without duplicating the prerecruit eval from before?
         local castle_rating_map = {}
-        for x,y,_ in FGM.iter(move_data.reachable_castles_map[wesnoth.current.side]) do
+        for x,y,_ in FGM.iter(move_data.reachable_castles_map) do
             for enemy_id,_ in pairs(leader_threats.enemies) do
                 local max_moves_left = 0
                 for xa,ya in H.adjacent_tiles(x, y) do

@@ -251,9 +251,6 @@ function fred_gamestate_utils.get_move_data(fred_data)
         leader_copy.moves = old_moves
 
         close_keeps_map[side], close_castles_map[side] = {}, {}
-        if (side == wesnoth.current.side) then
-            reachable_keeps_map[side], reachable_castles_map[side] = {}, {}
-        end
 
         for _,loc in ipairs(reach) do
             if wesnoth.get_terrain_info(wesnoth.get_terrain(loc[1], loc[2])).keep then
@@ -261,7 +258,7 @@ function fred_gamestate_utils.get_move_data(fred_data)
                 if (side == wesnoth.current.side) then
                     local ml = FGM.get_value(reach_maps[leader.id], loc[1], loc[2], 'moves_left')
                     if ml then -- this excludes hexes with units without MP
-                        FGM.set_value(reachable_keeps_map[side], loc[1], loc[2], 'moves_left', ml)
+                        FGM.set_value(reachable_keeps_map, loc[1], loc[2], 'moves_left', ml)
                     end
                 end
             end
@@ -269,10 +266,10 @@ function fred_gamestate_utils.get_move_data(fred_data)
 
         close_castles_map[side] = find_connected_castles(close_keeps_map[side])
         if (side == wesnoth.current.side) then
-            reachable_castles_map[side] = find_connected_castles(reachable_keeps_map[side])
-            for x,y in FGM.iter(reachable_castles_map[side]) do
+            reachable_castles_map = find_connected_castles(reachable_keeps_map)
+            for x,y in FGM.iter(reachable_castles_map) do
                 if FGM.get_value(enemy_map, x, y, 'id') or FGM.get_value(my_unit_map_noMP, x, y, 'id') then
-                    reachable_castles_map[side][x][y] = nil
+                    reachable_castles_map[x][y] = nil
                 end
             end
         end
@@ -280,9 +277,9 @@ function fred_gamestate_utils.get_move_data(fred_data)
         if DBG.show_debug('ops_keep_maps') then
             DBG.show_fgumap_with_message(close_keeps_map[side], 'moves_left', 'close_keeps_map: Side ' .. side, { x = leader[1], y = leader[2] })
             DBG.show_fgumap_with_message(close_castles_map[side], 'castle', 'close_castles_map: Side ' .. side, { x = leader[1], y = leader[2] })
-            if reachable_keeps_map[side] then
-                DBG.show_fgumap_with_message(reachable_keeps_map[side], 'moves_left', 'reachable_keeps_map: Side ' .. side, { x = leader[1], y = leader[2] })
-                DBG.show_fgumap_with_message(reachable_castles_map[side], 'castle', 'reachable_castles_map: Side ' .. side, { x = leader[1], y = leader[2] })
+            if (side == wesnoth.current.side) then
+                DBG.show_fgumap_with_message(reachable_keeps_map, 'moves_left', 'reachable_keeps_map: Side ' .. side, { x = leader[1], y = leader[2] })
+                DBG.show_fgumap_with_message(reachable_castles_map, 'castle', 'reachable_castles_map: Side ' .. side, { x = leader[1], y = leader[2] })
             end
         end
     end

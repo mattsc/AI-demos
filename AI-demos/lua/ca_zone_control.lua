@@ -690,7 +690,7 @@ local function get_attack_action(zone_cfg, fred_data)
             end
             -- Castles are only added if the leader can get to a keep
             -- TODO: reevaluate later if this should be changed
-            for x,y,_ in FGM.iter(move_data.reachable_castles_map[wesnoth.current.side]) do
+            for x,y,_ in FGM.iter(move_data.reachable_castles_map) do
                 table.insert(to_locs, { x, y })
             end
             if objectives.protect.zones[zone_cfg.zone_id] then
@@ -1583,7 +1583,7 @@ local function get_hold_action(zone_cfg, fred_data)
         end
         -- Castles are only added if the leader can get to a keep
         -- TODO: reevaluate later if this should be changed
-        for x,y,_ in FGM.iter(move_data.reachable_castles_map[wesnoth.current.side]) do
+        for x,y,_ in FGM.iter(move_data.reachable_castles_map) do
             table.insert(zone, { x, y })
             for xa,ya in H.adjacent_tiles(x, y) do
                 table.insert(zone, { xa, ya })

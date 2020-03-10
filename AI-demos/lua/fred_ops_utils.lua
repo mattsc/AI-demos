@@ -1111,7 +1111,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     for id,_ in pairs(move_data.my_units) do
         local unit_copy = move_data.unit_copies[id]
         if ((not unit_copy.canrecruit) or leader_joins_action)
-            and (not FGM.get_value(move_data.reachable_castles_map[unit_copy.side], unit_copy.x, unit_copy.y, 'castle') or false)
+            and (not FGM.get_value(move_data.reachable_castles_map, unit_copy.x, unit_copy.y, 'castle') or false)
         then
             if used_units[id] and raw_cfgs[used_units[id]] then
                 --std_print(id, used_units[id])
@@ -1248,11 +1248,11 @@ function fred_ops_utils.set_ops_data(fred_data)
         local recruit_benefit = {}
 
         local available_keeps = 0
-        for _,_,_ in FGM.iter(move_data.reachable_keeps_map[wesnoth.current.side]) do
+        for _,_,_ in FGM.iter(move_data.reachable_keeps_map) do
             available_keeps = available_keeps + 1
         end
         local available_castles = -1 -- need to exclude one of the keeps
-        for _,_,_ in FGM.iter(move_data.reachable_castles_map[wesnoth.current.side]) do
+        for _,_,_ in FGM.iter(move_data.reachable_castles_map) do
             available_castles = available_castles + 1
         end
 
