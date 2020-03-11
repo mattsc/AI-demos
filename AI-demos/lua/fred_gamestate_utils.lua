@@ -408,6 +408,8 @@ function fred_gamestate_utils.get_move_data(fred_data)
         unit_copies = unit_copies,
         unit_infos = unit_infos,
         defense_maps = {}
+        -- The following are used by fred_gamestate_utils_incremental.lua
+        unit_types_cache = {}
     }
 
     show_timing_info(fred_data, '  influence maps')

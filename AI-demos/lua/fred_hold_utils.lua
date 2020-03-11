@@ -120,7 +120,7 @@ end
 function fred_hold_utils.check_hold_protection(combo, protection, cfg, fred_data)
     local move_data = fred_data.move_data
     local leader_id = move_data.my_leader.id
-    local leader_value = FU.unit_value(move_data.unit_infos[leader_id])
+    local leader_value = FU.unit_value(move_data.unit_infos[leader_id], move_data.unit_types_cache)
 
     local leader_protected, leader_protect_mult = false, 1
 
@@ -406,7 +406,7 @@ function fred_hold_utils.get_base_rating(combo, ratings, weights, key, penalty_i
     local move_data = fred_data.move_data
     local leader_id = move_data.my_leader.id
     local leader_info = move_data.unit_infos[leader_id]
-    local leader_value = FU.unit_value(move_data.unit_infos[leader_id])
+    local leader_value = FU.unit_value(move_data.unit_infos[leader_id], move_data.unit_types_cache)
     local interactions = fred_data.ops_data.interaction_matrix.penalties['hold']
     local reserved_actions = fred_data.ops_data.reserved_actions
 
@@ -500,7 +500,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
     local move_data = fred_data.move_data
     local leader_id = move_data.my_leader.id
     local leader_info = move_data.unit_infos[leader_id]
-    local leader_value = FU.unit_value(move_data.unit_infos[leader_id])
+    local leader_value = FU.unit_value(move_data.unit_infos[leader_id], move_data.unit_types_cache)
 
     local value_ratio = cfg.value_ratio
     local max_value_ratio = fred_data.ops_data.behavior.orders.max_value_ratio
@@ -935,7 +935,7 @@ function fred_hold_utils.find_best_combo(combos, ratings, key, adjacent_village_
                 -- chance to die is too high.
                 -- Only do this if position is in front of protect_loc
 
-                local unit_value, value_factor = FU.unit_value(move_data.unit_infos[ids[i_l]])
+                local unit_value, value_factor = FU.unit_value(move_data.unit_infos[ids[i_l]], move_data.unit_types_cache)
                 --std_print("\nunit_value: " .. ids[i_l], unit_value, value_factor)
                 --std_print("chance to die: " .. counter_outcomes.defender_damage.die_chance)
 

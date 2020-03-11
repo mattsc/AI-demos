@@ -88,7 +88,7 @@ function fred_utils.get_unit_time_of_day_bonus(alignment, is_fearless, lawful_bo
     return multiplier
 end
 
-function fred_utils.unit_value(unit_info)
+function fred_utils.unit_value(unit_info, unit_types_cache)
     -- Get a gold-equivalent value for the unit
     -- Also returns (as a factor) the increase of value compared to cost,
     -- with a contribution for the level of the unit
@@ -107,7 +107,7 @@ function fred_utils.unit_value(unit_info)
     -- the difference between the unit and the leveled unit
     local cost_factor = 1.5
     if unit_info.advances_to then
-        local advanced_cost = wesnoth.unit_types[unit_info.advances_to].cost
+        local advanced_cost = FGUI.get_unit_type_attribute(unit_info.advances_to, 'cost', unit_types_cache)
         cost_factor = advanced_cost / unit_info.cost
     end
 
@@ -134,7 +134,7 @@ function fred_utils.unit_value(unit_info)
     return unit_value, value_factor
 end
 
-function fred_utils.approx_value_loss(unit_info, av_damage, max_damage)
+function fred_utils.approx_value_loss(unit_info, av_damage, max_damage, unit_types_cache)
     -- This is similar to FAU.damage_rating_unit (but simplified)
     -- TODO: maybe base the two on the same core function at some point
 
@@ -178,9 +178,9 @@ function fred_utils.approx_value_loss(unit_info, av_damage, max_damage)
     if (fractional_rating < -1.5) then
         fractional_rating = -1.5
     end
-    local unit_value = fred_utils.unit_value(unit_info)
+    local unit_value = fred_utils.unit_value(unit_info, unit_types_cache)
     local value_loss = fractional_rating * unit_value
-    --std_print('  unit_value, value_loss:', fred_utils.unit_value(unit_info), value_loss)
+    --std_print('  unit_value, value_loss:', fred_utils.unit_value(unit_info, unit_types_cache), value_loss)
 
     return value_loss, approx_ctd, unit_value
 end

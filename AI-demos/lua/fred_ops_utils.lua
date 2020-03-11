@@ -112,7 +112,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
                 --std_print('    skip: ' .. id, skip_unit)
 
                 if (not skip_unit) then
-                    local unit_value = FU.unit_value(fred_data.move_data.unit_infos[id])
+                    local unit_value = FU.unit_value(fred_data.move_data.unit_infos[id], fred_data.move_data.unit_types_cache)
                     --std_print(string.format('  my unit:  %-25s    %2d,%2d  %5.2f', id, loc[1], loc[2], unit_value))
 
                     local tmp_damages = {}
@@ -141,7 +141,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
                         sum_max_damage = sum_max_damage + tmp_damages[i].max_damage
                     end
 
-                    local value_loss, approx_ctd = FU.approx_value_loss(fred_data.move_data.unit_infos[id], sum_damage, sum_max_damage)
+                    local value_loss, approx_ctd = FU.approx_value_loss(fred_data.move_data.unit_infos[id], sum_damage, sum_max_damage, fred_data.move_data.unit_types_cache)
                     --std_print('    damage: ' .. sum_damage, sum_max_damage)
                     --std_print('    loss: ' .. value_loss, approx_ctd, unit_value)
 
@@ -1202,7 +1202,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         local leader_heal_benefit = math.min(8, move_data.unit_infos[leader.id].max_hitpoints - move_data.unit_infos[leader.id].hitpoints)
         -- Multiply benefit * 1.5 for this being the leader
         -- Not putting the leader into too much danger is taken care of elsewhere
-        leader_heal_benefit = 1.5 * leader_heal_benefit / move_data.unit_infos[leader.id].max_hitpoints * FU.unit_value(move_data.unit_infos[leader.id])
+        leader_heal_benefit = 1.5 * leader_heal_benefit / move_data.unit_infos[leader.id].max_hitpoints * FU.unit_value(move_data.unit_infos[leader.id], move_data.unit_types_cache)
         local x, y = objectives.leader.village[1], objectives.leader.village[2]
         local action = {
             id = leader.id,
@@ -1514,7 +1514,7 @@ function fred_ops_utils.set_ops_data(fred_data)
 
                     -- Don't need inertia here, as these are only the units who can get there this turn
                 else
-                    local unit_value = FU.unit_value(fred_data.move_data.unit_infos[id])
+                    local unit_value = FU.unit_value(fred_data.move_data.unit_infos[id], move_data.unit_types_cache)
 
                     -- Note that data.turns is currently capped at 3 in FBU.attack_benefits()
                     local turn_penalty = unit_value / 1 * data.turns
@@ -1771,7 +1771,7 @@ function fred_ops_utils.set_ops_data(fred_data)
                 then
                     --std_print('  use this unit')
                     -- TODO: these will have to be tweaked
-                    local unit_value = FU.unit_value(fred_data.move_data.unit_infos[id])
+                    local unit_value = FU.unit_value(fred_data.move_data.unit_infos[id], move_data.unit_types_cache)
 
                     local turn_penalty = 0
                     if (data.turns > 1) then
@@ -1838,7 +1838,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             -- Use half of missing HP
             -- TODO: refine
             local heal_benefit = 0.5 * (move_data.unit_infos[id].max_hitpoints - move_data.unit_infos[id].hitpoints)
-            heal_benefit = heal_benefit / move_data.unit_infos[id].max_hitpoints * FU.unit_value(move_data.unit_infos[id])
+            heal_benefit = heal_benefit / move_data.unit_infos[id].max_hitpoints * FU.unit_value(move_data.unit_infos[id], move_data.unit_types_cache)
             local action = {
                 id = id,
                 x = -1, y = -1, -- Don't have reserved location

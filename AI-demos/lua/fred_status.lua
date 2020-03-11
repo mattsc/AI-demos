@@ -249,7 +249,7 @@ function fred_status.check_exposures(objectives, combo, virtual_reach_maps, cfg,
                     if (defense > max_adj_defense) then
                         local unit_value = unit_values[enemy_id]
                         if not unit_value then
-                            unit_value = FU.unit_value(move_data.unit_infos[enemy_id])
+                            unit_value = FU.unit_value(move_data.unit_infos[enemy_id], move_data.unit_types_cache)
                             --std_print('  value: ' .. enemy_id, unit_value)
                             unit_values[enemy_id] = unit_value
                         end

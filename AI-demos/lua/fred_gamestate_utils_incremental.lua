@@ -33,4 +33,26 @@ function fred_gamestate_utils_incremental.get_unit_defense(unit_copy, x, y, defe
     return defense
 end
 
+function fred_gamestate_utils_incremental.get_unit_type_attribute(unit_type, attribute_name, unit_types_cache)
+    -- Access an attribute in the wesnoth.unit_types table and cache it, as this is slow
+    --
+    -- Inputs:
+    -- @unit_type: string
+    -- @attribute_name: string containing the key for the attribute to access
+    -- @unit_types_cache: table in which to cache the results. Note: this is NOT an optional input
+
+    local unit_type_table = unit_types_cache[unit_type]
+    if (not unit_type_table) then
+        unit_types_cache[unit_type] = {}
+        unit_type_table = unit_types_cache[unit_type]
+    end
+    local attribute_value = unit_type_table[attribute_name]
+    if (not attribute_value) then
+        attribute_value = wesnoth.unit_types[unit_type][attribute_name]
+        unit_type_table[attribute_name] = attribute_value
+    end
+
+    return attribute_value
+end
+
 return fred_gamestate_utils_incremental
