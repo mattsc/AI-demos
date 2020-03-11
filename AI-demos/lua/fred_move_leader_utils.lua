@@ -366,7 +366,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
                 -- once the leader is on its final hex
                 if (not best_defenses[enemy_id]) then best_defenses[enemy_id] = { defense = - math.huge } end
                 local current_defense = best_defenses[enemy_id].defense
-                local defense = FGUI.get_unit_defense(move_data.unit_copies[enemy_id], xa, ya, move_data.defense_maps)
+                local defense = FGUI.get_unit_defense(move_data.unit_copies[enemy_id], xa, ya, move_data.defense_maps_cache)
                 if (defense > current_defense) then
                     best_defenses[enemy_id] = {
                         x = xa, y = ya, defense = defense

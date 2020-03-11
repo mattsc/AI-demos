@@ -14,27 +14,31 @@ local fred_gamestate_utils_incremental = {}
 function fred_gamestate_utils_incremental.get_unit_defense(unit_copy, x, y, defense_maps)
     -- Get the terrain defense of a unit as a factor (that is, e.g. 0.40 rather than 40)
     -- The result is stored (or accessed, if it exists) in @defense_maps
+function fred_gamestate_utils_incremental.get_unit_defense(unit_copy, x, y, defense_maps_cache)
+    -- Get the terrain defense of a unit as a factor (that is, e.g. 0.40 rather than 40) and cache it
     --
     -- Inputs:
     -- @unit_copy: private copy of the unit (proxy table works too, but is slower)
     -- @x, @y: the location for which to calculate the unit's terrain defense
-    -- @defense_maps: table in which to cache the results. Note: this is NOT an optional input
-    --
-    -- Sample structure of defense_maps:
-    --   defense_maps['Vanak'][19][4] = 0.6
+    -- @defense_maps_cache: table in which to cache the results. Note: this is NOT an optional input
 
-    if (not defense_maps[unit_copy.id]) then defense_maps[unit_copy.id] = {} end
-    local defense = FGM.get_value(defense_maps[unit_copy.id], x, y, 'defense')
+    local unit_id = unit_copy.id
+    local defense_map = defense_maps_cache[unit_id]
+    if (not defense_map) then
+        defense_maps_cache[unit_id] = {}
+        defense_map = defense_maps_cache[unit_id]
+    end
+    local defense = FGM.get_value(defense_map, x, y, 'defense')
     if (not defense) then
         defense = (100. - COMP.unit_defense(unit_copy, wesnoth.get_terrain(x, y))) / 100.
-        FGM.set_value(defense_maps[unit_copy.id], x, y, 'defense', defense)
+        FGM.set_value(defense_maps_cache[unit_id], x, y, 'defense', defense)
     end
 
     return defense
 end
 
 function fred_gamestate_utils_incremental.get_unit_type_attribute(unit_type, attribute_name, unit_types_cache)
-    -- Access an attribute in the wesnoth.unit_types table and cache it, as this is slow
+    -- Access an attribute in the wesnoth.unit_types table and cache it
     --
     -- Inputs:
     -- @unit_type: string

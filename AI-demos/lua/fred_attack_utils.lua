@@ -494,7 +494,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
         defense_rating_attacker = defense_rating_attacker + FGUI.get_unit_defense(
             move_data.unit_copies[attacker_info.id],
             dsts[i][1], dsts[i][2],
-            move_data.defense_maps
+            move_data.defense_maps_cache
         )
     end
     defense_rating_attacker = defense_rating_attacker / #attacker_infos * terrain_defense_weight
@@ -508,7 +508,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
         defense_rating_defender = defense_rating_defender + FGUI.get_unit_defense(
             move_data.unit_copies[defender_info.id],
             dst[1], dst[2],
-            move_data.defense_maps
+            move_data.defense_maps_cache
         )
     end
     defense_rating_defender = defense_rating_defender / #dsts * terrain_defense_weight
@@ -765,8 +765,8 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
     --  @move_data: table with the game state as produced by fred_gamestate_utils.move_data()
     --  @move_cache: for caching data *for this move only*, needs to be cleared after a gamestate change
 
-    local defender_defense = FGUI.get_unit_defense(defender_proxy, defender_proxy.x, defender_proxy.y, move_data.defense_maps)
-    local attacker_defense = FGUI.get_unit_defense(attacker_copy, dst[1], dst[2], move_data.defense_maps)
+    local defender_defense = FGUI.get_unit_defense(defender_proxy, defender_proxy.x, defender_proxy.y, move_data.defense_maps_cache)
+    local attacker_defense = FGUI.get_unit_defense(attacker_copy, dst[1], dst[2], move_data.defense_maps_cache)
 
     -- Units need to be identified by id and XP
     -- There is a very small chance that this could be ambiguous, ignore that for now

@@ -407,8 +407,9 @@ function fred_gamestate_utils.get_move_data(fred_data)
         reach_maps = reach_maps,
         unit_copies = unit_copies,
         unit_infos = unit_infos,
-        defense_maps = {}
+
         -- The following are used by fred_gamestate_utils_incremental.lua
+        defense_maps_cache = {},
         unit_types_cache = {}
     }
 

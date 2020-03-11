@@ -204,7 +204,7 @@ end
 function fred_utils.unit_terrain_power(unit_info, x, y, move_data)
     local power = fred_utils.unit_current_power(unit_info)
 
-    local defense = FGUI.get_unit_defense(move_data.unit_copies[unit_info.id], x, y, move_data.defense_maps)
+    local defense = FGUI.get_unit_defense(move_data.unit_copies[unit_info.id], x, y, move_data.defense_maps_cache)
     power = power * defense
 
     return power

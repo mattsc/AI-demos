@@ -287,7 +287,7 @@ local function get_attack_action(zone_cfg, fred_data)
                 -- Do not attempt trapping if the unit is on good terrain,
                 -- except if the target is down to less than half of its hitpoints
                 if (move_data.unit_infos[target_id].hitpoints >= move_data.unit_infos[target_id].max_hitpoints/2) then
-                    local defense = FGUI.get_unit_defense(move_data.unit_copies[target_id], target_loc[1], target_loc[2], move_data.defense_maps)
+                    local defense = FGUI.get_unit_defense(move_data.unit_copies[target_id], target_loc[1], target_loc[2], move_data.defense_maps_cache)
                     if (defense >= (1 - move_data.unit_infos[target_id].good_terrain_hit_chance)) then
                         attempt_trapping = false
                     end
@@ -325,7 +325,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         if (move_data.unit_infos[target_id].hitpoints >= move_data.unit_infos[target_id].max_hitpoints/2) then
                             for xa,ya in H.adjacent_tiles(target_loc[1], target_loc[2]) do
                                 if (not FGM.get_value(adj_occ_hex_map, xa, ya, 'is_occ')) then
-                                    local defense = FGUI.get_unit_defense(move_data.unit_copies[target_id], xa, ya, move_data.defense_maps)
+                                    local defense = FGUI.get_unit_defense(move_data.unit_copies[target_id], xa, ya, move_data.defense_maps_cache)
                                     if (defense >= (1 - move_data.unit_infos[target_id].good_terrain_hit_chance)) then
                                         trapping_bonus = false
                                         break
@@ -1322,7 +1322,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         --DBG.dbms(unit_attack.nostrikeback, false, 'nostrikeback')
                         acceptable_counter = true
 
-                        local hitchance = 1 - FGUI.get_unit_defense(move_data.unit_copies[target_id], target_loc[1], target_loc[2], move_data.defense_maps)
+                        local hitchance = 1 - FGUI.get_unit_defense(move_data.unit_copies[target_id], target_loc[1], target_loc[2], move_data.defense_maps_cache)
                         min_total_damage_rating = unit_attack.nostrikeback.base_done * hitchance
                             + unit_attack.nostrikeback.extra_done
                             - unit_attack.enemy_regen
@@ -1630,7 +1630,7 @@ local function get_hold_action(zone_cfg, fred_data)
         enemy_zone_maps[enemy_id] = {}
 
         for x,y,_ in FGM.iter(buffered_zone_map) do
-            local enemy_defense = FGUI.get_unit_defense(move_data.unit_copies[enemy_id], x, y, move_data.defense_maps)
+            local enemy_defense = FGUI.get_unit_defense(move_data.unit_copies[enemy_id], x, y, move_data.defense_maps_cache)
             FGM.set_value(enemy_zone_maps[enemy_id], x, y, 'hit_chance', 1 - enemy_defense)
 
             local moves_left = FGM.get_value(move_data.reach_maps[enemy_id], x, y, 'moves_left')
@@ -1927,7 +1927,7 @@ local function get_hold_action(zone_cfg, fred_data)
                         --std_print(x,y)
                         --std_print('  ', enemy_id, enemy_adj_hc)
 
-                        local my_hc = 1 - FGUI.get_unit_defense(move_data.unit_copies[id], x, y, move_data.defense_maps)
+                        local my_hc = 1 - FGUI.get_unit_defense(move_data.unit_copies[id], x, y, move_data.defense_maps_cache)
                         -- This is not directly a contribution to damage, it's just meant as a tiebreaker
                         -- Taking away good terrain from the enemy
                         local enemy_defense = 1 - FGM.get_value(enemy_zone_maps[enemy_id], x, y, 'hit_chance')
@@ -2310,7 +2310,7 @@ local function get_hold_action(zone_cfg, fred_data)
             for x,y,protect_rating_data in FGM.iter(protect_rating_maps[id]) do
                 local protect_base_rating, cum_weight = 0, 0
 
-                local my_defense = FGUI.get_unit_defense(move_data.unit_copies[id], x, y, move_data.defense_maps)
+                local my_defense = FGUI.get_unit_defense(move_data.unit_copies[id], x, y, move_data.defense_maps_cache)
                 local scaled_my_defense = FU.weight_s(my_defense, 0.67)
 
                 for enemy_id,enemy_zone_map in pairs(enemy_zone_maps) do
@@ -2354,7 +2354,7 @@ local function get_hold_action(zone_cfg, fred_data)
                 local protect_rating = protect_base_rating
                 if (protect_forward_rating_weight > 0) then
                     local vuln = protect_rating_data.vuln
-                    local terrain_mult = FGUI.get_unit_defense(move_data.unit_copies[id], x, y, move_data.defense_maps)
+                    local terrain_mult = FGUI.get_unit_defense(move_data.unit_copies[id], x, y, move_data.defense_maps_cache)
                     protect_rating = protect_rating + vuln / max_vuln * protect_forward_rating_weight * terrain_mult
                 else
                     protect_rating = protect_rating + (d_dist - 2) / 10 * protect_forward_rating_weight
@@ -3021,7 +3021,7 @@ local function get_advance_action(zone_cfg, fred_data)
                 -- Small bonus for the terrain; this does not really matter for
                 -- unthreatened hexes and is already taken into account in the
                 -- counter attack calculation for others. Just a tie breaker.
-                local my_defense = FGUI.get_unit_defense(move_data.unit_copies[id], x, y, move_data.defense_maps)
+                local my_defense = FGUI.get_unit_defense(move_data.unit_copies[id], x, y, move_data.defense_maps_cache)
                 bonus_rating = bonus_rating + my_defense / 10
                 rating = rating + bonus_rating
                 FGM.set_value(unit_rating_maps[id], x, y, 'bonus_rating', bonus_rating)

@@ -123,7 +123,7 @@ function fred_ops_utils.update_protect_goals(objectives, assigned_units, assigne
                         -- TODO: we just use the defense here for now, not taking weapon specials into account
                         local enemy_hc
                         if fred_data.move_data.my_units_noMP[id] then
-                            enemy_hc = 1 - FGUI.get_unit_defense(fred_data.move_data.unit_copies[id], loc[1], loc[2], fred_data.move_data.defense_maps)
+                            enemy_hc = 1 - FGUI.get_unit_defense(fred_data.move_data.unit_copies[id], loc[1], loc[2], fred_data.move_data.defense_maps_cache)
                         else
                             enemy_hc = counter.enemy_gen_hc
                         end
