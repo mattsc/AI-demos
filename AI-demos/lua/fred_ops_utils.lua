@@ -642,7 +642,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     local n_turns = 6
     for id,_ in pairs(move_data.units) do
         local unit_base_power = move_data.unit_infos[id].base_power
-        local unit_influence = FU.unit_current_power(move_data.unit_infos[id])
+        local unit_influence = move_data.unit_infos[id].current_power
         if move_data.unit_infos[id].canrecruit then
             unit_influence = unit_influence * leader_derating
             unit_base_power = unit_base_power * leader_derating

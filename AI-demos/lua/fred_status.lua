@@ -135,7 +135,7 @@ function fred_status.check_exposures(objectives, combo, virtual_reach_maps, cfg,
                 --    or (not fred_data.ops_data.assigned_enemies[zone_id])
                 --    or (fred_data.ops_data.assigned_enemies[zone_id][enemy_id])
                 --then
-                    enemy_power = enemy_power + FU.unit_current_power(move_data.unit_infos[enemy_id])
+                    enemy_power = enemy_power + move_data.unit_infos[enemy_id].current_power
                 --end
             end
         end

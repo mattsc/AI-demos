@@ -97,7 +97,7 @@ function fred_gamestate_utils.get_move_data(fred_data)
         local unit_info = FU.single_unit_info(unit_proxy)
         local unit_copy = COMP.copy_unit(unit_proxy)
         local id, x, y = unit_info.id, unit_copy.x, unit_copy.y
-        local current_power = FU.unit_current_power(unit_info)
+        local current_power = unit_info.current_power
         local max_moves = unit_info.max_moves
 
         unit_infos[id] = unit_info
@@ -364,7 +364,7 @@ function fred_gamestate_utils.get_move_data(fred_data)
                 table.insert(enemy_attack_map[int_turns][x][y].ids, enemy_id)
 
                 if (int_turns <= 2) then
-                    FGM.set_value(unit_attack_maps[int_turns][enemy_id], x, y, 'current_power', FU.unit_current_power(unit_infos[enemy_id]))
+                    FGM.set_value(unit_attack_maps[int_turns][enemy_id], x, y, 'current_power', unit_infos[enemy_id].current_power)
                 end
             end
         end

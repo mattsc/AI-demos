@@ -822,7 +822,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         -- TODO: should also check that unit can actually get there
                         if (not is_used) then
                             --std_print('  is_available: ' .. id)
-                            power_available = power_available + FU.unit_current_power(move_data.unit_infos[id])
+                            power_available = power_available + move_data.unit_infos[id].current_power
                         end
                     end
                 end
@@ -2700,7 +2700,7 @@ local function get_advance_action(zone_cfg, fred_data)
     local insufficient_support_maps = {}
     for id,unit_loc in pairs(advancers) do
         insufficient_support_maps[id] = {}
-        local current_power = FU.unit_current_power(move_data.unit_infos[id])
+        local current_power = move_data.unit_infos[id].current_power
 
         for x,y,_ in FGM.iter(behind_enemy_map) do
             -- Note: support_maps decay with distance, while behind_enemy_map contain
@@ -2772,7 +2772,7 @@ local function get_advance_action(zone_cfg, fred_data)
         -- These are small, mostly just tie breakers
         local max_moves = move_data.unit_infos[id].max_moves
         local rating_moves = move_data.unit_infos[id].moves / 10
-        local rating_power = FU.unit_current_power(move_data.unit_infos[id]) / 1000
+        local rating_power = move_data.unit_infos[id].current_power / 1000
 
         -- Injured units are treated much more carefully by the AI.
         -- This part sets up a number of parameters for that.
@@ -2844,7 +2844,7 @@ local function get_advance_action(zone_cfg, fred_data)
             -- TODO: this might have to be done differently for maps other than Freelands
 
             local unit_copy = move_data.unit_copies[id]
-            local unit_infl = FU.unit_current_power(move_data.unit_infos[id])
+            local unit_infl = move_data.unit_infos[id].current_power
             -- We're doing this out here, so that it has not be done for each hex in the custom cost function
             local influence_mult = 1 / unit_infl
             --std_print('unit out of zone: ' .. id, unit_infl, influence_mult)

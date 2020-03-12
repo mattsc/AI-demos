@@ -191,15 +191,12 @@ function fred_utils.unit_base_power(hitpoints, max_hitpoints, max_damage)
     return power
 end
 
-function fred_utils.unit_current_power(unit_info)
-    local power = unit_info.base_power
-    power = power * unit_info.tod_mod
-
-    return power
+function fred_utils.unit_current_power(base_power, tod_mod)
+    return base_power * tod_mod
 end
 
 function fred_utils.unit_terrain_power(unit_info, x, y, move_data)
-    local power = fred_utils.unit_current_power(unit_info)
+    local power = unit_info.current_power
 
     local defense = FGUI.get_unit_defense(move_data.unit_copies[unit_info.id], x, y, move_data.defense_maps_cache)
     power = power * defense
@@ -378,7 +375,7 @@ function fred_utils.get_between_map(locs, units, move_data)
 
     local unit_weights, cum_unit_weight = {}, 0
     for id,_ in pairs(units) do
-        local unit_weight = fred_utils.unit_current_power(move_data.unit_infos[id])
+        local unit_weight = move_data.unit_infos[id].current_power
         unit_weights[id] = unit_weight
         cum_unit_weight = cum_unit_weight + unit_weight
     end
@@ -724,7 +721,7 @@ function fred_utils.get_influence_maps(move_data)
     for int_turns = 1,2 do
         for x,y,data in FGM.iter(move_data.my_attack_map[int_turns]) do
             for _,id in pairs(data.ids) do
-                local unit_influence = fred_utils.unit_current_power(move_data.unit_infos[id])
+                local unit_influence = move_data.unit_infos[id].current_power
                 if move_data.unit_infos[id].canrecruit then
                     unit_influence = unit_influence * leader_derating
                 end
@@ -756,7 +753,7 @@ function fred_utils.get_influence_maps(move_data)
 
     for x,y,data in FGM.iter(move_data.enemy_attack_map[1]) do
         for _,enemy_id in pairs(data.ids) do
-            local unit_influence = fred_utils.unit_current_power(move_data.unit_infos[enemy_id])
+            local unit_influence = move_data.unit_infos[enemy_id].current_power
             if move_data.unit_infos[enemy_id].canrecruit then
                 unit_influence = unit_influence * leader_derating
             end
@@ -781,7 +778,7 @@ function fred_utils.get_influence_maps(move_data)
     end
     for x,y,data in FGM.iter(move_data.enemy_attack_map[2]) do
         for _,enemy_id in pairs(data.ids) do
-            local unit_influence = fred_utils.unit_current_power(move_data.unit_infos[enemy_id])
+            local unit_influence = move_data.unit_infos[enemy_id].current_power
             if move_data.unit_infos[enemy_id].canrecruit then
                 unit_influence = unit_influence * leader_derating
             end
@@ -826,7 +823,7 @@ function fred_utils.support_maps(move_data)
     local width, height = wesnoth.get_map_size()
     local support_maps = { total = {}, units = {} }
     for id,unit_loc in pairs(move_data.my_units) do
-        local current_power = fred_utils.unit_current_power(move_data.unit_infos[id])
+        local current_power = move_data.unit_infos[id].current_power
         if move_data.unit_infos[id].canrecruit then
             current_power = current_power * FCFG.get_cfg_parm('leader_derating')
         end
@@ -902,7 +899,7 @@ function fred_utils.behind_enemy_map(fred_data)
 
     local behind_enemy_map = {}
     for enemy_id,enemy_loc in pairs(fred_data.move_data.enemies) do
-        local current_power = fred_utils.unit_current_power(fred_data.move_data.unit_infos[enemy_id])
+        local current_power = fred_data.move_data.unit_infos[enemy_id].current_power
 
         local unit_behind_map = {}
         FGM.set_value(unit_behind_map, enemy_loc[1], enemy_loc[2], 'enemy_power', current_power)
@@ -1075,6 +1072,7 @@ function fred_utils.single_unit_info(unit_proxy)
     -- The following can only be done on a real unit, not on a unit type
     if (unit_proxy.x) then
         single_unit_info.base_power = fred_utils.unit_base_power(single_unit_info.hitpoints, single_unit_info.max_hitpoints, max_damage)
+        single_unit_info.current_power = fred_utils.unit_current_power(single_unit_info.base_power, single_unit_info.tod_mod)
         single_unit_info.status = {}
         local status = wml.get_child(unit_cfg, "status")
         for k,_ in pairs(status) do
