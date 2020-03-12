@@ -174,15 +174,6 @@ function fred_utils.unit_current_power(base_power, tod_mod)
     return base_power * tod_mod
 end
 
-function fred_utils.unit_terrain_power(unit_info, x, y, move_data)
-    local power = unit_info.current_power
-
-    local defense = FGUI.get_unit_defense(move_data.unit_copies[unit_info.id], x, y, move_data.defense_maps_cache)
-    power = power * defense
-
-    return power
-end
-
 function fred_utils.urgency(power_fraction_there, n_units_there)
     -- How urgently do we need more units for a certain task
     -- This is used to compare against, for example, retreat utilities

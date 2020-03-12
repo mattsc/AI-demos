@@ -1696,9 +1696,10 @@ local function get_hold_action(zone_cfg, fred_data)
 
     for id,_ in pairs(holders) do
         --std_print('\n' .. id, zone_cfg.zone_id)
-
         for x,y,_ in FGM.iter(move_data.unit_attack_maps[1][id]) do
-            local unit_influence = FU.unit_terrain_power(move_data.unit_infos[id], x, y, move_data)
+            local unit_influence = move_data.unit_infos[id].current_power
+            unit_influence = unit_influence * FGUI.get_unit_defense(move_data.unit_copies[id], x, y, move_data.defense_maps_cache)
+
             local inf = FGM.get_value(holders_influence, x, y, 'my_influence') or 0
             FGM.set_value(holders_influence, x, y, 'my_influence', inf + unit_influence)
 
