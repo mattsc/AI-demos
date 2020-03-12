@@ -11,9 +11,6 @@ local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
 
 local fred_gamestate_utils_incremental = {}
 
-function fred_gamestate_utils_incremental.get_unit_defense(unit_copy, x, y, defense_maps)
-    -- Get the terrain defense of a unit as a factor (that is, e.g. 0.40 rather than 40)
-    -- The result is stored (or accessed, if it exists) in @defense_maps
 function fred_gamestate_utils_incremental.get_unit_defense(unit_copy, x, y, defense_maps_cache)
     -- Get the terrain defense of a unit as a factor (that is, e.g. 0.40 rather than 40) and cache it
     --
