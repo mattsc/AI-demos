@@ -74,7 +74,7 @@ function fred_ops_utils.zone_power_stats(zones, assigned_units, assigned_enemies
 
         local fraction_there = zone_power_stats[zone_id].my_power / power_needed
         if (power_needed == 0) then fraction_there = 1 end
-        zone_power_stats[zone_id].urgency = FU.urgency(fraction_there, zone_power_stats[zone_id].n_units)
+        zone_power_stats[zone_id].urgency = FBU.urgency(fraction_there, zone_power_stats[zone_id].n_units)
     end
 
     return zone_power_stats
@@ -1482,7 +1482,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     if (lthreat_power.enemy.power > 0) then
         fraction_previous = lthreat_power.previous.power / lthreat_power.enemy.power
     end
-    local urgency = FU.urgency(fraction_previous, lthreat_power.previous.n_units)
+    local urgency = FBU.urgency(fraction_previous, lthreat_power.previous.n_units)
 
     local leader_threat_benefits, leader_advance_benefits = {}, {}
     local lthreat_assigned_power = 0
@@ -1662,7 +1662,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         if (lthreat_power.enemy.power > 0) then
             new_fraction_there = lp_protect_power / lthreat_power.enemy.power
         end
-        local new_urgency = FU.urgency(new_fraction_there, lthreat_power.previous.n_units + lthreat_power.assigned.n_units)
+        local new_urgency = FBU.urgency(new_fraction_there, lthreat_power.previous.n_units + lthreat_power.assigned.n_units)
 
         std_print('\nleader threats:')
         std_print('  enemy power:', lthreat_power.enemy.power)

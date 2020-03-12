@@ -10,6 +10,21 @@ local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 
 local utility_functions = {}
 
+function utility_functions.urgency(power_fraction_there, n_units_there)
+    -- How urgently do we need more units for a certain task
+    -- This is used to compare against, for example, retreat utilities
+    --
+    -- Making this a function to:
+    --   1. standardize it
+    --   2. because it will likely become more complex
+
+    -- For no units already there, this depends quadratically on power_fraction_there
+    -- For large number of units already there, it is linear with power_fraction_there
+    local urgency = 1 - power_fraction_there ^ (1 + 1 / (1 + n_units_there))
+    if (urgency < 0) then urgency = 0 end
+    return urgency
+end
+
 function utility_functions.village_benefits(village_grabs, fred_data)
     -- Contributions (all of these are compared to not grabbing the village, instead
     --   of in absolute terms; for example, a village we already own does not count
@@ -411,7 +426,7 @@ function utility_functions.assign_units(benefits, retreat_utilities, move_data)
             local urgency = 1
             if data.power and retreat_utilities then
                 local power_fraction = data.power.previous / (data.power.previous + data.power.missing)
-                urgency = FU.urgency(power_fraction, data.power.n_previous)
+                urgency = utility_functions.urgency(power_fraction, data.power.n_previous)
                 --std_print('power_fraction, urgency', power_fraction, urgency)
             end
 
@@ -473,7 +488,7 @@ function utility_functions.assign_units(benefits, retreat_utilities, move_data)
             local urgency = 1
             if task.power then
                 local power_fraction = (task.power.previous + power_used[action]) / (task.power.previous + power_used[action] + task.power.missing)
-                urgency = FU.urgency(power_fraction, task.power.n_previous + n_used[action])
+                urgency = utility_functions.urgency(power_fraction, task.power.n_previous + n_used[action])
                 --std_print('power_fraction, urgency', power_fraction, urgency)
             end
 

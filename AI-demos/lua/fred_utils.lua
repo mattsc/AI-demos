@@ -174,24 +174,6 @@ function fred_utils.unit_current_power(base_power, tod_mod)
     return base_power * tod_mod
 end
 
-function fred_utils.urgency(power_fraction_there, n_units_there)
-    -- How urgently do we need more units for a certain task
-    -- This is used to compare against, for example, retreat utilities
-    --
-    -- Making this a function to:
-    --   1. standardize it
-    --   2. because it will likely become more complex
-
-    -- For no units already there, this depends quadratically on power_fraction_there
-    -- For large number of units already there, it is linear with power_fraction_there
-    local urgency = 1 - power_fraction_there ^ (1 + 1 / (1 + n_units_there))
-
-    if (urgency < 0) then urgency = 0 end
-
-    return urgency
-end
-
-
 function fred_utils.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs)
     --std_print(unit_copy.id, unit_copy.x, unit_copy.y)
     local start_hex = side_cfgs[unit_copy.side].start_hex
