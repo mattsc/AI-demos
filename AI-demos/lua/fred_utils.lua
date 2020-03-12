@@ -8,6 +8,61 @@ local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
 
 local fred_utils = {}
 
+local function unit_value(unit_info, unit_types_cache)
+    -- Get a gold-equivalent value for the unit
+    -- Also returns (as a factor) the increase of value compared to cost with
+    -- a contribution for the level of the unit
+
+    local xp_weight = FCFG.get_cfg_parm('xp_weight')
+
+    local unit_value = unit_info.cost
+
+    -- If this is the side leader, make damage to it much more important
+    if unit_info.canrecruit and (unit_info.side == wesnoth.current.side) then
+        local leader_weight = FCFG.get_cfg_parm('leader_weight')
+        unit_value = unit_value * leader_weight
+    end
+
+    -- Being closer to leveling makes the unit more valuable, proportional to
+    -- the difference between the unit and the leveled unit
+    local cost_factor = 1.5
+    if unit_info.advances_to then
+        local advanced_cost = FGUI.get_unit_type_attribute(unit_info.advances_to, 'cost', unit_types_cache)
+        cost_factor = advanced_cost / unit_info.cost
+    end
+
+    local xp_diff = unit_info.max_experience - unit_info.experience
+
+    -- Square so that a few XP don't matter, but being close to leveling is important
+    -- Units very close to leveling are considered even more valuable than leveled unit
+    local xp_bonus
+    if (xp_diff <= 1) then
+        xp_bonus = 1.33
+    elseif (xp_diff <= 8) then
+        xp_bonus = 1.2
+    else
+        xp_bonus = (unit_info.experience / (unit_info.max_experience - 6))^2
+    end
+
+    unit_value = unit_value * (1. + xp_bonus * (cost_factor - 1) * xp_weight)
+
+    --std_print('fred_utils.unit_value:', unit_info.id, unit_value, xp_bonus, xp_diff)
+
+    -- TODO: probably want to make the unit level contribution configurable
+    local value_factor = unit_value / unit_info.cost * math.sqrt(unit_info.level)
+
+    return unit_value, value_factor
+end
+
+local function unit_base_power(hitpoints, max_hitpoints, max_damage)
+    return max_damage * fred_utils.weight_s(hitpoints / max_hitpoints, 0.67)
+end
+
+local function unit_current_power(base_power, tod_mod)
+    return base_power * tod_mod
+end
+
+
 function fred_utils.weight_s(x, exp)
     -- S curve weighting of a variable that is meant as a fraction of a total.
     -- Thus, @x for the most part varies from 0 to 1, but does continues smoothly
@@ -67,52 +122,6 @@ function fred_utils.get_unit_time_of_day_bonus(alignment, is_fearless, lawful_bo
     return multiplier
 end
 
-function fred_utils.unit_value(unit_info, unit_types_cache)
-    -- Get a gold-equivalent value for the unit
-    -- Also returns (as a factor) the increase of value compared to cost,
-    -- with a contribution for the level of the unit
-
-    local xp_weight = FCFG.get_cfg_parm('xp_weight')
-
-    local unit_value = unit_info.cost
-
-    -- If this is the side leader, make damage to it much more important
-    if unit_info.canrecruit and (unit_info.side == wesnoth.current.side) then
-        local leader_weight = FCFG.get_cfg_parm('leader_weight')
-        unit_value = unit_value * leader_weight
-    end
-
-    -- Being closer to leveling makes the unit more valuable, proportional to
-    -- the difference between the unit and the leveled unit
-    local cost_factor = 1.5
-    if unit_info.advances_to then
-        local advanced_cost = FGUI.get_unit_type_attribute(unit_info.advances_to, 'cost', unit_types_cache)
-        cost_factor = advanced_cost / unit_info.cost
-    end
-
-    local xp_diff = unit_info.max_experience - unit_info.experience
-
-    -- Square so that a few XP don't matter, but being close to leveling is important
-    -- Units very close to leveling are considered even more valuable than leveled unit
-    local xp_bonus
-    if (xp_diff <= 1) then
-        xp_bonus = 1.33
-    elseif (xp_diff <= 8) then
-        xp_bonus = 1.2
-    else
-        xp_bonus = (unit_info.experience / (unit_info.max_experience - 6))^2
-    end
-
-    unit_value = unit_value * (1. + xp_bonus * (cost_factor - 1) * xp_weight)
-
-    --std_print('fred_utils.unit_value:', unit_info.id, unit_value, xp_bonus, xp_diff)
-
-    -- TODO: probably want to make the unit level contribution configurable
-    local value_factor = unit_value / unit_info.cost * math.sqrt(unit_info.level)
-
-    return unit_value, value_factor
-end
-
 function fred_utils.approx_value_loss(unit_info, av_damage, max_damage)
     -- This is similar to FAU.damage_rating_unit (but simplified)
     -- TODO: maybe base the two on the same core function at some point
@@ -162,16 +171,6 @@ function fred_utils.approx_value_loss(unit_info, av_damage, max_damage)
     --std_print('  unit_value, value_loss:', unit_info.unit_value, value_loss)
 
     return value_loss, approx_ctd, unit_value
-end
-
-function fred_utils.unit_base_power(hitpoints, max_hitpoints, max_damage)
-    local hp_mod = fred_utils.weight_s(hitpoints / max_hitpoints, 0.67)
-    local power = max_damage * hp_mod
-    return power
-end
-
-function fred_utils.unit_current_power(base_power, tod_mod)
-    return base_power * tod_mod
 end
 
 function fred_utils.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs)
@@ -880,12 +879,12 @@ function fred_utils.single_unit_info(unit_proxy, unit_types_cache)
 
     -- The following can only be done on a real unit, not on a unit type
     if (unit_proxy.x) then
-        local unit_value, value_factor = fred_utils.unit_value(single_unit_info, unit_types_cache)
+        local unit_value, value_factor = unit_value(single_unit_info, unit_types_cache)
         single_unit_info.unit_value = unit_value
         single_unit_info.value_factor = value_factor
 
-        single_unit_info.base_power = fred_utils.unit_base_power(single_unit_info.hitpoints, single_unit_info.max_hitpoints, max_damage)
-        single_unit_info.current_power = fred_utils.unit_current_power(single_unit_info.base_power, single_unit_info.tod_mod)
+        single_unit_info.base_power = unit_base_power(single_unit_info.hitpoints, single_unit_info.max_hitpoints, max_damage)
+        single_unit_info.current_power = unit_current_power(single_unit_info.base_power, single_unit_info.tod_mod)
         single_unit_info.status = {}
         local status = wml.get_child(unit_cfg, "status")
         for k,_ in pairs(status) do
