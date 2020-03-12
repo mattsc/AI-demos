@@ -271,7 +271,7 @@ local function get_attack_action(zone_cfg, fred_data)
                             do_attack = false
                         end
                     else
-                        local unit_value = FU.unit_value(move_data.unit_infos[target_id], move_data.unit_types_cache)
+                        local unit_value = move_data.unit_infos[target_id].unit_value
                         local penalty = 10. / move_data.unit_infos[target_id].max_hitpoints * unit_value
                         penalty = penalty * n_adj_unocc_village
                         --std_print('Applying village penalty', bonus_rating, penalty)
@@ -352,7 +352,7 @@ local function get_attack_action(zone_cfg, fred_data)
                     -- If this is a valid trapping attack, we give a
                     -- bonus eqivalent to 8 HP * (1 - CTD) of the target
                     if trapping_bonus then
-                        local unit_value = FU.unit_value(move_data.unit_infos[target_id], move_data.unit_types_cache)
+                        local unit_value = move_data.unit_infos[target_id].unit_value
                         local bonus = 8. / move_data.unit_infos[target_id].max_hitpoints * unit_value
 
                         -- Trapping is pointless if the target dies
@@ -415,7 +415,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         poison_penalty = poison_penalty + 6. * (number_poisoners - 1)
                     end
 
-                    poison_penalty = poison_penalty / target_info.max_hitpoints * FU.unit_value(target_info, move_data.unit_types_cache)
+                    poison_penalty = poison_penalty / target_info.max_hitpoints * target_info.unit_value
                     bonus_rating = bonus_rating - poison_penalty
                 end
 
@@ -3911,7 +3911,7 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
             -- Need to reset the enemy information if there are more attacks in this combo
             if fred_data.zone_action.units and fred_data.zone_action.units[1] then
                 fred_data.move_data.unit_copies[enemy_proxy.id] = COMP.copy_unit(enemy_proxy)
-                fred_data.move_data.unit_infos[enemy_proxy.id] = FU.single_unit_info(enemy_proxy)
+                fred_data.move_data.unit_infos[enemy_proxy.id] = FU.single_unit_info(enemy_proxy, fred_data.move_data.unit_types_cache)
             end
         end
 
