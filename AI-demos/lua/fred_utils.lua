@@ -185,17 +185,14 @@ function fred_utils.approx_value_loss(unit_info, av_damage, max_damage, unit_typ
     return value_loss, approx_ctd, unit_value
 end
 
-function fred_utils.unit_base_power(unit_info)
-    local hp_mod = fred_utils.weight_s(unit_info.hitpoints / unit_info.max_hitpoints, 0.67)
-
-    local power = unit_info.max_damage
-    power = power * hp_mod
-
+function fred_utils.unit_base_power(hitpoints, max_hitpoints, max_damage)
+    local hp_mod = fred_utils.weight_s(hitpoints / max_hitpoints, 0.67)
+    local power = max_damage * hp_mod
     return power
 end
 
 function fred_utils.unit_current_power(unit_info)
-    local power = fred_utils.unit_base_power(unit_info)
+    local power = unit_info.base_power
     power = power * unit_info.tod_mod
 
     return power
@@ -1077,6 +1074,7 @@ function fred_utils.single_unit_info(unit_proxy)
 
     -- The following can only be done on a real unit, not on a unit type
     if (unit_proxy.x) then
+        single_unit_info.base_power = fred_utils.unit_base_power(single_unit_info.hitpoints, single_unit_info.max_hitpoints, max_damage)
         single_unit_info.status = {}
         local status = wml.get_child(unit_cfg, "status")
         for k,_ in pairs(status) do

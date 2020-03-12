@@ -321,7 +321,7 @@ function utility_functions.assign_units(benefits, retreat_utilities, move_data)
                     local j_u = i_u + 1
                     -- TODO: there's a disconnect here with the < 25% of last unit power requirement below
                     while (j_u <= #task.units) and (power_missing > 0) do
-                        local unit_power = FU.unit_base_power(move_data.unit_infos[task.units[j_u].id])
+                        local unit_power = move_data.unit_infos[task.units[j_u].id].base_power
 
                         power_missing = power_missing - unit_power
                         j_u = j_u + 1
@@ -443,7 +443,7 @@ function utility_functions.assign_units(benefits, retreat_utilities, move_data)
         --std_print('assigned: ' .. id .. ' -> ' .. action)
         --DBG.dbms(assignments, false, assignments)
 
-        local unit_power = FU.unit_base_power(move_data.unit_infos[id])
+        local unit_power = move_data.unit_infos[id].base_power
         power_used[action] = (power_used[action] or 0) + unit_power
         n_used[action] = (n_used[action] or 0) + 1
         --DBG.dbms(power_used, false, 'power_used')

@@ -1560,7 +1560,7 @@ local function get_hold_action(zone_cfg, fred_data)
     else
         for id,_ in pairs(move_data.my_units_MP) do
             if (not move_data.unit_infos[id].canrecruit) then
-                holders[id] = FU.unit_base_power(move_data.unit_infos[id])
+                holders[id] = move_data.unit_infos[id].base_power
             end
         end
     end

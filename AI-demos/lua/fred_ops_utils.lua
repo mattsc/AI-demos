@@ -50,7 +50,7 @@ function fred_ops_utils.zone_power_stats(zones, assigned_units, assigned_enemies
 
     for zone_id,_ in pairs(zones) do
         for id,_ in pairs(assigned_units[zone_id] or {}) do
-            local power = FU.unit_base_power(fred_data.move_data.unit_infos[id])
+            local power = fred_data.move_data.unit_infos[id].base_power
             zone_power_stats[zone_id].my_power = zone_power_stats[zone_id].my_power + power
             zone_power_stats[zone_id].n_units = zone_power_stats[zone_id].n_units + 1
         end
@@ -58,7 +58,7 @@ function fred_ops_utils.zone_power_stats(zones, assigned_units, assigned_enemies
 
     for zone_id,_ in pairs(zones) do
         for id,_ in pairs(assigned_enemies[zone_id] or {}) do
-            local power = FU.unit_base_power(fred_data.move_data.unit_infos[id])
+            local power = fred_data.move_data.unit_infos[id].base_power
             zone_power_stats[zone_id].enemy_power = zone_power_stats[zone_id].enemy_power + power
         end
     end
@@ -641,7 +641,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     -- for other schedules it probably does not make sense to look farther ahead.
     local n_turns = 6
     for id,_ in pairs(move_data.units) do
-        local unit_base_power = FU.unit_base_power(move_data.unit_infos[id])
+        local unit_base_power = move_data.unit_infos[id].base_power
         local unit_influence = FU.unit_current_power(move_data.unit_infos[id])
         if move_data.unit_infos[id].canrecruit then
             unit_influence = unit_influence * leader_derating
@@ -1449,7 +1449,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         assigned = { power = 0, n_units = 0 }
     }
     for enemy_id,_ in pairs(objectives.leader.leader_threats.enemies or {}) do
-        local unit_power = FU.unit_base_power(fred_data.move_data.unit_infos[enemy_id])
+        local unit_power = fred_data.move_data.unit_infos[enemy_id].base_power
         lthreat_power.enemy.power = lthreat_power.enemy.power + unit_power
         lthreat_power.enemy.n_units = lthreat_power.enemy.n_units + 1
     end
@@ -1465,7 +1465,7 @@ function fred_ops_utils.set_ops_data(fred_data)
                     or (used_units[id] == 'leader')
                 )
             then
-                local unit_power = FU.unit_base_power(fred_data.move_data.unit_infos[id])
+                local unit_power = fred_data.move_data.unit_infos[id].base_power
                 already_protecting[id] = unit_power
             end
         end
@@ -1509,7 +1509,7 @@ function fred_ops_utils.set_ops_data(fred_data)
                         }
                     end
                     leader_threat_benefits[action_protect].units[id] = { benefit = data.benefit, penalty = 0 }
-                    local unit_power = FU.unit_base_power(fred_data.move_data.unit_infos[id])
+                    local unit_power = fred_data.move_data.unit_infos[id].base_power
                     lthreat_assigned_power = lthreat_assigned_power + unit_power
 
                     -- Don't need inertia here, as these are only the units who can get there this turn
@@ -1531,7 +1531,7 @@ function fred_ops_utils.set_ops_data(fred_data)
                         benefit = data.benefit,
                         penalty = turn_penalty
                     }
-                    local unit_power = FU.unit_base_power(fred_data.move_data.unit_infos[id])
+                    local unit_power = fred_data.move_data.unit_infos[id].base_power
                 end
             end
         end
@@ -1624,7 +1624,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     for id,assignment in pairs(protect_leader_assignments) do
         -- There are village grabbers mixed in here, thus the somewhat complicated way of doing this
         if string.find(assignment, 'protect_leader') then
-            local unit_power = FU.unit_base_power(fred_data.move_data.unit_infos[id])
+            local unit_power = fred_data.move_data.unit_infos[id].base_power
             lthreat_power.assigned.power = lthreat_power.assigned.power + unit_power
             lthreat_power.assigned.n_units = lthreat_power.assigned.n_units + 1
         end
@@ -1901,7 +1901,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             --std_print(id, best_zone_id, max_diff)
 
             assignments[id] = 'zone:' .. best_zone_id
-            power_diffs[best_zone_id] = power_diffs[best_zone_id] - FU.unit_base_power(move_data.unit_infos[id])
+            power_diffs[best_zone_id] = power_diffs[best_zone_id] - move_data.unit_infos[id].base_power
             --DBG.dbms(power_diffs, false, 'power_diffs')
         end
     end
@@ -2718,7 +2718,7 @@ function fred_ops_utils.get_action_cfgs(fred_data)
                 -- Advance --
                 local advance_power_rating = 0
                 for id,_ in pairs(zone_units) do
-                    advance_power_rating = advance_power_rating - FU.unit_base_power(move_data.unit_infos[id])
+                    advance_power_rating = advance_power_rating - move_data.unit_infos[id].base_power
                 end
                 advance_power_rating = advance_power_rating / 1000
 
