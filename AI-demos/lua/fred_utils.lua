@@ -210,15 +210,6 @@ function fred_utils.unit_terrain_power(unit_info, x, y, move_data)
     return power
 end
 
-function fred_utils.unittype_base_power(unit_type)
-    local unittype_info = fred_utils.single_unit_info(wesnoth.unit_types[unit_type])
-    -- Need to set hitpoints manually
-    unittype_info.hitpoints = unittype_info.max_hitpoints
-
-    return fred_utils.unit_base_power(unittype_info)
-end
-
-
 function fred_utils.urgency(power_fraction_there, n_units_there)
     -- How urgently do we need more units for a certain task
     -- This is used to compare against, for example, retreat utilities
