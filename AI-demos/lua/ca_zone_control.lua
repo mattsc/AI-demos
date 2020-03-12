@@ -453,7 +453,7 @@ local function get_attack_action(zone_cfg, fred_data)
                         slow_penalty = slow_penalty + 3. * (number_slowers - 1)
                     end
 
-                    slow_penalty = slow_penalty / target_info.max_hitpoints * FU.unit_value(target_info, move_data.unit_types_cache)
+                    slow_penalty = slow_penalty / target_info.max_hitpoints * target_info.unit_value
                     bonus_rating = bonus_rating - slow_penalty
                 end
 
@@ -1227,7 +1227,7 @@ local function get_attack_action(zone_cfg, fred_data)
 
                     if (die_value > acceptable_die_value) then
                         local kill_chance = combo.def_outcome.hp_chance[0]
-                        local kill_value = kill_chance * FU.unit_value(move_data.unit_infos[target_id], move_data.unit_types_cache)
+                        local kill_value = kill_chance * move_data.unit_infos[target_id].unit_value
                         --std_print('         kill chance, kill_value: ', kill_chance, kill_value)
 
                         if (kill_chance < 0.33) or (kill_value < die_value * 2) then
@@ -2003,7 +2003,7 @@ local function get_hold_action(zone_cfg, fred_data)
                     -- Enemy value loss is calculated per enemy whereas for the own unit, it
                     -- needs to be done on the sum (because of the non-linear weighting)
                     enemy_value_loss = enemy_value_loss
-                        + FU.approx_value_loss(move_data.unit_infos[enemy.enemy_id], enemy.counter_actual_done, enemy.counter_max_done, move_data.unit_types_cache)
+                        + FU.approx_value_loss(move_data.unit_infos[enemy.enemy_id], enemy.counter_actual_done, enemy.counter_max_done)
 
                     --std_print('  ', damage_taken, damage_done, cum_weight)
                 end
@@ -2012,7 +2012,7 @@ local function get_hold_action(zone_cfg, fred_data)
                 damage_done = damage_done / cum_weight * n_enemies
                 --std_print('  cum: ', damage_taken, damage_done, cum_weight)
 
-                local my_value_loss, approx_ctd, unit_value = FU.approx_value_loss(move_data.unit_infos[id], counter_actual_taken, counter_max_taken, move_data.unit_types_cache)
+                local my_value_loss, approx_ctd, unit_value = FU.approx_value_loss(move_data.unit_infos[id], counter_actual_taken, counter_max_taken)
 
                 -- Yes, we are dividing the enemy value loss by our unit's value
                 local value_loss = (my_value_loss - enemy_value_loss) / unit_value
@@ -2723,7 +2723,7 @@ local function get_advance_action(zone_cfg, fred_data)
 
         unit_rating_maps[id] = {}
 
-        local unit_value = FU.unit_value(move_data.unit_infos[id], move_data.unit_types_cache)
+        local unit_value = move_data.unit_infos[id].unit_value
 
         -- Fastest unit first, after that strongest unit first
         -- These are small, mostly just tie breakers
@@ -3014,18 +3014,18 @@ local function get_advance_action(zone_cfg, fred_data)
 
     if DBG.show_debug('advance_unit_rating') then
         for id,unit_rating_map in pairs(unit_rating_maps) do
-            DBG.show_fgumap_with_message(unit_rating_map, 'rating', zone_cfg.zone_id ..': advance unit rating (unit value = ' .. FU.unit_value(move_data.unit_infos[id], move_data.unit_types_cache) .. ')', move_data.unit_copies[id])
+            DBG.show_fgumap_with_message(unit_rating_map, 'rating', zone_cfg.zone_id ..': advance unit rating (unit value = ' .. move_data.unit_infos[id].unit_value .. ')', move_data.unit_copies[id])
         end
     end
     if DBG.show_debug('advance_unit_rating_details') then
         for id,unit_rating_map in pairs(unit_rating_maps) do
-            DBG.show_fgumap_with_message(unit_rating_map, 'unit_rating', zone_cfg.zone_id ..': advance unit_rating (unit value = ' .. FU.unit_value(move_data.unit_infos[id], move_data.unit_types_cache) .. ')', move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(unit_rating_map, 'dist_rating', zone_cfg.zone_id ..': advance dist_rating (unit value = ' .. FU.unit_value(move_data.unit_infos[id], move_data.unit_types_cache) .. ')', move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(unit_rating_map, 'counter_rating', zone_cfg.zone_id ..': advance counter_rating (unit value = ' .. FU.unit_value(move_data.unit_infos[id], move_data.unit_types_cache) .. ')', move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(unit_rating_map, 'bonus_rating', zone_cfg.zone_id ..': advance bonus_rating (unit value = ' .. FU.unit_value(move_data.unit_infos[id], move_data.unit_types_cache) .. ')', move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(unit_rating_map, 'fm_infl', zone_cfg.zone_id ..': full move influence' .. FU.unit_value(move_data.unit_infos[id], move_data.unit_types_cache) .. ')', move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(unit_rating_map, 'rating', zone_cfg.zone_id ..': advance total rating (unit value = ' .. FU.unit_value(move_data.unit_infos[id], move_data.unit_types_cache) .. ')', move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(unit_rating_map, 'defensive_rating', zone_cfg.zone_id ..': advance total defensive_rating (unit value = ' .. FU.unit_value(move_data.unit_infos[id], move_data.unit_types_cache) .. ')', move_data.unit_copies[id])
+            DBG.show_fgumap_with_message(unit_rating_map, 'unit_rating', zone_cfg.zone_id ..': advance unit_rating (unit value = ' .. move_data.unit_infos[id].unit_value .. ')', move_data.unit_copies[id])
+            DBG.show_fgumap_with_message(unit_rating_map, 'dist_rating', zone_cfg.zone_id ..': advance dist_rating (unit value = ' .. move_data.unit_infos[id].unit_value .. ')', move_data.unit_copies[id])
+            DBG.show_fgumap_with_message(unit_rating_map, 'counter_rating', zone_cfg.zone_id ..': advance counter_rating (unit value = ' .. move_data.unit_infos[id].unit_value .. ')', move_data.unit_copies[id])
+            DBG.show_fgumap_with_message(unit_rating_map, 'bonus_rating', zone_cfg.zone_id ..': advance bonus_rating (unit value = ' .. move_data.unit_infos[id].unit_value .. ')', move_data.unit_copies[id])
+            DBG.show_fgumap_with_message(unit_rating_map, 'fm_infl', zone_cfg.zone_id ..': full move influence' .. move_data.unit_infos[id].unit_value .. ')', move_data.unit_copies[id])
+            DBG.show_fgumap_with_message(unit_rating_map, 'rating', zone_cfg.zone_id ..': advance total rating (unit value = ' .. move_data.unit_infos[id].unit_value .. ')', move_data.unit_copies[id])
+            DBG.show_fgumap_with_message(unit_rating_map, 'defensive_rating', zone_cfg.zone_id ..': advance total defensive_rating (unit value = ' .. move_data.unit_infos[id].unit_value .. ')', move_data.unit_copies[id])
         end
     end
 

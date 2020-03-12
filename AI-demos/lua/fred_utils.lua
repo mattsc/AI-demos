@@ -113,7 +113,7 @@ function fred_utils.unit_value(unit_info, unit_types_cache)
     return unit_value, value_factor
 end
 
-function fred_utils.approx_value_loss(unit_info, av_damage, max_damage, unit_types_cache)
+function fred_utils.approx_value_loss(unit_info, av_damage, max_damage)
     -- This is similar to FAU.damage_rating_unit (but simplified)
     -- TODO: maybe base the two on the same core function at some point
 
@@ -157,9 +157,9 @@ function fred_utils.approx_value_loss(unit_info, av_damage, max_damage, unit_typ
     if (fractional_rating < -1.5) then
         fractional_rating = -1.5
     end
-    local unit_value = fred_utils.unit_value(unit_info, unit_types_cache)
+    local unit_value = unit_info.unit_value
     local value_loss = fractional_rating * unit_value
-    --std_print('  unit_value, value_loss:', fred_utils.unit_value(unit_info, unit_types_cache), value_loss)
+    --std_print('  unit_value, value_loss:', unit_info.unit_value, value_loss)
 
     return value_loss, approx_ctd, unit_value
 end
@@ -771,7 +771,7 @@ function fred_utils.get_influence_maps(move_data)
     return influence_maps, unit_influence_maps
 end
 
-function fred_utils.single_unit_info(unit_proxy)
+function fred_utils.single_unit_info(unit_proxy, unit_types_cache)
     -- Collects unit information from proxy unit table @unit_proxy into a Lua table
     -- so that it is accessible faster.
     -- Note: Even accessing the directly readable fields of a unit proxy table
@@ -880,6 +880,10 @@ function fred_utils.single_unit_info(unit_proxy)
 
     -- The following can only be done on a real unit, not on a unit type
     if (unit_proxy.x) then
+        local unit_value, value_factor = fred_utils.unit_value(single_unit_info, unit_types_cache)
+        single_unit_info.unit_value = unit_value
+        single_unit_info.value_factor = value_factor
+
         single_unit_info.base_power = fred_utils.unit_base_power(single_unit_info.hitpoints, single_unit_info.max_hitpoints, max_damage)
         single_unit_info.current_power = fred_utils.unit_current_power(single_unit_info.base_power, single_unit_info.tod_mod)
         single_unit_info.status = {}

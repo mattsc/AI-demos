@@ -265,7 +265,7 @@ function fred_attack_utils.unit_damage(unit_info, att_outcome, dst, move_data)
     damage.id = unit_info.id
     damage.hitpoints = unit_info.hitpoints
     damage.max_hitpoints = unit_info.max_hitpoints
-    damage.unit_value = FU.unit_value(unit_info, move_data.unit_types_cache)
+    damage.unit_value = unit_info.unit_value
 
     --DBG.dbms(damage)
 
