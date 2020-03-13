@@ -34,6 +34,29 @@ function fred_gamestate_utils_incremental.get_unit_defense(unit_copy, x, y, defe
     return defense
 end
 
+function fred_gamestate_utils_incremental.get_unit_movecost(unit_copy, x, y, movecost_maps_cache)
+    -- Get the movement cost of a unit and cache it
+    --
+    -- Inputs:
+    -- @unit_copy: private copy of the unit (proxy table works too, but is slower)
+    -- @x, @y: the location for which to calculate the unit's movement cost
+    -- @movecost_maps_cache: table in which to cache the results. Note: this is NOT an optional input
+
+    local unit_id = unit_copy.id
+    local movecost_map = movecost_maps_cache[unit_id]
+    if (not movecost_map) then
+        movecost_maps_cache[unit_id] = {}
+        movecost_map = movecost_maps_cache[unit_id]
+    end
+    local movecost = FGM.get_value(movecost_map, x, y, 'movecost')
+    if (not movecost) then
+        movecost = COMP.unit_movement_cost(unit_copy, wesnoth.get_terrain(x, y))
+        FGM.set_value(movecost_maps_cache[unit_id], x, y, 'movecost', movecost)
+    end
+
+    return movecost
+end
+
 function fred_gamestate_utils_incremental.get_unit_type_attribute(unit_type, attribute_name, unit_types_cache)
     -- Access an attribute in the wesnoth.unit_types table and cache it
     --

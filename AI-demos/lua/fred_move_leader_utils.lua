@@ -92,7 +92,7 @@ local function get_reach_map_to_keep(leader, move_data)
 
     local effective_reach_map = {}
     for x_k,y_k,_ in FGM.iter(keeps_map) do
-        local cost_from_keep = FMU.smooth_cost_map(leader_proxy, { x_k, y_k }, true)
+        local cost_from_keep = FMU.smooth_cost_map(leader_proxy, { x_k, y_k }, true, move_data.movecost_maps_cache)
         --DBG.show_fgumap_with_message(cost_from_keep, 'cost', 'cost_from_keep')
 
         for x,y,data in FGM.iter(cost_from_keep) do

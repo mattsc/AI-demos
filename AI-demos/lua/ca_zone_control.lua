@@ -2825,7 +2825,7 @@ local function get_advance_action(zone_cfg, fred_data)
             local total_cost, path_goal_hex = 0
             for i = 2,#path do
                 local x, y = path[i][1], path[i][2]
-                local movecost = COMP.unit_movement_cost(unit_copy, wesnoth.get_terrain(x, y))
+                local movecost = FGUI.get_unit_movecost(unit_copy, x, y, move_data.movecost_maps_cache)
                 total_cost = total_cost + movecost
                 --std_print(i, x, y, movecost, total_cost)
                 path_goal_hex = path[i] -- This also works when the path is shorter than the unit's moves
