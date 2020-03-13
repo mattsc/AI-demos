@@ -62,6 +62,8 @@ local function unit_current_power(base_power, tod_mod)
     return base_power * tod_mod
 end
 
+----- End local functions -----
+
 
 function fred_utils.weight_s(x, exp)
     -- S curve weighting of a variable that is meant as a fraction of a total.
@@ -83,15 +85,14 @@ function fred_utils.weight_s(x, exp)
 
     local weight
     if (x >= 0.5) then
-        weight = 0.5 + ((x - 0.5) * 2)^exp / 2
+        return 0.5 + ((x - 0.5) * 2)^exp / 2
     else
-        weight = 0.5 - ((0.5 - x) * 2)^exp / 2
+        return 0.5 - ((0.5 - x) * 2)^exp / 2
     end
-
-    return weight
 end
 
 function fred_utils.print_weight_s(exp)
+    -- Just for testing fred_utils.weight_s()
     local s1, s2 = '', ''
     for i=-5,15 do
         local x = 0.1 * i
@@ -122,6 +123,172 @@ function fred_utils.get_unit_time_of_day_bonus(alignment, is_fearless, lawful_bo
     return multiplier
 end
 
+function fred_utils.single_unit_info(unit_proxy, unit_types_cache)
+    -- Collects unit information from proxy unit table @unit_proxy into a Lua table
+    -- so that it is accessible faster.
+    -- Note: Even accessing the directly readable fields of a unit proxy table
+    -- is slower than reading from a Lua table; not even talking about unit_proxy.__cfg.
+    --
+    -- This can also be used on a unit type entry from wesnoth.unit_types, but in that
+    -- case not all fields will be populated, of course, and anything depending on
+    -- traits and the like will not necessarily be correct for the individual unit
+    --
+    -- Important: this is slow, so it should only be called once at the beginning
+    -- of each move, but it does need to be redone after each move, as it contains
+    -- information like HP and XP (or the unit might have leveled up or been changed
+    -- in an event).
+    --
+    -- Note: unit location information is NOT included
+
+    -- This is by far the most expensive step in this function, but it cannot be skipped yet
+    local unit_cfg = unit_proxy.__cfg
+
+    local single_unit_info = {
+        id = unit_proxy.id,
+        canrecruit = unit_proxy.canrecruit,
+        side = unit_proxy.side,
+
+        moves = unit_proxy.moves,
+        max_moves = unit_proxy.max_moves,
+        hitpoints = unit_proxy.hitpoints,
+        max_hitpoints = unit_proxy.max_hitpoints,
+        experience = unit_proxy.experience,
+        max_experience = unit_proxy.max_experience,
+
+        type = unit_proxy.type,
+        alignment = unit_proxy.alignment,
+        cost = unit_proxy.cost,
+        level = unit_proxy.level
+    }
+
+    -- Pick the first of the advances_to types, nil when there is none
+    single_unit_info.advances_to = unit_proxy.advances_to[1]
+
+    -- Include the ability type, such as: hides, heals, regenerate, skirmisher (set up as 'hides = true')
+    -- Note that unit_proxy.abilities gives the id of the ability. This is different from
+    -- the value below, which is the name of the tag (e.g. 'heals' vs. 'healing' and/or 'curing')
+    single_unit_info.abilities = {}
+    local abilities = wml.get_child(unit_cfg, "abilities")
+    if abilities then
+        for _,ability in ipairs(abilities) do
+            single_unit_info.abilities[ability[1]] = true
+        end
+    end
+
+    -- Information about the attacks indexed by weapon number,
+    -- including specials (e.g. 'poison = true')
+    single_unit_info.attacks = {}
+    local max_damage = 0
+    for i,attack in ipairs(unit_proxy.attacks) do
+        -- Extract information for specials; we do this first because some
+        -- custom special might have the same name as one of the default scalar fields
+        local a = {}
+        for _,sp in ipairs(attack.specials) do
+            if (sp[1] == 'damage') then  -- this is 'backstab'
+                if (sp[2].id == 'backstab') then
+                    a.backstab = true
+                else
+                    if (sp[2].id == 'charge') then a.charge = true end
+                end
+            else
+                -- magical, marksman
+                if (sp[1] == 'chance_to_hit') then
+                    a[sp[2].id] = true
+                else
+                    a[sp[1]] = true
+                end
+            end
+        end
+        a.damage = attack.damage
+        a.number = attack.number
+        a.range = attack.range
+        a.type = attack.type
+
+        table.insert(single_unit_info.attacks, a)
+
+        -- TODO: potentially use FAU.get_total_damage_attack for this later, but for
+        -- the time being these are too different, and have too different a purpose.
+        total_damage = a.damage * a.number
+
+        -- Just use blanket damage for poison and slow for now; might be refined later
+        if a.poison then total_damage = total_damage + 8 end
+        if a.slow then total_damage = total_damage + 4 end
+
+        -- Also give some bonus for drain and backstab, but not to the full extent
+        -- of what they can achieve
+        if a.drains then total_damage = total_damage * 1.25 end
+        if a.backstab then total_damage = total_damage * 1.33 end
+
+        if (total_damage > max_damage) then
+            max_damage = total_damage
+        end
+    end
+    single_unit_info.max_damage = max_damage
+
+    -- Time of day modifier: done here once so that it works on unit types also.
+    -- It is repeated below if a unit is passed, to take the fearless trait into account.
+    single_unit_info.tod_mod = fred_utils.get_unit_time_of_day_bonus(single_unit_info.alignment, false, wesnoth.get_time_of_day().lawful_bonus)
+
+    -- The following can only be done on a real unit, not on a unit type
+    -- Note: the unit_type functionality is currently not used, but since the only
+    --   penalty is one simple conditional, we leave it in place.
+    if (unit_proxy.x) then
+        local unit_value, value_factor = unit_value(single_unit_info, unit_types_cache)
+        single_unit_info.unit_value = unit_value
+        single_unit_info.value_factor = value_factor
+
+        single_unit_info.base_power = unit_base_power(single_unit_info.hitpoints, single_unit_info.max_hitpoints, max_damage)
+        single_unit_info.current_power = unit_current_power(single_unit_info.base_power, single_unit_info.tod_mod)
+        single_unit_info.status = {}
+        local status = wml.get_child(unit_cfg, "status")
+        for k,_ in pairs(status) do
+            single_unit_info.status[k] = true
+        end
+
+        single_unit_info.traits = {}
+        local mods = wml.get_child(unit_cfg, "modifications")
+        for trait in wml.child_range(mods, 'trait') do
+            single_unit_info.traits[trait.id] = true
+        end
+
+        -- Now we do this again, using the correct value for the fearless trait
+        single_unit_info.tod_mod = fred_utils.get_unit_time_of_day_bonus(single_unit_info.alignment, single_unit_info.traits.fearless, wesnoth.get_time_of_day().lawful_bonus)
+
+        -- Define what "good terrain" means for a unit
+        local defense = wml.get_child(unit_cfg, "defense")
+        -- Get the hit chances for all terrains and sort (best = lowest hit chance first)
+        local hit_chances = {}
+        for _,hit_chance in pairs(defense) do
+            table.insert(hit_chances, { hit_chance = math.abs(hit_chance) })
+        end
+        table.sort(hit_chances, function(a, b) return a.hit_chance < b.hit_chance end)
+
+        -- As "normal" we use the hit chance on "flat equivalent" terrain.
+        -- That means on flat for most units, on cave for dwarves etc.
+        -- and on shallow water for mermen, nagas etc.
+        -- Use the best of those
+        local flat_hc = math.min(defense.flat, defense.cave, defense.shallow_water)
+        --std_print('best hit chance on flat, cave, shallow water:', flat_hc)
+        --std_print(defense.flat, defense.cave, defense.shallow_water)
+
+        -- Good terrain is now defined as 10% lesser hit chance than that, except
+        -- when this is better than the third best terrain for the unit. An example
+        -- are ghosts, which have 50% on all terrains.
+        -- I have tested this for most mainline level 1 units and it seems to work pretty well.
+        local good_terrain_hit_chance = flat_hc - 10
+        if (good_terrain_hit_chance < hit_chances[3].hit_chance) then
+            good_terrain_hit_chance = flat_hc
+        end
+        --std_print('good_terrain_hit_chance', good_terrain_hit_chance)
+
+        single_unit_info.good_terrain_hit_chance = good_terrain_hit_chance / 100.
+    else
+        std_print('************ using this on a unit type ***********')
+    end
+
+    return single_unit_info
+end
+
 function fred_utils.approx_value_loss(unit_info, av_damage, max_damage)
     -- This is similar to FAU.damage_rating_unit (but simplified)
     -- TODO: maybe base the two on the same core function at some point
@@ -132,7 +299,6 @@ function fred_utils.approx_value_loss(unit_info, av_damage, max_damage)
     -- more important for units already injured. Making it a fraction of hitpoints
     -- would overemphasize units close to dying, as that is also factored in. Thus,
     -- we use an effective HP value that's a weighted average of the two.
-    -- TODO: splitting it 50/50 seems okay for now, but might have to be fine-tuned.
     local injured_fraction = 0.5
     local hp = unit_info.hitpoints
     local hp_eff = injured_fraction * hp + (1 - injured_fraction) * unit_info.max_hitpoints
@@ -770,169 +936,6 @@ function fred_utils.get_influence_maps(move_data)
     return influence_maps, unit_influence_maps
 end
 
-function fred_utils.single_unit_info(unit_proxy, unit_types_cache)
-    -- Collects unit information from proxy unit table @unit_proxy into a Lua table
-    -- so that it is accessible faster.
-    -- Note: Even accessing the directly readable fields of a unit proxy table
-    -- is slower than reading from a Lua table; not even talking about unit_proxy.__cfg.
-    --
-    -- This can also be used on a unit type entry from wesnoth.unit_types, but in that
-    -- case not all fields will be populated, of course, and anything depending on
-    -- traits and the like will not necessarily be correct for the individual unit
-    --
-    -- Important: this is slow, so it should only be called once at the beginning
-    -- of each move, but it does need to be redone after each move, as it contains
-    -- information like HP and XP (or the unit might have leveled up or been changed
-    -- in an event).
-    --
-    -- Note: unit location information is NOT included
-
-    -- This is by far the most expensive step in this function, but it cannot be skipped yet
-    local unit_cfg = unit_proxy.__cfg
-
-    local single_unit_info = {
-        id = unit_proxy.id,
-        canrecruit = unit_proxy.canrecruit,
-        side = unit_proxy.side,
-
-        moves = unit_proxy.moves,
-        max_moves = unit_proxy.max_moves,
-        hitpoints = unit_proxy.hitpoints,
-        max_hitpoints = unit_proxy.max_hitpoints,
-        experience = unit_proxy.experience,
-        max_experience = unit_proxy.max_experience,
-
-        type = unit_proxy.type,
-        alignment = unit_proxy.alignment,
-        cost = unit_proxy.cost,
-        level = unit_proxy.level
-    }
-
-    -- Pick the first of the advances_to types, nil when there is none
-    single_unit_info.advances_to = unit_proxy.advances_to[1]
-
-    -- Include the ability type, such as: hides, heals, regenerate, skirmisher (set up as 'hides = true')
-    -- Note that unit_proxy.abilities gives the id of the ability. This is different from
-    -- the value below, which is the name of the tag (e.g. 'heals' vs. 'healing' and/or 'curing')
-    single_unit_info.abilities = {}
-    local abilities = wml.get_child(unit_cfg, "abilities")
-    if abilities then
-        for _,ability in ipairs(abilities) do
-            single_unit_info.abilities[ability[1]] = true
-        end
-    end
-
-    -- Information about the attacks indexed by weapon number,
-    -- including specials (e.g. 'poison = true')
-    single_unit_info.attacks = {}
-    local max_damage = 0
-    for i,attack in ipairs(unit_proxy.attacks) do
-        -- Extract information for specials; we do this first because some
-        -- custom special might have the same name as one of the default scalar fields
-        local a = {}
-        for _,sp in ipairs(attack.specials) do
-            if (sp[1] == 'damage') then  -- this is 'backstab'
-                if (sp[2].id == 'backstab') then
-                    a.backstab = true
-                else
-                    if (sp[2].id == 'charge') then a.charge = true end
-                end
-            else
-                -- magical, marksman
-                if (sp[1] == 'chance_to_hit') then
-                    a[sp[2].id] = true
-                else
-                    a[sp[1]] = true
-                end
-            end
-        end
-        a.damage = attack.damage
-        a.number = attack.number
-        a.range = attack.range
-        a.type = attack.type
-
-        table.insert(single_unit_info.attacks, a)
-
-        -- TODO: potentially use FAU.get_total_damage_attack for this later, but for
-        -- the time being these are too different, and have too different a purpose.
-        total_damage = a.damage * a.number
-
-        -- Just use blanket damage for poison and slow for now; might be refined later
-        if a.poison then total_damage = total_damage + 8 end
-        if a.slow then total_damage = total_damage + 4 end
-
-        -- Also give some bonus for drain and backstab, but not to the full extent
-        -- of what they can achieve
-        if a.drains then total_damage = total_damage * 1.25 end
-        if a.backstab then total_damage = total_damage * 1.33 end
-
-        if (total_damage > max_damage) then
-            max_damage = total_damage
-        end
-    end
-    single_unit_info.max_damage = max_damage
-
-    -- Time of day modifier: done here once so that it works on unit types also.
-    -- It is repeated below if a unit is passed, to take the fearless trait into account.
-    single_unit_info.tod_mod = fred_utils.get_unit_time_of_day_bonus(single_unit_info.alignment, false, wesnoth.get_time_of_day().lawful_bonus)
-
-
-    -- The following can only be done on a real unit, not on a unit type
-    if (unit_proxy.x) then
-        local unit_value, value_factor = unit_value(single_unit_info, unit_types_cache)
-        single_unit_info.unit_value = unit_value
-        single_unit_info.value_factor = value_factor
-
-        single_unit_info.base_power = unit_base_power(single_unit_info.hitpoints, single_unit_info.max_hitpoints, max_damage)
-        single_unit_info.current_power = unit_current_power(single_unit_info.base_power, single_unit_info.tod_mod)
-        single_unit_info.status = {}
-        local status = wml.get_child(unit_cfg, "status")
-        for k,_ in pairs(status) do
-            single_unit_info.status[k] = true
-        end
-
-        single_unit_info.traits = {}
-        local mods = wml.get_child(unit_cfg, "modifications")
-        for trait in wml.child_range(mods, 'trait') do
-            single_unit_info.traits[trait.id] = true
-        end
-
-        -- Now we do this again, using the correct value for the fearless trait
-        single_unit_info.tod_mod = fred_utils.get_unit_time_of_day_bonus(single_unit_info.alignment, single_unit_info.traits.fearless, wesnoth.get_time_of_day().lawful_bonus)
-
-        -- Define what "good terrain" means for a unit
-        local defense = wml.get_child(unit_cfg, "defense")
-        -- Get the hit chances for all terrains and sort (best = lowest hit chance first)
-        local hit_chances = {}
-        for _,hit_chance in pairs(defense) do
-            table.insert(hit_chances, { hit_chance = math.abs(hit_chance) })
-        end
-        table.sort(hit_chances, function(a, b) return a.hit_chance < b.hit_chance end)
-
-        -- As "normal" we use the hit chance on "flat equivalent" terrain.
-        -- That means on flat for most units, on cave for dwarves etc.
-        -- and on shallow water for mermen, nagas etc.
-        -- Use the best of those
-        local flat_hc = math.min(defense.flat, defense.cave, defense.shallow_water)
-        --std_print('best hit chance on flat, cave, shallow water:', flat_hc)
-        --std_print(defense.flat, defense.cave, defense.shallow_water)
-
-        -- Good terrain is now defined as 10% lesser hit chance than that, except
-        -- when this is better than the third best terrain for the unit. An example
-        -- are ghosts, which have 50% on all terrains.
-        -- I have tested this for most mainline level 1 units and it seems to work pretty well.
-        local good_terrain_hit_chance = flat_hc - 10
-        if (good_terrain_hit_chance < hit_chances[3].hit_chance) then
-            good_terrain_hit_chance = flat_hc
-        end
-        --std_print('good_terrain_hit_chance', good_terrain_hit_chance)
-
-        single_unit_info.good_terrain_hit_chance = good_terrain_hit_chance / 100.
-    end
-
-    return single_unit_info
-end
-
 function fred_utils.get_unit_hex_combos(dst_src, get_best_combo, add_rating)
     -- Recursively find all combinations of distributing
     -- units on hexes. The number of units and hexes does not have to be the same.
@@ -1061,7 +1064,6 @@ function fred_utils.get_unit_hex_combos(dst_src, get_best_combo, add_rating)
     end
 
     add_combos()
-
 
     if get_best_combo then
         return best_combo
