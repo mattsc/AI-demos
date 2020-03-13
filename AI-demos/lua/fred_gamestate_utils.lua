@@ -2,6 +2,7 @@ local AH = wesnoth.dofile "ai/lua/ai_helper.lua"
 local H = wesnoth.require "helper"
 local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
+local FMU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_map_utils.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
 
@@ -416,7 +417,7 @@ function fred_gamestate_utils.get_move_data(fred_data)
 
     show_timing_info(fred_data, '  influence maps')
 
-    local influence_maps, unit_influence_maps = FU.get_influence_maps(fred_data.move_data)
+    local influence_maps, unit_influence_maps = FMU.get_influence_maps(fred_data.move_data)
 
     fred_data.move_data.influence_maps = influence_maps
     fred_data.move_data.unit_influence_maps = unit_influence_maps

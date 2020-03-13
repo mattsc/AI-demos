@@ -7,6 +7,7 @@ local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
 local FHU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_hold_utils.lua"
+local FMU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_map_utils.lua"
 local FRU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_retreat_utils.lua"
 local FVS = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_virtual_state.lua"
 local FVU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_village_utils.lua"
@@ -436,7 +437,7 @@ function fred_ops_utils.find_fronts(zone_maps, zone_influence_maps, fred_data)
     -- Use the AI side's start_hex in that case.
     local leader_distance_map = fred_data.ops_data.leader_distance_map
     if (not leader_distance_map) then
-        leader_distance_map = FU.get_leader_distance_map(my_start_hex, side_cfgs)
+        leader_distance_map = FMU.get_leader_distance_map(my_start_hex, side_cfgs)
     end
 
     local my_ld0 = FGM.get_value(leader_distance_map, my_start_hex[1], my_start_hex[2], 'distance')
@@ -1083,7 +1084,7 @@ function fred_ops_utils.set_ops_data(fred_data)
             and (not FGM.get_value(move_data.close_castles_map[move_data.unit_infos[id].side], loc[1], loc[2], 'castle') or false)
         then
             local unit_copy = move_data.unit_copies[id]
-            local zone_id = FU.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs)
+            local zone_id = FMU.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs)
 
             if (not assigned_enemies[zone_id]) then
                 assigned_enemies[zone_id] = {}
@@ -1142,7 +1143,7 @@ function fred_ops_utils.set_ops_data(fred_data)
                 end
 
                 if (not to_zone) then
-                    to_zone = FU.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs)
+                    to_zone = FMU.moved_toward_zone(unit_copy, fronts, raw_cfgs, side_cfgs)
                 end
 
                 if move_data.my_units_MP[id] then
@@ -1331,12 +1332,12 @@ function fred_ops_utils.set_ops_data(fred_data)
     local leader_goal = objectives.leader.final
     --DBG.dbms(leader_goal, false, 'leader_goal')
 
-    local leader_distance_map = FU.get_leader_distance_map(leader_goal, side_cfgs)
+    local leader_distance_map = FMU.get_leader_distance_map(leader_goal, side_cfgs)
     fred_data.ops_data.leader_distance_map = leader_distance_map
 
     fred_data.ops_data.unit_advance_distance_maps = fred_data.ops_data.unit_advance_distance_maps or {}
     local unit_advance_distance_maps = fred_data.ops_data.unit_advance_distance_maps
-    FU.get_unit_advance_distance_maps(fred_data.ops_data.unit_advance_distance_maps, raw_cfgs, side_cfgs, nil, move_data)
+    FMU.get_unit_advance_distance_maps(fred_data.ops_data.unit_advance_distance_maps, raw_cfgs, side_cfgs, nil, move_data)
 
 
     -- The leader zone is different in several respects:
@@ -1350,7 +1351,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         local zone_cfg = { all_map = FMC.get_raw_cfgs('all_map') }
         local AADM_cfg = { my_leader_loc = leader_goal }
         local all_advance_distance_maps = {}
-        FU.get_unit_advance_distance_maps(all_advance_distance_maps, zone_cfg, side_cfgs, AADM_cfg, move_data)
+        FMU.get_unit_advance_distance_maps(all_advance_distance_maps, zone_cfg, side_cfgs, AADM_cfg, move_data)
 
         for id,map in pairs(all_advance_distance_maps['all_map']) do
             unit_advance_distance_maps['leader'][id] = {}

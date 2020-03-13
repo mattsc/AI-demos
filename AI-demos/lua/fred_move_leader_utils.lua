@@ -3,6 +3,7 @@ local AH = wesnoth.require "ai/lua/ai_helper.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FS = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_status.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
+local FMU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_map_utils.lua"
 local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
 local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
@@ -91,7 +92,7 @@ local function get_reach_map_to_keep(leader, move_data)
 
     local effective_reach_map = {}
     for x_k,y_k,_ in FGM.iter(keeps_map) do
-        local cost_from_keep = FU.smooth_cost_map(leader_proxy, { x_k, y_k }, true)
+        local cost_from_keep = FMU.smooth_cost_map(leader_proxy, { x_k, y_k }, true)
         --DBG.show_fgumap_with_message(cost_from_keep, 'cost', 'cost_from_keep')
 
         for x,y,data in FGM.iter(cost_from_keep) do
@@ -477,7 +478,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
         end
         --DBG.dbms(enemies, false, 'enemies')
 
-        local between_map = FU.get_between_map({ goal_loc }, enemies, fred_data.move_data)
+        local between_map = FMU.get_between_map({ goal_loc }, enemies, fred_data.move_data)
 
         for x,y,between in FGM.iter(between_map) do
             if between.is_between then

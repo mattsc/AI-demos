@@ -9,6 +9,7 @@ local FVS = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_virtual_state.lua"
 local FBU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_benefits_utilities.lua"
 local FOU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_ops_utils.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
+local FMU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_map_utils.lua"
 local LS = wesnoth.require "location_set"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 local FRU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_retreat_utils.lua"
@@ -1858,7 +1859,7 @@ local function get_hold_action(zone_cfg, fred_data)
         end
         --DBG.dbms(tmp_enemies, false, 'tmp_enemies')
 
-        between_map = FU.get_between_map(locs, tmp_enemies, move_data)
+        between_map = FMU.get_between_map(locs, tmp_enemies, move_data)
 
         if DBG.show_debug('hold_between_map') then
             DBG.show_fgumap_with_message(between_map, 'is_between', zone_cfg.zone_id .. ': between map: is_between')
@@ -2807,7 +2808,7 @@ local function get_advance_action(zone_cfg, fred_data)
             --std_print('unit out of zone: ' .. id, unit_infl, influence_mult)
             --local path, cost = wesnoth.find_path(unit_copy, goal[1], goal[2], { ignore_units = true })
             local path, cost = COMP.find_path_custom_cost(unit_copy, goal[1], goal[2], function(x, y, current_cost)
-                return FU.influence_custom_cost(x, y, unit_copy, influence_mult, move_data.influence_maps, move_data)
+                return FMU.influence_custom_cost(x, y, unit_copy, influence_mult, move_data.influence_maps, move_data)
             end)
 
             -- Debug code for showing the path
