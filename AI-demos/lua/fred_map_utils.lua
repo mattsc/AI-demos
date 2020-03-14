@@ -178,8 +178,7 @@ function fred_map_utils.get_between_map(locs, units, move_data)
         unit[id] = unit_loc
         local unit_proxy = COMP.get_unit(unit_loc[1], unit_loc[2])
 
-
-        local cost_map = fred_map_utils.smooth_cost_map(unit_proxy, move_data.movecost_maps_cache)
+        local cost_map = fred_map_utils.smooth_cost_map(unit_proxy, nil, false, move_data.movecost_maps_cache)
         local max_moves = move_data.unit_copies[id].max_moves
 
         if false then
