@@ -3472,6 +3472,8 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
         or (fred_data.turn_data.turn_number ~= wesnoth.current.turn)
         or (fred_data.turn_data.side_number ~= wesnoth.current.side)
     then
+        clear_fred_data() -- in principle this should not be necessary, but it's cheap, so keeping it as an insurance policy
+
         local ai = ai_debug or ai
         fred_data.recruit = {}
         local params = {
@@ -3482,11 +3484,8 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
 
         FGU.get_move_data(fred_data)
         FDT.set_turn_data(fred_data)
-        fred_data.move_cache = {}
-        fred_data.ops_data = {}
     else
         FGU.get_move_data(fred_data)
-        fred_data.move_cache = {}
         FDT.update_turn_data(fred_data)
     end
 

@@ -496,6 +496,7 @@ function fred_ops_utils.set_ops_data(fred_data)
     local move_data = fred_data.move_data
     local raw_cfgs = FMC.get_raw_cfgs()
     local side_cfgs = FMC.get_side_cfgs()
+    fred_data.ops_data = {}
     --DBG.dbms(raw_cfgs, false, 'raw_cfgs')
 
 

@@ -377,6 +377,7 @@ function fred_gamestate_utils.get_move_data(fred_data)
 
 
     -- Keeping all of this in one place, as a "table of contents"
+    fred_data.move_cache = {}
     fred_data.move_data = {
         units = units,
         my_units = my_units,
