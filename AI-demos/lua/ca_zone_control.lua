@@ -3445,15 +3445,19 @@ end
 local ca_zone_control = {}
 
 function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
-    turn_start_time = wesnoth.get_time_stamp() / 1000.
-
-    -- This forces the turn data to be reset each call (use with care!)
-    if DBG.show_debug('reset_turn') then
+    local function clear_fred_data()
         for k,_ in pairs(fred_data) do
             if (k ~= 'data') then -- the 'data' field needs to be preserved for the engine
                 fred_data[k] = nil
             end
         end
+    end
+
+    turn_start_time = wesnoth.get_time_stamp() / 1000.
+
+    -- This forces the turn data to be reset each call (use with care!)
+    if DBG.show_debug('reset_turn') then
+        clear_fred_data()
     end
 
     fred_data.turn_start_time = turn_start_time
@@ -3592,6 +3596,8 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
     DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> done with all cfgs: no action found')
     DBG.print_timing(fred_data, 0, '-- end evaluation zone_control CA')
 
+    -- This is mostly done so that there is no chance of corruption of savefiles
+    clear_fred_data()
     return 0
 end
 
