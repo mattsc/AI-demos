@@ -97,14 +97,6 @@ local function init_CA(self)
     local ai = COMP.debug_ai()
     local ca = wesnoth.dofile("~add-ons/AI-demos/lua/ca_zone_control.lua")
 
-    -- First time we need to call reset_vars_turn:execution
-    if (not self.data.turn_data) then
-        wesnoth.dofile("~add-ons/AI-demos/lua/ca_reset_vars_turn.lua"):execution(nil, self, ai)
-    end
-
-    -- We always need to call reset_vars_move:evaluation first, to set up the move_data table
-    wesnoth.dofile("~add-ons/AI-demos/lua/ca_reset_vars_move.lua"):evaluation(nil, self, ai)
-
     return ai, ca
 end
 

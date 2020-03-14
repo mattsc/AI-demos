@@ -2,6 +2,7 @@ local H = wesnoth.require "helper"
 local AH = wesnoth.require "ai/lua/ai_helper.lua"
 local AHL = wesnoth.require "~/add-ons/AI-demos/lua/ai_helper_local.lua"
 local FGM = wesnoth.require "~/add-ons/AI-demos/lua/fred_gamestate_map.lua"
+local FGU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils.lua"
 local FGUI = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_gamestate_utils_incremental.lua"
 local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FS = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_status.lua"
@@ -3444,22 +3445,43 @@ end
 local ca_zone_control = {}
 
 function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
+    turn_start_time = wesnoth.get_time_stamp() / 1000.
+
+    -- This forces the turn data to be reset each call (use with care!)
+    if DBG.show_debug('reset_turn') then
+        for k,_ in pairs(fred_data) do
+            if (k ~= 'data') then -- the 'data' field needs to be preserved for the engine
+                fred_data[k] = nil
+            end
+        end
+    end
+
+    fred_data.turn_start_time = turn_start_time
+    fred_data.previous_time = turn_start_time -- This is only used for timing debug output
     DBG.print_debug_time('eval', - fred_data.turn_start_time, 'start evaluating zone_control CA:')
     DBG.print_timing(fred_data, 0, '-- start evaluating zone_control CA:')
 
     local score_zone_control = 350000
 
-    -- This forces the turn data to be reset each call (use with care!)
-    if DBG.show_debug('reset_turn') then
-        fred_data.turn_data = nil
-    end
-
     if (not fred_data.turn_data)
         or (fred_data.turn_data.turn_number ~= wesnoth.current.turn)
         or (fred_data.turn_data.side_number ~= wesnoth.current.side)
     then
+        local ai = ai_debug or ai
+        fred_data.recruit = {}
+        local params = {
+            high_level_fraction = 0,
+            score_function = function () return 181000 end
+        }
+        wesnoth.require("~add-ons/AI-demos/lua/generic_recruit_engine.lua").init(ai, fred_data.recruit, params)
+
+        FGU.get_move_data(fred_data)
         FOU.set_turn_data(fred_data)
+        fred_data.move_cache = {}
         fred_data.ops_data = {}
+    else
+        FGU.get_move_data(fred_data)
+        fred_data.move_cache = {}
     end
 
     DBG.print_timing(fred_data, 0, '   call set_ops_data()')
