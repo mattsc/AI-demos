@@ -8,6 +8,7 @@ local FU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_utils.lua"
 local FS = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_status.lua"
 local FVS = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_virtual_state.lua"
 local FBU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_benefits_utilities.lua"
+local FDT = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_data_turn.lua"
 local FOU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_ops_utils.lua"
 local FAU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_attack_utils.lua"
 local FMU = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_map_utils.lua"
@@ -3480,7 +3481,7 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
         wesnoth.require("~add-ons/AI-demos/lua/generic_recruit_engine.lua").init(ai, fred_data.recruit, params)
 
         FGU.get_move_data(fred_data)
-        FOU.set_turn_data(fred_data)
+        FDT.set_turn_data(fred_data)
         fred_data.move_cache = {}
         fred_data.ops_data = {}
     else
