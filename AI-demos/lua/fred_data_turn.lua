@@ -46,4 +46,13 @@ function fred_data_turn.set_turn_data(fred_data)
     }
 end
 
+function fred_data_turn.update_turn_data(fred_data)
+    -- In case an enemy has died
+    for enemy_id,eirm in pairs(fred_data.turn_data.enemy_initial_reach_maps) do
+        if (not fred_data.move_data.enemies[enemy_id]) then
+            fred_data.turn_data.enemy_initial_reach_maps[enemy_id] = nil
+        end
+    end
+end
+
 return fred_data_turn

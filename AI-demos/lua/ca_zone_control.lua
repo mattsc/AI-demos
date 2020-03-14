@@ -3487,6 +3487,7 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
     else
         FGU.get_move_data(fred_data)
         fred_data.move_cache = {}
+        FDT.update_turn_data(fred_data)
     end
 
     DBG.print_timing(fred_data, 0, '   call set_ops_data()')
