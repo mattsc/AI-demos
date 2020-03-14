@@ -1198,7 +1198,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, move_data, mo
                             random_gender = false
                         }, defender_loc[1], defender_loc[2])
                         local adv_defender_proxy = COMP.get_unit(defender_loc[1], defender_loc[2])
-                        local adv_defender_info = FU.single_unit_info(adv_defender_proxy, fred_data.move_data.unit_types_cache)
+                        local adv_defender_info = FU.single_unit_info(adv_defender_proxy, move_data.unit_types_cache)
 
                         local aoc, doc = fred_attack_utils.attack_outcome(
                             attacker_copies[i], adv_defender_proxy, dsts[i],
