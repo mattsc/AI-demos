@@ -68,7 +68,7 @@ function fred_map_utils.influence_custom_cost(x, y, unit_copy, influence_mult, i
     local cost = FDI.get_unit_movecost(unit_copy, x, y, fred_data.caches.movecost_maps)
     if (cost >= 99) then return cost end
 
-    if FGM.get_value(fred_data.enemy_map, x, y, 'id') then
+    if FGM.get_value(fred_data.move_data.enemy_map, x, y, 'id') then
         --std_print(x, y, 'enemy')
         cost = cost + 99
     end
