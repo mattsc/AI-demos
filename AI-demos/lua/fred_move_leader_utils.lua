@@ -10,6 +10,14 @@ local FCFG = wesnoth.dofile "~/add-ons/AI-demos/lua/fred_config.lua"
 local DBG = wesnoth.dofile "~/add-ons/AI-demos/lua/debug.lua"
 local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
 
+local function show_timing_info(fred_data, text)
+    -- Set to true or false manually, to enable timing info specifically for this
+    -- function. The debug_utils timing flag still needs to be set also.
+    if false then
+        DBG.print_timing(fred_data, 2, text)
+    end
+end
+
 local function get_reach_map_via_keep(leader, move_data)
     -- Map of hexes the leader can reach after going to a keep.
     -- Hexes with own units with MP=0 are excluded.
@@ -44,12 +52,14 @@ local function get_reach_map_via_keep(leader, move_data)
     return effective_reach_map
 end
 
-local function get_reach_map_to_keep(leader, move_data)
+local function get_reach_map_to_keep(leader, fred_data)
     -- Map of hexes from which the leader can reach a keep with full MP on the next
     -- turn. In this case, 'moves_left' denotes MP left after moving to the keep.
     -- x,y in the output map denote the keep to which this is calculated
     -- Hexes with own units with MP=0 are excluded.
     -- This can be used to find how far the leader can wander and still get to a keep next turn.
+
+    local move_data = fred_data.move_data
 
     local leader_proxy = COMP.get_unit(leader[1], leader[2])
     local max_moves = move_data.unit_infos[leader.id].max_moves
@@ -289,6 +299,8 @@ end
 local fred_move_leader_utils = {}
 
 function fred_move_leader_utils.leader_objectives(fred_data)
+    show_timing_info(fred_data, 'start leader_objectives()')
+
     local move_data = fred_data.move_data
     local leader = move_data.my_leader
 
@@ -299,8 +311,8 @@ function fred_move_leader_utils.leader_objectives(fred_data)
         -- Note that the leader is included in the units that can move out of the
         -- way, as he might be on a castle hex other than a keep. The recruit location is
         -- is automatically excluded by the prerecruit code.
-
         prerecruit = fred_data.recruit:prerecruit_units({ x, y }, nil, move_data.my_units_can_move_away)
+
         -- Need to do this, or the recruit CA will try to recruit the same units again later
         fred_data.recruit:clear_prerecruit()
 
@@ -312,6 +324,8 @@ function fred_move_leader_utils.leader_objectives(fred_data)
         do_recruit = true
     end
 
+    show_timing_info(fred_data, 'effective reach maps')
+
     local effective_reach_map, village, keep, other
     if move_data.my_units_MP[leader.id] then
         -- These are used for other purposes also, so they are not linked to whether we
@@ -322,7 +336,7 @@ function fred_move_leader_utils.leader_objectives(fred_data)
         -- Even if we want to recruit, we need the other effective_reach_map if no
         -- keep can be reached
         if (not effective_reach_map) or (not next(effective_reach_map)) then
-            effective_reach_map = get_reach_map_to_keep(leader, move_data)
+            effective_reach_map = get_reach_map_to_keep(leader, fred_data)
         end
         --DBG.show_fgumap_with_message(effective_reach_map, 'moves_left', 'effective_reach_map', move_data.unit_copies[leader.id])
 
@@ -342,6 +356,8 @@ function fred_move_leader_utils.leader_objectives(fred_data)
         final = village or keep or other or leader,
         do_recruit = do_recruit
     }
+
+    show_timing_info(fred_data, 'end leader_objectives()')
 
     return leader_objectives, effective_reach_map
 end
