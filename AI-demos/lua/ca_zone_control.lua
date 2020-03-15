@@ -27,7 +27,6 @@ local function get_attack_action(zone_cfg, fred_data)
     --DBG.dbms(zone_cfg, false, 'zone_cfg')
 
     local move_data = fred_data.move_data
-    local move_cache = fred_data.move_cache
 
     local leader_max_die_chance = FCFG.get_cfg_parm('leader_max_die_chance')
 
@@ -2650,8 +2649,6 @@ local function get_advance_action(zone_cfg, fred_data)
     --DBG.dbms(raw_cfg, false, 'raw_cfg')
 
     local move_data = fred_data.move_data
-    local move_cache = fred_data.move_cache
-
 
     -- Advancers are those specified in zone_units, or all units except the leader otherwise
     local advancers = {}

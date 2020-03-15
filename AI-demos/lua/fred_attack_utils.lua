@@ -765,11 +765,9 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
     -- @dst: location from which the attacker will attack in form { x, y }
     -- @attacker_info, @defender_info: unit info for the two units (needed in addition to the units
     --   themselves in order to speed things up)
-    --  @move_data: table with the game state
-    --  @move_cache: for caching data *for this move only*, needs to be cleared after a gamestate change
 
     local move_data = fred_data.move_data
-    local move_cache = fred_data.move_cache
+    local attacks_cache = fred_data.caches.attacks
 
     local defender_defense = FDI.get_unit_defense(defender_proxy, defender_proxy.x, defender_proxy.y, fred_data.caches.defense_maps)
     local attacker_defense = FDI.get_unit_defense(attacker_copy, dst[1], dst[2], fred_data.caches.defense_maps)
@@ -780,16 +778,16 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
     local cache_def_id = defender_info.id .. '-' .. defender_info.experience
 
     -- TODO: this does not include differences due to XP, leadership, illumination etc.
-    if move_cache[cache_att_id]
-        and move_cache[cache_att_id][cache_def_id]
-        and move_cache[cache_att_id][cache_def_id][attacker_defense]
-        and move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense]
-        and move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints]
-        and move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints]
+    if attacks_cache[cache_att_id]
+        and attacks_cache[cache_att_id][cache_def_id]
+        and attacks_cache[cache_att_id][cache_def_id][attacker_defense]
+        and attacks_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense]
+        and attacks_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints]
+        and attacks_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints]
     then
-        return move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints].att_outcome,
-            move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints].def_outcome,
-            move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints].att_weapon_i
+        return attacks_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints].att_outcome,
+            attacks_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints].def_outcome,
+            attacks_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints].att_weapon_i
     end
 
     local old_x, old_y = attacker_copy.x, attacker_copy.y
@@ -802,15 +800,15 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
     -- in the attack evaluations. Either find a better way to do this or remove later.
     local use_max_damage_weapons = true
     if use_max_damage_weapons then
-        if (not move_cache.best_weapons)
-            or (not move_cache.best_weapons[attacker_info.id])
-            or (not move_cache.best_weapons[attacker_info.id][defender_info.id])
+        if (not attacks_cache.best_weapons)
+            or (not attacks_cache.best_weapons[attacker_info.id])
+            or (not attacks_cache.best_weapons[attacker_info.id][defender_info.id])
         then
-            if (not move_cache[cache_att_id]) then
-                move_cache[cache_att_id] = {}
+            if (not attacks_cache[cache_att_id]) then
+                attacks_cache[cache_att_id] = {}
             end
-            if (not move_cache[cache_att_id][cache_def_id]) then
-                move_cache[cache_att_id][cache_def_id] = {}
+            if (not attacks_cache[cache_att_id][cache_def_id]) then
+                attacks_cache[cache_att_id][cache_def_id] = {}
             end
 
             --std_print(' Finding highest-damage weapons: ', attacker_info.id, defender_info.id)
@@ -852,21 +850,21 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
             end
             --std_print('  --> best att/def:', att_weapon_i, max_att_damage, def_weapon_i, max_def_damage)
 
-            if (not move_cache.best_weapons) then
-                move_cache.best_weapons = {}
+            if (not attacks_cache.best_weapons) then
+                attacks_cache.best_weapons = {}
             end
-            if (not move_cache.best_weapons[attacker_info.id]) then
-                move_cache.best_weapons[attacker_info.id] = {}
+            if (not attacks_cache.best_weapons[attacker_info.id]) then
+                attacks_cache.best_weapons[attacker_info.id] = {}
             end
 
-            move_cache.best_weapons[attacker_info.id][defender_info.id] = {
+            attacks_cache.best_weapons[attacker_info.id][defender_info.id] = {
                 att_weapon_i = att_weapon_i,
                 def_weapon_i = def_weapon_i
             }
 
         else
-            att_weapon_i = move_cache.best_weapons[attacker_info.id][defender_info.id].att_weapon_i
-            def_weapon_i = move_cache.best_weapons[attacker_info.id][defender_info.id].def_weapon_i
+            att_weapon_i = attacks_cache.best_weapons[attacker_info.id][defender_info.id].att_weapon_i
+            def_weapon_i = attacks_cache.best_weapons[attacker_info.id][defender_info.id].def_weapon_i
             --std_print(' Reusing weapons: ', cache_att_id, defender_info.id, att_weapon_i, def_weapon_i)
         end
 
@@ -889,23 +887,23 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
     local def_outcome = fred_attack_utils.attstat_to_outcome(defender_info, tmp_def_stat, tmp_att_stat.hp_chance[0], attacker_info.level)
 
 
-    if (not move_cache[cache_att_id]) then
-        move_cache[cache_att_id] = {}
+    if (not attacks_cache[cache_att_id]) then
+        attacks_cache[cache_att_id] = {}
     end
-    if (not move_cache[cache_att_id][cache_def_id]) then
-        move_cache[cache_att_id][cache_def_id] = {}
+    if (not attacks_cache[cache_att_id][cache_def_id]) then
+        attacks_cache[cache_att_id][cache_def_id] = {}
     end
-    if (not move_cache[cache_att_id][cache_def_id][attacker_defense]) then
-        move_cache[cache_att_id][cache_def_id][attacker_defense] = {}
+    if (not attacks_cache[cache_att_id][cache_def_id][attacker_defense]) then
+        attacks_cache[cache_att_id][cache_def_id][attacker_defense] = {}
     end
-    if (not move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense]) then
-        move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense] = {}
+    if (not attacks_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense]) then
+        attacks_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense] = {}
     end
-    if (not move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints]) then
-        move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints] = {}
+    if (not attacks_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints]) then
+        attacks_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints] = {}
     end
 
-    move_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints]
+    attacks_cache[cache_att_id][cache_def_id][attacker_defense][defender_defense][attacker_info.hitpoints][defender_info.hitpoints]
         = { att_outcome = att_outcome, def_outcome = def_outcome, att_weapon_i = att_weapon_i }
 
     return att_outcome, def_outcome, att_weapon_i
@@ -916,8 +914,6 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, fred_data)
     -- @combo: attack combo table in the format returned by fred_attack_utils.get_attack_combos()
     -- @defender: table describing the defender in form { id = loc }
     -- @cfg: configuration parameters to be passed through to attack_rating
-    -- @move_data, @move_cache: only needed to pass to the functions being called
-    --    see fred_attack_utils.attack_outcome() for descriptions
     --
     -- Return value: table containing the following fields (or nil if no acceptable attacks are found)
     --   - att_outcomes: an array of outcomes for each attacker, in the order found for the "best attack",
@@ -929,7 +925,7 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, fred_data)
     --   - attacker_damages, defender_damage: damage table for all attackers, and the combined damage for the defender
 
     local move_data = fred_data.move_data
-    local move_cache = fred_data.move_cache
+    local attacks_cache = fred_data.caches.attacks
 
     ----- Begin combine_outcomes() -----
     local function combine_outcomes(hp1, chance1, att_outcome, def_outcome, att_combo_table, def_combo_table, def_combo_table_base, def_poisoned, def_slowed, old_def_poisoned, old_def_slowed)
@@ -1186,9 +1182,9 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, fred_data)
                     local att_str = string.format('%s-%d-%d-%d', attacker_infos[i].id, dsts[i][1], dsts[i][2], attacker_infos[i].hitpoints)
                     --std_print(def_str, att_str)
 
-                    local lu_outcomes = move_cache.levelup
-                        and move_cache.levelup[def_str]
-                        and move_cache.levelup[def_str][att_str]
+                    local lu_outcomes = attacks_cache.levelup
+                        and attacks_cache.levelup[def_str]
+                        and attacks_cache.levelup[def_str][att_str]
                     if (not lu_outcomes) then
                         -- We create an entirely new unit in this case, replacing the
                         -- original defender_proxy by one of the correct advanced type
@@ -1219,14 +1215,14 @@ function fred_attack_utils.attack_combo_eval(combo, defender, cfg, fred_data)
 
                         lu_outcomes = { aoc = aoc, doc = doc}
 
-                        if (not move_cache.levelup) then
-                            move_cache.levelup = {}
+                        if (not attacks_cache.levelup) then
+                            attacks_cache.levelup = {}
                         end
-                        if (not move_cache.levelup[def_str]) then
-                            move_cache.levelup[def_str] = {}
+                        if (not attacks_cache.levelup[def_str]) then
+                            attacks_cache.levelup[def_str] = {}
                         end
-                        if (not move_cache.levelup[def_str][att_str]) then
-                            move_cache.levelup[def_str][att_str] = lu_outcomes
+                        if (not attacks_cache.levelup[def_str][att_str]) then
+                            attacks_cache.levelup[def_str][att_str] = lu_outcomes
                         end
                     end
 
@@ -1360,7 +1356,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, cfg, reach_map
     --   - Important: for units on the AI side, reach_maps must NOT included hexes with units that
     --     cannot move out of the way
     -- @get_strongest_attack (boolean): if set to 'true', don't return all attacks, but only the
-    --   one deemed strongest as described above. If this is set, @move_data and @move_cache nust be provided
+    --   one deemed strongest as described above. If this is set, @fred_data must be provided
     --
     -- Return value:
     --   - attack combinations (either a single one or an array) of form { src = dst }, e.g.:
@@ -1372,7 +1368,6 @@ function fred_attack_utils.get_attack_combos(attackers, defender, cfg, reach_map
     --     than what are used in any combo, depending on available hexes
 
     local move_data = fred_data.move_data
-    local move_cache = fred_data.move_cache
 
     local defender_id, defender_loc = next(defender)
 
@@ -1470,7 +1465,6 @@ function fred_attack_utils.calc_counter_attack(target, old_locs, new_locs, addit
     --  @cfg: configuration parameters to be passed through to attack_rating
 
     local move_data = fred_data.move_data
-    local move_cache = fred_data.move_cache
 
     if old_locs or new_locs then
         FVS.set_virtual_state(old_locs, new_locs, additional_units, false, move_data)
