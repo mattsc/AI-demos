@@ -2,7 +2,7 @@ local COMP = wesnoth.require "~/add-ons/AI-demos/lua/compatibility.lua"
 
 local function fred_sides()
     -- Check which sides are played by Fred
-    -- We do this by testing whether the 'zone_control' CA exists
+    -- We do this by testing whether the 'fred' CA exists
     -- Returns an array of the side numbers played by Fred
 
     local fred_sides = {}
@@ -10,7 +10,7 @@ local function fred_sides()
         local stage = wml.get_child(wml.get_child(side_info.__cfg, 'ai'), 'stage')
         for CA in wml.child_range(stage, 'candidate_action') do
             --std_print(CA.name)
-            if (CA.name == 'zone_control') then
+            if (CA.name == 'fred') then
                 table.insert(fred_sides, side_info.side)
                 break
             end

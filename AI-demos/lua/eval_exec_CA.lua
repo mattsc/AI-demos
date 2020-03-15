@@ -1,5 +1,5 @@
 -- This is a collection of functions that can be used to evaluate and/or execute
--- Fred's zone_control CA from the right-click menu
+-- Fred's main CA from the right-click menu
 --
 -- See the github wiki page for a detailed description of how to use them:
 -- https://github.com/mattsc/Wesnoth-AI-Demos/wiki/CA-debugging
@@ -17,7 +17,7 @@ local function is_wrong_side()
     local stage = wml.get_child(wml.get_child(side_info.__cfg, 'ai'), 'stage')
     for CA in wml.child_range(stage, 'candidate_action') do
         --std_print(CA.name)
-        if (CA.name == 'zone_control') then
+        if (CA.name == 'fred') then
             return false
         end
     end
@@ -32,7 +32,7 @@ local function CA_name()
     -- otherwise it defaults to 'recruit_orcs'
 
     local name = wml.variables.debug_CA_name
-    return name or 'zone_control'
+    return name or 'fred'
 end
 
 local function set_menus()
@@ -95,7 +95,7 @@ local function init_CA(self)
 
     -- Get the AI table and the CA functions
     local ai = COMP.debug_ai()
-    local ca = wesnoth.dofile("~add-ons/AI-demos/lua/ca_zone_control.lua")
+    local ca = wesnoth.dofile("~add-ons/AI-demos/lua/ca_fred.lua")
 
     return ai, ca
 end
@@ -183,7 +183,7 @@ return {
     end,
 
     play_turn = function(ai)
-        -- Play through an entire AI turn (zone_control CA only)
+        -- Play through an entire AI turn (fred CA only)
         if is_wrong_side() then return end
 
         local self = dummy_self
@@ -191,7 +191,7 @@ return {
         while 1 do
             local ai, ca = init_CA(self)
 
-            local ca_name, score, action = 'zone_control', ca:evaluation(nil, self, ai)
+            local ca_name, score, action = 'fred', ca:evaluation(nil, self, ai)
 
             if (score > 0) then
                 local action_str = action.zone_id .. '  ' .. action.action_str .. ':  '

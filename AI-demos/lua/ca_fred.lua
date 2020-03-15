@@ -234,9 +234,9 @@ local function do_recruit(fred_data, ai, action)
 end
 
 
-local ca_zone_control = {}
+local ca_fred = {}
 
-function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
+function ca_fred:evaluation(cfg, fred_data, ai_debug)
     local function clear_fred_data()
         for k,_ in pairs(fred_data) do
             if (k ~= 'data') then -- the 'data' field needs to be preserved for the engine
@@ -254,10 +254,10 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
 
     fred_data.turn_start_time = turn_start_time
     fred_data.previous_time = turn_start_time -- This is only used for timing debug output
-    DBG.print_debug_time('eval', - fred_data.turn_start_time, 'start evaluating zone_control CA:')
-    DBG.print_timing(fred_data, 0, '-- start evaluating zone_control CA:')
+    DBG.print_debug_time('eval', - fred_data.turn_start_time, 'start evaluating fred CA:')
+    DBG.print_timing(fred_data, 0, '-- start evaluating fred CA:')
 
-    local score_zone_control = 350000
+    local score_fred = 350000
 
     if (not fred_data.turn_data)
         or (fred_data.turn_data.turn_number ~= wesnoth.current.turn)
@@ -308,8 +308,8 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
                 fred_data.zone_action = previous_action
                 DBG.print_debug_time('eval', fred_data.turn_start_time, '      current action has lower score (' .. string.format('%.2f', cfg.rating) .. ') -> executing previous action')
                 DBG.print_debug_time('eval', fred_data.turn_start_time, '--> returning action ' .. previous_action.action_str .. ' (' .. previous_action.score .. ')')
-                DBG.print_timing(fred_data, 0, '-- end evaluation zone_control CA [1]')
-                return score_zone_control, previous_action
+                DBG.print_timing(fred_data, 0, '-- end evaluation fred CA [1]')
+                return score_fred, previous_action
             end
         end
 
@@ -339,8 +339,8 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
                 fred_data.zone_action = action
 
                 DBG.print_debug_time('eval', fred_data.turn_start_time, '--> returning action ' .. action.action_str .. ' (' .. string.format('%.2f', cfg.rating) .. ')')
-                DBG.print_timing(fred_data, 0, '-- end evaluation zone_control CA [2]')
-                return score_zone_control, action
+                DBG.print_timing(fred_data, 0, '-- end evaluation fred CA [2]')
+                return score_fred, action
             end
         else
             -- Extract all AI units with MP left (for enemy path finding, counter attack placement etc.)
@@ -378,8 +378,8 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
                     fred_data.zone_action = zone_action
 
                     DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> returning action ' .. zone_action.action_str .. ' (' .. cfg.rating .. ')')
-                    DBG.print_timing(fred_data, 0, '-- end evaluation zone_control CA [3]')
-                    return score_zone_control, zone_action
+                    DBG.print_timing(fred_data, 0, '-- end evaluation fred CA [3]')
+                    return score_fred, zone_action
                 end
             end
         end
@@ -389,19 +389,19 @@ function ca_zone_control:evaluation(cfg, fred_data, ai_debug)
         DBG.print_debug_time('eval', fred_data.turn_start_time, '  + previous action left at end of loop (' .. string.format('%.2f', previous_action.score) .. ')')
         fred_data.zone_action = previous_action
         DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> returning action ' .. previous_action.action_str .. ' (' .. previous_action.score .. ')')
-        DBG.print_timing(fred_data, 0, '-- end evaluation zone_control CA [4]')
-        return score_zone_control, previous_action
+        DBG.print_timing(fred_data, 0, '-- end evaluation fred CA [4]')
+        return score_fred, previous_action
     end
 
     DBG.print_debug_time('eval', fred_data.turn_start_time, '  --> done with all cfgs: no action found')
-    DBG.print_timing(fred_data, 0, '-- end evaluation zone_control CA [5]')
+    DBG.print_timing(fred_data, 0, '-- end evaluation fred CA [5]')
 
     -- This is mostly done so that there is no chance of corruption of savefiles
     clear_fred_data()
     return 0
 end
 
-function ca_zone_control:execution(cfg, fred_data, ai_debug)
+function ca_fred:execution(cfg, fred_data, ai_debug)
     local ai = ai_debug or ai
 
     local action = fred_data.zone_action.zone_id .. ': ' .. fred_data.zone_action.action_str
@@ -752,4 +752,4 @@ function ca_zone_control:execution(cfg, fred_data, ai_debug)
     fred_data.zone_action = nil
 end
 
-return ca_zone_control
+return ca_fred
