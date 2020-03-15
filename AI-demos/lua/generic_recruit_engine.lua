@@ -805,8 +805,8 @@ return {
             --  @outofway_units: a table of type { id = true } listing units that
             --    can move out of the way to make place for recruiting
             --  @cfg: table containing parameters to configure the hex rating
-            --    castle_rating_map: an FGUmap containing an additive rating contribution
-            --       Note: we do not include the fgumap functions here, but can access it manually
+            --    castle_rating_map: an FGmap containing an additive rating contribution
+            --       Note: we do not include the FGmap functions here, but can access it manually
             --    outofway_penalty: penalty to be used for hexes with units that can
             --      move out of the way (default: -100)
 

@@ -165,10 +165,10 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
 
     if DBG.show_debug('retreat_heal_maps') then
         for id,heal_map in pairs(heal_maps_no_regen) do
-            DBG.show_fgumap_with_message(heal_map, 'heal_amount', 'Heal map (no-regen unit)', move_data.unit_copies[id])
+            DBG.show_fgm_with_message(heal_map, 'heal_amount', 'Heal map (no-regen unit)', move_data.unit_copies[id])
         end
         for id,heal_map in pairs(heal_maps_regen) do
-            DBG.show_fgumap_with_message(heal_map, 'heal_amount', 'Heal map (regen unit)', move_data.unit_copies[id])
+            DBG.show_fgm_with_message(heal_map, 'heal_amount', 'Heal map (regen unit)', move_data.unit_copies[id])
         end
     end
 
@@ -197,7 +197,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
         end
 
         if DBG.show_debug('retreat_unit_rating') then
-            DBG.show_fgumap_with_message(rating_map, 'rating', 'Retreat rating map (no-regen unit)', move_data.unit_copies[id])
+            DBG.show_fgm_with_message(rating_map, 'rating', 'Retreat rating map (no-regen unit)', move_data.unit_copies[id])
         end
     end
     --DBG.dbms(tmp_dst_src, false, 'tmp_dst_src')
@@ -268,7 +268,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
         end
 
         if DBG.show_debug('retreat_unit_rating') then
-            DBG.show_fgumap_with_message(rating_map, 'rating', 'Retreat rating map (regen unit)', move_data.unit_copies[best_id])
+            DBG.show_fgm_with_message(rating_map, 'rating', 'Retreat rating map (regen unit)', move_data.unit_copies[best_id])
         end
 
         if best_loc then
@@ -413,7 +413,7 @@ function retreat_functions.find_best_retreat(retreaters, retreat_utilities, fred
             end
 
             if DBG.show_debug('retreat_unit_rating') then
-                DBG.show_fgumap_with_message(rating_map, 'rating', 'Retreat rating map (far villages)', move_data.unit_copies[id])
+                DBG.show_fgm_with_message(rating_map, 'rating', 'Retreat rating map (far villages)', move_data.unit_copies[id])
             end
         end
 

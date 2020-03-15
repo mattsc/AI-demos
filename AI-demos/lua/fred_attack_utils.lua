@@ -377,7 +377,7 @@ function fred_attack_utils.attack_rating(attacker_infos, defender_info, dsts, at
     --   - @value_ratio: if different from default
     --   - @defender_loc: if different from the position of the unit in the tables
     --   - @levelup_weight: weight to use for the level-up rating of damage_rating_unit()
-    --  @move_data: table with the game state as produced by fred_gamestate_utils.move_data()
+    --  @move_data: table with the game state
     --
     -- Returns:
     --   - Overall rating for the attack or attack combo
@@ -762,7 +762,7 @@ function fred_attack_utils.attack_outcome(attacker_copy, defender_proxy, dst, at
     -- @dst: location from which the attacker will attack in form { x, y }
     -- @attacker_info, @defender_info: unit info for the two units (needed in addition to the units
     --   themselves in order to speed things up)
-    --  @move_data: table with the game state as produced by fred_gamestate_utils.move_data()
+    --  @move_data: table with the game state
     --  @move_cache: for caching data *for this move only*, needs to be cleared after a gamestate change
 
     local defender_defense = FDI.get_unit_defense(defender_proxy, defender_proxy.x, defender_proxy.y, move_data.defense_maps_cache)
@@ -1341,7 +1341,7 @@ function fred_attack_utils.get_attack_combos(attackers, defender, cfg, reach_map
     --  @cfg: configuration parameters to be passed through to attack_rating
     --
     -- Optional inputs:
-    -- @reach_maps: reach_maps for the attackers in the form as returned by fred_gamestate_utils.get_mapstate()
+    -- @reach_maps: reach_maps for the attackers
     --   - This is _much_ faster if reach_maps is given; should be done for all attack combos for the side
     --     Only when the result depends on a hypothetical map situation (such as for counter attacks) should
     --     it be calculated here. If reach_maps are not given, @move_data must be provided

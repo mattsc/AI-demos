@@ -90,7 +90,7 @@ function fred_map_utils.smooth_cost_map(unit_proxy, loc, is_inverse_map, movecos
     -- Thus, there could still be some such effect for very long paths, but this is
     -- good enough for all practical purposes.
     --
-    -- Returns an FGU_map with the cost (key: 'cost')
+    -- Returns an FG_map with the cost (key: 'cost')
     --
     -- INPUTS:
     --  @unit_proxy: use the proxy here, because it might have already been extracted
@@ -146,7 +146,7 @@ function fred_map_utils.smooth_cost_map(unit_proxy, loc, is_inverse_map, movecos
     end
 
     if false then
-        DBG.show_fgumap_with_message(cost_map, 'cost', 'cost_map', unit_proxy.id)
+        DBG.show_fgm_with_message(cost_map, 'cost', 'cost_map', unit_proxy.id)
     end
 
     return cost_map
@@ -182,7 +182,7 @@ function fred_map_utils.get_between_map(locs, units, move_data)
         local max_moves = move_data.unit_copies[id].max_moves
 
         if false then
-            DBG.show_fgumap_with_message(cost_map, 'cost', 'cost_map', move_data.unit_copies[id])
+            DBG.show_fgm_with_message(cost_map, 'cost', 'cost_map', move_data.unit_copies[id])
         end
 
         local cum_loc_weight = 0
@@ -254,7 +254,7 @@ function fred_map_utils.get_between_map(locs, units, move_data)
             local inv_cost_full = FGM.get_value(inv_cost_map, unit_loc[1], unit_loc[2], 'cost')
 
             if false then
-                DBG.show_fgumap_with_message(inv_cost_map, 'cost', 'inv_cost_map to ' .. goal[1] .. ',' .. goal[2], move_data.unit_copies[id])
+                DBG.show_fgm_with_message(inv_cost_map, 'cost', 'inv_cost_map to ' .. goal[1] .. ',' .. goal[2], move_data.unit_copies[id])
             end
 
             local unit_map = {}
@@ -317,8 +317,8 @@ function fred_map_utils.get_between_map(locs, units, move_data)
             end
 
             if false then
-                DBG.show_fgumap_with_message(unit_map, 'rating', 'unit_map intermediate rating to ' .. goal[1] .. ',' .. goal[2], move_data.unit_copies[id])
-                DBG.show_fgumap_with_message(unit_map, 'perp_distance', 'unit_map perp_distance to ' .. goal[1] .. ',' .. goal[2], move_data.unit_copies[id])
+                DBG.show_fgm_with_message(unit_map, 'rating', 'unit_map intermediate rating to ' .. goal[1] .. ',' .. goal[2], move_data.unit_copies[id])
+                DBG.show_fgm_with_message(unit_map, 'perp_distance', 'unit_map perp_distance to ' .. goal[1] .. ',' .. goal[2], move_data.unit_copies[id])
             end
 
 
@@ -348,17 +348,17 @@ function fred_map_utils.get_between_map(locs, units, move_data)
             end
 
             if false then
-                DBG.show_fgumap_with_message(unit_map, 'rating', 'unit_map full rating to ' .. goal[1] .. ',' .. goal[2], move_data.unit_copies[id])
-                DBG.show_fgumap_with_message(unit_map, 'perp_distance', 'unit_map perp_distance ' .. id, move_data.unit_copies[id])
-                --DBG.show_fgumap_with_message(unit_map, 'total_cost', 'unit_map total_cost ' .. id, move_data.unit_copies[id])
+                DBG.show_fgm_with_message(unit_map, 'rating', 'unit_map full rating to ' .. goal[1] .. ',' .. goal[2], move_data.unit_copies[id])
+                DBG.show_fgm_with_message(unit_map, 'perp_distance', 'unit_map perp_distance ' .. id, move_data.unit_copies[id])
+                --DBG.show_fgm_with_message(unit_map, 'total_cost', 'unit_map total_cost ' .. id, move_data.unit_copies[id])
             end
         end
 
         if false then
-            DBG.show_fgumap_with_message(between_map, 'distance', 'between_map distance after adding ' .. id, move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(between_map, 'perp_distance', 'between_map perp_distance after adding ' .. id, move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(between_map, 'inv_cost', 'between_map inv_cost after adding ' .. id, move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(between_map, 'is_between', 'between_map is_between after adding ' .. id, move_data.unit_copies[id])
+            DBG.show_fgm_with_message(between_map, 'distance', 'between_map distance after adding ' .. id, move_data.unit_copies[id])
+            DBG.show_fgm_with_message(between_map, 'perp_distance', 'between_map perp_distance after adding ' .. id, move_data.unit_copies[id])
+            DBG.show_fgm_with_message(between_map, 'inv_cost', 'between_map inv_cost after adding ' .. id, move_data.unit_copies[id])
+            DBG.show_fgm_with_message(between_map, 'is_between', 'between_map is_between after adding ' .. id, move_data.unit_copies[id])
         end
     end
 
@@ -580,24 +580,24 @@ function fred_map_utils.get_influence_maps(move_data)
     end
 
     if DBG.show_debug('ops_influence_maps') then
-        DBG.show_fgumap_with_message(influence_maps, 'my_influence', 'My influence map')
-        DBG.show_fgumap_with_message(influence_maps, 'my_full_move_influence', 'My full-move influence map')
-        DBG.show_fgumap_with_message(influence_maps, 'my_two_turn_influence', 'My two-turn influence map')
-        --DBG.show_fgumap_with_message(influence_maps, 'my_number', 'My number')
-        DBG.show_fgumap_with_message(influence_maps, 'enemy_influence', 'Enemy influence map')
-        DBG.show_fgumap_with_message(influence_maps, 'enemy_full_move_influence', 'Enemy full-move influence map')
-        DBG.show_fgumap_with_message(influence_maps, 'enemy_two_turn_influence', 'Enemy two-turn influence map')
-        --DBG.show_fgumap_with_message(influence_maps, 'enemy_number', 'Enemy number')
-        DBG.show_fgumap_with_message(influence_maps, 'influence', 'Influence map')
-        DBG.show_fgumap_with_message(influence_maps, 'full_move_influence', 'Full-move influence map')
-        DBG.show_fgumap_with_message(influence_maps, 'two_turn_influence', 'two_turn influence map')
-        DBG.show_fgumap_with_message(influence_maps, 'tension', 'Tension map')
-        DBG.show_fgumap_with_message(influence_maps, 'vulnerability', 'Vulnerability map')
+        DBG.show_fgm_with_message(influence_maps, 'my_influence', 'My influence map')
+        DBG.show_fgm_with_message(influence_maps, 'my_full_move_influence', 'My full-move influence map')
+        DBG.show_fgm_with_message(influence_maps, 'my_two_turn_influence', 'My two-turn influence map')
+        --DBG.show_fgm_with_message(influence_maps, 'my_number', 'My number')
+        DBG.show_fgm_with_message(influence_maps, 'enemy_influence', 'Enemy influence map')
+        DBG.show_fgm_with_message(influence_maps, 'enemy_full_move_influence', 'Enemy full-move influence map')
+        DBG.show_fgm_with_message(influence_maps, 'enemy_two_turn_influence', 'Enemy two-turn influence map')
+        --DBG.show_fgm_with_message(influence_maps, 'enemy_number', 'Enemy number')
+        DBG.show_fgm_with_message(influence_maps, 'influence', 'Influence map')
+        DBG.show_fgm_with_message(influence_maps, 'full_move_influence', 'Full-move influence map')
+        DBG.show_fgm_with_message(influence_maps, 'two_turn_influence', 'two_turn influence map')
+        DBG.show_fgm_with_message(influence_maps, 'tension', 'Tension map')
+        DBG.show_fgm_with_message(influence_maps, 'vulnerability', 'Vulnerability map')
     end
 
     if DBG.show_debug('ops_unit_influence_maps') then
         for id,unit_influence_map in pairs(unit_influence_maps) do
-            DBG.show_fgumap_with_message(unit_influence_map, 'influence', 'Unit influence map ' .. id, move_data.unit_copies[id])
+            DBG.show_fgm_with_message(unit_influence_map, 'influence', 'Unit influence map ' .. id, move_data.unit_copies[id])
         end
     end
 

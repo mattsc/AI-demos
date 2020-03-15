@@ -73,7 +73,7 @@ local function get_reach_map_to_keep(leader, fred_data)
     else
         -- This only happens if the leader is out of reach of any keep, or when all the
         -- close keeps are occupied by enemies
-        -- This should rarely be needed, so we only do this when required, rather than in gamestate_utils
+        -- This should rarely be needed, so we only do this when required, rather than adding it to move_data
         local keeps = wesnoth.get_locations {
             include_borders = 'no',
             terrain = 'K*,K*^*,*^K*'
@@ -103,7 +103,7 @@ local function get_reach_map_to_keep(leader, fred_data)
     local effective_reach_map = {}
     for x_k,y_k,_ in FGM.iter(keeps_map) do
         local cost_from_keep = FMU.smooth_cost_map(leader_proxy, { x_k, y_k }, true, move_data.movecost_maps_cache)
-        --DBG.show_fgumap_with_message(cost_from_keep, 'cost', 'cost_from_keep')
+        --DBG.show_fgm_with_message(cost_from_keep, 'cost', 'cost_from_keep')
 
         for x,y,data in FGM.iter(cost_from_keep) do
             if (not FGM.get_value(move_data.my_unit_map_noMP, x, y, 'id'))
@@ -277,7 +277,7 @@ local function get_best_village_keep(leader, recruit_first, effective_reach_map,
         end
     end
     --DBG.dbms(best_hex, false, 'best_hex')
-    --DBG.show_fgumap_with_message(hex_rating_map, 'rating', 'hex_rating_map', move_data.unit_copies[leader.id])
+    --DBG.show_fgm_with_message(hex_rating_map, 'rating', 'hex_rating_map', move_data.unit_copies[leader.id])
 
     local village, keep, other
     if best_hex.info.is_village then
@@ -338,7 +338,7 @@ function fred_move_leader_utils.leader_objectives(fred_data)
         if (not effective_reach_map) or (not next(effective_reach_map)) then
             effective_reach_map = get_reach_map_to_keep(leader, fred_data)
         end
-        --DBG.show_fgumap_with_message(effective_reach_map, 'moves_left', 'effective_reach_map', move_data.unit_copies[leader.id])
+        --DBG.show_fgm_with_message(effective_reach_map, 'moves_left', 'effective_reach_map', move_data.unit_copies[leader.id])
 
         -- If the eventual goal is a village, we do not need to rate the keep that we might
         -- stop by for recruiting. The village function will also return whatever keep
@@ -510,12 +510,12 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
         end
 
         if false then
-            DBG.show_fgumap_with_message(between_map, 'distance', 'assess_leader_threats between_map: distance')
-            DBG.show_fgumap_with_message(between_map, 'perp_distance', 'assess_leader_threats between_map: perp_distance')
-            DBG.show_fgumap_with_message(between_map, 'is_between', 'assess_leader_threats between_map: is_between')
+            DBG.show_fgm_with_message(between_map, 'distance', 'assess_leader_threats between_map: distance')
+            DBG.show_fgm_with_message(between_map, 'perp_distance', 'assess_leader_threats between_map: perp_distance')
+            DBG.show_fgm_with_message(between_map, 'is_between', 'assess_leader_threats between_map: is_between')
         end
-        --DBG.show_fgumap_with_message(leader_zone_map, 'in_zone', 'assess_leader_threats leader_zone_map')
-        --DBG.show_fgumap_with_message(perp_map, 'perp', 'assess_leader_threats perp_map')
+        --DBG.show_fgm_with_message(leader_zone_map, 'in_zone', 'assess_leader_threats leader_zone_map')
+        --DBG.show_fgm_with_message(perp_map, 'perp', 'assess_leader_threats perp_map')
     end
 
 
@@ -542,7 +542,7 @@ function fred_move_leader_utils.assess_leader_threats(leader_objectives, side_cf
                 FGM.add(castle_rating_map, x, y, 'rating', max_moves_left)
             end
         end
-        --DBG.show_fgumap_with_message(castle_rating_map, 'rating', 'castle_rating_map')
+        --DBG.show_fgm_with_message(castle_rating_map, 'rating', 'castle_rating_map')
 
         -- Note that the leader is included in the units that can move out of the
         -- way, as he might be on a castle hex other than a keep. The recruit location is

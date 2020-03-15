@@ -364,7 +364,7 @@ function fred_hold_utils.unit_rating_maps_to_dstsrc(unit_rating_maps, key, move_
             for i = 1,count do
                 FGM.set_value(tmp_map, sorted_ratings[unit.id][i].x, sorted_ratings[unit.id][i].y, 'rating', sorted_ratings[unit.id][i].protect_rating or sorted_ratings[unit.id][i].vuln_rating)
             end
-            DBG.show_fgumap_with_message(tmp_map, 'rating', 'Best rating', move_data.unit_infos[unit.id])
+            DBG.show_fgm_with_message(tmp_map, 'rating', 'Best rating', move_data.unit_infos[unit.id])
         end
     end
 

@@ -133,8 +133,8 @@ function debug_utils.clear_labels()
     end
 end
 
-function debug_utils.put_fgumap_labels(map, key, cfg)
-    -- Take @map (in the format as defined in fred_gamestate_utils (fgu) and put
+function debug_utils.put_fgm_labels(map, key, cfg)
+    -- Take gamestate map (in the format as used in turn_data or move_data and put
     -- labels containing the values of @key onto the map.
     -- Print 'nan' if element exists but is not a number or a boolean.
     -- Print 'nil' if element is just that
@@ -226,7 +226,7 @@ function debug_utils.put_fgumap_labels(map, key, cfg)
     end
 end
 
-function debug_utils.show_fgumap_with_message(map, key, text, cfg)
+function debug_utils.show_fgm_with_message(map, key, text, cfg)
     -- @cfg: optional table with display configuration parameters:
     --   @x,@y: coordinates to scroll to; if omitted, no scrolling is done
     --   @id: speaker id; if omitted, a narrator message is shown
@@ -236,7 +236,7 @@ function debug_utils.show_fgumap_with_message(map, key, text, cfg)
 
     local comment = ''
     if (not next(map)) then comment = '\n\nMap is empty' end
-    debug_utils.put_fgumap_labels(map, key, cfg)
+    debug_utils.put_fgm_labels(map, key, cfg)
     if cfg and cfg.x and cfg.y then
         -- Scroll to the middle between the center of gravity of the map and the specified coordinates
         local cog_x, cog_y, count = 0, 0, 0

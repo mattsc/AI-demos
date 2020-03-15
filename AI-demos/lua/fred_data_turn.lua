@@ -35,7 +35,7 @@ function fred_data_turn.set_turn_data(fred_data)
 
     if DBG.show_debug('ops_enemy_initial_reach_maps') then
         for enemy_id,_ in pairs(move_data.enemies) do
-            DBG.show_fgumap_with_message(enemy_initial_reach_maps[enemy_id], 'moves_left', 'enemy_initial_reach_maps', move_data.unit_copies[enemy_id])
+            DBG.show_fgm_with_message(enemy_initial_reach_maps[enemy_id], 'moves_left', 'enemy_initial_reach_maps', move_data.unit_copies[enemy_id])
         end
     end
 

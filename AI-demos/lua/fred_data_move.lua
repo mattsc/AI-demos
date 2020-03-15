@@ -277,11 +277,11 @@ function fred_data_move.get_move_data(fred_data)
         end
 
         if DBG.show_debug('ops_keep_maps') then
-            DBG.show_fgumap_with_message(close_keeps_map[side], 'moves_left', 'close_keeps_map: Side ' .. side, { x = leader[1], y = leader[2] })
-            DBG.show_fgumap_with_message(close_castles_map[side], 'castle', 'close_castles_map: Side ' .. side, { x = leader[1], y = leader[2] })
+            DBG.show_fgm_with_message(close_keeps_map[side], 'moves_left', 'close_keeps_map: Side ' .. side, { x = leader[1], y = leader[2] })
+            DBG.show_fgm_with_message(close_castles_map[side], 'castle', 'close_castles_map: Side ' .. side, { x = leader[1], y = leader[2] })
             if (side == wesnoth.current.side) then
-                DBG.show_fgumap_with_message(reachable_keeps_map, 'moves_left', 'reachable_keeps_map: Side ' .. side, { x = leader[1], y = leader[2] })
-                DBG.show_fgumap_with_message(reachable_castles_map, 'castle', 'reachable_castles_map: Side ' .. side, { x = leader[1], y = leader[2] })
+                DBG.show_fgm_with_message(reachable_keeps_map, 'moves_left', 'reachable_keeps_map: Side ' .. side, { x = leader[1], y = leader[2] })
+                DBG.show_fgm_with_message(reachable_castles_map, 'castle', 'reachable_castles_map: Side ' .. side, { x = leader[1], y = leader[2] })
             end
         end
     end

@@ -1609,7 +1609,7 @@ local function get_hold_action(zone_cfg, fred_data)
         end
     end
     if DBG.show_debug('hold_zone_map') then
-        DBG.show_fgumap_with_message(zone_map, 'in_zone', 'Zone map')
+        DBG.show_fgm_with_message(zone_map, 'in_zone', 'Zone map')
     end
 
     -- For the enemy rating, we need to put a 1-hex buffer around this
@@ -1623,7 +1623,7 @@ local function get_hold_action(zone_cfg, fred_data)
         end
     end
     if false then
-        DBG.show_fgumap_with_message(buffered_zone_map, 'in_zone', 'Buffered zone map')
+        DBG.show_fgm_with_message(buffered_zone_map, 'in_zone', 'Buffered zone map')
     end
 
 
@@ -1690,9 +1690,9 @@ local function get_hold_action(zone_cfg, fred_data)
         end
 
         if false then
-            --DBG.show_fgumap_with_message(enemy_zone_maps[enemy_id], 'hit_chance', 'Enemy hit chance', move_data.unit_copies[enemy_id])
-            --DBG.show_fgumap_with_message(enemy_zone_maps[enemy_id], 'moves_left', 'Enemy moves left', move_data.unit_copies[enemy_id])
-            DBG.show_fgumap_with_message(enemy_zone_maps[enemy_id], 'adj_hit_chance', 'Enemy adjacent hit_chance', move_data.unit_copies[enemy_id])
+            --DBG.show_fgm_with_message(enemy_zone_maps[enemy_id], 'hit_chance', 'Enemy hit chance', move_data.unit_copies[enemy_id])
+            --DBG.show_fgm_with_message(enemy_zone_maps[enemy_id], 'moves_left', 'Enemy moves left', move_data.unit_copies[enemy_id])
+            DBG.show_fgm_with_message(enemy_zone_maps[enemy_id], 'adj_hit_chance', 'Enemy adjacent hit_chance', move_data.unit_copies[enemy_id])
         end
     end
 
@@ -1733,13 +1733,13 @@ local function get_hold_action(zone_cfg, fred_data)
 
 
     if DBG.show_debug('hold_influence_map') then
-        --DBG.show_fgumap_with_message(holders_influence, 'my_influence', 'Holders influence')
-        --DBG.show_fgumap_with_message(holders_influence, 'enemy_influence', 'Enemy influence')
-        DBG.show_fgumap_with_message(holders_influence, 'influence', 'Influence')
-        --DBG.show_fgumap_with_message(holders_influence, 'tension', 'tension')
-        DBG.show_fgumap_with_message(holders_influence, 'vulnerability', 'vulnerability')
-        --DBG.show_fgumap_with_message(holders_influence, 'my_count', 'My count')
-        --DBG.show_fgumap_with_message(holders_influence, 'enemy_count', 'Enemy count')
+        --DBG.show_fgm_with_message(holders_influence, 'my_influence', 'Holders influence')
+        --DBG.show_fgm_with_message(holders_influence, 'enemy_influence', 'Enemy influence')
+        DBG.show_fgm_with_message(holders_influence, 'influence', 'Influence')
+        --DBG.show_fgm_with_message(holders_influence, 'tension', 'tension')
+        DBG.show_fgm_with_message(holders_influence, 'vulnerability', 'vulnerability')
+        --DBG.show_fgm_with_message(holders_influence, 'my_count', 'My count')
+        --DBG.show_fgm_with_message(holders_influence, 'enemy_count', 'Enemy count')
     end
 
 
@@ -1864,14 +1864,14 @@ local function get_hold_action(zone_cfg, fred_data)
         between_map = FMU.get_between_map(locs, tmp_enemies, move_data)
 
         if DBG.show_debug('hold_between_map') then
-            DBG.show_fgumap_with_message(between_map, 'is_between', zone_cfg.zone_id .. ': between map: is_between')
-            DBG.show_fgumap_with_message(between_map, 'distance', zone_cfg.zone_id .. ': between map: distance')
-            --DBG.show_fgumap_with_message(between_map, 'blurred_distance', zone_cfg.zone_id .. ': between map: blurred distance')
-            DBG.show_fgumap_with_message(between_map, 'perp_distance', zone_cfg.zone_id .. ': between map: perp_distance')
-            --DBG.show_fgumap_with_message(between_map, 'blurred_perp_distance', zone_cfg.zone_id .. ': between map: blurred blurred_perp_distance')
-            --DBG.show_fgumap_with_message(between_map, 'inv_cost', zone_cfg.zone_id .. ': between map: inv_cost')
-            --DBG.show_fgumap_with_message(fred_data.ops_data.leader_distance_map, 'distance', 'leader distance')
-            --DBG.show_fgumap_with_message(fred_data.ops_data.leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
+            DBG.show_fgm_with_message(between_map, 'is_between', zone_cfg.zone_id .. ': between map: is_between')
+            DBG.show_fgm_with_message(between_map, 'distance', zone_cfg.zone_id .. ': between map: distance')
+            --DBG.show_fgm_with_message(between_map, 'blurred_distance', zone_cfg.zone_id .. ': between map: blurred distance')
+            DBG.show_fgm_with_message(between_map, 'perp_distance', zone_cfg.zone_id .. ': between map: perp_distance')
+            --DBG.show_fgm_with_message(between_map, 'blurred_perp_distance', zone_cfg.zone_id .. ': between map: blurred blurred_perp_distance')
+            --DBG.show_fgm_with_message(between_map, 'inv_cost', zone_cfg.zone_id .. ': between map: inv_cost')
+            --DBG.show_fgm_with_message(fred_data.ops_data.leader_distance_map, 'distance', 'leader distance')
+            --DBG.show_fgm_with_message(fred_data.ops_data.leader_distance_map, 'enemy_leader_distance', 'enemy_leader_distance')
         end
     end
 
@@ -2067,15 +2067,15 @@ local function get_hold_action(zone_cfg, fred_data)
 
     if DBG.show_debug('hold_prerating_maps') then
         for id,pre_rating_map in pairs(pre_rating_maps) do
-            DBG.show_fgumap_with_message(pre_rating_map, 'av_outcome', 'Average outcome', move_data.unit_copies[id])
-            --DBG.show_fgumap_with_message(pre_rating_map, 'counter_actual_taken', 'Actual damage (taken) from counter attack', move_data.unit_copies[id])
-            --DBG.show_fgumap_with_message(pre_rating_map, 'counter_actual_damage', 'Actual damage (taken - done) from counter attack', move_data.unit_copies[id])
-            --DBG.show_fgumap_with_message(pre_rating_map, 'counter_max_taken', 'Max damage from counter attack', move_data.unit_copies[id])
-            --DBG.show_fgumap_with_message(pre_rating_map, 'approx_ctd', 'Approximate chance to die', move_data.unit_copies[id])
-            --DBG.show_fgumap_with_message(pre_rating_map, 'my_value_loss', 'My value loss', move_data.unit_copies[id])
-            --DBG.show_fgumap_with_message(pre_rating_map, 'enemy_value_loss', 'Enemy value loss', move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(pre_rating_map, 'value_loss', 'Value loss', move_data.unit_copies[id])
-            --DBG.show_fgumap_with_message(pre_rating_map, 'influence', 'Influence', move_data.unit_copies[id])
+            DBG.show_fgm_with_message(pre_rating_map, 'av_outcome', 'Average outcome', move_data.unit_copies[id])
+            --DBG.show_fgm_with_message(pre_rating_map, 'counter_actual_taken', 'Actual damage (taken) from counter attack', move_data.unit_copies[id])
+            --DBG.show_fgm_with_message(pre_rating_map, 'counter_actual_damage', 'Actual damage (taken - done) from counter attack', move_data.unit_copies[id])
+            --DBG.show_fgm_with_message(pre_rating_map, 'counter_max_taken', 'Max damage from counter attack', move_data.unit_copies[id])
+            --DBG.show_fgm_with_message(pre_rating_map, 'approx_ctd', 'Approximate chance to die', move_data.unit_copies[id])
+            --DBG.show_fgm_with_message(pre_rating_map, 'my_value_loss', 'My value loss', move_data.unit_copies[id])
+            --DBG.show_fgm_with_message(pre_rating_map, 'enemy_value_loss', 'Enemy value loss', move_data.unit_copies[id])
+            DBG.show_fgm_with_message(pre_rating_map, 'value_loss', 'Value loss', move_data.unit_copies[id])
+            --DBG.show_fgm_with_message(pre_rating_map, 'influence', 'Influence', move_data.unit_copies[id])
         end
     end
 
@@ -2104,7 +2104,7 @@ local function get_hold_action(zone_cfg, fred_data)
         for x,y,data in FGM.iter(adj_hex_map) do
             FGM.set_value(hold_here_map, x, y, 'av_outcome', data.av_outcome)
         end
-        --DBG.show_fgumap_with_message(hold_here_map, 'av_outcome', 'hold_here', move_data.unit_copies[id])
+        --DBG.show_fgm_with_message(hold_here_map, 'av_outcome', 'hold_here', move_data.unit_copies[id])
 
         local fraction_hp_missing = (move_data.unit_infos[id].max_hitpoints - move_data.unit_infos[id].hitpoints) / move_data.unit_infos[id].max_hitpoints
         local hp_rating = FU.weight_s(fraction_hp_missing, 0.5)
@@ -2186,10 +2186,10 @@ local function get_hold_action(zone_cfg, fred_data)
 
     if DBG.show_debug('hold_here_map') then
         for id,hold_here_map in pairs(hold_here_maps) do
-            DBG.show_fgumap_with_message(hold_here_map, 'hold_here', 'hold_here', move_data.unit_copies[id])
+            DBG.show_fgm_with_message(hold_here_map, 'hold_here', 'hold_here', move_data.unit_copies[id])
         end
         for id,protect_here_map in pairs(protect_here_maps) do
-            DBG.show_fgumap_with_message(protect_here_map, 'protect_here', 'protect_here', move_data.unit_copies[id])
+            DBG.show_fgm_with_message(protect_here_map, 'protect_here', 'protect_here', move_data.unit_copies[id])
         end
     end
 
@@ -2274,10 +2274,10 @@ local function get_hold_action(zone_cfg, fred_data)
 
     if DBG.show_debug('hold_rating_maps') then
         for id,hold_rating_map in pairs(hold_rating_maps) do
-            DBG.show_fgumap_with_message(hold_rating_map, 'base_rating', 'base_rating', move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(hold_rating_map, 'vuln_rating', 'vuln_rating_org', move_data.unit_copies[id])
-            --DBG.show_fgumap_with_message(hold_rating_map, 'conv', 'conv', move_data.unit_copies[id])
-            --DBG.show_fgumap_with_message(hold_rating_map, 'vuln_rating', 'vuln_rating', move_data.unit_copies[id])
+            DBG.show_fgm_with_message(hold_rating_map, 'base_rating', 'base_rating', move_data.unit_copies[id])
+            DBG.show_fgm_with_message(hold_rating_map, 'vuln_rating', 'vuln_rating_org', move_data.unit_copies[id])
+            --DBG.show_fgm_with_message(hold_rating_map, 'conv', 'conv', move_data.unit_copies[id])
+            --DBG.show_fgm_with_message(hold_rating_map, 'vuln_rating', 'vuln_rating', move_data.unit_copies[id])
         end
     end
 
@@ -2390,11 +2390,11 @@ local function get_hold_action(zone_cfg, fred_data)
 
     if DBG.show_debug('hold_protect_rating_maps') then
         for id,protect_rating_map in pairs(protect_rating_maps) do
-            DBG.show_fgumap_with_message(protect_rating_map, 'protect_base_rating', 'protect_base_rating', move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(protect_rating_map, 'protect_rating', 'protect_rating_org', move_data.unit_copies[id])
-            --DBG.show_fgumap_with_message(protect_rating_map, 'vuln', 'vuln', move_data.unit_copies[id])
-            --DBG.show_fgumap_with_message(protect_rating_map, 'conv', 'conv', move_data.unit_copies[id])
-            --DBG.show_fgumap_with_message(protect_rating_map, 'protect_rating', 'protect_rating', move_data.unit_copies[id])
+            DBG.show_fgm_with_message(protect_rating_map, 'protect_base_rating', 'protect_base_rating', move_data.unit_copies[id])
+            DBG.show_fgm_with_message(protect_rating_map, 'protect_rating', 'protect_rating_org', move_data.unit_copies[id])
+            --DBG.show_fgm_with_message(protect_rating_map, 'vuln', 'vuln', move_data.unit_copies[id])
+            --DBG.show_fgm_with_message(protect_rating_map, 'conv', 'conv', move_data.unit_copies[id])
+            --DBG.show_fgm_with_message(protect_rating_map, 'protect_rating', 'protect_rating', move_data.unit_copies[id])
         end
     end
 
@@ -2428,7 +2428,7 @@ local function get_hold_action(zone_cfg, fred_data)
     --DBG.dbms(adjacent_village_map, false, 'adjacent_village_map')
 
     if false then
-        DBG.show_fgumap_with_message(adjacent_village_map, 'village_xy', 'Adjacent vulnerable villages')
+        DBG.show_fgm_with_message(adjacent_village_map, 'village_xy', 'Adjacent vulnerable villages')
     end
 
 
@@ -2709,7 +2709,7 @@ local function get_advance_action(zone_cfg, fred_data)
         end
     end
     if false then
-        DBG.show_fgumap_with_message(adjacent_village_map, 'village_xy', 'Adjacent vulnerable villages')
+        DBG.show_fgm_with_message(adjacent_village_map, 'village_xy', 'Adjacent vulnerable villages')
     end
 
 
@@ -2819,7 +2819,7 @@ local function get_advance_action(zone_cfg, fred_data)
                 for _,loc in ipairs(path) do
                     FGM.set_value(path_map, loc[1], loc[2], 'cost', loc[3])
                 end
-                DBG.show_fgumap_with_message(path_map, 'cost', 'path_map', unit_copy[id])
+                DBG.show_fgm_with_message(path_map, 'cost', 'path_map', unit_copy[id])
             end
 
             -- Find the hex one past the last the unit can reach
@@ -2851,11 +2851,11 @@ local function get_advance_action(zone_cfg, fred_data)
         end
 
         if DBG.show_debug('advance_cost_maps') then
-            --DBG.show_fgumap_with_message(cost_map, 'forward', zone_cfg.zone_id ..': advance cost map forward', move_data.unit_copies[id])
-            --DBG.show_fgumap_with_message(cost_map, 'perp', zone_cfg.zone_id ..': advance cost map perp', move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(cost_map, 'df', zone_cfg.zone_id ..': advance cost map delta forward', move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(cost_map, 'dp', zone_cfg.zone_id ..': advance cost map delta perp', move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(cost_map, 'cost', zone_cfg.zone_id ..': advance cost map', move_data.unit_copies[id])
+            --DBG.show_fgm_with_message(cost_map, 'forward', zone_cfg.zone_id ..': advance cost map forward', move_data.unit_copies[id])
+            --DBG.show_fgm_with_message(cost_map, 'perp', zone_cfg.zone_id ..': advance cost map perp', move_data.unit_copies[id])
+            DBG.show_fgm_with_message(cost_map, 'df', zone_cfg.zone_id ..': advance cost map delta forward', move_data.unit_copies[id])
+            DBG.show_fgm_with_message(cost_map, 'dp', zone_cfg.zone_id ..': advance cost map delta perp', move_data.unit_copies[id])
+            DBG.show_fgm_with_message(cost_map, 'cost', zone_cfg.zone_id ..': advance cost map', move_data.unit_copies[id])
         end
 
         -- Use a more defensive rating for units that have been isolated in enemy territory.
@@ -3017,18 +3017,18 @@ local function get_advance_action(zone_cfg, fred_data)
 
     if DBG.show_debug('advance_unit_rating') then
         for id,unit_rating_map in pairs(unit_rating_maps) do
-            DBG.show_fgumap_with_message(unit_rating_map, 'rating', zone_cfg.zone_id ..': advance unit rating (unit value = ' .. move_data.unit_infos[id].unit_value .. ')', move_data.unit_copies[id])
+            DBG.show_fgm_with_message(unit_rating_map, 'rating', zone_cfg.zone_id ..': advance unit rating (unit value = ' .. move_data.unit_infos[id].unit_value .. ')', move_data.unit_copies[id])
         end
     end
     if DBG.show_debug('advance_unit_rating_details') then
         for id,unit_rating_map in pairs(unit_rating_maps) do
-            DBG.show_fgumap_with_message(unit_rating_map, 'unit_rating', zone_cfg.zone_id ..': advance unit_rating (unit value = ' .. move_data.unit_infos[id].unit_value .. ')', move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(unit_rating_map, 'dist_rating', zone_cfg.zone_id ..': advance dist_rating (unit value = ' .. move_data.unit_infos[id].unit_value .. ')', move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(unit_rating_map, 'counter_rating', zone_cfg.zone_id ..': advance counter_rating (unit value = ' .. move_data.unit_infos[id].unit_value .. ')', move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(unit_rating_map, 'bonus_rating', zone_cfg.zone_id ..': advance bonus_rating (unit value = ' .. move_data.unit_infos[id].unit_value .. ')', move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(unit_rating_map, 'fm_infl', zone_cfg.zone_id ..': full move influence' .. move_data.unit_infos[id].unit_value .. ')', move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(unit_rating_map, 'rating', zone_cfg.zone_id ..': advance total rating (unit value = ' .. move_data.unit_infos[id].unit_value .. ')', move_data.unit_copies[id])
-            DBG.show_fgumap_with_message(unit_rating_map, 'defensive_rating', zone_cfg.zone_id ..': advance total defensive_rating (unit value = ' .. move_data.unit_infos[id].unit_value .. ')', move_data.unit_copies[id])
+            DBG.show_fgm_with_message(unit_rating_map, 'unit_rating', zone_cfg.zone_id ..': advance unit_rating (unit value = ' .. move_data.unit_infos[id].unit_value .. ')', move_data.unit_copies[id])
+            DBG.show_fgm_with_message(unit_rating_map, 'dist_rating', zone_cfg.zone_id ..': advance dist_rating (unit value = ' .. move_data.unit_infos[id].unit_value .. ')', move_data.unit_copies[id])
+            DBG.show_fgm_with_message(unit_rating_map, 'counter_rating', zone_cfg.zone_id ..': advance counter_rating (unit value = ' .. move_data.unit_infos[id].unit_value .. ')', move_data.unit_copies[id])
+            DBG.show_fgm_with_message(unit_rating_map, 'bonus_rating', zone_cfg.zone_id ..': advance bonus_rating (unit value = ' .. move_data.unit_infos[id].unit_value .. ')', move_data.unit_copies[id])
+            DBG.show_fgm_with_message(unit_rating_map, 'fm_infl', zone_cfg.zone_id ..': full move influence' .. move_data.unit_infos[id].unit_value .. ')', move_data.unit_copies[id])
+            DBG.show_fgm_with_message(unit_rating_map, 'rating', zone_cfg.zone_id ..': advance total rating (unit value = ' .. move_data.unit_infos[id].unit_value .. ')', move_data.unit_copies[id])
+            DBG.show_fgm_with_message(unit_rating_map, 'defensive_rating', zone_cfg.zone_id ..': advance total defensive_rating (unit value = ' .. move_data.unit_infos[id].unit_value .. ')', move_data.unit_copies[id])
         end
     end
 
@@ -3393,7 +3393,7 @@ local function do_recruit(fred_data, ai, action)
         local from_keep = FGM.get_value(move_data.effective_reach_maps[leader_id], leader_dst[1], leader_dst[2], 'from_keep')
         --std_print(leader_id, leader_dst[1] .. ',' .. leader_dst[2] .. '  <--  ' .. from_keep[1] .. ',' .. from_keep[2])
 
-        -- TODO: eventually we might switch this to Fred's own gamestate_utils maps
+        -- TODO: eventually we might switch this to Fred's own gamestate maps
         local avoid_map = LS.create()
         for _,dst in ipairs(action.dsts) do
             avoid_map:insert(dst[1], dst[2], true)

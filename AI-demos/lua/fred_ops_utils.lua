@@ -399,7 +399,7 @@ function fred_ops_utils.behavior_output(is_turn_start, zone_maps, ops_data)
             for _,unit in ipairs(zone_data.units) do
                 COMP.place_halo(unit.x, unit.y, "halo/illuminates-aura.png~CS(0,-255,-255)")
             end
-            DBG.show_fgumap_with_message(front_map, 'distance', str,
+            DBG.show_fgm_with_message(front_map, 'distance', str,
                 { x = (front and front.x), y = (front and front.y) }
             )
             for _,unit in ipairs(zone_data.units) do
@@ -590,7 +590,7 @@ function fred_ops_utils.set_ops_data(fred_data)
         leader_objectives, leader_effective_reach_map = FMLU.leader_objectives(fred_data)
         objectives = { leader = leader_objectives }
         --DBG.dbms(objectives, false, 'objectives')
-        --DBG.show_fgumap_with_message(leader_effective_reach_map, 'moves_left', 'leader_effective_reach_map')
+        --DBG.show_fgm_with_message(leader_effective_reach_map, 'moves_left', 'leader_effective_reach_map')
         leader_zone_map, leader_perp_map = FMLU.assess_leader_threats(objectives.leader, side_cfgs, fred_data)
     end
     --DBG.dbms(objectives, false, 'objectives')
@@ -1014,9 +1014,9 @@ function fred_ops_utils.set_ops_data(fred_data)
 
     if DBG.show_debug('ops_zone_maps') then
         for zone_id,zone_map in pairs(zone_maps) do
-            DBG.show_fgumap_with_message(zone_map, 'in_zone', 'zone_map ' .. zone_id)
+            DBG.show_fgm_with_message(zone_map, 'in_zone', 'zone_map ' .. zone_id)
         end
-        DBG.show_fgumap_with_message(combined_zone_map, 'count', 'combined_zone_map')
+        DBG.show_fgm_with_message(combined_zone_map, 'count', 'combined_zone_map')
     end
 
     -- Need the fronts for assigning units to zones. These will not be the exact fronts
@@ -1347,11 +1347,11 @@ function fred_ops_utils.set_ops_data(fred_data)
     end
 
     if DBG.show_debug('ops_distance_map') then
-        --DBG.show_fgumap_with_message(leader_distance_map, 'my_leader_distance', 'leader_distance_map: my_leader_distance')
-        --DBG.show_fgumap_with_message(leader_distance_map, 'enemy_leader_distance', 'leader_distance_map: enemy_leader_distance')
-        DBG.show_fgumap_with_message(leader_distance_map, 'distance', 'leader_distance_map: distance')
-        --DBG.show_fgumap_with_message(unit_advance_distance_maps['right']['Troll Whelp'], 'my_cost', 'my_cost')
-        --DBG.show_fgumap_with_message(unit_advance_distance_maps['right']['Troll Whelp'], 'enemy_cost', 'enemy_cost')
+        --DBG.show_fgm_with_message(leader_distance_map, 'my_leader_distance', 'leader_distance_map: my_leader_distance')
+        --DBG.show_fgm_with_message(leader_distance_map, 'enemy_leader_distance', 'leader_distance_map: enemy_leader_distance')
+        DBG.show_fgm_with_message(leader_distance_map, 'distance', 'leader_distance_map: distance')
+        --DBG.show_fgm_with_message(unit_advance_distance_maps['right']['Troll Whelp'], 'my_cost', 'my_cost')
+        --DBG.show_fgm_with_message(unit_advance_distance_maps['right']['Troll Whelp'], 'enemy_cost', 'enemy_cost')
 
         for zone_id,uadm in pairs(unit_advance_distance_maps) do
             local typ
@@ -1359,8 +1359,8 @@ function fred_ops_utils.set_ops_data(fred_data)
                 typ = t
                 break
             end
-            DBG.show_fgumap_with_message(unit_advance_distance_maps[zone_id][typ], 'forward', 'unit_advance_distance_maps[' .. zone_id .. '][' .. typ .. ']: forward')
-            DBG.show_fgumap_with_message(unit_advance_distance_maps[zone_id][typ], 'perp', 'unit_advance_distance_maps[' .. zone_id .. '][' .. typ .. ']: perp')
+            DBG.show_fgm_with_message(unit_advance_distance_maps[zone_id][typ], 'forward', 'unit_advance_distance_maps[' .. zone_id .. '][' .. typ .. ']: forward')
+            DBG.show_fgm_with_message(unit_advance_distance_maps[zone_id][typ], 'perp', 'unit_advance_distance_maps[' .. zone_id .. '][' .. typ .. ']: perp')
         end
     end
 
@@ -1939,11 +1939,11 @@ function fred_ops_utils.set_ops_data(fred_data)
         zone_influence_maps[zone_id] = zone_influence_map
 
         if DBG.show_debug('ops_zone_influence_maps') then
-            --DBG.show_fgumap_with_message(zone_influence_map, 'my_influence', 'Zone my influence map ' .. zone_id)
-            --DBG.show_fgumap_with_message(zone_influence_map, 'enemy_influence', 'Zone enemy influence map ' .. zone_id)
-            DBG.show_fgumap_with_message(zone_influence_map, 'influence', 'Zone influence map ' .. zone_id)
-            --DBG.show_fgumap_with_message(zone_influence_map, 'tension', 'Zone tension map ' .. zone_id)
-            DBG.show_fgumap_with_message(zone_influence_map, 'vulnerability', 'Zone vulnerability map ' .. zone_id)
+            --DBG.show_fgm_with_message(zone_influence_map, 'my_influence', 'Zone my influence map ' .. zone_id)
+            --DBG.show_fgm_with_message(zone_influence_map, 'enemy_influence', 'Zone enemy influence map ' .. zone_id)
+            DBG.show_fgm_with_message(zone_influence_map, 'influence', 'Zone influence map ' .. zone_id)
+            --DBG.show_fgm_with_message(zone_influence_map, 'tension', 'Zone tension map ' .. zone_id)
+            DBG.show_fgm_with_message(zone_influence_map, 'vulnerability', 'Zone vulnerability map ' .. zone_id)
         end
     end
 
@@ -2331,16 +2331,16 @@ tmp_unit = nil
                 end
             end
 
-            DBG.show_fgumap_with_message(ADmap, 'forward', 'advance_distance_map ' .. zone_id .. ': forward')
-            DBG.show_fgumap_with_message(ADmap, 'perp', 'advance_distance_map ' .. zone_id .. ': perp')
-            DBG.show_fgumap_with_message(ADmap, 'sign', 'advance_distance_map ' .. zone_id .. ': sign')
+            DBG.show_fgm_with_message(ADmap, 'forward', 'advance_distance_map ' .. zone_id .. ': forward')
+            DBG.show_fgm_with_message(ADmap, 'perp', 'advance_distance_map ' .. zone_id .. ': perp')
+            DBG.show_fgm_with_message(ADmap, 'sign', 'advance_distance_map ' .. zone_id .. ': sign')
             for x,y,_ in FGM.iter(front_map) do
                 COMP.place_halo(x, y, "halo/teleport-8.png")
             end
             COMP.place_halo(goal_hex[1], goal_hex[2], "halo/illuminates-aura.png~CS(-255,-255,0)")
             COMP.place_halo(goal_hex_hold[1], goal_hex_hold[2], "halo/illuminates-aura.png~CS(0,-255,-255)")
-            DBG.show_fgumap_with_message(display_map, 'infl', 'advance route influence: ' .. zone_id .. '\nred halo: goal hex hold\nblue halo: goal hex advance')
-            DBG.show_fgumap_with_message(display_map, 'vuln', 'advance route vulnerability: ' .. zone_id .. '\nred halo: goal hex hold\nblue halo: goal hex advance')
+            DBG.show_fgm_with_message(display_map, 'infl', 'advance route influence: ' .. zone_id .. '\nred halo: goal hex hold\nblue halo: goal hex advance')
+            DBG.show_fgm_with_message(display_map, 'vuln', 'advance route vulnerability: ' .. zone_id .. '\nred halo: goal hex hold\nblue halo: goal hex advance')
             COMP.remove(goal_hex_hold[1], goal_hex_hold[2], "halo/illuminates-aura.png~CS(0,-255,-255)")
             COMP.remove(goal_hex[1], goal_hex[2], "halo/illuminates-aura.png~CS(-255,-255,0)")
             for x,y,_ in FGM.iter(front_map) do
